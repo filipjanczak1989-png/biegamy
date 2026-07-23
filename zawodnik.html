@@ -1920,6 +1920,7 @@ async function _prefillLogFromDate(dateStr) {
     training = data;
     // Cache dla dzisiejszego dnia jeśli puste było
     if (training && dateStr === today) window._todayTraining = training;
+    if (training && dateStr === today) { try { localStorage.setItem('solo_typ', JSON.stringify({ d: today, t: training.training_type || '' })); } catch(e){} }   /* DOPASOWANIE: snapshot typu na nastepna wizyte */
   }
 
   if (!training) return;
@@ -4689,9 +4690,45 @@ const _SOLO_PODPISY = [
   'Każdy ślad to *dowód*.',
   'Żar hartuje *stal i nogi*.',
   'Dobra energia *podaje się z kubkiem*.',
-  'Horyzont nie ucieka. *Czeka*.'
-];
-const _SOLO_I = _dayNum % _SOLO_PODPISY.length;
+  'Horyzont nie ucieka. *Czeka*.',
+  'Interwały: krótkie *piekło*, długa *forma*.',
+  'Odpoczynek między powtórzeniami to też *powtórzenie*.',
+  'Sekundy się *kłaniają*.',
+  'Tempo: rozmowa kończy się *tutaj*.',
+  'Równe tempo, równa *odwaga*.',
+  'Wolno znaczy *mądrze*.',
+  'Rozciąganie: podziękuj *mięśniom*.',
+  'Rolowanie boli *w dobrą stronę*.',
+  'Regeneracja to trening, który robisz *leżąc*.',
+  'Ochłonięcie domyka *robotę*.',
+  'Długie wybieganie liczy się *w opowieściach*.',
+  'Paliwo w trasie to nie *przekąska*.',
+  'Kilometry lubią *cierpliwych*.',
+  'Siła biegacza rodzi się *poza trasą*.',
+  'Brzuch to Twój drugi *pas napędowy*.',
+  'Deszcz to prysznic dla *wytrwałych*.',
+  'Kałuża? *Przeszkoda dodana gratis*.',
+  'Nie ma złej pogody. Jest *złe ubranie*.',
+  'Pierwszy ślad w śniegu jest *Twój*.',
+  'Śnieg pada — Ty *nie*.',
+  'Mróz szczypie tylko *stojących*.',
+  'Upał odpuszcza *pierwszy*.',
+  'Woda na głowę, żar *pod kontrolą*.',
+  'Latem świt to *klimatyzacja*.',
+  'Wiatr w twarz robi z pleców *żagiel* na powrót.',
+  'Wiatr wieje. *Ty biegniesz*.',
+  'We mgle słychać tylko *własny oddech*.',
+  'Mgła nie wie, dokąd biegniesz. *Ty wiesz*.',
+  'Zegarek nie kłamie. *Nogi też nie*.',
+  'Trener widzi więcej niż *stoper*.',
+  'Owsianka: oficjalny sponsor *pierwszych kilometrów*.',
+  'Jutro zaczyna się *dziś wieczorem*.',
+  'Księżyc też lubi *towarzystwo*.',
+  'Trasy się zmieniają. *Nawyk zostaje*.',
+  'Jutro pobiegniesz *z nami*?'
+]   /* SOLO-2: 31-65 */;
+let _SOLO_I = _dayNum % _SOLO_PODPISY.length;
+try { if (window.SOLO) _SOLO_I = SOLO.dopasuj(_SOLO_PODPISY.length, _dayNum) - 1; } catch(e){}   /* DOPASOWANIE: trening+pogoda; fallback = rotacja */
 _heroCards.length = 0;
 _heroCards.push(BASE_ASSETS + 'solo-' + String(_SOLO_I + 1).padStart(2,'0') + '.webp');
 _heroQuotes.length = 0;   /* podpis idzie POD kadr, nie na kadr */

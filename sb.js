@@ -3788,3 +3788,72 @@ window.PUSTKA = (function(){
   }
   return { dekoruj:dekoruj };
 })();
+
+/* ===== SOLO v1 (DOPASOWANIE): wybor kadru dnia wg treningu i pogody ===== */
+/* Wymog Filipa: wszystkie kadry uzyte, ale zero konfliktow (upal->deszcz). */
+/* 55% preferencji kontekstu / 45% wolny los; anty-powtorka 10; fallback = rotacja. */
+window.SOLO = (function(){
+  var TAGI = { 3:{p:'deszcz'},6:{p:'snieg'},11:{t:'regeneracja'},12:{p:'deszcz'},15:{p:'wiatr'},
+    19:{t:'regeneracja'},20:{t:'dlugie'},28:{p:'upal'},
+    31:{t:'interwaly'},32:{t:'interwaly'},33:{t:'interwaly'},34:{t:'tempo'},35:{t:'tempo'},
+    36:{t:'regeneracja'},37:{t:'regeneracja'},38:{t:'regeneracja'},39:{t:'regeneracja'},40:{t:'regeneracja'},
+    41:{t:'dlugie'},42:{t:'dlugie'},43:{t:'dlugie'},44:{t:'silownia'},45:{t:'silownia'},
+    46:{p:'deszcz'},47:{p:'deszcz'},48:{p:'deszcz'},49:{p:'snieg'},50:{p:'snieg'},51:{p:'snieg'},
+    52:{p:'upal'},53:{p:'upal'},54:{p:'upal'},55:{p:'wiatr'},56:{p:'wiatr'},57:{p:'mgla'},58:{p:'mgla'},
+    59:{t:'tempo'},60:{t:'interwaly'} };
+  var WYKL = { upal:['deszcz','snieg'], deszcz:['upal','snieg'], snieg:['upal','deszcz'], mgla:['upal'] };
+  function pogoda(){
+    try{
+      for(var i=0;i<sessionStorage.length;i++){
+        var k=sessionStorage.key(i); if(!k||k.indexOf('weather:')!==0) continue;
+        var c=JSON.parse(sessionStorage.getItem(k)||'null');
+        var d=c&&c.data&&c.data.days&&c.data.days[0]; if(!d) continue;
+        var wc=+d.weather_code||0, t=+(d.temp_max!=null?d.temp_max:(d.tmax!=null?d.tmax:d.temp))||null;
+        if((wc>=71&&wc<=77)||wc===85||wc===86) return 'snieg';
+        if((wc>=51&&wc<=67)||(wc>=80&&wc<=82)||wc>=95||(+d.precip_pct||0)>=60) return 'deszcz';
+        if(wc===45||wc===48) return 'mgla';
+        if(t!=null&&t>=25) return 'upal';
+        return null;
+      }
+    }catch(e){}
+    return null;
+  }
+  function typ(){
+    var v='';
+    try{ v=(window._todayTraining&&window._todayTraining.training_type)||''; }catch(e){}
+    if(!v){ try{var c=JSON.parse(localStorage.getItem('solo_typ')||'null');
+      var dz=new Date(); dz=new Date(dz.getTime()-dz.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      if(c&&c.d===dz) v=c.t||''; }catch(e){} }
+    v=String(v).toLowerCase();
+    if(/interwa|powtorzen|szybk/.test(v)) return 'interwaly';
+    if(/regener|spokoj|rozbieg|trucht/.test(v)) return 'regeneracja';
+    if(/dlug|wybieg/.test(v)) return 'dlugie';
+    if(/tempo|prog|bc2|bc3/.test(v)) return 'tempo';
+    if(/sil|gym|wzmacn/.test(v)) return 'silownia';
+    return null;
+  }
+  function rnd(seed){ seed=(seed^61)^(seed>>>16); seed=(seed+(seed<<3))|0; seed^=seed>>>4;
+    seed=(seed*0x27d4eb2d)|0; seed^=seed>>>15; return ((seed>>>0)%10000)/10000; }
+  function dopasuj(N, dayNum){
+    var salt=0; try{ salt=+localStorage.getItem('solo_salt')||0;
+      if(!salt){ salt=1+Math.floor(Math.random()*999983); localStorage.setItem('solo_salt',String(salt)); } }catch(e){}
+    var hist=[]; try{ hist=JSON.parse(localStorage.getItem('solo_hist')||'[]'); }catch(e){}
+    var pog=pogoda(), tt=typ();
+    var pula=[], pref=[];
+    for(var n=1;n<=N;n++){
+      var tg=TAGI[n]||{};
+      if(pog&&WYKL[pog]&&tg.p&&WYKL[pog].indexOf(tg.p)>=0) continue;   /* twarde wykluczenie */
+      if(hist.indexOf(n)>=0) continue;                                  /* anty-powtorka */
+      pula.push(n);
+      if((tt&&tg.t===tt)||(pog&&tg.p===pog)) pref.push(n);
+    }
+    if(!pula.length) pula=[dayNum%N+1];
+    var r1=rnd(dayNum*2654435761+salt), r2=rnd(dayNum*40503+salt*7);
+    var zbior=(pref.length&&r1<0.55)?pref:pula;
+    var nn=zbior[Math.floor(r2*zbior.length)%zbior.length];
+    try{ hist.push(nn); while(hist.length>10) hist.shift();
+      localStorage.setItem('solo_hist',JSON.stringify(hist)); }catch(e){}
+    return nn;
+  }
+  return { dopasuj:dopasuj, _pogoda:pogoda, _typ:typ };
+})();
