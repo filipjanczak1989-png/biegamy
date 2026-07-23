@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.7 (Świt V)</title>
+<title>Bieguś — Droga na Igrzyska · v14.8 (Puls)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -2354,6 +2354,7 @@ const Tele={ /* TELE (WY1+WY2): przyrzady pokladowe — game_events w Supabase; 
     if(!a){a='a'+Math.random().toString(36).slice(2,10);localStorage.setItem('biegus_anon',a);}
     return a;}catch(e){return 'a0';}},
   zdarzenie(typ,dane){if(!this.on)return;
+    if(typ==='blad'){this._nb=(this._nb||0)+1;if(this._nb>10)return;}   /* PULS v14.8 RATE-LIMIT: max 10 bledow/sesje — koniec z 943 spam-POSTami zombie-cache */
     this.buf.push({typ,dane:Object.assign({ts:Date.now()},dane||{}),wersja:(window.DROGA&&DROGA.wersja)||'?',anon_id:this.anon()});   /* PULS v13.9: dane.ts = prawdziwy moment zdarzenia (created_at klamie — to czas flusha) */   /* METRYKA-2 v13.5: wersja jest polem DROGA (v12.8 celowal w Gra — zly obiekt, diagnoza cc) */
     if(this.buf.length>=40||typ==='blad'||typ==='fail'||typ==='boss'||typ==='start'||typ==='meta')this.flush();},   /* PULS v13.9: start+meta tez od razu — czysta runda nie zostawia bufora w pamieci (diagnoza cc) */
   flush(beacon){if(!this.buf.length)return;
@@ -7673,7 +7674,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.7',
+  wersja:'14.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
