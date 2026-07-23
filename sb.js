@@ -864,7 +864,7 @@
       location.href = 'https://intervals.icu/oauth/authorize'
         + '?client_id=533'
         + '&redirect_uri=' + encodeURIComponent(redirect)
-        + '&scope=ACTIVITY:READ,CALENDAR:WRITE'
+        + '&scope=ACTIVITY:READ,CALENDAR:WRITE,WELLNESS:READ'   /* E3-K1: HRV/RHR/sen/waga */
         + '&state=' + encodeURIComponent(nonce)
         + '&response_type=code';
     },

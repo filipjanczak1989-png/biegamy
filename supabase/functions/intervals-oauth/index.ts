@@ -34,6 +34,7 @@ Deno.serve(async (req)=>{
     // E2: czy przyznano CALENDAR:WRITE — źródło prawdy = scope z odpowiedzi tokenowej (potwierdzone: intervals zwraca scope); brak pola → ufamy żądaniu
     const granted = String(tok?.scope || '').toUpperCase();
     const canWrite = granted ? granted.includes('CALENDAR:WRITE') : true;
+    const canWellness = granted ? granted.includes('WELLNESS:READ') : false;   /* E3-K1: false-default — stare tokeny NIE maja wellness */
     // status/display (wywołania API i tak przez athlete '0' = athleta tokenu); niech gate „połączono" ma wartość
     // ⚠️ intervals zwraca athlete.id JUŻ z prefiksem "i" (np. "i583138") → NIE doklejaj drugiego 'i' (bug "ii583138")
     const raw = tok?.athlete?.id;
@@ -55,7 +56,7 @@ Deno.serve(async (req)=>{
               { onConflict: 'athlete_id' });                                    // jawny PK-conflict → nadpisz row (nie duplikuj)
     if (cErr) return J(200,{ok:false,error:'store_'+cErr.message});
     await svc.from('athletes')
-      .update({ intervals_athlete_id: icuAthId, intervals_connected_at: new Date().toISOString(), intervals_can_write: canWrite, intervals_token_dead_at: null })   // E3: świeży token = żywy → skasuj flagę martwego (fold w connect-update, 1 zapytanie)
+      .update({ intervals_athlete_id: icuAthId, intervals_connected_at: new Date().toISOString(), intervals_can_write: canWrite, intervals_can_wellness: canWellness, intervals_token_dead_at: null })   // E3: świeży token = żywy → skasuj flagę martwego (fold w connect-update, 1 zapytanie)
       .eq('id', ath.id);
 
     // Ekran 2: best-effort licznik aktywności — czy intervals JUŻ ma treningi (podłączony Garmin?).
