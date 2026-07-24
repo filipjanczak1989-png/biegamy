@@ -1983,6 +1983,17 @@ window.autoSaveAIWeekTemplates = autoSaveAIWeekTemplates;
 function _projKolor(p){return (p.tsbKoniec>=5&&p.tsbKoniec<=20)?'#4ade80':p.tsbKoniec<5?'#fb923c':'#eab308';}
 function _projWerdykt(p){return (p.tsbKoniec>=5&&p.tsbKoniec<=20)?'koniec planu = forma w oknie startowym':p.tsbKoniec<5?'koniec = zmeczenie; rozwaz lzejszy finisz':'duzo swiezosci — mozna dolozyc bodzca';}
 function _projSVG(p){var s=p.seria,mn=Math.min.apply(null,s.map(function(x){return x.tsb;})),mx=Math.max.apply(null,s.map(function(x){return x.tsb;})),zak=(mx-mn)||1;var krok=Math.max(1,Math.floor(s.length/40));var pts=s.filter(function(_,i){return i%krok===0;});var W=300,H=54;var path=pts.map(function(q,i){return (i===0?'M':'L')+(i/(pts.length-1)*W).toFixed(1)+','+(H-(q.tsb-mn)/zak*H).toFixed(1);}).join(' ');var y0=(mn<=0&&mx>=0)?(H-(0-mn)/zak*H).toFixed(1):null;return (y0?'<line x1="0" y1="'+y0+'" x2="'+W+'" y2="'+y0+'" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3,3"/>':'')+'<path d="'+path+'" fill="none" stroke="'+_projKolor(p)+'" stroke-width="2" stroke-dasharray="4,3"/>';}
+async function tpUsunWorkout(workoutId, btn) {
+  if (!workoutId) return;
+  if (!confirm('Usun\u0105\u0107 ten trening z planu?')) return;
+  try {
+    btn.disabled = true; btn.textContent = '\u2026';
+    const { error } = await sb.from('training_plan_workouts').delete().eq('id', workoutId);
+    if (error) { btn.disabled = false; btn.textContent = '\u00d7'; showToast('B\u0142\u0105d usuwania: ' + error.message); return; }
+    /* usun kafelek z DOM + odswiez podglad (krzywa TSB przeliczy sie) */
+    if (_tpCurrentPlanId) renderPlanPreviewInCreateModal(_tpCurrentPlanId);
+  } catch (e) { btn.disabled = false; btn.textContent = '\u00d7'; showToast('B\u0142\u0105d: ' + e.message); }
+}
 async function _tpProjekcjaTSB(athleteId, workouts) {
   try {
     if (!window.formaTRIMP || !workouts || !workouts.length || !athleteId) return null;
@@ -2056,6 +2067,7 @@ async function renderPlanPreviewInCreateModal(planId) {
           ${w.description ? `<div style="font-size:10px;color:var(--fg2);margin-top:4px;line-height:1.4;">${escapeHtml(w.description.slice(0, 120))}${w.description.length > 120 ? '…' : ''}</div>` : ''}
           ${_stepsHtml}
         </div>
+        <button type="button" onclick="tpUsunWorkout('${w.id}', this)" title="Usu\u0144 z planu" style="flex-shrink:0;background:rgba(217,83,79,0.12);border:1px solid rgba(217,83,79,0.3);color:#d9534f;border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1;align-self:flex-start;">\u00d7</button>
       </div>`;
   }).join('');
   
