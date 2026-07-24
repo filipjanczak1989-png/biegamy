@@ -239,6 +239,57 @@ async function buildAthleteContext(supabase: any, athleteId: string) {
     .order("logged_at", { ascending: false })
     .limit(80);
 
+  /* ═══ PLANER-2 P1: ANALITYKA — TSB/CTL/monotonia/trend EF/wellness dla modelu.
+     CZWARTY swiadomy duplikat wag sb.js (obok RAPORT-AI+/BRIEF+) — zmiana tam => tu. ═══ */
+  let analityka: any = null;
+  try {
+    const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
+    const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
+    const _dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
+      const q=t.split(':').map(Number); if(q.some(isNaN)) return 0;
+      return q.length===3?q[0]*60+q[1]+q[2]/60:q.length===2?q[0]+q[1]/60:(+t||0); };
+    const od90p = new Date(Date.now()-90*864e5).toISOString();
+    const { data: l90p } = await supabase.from("training_logs")
+      .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace")
+      .eq("athlete_id", athleteId).gte("logged_at", od90p)
+      .not("training_type","like","__badge__%");
+    const dniP: Record<string, number> = {};
+    const efP: {x:number,y:number}[] = [];
+    const TLENp=/spokoj|wybieg|d\u0142ug|dlug|regener/, WYKLp=/interwa|tempo|progres|start|wy\u015bcig|zawod|si\u0142|sil/;
+    for (const l of (l90p||[])) {
+      const typ=String(l.training_type||'').toLowerCase().trim();
+      const tr=_dMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
+      const dk=String(l.logged_at).slice(0,10); dniP[dk]=(dniP[dk]||0)+tr;
+      if (TLENp.test(typ)&&!WYKLp.test(typ)&&l.heart_rate>=80&&l.heart_rate<=200) {
+        const m=String(l.gap_pace||l.pace||'').match(/^(\d{1,2}):(\d{2})/);
+        if (m){ const sek=+m[1]*60+ +m[2];
+          if(sek>=150&&sek<=720) efP.push({x:new Date(l.logged_at).getTime()/864e5,y:(1000/sek)/l.heart_rate*1000}); } }
+    }
+    let ctlP=0, atlP=0; const dTRp: number[]=[];
+    for (let k=89;k>=0;k--){ const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
+      const t=dniP[ds]||0; dTRp.push(t); ctlP+=(t-ctlP)*(1/42); atlP+=(t-atlP)*(1/7); }
+    const w7p=dTRp.slice(-7), s7p=w7p.reduce((a,b)=>a+b,0), sr7p=s7p/7;
+    const sd7p=Math.sqrt(w7p.reduce((a,b)=>a+(b-sr7p)*(b-sr7p),0)/7);
+    const monoP=sr7p<=0?0:(sd7p>0?Math.min(sr7p/sd7p,4):4);
+    let efPct: number|null=null;
+    if (efP.length>=5){ const n=efP.length; let sx=0,sy=0,sxy=0,sxx=0;
+      for(const q of efP){sx+=q.x;sy+=q.y;sxy+=q.x*q.y;sxx+=q.x*q.x;}
+      const sl=(n*sxy-sx*sy)/(n*sxx-sx*sx||1); efPct=Math.round(sl*90/((sy/n)||1)*1000)/10; }
+    let wellP: any=null;
+    try {
+      const odWp=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+      const { data: welp } = await supabase.from("wellness")
+        .select("date,resting_hr,hrv,sleep_secs,readiness").eq("athlete_id",athleteId)
+        .gte("date",odWp).order("date",{ascending:false});
+      if (welp&&welp.length){ const o=welp[0];
+        wellP={ ostatni_dzien:o.date, resting_hr:o.resting_hr, hrv:o.hrv, readiness:o.readiness,
+          sen_h:o.sleep_secs!=null?Math.round(o.sleep_secs/360)/10:null, dni_z_danymi:welp.length }; }
+    } catch(_){}
+    analityka = { ctl: Math.round(ctlP), atl: Math.round(atlP), tsb: Math.round(ctlP-atlP),
+      monotonia_7d: Math.round(monoP*10)/10, strain_7d: Math.round(s7p*monoP),
+      trend_ef_90d_pct: efPct, biegi_tlenowe_z_hr: efP.length, wellness: wellP };
+  } catch(_) { /* analityka opcjonalna */ }
+
   // 3. Strava 60 dni
   const { data: strava } = await supabase
     .from("strava_activities")
@@ -549,6 +600,7 @@ async function buildAthleteContext(supabase: any, athleteId: string) {
     coachNotes: coachNotes || [], // ✨ v2.4: notatki trenera nieresolved
     chatMessages: chatMessages || [], // ✨ v2.7: wiadomości czatu
     patterns, // ✨ v2.5: gotowe insighty
+    analityka,   /* PLANER-2 P1 */
     stats: {
       totalKm60d: Math.round(totalKm60),
       avgWeeklyKm,
@@ -1471,6 +1523,14 @@ W summary lub rationale ZAWSZE wspomnij kierunek progresu zawodnika na bazie ost
 - Race goals (planowane starty): ${JSON.stringify(raceGoals).substring(0, 500)}
 ${futureRacesText}
 
+## ANALITYKA FORMY (PLANER-2 — licz sie z tym przy ukladaniu tygodni!)
+${context.analityka ? `- Forma dzis: CTL ${context.analityka.ctl} / TSB ${context.analityka.tsb} (TSB +5..+15 = okno startowe; <-25 = przeciazenie, zacznij plan lzej)
+- Monotonia 7d: ${context.analityka.monotonia_7d} (>=2.0 = zroznicuj bodzce od pierwszego tygodnia)
+- Strain 7d: ${context.analityka.strain_7d}
+- Trend bazy tlenowej (EF 90d): ${context.analityka.trend_ef_90d_pct != null ? context.analityka.trend_ef_90d_pct + '%' : 'brak danych (malo biegow z HR)'}
+- Wellness: ${context.analityka.wellness ? `RHR ${context.analityka.wellness.resting_hr ?? '-'} / HRV ${context.analityka.wellness.hrv ?? '-'} / sen ${context.analityka.wellness.sen_h ?? '-'}h / readiness ${context.analityka.wellness.readiness ?? '-'} (${context.analityka.wellness.dni_z_danymi} dni danych)` : 'zawodnik nie trackuje — nie zgaduj'}
+- ZASADA: plan prowadz tak, by TSB na dzien startu wyladowal w oknie +5..+15; taper licz od formy DZISIEJSZEJ, nie z szablonu.` : '(analityka niedostepna — planuj konserwatywnie z logow)'}
+
 ## STATYSTYKI OSTATNICH 60 DNI
 - Łącznie km: ${stats.totalKm60d}
 - Średnia objętość/tydzień: ${stats.avgWeeklyKm} km
@@ -1556,6 +1616,14 @@ ${targetVolumeKm ? `- Docelowa objętość peak: ${targetVolumeKm} km/tydz` : ""
    - Jeśli zawodnik w opinii pisał "zbyt łatwo" — śmielej z intensywnością
    - Jeśli trener edytował raport (🖋️) — Twoja edycja jest WAŻNIEJSZA niż surowy AI tekst, to definiuje Twój styl
 7. **✨ KOMENTARZ TRENERA (jeśli istnieje)** — to jest ŚWIEŻY kontekst od trenera, ważniejszy niż starsze raporty. Wykorzystaj go priorytetowo do dostosowania planu.
+
+### JEZYK OPISOW (PLANER-2 — opis ma brzmiec jak trener na grupie, nie jak PDF):
+- ZERO zargonu w opisach treningow: nie pisz "TSB", "CTL", "monotonia" — tlumacz na skutek
+  ("po ciezkim bloku dajemy nogom odetchnac", "forma ma szczyt za 3 tygodnie, dzis budujemy").
+- Kazdy opis: PO CO ten trening + JAK ma sie czuc + 1 zdanie z dusza. Przyklady tonu:
+  "po tym rozbieganiu nogi powiedza dziekuje" · "ten akcent ma zabrzmiec, nie zabic" ·
+  "dzis biegniesz na rozmowe, nie na zegarek" · "ostatni dlugi przed startem — celebruj go".
+- Liczba w opisie tylko gdy niesie decyzje (tempo/strefa TAK, wskazniki NIE).
 
 ### Tempo i strefy HR:
 - **Bieg spokojny**: HR strefa 2 (130-145 bpm), tempo +60-90s/km wolniej niż pace docelowy
