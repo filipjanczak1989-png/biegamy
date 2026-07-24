@@ -3925,12 +3925,15 @@ function initFormaToggles() {
 
 window.loadFormaSection = async function() {
   if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
-  await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
-  initFormaToggles();
-  _renderPredykcje();   /* E1c */
-  _renderOdprawa();   /* PORANNA ODPRAWA */
-  if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState();   /* ODPRAWA-PUSH-TOGGLE */
-  _renderVo2max();   /* VO2MAX-KARTA */
+  /* FIX: renderFormaForAthlete w try — jesli rzuci (edge-case danych), NIE blokuje odprawy/vo2max/predyktora */
+  try {
+    await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
+  } catch (e) { console.warn('[forma-core]', e); }
+  try { initFormaToggles(); } catch (e) {}
+  try { _renderPredykcje(); } catch (e) { console.warn('[predykcje]', e); }        /* E1c */
+  try { _renderOdprawa(); } catch (e) { console.warn('[odprawa]', e); }            /* PORANNA ODPRAWA */
+  try { if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState(); } catch (e) {}
+  try { _renderVo2max(); } catch (e) { console.warn('[vo2max]', e); }              /* VO2MAX-KARTA */
 };
 
 /* ═══ PORANNA ODPRAWA: werdykt dnia zawodnika — jak jestes + co z tym zrobic. Motywujaco, po ludzku.
