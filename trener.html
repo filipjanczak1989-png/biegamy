@@ -3430,37 +3430,36 @@ async function renderDbAthletes(list) {
     }
   } catch(e) {}
 
-  const withLogs = await Promise.all(list.map(async a => {
-    const { count } = await sb.from('training_logs').select('*',{count:'exact',head:true})
-      .eq('athlete_id', a.id)
-      .not('training_type', 'like', '__badge__%')
-      .is('read_by_coach', null);
-
-    // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
-    // ORAZ nie zalogował żadnego treningu w ciągu ostatnich 2 dni
-    const { data: recentLogs } = await sb.from('training_logs')
-      .select('logged_at')
-      .eq('athlete_id', a.id)
-      .not('training_type', 'like', '__badge__%')
-      .gte('logged_at', twoDaysAgo.toISOString())
-      .limit(1);
-    const hasRecentLog = recentLogs && recentLogs.length > 0;
-
-    let hasMissed = false;
-    if (!hasRecentLog) {
-      const { data: missedTrainings } = await sb.from('trainings')
-        .select('date,type')
-        .eq('athlete_id', a.id)
-        .neq('type', 'Odpoczynek')
-        .neq('status', 'done')
-        .lte('date', twoDaysAgoStr)
-        .gte('date', new Date(now.getTime() - 7*86400000).toISOString().split('T')[0])
-        .limit(1);
-      hasMissed = missedTrainings && missedTrainings.length > 0;
-    }
-
-    return { ...a, newLogs: count || 0, hasMissed };
-  }));
+  /* PERF-STADO: zbiorczy fetch zamiast N+1 (bylo 2-3 zapytania/zawodnik = ~60 dla 25 osob -> teraz 3).
+     Dodatkowo liczy sygnaly na karte: ostatni trening + niebieski log. */
+  const _allIds = list.map(a => a.id);
+  let _unreadByAth = {}, _lastLogByAth = {}, _plannedByAth = {};
+  if (_allIds.length) {
+    const sedmDni = new Date(now.getTime() - 7 * 86400000).toISOString();
+    /* 1) nieodczytane logi (count per zawodnik) */
+    const { data: unreadRows } = await sb.from('training_logs')
+      .select('athlete_id').in('athlete_id', _allIds)
+      .not('training_type', 'like', '__badge__%').is('read_by_coach', null);
+    (unreadRows || []).forEach(r => { _unreadByAth[r.athlete_id] = (_unreadByAth[r.athlete_id] || 0) + 1; });
+    /* 2) ostatni trening per zawodnik (7 dni, do sygnalu aktywnosci) */
+    const { data: recentRows } = await sb.from('training_logs')
+      .select('athlete_id,logged_at').in('athlete_id', _allIds)
+      .not('training_type', 'like', '__badge__%').gte('logged_at', sedmDni)
+      .order('logged_at', { ascending: false });
+    (recentRows || []).forEach(r => { if (!_lastLogByAth[r.athlete_id]) _lastLogByAth[r.athlete_id] = r.logged_at; });
+    /* 3) zaplanowane treningi niewykonane (do badge missed) */
+    const { data: plannedRows } = await sb.from('trainings')
+      .select('athlete_id,date').in('athlete_id', _allIds)
+      .neq('type', 'Odpoczynek').neq('status', 'done')
+      .lte('date', twoDaysAgoStr)
+      .gte('date', new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0]);
+    (plannedRows || []).forEach(r => { if (!_plannedByAth[r.athlete_id]) _plannedByAth[r.athlete_id] = true; });
+  }
+  const withLogs = list.map(a => {
+    const hasRecentLog = _lastLogByAth[a.id] && (new Date(_lastLogByAth[a.id]) >= twoDaysAgo);
+    const hasMissed = !hasRecentLog && !!_plannedByAth[a.id];
+    return { ...a, newLogs: _unreadByAth[a.id] || 0, hasMissed, lastLogAt: _lastLogByAth[a.id] || null };
+  });
 
   const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
   const statLogs = document.getElementById('stat-logs');
@@ -3477,6 +3476,14 @@ async function renderDbAthletes(list) {
       <div class="ath-info">
         <div class="ath-name">${escapeHtml(name)}${watchAthleteIds.has(a.id) ? ' <span class="ath-watch" title="Synchronizuje z zegarkiem">⌚</span>' : ''}</div>
         <div class="ath-goal">${escapeHtml(nextRace(a.race_goals)?.name||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
+        ${(() => {
+          /* PERF-STADO: sygnal ostatniej aktywnosci na karcie */
+          if (!a.lastLogAt) return '<div class="ath-last" style="font-size:10px;color:rgba(255,255,255,0.35);font-family:\'DM Mono\',monospace;margin-top:2px;">brak treningów w tym tygodniu</div>';
+          const dni = Math.floor((Date.now() - new Date(a.lastLogAt)) / 86400000);
+          const txt = dni <= 0 ? 'trenował dziś' : dni === 1 ? 'trenował wczoraj' : 'ostatnio ' + dni + ' dni temu';
+          const kol = dni <= 1 ? '#4ade80' : dni <= 3 ? 'rgba(255,255,255,0.5)' : '#fb923c';
+          return '<div class="ath-last" style="font-size:10px;color:' + kol + ';font-family:\'DM Mono\',monospace;margin-top:2px;">' + txt + '</div>';
+        })()}
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
