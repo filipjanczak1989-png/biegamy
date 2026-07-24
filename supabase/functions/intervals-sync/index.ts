@@ -214,9 +214,14 @@ Deno.serve(async (req) => {
               hrv: d.hrv != null ? Math.round(d.hrv) : null,
               sleep_secs: d.sleepSecs != null ? Math.round(d.sleepSecs) : null,
               weight: d.weight != null ? Math.round(d.weight * 100) / 100 : null,
+              readiness: d.readiness != null ? Math.round(d.readiness) : null,        /* WELLNESS-2 */
+              sleep_score: d.sleepScore != null ? Math.round(d.sleepScore) : null,
+              vo2max: d.vo2max != null ? Math.round(d.vo2max * 10) / 10 : null,
+              spo2: d.spO2 != null ? Math.round(d.spO2) : null,
               updated_at: new Date().toISOString(),
             }))
-            .filter((r: any) => r.resting_hr != null || r.hrv != null || r.sleep_secs != null || r.weight != null);
+            .filter((r: any) => r.resting_hr != null || r.hrv != null || r.sleep_secs != null || r.weight != null
+              || r.readiness != null || r.sleep_score != null || r.vo2max != null || r.spo2 != null);   /* WELLNESS-2 */
           if (wrows.length) {
             const { error: wErr } = await svc.from('wellness')
               .upsert(wrows, { onConflict: 'athlete_id,date' });
