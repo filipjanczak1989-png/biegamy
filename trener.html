@@ -2024,7 +2024,7 @@ async function renderPlanPreviewInCreateModal(planId) {
     .order('date');
   
   // Statystyki
-  const _proj = await _tpProjekcjaTSB(window._tpAthleteId || (typeof _selectedAthleteId!=='undefined'?_selectedAthleteId:null), workouts || []);   /* PLANER-2 P4 */
+  const _proj = await _tpProjekcjaTSB(plan.athlete_id, workouts || []);   /* PLANER-2 P4 FIX: athlete z planu, nie window._tpAthleteId (undefined) */
   const totalKm = (workouts || []).reduce((s, w) => s + (parseFloat(w.target_distance_km) || 0), 0);
   const totalCount = (workouts || []).length;
   const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
