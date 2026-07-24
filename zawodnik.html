@@ -3923,6 +3923,21 @@ function initFormaToggles() {
   });
 }
 
+/* CACHE-WELLNESS: jeden fetch wellness 60d na otwarcie Formy — odprawa+vo2max czytaja z pamieci
+   (bylo 2 osobne round-tripy: odprawa 21d + vo2max 60d). Cache per _athleteId, TTL sesji. */
+let _welCache = null, _welCacheFor = null, _welCacheAt = 0;
+async function _getWellness() {
+  const teraz = Date.now();
+  if (_welCache && _welCacheFor === _athleteId && (teraz - _welCacheAt) < 120000) return _welCache;   /* 2 min TTL */
+  try {
+    const od = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+    const { data } = await sb.from('wellness')
+      .select('date,resting_hr,hrv,sleep_secs,readiness,vo2max').eq('athlete_id', _athleteId)
+      .gte('date', od).order('date', { ascending: false });
+    _welCache = data || []; _welCacheFor = _athleteId; _welCacheAt = teraz;
+    return _welCache;
+  } catch (e) { return []; }
+}
 window.loadFormaSection = async function() {
   if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
   /* FIX: renderFormaForAthlete w try — jesli rzuci (edge-case danych), NIE blokuje odprawy/vo2max/predyktora */
@@ -3962,10 +3977,9 @@ async function _renderOdprawa() {
     /* gotowosc z wellness (8 dni) */
     let gotSig = null, welData = [];   /* welData: szerszy scope dla trendu snu (fix ReferenceError) */
     try {
-      const odW = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);   /* 21 dni dla trendu snu */
-      const { data: wel } = await sb.from('wellness')
-        .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', _athleteId)
-        .gte('date', odW).order('date', { ascending: false });
+      const odW = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);
+      const _welAll = await _getWellness();   /* CACHE-WELLNESS */
+      const wel = _welAll.filter(w => String(w.date) >= odW);   /* 21d z cache 60d */
       welData = wel || [];
       if (wel && wel.length >= 1) {
         const o = wel[0], baza = wel.slice(1);
@@ -4060,10 +4074,8 @@ async function _renderVo2max() {
     const box = document.getElementById('forma-vo2max');
     const tresc = document.getElementById('forma-vo2max-tresc');
     if (!box || !tresc || !_athleteId) return;
-    const od = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
-    const { data: wel } = await sb.from('wellness')
-      .select('date,vo2max').eq('athlete_id', _athleteId)
-      .gte('date', od).not('vo2max', 'is', null).order('date', { ascending: true });
+    const _welAll = await _getWellness();   /* CACHE-WELLNESS */
+    const wel = _welAll.filter(w => w.vo2max != null).slice().reverse();   /* asc, tylko z vo2max */
     if (!wel || !wel.length) { box.style.display = 'none'; return; }
     const pts = wel.map(w => +w.vo2max);
     const teraz = pts[pts.length - 1];
