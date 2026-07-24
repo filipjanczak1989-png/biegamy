@@ -657,7 +657,7 @@ Deno.serve(async (req) => {
         return p.length===3 ? p[0]*60+p[1]+p[2]/60 : p.length===2 ? p[0]+p[1]/60 : (+t||0); };
       const od90 = new Date(Date.now() - 90*864e5).toISOString();
       const { data: l90 } = await supabase.from("training_logs")
-        .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace")
+        .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace,distance_km")
         .eq("athlete_id", athlete_id).gte("logged_at", od90)
         .not("training_type","like","__badge__%");
       const dni: Record<string, number> = {};
@@ -694,11 +694,37 @@ Deno.serve(async (req) => {
           wellnessInfo={ ostatni_dzien:o.date, resting_hr:o.resting_hr, hrv:o.hrv,
             sen_h:o.sleep_secs!=null?Math.round(o.sleep_secs/360)/10:null, dni_z_danymi:wel.length }; }
       } catch(_){}
+      /* POROWNANIE OKRESOW: ostatnie 30 dni vs poprzednie 30 — postep zamiast samego stanu */
+      const _teraz = Date.now();
+      const okr = (odDni: number, doDni: number) => {
+        let km = 0, minutki = 0, biegi = 0; const ef: number[] = [];
+        for (const l of (l90 || [])) {
+          const wiek = (_teraz - new Date(l.logged_at).getTime()) / 864e5;
+          if (wiek < doDni || wiek >= odDni) continue;
+          km += (+l.distance_km || 0); minutki += _durMin(l.duration); biegi++;
+          const typ = String(l.training_type||'').toLowerCase().trim();
+          if (TLEN.test(typ) && !WYKL.test(typ) && l.heart_rate>=80 && l.heart_rate<=200) {
+            const m = String(l.gap_pace||l.pace||'').match(/^(\d{1,2}):(\d{2})/);
+            if (m) { const sek=+m[1]*60+ +m[2]; if(sek>=150&&sek<=720) ef.push((1000/sek)/l.heart_rate*1000); }
+          }
+        }
+        return { km: Math.round(km), biegi, godziny: Math.round(minutki/6)/10,
+          ef_sr: ef.length ? Math.round(ef.reduce((a,b)=>a+b,0)/ef.length*100)/100 : null };
+      };
+      const _ost30 = okr(30, 0), _poprz30 = okr(60, 30);
+      const _porownanie = {
+        ostatnie_30dni: _ost30, poprzednie_30dni: _poprz30,
+        zmiana_km: _ost30.km - _poprz30.km,
+        zmiana_ef: (_ost30.ef_sr != null && _poprz30.ef_sr != null) ? Math.round((_ost30.ef_sr - _poprz30.ef_sr)*100)/100 : null,
+        _opis: "porownaj OBA okresy w tekscie: czy km/objetosc rosnie, czy EF (ekonomia) sie poprawia. Wzrost EF = lepsza baza tlenowa. null = za malo danych."
+      };
+
       _analityka = {
         ctl: Math.round(ctl), atl: Math.round(atl), tsb: Math.round(ctl-atl),
         monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(sum7*mono),
         trend_ef_90d_pct: efTrendPct, biegi_tlenowe_z_hr: efPts.length,
         wellness: wellnessInfo,
+        porownanie_okresow: _porownanie,   /* KROK 2: postep m/m */
         _opis: "CTL=baza dlugoterminowa, TSB=swiezosc (+5..+15 optimum startowe, <-25 przeciazenie); monotonia>=2.0 = brak zroznicowania bodzcow (ryzyko); trend_ef dodatni = baza tlenowa rosnie; wellness null = zawodnik nie trackuje."
       };
     } catch(_) { /* analityka opcjonalna — raport dziala bez niej */ }
