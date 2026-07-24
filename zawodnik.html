@@ -3960,12 +3960,13 @@ async function _renderOdprawa() {
     const tsb = Math.round(ctl - atl);
 
     /* gotowosc z wellness (8 dni) */
-    let gotSig = null;
+    let gotSig = null, welData = [];   /* welData: szerszy scope dla trendu snu (fix ReferenceError) */
     try {
       const odW = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);   /* 21 dni dla trendu snu */
       const { data: wel } = await sb.from('wellness')
         .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', _athleteId)
         .gte('date', odW).order('date', { ascending: false });
+      welData = wel || [];
       if (wel && wel.length >= 1) {
         const o = wel[0], baza = wel.slice(1);
         const sr = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
@@ -4022,7 +4023,7 @@ async function _renderOdprawa() {
       return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:' + W + 'px;height:' + H + 'px;"><path d="' + path + '" fill="none" stroke="' + kolor + '" stroke-width="1.5"/></svg><span style="color:' + kolor + ';font-size:11px;">' + strz + '</span>';
     }
     /* sen: chronologicznie, godziny */
-    var senPts = (wel || []).slice().reverse().filter(function (w) { return w.sleep_secs != null; }).map(function (w) { return w.sleep_secs; });
+    var senPts = (welData || []).slice().reverse().filter(function (w) { return w.sleep_secs != null; }).map(function (w) { return w.sleep_secs; });
     var senTrend = _sparkT(senPts, 'gora', 'sen');
     /* kadencja: z biegow (logi), chronologicznie */
     var kadPts = (logs || []).slice().reverse().filter(function (l) { return l.cadence; }).map(function (l) { return +l.cadence * 2; });
