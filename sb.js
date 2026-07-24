@@ -1479,8 +1479,26 @@
       if (maTempo) return 'Równy wysiłek w zadanym tempie \u2014 rytm, nie zryw.';
       return '';
     }
+    /* PLANER-2 P6: KROTKI zapis — jak trener na kartce: "rozgrzewka 2km · 5×1km @ 3:50 (przerwa 400m) · schłodzenie 2km" */
+    function krotkiEl(el) {
+      if (el && el.kind === 'repeat') {
+        var biegi = (el.steps || []).filter(function (c) { return c.kind === 'run'; });
+        var przerwy = (el.steps || []).filter(function (c) { return c.kind === 'recovery' || c.kind === 'rest'; });
+        var glowny = biegi[0] || (el.steps || [])[0] || {};
+        var txt = el.count + '×' + (glowny.duration ? dur(glowny.duration) : '');
+        var t = tgt(glowny.target); if (t) txt += ' ' + t;
+        if (przerwy.length && przerwy[0].duration) txt += ' (przerwa ' + dur(przerwy[0].duration) + ')';
+        return txt;
+      }
+      var nazwa = { warmup: 'rozgrzewka', cooldown: 'schłodzenie' }[el.kind] || (KIND_PL[el.kind] || el.kind).toLowerCase();
+      var d = dur(el.duration), tg = tgt(el.target);
+      return (nazwa + ' ' + d + (tg ? ' ' + tg : '')).trim();
+    }
+    function krotki(steps) {
+      return steps.map(krotkiEl).filter(Boolean).join(' · ');
+    }
     return function renderWorkoutSteps(steps) {
-      if (!Array.isArray(steps) || steps.length === 0) return { lines: [], text: '', sens: '' };
+      if (!Array.isArray(steps) || steps.length === 0) return { lines: [], text: '', short: '', sens: '' };
       var lines = steps.map(function (el) {
         if (el && el.kind === 'repeat') {
           var inner = (el.steps || []).map(stepLine).join(' + ');
@@ -1488,7 +1506,7 @@
         }
         return stepLine(el);
       });
-      return { lines: lines, text: lines.join(' → '), sens: sensSerii(steps) };
+      return { lines: lines, text: lines.join(' → '), short: krotki(steps), sens: sensSerii(steps) };
     };
   })();
 

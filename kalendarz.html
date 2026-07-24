@@ -1849,7 +1849,7 @@ function openModal(ds, idx) {
     document.getElementById('f-hr').value = t.hr || t.heart_rate || '';
     document.getElementById('f-desc').value = t.desc || t.description || '';
     // ✨ steps: read-only rozkład structured workout (Interwały/Tempo) — zawodnik widzi kroki
-    const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).lines.join('\n') : '';
+    const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).short : '';   /* P6: zwiezly zapis w podgladzie (edytor L2045 zostaje pelny) */
     seLoad(t.steps || []);          // ⟵ w4: wczytaj kroki do edytora (round-trip AI↔ręczne)
     const _stepsFieldE = document.getElementById('f-steps-field');
     const _stepsBoxE = document.getElementById('f-steps-breakdown');
