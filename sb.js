@@ -2348,7 +2348,7 @@ window._icuRenderSplits = function (d, el) {
       }
       const od = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
       const { data: w } = await sb.from('wellness')
-        .select('date,resting_hr,hrv,sleep_secs').eq('athlete_id', athleteId)
+        .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', athleteId)   /* +readiness (WELLNESS-2) */
         .gte('date', od).order('date', { ascending: false }).limit(30);
       const dni = w || [];
       if (!dni.length) {
@@ -2376,6 +2376,11 @@ window._icuRenderSplits = function (d, el) {
         const malo = ost.sleep_secs < 6 * 3600;
         wiersze += row('Sen', h + ':' + String(m).padStart(2, '0') + ' h', '', malo ? 'rgba(255,255,255,0.5)' : null);
         if (malo) alarmy += 0.5;
+      }
+      if (ost.readiness != null) {   /* WELLNESS-2: syntetyczny werdykt Garmina 0-100 */
+        const r = +ost.readiness;
+        const zle = r < 40; if (zle) alarmy++;
+        wiersze += row('Gotowo\u015b\u0107 (Garmin)', r + '/100', '', r >= 70 ? '#4ade80' : zle ? '#fb923c' : '#eab308');
       }
       if (!wiersze) {
         el.innerHTML = nag + '<div style="font-size:11px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;">Garmin jeszcze nie podes\u0142a\u0142 danych. Wr\u00f3\u0107 jutro.</div>';
