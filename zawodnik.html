@@ -3910,7 +3910,94 @@ window.loadFormaSection = async function() {
   await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
   initFormaToggles();
   _renderPredykcje();   /* E1c */
+  _renderOdprawa();   /* PORANNA ODPRAWA */
 };
+
+/* ═══ PORANNA ODPRAWA: werdykt dnia zawodnika — jak jestes + co z tym zrobic. Motywujaco, po ludzku.
+   Dane: gotowosc (wellness RHR/HRV/readiness), forma (TSB z logow), sen, kadencja z ostatniego biegu. ═══ */
+async function _renderOdprawa() {
+  try {
+    const box = document.getElementById('odprawa');
+    const tresc = document.getElementById('odprawa-tresc');
+    const dataEl = document.getElementById('odprawa-data');
+    if (!box || !tresc || !_athleteId || !window.formaTRIMP) return;
+    if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    /* forma dzis: TSB z 90 dni logow */
+    const od = new Date(Date.now() - 90 * 864e5).toISOString();
+    const { data: logs } = await sb.from('training_logs')
+      .select('logged_at,training_type,duration,feel,heart_rate,cadence,gap_pace,pace')
+      .eq('athlete_id', _athleteId).gte('logged_at', od)
+      .not('training_type', 'like', '__badge__%').order('logged_at', { ascending: false });
+    const dni = {};
+    (logs || []).forEach(l => { const d = String(l.logged_at).slice(0, 10); dni[d] = (dni[d] || 0) + window.formaTRIMP(l); });
+    let ctl = 0, atl = 0;
+    for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+      const t = dni[ds] || 0; ctl += (t - ctl) * (1 / 42); atl += (t - atl) * (1 / 7); }
+    const tsb = Math.round(ctl - atl);
+
+    /* gotowosc z wellness (8 dni) */
+    let gotSig = null;
+    try {
+      const odW = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10);
+      const { data: wel } = await sb.from('wellness')
+        .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', _athleteId)
+        .gte('date', odW).order('date', { ascending: false });
+      if (wel && wel.length >= 1) {
+        const o = wel[0], baza = wel.slice(1);
+        const sr = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+        const bR = sr(baza.map(x => x.resting_hr)), bH = sr(baza.map(x => x.hrv));
+        gotSig = { rhrUp: (o.resting_hr != null && bR != null && (o.resting_hr - bR) > 5),
+          hrvDown: (o.hrv != null && bH != null && bH > 0 && (bH - o.hrv) / bH > 0.15),
+          sen: o.sleep_secs, readiness: o.readiness };
+      }
+    } catch (_) {}
+
+    /* werdykt dnia — priorytet: gotowosc > forma */
+    let ikona = '\ud83d\udfe2', naglowek = '', wskazowka = '';
+    const zmeczonyWellness = gotSig && (gotSig.rhrUp || gotSig.hrvDown || (gotSig.readiness != null && gotSig.readiness < 40));
+    if (zmeczonyWellness) {
+      ikona = '\ud83d\udfe0';
+      naglowek = 'Organizm jeszcze pracuje';
+      wskazowka = 'Dzi\u015b lepiej spokojnie \u2014 lekkie rozbieganie albo dzie\u0144 wolny. Forma wr\u00f3ci mocniejsza.';
+    } else if (tsb <= -25) {
+      ikona = '\ud83d\udd34';
+      naglowek = 'Zm\u0119czenie siedzi w nogach';
+      wskazowka = 'Po ci\u0119\u017ckim bloku dzi\u015b nic mocnego \u2014 daj sobie odetchn\u0105\u0107, to cz\u0119\u015b\u0107 planu.';
+    } else if (tsb >= 15) {
+      ikona = '\ud83d\ude80';
+      naglowek = 'Jeste\u015b \u015bwie\u017cy i gotowy';
+      wskazowka = 'Dobry dzie\u0144 na mocny akcent albo start. Wykorzystaj t\u0119 form\u0119!';
+    } else {
+      ikona = '\ud83d\udfe2';
+      naglowek = 'Wszystko na dobrym torze';
+      wskazowka = 'Forma w r\u00f3wnowadze \u2014 trenuj zgodnie z planem, s\u0142uchaj cia\u0142a.';
+    }
+
+    /* linijki danych */
+    var linie = [];
+    if (gotSig && gotSig.sen != null) {
+      var h = Math.floor(gotSig.sen / 3600), m = Math.round(gotSig.sen % 3600 / 60);
+      var senTxt = h + ':' + String(m).padStart(2, '0') + ' h';
+      linie.push(['\ud83d\udecc Sen', senTxt + (gotSig.sen < 6 * 3600 ? ' \u2014 kr\u00f3tko, zadbaj dzi\u015b' : '')]);
+    }
+    if (gotSig && gotSig.readiness != null) linie.push(['\u26a1 Gotowo\u015b\u0107 (Garmin)', gotSig.readiness + '/100']);
+    var ostBieg = (logs || []).find(l => l.cadence);
+    if (ostBieg && ostBieg.cadence) linie.push(['\ud83d\udc63 Kadencja (ost.)', (ostBieg.cadence * 2) + ' krok\u00f3w/min']);
+
+    var html = '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:' + (linie.length ? '12px' : '0') + ';">'
+      + '<span style="font-size:32px;line-height:1;">' + ikona + '</span>'
+      + '<div style="flex:1;"><div style="font-size:15px;font-weight:600;color:var(--fg);margin-bottom:3px;">' + naglowek + '</div>'
+      + '<div style="font-size:12.5px;color:var(--fg2);line-height:1.45;">' + wskazowka + '</div></div></div>';
+    if (linie.length) {
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
+        + linie.map(function (l) { return '<div style="flex:1;min-width:90px;"><div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">' + l[0] + '</div><div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--fg);">' + l[1] + '</div></div>'; }).join('')
+        + '</div>';
+    }
+    tresc.innerHTML = html;
+    box.style.display = 'block';
+  } catch (e) { console.warn('[odprawa]', e); }
+}
 
 /* ═══ E1c PREDYKTOR CZASOW: Riegel T2=T1*(D2/D1)^1.06 z najblizszego dystansem PB,
    korekta o TSB (forma dnia): głębokie obciążenie = wolniej dziś, optimum = pelnia PB. ═══ */
@@ -10953,6 +11040,13 @@ if ('serviceWorker' in navigator) {
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;font-weight:700;">💡 Zalecenie</div>
       <div id="forma-story-rec" style="font-family:'Inter',sans-serif;font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.5;"></div>
     </div>
+  </div>
+
+  <!-- PORANNA ODPRAWA: dzienny werdykt zawodnika (gotowosc + forma + wskazowka) -->
+  <div id="odprawa" style="display:none;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.03));border:1px solid rgba(232,86,30,0.25);border-radius:16px;padding:16px 18px;margin-bottom:14px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--accent);margin-bottom:2px;">Poranna odprawa</div>
+    <div id="odprawa-data" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:12px;"></div>
+    <div id="odprawa-tresc"></div>
   </div>
 
   <!-- Strefa formy — interpretacja TSB -->
