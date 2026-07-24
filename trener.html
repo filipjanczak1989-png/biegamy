@@ -5112,6 +5112,15 @@ async function zaladujPoranek() {
       .select('athlete_id,logged_at,duration,training_type,feel')
       .in('athlete_id', ids).gte('logged_at', od)
       .not('training_type', 'like', '__badge__%');
+    /* PORANEK-GOTOWOSC: wellness 8 dni — sygnal RHR/HRV vs baseline (puste = brak sygnalu, zero kosztu) */
+    let perW = {};
+    try {
+      const odW = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10);
+      const { data: wel } = await sb.from('wellness')
+        .select('athlete_id,date,resting_hr,hrv').in('athlete_id', ids)
+        .gte('date', odW).order('date', { ascending: false });
+      (wel || []).forEach(w => { (perW[w.athlete_id] = perW[w.athlete_id] || []).push(w); });
+    } catch (e) {}
     const perA = {}; ids.forEach(i => perA[i] = { dni: {}, last: null });
     (logs || []).forEach(l => {
       const p = perA[l.athlete_id]; if (!p) return;
@@ -5151,6 +5160,14 @@ async function zaladujPoranek() {
       const cisza = p.last ? Math.floor((Date.now() - new Date(p.last).getTime()) / 864e5) : 99;
       if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 cisza ' + (cisza > 30 ? '30+' : cisza) + ' dni');
       if (a.intervals_token_dead_at) sig.push('\u231a token martwy');
+      const wl = perW[a.id];
+      if (wl && wl.length >= 3) {
+        const o = wl[0], baza = wl.slice(1);
+        const srB = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+        const bR = srB(baza.map(x => x.resting_hr)), bH = srB(baza.map(x => x.hrv));
+        if (o.resting_hr != null && bR != null && (o.resting_hr - bR) > 5) sig.push('\ud83d\udecc RHR +' + Math.round(o.resting_hr - bR));
+        if (o.hrv != null && bH != null && bH > 0 && (bH - o.hrv) / bH > 0.15) sig.push('\ud83d\udecc HRV \u2193' + Math.round((bH - o.hrv) / bH * 100) + '%');
+      }
       if (sig.length) alerty.push({ a, sig, waga: (tsb <= -25 ? 3 : 0) + sig.length });
     });
     sec.style.display = 'block';
