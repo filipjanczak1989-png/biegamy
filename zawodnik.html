@@ -1261,6 +1261,16 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
     <div id="push-toggle-pill-top" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);flex-shrink:0;">—</div>
   </div>
 
+  <!-- ODPRAWA-PUSH-TOGGLE: opt-out porannego pusha -->
+  <div id="odprawa-push-card" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:0 0 12px;align-items:center;gap:10px;cursor:pointer;" onclick="toggleOdprawaPush()">
+    <div style="font-size:18px;flex-shrink:0;">\u2600\ufe0f</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12.5px;font-weight:600;">Poranny sygna\u0142</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:1px;line-height:1.3;">Push rano tylko gdy jest co\u015b wa\u017cnego \u2014 m\u0119czenie, \u015bwie\u017co\u015b\u0107, trening albo start.</div>
+    </div>
+    <div id="odprawa-push-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;">\u2026</div>
+  </div>
+
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
     <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
@@ -3911,6 +3921,7 @@ window.loadFormaSection = async function() {
   initFormaToggles();
   _renderPredykcje();   /* E1c */
   _renderOdprawa();   /* PORANNA ODPRAWA */
+  if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState();   /* ODPRAWA-PUSH-TOGGLE */
   _renderVo2max();   /* VO2MAX-KARTA */
 };
 
@@ -6294,6 +6305,31 @@ async function refreshPushToggleUI() {
   }
 }
 
+async function _loadOdprawaPushState() {
+  try {
+    const card = document.getElementById('odprawa-push-card');
+    const pill = document.getElementById('odprawa-push-pill');
+    if (!card || !pill || !_athleteId) return;
+    const { data } = await sb.from('athletes').select('morning_push_enabled').eq('id', _athleteId).maybeSingle();
+    const on = !data || data.morning_push_enabled !== false;   /* default true */
+    card.style.display = 'flex';
+    pill.textContent = on ? 'W\u0141\u0104CZONY' : 'WY\u0141.';
+    pill.style.background = on ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)';
+    pill.style.color = on ? '#4ade80' : 'rgba(255,255,255,0.5)';
+    card.dataset.on = on ? '1' : '0';
+  } catch (e) {}
+}
+async function toggleOdprawaPush() {
+  try {
+    const card = document.getElementById('odprawa-push-card');
+    if (!card || !_athleteId) return;
+    const nowOn = card.dataset.on !== '1';   /* przelacz */
+    const { error } = await sb.from('athletes').update({ morning_push_enabled: nowOn }).eq('id', _athleteId);
+    if (error) { toast('B\u0142\u0105d zapisu ustawienia'); return; }
+    toast(nowOn ? 'Poranny sygna\u0142 w\u0142\u0105czony' : 'Poranny sygna\u0142 wy\u0142\u0105czony');
+    _loadOdprawaPushState();
+  } catch (e) {}
+}
 async function togglePushNotifs() {
   if (!_athleteId) { toast('Najpierw się zaloguj'); return; }
   if (!window.isPushSupported || !window.isPushSupported()) {
