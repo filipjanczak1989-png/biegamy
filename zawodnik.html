@@ -3949,6 +3949,65 @@ async function _getWellness() {
     return _welCache;
   } catch (e) { return []; }
 }
+/* KM-LONGTERM: kilometry per miesiac (12) / rok (all) — przelacznik. Wlasny fetch (dluzszy niz cache 90d). */
+let _kmLtLogs = null, _kmLtFor = null;
+window._renderKmLongterm = async function(tryb) {
+  const card = document.getElementById('forma-km-longterm-card');
+  const box = document.getElementById('forma-km-longterm');
+  const sumEl = document.getElementById('forma-km-longterm-sum');
+  const bM = document.getElementById('km-lt-btn-month'), bY = document.getElementById('km-lt-btn-year');
+  if (!card || !box || !_athleteId) return;
+  tryb = tryb || 'month';
+  if (!_kmLtLogs || _kmLtFor !== _athleteId) {
+    try {
+      const od = new Date(Date.now() - 3 * 365 * 864e5).toISOString();
+      const { data } = await sb.from('training_logs')
+        .select('logged_at,distance_km,training_type')
+        .eq('athlete_id', _athleteId).gte('logged_at', od)
+        .not('training_type', 'like', '__badge__%').order('logged_at', { ascending: true });
+      _kmLtLogs = data || []; _kmLtFor = _athleteId;
+    } catch (e) { _kmLtLogs = []; }
+  }
+  const logs = _kmLtLogs || [];
+  if (!logs.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  if (bM && bY) {
+    const on = (b) => { b.style.background = 'var(--accent)'; b.style.color = '#fff'; };
+    const off = (b) => { b.style.background = 'transparent'; b.style.color = 'rgba(255,255,255,0.6)'; };
+    (tryb === 'year') ? (on(bY), off(bM)) : (on(bM), off(bY));
+  }
+  const MON = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  const kmOf = (l) => window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0;
+  let buckets = [];
+  if (tryb === 'year') {
+    const byY = {};
+    logs.forEach(l => { const y = new Date(l.logged_at).getFullYear(); byY[y] = (byY[y] || 0) + kmOf(l); });
+    const yrs = Object.keys(byY).map(Number).sort();
+    buckets = yrs.map(y => ({ lbl: String(y), km: Math.round(byY[y]) }));
+  } else {
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear(), m = d.getMonth();
+      const km = logs.filter(l => { const dl = new Date(l.logged_at); return dl.getFullYear() === y && dl.getMonth() === m; })
+        .reduce((s, l) => s + kmOf(l), 0);
+      buckets.push({ lbl: MON[m] + (m === 0 || i === 11 ? " '" + String(y).slice(2) : ''), km: Math.round(km) });
+    }
+  }
+  const maxKm = Math.max(...buckets.map(b => b.km), 1);
+  box.innerHTML = buckets.map(b => {
+    const h = Math.max(3, Math.round(110 * b.km / maxKm));
+    const isMax = b.km === maxKm && b.km > 0;
+    const col = isMax ? 'linear-gradient(180deg,#e8561e,#fb923c)' : 'rgba(232,86,30,0.45)';
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;">'
+      + '<div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;">' + (b.km || '') + '</div>'
+      + '<div style="width:100%;max-width:26px;height:' + h + 'px;background:' + col + ';border-radius:4px 4px 0 0;transition:height 0.6s var(--ease-out);"></div>'
+      + '<div style="font-size:8px;color:rgba(255,255,255,0.45);font-family:\'DM Mono\',monospace;white-space:nowrap;">' + b.lbl + '</div></div>';
+  }).join('');
+  const total = buckets.reduce((s, b) => s + b.km, 0);
+  const okres = tryb === 'year' ? (buckets.length + ' lat') : '12 miesięcy';
+  if (sumEl) sumEl.textContent = 'Suma ' + okres + ': ' + total.toLocaleString('pl-PL') + ' km';
+};
 window.loadFormaSection = async function() {
   if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
   /* FIX: renderFormaForAthlete w try — jesli rzuci (edge-case danych), NIE blokuje odprawy/vo2max/predyktora */
@@ -3959,7 +4018,8 @@ window.loadFormaSection = async function() {
   try { _renderPredykcje(); } catch (e) { console.warn('[predykcje]', e); }        /* E1c */
   try { _renderOdprawa(); } catch (e) { console.warn('[odprawa]', e); }            /* PORANNA ODPRAWA */
   try { if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState(); } catch (e) {}
-  try { _renderVo2max(); } catch (e) { console.warn('[vo2max]', e); }              /* VO2MAX-KARTA */
+  try { _renderVo2max(); } catch (e) { console.warn('[vo2max]', e); }
+  try { if (window._renderKmLongterm) window._renderKmLongterm('month'); } catch (e) { console.warn('[km-lt]', e); }   /* KM-LONGTERM */              /* VO2MAX-KARTA */
 };
 
 /* ═══ PORANNA ODPRAWA: werdykt dnia zawodnika — jak jestes + co z tym zrobic. Motywujaco, po ludzku.
@@ -11299,6 +11359,19 @@ if ('serviceWorker' in navigator) {
       <button onclick="event.stopPropagation();window.showMetricTooltip('weekly_km')" title="Co to stres tygodnia?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <div id="forma-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+  </div>
+
+  <!-- KM-LONGTERM: kilometry w skali miesiac/rok (przelacznik) -->
+  <div id="forma-km-longterm-card" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;">📈 Kilometry</div>
+      <div style="display:flex;gap:2px;background:rgba(255,255,255,0.05);border-radius:8px;padding:2px;">
+        <button id="km-lt-btn-month" onclick="window._renderKmLongterm('month')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;">Miesiące</button>
+        <button id="km-lt-btn-year" onclick="window._renderKmLongterm('year')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;">Lata</button>
+      </div>
+    </div>
+    <div id="forma-km-longterm" style="display:flex;align-items:flex-end;gap:6px;height:130px;"></div>
+    <div id="forma-km-longterm-sum" style="text-align:center;margin-top:8px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;"></div>
   </div>
 
   <!-- E1c PREDYKTOR CZASOW: Riegel z pb_* + korekta o dzisiejsze TSB -->
