@@ -3478,10 +3478,13 @@ window._icuRenderSplits = function (d, el) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-kcal-weekly');
     if (!el) return;
+    var _kcalCard = document.getElementById(px + '-kcal-card');   /* KALORIE-HIDE */
     if (!weightKg || weightKg <= 0) {
+      if (_kcalCard) { _kcalCard.style.display = 'none'; return; }
       el.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center;padding:14px;">🔥 Brak danych — wpisz wagę w sekcji <a href="nutrition.html" style="color:var(--accent);text-decoration:underline;">Odżywianie</a></div>';
       return;
     }
+    if (_kcalCard) _kcalCard.style.display = '';   /* KALORIE-HIDE: waga jest -> pokaz */
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const doAnim = !!animate && !reduce;
     const esc = window.escapeHtml || (s => String(s));
