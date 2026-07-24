@@ -2542,6 +2542,8 @@ window._icuRenderSplits = function (d, el) {
       .order('logged_at', { ascending: true });
 
     if (error) { console.error('[forma] fetch err', error); return; }
+    /* CACHE-LOGS: udostepnij pobrane logi (90d, pelne kolumny) dla _renderOdprawa — unika 2. round-tripu */
+    try { window._formaLogsCache = { athleteId: athleteId, at: Date.now(), logs: logs || [] }; } catch(_) {}
 
     // Fetch race_goals
     const { data: ath } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();

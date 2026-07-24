@@ -3971,12 +3971,19 @@ async function _renderOdprawa() {
     if (!box || !tresc || !_athleteId || !window.formaTRIMP) return;
     if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
 
-    /* forma dzis: TSB z 90 dni logow */
-    const od = new Date(Date.now() - 90 * 864e5).toISOString();
-    const { data: logs } = await sb.from('training_logs')
-      .select('logged_at,training_type,duration,feel,heart_rate,cadence,gap_pace,pace')
-      .eq('athlete_id', _athleteId).gte('logged_at', od)
-      .not('training_type', 'like', '__badge__%').order('logged_at', { ascending: false });
+    /* forma dzis: TSB z 90 dni logow — CACHE-LOGS: reuzyj z renderFormaForAthlete jesli swieze */
+    let logs;
+    const _lc = window._formaLogsCache;
+    if (_lc && _lc.athleteId === _athleteId && (Date.now() - _lc.at) < 120000 && Array.isArray(_lc.logs)) {
+      logs = _lc.logs;   /* z cache (renderFormaForAthlete pobral te same 90d) */
+    } else {
+      const od = new Date(Date.now() - 90 * 864e5).toISOString();
+      const r = await sb.from('training_logs')
+        .select('logged_at,training_type,duration,feel,heart_rate,cadence,gap_pace,pace')
+        .eq('athlete_id', _athleteId).gte('logged_at', od)
+        .not('training_type', 'like', '__badge__%').order('logged_at', { ascending: false });
+      logs = r.data || [];
+    }
     const dni = {};
     (logs || []).forEach(l => { const d = String(l.logged_at).slice(0, 10); dni[d] = (dni[d] || 0) + window.formaTRIMP(l); });
     let ctl = 0, atl = 0;
