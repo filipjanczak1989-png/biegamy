@@ -5155,8 +5155,28 @@ async function zaladujPoranek() {
     });
     sec.style.display = 'block';
     const esc = window.escapeHtml || (x => String(x));
+    /* PORANEK-STARTY: kto sie sciga w najblizszych 7 dniach (races + race_signups) */
+    let startyHtml = '';
+    try {
+      const dzisS = new Date().toISOString().slice(0, 10);
+      const za7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      const { data: rc } = await sb.from('races').select('id,name,date')
+        .gte('date', dzisS).lte('date', za7).order('date');
+      if (rc && rc.length) {
+        const { data: sg } = await sb.from('race_signups')
+          .select('race_id,athlete_id').in('race_id', rc.map(r => r.id)).in('athlete_id', ids);
+        const imie = {}; (ath || []).forEach(a => imie[a.id] = (a.full_name || '').split(' ')[0]);
+        const linie = rc.map(r => {
+          const kto = (sg || []).filter(x => x.race_id === r.id).map(x => imie[x.athlete_id]).filter(Boolean);
+          if (!kto.length) return '';
+          const dd = String(r.date).slice(8, 10) + '.' + String(r.date).slice(5, 7);
+          return '<div style="padding:7px 12px;margin-top:6px;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:10px;font-size:11.5px;">\ud83c\udfc1 <strong>' + dd + ' ' + esc(r.name) + '</strong> <span style="color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">\u00b7 ' + kto.map(esc).join(', ') + '</span></div>';
+        }).filter(Boolean);
+        startyHtml = linie.join('');
+      }
+    } catch (e) {}
     if (!alerty.length) {
-      el.innerHTML = '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>';
+      el.innerHTML = '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>' + startyHtml;
       return;
     }
     alerty.sort((x, y) => y.waga - x.waga);
@@ -5164,7 +5184,7 @@ async function zaladujPoranek() {
       '<div onclick="openAthleteProfile(\'' + x.a.id + '\', \'' + esc(x.a.full_name).replace(/'/g, '') + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
       + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
       + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'
-    ).join('');
+    ).join('') + startyHtml;
   } catch (e) { console.warn('[poranek]', e); }
 }
 
