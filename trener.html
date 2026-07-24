@@ -1977,6 +1977,30 @@ async function autoSaveAIWeekTemplates(planId, athleteId) {
 window.autoSaveAIWeekTemplates = autoSaveAIWeekTemplates;
 
 // ── Renderuj podgląd wygenerowanego planu WEWNĄTRZ tp-create-modal ──
+function _projKolor(p){return (p.tsbKoniec>=5&&p.tsbKoniec<=20)?'#4ade80':p.tsbKoniec<5?'#fb923c':'#eab308';}
+function _projWerdykt(p){return (p.tsbKoniec>=5&&p.tsbKoniec<=20)?'koniec planu = forma w oknie startowym':p.tsbKoniec<5?'koniec = zmeczenie; rozwaz lzejszy finisz':'duzo swiezosci — mozna dolozyc bodzca';}
+function _projSVG(p){var s=p.seria,mn=Math.min.apply(null,s.map(function(x){return x.tsb;})),mx=Math.max.apply(null,s.map(function(x){return x.tsb;})),zak=(mx-mn)||1;var krok=Math.max(1,Math.floor(s.length/40));var pts=s.filter(function(_,i){return i%krok===0;});var W=300,H=54;var path=pts.map(function(q,i){return (i===0?'M':'L')+(i/(pts.length-1)*W).toFixed(1)+','+(H-(q.tsb-mn)/zak*H).toFixed(1);}).join(' ');var y0=(mn<=0&&mx>=0)?(H-(0-mn)/zak*H).toFixed(1):null;return (y0?'<line x1="0" y1="'+y0+'" x2="'+W+'" y2="'+y0+'" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3,3"/>':'')+'<path d="'+path+'" fill="none" stroke="'+_projKolor(p)+'" stroke-width="2" stroke-dasharray="4,3"/>';}
+async function _tpProjekcjaTSB(athleteId, workouts) {
+  try {
+    if (!window.formaTRIMP || !workouts || !workouts.length || !athleteId) return null;
+    const od = new Date(Date.now() - 90 * 864e5).toISOString();
+    const { data: logs } = await sb.from('training_logs').select('logged_at,training_type,duration,feel').eq('athlete_id', athleteId).gte('logged_at', od).not('training_type', 'like', '__badge__%');
+    const dni = {};
+    (logs || []).forEach(l => { const d = String(l.logged_at).slice(0, 10); dni[d] = (dni[d] || 0) + window.formaTRIMP(l); });
+    let ctl = 0, atl = 0;
+    for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10); const t = dni[ds] || 0; ctl += (t - ctl) * (1/42); atl += (t - atl) * (1/7); }
+    const tsbStart = Math.round(ctl - atl);
+    const EFF = window.FORMA_EFFORT_FACTORS || {};
+    const planDni = {};
+    workouts.forEach(w => { const typ = String(w.workout_type || '').toLowerCase().trim(); const min = w.target_duration_min || w.duration_min || (w.target_distance_km ? w.target_distance_km * 6 : 0); const tr = min * (EFF[typ] !== undefined ? EFF[typ] : 1.5); const d = String(w.date).slice(0, 10); planDni[d] = (planDni[d] || 0) + tr; });
+    const daty = workouts.map(w => String(w.date).slice(0, 10)).sort();
+    const dPlan = Math.ceil((new Date(daty[daty.length - 1]).getTime() - Date.now()) / 864e5);
+    if (dPlan < 1) return null;
+    const seria = [{ dzien: 0, tsb: tsbStart }];
+    for (let k = 1; k <= dPlan; k++) { const ds = new Date(Date.now() + k * 864e5).toISOString().slice(0, 10); const t = planDni[ds] || 0; ctl += (t - ctl) * (1/42); atl += (t - atl) * (1/7); seria.push({ dzien: k, tsb: Math.round(ctl - atl) }); }
+    return { tsbStart, tsbKoniec: seria[seria.length - 1].tsb, dni: dPlan, seria };
+  } catch (e) { return null; }
+}
 async function renderPlanPreviewInCreateModal(planId) {
   _tpCurrentPlanId = planId;
   
@@ -2000,6 +2024,7 @@ async function renderPlanPreviewInCreateModal(planId) {
     .order('date');
   
   // Statystyki
+  const _proj = await _tpProjekcjaTSB(window._tpAthleteId || (typeof _selectedAthleteId!=='undefined'?_selectedAthleteId:null), workouts || []);   /* PLANER-2 P4 */
   const totalKm = (workouts || []).reduce((s, w) => s + (parseFloat(w.target_distance_km) || 0), 0);
   const totalCount = (workouts || []).length;
   const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
@@ -2056,6 +2081,11 @@ async function renderPlanPreviewInCreateModal(planId) {
     </div>
     
     <div style="max-height:50vh;overflow-y:auto;margin-bottom:12px;padding-right:4px;">
+      ${_proj ? `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:6px;">📈 Prognoza formy (TSB) na czas planu</div>
+        <svg viewBox="0 0 300 54" style="width:100%;height:54px;display:block;">${_projSVG(_proj)}</svg>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:${_projKolor(_proj)};margin-top:4px;">dzis TSB ${_proj.tsbStart} → koniec ${_proj.tsbKoniec} · ${_projWerdykt(_proj)}</div>
+      </div>` : ''}
       ${workoutsHtml || '<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px;">Brak treningów</div>'}
     </div>
     
