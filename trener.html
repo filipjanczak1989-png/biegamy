@@ -5250,12 +5250,37 @@ async function zaladujPoranek() {
         startyHtml = linie.join('');
       }
     } catch (e) {}
+    /* AGREGAT-GOTOWOSC: pasek statusu stada na gorze poranka */
+    let zmeczeniWell = 0, gotowiWell = 0;
+    (ath || []).forEach(a => {
+      const wl = perW[a.id];
+      if (!wl || wl.length < 3) return;
+      const o = wl[0], baza = wl.slice(1);
+      const srP = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+      const bR = srP(baza.map(x => x.resting_hr)), bH = srP(baza.map(x => x.hrv));
+      const zle = (o.resting_hr != null && bR != null && (o.resting_hr - bR) > 5)
+        || (o.hrv != null && bH != null && bH > 0 && (bH - o.hrv) / bH > 0.15);
+      if (zle) zmeczeniWell++; else gotowiWell++;
+    });
+    let agregatHtml = '';
+    if (gotowiWell + zmeczeniWell > 0) {
+      const total = gotowiWell + zmeczeniWell;
+      const pctGot = Math.round(gotowiWell / total * 100);
+      const kolor = zmeczeniWell === 0 ? '#4ade80' : zmeczeniWell >= gotowiWell ? '#fb923c' : '#eab308';
+      const tekst = zmeczeniWell === 0 ? 'Ca\u0142y zesp\u00f3\u0142 wypocz\u0119ty \u2014 dobry dzie\u0144 na mocniejsze akcenty'
+        : zmeczeniWell === 1 ? '1 zawodnik potrzebuje l\u017cejszego dnia' : zmeczeniWell + ' zawodnik\u00f3w potrzebuje l\u017cejszego dnia';
+      agregatHtml = '<div style="padding:9px 12px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;">'
+        + '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">\ud83d\udecc</span>'
+        + '<div style="flex:1;"><div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden;"><div style="height:100%;width:' + pctGot + '%;background:' + kolor + ';"></div></div></div>'
+        + '<span style="font-size:11px;font-family:DM Mono,monospace;color:' + kolor + ';">' + gotowiWell + '/' + total + '</span></div>'
+        + '<div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:5px;">' + tekst + '</div></div>';
+    }
     if (!alerty.length) {
-      el.innerHTML = '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>' + startyHtml;
+      el.innerHTML = agregatHtml + '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>' + startyHtml;
       return;
     }
     alerty.sort((x, y) => y.waga - x.waga);
-    el.innerHTML = alerty.map(x =>
+    el.innerHTML = agregatHtml + alerty.map(x =>
       '<div onclick="openAthleteProfile(\'' + x.a.id + '\', \'' + esc(x.a.full_name).replace(/'/g, '') + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
       + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
       + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'
