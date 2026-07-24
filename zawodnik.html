@@ -8329,6 +8329,8 @@ async function openNotifications() {
           notifClick = "document.getElementById('notif-panel')?.remove();showSection('social');setTimeout(function(){switchSocialTab('challenges');},400);";
         } else if (n.type==='race_signup' || n.type==='race_added') {
           notifClick = "location.href='races.html';";
+        } else if (n.type==='nowosc') {   /* PUSH-NOWOSC: ogloszenia funkcji -> Forma */
+          notifClick = "document.getElementById('notif-panel')?.remove();showSection('forma');";
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
         } else if (n.type==='ai_report') {
