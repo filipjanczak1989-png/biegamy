@@ -5657,7 +5657,7 @@ function renderLogsDb(data) {
     const bgImg = _runImgs[(idx * 7 + 3) % _runImgs.length];
     const bgPos = 'center 25%';
     const screensHtml = l.attachment_url ? _makeScreensCarousel(l.attachment_url.split(',').filter(Boolean), 'log-'+l.id) : '';
-    const detParts = [l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥ '+l.heart_rate : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : ''].filter(Boolean);
+    const detParts = [l.pace ? l.pace+'/km' : '', l.gap_pace ? 'GAP '+l.gap_pace : '', l.heart_rate ? '♥ '+l.heart_rate : '', l.cadence ? '👣 '+(l.cadence*2) : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : '']   /* E2-UI: GAP + kadencja x2 (zapis RPM!) */.filter(Boolean);
     return `<div onclick="editLog(${idx})" style="position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:10px;background-image:url(${bgImg});background-size:cover;background-position:${bgPos};cursor:pointer;" onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.05) 0%,rgba(7,5,12,0.55) 40%,rgba(7,5,12,0.96) 100%);pointer-events:none;"></div>
       <div style="height:70px;"></div>
