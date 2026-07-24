@@ -2417,7 +2417,37 @@ window._icuRenderSplits = function (d, el) {
         return;
       }
       const wer = alarmy >= 2 ? ['#fb923c', 'Dzi\u015b lepiej spokojnie \u2014 organizm pracuje'] : alarmy >= 1 ? ['#eab308', 'Trenuj, ale s\u0142uchaj organizmu'] : ['#4ade80', 'Organizm gotowy na mocny akcent'];
-      el.innerHTML = nag + wiersze + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11.5px;font-family:DM Mono,monospace;color:' + wer[0] + ';">' + wer[1] + '</div>';
+      /* GOTOWOSC-TREND: mini-sparkline RHR/HRV z ~21 dni — czy organizm sie poprawia */
+      var trendHtml = '';
+      try {
+        var ser = (w || []).slice().reverse();   /* chronologicznie */
+        function spark(pole, nazwa, dobryKierunek) {
+          var pts = ser.filter(function (d) { return d[pole] != null; }).map(function (d) { return d[pole]; });
+          if (pts.length < 5) return '';
+          var mn = Math.min.apply(null, pts), mx = Math.max.apply(null, pts), zak = (mx - mn) || 1;
+          var W = 60, H = 16;
+          var path = pts.map(function (v, i) { return (i === 0 ? 'M' : 'L') + (i / (pts.length - 1) * W).toFixed(1) + ',' + (H - (v - mn) / zak * H).toFixed(1); }).join(' ');
+          var pierwsza = pts.slice(0, Math.ceil(pts.length / 3)).reduce(function (a, b) { return a + b; }, 0) / Math.ceil(pts.length / 3);
+          var ostatnia = pts.slice(-Math.ceil(pts.length / 3)).reduce(function (a, b) { return a + b; }, 0) / Math.ceil(pts.length / 3);
+          var delta = ostatnia - pierwsza;
+          var poprawa = dobryKierunek === 'dol' ? delta < -0.5 : delta > 0.5;
+          var pogorsz = dobryKierunek === 'dol' ? delta > 0.5 : delta < -0.5;
+          var kolor = poprawa ? '#4ade80' : pogorsz ? '#fb923c' : 'rgba(255,255,255,0.5)';
+          var strzalka = poprawa ? '\u2197' : pogorsz ? '\u2198' : '\u2192';
+          return '<div style="display:flex;align-items:center;gap:6px;">'
+            + '<span style="font-size:9px;color:rgba(255,255,255,0.45);width:34px;">' + nazwa + '</span>'
+            + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:' + W + 'px;height:' + H + 'px;"><path d="' + path + '" fill="none" stroke="' + kolor + '" stroke-width="1.5"/></svg>'
+            + '<span style="font-size:11px;color:' + kolor + ';">' + strzalka + '</span></div>';
+        }
+        var sRHR = spark('resting_hr', 'RHR', 'dol');    /* nizsze RHR = lepiej */
+        var sHRV = spark('hrv', 'HRV', 'gora');           /* wyzsze HRV = lepiej */
+        if (sRHR || sHRV) {
+          trendHtml = '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">'
+            + '<div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Trend 3 tygodnie</div>'
+            + '<div style="display:flex;flex-direction:column;gap:4px;">' + sRHR + sHRV + '</div></div>';
+        }
+      } catch (_) {}
+      el.innerHTML = nag + wiersze + trendHtml + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11.5px;font-family:DM Mono,monospace;color:' + wer[0] + ';">' + wer[1] + '</div>';
     } catch (e) {}
   };
 
