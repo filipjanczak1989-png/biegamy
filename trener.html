@@ -2037,8 +2037,9 @@ async function renderPlanPreviewInCreateModal(planId) {
     const icon = (window.trainingTypeIconHtml ? window.trainingTypeIconHtml(w.workout_type, 15) : '') || typeIcons[w.workout_type] || '🏃';
     const details = [w.target_distance_km ? w.target_distance_km + 'km' : '', w.target_pace || ''].filter(Boolean).join(' · ');
     const _stepsTxt = (window.renderWorkoutSteps && w.steps) ? window.renderWorkoutSteps(w.steps).lines.join('\n') : '';
+    const _stepsSens = (window.renderWorkoutSteps && w.steps) ? (window.renderWorkoutSteps(w.steps).sens || '') : '';   /* P5 */
     const _stepsHtml = _stepsTxt
-      ? `<div style="font-size:9px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:4px;line-height:1.45;padding:5px 7px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">${escapeHtml(_stepsTxt)}</div>`
+      ? `${_stepsSens ? '<div style="font-size:10px;color:var(--fg);opacity:0.85;margin-top:5px;line-height:1.4;font-style:italic;">' + escapeHtml(_stepsSens) + '</div>' : ''}<div style="font-size:9px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:4px;line-height:1.45;padding:5px 7px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">${escapeHtml(_stepsTxt)}</div>`
       : '';
     return `
       <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -2222,8 +2223,9 @@ function renderPlanView(plan, workouts) {
       const canEdit = plan.status === 'draft'; // edycja tylko dla draftu
       // ✨ steps: czytelny breakdown structured workout (Interwały/Tempo) — tylko gdy steps są
       const _stepsTxt = (window.renderWorkoutSteps && w.steps) ? window.renderWorkoutSteps(w.steps).lines.join('\n') : '';
+      const _stepsSens = (window.renderWorkoutSteps && w.steps) ? (window.renderWorkoutSteps(w.steps).sens || '') : '';   /* P5 */
       const _stepsHtml = _stepsTxt
-        ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);line-height:1.55;margin-top:5px;padding:6px 9px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">${escapeHtml(_stepsTxt)}</div>`
+        ? `${_stepsSens ? '<div style="font-size:10px;color:var(--fg);opacity:0.85;margin-bottom:4px;line-height:1.4;font-style:italic;">' + escapeHtml(_stepsSens) + '</div>' : ''}<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);line-height:1.55;margin-top:5px;padding:6px 9px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">${escapeHtml(_stepsTxt)}</div>`
         : '';
 
       html += `

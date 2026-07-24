@@ -134,7 +134,7 @@ async function handle(req, user, svc){
   if (!training_id) return J(400, { ok:false, error:'no_training_id' });
 
   const { data: tr } = await svc.from('trainings')
-    .select('id, athlete_id, coach_id, date, type, steps')
+    .select('id, athlete_id, coach_id, date, type, steps, description')   /* P5 (b): ludzki opis do zegarka */
     .eq('id', training_id).maybeSingle();
   if (!tr) return J(404, { ok:false, error:'training_not_found' });
 
@@ -182,11 +182,14 @@ async function handle(req, user, svc){
   if (!tr.steps || (Array.isArray(tr.steps) && tr.steps.length === 0))
     return J(200, { ok:false, error:'no_steps' });
   const w = stepsToIcuWorkout(tr.steps, {});
+  /* P5 (b): ludzki opis (jesli jest) na gorze rozpiski w zegarku — motywacja przed trescia */
+  const _human = (tr.description && String(tr.description).trim()) ? String(tr.description).trim() + '\n\n' : '';
+  const _fullDesc = _human + w.description;
   const name = tr.type ? (tr.type + ' · BiegaMy') : 'BiegaMy';
   const ev = {
     category:'WORKOUT', type:'Run', target:'PACE',
     start_date_local: tr.date + 'T00:00:00',
-    name, external_id: tr.id, moving_time: w.moving_time, description: w.description
+    name, external_id: tr.id, moving_time: w.moving_time, description: _fullDesc
   };
 
   const r = await fetch('https://intervals.icu/api/v1/athlete/0/events/bulk?upsert=true', {

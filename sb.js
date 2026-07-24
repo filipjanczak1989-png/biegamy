@@ -1467,8 +1467,20 @@
       if (s.note) line += ' (' + s.note + ')';
       return line;
     }
+    /* PLANER-2 P5: ludzka etykieta serii — po co ten trening (nad techniczna rozpiska) */
+    function sensSerii(steps) {
+      var maRepeat = steps.some(function (e) { return e && e.kind === 'repeat'; });
+      var maTempo = steps.some(function (e) {
+        var t = (e && e.target) || ((e.steps || [])[0] || {}).target;
+        return t && t.type === 'pace';
+      });
+      if (maRepeat && maTempo) return 'Akcent \u2014 najmocniejsza część dnia. Rozgrzej się spokojnie, na powtórzeniach trzymaj równe tempo.';
+      if (maRepeat) return 'Powtórzenia z przerwami \u2014 równe, kontrolowane, nie zrywaj się od pierwszego.';
+      if (maTempo) return 'Równy wysiłek w zadanym tempie \u2014 rytm, nie zryw.';
+      return '';
+    }
     return function renderWorkoutSteps(steps) {
-      if (!Array.isArray(steps) || steps.length === 0) return { lines: [], text: '' };
+      if (!Array.isArray(steps) || steps.length === 0) return { lines: [], text: '', sens: '' };
       var lines = steps.map(function (el) {
         if (el && el.kind === 'repeat') {
           var inner = (el.steps || []).map(stepLine).join(' + ');
@@ -1476,7 +1488,7 @@
         }
         return stepLine(el);
       });
-      return { lines: lines, text: lines.join(' → ') };
+      return { lines: lines, text: lines.join(' → '), sens: sensSerii(steps) };
     };
   })();
 

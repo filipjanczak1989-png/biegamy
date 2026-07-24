@@ -1855,7 +1855,8 @@ function openModal(ds, idx) {
     const _stepsBoxE = document.getElementById('f-steps-breakdown');
     if(_stepsFieldE && _stepsBoxE){
       if(_stepsTxtE){
-        _stepsBoxE.textContent = _stepsTxtE; _stepsFieldE.style.display='block';
+        var _sensE = (window.renderWorkoutSteps && t.steps) ? (window.renderWorkoutSteps(t.steps).sens || '') : '';   /* P5 */
+        _stepsBoxE.textContent = (_sensE ? _sensE + '\n\n' : '') + _stepsTxtE; _stepsFieldE.style.display='block';
         // ⌚ Wyślij na zegarek — tylko planned (nie 'done'); wstrzyknięcie jednorazowe
         let _sendBtn = document.getElementById('f-steps-send');
         if(!_sendBtn){

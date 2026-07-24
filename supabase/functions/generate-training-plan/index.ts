@@ -1298,6 +1298,11 @@ target — dokładnie jedno z:
 - Maksymalnie 50 kroków po rozwinięciu repeatów (limit Garmina). Repeat liczony jako count × liczba kroków w środku.
 - Luźna przerwa truchtem bez celu tempa = "target": {"type": "none"}. NIGDY {"type": "open"} jako target — "open" dotyczy WYŁĄCZNIE duration.
 - "steps" MUSI być spójne z polami płaskimi (target_pace, target_distance_km) oraz z description. To ta sama jednostka treningowa, tylko zapisana strukturalnie.
+- ⚠️ DESCRIPTION przy treningu ze steps: ZAWSZE napisz PO LUDZKU po co ten trening i jak ma się czuć
+  (2-3 zdania, jak trener na grupie) — to trafia do zawodnika NAD techniczną rozpiską i do zegarka.
+  NIE zostawiaj samej surowej rozpiski liczb jako opisu. Przykład dobrego description dla interwałów:
+  "Dziś ostry akcent — 5 razy po 800 m w tempie startowym. Rozgrzej się bez pośpiechu, na powtórzeniach
+  trzymaj równo, przerwa ma być truchtem, nie spacerem. Ostatnie dwa mają boleć — o to chodzi."
 - Jeśli nie potrafisz wiarygodnie zbudować struktury — ustaw "steps": null. Lepiej null niż zmyślona struktura.
 
 ### Przykład — Interwały "rozgrzewka 2 km, 5×800 m @ 3:45-3:50 z 400 m truchtu, schłodzenie 2 km":
