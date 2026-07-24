@@ -336,6 +336,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="qs-card"><div class="qs-val" id="stat-days">—</div><div class="qs-lbl">Dni do startu</div><div id="stat-days-who" style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:2px;letter-spacing:0.02em;"></div></div>
 </div>
 
+<!-- ═══ TRENER-PORANEK v1: zbiorcze alerty "z kim dzis porozmawiac" (dane z silnika Formy) ═══ -->
+<div class="fi" id="poranek-sec" style="padding:0 16px;margin-bottom:14px;display:none;">
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">☀️ Poranek trenera</div>
+  <div id="poranek-lista"></div>
+</div>
+
 <!-- Kafelek Kalendarza Startów -->
 <div class="fi" style="padding:0 16px;margin-bottom:16px;">
   <button onclick="location.href='races.html'" style="width:100%;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.06));border:1px solid rgba(var(--accent-rgb),0.35);border-radius:16px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.6)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.35)'">
@@ -3153,6 +3159,7 @@ async function initAuth() {
     document.getElementById('menu-email').textContent = s2.user.email;
     document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name2.split(' ')[0] + '</span>';
     await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
     return;
   }
   _coachId = session.user.id;
@@ -3169,6 +3176,7 @@ async function initAuth() {
   const settingsEmail = document.getElementById('settings-email');
   if (settingsEmail) settingsEmail.textContent = session.user.email;
   await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
   // Inicjalizuj toggle powiadomień push
   if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
 }
@@ -3454,6 +3462,7 @@ async function deleteAthlete(id, name) {
 
   showToast(name + ' usunięty ✓');
   await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
 }
 
 // ── SELECT ATHLETE ────────────────────────────────────────────────
@@ -4001,6 +4010,7 @@ async function saveAthlete() {
   showToast(name + ' dodany ✓');
   closeAthModal();
   await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
 }
 
 
@@ -5086,6 +5096,78 @@ async function openCoachChat(athleteId, athleteName) {
 // ✨ Uniwersalna funkcja "otwórz profil zawodnika"
 // rawId może być UUID lub nieczytelnym ciągiem od Claude'a — robimy lookup po nazwisku jak trzeba
 // options: { openChat: true } = otwórz czat zamiast bocznego panelu
+/* ═══ TRENER-PORANEK v1: alerty zbiorcze z tych samych wzorow co Forma (formaTRIMP/EMA/Foster).
+   Tylko zawodnicy wymagajacy oka; komplet zdrowy = jedna zielona linijka. Klik -> panel zawodnika. ═══ */
+async function zaladujPoranek() {
+  try {
+    const sec = document.getElementById('poranek-sec');
+    const el = document.getElementById('poranek-lista');
+    if (!sec || !el || !window._coachId || !window.formaTRIMP) return;
+    const { data: ath } = await sb.from('athletes')
+      .select('id,full_name,intervals_token_dead_at').eq('coach_id', window._coachId);
+    const ids = (ath || []).map(a => a.id);
+    if (!ids.length) { sec.style.display = 'none'; return; }
+    const od = new Date(Date.now() - 90 * 864e5).toISOString();
+    const { data: logs } = await sb.from('training_logs')
+      .select('athlete_id,logged_at,duration,training_type,feel')
+      .in('athlete_id', ids).gte('logged_at', od)
+      .not('training_type', 'like', '__badge__%');
+    const perA = {}; ids.forEach(i => perA[i] = { dni: {}, last: null });
+    (logs || []).forEach(l => {
+      const p = perA[l.athlete_id]; if (!p) return;
+      const d = String(l.logged_at).slice(0, 10);
+      p.dni[d] = (p.dni[d] || 0) + window.formaTRIMP(l);
+      if (!p.last || l.logged_at > p.last) p.last = l.logged_at;
+    });
+    const alerty = [];
+    (ath || []).forEach(a => {
+      const p = perA[a.id]; const sig = [];
+      let ctl = 0, atl = 0; const dTR = [];
+      for (let k = 89; k >= 0; k--) {
+        const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+        const t = p.dni[ds] || 0; dTR.push(t);
+        ctl = ctl + (t - ctl) * (1 / 42); atl = atl + (t - atl) * (1 / 7);
+      }
+      const tsb = Math.round(ctl - atl);
+      const mono7 = w => {
+        const sr = w.reduce((x, y) => x + y, 0) / 7;
+        if (sr <= 0) return 0;
+        const sd = Math.sqrt(w.reduce((x, y) => x + (y - sr) * (y - sr), 0) / 7);
+        return sd > 0 ? Math.min(sr / sd, 4) : 4;
+      };
+      const w7 = dTR.slice(-7), sum7 = w7.reduce((x, y) => x + y, 0);
+      const mono = mono7(w7), strain = sum7 * mono;
+      const poprz = [];
+      for (let w = 1; w <= 4; w++) {
+        const ww = dTR.slice(-7 * (w + 1), -7 * w);
+        const sw = ww.reduce((x, y) => x + y, 0);
+        if (sw > 0) poprz.push(sw * mono7(ww));
+      }
+      const srS = poprz.length ? poprz.reduce((x, y) => x + y, 0) / poprz.length : 0;
+      if (sum7 > 0 && mono >= 2.0) sig.push('\ud83d\udd01 monotonia ' + (Math.round(mono * 10) / 10));
+      if (srS > 0 && strain > srS * 1.5) sig.push('\ud83d\udcc8 strain +' + Math.round((strain / srS - 1) * 100) + '%');
+      if (tsb <= -25) sig.push('\ud83d\udfe5 TSB ' + tsb);
+      else if (tsb >= 25 && ctl > 10) sig.push('\ud83d\udca4 TSB +' + tsb);
+      const cisza = p.last ? Math.floor((Date.now() - new Date(p.last).getTime()) / 864e5) : 99;
+      if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 cisza ' + (cisza > 30 ? '30+' : cisza) + ' dni');
+      if (a.intervals_token_dead_at) sig.push('\u231a token martwy');
+      if (sig.length) alerty.push({ a, sig, waga: (tsb <= -25 ? 3 : 0) + sig.length });
+    });
+    sec.style.display = 'block';
+    const esc = window.escapeHtml || (x => String(x));
+    if (!alerty.length) {
+      el.innerHTML = '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>';
+      return;
+    }
+    alerty.sort((x, y) => y.waga - x.waga);
+    el.innerHTML = alerty.map(x =>
+      '<div onclick="openAthleteProfile(\'' + x.a.id + '\', \'' + esc(x.a.full_name).replace(/'/g, '') + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
+      + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
+      + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'
+    ).join('');
+  } catch (e) { console.warn('[poranek]', e); }
+}
+
 async function openAthleteProfile(rawId, athleteName, options) {
   options = options || {};
   console.log('[openAthlete] CALL:', { rawId, athleteName, options });
@@ -6335,6 +6417,7 @@ async function assignAthleteByEmail() {
   showToast('Zawodnik przypisany do Twojej grupy ✓');
   closeAthModal();
   await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
 }
 
 init();
@@ -8689,6 +8772,7 @@ document.addEventListener('keydown', (e) => {
       await loadPendingIntakes();
       if (typeof loadAthletes === 'function') {
         await loadAthletes();
+  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
       } else if (typeof refreshAthletes === 'function') {
         await refreshAthletes();
       }
