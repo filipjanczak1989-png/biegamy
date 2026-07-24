@@ -15,13 +15,22 @@ const dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0; const 
 
 serve(async (req) => {
   try {
+    // GUARD: cron musi niesc x-push-secret (ten sam handshake co send-push) — EF jest verify_jwt=OFF
+    const wantSecret = Deno.env.get("PUSH_HOOK_SECRET") || "";
+    const gotSecret = req.headers.get("x-push-secret") || "";
+    if (wantSecret && gotSecret !== wantSecret) {
+      return json({ ok: false, error: "unauthorized" }, 401);
+    }
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // DST-odpornosc: cron leci co godzine; godzina PL porownywana z preferencja KAZDEGO zawodnika
+    const plNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Warsaw" }));
+    const plHour = plNow.getHours();
     const dzisStr = new Date().toISOString().slice(0, 10);
     const za3 = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
 
     // zawodnicy z wlaczonym porannym pushem (default true — tylko jawne false pomijamy)
     const { data: aths } = await sb.from("athletes")
-      .select("id, full_name, morning_push_enabled")
+      .select("id, full_name, morning_push_enabled, morning_push_hour")
       .or("morning_push_enabled.is.null,morning_push_enabled.eq.true");
     if (!aths || !aths.length) return json({ ok: true, sent: 0, reason: "no athletes" });
 
@@ -65,6 +74,9 @@ serve(async (req) => {
 
     let sent = 0;
     for (const a of aths) {
+      // godzina zawodnika (default 6) musi zgadzac sie z aktualna godzina PL
+      const prefHour = (a.morning_push_hour != null) ? a.morning_push_hour : 6;
+      if (prefHour !== plHour) continue;
       const d = dni[a.id] || {};
       let ctl = 0, atl = 0;
       for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10); const t = d[ds] || 0; ctl += (t - ctl) * (1/42); atl += (t - atl) * (1/7); }

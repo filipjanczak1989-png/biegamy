@@ -1270,6 +1270,13 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
     </div>
     <div id="odprawa-push-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;">\u2026</div>
   </div>
+  <div id="odprawa-hour-row" style="display:none;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:8px 14px;margin:-12px 0 12px;">
+    <span style="font-size:11px;color:var(--muted);">O kt\u00f3rej godzinie?</span>
+    <select id="odprawa-hour-sel" onchange="setOdprawaHour(this.value)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--fg);font-size:12px;font-family:'DM Mono',monospace;">
+      <option value="5">5:00</option><option value="6">6:00</option><option value="7">7:00</option>
+      <option value="8">8:00</option><option value="9">9:00</option><option value="10">10:00</option>
+    </select>
+  </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
@@ -6310,13 +6317,18 @@ async function _loadOdprawaPushState() {
     const card = document.getElementById('odprawa-push-card');
     const pill = document.getElementById('odprawa-push-pill');
     if (!card || !pill || !_athleteId) return;
-    const { data } = await sb.from('athletes').select('morning_push_enabled').eq('id', _athleteId).maybeSingle();
+    const { data } = await sb.from('athletes').select('morning_push_enabled,morning_push_hour').eq('id', _athleteId).maybeSingle();
     const on = !data || data.morning_push_enabled !== false;   /* default true */
     card.style.display = 'flex';
     pill.textContent = on ? 'W\u0141\u0104CZONY' : 'WY\u0141.';
     pill.style.background = on ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)';
     pill.style.color = on ? '#4ade80' : 'rgba(255,255,255,0.5)';
     card.dataset.on = on ? '1' : '0';
+    /* wiersz godziny widoczny tylko gdy push wlaczony */
+    const hourRow = document.getElementById('odprawa-hour-row');
+    const hourSel = document.getElementById('odprawa-hour-sel');
+    if (hourRow) hourRow.style.display = on ? 'flex' : 'none';
+    if (hourSel) hourSel.value = String((data && data.morning_push_hour != null) ? data.morning_push_hour : 6);
   } catch (e) {}
 }
 async function toggleOdprawaPush() {
@@ -6328,6 +6340,13 @@ async function toggleOdprawaPush() {
     if (error) { toast('B\u0142\u0105d zapisu ustawienia'); return; }
     toast(nowOn ? 'Poranny sygna\u0142 w\u0142\u0105czony' : 'Poranny sygna\u0142 wy\u0142\u0105czony');
     _loadOdprawaPushState();
+  } catch (e) {}
+}
+async function setOdprawaHour(h) {
+  try {
+    if (!_athleteId) return;
+    const { error } = await sb.from('athletes').update({ morning_push_hour: parseInt(h, 10) }).eq('id', _athleteId);
+    if (!error) toast('Poranny sygna\u0142 o ' + h + ':00');
   } catch (e) {}
 }
 async function togglePushNotifs() {
