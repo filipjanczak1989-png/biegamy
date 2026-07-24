@@ -3959,7 +3959,7 @@ async function _renderOdprawa() {
     /* gotowosc z wellness (8 dni) */
     let gotSig = null;
     try {
-      const odW = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10);
+      const odW = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);   /* 21 dni dla trendu snu */
       const { data: wel } = await sb.from('wellness')
         .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', _athleteId)
         .gte('date', odW).order('date', { ascending: false });
@@ -4003,6 +4003,27 @@ async function _renderOdprawa() {
     }
     if (gotSig && gotSig.readiness != null) linie.push(['\u26a1 Gotowo\u015b\u0107 (Garmin)', gotSig.readiness + '/100']);
     var ostBieg = (logs || []).find(l => l.cadence);
+    /* TREND-ODPRAWA: mini-sparkline snu (21 dni wellness) + kadencji (biegi z logow) */
+    function _sparkT(pts, dobryKierunek, jednostka) {
+      if (!pts || pts.length < 4) return '';
+      var mn = Math.min.apply(null, pts), mx = Math.max.apply(null, pts), zak = (mx - mn) || 1, W = 56, H = 16;
+      var path = pts.map(function (v, i) { return (i === 0 ? 'M' : 'L') + (i / (pts.length - 1) * W).toFixed(1) + ',' + (H - (v - mn) / zak * H).toFixed(1); }).join(' ');
+      var n3 = Math.ceil(pts.length / 3);
+      var pocz = pts.slice(0, n3).reduce(function (a, b) { return a + b; }, 0) / n3;
+      var ost = pts.slice(-n3).reduce(function (a, b) { return a + b; }, 0) / n3;
+      var d = ost - pocz;
+      var poprawa = dobryKierunek === 'gora' ? d > 0 : d < 0;
+      var istotna = Math.abs(d) > (jednostka === 'sen' ? 900 : 1.5);   /* sen: 15min, kadencja: 1.5 */
+      var kolor = (istotna && poprawa) ? '#4ade80' : (istotna && !poprawa) ? '#fb923c' : 'rgba(255,255,255,0.4)';
+      var strz = (istotna && poprawa) ? '\u2197' : (istotna && !poprawa) ? '\u2198' : '\u2192';
+      return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:' + W + 'px;height:' + H + 'px;"><path d="' + path + '" fill="none" stroke="' + kolor + '" stroke-width="1.5"/></svg><span style="color:' + kolor + ';font-size:11px;">' + strz + '</span>';
+    }
+    /* sen: chronologicznie, godziny */
+    var senPts = (wel || []).slice().reverse().filter(function (w) { return w.sleep_secs != null; }).map(function (w) { return w.sleep_secs; });
+    var senTrend = _sparkT(senPts, 'gora', 'sen');
+    /* kadencja: z biegow (logi), chronologicznie */
+    var kadPts = (logs || []).slice().reverse().filter(function (l) { return l.cadence; }).map(function (l) { return +l.cadence * 2; });
+    var kadTrend = _sparkT(kadPts, 'gora', 'kad');
     if (ostBieg && ostBieg.cadence) linie.push(['\ud83d\udc63 Kadencja (ost.)', (ostBieg.cadence * 2) + ' krok\u00f3w/min']);
 
     var html = '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:' + (linie.length ? '12px' : '0') + ';">'
@@ -4013,6 +4034,14 @@ async function _renderOdprawa() {
       html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
         + linie.map(function (l) { return '<div style="flex:1;min-width:90px;"><div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">' + l[0] + '</div><div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--fg);">' + l[1] + '</div></div>'; }).join('')
         + '</div>';
+    }
+    if (senTrend || kadTrend) {
+      html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
+        + '<div style="font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Trend 3 tygodnie</div>'
+        + '<div style="display:flex;flex-direction:column;gap:5px;">'
+        + (senTrend ? '<div style="display:flex;align-items:center;gap:7px;"><span style="font-size:10px;color:rgba(255,255,255,0.5);width:56px;">\ud83d\udecc Sen</span>' + senTrend + '</div>' : '')
+        + (kadTrend ? '<div style="display:flex;align-items:center;gap:7px;"><span style="font-size:10px;color:rgba(255,255,255,0.5);width:56px;">\ud83d\udc63 Kadencja</span>' + kadTrend + '</div>' : '')
+        + '</div></div>';
     }
     tresc.innerHTML = html;
     box.style.display = 'block';
