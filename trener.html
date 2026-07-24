@@ -5211,20 +5211,20 @@ async function zaladujPoranek() {
         if (sw > 0) poprz.push(sw * mono7(ww));
       }
       const srS = poprz.length ? poprz.reduce((x, y) => x + y, 0) / poprz.length : 0;
-      if (sum7 > 0 && mono >= 2.0) sig.push('\ud83d\udd01 monotonia ' + (Math.round(mono * 10) / 10));
-      if (srS > 0 && strain > srS * 1.5) sig.push('\ud83d\udcc8 strain +' + Math.round((strain / srS - 1) * 100) + '%');
-      if (tsb <= -25) sig.push('\ud83d\udfe5 TSB ' + tsb);
-      else if (tsb >= 25 && ctl > 10) sig.push('\ud83d\udca4 TSB +' + tsb);
+      if (sum7 > 0 && mono >= 2.0) sig.push('\ud83d\udd01 w k\u00f3\u0142ko to samo tempo \u2014 wrzu\u0107 co\u015b innego (' + (Math.round(mono * 10) / 10) + ')');
+      if (srS > 0 && strain > srS * 1.5) sig.push('\ud83d\udcc8 mocno dobi\u0142 obci\u0105\u017cenie w tym tygodniu (+' + Math.round((strain / srS - 1) * 100) + '%)');
+      if (tsb <= -25) sig.push('\ud83d\udfe5 zm\u0119czenie siedzi w nogach \u2014 dzi\u015b nic mocnego (' + tsb + ')');
+      else if (tsb >= 25 && ctl > 10) sig.push('\ud83d\udca4 du\u017co \u015bwie\u017co\u015bci \u2014 mo\u017cna doda\u0107 bod\u017aca (+' + tsb + ')');
       const cisza = p.last ? Math.floor((Date.now() - new Date(p.last).getTime()) / 864e5) : 99;
-      if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 cisza ' + (cisza > 30 ? '30+' : cisza) + ' dni');
-      if (a.intervals_token_dead_at) sig.push('\u231a token martwy');
+      if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 nie logowa\u0142 od ' + (cisza > 30 ? '30+' : cisza) + ' dni \u2014 zagadaj');
+      if (a.intervals_token_dead_at) sig.push('\u231a zegarek si\u0119 roz\u0142\u0105czy\u0142 \u2014 poprosi ponowne po\u0142\u0105czenie');
       const wl = perW[a.id];
       if (wl && wl.length >= 3) {
         const o = wl[0], baza = wl.slice(1);
         const srB = arr => { const v = arr.filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
         const bR = srB(baza.map(x => x.resting_hr)), bH = srB(baza.map(x => x.hrv));
-        if (o.resting_hr != null && bR != null && (o.resting_hr - bR) > 5) sig.push('\ud83d\udecc RHR +' + Math.round(o.resting_hr - bR));
-        if (o.hrv != null && bH != null && bH > 0 && (bH - o.hrv) / bH > 0.15) sig.push('\ud83d\udecc HRV \u2193' + Math.round((bH - o.hrv) / bH * 100) + '%');
+        if (o.resting_hr != null && bR != null && (o.resting_hr - bR) > 5) sig.push('\ud83d\udecc t\u0119tno spocz. wy\u017csze ni\u017c zwykle \u2014 organizm pracuje (+' + Math.round(o.resting_hr - bR) + ')');
+        if (o.hrv != null && bH != null && bH > 0 && (bH - o.hrv) / bH > 0.15) sig.push('\ud83d\udecc regeneracja s\u0142absza ni\u017c zwykle \u2014 lepiej spokojnie (HRV -' + Math.round((bH - o.hrv) / bH * 100) + '%)');
       }
       if (sig.length) alerty.push({ a, sig, waga: (tsb <= -25 ? 3 : 0) + sig.length });
     });
