@@ -1031,6 +1031,16 @@ body > *{position:relative;z-index:1;}
   <div class="ws-info"><div class="ws-title">Postęp tygodnia</div><div class="ws-sub" id="ws-days">Ładowanie...</div></div>
   <div><div class="ws-km" id="ws-km">—</div><div class="ws-km-lbl" id="ws-km-lbl">km</div></div>
 </div>
+<!-- WEEK-KM-BAR: pasek postepu km (dziala tez bez planu — pokazuje realne km) -->
+<div id="week-km-bar-wrap" class="fade-in" style="display:none;margin:-2px 16px 8px;">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+    <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Kilometry w tym tygodniu</span>
+    <span id="week-km-bar-txt" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);"></span>
+  </div>
+  <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;">
+    <div id="week-km-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#e8561e,#fb923c);border-radius:4px;transition:width 0.9s var(--ease-out);"></div>
+  </div>
+</div>
 
 <!-- ── NUTRITION WIDGET ── -->
 <div class="sec-hdr fade-in" style="margin-top:4px;">
@@ -5564,6 +5574,25 @@ async function updateWeekProgress() {
   if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
   if (kmEl) { const safeKm = isNaN(totalKm) ? 0 : totalKm; Anim.countUp(kmEl, safeKm, 900); }
   if (kmLblEl) kmLblEl.textContent = (plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień') + (subKm > 0 ? ' · +' + subKm.toFixed(0) + ' zast.' : '');
+  /* WEEK-KM-BAR: pasek km — z planem pokazuje %, bez planu same km (nie stoi na 0) */
+  const kmWrap = document.getElementById('week-km-bar-wrap');
+  const kmFill = document.getElementById('week-km-bar-fill');
+  const kmTxt = document.getElementById('week-km-bar-txt');
+  if (kmWrap && kmFill && kmTxt) {
+    const rt = isNaN(totalKm) ? 0 : totalKm, rp = isNaN(plannedKm) ? 0 : plannedKm;
+    if (rt > 0 || rp > 0) {
+      kmWrap.style.display = 'block';
+      if (rp > 0) {
+        const pctKm = Math.min(100, Math.round(rt / rp * 100));
+        setTimeout(() => { kmFill.style.width = pctKm + '%'; }, 50);
+        kmTxt.textContent = rt.toFixed(0) + ' / ' + rp.toFixed(0) + ' km \u00b7 ' + pctKm + '%';
+      } else {
+        /* brak planu: pasek pelny w kolorze, tekst same przebiegniete km */
+        setTimeout(() => { kmFill.style.width = '100%'; }, 50);
+        kmTxt.textContent = rt.toFixed(0) + ' km przebiegni\u0119te';
+      }
+    } else { kmWrap.style.display = 'none'; }
+  }
 }
 
 // ⌚ Otwórz dzisiejszy trening w kalendarzu (drill-down z pełnymi wykresami)
