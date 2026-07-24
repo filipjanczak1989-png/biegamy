@@ -489,7 +489,7 @@ async function collectCoachContext(admin: any, coachId: string) {
       return p.length===3?p[0]*60+p[1]+p[2]/60:p.length===2?p[0]+p[1]/60:(+t||0); };
     const od90 = new Date(Date.now()-90*864e5).toISOString();
     const { data: l90 } = await admin.from("training_logs")
-      .select("athlete_id,logged_at,training_type,duration,feel")
+      .select("athlete_id,logged_at,training_type,duration,feel,distance_km")
       .in("athlete_id", athleteIds).gte("logged_at", od90)
       .not("training_type","like","__badge__%");
     const dni: Record<string, Record<string, number>> = {};
@@ -521,7 +521,18 @@ async function collectCoachContext(admin: any, coachId: string) {
         if(o.hrv!=null&&bH!=null&&bH>0&&(bH-o.hrv)/bH>0.15) sig.push('HRV -'+Math.round((bH-o.hrv)/bH*100)+'%');
         if(o.sleep_secs!=null&&o.sleep_secs<6*3600) sig.push('sen <6h');
         got = sig.length ? { sygnaly: sig } : { sygnaly: [], ok: true }; }
+      /* BRIEF+ KROK4: km ostatnie 30d vs poprzednie 30d — trener widzi kto rosnie/spada */
+      let km30=0, km60_30=0;
+      const _now=Date.now();
+      for (const l of (l90||[])) {
+        if (l.athlete_id!==aid) continue;
+        const wiek=(_now-new Date(l.logged_at).getTime())/864e5;
+        if (wiek<30) km30+=(+l.distance_km||0);
+        else if (wiek<60) km60_30+=(+l.distance_km||0);
+      }
+      const trendKm = Math.round(km30)-Math.round(km60_30);
       analityka[aid]={ tsb: Math.round(ctl-atl), ctl: Math.round(ctl),
+        km_30d: Math.round(km30), zmiana_km_msc: trendKm,
         monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(s7*mono), gotowosc: got };
     }
   } catch(_) { /* analityka opcjonalna */ }
@@ -991,7 +1002,7 @@ ${athleteLookupTable}
 CZEKAJĄCE ANKIETY DO AKCEPTACJI: ${ctx.pending_intakes}
 ${ctx.pending_intakes > 0 ? `Lista (do informacji w briefie):\n${pendingIntakesSummary}` : ""}
 
-DANE ZAWODNIKÓW — pole analityka_formy: tsb (+5..+15 optimum startowe, <-25 przeciążenie), monotonia_7d (>=2.0 = brak zróżnicowania = ryzyko), gotowosc.sygnaly (RHR/HRV/sen z zegarka; niepuste = organizm pracuje, delikatnie zasugeruj lżejszy dzień). null = brak danych, nie zgaduj.
+DANE ZAWODNIKÓW — pole analityka_formy: tsb (+5..+15 optimum startowe, <-25 przeciążenie), monotonia_7d (>=2.0 = brak zróżnicowania = ryzyko), km_30d + zmiana_km_msc (o ile km wiecej/mniej vs poprzednie 30 dni \u2014 wspomnij gdy istotna zmiana, np. duzy wzrost = ryzyko, spadek = mniej pracy); gotowosc.sygnaly (RHR/HRV/sen z zegarka; niepuste = organizm pracuje, delikatnie zasugeruj lżejszy dzień). null = brak danych, nie zgaduj.
 (każdy zawodnik ma: id, name, klaudiusz_brief, pbs, race_goals, stats_7d, stats_30d_excl_7d, logs_7d, plan_workouts_upcoming, training_plans_active, messages_recent, unanswered_athlete_msgs, log_comments_recent, coach_notes, intake_context, recent_ai_reports, athlete_feedback_recent, upcoming_races, strava_*):
 
 ${JSON.stringify(athleteSummaries, null, 2)}
