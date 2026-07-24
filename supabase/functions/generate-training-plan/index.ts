@@ -429,6 +429,17 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
   const totalKm60 = allKm.reduce((s, x) => s + x, 0);
   const avgWeeklyKm = Math.round((totalKm60 / 60) * 7);
 
+  // FIX-OBJETOSC: objetosc per ostatnie 4 tygodnie (nie tylko srednia 60d — mylaca przy zmiennej objetosci)
+  const _tygKm = [0, 0, 0, 0];   // [ten tydzien, -1, -2, -3]
+  const _teraz = Date.now();
+  for (const l of (logs || [])) {
+    const dni = Math.floor((_teraz - new Date(l.logged_at).getTime()) / 86400000);
+    const wk = Math.floor(dni / 7);
+    if (wk >= 0 && wk < 4) _tygKm[wk] += (Number(l.distance_km) || 0);
+  }
+  const tygKmStr = _tygKm.map((k) => Math.round(k)).join(', ');   // "45, 65, 98, 82"
+  const ostatniPelnyTydzien = Math.round(_tygKm[1]);   // -1 tydzien (ostatni zamkniety)
+
   // Ile logów ma odczucia (feel)
   const logsWithFeel = (logs || []).filter((l: any) => l.feel && l.feel.trim());
   // ✨ v4 (watch): logi zmierzone zegarkiem (intervals.icu) — HR/pace obiektywne
@@ -630,6 +641,8 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
     stats: {
       totalKm60d: Math.round(totalKm60),
       avgWeeklyKm,
+      tygKmStr,
+      ostatniPelnyTydzien,
       logsCount: (logs || []).length,
       watchLogsCount: watchLogs.length, // ✨ v4 (watch)
       logsWithFeel: logsWithFeel.length,
@@ -1636,7 +1649,10 @@ ${targetVolumeKm ? `- Docelowa objętość peak: ${targetVolumeKm} km/tydz` : ""
 - **Niedziela**: długi wybieg
 
 ### Zasady objętości:
-- Aktualnie: ${stats.avgWeeklyKm} km/tydz
+- Srednia 60d: ${stats.avgWeeklyKm} km/tydz
+- Objetosc ostatnich 4 tygodni (od biezacego wstecz): ${stats.tygKmStr} km
+- Ostatni zamkniety tydzien: ${stats.ostatniPelnyTydzien} km
+- WAZNE: gdy objetosc byla zmienna (np. spadek po chorobie/przerwie), NIE opisuj powrotu do wczesniejszego poziomu jako "skok" — to POWROT. Porownuj plan do ostatniego zamknietego tygodnia, nie do sredniej. Jesli plan jest nizszy niz szczytowe tygodnie, nie pisz o "wzroscie 10-15%".
 - Buduj progresywnie (max +10% obj/tydz, NIE więcej żeby uniknąć kontuzji)
 - Co 4. tydzień to "deload" — redukcja 25-30% objętości
 - Tydzień przed startem (jeśli jest target_race_date): tapering -40%
