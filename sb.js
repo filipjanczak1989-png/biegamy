@@ -2290,8 +2290,11 @@ window._icuRenderSplits = function (d, el) {
     if (!n) return '';
     const total = times.slice(0,n).reduce((s,t)=>s+(t||0),0) || 1;
     const maxT  = Math.max(...times.slice(0,n).map(t=>t||0)) || 1;
-    const fmt = (s)=>{ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60;
-      return h ? (h+':'+String(m).padStart(2,'0')) : (m+':'+String(ss).padStart(2,'0')); };
+    const fmt = (s)=>{ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60);
+      // jednoznaczny zapis z jednostka (unika mylenia 3:18=3h z 33:40=33min)
+      if (h) return h + 'h ' + (m ? m + 'm' : '');
+      if (m) return m + 'm';
+      return Math.round(s) + 's'; };
     const bpmRange = (i)=>{ const hi=bounds[i]; if (hi==null) return ''; const lo=i>0?bounds[i-1]:null;
       return lo!=null ? (lo+'–'+hi) : ('<'+hi); };
     const idx = Array.from({length:n},(_,i)=>i);
