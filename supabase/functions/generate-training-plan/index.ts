@@ -217,7 +217,7 @@ KONIEC NOTATKI TRENERA
 }
 
 // ─── Build kontekstu zawodnika dla prompt ───────────────────────────────
-async function buildAthleteContext(supabase: any, athleteId: string) {
+async function buildAthleteContext(supabase: any, athleteId: string, coachId?: string) {   /* PLANER-2 P2: +coachId dla stylu cross-athlete */
   // 1. Profil zawodnika
   const { data: athlete } = await supabase
     .from("athletes")
@@ -355,6 +355,31 @@ async function buildAthleteContext(supabase: any, athleteId: string) {
       .limit(40); // max 40 edytowanych workout-ów jako próbka
     coachEditedWorkouts = edited || [];
   }
+
+  /* ═══ PLANER-2 P2: OGOLNY STYL TRENERA (cross-athlete) — dla nowych zawodnikow bez historii.
+     Edycje trenera u INNYCH jego zawodnikow = slabszy sygnal (priorytet nizej niz per-athlete). ═══ */
+  let coachStyleWorkouts: any[] = [];
+  try {
+    if (coachId) {
+      const { data: coachAthletes } = await supabase.from("athletes")
+        .select("id").eq("coach_id", coachId).neq("id", athleteId).limit(50);
+      const otherIds = (coachAthletes || []).map((a: any) => a.id);
+      if (otherIds.length) {
+        const { data: coachPlans } = await supabase.from("training_plans")
+          .select("id").in("athlete_id", otherIds)
+          .in("status", ["approved", "completed"])
+          .order("created_at", { ascending: false }).limit(15);
+        const cpIds = (coachPlans || []).map((p: any) => p.id);
+        if (cpIds.length) {
+          const { data: cw } = await supabase.from("training_plan_workouts")
+            .select("workout_type, target_distance_km, target_pace, target_hr_zone, description")
+            .in("plan_id", cpIds).eq("edited_by_coach", true)
+            .order("date", { ascending: false }).limit(30);
+          coachStyleWorkouts = cw || [];
+        }
+      }
+    }
+  } catch (_) { /* styl cross-athlete opcjonalny */ }
 
   // 7. RAPORTY AI o zawodniku — ostatnie 5 wysłanych (visible_to_athlete=true)
   // Daje AI pełen obraz: jak zawodnik wygląda, co było analizowane, co Ty edytowałeś,
@@ -596,6 +621,7 @@ async function buildAthleteContext(supabase: any, athleteId: string) {
     prevPlans: prevPlans || [],
     prevPlanWorkouts,
     coachEditedWorkouts, // ✨ v2.2: edytowane przez trenera workouts (sygnał stylu)
+    coachStyleWorkouts,   /* PLANER-2 P2: styl cross-athlete */
     aiReports: aiReports || [],
     coachNotes: coachNotes || [], // ✨ v2.4: notatki trenera nieresolved
     chatMessages: chatMessages || [], // ✨ v2.7: wiadomości czatu
@@ -1567,6 +1593,12 @@ ${prevPlansText}
 
 ${prevPatternText}
 ${coachEditedText}
+${context.coachStyleWorkouts && context.coachStyleWorkouts.length >= 5 ? `
+── OGOLNY STYL TEGO TRENERA (edycje u INNYCH zawodnikow — sygnal SLABSZY niz sekcja wyzej) ──
+Ten trener u innych podopiecznych poprawial workouty tak (wyciagnij OGOLNE preferencje:
+nazewnictwo, zakresy temp, typy trescia; NIE kopiuj temp 1:1 — inny zawodnik = inne tempo!):
+${context.coachStyleWorkouts.slice(0, 20).map((w: any) => `- ${w.workout_type}: ${w.target_distance_km ?? '-'}km @ ${w.target_pace ?? '-'} ${w.target_hr_zone ? '(HR ' + w.target_hr_zone + ')' : ''}${w.description ? ' — ' + String(w.description).slice(0, 90) : ''}`).join('\n')}
+KOLEJNOSC PRIORYTETOW STYLU: 1) edycje dla TEGO zawodnika 2) komentarz trenera 3) ogolny styl (ta sekcja).` : ''}
 
 ## RAPORTY AI O TYM ZAWODNIKU (ostatnie 5 wysłanych — Twoja diagnoza + ew. edycje + opinia zawodnika)
 **To jest "biografia trenerska" zawodnika — wykorzystaj te raporty żeby zrozumieć jego mocne i słabe strony, ryzyka, charakter.**
@@ -1938,7 +1970,7 @@ serve(async (req) => {
     }
 
     // ─── Build kontekstu ─────
-    const context = await buildAthleteContext(supabase, athlete_id);
+    const context = await buildAthleteContext(supabase, athlete_id, coachId);   /* PLANER-2 P2 */
 
     // ─── Build prompt + call Claude ─────
     const prompt = buildPrompt(
