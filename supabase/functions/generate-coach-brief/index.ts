@@ -478,12 +478,61 @@ async function collectCoachContext(admin: any, coachId: string) {
     .select("id", { count: "exact", head: true })
     .eq("status", "submitted");
 
+    /* ═══ BRIEF+ (24.07): analityka rosteru dla modelu — TSB/monotonia (Foster) + gotowosc wellness.
+     Wagi = SWIADOMY DUPLIKAT sb.js (jak w RAPORT-AI+) — zmiana tam => zmiana tu. ═══ */
+  let analityka: Record<string, any> = {};
+  try {
+    const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
+    const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
+    const _dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
+      const p=t.split(':').map(Number); if(p.some(isNaN)) return 0;
+      return p.length===3?p[0]*60+p[1]+p[2]/60:p.length===2?p[0]+p[1]/60:(+t||0); };
+    const od90 = new Date(Date.now()-90*864e5).toISOString();
+    const { data: l90 } = await admin.from("training_logs")
+      .select("athlete_id,logged_at,training_type,duration,feel")
+      .in("athlete_id", athleteIds).gte("logged_at", od90)
+      .not("training_type","like","__badge__%");
+    const dni: Record<string, Record<string, number>> = {};
+    for (const l of (l90||[])) {
+      const typ=String(l.training_type||'').toLowerCase().trim();
+      const tr=_dMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
+      const dk=String(l.logged_at).slice(0,10);
+      (dni[l.athlete_id]=dni[l.athlete_id]||{})[dk]=((dni[l.athlete_id]||{})[dk]||0)+tr;
+    }
+    const odW=new Date(Date.now()-8*864e5).toISOString().slice(0,10);
+    const { data: wel } = await admin.from("wellness")
+      .select("athlete_id,date,resting_hr,hrv,sleep_secs")
+      .in("athlete_id", athleteIds).gte("date", odW).order("date",{ascending:false});
+    const perW: Record<string, any[]> = {};
+    (wel||[]).forEach((w: any)=>{ (perW[w.athlete_id]=perW[w.athlete_id]||[]).push(w); });
+    for (const aid of athleteIds) {
+      const d=dni[aid]||{}; let ctl=0, atl=0; const dTR: number[]=[];
+      for (let k=89;k>=0;k--){ const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
+        const t=d[ds]||0; dTR.push(t); ctl+=(t-ctl)*(1/42); atl+=(t-atl)*(1/7); }
+      const w7=dTR.slice(-7), s7=w7.reduce((a,b)=>a+b,0), sr=s7/7;
+      const sd=Math.sqrt(w7.reduce((a,b)=>a+(b-sr)*(b-sr),0)/7);
+      const mono=sr<=0?0:(sd>0?Math.min(sr/sd,4):4);
+      let got: any=null; const wl=perW[aid];
+      if (wl&&wl.length>=3){ const o=wl[0], baza=wl.slice(1);
+        const m=(arr:any[])=>{const v=arr.filter((x:any)=>x!=null);return v.length?v.reduce((x:number,y:number)=>x+y,0)/v.length:null;};
+        const bR=m(baza.map((x:any)=>x.resting_hr)), bH=m(baza.map((x:any)=>x.hrv));
+        const sig:string[]=[];
+        if(o.resting_hr!=null&&bR!=null&&o.resting_hr-bR>5) sig.push('RHR +'+Math.round(o.resting_hr-bR));
+        if(o.hrv!=null&&bH!=null&&bH>0&&(bH-o.hrv)/bH>0.15) sig.push('HRV -'+Math.round((bH-o.hrv)/bH*100)+'%');
+        if(o.sleep_secs!=null&&o.sleep_secs<6*3600) sig.push('sen <6h');
+        got = sig.length ? { sygnaly: sig } : { sygnaly: [], ok: true }; }
+      analityka[aid]={ tsb: Math.round(ctl-atl), ctl: Math.round(ctl),
+        monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(s7*mono), gotowosc: got };
+    }
+  } catch(_) { /* analityka opcjonalna */ }
+
   return {
     coach: coachInfo,
     athletes: athletes || [],
     plans: plans || [],
     logs: logs || [],
     logs_long: logsLong || [],
+    analityka,   /* BRIEF+ */
     plan_workouts: planWorkouts,
     log_comments: logComments,
     messages: messages || [],
@@ -564,6 +613,7 @@ async function callClaude(coach: any, ctx: any) {
 
     // Agregaty
     const stats_7d = aggregateLogs(aLogs);
+    const analityka_formy = (ctx.analityka && ctx.analityka[a.id]) || null;   /* BRIEF+ */
     const stats_30d = aggregateLogs([...aLogs, ...aLogsLong]); // pełne 30 dni
     // Plan tygodniowy realizacja
     const plans7Total = aPlans.length;
@@ -624,6 +674,7 @@ async function callClaude(coach: any, ctx: any) {
 
       // ━━ STATS — kluczowe dla trendu ━━
       stats_7d,
+      analityka_formy,   /* BRIEF+: tsb/ctl/monotonia/strain/gotowosc(sygnaly wellness) */
       stats_30d_excl_7d: aggregateLogs(aLogsLong), // tylko 8-30 dni (kontekst poprzedniego okresu)
       realization_pct_7d: realization_pct,
       days_since_last_log: daysSinceLastLog,
@@ -940,7 +991,8 @@ ${athleteLookupTable}
 CZEKAJĄCE ANKIETY DO AKCEPTACJI: ${ctx.pending_intakes}
 ${ctx.pending_intakes > 0 ? `Lista (do informacji w briefie):\n${pendingIntakesSummary}` : ""}
 
-DANE ZAWODNIKÓW (każdy zawodnik ma: id, name, klaudiusz_brief, pbs, race_goals, stats_7d, stats_30d_excl_7d, logs_7d, plan_workouts_upcoming, training_plans_active, messages_recent, unanswered_athlete_msgs, log_comments_recent, coach_notes, intake_context, recent_ai_reports, athlete_feedback_recent, upcoming_races, strava_*):
+DANE ZAWODNIKÓW — pole analityka_formy: tsb (+5..+15 optimum startowe, <-25 przeciążenie), monotonia_7d (>=2.0 = brak zróżnicowania = ryzyko), gotowosc.sygnaly (RHR/HRV/sen z zegarka; niepuste = organizm pracuje, delikatnie zasugeruj lżejszy dzień). null = brak danych, nie zgaduj.
+(każdy zawodnik ma: id, name, klaudiusz_brief, pbs, race_goals, stats_7d, stats_30d_excl_7d, logs_7d, plan_workouts_upcoming, training_plans_active, messages_recent, unanswered_athlete_msgs, log_comments_recent, coach_notes, intake_context, recent_ai_reports, athlete_feedback_recent, upcoming_races, strava_*):
 
 ${JSON.stringify(athleteSummaries, null, 2)}
 
