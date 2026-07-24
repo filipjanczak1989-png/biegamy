@@ -646,6 +646,63 @@ Deno.serve(async (req) => {
       .not("training_type", "like", "__badge__%")
       .order("logged_at", { ascending: true });
 
+    /* ═══ RAPORT-AI+ (24.07): analityka 90 dni dla modelu — forma/monotonia/EF/wellness.
+       SWIADOMY DUPLIKAT wag z sb.js (FORMA_EFFORT_FACTORS/FEEL) — zmiana tam => zmiana tu. ═══ */
+    let _analityka: any = null;
+    try {
+      const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
+      const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
+      const _durMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
+        const p=t.split(':').map(Number); if(p.some(isNaN)) return 0;
+        return p.length===3 ? p[0]*60+p[1]+p[2]/60 : p.length===2 ? p[0]+p[1]/60 : (+t||0); };
+      const od90 = new Date(Date.now() - 90*864e5).toISOString();
+      const { data: l90 } = await supabase.from("training_logs")
+        .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace")
+        .eq("athlete_id", athlete_id).gte("logged_at", od90)
+        .not("training_type","like","__badge__%");
+      const dni: Record<string, number> = {};
+      const efPts: { x:number, y:number }[] = [];
+      const TLEN=/spokoj|wybieg|d\u0142ug|dlug|regener/, WYKL=/interwa|tempo|progres|start|wy\u015bcig|zawod|si\u0142|sil/;
+      for (const l of (l90||[])) {
+        const typ=String(l.training_type||'').toLowerCase().trim();
+        const tr=_durMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
+        const dk=String(l.logged_at).slice(0,10); dni[dk]=(dni[dk]||0)+tr;
+        if (TLEN.test(typ)&&!WYKL.test(typ)&&l.heart_rate>=80&&l.heart_rate<=200) {
+          const m=String(l.gap_pace||l.pace||'').match(/^(\d{1,2}):(\d{2})/);
+          if (m) { const sek=+m[1]*60+ +m[2];
+            if (sek>=150&&sek<=720) efPts.push({ x:new Date(l.logged_at).getTime()/864e5, y:(1000/sek)/l.heart_rate*1000 }); }
+        }
+      }
+      let ctl=0, atl=0; const dTR: number[]=[];
+      for (let k=89;k>=0;k--) { const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
+        const t=dni[ds]||0; dTR.push(t); ctl+=(t-ctl)*(1/42); atl+=(t-atl)*(1/7); }
+      const w7=dTR.slice(-7), sum7=w7.reduce((a,b)=>a+b,0), sr7=sum7/7;
+      const sd7=Math.sqrt(w7.reduce((a,b)=>a+(b-sr7)*(b-sr7),0)/7);
+      const mono=sr7<=0?0:(sd7>0?Math.min(sr7/sd7,4):4);
+      let efTrendPct: number|null = null;
+      if (efPts.length>=5) { const n=efPts.length; let sx=0,sy=0,sxy=0,sxx=0;
+        for (const p of efPts){sx+=p.x;sy+=p.y;sxy+=p.x*p.y;sxx+=p.x*p.x;}
+        const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx||1);
+        efTrendPct=Math.round(slope*90/((sy/n)||1)*1000)/10; }
+      let wellnessInfo: any = null;
+      try {
+        const odW=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+        const { data: wel } = await supabase.from("wellness")
+          .select("date,resting_hr,hrv,sleep_secs").eq("athlete_id",athlete_id)
+          .gte("date",odW).order("date",{ascending:false});
+        if (wel && wel.length) { const o=wel[0];
+          wellnessInfo={ ostatni_dzien:o.date, resting_hr:o.resting_hr, hrv:o.hrv,
+            sen_h:o.sleep_secs!=null?Math.round(o.sleep_secs/360)/10:null, dni_z_danymi:wel.length }; }
+      } catch(_){}
+      _analityka = {
+        ctl: Math.round(ctl), atl: Math.round(atl), tsb: Math.round(ctl-atl),
+        monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(sum7*mono),
+        trend_ef_90d_pct: efTrendPct, biegi_tlenowe_z_hr: efPts.length,
+        wellness: wellnessInfo,
+        _opis: "CTL=baza dlugoterminowa, TSB=swiezosc (+5..+15 optimum startowe, <-25 przeciazenie); monotonia>=2.0 = brak zroznicowania bodzcow (ryzyko); trend_ef dodatni = baza tlenowa rosnie; wellness null = zawodnik nie trackuje."
+      };
+    } catch(_) { /* analityka opcjonalna — raport dziala bez niej */ }
+
     // ✨ v(next): DETERMINISTYCZNE DOPASOWANIE PLAN↔LOG (fix „trenował bez planu")
     // Parowanie po dacie robimy w kodzie — AI dostaje gotowe pary, nie zadanie domowe.
     // Klucz daty = logged_at.split("T")[0] — TEN SAM string co logi[].data (spójność, KROK 0 pkt 2).
@@ -1054,6 +1111,7 @@ ${learningSignals.join("\n\n")}
         czas: r.time, miejsce: r.place,
         _status: r._status, _dni_temu: r._dni_temu,
       })),
+      analityka: _analityka,   /* RAPORT-AI+ */
     };
 
     // ✨ v7: System prompt z TODAY i okresem
