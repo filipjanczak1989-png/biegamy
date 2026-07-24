@@ -5136,9 +5136,9 @@ async function zaladujPoranek() {
   try {
     const sec = document.getElementById('poranek-sec');
     const el = document.getElementById('poranek-lista');
-    if (!sec || !el || !window._coachId || !window.formaTRIMP) return;
+    if (!sec || !el || !_coachId || !window.formaTRIMP) return;   /* FIX: _coachId lokalny, nie window */
     const { data: ath } = await sb.from('athletes')
-      .select('id,full_name,intervals_token_dead_at').eq('coach_id', window._coachId);
+      .select('id,full_name,intervals_token_dead_at').eq('coach_id', _coachId);
     const ids = (ath || []).map(a => a.id);
     if (!ids.length) { sec.style.display = 'none'; return; }
     const od = new Date(Date.now() - 90 * 864e5).toISOString();
