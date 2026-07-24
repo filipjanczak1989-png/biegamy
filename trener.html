@@ -338,7 +338,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <!-- ═══ TRENER-PORANEK v1: zbiorcze alerty "z kim dzis porozmawiac" (dane z silnika Formy) ═══ -->
 <div class="fi" id="poranek-sec" style="padding:0 16px;margin-bottom:14px;display:none;">
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">☀️ Poranek trenera</div>
+  <div onclick="tpTogglePoranek()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;margin-bottom:8px;">
+    <span style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);">☀️ Poranek trenera</span>
+    <span id="poranek-arrow" style="font-size:11px;color:rgba(255,255,255,0.4);transition:transform 0.2s;">▼</span>
+  </div>
   <div id="poranek-lista"></div>
 </div>
 
@@ -5132,6 +5135,15 @@ async function openCoachChat(athleteId, athleteName) {
 // options: { openChat: true } = otwórz czat zamiast bocznego panelu
 /* ═══ TRENER-PORANEK v1: alerty zbiorcze z tych samych wzorow co Forma (formaTRIMP/EMA/Foster).
    Tylko zawodnicy wymagajacy oka; komplet zdrowy = jedna zielona linijka. Klik -> panel zawodnika. ═══ */
+function tpTogglePoranek() {
+  const lista = document.getElementById('poranek-lista');
+  const arr = document.getElementById('poranek-arrow');
+  if (!lista) return;
+  const zwiniete = lista.style.display === 'none';
+  lista.style.display = zwiniete ? 'block' : 'none';
+  if (arr) arr.style.transform = zwiniete ? 'rotate(0deg)' : 'rotate(-90deg)';
+  try { localStorage.setItem('tp_poranek_zwiniety', zwiniete ? '0' : '1'); } catch (e) {}
+}
 async function zaladujPoranek() {
   try {
     const sec = document.getElementById('poranek-sec');
@@ -5236,6 +5248,14 @@ async function zaladujPoranek() {
       + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
       + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'
     ).join('') + startyHtml;
+    try {
+      if (localStorage.getItem('tp_poranek_zwiniety') === '1') {
+        const lista = document.getElementById('poranek-lista');
+        const arr = document.getElementById('poranek-arrow');
+        if (lista) lista.style.display = 'none';
+        if (arr) arr.style.transform = 'rotate(-90deg)';
+      }
+    } catch (e) {}
   } catch (e) { console.warn('[poranek]', e); }
 }
 
