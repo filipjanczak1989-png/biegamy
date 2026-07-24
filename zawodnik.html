@@ -1275,6 +1275,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
     <select id="odprawa-hour-sel" onchange="setOdprawaHour(this.value)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--fg);font-size:12px;font-family:'DM Mono',monospace;">
       <option value="5">5:00</option><option value="6">6:00</option><option value="7">7:00</option>
       <option value="8">8:00</option><option value="9">9:00</option><option value="10">10:00</option>
+      <option value="11">11:00</option>
     </select>
   </div>
 
@@ -6328,7 +6329,7 @@ async function _loadOdprawaPushState() {
     const hourRow = document.getElementById('odprawa-hour-row');
     const hourSel = document.getElementById('odprawa-hour-sel');
     if (hourRow) hourRow.style.display = on ? 'flex' : 'none';
-    if (hourSel) hourSel.value = String((data && data.morning_push_hour != null) ? data.morning_push_hour : 6);
+    if (hourSel) hourSel.value = String((data && data.morning_push_hour != null) ? data.morning_push_hour : 9);
   } catch (e) {}
 }
 async function toggleOdprawaPush() {
