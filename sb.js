@@ -2669,6 +2669,28 @@ window._icuRenderSplits = function (d, el) {
     const lastAtl = atlData[atlData.length - 1] || 0;
     const lastTsb = tsbData[tsbData.length - 1] || 0;
     window._formaLast = { ctl: lastCtl, atl: lastAtl, tsb: lastTsb };   /* E1c: most dla predyktora czasow */
+    /* FORMA-PREMIUM-DIAL: orb gotowosci = TSB przeskalowany na 0-100 (clamp(TSB+50)) */
+    try {
+      const _dialVal = Math.max(0, Math.min(100, Math.round(lastTsb + 50)));
+      const _numEl = document.getElementById('forma-dial-num');
+      const _arcEl = document.getElementById('forma-dial-arc');
+      const _haloEl = document.getElementById('forma-dial-halo');
+      const _badgeEl = document.getElementById('forma-dial-badge');
+      const _titleEl = document.getElementById('forma-dial-title');
+      const _subEl = document.getElementById('forma-dial-sub');
+      if (_numEl) _numEl.textContent = _dialVal;
+      let _col, _badge, _title, _sub;
+      if (lastTsb >= 15) { _col = '#a074ec'; _badge = 'Wypoczety'; _title = 'Naladowany po brzegi.'; _sub = 'Cialo gotowe na wysilek - zaufaj planowi i sluchaj nog.'; }
+      else if (lastTsb >= 5) { _col = '#3ad884'; _badge = 'Swiezy'; _title = 'Forma swieza.'; _sub = 'Dobry moment na mocniejszy akcent albo start.'; }
+      else if (lastTsb >= -10) { _col = '#63a6f4'; _badge = 'Neutralnie'; _title = 'Trening idzie rowno.'; _sub = 'Obciazenie pod kontrola - kontynuuj plan.'; }
+      else if (lastTsb >= -25) { _col = '#f4c04a'; _badge = 'Obciazenie'; _title = 'Nogi troche ciezkie.'; _sub = 'Wyrazne zmeczenie - pilnuj regeneracji.'; }
+      else { _col = '#ff7a45'; _badge = 'Przeciazenie'; _title = 'Zmeczenie siedzi w nogach.'; _sub = 'Dzis nic mocnego - organizm potrzebuje odpoczynku.'; }
+      if (_arcEl) { _arcEl.setAttribute('stroke', _col); _arcEl.style.strokeDashoffset = String(Math.round(339 * (1 - _dialVal / 100))); }
+      if (_haloEl) _haloEl.style.background = 'radial-gradient(circle,' + _col + '55,transparent 64%)';
+      if (_badgeEl) { _badgeEl.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:' + _col + ';box-shadow:0 0 8px ' + _col + ';display:inline-block;"></span>' + _badge; _badgeEl.style.color = _col; }
+      if (_titleEl) _titleEl.textContent = _title;
+      if (_subEl) _subEl.textContent = _sub;
+    } catch(_e) { console.warn('[forma-dial]', _e); }
     const animTiles = !!(options && options.animate);
 
     // TSB: status color + label + scale position
