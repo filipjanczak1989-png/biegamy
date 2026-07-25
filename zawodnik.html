@@ -4098,6 +4098,10 @@ async function _renderOdprawa() {
       ikona = '\ud83d\ude80';
       naglowek = 'Możesz dziś docisnąć';
       wskazowka = 'Dobry dzie\u0144 na mocny akcent albo start. Wykorzystaj t\u0119 form\u0119!';
+    } else if (tsb <= -10) {
+      ikona = '🟡';
+      naglowek = 'Lekkie zmęczenie';
+      wskazowka = 'Nogi trochę ciężkie — dziś spokojniejszy akcent, nie ścigaj się z tempem.';
     } else {
       ikona = '\ud83d\udfe2';
       naglowek = 'Gotowy na trening';
