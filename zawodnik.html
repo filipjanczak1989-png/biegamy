@@ -11355,7 +11355,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- Canvas dla Chart.js -->
-  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
+  <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">
       <img data-ic="icon-nav-trend.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Trend formy · 90 dni
       <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
@@ -11396,7 +11396,7 @@ if ('serviceWorker' in navigator) {
 
 
   <!-- Stres tygodnia 8 tygodni — CSS bar chart -->
-  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+  <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
       <img data-ic="icon-nav-bars.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Stres tygodnia (8 ostatnich)
       <button onclick="event.stopPropagation();window.showMetricTooltip('weekly_km')" title="Co to stres tygodnia?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
@@ -11405,7 +11405,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- KM-LONGTERM: kilometry w skali miesiac/rok (przelacznik) -->
-  <div id="forma-km-longterm-card" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
+  <div id="forma-km-longterm-card" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;">📈 Kilometry</div>
       <div style="display:flex;gap:2px;background:rgba(255,255,255,0.05);border-radius:8px;padding:2px;">
@@ -11418,20 +11418,20 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- E1c PREDYKTOR CZASOW: Riegel z pb_* + korekta o dzisiejsze TSB -->
-  <div id="forma-predykcje" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:12px;">
+  <div id="forma-predykcje" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:12px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;">🔮 Predykcje czasów <span style="font-size:8px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);">Riegel + forma dnia</span></div>
     <div id="forma-predykcje-tabela"></div>
     <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;">szacunek z Twoich PB skorygowany o dzisiejsze TSB — nie wyrocznia</div>
   </div>
 
   <!-- VO2MAX-KARTA: silnik tlenowy z trendem (KM i inni z Garminem premium) -->
-  <div id="forma-vo2max" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:12px;">
+  <div id="forma-vo2max" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:12px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">\ud83e\udec1 Silnik tlenowy \u00b7 VO\u2082max</div>
     <div id="forma-vo2max-tresc"></div>
   </div>
 
   <!-- Heatmap aktywności (GitHub-style) — 13 tygodni × 7 dni -->
-  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+  <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
       <img data-ic="icon-nav-calendar.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Aktywność (13 tygodni)
       <button onclick="event.stopPropagation();window.showMetricTooltip('heatmap')" title="Co to heatmap?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
@@ -11440,13 +11440,13 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- ⌚ Ostatnie treningi z zegarka — wypełniane przez window._renderFormaWatchActs -->
-  <div id="forma-watch-acts" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;"></div>
+  <div id="forma-watch-acts" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;"></div>
 
   <!-- Strefy tętna (agregat 90 dni z intervals) — wypełniane przez window.renderFormaHrZones -->
-  <div id="forma-hrzones" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;"></div>
+  <div id="forma-hrzones" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;"></div>
 
   <!-- Kalorie weekly bars — 8 ostatnich tygodni sum kcal (wymaga weight w nutrition_profiles) -->
-  <div id="forma-kcal-card" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+  <div id="forma-kcal-card" style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
       🔥 Kalorie (8 ostatnich)
       <button onclick="event.stopPropagation();window.showMetricTooltip('kalorie')" title="Skąd kalorie?" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.35);color:#fb923c;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
@@ -11455,7 +11455,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- Typy treningów ostatnie 7 dni — pie chart -->
-  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+  <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
       🥧 Typy treningów (7 dni)
       <button onclick="event.stopPropagation();window.showMetricTooltip('types_pie')" title="Po co miks typów?" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
@@ -11464,7 +11464,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- Porównanie formy z znajomym -->
-  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+  <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
       <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;display:flex;align-items:center;gap:6px;"><img data-ic="icon-nav-people.webp" style="width:15px;height:15px;flex-shrink:0;" alt="">Porównaj formę</div>
       <button onclick="window.openCompareModal()" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;">Wybierz →</button>
