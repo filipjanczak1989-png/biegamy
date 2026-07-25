@@ -11225,19 +11225,24 @@ if ('serviceWorker' in navigator) {
 
 <div id="section-forma" style="display:none;padding:16px;">
   <!-- v5: Solo hero banner dla Forma section (solo-hero.png, bez tekstu — title pod chartem) -->
-  <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:100px;background-image:url('assets/ui/banery/baner-forma.webp');background-size:cover;background-position:center 15%;   /* FORMA-FIX: glowa w kadrze (bylo 35%) */overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
-    <!-- Subtelny gradient dla głębi -->
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.25) 100%);border-radius:14px;"></div>
+  <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:220px;background-image:url('assets/ui/banery/baner-forma.webp');background-size:cover;background-position:60% 22%;overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 50px -24px rgba(0,0,0,0.7);">
+    <!-- FORMA-PREMIUM: gradient czytelnosci (ciemny dol pod tytul, jasny gora - biegacz widoczny) -->
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,7,10,0.1) 0%,rgba(7,7,10,0) 34%,rgba(7,7,10,0.5) 66%,rgba(7,7,10,0.92) 99%),linear-gradient(90deg,rgba(7,7,10,0.6) 0%,transparent 52%);border-radius:18px;"></div>
+    <!-- ciepla poswiata dol -->
+    <div style="position:absolute;left:0;right:0;bottom:0;height:120px;background:radial-gradient(120% 100% at 18% 130%,rgba(232,86,30,0.24),transparent 58%);"></div>
+    <!-- FORMA tytul + data na dole -->
+    <div style="position:absolute;left:18px;right:18px;bottom:16px;z-index:2;">
+      <div style="font-size:10px;letter-spacing:0.22em;color:rgba(255,255,255,0.72);text-transform:uppercase;font-family:'DM Mono',monospace;text-shadow:0 2px 8px rgba(0,0,0,0.8);">Twoja forma · 90 dni</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:0.8;color:#fff;letter-spacing:0.01em;margin-top:2px;text-shadow:0 6px 30px rgba(0,0,0,0.55),0 2px 10px rgba(0,0,0,0.7);">FORMA</div>
+      <div style="width:44px;height:3px;border-radius:3px;margin-top:8px;background:linear-gradient(90deg,#e8561e,#ff7a45);box-shadow:0 0 12px rgba(232,86,30,0.7);"></div>
+    </div>
   </div>
   <style>
     @media (max-width: 700px) {
       .forma-hero-banner { height: 80px !important; margin: 0 12px 14px !important; width: calc(100% - 24px) !important; }
     }
   </style>
-  <div style="text-align:center;margin-bottom:16px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.04em;"><img data-ic="icon-nav-trend.webp" style="width:22px;height:22px;vertical-align:-4px;margin-right:8px;" alt="">Twoja forma</div>
-    <div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:4px;">CTL · ATL · TSB — 90 dni</div>
-  </div>
+    <!-- FORMA-PREMIUM: naglowek "Twoja forma" przeniesiony do hero bannera -->
 
   <!-- Premium P2 — 3 kafelki TSB/CTL/ATL z status dots, scale indicators, trend arrows, mini progress bars -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
