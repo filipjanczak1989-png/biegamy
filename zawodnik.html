@@ -4164,8 +4164,11 @@ async function _renderOdprawa() {
       var sk = [];
       if (ctl >= 30) sk.push(['plus', 'Solidna baza treningowa (CTL ' + Math.round(ctl) + ')']);
       else if (ctl > 0) sk.push(['minus', 'Baza dopiero rośnie (CTL ' + Math.round(ctl) + ')']);
-      if (atl > ctl + 10) sk.push(['minus', 'Ostatnie obciążenie podwyższone (ATL ' + Math.round(atl) + ')']);
-      else if (atl <= ctl) sk.push(['plus', 'Obciążenie w normie (ATL ' + Math.round(atl) + ')']);
+      /* FIX: trzy progi ATL bez dziury (bylo: miedzy ctl a ctl+10 zaden skladnik) */
+      var _d = atl - ctl;
+      if (_d > 8) sk.push(['minus', 'Świeże obciążenie podwyższone (ATL ' + Math.round(atl) + ')']);
+      else if (_d < -8) sk.push(['plus', 'Dobrze wypoczęty (ATL ' + Math.round(atl) + ')']);
+      else sk.push(['plus', 'Obciążenie zbalansowane (ATL ' + Math.round(atl) + ')']);
       if (tsb >= 5) sk.push(['plus', 'Dodatni bilans świeżości (TSB ' + (tsb>=0?'+':'') + tsb + ')']);
       else if (tsb <= -10) sk.push(['minus', 'Nogi jeszcze zmęczone (TSB ' + tsb + ')']);
       else sk.push(['plus', 'Forma w równowadze (TSB ' + (tsb>=0?'+':'') + tsb + ')']);
