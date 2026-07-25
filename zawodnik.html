@@ -11226,6 +11226,21 @@ if ('serviceWorker' in navigator) {
 <div id="section-forma" style="display:none;padding:16px;">
   <!-- v5: Solo hero banner dla Forma section (solo-hero.png, bez tekstu — title pod chartem) -->
   <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:220px;background-image:url('assets/ui/banery/baner-forma.webp');background-size:cover;background-position:60% 22%;overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 50px -24px rgba(0,0,0,0.7);">
+    <!-- FORMA-PREMIUM-PULS: linia EKG (statyczna SVG) placa od dolu do biegacza -->
+    <svg viewBox="0 0 400 220" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;">
+      <defs>
+        <linearGradient id="pulsGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ff5a1f" stop-opacity="0"/>
+          <stop offset="35%" stop-color="#ff5a1f" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#ff7a45" stop-opacity="0.95"/>
+        </linearGradient>
+        <filter id="pulsGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <path d="M0,175 C70,175 95,166 130,158 C175,148 200,138 240,116 C280,94 300,74 340,62 C365,54 385,50 400,48" fill="none" stroke="url(#pulsGrad)" stroke-width="2" filter="url(#pulsGlow)"/>
+      <circle cx="400" cy="48" r="4" fill="#ff7a45" filter="url(#pulsGlow)"/>
+    </svg>
+    <!-- etykieta Puls -->
+    <div style="position:absolute;right:16px;top:80px;z-index:2;font-size:9px;letter-spacing:0.16em;color:#ff7a45;font-weight:700;text-transform:uppercase;font-family:'DM Mono',monospace;text-shadow:0 0 8px rgba(255,90,31,0.5);">Puls formy</div>
     <!-- FORMA-PREMIUM: gradient czytelnosci (ciemny dol pod tytul, jasny gora - biegacz widoczny) -->
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,7,10,0.1) 0%,rgba(7,7,10,0) 34%,rgba(7,7,10,0.5) 66%,rgba(7,7,10,0.92) 99%),linear-gradient(90deg,rgba(7,7,10,0.6) 0%,transparent 52%);border-radius:18px;"></div>
     <!-- ciepla poswiata dol -->
