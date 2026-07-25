@@ -3955,7 +3955,7 @@ window._renderKmLongterm = async function(tryb) {
   const card = document.getElementById('forma-km-longterm-card');
   const box = document.getElementById('forma-km-longterm');
   const sumEl = document.getElementById('forma-km-longterm-sum');
-  const bM = document.getElementById('km-lt-btn-month'), bY = document.getElementById('km-lt-btn-year');
+  const bM = document.getElementById('km-lt-btn-month'), bY = document.getElementById('km-lt-btn-year'), bW = document.getElementById('km-lt-btn-week');
   if (!card || !box || !_athleteId) return;
   tryb = tryb || 'month';
   if (!_kmLtLogs || _kmLtFor !== _athleteId) {
@@ -3972,9 +3972,10 @@ window._renderKmLongterm = async function(tryb) {
   if (!logs.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   if (bM && bY) {
-    const on = (b) => { b.style.background = 'var(--accent)'; b.style.color = '#fff'; };
-    const off = (b) => { b.style.background = 'transparent'; b.style.color = 'rgba(255,255,255,0.6)'; };
-    (tryb === 'year') ? (on(bY), off(bM)) : (on(bM), off(bY));
+    const on = (b) => { if(b){b.style.background = 'var(--accent)'; b.style.color = '#fff';} };
+    const off = (b) => { if(b){b.style.background = 'transparent'; b.style.color = 'rgba(255,255,255,0.5)';} };
+    off(bM); off(bY); off(bW);
+    if (tryb === 'year') on(bY); else if (tryb === 'week') on(bW); else on(bM);
   }
   const MON = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
   const kmOf = (l) => window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0;
@@ -3984,6 +3985,19 @@ window._renderKmLongterm = async function(tryb) {
     logs.forEach(l => { const y = new Date(l.logged_at).getFullYear(); byY[y] = (byY[y] || 0) + kmOf(l); });
     const yrs = Object.keys(byY).map(Number).sort();
     buckets = yrs.map(y => ({ lbl: String(y), km: Math.round(byY[y]) }));
+  } else if (tryb === 'week') {
+    /* KM-TYGODNIE: 12 ostatnich tygodni (poniedzialek-niedziela) */
+    const now = new Date(); now.setHours(0,0,0,0);
+    const dow = (now.getDay() + 6) % 7;               /* 0=pon */
+    const thisMon = new Date(now); thisMon.setDate(now.getDate() - dow);
+    for (let i = 11; i >= 0; i--) {
+      const wStart = new Date(thisMon); wStart.setDate(thisMon.getDate() - i * 7);
+      const wEnd = new Date(wStart); wEnd.setDate(wStart.getDate() + 7);
+      const km = logs.filter(l => { const dl = new Date(l.logged_at); return dl >= wStart && dl < wEnd; })
+        .reduce((sm, l) => sm + kmOf(l), 0);
+      const dd = String(wStart.getDate()).padStart(2,'0') + '.' + String(wStart.getMonth()+1).padStart(2,'0');
+      buckets.push({ lbl: dd, km: Math.round(km) });
+    }
   } else {
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
@@ -4005,7 +4019,7 @@ window._renderKmLongterm = async function(tryb) {
       + '<div style="font-size:8px;color:rgba(255,255,255,0.45);font-family:\'DM Mono\',monospace;white-space:nowrap;">' + b.lbl + '</div></div>';
   }).join('');
   const total = buckets.reduce((s, b) => s + b.km, 0);
-  const okres = tryb === 'year' ? (buckets.length + ' lat') : '12 miesięcy';
+  const okres = tryb === 'year' ? (buckets.length + ' lat') : (tryb === 'week' ? '12 tygodni' : '12 miesięcy');
   if (sumEl) sumEl.textContent = 'Suma ' + okres + ': ' + total.toLocaleString('pl-PL') + ' km';
 };
 window.loadFormaSection = async function() {
@@ -11409,6 +11423,7 @@ if ('serviceWorker' in navigator) {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;">📈 Kilometry</div>
       <div style="display:flex;gap:2px;background:rgba(255,255,255,0.05);border-radius:8px;padding:2px;">
+        <button id="km-lt-btn-week" onclick="window._renderKmLongterm('week')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;">Tydzień</button>
         <button id="km-lt-btn-month" onclick="window._renderKmLongterm('month')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;">Miesiące</button>
         <button id="km-lt-btn-year" onclick="window._renderKmLongterm('year')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;">Lata</button>
       </div>
