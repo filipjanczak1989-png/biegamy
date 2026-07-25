@@ -11245,7 +11245,8 @@ if ('serviceWorker' in navigator) {
     <!-- FORMA-PREMIUM: naglowek "Twoja forma" przeniesiony do hero bannera -->
 
   <!-- Premium P2 — 3 kafelki TSB/CTL/ATL z status dots, scale indicators, trend arrows, mini progress bars -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
+  <!-- FORMA-PREMIUM-KARTY: wspolna obudowa 3 kart -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:18px;padding:6px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:linear-gradient(165deg,rgba(30,20,40,0.5),rgba(16,11,22,0.7));box-shadow:0 20px 50px -26px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.04);">
     <!-- TSB — forma świeża, status indicator -->
     <div id="forma-tsb-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px;transition:all 0.3s ease;">
       <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="position:absolute;top:6px;right:6px;background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
