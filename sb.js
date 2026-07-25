@@ -2672,12 +2672,12 @@ window._icuRenderSplits = function (d, el) {
     /* FORMA-PREMIUM-DIAL: orb gotowosci = TSB przeskalowany na 0-100 (clamp(TSB+50)) */
     try {
       const _dialVal = Math.max(0, Math.min(100, Math.round(lastTsb + 50)));
-      const _numEl = document.getElementById('forma-dial-num');
-      const _arcEl = document.getElementById('forma-dial-arc');
-      const _haloEl = document.getElementById('forma-dial-halo');
-      const _badgeEl = document.getElementById('forma-dial-badge');
-      const _titleEl = document.getElementById('forma-dial-title');
-      const _subEl = document.getElementById('forma-dial-sub');
+      const _numEl = document.getElementById(px + '-dial-num');
+      const _arcEl = document.getElementById(px + '-dial-arc');
+      const _haloEl = document.getElementById(px + '-dial-halo');
+      const _badgeEl = document.getElementById(px + '-dial-badge');
+      const _titleEl = document.getElementById(px + '-dial-title');
+      const _subEl = document.getElementById(px + '-dial-sub');
       if (_numEl) _numEl.textContent = _dialVal;
       let _col, _badge, _title, _sub;
       if (lastTsb >= 15) { _col = '#a074ec'; _badge = 'Wypoczety'; _title = 'Naladowany po brzegi.'; _sub = 'Cialo gotowe na wysilek - zaufaj planowi i sluchaj nog.'; }

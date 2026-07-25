@@ -520,6 +520,25 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.04em;">📈 Forma zawodnika</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:3px;">CTL · ATL · TSB — 90 dni</div>
       </div>
+      <!-- FORMA-PREMIUM-DIAL (pfo): orb gotowosci dla podgladu trenera -->
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+        <div style="position:relative;width:100px;height:100px;flex-shrink:0;">
+          <svg viewBox="0 0 100 100" style="position:absolute;inset:0;transform:rotate(-90deg);">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+            <circle id="pfo-dial-arc" cx="50" cy="50" r="45" fill="none" stroke="#a074ec" stroke-width="3" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.8s ease, stroke 0.4s ease;"/>
+          </svg>
+          <div id="pfo-dial-halo" style="position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,rgba(160,116,236,0.3),transparent 64%);"></div>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div id="pfo-dial-num" style="font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:0.8;color:#fff;">—</div>
+            <div style="font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);font-weight:700;font-family:'DM Mono',monospace;margin-top:1px;">FORMA</div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div id="pfo-dial-badge" style="display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:#a074ec;margin-bottom:6px;"></div>
+          <div id="pfo-dial-title" style="font-size:18px;font-weight:700;line-height:1.1;margin-bottom:4px;letter-spacing:-0.01em;">Forma zawodnika</div>
+          <div id="pfo-dial-sub" style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.4;">Ladowanie...</div>
+        </div>
+      </div>
       <!-- Premium P2 — 3 kafelki TSB/CTL/ATL dla trenera (smaller proportions) -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div id="pfo-tsb-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 10px;transition:all 0.3s ease;">
