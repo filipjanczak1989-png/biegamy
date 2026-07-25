@@ -2667,9 +2667,13 @@ window._icuRenderSplits = function (d, el) {
     } catch (e) {}
 
     // ── Update 3 kafelki premium (TSB + CTL + ATL) ──
-    const lastCtl = ctlData[ctlData.length - 1] || 0;
-    const lastAtl = atlData[atlData.length - 1] || 0;
-    const lastTsb = tsbData[tsbData.length - 1] || 0;
+    /* FORMA-DIAL-TODAY-FIX: petla siega +30 dni w przyszlosc (prognoza), wiec last element = przyszlosc
+       (trimp=0 -> TSB sztucznie wysoki, dial zamrozony). Bierzemy indeks DZIS, nie ostatni. */
+    let _todayIdx = labels.indexOf(todayDateStr.slice(5));
+    if (_todayIdx < 0) _todayIdx = ctlData.length - 1;   /* fallback: gdyby nie znaleziono */
+    const lastCtl = ctlData[_todayIdx] || 0;
+    const lastAtl = atlData[_todayIdx] || 0;
+    const lastTsb = tsbData[_todayIdx] || 0;
     window._formaLast = { ctl: lastCtl, atl: lastAtl, tsb: lastTsb };   /* E1c: most dla predyktora czasow */
     /* FORMA-PREMIUM-DIAL: orb gotowosci = TSB przeskalowany na 0-100 (clamp(TSB+50)) */
     try {

@@ -4033,7 +4033,7 @@ window.loadFormaSection = async function() {
   try { _renderOdprawa(); } catch (e) { console.warn('[odprawa]', e); }            /* PORANNA ODPRAWA */
   try { if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState(); } catch (e) {}
   try { _renderVo2max(); } catch (e) { console.warn('[vo2max]', e); }
-  try { if (window._renderKmLongterm) window._renderKmLongterm('month'); } catch (e) { console.warn('[km-lt]', e); }   /* KM-LONGTERM */              /* VO2MAX-KARTA */
+  try { if (window._renderKmLongterm) window._renderKmLongterm('week'); } catch (e) { console.warn('[km-lt]', e); }   /* KM-LONGTERM */              /* VO2MAX-KARTA */
 };
 
 /* ═══ PORANNA ODPRAWA: werdykt dnia zawodnika — jak jestes + co z tym zrobic. Motywujaco, po ludzku.
@@ -11423,8 +11423,8 @@ if ('serviceWorker' in navigator) {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;">📈 Kilometry</div>
       <div style="display:flex;gap:2px;background:rgba(255,255,255,0.05);border-radius:8px;padding:2px;">
-        <button id="km-lt-btn-week" onclick="window._renderKmLongterm('week')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;">Tydzień</button>
-        <button id="km-lt-btn-month" onclick="window._renderKmLongterm('month')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;">Miesiące</button>
+        <button id="km-lt-btn-week" onclick="window._renderKmLongterm('week')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;">Tydzień</button>
+        <button id="km-lt-btn-month" onclick="window._renderKmLongterm('month')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;">Miesiące</button>
         <button id="km-lt-btn-year" onclick="window._renderKmLongterm('year')" style="font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border:none;border-radius:6px;background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;">Lata</button>
       </div>
     </div>
