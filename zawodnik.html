@@ -4097,11 +4097,11 @@ async function _renderOdprawa() {
     } else if (tsb >= 15) {
       ikona = '\ud83d\ude80';
       naglowek = 'Możesz dziś docisnąć';
-      wskazowka = 'Świetny stan — dobry dzień na mocny akcent albo start.';
+      wskazowka = 'Dobry dzie\u0144 na mocny akcent albo start. Wykorzystaj t\u0119 form\u0119!';
     } else {
       ikona = '\ud83d\udfe2';
       naglowek = 'Gotowy na trening';
-      wskazowka = 'Forma w równowadze. Realizuj dzisiejszy plan.';
+      wskazowka = 'Forma w r\u00f3wnowadze \u2014 trenuj zgodnie z planem, s\u0142uchaj cia\u0142a.';
     }
 
     /* linijki danych */
@@ -4136,15 +4136,25 @@ async function _renderOdprawa() {
     var kadTrend = _sparkT(kadPts, 'gora', 'kad');
     if (ostBieg && ostBieg.cadence) linie.push(['\ud83d\udc63 Kadencja (ost.)', (ostBieg.cadence * 2) + ' krok\u00f3w/min']);
 
-    var html = '<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:' + (linie.length ? '14px' : '0') + ';">'  /* ODPRAWA-DOPRACOWANA */
-      + '<div style="width:46px;height:46px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);">' + ikona + '</div>'
-      + '<div style="flex:1;padding-top:2px;"><div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:4px;letter-spacing:-0.01em;">' + naglowek + '</div>'
-      + '<div style="font-size:12.5px;color:var(--fg2);line-height:1.5;">' + wskazowka + '</div></div></div>';
-    if (linie.length) {
-      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">'
-        + linie.map(function (l) { return '<div style="flex:1;min-width:88px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:8px 11px;"><div style="font-size:9px;color:rgba(255,255,255,0.42);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">' + l[0] + '</div><div style="font-size:13px;font-family:\'DM Mono\',monospace;color:var(--fg);font-weight:600;">' + l[1] + '</div></div>'; }).join('')
-        + '</div>';
-    }
+    var _gval = Math.max(0, Math.min(100, Math.round(tsb + 50)));
+    var _gcol = tsb >= 5 ? '#3ad884' : tsb >= -10 ? '#63a6f4' : tsb >= -25 ? '#f4c04a' : '#ff7a45';
+    var _goff = Math.round(339 * (1 - _gval / 100));
+    var _kadNow = (typeof kadPts !== 'undefined' && kadPts && kadPts.length) ? Math.round(kadPts.reduce(function(a,b){return a+b;},0)/kadPts.length) : null;
+    /* GOTOWOSC-GPT: orb + werdykt + rzad 3 czynnikow (layout wg grafiki GPT) */
+    var html = '<div style="display:flex;align-items:center;gap:18px;">'
+      + '<div style="position:relative;width:112px;height:112px;flex-shrink:0;">'
+      +   '<svg viewBox="0 0 112 112" style="position:absolute;inset:0;transform:rotate(-90deg);"><circle cx="56" cy="56" r="54" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/><circle cx="56" cy="56" r="54" fill="none" stroke="' + _gcol + '" stroke-width="4" stroke-linecap="round" stroke-dasharray="339" stroke-dashoffset="' + _goff + '" style="transition:stroke-dashoffset 0.8s ease;"/></svg>'
+      +   '<div style="position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,' + _gcol + '33,transparent 66%);"></div>'
+      +   '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:46px;line-height:0.8;color:#fff;">' + _gval + '</div><div style="font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.45);font-weight:700;font-family:\'DM Mono\',monospace;margin-top:2px;">GOTOWOŚĆ</div></div>'
+      + '</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:22px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;margin-bottom:6px;color:var(--fg);">' + naglowek + '</div>'
+      +   '<div style="font-size:12.5px;color:var(--fg2);line-height:1.5;">' + wskazowka + '</div></div>'
+      + '</div>';
+    html += '<div style="display:flex;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">'
+      + '<div style="flex:1;text-align:center;"><div style="font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.42);text-transform:uppercase;font-weight:700;margin-bottom:5px;">TSB</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;line-height:0.8;color:#f4c04a;">' + (tsb>=0?'+':'') + tsb + '</div></div>'
+      + '<div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);"><div style="font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.42);text-transform:uppercase;font-weight:700;margin-bottom:5px;">Kadencja</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;line-height:0.8;color:#fff;">' + (_kadNow || '—') + '</div><div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">kroków/min</div></div>'
+      + '<div style="flex:1;text-align:center;"><div style="font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.42);text-transform:uppercase;font-weight:700;margin-bottom:5px;">Trend</div><div style="font-size:24px;line-height:0.9;color:#3ad884;">↑</div></div>'
+      + '</div>';
     /* POGODA-ODPRAWA: miekka sugestia z pogody (NIE wyrocznia, ton warunkowy) */
     try {
       var wc = window._weatherCache;
@@ -11272,8 +11282,8 @@ if ('serviceWorker' in navigator) {
     }
   </style>
     <!-- FORMA-PREMIUM: naglowek "Twoja forma" przeniesiony do hero bannera -->
-  <!-- FORMA-PREMIUM-DIAL: orb gotowosci (TSB->0-100) + werdykt, jak w prototypie -->
-  <div style="display:flex;align-items:center;gap:20px;margin:0 16px 18px;">
+  <!-- FORMA-PREMIUM-DIAL: UKRYTY (GOTOWOSC-GPT przenosi dial do sekcji Twoja gotowosc) -->
+  <div style="display:none;align-items:center;gap:20px;margin:0 16px 18px;">
     <div style="position:relative;width:120px;height:120px;flex-shrink:0;">
       <svg viewBox="0 0 120 120" style="position:absolute;inset:0;transform:rotate(-90deg);">
         <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
