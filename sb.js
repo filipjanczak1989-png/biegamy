@@ -2721,7 +2721,14 @@ window._icuRenderSplits = function (d, el) {
       const ctlFillPct = 50 + Math.max(-50, Math.min(50, ctlTrend));
       ctlFillEl.style.width = ctlFillPct + '%';
     }
-    if (ctlTrendEl) ctlTrendEl.textContent = (ctlTrend > 0 ? '+' : '') + ctlTrend + '% vs 30d';
+    if (ctlTrendEl) {
+      // TREND-CZYTELNY: ekstremalne % myli (np. -99% = po prostu swiezy), wiec opis stanu zamiast liczby
+      let ctlTxt;
+      if (Math.abs(ctlTrend) > 55) ctlTxt = ctlTrend > 0 ? 'baza mocno rosnie' : 'nizsza baza niz miesiac temu';
+      else if (Math.abs(ctlTrend) <= 3) ctlTxt = 'stabilna baza';
+      else ctlTxt = (ctlTrend > 0 ? '+' : '') + ctlTrend + '% do miesiaca temu';
+      ctlTrendEl.textContent = ctlTxt;
+    }
 
     // ATL tile
     const atlValEl = document.getElementById(px + '-atl-val');
@@ -2741,7 +2748,14 @@ window._icuRenderSplits = function (d, el) {
       const ratio = lastCtl > 0 ? Math.min(100, (lastAtl / lastCtl) * 70) : 50;
       atlFillEl.style.width = ratio + '%';
     }
-    if (atlTrendEl) atlTrendEl.textContent = (atlTrend > 0 ? '+' : '') + atlTrend + '% vs 30d';
+    if (atlTrendEl) {
+      // TREND-CZYTELNY: ATL -99% NIE znaczy problem, znaczy "swiezy". Opis zamiast strasznej liczby.
+      let atlTxt;
+      if (Math.abs(atlTrend) > 55) atlTxt = atlTrend > 0 ? 'duzo wieksze obciazenie' : 'duzo swiezszy niz miesiac temu';
+      else if (Math.abs(atlTrend) <= 3) atlTxt = 'obciazenie bez zmian';
+      else atlTxt = (atlTrend > 0 ? '+' : '') + atlTrend + '% do miesiaca temu';
+      atlTrendEl.textContent = atlTxt;
+    }
 
     // Strefa interpretacji
     const zoneEl = document.getElementById(px + '-zone');
