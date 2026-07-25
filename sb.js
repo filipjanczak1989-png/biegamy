@@ -3018,11 +3018,11 @@ window._icuRenderSplits = function (d, el) {
           datasets: [
             // CTL — GŁÓWNA linia (forma długa = progres sezonu): gruba (3px), wypełniona = ciężar wizualny.
             // order:3 → rysowana ZA liniami pomocniczymi, niebieski fill NIE przemywa TSB/ATL; dominuje grubością.
-            vm.ctl && { label: 'CTL (forma długa)', data: padNullsToProj(ctlData), borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)', tension: 0.3, pointRadius: 0, borderWidth: 3, fill: true, yAxisID: 'y', order: 3 },
+            vm.ctl && { label: 'CTL (forma długa)', data: padNullsToProj(ctlData), borderColor: '#63a6f4', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, borderWidth: 2, fill: false, yAxisID: 'y', order: 3 }  /* WYKRES-PROTOTYP: CTL tlo cienkie */,
             // TSB — pomocnicza (cienka), krystaliczna na wierzchu (order:0). Fill tylko w trybie TSB-solo (graceful fallback dawnego widoku).
-            vm.tsb && { label: 'TSB (forma świeża)', data: padNullsToProj(tsbData), borderColor: '#4ade80', backgroundColor: (!vm.ctl && !vm.atl) ? 'rgba(74,222,128,0.12)' : 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, fill: !vm.ctl && !vm.atl, yAxisID: 'y', order: 0 },
+            vm.tsb && { label: 'TSB (forma świeża)', data: padNullsToProj(tsbData), borderColor: '#f4c04a', backgroundColor: 'rgba(244,192,74,0.14)', tension: 0.35, pointRadius: 0, borderWidth: 2.6, fill: true, yAxisID: 'y', order: 0 }  /* WYKRES-PROTOTYP: TSB zolty bohater + fill */,
             // ATL — pomocnicza (cienka)
-            vm.atl && { label: 'ATL (zmęczenie)', data: padNullsToProj(atlData), borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, yAxisID: 'y', order: 1 },
+            vm.atl && { label: 'ATL (zmęczenie)', data: padNullsToProj(atlData), borderColor: '#ff5a1f', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 }  /* WYKRES-PROTOTYP: ATL pomaranczowy tlo */,
             // Projection (dashed) — hidden z legend filter
             vm.ctl && projection && { label: 'CTL projection', data: padNullsFromHist(projection.ctlData), borderColor: 'rgba(96,165,250,0.5)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [5,5], yAxisID: 'y', order: 5 },
             vm.atl && projection && { label: 'ATL projection', data: padNullsFromHist(projection.atlData), borderColor: 'rgba(248,113,113,0.5)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [5,5], yAxisID: 'y', order: 5 },
