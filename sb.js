@@ -2566,6 +2566,8 @@ window._icuRenderSplits = function (d, el) {
       weightKg = nutProfile?.weight_kg || 0;
     } catch(e) { console.warn('[forma] nutrition_profiles fetch err', e); }
 
+    // FORMA-DATA-FIX: lokalna data YYYY-MM-DD (nie UTC) — zgodna z logged_at.split('T')[0]
+    const _localYMD = (dt) => dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
     // Build daily TRIMP map
     const dailyTRIMP = {};
     (logs || []).forEach(log => {
@@ -2581,7 +2583,7 @@ window._icuRenderSplits = function (d, el) {
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + cappedMaxFuture);
 
-    const todayDateStr = today.toISOString().slice(0, 10);
+    const todayDateStr = _localYMD(today);   /* FORMA-DATA-FIX */
 
     /* ═ E1a PROGNOZA (23.07): przyszly TRIMP z ZAPLANOWANYCH treningow (bylo: 0 = czysty rozpad).
        Ten sam wzor co historia: duration_min x FORMA_EFFORT_FACTORS[type] (feel=1.0). Runalyze
@@ -2614,7 +2616,7 @@ window._icuRenderSplits = function (d, el) {
     const CTL_DAYS = 42, ATL_DAYS = 7;
 
     for (let d = new Date(start); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = _localYMD(d);   /* FORMA-DATA-FIX: lokalna nie UTC */
       const isFuture = dateStr > todayDateStr;
 
       if (isFuture) {
