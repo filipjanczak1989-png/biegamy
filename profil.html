@@ -1769,7 +1769,7 @@ async function connectIntervals() {
     const res = await fetch(window.SB_FN_URL + '/intervals-sync', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ athlete_id: _myId, icu_athlete_id: icuId, api_key: key })
+      body: JSON.stringify({ athlete_id: _myId, icu_athlete_id: icuId, api_key: key, full: true })
     });
     const data = await res.json();
     if (data.ok) {
@@ -1806,7 +1806,7 @@ async function syncIntervals() {
   if (!_myId) return;
   const btn = document.getElementById('icu-sync-btn');
   if (btn) { btn.textContent = '↻ Synchronizuję...'; btn.disabled = true; }
-  await window.WATCH.sync(_myId);   // SSOT — to samo co ikona ↺ w topbar badge
+  await window.WATCH.sync(_myId, null, true);   // FULL-SYNC: reczny przycisk ciagnie CALA historie
   if (btn) { btn.textContent = '↻ Synchronizuj aktywności'; btn.disabled = false; }
 }
 

@@ -985,7 +985,7 @@
     _noop: function() {},
 
     // 5) SYNC — SSOT importu z zegarka (reużywa EF intervals-sync); profil-button i badge-↺ wołają to samo
-    sync: async function(athleteId, onDone) {
+    sync: async function(athleteId, onDone, full) {
       if (!athleteId) return { ok:false, error:'no_athlete' };
       try {
         const { data: { session } } = await sb.auth.getSession();
@@ -993,7 +993,7 @@
         const r = await fetch(window.SB_FN_URL + '/intervals-sync', {
           method: 'POST',
           headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + session.access_token },
-          body: JSON.stringify({ athlete_id: athleteId })
+          body: JSON.stringify({ athlete_id: athleteId, full: full === true })
         });
         const data = await r.json();
         if (!data.ok) throw new Error(data.error || 'sync failed');
