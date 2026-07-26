@@ -4186,7 +4186,7 @@ async function _renderOdprawa() {
       var dzis = wc && wc.days && wc.days[0];
       if (dzis) {
         var tmax = dzis.temp_max, code = dzis.weather_code, sug = '';
-        if (tmax != null && tmax >= 27) sug = 'Zapowiada się ciepło — weź wodę i nie ryżuj tempa w słońcu.';
+        if (tmax != null && tmax >= 27) sug = 'Zapowiada się upał — weź wodę i odpuść mocne tempo w pełnym słońcu.';
         else if (tmax != null && tmax <= 0) sug = 'Ma być mroźno — dłuższa rozgrzewka i warstwy się przydadzą.';
         else if (code != null && code >= 61 && code <= 67) sug = 'Może padać — sprawdź przed wyjściem, może warto przesunąć godzinę.';
         else if (code != null && code >= 71 && code <= 77) sug = 'Może sypnąć śniegiem — uważaj na ślisko.';
