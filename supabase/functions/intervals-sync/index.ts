@@ -82,7 +82,7 @@ async function clearIntervalsDead(svc: any, athleteId: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
-    const { athlete_id, api_key, icu_athlete_id } = await req.json();
+    const { athlete_id, api_key, icu_athlete_id, full } = await req.json();
     if (!athlete_id) return J(400, { ok: false, error: 'no_athlete_id' });
 
     // --- auth: tylko właściciel tego athlete_id ---
@@ -126,8 +126,9 @@ Deno.serve(async (req) => {
     const authH  = useOAuth ? ('Bearer ' + cred.access_token) : ('Basic ' + btoa('API_KEY:' + cred.api_key));
     const icuAth = useOAuth ? '0' : icuId;
 
-    // --- SYNC: ostatnie 90 dni ---
-    const oldest = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    // --- SYNC: 90 dni (zwykly) lub CALA HISTORIA (full=true, np. przy pierwszym polaczeniu/onboardingu) ---
+    const _syncDays = full ? 365 * 8 : 90;   /* full = do 8 lat wstecz (praktyczny limit historii biegowej) */
+    const oldest = new Date(Date.now() - _syncDays * 864e5).toISOString().slice(0, 10);
     const newest = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
     const ar = await fetch(
       `https://intervals.icu/api/v1/athlete/${icuAth}/activities?oldest=${oldest}&newest=${newest}`,
