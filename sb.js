@@ -2685,6 +2685,8 @@ window._icuRenderSplits = function (d, el) {
       const _titleEl = document.getElementById(px + '-dial-title');
       const _subEl = document.getElementById(px + '-dial-sub');
       if (_numEl) _numEl.textContent = _dialVal;
+      /* FORMA-BANER-LIVE: zasil zywy wynik w banerze hero (tylko px=forma) */
+      if (px === 'forma') { var _bn = document.getElementById('forma-baner-num'); if (_bn) _bn.textContent = _dialVal; }
       let _col, _badge, _title, _sub;
       if (lastTsb >= 15) { _col = '#a074ec'; _badge = 'Wypoczety'; _title = 'Naladowany po brzegi.'; _sub = 'Cialo gotowe na wysilek - zaufaj planowi i sluchaj nog.'; }
       else if (lastTsb >= 5) { _col = '#3ad884'; _badge = 'Swiezy'; _title = 'Forma swieza.'; _sub = 'Dobry moment na mocniejszy akcent albo start.'; }
