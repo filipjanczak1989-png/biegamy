@@ -1731,6 +1731,7 @@ window._icuRenderSplits = function (d, el) {
   window.FORMA_EFFORT_FACTORS = {
     'odpoczynek': 0,
     'regeneracja': 1.0,
+    'spacer': 0.5,
     'spokojny': 1.5,
     'bieg spokojny': 1.5,
     'wybieganie': 2.0,
@@ -1767,6 +1768,7 @@ window._icuRenderSplits = function (d, el) {
   window.FORMA_MET_FACTORS = {
     'odpoczynek': 0,
     'regeneracja': 6,
+    'spacer': 3.5,
     'spokojny': 8.5,
     'bieg spokojny': 8.5,
     'wybieganie': 9,

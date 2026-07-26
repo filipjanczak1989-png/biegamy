@@ -46,8 +46,11 @@ function typeFromPlan(planType: string | null): string {
   if (lt === 'bieg spokojny') return 'Spokojny';           // jedyny alias (Decyzja A) -> kanon ikon UI
   return RUN_PLAN.has(lt) ? t : 'Spokojny';                // biegowy plan -> ORYGINAŁ; nie-biegowy plan -> Spokojny
 }
+const WALK_ACT = new Set(['Walk', 'Hike']);   // SPACER-FIX: spacery/marsze = niska intensywnosc, osobny typ
 function typeForActivity(a: any, planType: string | null): string {
-  return RUN_ACT.has(a.type) ? typeFromPlan(planType) : 'Zastępczy';   // #7: nie-bieg -> Zastępczy
+  if (RUN_ACT.has(a.type)) return typeFromPlan(planType);
+  if (WALK_ACT.has(a.type)) return 'Spacer';   // SPACER-FIX: Walk/Hike -> Spacer (effort 0.5, nie pompuje ATL)
+  return 'Zastępczy';   // #7: reszta nie-biegow (rower/plywanie) -> Zastępczy (realny trening)
 }
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
