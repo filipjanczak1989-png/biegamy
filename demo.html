@@ -118,6 +118,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
 .pd-m .s{font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
 .pd-ok{color:#3ad884;font-size:15px;font-weight:700;}
 .pd-go{background:var(--accent);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:'DM Mono',monospace;}
+.cd{font-style:normal;padding:5px 0;border-radius:7px;color:var(--fg2);position:relative;}
+.cd.on::after{content:'';position:absolute;left:50%;bottom:1px;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent);}
+.cd.today{background:var(--accent);color:#fff;font-weight:700;}
 .view{animation:fadein .22s ease;}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
@@ -152,6 +155,21 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
     <div class="avatar" onclick="demoModal('profil')">J</div>
   </div>
 
+  <!-- HERO STORY (jak w apce — kadr dnia z opowieścią) -->
+  <div class="hero" style="height:210px;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/noc1.webp');background-position:center 30%" onclick="demoModal('log-add')">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(4,3,7,0.85))"></div>
+    <div style="position:absolute;left:18px;right:18px;bottom:16px;z-index:2">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:0.95;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.7)">KIEDY ONI ŚPIĄ,<br><span style="color:var(--accent)">TY BIEGNIESZ.</span></div>
+    </div>
+    <div style="position:absolute;top:12px;left:16px;display:flex;gap:4px;z-index:2">
+      <span style="width:22px;height:3px;border-radius:2px;background:#fff"></span>
+      <span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+      <span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+      <span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+      <span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+    </div>
+  </div>
+
   <!-- CYTAT DNIA -->
   <div class="card" style="padding:18px;background:linear-gradient(135deg,rgba(160,116,236,0.12),rgba(16,11,22,0.75));border-color:rgba(160,116,236,0.2)">
     <div style="font-size:10px;letter-spacing:0.2em;color:#a074ec;font-family:'DM Mono',monospace">CYTAT NA DZIŚ</div>
@@ -171,13 +189,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   </div>
 
   <!-- RADIO BIEGAMY -->
-  <div class="card" onclick="demoModal('radio')" style="padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer">
-    <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#c0431a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>
-    <div style="flex:1;min-width:0">
+  <div class="card" onclick="demoModal('radio')" style="position:relative;overflow:hidden;padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer;background:#120a16 url('assets/ui/banery/baner-radio-01.webp') center/cover;border-color:rgba(232,86,30,0.25)">
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,5,10,0.88) 40%,rgba(7,5,10,0.45))"></div>
+    <div style="position:relative;z-index:2;width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#c0431a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>
+    <div style="position:relative;z-index:2;flex:1;min-width:0">
       <div style="font-size:13.5px;font-weight:700">Radio BiegaMy</div>
       <div style="font-size:11px;color:var(--fg2);margin-top:2px">„Za horyzont" · biegowe granie do rytmu</div>
     </div>
-    <div style="width:34px;height:34px;border-radius:50%;background:rgba(232,86,30,0.15);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:13px">▶</div>
+    <div style="position:relative;z-index:2;width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px">▶</div>
   </div>
 
   <!-- GRA BIEGUS -->
@@ -199,6 +218,22 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   <div class="card" style="padding:16px 18px;margin-bottom:10px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(16,11,22,0.7));border-color:rgba(232,86,30,0.25)">
     <div style="font-size:13px;font-weight:700">Cel: półmaraton pod 1:45</div>
     <div style="font-size:11.5px;color:var(--fg2);margin-top:4px">Plan startowy z Twojej historii · 8 tygodni do startu</div>
+  </div>
+
+  <!-- MINI KALENDARZ MIESIĄCA -->
+  <div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="font-size:13px">Lipiec 2026</b>
+      <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">18 treningów · 156 km</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-family:'DM Mono',monospace;font-size:9px;text-align:center">
+      <span style="color:var(--muted)">P</span><span style="color:var(--muted)">W</span><span style="color:var(--muted)">Ś</span><span style="color:var(--muted)">C</span><span style="color:var(--muted)">P</span><span style="color:var(--muted)">S</span><span style="color:var(--muted)">N</span>
+      <span style="opacity:0.25">29</span><span style="opacity:0.25">30</span><i class="cd on">1</i><i class="cd">2</i><i class="cd on">3</i><i class="cd on">4</i><i class="cd">5</i>
+      <i class="cd on">6</i><i class="cd on">7</i><i class="cd">8</i><i class="cd on">9</i><i class="cd">10</i><i class="cd on">11</i><i class="cd on">12</i>
+      <i class="cd">13</i><i class="cd on">14</i><i class="cd on">15</i><i class="cd">16</i><i class="cd on">17</i><i class="cd">18</i><i class="cd on">19</i>
+      <i class="cd on">20</i><i class="cd on">21</i><i class="cd">22</i><i class="cd on">23</i><i class="cd on">24</i><i class="cd">25</i><i class="cd on">26</i>
+      <i class="cd on">27</i><i class="cd today">28</i><i class="cd">29</i><i class="cd">30</i><i class="cd">31</i><span style="opacity:0.25">1</span><span style="opacity:0.25">2</span>
+    </div>
   </div>
 
   <div class="plan-day"><div class="pd-l"><b>PON</b><span>28.07</span></div><div class="pill" style="background:rgba(80,144,224,0.14);color:#5090e0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg></div><div class="pd-m"><div class="t">Bieg spokojny</div><div class="s">8 km · 5:30–5:45/km</div></div><div class="pd-ok">✓</div></div>
@@ -378,8 +413,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   </div>
 
   <div class="sec-label">Odznaki</div>
-  <div class="card soc" style="padding:16px">
-    <div class="soc-blur" style="display:flex;gap:10px;justify-content:space-around;font-size:34px;padding:8px 0">🏅🔥🌙⛰️💯</div>
+  <div class="card soc" style="padding:0;height:120px;background:#120a16 url('assets/ui/banery/baner-odznaki-01.webp') center/cover">
+    <div class="soc-blur" style="display:flex;gap:10px;justify-content:space-around;align-items:center;height:100%;font-size:34px">🏅🔥🌙⛰️💯</div>
     <div class="soc-lock" style="position:absolute;inset:0">
       <p style="font-size:12px">Odznaki i wyzwania czekają<br>za darmowym kontem</p>
       <button onclick="demoModal('profil')" style="padding:9px 18px;font-size:12px">Zobacz wszystkie</button>
@@ -390,6 +425,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
 <!-- ═══ WIDOK: SPOŁECZNOŚĆ ═══ -->
 <div class="view" id="v-spol" style="display:none">
   <div class="topbar"><div class="hello">Społeczność,<b>BIEGAMY RAZEM</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
+
+  <div class="hero" style="height:110px;background-image:url('assets/ui/banery/baner-wyzwania-01.webp')" onclick="demoModal('spolecznosc')">
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,3,7,0.8),transparent 70%)"></div>
+    <div style="position:absolute;left:18px;top:50%;transform:translateY(-50%);z-index:2">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;line-height:0.95">WYZWANIA<br><span style="color:var(--accent)">LIPCA</span></div>
+    </div>
+    <div style="position:absolute;right:16px;bottom:12px;z-index:2;font-size:10px;color:rgba(255,255,255,0.75);font-family:'DM Mono',monospace">128 biegaczy w grze</div>
+  </div>
   <!-- SPOŁECZNOŚĆ TEASER -->
   <div class="sec-label">Społeczność</div>
   <div class="card soc">
