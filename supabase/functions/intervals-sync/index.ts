@@ -46,11 +46,21 @@ function typeFromPlan(planType: string | null): string {
   if (lt === 'bieg spokojny') return 'Spokojny';           // jedyny alias (Decyzja A) -> kanon ikon UI
   return RUN_PLAN.has(lt) ? t : 'Spokojny';                // biegowy plan -> ORYGINAŁ; nie-biegowy plan -> Spokojny
 }
-const WALK_ACT = new Set(['Walk', 'Hike']);   // SPACER-FIX: spacery/marsze = niska intensywnosc, osobny typ
+// TYPY-CROSS: pelna mapa aktywnosci intervals/Strava -> polskie typy (kazda aktywnosc = wlasny typ + effort)
+// (bylo: wszystko nie-bieg -> 'Zastępczy' 1.5 — spacery Kasi pompowaly ATL do 153)
+const ACT_MAP: Record<string, string> = {
+  'Walk': 'Spacer', 'Hike': 'Spacer',
+  'Ride': 'Rower', 'VirtualRide': 'Rower', 'MountainBikeRide': 'Rower', 'GravelRide': 'Rower', 'EBikeRide': 'Rower',
+  'Swim': 'Pływanie', 'OpenWaterSwim': 'Pływanie',
+  'WeightTraining': 'Siłownia', 'Workout': 'Siłownia', 'Crossfit': 'Siłownia',
+  'Yoga': 'Joga', 'Pilates': 'Joga',
+  'NordicSki': 'Narty', 'AlpineSki': 'Narty', 'BackcountrySki': 'Narty', 'RollerSki': 'Narty',
+  'Rowing': 'Ergometr', 'VirtualRow': 'Ergometr',
+  'Elliptical': 'Orbitrek', 'StairStepper': 'Orbitrek',
+};
 function typeForActivity(a: any, planType: string | null): string {
   if (RUN_ACT.has(a.type)) return typeFromPlan(planType);
-  if (WALK_ACT.has(a.type)) return 'Spacer';   // SPACER-FIX: Walk/Hike -> Spacer (effort 0.5, nie pompuje ATL)
-  return 'Zastępczy';   // #7: reszta nie-biegow (rower/plywanie) -> Zastępczy (realny trening)
+  return ACT_MAP[String(a.type || '')] || 'Zastępczy';   // znany typ -> wlasna kategoria; nieznany -> Zastępczy
 }
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
