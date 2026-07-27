@@ -2028,6 +2028,8 @@ async function _tpProjekcjaTSB(athleteId, workouts) {
       if (_sk.length) {
         let _bs = _sk[0];
         for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
+        /* FORMA-SEED v4: pomin wiodace zerowe dni (odpoczynki, TRIMP=0) na starcie bloku — seed od pierwszego REALNEGO treningu (edge A: Malgorzata CTL27, Filip seed=0) */
+        for (let _i = 0; _i < _sk.length; _i++) { if (_sk[_i] >= _bs && dni[_sk[_i]] > 0) { _bs = _sk[_i]; break; } }
         _blkT = _bs;
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
@@ -5236,7 +5238,9 @@ async function zaladujPoranek() {
         if (_sk.length) {
           let _bs = _sk[0];
           for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
-          _blkP = _bs;
+          /* FORMA-SEED v4: pomin wiodace zerowe dni (odpoczynki, TRIMP=0) na starcie bloku — seed od pierwszego REALNEGO treningu (edge A: Malgorzata CTL27, Filip seed=0) */
+        for (let _i = 0; _i < _sk.length; _i++) { if (_sk[_i] >= _bs && p.dni[_sk[_i]] > 0) { _bs = _sk[_i]; break; } }
+        _blkP = _bs;
           const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
           const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
           let _mxP = 0; _sk.forEach(function(k2){ if (k2 >= _bs && k2 < _cut) { _ss += p.dni[k2]; if (p.dni[k2] > _mxP) _mxP = p.dni[k2]; } }); _seedP = Math.min(_ss / 14, (_ss - _mxP) / 13 * 2.5 + 20); } }   /* FORMA-SEED v3: clamp outliera (pojedynczy ultra w oknie seeda, np. 289->95) */

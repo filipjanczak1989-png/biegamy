@@ -1830,6 +1830,8 @@ window._icuRenderSplits = function (d, el) {
       if (_sk.length) {
         let _bs = _sk[0];
         for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
+        /* FORMA-SEED v4: pomin wiodace zerowe dni (odpoczynki, TRIMP=0) na starcie bloku — seed od pierwszego REALNEGO treningu (edge A: Malgorzata CTL27, Filip seed=0) */
+        for (let _i = 0; _i < _sk.length; _i++) { if (_sk[_i] >= _bs && dailyTRIMP[_sk[_i]] > 0) { _bs = _sk[_i]; break; } }
         _blkS = _bs;
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
@@ -2655,6 +2657,8 @@ window._icuRenderSplits = function (d, el) {
         for (let _i = 1; _i < _sk.length; _i++) {
           if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i];
         }
+        /* FORMA-SEED v4: pomin wiodace zerowe dni (odpoczynki, TRIMP=0) na starcie bloku — seed od pierwszego REALNEGO treningu (edge A: Malgorzata CTL27, Filip seed=0) */
+        for (let _i = 0; _i < _sk.length; _i++) { if (_sk[_i] >= _bs && dailyTRIMP[_sk[_i]] > 0) { _bs = _sk[_i]; break; } }
         _seedBlockStart = _bs;
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10);
