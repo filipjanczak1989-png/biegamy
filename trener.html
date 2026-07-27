@@ -2022,8 +2022,21 @@ async function _tpProjekcjaTSB(athleteId, workouts) {
     const { data: logs } = await sb.from('training_logs').select('logged_at,training_type,duration,feel').eq('athlete_id', athleteId).gte('logged_at', od).not('training_type', 'like', '__badge__%');
     const dni = {};
     (logs || []).forEach(l => { const d = String(l.logged_at).slice(0, 10); dni[d] = (dni[d] || 0) + window.formaTRIMP(l); });
+    /* FORMA-SEED v2: seed od ostatniego ciaglego bloku (dziura >21 dni resetuje start), jak sb.js */
+    let _seedT = 0, _blkT = null;
+    { const _sk = Object.keys(dni).sort();
+      if (_sk.length) {
+        let _bs = _sk[0];
+        for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
+        _blkT = _bs;
+        const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
+        const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
+        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dni[k]; }); _seedT = _ss / 14; } }
     let ctl = 0, atl = 0;
-    for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10); const t = dni[ds] || 0; ctl += (t - ctl) * (1/42); atl += (t - atl) * (1/7); }
+    { const _s89 = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
+      if (_blkT && _blkT <= _s89) { ctl = _seedT; atl = _seedT; } }
+    for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+      if (_blkT && ds === _blkT) { ctl = _seedT; atl = _seedT; } const t = dni[ds] || 0; ctl += (t - ctl) * (1/42); atl += (t - atl) * (1/7); }
     const tsbStart = Math.round(ctl - atl);
     const EFF = window.FORMA_EFFORT_FACTORS || {};
     const planDni = {};
@@ -5217,9 +5230,22 @@ async function zaladujPoranek() {
     const alerty = [];
     (ath || []).forEach(a => {
       const p = perA[a.id]; const sig = [];
+      /* FORMA-SEED v2: per zawodnik — seed od ostatniego ciaglego bloku, jak sb.js */
+      let _seedP = 0, _blkP = null;
+      { const _sk = Object.keys(p.dni).sort();
+        if (_sk.length) {
+          let _bs = _sk[0];
+          for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
+          _blkP = _bs;
+          const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
+          const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
+          _sk.forEach(function(k2){ if (k2 >= _bs && k2 < _cut) _ss += p.dni[k2]; }); _seedP = _ss / 14; } }
       let ctl = 0, atl = 0; const dTR = [];
+      { const _s89 = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
+        if (_blkP && _blkP <= _s89) { ctl = _seedP; atl = _seedP; } }
       for (let k = 89; k >= 0; k--) {
         const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
+        if (_blkP && ds === _blkP) { ctl = _seedP; atl = _seedP; }
         const t = p.dni[ds] || 0; dTR.push(t);
         ctl = ctl + (t - ctl) * (1 / 42); atl = atl + (t - atl) * (1 / 7);
       }
