@@ -4074,7 +4074,7 @@ async function _renderOdprawa() {
         _blkO = _bs;
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
-        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dni[k]; }); _seedO = _ss / 14; } }
+        let _mxO = 0; _sk.forEach(function(k){ if (k >= _bs && k < _cut) { _ss += dni[k]; if (dni[k] > _mxO) _mxO = dni[k]; } }); _seedO = Math.min(_ss / 14, (_ss - _mxO) / 13 * 2.5 + 20); } }   /* FORMA-SEED v3: clamp outliera (pojedynczy ultra w oknie seeda, np. 289->95) */
     let ctl = 0, atl = 0;
     { const _s89 = new Date(Date.now() - 89 * 864e5).toISOString().slice(0, 10);
       if (_blkO && _blkO <= _s89) { ctl = _seedO; atl = _seedO; } }

@@ -1833,7 +1833,7 @@ window._icuRenderSplits = function (d, el) {
         _blkS = _bs;
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
-        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dailyTRIMP[k]; }); _seedS = _ss / 14; } }
+        let _mx2 = 0; _sk.forEach(function(k){ if (k >= _bs && k < _cut) { _ss += dailyTRIMP[k]; if (dailyTRIMP[k] > _mx2) _mx2 = dailyTRIMP[k]; } }); _seedS = Math.min(_ss / 14, (_ss - _mx2) / 13 * 2.5 + 20); } }   /* FORMA-SEED v3: clamp outliera (pojedynczy ultra w oknie seeda, np. 289->95) */
     let ctl = 0, atl = 0;
     if (_blkS && _blkS <= start.toISOString().slice(0, 10)) { ctl = _seedS; atl = _seedS; }
     for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
@@ -2659,8 +2659,9 @@ window._icuRenderSplits = function (d, el) {
         const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10);
         let _ss = 0;
-        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dailyTRIMP[k]; });
-        _seedVal = _ss / 14;
+        let _mx = 0;
+        _sk.forEach(function(k){ if (k >= _bs && k < _cut) { _ss += dailyTRIMP[k]; if (dailyTRIMP[k] > _mx) _mx = dailyTRIMP[k]; } });
+        _seedVal = Math.min(_ss / 14, (_ss - _mx) / 13 * 2.5 + 20);   /* FORMA-SEED v3: clamp outliera (pojedynczy ultra w oknie seeda, np. 289->95) */
       }
     }
     let ctl = 0, atl = 0;
