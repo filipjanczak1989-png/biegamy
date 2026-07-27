@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>BiegaMy — Zobacz aplikację od środka (demo)</title>
+<meta name="description" content="Tak wygląda BiegaMy od środka — Twoja forma, gotowość i treningi. Zobacz zanim założysz konto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07070a;--accent:#e8561e;--fg:#f0ede8;--fg2:rgba(240,237,232,0.6);--muted:rgba(240,237,232,0.4);--card:linear-gradient(165deg,rgba(30,20,40,0.55),rgba(16,11,22,0.8));--border:rgba(255,255,255,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-serif;padding-bottom:140px;}
+.wrap{max-width:430px;margin:0 auto;padding:0 14px;}
+
+/* ── DEMO BAR (góra) ── */
+.demo-bar{position:sticky;top:0;z-index:50;background:linear-gradient(90deg,rgba(232,86,30,0.95),rgba(192,67,26,0.95));backdrop-filter:blur(8px);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.demo-bar .t{font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;}
+.demo-bar .t small{display:block;font-size:10px;font-weight:400;opacity:0.85;}
+.demo-bar a{flex-shrink:0;background:#fff;color:var(--accent);font-size:12px;font-weight:700;padding:8px 14px;border-radius:10px;text-decoration:none;}
+
+/* ── TOPBAR apki ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 2px 6px;}
+.hello{font-size:13px;color:var(--fg2);}
+.hello b{display:block;font-family:'Bebas Neue',sans-serif;font-size:30px;font-weight:400;color:#fff;letter-spacing:0.02em;line-height:1;}
+.avatar{width:42px;height:42px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);cursor:pointer;}
+
+/* ── HERO FORMA ── */
+.hero{position:relative;margin:10px 0 14px;height:150px;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#120a16 url('assets/ui/banery/baner-forma-bg.webp') center/cover no-repeat;box-shadow:0 18px 44px -22px rgba(0,0,0,0.8);cursor:pointer;}
+.hero-title{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:54px;color:#fff;letter-spacing:0.02em;text-shadow:0 2px 14px rgba(0,0,0,0.6);}
+.hero-num{position:absolute;left:76.5%;top:51%;transform:translate(-50%,-50%);font-family:'Bebas Neue',sans-serif;font-size:44px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.7);}
+.hero-bar{position:absolute;left:18px;bottom:14px;width:70px;height:4px;border-radius:2px;background:var(--accent);}
+
+/* ── KARTY TSB/CTL/ATL ── */
+.stat-row{display:flex;gap:8px;margin-bottom:14px;}
+.stat{flex:1;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 12px;cursor:pointer;}
+.stat .lbl{font-size:10px;letter-spacing:0.18em;color:var(--muted);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:5px;}
+.stat .dot{width:7px;height:7px;border-radius:50%;}
+.stat .val{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;margin:8px 0 3px;}
+.stat .sub{font-size:11px;color:var(--fg2);font-style:italic;}
+.stat .mini{font-size:9.5px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;}
+
+/* ── GOTOWOŚĆ ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:14px;}
+.card-kick{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);letter-spacing:0.03em;}
+.card-date{font-size:10px;letter-spacing:0.2em;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;margin-top:2px;}
+.got-row{display:flex;gap:18px;align-items:center;margin-top:16px;}
+.dial{position:relative;width:120px;height:120px;flex-shrink:0;}
+.dial svg{transform:rotate(-90deg);}
+.dial .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.dial .num b{font-family:'Bebas Neue',sans-serif;font-size:38px;font-weight:400;color:#fff;line-height:1;}
+.dial .num span{font-size:8px;letter-spacing:0.22em;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.got-txt h3{font-size:21px;font-weight:700;line-height:1.15;}
+.got-txt p{font-size:12.5px;color:var(--fg2);line-height:1.45;margin-top:6px;}
+.got-facts{display:flex;border-top:1px solid var(--border);margin-top:18px;padding-top:14px;}
+.gf{flex:1;text-align:center;}
+.gf .l{font-size:9px;letter-spacing:0.18em;color:var(--muted);font-family:'DM Mono',monospace;}
+.gf .v{font-family:'Bebas Neue',sans-serif;font-size:24px;margin-top:4px;}
+.gf-sep{width:1px;background:var(--border);}
+.card-link{display:block;color:var(--accent);font-size:13px;font-weight:700;margin-top:14px;cursor:pointer;}
+
+/* ── WYKRES ── */
+.chart-box{padding:16px 12px 8px;}
+.chart-head{display:flex;justify-content:space-between;align-items:center;padding:0 6px 10px;}
+.chart-head .t{font-size:14px;font-weight:700;}
+.legend{display:flex;gap:10px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:3px;}
+
+/* ── KM TYGODNIE ── */
+.km-row{display:flex;align-items:flex-end;gap:6px;height:90px;padding:0 6px;}
+.km-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.km-bar{width:100%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--accent),rgba(232,86,30,0.35));}
+.km-col span{font-size:8.5px;color:var(--muted);font-family:'DM Mono',monospace;}
+.km-col b{font-size:9.5px;color:var(--fg2);font-weight:600;}
+
+/* ── LOG ── */
+.log-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer;}
+.pill{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pill svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.log-mid{flex:1;min-width:0;}
+.log-mid .t{font-size:13.5px;font-weight:600;}
+.log-mid .s{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.log-r{text-align:right;}
+.log-r b{font-family:'Bebas Neue',sans-serif;font-size:20px;font-weight:400;}
+.log-r span{display:block;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* ── SPOŁECZNOŚĆ teaser ── */
+.soc{position:relative;overflow:hidden;}
+.soc-blur{filter:blur(5px);opacity:0.55;pointer-events:none;}
+.soc-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,transparent,rgba(7,7,10,0.82) 70%);}
+.soc-lock .ico{font-size:26px;}
+.soc-lock p{font-size:13px;font-weight:600;text-align:center;line-height:1.4;}
+.soc-lock button{background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:700;padding:11px 22px;border-radius:11px;cursor:pointer;}
+.sec-label{font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);font-weight:700;font-family:'DM Mono',monospace;margin:22px 6px 10px;}
+
+/* ── BOTTOM NAV ── */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(10,8,14,0.92);backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;padding:10px 4px calc(10px + env(safe-area-inset-bottom));}
+.nav-i{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:7.5px;letter-spacing:0.08em;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;background:none;border:none;}
+.nav-i.on{color:var(--accent);}
+.nav-i svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.nav-logo{width:52px;height:52px;margin-top:-26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;box-shadow:0 8px 22px -6px rgba(232,86,30,0.7);border:3px solid var(--bg);cursor:pointer;}
+
+/* ── STICKY CTA ── */
+.cta-float{position:fixed;left:14px;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:45;background:linear-gradient(135deg,var(--accent),#c0431a);border-radius:15px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 14px 34px -12px rgba(232,86,30,0.75);cursor:pointer;max-width:402px;margin:0 auto;}
+.cta-float .t{font-size:14px;font-weight:700;color:#fff;line-height:1.25;}
+.cta-float .t small{display:block;font-size:10.5px;font-weight:400;opacity:0.85;}
+.cta-float .arr{font-size:20px;color:#fff;}
+
+/* ── PLAN dni ── */
+.plan-day{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:7px;}
+.plan-day.today{border-color:rgba(232,86,30,0.4);background:linear-gradient(165deg,rgba(45,25,20,0.55),rgba(20,11,14,0.8));}
+.pd-l{width:34px;text-align:center;flex-shrink:0;}
+.pd-l b{display:block;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;}
+.pd-l span{font-size:8.5px;color:var(--muted);font-family:'DM Mono',monospace;}
+.plan-day.today .pd-l b{color:var(--accent);}
+.pd-m{flex:1;min-width:0;}
+.pd-m .t{font-size:13px;font-weight:600;}
+.pd-m .s{font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.pd-ok{color:#3ad884;font-size:15px;font-weight:700;}
+.pd-go{background:var(--accent);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:'DM Mono',monospace;}
+.view{animation:fadein .22s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;z-index:100;background:rgba(4,3,6,0.78);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{width:100%;max-width:430px;background:linear-gradient(170deg,#1c1226,#0e0913);border:1px solid rgba(232,86,30,0.25);border-radius:24px 24px 0 0;padding:28px 22px calc(28px + env(safe-area-inset-bottom));animation:up .25s ease;}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal .ico{width:52px;height:52px;border-radius:16px;background:rgba(232,86,30,0.14);border:1px solid rgba(232,86,30,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px;}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:28px;font-weight:400;letter-spacing:0.02em;line-height:1;}
+.modal p{font-size:13.5px;color:var(--fg2);line-height:1.5;margin-top:10px;}
+.modal .btn-main{display:block;width:100%;text-align:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;padding:15px;border-radius:13px;text-decoration:none;margin-top:20px;box-shadow:0 10px 26px -10px rgba(232,86,30,0.6);}
+.modal .btn-sec{display:block;width:100%;text-align:center;background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;padding:13px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- DEMO BAR -->
+<div class="demo-bar">
+  <div class="t">Przeglądasz wersję demo<small>Dane przykładowe — załóż konto, by zobaczyć swoje</small></div>
+  <a href="index.html">Załóż konto</a>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ WIDOK: DZIŚ ═══ -->
+<div class="view" id="v-dzis">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="hello">Dzień dobry,<b>JANEK</b></div>
+    <div class="avatar" onclick="demoModal('profil')">J</div>
+  </div>
+
+  <!-- CYTAT DNIA -->
+  <div class="card" style="padding:18px;background:linear-gradient(135deg,rgba(160,116,236,0.12),rgba(16,11,22,0.75));border-color:rgba(160,116,236,0.2)">
+    <div style="font-size:10px;letter-spacing:0.2em;color:#a074ec;font-family:'DM Mono',monospace">CYTAT NA DZIŚ</div>
+    <div style="font-size:15px;font-weight:600;line-height:1.45;margin-top:8px;font-style:italic">„Nie musisz być szybki. Musisz tylko dziś wyjść."</div>
+  </div>
+
+  <!-- DZISIEJSZY TRENING -->
+  <div class="card" style="padding:18px;border-color:rgba(232,86,30,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;letter-spacing:0.2em;color:var(--accent);font-family:'DM Mono',monospace">DZISIEJSZY TRENING</div>
+        <div style="font-size:16px;font-weight:700;margin-top:6px">Interwały 5×1000 m</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">p. 4:45/km · przerwa 2 min</div>
+      </div>
+      <div class="pd-go" style="padding:11px 18px;font-size:11px" onclick="demoModal('plan')">START</div>
+    </div>
+  </div>
+
+  <!-- RADIO BIEGAMY -->
+  <div class="card" onclick="demoModal('radio')" style="padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer">
+    <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#c0431a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:700">Radio BiegaMy</div>
+      <div style="font-size:11px;color:var(--fg2);margin-top:2px">„Za horyzont" · biegowe granie do rytmu</div>
+    </div>
+    <div style="width:34px;height:34px;border-radius:50%;background:rgba(232,86,30,0.15);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:13px">▶</div>
+  </div>
+
+  <!-- GRA BIEGUS -->
+  <div class="card" onclick="demoModal('gra')" style="padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer">
+    <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#3db870,#2a8a52);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🐦</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:700">Bieguś — Droga na Igrzyska</div>
+      <div style="font-size:11px;color:var(--fg2);margin-top:2px">Twój wirtualny biegacz czeka na trening</div>
+    </div>
+    <div style="font-size:16px;color:var(--muted)">›</div>
+  </div>
+
+</div><!-- /v-dzis -->
+
+<!-- ═══ WIDOK: PLAN ═══ -->
+<div class="view" id="v-plan" style="display:none">
+  <div class="topbar"><div class="hello">Twój plan,<b>TYDZIEŃ 4/12</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
+
+  <div class="card" style="padding:16px 18px;margin-bottom:10px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(16,11,22,0.7));border-color:rgba(232,86,30,0.25)">
+    <div style="font-size:13px;font-weight:700">Cel: półmaraton pod 1:45</div>
+    <div style="font-size:11.5px;color:var(--fg2);margin-top:4px">Plan startowy z Twojej historii · 8 tygodni do startu</div>
+  </div>
+
+  <div class="plan-day"><div class="pd-l"><b>PON</b><span>28.07</span></div><div class="pill" style="background:rgba(80,144,224,0.14);color:#5090e0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg></div><div class="pd-m"><div class="t">Bieg spokojny</div><div class="s">8 km · 5:30–5:45/km</div></div><div class="pd-ok">✓</div></div>
+  <div class="plan-day today"><div class="pd-l"><b>WT</b><span>dziś</span></div><div class="pill" style="background:rgba(232,184,64,0.14);color:#e8b840"><svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div class="pd-m"><div class="t">Interwały 5×1000 m</div><div class="s">p. 4:45/km · przerwa 2 min trucht</div></div><div class="pd-go" onclick="demoModal('plan')">START</div></div>
+  <div class="plan-day"><div class="pd-l"><b>ŚR</b><span>30.07</span></div><div class="pill" style="background:rgba(136,136,136,0.14);color:#999"><svg viewBox="0 0 24 24"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></div><div class="pd-m"><div class="t">Odpoczynek</div><div class="s">regeneracja — zasłużona</div></div></div>
+  <div class="plan-day"><div class="pd-l"><b>CZW</b><span>31.07</span></div><div class="pill" style="background:rgba(168,104,224,0.14);color:#a868e0"><svg viewBox="0 0 24 24"><path d="M13 5l6 7-6 7M5 5l6 7-6 7"/></svg></div><div class="pd-m"><div class="t">Tempo 3 km</div><div class="s">rozgrz. 2 km + 3 km @ 4:55 + schł.</div></div></div>
+  <div class="plan-day"><div class="pd-l"><b>PT</b><span>1.08</span></div><div class="pill" style="background:rgba(127,168,208,0.14);color:#7fa8d0"><svg viewBox="0 0 24 24"><circle cx="13" cy="4" r="2"/><path d="M13 7v5l-2 3v6"/><path d="M13 12l3 2v5"/><path d="M9 21l2-6"/></svg></div><div class="pd-m"><div class="t">Spacer / mobilność</div><div class="s">30–45 min luźno</div></div></div>
+  <div class="plan-day"><div class="pd-l"><b>SOB</b><span>2.08</span></div><div class="pill" style="background:rgba(61,184,112,0.14);color:#3db870"><svg viewBox="0 0 24 24"><path d="M3 18 C 6 14, 9 10, 12 10 C 15 10, 18 14, 21 18"/></svg></div><div class="pd-m"><div class="t">Wybieganie</div><div class="s">14 km · 5:50–6:05/km</div></div></div>
+  <div class="plan-day"><div class="pd-l"><b>ND</b><span>3.08</span></div><div class="pill" style="background:rgba(232,86,30,0.14);color:var(--accent)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div><div class="pd-m"><div class="t">Regeneracja</div><div class="s">5 km · bardzo lekko</div></div></div>
+
+  <div class="card" style="margin-top:14px;text-align:center;padding:18px">
+    <div style="font-size:13px;font-weight:700">Chcesz plan AI uszyty pod siebie?</div>
+    <div style="font-size:11.5px;color:var(--fg2);margin-top:4px;line-height:1.45">Z kontem generator czyta Twoją historię z Garmina<br>i układa plan pod Twój cel.</div>
+    <button onclick="demoModal('plan')" style="margin-top:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:700;padding:11px 20px;border-radius:11px;cursor:pointer">Wygeneruj mój plan</button>
+  </div>
+</div><!-- /v-plan -->
+
+<!-- ═══ WIDOK: JEDZENIE ═══ -->
+<div class="view" id="v-jedz" style="display:none">
+  <div class="topbar"><div class="hello">Twoje jedzenie,<b>DZIŚ</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
+
+  <div class="card" style="padding:20px">
+    <div style="display:flex;align-items:center;gap:18px">
+      <div style="position:relative;width:104px;height:104px;flex-shrink:0">
+        <svg width="104" height="104" viewBox="0 0 104 104" style="transform:rotate(-90deg)">
+          <circle cx="52" cy="52" r="44" stroke="rgba(255,255,255,0.07)" stroke-width="9" fill="none"/>
+          <circle cx="52" cy="52" r="44" stroke="var(--accent)" stroke-width="9" fill="none" stroke-dasharray="276.5" stroke-dashoffset="83" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <b style="font-family:'Bebas Neue',sans-serif;font-size:26px">1 680</b>
+          <span style="font-size:8px;letter-spacing:0.18em;color:var(--muted);font-family:'DM Mono',monospace">/ 2 400 KCAL</span>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:4px"><span style="color:var(--fg2)">Białko</span><b>96 / 130 g</b></div><div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.07)"><div style="width:74%;height:100%;border-radius:3px;background:#3ad884"></div></div></div>
+        <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:4px"><span style="color:var(--fg2)">Węgle</span><b>198 / 300 g</b></div><div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.07)"><div style="width:66%;height:100%;border-radius:3px;background:#63a6f4"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:4px"><span style="color:var(--fg2)">Tłuszcze</span><b>52 / 80 g</b></div><div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.07)"><div style="width:65%;height:100%;border-radius:3px;background:#f4c04a"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-label">Dzisiejsze posiłki</div>
+  <div class="log-item" onclick="demoModal('jedzenie')"><div class="pill" style="background:rgba(244,192,74,0.14);font-size:16px">🍳</div><div class="log-mid"><div class="t">Owsianka z bananem</div><div class="s">śniadanie · 7:20</div></div><div class="log-r"><b>520</b><span>kcal</span></div></div>
+  <div class="log-item" onclick="demoModal('jedzenie')"><div class="pill" style="background:rgba(61,184,112,0.14);font-size:16px">🍗</div><div class="log-mid"><div class="t">Kurczak z ryżem i brokułem</div><div class="s">obiad · 13:40</div></div><div class="log-r"><b>740</b><span>kcal</span></div></div>
+  <div class="log-item" onclick="demoModal('jedzenie')"><div class="pill" style="background:rgba(99,166,244,0.14);font-size:16px">🥤</div><div class="log-mid"><div class="t">Shake po treningu</div><div class="s">przekąska · 17:05</div></div><div class="log-r"><b>420</b><span>kcal</span></div></div>
+
+  <div class="card" style="margin-top:12px;text-align:center;padding:16px" onclick="demoModal('jedzenie')">
+    <div style="font-size:13px;font-weight:700">📷 Skanuj kod albo dodaj z bazy</div>
+    <div style="font-size:11px;color:var(--fg2);margin-top:4px">Z kontem: baza produktów + skaner + makra pod Twoje treningi</div>
+  </div>
+</div><!-- /v-jedz -->
+
+<!-- ═══ WIDOK: FORMA ═══ -->
+<div class="view" id="v-forma" style="display:none">
+  <div class="topbar"><div class="hello">Twoja forma,<b>90 DNI</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
+
+  <!-- HERO FORMA -->
+  <div class="hero" onclick="demoModal('forma')">
+    <div class="hero-title">FORMA</div>
+    <div class="hero-num">62</div>
+    <div class="hero-bar"></div>
+  </div>
+
+  <!-- TSB / CTL / ATL -->
+  <div class="stat-row">
+    <div class="stat" onclick="demoModal('tsb')">
+      <div class="lbl"><span class="dot" style="background:#63a6f4"></span>TSB</div>
+      <div class="val" style="color:#63a6f4">+6</div>
+      <div class="sub">świeżość</div>
+      <div class="mini">-30 · 0 · +15</div>
+    </div>
+    <div class="stat" onclick="demoModal('ctl')">
+      <div class="lbl">↗ CTL</div>
+      <div class="val" style="color:#8ab8f0">58</div>
+      <div class="sub">rośnie</div>
+      <div class="mini">+14% do mies. temu</div>
+    </div>
+    <div class="stat" onclick="demoModal('atl')">
+      <div class="lbl">→ ATL</div>
+      <div class="val" style="color:#f0a880">52</div>
+      <div class="sub">normalny</div>
+      <div class="mini">-4% do mies. temu</div>
+    </div>
+  </div>
+
+  <!-- GOTOWOŚĆ -->
+  <div class="card">
+    <div class="card-kick">TWOJA GOTOWOŚĆ</div>
+    <div class="card-date">Wtorek, 28 lipca</div>
+    <div class="got-row">
+      <div class="dial">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.07)" stroke-width="9" fill="none"/>
+          <circle cx="60" cy="60" r="52" stroke="#3ad884" stroke-width="9" fill="none"
+            stroke-dasharray="326.7" stroke-dashoffset="124" stroke-linecap="round"/>
+        </svg>
+        <div class="num"><b>62</b><span>GOTOWOŚĆ</span></div>
+      </div>
+      <div class="got-txt">
+        <h3>Możesz docisnąć</h3>
+        <p>Świeżość na plusie — dobry dzień na mocniejszy akcent albo dłuższe wybieganie.</p>
+      </div>
+    </div>
+    <div class="got-facts">
+      <div class="gf"><div class="l">TSB</div><div class="v" style="color:#3ad884">+6</div></div>
+      <div class="gf-sep"></div>
+      <div class="gf"><div class="l">KADENCJA</div><div class="v">172<span style="font-size:10px;color:var(--muted)"> kr/min</span></div></div>
+      <div class="gf-sep"></div>
+      <div class="gf"><div class="l">TREND</div><div class="v" style="color:#3ad884">↑</div></div>
+    </div>
+    <span class="card-link" onclick="demoModal('gotowosc')">Co wpływa na gotowość ›</span>
+  </div>
+
+  <!-- WYKRES FORMY -->
+  <div class="card chart-box" onclick="demoModal('wykres')">
+    <div class="chart-head">
+      <div class="t">Forma — 90 dni</div>
+      <div class="legend">
+        <span><i style="background:#f4c04a"></i>TSB</span>
+        <span><i style="background:#63a6f4"></i>CTL</span>
+        <span><i style="background:#ff5a1f"></i>ATL</span>
+      </div>
+    </div>
+    <svg viewBox="0 0 380 130" width="100%" height="130">
+      <defs>
+        <linearGradient id="tsbf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4c04a" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#f4c04a" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="65" x2="380" y2="65" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3 4"/>
+      <path d="M0,95 C40,90 70,70 110,72 C150,74 180,55 220,58 C260,61 290,45 330,42 C355,40 370,38 380,36" fill="none" stroke="#63a6f4" stroke-width="2"/>
+      <path d="M0,88 C40,95 70,60 110,78 C150,92 180,48 220,66 C260,80 290,38 330,52 C355,58 370,44 380,40" fill="none" stroke="#ff5a1f" stroke-width="1.6" opacity="0.8"/>
+      <path d="M0,72 C40,60 70,78 110,60 C150,48 180,74 220,58 C260,46 290,72 330,56 C355,50 370,58 380,52 L380,130 L0,130 Z" fill="url(#tsbf)"/>
+      <path d="M0,72 C40,60 70,78 110,60 C150,48 180,74 220,58 C260,46 290,72 330,56 C355,50 370,58 380,52" fill="none" stroke="#f4c04a" stroke-width="2.6"/>
+    </svg>
+  </div>
+
+  <!-- KM TYGODNIE -->
+  <div class="card chart-box" onclick="demoModal('km')">
+    <div class="chart-head"><div class="t">Kilometry — tygodnie</div></div>
+    <div class="km-row">
+      <div class="km-col"><b>32</b><div class="km-bar" style="height:38px"></div><span>30.06</span></div>
+      <div class="km-col"><b>41</b><div class="km-bar" style="height:52px"></div><span>7.07</span></div>
+      <div class="km-col"><b>38</b><div class="km-bar" style="height:47px"></div><span>14.07</span></div>
+      <div class="km-col"><b>47</b><div class="km-bar" style="height:62px"></div><span>21.07</span></div>
+      <div class="km-col"><b>29</b><div class="km-bar" style="height:34px;opacity:0.65"></div><span>ten tydz.</span></div>
+    </div>
+  </div>
+
+
+</div><!-- /v-forma -->
+
+<!-- ═══ WIDOK: PROFIL ═══ -->
+<div class="view" id="v-profil" style="display:none">
+  <div class="topbar"><div class="hello">Twój profil,<b>JANEK</b></div><div class="avatar">J</div></div>
+
+  <div class="sec-label" style="margin-top:8px">Życiówki</div>
+  <div class="stat-row">
+    <div class="stat" onclick="demoModal('profil')"><div class="lbl">5 KM</div><div class="val" style="color:#3ad884;font-size:26px">22:41</div><div class="sub">maj 2026</div></div>
+    <div class="stat" onclick="demoModal('profil')"><div class="lbl">10 KM</div><div class="val" style="color:#63a6f4;font-size:26px">47:15</div><div class="sub">marzec 2026</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat" onclick="demoModal('profil')"><div class="lbl">PÓŁMARATON</div><div class="val" style="color:#e8b840;font-size:26px">1:49:32</div><div class="sub">cel: 1:45</div></div>
+    <div class="stat" onclick="demoModal('profil')"><div class="lbl">MARATON</div><div class="val" style="color:var(--muted);font-size:26px">—</div><div class="sub">jeszcze przede mną</div></div>
+  </div>
+
+  <div class="sec-label">Ten rok</div>
+  <div class="card" style="padding:16px">
+    <div class="got-facts" style="border:none;margin:0;padding:0">
+      <div class="gf"><div class="l">KM</div><div class="v" style="color:var(--accent)">1 240</div></div>
+      <div class="gf-sep"></div>
+      <div class="gf"><div class="l">TRENINGI</div><div class="v">156</div></div>
+      <div class="gf-sep"></div>
+      <div class="gf"><div class="l">GODZINY</div><div class="v">118</div></div>
+    </div>
+  </div>
+
+  <div class="sec-label">Odznaki</div>
+  <div class="card soc" style="padding:16px">
+    <div class="soc-blur" style="display:flex;gap:10px;justify-content:space-around;font-size:34px;padding:8px 0">🏅🔥🌙⛰️💯</div>
+    <div class="soc-lock" style="position:absolute;inset:0">
+      <p style="font-size:12px">Odznaki i wyzwania czekają<br>za darmowym kontem</p>
+      <button onclick="demoModal('profil')" style="padding:9px 18px;font-size:12px">Zobacz wszystkie</button>
+    </div>
+  </div>
+</div><!-- /v-profil -->
+
+<!-- ═══ WIDOK: SPOŁECZNOŚĆ ═══ -->
+<div class="view" id="v-spol" style="display:none">
+  <div class="topbar"><div class="hello">Społeczność,<b>BIEGAMY RAZEM</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
+  <!-- SPOŁECZNOŚĆ TEASER -->
+  <div class="sec-label">Społeczność</div>
+  <div class="card soc">
+    <div class="soc-blur">
+      <div class="log-item" style="margin-bottom:8px;border:none;background:rgba(255,255,255,0.03)">
+        <div class="avatar" style="width:34px;height:34px;font-size:14px;">M</div>
+        <div class="log-mid"><div class="t">Magda pobiegła 12 km</div><div class="s">dziś rano · 5:12/km</div></div>
+      </div>
+      <div class="log-item" style="margin-bottom:8px;border:none;background:rgba(255,255,255,0.03)">
+        <div class="avatar" style="width:34px;height:34px;font-size:14px;">T</div>
+        <div class="log-mid"><div class="t">Tomek pobił życiówkę na 10 km!</div><div class="s">wczoraj · 42:18 🎉</div></div>
+      </div>
+      <div class="log-item" style="border:none;background:rgba(255,255,255,0.03)">
+        <div class="avatar" style="width:34px;height:34px;font-size:14px;">A</div>
+        <div class="log-mid"><div class="t">Ania ukończyła półmaraton</div><div class="s">niedziela · debiut 1:52</div></div>
+      </div>
+    </div>
+    <div class="soc-lock">
+      <div class="ico">🔒</div>
+      <p>Znajomi, wyzwania i wspólne bieganie<br>czekają za darmowym kontem</p>
+      <button onclick="demoModal('spolecznosc')">Dołącz do społeczności</button>
+    </div>
+  </div>
+
+</div><!-- /v-spol -->
+
+</div>
+
+<!-- STICKY CTA -->
+<div class="cta-float" onclick="goSignup()">
+  <div class="t">Podoba Ci się? To Twoja apka za minutę.<small>Darmowe konto · własna Forma · plan startowy</small></div>
+  <div class="arr">→</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <button class="nav-i on" id="n-dzis" onclick="showView('dzis')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>DZIŚ</button>
+  <button class="nav-i" id="n-plan" onclick="showView('plan')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>PLAN</button>
+  <button class="nav-i" id="n-jedz" onclick="showView('jedz')"><svg viewBox="0 0 24 24"><path d="M7 3v8M11 3v8M9 11v10M9 3v8"/><path d="M16 3c2 0 3 2 3 5s-1 5-3 5v8"/></svg>JEDZENIE</button>
+  <div class="nav-logo" onclick="demoModal('log-add')">B</div>
+  <button class="nav-i" id="n-forma" onclick="showView('forma')"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 6-8 3 4"/></svg>FORMA</button>
+  <button class="nav-i" id="n-spol" onclick="showView('spol')"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.8-5 6.5-5s5.5 1.5 6.5 5"/><circle cx="17.5" cy="9" r="2.8"/><path d="M15.5 14.6c.6-.3 1.3-.5 2-.5 2.2 0 4.3 1.2 5 4"/></svg>SPOŁ.</button>
+  <button class="nav-i" id="n-profil" onclick="showView('profil')"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>PROFIL</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="ico" id="m-ico">🔒</div>
+    <h2 id="m-title">TO WIDOK DEMO</h2>
+    <p id="m-text">Załóż darmowe konto, żeby zobaczyć własne dane — Twoją formę, gotowość i treningi z Garmina.</p>
+    <a class="btn-main" href="index.html">Załóż darmowe konto</a>
+    <button class="btn-sec" onclick="closeModal()">Jeszcze się rozglądam</button>
+  </div>
+</div>
+
+<script>
+/* DEMO: strona statyczna — zero Supabase, dane przykładowe wbudowane.
+   Kazda interakcja -> modal zachecajacy do rejestracji (index.html). */
+var MSGS = {
+  'forma':        ['📈','TWOJA FORMA CZEKA','Po połączeniu Garmina zobaczysz tu swoją prawdziwą formę — liczoną z Twoich treningów, dzień po dniu.'],
+  'tsb':          ['⚖️','TSB — TWOJA ŚWIEŻOŚĆ','Bilans formy i zmęczenia. Z kontem liczymy go z Twojej realnej historii treningów.'],
+  'ctl':          ['🏗️','CTL — TWOJA BAZA','42-dniowa baza wytrenowania. Rośnie, gdy trenujesz konsekwentnie.'],
+  'atl':          ['🔥','ATL — TWOJE ZMĘCZENIE','Obciążenie z ostatnich 7 dni. Pilnujemy, żeby nie przekroczyło bezpiecznej granicy.'],
+  'gotowosc':     ['🎯','CO WPŁYWA NA GOTOWOŚĆ','Z kontem rozbijemy Twoją gotowość na czynniki: formę, zmęczenie i trend — bez tajemnic.'],
+  'wykres':       ['📊','90 DNI TWOJEJ FORMY','Wykres CTL/ATL/TSB z prawdziwych danych — zobaczysz, jak budujesz formę tydzień po tygodniu.'],
+  'km':           ['🛤️','TWOJE KILOMETRY','Tygodniowe kilometry z Garmina — automatycznie, bez przepisywania.'],
+  'log':          ['🏃','TWOJE TRENINGI','Każdy bieg z zegarka wpada tu sam: tempo, tętno, dystans. Ty tylko biegasz.'],
+  'log-add':      ['✍️','DODAJ TRENING','Z kontem logujesz treningi ręcznie albo automatycznie z Garmina.'],
+  'plan':         ['📅','TWÓJ PLAN','Plan startowy dopasowany do Twojej historii — a po 2 tygodniach odezwiemy się z czymś lepszym.'],
+  'profil':       ['👤','TWÓJ PROFIL','Życiówki, cele, statystyki — wszystko w jednym miejscu.'],
+  'spolecznosc':  ['🤝','SPOŁECZNOŚĆ BIEGAMY','Znajomi, wyzwania, wspólne świętowanie życiówek. Bieganie smakuje lepiej razem.'],
+  'radio':        ['🎧','RADIO BIEGAMY','100+ biegowych kawałków nagranych dla naszej społeczności. Z kontem gra w tle podczas biegu.'],
+  'gra':          ['🐦','BIEGUŚ CZEKA','Twój wirtualny biegacz rośnie z Twoimi treningami. Trenujesz — Bieguś biegnie na Igrzyska.'],
+  'jedzenie':     ['🍽️','TWOJE MAKRA','Skaner produktów, baza żywności i makra dopasowane do Twoich treningów — z darmowym kontem.']
+};
+function demoModal(k){
+  var m = MSGS[k] || ['🔒','TO WIDOK DEMO','Załóż darmowe konto, żeby zobaczyć własne dane.'];
+  document.getElementById('m-ico').textContent = m[0];
+  document.getElementById('m-title').textContent = m[1];
+  document.getElementById('m-text').textContent = m[2];
+  document.getElementById('modal-bg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); }
+function goSignup(){ window.location.href = 'index.html'; }
+/* przelaczanie widokow — ogladanie wolne, akcje -> modal */
+function showView(name){
+  ['dzis','plan','jedz','forma','spol','profil'].forEach(function(v){
+    document.getElementById('v-'+v).style.display = (v===name)?'':'none';
+    var n = document.getElementById('n-'+v);
+    if (n) n.classList.toggle('on', v===name);
+  });
+  window.scrollTo({top:0});
+}
+</script>
+</body>
+</html>
