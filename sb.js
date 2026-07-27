@@ -1824,7 +1824,13 @@ window._icuRenderSplits = function (d, el) {
     });
 
     // EMA loop (CTL 42d, ATL 7d) from start to today
-    let ctl = 0, atl = 0;
+    /* FORMA-SEED: jak w renderFormaForAthlete — EMA startuje od srednej 14 dni, nie od zera */
+    let _seedS = 0;
+    { const _sk = Object.keys(dailyTRIMP).sort();
+      if (_sk.length) { const _f = new Date(_sk[0] + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
+        const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
+        _sk.forEach(function(k){ if (k < _cut) _ss += dailyTRIMP[k]; }); _seedS = _ss / 14; } }
+    let ctl = _seedS, atl = _seedS;
     for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
       const trimp = dailyTRIMP[dateStr] || 0;
@@ -2632,7 +2638,22 @@ window._icuRenderSplits = function (d, el) {
     const atlData = [];
     const tsbData = [];
     const trimpData = [];
-    let ctl = 0, atl = 0;
+    /* FORMA-SEED: zimny start EMA — CTL/ATL startuja od sredniego TRIMP pierwszych 14 dni danych,
+       nie od zera. EMA 42d potrzebuje ~90-120 dni by dojrzec; start od 0 = sztucznie niski CTL i
+       falszywe "przeciazenie" u wysokowolumenowych (Kasia: CTL78/ATL144/TSB-67 zamiast ~130/~-14). */
+    let _seedVal = 0;
+    {
+      const _sk = Object.keys(dailyTRIMP).sort();
+      if (_sk.length) {
+        const _f = new Date(_sk[0] + 'T12:00:00');
+        _f.setDate(_f.getDate() + 14);
+        const _cut = _f.toISOString().slice(0, 10);
+        let _ss = 0;
+        _sk.forEach(function(k){ if (k < _cut) _ss += dailyTRIMP[k]; });
+        _seedVal = _ss / 14;
+      }
+    }
+    let ctl = _seedVal, atl = _seedVal;
     const CTL_DAYS = 42, ATL_DAYS = 7;
 
     for (let d = new Date(start); d <= endDate; d.setDate(d.getDate() + 1)) {

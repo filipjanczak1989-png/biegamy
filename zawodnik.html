@@ -4065,7 +4065,13 @@ async function _renderOdprawa() {
     }
     const dni = {};
     (logs || []).forEach(l => { const d = String(l.logged_at).slice(0, 10); dni[d] = (dni[d] || 0) + window.formaTRIMP(l); });
-    let ctl = 0, atl = 0;
+    /* FORMA-SEED: EMA startuje od sredniego TRIMP pierwszych 14 dni danych, nie od zera (jak sb.js) */
+    let _seedO = 0;
+    { const _sk = Object.keys(dni).sort();
+      if (_sk.length) { const _f = new Date(_sk[0] + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
+        const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
+        _sk.forEach(function(k){ if (k < _cut) _ss += dni[k]; }); _seedO = _ss / 14; } }
+    let ctl = _seedO, atl = _seedO;
     for (let k = 89; k >= 0; k--) { const ds = new Date(Date.now() - k * 864e5).toISOString().slice(0, 10);
       const t = dni[ds] || 0; ctl += (t - ctl) * (1 / 42); atl += (t - atl) * (1 / 7); }
     const tsb = Math.round(ctl - atl);
