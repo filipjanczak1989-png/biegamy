@@ -1824,15 +1824,21 @@ window._icuRenderSplits = function (d, el) {
     });
 
     // EMA loop (CTL 42d, ATL 7d) from start to today
-    /* FORMA-SEED: jak w renderFormaForAthlete — EMA startuje od srednej 14 dni, nie od zera */
-    let _seedS = 0;
+    /* FORMA-SEED v2: seed od OSTATNIEGO ciaglego bloku (dziura >21 dni resetuje punkt startu), jak renderForma */
+    let _seedS = 0, _blkS = null;
     { const _sk = Object.keys(dailyTRIMP).sort();
-      if (_sk.length) { const _f = new Date(_sk[0] + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
+      if (_sk.length) {
+        let _bs = _sk[0];
+        for (let _i = 1; _i < _sk.length; _i++) { if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i]; }
+        _blkS = _bs;
+        const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10); let _ss = 0;
-        _sk.forEach(function(k){ if (k < _cut) _ss += dailyTRIMP[k]; }); _seedS = _ss / 14; } }
-    let ctl = _seedS, atl = _seedS;
+        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dailyTRIMP[k]; }); _seedS = _ss / 14; } }
+    let ctl = 0, atl = 0;
+    if (_blkS && _blkS <= start.toISOString().slice(0, 10)) { ctl = _seedS; atl = _seedS; }
     for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
+      if (_blkS && dateStr === _blkS) { ctl = _seedS; atl = _seedS; }   /* reset na starcie bloku */
       const trimp = dailyTRIMP[dateStr] || 0;
       ctl = ctl + (trimp - ctl) / 42;
       atl = atl + (trimp - atl) / 7;
@@ -2638,26 +2644,33 @@ window._icuRenderSplits = function (d, el) {
     const atlData = [];
     const tsbData = [];
     const trimpData = [];
-    /* FORMA-SEED: zimny start EMA — CTL/ATL startuja od sredniego TRIMP pierwszych 14 dni danych,
-       nie od zera. EMA 42d potrzebuje ~90-120 dni by dojrzec; start od 0 = sztucznie niski CTL i
-       falszywe "przeciazenie" u wysokowolumenowych (Kasia: CTL78/ATL144/TSB-67 zamiast ~130/~-14). */
-    let _seedVal = 0;
+    /* FORMA-SEED v2: seed od OSTATNIEGO ciaglego bloku danych (dziura >21 dni = izolowane stare
+       wpisy nie moga byc baza; np. Kasia: 1 ultra 20.04 + 8 tyg pustki + dane od 15.06 — seed z
+       kwietnia rozpuszczal sie przez dziure do zera). EMA resetuje sie do seeda w dniu startu bloku. */
+    let _seedVal = 0, _seedBlockStart = null;
     {
       const _sk = Object.keys(dailyTRIMP).sort();
       if (_sk.length) {
-        const _f = new Date(_sk[0] + 'T12:00:00');
-        _f.setDate(_f.getDate() + 14);
+        let _bs = _sk[0];
+        for (let _i = 1; _i < _sk.length; _i++) {
+          if ((new Date(_sk[_i]) - new Date(_sk[_i-1])) / 864e5 > 21) _bs = _sk[_i];
+        }
+        _seedBlockStart = _bs;
+        const _f = new Date(_bs + 'T12:00:00'); _f.setDate(_f.getDate() + 14);
         const _cut = _f.toISOString().slice(0, 10);
         let _ss = 0;
-        _sk.forEach(function(k){ if (k < _cut) _ss += dailyTRIMP[k]; });
+        _sk.forEach(function(k){ if (k >= _bs && k < _cut) _ss += dailyTRIMP[k]; });
         _seedVal = _ss / 14;
       }
     }
-    let ctl = _seedVal, atl = _seedVal;
+    let ctl = 0, atl = 0;
+    /* blok zaczal sie PRZED oknem 90 dni -> seed od razu na starcie */
+    if (_seedBlockStart && _seedBlockStart <= _localYMD(start)) { ctl = _seedVal; atl = _seedVal; }
     const CTL_DAYS = 42, ATL_DAYS = 7;
 
     for (let d = new Date(start); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = _localYMD(d);   /* FORMA-DATA-FIX: lokalna nie UTC */
+      if (_seedBlockStart && dateStr === _seedBlockStart) { ctl = _seedVal; atl = _seedVal; }   /* FORMA-SEED v2: reset EMA na starcie bloku */
       const isFuture = dateStr > todayDateStr;
 
       if (isFuture) {
