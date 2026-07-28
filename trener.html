@@ -5210,7 +5210,7 @@ async function zaladujPoranek() {
     if (!ids.length) { sec.style.display = 'none'; return; }
     const od = new Date(Date.now() - 90 * 864e5).toISOString();
     const { data: logs } = await sb.from('training_logs')
-      .select('athlete_id,logged_at,duration,training_type,feel')
+      .select('athlete_id,logged_at,duration,training_type,feel,external_source')
       .in('athlete_id', ids).gte('logged_at', od)
       .not('training_type', 'like', '__badge__%');
     /* PORANEK-GOTOWOSC: wellness 8 dni — sygnal RHR/HRV vs baseline (puste = brak sygnalu, zero kosztu) */
@@ -5222,12 +5222,15 @@ async function zaladujPoranek() {
         .gte('date', odW).order('date', { ascending: false });
       (wel || []).forEach(w => { (perW[w.athlete_id] = perW[w.athlete_id] || []).push(w); });
     } catch (e) {}
-    const perA = {}; ids.forEach(i => perA[i] = { dni: {}, last: null });
+    const perA = {}; ids.forEach(i => perA[i] = { dni: {}, last: null, brakFeel: null });
+    const _fr48 = Date.now() - 48 * 3600 * 1000;   /* FEEL-REPORT parytet: swiezy trening z zegarka bez odczuc -> karta swiadomosci */
     (logs || []).forEach(l => {
       const p = perA[l.athlete_id]; if (!p) return;
       const d = String(l.logged_at).slice(0, 10);
       p.dni[d] = (p.dni[d] || 0) + window.formaTRIMP(l);
       if (!p.last || l.logged_at > p.last) p.last = l.logged_at;
+      if (l.external_source === 'intervals' && (l.feel == null || l.feel === '') && new Date(l.logged_at).getTime() >= _fr48
+          && (!p.brakFeel || l.logged_at > p.brakFeel.logged_at)) p.brakFeel = l;
     });
     const alerty = [];
     (ath || []).forEach(a => {
@@ -5276,6 +5279,7 @@ async function zaladujPoranek() {
       const cisza = p.last ? Math.floor((Date.now() - new Date(p.last).getTime()) / 864e5) : 99;
       if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 nie logowa\u0142 od ' + (cisza > 30 ? '30+' : cisza) + ' dni \u2014 zagadaj');
       if (a.intervals_token_dead_at) sig.push('\u231a zegarek si\u0119 roz\u0142\u0105czy\u0142 \u2014 poprosi ponowne po\u0142\u0105czenie');
+      if (p.brakFeel) sig.push('\u231a ' + (window.escapeHtml ? window.escapeHtml(p.brakFeel.training_type || 'Trening') : (p.brakFeel.training_type || 'Trening')) + ' z zegarka bez odczu\u0107 \u2014 przypomnij (forma liczy z domy\u015blnym)');
       const wl = perW[a.id];
       if (wl && wl.length >= 3) {
         const o = wl[0], baza = wl.slice(1);
