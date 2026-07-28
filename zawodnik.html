@@ -989,6 +989,21 @@ body > *{position:relative;z-index:1;}
 .rhb-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rhb-tag{font-size:.85em;opacity:.8;margin-top:2px;white-space:normal;}
 </style>
+<!-- FEEL-REPORT: trening z zegarka bez odczuc -> szybki raport -->
+<div id="feel-report-card" style="display:none;margin:16px 16px 4px;background:linear-gradient(135deg,rgba(232,86,30,0.1),rgba(16,11,22,0.75));border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:16px 18px;">
+  <div style="font-size:10px;letter-spacing:0.2em;color:var(--accent);font-family:'DM Mono',monospace;">JAK POSZŁO?</div>
+  <div id="fr-title" style="font-size:14px;font-weight:700;margin-top:6px;">Trening z zegarka</div>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <button class="feel-btn" data-fr="good" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128516;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">DOBRZE</div></button>
+    <button class="feel-btn" data-fr="mid" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128528;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">ŚREDNIO</div></button>
+    <button class="feel-btn" data-fr="bad" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128553;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">CIĘŻKO</div></button>
+  </div>
+  <textarea id="fr-comment" placeholder="Dodaj notatkę (opcjonalnie) — jak nogi, co bolało, warunki…" style="width:100%;margin-top:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:11px 13px;color:var(--fg);font-family:inherit;font-size:13px;min-height:58px;resize:vertical;box-sizing:border-box;"></textarea>
+  <div style="display:flex;gap:10px;margin-top:10px;align-items:center;">
+    <button onclick="_frSave()" style="flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:700;padding:12px;border-radius:11px;cursor:pointer;">Zapisz raport</button>
+    <button onclick="_frSkip()" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;padding:12px 8px;">Pomiń</button>
+  </div>
+</div>
 <div id="radio-home-banner" onclick="window.location.href='radio.html'" style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10),rgba(var(--accent-rgb),0.03));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:16px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
   <div id="rhb-cover" style="position:absolute;inset:0;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/cover-biegnij-kasienka-remix.webp');background-size:cover;background-position:center 30%;opacity:0.20;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 95%);mask-image:linear-gradient(90deg,transparent 25%,#000 95%);pointer-events:none;z-index:0;"></div>
   <div style="position:relative;z-index:1;width:44px;height:44px;border-radius:12px;background:rgba(10,8,14,0.6);border:1px solid rgba(var(--accent-rgb),0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 0 16px rgba(var(--accent-rgb),0.15);">
@@ -11553,6 +11568,40 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+<script>
+/* FEEL-REPORT: swiezy trening z intervals bez odczuc -> karta raportu na Dzis */
+var _frId=null,_frFeel=null;
+function _frPick(btn){ _frFeel=btn.dataset.fr;
+  document.querySelectorAll('#feel-report-card .feel-btn').forEach(function(b){ b.style.borderColor=(b===btn)?'var(--accent)':'rgba(255,255,255,0.08)'; b.style.background=(b===btn)?'rgba(232,86,30,0.15)':''; }); }
+async function _frSave(){
+  if(!_frId) return;
+  if(!_frFeel){ alert('Wybierz, jak poszlo :)'); return; }
+  var c=document.getElementById('fr-comment').value.trim();
+  var upd={ feel:_frFeel }; if(c) upd.comment=c;
+  var r=await sb.from('training_logs').update(upd).eq('id',_frId);
+  var card=document.getElementById('feel-report-card');
+  if(r.error){ alert('Nie udalo sie zapisac - sprobuj ponownie.'); return; }
+  card.innerHTML='<div style="text-align:center;padding:6px 0;"><div style="font-size:22px;">&#129505;</div><div style="font-size:13px;font-weight:700;margin-top:4px;">Zapisane &mdash; dzi&#281;ki!</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Trener to zobaczy, a forma policzy si&#281; dok&#322;adniej.</div></div>';
+  setTimeout(function(){ card.style.display='none'; }, 2600);
+}
+function _frSkip(){ try{ localStorage.setItem('fr_skip_'+_frId,'1'); }catch(e){} document.getElementById('feel-report-card').style.display='none'; }
+setTimeout(async function(){
+  try{
+    if(!window._myId || !window.sb) return;
+    var od=new Date(Date.now()-48*3600*1000).toISOString();
+    var q=await sb.from('training_logs').select('id,training_type,distance_km,duration,logged_at')
+      .eq('athlete_id', window._myId).eq('external_source','intervals').is('feel', null)
+      .not('training_type','like','__badge__%').gte('logged_at', od)
+      .order('logged_at',{ascending:false}).limit(1);
+    var l=q && q.data && q.data[0]; if(!l) return;
+    try{ if(localStorage.getItem('fr_skip_'+l.id)) return; }catch(e){}
+    _frId=l.id;
+    var kiedy=(l.logged_at||'').slice(0,10)===new Date().toISOString().slice(0,10)?'dzi\u015b':'wczoraj';
+    document.getElementById('fr-title').textContent=(l.training_type||'Trening')+' '+kiedy+(l.distance_km?(' \u00b7 '+l.distance_km+' km'):'');
+    document.getElementById('feel-report-card').style.display='';
+  }catch(e){ /* best-effort */ }
+}, 1500);
+</script>
 </body>
 </html><!-- ═══════════════════════════════════════════════════════════════════
      SYSTEM ODZNAK — wstrzyknięty po section-social
