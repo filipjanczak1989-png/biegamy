@@ -118,6 +118,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
 .pd-m .s{font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
 .pd-ok{color:#3ad884;font-size:15px;font-weight:700;}
 .pd-go{background:var(--accent);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:'DM Mono',monospace;}
+.ht-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:14px;cursor:pointer;padding:8px 4px;font-family:inherit;flex:1;}
+.ht-tile img{width:34px;height:34px;object-fit:contain;}
+.ht-tile span:last-child{font-size:8.5px;color:var(--fg2);font-family:'DM Mono',monospace;letter-spacing:0.04em;text-align:center;line-height:1.1;}
+.sec-hdr{display:flex;justify-content:space-between;align-items:baseline;margin:20px 6px 10px;}
+.sec-hdr .sec-title{font-size:14px;font-weight:700;}
+.sec-hdr .sec-more{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;cursor:pointer;}
 .hbar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.28);transition:background .3s;}
 .hbar.on{background:#fff;}
 .cd{font-style:normal;padding:5px 0;border-radius:7px;color:var(--fg2);position:relative;}
@@ -166,8 +172,11 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
     </div>
   </div>
 
+  <!-- HERO + KAFLE (1:1 home-tiles-row) -->
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div style="flex:1;min-width:0">
   <!-- HERO STORY (żywy — rotacja kadrów opowieści jak w apce) -->
-  <div class="hero" id="hero-story" style="height:300px;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/noc1.webp');background-position:center 25%;transition:background-image .6s ease" onclick="demoModal('log-add')">
+  <div class="hero" id="hero-story" style="height:300px;margin:0;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/noc1.webp');background-position:center 25%;transition:background-image .6s ease" onclick="demoModal('log-add')">
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,3,7,0.25) 0%,transparent 35%,rgba(4,3,7,0.9) 88%)"></div>
     <div style="position:absolute;top:14px;left:16px;right:16px;display:flex;gap:5px;z-index:2" id="hero-bars">
       <span class="hbar on"></span><span class="hbar"></span><span class="hbar"></span><span class="hbar"></span><span class="hbar"></span>
@@ -178,6 +187,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
     </div>
   </div>
 
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0">
+      <button class="ht-tile" onclick="demoModal('log-add')"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/icon-ex-section.webp" alt="" onerror="this.outerHTML='&#128170;'"><span>Ćwiczenia</span></button>
+      <button class="ht-tile" onclick="demoModal('spolecznosc')"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/icon-radio-trophy.webp" alt="" onerror="this.outerHTML='&#127942;'"><span>Wyzwania</span></button>
+      <button class="ht-tile" onclick="demoModal('gra')"><span style="font-size:26px">&#128038;</span><span>Bieguś</span></button>
+    </div>
+  </div>
   <!-- CYTAT DNIA -->
   <div class="card" style="padding:18px;background:linear-gradient(135deg,rgba(160,116,236,0.12),rgba(16,11,22,0.75));border-color:rgba(160,116,236,0.2)">
     <div style="font-size:10px;letter-spacing:0.2em;color:#a074ec;font-family:'DM Mono',monospace">CYTAT NA DZIŚ</div>
@@ -224,6 +240,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
     </div>
   </div>
 
+  <div class="sec-hdr"><div class="sec-title">Wiadomość od trenera</div><span class="sec-more" onclick="demoModal('spolecznosc')">kliknij →</span></div>
   <!-- KOMENTARZ TRENERA -->
   <div class="card" style="padding:16px 18px;background:linear-gradient(135deg,rgba(232,86,30,0.1),rgba(16,11,22,0.75));border-color:rgba(232,86,30,0.28)">
     <div style="display:flex;gap:13px">
@@ -253,14 +270,16 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
     <div style="position:relative;z-index:2;width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px">▶</div>
   </div>
 
-  <!-- GRA BIEGUS -->
-  <div class="card" onclick="demoModal('gra')" style="padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer">
-    <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,#3db870,#2a8a52);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🐦</div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:13.5px;font-weight:700">Bieguś — Droga na Igrzyska</div>
-      <div style="font-size:11px;color:var(--fg2);margin-top:2px">Twój wirtualny biegacz czeka na trening</div>
-    </div>
-    <div style="font-size:16px;color:var(--muted)">›</div>
+  <div class="sec-hdr"><div class="sec-title">Społeczność</div><span class="sec-more" onclick="showView('spol')">Więcej →</span></div>
+  <div class="log-item" onclick="demoModal('spolecznosc')">
+    <div class="avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">M</div>
+    <div class="log-mid"><div class="t">Magda pobiegła 12 km</div><div class="s">dziś rano · 5:12/km</div></div>
+    <div style="font-size:12px;color:var(--muted)">&#129505; 4</div>
+  </div>
+  <div class="log-item" onclick="demoModal('spolecznosc')">
+    <div class="avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">T</div>
+    <div class="log-mid"><div class="t">Tomek pobił życiówkę na 10 km! &#127881;</div><div class="s">wczoraj · 42:18</div></div>
+    <div style="font-size:12px;color:var(--muted)">&#129505; 11</div>
   </div>
 
 </div><!-- /v-dzis -->
