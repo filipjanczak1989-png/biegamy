@@ -614,6 +614,7 @@ body.loading::after {
       </div>
       <button class="btn" id="btn-login" onclick="login()">Zaloguj się →</button>
       <a href="demo.html" style="display:block;text-align:center;margin-top:14px;padding:12px;border:1px solid rgba(232,86,30,0.4);border-radius:12px;color:#e8561e;background:rgba(232,86,30,0.06);font-weight:700;font-size:14px;text-decoration:none;">👀 Zobacz aplikację od środka — demo bez konta</a>
+      <button onclick="shareBiegamy()" style="display:block;width:100%;text-align:center;margin-top:10px;padding:11px;border:1px solid rgba(255,255,255,0.14);border-radius:12px;color:rgba(240,237,232,0.75);background:rgba(255,255,255,0.03);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;">↗ Poleć BiegaMy znajomym</button>
     </div>
 
     <!-- REGISTER FORM -->
@@ -1042,6 +1043,52 @@ if ('serviceWorker' in navigator) {
     refreshing = true;
     window.location.reload();
   });
+}
+</script>
+<!-- PWA-INSTALL: chmurka "Zainstaluj aplikacje" (Android prompt / iOS instrukcja) -->
+<div id="pwa-cloud" style="display:none;position:fixed;top:12px;left:12px;right:12px;z-index:9999;background:linear-gradient(135deg,#1c1226,#120b18);border:1px solid rgba(232,86,30,0.4);border-radius:16px;padding:14px 16px;box-shadow:0 16px 44px -14px rgba(0,0,0,0.85);max-width:430px;margin:0 auto;animation:pwa-drop .35s ease;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="https://biegamy.run/assets/ui/biegus-logo.webp" alt="" style="width:42px;height:42px;border-radius:12px;background:#fff;padding:4px;flex-shrink:0;" onerror="this.style.display='none'">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13.5px;font-weight:700;color:#f0ede8;">Zainstaluj aplikację BiegaMy</div>
+      <div id="pwa-cloud-sub" style="font-size:11px;color:rgba(240,237,232,0.6);margin-top:2px;line-height:1.35;">Pełny ekran, szybki dostęp, powiadomienia.</div>
+    </div>
+    <button onclick="pwaDismiss()" style="background:none;border:none;color:rgba(240,237,232,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+  </div>
+  <div id="pwa-cloud-actions" style="margin-top:11px;">
+    <button id="pwa-install-btn" onclick="pwaInstall()" style="width:100%;background:#e8561e;color:#fff;border:none;font-family:inherit;font-size:13.5px;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;">Zainstaluj</button>
+  </div>
+</div>
+<style>@keyframes pwa-drop{from{transform:translateY(-16px);opacity:0}to{transform:none;opacity:1}}</style>
+<script>
+/* PWA-INSTALL + SHARE */
+var _pwaDeferred=null;
+function _pwaStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true; }
+function pwaDismiss(){ try{ localStorage.setItem('pwa_cloud_off', String(Date.now())); }catch(e){} document.getElementById('pwa-cloud').style.display='none'; }
+function _pwaSnoozed(){ try{ var t=+localStorage.getItem('pwa_cloud_off')||0; return t && (Date.now()-t) < 14*864e5; }catch(e){ return false; } }
+function pwaInstall(){
+  if(_pwaDeferred){ _pwaDeferred.prompt(); _pwaDeferred.userChoice.then(function(){ pwaDismiss(); }); }
+}
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault(); _pwaDeferred=e;
+  if(_pwaStandalone() || _pwaSnoozed()) return;
+  document.getElementById('pwa-cloud').style.display='';
+});
+/* iOS: brak beforeinstallprompt -> instrukcja Dodaj do ekranu */
+setTimeout(function(){
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(ios && !_pwaStandalone() && !_pwaSnoozed()){
+    document.getElementById('pwa-cloud-sub').innerHTML='Stuknij <b style="color:#e8561e">Udost\u0119pnij \u2B06\uFE0F</b> na dole Safari, potem <b style="color:#e8561e">\u201EDo ekranu pocz\u0105tkowego\u201D</b>.';
+    document.getElementById('pwa-cloud-actions').style.display='none';
+    document.getElementById('pwa-cloud').style.display='';
+  }
+}, 1200);
+/* SHARE: Web Share API + fallback schowka */
+async function shareBiegamy(){
+  var data={ title:'BiegaMy \u2014 trenuj z nami', text:'Trenuj\u0119 z BiegaMy \u2014 forma, plany i trener, kt\u00F3ry jest obok. Zobacz:', url:'https://biegamy.run' };
+  try{ if(navigator.share){ await navigator.share(data); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  try{ await navigator.clipboard.writeText(data.url); alert('Link skopiowany \u2014 wklej znajomym!'); }
+  catch(e){ prompt('Skopiuj link:', data.url); }
 }
 </script>
 </body>
