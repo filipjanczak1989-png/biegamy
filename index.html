@@ -1076,6 +1076,15 @@ window.addEventListener('beforeinstallprompt', function(e){
 });
 /* iOS: brak beforeinstallprompt -> instrukcja Dodaj do ekranu */
 setTimeout(function(){
+  var _forced = new URLSearchParams(location.search).has('install');
+  /* FORCE: ?install=1 pokazuje chmurke ZAWSZE — nawet gdy apka juz zainstalowana (brak beforeinstallprompt) */
+  if(_forced && document.getElementById('pwa-cloud').style.display==='none'){
+    if(!_pwaDeferred){
+      document.getElementById('pwa-cloud-sub').innerHTML='Chrome: menu <b style="color:#e8561e">⋮</b> → <b style="color:#e8561e">„Dodaj do ekranu głównego”</b> (lub „Zainstaluj aplikację”).';
+      document.getElementById('pwa-cloud-actions').style.display='none';
+    }
+    document.getElementById('pwa-cloud').style.display='';
+  }
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
   if(ios && !_pwaStandalone() && !_pwaSnoozed()){
     document.getElementById('pwa-cloud-sub').innerHTML='Stuknij <b style="color:#e8561e">Udost\u0119pnij \u2B06\uFE0F</b> na dole Safari, potem <b style="color:#e8561e">\u201EDo ekranu pocz\u0105tkowego\u201D</b>.';
