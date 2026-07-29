@@ -262,7 +262,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   <!-- RADIO BIEGAMY -->
   <div class="card" onclick="demoModal('radio')" style="position:relative;overflow:hidden;padding:15px 18px;display:flex;align-items:center;gap:13px;cursor:pointer;background:#120a16 url('assets/ui/banery/baner-radio-01.webp') center/cover;border-color:rgba(232,86,30,0.25)">
     <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,5,10,0.88) 40%,rgba(7,5,10,0.45))"></div>
-    <div style="position:relative;z-index:2;width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#c0431a);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>
+    <div style="position:relative;z-index:2;width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),#c0431a);display:flex;align-items:center;justify-content:center;flex-shrink:0"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/icon-radio-radio.webp" alt="" style="width:26px;height:26px;object-fit:contain" onerror="this.outerHTML=String.fromCodePoint(0x1F3A7)"></div>
     <div style="position:relative;z-index:2;flex:1;min-width:0">
       <div style="font-size:13.5px;font-weight:700">Radio BiegaMy</div>
       <div style="font-size:11px;color:var(--fg2);margin-top:2px">„Za horyzont" · biegowe granie do rytmu</div>
@@ -289,7 +289,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   <div class="topbar"><div class="hello">Twój plan,<b>TYDZIEŃ 4/12</b></div><div class="avatar" onclick="demoModal('profil')">J</div></div>
 
   <div class="card" style="padding:16px 18px;margin-bottom:10px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(16,11,22,0.7));border-color:rgba(232,86,30,0.25)">
-    <div style="font-size:13px;font-weight:700">Cel: półmaraton pod 1:45</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/icon-nav-target.webp" alt="" style="width:20px;height:20px" onerror="this.remove()"> Cel: półmaraton pod 1:45</div>
     <div style="font-size:11.5px;color:var(--fg2);margin-top:4px">Plan startowy z Twojej historii · 8 tygodni do startu</div>
   </div>
 
@@ -382,7 +382,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   <div class="log-item" onclick="demoModal('jedzenie')"><div class="pill" style="background:rgba(99,166,244,0.14);font-size:16px">🥤</div><div class="log-mid"><div class="t">Shake po treningu</div><div class="s">przekąska · 17:05</div></div><div class="log-r"><b>420</b><span>kcal</span></div></div>
 
   <div class="card" style="margin-top:12px;text-align:center;padding:16px" onclick="demoModal('jedzenie')">
-    <div style="font-size:13px;font-weight:700">📷 Skanuj kod albo dodaj z bazy</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/icon-nut-camera.webp" alt="" style="width:20px;height:20px" onerror="this.remove()"> Skanuj kod albo dodaj z bazy</div>
     <div style="font-size:11px;color:var(--fg2);margin-top:4px">Z kontem: baza produktów + skaner + makra pod Twoje treningi</div>
   </div>
 </div><!-- /v-jedz -->
@@ -573,7 +573,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',system-ui,sans-s
   <button class="nav-i on" id="n-dzis" onclick="showView('dzis')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>DZIŚ</button>
   <button class="nav-i" id="n-plan" onclick="showView('plan')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>PLAN</button>
   <button class="nav-i" id="n-jedz" onclick="showView('jedz')"><svg viewBox="0 0 24 24"><path d="M7 3v8M11 3v8M9 11v10M9 3v8"/><path d="M16 3c2 0 3 2 3 5s-1 5-3 5v8"/></svg>JEDZENIE</button>
-  <div class="nav-logo" onclick="demoModal('log-add')">B</div>
+  <div class="nav-logo" onclick="demoModal('log-add')" style="background:#fff;padding:6px"><img src="https://biegamy.run/assets/ui/biegus-logo.webp" alt="B" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='B'"></div>
   <button class="nav-i" id="n-forma" onclick="showView('forma')"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 6-8 3 4"/></svg>FORMA</button>
   <button class="nav-i" id="n-spol" onclick="showView('spol')"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.8-5 6.5-5s5.5 1.5 6.5 5"/><circle cx="17.5" cy="9" r="2.8"/><path d="M15.5 14.6c.6-.3 1.3-.5 2-.5 2.2 0 4.3 1.2 5 4"/></svg>SPOŁECZNOŚĆ</button>
   <button class="nav-i" id="n-profil" onclick="showView('profil')"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>PROFIL</button>
