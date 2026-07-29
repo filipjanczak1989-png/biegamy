@@ -11585,12 +11585,14 @@ async function _frSave(){
   setTimeout(function(){ card.style.display='none'; }, 2600);
 }
 function _frSkip(){ try{ localStorage.setItem('fr_skip_'+_frId,'1'); }catch(e){} document.getElementById('feel-report-card').style.display='none'; }
-setTimeout(async function(){
+async function _frCheck(proba){
   try{
-    if(!window._myId || !window.sb) return;
+    /* FIX: zmienna apki to _athleteId (nie window._myId) — laduje sie async, wiec retry */
+    var aid = (typeof _athleteId !== 'undefined') ? _athleteId : null;
+    if(!aid || !window.sb){ if(proba < 5) setTimeout(function(){ _frCheck(proba+1); }, 2000); return; }
     var od=new Date(Date.now()-48*3600*1000).toISOString();
     var q=await sb.from('training_logs').select('id,training_type,distance_km,duration,logged_at')
-      .eq('athlete_id', window._myId).eq('external_source','intervals').is('feel', null)
+      .eq('athlete_id', aid).eq('external_source','intervals').is('feel', null)
       .not('training_type','like','__badge__%').gte('logged_at', od)
       .order('logged_at',{ascending:false}).limit(1);
     var l=q && q.data && q.data[0]; if(!l) return;
@@ -11600,7 +11602,8 @@ setTimeout(async function(){
     document.getElementById('fr-title').textContent=(l.training_type||'Trening')+' '+kiedy+(l.distance_km?(' \u00b7 '+l.distance_km+' km'):'');
     document.getElementById('feel-report-card').style.display='';
   }catch(e){ /* best-effort */ }
-}, 1500);
+}
+setTimeout(function(){ _frCheck(0); }, 1500);
 </script>
 </body>
 </html><!-- ═══════════════════════════════════════════════════════════════════
