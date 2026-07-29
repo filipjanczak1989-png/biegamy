@@ -1065,7 +1065,7 @@ if ('serviceWorker' in navigator) {
 var _pwaDeferred=null;
 function _pwaStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true; }
 function pwaDismiss(){ try{ localStorage.setItem('pwa_cloud_off', String(Date.now())); }catch(e){} document.getElementById('pwa-cloud').style.display='none'; }
-function _pwaSnoozed(){ try{ var t=+localStorage.getItem('pwa_cloud_off')||0; return t && (Date.now()-t) < 14*864e5; }catch(e){ return false; } }
+function _pwaSnoozed(){ try{ if(new URLSearchParams(location.search).has('install')) return false; /* ?install=1 = pokaz zawsze (demo/ulotki) */ var t=+localStorage.getItem('pwa_cloud_off')||0; return t && (Date.now()-t) < 14*864e5; }catch(e){ return false; } }
 function pwaInstall(){
   if(_pwaDeferred){ _pwaDeferred.prompt(); _pwaDeferred.userChoice.then(function(){ pwaDismiss(); }); }
 }
