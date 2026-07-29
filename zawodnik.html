@@ -2604,6 +2604,7 @@ function showSection(name) {
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('daily-motivation')?.style.setProperty('display','none');
     document.getElementById('week-strip')?.style.setProperty('display','none');
+    document.getElementById('feel-report-card')?.style.setProperty('display','none');   /* FEEL-SEKCJA: karta tylko na Dzis */
     document.getElementById('log-list')?.style.setProperty('display','none');
     // ✅ Fix wycieków: kafelek raportów AI i nutrition widget (oba siedzą w głównym layout, nie w overlayowych sekcjach)
     document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
@@ -2630,6 +2631,7 @@ function showSection(name) {
     });
     document.getElementById('daily-motivation')?.style.setProperty('display','');
     document.getElementById('week-strip')?.style.setProperty('display','');
+    if (window._frReady) document.getElementById('feel-report-card')?.style.setProperty('display','');   /* FEEL-SEKCJA */
     document.getElementById('radio-home-banner')?.style.setProperty('display','flex');
     document.getElementById('biegus-home-banner')?.style.setProperty('display','flex');
     // Zawsze przeładuj przy powrocie na home
@@ -11582,9 +11584,9 @@ async function _frSave(){
   var card=document.getElementById('feel-report-card');
   if(r.error){ alert('Nie udalo sie zapisac - sprobuj ponownie.'); return; }
   card.innerHTML='<div style="text-align:center;padding:6px 0;"><div style="font-size:22px;">&#129505;</div><div style="font-size:13px;font-weight:700;margin-top:4px;">Zapisane &mdash; dzi&#281;ki!</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Trener to zobaczy, a forma policzy si&#281; dok&#322;adniej.</div></div>';
-  setTimeout(function(){ card.style.display='none'; }, 2600);
+  window._frReady=false; setTimeout(function(){ card.style.display='none'; }, 2600);
 }
-function _frSkip(){ try{ localStorage.setItem('fr_skip_'+_frId,'1'); }catch(e){} document.getElementById('feel-report-card').style.display='none'; }
+function _frSkip(){ try{ localStorage.setItem('fr_skip_'+_frId,'1'); }catch(e){} window._frReady=false; document.getElementById('feel-report-card').style.display='none'; }
 async function _frCheck(proba){
   try{
     /* FIX: zmienna apki to _athleteId (nie window._myId) — laduje sie async, wiec retry */
@@ -11600,7 +11602,8 @@ async function _frCheck(proba){
     _frId=l.id;
     var kiedy=(l.logged_at||'').slice(0,10)===new Date().toISOString().slice(0,10)?'dzi\u015b':'wczoraj';
     document.getElementById('fr-title').textContent=(l.training_type||'Trening')+' '+kiedy+(l.distance_km?(' \u00b7 '+l.distance_km+' km'):'');
-    document.getElementById('feel-report-card').style.display='';
+    window._frReady = true;   /* FEEL-SEKCJA: showSection pokaze przy powrocie na Dzis */
+    if (!window._currentSection || window._currentSection === 'home') document.getElementById('feel-report-card').style.display='';
   }catch(e){ /* best-effort */ }
 }
 setTimeout(function(){ _frCheck(0); }, 1500);
