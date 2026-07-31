@@ -46,6 +46,61 @@
 <meta name="twitter:description" content="Indywidualne plany treningowe, kontakt z trenerem, integracja ze Stravą.">
 <meta name="twitter:image" content="https://biegamy.run/og-image.jpg">
 <meta name="twitter:image:alt" content="BiegaMy.run — Coaching Biegowy">
+
+<!-- JSON-LD structured data: Organization + Person (Filip, Kasia) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://biegamy.run/#organization",
+      "name": "BiegaMy",
+      "url": "https://biegamy.run/",
+      "logo": "https://biegamy.run/logo.png",
+      "image": "https://biegamy.run/og-image.jpg",
+      "description": "Coaching biegowy — indywidualne plany treningowe i stały kontakt z trenerem.",
+      "areaServed": { "@type": "Country", "name": "Polska" },
+      "sameAs": [
+        "https://www.facebook.com/people/BiegaMy/61589684716756/"
+      ],
+      "founder": { "@id": "https://biegamy.run/#filip" },
+      "employee": [
+        { "@id": "https://biegamy.run/#filip" },
+        { "@id": "https://biegamy.run/#kasia" }
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://biegamy.run/#filip",
+      "name": "Filip Janczak",
+      "jobTitle": "Trener biegowy",
+      "worksFor": { "@id": "https://biegamy.run/#organization" },
+      "url": "https://biegamy.run/o-nas.html",
+      "sameAs": [
+        "https://statystyka.pzla.pl/personal.php?page=profile&nr_zaw=22901",
+        "https://www.facebook.com/edzio.listonosz/"
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://biegamy.run/#kasia",
+      "name": "Katarzyna Chojnacka",
+      "jobTitle": "Trenerka biegowa",
+      "worksFor": { "@id": "https://biegamy.run/#organization" },
+      "url": "https://biegamy.run/o-nas.html",
+      "award": [
+        "Mistrzyni Polski w biegu 6-godzinnym",
+        "Mistrzyni Polski w biegu na 100 km"
+      ],
+      "sameAs": [
+        "https://pl.wikipedia.org/wiki/Katarzyna_Chojnacka_(lekkoatletka)",
+        "https://statystyka.pzla.pl/personal.php?page=profile&nr_zaw=12105"
+      ]
+    }
+  ]
+}
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://afqojgkaveykxbltxzwm.supabase.co">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
