@@ -17,6 +17,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <meta http-equiv="x-dns-prefetch-control" content="on">
+<!-- LCP: preload hero webp (jeden wariant 750x1000) -->
+<link rel="preload" as="image" type="image/webp" href="hero-filip-kasia-750.webp" fetchpriority="high">
 <title>BiegaMy — Coaching Biegowy | Plany treningowe, Strava, kontakt z trenerem</title>
 
 <!-- SEO -->
@@ -549,7 +551,10 @@ body.loading::after {
       <div class="logo-text">Biega<span>My</span></div>
       <div class="logo-sub">Coaching Biegowy</div>
     </div>
-    <img src="hero-filip-kasia.jpg" alt="Filip i Kasia, mistrzostwa Polski" class="hero-photo" loading="eager">
+    <picture>
+      <source type="image/webp" srcset="hero-filip-kasia-750.webp">
+      <img src="hero-filip-kasia.jpg" alt="Filip i Kasia, mistrzostwa Polski" class="hero-photo" width="750" height="1000" loading="eager" fetchpriority="high">
+    </picture>
     <div class="hero-overlay"></div>
   </div>
   <div class="hero-content">
