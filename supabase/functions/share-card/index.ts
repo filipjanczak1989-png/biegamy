@@ -62,7 +62,9 @@ async function boot(): Promise<Boot> {
     pobierz("fonts/DMSans-Regular.ttf"),
     pobierz("fonts/DMSans-Medium.ttf"),
     pobierz("bg/bg-wschod-4x5.jpg"),
-    pobierz("logo/logo-lockup.png"),
+    // Wariant z białymi literami: w oryginale „Biega" i „.run" są niemal czarne
+    // i giną na ciemnym tle karty. „My." i podkreślenie zostają pomarańczowe.
+    pobierz("logo/logo-lockup-white.png"),
     pobierz("wasm/resvg_index_bg.wasm"),
   ]);
   // initWasm tylko raz na izolat — powtórne wywołanie rzuca.
