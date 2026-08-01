@@ -154,6 +154,10 @@ function zbudujKarte(o: {
   dystans: string; typ: string; staty: Stat[];
 }): El {
   const g = SIATKA[Math.max(1, Math.min(4, o.staty.length))];
+  // Przy 4 kolumnach na etykietę zostaje 190 px (skok 234 − ikona 34 − odstęp 10),
+  // a „PRZEWYŻSZENIE" ma w 22 px aż 191,5 px i wchodzi na ikonę sąsiada.
+  // 18 px daje 155,5 px, czyli ~34 px oddechu. Przy ≤3 kolumnach skok to 312 px — 22 px mieści się.
+  const etykietaPx = g.x.length >= 4 ? 18 : 22;
   const dzieci: El[] = [];
 
   // Tło
@@ -217,6 +221,18 @@ function zbudujKarte(o: {
     color: COLS.wygaszony, letterSpacing: 4,
   }, o.typ.toUpperCase()));
 
+  // Wstęga pod paskiem statystyk. Pasek idzie przez CAŁĄ szerokość, więc nie da się go
+  // schować w lewej strefie przyciemnienia jak reszty tekstu — potrzebuje własnego tła.
+  // Gradient, nie płaskie pole: wtapia się z góry i z dołu, w środku trzyma stały kontrast,
+  // dzięki czemu nie wygląda jak prostokąt doklejony do zdjęcia. Niezależny od tła.
+  // Stopy: y=850 przezroczysty → y=890 pełny → y=1090 pełny → y=1130 przezroczysty.
+  dzieci.push(h("div", {
+    position: "absolute", left: 0, top: 850, width: 1080, height: 280,
+    backgroundImage:
+      "linear-gradient(to bottom, rgba(7,7,10,0) 0%, rgba(7,7,10,0.55) 14.29%, " +
+      "rgba(7,7,10,0.55) 85.71%, rgba(7,7,10,0) 100%)",
+  }));
+
   // Dividery paska statystyk
   for (const x of g.dividery) {
     dzieci.push(h("div", {
@@ -234,8 +250,8 @@ function zbudujKarte(o: {
     }, [
       ik,
       txt({
-        fontFamily: "DMSans", fontWeight: 500, fontSize: 22, color: COLS.wtorny,
-        letterSpacing: 1.5, marginLeft: 10,
+        fontFamily: "DMSans", fontWeight: 500, fontSize: etykietaPx, color: COLS.wtorny,
+        letterSpacing: 1.5, marginLeft: 10, whiteSpace: "nowrap",
       }, s.etykieta),
     ]));
     dzieci.push(txt({
