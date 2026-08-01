@@ -27,6 +27,34 @@ const SIATKA: Record<number, { x: number[]; dividery: number[] }> = {
   1: { x: [72], dividery: [] },
 };
 
+// Biblioteka teł. Stałe tablice, NIE listing Storage: listing przy każdym cold starcie
+// to zbędny koszt i dodatkowy punkt awarii na ścieżce generowania.
+// m = biegacz solo, k = biegaczka solo, n = para mieszana (płeć nieczytelna).
+const TLA: Record<string, string[]> = {
+  m: [
+    "bg-deszcz-gory-4x5.jpg", "bg-deszcz-las-4x5.jpg", "bg-las-4x5.jpg", "bg-noc-miasto-4x5.jpg",
+    "bg-zachod-jezioro-4x5.jpg", "bg-zachod-pola-4x5.jpg", "bg-zima-4x5.jpg", "bg-zima-swit-4x5.jpg",
+  ],
+  k: [
+    "bg-deszcz-gory-4x5.jpg", "bg-gory-dolina-4x5.jpg", "bg-gory-grzbiet-4x5.jpg", "bg-mgla-swit-4x5.jpg",
+    "bg-plaza-4x5.jpg", "bg-stadion-4x5.jpg", "bg-zachod-pola-4x5.jpg", "bg-zima-las-4x5.jpg",
+  ],
+  n: [
+    "bg-para-deszcz-4x5.jpg", "bg-para-gory-4x5.jpg", "bg-para-las-4x5.jpg", "bg-para-noc-bulwar-4x5.jpg",
+    "bg-para-noc-most-4x5.jpg", "bg-para-promenada-4x5.jpg", "bg-para-swit-pola-4x5.jpg",
+    "bg-para-zachod-4x5.jpg", "bg-para-zima-4x5.jpg",
+  ],
+};
+
+// Wybór tła: zestaw z płci, konkretny plik DETERMINISTYCZNIE z log_id.
+// Nie Math.random() — ten sam trening ma dawać to samo tło także po przegenerowaniu karty.
+function wybierzTlo(gender: string | null, logId: string): string {
+  const zestaw = gender === "M" ? "m" : gender === "K" ? "k" : "n";
+  const lista = TLA[zestaw];
+  const suma = [...logId].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return `bg/${zestaw}/${lista[suma % lista.length]}`;
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -35,9 +63,10 @@ const CORS = {
 
 // ── COLD START: fonty, tło, logo i wasm pobierane RAZ ─────────────
 let bootPromise: Promise<Boot> | null = null;
+// Tła NIE ma w module scope: biblioteka rośnie, a cold start ładowałby ją całą.
+// Pobierane per request, tylko wybrany plik.
 type Boot = {
   fonts: { name: string; data: ArrayBuffer; weight: 400 | 500; style: "normal" }[];
-  bgUri: string;
   logoUri: string;
 };
 
@@ -57,11 +86,10 @@ async function pobierz(sciezka: string): Promise<Uint8Array> {
 }
 
 async function boot(): Promise<Boot> {
-  const [bebas, dm400, dm500, bg, logo, wasm] = await Promise.all([
+  const [bebas, dm400, dm500, logo, wasm] = await Promise.all([
     pobierz("fonts/BebasNeue-Regular.ttf"),
     pobierz("fonts/DMSans-Regular.ttf"),
     pobierz("fonts/DMSans-Medium.ttf"),
-    pobierz("bg/bg-wschod-4x5.jpg"),
     // Wariant z białymi literami: w oryginale „Biega" i „.run" są niemal czarne
     // i giną na ciemnym tle karty. „My." i podkreślenie zostają pomarańczowe.
     pobierz("logo/logo-lockup-white.png"),
@@ -75,7 +103,6 @@ async function boot(): Promise<Boot> {
       { name: "DMSans", data: dm400.buffer as ArrayBuffer, weight: 400, style: "normal" },
       { name: "DMSans", data: dm500.buffer as ArrayBuffer, weight: 500, style: "normal" },
     ],
-    bgUri: `data:image/jpeg;base64,${b64(bg)}`,
     logoUri: `data:image/png;base64,${b64(logo)}`,
   };
 }
@@ -152,7 +179,7 @@ async function avatarUri(url: string | null): Promise<string | null> {
 type Stat = { ikona: string; etykieta: string; wartosc: string; jednostka: string };
 
 function zbudujKarte(o: {
-  boot: Boot; imie: string; av: string | null; meta: string; miasto: string | null;
+  boot: Boot; bgUri: string; imie: string; av: string | null; meta: string; miasto: string | null;
   dystans: string; typ: string; staty: Stat[];
 }): El {
   const g = SIATKA[Math.max(1, Math.min(4, o.staty.length))];
@@ -164,7 +191,7 @@ function zbudujKarte(o: {
 
   // Tło
   dzieci.push(h("img", { position: "absolute", left: 0, top: 0, width: 1080, height: 1350 }) as El);
-  (dzieci[0].props as Record<string, unknown>).src = o.boot.bgUri;
+  (dzieci[0].props as Record<string, unknown>).src = o.bgUri;
 
   // Nagłówek: logotyp (zawiera już słowo BIEGAMY) + tagline
   const logo = h("img", { position: "absolute", left: 72, top: 105, width: 320, height: 76 });
@@ -329,7 +356,7 @@ Deno.serve(async (req) => {
     if (log.distance_km == null) return json({ error: "trening bez dystansu" }, 422);
 
     const { data: ath } = await admin.from("athletes")
-      .select("id,full_name,avatar_url,hr_public,city,user_id,coach_id")
+      .select("id,full_name,avatar_url,hr_public,city,user_id,coach_id,gender")
       .eq("id", log.athlete_id).maybeSingle();
     if (!ath) return json({ error: "nie ma zawodnika" }, 404);
     // Wzorzec domowy: właściciel ALBO trener TEGO zawodnika. Cudzych nie generujemy.
@@ -359,8 +386,12 @@ Deno.serve(async (req) => {
       staty.push({ ikona: IKONY.kalorie, etykieta: "KALORIE", wartosc: String(log.calories), jednostka: "kcal" });
     }
 
+    // gender służy WYŁĄCZNIE do wyboru pliku tła: nie trafia do odpowiedzi,
+    // nie pojawia się na karcie i nie idzie do żadnego logu.
+    const bgUri = `data:image/jpeg;base64,${b64(await pobierz(wybierzTlo(ath.gender, log_id)))}`;
+
     const el = zbudujKarte({
-      boot, imie, av: await avatarUri(ath.avatar_url), meta, miasto,
+      boot, bgUri, imie, av: await avatarUri(ath.avatar_url), meta, miasto,
       dystans: fmtDystans(Number(log.distance_km)),
       typ: log.training_type || "Bieg",
       staty: staty.slice(0, 4),
