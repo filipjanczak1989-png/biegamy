@@ -620,7 +620,13 @@ let _profileData = null;
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { location.href = 'index.html'; return; }
+  if (!session) {
+    // FAZA 1 publicznego profilu: wylogowany + ?id= → wąska gałąź read-only (widok public_athletes).
+    // Brak ?id= (albo profil nieopublikowany) → zachowanie bez zmian: login.
+    const _pubId = new URLSearchParams(location.search).get('id');
+    if (_pubId) { await initPublicView(_pubId); return; }
+    location.href = 'index.html'; return;
+  }
 
   // Sprawdź czy trener
   const { data: coachRow } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
@@ -717,6 +723,87 @@ let _profileData = null;
   var _open=new URLSearchParams(location.search).get('open');
   if(_open==='icu' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }); }, 350);
 })();
+
+// ── PUBLIC VIEW (Faza 1) — wylogowany ogląda profil przez ?id= ────
+// Czyta WYŁĄCZNIE widok `public_athletes` (anon ma tam SELECT; tabela `athletes` → 42501).
+// Widok filtruje is_public=true, więc brak wiersza = prywatny ∨ nieistniejący → login, jak dotąd.
+// Kontrakt: _myId zostaje null, zero zapisów, zero handlerów wymagających sesji.
+async function initPublicView(id) {
+  const { data: a } = await sb.from('public_athletes')
+    .select('id,full_name,avatar_url,goal,race_goals,pb_marathon,pb_half,pb_10k,pb_5k')
+    .eq('id', id)
+    .maybeSingle();
+  if (!a) { location.href = 'index.html'; return; }
+
+  _myId = null; _myUserId = null; _targetId = a.id; _isOwnProfile = false; _canSeeFull = false;
+  _profileData = a;
+
+  // Widok filtruje is_public, ale NIE sanityzuje treści — rejestracja potrafi wstawić email w full_name.
+  // Obrona niezależna od stanu danych: mechanizm nadal działa, więc kolejne konto może wpaść tak samo.
+  const nazwa = (a.full_name && !a.full_name.includes('@') && a.full_name.trim().length >= 3)
+    ? a.full_name
+    : 'Zawodnik BiegaMy';
+
+  document.getElementById('profile-name').textContent = nazwa;
+  document.title = nazwa + ' · BiegaMy';
+  document.getElementById('av-initials').textContent =
+    nazwa.split(' ').map(function(x){ return x && x[0]; }).filter(Boolean).join('').toUpperCase().slice(0,2);
+  if (a.avatar_url && window.safeUrlAttr) {
+    var _av = safeUrlAttr(a.avatar_url);
+    if (_av) {
+      var _img = document.getElementById('av-img');
+      _img.src = _av; _img.style.display = 'block';
+      document.getElementById('av-initials').style.display = 'none';
+    }
+  }
+
+  // Zdejmij całą powierzchnię wymagającą sesji (nav montuje się bezwarunkowo na dole pliku).
+  ['nav-mount','tab-friends','tab-find','radio-section','personal-data-section','coach-section',
+   'profile-city','wyglad-section','privacy-row','hr-privacy-row','feed-tabs','add-post-btn',
+   'add-goal-btn','av-edit-btn','p-tile-settings','action-btns','profile-quote']
+    .forEach(function(x){ var el = document.getElementById(x); if (el) el.style.display = 'none'; });
+  ['.p-tiles-row','.profile-stats']
+    .forEach(function(s){ var el = document.querySelector(s); if (el) el.style.display = 'none'; });
+  var _tabsWrap = document.getElementById('ptab-profile');
+  if (_tabsWrap && _tabsWrap.parentElement) _tabsWrap.parentElement.parentElement.style.display = 'none';
+
+  // CTA rejestracji pod imieniem
+  document.querySelector('.profile-head').insertAdjacentHTML('beforeend',
+    '<div style="text-align:center;padding:4px 20px 18px;">'
+    + '<a href="index.html" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-block;">Dołącz do BiegaMy</a>'
+    + '</div>');
+
+  renderPBs(a);   // canEdit = _isOwnProfile = false → zero onclicków, zero „+ Dodaj"
+
+  // Cele read-only: bez onclick, bo modale startów czytają DB (anon → pusto). Te same klasy CSS.
+  var goals = [];
+  try { goals = JSON.parse(a.race_goals || '[]'); } catch(e) {}
+  var upcoming = goals
+    .filter(function(g){ return g && g.date && new Date(g.date + 'T00:00:00') >= new Date(); })
+    .sort(function(x, y){ return new Date(x.date) - new Date(y.date); })
+    .slice(0, 5);
+  document.getElementById('goals-list').innerHTML = upcoming.length
+    ? upcoming.map(function(g){
+        var d = new Date(g.date + 'T00:00:00');
+        var mon = d.toLocaleDateString('pl-PL', { month: 'short' }).replace('.','').toUpperCase();
+        var left = Math.ceil((d - new Date()) / 86400000);
+        return '<div class="goal-item">'
+          + '<div class="goal-date-badge"><div class="goal-date-day">'+d.getDate()+'</div><div class="goal-date-mon">'+mon+'</div></div>'
+          + '<div class="goal-name">'+escHtml(g.name)+'</div>'
+          + '<div class="goal-days">'+(left > 0 ? 'za '+left+' dni' : 'dziś!')+'</div>'
+          + '</div>';
+      }).join('')
+    : '<div class="empty">Brak nadchodzących startów</div>';
+
+  // Treningi ZOSTAJĄ za logowaniem (Faza 2) — placeholder zamiast feedu.
+  document.getElementById('posts-container').innerHTML =
+    '<div style="text-align:center;padding:32px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;">'
+    + '<div style="font-size:32px;margin-bottom:10px;">🔒</div>'
+    + '<div style="font-size:13px;color:var(--fg2);font-weight:600;margin-bottom:14px;line-height:1.6;">'
+    + 'Załóż konto, by zobaczyć treningi ' + escHtml(nazwa) + '</div>'
+    + '<a href="index.html" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-block;">Załóż konto</a>'
+    + '</div>';
+}
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
