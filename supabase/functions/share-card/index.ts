@@ -35,13 +35,19 @@ const TLA: Record<string, string[]> = {
     "bg-deszcz-gory-4x5.jpg", "bg-deszcz-las-4x5.jpg", "bg-las-4x5.jpg", "bg-noc-miasto-4x5.jpg",
     "bg-zachod-jezioro-4x5.jpg", "bg-zachod-pola-4x5.jpg", "bg-zima-4x5.jpg", "bg-zima-swit-4x5.jpg",
   ],
+  // bg-stadion wypadło: reflektory stadionowe stoją dokładnie na wysokości imienia,
+  // więc nawet po wstędze pas tekstu miał 44,1/255 przy 31,6 u następnego w kolejce.
+  // Odstępstwo o 40% od reszty biblioteki = wyjątek, nie powód do mocniejszej warstwy.
   k: [
     "bg-deszcz-gory-4x5.jpg", "bg-gory-dolina-4x5.jpg", "bg-gory-grzbiet-4x5.jpg", "bg-mgla-swit-4x5.jpg",
-    "bg-plaza-4x5.jpg", "bg-stadion-4x5.jpg", "bg-zachod-pola-4x5.jpg", "bg-zima-las-4x5.jpg",
+    "bg-plaza-4x5.jpg", "bg-zachod-pola-4x5.jpg", "bg-zima-las-4x5.jpg",
   ],
+  // bg-para-gory i bg-para-swit-pola wypadły: kadry poziome ze słońcem po lewej,
+  // przyciemnienie dobierane automatycznie wyszło za słabe (strefa logo 64/255 przy
+  // medianie biblioteki 14,5). Wyjątek, nie reguła — stąd wymiana pliku, nie kolejna wstęga.
   n: [
-    "bg-para-deszcz-4x5.jpg", "bg-para-gory-4x5.jpg", "bg-para-las-4x5.jpg", "bg-para-noc-bulwar-4x5.jpg",
-    "bg-para-noc-most-4x5.jpg", "bg-para-promenada-4x5.jpg", "bg-para-swit-pola-4x5.jpg",
+    "bg-para-deszcz-4x5.jpg", "bg-para-las-4x5.jpg", "bg-para-noc-bulwar-4x5.jpg",
+    "bg-para-noc-most-4x5.jpg", "bg-para-promenada-4x5.jpg",
     "bg-para-zachod-4x5.jpg", "bg-para-zima-4x5.jpg",
   ],
 };
@@ -201,6 +207,18 @@ function zbudujKarte(o: {
     position: "absolute", left: 74, top: 194, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 24, color: COLS.akcent, letterSpacing: 3,
   }, "JESTEŚMY OBOK."));
+
+  // Wstęga pod blokiem tożsamości. Przyczyna jest strukturalna, nie plikowa: przy kadrze 4:5
+  // linia horyzontu wypada w okolicy y=300–480, więc imię i data siedzą na najjaśniejszym
+  // pasie zdjęcia — mediana 39,8 w bibliotece przy 14,5 w strefie logo, maksimum 78,8.
+  // Do tego jest to najsłabszy typograficznie tekst karty (szary 24 px).
+  // Stopy: y=290 przezroczysty → 330 pełny → 460 pełny → 500 przezroczysty.
+  dzieci.push(h("div", {
+    position: "absolute", left: 0, top: 290, width: 1080, height: 210,
+    backgroundImage:
+      "linear-gradient(to bottom, rgba(7,7,10,0) 0%, rgba(7,7,10,0.55) 19.05%, " +
+      "rgba(7,7,10,0.55) 80.95%, rgba(7,7,10,0) 100%)",
+  }));
 
   // Awatar
   const kolo: Record<string, unknown> = {
