@@ -2791,10 +2791,18 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, elevation_gain, strava_link, calories, external_id, source').not('training_type', 'like', '__badge__%').order('logged_at');
+  // card_bg_url dopisane do JAWNEJ listy kolumn — bez tego panel karty pokazywałby
+  // „Dodaj tło" mimo wgranego zdjęcia. W zawodnik.html niesie je select('*').
+  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, elevation_gain, strava_link, calories, external_id, source, card_bg_url').not('training_type', 'like', '__badge__%').order('logged_at');
+  // Własne athletes.id zapamiętane globalnie: panel karty porównuje z nim WŁAŚCICIELA
+  // logu. Trener bez wybranego zawodnika widzi logi WSZYSTKICH podopiecznych, więc
+  // bramka po trybie (isViewingOther) by go przepuściła — bramkujemy po właścicielu.
+  {
+    const { data: _mojAth } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    window._calMyAthleteId = _mojAth ? _mojAth.id : null;
+  }
   if (_urlRole === 'athlete') {
-    const { data: ath2 } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-    if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
+    if (window._calMyAthleteId) logsQuery = logsQuery.eq('athlete_id', window._calMyAthleteId);
   } else if (_urlRole === 'coach') {
     // Trener widzi TYLKO logi swoich zawodników
     const { data: myAthletes } = await sb.from('athletes').select('id').eq('coach_id', session.user.id);
@@ -3355,6 +3363,29 @@ function selLmType(btn, type) {
   window._logType2 = type;
 }
 
+// Toast — kalendarz nie miał żadnego mechanizmu powiadomień, a komponent karty
+// bez niego milczy przy odmowie uploadu (kadrownik zamyka się bez wyjaśnienia).
+// Zachowanie jak w zawodnik.html (ten sam tekst, te same 3 s), ale samowystarczalne:
+// tamten wariant zależy od elementu #toast, klasy .show i modułu Anim, których ta
+// strona nie ma. Do sb.js NIE trafia, żeby nie nadpisać toastów innych stron.
+window.toast = function (msg) {
+  let el = document.getElementById('kal-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'kal-toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:3000;'
+      + 'background:#16151c;border:1px solid var(--border);color:var(--fg);border-radius:10px;'
+      + 'padding:11px 16px;font-family:DM Sans,sans-serif;font-size:13px;line-height:1.45;'
+      + 'max-width:min(420px,calc(100vw - 32px));text-align:center;box-shadow:0 8px 28px rgba(0,0,0,0.45);'
+      + 'opacity:0;transition:opacity 0.2s;pointer-events:none;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(window._kalToastT);
+  window._kalToastT = setTimeout(function () { el.style.opacity = '0'; }, 3000);
+};
+
 function openLogModal(e, ds, idx) {
   e.stopPropagation();
   window._logSource = 'manual';   // reset atrybucji; source idzie tylko do INSERT
@@ -3447,6 +3478,15 @@ function openLogModal(e, ds, idx) {
     titleEl.textContent = existingLog
       ? '✏️ Edytuj log: ' + (_logType2 || 'Trening')
       : '📝 Log: ' + (_logType2 || 'Trening');
+  }
+
+  // Panel karty — komponent współdzielony z zawodnik.html (SHARECARD w sb.js).
+  // Bramka po WŁAŚCICIELU logu, nie po trybie: trener bez wybranego zawodnika
+  // widzi logi wszystkich podopiecznych, więc `!isViewingOther` by go przepuściło.
+  // Brak własnego athletes.id → zamknięte (domyślnie zamknięte, nie otwarte).
+  if (window.SHARECARD) {
+    const _moje = !!(window._calMyAthleteId && existingLog && existingLog.athlete_id === window._calMyAthleteId);
+    SHARECARD.mount('lm-sharecard-slot', existingLog, { mozeEdytowac: _moje });
   }
 
   const modal = document.getElementById('log-modal-bg');
@@ -6131,6 +6171,9 @@ async function doCopyWeek() {
         <div style="font-size:13px;color:var(--muted);"><img data-ic="icon-act-attach.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:5px;" alt="">Wrzuć screen z zegarka — pola wypełnią się same</div>
       </div>
       <div id="lm-ocr-status" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px;font-family:'DM Mono',monospace;color:var(--muted);"></div>
+
+      <!-- KARTA DO UDOSTĘPNIENIA — wypełniane przez SHARECARD.mount (sb.js) -->
+      <div id="lm-sharecard-slot" style="margin-bottom:12px;"></div>
       <div id="ocr-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
       <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="runLogOcr(this)">
 
