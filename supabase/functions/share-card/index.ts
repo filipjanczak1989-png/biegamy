@@ -82,11 +82,37 @@ async function pobierzUrl(url: string): Promise<Uint8Array> {
   return new Uint8Array(await r.arrayBuffer());
 }
 
-// Wybór tła: zestaw z płci, konkretny plik DETERMINISTYCZNIE z log_id.
-// Nie Math.random() — ten sam trening ma dawać to samo tło także po przegenerowaniu karty.
-function wybierzTlo(gender: string | null, logId: string): string {
+// Sezonowość. Klasyfikacja z OBEJRZENIA kadrów, nie z nazw plików: „zimowe" to
+// śnieg plus czapka i rękawice, „letnie" to krótki rękaw i spodenki. Reszta
+// biblioteki (kurtki, długi rękaw) jest całoroczna i nigdy nie wypada.
+// Klucz zawiera zestaw, bo nazwy powtarzają się między m/ i k/ (inne zdjęcia).
+const ZIMOWE = new Set(["m/bg-zima-4x5.jpg", "m/bg-zima-swit-4x5.jpg", "k/bg-zima-las-4x5.jpg", "n/bg-para-zima-4x5.jpg"]);
+const LETNIE = new Set(["m/bg-las-4x5.jpg", "m/bg-zachod-pola-4x5.jpg", "k/bg-zachod-pola-4x5.jpg", "n/bg-para-las-4x5.jpg"]);
+
+// Miesiąc liczony w Europe/Warsaw. DATA jest wiarygodna — w odróżnieniu od
+// godziny, która przy wpisach ręcznych i OCR jest sztuczna (12:00 / 10:00).
+function miesiac(iso: string): number {
+  return parseInt(
+    new Intl.DateTimeFormat("pl-PL", { month: "numeric", timeZone: "Europe/Warsaw" }).format(new Date(iso)),
+    10,
+  );
+}
+
+// Wybór tła: zestaw z płci, sezonowy filtr, potem konkretny plik DETERMINISTYCZNIE
+// z log_id. Nie Math.random() — ten sam trening ma dawać to samo tło także po
+// przegenerowaniu karty.
+// Filtr działa PRZED wyliczeniem indeksu: liczenie modulo z pełnej listy, a potem
+// odrzucanie wyniku, rozjechałoby determinizm i dawałoby nierówny rozkład.
+function wybierzTlo(gender: string | null, logId: string, loggedAt: string | null): string {
   const zestaw = gender === "M" ? "m" : gender === "K" ? "k" : "n";
-  const lista = TLA[zestaw];
+  let lista = TLA[zestaw];
+  if (loggedAt) {
+    const m = miesiac(loggedAt);
+    if (m >= 5 && m <= 9) lista = lista.filter((f) => !ZIMOWE.has(`${zestaw}/${f}`));
+    else if (m === 12 || m <= 2) lista = lista.filter((f) => !LETNIE.has(`${zestaw}/${f}`));
+  }
+  // Gdyby filtr kiedyś wyciął wszystko (mała biblioteka) — wracamy do pełnej listy.
+  if (!lista.length) lista = TLA[zestaw];
   const suma = [...logId].reduce((a, c) => a + c.charCodeAt(0), 0);
   return `bg/${zestaw}/${lista[suma % lista.length]}`;
 }
@@ -453,7 +479,7 @@ Deno.serve(async (req) => {
         console.error("share-card: własne tło nieosiągalne, biblioteka:", log_id, e);
       }
     }
-    if (!bgBajty) bgBajty = await pobierz(wybierzTlo(ath.gender, log_id));
+    if (!bgBajty) bgBajty = await pobierz(wybierzTlo(ath.gender, log_id, log.logged_at));
     const bgUri = `data:image/jpeg;base64,${b64(bgBajty)}`;
 
     const el = zbudujKarte({
