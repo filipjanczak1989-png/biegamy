@@ -4355,7 +4355,7 @@ window.SHARECARD = (function () {
     const wys = Math.round(szer * 1.25);
     const ov = document.createElement('div');
     ov.id = 'cb-crop';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
     ov.innerHTML =
       '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5</div>'
       + '<canvas data-sc="canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
@@ -4528,7 +4528,7 @@ window.SHARECARD = (function () {
     const szer = Math.min(window.innerWidth - 48, 340);
     const ov = document.createElement('div');
     ov.id = 'sc-podglad';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;';
     ov.innerHTML =
       '<img src="' + _podgladUrl + '" alt="" style="width:' + szer + 'px;max-height:72vh;object-fit:contain;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">'
       + '<div style="display:flex;gap:10px;">'
