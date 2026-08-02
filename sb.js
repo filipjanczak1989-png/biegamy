@@ -4528,12 +4528,16 @@ window.SHARECARD = (function () {
     btn.textContent = 'Renderuję kartę…';
     // Pierwsza karta to cold start EF plus render — bez tej podpowiedzi wygląda
     // na zawieszenie. Kolejne wywołania dla tego samego logu idą z cache.
+    // Próg 2500 ms wynika z POMIARU, nie z oka: ciepły render trwa 1,74–1,82 s,
+    // zimny (cold start + render) 3,42 s, cache 0,73 s. Przy progu 1500 ms dopisek
+    // wyskakiwałby przy KAŻDEJ karcie i kłamał — a komunikat, który kłamie, uczy
+    // ignorować wszystkie nasze komunikaty.
     const dopisek = setTimeout(function () {
       if (btn.disabled) {
         btn.innerHTML = 'Renderuję kartę…'
           + '<span style="display:block;font-size:9px;opacity:0.75;margin-top:2px;">Pierwsza karta trwa dłużej</span>';
       }
-    }, 1500);
+    }, 2500);
     try {
       const { data: { session } } = await window.sb.auth.getSession();
       if (!session) throw new Error('brak sesji');
