@@ -4241,3 +4241,304 @@ window.SOLO = (function(){
   }
   return { dopasuj:dopasuj, _pogoda:pogoda, _typ:typ };
 })();
+
+// ════════════════════════════════════════════════════════════════════
+// SHARECARD — panel karty do udostępnienia (własne tło + Udostępnij)
+// ════════════════════════════════════════════════════════════════════
+// Współdzielony przez zawodnik.html i kalendarz.html. Wcześniej żył w jednym
+// pliku; wyniesiony tutaj, żeby poprawka kadrownika nie musiała trafiać w dwa
+// miejsca — ten sam błąd co przy pace (6 kopii) i przy logice czatu.
+//
+//   SHARECARD.mount(slotId, log, { mozeEdytowac })
+//
+// log — obiekt z listy strony (musi mieć id, distance_km, card_bg_url).
+//   Komponent MUTUJE log.card_bg_url po zmianie tła i przerysowuje panel.
+//   To celowe: strona trzyma ten sam obiekt w swojej liście, więc zostaje
+//   zsynchronizowana bez callbacku.
+// mozeEdytowac — steruje WYŁĄCZNIE sekcją tła (dodaj/zmień/usuń).
+//   Przycisk „Udostępnij" jest widoczny zawsze: trener ma prawo wygenerować
+//   kartę podopiecznego, EF mu na to pozwala (403 dotyczy wyłącznie obcych).
+//
+// Handlery onclick MUSZĄ siedzieć na window — panel renderuje się przez
+// innerHTML, więc atrybuty onclick szukają funkcji w zasięgu globalnym.
+window.SHARECARD = (function () {
+  // Strefy tekstu na karcie — te same, na których mierzyliśmy bibliotekę teł.
+  const STREFY = [
+    { nazwa: 'logo',      x: 60, y: 100, w: 360, h: 130 },
+    { nazwa: 'tozsamosc', x: 60, y: 340, w: 580, h: 130 },
+    { nazwa: 'dystans',   x: 60, y: 490, w: 640, h: 310 },
+  ];
+  // Kolejne stopnie przyciemnienia: [siła lewego gradientu, jego zasięg w szerokości].
+  const STOPNIE = [[0.88,0.66],[0.93,0.70],[0.96,0.74],[0.975,0.78],[0.985,0.82]];
+  const PROG = 38;
+
+  let _stan = { logId: null, slotId: null, log: null, mozeEdytowac: true };
+  let _crop = null;
+
+  function powiadom(msg) {
+    if (typeof window.toast === 'function') window.toast(msg);
+    else console.warn('[SHARECARD]', msg);
+  }
+
+  function mount(slotId, log, opts) {
+    const slot = document.getElementById(slotId);
+    if (!slot) return;
+    // EF odbija log bez distance_km błędem 422 — gasimy panel zamiast pokazywać błąd.
+    if (!log || !log.id || log.distance_km == null) { slot.innerHTML = ''; return; }
+    _stan = {
+      logId: log.id, slotId: slotId, log: log,
+      mozeEdytowac: !opts || opts.mozeEdytowac !== false,
+    };
+    const ma = !!(log.card_bg_url && String(log.card_bg_url).trim());
+    let bg = '';
+    if (_stan.mozeEdytowac) {
+      bg = ma
+        ? '<div style="display:flex;align-items:center;gap:10px;">'
+          + '<img src="' + window.safeUrlAttr(log.card_bg_url) + '" style="width:44px;height:55px;object-fit:cover;border-radius:6px;flex-shrink:0;">'
+          + '<div style="flex:1;min-width:0;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Własne tło karty</div>'
+          + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbPick()">Zmień</button>'
+          + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbRemove(this)">Usuń</button>'
+          + '</div>'
+        : '<button type="button" class="btn btn-ghost btn-sm" style="width:100%;" onclick="_cbPick()">+ Dodaj własne tło karty</button>';
+    }
+    slot.innerHTML =
+      '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">'
+      + bg
+      + '<button type="button" id="sc-btn" class="btn btn-primary btn-sm" style="width:100%;" onclick="_scPrepare(this)">Przygotuj kartę</button>'
+      + '</div>'
+      + (_stan.mozeEdytowac ? '<input type="file" id="cb-file" accept="image/*" style="display:none" onchange="_cbOnFile(this)">' : '');
+  }
+
+  function przerysuj() {
+    if (_stan.slotId && _stan.log) mount(_stan.slotId, _stan.log, { mozeEdytowac: _stan.mozeEdytowac });
+  }
+
+  // ── A. WŁASNE TŁO ───────────────────────────────────────────────
+  window._cbPick = function () {
+    const f = document.getElementById('cb-file');
+    if (!f) return;
+    f.value = '';          // bez tego drugi wybór TEGO SAMEGO pliku nie odpali change w PWA
+    f.click();
+  };
+
+  window._cbOnFile = function (input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = function () { otworzKadrownik(img); };
+    img.onerror = function () { powiadom('Nie udało się otworzyć zdjęcia'); };
+    img.src = URL.createObjectURL(file);
+  };
+
+  // Kadrownik: ramka 4:5, przesuwanie palcem, zoom szczypaniem albo suwakiem.
+  function otworzKadrownik(img) {
+    const szer = Math.min(window.innerWidth - 40, 380);
+    const wys = Math.round(szer * 1.25);
+    const ov = document.createElement('div');
+    ov.id = 'cb-crop';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
+    ov.innerHTML =
+      '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5</div>'
+      + '<canvas id="cb-canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
+      + '<input type="range" id="cb-zoom" min="100" max="300" value="100" style="width:' + szer + 'px;">'
+      + '<div style="display:flex;gap:10px;">'
+      + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbCancel()">Anuluj</button>'
+      + '<button type="button" class="btn btn-primary btn-sm" id="cb-ok" onclick="_cbConfirm()">Użyj tego kadru</button>'
+      + '</div>'
+      + '<div id="cb-stan" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;text-align:center;line-height:1.5;"></div>';
+    document.body.appendChild(ov);
+
+    const c = document.getElementById('cb-canvas');
+    const ctx = c.getContext('2d');
+    const bazowa = Math.max(szer / img.width, wys / img.height);   // cover
+    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys };
+    _crop = st;
+
+    function ogranicz() {
+      const w = img.width * st.skala, h = img.height * st.skala;
+      st.x = Math.min(0, Math.max(szer - w, st.x));
+      st.y = Math.min(0, Math.max(wys - h, st.y));
+    }
+    function rysuj() {
+      ogranicz();
+      ctx.clearRect(0, 0, szer, wys);
+      ctx.drawImage(img, st.x, st.y, img.width * st.skala, img.height * st.skala);
+    }
+    st.x = (szer - img.width * bazowa) / 2;
+    st.y = (wys - img.height * bazowa) / 2;
+    rysuj();
+
+    let ostatni = null, dystStart = 0, skalaStart = 0;
+    function srodek(t){ return { x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2 }; }
+    function dyst(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
+    c.addEventListener('pointerdown', function(e){ c.setPointerCapture(e.pointerId); ostatni = { x:e.clientX, y:e.clientY }; });
+    c.addEventListener('pointermove', function(e){
+      if (!ostatni || (e.buttons === 0 && e.pointerType === 'mouse')) return;
+      st.x += e.clientX - ostatni.x; st.y += e.clientY - ostatni.y;
+      ostatni = { x:e.clientX, y:e.clientY }; rysuj();
+    });
+    c.addEventListener('pointerup', function(){ ostatni = null; });
+    c.addEventListener('touchstart', function(e){
+      if (e.touches.length === 2) { ostatni = null; dystStart = dyst(e.touches); skalaStart = st.skala; }
+    }, { passive:true });
+    c.addEventListener('touchmove', function(e){
+      if (e.touches.length !== 2 || !dystStart) return;
+      e.preventDefault();
+      const k = dyst(e.touches) / dystStart;
+      const nowa = Math.max(bazowa, Math.min(bazowa * 3, skalaStart * k));
+      const s = srodek(e.touches), r = c.getBoundingClientRect();
+      const px = s.x - r.left, py = s.y - r.top;
+      st.x = px - (px - st.x) * (nowa / st.skala);
+      st.y = py - (py - st.y) * (nowa / st.skala);
+      st.skala = nowa;
+      document.getElementById('cb-zoom').value = Math.round(nowa / bazowa * 100);
+      rysuj();
+    }, { passive:false });
+    document.getElementById('cb-zoom').addEventListener('input', function(){
+      const nowa = bazowa * (parseInt(this.value, 10) / 100);
+      const px = szer / 2, py = wys / 2;
+      st.x = px - (px - st.x) * (nowa / st.skala);
+      st.y = py - (py - st.y) * (nowa / st.skala);
+      st.skala = nowa; rysuj();
+    });
+  }
+
+  window._cbCancel = function () {
+    const ov = document.getElementById('cb-crop'); if (ov) ov.remove();
+    _crop = null;
+  };
+
+  // Luminancja wg BT.709 — ta sama, na której mierzyliśmy bibliotekę teł.
+  function jasnosc(ctx, s) {
+    const d = ctx.getImageData(s.x, s.y, s.w, s.h).data;
+    let suma = 0;
+    for (let i = 0; i < d.length; i += 4) suma += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+    return suma / (d.length / 4);
+  }
+
+  function gradientBazowy(ctx, W, H, sila, zasieg) {
+    const g1 = ctx.createLinearGradient(0, 0, W * zasieg, 0);
+    g1.addColorStop(0, 'rgba(7,7,10,' + sila + ')');
+    g1.addColorStop(1, 'rgba(7,7,10,0)');
+    ctx.fillStyle = g1; ctx.fillRect(0, 0, W * zasieg, H);
+    const g2 = ctx.createLinearGradient(0, 810, 0, H);
+    g2.addColorStop(0, 'rgba(7,7,10,0)');
+    g2.addColorStop(1, 'rgba(7,7,10,0.70)');
+    ctx.fillStyle = g2; ctx.fillRect(0, 810, W, H - 810);
+  }
+
+  // Wstęgi — identyczne z tymi, które rysuje EF, żeby podgląd nie kłamał.
+  function wstega(ctx, W, gora, dol) {
+    const g = ctx.createLinearGradient(0, gora, 0, dol);
+    g.addColorStop(0, 'rgba(7,7,10,0)');
+    g.addColorStop(40 / (dol - gora), 'rgba(7,7,10,0.55)');
+    g.addColorStop(1 - 40 / (dol - gora), 'rgba(7,7,10,0.55)');
+    g.addColorStop(1, 'rgba(7,7,10,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, gora, W, dol - gora);
+  }
+
+  window._cbConfirm = async function () {
+    const st = _crop; if (!st) return;
+    const btn = document.getElementById('cb-ok'), stan = document.getElementById('cb-stan');
+    btn.disabled = true; stan.textContent = 'Przetwarzam…';
+    const W = 1080, H = 1350, k = W / st.szer;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+
+    // Adaptacyjne przyciemnienie: eskalujemy siłę, aż wszystkie strefy zejdą pod próg.
+    let uzyty = 0;
+    for (let i = 0; i < STOPNIE.length; i++) {
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(st.img, st.x * k, st.y * k, st.img.width * st.skala * k, st.img.height * st.skala * k);
+      gradientBazowy(ctx, W, H, STOPNIE[i][0], STOPNIE[i][1]);
+      uzyty = i;
+      if (STREFY.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
+    }
+    wstega(ctx, W, 290, 500);
+    wstega(ctx, W, 850, 1130);
+
+    // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
+    if (jasnosc(ctx, STREFY[1]) > PROG) {
+      btn.disabled = false; stan.textContent = '';
+      window._cbCancel();
+      powiadom('To zdjęcie jest za jasne tam, gdzie stoi imię. Spróbuj innego kadru.');
+      return;
+    }
+
+    stan.textContent = 'Wgrywam…';
+    const blob = await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.86); });
+    const uid = window._authUid;
+    if (!blob || !uid || !_stan.logId) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się przygotować pliku'); return; }
+    const sciezka = uid + '/' + _stan.logId + '.jpg';
+    const { error: upErr } = await window.storageUploadRetry('card-bg', sciezka, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (upErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się wgrać tła'); return; }
+    const { data: urlData } = window.sb.storage.from('card-bg').getPublicUrl(sciezka);
+    const url = urlData.publicUrl + '?t=' + Date.now();   // nowy hash w EF → nowa karta, stare linki żyją
+    const { error: dbErr } = await window.sb.from('training_logs').update({ card_bg_url: url }).eq('id', _stan.logId);
+    if (dbErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się zapisać tła'); return; }
+
+    if (_stan.log) _stan.log.card_bg_url = url;   // ten sam obiekt co w liście strony
+    window._cbCancel();
+    przerysuj();
+    powiadom('Tło karty ustawione ✓' + (uzyty > 0 ? ' (przyciemnione)' : ''));
+  };
+
+  window._cbRemove = async function (btn) {
+    if (!_stan.logId || !window._authUid) return;
+    btn.disabled = true;
+    await window.sb.storage.from('card-bg').remove([window._authUid + '/' + _stan.logId + '.jpg']);
+    const { error } = await window.sb.from('training_logs').update({ card_bg_url: null }).eq('id', _stan.logId);
+    if (error) { btn.disabled = false; powiadom('Nie udało się usunąć tła'); return; }
+    if (_stan.log) _stan.log.card_bg_url = null;
+    przerysuj();
+    powiadom('Tło usunięte — karta wróci do domyślnego');
+  };
+
+  // ── B. UDOSTĘPNIJ (dwustopniowo) ────────────────────────────────
+  // iOS blokuje navigator.share, jeśli między gestem a wywołaniem jest await.
+  // Krok 1 robi CAŁĄ pracę (render + pobranie pliku), krok 2 jest czystym gestem.
+  window._scPrepare = async function (btn) {
+    if (!_stan.logId) return;
+    btn.disabled = true; btn.textContent = 'Przygotowuję…';
+    try {
+      const { data: { session } } = await window.sb.auth.getSession();
+      if (!session) throw new Error('brak sesji');
+      const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/share-card';
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ log_id: _stan.logId })
+      });
+      const d = await res.json().catch(function(){ return null; });
+      if (!res.ok || !d || !d.url) throw new Error('ef');
+      const blob = await (await fetch(d.url)).blob();
+      window._scPlik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
+      window._scUrl = d.url;
+      btn.disabled = false;
+      btn.textContent = 'Udostępnij ↗';
+      btn.setAttribute('onclick', '_scShare(this)');
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Przygotuj kartę';
+      powiadom('Nie udało się przygotować karty');
+    }
+  };
+
+  window._scShare = function () {
+    const plik = window._scPlik;
+    // canShare sprawdzamy PRZED wywołaniem — brak wsparcia dla plików to nie
+    // wyjątek, tylko normalny stan przeglądarki.
+    if (plik && navigator.canShare && navigator.canShare({ files: [plik] })) {
+      navigator.share({ files: [plik] }).catch(function(e){
+        if (e && e.name === 'AbortError') return;   // użytkownik anulował — to nie błąd
+        powiadom('Nie udało się udostępnić');
+      });
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = window._scUrl; a.download = 'biegamy-karta.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    powiadom('Karta zapisana');
+  };
+
+  return { mount: mount };
+})();
