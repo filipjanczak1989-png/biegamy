@@ -1,0 +1,500 @@
+# Zawartość biegamy-assets/_to_delete_2026-05-27/ przed skasowaniem (2026-08-02)
+#
+# 490 obiektów, 25,5 MB. Folder był pozostałością po czystce z maja 2026.
+# Skasowane po weryfikacji, że aplikacja czyta odpowiedniki z INNEGO źródła:
+# repo GH Pages filipjanczak1989-png/biegamy-assets (patrz assetUrl w sb.js).
+# Sprawdzone: każda nazwa trafiona w kodzie odpowiada 200 na GH Pages i 400
+# w korzeniu bucketu; jedyne sinki bucketu w kodzie dotyczą avatars/.
+#
+# Lista na wypadek, gdyby kiedyś okazało się, że czegoś brakuje.
+
+aa1.webp
+aa2.webp
+aa3.webp
+aa4.webp
+aa5.webp
+ab1.webp
+ab2.webp
+ab3.webp
+ab4.webp
+ab5.webp
+ac1.webp
+ac2.webp
+ac3.webp
+ac4.webp
+ac5.webp
+ad1.webp
+ad2.webp
+ad3.webp
+ad4.webp
+ad5.webp
+ae1.webp
+ae2.webp
+ae3.webp
+ae4.webp
+ae5.webp
+af1.webp
+af2.webp
+af3.webp
+af4.webp
+af5.webp
+ag1.webp
+ag2.webp
+ag3.webp
+ag4.webp
+ag5.webp
+ba1.webp
+ba2.webp
+ba3.webp
+ba4.webp
+ba5.webp
+badges/10_postow.webp
+badges/10_wyzwan.webp
+badges/100km_miesiaca.webp
+badges/14_dni_challenge.webp
+badges/15_treningow.webp
+badges/20_treningow.webp
+badges/2000km_total.webp
+badges/200km_miesiaca.webp
+badges/20km_tydzien.webp
+badges/25_treningow.webp
+badges/3_dni_pod_rzad.webp
+badges/3_z_rzedu.webp
+badges/30_dni_challenge.webp
+badges/300km_miesiaca.webp
+badges/4_tygodnie.webp
+badges/4_w_tygodniu.webp
+badges/40km_tydzien.webp
+badges/5_dni_ruchu.webp
+badges/5_startow.webp
+badges/5_wyzwan.webp
+badges/50km_miesiaca.webp
+badges/6_w_tygodniu.webp
+badges/60km_tydzien.webp
+badges/7_dni_challenge.webp
+badges/7_usmiechow.webp
+badges/80km_tydzien.webp
+badges/bez_dnia_przerwy.webp
+badges/bez_skipa.webp
+badges/bez_wymowek.webp
+badges/bieganie_w_ulewie.webp
+badges/coach_whisperer.webp
+badges/cytat_dnia.webp
+badges/czterolistna_koniczyna.webp
+badges/deszcz.webp
+badges/dwucyfrowy.webp
+badges/dystans_100.webp
+badges/dystans_1000.webp
+badges/dystans_2000.webp
+badges/dystans_250.webp
+badges/dystans_50.webp
+badges/dystans_500.webp
+badges/dystans_5000.webp
+badges/dzien_biegacza.webp
+badges/dzien_kobiet.webp
+badges/early_bird.webp
+badges/easter_egg.webp
+badges/easy_rider.webp
+badges/egzekucja.webp
+badges/forma_rosnie.webp
+badges/gorace_tempo.webp
+badges/granice.webp
+badges/half_marathon.webp
+badges/interwalowiec.webp
+badges/interwalowy_tydz.webp
+badges/kiepski_dzien.webp
+badges/krag_25.webp
+badges/krag_5.webp
+badges/krag_50.webp
+badges/letnia_forma.webp
+badges/lider.webp
+badges/lodowy_biegacz.webp
+badges/maraton_dni.webp
+badges/maraton_m.webp
+badges/maraton_tygodnia.webp
+badges/maszyna_biegania.webp
+badges/mentor.webp
+badges/mieszany_ogien.webp
+badges/min3_tyg.webp
+badges/mistrz_pojedynkow.webp
+badges/mistrz_tempa.webp
+badges/motywator.webp
+badges/mr_13.webp
+badges/mroz.webp
+badges/najlepszy_tyg.webp
+badges/negative_split.webp
+badges/nie_ma_wymowek.webp
+badges/nie_zatrzymuje.webp
+badges/noc_marathon.webp
+badges/nocna_sowa.webp
+badges/nocny_wojownik.webp
+badges/nowy_rekord_m.webp
+badges/nowy_rekord.webp
+badges/nowy_rok.webp
+badges/pb_run.webp
+badges/pi_day.webp
+badges/pierwsza_5tka.webp
+badges/pierwsza_wiad.webp
+badges/pierwsza_z_pierwszych.webp
+badges/pierwsze_10km.webp
+badges/pierwsze_wyzwanie.webp
+badges/pierwszy_fan.webp
+badges/pierwszy_koment.webp
+badges/pierwszy_krok.webp
+badges/pierwszy_kumpel.webp
+badges/pierwszy_pojedynek.webp
+badges/pierwszy_post.webp
+badges/pierwszy_start.webp
+badges/plan_ukonczony.webp
+badges/pliszka.webp
+badges/po_kontuzji.webp
+badges/polmaraton_tydz.webp
+badges/polnocna_zmiana.webp
+badges/poprawa_tempa.webp
+badges/poranek_5.webp
+badges/powrot_silniejszy.webp
+badges/rakieta.webp
+badges/rebel.webp
+badges/rutyna_mistrza.webp
+badges/setka_dokladna.webp
+badges/siedem_zycien.webp
+badges/silna_glowa.webp
+badges/sluchacz.webp
+badges/snieg.webp
+badges/solo_artist.webp
+badges/sowa.webp
+badges/spam_friend.webp
+badges/speed_month.webp
+badges/stary_druh.webp
+badges/streak_100.webp
+badges/streak_30.webp
+badges/streak_365.webp
+badges/streak_50.webp
+badges/streak_7.webp
+badges/sub_2.webp
+badges/sub_25.webp
+badges/sub_3_30_km.webp
+badges/sub_4.webp
+badges/sub_4min_km.webp
+badges/sub_50.webp
+badges/sub_5min_km.webp
+badges/swiateczny.webp
+badges/swiety_mikolaj.webp
+badges/szybki_tydzien.webp
+badges/tempo_killer.webp
+badges/tempo_negatyw.webp
+badges/tydzien_100km.webp
+badges/tydzien_150km.webp
+badges/tydzien_50km.webp
+badges/tydzien_mocy.webp
+badges/tylko_jeden.webp
+badges/ultra_m.webp
+badges/ultra_mindset.webp
+badges/ultra.webp
+badges/ulubieniec_trenera.webp
+badges/upal.webp
+badges/urodzinowy_run.webp
+badges/walentynki_solo.webp
+badges/wczesny_ptak.webp
+badges/weekend_runner.webp
+badges/wieczny_optymista.webp
+badges/wracam_do_gry.webp
+badges/wsparcie.webp
+badges/zimowy_wojownik.webp
+badges/zwyciezca_pojedynku.webp
+banner-1.webp
+banner-1a.jpg
+banner-1b.jpg
+banner-2.webp
+banner-3.webp
+banner-3a.jpg
+banner-3b.jpg
+banner-4.webp
+banner-5.webp
+banner-interwaly.webp
+banner-regeneracja.webp
+banner-spokojny.webp
+banner-start.webp
+banner-tempo.webp
+banner-wybieganie.webp
+banner-wzmacniajacy.webp
+banner-zastepczy.webp
+bb1.webp
+bb2.webp
+bb3.webp
+bb4.webp
+bb5.webp
+bc1.webp
+bc2.webp
+bc3.webp
+bc4.webp
+bc5.webp
+bd1.webp
+bd2.webp
+bd3.webp
+bd4.webp
+bd5.webp
+be1.webp
+be2.webp
+be3.webp
+be4.webp
+be5.webp
+bf1.webp
+bf2.webp
+bf3.webp
+bf4.webp
+bf5.webp
+bg1.webp
+bg2.webp
+bg3.webp
+bg4.webp
+bg5.webp
+bh1.webp
+bh2.webp
+bh3.webp
+bh4.webp
+bh5.webp
+bi1.webp
+bi2.webp
+bi3.webp
+bi4.webp
+bi5.webp
+bj1.webp
+bj2.webp
+bj3.webp
+bj4.webp
+bj5.webp
+bk1.webp
+bk2.webp
+bk3.webp
+bk4.webp
+bk5.webp
+bl1.webp
+bl2.webp
+bl3.webp
+bl4.webp
+bl5.webp
+bm-nav.webp
+bm1.webp
+bm2.webp
+bm3.webp
+bm4.webp
+bm5.webp
+card-default.jpg
+card-regeneracja.jpg
+card-tempo.jpg
+card-wybieganie.jpg
+card-wyscig.jpg
+filip-portret.webp
+filip-portret1.webp
+gal-01.webp
+gal-02.webp
+gal-03.webp
+gal-04.webp
+gal-05.webp
+gal-06.webp
+gal-07.webp
+gal-08.webp
+gal-09.webp
+gal-10.webp
+gal-11.webp
+gal-12.webp
+grafika1.webp
+hero-bg.jpg
+hero-pucharki.webp
+home-social.jpg
+j (1).jpg
+j (10).jpg
+j (100).jpg
+j (101).jpg
+j (102).jpg
+j (103).jpg
+j (104).jpg
+j (105).jpg
+j (106).jpg
+j (107).jpg
+j (108).jpg
+j (109).jpg
+j (11).jpg
+j (110).jpg
+j (111).jpg
+j (112).jpg
+j (113).jpg
+j (114).jpg
+j (115).jpg
+j (116).jpg
+j (117).jpg
+j (118).jpg
+j (119).jpg
+j (12).jpg
+j (120).jpg
+j (121).jpg
+j (122).jpg
+j (123).jpg
+j (124).jpg
+j (125).jpg
+j (126).jpg
+j (127).jpg
+j (128).jpg
+j (129).jpg
+j (13).jpg
+j (130).jpg
+j (131).jpg
+j (132).jpg
+j (133).jpg
+j (134).jpg
+j (135).jpg
+j (136).jpg
+j (137).jpg
+j (138).jpg
+j (139).jpg
+j (14).jpg
+j (140).jpg
+j (141).jpg
+j (142).jpg
+j (143).jpg
+j (144).jpg
+j (145).jpg
+j (146).jpg
+j (147).jpg
+j (148).jpg
+j (149).jpg
+j (15).jpg
+j (150).jpg
+j (151).jpg
+j (152).jpg
+j (153).jpg
+j (154).jpg
+j (155).jpg
+j (156).jpg
+j (157).jpg
+j (158).jpg
+j (159).jpg
+j (16).jpg
+j (160).jpg
+j (161).jpg
+j (162).jpg
+j (163).jpg
+j (164).jpg
+j (165).jpg
+j (166).jpg
+j (167).jpg
+j (168).jpg
+j (169).jpg
+j (17).jpg
+j (170).jpg
+j (171).jpg
+j (18).jpg
+j (19).jpg
+j (2).jpg
+j (20).jpg
+j (21).jpg
+j (22).jpg
+j (23).jpg
+j (24).jpg
+j (25).jpg
+j (26).jpg
+j (27).jpg
+j (28).jpg
+j (29).jpg
+j (3).jpg
+j (30).jpg
+j (31).jpg
+j (32).jpg
+j (33).jpg
+j (34).jpg
+j (35).jpg
+j (36).jpg
+j (37).jpg
+j (38).jpg
+j (39).jpg
+j (4).jpg
+j (40).jpg
+j (41).jpg
+j (42).jpg
+j (43).jpg
+j (44).jpg
+j (45).jpg
+j (46).jpg
+j (47).jpg
+j (48).jpg
+j (49).jpg
+j (5).jpg
+j (50).jpg
+j (51).jpg
+j (52).jpg
+j (53).jpg
+j (54).jpg
+j (55).jpg
+j (56).jpg
+j (57).jpg
+j (58).jpg
+j (59).jpg
+j (6).jpg
+j (60).jpg
+j (61).jpg
+j (62).jpg
+j (63).jpg
+j (64).jpg
+j (65).jpg
+j (66).jpg
+j (67).jpg
+j (68).jpg
+j (69).jpg
+j (7).jpg
+j (70).jpg
+j (71).jpg
+j (72).jpg
+j (73).jpg
+j (74).jpg
+j (75).jpg
+j (76).jpg
+j (77).jpg
+j (78).jpg
+j (79).jpg
+j (8).jpg
+j (80).jpg
+j (81).jpg
+j (82).jpg
+j (83).jpg
+j (84).jpg
+j (85).jpg
+j (86).jpg
+j (87).jpg
+j (88).jpg
+j (89).jpg
+j (9).jpg
+j (90).jpg
+j (91).jpg
+j (92).jpg
+j (93).jpg
+j (94).jpg
+j (95).jpg
+prs/prs_czas.webp
+prs/prs_dystans.webp
+prs/prs_final.webp
+prs/prs_set1_czas.webp
+prs/prs_set1_dystans.webp
+prs/prs_set1_tempo.webp
+prs/prs_set2_czas.webp
+prs/prs_set2_dystans.webp
+prs/prs_set2_tempo.webp
+prs/prs_set3_czas.webp
+prs/prs_set3_dystans.webp
+prs/prs_set3_tempo.webp
+prs/prs_set4_czas.webp
+prs/prs_set4_dystans.webp
+prs/prs_set4_tempo.webp
+prs/prs_set5_czas.webp
+prs/prs_set5_dystans.webp
+prs/prs_set5_tempo.webp
+prs/prs_set6_czas.webp
+prs/prs_set6_dystans.webp
+prs/prs_set6_tempo.webp
+prs/prs_set7_czas.webp
+prs/prs_set7_dystans.webp
+prs/prs_set7_tempo.webp
+prs/prs_set8_czas.webp
+prs/prs_set8_dystans.webp
+prs/prs_set8_tempo.webp
+prs/prs_tempo.webp

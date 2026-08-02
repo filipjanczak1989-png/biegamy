@@ -33,7 +33,10 @@
   window.SB_FN_URL = window.SB_URL + '/functions/v1';
 
   // ─── ASSET URL HELPER ───────────────────────────────────────────────
-  // Buduje URL do publicznego zasobu w bucketcie biegamy-assets (GitHub Pages).
+  // Buduje URL do repo GH Pages filipjanczak1989-png/biegamy-assets.
+  // UWAGA: to NIE jest bucket Supabase o tej samej nazwie — to dwa różne byty pod jedną nazwą.
+  // W buckecie Supabase klient pisze WYŁĄCZNIE pod avatars/{athletes.id}.{ext}; wszystko inne
+  // (banery, karty, ikony, portrety) czytamy stąd, z GH Pages. Grep po „biegamy-assets" łapie oba.
   // Użycie: assetUrl('banner1.webp') → https://filipjanczak1989-png.github.io/biegamy-assets/banner1.webp
   window.assetUrl = function(path) {
     if (!path) return '';
