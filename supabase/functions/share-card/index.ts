@@ -52,6 +52,36 @@ const TLA: Record<string, string[]> = {
   ],
 };
 
+// Własne tło zawodnika. Whitelist hosta jak przy avatarUri — obcy host to nie
+// błąd, tylko powrót do biblioteki: karta ma powstać zawsze.
+// Ścieżkę też zawężamy, żeby URL nie mógł wskazać czegoś innego w naszym Storage.
+function dozwoloneTlo(url: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return null;
+    if (u.host !== new URL(SB_URL).host) return null;
+    if (!u.pathname.startsWith("/storage/v1/object/public/card-bg/")) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+// hash8 wchodzi do klucza karty. URL niesie ?t=timestamp, więc podmiana zdjęcia
+// daje nowy hash → nową kartę, a stare linki nadal żyją (zasada o nieusuwaniu
+// kart, do których ktoś ma świeży link).
+async function hash8(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 8);
+}
+
+async function pobierzUrl(url: string): Promise<Uint8Array> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`tło → HTTP ${r.status}`);
+  return new Uint8Array(await r.arrayBuffer());
+}
+
 // Wybór tła: zestaw z płci, konkretny plik DETERMINISTYCZNIE z log_id.
 // Nie Math.random() — ten sam trening ma dawać to samo tło także po przegenerowaniu karty.
 function wybierzTlo(gender: string | null, logId: string): string {
@@ -357,15 +387,8 @@ Deno.serve(async (req) => {
       .auth.getUser(jwt);
     if (!user) return json({ error: "zły token" }, 401);
 
-    const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${log_id}.png`;
-
-    // Karta niezmienna — jeśli jest, oddajemy bez renderu.
-    const { data: juz } = await admin.storage.from(CARDS_BUCKET)
-      .list("", { search: `${log_id}.png`, limit: 1 });
-    if (juz && juz.length) return json({ url: publicUrl, cached: true });
-
     const { data: log } = await admin.from("training_logs")
-      .select("id,athlete_id,distance_km,duration,pace,heart_rate,elevation_gain,calories,training_type,logged_at,external_source")
+      .select("id,athlete_id,distance_km,duration,pace,heart_rate,elevation_gain,calories,training_type,logged_at,external_source,card_bg_url")
       .eq("id", log_id).maybeSingle();
     if (!log) return json({ error: "nie ma takiego treningu" }, 404);
     // Odznaki (training_type '__badge__%') to nie treningi. Filtr w kodzie, NIE w PostgREST:
@@ -379,6 +402,18 @@ Deno.serve(async (req) => {
     if (!ath) return json({ error: "nie ma zawodnika" }, 404);
     // Wzorzec domowy: właściciel ALBO trener TEGO zawodnika. Cudzych nie generujemy.
     if (ath.user_id !== user.id && ath.coach_id !== user.id) return json({ error: "nie twój trening" }, 403);
+
+    // Klucz karty zależy od tła, więc sprawdzenie cache musi być PO odczycie logu.
+    // Efekt uboczny na plus: wcześniej cache sprawdzał się przed autoryzacją, czyli
+    // dowolny zalogowany mógł sprawdzić, czy karta dla danego log_id istnieje.
+    const wlasneTlo = dozwoloneTlo(log.card_bg_url);
+    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.png` : `${log_id}.png`;
+    const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
+
+    // Karta niezmienna — jeśli jest, oddajemy bez renderu.
+    const { data: juz } = await admin.storage.from(CARDS_BUCKET)
+      .list("", { search: plik, limit: 1 });
+    if (juz && juz.length) return json({ url: publicUrl, cached: true });
 
     const boot = await ensureBoot();
     const imie = fmtImie(ath.full_name);
@@ -404,9 +439,22 @@ Deno.serve(async (req) => {
       staty.push({ ikona: IKONY.kalorie, etykieta: "KALORIE", wartosc: String(log.calories), jednostka: "kcal" });
     }
 
-    // gender służy WYŁĄCZNIE do wyboru pliku tła: nie trafia do odpowiedzi,
+    // Własne tło ma pierwszeństwo. Jest już przyciemnione po stronie klienta tym
+    // samym algorytmem, więc EF NIE dokłada gradientu bazowego — tylko wstęgi,
+    // które i tak rysuje przy każdym tle. Gdy pobranie padnie, wracamy do
+    // biblioteki: brak karty byłby gorszy niż karta z innym tłem.
+    // gender służy WYŁĄCZNIE do wyboru pliku z biblioteki: nie trafia do odpowiedzi,
     // nie pojawia się na karcie i nie idzie do żadnego logu.
-    const bgUri = `data:image/jpeg;base64,${b64(await pobierz(wybierzTlo(ath.gender, log_id)))}`;
+    let bgBajty: Uint8Array | null = null;
+    if (wlasneTlo) {
+      try {
+        bgBajty = await pobierzUrl(wlasneTlo);
+      } catch (e) {
+        console.error("share-card: własne tło nieosiągalne, biblioteka:", log_id, e);
+      }
+    }
+    if (!bgBajty) bgBajty = await pobierz(wybierzTlo(ath.gender, log_id));
+    const bgUri = `data:image/jpeg;base64,${b64(bgBajty)}`;
 
     const el = zbudujKarte({
       boot, bgUri, imie, av: await avatarUri(ath.avatar_url), meta, miasto,
@@ -421,7 +469,7 @@ Deno.serve(async (req) => {
     const png = new Resvg(svg).render().asPng();
 
     const { error: upErr } = await admin.storage.from(CARDS_BUCKET)
-      .upload(`${log_id}.png`, png, {
+      .upload(plik, png, {
         contentType: "image/png", cacheControl: "31536000", upsert: false,
       });
     // Wyścig dwóch równoległych żądań: drugie dostaje Duplicate i po prostu oddaje URL.
