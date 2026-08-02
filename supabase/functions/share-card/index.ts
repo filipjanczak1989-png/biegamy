@@ -255,6 +255,23 @@ function zbudujKarte(o: {
   dzieci.push(h("img", { position: "absolute", left: 0, top: 0, width: 1080, height: 1350 }) as El);
   (dzieci[0].props as Record<string, unknown>).src = o.bgUri;
 
+  // Jeden CIĄGŁY scrim na całej wysokości, bez powrotów do zera. Poprzednio były dwie
+  // wstęgi (290–500 i 850–1130) — na fotografii z fakturą wtapiały się, ale na gładkim
+  // tle ich krawędzie czytały się jako doklejone prostokąty. Gradient bez krawędzi czyta
+  // się jak winietowanie fotograficzne.
+  // Stopy dobrane pod strefy tekstu: mocno u góry (logo, tożsamość), najsłabiej w okolicy
+  // dystansu, który jest białym Bebasem 210 px i zniesie najwięcej, potem znów mocniej
+  // ku dołowi (statystyki i stopka).
+  //   y=0 → 0.62 | y=520 → 0.40 | y=800 → 0.48 | y=1350 → 0.72
+  // Wartości z SWEEPU na 22 tłach, nie z oka: przy 0.34/0.44 trzy strefy przekraczały
+  // próg 38 (k/gory-dolina tożsamość i dystans, n/promenada tożsamość).
+  dzieci.push(h("div", {
+    position: "absolute", left: 0, top: 0, width: 1080, height: 1350,
+    backgroundImage:
+      "linear-gradient(to bottom, rgba(7,7,10,0.62) 0%, rgba(7,7,10,0.40) 38.52%, " +
+      "rgba(7,7,10,0.48) 59.26%, rgba(7,7,10,0.72) 100%)",
+  }));
+
   // Nagłówek: logotyp (zawiera już słowo BIEGAMY) + tagline
   const logo = h("img", { position: "absolute", left: 72, top: 105, width: 320, height: 76 });
   (logo.props as Record<string, unknown>).src = o.boot.logoUri;
@@ -263,18 +280,6 @@ function zbudujKarte(o: {
     position: "absolute", left: 74, top: 194, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 24, color: COLS.akcent, letterSpacing: 3,
   }, "JESTEŚMY OBOK."));
-
-  // Wstęga pod blokiem tożsamości. Przyczyna jest strukturalna, nie plikowa: przy kadrze 4:5
-  // linia horyzontu wypada w okolicy y=300–480, więc imię i data siedzą na najjaśniejszym
-  // pasie zdjęcia — mediana 39,8 w bibliotece przy 14,5 w strefie logo, maksimum 78,8.
-  // Do tego jest to najsłabszy typograficznie tekst karty (szary 24 px).
-  // Stopy: y=290 przezroczysty → 330 pełny → 460 pełny → 500 przezroczysty.
-  dzieci.push(h("div", {
-    position: "absolute", left: 0, top: 290, width: 1080, height: 210,
-    backgroundImage:
-      "linear-gradient(to bottom, rgba(7,7,10,0) 0%, rgba(7,7,10,0.55) 19.05%, " +
-      "rgba(7,7,10,0.55) 80.95%, rgba(7,7,10,0) 100%)",
-  }));
 
   // Awatar
   const kolo: Record<string, unknown> = {
@@ -323,18 +328,6 @@ function zbudujKarte(o: {
     position: "absolute", left: 74, top: 770, fontFamily: "Bebas", fontSize: 44,
     color: COLS.wygaszony, letterSpacing: 4,
   }, o.typ.toUpperCase()));
-
-  // Wstęga pod paskiem statystyk. Pasek idzie przez CAŁĄ szerokość, więc nie da się go
-  // schować w lewej strefie przyciemnienia jak reszty tekstu — potrzebuje własnego tła.
-  // Gradient, nie płaskie pole: wtapia się z góry i z dołu, w środku trzyma stały kontrast,
-  // dzięki czemu nie wygląda jak prostokąt doklejony do zdjęcia. Niezależny od tła.
-  // Stopy: y=850 przezroczysty → y=890 pełny → y=1090 pełny → y=1130 przezroczysty.
-  dzieci.push(h("div", {
-    position: "absolute", left: 0, top: 850, width: 1080, height: 280,
-    backgroundImage:
-      "linear-gradient(to bottom, rgba(7,7,10,0) 0%, rgba(7,7,10,0.55) 14.29%, " +
-      "rgba(7,7,10,0.55) 85.71%, rgba(7,7,10,0) 100%)",
-  }));
 
   // Dividery paska statystyk
   for (const x of g.dividery) {

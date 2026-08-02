@@ -4450,14 +4450,17 @@ window.SHARECARD = (function () {
     ctx.fillStyle = g2; ctx.fillRect(0, 810, W, H - 810);
   }
 
-  // Wstęgi — identyczne z tymi, które rysuje EF, żeby podgląd nie kłamał.
-  function wstega(ctx, W, gora, dol) {
-    const g = ctx.createLinearGradient(0, gora, 0, dol);
-    g.addColorStop(0, 'rgba(7,7,10,0)');
-    g.addColorStop(40 / (dol - gora), 'rgba(7,7,10,0.55)');
-    g.addColorStop(1 - 40 / (dol - gora), 'rgba(7,7,10,0.55)');
-    g.addColorStop(1, 'rgba(7,7,10,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, gora, W, dol - gora);
+  // Jeden CIĄGŁY scrim — IDENTYCZNY z tym, który rysuje EF, żeby podgląd nie kłamał.
+  // Poprzednio były dwie wstęgi (290–500 i 850–1130): na fotografii z fakturą wtapiały
+  // się, ale na gładkim tle ich krawędzie czytały się jako doklejone prostokąty.
+  // Bez powrotów do zera nie ma czego zobaczyć — czyta się jak winietowanie.
+  function scrim(ctx, W, H) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0,        'rgba(7,7,10,0.62)');   // logo i tożsamość
+    g.addColorStop(520 / H,  'rgba(7,7,10,0.40)');   // dystans — biały Bebas 210 px zniesie najwięcej
+    g.addColorStop(800 / H,  'rgba(7,7,10,0.48)');
+    g.addColorStop(1,        'rgba(7,7,10,0.72)');   // statystyki i stopka
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
 
   async function zatwierdzKadr(ov) {
@@ -4477,8 +4480,7 @@ window.SHARECARD = (function () {
       uzyty = i;
       if (STREFY.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
     }
-    wstega(ctx, W, 290, 500);
-    wstega(ctx, W, 850, 1130);
+    scrim(ctx, W, H);
 
     // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
     if (jasnosc(ctx, STREFY[1]) > PROG) {
