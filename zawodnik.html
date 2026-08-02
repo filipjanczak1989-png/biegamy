@@ -1836,14 +1836,24 @@ async function markDone(btn){
   toast('Trening oznaczony jako wykonany ✓');
   await updateWeekProgress();
 }
+// Licznik generacji modala — rośnie przy KAŻDYM otwarciu (dodawanie i edycja).
+// Nie da się tu użyć _editingLogId: zmienia się natychmiast przy otwarciu, więc
+// porównanie po await mogłoby przypadkiem pasować mimo podmiany zawartości.
+let _modalGen = 0;
+
 // Light CTA 'Połącz zegarek' w karcie logu — tylko niepołączeni (połączony ma auto-sync).
 async function mountLogWatchCta() {
   const slot = document.getElementById('log-watch-slot');
   if (!slot || !window.WATCH || !_athleteId) return;
+  const gen = _modalGen;                                   // token tej generacji modala
   const { polaczony } = await window.WATCH.czyPolaczony(_athleteId);
-  slot.innerHTML = polaczony
+  const html = polaczony
     ? ''
     : await window.WATCH.render('light', { athleteId: _athleteId, returnTo: 'zawodnik.html' });
+  // W trakcie dwóch await modal mógł zostać zamknięty i otwarty na EDYCJI logu,
+  // gdzie ten sam slot trzyma panel karty. Bez tego guardu zaległe CTA go wyciera.
+  if (gen !== _modalGen) return;
+  slot.innerHTML = html;
 }
 // Badge zegarka w topbarze (wskaźnik jak Garmin) — zawsze widoczny, dwa stany.
 async function mountWatchBadge() {
@@ -1859,6 +1869,7 @@ window._onWatchSynced = function(){
 };
 
 async function openModal() {
+  _modalGen++;              // nowa generacja: unieważnia zaległe mountLogWatchCta
   _editingLogId = null;
   // Ustaw jawnie datę na dziś (unikaj problemów z timezone)
   const _todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD locale-safe
@@ -1920,6 +1931,7 @@ function shiftLogDate(delta) {
   _updateLogDateDisplay();
 }
 function openModalForDate(dateStr, e) {
+  _modalGen++;              // nowa generacja: unieważnia zaległe mountLogWatchCta
   if(e) e.stopPropagation();
   _logDate = dateStr;
   setTimeout(_updateLogDateDisplay, 50);
@@ -6099,6 +6111,7 @@ let _editingLogId = null;
 function editLog(idx) {
   const l = window._logsData?.[idx];
   if (!l) return;
+  _modalGen++;              // nowa generacja: zaległe CTA zegarka nie wytrze panelu karty
   _editingLogId = l.id;
   _logDate = l.logged_at ? l.logged_at.split('T')[0] : null;
   setTimeout(_updateLogDateDisplay, 50);
