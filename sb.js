@@ -4304,7 +4304,7 @@ window.SHARECARD = (function () {
     slot.innerHTML =
       '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">'
       + bg
-      + '<button type="button" id="sc-btn" class="btn btn-primary btn-sm" style="width:100%;" onclick="_scPrepare(this)">Przygotuj kartę</button>'
+      + '<button type="button" id="sc-btn" class="btn btn-primary btn-sm" style="width:100%;" onclick="_scPrepare(this)">Zobacz kartę</button>'
       + '</div>'
       + (_stan.mozeEdytowac ? '<input type="file" id="cb-file" accept="image/*" style="display:none" onchange="_cbOnFile(this)">' : '');
   }
@@ -4494,12 +4494,46 @@ window.SHARECARD = (function () {
     powiadom('Tło usunięte — karta wróci do domyślnego');
   };
 
-  // ── B. UDOSTĘPNIJ (dwustopniowo) ────────────────────────────────
-  // iOS blokuje navigator.share, jeśli między gestem a wywołaniem jest await.
-  // Krok 1 robi CAŁĄ pracę (render + pobranie pliku), krok 2 jest czystym gestem.
+  // ── B. ZOBACZ KARTĘ → UDOSTĘPNIJ ────────────────────────────────
+  // Krok 1 robi CAŁĄ pracę (render w EF + pobranie pliku) i otwiera podgląd.
+  // Krok 2 — przycisk share W NAKŁADCE — jest czystym gestem, bo plik leży już
+  // w pamięci, zanim nakładka się pojawi. To zarazem rozwiązanie problemu iOS,
+  // który blokuje navigator.share, gdy między gestem a wywołaniem jest await.
+  let _podgladUrl = null;
+
+  function pokazPodglad(blob) {
+    if (_podgladUrl) URL.revokeObjectURL(_podgladUrl);
+    _podgladUrl = URL.createObjectURL(blob);
+    const szer = Math.min(window.innerWidth - 48, 340);
+    const ov = document.createElement('div');
+    ov.id = 'sc-podglad';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;';
+    ov.innerHTML =
+      '<img src="' + _podgladUrl + '" alt="" style="width:' + szer + 'px;max-height:72vh;object-fit:contain;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">'
+      + '<div style="display:flex;gap:10px;">'
+      + '<button type="button" class="btn btn-ghost btn-sm" onclick="_scZamknij()">Zamknij</button>'
+      + '<button type="button" class="btn btn-primary btn-sm" onclick="_scShare()">Udostępnij ↗</button>'
+      + '</div>';
+    document.body.appendChild(ov);
+  }
+
+  window._scZamknij = function () {
+    const o = document.getElementById('sc-podglad'); if (o) o.remove();
+    if (_podgladUrl) { URL.revokeObjectURL(_podgladUrl); _podgladUrl = null; }
+  };
+
   window._scPrepare = async function (btn) {
     if (!_stan.logId) return;
-    btn.disabled = true; btn.textContent = 'Przygotowuję…';
+    btn.disabled = true;
+    btn.textContent = 'Renderuję kartę…';
+    // Pierwsza karta to cold start EF plus render — bez tej podpowiedzi wygląda
+    // na zawieszenie. Kolejne wywołania dla tego samego logu idą z cache.
+    const dopisek = setTimeout(function () {
+      if (btn.disabled) {
+        btn.innerHTML = 'Renderuję kartę…'
+          + '<span style="display:block;font-size:9px;opacity:0.75;margin-top:2px;">Pierwsza karta trwa dłużej</span>';
+      }
+    }, 1500);
     try {
       const { data: { session } } = await window.sb.auth.getSession();
       if (!session) throw new Error('brak sesji');
@@ -4514,12 +4548,13 @@ window.SHARECARD = (function () {
       const blob = await (await fetch(d.url)).blob();
       window._scPlik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
       window._scUrl = d.url;
-      btn.disabled = false;
-      btn.textContent = 'Udostępnij ↗';
-      btn.setAttribute('onclick', '_scShare(this)');
+      pokazPodglad(blob);
     } catch (e) {
-      btn.disabled = false; btn.textContent = 'Przygotuj kartę';
       powiadom('Nie udało się przygotować karty');
+    } finally {
+      clearTimeout(dopisek);
+      btn.disabled = false;
+      btn.textContent = 'Zobacz kartę';
     }
   };
 
