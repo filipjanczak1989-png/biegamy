@@ -4259,8 +4259,13 @@ window.SOLO = (function(){
 //   Przycisk „Udostępnij" jest widoczny zawsze: trener ma prawo wygenerować
 //   kartę podopiecznego, EF mu na to pozwala (403 dotyczy wyłącznie obcych).
 //
-// Handlery onclick MUSZĄ siedzieć na window — panel renderuje się przez
-// innerHTML, więc atrybuty onclick szukają funkcji w zasięgu globalnym.
+// ZDARZENIA: wyłącznie addEventListener, ZERO inline onclick i zero funkcji
+// eksportowanych na window. Pierwsza wersja używała onclick w innerHTML —
+// handlery były na window i widoczne w konsoli (typeof === 'function'), przycisk
+// istniał, a kliknięcie nie odpalało niczego. Inline handler zależy od
+// rozwiązywania nazw w zasięgu globalnym i od tego, że nikt po drodze nie zjada
+// zdarzenia; addEventListener wiąże funkcję bezpośrednio z węzłem i usuwa całą
+// tę klasę awarii naraz.
 window.SHARECARD = (function () {
   // Strefy tekstu na karcie — te same, na których mierzyliśmy bibliotekę teł.
   const STREFY = [
@@ -4274,6 +4279,9 @@ window.SHARECARD = (function () {
 
   let _stan = { logId: null, slotId: null, log: null, mozeEdytowac: true };
   let _crop = null;
+  let _podgladUrl = null;
+  let _plik = null;
+  let _url = null;
 
   function powiadom(msg) {
     if (typeof window.toast === 'function') window.toast(msg);
@@ -4296,17 +4304,27 @@ window.SHARECARD = (function () {
         ? '<div style="display:flex;align-items:center;gap:10px;">'
           + '<img src="' + window.safeUrlAttr(log.card_bg_url) + '" style="width:44px;height:55px;object-fit:cover;border-radius:6px;flex-shrink:0;">'
           + '<div style="flex:1;min-width:0;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Własne tło karty</div>'
-          + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbPick()">Zmień</button>'
-          + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbRemove(this)">Usuń</button>'
+          + '<button type="button" data-sc="pick" class="btn btn-ghost btn-sm">Zmień</button>'
+          + '<button type="button" data-sc="remove" class="btn btn-ghost btn-sm">Usuń</button>'
           + '</div>'
-        : '<button type="button" class="btn btn-ghost btn-sm" style="width:100%;" onclick="_cbPick()">+ Dodaj własne tło karty</button>';
+        : '<button type="button" data-sc="pick" class="btn btn-ghost btn-sm" style="width:100%;">+ Dodaj własne tło karty</button>';
     }
     slot.innerHTML =
       '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">'
       + bg
-      + '<button type="button" id="sc-btn" class="btn btn-primary btn-sm" style="width:100%;" onclick="_scPrepare(this)">Zobacz kartę</button>'
+      + '<button type="button" data-sc="share" class="btn btn-primary btn-sm" style="width:100%;">Zobacz kartę</button>'
       + '</div>'
-      + (_stan.mozeEdytowac ? '<input type="file" id="cb-file" accept="image/*" style="display:none" onchange="_cbOnFile(this)">' : '');
+      + (_stan.mozeEdytowac ? '<input type="file" data-sc="file" accept="image/*" style="display:none">' : '');
+
+    // Wiązanie po wyrenderowaniu — bez inline onclick.
+    const bPick = slot.querySelector('[data-sc="pick"]');
+    if (bPick) bPick.addEventListener('click', wybierzPlik);
+    const bRemove = slot.querySelector('[data-sc="remove"]');
+    if (bRemove) bRemove.addEventListener('click', function () { usunTlo(bRemove); });
+    const bShare = slot.querySelector('[data-sc="share"]');
+    if (bShare) bShare.addEventListener('click', function () { przygotujKarte(bShare); });
+    const inp = slot.querySelector('[data-sc="file"]');
+    if (inp) inp.addEventListener('change', function () { wczytajPlik(inp); });
   }
 
   function przerysuj() {
@@ -4314,21 +4332,22 @@ window.SHARECARD = (function () {
   }
 
   // ── A. WŁASNE TŁO ───────────────────────────────────────────────
-  window._cbPick = function () {
-    const f = document.getElementById('cb-file');
-    if (!f) return;
+  function wybierzPlik() {
+    const slot = document.getElementById(_stan.slotId);
+    const f = slot && slot.querySelector('[data-sc="file"]');
+    if (!f) { powiadom('Nie można otworzyć wyboru zdjęcia'); return; }
     f.value = '';          // bez tego drugi wybór TEGO SAMEGO pliku nie odpali change w PWA
     f.click();
-  };
+  }
 
-  window._cbOnFile = function (input) {
+  function wczytajPlik(input) {
     const file = input.files && input.files[0];
     if (!file) return;
     const img = new Image();
     img.onload = function () { otworzKadrownik(img); };
     img.onerror = function () { powiadom('Nie udało się otworzyć zdjęcia'); };
     img.src = URL.createObjectURL(file);
-  };
+  }
 
   // Kadrownik: ramka 4:5, przesuwanie palcem, zoom szczypaniem albo suwakiem.
   function otworzKadrownik(img) {
@@ -4339,19 +4358,20 @@ window.SHARECARD = (function () {
     ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
     ov.innerHTML =
       '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5</div>'
-      + '<canvas id="cb-canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
-      + '<input type="range" id="cb-zoom" min="100" max="300" value="100" style="width:' + szer + 'px;">'
+      + '<canvas data-sc="canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
+      + '<input type="range" data-sc="zoom" min="100" max="300" value="100" style="width:' + szer + 'px;">'
       + '<div style="display:flex;gap:10px;">'
-      + '<button type="button" class="btn btn-ghost btn-sm" onclick="_cbCancel()">Anuluj</button>'
-      + '<button type="button" class="btn btn-primary btn-sm" id="cb-ok" onclick="_cbConfirm()">Użyj tego kadru</button>'
+      + '<button type="button" data-sc="anuluj" class="btn btn-ghost btn-sm">Anuluj</button>'
+      + '<button type="button" data-sc="ok" class="btn btn-primary btn-sm">Użyj tego kadru</button>'
       + '</div>'
-      + '<div id="cb-stan" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;text-align:center;line-height:1.5;"></div>';
+      + '<div data-sc="stan" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;text-align:center;line-height:1.5;"></div>';
     document.body.appendChild(ov);
 
-    const c = document.getElementById('cb-canvas');
+    const c = ov.querySelector('[data-sc="canvas"]');
+    const suwak = ov.querySelector('[data-sc="zoom"]');
     const ctx = c.getContext('2d');
     const bazowa = Math.max(szer / img.width, wys / img.height);   // cover
-    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys };
+    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov };
     _crop = st;
 
     function ogranicz() {
@@ -4367,6 +4387,9 @@ window.SHARECARD = (function () {
     st.x = (szer - img.width * bazowa) / 2;
     st.y = (wys - img.height * bazowa) / 2;
     rysuj();
+
+    ov.querySelector('[data-sc="anuluj"]').addEventListener('click', zamknijKadrownik);
+    ov.querySelector('[data-sc="ok"]').addEventListener('click', function () { zatwierdzKadr(ov); });
 
     let ostatni = null, dystStart = 0, skalaStart = 0;
     function srodek(t){ return { x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2 }; }
@@ -4391,10 +4414,10 @@ window.SHARECARD = (function () {
       st.x = px - (px - st.x) * (nowa / st.skala);
       st.y = py - (py - st.y) * (nowa / st.skala);
       st.skala = nowa;
-      document.getElementById('cb-zoom').value = Math.round(nowa / bazowa * 100);
+      suwak.value = Math.round(nowa / bazowa * 100);
       rysuj();
     }, { passive:false });
-    document.getElementById('cb-zoom').addEventListener('input', function(){
+    suwak.addEventListener('input', function(){
       const nowa = bazowa * (parseInt(this.value, 10) / 100);
       const px = szer / 2, py = wys / 2;
       st.x = px - (px - st.x) * (nowa / st.skala);
@@ -4403,10 +4426,10 @@ window.SHARECARD = (function () {
     });
   }
 
-  window._cbCancel = function () {
+  function zamknijKadrownik() {
     const ov = document.getElementById('cb-crop'); if (ov) ov.remove();
     _crop = null;
-  };
+  }
 
   // Luminancja wg BT.709 — ta sama, na której mierzyliśmy bibliotekę teł.
   function jasnosc(ctx, s) {
@@ -4437,9 +4460,9 @@ window.SHARECARD = (function () {
     ctx.fillStyle = g; ctx.fillRect(0, gora, W, dol - gora);
   }
 
-  window._cbConfirm = async function () {
+  async function zatwierdzKadr(ov) {
     const st = _crop; if (!st) return;
-    const btn = document.getElementById('cb-ok'), stan = document.getElementById('cb-stan');
+    const btn = ov.querySelector('[data-sc="ok"]'), stan = ov.querySelector('[data-sc="stan"]');
     btn.disabled = true; stan.textContent = 'Przetwarzam…';
     const W = 1080, H = 1350, k = W / st.szer;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -4460,7 +4483,7 @@ window.SHARECARD = (function () {
     // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
     if (jasnosc(ctx, STREFY[1]) > PROG) {
       btn.disabled = false; stan.textContent = '';
-      window._cbCancel();
+      zamknijKadrownik();
       powiadom('To zdjęcie jest za jasne tam, gdzie stoi imię. Spróbuj innego kadru.');
       return;
     }
@@ -4478,12 +4501,12 @@ window.SHARECARD = (function () {
     if (dbErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się zapisać tła'); return; }
 
     if (_stan.log) _stan.log.card_bg_url = url;   // ten sam obiekt co w liście strony
-    window._cbCancel();
+    zamknijKadrownik();
     przerysuj();
     powiadom('Tło karty ustawione ✓' + (uzyty > 0 ? ' (przyciemnione)' : ''));
-  };
+  }
 
-  window._cbRemove = async function (btn) {
+  async function usunTlo(btn) {
     if (!_stan.logId || !window._authUid) return;
     btn.disabled = true;
     await window.sb.storage.from('card-bg').remove([window._authUid + '/' + _stan.logId + '.jpg']);
@@ -4492,15 +4515,13 @@ window.SHARECARD = (function () {
     if (_stan.log) _stan.log.card_bg_url = null;
     przerysuj();
     powiadom('Tło usunięte — karta wróci do domyślnego');
-  };
+  }
 
   // ── B. ZOBACZ KARTĘ → UDOSTĘPNIJ ────────────────────────────────
   // Krok 1 robi CAŁĄ pracę (render w EF + pobranie pliku) i otwiera podgląd.
   // Krok 2 — przycisk share W NAKŁADCE — jest czystym gestem, bo plik leży już
   // w pamięci, zanim nakładka się pojawi. To zarazem rozwiązanie problemu iOS,
   // który blokuje navigator.share, gdy między gestem a wywołaniem jest await.
-  let _podgladUrl = null;
-
   function pokazPodglad(blob) {
     if (_podgladUrl) URL.revokeObjectURL(_podgladUrl);
     _podgladUrl = URL.createObjectURL(blob);
@@ -4511,19 +4532,21 @@ window.SHARECARD = (function () {
     ov.innerHTML =
       '<img src="' + _podgladUrl + '" alt="" style="width:' + szer + 'px;max-height:72vh;object-fit:contain;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">'
       + '<div style="display:flex;gap:10px;">'
-      + '<button type="button" class="btn btn-ghost btn-sm" onclick="_scZamknij()">Zamknij</button>'
-      + '<button type="button" class="btn btn-primary btn-sm" onclick="_scShare()">Udostępnij ↗</button>'
+      + '<button type="button" data-sc="zamknij" class="btn btn-ghost btn-sm">Zamknij</button>'
+      + '<button type="button" data-sc="udostepnij" class="btn btn-primary btn-sm">Udostępnij ↗</button>'
       + '</div>';
     document.body.appendChild(ov);
+    ov.querySelector('[data-sc="zamknij"]').addEventListener('click', zamknijPodglad);
+    ov.querySelector('[data-sc="udostepnij"]').addEventListener('click', udostepnij);
   }
 
-  window._scZamknij = function () {
+  function zamknijPodglad() {
     const o = document.getElementById('sc-podglad'); if (o) o.remove();
     if (_podgladUrl) { URL.revokeObjectURL(_podgladUrl); _podgladUrl = null; }
-  };
+  }
 
-  window._scPrepare = async function (btn) {
-    if (!_stan.logId) return;
+  async function przygotujKarte(btn) {
+    if (!_stan.logId) { powiadom('Brak treningu do wygenerowania'); return; }
     btn.disabled = true;
     btn.textContent = 'Renderuję kartę…';
     // Pierwsza karta to cold start EF plus render — bez tej podpowiedzi wygląda
@@ -4550,8 +4573,8 @@ window.SHARECARD = (function () {
       const d = await res.json().catch(function(){ return null; });
       if (!res.ok || !d || !d.url) throw new Error('ef');
       const blob = await (await fetch(d.url)).blob();
-      window._scPlik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
-      window._scUrl = d.url;
+      _plik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
+      _url = d.url;
       pokazPodglad(blob);
     } catch (e) {
       powiadom('Nie udało się przygotować karty');
@@ -4560,24 +4583,23 @@ window.SHARECARD = (function () {
       btn.disabled = false;
       btn.textContent = 'Zobacz kartę';
     }
-  };
+  }
 
-  window._scShare = function () {
-    const plik = window._scPlik;
+  function udostepnij() {
     // canShare sprawdzamy PRZED wywołaniem — brak wsparcia dla plików to nie
     // wyjątek, tylko normalny stan przeglądarki.
-    if (plik && navigator.canShare && navigator.canShare({ files: [plik] })) {
-      navigator.share({ files: [plik] }).catch(function(e){
+    if (_plik && navigator.canShare && navigator.canShare({ files: [_plik] })) {
+      navigator.share({ files: [_plik] }).catch(function(e){
         if (e && e.name === 'AbortError') return;   // użytkownik anulował — to nie błąd
         powiadom('Nie udało się udostępnić');
       });
       return;
     }
     const a = document.createElement('a');
-    a.href = window._scUrl; a.download = 'biegamy-karta.png';
+    a.href = _url; a.download = 'biegamy-karta.png';
     document.body.appendChild(a); a.click(); a.remove();
     powiadom('Karta zapisana');
-  };
+  }
 
   return { mount: mount };
 })();
