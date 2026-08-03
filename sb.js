@@ -4288,43 +4288,39 @@ window.SHARECARD = (function () {
     else console.warn('[SHARECARD]', msg);
   }
 
+  // _stan ustawiany przy KLIKNIĘCIU, nie przy mount(). Dzięki temu jedna strona może
+  // mieć wiele slotów (lista pięciu logów w „Dziś") — każdy przycisk domyka się nad
+  // SWOIM logiem i dopiero klik przełącza stan komponentu. Naraz i tak otwarty jest
+  // jeden podgląd, więc jeden _stan wystarcza; mapa stanów byłaby przebudową dotykającą
+  // kalendarza i edycji, gdzie slot jest jeden i wszystko działa.
+  //
+  // opts.mozeEdytowac — czy w PODGLĄDZIE pokazać „Zmień tło" i „Usuń własne tło".
+  // opts.kompakt      — wariant inline (bez ramki i pełnej szerokości), do wpięcia
+  //                     w rząd istniejącej karty; wygląd inny, więc osobna opcja,
+  //                     w odróżnieniu od mozeEdytowac:false, które daje ten sam efekt
+  //                     co ewentualne „tylkoKarta" i dlatego nie doczekało się nazwy.
   function mount(slotId, log, opts) {
     const slot = document.getElementById(slotId);
     if (!slot) return;
     // EF odbija log bez distance_km błędem 422 — gasimy panel zamiast pokazywać błąd.
     if (!log || !log.id || log.distance_km == null) { slot.innerHTML = ''; return; }
-    _stan = {
-      logId: log.id, slotId: slotId, log: log,
-      mozeEdytowac: !opts || opts.mozeEdytowac !== false,
-    };
-    const ma = !!(log.card_bg_url && String(log.card_bg_url).trim());
-    let bg = '';
-    if (_stan.mozeEdytowac) {
-      bg = ma
-        ? '<div style="display:flex;align-items:center;gap:10px;">'
-          + '<img src="' + window.safeUrlAttr(log.card_bg_url) + '" style="width:44px;height:55px;object-fit:cover;border-radius:6px;flex-shrink:0;">'
-          + '<div style="flex:1;min-width:0;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Własne tło karty</div>'
-          + '<button type="button" data-sc="pick" class="btn btn-ghost btn-sm">Zmień</button>'
-          + '<button type="button" data-sc="remove" class="btn btn-ghost btn-sm">Usuń</button>'
-          + '</div>'
-        : '<button type="button" data-sc="pick" class="btn btn-ghost btn-sm" style="width:100%;">+ Dodaj własne tło karty</button>';
-    }
-    slot.innerHTML =
-      '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">'
-      + bg
-      + '<button type="button" data-sc="share" class="btn btn-primary btn-sm" style="width:100%;">Zobacz kartę</button>'
-      + '</div>'
-      + (_stan.mozeEdytowac ? '<input type="file" data-sc="file" accept="image/*" style="display:none">' : '');
+    const mozeEdytowac = !opts || opts.mozeEdytowac !== false;
+    const kompakt = !!(opts && opts.kompakt);
 
-    // Wiązanie po wyrenderowaniu — bez inline onclick.
-    const bPick = slot.querySelector('[data-sc="pick"]');
-    if (bPick) bPick.addEventListener('click', wybierzPlik);
-    const bRemove = slot.querySelector('[data-sc="remove"]');
-    if (bRemove) bRemove.addEventListener('click', function () { usunTlo(bRemove); });
+    // Sekcja tła zniknęła z panelu: zmiana i usuwanie żyją w PODGLĄDZIE, gdzie widać
+    // efekt. Jedno miejsce zamiast dwóch.
+    slot.innerHTML = kompakt
+      ? '<button type="button" data-sc="share" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:DM Mono,monospace;color:var(--accent);background:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;cursor:pointer;">Zobacz kartę</button>'
+      : '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;">'
+        + '<button type="button" data-sc="share" class="btn btn-primary btn-sm" style="width:100%;">Zobacz kartę</button>'
+        + '</div>';
+
     const bShare = slot.querySelector('[data-sc="share"]');
-    if (bShare) bShare.addEventListener('click', function () { przygotujKarte(bShare); });
-    const inp = slot.querySelector('[data-sc="file"]');
-    if (inp) inp.addEventListener('change', function () { wczytajPlik(inp); });
+    if (bShare) bShare.addEventListener('click', function (e) {
+      e.stopPropagation();                 // karta logu w „Dziś" ma własny onclick → editLog
+      _stan = { logId: log.id, slotId: slotId, log: log, mozeEdytowac: mozeEdytowac };
+      przygotujKarte(bShare);
+    });
   }
 
   function przerysuj() {
@@ -4332,30 +4328,35 @@ window.SHARECARD = (function () {
   }
 
   // ── A. WŁASNE TŁO ───────────────────────────────────────────────
-  function wybierzPlik() {
-    const slot = document.getElementById(_stan.slotId);
-    const f = slot && slot.querySelector('[data-sc="file"]');
-    if (!f) { powiadom('Nie można otworzyć wyboru zdjęcia'); return; }
-    f.value = '';          // bez tego drugi wybór TEGO SAMEGO pliku nie odpali change w PWA
-    f.click();
-  }
-
-  function wczytajPlik(input) {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = function () { otworzKadrownik(img); };
-    img.onerror = function () { powiadom('Nie udało się otworzyć zdjęcia'); };
-    img.src = URL.createObjectURL(file);
+  // Input tworzony doraźnie zamiast ukrytego w panelu: dzięki temu „Zmień tło" działa
+  // także z nakładki podglądu, gdzie panelu nie ma. Przy okazji znika footgun PWA —
+  // świeży element nie potrzebuje resetu value, żeby drugi wybór tego samego pliku
+  // odpalił change.
+  function wybierzPlik(zPodgladu) {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', function () {
+      const file = inp.files && inp.files[0];
+      inp.remove();
+      if (!file) return;
+      const img = new Image();
+      img.onload = function () { otworzKadrownik(img, !!zPodgladu); };
+      img.onerror = function () { powiadom('Nie udało się otworzyć zdjęcia'); };
+      img.src = URL.createObjectURL(file);
+    });
+    inp.click();
   }
 
   // Kadrownik: ramka 4:5, przesuwanie palcem, zoom szczypaniem albo suwakiem.
-  function otworzKadrownik(img) {
+  function otworzKadrownik(img, zPodgladu) {
     const szer = Math.min(window.innerWidth - 40, 380);
     const wys = Math.round(szer * 1.25);
     const ov = document.createElement('div');
     ov.id = 'cb-crop';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
+    // 9700: NAD podglądem karty (9500), POD toastem (9999) i confetti (9998).
+    // Zmierzone, nie zgadnięte — pasmo 9500–9999 jest poza tym puste w obu stronach.
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
     ov.innerHTML =
       '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5</div>'
       + '<canvas data-sc="canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
@@ -4371,7 +4372,7 @@ window.SHARECARD = (function () {
     const suwak = ov.querySelector('[data-sc="zoom"]');
     const ctx = c.getContext('2d');
     const bazowa = Math.max(szer / img.width, wys / img.height);   // cover
-    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov };
+    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov, zPodgladu: !!zPodgladu };
     _crop = st;
 
     function ogranicz() {
@@ -4512,12 +4513,17 @@ window.SHARECARD = (function () {
     if (dbErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się zapisać tła'); return; }
 
     if (_stan.log) _stan.log.card_bg_url = url;   // ten sam obiekt co w liście strony
+    const zPodgladu = st.zPodgladu;
     zamknijKadrownik();
     przerysuj();
     powiadom('Tło karty ustawione ✓' + (uzyty > 0 ? ' (przyciemnione)' : ''));
+    // Wejście z podglądu: nakładka ZOSTAJE otwarta i przerysowuje się nową kartą.
+    // Nowy ?t= w URL-u daje nowy hash8, więc EF wyrenderuje kartę od nowa,
+    // a stara zostaje pod swoim kluczem — zgodnie z zasadą o żywych linkach.
+    if (zPodgladu) await odswiezPodglad();
   }
 
-  async function usunTlo(btn) {
+  async function usunTlo(btn, zPodgladu) {
     if (!_stan.logId || !window._authUid) return;
     btn.disabled = true;
     await window.sb.storage.from('card-bg').remove([window._authUid + '/' + _stan.logId + '.jpg']);
@@ -4526,6 +4532,7 @@ window.SHARECARD = (function () {
     if (_stan.log) _stan.log.card_bg_url = null;
     przerysuj();
     powiadom('Tło usunięte — karta wróci do domyślnego');
+    if (zPodgladu) await odswiezPodglad();
   }
 
   // ── B. ZOBACZ KARTĘ → UDOSTĘPNIJ ────────────────────────────────
@@ -4542,18 +4549,44 @@ window.SHARECARD = (function () {
     ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;';
     ov.innerHTML =
       '<img src="' + _podgladUrl + '" alt="" style="width:' + szer + 'px;max-height:72vh;object-fit:contain;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">'
-      + '<div style="display:flex;gap:10px;">'
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">'
       + '<button type="button" data-sc="zamknij" class="btn btn-ghost btn-sm">Zamknij</button>'
+      + (_stan.mozeEdytowac ? '<button type="button" data-sc="zmien" class="btn btn-ghost btn-sm">Zmień tło</button>' : '')
       + '<button type="button" data-sc="udostepnij" class="btn btn-primary btn-sm">Udostępnij ↗</button>'
-      + '</div>';
+      + '</div>'
+      + (_stan.mozeEdytowac && _stan.log && _stan.log.card_bg_url
+          ? '<button type="button" data-sc="usun" style="background:none;border:none;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;cursor:pointer;text-decoration:underline;">Usuń własne tło</button>'
+          : '')
+      + '<div data-sc="stanPodgladu" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;"></div>';
     document.body.appendChild(ov);
     ov.querySelector('[data-sc="zamknij"]').addEventListener('click', zamknijPodglad);
     ov.querySelector('[data-sc="udostepnij"]').addEventListener('click', udostepnij);
+    const bZmien = ov.querySelector('[data-sc="zmien"]');
+    if (bZmien) bZmien.addEventListener('click', function () { wybierzPlik(true); });
+    const bUsun = ov.querySelector('[data-sc="usun"]');
+    if (bUsun) bUsun.addEventListener('click', function () { usunTlo(bUsun, true); });
   }
 
   function zamknijPodglad() {
     const o = document.getElementById('sc-podglad'); if (o) o.remove();
     if (_podgladUrl) { URL.revokeObjectURL(_podgladUrl); _podgladUrl = null; }
+  }
+
+  // Wspólne dla pierwszego otwarcia podglądu i odświeżenia po zmianie tła.
+  // Zwraca blob karty albo null; NIE dotyka UI.
+  async function pobierzKarte() {
+    const { data: { session } } = await window.sb.auth.getSession();
+    if (!session) throw new Error('brak sesji');
+    const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/share-card';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ log_id: _stan.logId })
+    });
+    const d = await res.json().catch(function () { return null; });
+    if (!res.ok || !d || !d.url) throw new Error('ef');
+    _url = d.url;
+    return await (await fetch(d.url)).blob();
   }
 
   async function przygotujKarte(btn) {
@@ -4562,10 +4595,8 @@ window.SHARECARD = (function () {
     btn.textContent = 'Renderuję kartę…';
     // Pierwsza karta to cold start EF plus render — bez tej podpowiedzi wygląda
     // na zawieszenie. Kolejne wywołania dla tego samego logu idą z cache.
-    // Próg 2500 ms wynika z POMIARU, nie z oka: ciepły render trwa 1,74–1,82 s,
-    // zimny (cold start + render) 3,42 s, cache 0,73 s. Przy progu 1500 ms dopisek
-    // wyskakiwałby przy KAŻDEJ karcie i kłamał — a komunikat, który kłamie, uczy
-    // ignorować wszystkie nasze komunikaty.
+    // Próg 2500 ms wynika z POMIARU: ciepły render 1,74–1,82 s, zimny 3,42 s,
+    // cache 0,73 s. Przy 1500 ms dopisek wyskakiwałby przy KAŻDEJ karcie i kłamał.
     const dopisek = setTimeout(function () {
       if (btn.disabled) {
         btn.innerHTML = 'Renderuję kartę…'
@@ -4573,19 +4604,8 @@ window.SHARECARD = (function () {
       }
     }, 2500);
     try {
-      const { data: { session } } = await window.sb.auth.getSession();
-      if (!session) throw new Error('brak sesji');
-      const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/share-card';
-      const res = await fetch(fnUrl, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log_id: _stan.logId })
-      });
-      const d = await res.json().catch(function(){ return null; });
-      if (!res.ok || !d || !d.url) throw new Error('ef');
-      const blob = await (await fetch(d.url)).blob();
+      const blob = await pobierzKarte();
       _plik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
-      _url = d.url;
       pokazPodglad(blob);
     } catch (e) {
       powiadom('Nie udało się przygotować karty');
@@ -4593,6 +4613,27 @@ window.SHARECARD = (function () {
       clearTimeout(dopisek);
       btn.disabled = false;
       btn.textContent = 'Zobacz kartę';
+    }
+  }
+
+  // Po zmianie tła: nowy hash → nowa karta. Podgląd ma się PRZERYSOWAĆ, nie zamknąć —
+  // użytkownik ma zobaczyć efekt swojej zmiany bez klikania od nowa.
+  async function odswiezPodglad() {
+    const ov = document.getElementById('sc-podglad');
+    if (!ov) return;
+    const img = ov.querySelector('img');
+    const info = ov.querySelector('[data-sc="stanPodgladu"]');
+    if (info) info.textContent = 'Renderuję nową kartę…';
+    try {
+      const blob = await pobierzKarte();
+      _plik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
+      if (_podgladUrl) URL.revokeObjectURL(_podgladUrl);
+      _podgladUrl = URL.createObjectURL(blob);
+      img.src = _podgladUrl;
+      if (info) info.textContent = '';
+    } catch (e) {
+      if (info) info.textContent = '';
+      powiadom('Nie udało się odświeżyć karty');
     }
   }
 
