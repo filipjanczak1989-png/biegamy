@@ -262,14 +262,14 @@ function zbudujKarte(o: {
   // Stopy dobrane pod strefy tekstu: mocno u góry (logo, tożsamość), najsłabiej w okolicy
   // dystansu, który jest białym Bebasem 210 px i zniesie najwięcej, potem znów mocniej
   // ku dołowi (statystyki i stopka).
-  //   y=0 → 0.62 | y=520 → 0.40 | y=800 → 0.48 | y=1350 → 0.72
+  //   y=0 → 0.76 | y=700 → 0.40 | y=900 → 0.48 | y=1350 → 0.72
   // Wartości z SWEEPU na 22 tłach, nie z oka: przy 0.34/0.44 trzy strefy przekraczały
   // próg 38 (k/gory-dolina tożsamość i dystans, n/promenada tożsamość).
   dzieci.push(h("div", {
     position: "absolute", left: 0, top: 0, width: 1080, height: 1350,
     backgroundImage:
-      "linear-gradient(to bottom, rgba(7,7,10,0.62) 0%, rgba(7,7,10,0.40) 38.52%, " +
-      "rgba(7,7,10,0.48) 59.26%, rgba(7,7,10,0.72) 100%)",
+      "linear-gradient(to bottom, rgba(7,7,10,0.76) 0%, rgba(7,7,10,0.40) 51.85%, " +
+      "rgba(7,7,10,0.48) 66.67%, rgba(7,7,10,0.72) 100%)",
   }));
 
   // Nagłówek: logotyp (zawiera już słowo BIEGAMY) + tagline

@@ -4456,9 +4456,9 @@ window.SHARECARD = (function () {
   // Bez powrotów do zera nie ma czego zobaczyć — czyta się jak winietowanie.
   function scrim(ctx, W, H) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0,        'rgba(7,7,10,0.62)');   // logo i tożsamość
-    g.addColorStop(520 / H,  'rgba(7,7,10,0.40)');   // dystans — biały Bebas 210 px zniesie najwięcej
-    g.addColorStop(800 / H,  'rgba(7,7,10,0.48)');
+    g.addColorStop(0,        'rgba(7,7,10,0.76)');   // logo i tożsamość
+    g.addColorStop(700 / H,  'rgba(7,7,10,0.40)');   // dystans — biały Bebas 210 px zniesie najwięcej
+    g.addColorStop(900 / H,  'rgba(7,7,10,0.48)');
     g.addColorStop(1,        'rgba(7,7,10,0.72)');   // statystyki i stopka
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
@@ -4480,10 +4480,19 @@ window.SHARECARD = (function () {
       uzyty = i;
       if (STREFY.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
     }
-    scrim(ctx, W, H);
+    // Scrim NIE jest wypalany w pliku — służy wyłącznie do POMIARU. EF dokłada go
+    // przy renderze, więc wypalenie dałoby scrim dwa razy: przy kryciu 0,76 u góry
+    // efektywnie ~0,94, czyli niemal czerń. Mierzymy na kopii, wgrywamy oryginał
+    // z samym gradientem bazowym — i wtedy pomiar odpowiada dokładnie temu, co
+    // zobaczy użytkownik na karcie.
+    const pomiar = document.createElement('canvas');
+    pomiar.width = W; pomiar.height = H;
+    const pctx = pomiar.getContext('2d', { willReadFrequently: true });
+    pctx.drawImage(c, 0, 0);
+    scrim(pctx, W, H);
 
     // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
-    if (jasnosc(ctx, STREFY[1]) > PROG) {
+    if (jasnosc(pctx, STREFY[1]) > PROG) {
       btn.disabled = false; stan.textContent = '';
       zamknijKadrownik();
       powiadom('To zdjęcie jest za jasne tam, gdzie stoi imię. Spróbuj innego kadru.');
