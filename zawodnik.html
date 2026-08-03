@@ -963,6 +963,10 @@ body > *{position:relative;z-index:1;}
     <div id="today-type-pill-wrap" style="display:none;margin-bottom:12px;"></div>
     <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
     <button id="today-cwiczenia-cta" onclick="showSection('cwiczenia')" style="display:none;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.06em;padding:11px;border-radius:12px;cursor:pointer;margin-bottom:10px;">💪 Otwórz ćwiczenia →</button>
+    <!-- Karta dzisiejszego ZALOGOWANEGO treningu — montowane przez renderLogsDb.
+         Ta sekcja pokazuje PLAN z trainings (window._todayTraining), ktory nie ma
+         training_logs.id, wiec karty z niego zrobic sie nie da — stad log z listy. -->
+    <div id="sc-slot-dzis" style="margin-bottom:12px;"></div>
     <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
   </div>
 </div>
@@ -6098,6 +6102,29 @@ function renderLogsDb(data) {
         SHARECARD.mount('sc-slot-' + l.id, l, { mozeEdytowac: true, kompakt: true });
       }
     });
+  }
+
+  // Drugie wejscie do karty: sekcja „Dzisiejszy trening". Wisi TU, na loadLogs(),
+  // a nie na loadToday() — tamta renderuje PLAN z trainings, bez training_logs.id.
+  // Obie sa asynchroniczne i niezalezne, wiec montowanie z loadToday() trafialoby
+  // czasem w pusta liste.
+  // Duplikat z lista pieciu logow jest SWIADOMY: dwa wejscia do tej samej rzeczy
+  // w widoku, przez ktory sie przewija. Kazdy przycisk domyka sie nad swoim logiem,
+  // wiec szosty slot niczego nie psuje.
+  const dzisSlot = document.getElementById('sc-slot-dzis');
+  if (dzisSlot && window.SHARECARD) {
+    // Europe/Warsaw JAWNIE, nie UTC: o 23:30 czasu polskiego UTC ma juz jutro,
+    // wiec dzisiejszy log wypadlby z warunku.
+    const dzis = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+    const l0 = data[0];   // loadLogs sortuje malejaco po logged_at
+    const dataLogu = (l0 && l0.logged_at)
+      ? new Date(l0.logged_at).toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' })
+      : null;
+    if (l0 && l0.id && l0.distance_km != null && dataLogu === dzis) {
+      SHARECARD.mount('sc-slot-dzis', l0, { mozeEdytowac: true, kompakt: true });
+    } else {
+      dzisSlot.innerHTML = '';   // brak dzisiejszego logu -> sekcja bez zmian
+    }
   }
 }
 
