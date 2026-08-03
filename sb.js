@@ -4495,26 +4495,8 @@ window.SHARECARD = (function () {
     const uid = window._authUid;
     if (!blob || !uid || !_stan.logId) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się przygotować pliku'); return; }
     const sciezka = uid + '/' + _stan.logId + '.jpg';
-    // DIAGNOSTYKA TYMCZASOWA — do usunięcia po ustaleniu przyczyny błędu uploadu.
-    console.error('[SHARECARD diag] przed uploadem:', {
-      sciezka: sciezka,
-      uid: uid,
-      logId: _stan.logId,
-      blobBajtow: blob.size,
-      blobMB: (blob.size / 1048576).toFixed(2),
-      blobTyp: blob.type,
-      limitBucketu: '5 MB, tylko image/jpeg',
-    });
     const { error: upErr } = await window.storageUploadRetry('card-bg', sciezka, blob, { upsert: true, contentType: 'image/jpeg' });
-    if (upErr) {
-      console.error('[SHARECARD diag] upload PADL:', {
-        message: upErr.message,
-        status: upErr.status || upErr.statusCode,
-        name: upErr.name,
-        pelny: JSON.parse(JSON.stringify(upErr, Object.getOwnPropertyNames(upErr))),
-      });
-      btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się wgrać tła'); return;
-    }
+    if (upErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się wgrać tła'); return; }
     const { data: urlData } = window.sb.storage.from('card-bg').getPublicUrl(sciezka);
     const url = urlData.publicUrl + '?t=' + Date.now();   // nowy hash w EF → nowa karta, stare linki żyją
     const { error: dbErr } = await window.sb.from('training_logs').update({ card_bg_url: url }).eq('id', _stan.logId);
