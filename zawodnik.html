@@ -5659,7 +5659,13 @@ async function loadLogs() {
     }
     if (data && data.length > 0) {
       try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
-      try { checkBadges(data); } catch(e) { console.error('checkBadges error:', e); }
+      // Odznaki NIE dostają już listy z UI: ta ma .limit(5) na potrzeby kafelków w „Dziś",
+      // a reguły patrzą na całe życie. checkBadges bierze historię własnym zapytaniem.
+      // Trener-view pomijamy — RLS na achievements pozwala pisać wyłącznie własne wiersze,
+      // więc byłby to pełny fetch historii po to, żeby dostać odmowę zapisu.
+      const _obcyProfil = (new URLSearchParams(window.location.search).get('from') === 'trener')
+                       || sessionStorage.getItem('_fromTrener') === '1';
+      if (!_obcyProfil) { try { checkBadges(); } catch(e) { console.error('checkBadges error:', e); } }
     } else {
       document.getElementById('log-list').innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>');
     }
@@ -12024,9 +12030,22 @@ window.showBadgeDetail = showBadgeDetail;
 window.closeBadgeDetail = closeBadgeDetail;
 
 // ── Zapisz odznakę w Supabase + wyświetl pop-up ───────────────────
+// Tryb kolejki: gdy jest otwarta (czyli w przebiegu checkBadges), awardBadge tylko
+// ZBIERA id-ki, a zapis idzie jednym insertem w _wyslijOdznaki. Powód: po naprawie
+// okna danych jeden przebieg potrafi przyznać kilkanaście zaległych odznak, a wersja
+// per-odznaka robi SELECT+INSERT i nie jest awaitowana — to kilkadziesiąt równoległych
+// zapytań naraz. Wywołania spoza checkBadges (pojedynki, easter egg, pierwsza_z_pierwszych)
+// zastają kolejkę zamkniętą i idą starą ścieżką — ich zachowanie się nie zmienia.
+let _badgeKolejka = null;
+
 async function awardBadge(badgeId) {
   if (window._earnedBadges.has(badgeId)) return;
   if (!_athleteId) return;
+  if (_badgeKolejka) {
+    _badgeKolejka.add(badgeId);
+    window._earnedBadges.add(badgeId);   // ten sam id przyznaje kilka reguł — dokładka bez skutku
+    return;
+  }
   // Sprawdź czy już ma
   const { data: existing } = await sb.from('achievements')
     .select('id').eq('athlete_id', _athleteId).eq('badge_id', badgeId).maybeSingle();
@@ -12051,6 +12070,49 @@ async function awardBadge(badgeId) {
   } catch(e) {}
 }
 
+// Zapis zebranej kolejki jednym strzałem.
+// cicho = backfill zaległości: bez pop-upów i BEZ wiersza w notifications. To drugie
+// jest ważniejsze — notifications ma trigger notifications_send_push (AFTER INSERT →
+// EF send-push), więc każdy wiersz to push na telefon. Zaległości w bazie to ~146
+// odznak na 28 osób; głośny backfill oznaczałby tyle samo pushy.
+async function _wyslijOdznaki(cicho) {
+  const nowe = _badgeKolejka ? [..._badgeKolejka] : [];
+  _badgeKolejka = null;
+  if (!nowe.length) return 0;
+
+  // upsert + ignoreDuplicates: tabela ma UNIQUE(athlete_id,badge_id), więc druga otwarta
+  // karta nie wywróci całej paczki na konflikcie. .select() oddaje to, co FAKTYCZNIE weszło —
+  // tylko za to pokazujemy pop-up i tylko za to wysyłamy powiadomienie.
+  const { data: wstawione, error } = await sb.from('achievements')
+    .upsert(nowe.map(id => ({ athlete_id: _athleteId, badge_id: id })),
+            { onConflict: 'athlete_id,badge_id', ignoreDuplicates: true })
+    .select('badge_id');
+  if (error) {
+    nowe.forEach(id => window._earnedBadges.delete(id));   // zapis padł → nie udawaj, że ma
+    console.error('[odznaki] zapis:', error.message);
+    return null;                                           // null = porażka, 0 = nic nowego (rozróżnia je caller)
+  }
+
+  const ids = (wstawione || []).map(r => r.badge_id);
+  if (cicho || !ids.length) return ids.length;
+
+  // showBadgePopup korzysta z JEDNEGO węzła DOM i chowa go po 3800 ms — dwa pop-upy
+  // odpalone razem zamazują się nawzajem. Stąd odstęp, a nie wspólne setTimeout(400).
+  ids.forEach((id, i) => {
+    const badge = BADGES.find(b => b.id === id);
+    if (badge) setTimeout(() => showBadgePopup(badge), 400 + i * 4200);
+  });
+  await sb.from('notifications').insert(ids.map(id => ({
+    athlete_id: _athleteId,
+    type: 'badge',
+    from_athlete_id: null,
+    message: 'Zdobyłeś odznakę: ' + ((BADGES.find(b => b.id === id) || {}).name || id) + ' 🏅',
+    read: false,
+    created_at: new Date().toISOString()
+  })));
+  return ids.length;
+}
+
 // ── Załaduj posiadane odznaki ─────────────────────────────────────
 async function loadAchievements() {
   if (!_athleteId) return;
@@ -12060,10 +12122,54 @@ async function loadAchievements() {
 }
 
 // ── Sprawdź warunki po każdym logu ───────────────────────────────
-async function checkBadges(logs) {
-  if (!_athleteId || !logs) return;
+// Historię bierze WŁASNYM zapytaniem. Wcześniej dostawała listę z loadLogs, a ta ma
+// .limit(5) na potrzeby kafelków — więc suma życiowa liczyła się z pięciu ostatnich
+// biegów. Skutek: progi powyżej ~100 km i wszystko, co patrzy wstecz (ciągi dni,
+// „czy kiedykolwiek", liczniki typów, treningi w miesiącu) nigdy się nie odpalało.
+// 34 z 79 sprawdzanych odznak nie miało ANI JEDNEGO zdobywcy, choć 13 osób ma ponad 500 km.
+const BADGE_BACKFILL_KEY = 'bm_badges_backfill_v1_';
+
+async function checkBadges() {
+  if (!_athleteId) return;
   await loadAchievements();
 
+  const { data: hist, error: histErr } = await sb.from('training_logs')
+    .select('logged_at,distance_km,training_type,pace,feel')   // dokładnie te pola, które czytają reguły
+    .eq('athlete_id', _athleteId)
+    .not('training_type', 'like', '__badge__%')
+    .order('logged_at', { ascending: true });
+  if (histErr) { console.error('[odznaki] historia:', histErr.message); return; }
+  if (!hist || !hist.length) return;
+
+  // Pierwszy przebieg po naprawie zgarnia zaległości z całej historii — cicho.
+  // Klucz per zawodnik, bo konto trenera bywa jednocześnie kontem zawodnika.
+  // Znacznik per urządzenie wystarcza: po cichym przebiegu zaległe odznaki są już
+  // w bazie, więc na drugim urządzeniu nie ma czego przyznać.
+  const kluczBackfill = BADGE_BACKFILL_KEY + _athleteId;
+  const cicho = !localStorage.getItem(kluczBackfill);
+
+  _badgeKolejka = new Set();
+  let pelnyPrzebieg = true;
+  try {
+    await _checkBadgeRules(hist);
+  } catch (e) {
+    pelnyPrzebieg = false;
+    console.error('[odznaki] reguły:', e);        // kolejka i tak zostanie zamknięta niżej
+  } finally {
+    const ile = await _wyslijOdznaki(cicho);
+    // Znacznik dopiero po CZYSTYM przebiegu. Gdyby reguły albo zapis padły w połowie,
+    // urządzenie zostaje w trybie backfillu — inaczej reszta zaległości weszłaby
+    // następnym razem GŁOŚNO, czyli z pushem za każdą.
+    if (pelnyPrzebieg && ile !== null) localStorage.setItem(kluczBackfill, new Date().toISOString());
+    if (cicho) console.log('[odznaki] backfill:', ile, 'zaległych, bez powiadomień');
+  }
+}
+
+// Ciało reguł BEZ ZMIAN — te same progi, te same warunki, ta sama kolejność.
+// Wydzielone tylko po to, żeby opakowanie mogło domknąć kolejkę w finally: w środku
+// jest `return` przy błędzie odczytu date_of_birth, a niezamknięta kolejka zablokowałaby
+// późniejsze wywołania awardBadge z pojedynków.
+async function _checkBadgeRules(logs) {
   const total = logs.reduce((s, l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0), 0);
   const count = logs.length;
 
