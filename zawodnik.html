@@ -4575,11 +4575,23 @@ async function initAuth() {
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
     if(tnEl){ const drugiCzlon = name.split(' ')[1]; tnEl.innerHTML = escapeHtml(name.split(' ')[0]) + (drugiCzlon ? ' <span>' + escapeHtml(drugiCzlon[0]) + '.</span>' : ''); tnEl.style.opacity='1'; }
-    // Slice E krok 3: baner momentów — TYLKO zawodnik na własnym koncie.
-    // W podglądzie trenera (?from=trener) NIE odpalamy: momenty to doświadczenie zawodnika,
-    // a trener nie może ustawić shown_at (RLS → 0 wierszy) → baner zapętlałby się (klik→wraca).
+    // Slice E krok 3: baner momentów. Działa TAKŻE przy ?from=trener — blokada zdjęta 6/8,
+    // bo jej powód nie opisywał stanu faktycznego i przetrwał sześć tygodni jako fałszywe
+    // wyjaśnienie („trener nie może ustawić shown_at, RLS → 0 wierszy"). Fakty:
+    //  1. `ath.id` to ZAWSZE zalogowany użytkownik — wiersz pobierany przez
+    //     .eq('user_id', user.id). W TYM PLIKU NIE MA ścieżki do cudzego profilu: żadnego
+    //     ?athlete=, żadnego przełączania kontekstu. Trener ogląda tu siebie, nie podopiecznego.
+    //  2. RLS PRZEPUSZCZA zapis shown_at — polityka dm_ath_mark_shown pozwala na UPDATE gdy
+    //     athlete_id IN (SELECT id FROM athletes WHERE user_id = auth.uid()), czyli dokładnie
+    //     na własnym wierszu. Zapis nigdy nie miał prawa paść na tej ścieżce.
+    //  3. Pętla, przed którą blokada chroniła (klik → baner wraca), ma teraz WŁASNY, węższy
+    //     guard w loadMomenty (e1af919): gdy nakładka się nie otworzyła, domykamy shown_at
+    //     po cichu. Guard łapie też przypadki, których blokada nie łapała — ten sam objaw
+    //     występuje bez ?from=trener, przy znanym typie z niekompletnym payloadem.
+    //  4. ?from=trener zmienia WYŁĄCZNIE to, skąd przyszedłeś — nie to, czyje dane widzisz.
+    loadMomenty(ath.id, (name||'').split(' ')[0]);   // ath.id = pewny, w if(ath)
+    // Poniższe zostają schowane w trybie trenera: to narzędzia zawodnicze, nie momenty.
     if (new URLSearchParams(window.location.search).get('from') !== 'trener') {
-      loadMomenty(ath.id, (name||'').split(' ')[0]);   // ath.id = pewny, w if(ath)
       checkFriendsRacesDot();   // KROK 2: kropka "nowe od znajomych" na Startach
       _syncFriendsActBtn();     // stan przełącznika aktywności znajomych
     }
