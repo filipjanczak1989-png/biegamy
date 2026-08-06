@@ -3,13 +3,15 @@
 > **Status na 2026-08-06.** Dokument opisuje stan faktyczny, nie pierwotny pomysł:
 > gdzie decyzja zmieniła się w trakcie budowy, jest tu wersja obowiązująca.
 >
-> ## ⚠️ Liczby NIEZWERYFIKOWANE — do kalibracji w sweepie
-> Trzy zestawy liczb pochodzą ze specu, a **nie z pomiaru**. Nie zakładać, że działają:
-> 1. **próg ruchliwości `RUCH_PROG = 18`** (`sb.js`) — kiedy podpowiadamy „dużo szczegółu";
-> 2. **stopy scrimu portretowego** (`0.30 / 0.10 / 0.14 / 0.72 / 0.82`) — układ jeszcze nie istnieje;
-> 3. **progi jasności w układzie portretowym** — czy 38 w strefie tożsamości nadal wystarcza.
+> ## ⚠️ Liczby NIEZWERYFIKOWANE — do kalibracji
+> Po sweepie 22 teł × 2 układy (2026-08-06) została **jedna** taka pozycja:
+> 1. **próg ruchliwości `RUCH_PROG = 10`** — skalibrowany na bibliotece i na dwóch
+>    już przyciemnionych zdjęciach użytkownika; surowych kadrów wciąż brak.
+>    Kadrownik loguje pomiar do konsoli — wrócić do tej liczby po kilku zdjęciach.
 >
-> Kalibracja: **sweep 22 teł × 2 układy = 44 pomiary**, po wdrożeniu kroku 3 etapu K5.
+> Stopy scrimu portretowego, progi jasności w portrecie i próg odmowy 38 są już
+> **zmierzone** — patrz sekcja o układzie portretowym.
+>
 > Liczby zweryfikowane pomiarem są w tym dokumencie oznaczone „(zmierzone)".
 
 ## Zasada nadrzędna
@@ -163,29 +165,35 @@ Mierzona na **pełnej rozdzielczości** (próg opisuje piksele karty, nie podgl�
 
 **Odmowa nadal wyłącznie po jasności** (próg 38 w strefie tożsamości, zmierzone). Blokujemy nieczytelność, nie kompozycję.
 
-## Układ portretowy — drugi wariant (**TODO, krok 3 etapu K5**)
+## Układ portretowy — drugi wariant (**LIVE**)
 
 Dla zdjęć, które są o człowieku, nie o krajobrazie. Zdjęcie **nadal pełnoekranowe** — zmienia się tylko rozmieszczenie treści.
 
-Wybór w kadrowniku, przełącznik z podglądem na żywo: `Układ: [standardowy] [portretowy]`. Domyślnie standardowy; portretowy sugerowany, gdy ruchliwość w strefie bohatera przekracza próg.
+Wybór w kadrowniku, przełącznik z podglądem na żywo: `UKŁAD: [standardowy] [portretowy]`. Domyślnie standardowy.
+
+### Geometria (**poprawiona względem pierwotnego specu**)
+
+Wersja pierwotna była **wewnętrznie sprzeczna**: bohater na `y=880` przy 150 px zajmuje 880..1030, a podpis stał na `y=925`, czyli w środku bohatera; statystyki 980..1130 nachodziły na to samo. Układu nie dało się wyrenderować. Poniżej wersja obowiązująca.
 
 | element | standardowy | portretowy |
 |---|---|---|
 | logo | y=105 | bez zmian |
-| **czysta strefa** | — | y=250..660 |
+| **czysta strefa** | — | **y=250..790** |
 | imię | y=348 | y=700 |
 | meta | y=402 | y=745 |
 | miasto | y=440 | y=780 |
-| bohater | y=500, 210 px | y=880, 150 px |
-| podpis | y=770 | y=925 |
-| statystyki | y=890..1090 | y=980..1130, mniejsze |
-| stopka | y=1145 | y=1180 |
+| bohater | y=500, 210 px | **y=805, 150 px** |
+| podpis | y=770 | **y=975** |
+| statystyki | y=890..1090 | **y=1040..1160** |
+| stopka | y=1145, h=205 | **y=1180, h=170** |
 
-Statystyki w portretowym: etykieta 20 px, wartość 52 px, jednostka 22 px. Zawsze 3 kolumny (x = 72/384/696) — na cztery nie ma miejsca.
+Statystyki w portretowym: etykieta 20 px, wartość 52 px, jednostka 22 px. **Zawsze 3 kolumny** — przy wartości 52 px czwarta kolumna zostawia na etykietę 190 px, a „PRZEWYŻSZENIE" ma w 20 px 174 px, czyli mieściłoby się o 16 px. To granica błędu, nie zapas.
 
-⚠️ **Uwaga na szerokość kolumny: 294 px, nie 312** (zmierzone). Skok między kolumnami to 312, ale granicą jest divider, 294 px za początkiem tekstu.
+Czysta strefa urosła przy okazji z 250..660 do **250..790** — portret jest przez to bardziej portretowy niż w pierwotnym zamyśle.
 
-### Scrim portretowy ⚠️ *(niezweryfikowane)*
+⚠️ **Szerokość kolumny to 294 px, nie 312** (zmierzone). Skok między kolumnami wynosi 312, ale granicą jest divider, 294 px za początkiem tekstu.
+
+### Scrim portretowy (**zmierzone**)
 
 ```
 y=0     rgba(7,7,10,0.30)
@@ -195,11 +203,57 @@ y=780   rgba(7,7,10,0.72)
 y=1350  rgba(7,7,10,0.82)
 ```
 
+Sweep 22 teł × 2 układy potwierdził stopy bez zmian — **22/22 poniżej progu 38**:
+
+| strefa | standard (mediana / max) | portret (mediana / max) |
+|---|---|---|
+| logo | 9,3 / 15,6 | **12,5 / 28,2** |
+| tożsamość | 20,3 / 30,2 | 14,4 / 23,5 |
+| bohater | 18,7 / 36,1 | 13,0 / 17,5 |
+| statystyki | 13,7 / 21,0 | 8,6 / 11,4 |
+
+Góra kadru celowo jaśnieje (0,76 → 0,30), bo o to w tym układzie chodzi — zdjęcie ma być widoczne tam, gdzie stoi człowiek. Kosztem jest **zapas logo, który spada z 22 do 10 punktów**. Dla biblioteki bezpieczne; przy jasnym zdjęciu użytkownika broni pomiar per układ, bo `logo` jest strefą **mierzoną** w obu układach i eskalacja sama je dociśnie. Obserwacja, nie usterka.
+
 Gradient od lewej bez zmian (adaptacyjny, obsługuje logo w rogu).
 
-**Po wdrożeniu przemierzyć wszystkie 22 tła w obu układach.** Progi mogą wymagać innego dobrania — nie zakładać, że działają.
+### Strefy zależne od układu — najważniejszy wniosek ze sweepu
 
-⚠️ Podgląd w kliencie i render w EF **muszą rysować to samo**. Rozjazd pomiaru z renderem ugryzł nas raz (podwójny scrim: klient wypalał w pliku to, co EF dokładał ponownie).
+**Nie próg był zły, tylko miejsce pomiaru.** Na tym samym zdjęciu:
+
+```
+strefa tożsamości STANDARDOWA (y 340..470)  →  65,3
+strefa tożsamości PORTRETOWA  (y 690..820)  →  44,4
+```
+
+Dwadzieścia jeden punktów różnicy przy progu 38. Kadrownik mierzący stale po strefach standardowych przepuściłby kadr nieczytelny na karcie portretowej — albo odmówił poprawnego.
+
+Stąd **`UKLADY` w `sb.js`: jeden zestaw stref na układ, zasilający POMIAR jasności, ESKALACJĘ przyciemnienia, ODMOWĘ i SIATKĘ w kadrowniku.** Gdyby siatka pokazywała inne pola niż te, po których mierzymy, wracamy do tego samego problemu innymi drzwiami.
+
+Próg odmowy zostaje **38** (zmierzone) — w portrecie tożsamość jest średnio **ciemniejsza** niż w standardzie.
+
+### Próg podpowiedzi o szczegółach (**skalibrowany**)
+
+`RUCH_PROG = 10`, wcześniej 18. Osiemnastka nie odpaliłaby nigdy:
+
+| co zmierzone | wartość |
+|---|---|
+| strefy tekstu w 22 tłach | 0,65 – **8,26** |
+| najbardziej szczegółowy fragment 640×310 gdziekolwiek w kadrze | max **15,18** |
+| realne zdjęcia użytkownika (`card-bg`) | 0,93 – **6,38** |
+
+Dziesiątka leży między biblioteką a maksimum. ⚠️ Zdjęcia użytkownika mierzone w `card-bg` są **już przyciemnione**, a przyciemnienie tłumi gradienty — surowe kadry dadzą więcej. Kadrownik loguje wyliczoną wartość do konsoli (`[kadr] ruchliwość …`); po kilku prawdziwych zdjęciach wrócić do tej liczby z danymi.
+
+### Podgląd rysuje scrim
+
+Kadrownik pokazuje **scrim aktywnego układu**, nie samo zdjęcie. Bez tego przełącznik układu przesuwałby tylko ramki, a wybór byłby w ciemno. Kadrowanie robi się przez to trudniejsze — świadomy koszt: **uczciwość podglądu bije wygodę kadrowania**. Gdyby okazało się nie do pracy, rozważyć przełącznik „pokaż bez przyciemnienia" jako świadome odstępstwo, nie jako domyślną ścieżkę.
+
+⚠️ Scrim i siatka żyją **wyłącznie na płótnie podglądu**. Plik do wgrania powstaje osobną ścieżką, która o obu nie wie. Rozjazd pomiaru z renderem ugryzł nas raz (podwójny scrim: klient wypalał w pliku to, co EF dokładał ponownie).
+
+### Znany przypadek brzegowy: tło przyciemnione pod inny układ
+
+Własne zdjęcie jest przyciemniane **pod układ aktywny w chwili kadrowania** — eskalacja mierzy strefy tego układu i wypala gradient bazowy w pliku. Jeśli ktoś skadruje w portrecie, a następnie wygeneruje kartę standardową, przyciemnienie będzie dobrane pod niewłaściwe strefy i karta może wyjść za jasna w pasie tożsamości.
+
+Naturalny przepływ (kadruję → generuję w tej samej sesji) tego nie dotyka, bo wybór jedzie z kadrownika do renderu w `_stan.uklad`. **Akceptowane świadomie.** Domknięcie wymagałoby utrwalenia układu przy logu (kolumna `card_layout` + kolumnowy GRANT) — wrócić przy K4 albo przy pierwszej skardze.
 
 ## Zaległości
 
@@ -218,7 +272,7 @@ Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z
 | K1 | EF: rozgałęzienie trybów + `kamien` + `pb` | ✅ LIVE |
 | K2 | detektor `kamien` w silniku + redeploy | ✅ LIVE |
 | K3 | dostarczenie: baner → karta, guard | ✅ LIVE |
-| K5 | kadrownik: siatka, ruchliwość, układ portretowy | kroki 1–2 ✅, krok 3 TODO |
+| K5 | kadrownik: siatka, ruchliwość, układ portretowy | ✅ LIVE (1–3) |
 | K4 | `tydzien` + `miesiac` | TODO, `tydzien` zablokowany |
 
 ## Na później, nie teraz
