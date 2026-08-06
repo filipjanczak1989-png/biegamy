@@ -228,6 +228,12 @@ function fmtDystans(km: number): string {
   const s = km >= 100 ? km.toFixed(1) : km.toFixed(2);
   return s.replace(".", ",");
 }
+// Kamień milowy dostaje JEDNO miejsce po przecinku. Dwa mają sens przy karcie treningu
+// („10,02" to realna precyzja pomiaru), ale „21,40" na karcie o pierwszym półmaratonie
+// czyta się jak odczyt z przyrządu, a nie jak osiągnięcie.
+function fmtDystans1(km: number): string {
+  return km.toFixed(1).replace(".", ",");
+}
 function fmtData(iso: string): string {
   return new Intl.DateTimeFormat("pl-PL", {
     day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Warsaw",
@@ -540,7 +546,12 @@ async function kartaMomentu(
     bohater = fmtCzas(nowy);
     podpis = PB_NAZWY[dystans] || dystans;
     staty.push({ ikona: IKONY.czas, etykieta: "POPRZEDNI", wartosc: fmtCzas(stary), jednostka: "" });
-    staty.push({ ikona: IKONY.aktywnosci, etykieta: "POPRAWA", wartosc: `−${fmtCzas(delta)}`, jednostka: "" });
+    // ZYSK, nie „POPRAWA −0:42": karta jest o osiągnięciu, więc język ma mówić o zysku.
+    // Minus przy życiówce czyta się jak strata. Słowo „szybciej" schodzi do wiersza jednostki
+    // — ta sama struktura co „3:26" + „/km”, i JEDYNA, która się mieści: w kolumnie zostaje
+    // 294 px (do dividera), a „12:07 SZYBCIEJ" w Bebasie 66 px ma 308 px i weszłoby na kreskę.
+    const zysk = delta < 60 ? `${Math.round(delta)} s` : fmtCzas(delta);
+    staty.push({ ikona: IKONY.aktywnosci, etykieta: "ZYSK", wartosc: zysk, jednostka: "szybciej" });
     staty.push({ ikona: IKONY.przewyzszenie, etykieta: "TEMPO", wartosc: fmtTempo(nowy / PB_KM[dystans]), jednostka: "/km" });
 
   } else if (mom.type === "kamien") {
@@ -554,7 +565,7 @@ async function kartaMomentu(
       // to jego liczba. Detektor (K2) MUSI wpisać `dystans_km` do evidence.
       const km = Number(ev.dystans_km);
       if (!(km > 0)) return json({ error: "moment bez dystansu" }, 422);
-      bohater = fmtDystans(km);
+      bohater = fmtDystans1(km);
       jednostka = "KM";
     } else {
       bohater = prog;
