@@ -325,6 +325,103 @@
     };
   }
 
+  // ── KAMIEŃ MILOWY: progi narastające (km / godziny / pierwszy raz) ──────────
+  // Rzadkość jest funkcją, nie efektem ubocznym: progi rosną geometrycznie, a oś jest
+  // WSPÓLNA z drabiną odznak (500/1000/2000/5000) — dwie skale na jednej osi zawsze się
+  // rozjadą. Progi liczone WYŁĄCZNIE z biegów; karta opisuje drogę wszystkimi
+  // aktywnościami („AKTYWNOŚCI 135"), ale próg przekracza się bieganiem.
+  var KAMIEN_KM = [500, 1000, 2000, 5000];
+  var KAMIEN_GODZINY = [100, 250, 500, 1000];
+  // „Pierwszy raz" to PRZEDZIAŁ, nie próg od dołu.
+  // Dół BEZ tolerancji: bieg musi mieć pełny dystans. GPS na certyfikowanej trasie mierzy
+  // raczej za dużo niż za mało, więc próg ścisły nie gubi prawdziwych startów, a chroni
+  // przed ogłoszeniem półmaratonu po 20,9 km treningu.
+  // Góra jest równie ważna i wyszła dopiero z self-testu: bieg na 30 km POKONUJE dystans
+  // półmaratonu, ale nim NIE JEST. Bez górnej granicy karta mówiłaby „PIERWSZY PÓŁMARATON"
+  // nad bohaterem „30,0 KM" — a długi bieg ma już swój własny typ (`najdluzszy`).
+  // +2 km zapasu mieści realny rozjazd GPS na starcie (21,1–21,6 na certyfikowanej trasie).
+  // Kolejność OD NAJWYŻSZEGO: pierwszy maraton jest zarazem pierwszym półmaratonem —
+  // ogłaszamy maraton, półmaraton przepada świadomie.
+  // Świeżość dotyczy WYŁĄCZNIE „pierwszego razu" (decyzja Filipa 6/8): paczka z zegarka
+  // potrafi zakończyć się maratonem sprzed lat i ogłoszenie go dziś wygląda jak pomyłka,
+  // choć formalnie jest prawdą. Progów narastających to NIE dotyczy — tam liczy się
+  // przejście przez granicę, a granicę przechodzi się raz, niezależnie od daty logu.
+  var KAMIEN_PIERWSZY_MAX_DNI = 30;
+
+  var KAMIEN_PIERWSZY = [
+    { prog: 'marathon', km: 42.195, gora: 44.2 },
+    { prog: 'half', km: 21.0975, gora: 23.1 },
+  ];
+
+  // Najwyższy próg, przez który PRZECHODZIMY tym logiem (przed < próg <= po).
+  function przekroczonyProg(progi, przed, po) {
+    var trafiony = null;
+    for (var i = 0; i < progi.length; i++) if (przed < progi[i] && po >= progi[i]) trafiony = progi[i];
+    return trafiony;
+  }
+
+  function detectKamien(snap) {
+    var nl = snap.newLog;
+    if (!nl) return null;
+    var logs = snap.logs_all || [];
+    var nlKm = num(nl.distance_km);
+
+    // ⚠️ snap.dzis to REALNA dzisiejsza data — NIE snap.today, który w EF jest zawsze datą
+    // samego newLoga (`today = newLog.logged_at.slice(0,10)`), więc do liczenia wieku logu
+    // byłby bezużyteczny (zawsze zero dni). Brak `dzis` = brak bramki (wstecznie zgodne).
+    var swiezy = true;
+    if (snap.dzis && nl.logged_at) {
+      swiezy = (dayIndex(snap.dzis) - dayIndex(nl.logged_at)) <= KAMIEN_PIERWSZY_MAX_DNI;
+    }
+
+    // 1) PIERWSZY RAZ — czy TEN bieg jest najwcześniejszym, który pokonał dystans?
+    if (swiezy && nl.is_run !== false && nlKm > 0) {
+      for (var pi = 0; pi < KAMIEN_PIERWSZY.length; pi++) {
+        var kat = KAMIEN_PIERWSZY[pi];
+        if (nlKm < kat.km || nlKm >= kat.gora) continue;
+        var bylWczesniej = false;
+        for (var i = 0; i < logs.length; i++) {
+          var lg = logs[i];
+          if (!lg || lg.is_run === false) continue;
+          var d = num(lg.distance_km);
+          if (d < kat.km || d >= kat.gora) continue;      // ten sam przedział, nie „cokolwiek dłuższego"
+          if (String(lg.logged_at) < String(nl.logged_at)) { bylWczesniej = true; break; }
+        }
+        if (bylWczesniej) continue;                    // ktoś już to przebiegł → to nie „pierwszy"
+        return {
+          type: 'kamien',
+          // dystans_km RZECZYWISTY (nie kanoniczny) — to jego liczba na karcie. Zaokrąglony
+          // do 2 miejsc, bo evidence jest kluczem dedupu i musi być odporne na szum
+          // zmiennoprzecinkowy: 21.400000000000002 dałoby inny JSON niż 21.4.
+          evidence: { kategoria: 'pierwszy', prog: kat.prog, dystans_km: Math.round(nlKm * 100) / 100 },
+          confidence: 1,
+        };
+      }
+    }
+
+    // 2) PRÓG NARASTAJĄCY — liczy się PRZEJŚCIE przez granicę, nigdy sam stan.
+    // Dzięki temu (a) nikt nie dostaje lawiny za progi minięte dawno temu, (b) powtórne
+    // wywołanie detect na tej samej historii nie odpala niczego drugi raz — co ma
+    // znaczenie, bo import z zegarka woła EF raz na paczkę, a nie raz na życie.
+    var sumaKm = 0, sumaSek = 0;
+    for (var j = 0; j < logs.length; j++) {
+      var l = logs[j];
+      if (!l || l.is_run === false) continue;
+      sumaKm += num(l.distance_km);
+      sumaSek += num(l.duration_s);
+    }
+    var wkladKm = nl.is_run === false ? 0 : nlKm;
+    var wkladSek = nl.is_run === false ? 0 : num(nl.duration_s);
+
+    var pk = przekroczonyProg(KAMIEN_KM, sumaKm - wkladKm, sumaKm);
+    if (pk != null) return { type: 'kamien', evidence: { kategoria: 'km', prog: String(pk) }, confidence: 1 };
+
+    var pg = przekroczonyProg(KAMIEN_GODZINY, (sumaSek - wkladSek) / 3600, sumaSek / 3600);
+    if (pg != null) return { type: 'kamien', evidence: { kategoria: 'godziny', prog: String(pg) }, confidence: 1 };
+
+    return null;
+  }
+
   // ── AGE-GRADING WMA 2025 (Alan Jones, zatw. USATF; F→K) — dane ze źródła, zweryfikowane vs recon ──
   // AG% = AG_OPEN[g][dist] / (czas_sek * factor) * 100 ; factor=AG_FACTOR[g][dist][wiek-BASE], 1.0 dla open/braku wieku.
   var AG_OPEN = { M:{ '5k':769,'10k':1584,'half':3451,'marathon':7235 }, K:{ '5k':834,'10k':1726,'half':3772,'marathon':7796 } };
@@ -409,7 +506,7 @@
   //
   // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
   //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
-  var PRIORITY_SCORE = { pb: 3, najmocniejsza: 2.8, najdluzszy: 2.7, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // najmocniejsza=zmiana lidera AG% tuż pod PB; najdluzszy/dystans/top5/streak niżej
+  var PRIORITY_SCORE = { pb: 3, kamien: 2.9, najmocniejsza: 2.8, najdluzszy: 2.7, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // rekord to WYNIK, kamień to CIERPLIWOŚĆ — wynik wygrywa dzień, stąd kamien POD pb; najmocniejsza=zmiana lidera AG% niżej
   var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
   var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
@@ -473,7 +570,7 @@
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
     var dedupHist = historia.concat(snapshot.odrzucone || []);   // dedup TAKŻE vs rejected (trener odrzucił → nie re-proponuj); scoring zostaje vs historia (approved)
-    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot), detectNajmocniejszaZyciowka(snapshot)].filter(Boolean);
+    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot), detectNajmocniejszaZyciowka(snapshot), detectKamien(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
     // najmocniejsza ma WŁASNĄ logikę zmiany-lidera (prev vs leader) → wyłączona z generycznego value-dedup
     candidates = candidates.filter(function (c) { return c.type === 'najmocniejsza' ? true : !alreadyDelivered(dedupHist, c); });
@@ -919,6 +1016,115 @@
       // helper lidera do persystencji
       check('najm: _najmocniejszaLider = 5k', SM._najmocniejszaLider(snap(base)) === '5k', SM._najmocniejszaLider(snap(base)));
       check('najm: _najmocniejszaLider <2PB = null', SM._najmocniejszaLider(snap({ gender: 'M', pbs: { '5k': 1047 } })) === null, true);
+    })();
+
+    // ── KAMIEŃ MILOWY ───────────────────────────────────────────────────────────
+    // Test, który tylko potwierdza wykrycie, nie mówi nic o fałszywych trafieniach —
+    // stąd połowa przypadków to CISZA: próg tuż pod granicą, próg minięty dawno,
+    // dystans o 200 m za krótki, rower udający kilometry i kamień już dostarczony.
+    (function () {
+      var D = dateInWeek(0);
+      // historia = N biegów po `each` km (i opcjonalnie `sek` sekund każdy), plus newLog
+      function hist(n, each, sek) {
+        var a = [];
+        for (var i = 0; i < n; i++) a.push({ logged_at: dateInWeek(20), distance_km: each, duration_s: sek || 0 });
+        return a;
+      }
+      function snap(logsAll, nl) {
+        return { today: TODAY, newLog: nl, logs: [nl], logs_all: logsAll.concat([nl]), pbs: {} };
+      }
+
+      // — PRÓG KILOMETROWY —
+      var nl10 = { logged_at: D, distance_km: 10, duration_s: 3000 };
+      var przez500 = detectKamien(snap(hist(99, 5), nl10));            // 495 + 10 = 505
+      check('kamień: 495→505 km przechodzi próg 500', przez500 && przez500.evidence.kategoria === 'km' && przez500.evidence.prog === '500', przez500);
+
+      var podProgiem = detectKamien(snap(hist(96, 5), nl10));          // 480 + 10 = 490
+      check('kamień: 480→490 km NIE odpala (tuż pod progiem)', podProgiem === null, podProgiem);
+
+      var granica = detectKamien(snap(hist(98, 5), nl10));             // 490 + 10 = 500 dokładnie
+      check('kamień: dokładnie 500 km odpala (próg to <=, nie <)', granica && granica.evidence.prog === '500', granica);
+
+      var dawnoMiniety = detectKamien(snap(hist(210, 5), nl10));       // 1050 + 10 = 1060, żadnej granicy
+      check('kamień: 1050→1060 km NIE odpala (próg 1000 minięty dawno)', dawnoMiniety === null, dawnoMiniety);
+
+      var rowerem = detectKamien(snap(hist(96, 5).concat([{ logged_at: dateInWeek(19), distance_km: 300, duration_s: 0, is_run: false }]), nl10));
+      check('kamień: 300 km rowerem NIE dolicza się do progu', rowerem === null, rowerem);
+
+      var rowerNowy = detectKamien(snap(hist(99, 5), { logged_at: D, distance_km: 60, duration_s: 7200, is_run: false }));
+      check('kamień: rower jako newLog nie przepycha przez próg', rowerNowy === null, rowerNowy);
+
+      // — PRÓG GODZINOWY —
+      var przez100h = detectKamien(snap(hist(99, 1, 3600), { logged_at: D, distance_km: 1, duration_s: 3600 }));   // 99h + 1h
+      check('kamień: 99→100 h przechodzi próg godzinowy', przez100h && przez100h.evidence.kategoria === 'godziny' && przez100h.evidence.prog === '100', przez100h);
+
+      var podProgiemH = detectKamien(snap(hist(90, 1, 3600), { logged_at: D, distance_km: 1, duration_s: 3600 }));  // 90h + 1h
+      check('kamień: 90→91 h NIE odpala', podProgiemH === null, podProgiemH);
+
+      // km ma pierwszeństwo nad godzinami, gdy jeden log przechodzi oba progi naraz
+      var oba = detectKamien(snap(hist(99, 5, 3600), { logged_at: D, distance_km: 10, duration_s: 3600 }));         // 495→505 km ORAZ 99→100 h
+      check('kamień: przy dwóch progach naraz wygrywa kilometrowy', oba && oba.evidence.kategoria === 'km', oba);
+
+      // — PIERWSZY RAZ —
+      var polmaraton = detectKamien(snap(hist(10, 8), { logged_at: D, distance_km: 21.4, duration_s: 7000 }));
+      check('kamień: pierwszy półmaraton 21,4 km odpala', polmaraton && polmaraton.evidence.prog === 'half', polmaraton);
+      check('kamień: evidence niesie dystans RZECZYWISTY 21.4', polmaraton && polmaraton.evidence.dystans_km === 21.4, polmaraton);
+
+      var zaKrotki = detectKamien(snap(hist(10, 8), { logged_at: D, distance_km: 20.9, duration_s: 7000 }));
+      check('kamień: 20,9 km NIE jest półmaratonem (zero tolerancji)', zaKrotki === null, zaKrotki);
+
+      var drugiPolmaraton = detectKamien(snap(
+        hist(10, 8).concat([{ logged_at: dateInWeek(10), distance_km: 21.2, duration_s: 7100 }]),
+        { logged_at: D, distance_km: 21.6, duration_s: 6900 }));
+      check('kamień: DRUGI półmaraton NIE odpala', drugiPolmaraton === null, drugiPolmaraton);
+
+      var maraton = detectKamien(snap(hist(10, 8), { logged_at: D, distance_km: 42.6, duration_s: 15000 }));
+      check('kamień: pierwszy maraton ogłasza maraton, nie półmaraton', maraton && maraton.evidence.prog === 'marathon', maraton);
+
+      // — DEDUP (integracja przez detect) —
+      var s = snap(hist(99, 5), nl10);
+      s.historia = [{ type: 'kamien', evidence: { kategoria: 'km', prog: '500' } }];
+      // NIE oczekujemy null: po odrzuceniu kamienia detect słusznie schodzi do następnego
+      // kandydata (tu: najdłuższy bieg). Sprawdzamy więc, że kamień nie wraca — a nie, że
+      // zapada cisza. Pierwsza wersja tego testu twierdziła inaczej i to ONA była błędem.
+      check('kamień: już dostarczony → detect() nie proponuje kamienia', (detect(s) || {}).type !== 'kamien', detect(s));
+
+      var sOdrzucony = snap(hist(99, 5), nl10);
+      sOdrzucony.odrzucone = [{ type: 'kamien', evidence: { kategoria: 'km', prog: '500' } }];
+      check('kamień: odrzucony przez trenera → nie wraca', (detect(sOdrzucony) || {}).type !== 'kamien', detect(sOdrzucony));
+
+      // — ŚWIEŻOŚĆ „pierwszego razu" (krawędź importu z zegarka) —
+      var maratonStary = { logged_at: '2025-07-15', distance_km: 42.6, duration_s: 15000 };
+      var sStary = snap(hist(10, 8), maratonStary); sStary.dzis = '2026-08-06';
+      check('kamień: maraton sprzed roku NIE odpala (bramka świeżości)', detectKamien(sStary) === null, detectKamien(sStary));
+
+      var sSwiezy = snap(hist(10, 8), { logged_at: '2026-07-20', distance_km: 42.6, duration_s: 15000 });
+      sSwiezy.dzis = '2026-08-06';   // 17 dni
+      check('kamień: maraton sprzed 17 dni odpala', (detectKamien(sSwiezy) || {}).evidence && detectKamien(sSwiezy).evidence.prog === 'marathon', detectKamien(sSwiezy));
+
+      var sBezDzis = snap(hist(10, 8), maratonStary);   // brak `dzis` → brak bramki (wstecznie zgodne)
+      check('kamień: bez snap.dzis bramka świeżości nie działa (zgodność wstecz)', (detectKamien(sBezDzis) || {}).type === 'kamien', detectKamien(sBezDzis));
+
+      // Świeżość NIE dotyczy progów narastających — granicę przechodzi się raz.
+      var sProgStary = snap(hist(99, 5), { logged_at: '2025-07-15', distance_km: 10, duration_s: 3000 });
+      sProgStary.dzis = '2026-08-06';
+      check('kamień: bramka świeżości NIE tyka progu kilometrowego', (detectKamien(sProgStary) || {}).evidence.prog === '500', detectKamien(sProgStary));
+
+      // — KONFLIKT §3: rekord życiowy bije kamień tego samego dnia —
+      var sKonflikt = {
+        today: TODAY, pbs: { '5k': 1440 },
+        newLog: { logged_at: D, distance_km: 5, duration_s: 1380 },       // PB 24:00 → 23:00
+        logs: [{ logged_at: D, distance_km: 5, duration_s: 1380 }],
+        logs_all: hist(99, 5).concat([{ logged_at: D, distance_km: 5, duration_s: 1380 }]),  // 495 + 5 = 500
+      };
+      var mKonflikt = detect(sKonflikt);
+      check('§3: PB i kamień naraz → wygrywa PB (wynik przed cierpliwością)', mKonflikt && mKonflikt.type === 'pb', mKonflikt);
+      check('§3: sam kamień bez PB nadal przechodzi', (detectKamien(sKonflikt) || {}).evidence.prog === '500', detectKamien(sKonflikt));
+
+      // — KSZTAŁT EVIDENCE (kontrakt z EF share-card; zmiana = re-fire wszystkich kamieni) —
+      check('kamień: evidence km ma DOKŁADNIE {kategoria,prog}', JSON.stringify(Object.keys(przez500.evidence).sort()) === '["kategoria","prog"]', Object.keys(przez500.evidence));
+      check('kamień: evidence pierwszy ma DOKŁADNIE {dystans_km,kategoria,prog}', JSON.stringify(Object.keys(polmaraton.evidence).sort()) === '["dystans_km","kategoria","prog"]', Object.keys(polmaraton.evidence));
+      check('kamień: prog zawsze STRING (klucz nazw w EF)', typeof przez500.evidence.prog === 'string' && typeof przez100h.evidence.prog === 'string', true);
     })();
 
     // ── RUN_TYPES / isRunType (export dla EF; NIE zmienia detektorów) ────────────

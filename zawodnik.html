@@ -4464,7 +4464,9 @@ async function _silnikBuildSnapshot(){
   const newLog=all[all.length-1];                  // najnowszy z CAŁOŚCI
   const today=String(newLog.logged_at).slice(0,10);// anchor = data ostatniego logu (jak przy zapisie)
   const imie=(a.full_name||'').trim().split(' ')[0]||'';
-  return { newLog, logs, pbs, today, historia:[], imie, suma_roczna_km, rok, start_miasto:a.city||null, logs_all:all };
+  // dzis = REALNA data (today to data newLoga) — bramka swiezosci „pierwszego razu" w detektorze kamienia. Lustro EF.
+  const dzis=new Date().toISOString().slice(0,10);
+  return { newLog, logs, pbs, today, dzis, historia:[], imie, suma_roczna_km, rok, start_miasto:a.city||null, logs_all:all };
 }
 
 async function _silnikDebug(autoAnim){

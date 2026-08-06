@@ -90,8 +90,11 @@ Deno.serve(async (req) => {
   const historia  = (hist || []).filter((h) => h.status === 'approved').map((h) => ({ type: h.type, evidence: h.evidence }));
   const odrzucone = (hist || []).filter((h) => h.status === 'rejected').map((h) => ({ type: h.type, evidence: h.evidence }));   // dedup-only (NIE scoring)
 
+  // `dzis` to REALNA data, w odróżnieniu od `today`, które jest datą newLoga (patrz wyżej).
+  // Bramka świeżości „pierwszego razu" w detektorze kamienia liczy wiek logu WZGLĘDEM NIEJ —
+  // bez tego pola paczka z zegarka ogłosiłaby dziś pierwszy maraton sprzed lat.
   const snap = {
-    newLog, logs, logs_all: all, pbs, today, historia, odrzucone,
+    newLog, logs, logs_all: all, pbs, today, dzis: new Date().toISOString().slice(0, 10), historia, odrzucone,
     gender: a.gender || null, wiek, suma_roczna_km, rok,
     start_miasto: a.city || null, ostatni_lider: a.strongest_pb_dist || null,
     planowy_odpoczynek,

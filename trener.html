@@ -8703,7 +8703,7 @@ document.addEventListener('keydown', (e) => {
   };
 
   // ━━━━━━━━ SILNIK MOMENTU — panel zatwierdzania (Slice D) ━━━━━━━━
-  const MOMENT_PL = { pb:'Rekord życiowy', najdluzszy:'Najdłuższy bieg', wolumen:'Rekordowy tydzień', streak:'Seria tygodni', dystans:'Podróż przez świat', top5:'TOP 5 tygodni', najmocniejsza:'Najmocniejsza życiówka' };
+  const MOMENT_PL = { kamien:'Kamień milowy', pb:'Rekord życiowy', najdluzszy:'Najdłuższy bieg', wolumen:'Rekordowy tydzień', streak:'Seria tygodni', dystans:'Podróż przez świat', top5:'TOP 5 tygodni', najmocniejsza:'Najmocniejsza życiówka' };
   const _MOMENT_PODGLAD = ['wolumen','dystans','top5','najdluzszy','najmocniejsza','pb','streak'];  // wszystkie 7 typów mają animację
   const DIST_PL = { '5k':'5 km', '10k':'10 km', 'half':'półmaraton', 'marathon':'maraton' };
   function fmtSec(s){ if(s==null||isNaN(s)) return '—'; s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return (h>0 ? h+':'+p(m) : m)+':'+p(x); }
