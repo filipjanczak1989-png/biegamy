@@ -3735,6 +3735,28 @@ const _MOMENT_ANIMOWANE = ['wolumen','dystans','top5','najdluzszy','najmocniejsz
 // Typy dostarczane KARTĄ, nie animacją. `kamien` świadomie NIE trafia do listy animowanych:
 // nie ma renderera, a wpisanie go tam dałoby baner, który po kliknięciu nie robi nic.
 const _MOMENT_KARTA = ['kamien'];
+
+// Chip ←Trener i baner momentu są RODZEŃSTWEM w jednym rzędzie topbaru (gap 8px,
+// flex-shrink:0), a rząd nie zawija się ani nie przycina — razem wypychają się poza prawą
+// krawędź telefonu i baner ląduje poza ekranem. Na czas banera chip ustępuje.
+//
+// Zapamiętujemy POPRZEDNI display zamiast wpisywać 'block': chip należy się wyłącznie
+// trenerom (detekcja coaches.id = auth.uid), więc twarde przywracanie dałoby zawodnikowi
+// przycisk do panelu, którego nie ma prawa widzieć.
+let _chipDisplay = null;
+function _chipSchowaj() {
+  const chip = document.getElementById('back-to-trener');
+  if (!chip || _chipDisplay !== null) return;   // już schowany — nie nadpisuj zapamiętanego stanu
+  _chipDisplay = chip.style.display || '';
+  chip.style.display = 'none';
+}
+function _chipPrzywroc() {
+  const chip = document.getElementById('back-to-trener');
+  if (!chip || _chipDisplay === null) return;   // nic nie chowaliśmy → nic nie przywracamy (idempotentne)
+  chip.style.display = _chipDisplay;
+  _chipDisplay = null;
+}
+
 window.loadMomenty = async function(athleteId, imie){
   const baner = document.getElementById('moment-baner');
   if (!baner) return;
@@ -3744,21 +3766,33 @@ window.loadMomenty = async function(athleteId, imie){
       .eq('athlete_id', athleteId)
       .eq('status','approved').is('shown_at', null)
       .order('created_at', { ascending: true });   // BEZ filtra po typie — nowy typ z serwera ma się pokazać, a nie zniknąć w ciszy; obronę bierze guard niżej
-    if (error) { console.error('[Momenty] load:', error); baner.style.display='none'; return; }
+    if (error) { console.error('[Momenty] load:', error); baner.style.display='none'; _chipPrzywroc(); return; }
     const lista = data || [];
-    if (!lista.length) { baner.style.display='none'; return; }
+    if (!lista.length) { baner.style.display='none'; _chipPrzywroc(); return; }
     const row = lista[0];   // najstarszy pierwszy (kolejka)
     baner.style.display = 'inline-flex';
+    _chipSchowaj();
     baner.onclick = () => {
       baner.style.display = 'none';   // ✨ #5: znika NATYCHMIAST po kliknięciu (pewność, że nie wisi pod animacją ani po powrocie)
       const domknij = async () => {
-        await sb.from('delivered_moments').update({ shown_at: new Date().toISOString() }).eq('id', row.id);
-        window.loadMomenty(athleteId, imie);   // następny w kolejce → pokaże znów (nowy), albo zostaje ukryty
+        try {
+          await sb.from('delivered_moments').update({ shown_at: new Date().toISOString() }).eq('id', row.id);
+        } finally {
+          // Chip wraca ZAWSZE — także gdy zapis padł na sieci. Inaczej jedna nieudana
+          // aktualizacja zostawiałaby trenera bez powrotu do panelu do końca sesji.
+          _chipPrzywroc();
+          window.loadMomenty(athleteId, imie);   // następny w kolejce → pokaże znów (nowy), albo zostaje ukryty
+        }
       };
 
       if (_MOMENT_KARTA.indexOf(row.type) !== -1) {
         if (!window.SHARECARD || !window.SHARECARD.pokazMoment) { domknij(); return; }
-        window.SHARECARD.pokazMoment(row.id, domknij);   // shown_at dopiero przy zamknięciu podglądu
+        window.SHARECARD.pokazMoment(row.id, domknij).then(function () {
+          // Podgląd się nie otworzył (błąd przejściowy — render/sieć): moment świadomie ZOSTAJE
+          // na później, ale chip musi wrócić natychmiast. Ta sama zasada co przy animacji:
+          // sprawdzamy, czy nakładka faktycznie istnieje, zamiast ufać samemu wywołaniu.
+          if (!document.getElementById('sc-podglad')) _chipPrzywroc();
+        });   // shown_at dopiero przy zamknięciu podglądu
         return;
       }
 
@@ -3773,7 +3807,7 @@ window.loadMomenty = async function(athleteId, imie){
         domknij();
       }
     };
-  } catch(e) { console.error('[Momenty] wyjątek:', e); baner.style.display='none'; }
+  } catch(e) { console.error('[Momenty] wyjątek:', e); baner.style.display='none'; _chipPrzywroc(); }
 };
 
 
