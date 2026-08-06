@@ -4268,58 +4268,32 @@ window.SOLO = (function(){
 // tę klasę awarii naraz.
 window.SHARECARD = (function () {
   // Strefy tekstu na karcie — te same, na których mierzyliśmy bibliotekę teł.
-  // UKŁADY — jedno źródło prawdy na układ: te same strefy zasilają POMIAR jasności,
-  // ESKALACJĘ przyciemnienia, ODMOWĘ i SIATKĘ w kadrowniku. Rozjazd któregokolwiek
-  // z tych czterech to ten sam błąd innymi drzwiami: mierzylibyśmy gdzie indziej, niż
-  // pokazujemy, i odmawiali na podstawie miejsca, w którym nie stanie żaden tekst.
+  // Kadrownik obsługuje WYŁĄCZNIE własne zdjęcia, a te renderują się zawsze portretem
+  // (EF wybiera układ po obecności card_bg_url). Zestaw standardowy byłby tu martwym kodem,
+  // a martwy kod przy strefach pomiarowych to zaproszenie do mierzenia nie tego, co trzeba.
   //
-  // `mierz:false` = strefa POKAZYWANA w kadrowniku, ale niewchodząca do pomiaru —
-  // statystyki i stopka leżą tak nisko, że scrim trzyma je poniżej 12 w obu układach
-  // (zmierzone na 22 tłach).
-  const UKLADY = {
-    standard: {
-      nazwa: 'standardowy',
-      scrim: [[0, 0.76], [700, 0.40], [900, 0.48], [1350, 0.72]],          // zmierzone
-      strefy: [
-        { nazwa: 'logo',       x: 60, y: 100,  w: 360,  h: 130 },
-        { nazwa: 'tozsamosc',  x: 60, y: 340,  w: 580,  h: 130 },
-        { nazwa: 'bohater',    x: 60, y: 490,  w: 640,  h: 310 },
-        { nazwa: 'statystyki', x: 60, y: 890,  w: 960,  h: 200, mierz: false },
-        { nazwa: 'stopka',     x: 0,  y: 1145, w: 1080, h: 205, mierz: false },
-      ],
-    },
-    portret: {
-      nazwa: 'portretowy',
-      // Stopy ze specu, POTWIERDZONE sweepem 22 teł: nic nie przekracza progu 38.
-      // Góra celowo jaśnieje (0,76 → 0,30), bo o to w tym układzie chodzi — zdjęcie
-      // ma być widoczne tam, gdzie stoi człowiek.
-      scrim: [[0, 0.30], [300, 0.10], [600, 0.14], [780, 0.72], [1350, 0.82]],
-      // Geometria POPRAWIONA. Wersja pierwotna była sprzeczna: bohater na y=880 przy
-      // 150 px zajmuje 880..1030, a podpis stał na 925 — w środku bohatera. Po korekcie
-      // czysta strefa rośnie z 250..660 do 250..790, czyli portret jest bardziej portretowy.
-      strefy: [
-        { nazwa: 'logo',       x: 60, y: 100,  w: 360,  h: 130 },
-        { nazwa: 'tozsamosc',  x: 60, y: 690,  w: 580,  h: 130 },
-        { nazwa: 'bohater',    x: 60, y: 805,  w: 640,  h: 175 },
-        { nazwa: 'podpis',     x: 60, y: 975,  w: 640,  h: 55  },
-        { nazwa: 'statystyki', x: 60, y: 1040, w: 960,  h: 120, mierz: false },
-        { nazwa: 'stopka',     x: 0,  y: 1180, w: 1080, h: 170, mierz: false },
-      ],
-    },
+  // Jeden zestaw stref zasila POMIAR jasności, ESKALACJĘ przyciemnienia, ODMOWĘ i SIATKĘ.
+  // `mierz:false` = strefa pokazywana, ale niewchodząca do pomiaru (scrim trzyma je nisko).
+  const UKLAD_KADR = {
+    scrim: [[0, 0.30], [300, 0.10], [600, 0.14], [780, 0.72], [1350, 0.82]],   // zmierzone
+    strefy: [
+      { nazwa: 'logo',       x: 60, y: 100,  w: 360,  h: 130 },
+      { nazwa: 'tozsamosc',  x: 60, y: 690,  w: 580,  h: 130 },
+      { nazwa: 'bohater',    x: 60, y: 820,  w: 640,  h: 175 },
+      { nazwa: 'podpis',     x: 60, y: 975,  w: 640,  h: 55  },
+      { nazwa: 'statystyki', x: 60, y: 1050, w: 960,  h: 120, mierz: false },
+      { nazwa: 'stopka',     x: 0,  y: 1180, w: 1080, h: 170, mierz: false },
+    ],
   };
-  function mierzone(u) { return UKLADY[u].strefy.filter(function (s) { return s.mierz !== false; }); }
-  function strefa(u, nazwa) { return UKLADY[u].strefy.find(function (s) { return s.nazwa === nazwa; }); }
+  const STREFY_MIERZONE = UKLAD_KADR.strefy.filter(function (s) { return s.mierz !== false; });
+  const STREFA_TOZSAMOSC = UKLAD_KADR.strefy.find(function (s) { return s.nazwa === 'tozsamosc'; });
 
-  // Próg podpowiedzi KALIBROWANY, nie zgadnięty: w sweepie 22 teł strefy tekstu dają
-  // max 8,26, a najbardziej szczegółowy fragment jakiegokolwiek kadru 15,18. Dziesiątka
-  // leży między nimi. console.log w kadrowniku zbiera surowe wartości z prawdziwych
-  // zdjęć — po kilku wrócimy do tej liczby z danymi zamiast z szacunku.
   const RUCH_PROG = 10;
   // Kolejne stopnie przyciemnienia: [siła lewego gradientu, jego zasięg w szerokości].
   const STOPNIE = [[0.88,0.66],[0.93,0.70],[0.96,0.74],[0.975,0.78],[0.985,0.82]];
   const PROG = 38;
 
-  let _stan = { logId: null, momentId: null, slotId: null, log: null, mozeEdytowac: true, onZamkniecie: null, uklad: 'standard' };
+  let _stan = { logId: null, momentId: null, slotId: null, log: null, mozeEdytowac: true, onZamkniecie: null };
   let _crop = null;
   let _podgladUrl = null;
   let _plik = null;
@@ -4360,7 +4334,7 @@ window.SHARECARD = (function () {
     const bShare = slot.querySelector('[data-sc="share"]');
     if (bShare) bShare.addEventListener('click', function (e) {
       e.stopPropagation();                 // karta logu w „Dziś" ma własny onclick → editLog
-      _stan = { logId: log.id, slotId: slotId, log: log, mozeEdytowac: mozeEdytowac, uklad: _stan.uklad || 'standard' };
+      _stan = { logId: log.id, slotId: slotId, log: log, mozeEdytowac: mozeEdytowac };
       przygotujKarte(bShare);
     });
   }
@@ -4401,11 +4375,6 @@ window.SHARECARD = (function () {
     ov.style.cssText = 'position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
     ov.innerHTML =
       '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5 · trzymaj twarze poza polami</div>'
-      + '<div style="display:flex;gap:6px;align-items:center;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'
-      + '<span style="letter-spacing:0.08em;">UKŁAD</span>'
-      + '<button type="button" data-sc="u-standard" class="btn btn-sm">standardowy</button>'
-      + '<button type="button" data-sc="u-portret" class="btn btn-ghost btn-sm">portretowy</button>'
-      + '</div>'
       + '<canvas data-sc="canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
       + '<input type="range" data-sc="zoom" min="100" max="300" value="100" style="width:' + szer + 'px;">'
       + '<div style="display:flex;gap:10px;">'
@@ -4421,7 +4390,7 @@ window.SHARECARD = (function () {
     const wsk = ov.querySelector('[data-sc="wskazowka"]');
     const ctx = c.getContext('2d');
     const bazowa = Math.max(szer / img.width, wys / img.height);   // cover
-    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov, zPodgladu: !!zPodgladu, uklad: _stan.uklad || 'standard' };
+    const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov, zPodgladu: !!zPodgladu };
     _crop = st;
 
     function ogranicz() {
@@ -4439,7 +4408,7 @@ window.SHARECARD = (function () {
       ctx.lineWidth = 1;
       ctx.strokeStyle = 'rgba(232,86,30,0.5)';
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      UKLADY[st.uklad].strefy.forEach(function (s) {
+      UKLAD_KADR.strefy.forEach(function (s) {
         ctx.fillRect(s.x * k, s.y * k, s.w * k, s.h * k);
         ctx.strokeRect(s.x * k + 0.5, s.y * k + 0.5, s.w * k - 1, s.h * k - 1);
       });
@@ -4454,18 +4423,8 @@ window.SHARECARD = (function () {
       // przesuwałby tylko ramki i wybór byłby w ciemno. Scrim i siatka istnieją
       // WYŁĄCZNIE na płótnie podglądu; plik do wgrania powstaje osobną ścieżką,
       // która o obu nie wie (lekcja z podwójnego scrimu).
-      scrim(ctx, szer, wys, UKLADY[st.uklad].scrim);
+      scrim(ctx, szer, wys, UKLAD_KADR.scrim);
       rysujSiatke();
-    }
-
-    function przelaczUklad(nowy) {
-      if (!UKLADY[nowy] || st.uklad === nowy) return;
-      st.uklad = nowy;
-      _stan.uklad = nowy;   // wybór jedzie stąd do renderu karty w tej samej sesji
-      ov.querySelector('[data-sc="u-standard"]').className = 'btn btn-sm' + (nowy === 'standard' ? '' : ' btn-ghost');
-      ov.querySelector('[data-sc="u-portret"]').className  = 'btn btn-sm' + (nowy === 'portret' ? '' : ' btn-ghost');
-      rysuj();
-      wskazowkaPoGescie();   // ruchliwość liczy się po strefach NOWEGO układu
     }
 
     // Pomiar na PEŁNEJ rozdzielczości i na SUROWYM kadrze — dwie świadome decyzje:
@@ -4479,12 +4438,12 @@ window.SHARECARD = (function () {
       const p = document.createElement('canvas'); p.width = W; p.height = 1350;
       const pc = p.getContext('2d', { willReadFrequently: true });
       pc.drawImage(img, st.x * k2, st.y * k2, img.width * st.skala * k2, img.height * st.skala * k2);
-      const pomiary = mierzone(st.uklad)
+      const pomiary = STREFY_MIERZONE
         .filter(function (s) { return s.nazwa === 'tozsamosc' || s.nazwa === 'bohater'; })
         .map(function (s) { return { n: s.nazwa, r: ruchliwosc(pc, s) }; });
       // Ślad do kalibracji progu na SUROWYCH zdjęciach — jedyne, czego sweep dać nie mógł,
       // bo pliki w card-bg są już przyciemnione, a przyciemnienie tłumi gradienty.
-      console.log('[kadr] ruchliwość ' + st.uklad + ': ' +
+      console.log('[kadr] ruchliwość: ' +
         pomiary.map(function (g) { return g.n + '=' + g.r.toFixed(2); }).join('  '));
       const gorace = pomiary.some(function (g) { return g.r > RUCH_PROG; });
       // PODPOWIEDŹ, nie blokada: przycisk „Użyj tego kadru" zostaje aktywny. Odmowa należy
@@ -4501,8 +4460,6 @@ window.SHARECARD = (function () {
     rysuj();
     wskazowkaPoGescie();   // pierwsza ocena kadru bez czekania na gest
 
-    ov.querySelector('[data-sc="u-standard"]').addEventListener('click', function () { przelaczUklad('standard'); });
-    ov.querySelector('[data-sc="u-portret"]').addEventListener('click', function () { przelaczUklad('portret'); });
     ov.querySelector('[data-sc="anuluj"]').addEventListener('click', zamknijKadrownik);
     ov.querySelector('[data-sc="ok"]').addEventListener('click', function () { zatwierdzKadr(ov); });
 
@@ -4612,7 +4569,7 @@ window.SHARECARD = (function () {
       ctx.drawImage(st.img, st.x * k, st.y * k, st.img.width * st.skala * k, st.img.height * st.skala * k);
       gradientBazowy(ctx, W, H, STOPNIE[i][0], STOPNIE[i][1]);
       uzyty = i;
-      if (mierzone(st.uklad).every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
+      if (STREFY_MIERZONE.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
     }
     // Scrim NIE jest wypalany w pliku — służy wyłącznie do POMIARU. EF dokłada go
     // przy renderze, więc wypalenie dałoby scrim dwa razy: przy kryciu 0,76 u góry
@@ -4623,14 +4580,14 @@ window.SHARECARD = (function () {
     pomiar.width = W; pomiar.height = H;
     const pctx = pomiar.getContext('2d', { willReadFrequently: true });
     pctx.drawImage(c, 0, 0);
-    scrim(pctx, W, H, UKLADY[st.uklad].scrim);
+    scrim(pctx, W, H, UKLAD_KADR.scrim);
 
     // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
     // Odmowa WYŁĄCZNIE po jasności strefy tożsamości AKTYWNEGO układu — blokujemy
     // nieczytelność, nie kompozycję. Że układ ma znaczenie, wiemy z pomiaru: te same
     // piksele zdjęcia dają 65,3 w strefie standardowej i 44,4 w portretowej, przy progu 38.
     // Pomiar w złym miejscu przepuściłby kadr nieczytelny na gotowej karcie.
-    if (jasnosc(pctx, strefa(st.uklad, 'tozsamosc')) > PROG) {
+    if (jasnosc(pctx, STREFA_TOZSAMOSC) > PROG) {
       btn.disabled = false; stan.textContent = '';
       zamknijKadrownik();
       powiadom('To zdjęcie jest za jasne tam, gdzie stoi imię. Spróbuj innego kadru.');
@@ -4725,9 +4682,7 @@ window.SHARECARD = (function () {
     // Karta momentu idzie INNĄ ścieżką w EF: {moment_id} zamiast {log_id}. Autoryzacja liczy
     // się tam po wierszu momentu, nie po logu — właściciel dostaje 403 dla momentu, którego
     // trener nie zatwierdził. Klient tego nie zakłada, tylko obsługuje (patrz pokazMoment).
-    const cialo = _stan.momentId
-      ? { moment_id: _stan.momentId }
-      : { log_id: _stan.logId, uklad: _stan.uklad || 'standard' };
+    const cialo = _stan.momentId ? { moment_id: _stan.momentId } : { log_id: _stan.logId };
     const res = await fetch(fnUrl, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },

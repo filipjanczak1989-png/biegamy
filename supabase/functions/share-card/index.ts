@@ -60,9 +60,9 @@ const UKLADY: Record<string, Uklad> = {
     scrim: "linear-gradient(to bottom, rgba(7,7,10,0.30) 0%, rgba(7,7,10,0.10) 22.22%, " +
            "rgba(7,7,10,0.14) 44.44%, rgba(7,7,10,0.72) 57.78%, rgba(7,7,10,0.82) 100%)",
     imie: 700, meta: 745, miasto: 780,
-    bohaterY: 805, bohaterPx: 150, bohaterMalyPx: 120, jednostkaPx: 56, podpisY: 975,
-    dividerY: 1042, dividerH: 118,
-    statIkonaY: 1040, statWartoscY: 1072, statJednostkaY: 1134,
+    bohaterY: 820, bohaterPx: 150, bohaterMalyPx: 120, jednostkaPx: 56, podpisY: 975,
+    dividerY: 1052, dividerH: 118,
+    statIkonaY: 1050, statWartoscY: 1082, statJednostkaY: 1144,
     // Trzy kolumny na sztywno: przy wartości 52 px czwarta kolumna zostawia na etykietę
     // 190 px, a PRZEWYŻSZENIE ma w 20 px 174 px — mieściłoby się o 16 px, czyli w granicy
     // błędu. Odcinamy do trzech zamiast liczyć na szczęście.
@@ -383,38 +383,42 @@ function zbudujKarte(o: {
     fontSize: 24, color: COLS.akcent, letterSpacing: 3,
   }, "JESTEŚMY OBOK."));
 
-  // Awatar
+  // Awatar buduje się tutaj, ale trafia na kartę DOPIERO PO STOPCE (patrz niżej): pas
+  // stopki jest półprzezroczysty, więc narysowany po awatarze przebarwiłby go na pomarańczowo.
+  // Miejsce: środek wolnej przestrzeni między blokiem logo a #biegamyrazem — zmierzone,
+  // 361 px luki (x 399..760), więc kółko 100 px ma po ~130 px z każdej strony.
+  const awX = 530, awY = u.stopkaY + Math.round((u.stopkaH - 100) / 2);
   const kolo: Record<string, unknown> = {
-    position: "absolute", left: 72, top: u.imie - 26, width: 120, height: 120,
-    borderRadius: 60, border: `3px solid ${COLS.akcent}`, display: "flex",
+    position: "absolute", left: awX, top: awY, width: 100, height: 100,
+    borderRadius: 50, border: `3px solid ${COLS.akcent}`, display: "flex",
     alignItems: "center", justifyContent: "center", overflow: "hidden",
     backgroundColor: COLS.avatarTlo,
   };
-  if (o.av) {
-    const im = h("img", { width: 120, height: 120, borderRadius: 60 });
-    (im.props as Record<string, unknown>).src = o.av;
-    dzieci.push(h("div", kolo, [im]));
-  } else {
-    dzieci.push(h("div", kolo, [
-      txt({ fontFamily: "DMSans", fontWeight: 500, fontSize: 44, color: COLS.akcent }, inicjaly(o.imie)),
-    ]));
-  }
+  const awatar = o.av
+    ? h("div", kolo, [(() => {
+        const im = h("img", { width: 100, height: 100, borderRadius: 50 });
+        (im.props as Record<string, unknown>).src = o.av;
+        return im;
+      })()])
+    : h("div", kolo, [
+        txt({ fontFamily: "DMSans", fontWeight: 500, fontSize: 38, color: COLS.akcent }, inicjaly(o.imie)),
+      ]);
 
   // Tożsamość
   dzieci.push(txt({
-    position: "absolute", left: 214, top: u.imie, fontFamily: "DMSans", fontWeight: 500,
+    position: "absolute", left: 74, top: u.imie, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 38, color: COLS.tekst,
   }, o.imie));
   // Meta w DWÓCH liniach: miasto osobno, żeby cały tekst mieścił się w lewej strefie
   // przyciemnienia. Jedna długa linia wychodziła na jasne niebo i traciła kontrast —
   // a przy bibliotece teł każde zdjęcie ma jasne miejsce gdzie indziej.
   dzieci.push(txt({
-    position: "absolute", left: 214, top: u.meta, fontFamily: "DMSans", fontWeight: 400,
+    position: "absolute", left: 74, top: u.meta, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 24, color: COLS.wtorny,
   }, o.meta));
   if (o.miasto) {
     dzieci.push(txt({
-      position: "absolute", left: 214, top: u.miasto, fontFamily: "DMSans", fontWeight: 400,
+      position: "absolute", left: 74, top: u.miasto, fontFamily: "DMSans", fontWeight: 400,
       fontSize: 22, color: COLS.wygaszony,
     }, o.miasto));
   }
@@ -486,6 +490,8 @@ function zbudujKarte(o: {
     position: "absolute", right: 72, top: u.stopkaDomenaY, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 26, color: COLS.wtorny, textAlign: "right",
   }, "biegamy.run"));
+
+  dzieci.push(awatar);   // NA KOŃCU — leży na pasie stopki, nie pod nim
 
   return h("div", {
     position: "relative", display: "flex", width: 1080, height: 1350, backgroundColor: "#0b0b0d",
@@ -668,10 +674,7 @@ Deno.serve(async (req) => {
     const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!jwt) return json({ error: "brak autoryzacji" }, 401);
 
-    const { log_id, moment_id, uklad: ukladIn } = await req.json().catch(() => ({}));
-    // Nieznana wartość = standard. Układ przychodzi z kadrownika i żyje tylko w sesji
-    // klienta — karta pod danym kluczem zostaje na zawsze, więc oba warianty współistnieją.
-    const uklad = ukladIn === "portret" ? "portret" : "standard";
+    const { log_id, moment_id } = await req.json().catch(() => ({}));
     if (!log_id && !moment_id) return json({ error: "brak log_id albo moment_id" }, 400);
     if (log_id && typeof log_id !== "string") return json({ error: "złe log_id" }, 400);
     if (moment_id && typeof moment_id !== "string") return json({ error: "złe moment_id" }, 400);
@@ -703,10 +706,12 @@ Deno.serve(async (req) => {
     // Efekt uboczny na plus: wcześniej cache sprawdzał się przed autoryzacją, czyli
     // dowolny zalogowany mógł sprawdzić, czy karta dla danego log_id istnieje.
     const wlasneTlo = dozwoloneTlo(log.card_bg_url);
-    // Sufiks -p: układ portretowy to INNA karta, nie inny render tej samej. Bez migracji —
-    // wybór żyje w sesji klienta, a plik pod kluczem zostaje na zawsze (stare linki żyją).
-    const suf = uklad === "portret" ? "-p" : "";
-    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}${suf}.png` : `${log_id}${suf}.png`;
+    // UKŁAD WYNIKA ZE ŹRÓDŁA TŁA, nie z wyboru w kliencie. Własne zdjęcie jest z założenia
+    // o człowieku, więc dostaje portret; biblioteka to kadry dobrane pod układ standardowy.
+    // Dzięki temu klucz nie potrzebuje sufiksu: `{log_id}-{hash8}.png` JEST portretem
+    // z definicji, a `{log_id}.png` standardem.
+    const uklad = wlasneTlo ? "portret" : "standard";
+    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.png` : `${log_id}.png`;
     const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
 
     // Karta niezmienna — jeśli jest, oddajemy bez renderu.

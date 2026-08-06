@@ -107,8 +107,7 @@ Klient podaje **sam identyfikator**. Przy kształcie `{typ, prog}` dowolny zawod
 
 ```
 share-cards/{log_id}.png                              trening, tło z biblioteki
-share-cards/{log_id}-{hash8}.png                      trening, własne tło
-share-cards/{log_id}-p.png                            trening, układ portretowy   (TODO)
+share-cards/{log_id}-{hash8}.png                      trening, własne tło = ZAWSZE PORTRET
 share-cards/kamien-{athlete_id}-{kategoria}-{prog}.png
 share-cards/pb-{athlete_id}-{dystans}-{czas_sekundy}.png
 share-cards/miesiac-{athlete_id}-{rrrr-mm}.png        (TODO)
@@ -169,7 +168,15 @@ Mierzona na **pełnej rozdzielczości** (próg opisuje piksele karty, nie podgl�
 
 Dla zdjęć, które są o człowieku, nie o krajobrazie. Zdjęcie **nadal pełnoekranowe** — zmienia się tylko rozmieszczenie treści.
 
-Wybór w kadrowniku, przełącznik z podglądem na żywo: `UKŁAD: [standardowy] [portretowy]`. Domyślnie standardowy.
+**Układu się NIE wybiera — wynika ze źródła tła** (decyzja Filipa 6/8):
+
+| tło | układ |
+|---|---|
+| `card_bg_url` niepuste (własne zdjęcie) | **portret** |
+| biblioteka m/k/n | **standard** |
+| karty momentów (`kamien`, `pb`, …) | **standard** — nie mają własnego tła |
+
+Uzasadnienie: własne zdjęcie jest z założenia o człowieku, a biblioteka to kadry dobrane pod układ standardowy. Dzięki temu **klucz cache nie potrzebuje sufiksu**: `{log_id}-{hash8}.png` JEST portretem z definicji, a `{log_id}.png` standardem. Kadrownik obsługuje wyłącznie własne zdjęcia, więc mierzy ZAWSZE strefy portretowe — w `sb.js` nie ma drugiego zestawu, bo byłby martwym kodem przy strefach pomiarowych.
 
 ### Geometria (**poprawiona względem pierwotnego specu**)
 
@@ -254,6 +261,32 @@ Kadrownik pokazuje **scrim aktywnego układu**, nie samo zdjęcie. Bez tego prze
 Własne zdjęcie jest przyciemniane **pod układ aktywny w chwili kadrowania** — eskalacja mierzy strefy tego układu i wypala gradient bazowy w pliku. Jeśli ktoś skadruje w portrecie, a następnie wygeneruje kartę standardową, przyciemnienie będzie dobrane pod niewłaściwe strefy i karta może wyjść za jasna w pasie tożsamości.
 
 Naturalny przepływ (kadruję → generuję w tej samej sesji) tego nie dotyka, bo wybór jedzie z kadrownika do renderu w `_stan.uklad`. **Akceptowane świadomie.** Domknięcie wymagałoby utrwalenia układu przy logu (kolumna `card_layout` + kolumnowy GRANT) — wrócić przy K4 albo przy pierwszej skardze.
+
+## Awatar w stopce (**LIVE**)
+
+Kółko z awatarem (albo inicjałem) **nie stoi już przy imieniu** — siedzi w stopce, w wolnej przestrzeni między logotypem a `#biegamyrazem`. Blok tożsamości przez to zaczyna się od lewego marginesu (x=74 zamiast x=214) i jest szerszy oraz czystszy.
+
+Pomiary stopki (**zmierzone**, DM Sans na realnym foncie):
+
+| co | wartość |
+|---|---|
+| blok lewy (logo 200 px, hasło 325 px) kończy się na | x = 399 |
+| blok prawy (`#biegamyrazem` 248 px) zaczyna się na | x = 760 |
+| **wolna przestrzeń** | **361 px** |
+| awatar 100 px, standard (pas 205 px) | y 1198..1298, margines 52 px |
+| awatar 100 px, portret (pas 170 px) | y 1215..1315, margines 35 px |
+
+Awatar 100 px na `x=530` ma po ~130 px z każdej strony i **nie ściska tagline'u**. Inicjał 38 px (było 44 przy kółku 120 px).
+
+⚠️ Awatar dorysowywany jest **jako ostatni, po pasie stopki** — pas jest półprzezroczysty (`rgba(232,86,30,0.12)`), więc narysowany po awatarze przebarwiłby go na pomarańczowo.
+
+## Reguła: odstępy mierzy się po TUSZU, nie po pudełkach
+
+**Odstępy między elementami mierzyć po ZASIĘGU TUSZU w wyrenderowanej karcie, nie po pudełkach tekstowych.** Bebas ma wewnętrzny odstęp — tusz podpisu zaczyna się 13 px poniżej górnej krawędzi pudełka. Liczenie z rozmiaru fontu zaniża odstępy i prowadzi do poprawek, które **przenoszą problem zamiast go usuwać**.
+
+Przykład z życia (6/8): zgłosiłem „bohater i podpis dzieli 5 px" na podstawie arytmetyki pudełek (bohater kończy się na 970, podpis zaczyna na 975). Pomiar tuszu w PNG pokazał **17 px**. Poprawka wyliczona z błędnej liczby przeniosłaby ciasnotę z góry na dół, bo między dolną krawędzią bohatera a statystykami jest stałe 52 px tuszu do rozdania.
+
+Realne odstępy w portrecie (bohater 820, podpis 975, statystyki 1050): tożsamość→bohater **44**, bohater→podpis **17**, podpis→statystyki **35**, jednostki→stopka **14**.
 
 ## Zaległości
 
