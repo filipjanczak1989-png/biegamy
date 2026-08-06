@@ -550,7 +550,13 @@ async function kartaMomentu(
     // Minus przy życiówce czyta się jak strata. Słowo „szybciej" schodzi do wiersza jednostki
     // — ta sama struktura co „3:26" + „/km”, i JEDYNA, która się mieści: w kolumnie zostaje
     // 294 px (do dividera), a „12:07 SZYBCIEJ" w Bebasie 66 px ma 308 px i weszłoby na kreskę.
-    const zysk = delta < 60 ? `${Math.round(delta)} s` : fmtCzas(delta);
+    //
+    // Jednostka brzmi „szybciej" w OBU wariantach, a nie „sekund/minut szybciej", bo przy
+    // wartości mm:ss słowo „minut" byłoby nieprawdą: 2:14 to dwie minuty i czternaście sekund.
+    // Polszczyzna dopisałaby jeszcze odmianę przez liczebnik („2 minuty", ale „12 minut"),
+    // której sformatowany czas nie niesie. Stąd jednostkę w sekundach niesie sama wartość
+    // („42 SEK" — Bebas jest fontem wersalikowym), dokładnie jak „KM" przy bohaterze.
+    const zysk = delta < 60 ? `${Math.round(delta)} sek` : fmtCzas(delta);
     staty.push({ ikona: IKONY.aktywnosci, etykieta: "ZYSK", wartosc: zysk, jednostka: "szybciej" });
     staty.push({ ikona: IKONY.przewyzszenie, etykieta: "TEMPO", wartosc: fmtTempo(nowy / PB_KM[dystans]), jednostka: "/km" });
 
