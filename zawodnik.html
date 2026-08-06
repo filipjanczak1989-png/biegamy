@@ -3732,16 +3732,18 @@ let _athleteId = null;
 // Krok 4: dostarczamy typy które MAJĄ animację (5: wolumen/dystans/top5/najdluzszy/najmocniejsza — wszystkie z puentą).
 // ⚠️ pb/streak NIE mają animacji → wykluczone (inaczej klik→brak animacji→onClose nie odpali→shown_at null→baner się zacina). Dopisać tu gdy powstaną ich animacje.
 const _MOMENT_ANIMOWANE = ['wolumen','dystans','top5','najdluzszy','najmocniejsza','pb','streak'];
+// Typy dostarczane KARTĄ, nie animacją. `kamien` świadomie NIE trafia do listy animowanych:
+// nie ma renderera, a wpisanie go tam dałoby baner, który po kliknięciu nie robi nic.
+const _MOMENT_KARTA = ['kamien'];
 window.loadMomenty = async function(athleteId, imie){
   const baner = document.getElementById('moment-baner');
   if (!baner) return;
   try {
     const { data, error } = await sb.from('delivered_moments')
-      .select('id,type,evidence,payload,edited_text')
+      .select('id,type,evidence,payload,edited_text,status')
       .eq('athlete_id', athleteId)
       .eq('status','approved').is('shown_at', null)
-      .in('type', _MOMENT_ANIMOWANE)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true });   // BEZ filtra po typie — nowy typ z serwera ma się pokazać, a nie zniknąć w ciszy; obronę bierze guard niżej
     if (error) { console.error('[Momenty] load:', error); baner.style.display='none'; return; }
     const lista = data || [];
     if (!lista.length) { baner.style.display='none'; return; }
@@ -3749,11 +3751,27 @@ window.loadMomenty = async function(athleteId, imie){
     baner.style.display = 'inline-flex';
     baner.onclick = () => {
       baner.style.display = 'none';   // ✨ #5: znika NATYCHMIAST po kliknięciu (pewność, że nie wisi pod animacją ani po powrocie)
-      const m = window._silnikOdtworzMoment(row);
-      window._silnikPokazAnimacje(m, imie, row.edited_text, async () => {
+      const domknij = async () => {
         await sb.from('delivered_moments').update({ shown_at: new Date().toISOString() }).eq('id', row.id);
         window.loadMomenty(athleteId, imie);   // następny w kolejce → pokaże znów (nowy), albo zostaje ukryty
-      });
+      };
+
+      if (_MOMENT_KARTA.indexOf(row.type) !== -1) {
+        if (!window.SHARECARD || !window.SHARECARD.pokazMoment) { domknij(); return; }
+        window.SHARECARD.pokazMoment(row.id, domknij);   // shown_at dopiero przy zamknięciu podglądu
+        return;
+      }
+
+      window._silnikPokazAnimacje(window._silnikOdtworzMoment(row), imie, row.edited_text, domknij);
+      // GUARD. Pytanie brzmi „czy nakładka się otworzyła", NIE „czy znam typ" — bo
+      // _silnikPokazAnimacje poddaje się także przy ZNANYM typie z niekompletnym payloadem
+      // (top5 bez ranking, wolumen bez slupków: silnik-anim.js:96-102). W obu razach nie ma
+      // overlaya, więc onClose nigdy nie odpali, a baner wracałby przy każdym wejściu.
+      // Overlay powstaje synchronicznie, więc sprawdzenie tuż po wywołaniu jest wiarygodne.
+      if (!document.getElementById('silnik-anim-overlay')) {
+        console.warn('[Momenty] brak renderera dla typu:', row.type, '→ domykam po cichu');
+        domknij();
+      }
     };
   } catch(e) { console.error('[Momenty] wyjątek:', e); baner.style.display='none'; }
 };

@@ -4277,7 +4277,7 @@ window.SHARECARD = (function () {
   const STOPNIE = [[0.88,0.66],[0.93,0.70],[0.96,0.74],[0.975,0.78],[0.985,0.82]];
   const PROG = 38;
 
-  let _stan = { logId: null, slotId: null, log: null, mozeEdytowac: true };
+  let _stan = { logId: null, momentId: null, slotId: null, log: null, mozeEdytowac: true, onZamkniecie: null };
   let _crop = null;
   let _podgladUrl = null;
   let _plik = null;
@@ -4570,6 +4570,13 @@ window.SHARECARD = (function () {
   function zamknijPodglad() {
     const o = document.getElementById('sc-podglad'); if (o) o.remove();
     if (_podgladUrl) { URL.revokeObjectURL(_podgladUrl); _podgladUrl = null; }
+    // shown_at ustawia się przy ZAMKNIĘCIU, nie przy otwarciu: dopóki karta jest na ekranie,
+    // moment nie jest „zobaczony". Callback odpala się dokładnie raz — zerujemy go PRZED
+    // wywołaniem, więc podwójny klik w „Zamknij" nie zrobi dwóch zapisów.
+    if (_stan.onZamkniecie) {
+      const cb = _stan.onZamkniecie; _stan.onZamkniecie = null;
+      try { cb(); } catch (e) { console.error('[SHARECARD] onZamkniecie:', e); }
+    }
   }
 
   // Wspólne dla pierwszego otwarcia podglądu i odświeżenia po zmianie tła.
@@ -4578,13 +4585,21 @@ window.SHARECARD = (function () {
     const { data: { session } } = await window.sb.auth.getSession();
     if (!session) throw new Error('brak sesji');
     const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/share-card';
+    // Karta momentu idzie INNĄ ścieżką w EF: {moment_id} zamiast {log_id}. Autoryzacja liczy
+    // się tam po wierszu momentu, nie po logu — właściciel dostaje 403 dla momentu, którego
+    // trener nie zatwierdził. Klient tego nie zakłada, tylko obsługuje (patrz pokazMoment).
+    const cialo = _stan.momentId ? { moment_id: _stan.momentId } : { log_id: _stan.logId };
     const res = await fetch(fnUrl, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ log_id: _stan.logId })
+      body: JSON.stringify(cialo)
     });
     const d = await res.json().catch(function () { return null; });
-    if (!res.ok || !d || !d.url) throw new Error('ef');
+    if (!res.ok || !d || !d.url) {
+      const err = new Error('ef');
+      err.status = res.status;          // 403 = strukturalne (nie ma po co ponawiać), reszta = przejściowe
+      throw err;
+    }
     _url = d.url;
     return await (await fetch(d.url)).blob();
   }
@@ -4653,5 +4668,40 @@ window.SHARECARD = (function () {
     powiadom('Karta zapisana');
   }
 
-  return { mount: mount };
+  // Karta MOMENTU (kamień milowy) — bez slotu i bez przycisku, wołana z banera w „Dziś".
+  // Własne tło świadomie niedostępne: kamień dotyczy setek treningów, nie jednego, więc nie
+  // ma naturalnego zdjęcia do podpięcia (decyzja Filipa 6/8).
+  async function pokazMoment(momentId, onZamkniecie) {
+    if (!momentId) return;
+    _stan = { logId: null, momentId: momentId, slotId: null, log: null, mozeEdytowac: false, onZamkniecie: onZamkniecie || null };
+
+    // Render trwa 1,8–4,6 s, więc klik musi od razu coś pokazać — inaczej wygląda na martwy
+    // przycisk. Czekacz leży na tym samym z-indexie co podgląd (9500).
+    const czekacz = document.createElement('div');
+    czekacz.id = 'sc-czekacz';
+    czekacz.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;color:#a8a5a0;font-family:DM Mono,monospace;font-size:12px;';
+    czekacz.textContent = 'Przygotowuję kartę…';
+    document.body.appendChild(czekacz);
+
+    try {
+      const blob = await pobierzKarte();
+      _plik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
+      czekacz.remove();
+      pokazPodglad(blob);
+    } catch (e) {
+      czekacz.remove();
+      // 403 = moment niezatwierdzony albo cudzy. Ponawianie nic nie da, więc DOMYKAMY —
+      // inaczej baner wracałby przy każdym wejściu. Każdy inny błąd traktujemy jako
+      // PRZEJŚCIOWY i nie domykamy: powrót po zerwanej sieci to druga szansa, nie pętla.
+      if (e && e.status === 403) {
+        powiadom('Ta karta nie jest dostępna');
+        if (_stan.onZamkniecie) { const cb = _stan.onZamkniecie; _stan.onZamkniecie = null; cb(); }
+      } else {
+        _stan.onZamkniecie = null;
+        powiadom('Nie udało się przygotować karty');
+      }
+    }
+  }
+
+  return { mount: mount, pokazMoment: pokazMoment };
 })();
