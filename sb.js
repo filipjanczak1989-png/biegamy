@@ -4643,17 +4643,27 @@ window.SHARECARD = (function () {
     ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;';
     ov.innerHTML =
       '<img src="' + _podgladUrl + '" alt="" style="width:' + szer + 'px;max-height:72vh;object-fit:contain;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6);">'
+      // DWA RZĘDY, nie cztery przyciski w jednym. Zmierzone w DM Mono 10 px z letter-spacing
+      // 0,14em i paddingiem 2×16: ZAMKNIJ 84 + ZAPISZ 76 + ZMIEŃ TŁO 99 + UDOSTĘPNIJ 121
+      // plus odstępy = ~410 px, a na iPhonie zostaje 350 (390 minus padding nakładki), na SE 335.
+      // Poleganie na flex-wrap dałoby układ 3+1 zależny od szerokości ekranu; tu drugi rząd
+      // jest jawny, a akcja główna dostaje pełną szerokość pod kciukiem.
       + '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">'
       + '<button type="button" data-sc="zamknij" class="btn btn-ghost btn-sm">Zamknij</button>'
+      + '<button type="button" data-sc="zapisz" class="btn btn-ghost btn-sm">Zapisz</button>'
       + (_stan.mozeEdytowac ? '<button type="button" data-sc="zmien" class="btn btn-ghost btn-sm">Zmień tło</button>' : '')
-      + '<button type="button" data-sc="udostepnij" class="btn btn-primary btn-sm">Udostępnij ↗</button>'
       + '</div>'
+      + '<div style="display:flex;width:' + szer + 'px;">'
+      + '<button type="button" data-sc="udostepnij" class="btn btn-primary btn-sm" style="width:100%;">Udostępnij ↗</button>'
+      + '</div>'
+      + (_iOS() ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;max-width:' + szer + 'px;line-height:1.5;">Na iPhonie plik otwiera się zamiast zapisywać — przytrzymaj obraz i wybierz „Zapisz obraz".</div>' : '')
       + (_stan.mozeEdytowac && _stan.log && _stan.log.card_bg_url
           ? '<button type="button" data-sc="usun" style="background:none;border:none;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;cursor:pointer;text-decoration:underline;">Usuń własne tło</button>'
           : '')
       + '<div data-sc="stanPodgladu" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;"></div>';
     document.body.appendChild(ov);
     ov.querySelector('[data-sc="zamknij"]').addEventListener('click', zamknijPodglad);
+    ov.querySelector('[data-sc="zapisz"]').addEventListener('click', zapisz);
     ov.querySelector('[data-sc="udostepnij"]').addEventListener('click', udostepnij);
     const bZmien = ov.querySelector('[data-sc="zmien"]');
     if (bZmien) bZmien.addEventListener('click', function () { wybierzPlik(true); });
@@ -4746,6 +4756,27 @@ window.SHARECARD = (function () {
     }
   }
 
+  // iOS traktuje `download` inaczej niż reszta świata: plik potrafi otworzyć się w karcie
+  // zamiast trafić do Zdjęć. ⚠️ NIE ZWERYFIKOWANE NA URZĄDZENIU — detekcja steruje wyłącznie
+  // podpowiedzią, więc błędne trafienie kosztuje jedną zbędną linijkę tekstu, nie działanie.
+  function _iOS() {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  }
+
+  function zapisz() {
+    // Pobieramy z BLOBA, nie z adresu w Storage. Atrybut `download` jest IGNOROWANY przy
+    // zasobie z innego origin — przeglądarka po prostu otwiera plik zamiast go zapisać.
+    // Blob jest same-origin, więc nazwa i zapis działają wszędzie tam, gdzie w ogóle działają.
+    if (!_plik) { powiadom('Karta jeszcze się nie wczytała'); return; }
+    const url = URL.createObjectURL(_plik);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'biegamy-karta.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    powiadom(_iOS() ? 'Jeśli plik się otworzył — przytrzymaj i wybierz „Zapisz obraz"' : 'Karta zapisana');
+  }
+
   function udostepnij() {
     // canShare sprawdzamy PRZED wywołaniem — brak wsparcia dla plików to nie
     // wyjątek, tylko normalny stan przeglądarki.
@@ -4756,10 +4787,10 @@ window.SHARECARD = (function () {
       });
       return;
     }
-    const a = document.createElement('a');
-    a.href = _url; a.download = 'biegamy-karta.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    powiadom('Karta zapisana');
+    // Brak Web Share dla plików — spadamy do zapisu. Ta sama funkcja co przycisk „Zapisz",
+    // żeby nie było dwóch ścieżek pobierania (stara używała adresu z innego origin, gdzie
+    // atrybut `download` i tak jest ignorowany).
+    zapisz();
   }
 
   // Karta MOMENTU (kamień milowy) — bez slotu i bez przycisku, wołana z banera w „Dziś".

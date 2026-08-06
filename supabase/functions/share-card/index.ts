@@ -394,15 +394,16 @@ function zbudujKarte(o: {
     alignItems: "center", justifyContent: "center", overflow: "hidden",
     backgroundColor: COLS.avatarTlo,
   };
+  // BEZ ZDJĘCIA NIE RYSUJEMY NIC. Przy imieniu kółko z inicjałem miało sens — tłumaczyło się
+  // sąsiedztwem. Samotne w stopce czyta się jak placeholder, więc stopka wraca wtedy do
+  // układu bez awatara (decyzja Filipa 6/8, po oglądzie obu wariantów).
   const awatar = o.av
     ? h("div", kolo, [(() => {
         const im = h("img", { width: 100, height: 100, borderRadius: 50 });
         (im.props as Record<string, unknown>).src = o.av;
         return im;
       })()])
-    : h("div", kolo, [
-        txt({ fontFamily: "DMSans", fontWeight: 500, fontSize: 38, color: COLS.akcent }, inicjaly(o.imie)),
-      ]);
+    : null;
 
   // Tożsamość
   dzieci.push(txt({
@@ -491,7 +492,7 @@ function zbudujKarte(o: {
     fontSize: 26, color: COLS.wtorny, textAlign: "right",
   }, "biegamy.run"));
 
-  dzieci.push(awatar);   // NA KOŃCU — leży na pasie stopki, nie pod nim
+  if (awatar) dzieci.push(awatar);   // NA KOŃCU — leży na pasie stopki, nie pod nim
 
   return h("div", {
     position: "relative", display: "flex", width: 1080, height: 1350, backgroundColor: "#0b0b0d",

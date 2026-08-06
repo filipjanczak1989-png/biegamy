@@ -276,9 +276,26 @@ Pomiary stopki (**zmierzone**, DM Sans na realnym foncie):
 | awatar 100 px, standard (pas 205 px) | y 1198..1298, margines 52 px |
 | awatar 100 px, portret (pas 170 px) | y 1215..1315, margines 35 px |
 
-Awatar 100 px na `x=530` ma po ~130 px z każdej strony i **nie ściska tagline'u**. Inicjał 38 px (było 44 przy kółku 120 px).
+Awatar 100 px na `x=530` ma po ~130 px z każdej strony i **nie ściska tagline'u**.
+
+⚠️ **Bez `avatar_url` nie rysujemy nic** — stopka wraca wówczas do układu bez awatara. Przy imieniu kółko z inicjałem miało sens, bo tłumaczyło się sąsiedztwem; samotne w stopce czyta się jak placeholder. Decyzja po oglądzie obu wariantów, nie z założenia.
 
 ⚠️ Awatar dorysowywany jest **jako ostatni, po pasie stopki** — pas jest półprzezroczysty (`rgba(232,86,30,0.12)`), więc narysowany po awatarze przebarwiłby go na pomarańczowo.
+
+## Podgląd karty — przyciski (**LIVE**)
+
+```
+[Zamknij]  [Zapisz]  [Zmień tło]
+[      Udostępnij ↗ (pełna szerokość)      ]
+```
+
+**Dwa rzędy, nie cztery przyciski w jednym.** Zmierzone (DM Mono 10 px, `letter-spacing:0.14em`, padding 2×16): ZAMKNIJ 84 + ZAPISZ 76 + ZMIEŃ TŁO 99 + UDOSTĘPNIJ 121 plus odstępy ≈ **410 px**, a na iPhonie zostaje 350 (390 minus padding nakładki), na SE 335. Poleganie na `flex-wrap` dałoby układ 3+1 zależny od szerokości ekranu; drugi rząd jest jawny, a akcja główna dostaje pełną szerokość pod kciukiem.
+
+⚠️ **`btn-sm` nie istnieje w CSS żadnej ze stron** — przyciski renderują się w pełnym rozmiarze `.btn`, mimo że kod od początku prosi o mały wariant. Zaległość kosmetyczna; pomiary wyżej zakładają stan faktyczny, czyli pełny rozmiar.
+
+**Zapis pobiera BLOB, nie adres w Storage.** Atrybut `download` jest ignorowany przy zasobie z innego origin — przeglądarka otwiera plik zamiast go zapisać. Blob jest same-origin, więc nazwa pliku i zapis działają wszędzie tam, gdzie w ogóle działają. Ten sam kod obsługuje przycisk „Zapisz" i awaryjną ścieżkę „Udostępnij", gdy przeglądarka nie ma Web Share dla plików.
+
+⚠️ **iOS — NIEZWERYFIKOWANE NA URZĄDZENIU.** Safari potrafi otworzyć plik w karcie zamiast zapisać go do Zdjęć. Przy wykryciu iOS pokazujemy podpowiedź „przytrzymaj obraz i wybierz Zapisz obraz". Detekcja steruje **wyłącznie tekstem** — błędne trafienie kosztuje jedną zbędną linijkę, nie działanie.
 
 ## Reguła: odstępy mierzy się po TUSZU, nie po pudełkach
 
@@ -293,6 +310,8 @@ Realne odstępy w portrecie (bohater 820, podpis 975, statystyki 1050): tożsamo
 **⚠️ BLOKUJE `tydzien` (K4): detekcja tygodniowa liczy niedomknięty tydzień.** `detectVolume` i `detectTop5Tygodni` ogłaszają wynik, który jeszcze rośnie — a karta zamraża liczbę, która nie była ostateczna, i idzie na Instagram. Gorzej: `suma_km` siedzi w `evidence`, czyli w kluczu dedupu, więc **każdy dołożony log tworzy nowy moment tego samego tygodnia**. Dowód: Martyna Strzeszyńska, 2026-07-05 — pięć pendingów jednego tygodnia (74,39 → 79,39 → 84,39 → 89,39 → 110,01 km). Przy `dystans` ten sam błąd naprawiono, wynosząc żywą sumę poza `evidence`.
 
 Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z domkniętego tygodnia · plus wyniesienie `suma_km` i `slupki` do `payload`. Naprawa evidence odpali wszystkie dotychczasowe wolumeny ponownie — rozegrać razem z decyzją o oknie.
+
+**⚠️ Berlin u Kevina — moment `dystans` nie idzie dalej.** Zgłoszone 6/8: Kevin ma moment „Berlin", choć według sumy rocznej powinien być już w Amsterdamie. Hipoteza (NIEsprawdzona): niezatwierdzony `pending` blokuje kolejny próg, bo dedup patrzy także na oczekujące. **Nie zgadywać — sprawdzić przy K4**, gdzie i tak wracamy do dedupu i evidence.
 
 **Audyt `elevation_gain`** — 46% wypełnienia, jeden zawodnik z 64 m/km. Przed jakąkolwiek kartą przewyższeniową.
 
