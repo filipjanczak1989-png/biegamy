@@ -27,6 +27,51 @@ const SIATKA: Record<number, { x: number[]; dividery: number[] }> = {
   1: { x: [72], dividery: [] },
 };
 
+// ── UKŁADY ───────────────────────────────────────────────────
+// Lustro UKLADY z sb.js: tam strefy do POMIARU, tu pozycje do RYSOWANIA. Klient mierzy
+// jasność w strefach układu i to on decyduje, czy kadr przejdzie; EF tym samym układem
+// rysuje. Rozjazd tych dwóch tablic = karta wygląda inaczej, niż pokazał podgląd.
+//
+// Portret: stopy scrimu i geometria POTWIERDZONE sweepem 22 tłá (nic nie przekracza progu 38).
+// Najwyżej wychodzi logo — mediana 12,5, max 28,2 — bo góra celowo jaśnieje z 0,76 do 0,30.
+type Uklad = {
+  scrim: string;
+  imie: number; meta: number; miasto: number;
+  bohaterY: number; bohaterPx: number; bohaterMalyPx: number; jednostkaPx: number; podpisY: number;
+  dividerY: number; dividerH: number;
+  statIkonaY: number; statWartoscY: number; statJednostkaY: number;
+  statEtykietaPx4: number; statEtykietaPx3: number; statWartoscPx: number; statJednostkaPx: number;
+  stopkaY: number; stopkaH: number; stopkaLogoY: number; stopkaHasloY: number; stopkaTagY: number; stopkaDomenaY: number;
+  maxKolumn: number;
+};
+const UKLADY: Record<string, Uklad> = {
+  standard: {
+    scrim: "linear-gradient(to bottom, rgba(7,7,10,0.76) 0%, rgba(7,7,10,0.40) 51.85%, " +
+           "rgba(7,7,10,0.48) 66.67%, rgba(7,7,10,0.72) 100%)",
+    imie: 348, meta: 402, miasto: 440,
+    bohaterY: 500, bohaterPx: 210, bohaterMalyPx: 168, jednostkaPx: 78, podpisY: 770,
+    dividerY: 900, dividerH: 190,
+    statIkonaY: 898, statWartoscY: 962, statJednostkaY: 1030,
+    statEtykietaPx4: 18, statEtykietaPx3: 22, statWartoscPx: 66, statJednostkaPx: 24,
+    stopkaY: 1145, stopkaH: 205, stopkaLogoY: 1188, stopkaHasloY: 1248, stopkaTagY: 1195, stopkaDomenaY: 1248,
+    maxKolumn: 4,
+  },
+  portret: {
+    scrim: "linear-gradient(to bottom, rgba(7,7,10,0.30) 0%, rgba(7,7,10,0.10) 22.22%, " +
+           "rgba(7,7,10,0.14) 44.44%, rgba(7,7,10,0.72) 57.78%, rgba(7,7,10,0.82) 100%)",
+    imie: 700, meta: 745, miasto: 780,
+    bohaterY: 805, bohaterPx: 150, bohaterMalyPx: 120, jednostkaPx: 56, podpisY: 975,
+    dividerY: 1042, dividerH: 118,
+    statIkonaY: 1040, statWartoscY: 1072, statJednostkaY: 1134,
+    // Trzy kolumny na sztywno: przy wartości 52 px czwarta kolumna zostawia na etykietę
+    // 190 px, a PRZEWYŻSZENIE ma w 20 px 174 px — mieściłoby się o 16 px, czyli w granicy
+    // błędu. Odcinamy do trzech zamiast liczyć na szczęście.
+    statEtykietaPx4: 20, statEtykietaPx3: 20, statWartoscPx: 52, statJednostkaPx: 22,
+    stopkaY: 1180, stopkaH: 170, stopkaLogoY: 1216, stopkaHasloY: 1265, stopkaTagY: 1222, stopkaDomenaY: 1265,
+    maxKolumn: 3,
+  },
+};
+
 // ── TREŚĆ KART ────────────────────────────────────────────────────
 // Jedno miejsce na wszystko, co da się rozjechać między formatami: nazwy, progi,
 // formatowanie liczb. Karta Story (canvas w js/silnik-anim.js) układa te same
@@ -300,13 +345,14 @@ type Stat = { ikona: string; etykieta: string; wartosc: string; jednostka: strin
 
 function zbudujKarte(o: {
   boot: Boot; bgUri: string; imie: string; av: string | null; meta: string; miasto: string | null;
-  bohater: string; jednostka: string | null; podpis: string; staty: Stat[];
+  bohater: string; jednostka: string | null; podpis: string; staty: Stat[]; u: Uklad;
 }): El {
-  const g = SIATKA[Math.max(1, Math.min(4, o.staty.length))];
+  const u = o.u;
+  const g = SIATKA[Math.max(1, Math.min(u.maxKolumn, o.staty.length))];
   // Przy 4 kolumnach na etykietę zostaje 190 px (skok 234 − ikona 34 − odstęp 10),
   // a „PRZEWYŻSZENIE" ma w 22 px aż 191,5 px i wchodzi na ikonę sąsiada.
   // 18 px daje 155,5 px, czyli ~34 px oddechu. Przy ≤3 kolumnach skok to 312 px — 22 px mieści się.
-  const etykietaPx = g.x.length >= 4 ? 18 : 22;
+  const etykietaPx = g.x.length >= 4 ? u.statEtykietaPx4 : u.statEtykietaPx3;
   const dzieci: El[] = [];
 
   // Tło
@@ -325,9 +371,7 @@ function zbudujKarte(o: {
   // próg 38 (k/gory-dolina tożsamość i dystans, n/promenada tożsamość).
   dzieci.push(h("div", {
     position: "absolute", left: 0, top: 0, width: 1080, height: 1350,
-    backgroundImage:
-      "linear-gradient(to bottom, rgba(7,7,10,0.76) 0%, rgba(7,7,10,0.40) 51.85%, " +
-      "rgba(7,7,10,0.48) 66.67%, rgba(7,7,10,0.72) 100%)",
+    backgroundImage: u.scrim,
   }));
 
   // Nagłówek: logotyp (zawiera już słowo BIEGAMY) + tagline
@@ -341,7 +385,7 @@ function zbudujKarte(o: {
 
   // Awatar
   const kolo: Record<string, unknown> = {
-    position: "absolute", left: 72, top: 322, width: 120, height: 120,
+    position: "absolute", left: 72, top: u.imie - 26, width: 120, height: 120,
     borderRadius: 60, border: `3px solid ${COLS.akcent}`, display: "flex",
     alignItems: "center", justifyContent: "center", overflow: "hidden",
     backgroundColor: COLS.avatarTlo,
@@ -358,19 +402,19 @@ function zbudujKarte(o: {
 
   // Tożsamość
   dzieci.push(txt({
-    position: "absolute", left: 214, top: 348, fontFamily: "DMSans", fontWeight: 500,
+    position: "absolute", left: 214, top: u.imie, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 38, color: COLS.tekst,
   }, o.imie));
   // Meta w DWÓCH liniach: miasto osobno, żeby cały tekst mieścił się w lewej strefie
   // przyciemnienia. Jedna długa linia wychodziła na jasne niebo i traciła kontrast —
   // a przy bibliotece teł każde zdjęcie ma jasne miejsce gdzie indziej.
   dzieci.push(txt({
-    position: "absolute", left: 214, top: 402, fontFamily: "DMSans", fontWeight: 400,
+    position: "absolute", left: 214, top: u.meta, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 24, color: COLS.wtorny,
   }, o.meta));
   if (o.miasto) {
     dzieci.push(txt({
-      position: "absolute", left: 214, top: 440, fontFamily: "DMSans", fontWeight: 400,
+      position: "absolute", left: 214, top: u.miasto, fontFamily: "DMSans", fontWeight: 400,
       fontSize: 22, color: COLS.wygaszony,
     }, o.miasto));
   }
@@ -379,24 +423,24 @@ function zbudujKarte(o: {
   // Zejście do 168 px przy 7+ znakach: czas „1:29:44" w 210 px ma ~640 px i przy dłuższym
   // wyniku wychodziłby poza lewą strefę przyciemnienia. Dystanse mają max 5 znaków („10,02"),
   // więc dla kart treningu i kamienia nic się nie zmienia.
-  const heroPx = o.bohater.length >= 7 ? 168 : 210;
+  const heroPx = o.bohater.length >= 7 ? u.bohaterMalyPx : u.bohaterPx;
   dzieci.push(h("div", {
-    position: "absolute", left: 70, top: 500, display: "flex", alignItems: "flex-end",
+    position: "absolute", left: 70, top: u.bohaterY, display: "flex", alignItems: "flex-end",
   }, [
     txt({ fontFamily: "Bebas", fontSize: heroPx, color: COLS.tekst, letterSpacing: -4, lineHeight: 1 }, o.bohater),
     ...(o.jednostka
-      ? [txt({ fontFamily: "Bebas", fontSize: 78, color: COLS.akcent, marginLeft: 24, lineHeight: 1.25 }, o.jednostka)]
+      ? [txt({ fontFamily: "Bebas", fontSize: u.jednostkaPx, color: COLS.akcent, marginLeft: 24, lineHeight: 1.25 }, o.jednostka)]
       : []),
   ]));
   dzieci.push(txt({
-    position: "absolute", left: 74, top: 770, fontFamily: "Bebas", fontSize: 44,
+    position: "absolute", left: 74, top: u.podpisY, fontFamily: "Bebas", fontSize: 44,
     color: COLS.wygaszony, letterSpacing: 4,
   }, o.podpis.toUpperCase()));
 
   // Dividery paska statystyk
   for (const x of g.dividery) {
     dzieci.push(h("div", {
-      position: "absolute", left: x, top: 900, width: 1, height: 190, backgroundColor: COLS.linia,
+      position: "absolute", left: x, top: u.dividerY, width: 1, height: u.dividerH, backgroundColor: COLS.linia,
     }));
   }
 
@@ -406,7 +450,7 @@ function zbudujKarte(o: {
     const ik = h("img", { width: 34, height: 34 });
     (ik.props as Record<string, unknown>).src = s.ikona;
     dzieci.push(h("div", {
-      position: "absolute", left: x, top: 898, display: "flex", alignItems: "center",
+      position: "absolute", left: x, top: u.statIkonaY, display: "flex", alignItems: "center",
     }, [
       ik,
       txt({
@@ -415,31 +459,31 @@ function zbudujKarte(o: {
       }, s.etykieta),
     ]));
     dzieci.push(txt({
-      position: "absolute", left: x, top: 962, fontFamily: "Bebas", fontSize: 66, color: COLS.tekst,
+      position: "absolute", left: x, top: u.statWartoscY, fontFamily: "Bebas", fontSize: u.statWartoscPx, color: COLS.tekst,
     }, s.wartosc));
     dzieci.push(txt({
-      position: "absolute", left: x, top: 1030, fontFamily: "DMSans", fontWeight: 400,
-      fontSize: 24, color: COLS.wygaszony,
+      position: "absolute", left: x, top: u.statJednostkaY, fontFamily: "DMSans", fontWeight: 400,
+      fontSize: u.statJednostkaPx, color: COLS.wygaszony,
     }, s.jednostka));
   });
 
   // Stopka
   dzieci.push(h("div", {
-    position: "absolute", left: 0, top: 1145, width: 1080, height: 205, backgroundColor: COLS.stopka,
+    position: "absolute", left: 0, top: u.stopkaY, width: 1080, height: u.stopkaH, backgroundColor: COLS.stopka,
   }));
-  const logoStopka = h("img", { position: "absolute", left: 72, top: 1188, width: 200, height: 47 });
+  const logoStopka = h("img", { position: "absolute", left: 72, top: u.stopkaLogoY, width: 200, height: 47 });
   (logoStopka.props as Record<string, unknown>).src = o.boot.logoUri;
   dzieci.push(logoStopka);
   dzieci.push(txt({
-    position: "absolute", left: 74, top: 1248, fontFamily: "DMSans", fontWeight: 400,
+    position: "absolute", left: 74, top: u.stopkaHasloY, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 24, color: COLS.wtorny,
   }, "Trenuj. Rywalizuj. Bądź lepszy."));
   dzieci.push(txt({
-    position: "absolute", right: 72, top: 1195, fontFamily: "DMSans", fontWeight: 500,
+    position: "absolute", right: 72, top: u.stopkaTagY, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 32, color: COLS.akcent, textAlign: "right",
   }, "#biegamyrazem"));
   dzieci.push(txt({
-    position: "absolute", right: 72, top: 1248, fontFamily: "DMSans", fontWeight: 400,
+    position: "absolute", right: 72, top: u.stopkaDomenaY, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 26, color: COLS.wtorny, textAlign: "right",
   }, "biegamy.run"));
 
@@ -471,7 +515,7 @@ type Admin = ReturnType<typeof adminClient>;
 async function wyrenderuj(admin: Admin, o: {
   plik: string; publicUrl: string; ziarno: string; dataDoSezonu: string | null; ath: Zawodnik;
   meta: string; bohater: string; jednostka: string | null; podpis: string; staty: Stat[];
-  wlasneTlo?: string | null;
+  wlasneTlo?: string | null; uklad?: string;
 }): Promise<Response> {
   const boot = await ensureBoot();
 
@@ -492,7 +536,9 @@ async function wyrenderuj(admin: Admin, o: {
     boot, bgUri: `data:image/jpeg;base64,${b64(bgBajty)}`,
     imie: fmtImie(o.ath.full_name), av: await avatarUri(o.ath.avatar_url),
     meta: o.meta, miasto: (o.ath.city || "").trim() || null,
-    bohater: o.bohater, jednostka: o.jednostka, podpis: o.podpis, staty: o.staty.slice(0, 4),
+    bohater: o.bohater, jednostka: o.jednostka, podpis: o.podpis,
+    u: UKLADY[o.uklad || "standard"] || UKLADY.standard,
+    staty: o.staty.slice(0, (UKLADY[o.uklad || "standard"] || UKLADY.standard).maxKolumn),
   });
 
   const svg = await satori(el as unknown as Parameters<typeof satori>[0], {
@@ -608,7 +654,10 @@ async function kartaMomentu(
   // a nie żywy raport. Gdyby kiedyś miało być inaczej, do klucza wchodzi hash treści.
   return await wyrenderuj(admin, {
     plik, publicUrl, ziarno: plik, dataDoSezonu: mom.created_at, ath: ath as Zawodnik,
-    meta: fmtData(mom.created_at), bohater, jednostka, podpis, staty,
+    // Karty momentów nie przechodzą przez kadrownik, więc nie mają skąd wziąć wyboru
+    // układu — idą standardem. Gdyby kiedyś miały mieć portret, wybór musi się najpierw
+    // gdzieś utrwalić, bo klucz cache jest niezmienny.
+    meta: fmtData(mom.created_at), bohater, jednostka, podpis, staty, uklad: "standard",
   });
 }
 
@@ -619,7 +668,10 @@ Deno.serve(async (req) => {
     const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!jwt) return json({ error: "brak autoryzacji" }, 401);
 
-    const { log_id, moment_id } = await req.json().catch(() => ({}));
+    const { log_id, moment_id, uklad: ukladIn } = await req.json().catch(() => ({}));
+    // Nieznana wartość = standard. Układ przychodzi z kadrownika i żyje tylko w sesji
+    // klienta — karta pod danym kluczem zostaje na zawsze, więc oba warianty współistnieją.
+    const uklad = ukladIn === "portret" ? "portret" : "standard";
     if (!log_id && !moment_id) return json({ error: "brak log_id albo moment_id" }, 400);
     if (log_id && typeof log_id !== "string") return json({ error: "złe log_id" }, 400);
     if (moment_id && typeof moment_id !== "string") return json({ error: "złe moment_id" }, 400);
@@ -651,7 +703,10 @@ Deno.serve(async (req) => {
     // Efekt uboczny na plus: wcześniej cache sprawdzał się przed autoryzacją, czyli
     // dowolny zalogowany mógł sprawdzić, czy karta dla danego log_id istnieje.
     const wlasneTlo = dozwoloneTlo(log.card_bg_url);
-    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.png` : `${log_id}.png`;
+    // Sufiks -p: układ portretowy to INNA karta, nie inny render tej samej. Bez migracji —
+    // wybór żyje w sesji klienta, a plik pod kluczem zostaje na zawsze (stare linki żyją).
+    const suf = uklad === "portret" ? "-p" : "";
+    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}${suf}.png` : `${log_id}${suf}.png`;
     const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
 
     // Karta niezmienna — jeśli jest, oddajemy bez renderu.
@@ -684,7 +739,7 @@ Deno.serve(async (req) => {
     return await wyrenderuj(admin, {
       plik, publicUrl, ziarno: log_id, dataDoSezonu: log.logged_at, ath: ath as Zawodnik,
       meta, bohater: fmtDystans(Number(log.distance_km)), jednostka: "KM",
-      podpis: log.training_type || "Bieg", staty, wlasneTlo,
+      podpis: log.training_type || "Bieg", staty, wlasneTlo, uklad,
     });
   } catch (e) {
     // Szczegóły TYLKO do logów EF — odpowiedź nie wystawia wnętrza na zewnątrz.
