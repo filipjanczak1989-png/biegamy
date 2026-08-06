@@ -4268,11 +4268,23 @@ window.SOLO = (function(){
 // tę klasę awarii naraz.
 window.SHARECARD = (function () {
   // Strefy tekstu na karcie — te same, na których mierzyliśmy bibliotekę teł.
+  // Strefy tekstu karty (współrzędne płótna 1080×1350).
+  // `mierz:false` = strefa POKAZYWANA w kadrowniku jako pole zajęte przez tekst, ale
+  // NIEwchodząca do pomiaru jasności. Eskalacja przyciemnienia i odmowa mają dotyczyć
+  // dokładnie tego, co dotąd (logo, tożsamość, bohater) — dorzucenie statystyk i stopki
+  // do pomiaru zmieniłoby dobór przyciemnienia dla całej biblioteki 22 teł, a to osobna
+  // decyzja, nie efekt uboczny rysowania siatki.
   const STREFY = [
-    { nazwa: 'logo',      x: 60, y: 100, w: 360, h: 130 },
-    { nazwa: 'tozsamosc', x: 60, y: 340, w: 580, h: 130 },
-    { nazwa: 'dystans',   x: 60, y: 490, w: 640, h: 310 },
+    { nazwa: 'logo',       x: 60, y: 100,  w: 360,  h: 130 },
+    { nazwa: 'tozsamosc',  x: 60, y: 340,  w: 580,  h: 130 },
+    { nazwa: 'dystans',    x: 60, y: 490,  w: 640,  h: 310 },
+    { nazwa: 'statystyki', x: 60, y: 890,  w: 960,  h: 200, mierz: false },
+    { nazwa: 'stopka',     x: 0,  y: 1145, w: 1080, h: 205, mierz: false },
   ];
+  const STREFY_MIERZONE  = STREFY.filter(function (s) { return s.mierz !== false; });
+  const STREFA_TOZSAMOSC = STREFY.find(function (s) { return s.nazwa === 'tozsamosc'; });
+  // ⚠️ NIEZWERYFIKOWANY — liczba ze specu, nie z pomiaru. Kalibracja w sweepie 22 teł.
+  const RUCH_PROG = 18;   // średni moduł gradientu w strefie; PODPOWIEDŹ, nie blokada
   // Kolejne stopnie przyciemnienia: [siła lewego gradientu, jego zasięg w szerokości].
   const STOPNIE = [[0.88,0.66],[0.93,0.70],[0.96,0.74],[0.975,0.78],[0.985,0.82]];
   const PROG = 38;
@@ -4358,18 +4370,20 @@ window.SHARECARD = (function () {
     // Zmierzone, nie zgadnięte — pasmo 9500–9999 jest poza tym puste w obu stronach.
     ov.style.cssText = 'position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;';
     ov.innerHTML =
-      '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5</div>'
+      '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Przesuń i przybliż — kadr 4:5 · trzymaj twarze poza polami</div>'
       + '<canvas data-sc="canvas" width="' + szer + '" height="' + wys + '" style="border-radius:12px;touch-action:none;background:#000;"></canvas>'
       + '<input type="range" data-sc="zoom" min="100" max="300" value="100" style="width:' + szer + 'px;">'
       + '<div style="display:flex;gap:10px;">'
       + '<button type="button" data-sc="anuluj" class="btn btn-ghost btn-sm">Anuluj</button>'
       + '<button type="button" data-sc="ok" class="btn btn-primary btn-sm">Użyj tego kadru</button>'
       + '</div>'
+      + '<div data-sc="wskazowka" style="font-size:11px;color:var(--accent);font-family:DM Mono,monospace;max-width:' + szer + 'px;text-align:center;line-height:1.5;min-height:15px;"></div>'
       + '<div data-sc="stan" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;text-align:center;line-height:1.5;"></div>';
     document.body.appendChild(ov);
 
     const c = ov.querySelector('[data-sc="canvas"]');
     const suwak = ov.querySelector('[data-sc="zoom"]');
+    const wsk = ov.querySelector('[data-sc="wskazowka"]');
     const ctx = c.getContext('2d');
     const bazowa = Math.max(szer / img.width, wys / img.height);   // cover
     const st = { skala: bazowa, x: 0, y: 0, img: img, bazowa: bazowa, szer: szer, wys: wys, ov: ov, zPodgladu: !!zPodgladu };
@@ -4380,14 +4394,56 @@ window.SHARECARD = (function () {
       st.x = Math.min(0, Math.max(szer - w, st.x));
       st.y = Math.min(0, Math.max(wys - h, st.y));
     }
+    // SIATKA BEZPIECZNA — rysowana WYŁĄCZNIE na płótnie kadrownika, NIGDY w pliku.
+    // Obraz do wgrania powstaje osobną ścieżką (zatwierdzKadr → własne płótno 1080×1350),
+    // która o siatce nie wie. To ta sama zasada, którą złamał kiedyś podwójny scrim:
+    // co służy do PATRZENIA, nie może trafić do RENDERU.
+    function rysujSiatke() {
+      const k = szer / 1080;
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(232,86,30,0.5)';
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      STREFY.forEach(function (s) {
+        ctx.fillRect(s.x * k, s.y * k, s.w * k, s.h * k);
+        ctx.strokeRect(s.x * k + 0.5, s.y * k + 0.5, s.w * k - 1, s.h * k - 1);
+      });
+      ctx.restore();
+    }
     function rysuj() {
       ogranicz();
       ctx.clearRect(0, 0, szer, wys);
       ctx.drawImage(img, st.x, st.y, img.width * st.skala, img.height * st.skala);
+      rysujSiatke();
     }
+
+    // Pomiar na PEŁNEJ rozdzielczości i na SUROWYM kadrze — dwie świadome decyzje:
+    //  • próg opisuje piksele karty, a nie podglądu; pomniejszenie ~2,8× zjada wysokie
+    //    częstotliwości i zaniżyłoby wynik tam, gdzie chodzi właśnie o drobny szczegół;
+    //  • przyciemnienie tłumi gradienty, ale nie usuwa twarzy — mierząc po nim, podpowiedź
+    //    milczałaby akurat na zdjęciach, dla których powstała.
+    function odswiezWskazowke() {
+      if (!wsk) return;
+      const W = 1080, k2 = W / szer;
+      const p = document.createElement('canvas'); p.width = W; p.height = 1350;
+      const pc = p.getContext('2d', { willReadFrequently: true });
+      pc.drawImage(img, st.x * k2, st.y * k2, img.width * st.skala * k2, img.height * st.skala * k2);
+      const gorace = STREFY.some(function (s) {
+        return (s.nazwa === 'tozsamosc' || s.nazwa === 'dystans') && ruchliwosc(pc, s) > RUCH_PROG;
+      });
+      // PODPOWIEDŹ, nie blokada: przycisk „Użyj tego kadru" zostaje aktywny. Odmowa należy
+      // wyłącznie do jasności — blokujemy nieczytelność, nie kompozycję.
+      wsk.textContent = gorace
+        ? 'W polu liczb jest dużo szczegółu. Przesuń zdjęcie, żeby twarz trafiła w wolne miejsce.'
+        : '';
+    }
+    // Po geście, nie w trakcie: pełny render to ~1,4 MPx i przy każdej klatce przeciągania
+    // zamieniłby płynne kadrowanie w szarpanie.
+    function wskazowkaPoGescie() { clearTimeout(st.tWsk); st.tWsk = setTimeout(odswiezWskazowke, 150); }
     st.x = (szer - img.width * bazowa) / 2;
     st.y = (wys - img.height * bazowa) / 2;
     rysuj();
+    wskazowkaPoGescie();   // pierwsza ocena kadru bez czekania na gest
 
     ov.querySelector('[data-sc="anuluj"]').addEventListener('click', zamknijKadrownik);
     ov.querySelector('[data-sc="ok"]').addEventListener('click', function () { zatwierdzKadr(ov); });
@@ -4401,7 +4457,7 @@ window.SHARECARD = (function () {
       st.x += e.clientX - ostatni.x; st.y += e.clientY - ostatni.y;
       ostatni = { x:e.clientX, y:e.clientY }; rysuj();
     });
-    c.addEventListener('pointerup', function(){ ostatni = null; });
+    c.addEventListener('pointerup', function(){ ostatni = null; wskazowkaPoGescie(); });
     c.addEventListener('touchstart', function(e){
       if (e.touches.length === 2) { ostatni = null; dystStart = dyst(e.touches); skalaStart = st.skala; }
     }, { passive:true });
@@ -4417,6 +4473,7 @@ window.SHARECARD = (function () {
       st.skala = nowa;
       suwak.value = Math.round(nowa / bazowa * 100);
       rysuj();
+      wskazowkaPoGescie();
     }, { passive:false });
     suwak.addEventListener('input', function(){
       const nowa = bazowa * (parseInt(this.value, 10) / 100);
@@ -4424,6 +4481,7 @@ window.SHARECARD = (function () {
       st.x = px - (px - st.x) * (nowa / st.skala);
       st.y = py - (py - st.y) * (nowa / st.skala);
       st.skala = nowa; rysuj();
+      wskazowkaPoGescie();
     });
   }
 
@@ -4438,6 +4496,23 @@ window.SHARECARD = (function () {
     let suma = 0;
     for (let i = 0; i < d.length; i += 4) suma += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
     return suma / (d.length / 4);
+  }
+
+  // Ruchliwość obrazu: średni moduł gradientu (różnica sąsiednich pikseli w poziomie
+  // i pionie) na luminancji BT.709 — tej samej, na której mierzymy jasność. Co drugi piksel:
+  // wynik zmienia się w trzeciej cyfrze, a pomiar jest cztery razy tańszy.
+  function ruchliwosc(ctx, s) {
+    const d = ctx.getImageData(s.x, s.y, s.w, s.h).data;
+    const L = function (i) { return 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2]; };
+    let suma = 0, n = 0;
+    for (let y = 0; y < s.h - 1; y += 2) {
+      for (let x = 0; x < s.w - 1; x += 2) {
+        const i = (y * s.w + x) * 4;
+        suma += Math.abs(L(i + 4) - L(i)) + Math.abs(L(i + s.w * 4) - L(i));
+        n++;
+      }
+    }
+    return n ? suma / n : 0;
   }
 
   function gradientBazowy(ctx, W, H, sila, zasieg) {
@@ -4479,7 +4554,7 @@ window.SHARECARD = (function () {
       ctx.drawImage(st.img, st.x * k, st.y * k, st.img.width * st.skala * k, st.img.height * st.skala * k);
       gradientBazowy(ctx, W, H, STOPNIE[i][0], STOPNIE[i][1]);
       uzyty = i;
-      if (STREFY.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
+      if (STREFY_MIERZONE.every(function(s){ return jasnosc(ctx, s) <= PROG; })) break;
     }
     // Scrim NIE jest wypalany w pliku — służy wyłącznie do POMIARU. EF dokłada go
     // przy renderze, więc wypalenie dałoby scrim dwa razy: przy kryciu 0,76 u góry
@@ -4493,7 +4568,10 @@ window.SHARECARD = (function () {
     scrim(pctx, W, H);
 
     // Twarda odmowa: lepiej nie wypuścić karty niż wypuścić nieczytelną z naszym logo.
-    if (jasnosc(pctx, STREFY[1]) > PROG) {
+    // Odmowa WYŁĄCZNIE po jasności strefy tożsamości — blokujemy nieczytelność, nie kompozycję.
+    // Nazwa zamiast indeksu: `STREFY[1]` przestałoby być tożsamością przy pierwszej zmianie
+    // listy, a odmowa po ZŁEJ strefie to awaria, której nikt nie zauważy.
+    if (jasnosc(pctx, STREFA_TOZSAMOSC) > PROG) {
       btn.disabled = false; stan.textContent = '';
       zamknijKadrownik();
       powiadom('To zdjęcie jest za jasne tam, gdzie stoi imię. Spróbuj innego kadru.');
