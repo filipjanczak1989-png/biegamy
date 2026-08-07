@@ -83,6 +83,23 @@ const PB_NAZWY: Record<string, string> = {
 // Dystanse KANONICZNE — wyłącznie do tempa na karcie `pb`: podpis mówi „PÓŁMARATON",
 // więc tempo ma opisywać półmaraton, a nie faktyczne 20,8 km. PB klasyfikuje z tolerancją.
 // Bohater karty „pierwszy raz" bierze dystans RZECZYWISTY z evidence — to jego liczba.
+// ⚠⚠ TRZECIA I OSTATNIA KOPIA RUN_TYPES. Lista żyje w TRZECH plikach:
+//   1. sb.js                                  → window.RUN_TYPES (klient: sumy km, isRunType)
+//   2. js/silnik-momentu.js                   → var RUN_TYPES (silnik + inline w EF detect-moment)
+//   3. supabase/functions/share-card/index.ts → TEN plik (suma okresu na karcie)
+//
+// REGUŁA SYNC: zmiana listy = zmiana we WSZYSTKICH TRZECH. Bramka po zmianie:
+//   grep -c "wybieganie" sb.js js/silnik-momentu.js supabase/functions/share-card/index.ts
+// ma dać ten sam zestaw typów w każdym pliku.
+//
+// CZWARTEJ KOPII NIE DOPUSZCZAMY (decyzja Filipa 7/8). Propozycja wyjścia zapisana
+// w docs/karty-rodzaje-spec.md: wynieść listę do jednego pliku inlinowanego przy
+// buildzie w obu EF-ach — tak jak silnik trafia do detect-moment.
+const RUN_TYPES = ["spokojny","bieg spokojny","wybieganie","długi","tempo","progresja","interwały","start","wyścig","regeneracja"];
+function isRunType(t: string | null): boolean {
+  return RUN_TYPES.indexOf(String(t ?? "").toLowerCase().trim()) !== -1;
+}
+
 const PB_KM: Record<string, number> = { "5k": 5, "10k": 10, half: 21.0975, marathon: 42.195 };
 
 // Nazwy progów. Zmierzone w Bebasie 44 px z letterSpacing 4 przy polu 934 px:
@@ -284,6 +301,22 @@ function fmtData(iso: string): string {
     day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Warsaw",
   }).format(new Date(iso));
 }
+// Poniedziałek zaczyna tydzień — identycznie jak weekKey() w js/silnik-momentu.js.
+// Data z timestamptz brana w UTC, bo silnik grupuje po tych samych dniach.
+function dzienIndex(iso: string): number {
+  const d = new Date(iso);
+  return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000);
+}
+function tydzienKey(iso: string): number { return Math.floor((dzienIndex(iso) + 3) / 7); }
+function poniedzialekTygodnia(wk: number): Date { return new Date((wk * 7 - 3) * 86400000); }
+// „3–9 sierpnia 2026" — dla karty okresowej data dzienna nic nie znaczy.
+function fmtZakresTygodnia(pon: Date): string {
+  const nd = new Date(pon.getTime() + 6 * 86400000);
+  const dzien = (d: Date) => new Intl.DateTimeFormat("pl-PL", { day: "numeric", timeZone: "UTC" }).format(d);
+  const pelna = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(nd);
+  return `${dzien(pon)}–${pelna}`;
+}
+
 // Krótka data do kolumny „OD" — w 66 px Bebasa pełna nazwa miesiąca nie zmieściłaby się
 // w skoku kolumny przy trzech kolumnach (312 px).
 function fmtDataKrotka(iso: string): string {
@@ -570,8 +603,9 @@ async function wyrenderuj(admin: Admin, o: {
 async function kartaMomentu(
   admin: Admin, userId: string, momentId: string,
 ): Promise<Response> {
+  // payload w select: karta tygodniowa czyta stamtąd „poprzedni rekord" (fakt zamrożony)
   const { data: mom } = await admin.from("delivered_moments")
-    .select("id,athlete_id,type,evidence,status,created_at").eq("id", momentId).maybeSingle();
+    .select("id,athlete_id,type,evidence,payload,status,created_at").eq("id", momentId).maybeSingle();
   if (!mom) return json({ error: "nie ma takiego momentu" }, 404);
 
   const { data: ath } = await admin.from("athletes")
@@ -587,7 +621,7 @@ async function kartaMomentu(
   if (!trener && mom.status !== "approved") return json({ error: "moment niezatwierdzony" }, 403);
 
   const ev = (mom.evidence || {}) as Record<string, unknown>;
-  let plik = "", bohater = "", podpis = "";
+  let plik = "", bohater = "", podpis = "", metaTekst = "";
   let jednostka: string | null = null;
   const staty: Stat[] = [];
 
@@ -648,6 +682,51 @@ async function kartaMomentu(
       staty.push({ ikona: IKONY.czas, etykieta: "W RUCHU", wartosc: String(Math.round(sekundy / 3600)), jednostka: "h" });
     }
 
+  } else if (mom.type === "wolumen") {
+    // Numer tygodnia: nowy kształt niesie go w evidence. Momenty sprzed 2026-08-07 go nie
+    // mają, ale WSZYSTKIE 12 powstało w trakcie opisywanego tygodnia (zmierzone 12/12),
+    // więc weekKey(created_at) odtwarza go wiernie. Świadoma ścieżka zgodności, nie reguła.
+    const tydz = ev.tydzien != null ? Number(ev.tydzien) : tydzienKey(mom.created_at);
+    if (!(tydz > 0)) return json({ error: "moment bez tygodnia" }, 422);
+
+    // KARTA TYLKO Z DOMKNIĘTEGO OKRESU. Moment jest emocją i przychodzi od razu; karta jest
+    // dokumentem i musi podać liczbę ostateczną. Klucz cache jest niezmienny, więc karta
+    // wydana w środę zamroziłaby sumę, która rośnie do niedzieli.
+    if (tydzienKey(new Date().toISOString()) <= tydz) {
+      return json({ error: "okres_nie_domkniety", gotowa_od: "poniedziałek" }, 422);
+    }
+
+    const pon = poniedzialekTygodnia(tydz);
+    const nast = new Date(pon.getTime() + 7 * 86400000);
+    const { data: logi } = await admin.from("training_logs")
+      .select("distance_km,training_type,logged_at")
+      .eq("athlete_id", ath.id)
+      .gte("logged_at", pon.toISOString()).lt("logged_at", nast.toISOString());
+
+    // SUMA PRZELICZANA Z LOGÓW, nie z payloadu — to sedno tej zmiany. W payloadzie siedzi
+    // liczba z momentu POWSTANIA, czyli z połowy tygodnia (dowód: pięć momentów jednego
+    // tygodnia, 74,39 → 110,01 km). „Poprzedni rekord" bierzemy z payloadu Świadomie: to
+    // fakt zamrożony — rekord, który został pobity. Przeliczony dziś dałby inną liczbę,
+    // gdyby któryś PÓŹNIEJSZY tydzień był mocniejszy, i karta kłamałaby o tym,
+    // co się wtedy wydarzyło.
+    const biegi = (logi || []).filter((l) => isRunType(l.training_type) && Number(l.distance_km) > 0);
+    const suma = biegi.reduce((sum, l) => sum + Number(l.distance_km), 0);
+    if (!(suma > 0)) return json({ error: "tydzień bez biegów" }, 422);
+    const najdluzszy = biegi.reduce((m, l) => Math.max(m, Number(l.distance_km)), 0);
+    const pl = (mom.payload || {}) as Record<string, unknown>;
+    const prevMax = Number(pl.poprzednie_max ?? ev.poprzednie_max ?? 0);
+
+    plik = `tydzien-${ath.id}-${tydz}.png`;
+    bohater = fmtDystans1(suma);
+    jednostka = "KM";
+    podpis = "REKORDOWY TYDZIEŃ";
+    metaTekst = fmtZakresTygodnia(pon);
+    staty.push({ ikona: IKONY.aktywnosci, etykieta: "TRENINGÓW", wartosc: String(biegi.length), jednostka: "" });
+    staty.push({ ikona: IKONY.przewyzszenie, etykieta: "NAJDŁUŻSZY", wartosc: fmtDystans1(najdluzszy), jednostka: "km" });
+    if (prevMax > 0) {
+      staty.push({ ikona: IKONY.czas, etykieta: "POPRZEDNI REKORD", wartosc: fmtDystans1(prevMax), jednostka: "km" });
+    }
+
   } else {
     return json({ error: "ten rodzaj karty jeszcze nie istnieje" }, 422);
   }
@@ -664,7 +743,7 @@ async function kartaMomentu(
     // Karty momentów nie przechodzą przez kadrownik, więc nie mają skąd wziąć wyboru
     // układu — idą standardem. Gdyby kiedyś miały mieć portret, wybór musi się najpierw
     // gdzieś utrwalić, bo klucz cache jest niezmienny.
-    meta: fmtData(mom.created_at), bohater, jednostka, podpis, staty, uklad: "standard",
+    meta: metaTekst || fmtData(mom.created_at), bohater, jednostka, podpis, staty, uklad: "standard",
   });
 }
 

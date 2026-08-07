@@ -91,6 +91,31 @@ async function _silnikPobierzKarte(){
     }, 'image/png');
   }catch(e){ console.error('[silnik-anim] pobierz:', e); }
 }
+// Typy, ktore maja karte 4:5 w EF share-card. Reszta momentow ma tylko Story z canvasu —
+// przycisk dostalby 422 „ten rodzaj karty jeszcze nie istnieje", wiec go nie rysujemy.
+const _MOMENT_Z_KARTA = ['pb', 'wolumen'];
+
+// Dwa przyciski, dwa formaty: „Pobierz" daje Story 9:16 z canvasu, „Zobacz karte" — feed 4:5
+// z EF. To dwa rozne miejsca publikacji, ustalone przy K1 i potwierdzone przy K4.
+// Dla `wolumen` karta jest NIEAKTYWNA do poniedzialku: renderuje sie wylacznie z domknietego
+// tygodnia, bo klucz cache jest niezmienny, a suma rosnie do niedzieli.
+function _silnikDodajKarte(o){
+  if(!o || o.querySelector('[data-el="karta"]')) return;
+  const id = window._silnikLastMomentId, m = window._silnikLastMoment || {};
+  if(!id || !window.SHARECARD || !SHARECARD.pokazMoment) return;
+  if(_MOMENT_Z_KARTA.indexOf(m.type) === -1) return;
+  const tydz = (m.evidence||{}).tydzien;
+  const dzisTydz = Math.floor((Math.floor(Date.now()/86400000) + 3) / 7);   // weekKey jak w silniku
+  const domkniety = m.type !== 'wolumen' || (tydz != null && dzisTydz > Number(tydz));
+  const b = document.createElement('button');
+  b.setAttribute('data-el','karta');
+  b.textContent = domkniety ? 'Zobacz kartę' : 'Karta będzie gotowa w poniedziałek';
+  b.style.cssText = 'margin-top:10px;padding:9px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#fff;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;cursor:'+(domkniety?'pointer':'default')+';opacity:'+(domkniety?'1':'0.45')+';';
+  b.disabled = !domkniety;
+  if(domkniety) b.onclick = function(){ SHARECARD.pokazMoment(id); };
+  o.appendChild(b);
+}
+
 function _silnikDodajPobierz(o){
   if(!o || o.querySelector('[data-el="pobierz"]')) return;
   const b=document.createElement('button'); b.setAttribute('data-el','pobierz'); b.textContent='Pobierz';
@@ -175,7 +200,7 @@ function _silnikRenderAnimWolumen(ev, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:22px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${miesiac}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:50px;right:22px;width:44px;height:44px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:20px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick = _silnikZamknijAnim;
   o.addEventListener('click', e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -282,7 +307,7 @@ function _silnikRenderAnimDystans(ev, suma, imie, puenta){
     <div style="position:absolute;bottom:36px;right:40px;font-family:'DM Mono',monospace;font-size:9px;color:#66636e;">ŚWIAT</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:14px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${ev.rok||new Date().getFullYear()}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -334,7 +359,7 @@ function _silnikRenderAnimTop5(moment, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${rok}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -400,7 +425,7 @@ function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -457,7 +482,7 @@ function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -519,7 +544,7 @@ function _silnikRenderAnimPb(ev, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -567,7 +592,7 @@ function _silnikRenderAnimStreak(ev, imie, puenta){
     <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o); _silnikDodajPobierz(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o); _silnikDodajKarte(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });

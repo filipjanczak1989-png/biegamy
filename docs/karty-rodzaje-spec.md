@@ -319,6 +319,26 @@ Przykład z życia (6/8): zgłosiłem „bohater i podpis dzieli 5 px" na podsta
 
 Realne odstępy w portrecie (bohater 820, podpis 975, statystyki 1050): tożsamość→bohater **44**, bohater→podpis **17**, podpis→statystyki **35**, jednostki→stopka **14**.
 
+## RUN_TYPES — trzy kopie, bramka i propozycja wyjścia
+
+Lista typów biegowych żyje w **trzech** plikach:
+
+| # | plik | do czego |
+|---|---|---|
+| 1 | `sb.js` | `window.RUN_TYPES` — sumy km w kliencie, `isRunType` |
+| 2 | `js/silnik-momentu.js` | `RUN_TYPES` w silniku + inline w EF `detect-moment` |
+| 3 | `supabase/functions/share-card/index.ts` | suma okresu na karcie (`tydzien`, `miesiac`) |
+
+**BRAMKA po każdej zmianie listy** — polecenie, nie zasada:
+
+```bash
+grep -c "wybieganie" sb.js js/silnik-momentu.js supabase/functions/share-card/index.ts
+```
+
+Ma dać ten sam zestaw typów w każdym pliku. Trzecia kopia jest akceptowalna, **czwarta nie będzie** (decyzja Filipa 7/8).
+
+**ZALEGŁOŚĆ — propozycja wyjścia:** wynieść listę do jednego pliku (np. `js/run-types.js`) i **inlinować ją przy buildzie w obu EF-ach**, tak jak `tools/build-ef.js` wstawia silnik do `detect-moment`. Klient ładuje ten plik zwykłym `<script>`. Koszt: `share-card` przestaje być edytowalny ręcznie i staje się artefaktem generowanym — a na tym wzorcu sparzyliśmy się raz (template `detect-moment` rozjechał się z prodem na miesiąc). Stąd propozycja, nie wykonanie.
+
 ## Zaległości
 
 **⚠️ BLOKUJE `tydzien` (K4): detekcja tygodniowa liczy niedomknięty tydzień.** `detectVolume` i `detectTop5Tygodni` ogłaszają wynik, który jeszcze rośnie — a karta zamraża liczbę, która nie była ostateczna, i idzie na Instagram. Gorzej: `suma_km` siedzi w `evidence`, czyli w kluczu dedupu, więc **każdy dołożony log tworzy nowy moment tego samego tygodnia**. Dowód: Martyna Strzeszyńska, 2026-07-05 — pięć pendingów jednego tygodnia (74,39 → 79,39 → 84,39 → 89,39 → 110,01 km). Przy `dystans` ten sam błąd naprawiono, wynosząc żywą sumę poza `evidence`.

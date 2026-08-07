@@ -3796,6 +3796,9 @@ window.loadMomenty = async function(athleteId, imie){
         return;
       }
 
+      // _silnikOdtworzMoment gubi `id` (sklada {type, evidence, ...payload}), a przycisk karty
+      // w nakladce musi wiedziec, ktorego momentu dotyczy - EF przyjmuje {moment_id}.
+      window._silnikLastMomentId = row.id;
       window._silnikPokazAnimacje(window._silnikOdtworzMoment(row), imie, row.edited_text, domknij);
       // GUARD. Pytanie brzmi „czy nakładka się otworzyła", NIE „czy znam typ" — bo
       // _silnikPokazAnimacje poddaje się także przy ZNANYM typie z niekompletnym payloadem
