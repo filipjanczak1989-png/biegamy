@@ -332,10 +332,10 @@ Lista typów biegowych żyje w **trzech** plikach:
 **BRAMKA po każdej zmianie listy** — polecenie, nie zasada:
 
 ```bash
-grep -c "wybieganie" sb.js js/silnik-momentu.js supabase/functions/share-card/index.ts
+python tools/sprawdz-run-types.py     # kod 0 = zgodne, 1 = rozjazd
 ```
 
-Ma dać ten sam zestaw typów w każdym pliku. Trzecia kopia jest akceptowalna, **czwarta nie będzie** (decyzja Filipa 7/8).
+⚠️ Pierwsza wersja tej bramki (`grep -c "wybieganie"` na trzech plikach) **była błędna** — `grep -c` liczy LINIE zawierające słowo, więc dawała trzy różne liczby (7 / 1 / 2) i nie mówiła nic o zawartości listy. Skrypt wyciąga zbiory typów z każdego pliku i porównuje je po znormalizowaniu; zwraca kod 1 przy rozjeździe, więc nadaje się do CI. Trzecia kopia jest akceptowalna, **czwarta nie będzie** (decyzja Filipa 7/8).
 
 **ZALEGŁOŚĆ — propozycja wyjścia:** wynieść listę do jednego pliku (np. `js/run-types.js`) i **inlinować ją przy buildzie w obu EF-ach**, tak jak `tools/build-ef.js` wstawia silnik do `detect-moment`. Klient ładuje ten plik zwykłym `<script>`. Koszt: `share-card` przestaje być edytowalny ręcznie i staje się artefaktem generowanym — a na tym wzorcu sparzyliśmy się raz (template `detect-moment` rozjechał się z prodem na miesiąc). Stąd propozycja, nie wykonanie.
 
