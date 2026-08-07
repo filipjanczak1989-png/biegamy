@@ -295,7 +295,17 @@ Awatar 100 px na `x=530` ma po ~130 px z każdej strony i **nie ściska tagline'
 
 **Zapis pobiera BLOB, nie adres w Storage.** Atrybut `download` jest ignorowany przy zasobie z innego origin — przeglądarka otwiera plik zamiast go zapisać. Blob jest same-origin, więc nazwa pliku i zapis działają wszędzie tam, gdzie w ogóle działają. Ten sam kod obsługuje przycisk „Zapisz" i awaryjną ścieżkę „Udostępnij", gdy przeglądarka nie ma Web Share dla plików.
 
-⚠️ **iOS — NIEZWERYFIKOWANE NA URZĄDZENIU.** Safari potrafi otworzyć plik w karcie zamiast zapisać go do Zdjęć. Przy wykryciu iOS pokazujemy podpowiedź „przytrzymaj obraz i wybierz Zapisz obraz". Detekcja steruje **wyłącznie tekstem** — błędne trafienie kosztuje jedną zbędną linijkę, nie działanie.
+**Stan weryfikacji zapisu:**
+
+| platforma | stan |
+|---|---|
+| desktop | ✅ potwierdzone (Filip, 7/8) |
+| Android | ✅ potwierdzone (Filip, 7/8) |
+| **iOS** | ⚠️ **OTWARTE — niezweryfikowane** |
+
+⚠️ **iOS pozostaje otwarty, nie „działający".** Safari potrafi otworzyć plik w karcie zamiast zapisać go do Zdjęć. Przy wykryciu iOS pokazujemy podpowiedź „przytrzymaj obraz i wybierz Zapisz obraz" — **podpowiedź zostaje niezależnie od wyniku weryfikacji**, bo długie przytrzymanie działa na iOS zawsze, także gdy zapis się powiedzie. Detekcja steruje **wyłącznie tekstem**: błędne trafienie kosztuje jedną zbędną linijkę, nie działanie.
+
+Do domknięcia potrzebny jeden test na iPhonie: kliknąć „Zapisz" i sprawdzić, czy plik trafia do Zdjęć, czy otwiera się w karcie.
 
 ## Reguła: odstępy mierzy się po TUSZU, nie po pudełkach
 
