@@ -707,23 +707,11 @@ Deno.serve(async (req) => {
     // Efekt uboczny na plus: wcześniej cache sprawdzał się przed autoryzacją, czyli
     // dowolny zalogowany mógł sprawdzić, czy karta dla danego log_id istnieje.
     const wlasneTlo = dozwoloneTlo(log.card_bg_url);
-    // ⚠⚠ TYMCZASOWE WYRÓWNANIE DO KLIENTA — 2026-08-06, do cofnięcia.
-    // Docelowo: `const uklad = wlasneTlo ? "portret" : "standard";` — układ wynika ze
-    // źródła tła, bo własne zdjęcie jest z założenia o człowieku, a biblioteka to kadry
-    // dobrane pod standard. Klucz nie potrzebuje wtedy sufiksu: `{log_id}-{hash8}.png`
-    // JEST portretem z definicji, a `{log_id}.png` standardem.
-    //
-    // DLACZEGO STOI NA STANDARDZIE: GitHub Pages nie zbudowało od 15:27Z (przebieg
-    // utknięty w stanie `waiting`), więc przeglądarka ma kadrownik SPRZED portretu —
-    // mierzy strefy standardowe (tożsamość y=340), a EF renderowałby portret (y=690).
-    // To dokładnie ten błąd, który nazwaliśmy „nie próg był zły, tylko miejsce pomiaru",
-    // tyle że powstały z połowicznego wdrożenia. EF idzie inną drogą (CLI) niż Pages,
-    // więc to jedyna warstwa, którą mogę cofnąć bez czekania.
-    //
-    // WARUNEK COFNIĘCIA: `curl -sI https://biegamy.run/sb.js` pokazuje świeży
-    // Last-Modified i `sb.js` zawiera `UKLAD_KADR`. Wtedy przywrócić linię docelową
-    // i przedeployować. Patrz pamięć: project_tymczasowy_rollback_ukladu.
-    const uklad = "standard";
+    // UKŁAD WYNIKA ZE ŹRÓDŁA TŁA, nie z wyboru w kliencie. Własne zdjęcie jest z założenia
+    // o człowieku, więc dostaje portret; biblioteka to kadry dobrane pod układ standardowy.
+    // Dzięki temu klucz nie potrzebuje sufiksu: `{log_id}-{hash8}.png` JEST portretem
+    // z definicji, a `{log_id}.png` standardem.
+    const uklad = wlasneTlo ? "portret" : "standard";
     const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.png` : `${log_id}.png`;
     const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
 
