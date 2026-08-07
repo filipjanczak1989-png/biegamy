@@ -309,6 +309,10 @@ Do domknięcia potrzebny jeden test na iPhonie: kliknąć „Zapisz" i sprawdzi�
 
 ## Reguła: odstępy mierzy się po TUSZU, nie po pudełkach
 
+**Wartości ZAAKCEPTOWANE WZROKOWO 2026-08-07 (nie „domyślne" — wybrane po oglądzie renderu):**
+- **podpis w portrecie zostaje na `975`** (odstępy tuszu 17 px nad, 35 px pod). Rozważane i **odrzucone**: 984 (26/26) oraz 990 (32/20). Nie wracać do nich bez nowego powodu — to wymiana, nie poprawa: między dolną krawędzią bohatera a statystykami jest stałe 52 px tuszu do rozdania.
+- **podgląd w kadrowniku zostaje ciemny** (rysuje scrim aktywnego układu). Kadrowanie jest przez to trudniejsze — świadomy koszt, potwierdzony w pracy: uczciwość podglądu bije wygodę kadrowania.
+
 **Odstępy między elementami mierzyć po ZASIĘGU TUSZU w wyrenderowanej karcie, nie po pudełkach tekstowych.** Bebas ma wewnętrzny odstęp — tusz podpisu zaczyna się 13 px poniżej górnej krawędzi pudełka. Liczenie z rozmiaru fontu zaniża odstępy i prowadzi do poprawek, które **przenoszą problem zamiast go usuwać**.
 
 Przykład z życia (6/8): zgłosiłem „bohater i podpis dzieli 5 px" na podstawie arytmetyki pudełek (bohater kończy się na 970, podpis zaczyna na 975). Pomiar tuszu w PNG pokazał **17 px**. Poprawka wyliczona z błędnej liczby przeniosłaby ciasnotę z góry na dół, bo między dolną krawędzią bohatera a statystykami jest stałe 52 px tuszu do rozdania.
@@ -334,7 +338,7 @@ Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z
 | K1 | EF: rozgałęzienie trybów + `kamien` + `pb` | ✅ LIVE |
 | K2 | detektor `kamien` w silniku + redeploy | ✅ LIVE |
 | K3 | dostarczenie: baner → karta, guard | ✅ LIVE |
-| K5 | kadrownik: siatka, ruchliwość, układ portretowy | ✅ LIVE (1–3) |
+| K5 | kadrownik: siatka, ruchliwość, układ portretowy | ✅ **DOMKNIĘTE** (1–3, zaakceptowane wzrokowo 7/8) |
 | K4 | `tydzien` + `miesiac` | TODO, `tydzien` zablokowany |
 
 ## Na później, nie teraz
