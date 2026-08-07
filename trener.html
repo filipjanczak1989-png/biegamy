@@ -8713,7 +8713,7 @@ document.addEventListener('keydown', (e) => {
     switch(type){
       case 'pb':          return (DIST_PL[ev.dystans]||ev.dystans)+' — '+fmtSec(ev.nowy_czas)+' (było '+fmtSec(ev.stary_czas)+')';
       case 'najdluzszy':  return ev.dystans+' km (poprzedni '+ev.poprzedni_najdluzszy+' km)';
-      case 'wolumen':     return ev.suma_km+' km/tydz (poprzedni max 90 dni: '+ev.poprzednie_max+')';
+      case 'wolumen':     return (pl.suma_km ?? ev.suma_km)+' km/tydz (poprzedni max 90 dni: '+(pl.poprzednie_max ?? ev.poprzednie_max)+')';   // pl = ksztalt od 7/8, ev = starszy
       case 'streak':      return ev.tygodnie+' tygodni z rzędu';
       case 'dystans':     return ev.miasto+' — '+ev.dystans_miasta+' km od startu ('+ev.rok+')';
       case 'top5':        return '#'+pl.pozycja+' tydzień ('+pl.km+' km)';
@@ -8727,7 +8727,7 @@ document.addEventListener('keydown', (e) => {
     switch(type){
       case 'pb':          return 'Rekord życiowy na '+(DIST_PL[ev.dystans]||ev.dystans)+'! '+fmtSec(ev.nowy_czas)+' — gratulacje! 🔥';
       case 'najdluzszy':  return 'Twój najdłuższy bieg — '+ev.dystans+' km! 💪';
-      case 'wolumen':     return 'Najmocniejszy tydzień ostatnich miesięcy — '+ev.suma_km+' km! 👊';
+      case 'wolumen':     return 'Najmocniejszy tydzień ostatnich miesięcy — '+(pl.suma_km ?? ev.suma_km)+' km! 👊';
       case 'streak':      return ev.tygodnie+' tygodni z rzędu — konsekwencja robi robotę! 🔥';
       case 'dystans':     return 'Dotarłeś do '+ev.miasto+' — '+ev.dystans_miasta+' km od startu w tym roku! 🌍';
       case 'top5':        return 'Twój '+pl.pozycja+'. najmocniejszy tydzień odkąd biegasz z nami! 🏆';

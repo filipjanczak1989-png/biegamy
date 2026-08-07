@@ -3,6 +3,21 @@
 // Wyekstrahowane 0-roznicy z zawodnik.html (linie 4102-4482). NIE refactoruj logiki tu — to dzialajacy kod 5 animacji.
 // Zaleznosci zewn.: window.escapeHtml (sb.js). Animacja 'dystans' dodatkowo: window.SilnikMomentu (js/silnik-momentu.js — tylko zawodnik).
 
+// Zgodność DWCH KSZTAŁTÓW momentu `wolumen`. Do 2026-08-07 słupki i sumy siedziały
+// w `evidence`; od 7/8 są w `payload` (czyli na wierzchu momentu po _silnikOdtworzMoment),
+// bo evidence jest kluczem dedupu i nie może zawierać wartości rosnących w trakcie tygodnia.
+// W bazie zostało 7 momentów w starym kształcie (1 zatwierdzony nieobejrzany + 6 oczekujących)
+// — bez tego helpera guard z K3 domknąłby je PO CICHU: baner znika, nic się nie otwiera.
+// JEDNO miejsce zgodności dla wszystkich konsumentów, żeby nie rozlazła się po pliku.
+function _wolumenDane(m){
+  const ev = (m && m.evidence) || {};
+  return {
+    slupki:         m.slupki         || ev.slupki,
+    suma_km:        m.suma_km        != null ? m.suma_km        : ev.suma_km,
+    poprzednie_max: m.poprzednie_max != null ? m.poprzednie_max : ev.poprzednie_max,
+  };
+}
+
 // ── KARTA-SHARE (pobranie karty momentu jako PNG 1080×1920, wariant A) ──
 // Mapper treści: moment → {eyebrow,hero,heroUnit,ctx,ctxDelta,name}. Bez daty (decyzja Filipa).
 function _silnikShareContent(moment, imie){
@@ -16,7 +31,7 @@ function _silnikShareContent(moment, imie){
   switch(moment.type){
     case 'pb':{const nowy=ev.nowy_czas,stary=ev.stary_czas,delta=ev.delta;out.eyebrow='Rekord życiowy · '+(NAZWA[ev.dystans]||ev.dystans);out.hero=fmtCzas(nowy);out.ctx='było '+fmtCzas(stary);out.ctxDelta='−'+fmtCzas(delta);break;}
     case 'najdluzszy':{const km=ev.dystans,prev=ev.poprzedni_najdluzszy;out.eyebrow='Najdłuższy bieg';out.hero=String(r1(km));out.heroUnit='KM';out.ctx='poprzednio '+r1(prev)+' km';out.ctxDelta='+'+r1(km-prev)+' km';break;}
-    case 'wolumen':{const km=ev.suma_km,prev=ev.poprzednie_max;out.eyebrow='Najmocniejszy tydzień';out.hero=String(r1(km));out.heroUnit='KM';out.ctx='poprzedni rekord '+r1(prev)+' km';out.ctxDelta='+'+r1(km-prev)+' km';break;}
+    case 'wolumen':{const _w=_wolumenDane(moment),km=_w.suma_km,prev=_w.poprzednie_max;out.eyebrow='Najmocniejszy tydzień';out.hero=String(r1(km));out.heroUnit='KM';out.ctx='poprzedni rekord '+r1(prev)+' km';out.ctxDelta='+'+r1(km-prev)+' km';break;}
     case 'top5':{out.eyebrow='Twój '+moment.pozycja+'. najmocniejszy tydzień';out.hero=String(r1(moment.km));out.heroUnit='KM';out.ctx='TOP 5 · '+(moment.rok||new Date().getFullYear());break;}
     case 'najmocniejsza':{const dyst=ev.dystans,ag=moment.ag_pct,wiek=moment.wiek_uzyty;out.eyebrow='Najmocniejsza życiówka';out.hero=String(r1(ag));out.heroUnit='%';out.ctx=(NAZWA[dyst]||dyst)+' · '+(wiek!=null?'wg wieku '+wiek:'wg rekordu świata');break;}
     case 'streak':{out.eyebrow='Seria · Konsekwencja';out.hero=String(ev.tygodnie||0);out.ctx='tygodni z rzędu';break;}
@@ -93,7 +108,7 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
   try{
     if(!moment) return;
     window._silnikLastMoment = moment; window._silnikLastImie = imie;
-    if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie, puenta);
+    if(moment.type==='wolumen'){ const _w=_wolumenDane(moment); if(_w.slupki) return _silnikRenderAnimWolumen(_w, imie, puenta); }
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie, puenta);
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie, puenta);
     if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie, puenta);

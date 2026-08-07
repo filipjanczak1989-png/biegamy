@@ -130,7 +130,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     var d = new Date((wk * 7 - 3) * 86400000);      // odwrotność weekKey
     return d.getUTCDate() + '.' + String(d.getUTCMonth() + 1).padStart(2, '0');
   }
-  function monthKey(s) { var p = ymd(s).split('-'); return (+p[0]) * 12 + (+p[1] - 1); }
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
   function num(x) { var n = Number(x); return isFinite(n) ? n : 0; }
@@ -166,51 +165,70 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     };
   }
 
-  // WOLUMEN: tydzień/miesiąc newLog = STRICT max w historii (i jest co porównywać)?
+  // WOLUMEN: tydzień newLog = STRICT max w historii 90 dni?
+  //
+  // OKNO MIESIĘCZNE USUNIĘTE (2026-08-07). Powody z pomiaru, nie z przeczucia:
+  // miesiąc bieżący jest niepełny i porównywał się ścisłym `>` z miesiącami pełnymi,
+  // więc realnie mógł odpalić tylko w ostatnich dniach miesiąca — i NIE ODPALIŁ ANI RAZU
+  // przez cały czas działania silnika (12 momentów `wolumen` w bazie, wszystkie tygodniowe).
+  // Do tego horyzont 90 dni znaczył, że „rekord miesiąca" był rekordem z czterech.
+  // Karta `miesiac` go nie potrzebuje: ma własny wyzwalacz (cron) i jest podsumowaniem,
+  // nie rekordem. Martwy kod udający funkcję — stąd usunięcie, nie naprawa.
   function detectVolume(snap) {
     var logs = snap.logs || [];
     var nl = snap.newLog;
     if (!nl) return null;
 
-    function evalWindow(keyFn, okno, withBars) {
-      var sums = {};
-      for (var i = 0; i < logs.length; i++) {
-        var lg = logs[i];
-        if (!lg || !lg.logged_at) continue;
-        var km = num(lg.distance_km);
-        if (km <= 0) continue; // tylko biegowy wolumen (logi bez dystansu pomijamy)
-        var k = keyFn(lg.logged_at);
-        sums[k] = (sums[k] || 0) + km;
-      }
-      var nlKey = keyFn(nl.logged_at);
-      var nlSum = sums[nlKey];
-      if (nlSum == null) return null;
-
-      var prevMax = -1, others = 0;
-      for (var key in sums) {
-        if (!sums.hasOwnProperty(key)) continue;
-        if (key === String(nlKey)) continue;
-        others++;
-        if (sums[key] > prevMax) prevMax = sums[key];
-      }
-      if (others < VOL_MIN_WINDOWS) return null; // za mało historii do orzeczenia "max"
-      if (!(nlSum > prevMax)) return null;        // remis = NULL (musi być strict)
-
-      var margin = prevMax > 0 ? (nlSum - prevMax) / prevMax : 1;
-      var evidence = { okno: okno, suma_km: Math.round(nlSum * 100) / 100, poprzednie_max: Math.round(prevMax * 100) / 100 };
-      if (withBars) {                              // 6 ostatnich tygodni do nlKey — dane słupków animacji
-        var slupki = [];
-        for (var bw = nlKey - 5; bw <= nlKey; bw++)
-          slupki.push({ label: weekLabel(bw), km: Math.round((sums[bw] || 0) * 100) / 100, peak: bw === nlKey });
-        evidence.slupki = slupki;                  // dedup-SAFE: 5 słupków historycznych stałe, 6. śledzi suma_km (już w kluczu)
-      }
-      return { type: 'wolumen', evidence: evidence, confidence: clamp01(margin / 0.25) }; // 25% nad poprzednim maxem = pełna pewność
+    var sums = {};
+    for (var i = 0; i < logs.length; i++) {
+      var lg = logs[i];
+      if (!lg || !lg.logged_at) continue;
+      // TYLKO BIEGI. Komentarz obiecywał to od początku, kod nie sprawdzał — przez co
+      // 300 km wpisane na treningu wzmacniającym zrobiło „rekord tygodnia 305 km",
+      // a jeden zawodnik dostał zatwierdzony TOP 5 za 14 km biegania i 73 km reszty.
+      if (lg.is_run === false) continue;
+      var km = num(lg.distance_km);
+      if (km <= 0) continue;
+      var k = weekKey(lg.logged_at);
+      sums[k] = (sums[k] || 0) + km;
     }
 
-    var w = evalWindow(weekKey, 'tydzień', true);  // tylko tydzień niesie słupki (animacja = tygodniowa)
-    var m = evalWindow(monthKey, 'miesiąc', false);
-    if (w && m) return (m.confidence > w.confidence) ? m : w;
-    return w || m;
+    var nlKey = weekKey(nl.logged_at);
+    var nlSum = sums[nlKey];
+    if (!(nlSum > 0)) return null;
+
+    var others = 0, prevMax = 0;
+    for (var key in sums) {
+      if (key === String(nlKey)) continue;
+      others++;
+      if (sums[key] > prevMax) prevMax = sums[key];
+    }
+    if (others < VOL_MIN_WINDOWS) return null;   // za mało historii do orzeczenia „max"
+    if (!(nlSum > prevMax)) return null;         // remis = NULL (musi być strict)
+
+    var margin = prevMax > 0 ? (nlSum - prevMax) / prevMax : 1;
+    var slupki = [];
+    for (var bw = nlKey - 5; bw <= nlKey; bw++) {
+      slupki.push({ label: weekLabel(bw), km: Math.round((sums[bw] || 0) * 100) / 100, peak: bw === nlKey });
+    }
+
+    // EVIDENCE = SAM IDENTYFIKATOR OKRESU. Wszystko, co rośnie w trakcie tygodnia
+    // (suma, słupki), idzie do payloadu — bo evidence jest KLUCZEM DEDUPU, a klucz
+    // zmienny znaczy nowy moment przy każdym logu. Dowód z bazy: pięć momentów jednego
+    // tygodnia u Martyny (74,39 → 79,39 → 84,39 → 89,39 → 110,01 km).
+    // Ten sam wzorzec co `top5` i `dystans`, które tę lekcję mają już odrobioną.
+    //
+    // BEZ POLA `okno`: po usunięciu miesiąca byłoby stałą, a stała w kluczu dedupu to szum,
+    // który każdy czytający musi sprawdzić. Gdyby rekord miesięczny wrócił, należy mu się
+    // WŁASNY TYP — inna narracja, inna animacja, inna karta — a nie pole rozróżniające.
+    return {
+      type: 'wolumen',
+      evidence: { tydzien: nlKey },
+      suma_km: Math.round(nlSum * 100) / 100,           // ↓ wszystko poniżej ląduje w payload
+      poprzednie_max: Math.round(prevMax * 100) / 100,
+      slupki: slupki,
+      confidence: clamp01(margin / 0.25),               // 25% nad poprzednim maxem = pełna pewność
+    };
   }
 
   // STREAK: ile tygodni z rzędu (do tygodnia `today`) z ≥1 logiem?
@@ -269,6 +287,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     for (var i = 0; i < logs.length; i++) {
       var lg = logs[i];
       if (!lg || !lg.logged_at) continue;
+      if (lg.is_run === false) continue;   // TOP 5 liczy tygodnie BIEGOWE — patrz detectVolume
       var km = num(lg.distance_km);
       if (km <= 0) continue;                            // zerowe/bezdystansowe pomijamy
       var k = weekKey(lg.logged_at);
@@ -661,9 +680,36 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     var m2 = detect(s2);
     console.log('[2] czysty wolumen →', JSON.stringify(m2));
     check('WOLUMEN wykryty', m2 && m2.type === 'wolumen', m2);
-    check('WOLUMEN okno=tydzień, poprz_max=18', m2 && m2.evidence.okno === 'tydzień' && m2.evidence.poprzednie_max === 18, m2);
-    check('WOLUMEN słupki: 6 tygodni', m2 && m2.evidence.slupki && m2.evidence.slupki.length === 6, m2);
-    check('WOLUMEN słupki: ostatni = peak = suma', m2 && m2.evidence.slupki[5].peak === true && m2.evidence.slupki[5].km === m2.evidence.suma_km, m2);
+    // Wartości przeniosły się z evidence do payloadu (7/8) — stąd odczyt z wierzchu momentu.
+    check('WOLUMEN poprz_max=18 (payload)', m2 && m2.poprzednie_max === 18, m2);
+    check('WOLUMEN słupki: 6 tygodni (payload)', m2 && m2.slupki && m2.slupki.length === 6, m2);
+    check('WOLUMEN słupki: ostatni = peak = suma', m2 && m2.slupki[5].peak === true && m2.slupki[5].km === m2.suma_km, m2);
+    check('WOLUMEN evidence ma DOKŁADNIE {tydzien}', m2 && JSON.stringify(Object.keys(m2.evidence)) === '["tydzien"]', m2 && m2.evidence);
+    check('WOLUMEN evidence BEZ suma_km i słupków (klucz dedupu musi być stały)',
+          m2 && m2.evidence.suma_km === undefined && m2.evidence.slupki === undefined, m2 && m2.evidence);
+    check('WOLUMEN okno miesięczne usunięte — brak pola okno', m2 && m2.evidence.okno === undefined, m2 && m2.evidence);
+
+    // — FAŁSZYWE TRAFIENIE: aktywności NIEBIEGOWE nie robią rekordu —
+    // 300 km wpisane kiedyś na treningu wzmacniającym dało „rekord tygodnia 305 km",
+    // a inny zawodnik dostał zatwierdzony TOP 5 za 14 km biegania i 73 km reszty.
+    (function () {
+      function tydz(weeksAgo) { return dateInWeek(weeksAgo); }
+      var rowerowe = [];
+      for (var w = 8; w >= 2; w -= 2) rowerowe.push({ logged_at: tydz(w), distance_km: 20, duration_s: 3600 });
+      var nlRower = { logged_at: tydz(0), distance_km: 100, duration_s: 12000, is_run: false };
+      var sRower = { today: TODAY, pbs: {}, newLog: nlRower,
+                     logs: rowerowe.concat([nlRower]), logs_all: rowerowe.concat([nlRower]) };
+      check('wolumen: 100 km ROWEREM nie robi rekordu tygodnia', detectVolume(sRower) === null, detectVolume(sRower));
+      check('top5: rower nie wpycha tygodnia do rankingu', detectTop5Tygodni(sRower) === null, detectTop5Tygodni(sRower));
+
+      // rower W TYM SAMYM tygodniu co bieg — do sumy wchodzi wyłącznie bieg
+      var nlBieg = { logged_at: tydz(0), distance_km: 30, duration_s: 9000 };
+      var sMix = { today: TODAY, pbs: {}, newLog: nlBieg,
+                   logs: rowerowe.concat([nlRower, nlBieg]), logs_all: rowerowe.concat([nlRower, nlBieg]) };
+      var mMix = detectVolume(sMix);
+      check('wolumen: rower + bieg w tym samym tygodniu → liczy się tylko bieg (30, nie 130)',
+            mMix && mMix.suma_km === 30, mMix);
+    })();
 
     // helper: N tyg z rzędu (do tyg 0), RÓWNE km (remis => brak wolumenu), brak PB
     function streakSnap(nWeeks) {
