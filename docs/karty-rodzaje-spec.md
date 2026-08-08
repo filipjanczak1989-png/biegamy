@@ -406,4 +406,15 @@ Karty wychodzą jako **JPEG q92, ~240 KB** zamiast PNG ~1,42 MB — **5,9× mnie
 
 **Skasowane przy okazji:** 33 stare PNG-i (26 pierwotnych + 7 z pomiaru A/B), 45,8 MB. Nic nie trzymało ich URL-i, pełniły wyłącznie rolę cache'u renderu.
 
-**Zaległość znaleziona przy okazji:** karty wychodzą z `Cache-Control: no-cache`, mimo że upload ustawia `cacheControl: "31536000"`. Dotyczy to tak samo starych PNG-ów, więc **nie jest regresją tej zmiany** — ale znaczy, że każde otwarcie karty ciągnie pełne 240 KB z origin zamiast z cache'u przeglądarki. Do sprawdzenia osobno.
+### ⚠️ `curl -I` KŁAMIE o `Cache-Control` na Supabase Storage
+
+Zgłosiłem tu najpierw zaległość: „karty wychodzą z `Cache-Control: no-cache` mimo `cacheControl: 31536000` przy uploadzie". **To był artefakt metody pomiaru, nie problem.** Cache działa poprawnie od początku.
+
+```
+curl -I  (HEAD)  →  Cache-Control: no-cache               ← nieprawda
+curl -D- (GET)   →  Cache-Control: public, max-age=31536000   ← prawda
+```
+
+Metadane w bazie potwierdzają: `storage.objects.metadata->>'cacheControl' = max-age=31536000` na każdej karcie. To samo na `share-assets` (`max-age=3600` ustawione przez `storage cp`) — HEAD mówi `no-cache`, GET mówi prawdę. Drugie pobranie tej samej karty daje `CF-Cache-Status: HIT`, czyli CDN też ją trzyma.
+
+**Reguła: nagłówków cache'u na Supabase Storage NIE sprawdza się przez `curl -I`.** Przeglądarki robią GET, więc dostają rok cache'u — mierz tak samo. To ten sam gatunek błędu co „curl nie robi preflightu" przy weryfikacji CORS w EF-ach.
