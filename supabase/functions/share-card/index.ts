@@ -1,9 +1,29 @@
 // share-card — generator kart do udostępniania (1080×1350, 4:5)
-// Satori (HTML→SVG) + resvg-wasm (SVG→PNG). verify_jwt=false, autoryzacja w ciele.
+// Satori (HTML→SVG) + resvg-wasm (SVG→RGBA) + enkoder JPEG. verify_jwt=false, autoryzacja w ciele.
 // Karta dla danego training_log.id jest NIEZMIENNA: gdy plik już jest, zwracamy URL bez renderu.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import satori from "https://esm.sh/satori@0.10.13";
 import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2";
+// Karty ida jako JPEG, nie PNG. Zmierzone 8/8 na dwoch prawdziwych kartach: q92 daje
+// 17–18% wagi PNG (1756→297 KB, 1242→227 KB), PSNR 43 dB takze w pasie bohatera,
+// czyli tam gdzie bialy Bebas 150–210 px lezy na fotografii. Alfa na kartach jest 255
+// na calej powierzchni, wiec brak kanalu alfa w JPEG nic nie kosztuje.
+//
+// ⚠️ IMPORT WASKI, NIE `imagescript/mod.ts` — i to nie jest kosmetyka. mod.ts kompiluje
+// przy imporcie KOMPLET wasm-ow, bo instancjonowanie siedzi na najwyzszym poziomie modulu:
+// svg 1044 + font 206 + tiff 185 + png 101 + jpeg 89 + gif 57 + zlib 45 = 1727 KB.
+// Sam enkoder JPEG to 89 KB. Przy resvg wazacym 2,4 MB dolozenie 1,7 MB do cold startu
+// bylo by zla wymiana za oszczednosc w Storage. Sprawdzone lokalnie: `encode()` z tego
+// modulu daje wynik BAJT W BAJT identyczny z `Image.encodeJPEG()`.
+//
+// ⚠️ To API WEWNETRZNE ImageScriptu — bez typow i bez gwarancji miedzy wersjami. URL jest
+// przypiety do 1.2.15 (ta sama wersja co backfill-thumbnails) i bez build-stepu nie ruszy sie
+// sam. Gdyby kiedys znikl: `Image.encodeJPEG(92)` z mod.ts robi to samo, tylko drozej.
+import * as jpegWasm from "https://deno.land/x/imagescript@1.2.15/utils/wasm/jpeg.js";
+const encodeJpeg = (jpegWasm as unknown as {
+  encode(rgba: Uint8Array, w: number, h: number, q: number): Uint8Array;
+}).encode;
+const JPEG_Q = 92;
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const ASSETS = `${SB_URL}/storage/v1/object/public/share-assets`;
@@ -590,10 +610,15 @@ async function wyrenderuj(admin: Admin, o: {
   const svg = await satori(el as unknown as Parameters<typeof satori>[0], {
     width: 1080, height: 1350, fonts: boot.fonts,
   });
-  const png = new Resvg(svg).render().asPng();
+  // resvg oddaje surowe RGBA przez `.pixels`, wiec NIE kodujemy PNG po to, zeby zaraz go
+  // dekodowac do przekodowania. To ZASTAPIENIE najdrozszego kroku, nie dolozenie kolejnego:
+  // asPng() znika ze sciezki calkowicie.
+  const obraz = new Resvg(svg).render();
+  const jpg = encodeJpeg(obraz.pixels, obraz.width, obraz.height, JPEG_Q);
+  obraz.free();
 
   const { error: upErr } = await admin.storage.from(CARDS_BUCKET)
-    .upload(o.plik, png, { contentType: "image/png", cacheControl: "31536000", upsert: false });
+    .upload(o.plik, jpg, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
   // Wyścig dwóch równoległych żądań: drugie dostaje Duplicate i po prostu oddaje URL.
   if (upErr && !String(upErr.message || "").toLowerCase().includes("exists")) {
     console.error("share-card upload:", o.plik, upErr);
@@ -635,7 +660,7 @@ async function kartaMomentu(
     const dystans = String(ev.dystans || "");
     const nowy = Number(ev.nowy_czas), stary = Number(ev.stary_czas), delta = Number(ev.delta);
     if (!PB_KM[dystans] || !(nowy > 0) || !(stary > 0)) return json({ error: "moment bez danych" }, 422);
-    plik = `pb-${ath.id}-${dystans}-${Math.round(nowy)}.png`;
+    plik = `pb-${ath.id}-${dystans}-${Math.round(nowy)}.jpg`;
     bohater = fmtCzas(nowy);
     podpis = PB_NAZWY[dystans] || dystans;
     staty.push({ ikona: IKONY.czas, etykieta: "POPRZEDNI", wartosc: fmtCzas(stary), jednostka: "" });
@@ -658,7 +683,7 @@ async function kartaMomentu(
     const nazwa = KAMIEN_NAZWY[kat]?.[prog];
     if (!nazwa) return json({ error: "nieznany kamień" }, 422);
     podpis = nazwa;
-    plik = `kamien-${ath.id}-${kat}-${prog}.png`;
+    plik = `kamien-${ath.id}-${kat}-${prog}.jpg`;
     if (kat === "pierwszy") {
       // Dystans RZECZYWISTY tego biegu, nie kanoniczny: pierwszy półmaraton na 21,4 km
       // to jego liczba. Detektor (K2) MUSI wpisać `dystans_km` do evidence.
@@ -715,7 +740,7 @@ async function kartaMomentu(
     const pl = (mom.payload || {}) as Record<string, unknown>;
     const prevMax = Number(pl.poprzednie_max ?? ev.poprzednie_max ?? 0);
 
-    plik = `tydzien-${ath.id}-${tydz}.png`;
+    plik = `tydzien-${ath.id}-${tydz}.jpg`;
     bohater = fmtDystans1(tyg.suma);
     jednostka = "KM";
     podpis = "REKORDOWY TYDZIEŃ";
@@ -743,7 +768,7 @@ async function kartaMomentu(
     if (!(mc.suma > 0)) return json({ error: "miesiąc bez biegów" }, 422);
     const mcPoprz = await liczbyOkresu(admin, ath.id, odPoprz, od);
 
-    plik = `miesiac-${ath.id}-${klucz}.png`;
+    plik = `miesiac-${ath.id}-${klucz}.jpg`;
     bohater = fmtDystans1(mc.suma);
     jednostka = "KM";
     podpis = `${MIESIACE_MIANOWNIK[mies]} ${rok}`;
@@ -822,10 +847,10 @@ Deno.serve(async (req) => {
     const wlasneTlo = dozwoloneTlo(log.card_bg_url);
     // UKŁAD WYNIKA ZE ŹRÓDŁA TŁA, nie z wyboru w kliencie. Własne zdjęcie jest z założenia
     // o człowieku, więc dostaje portret; biblioteka to kadry dobrane pod układ standardowy.
-    // Dzięki temu klucz nie potrzebuje sufiksu: `{log_id}-{hash8}.png` JEST portretem
-    // z definicji, a `{log_id}.png` standardem.
+    // Dzięki temu klucz nie potrzebuje sufiksu: `{log_id}-{hash8}.jpg` JEST portretem
+    // z definicji, a `{log_id}.jpg` standardem.
     const uklad = wlasneTlo ? "portret" : "standard";
-    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.png` : `${log_id}.png`;
+    const plik = wlasneTlo ? `${log_id}-${await hash8(wlasneTlo)}.jpg` : `${log_id}.jpg`;
     const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
 
     // Karta niezmienna — jeśli jest, oddajemy bez renderu.
