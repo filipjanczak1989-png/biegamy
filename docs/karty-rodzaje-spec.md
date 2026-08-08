@@ -341,11 +341,11 @@ python tools/sprawdz-run-types.py     # kod 0 = zgodne, 1 = rozjazd
 
 ## Zaległości
 
-**⚠️ BLOKUJE `tydzien` (K4): detekcja tygodniowa liczy niedomknięty tydzień.** `detectVolume` i `detectTop5Tygodni` ogłaszają wynik, który jeszcze rośnie — a karta zamraża liczbę, która nie była ostateczna, i idzie na Instagram. Gorzej: `suma_km` siedzi w `evidence`, czyli w kluczu dedupu, więc **każdy dołożony log tworzy nowy moment tego samego tygodnia**. Dowód: Martyna Strzeszyńska, 2026-07-05 — pięć pendingów jednego tygodnia (74,39 → 79,39 → 84,39 → 89,39 → 110,01 km). Przy `dystans` ten sam błąd naprawiono, wynosząc żywą sumę poza `evidence`.
+**✅ ZAMKNIĘTE 8/8 — detekcja tygodniowa liczyła niedomknięty tydzień.** `suma_km` siedziała w `evidence`, więc każdy dołożony log tworzył nowy moment tego samego tygodnia (Martyna Strzeszyńska, 2026-07-05: pięć pendingów, 74,39 → 110,01 km). Rozwiązanie: `evidence` skrócone do `{tydzien}`, żywe liczby do `payload`, a **karta przelicza sumę z `training_logs`**, nie bierze jej z payloadu. Detekcja zostaje w trakcie tygodnia (baner od razu), ale przycisk „Zobacz kartę" jest nieaktywny do poniedziałku. Okno miesięczne w `detectVolume` usunięte.
 
-Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z domkniętego tygodnia · plus wyniesienie `suma_km` i `slupki` do `payload`. Naprawa evidence odpali wszystkie dotychczasowe wolumeny ponownie — rozegrać razem z decyzją o oknie.
+**✅ ZAMKNIĘTE 8/8 — Berlin u Kevina.** Sprawdzone, nie jest błędem: Kevin ma 778,4 km, próg Amsterdamu to 846. Hipoteza o blokującym pendingu — obalona.
 
-**⚠️ Berlin u Kevina — moment `dystans` nie idzie dalej.** Zgłoszone 6/8: Kevin ma moment „Berlin", choć według sumy rocznej powinien być już w Amsterdamie. Hipoteza (NIEsprawdzona): niezatwierdzony `pending` blokuje kolejny próg, bo dedup patrzy także na oczekujące. **Nie zgadywać — sprawdzić przy K4**, gdzie i tak wracamy do dedupu i evidence.
+**✅ ZAMKNIĘTE 8/8 — kilometry niebiegowe w `wolumen` i `top5`.** Oba detektory sumowały rower i siłownię. Filtr `is_run === false` dołożony osobnym commitem przed K4; trzy zatwierdzone `top5` przestawione na `rejected`, jeden `wolumen` skasowany (kryterium DELETE: niepokazany + z naprawianego błędu + okres jeszcze trwa — wszystkie trzy naraz).
 
 **Znana krawędź: „miesiąc bez biegów po fakcie".** Moment miesięczny powstaje, gdy w miesiącu był przynajmniej jeden bieg. Gdyby ktoś później skasował wszystkie logi z tamtego miesiąca, karta zwróci 422 i baner domknie się po cichu — bez błędu, ale i bez karty. Uznane za poprawne: lepszy brak karty niż karta z zerami. To samo dotyczy karty tygodniowej.
 
@@ -361,8 +361,24 @@ Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z
 | K2 | detektor `kamien` w silniku + redeploy | ✅ LIVE |
 | K3 | dostarczenie: baner → karta, guard | ✅ LIVE |
 | K5 | kadrownik: siatka, ruchliwość, układ portretowy | ✅ **DOMKNIĘTE** (1–3, zaakceptowane wzrokowo 7/8) |
-| K4 | `tydzien` + `miesiac` | TODO, `tydzien` zablokowany |
+| K4 | `tydzien` + `miesiac` | ✅ LIVE (8/8), cron `0 4 1 * *` czeka na 1 września |
 
 ## Na później, nie teraz
 
 **Rok w BiegaMy** — grudniowe podsumowanie w stylu Wrapped. Najbardziej udostępnialny format, jaki istnieje, i raz w roku, więc rzadkość maksymalna. Osobna robota, ale warto mieć w głowie przy planowaniu grudnia.
+
+### Wariant „dane" karty treningu — **po wrześniu**
+
+Dziś karta treningu ma jeden wariant: **moment** — bohater, podpis, trzy liczby na fotografii. Wariant **dane** byłby drugą stroną tej samej karty: **wykres tętna i profil wysokości**, czyli to, co biegacz chce pokazać, gdy trening był ciekawy przebiegiem, a nie wynikiem.
+
+**Powód: sygnał popytu, nie hipoteza.** Kevin Mrotek — wasz zawodnik — wrzucił 8 sierpnia kartę wygenerowaną w **innej aplikacji**, właśnie z wykresami tętna i wysokości. Ktoś, kto ma nasze karty, sięgnął po cudze, żeby pokazać przebieg. To mocniejsza przesłanka niż jakikolwiek pomysł z naszej strony.
+
+**Warunki (ustalone 8/8):**
+
+- **Tylko dla logów z `external_source='intervals'`.** Zmierzone tego dnia: **940 z 1934** wpisów, czyli **49%**. Reszta nie ma przebiegów — wariant jest wtedy **niedostępny**, nie pusty. Nigdy nie pokazujemy wykresu bez danych.
+- **Wykres tętna wyłącznie przy `hr_public = true`.** Profil wysokości bez tego warunku — wysokość nie jest daną medyczną.
+  ⚠️ **Zanim ktokolwiek napisze ten wariant: `docs/zaleglosci-bezpieczenstwo.md` → `raw_data` trzyma pełne tętno.** Cache w bazie **nie jest** przefiltrowany przez `stripHr` — filtr działa tylko na wyjściu EF-a, a karta chodzi po `service_role` i go omija. Bramka i lista pól do wyczyszczenia są w tamtym pliku.
+- **Dane są, nie trzeba ich dowozić.** `intervals-activity-detail` pobiera z intervals.icu strumienie `heartrate, altitude, velocity_smooth, distance, cadence, temp, respiration` i zapisuje je do `intervals_activities.raw_data` jako `series` — **spróbkowane do ~200 punktów** (`TARGET = 200`, kubełek min. 50 m) plus `splits` per kilometr. 200 punktów to dokładnie rozdzielczość, jakiej potrzebuje wykres 1080 px szerokości. Powiązanie: `intervals_activities.linked_training_log_id → training_logs.id`.
+- **Bez nowej technologii.** Wykres to `<svg>` z `<polyline>` — Satori renderuje SVG natywnie, tak samo jak dzisiejsze ikony. Zero nowych bibliotek, zero wpływu na cold start.
+
+**Dlaczego nie teraz:** to **ulepszenie rzeczy, która działa**, a Tier 0 ma jeszcze pozycje, których **nie ma wcale** — stronę „Trenerzy" i generator planu. Do mistrzostw świata półtora miesiąca. Wraca do rozmowy po wrześniu.
