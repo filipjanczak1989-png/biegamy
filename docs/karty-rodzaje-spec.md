@@ -327,7 +327,7 @@ Lista typów biegowych żyje w **trzech** plikach:
 |---|---|---|
 | 1 | `sb.js` | `window.RUN_TYPES` — sumy km w kliencie, `isRunType` |
 | 2 | `js/silnik-momentu.js` | `RUN_TYPES` w silniku + inline w EF `detect-moment` |
-| 3 | `supabase/functions/share-card/index.ts` | suma okresu na karcie (`tydzien`, `miesiac`) |
+| 3 | `supabase/migrations/*_suma_biegowa.sql` | funkcja SQL zasilająca karty (`share-card`, `miesiac-cron`) |
 
 **BRAMKA po każdej zmianie listy** — polecenie, nie zasada:
 
@@ -346,6 +346,8 @@ python tools/sprawdz-run-types.py     # kod 0 = zgodne, 1 = rozjazd
 Kierunki: detekcja po zamknięciu tygodnia · albo moment w trakcie, ale karta z domkniętego tygodnia · plus wyniesienie `suma_km` i `slupki` do `payload`. Naprawa evidence odpali wszystkie dotychczasowe wolumeny ponownie — rozegrać razem z decyzją o oknie.
 
 **⚠️ Berlin u Kevina — moment `dystans` nie idzie dalej.** Zgłoszone 6/8: Kevin ma moment „Berlin", choć według sumy rocznej powinien być już w Amsterdamie. Hipoteza (NIEsprawdzona): niezatwierdzony `pending` blokuje kolejny próg, bo dedup patrzy także na oczekujące. **Nie zgadywać — sprawdzić przy K4**, gdzie i tak wracamy do dedupu i evidence.
+
+**Znana krawędź: „miesiąc bez biegów po fakcie".** Moment miesięczny powstaje, gdy w miesiącu był przynajmniej jeden bieg. Gdyby ktoś później skasował wszystkie logi z tamtego miesiąca, karta zwróci 422 i baner domknie się po cichu — bez błędu, ale i bez karty. Uznane za poprawne: lepszy brak karty niż karta z zerami. To samo dotyczy karty tygodniowej.
 
 **Audyt `elevation_gain`** — 46% wypełnienia, jeden zawodnik z 64 m/km. Przed jakąkolwiek kartą przewyższeniową.
 

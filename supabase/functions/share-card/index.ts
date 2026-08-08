@@ -72,39 +72,45 @@ const UKLADY: Record<string, Uklad> = {
   },
 };
 
-// ── TREŚĆ KART ────────────────────────────────────────────────────
-// Jedno miejsce na wszystko, co da się rozjechać między formatami: nazwy, progi,
-// formatowanie liczb. Karta Story (canvas w js/silnik-anim.js) układa te same
-// wartości inaczej — wspólny jest sens, nie układ. Gdy `tydzien` dojdzie jako drugi
-// dubel, tu zapada decyzja o wyniesieniu tego bloku do wspólnego pliku.
+// Liczby okresu (suma, liczba biegów, najdłuższy, czas w ruchu) pochodzą z funkcji SQL
+// `suma_biegowa(athlete_id, od, do)` — JEDNO źródło wspólne z EF miesiac-cron. Dzięki temu
+// karta nie ma własnej kopii listy typów biegowych ani własnej implementacji tej samej
+// arytmetyki, więc nie może policzyć tygodnia inaczej niż silnik, który go wykrył.
+// Funkcja jest SECURITY DEFINER z GRANT-em tylko dla service_role — EF po nim chodzi.
+type OkresAgg = { suma: number; ile: number; najdluzszy: number; sekundy: number };
+async function liczbyOkresu(admin: Admin, athleteId: string, od: Date, doK: Date): Promise<OkresAgg> {
+  const { data, error } = await admin.rpc("suma_biegowa", {
+    p_athlete_id: athleteId, p_od: od.toISOString(), p_do: doK.toISOString(),
+  });
+  if (error) { console.error("share-card suma_biegowa:", error.message); }
+  const r = (Array.isArray(data) ? data[0] : data) || {};
+  return {
+    suma: Number(r.suma ?? 0), ile: Number(r.ile ?? 0),
+    najdluzszy: Number(r.najdluzszy ?? 0), sekundy: Number(r.sekundy ?? 0),
+  };
+}
+
 const PB_NAZWY: Record<string, string> = {
   "5k": "5 KILOMETRÓW", "10k": "10 KILOMETRÓW", half: "PÓŁMARATON", marathon: "MARATON",
 };
 // Dystanse KANONICZNE — wyłącznie do tempa na karcie `pb`: podpis mówi „PÓŁMARATON",
 // więc tempo ma opisywać półmaraton, a nie faktyczne 20,8 km. PB klasyfikuje z tolerancją.
 // Bohater karty „pierwszy raz" bierze dystans RZECZYWISTY z evidence — to jego liczba.
-// ⚠⚠ TRZECIA I OSTATNIA KOPIA RUN_TYPES. Lista żyje w TRZECH plikach:
-//   1. sb.js                                  → window.RUN_TYPES (klient: sumy km, isRunType)
-//   2. js/silnik-momentu.js                   → var RUN_TYPES (silnik + inline w EF detect-moment)
-//   3. supabase/functions/share-card/index.ts → TEN plik (suma okresu na karcie)
-//
-// REGUŁA SYNC: zmiana listy = zmiana we WSZYSTKICH TRZECH. Bramka po zmianie:
-//   grep -c "wybieganie" sb.js js/silnik-momentu.js supabase/functions/share-card/index.ts
-// ma dać ten sam zestaw typów w każdym pliku.
-//
-// CZWARTEJ KOPII NIE DOPUSZCZAMY (decyzja Filipa 7/8). Propozycja wyjścia zapisana
-// w docs/karty-rodzaje-spec.md: wynieść listę do jednego pliku inlinowanego przy
-// buildzie w obu EF-ach — tak jak silnik trafia do detect-moment.
-const RUN_TYPES = ["spokojny","bieg spokojny","wybieganie","długi","tempo","progresja","interwały","start","wyścig","regeneracja"];
-function isRunType(t: string | null): boolean {
-  return RUN_TYPES.indexOf(String(t ?? "").toLowerCase().trim()) !== -1;
-}
-
 const PB_KM: Record<string, number> = { "5k": 5, "10k": 10, half: 21.0975, marathon: 42.195 };
 
 // Nazwy progów. Zmierzone w Bebasie 44 px z letterSpacing 4 przy polu 934 px:
 // najdłuższa („DWIEŚCIE PIĘĆDZIESIĄT GODZIN") ma 520 px, czyli 414 px zapasu.
 // Skracanie „na wszelki wypadek" byłoby zgadywaniem — nazwy zostają pełne.
+// Dwa przypadki, bo polska odmiana nie da się wyprowadzić regułą z jednego: podpis
+// potrzebuje mianownika („SIERPIEŃ 2026"), a kolumna porównawcza dopełniacza („vs LIPCA").
+// Zmierzone w Bebasie 44 px: najdłuższy podpis „PAŹDZIERNIK 2026" ma 315 px przy polu 934.
+// Etykieta „vs PAŹDZIERNIKA" w DM Sans 18 px ma 140 px przy budżecie 172 px (4 kolumny,
+// granicą jest divider, nie skok kolumny) — mieści się z zapasem 32 px.
+const MIESIACE_MIANOWNIK = ["STYCZEŃ","LUTY","MARZEC","KWIECIEŃ","MAJ","CZERWIEC",
+                            "LIPIEC","SIERPIEŃ","WRZESIEŃ","PAŹDZIERNIK","LISTOPAD","GRUDZIEŃ"];
+const MIESIACE_DOPELNIACZ = ["stycznia","lutego","marca","kwietnia","maja","czerwca",
+                             "lipca","sierpnia","września","października","listopada","grudnia"];
+
 const KAMIEN_NAZWY: Record<string, Record<string, string>> = {
   km:       { "500": "PIERWSZE PIĘĆSET", "1000": "PIERWSZY TYSIĄC", "2000": "DWA TYSIĄCE", "5000": "PIĘĆ TYSIĘCY" },
   godziny:  { "100": "STO GODZIN", "250": "DWIEŚCIE PIĘĆDZIESIĄT GODZIN", "500": "PIĘĆSET GODZIN", "1000": "TYSIĄC GODZIN" },
@@ -698,33 +704,61 @@ async function kartaMomentu(
 
     const pon = poniedzialekTygodnia(tydz);
     const nast = new Date(pon.getTime() + 7 * 86400000);
-    const { data: logi } = await admin.from("training_logs")
-      .select("distance_km,training_type,logged_at")
-      .eq("athlete_id", ath.id)
-      .gte("logged_at", pon.toISOString()).lt("logged_at", nast.toISOString());
 
-    // SUMA PRZELICZANA Z LOGÓW, nie z payloadu — to sedno tej zmiany. W payloadzie siedzi
-    // liczba z momentu POWSTANIA, czyli z połowy tygodnia (dowód: pięć momentów jednego
-    // tygodnia, 74,39 → 110,01 km). „Poprzedni rekord" bierzemy z payloadu Świadomie: to
-    // fakt zamrożony — rekord, który został pobity. Przeliczony dziś dałby inną liczbę,
-    // gdyby któryś PÓŹNIEJSZY tydzień był mocniejszy, i karta kłamałaby o tym,
-    // co się wtedy wydarzyło.
-    const biegi = (logi || []).filter((l) => isRunType(l.training_type) && Number(l.distance_km) > 0);
-    const suma = biegi.reduce((sum, l) => sum + Number(l.distance_km), 0);
-    if (!(suma > 0)) return json({ error: "tydzień bez biegów" }, 422);
-    const najdluzszy = biegi.reduce((m, l) => Math.max(m, Number(l.distance_km)), 0);
+    // SUMA LICZONA OD NOWA dla tego tygodnia — to sedno karty tygodniowej. W payloadzie
+    // siedzi liczba z momentu POWSTANIA, czyli z połowy tygodnia (dowód: pięć momentów
+    // jednego tygodnia, 74,39 → 110,01 km). „Poprzedni rekord" bierzemy z payloadu
+    // świadomie: to fakt zamrożony — rekord, który został pobity. Przeliczony dziś dałby
+    // inną liczbę, gdyby któryś PÓŹNIEJSZY tydzień był mocniejszy.
+    const tyg = await liczbyOkresu(admin, ath.id, pon, nast);
+    if (!(tyg.suma > 0)) return json({ error: "tydzień bez biegów" }, 422);
     const pl = (mom.payload || {}) as Record<string, unknown>;
     const prevMax = Number(pl.poprzednie_max ?? ev.poprzednie_max ?? 0);
 
     plik = `tydzien-${ath.id}-${tydz}.png`;
-    bohater = fmtDystans1(suma);
+    bohater = fmtDystans1(tyg.suma);
     jednostka = "KM";
     podpis = "REKORDOWY TYDZIEŃ";
     metaTekst = fmtZakresTygodnia(pon);
-    staty.push({ ikona: IKONY.aktywnosci, etykieta: "TRENINGÓW", wartosc: String(biegi.length), jednostka: "" });
-    staty.push({ ikona: IKONY.przewyzszenie, etykieta: "NAJDŁUŻSZY", wartosc: fmtDystans1(najdluzszy), jednostka: "km" });
+    staty.push({ ikona: IKONY.aktywnosci, etykieta: "TRENINGÓW", wartosc: String(tyg.ile), jednostka: "" });
+    staty.push({ ikona: IKONY.przewyzszenie, etykieta: "NAJDŁUŻSZY", wartosc: fmtDystans1(tyg.najdluzszy), jednostka: "km" });
     if (prevMax > 0) {
       staty.push({ ikona: IKONY.czas, etykieta: "POPRZEDNI REKORD", wartosc: fmtDystans1(prevMax), jednostka: "km" });
+    }
+
+  } else if (mom.type === "miesiac") {
+    const klucz = String(ev.miesiac || "");                      // 'RRRR-MM'
+    if (!/^\d{4}-\d{2}$/.test(klucz)) return json({ error: "moment bez miesiąca" }, 422);
+    const rok = +klucz.slice(0, 4), mies = +klucz.slice(5) - 1;
+    const od = new Date(Date.UTC(rok, mies, 1));
+    const doK = new Date(Date.UTC(rok, mies + 1, 1));
+    const odPoprz = new Date(Date.UTC(rok, mies - 1, 1));
+
+    // Dwa wywołania: miesiąc opisywany i poprzedni do porównania. Ta sama funkcja SQL,
+    // której używa cron przy decyzji „kto dostaje kartę" — więc powiadomienie i karta
+    // nie mogą się rozjechać co do tego, kto w tym miesiącu biegał.
+    const mc = await liczbyOkresu(admin, ath.id, od, doK);
+    // Miesiąc bez biegów PO FAKCIE (ktoś skasował logi po powstaniu momentu): 422, baner
+    // domknie się po cichu. Świadomie — lepszy brak karty niż karta z zerami.
+    if (!(mc.suma > 0)) return json({ error: "miesiąc bez biegów" }, 422);
+    const mcPoprz = await liczbyOkresu(admin, ath.id, odPoprz, od);
+
+    plik = `miesiac-${ath.id}-${klucz}.png`;
+    bohater = fmtDystans1(mc.suma);
+    jednostka = "KM";
+    podpis = `${MIESIACE_MIANOWNIK[mies]} ${rok}`;
+    metaTekst = "podsumowanie miesiąca";
+    staty.push({ ikona: IKONY.aktywnosci, etykieta: "TRENINGÓW", wartosc: String(mc.ile), jednostka: "" });
+    staty.push({ ikona: IKONY.przewyzszenie, etykieta: "NAJDŁUŻSZY", wartosc: fmtDystans1(mc.najdluzszy), jednostka: "km" });
+    if (mc.sekundy > 0) {
+      staty.push({ ikona: IKONY.czas, etykieta: "W RUCHU", wartosc: String(Math.round(mc.sekundy / 3600)), jednostka: "h" });
+    }
+    // Czwarta kolumna TYLKO gdy jest z czym porównywać. Pierwszy miesiąc zawodnika dostaje
+    // trzy kolumny — siatka jest warunkowa od początku, a „vs LIPCA +∞%" byłoby śmieciem.
+    if (mcPoprz.suma > 0) {
+      const proc = Math.round((mc.suma - mcPoprz.suma) / mcPoprz.suma * 100);
+      staty.push({ ikona: IKONY.kalendarz, etykieta: `vs ${MIESIACE_DOPELNIACZ[(mies + 11) % 12].toUpperCase()}`,
+                   wartosc: (proc >= 0 ? "+" : "") + proc, jednostka: "%" });
     }
 
   } else {
