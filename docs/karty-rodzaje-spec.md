@@ -382,3 +382,28 @@ Dziś karta treningu ma jeden wariant: **moment** — bohater, podpis, trzy licz
 - **Bez nowej technologii.** Wykres to `<svg>` z `<polyline>` — Satori renderuje SVG natywnie, tak samo jak dzisiejsze ikony. Zero nowych bibliotek, zero wpływu na cold start.
 
 **Dlaczego nie teraz:** to **ulepszenie rzeczy, która działa**, a Tier 0 ma jeszcze pozycje, których **nie ma wcale** — stronę „Trenerzy" i generator planu. Do mistrzostw świata półtora miesiąca. Wraca do rozmowy po wrześniu.
+
+## Format kart: JPEG q92 (**LIVE 8/8**)
+
+Karty wychodzą jako **JPEG q92, ~240 KB** zamiast PNG ~1,42 MB — **5,9× mniej**. Klucze wszystkich pięciu rodzajów kończą się na `.jpg`.
+
+Ścieżka: `new Resvg(svg).render()` → `.pixels` (surowe RGBA) → enkoder JPEG. **`asPng()` zniknęło ze ścieżki całkowicie** — nie kodujemy PNG po to, żeby go zaraz dekodować.
+
+**Zmierzone przed decyzją:** q92 = 17–18% wagi PNG, PSNR 43,2 dB w całości i 43,1 dB w pasie bohatera (biały Bebas 150–210 px na fotografii, czyli najgorszy przypadek dla JPEG). Średni błąd 1,8/255, maksymalny 26/255. Mapa różnicy ×8 pokazuje błąd na konturach liter — dzwonienie jest, ale o amplitudzie ~4/255 na czarnym tle. Alfa na kartach to 255 na całej powierzchni, więc brak kanału alfa nic nie kosztuje.
+
+**Cold start — zmierzony A/B na tych samych logach w tej samej sesji**, bo liczby sprzed tygodnia pochodziły z nieznanych warunków:
+
+| | zimny (2 próby) | ciepły (4 próby) |
+|---|---|---|
+| PNG (stary kod) | 4,01 · 3,94 s | średnio 2,16 s |
+| JPEG (nowy kod) | 3,51 · 3,22 s | średnio 2,17 s |
+
+**Zimny szybszy o ~0,6 s, ciepły bez różnicy.** Zysk bierze się z tego, że enkodowanie PNG 1080×1350 było droższe niż JPEG.
+
+**⚠️ Enkoder importowany wąsko.** `imagescript/mod.ts` kompiluje przy imporcie komplet wasm-ów (svg 1044 + font 206 + tiff 185 + png 101 + jpeg 89 + gif 57 + zlib 45 = 1727 KB), bo instancjonowanie jest na najwyższym poziomie modułu. Bierzemy sam `utils/wasm/jpeg.js` — 89 KB. Sprawdzone: wynik **bajt w bajt** identyczny z `Image.encodeJPEG(92)`. To API wewnętrzne, URL przypięty do 1.2.15, droga odwrotu opisana w komentarzu w EF-ie.
+
+**⚠️ MINA, która wysadziła wdrożenie:** bucket `share-cards` miał `allowed_mime_types = {image/png}`. Po zmianie formatu **render działał, a upload odbijał się od bucketu** — EF zwracał 500 „zapis karty padł", co wygląda na błąd generatora i prowadzi diagnozę w złą stronę. Naprawione migracją `20260808120000_share_cards_mime_jpeg.sql`. Lista jest celowo jednoelementowa: **powrót do PNG wymaga zmiany także tej migracji**.
+
+**Skasowane przy okazji:** 33 stare PNG-i (26 pierwotnych + 7 z pomiaru A/B), 45,8 MB. Nic nie trzymało ich URL-i, pełniły wyłącznie rolę cache'u renderu.
+
+**Zaległość znaleziona przy okazji:** karty wychodzą z `Cache-Control: no-cache`, mimo że upload ustawia `cacheControl: "31536000"`. Dotyczy to tak samo starych PNG-ów, więc **nie jest regresją tej zmiany** — ale znaczy, że każde otwarcie karty ciągnie pełne 240 KB z origin zamiast z cache'u przeglądarki. Do sprawdzenia osobno.
