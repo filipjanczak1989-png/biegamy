@@ -454,6 +454,15 @@ nav.scrolled{border-bottom-color:var(--line);}
   font-size:15px;color:var(--paper-dim);
   max-width:440px;line-height:1.6;
 }
+/* Bieżąca sprawa, nie biografia: ta sama miara i wielkość co .coach-text, ale pełna
+   jasność zamiast 60% i pionowa kreska. Osobna klasa, żeby po mistrzostwach dało się
+   ten akapit zdjąć albo podmienić bez ruszania reszty wizytówki. */
+.coach-now{
+  font-size:15px;line-height:1.6;max-width:440px;
+  color:var(--paper);
+  margin-top:16px;padding-left:16px;
+  border-left:2px solid var(--accent);
+}
 
 /* ── PHILOSOPHY ─────────────────────────────────────────────── */
 .philosophy{
@@ -856,6 +865,12 @@ nav.scrolled{border-bottom-color:var(--line);}
   color:var(--paper-dim);font-size:15px;margin-bottom:48px;
   max-width:480px;
 }
+.mail-link{
+  color:var(--accent);text-decoration:none;
+  border-bottom:1px solid rgba(var(--accent-rgb),0.45);
+  transition:border-color .2s;
+}
+.mail-link:hover{border-bottom-color:var(--accent);}
 
 #onboarding-form{display:flex;flex-direction:column;gap:24px;}
 .of-sec{
@@ -1121,7 +1136,7 @@ footer{
                loading="lazy">
         </div>
         <div class="coach-name">Filip</div>
-        <div class="coach-creds">Maraton 2:27 · Medale Mistrzostw Polski</div>
+        <div class="coach-creds">Maraton 2:27 · Srebro MP 50 km i brąz MP 6h (2022)</div>
         <!-- ⬇️ CYTAT FILIPA - DO PODMIANY -->
         <p class="coach-quote">
           „Zacząłem trenować bez wiedzy, książek i internetu. Robiłem błędy które dziś znam na pamięć — żebyś Ty ich nie powtórzył."
@@ -1147,6 +1162,9 @@ footer{
         </p>
         <p class="coach-text">
           Z celu 20 minut na 5 km do Top 10 na świecie w biegu dobowym. Dowód że długoterminowe myślenie działa — i że każdy zaczyna z zera, nieważne kiedy w życiu.
+        </p>
+        <p class="coach-now">
+          Trzeci raz w reprezentacji Polski. We wrześniu Kasia biegnie mistrzostwa świata na 100 km w Ames. Niewiele jest na świecie zawodniczek, które reprezentują swój kraj i na setce, i w biegu dobowym — to dwa różne sporty pod jedną nazwą.
         </p>
       </div>
 
@@ -1445,7 +1463,8 @@ footer{
 <section class="form-section" id="formularz">
   <div class="form-inner">
     <h2 class="reveal">Cześć!</h2>
-    <p class="form-sub">Powiedz nam parę rzeczy o sobie — odezwiemy się i umówimy 15 minut rozmowy.</p>
+    <p class="form-sub">Powiedz nam parę rzeczy o sobie — odezwiemy się i umówimy 15 minut rozmowy.<br>
+      Wolisz mailem? <a class="mail-link" href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
 
     <form id="onboarding-form" name="onboarding" method="POST" action="https://formspree.io/f/xkoyepql">
 
@@ -1570,7 +1589,7 @@ if (form) {
         form.style.display = 'none';
         success.classList.add('show');
       } else {
-        alert('Coś poszło nie tak. Spróbuj ponownie lub napisz na hello@biegamy.run');
+        alert('Coś poszło nie tak. Spróbuj ponownie lub napisz na biegamy.run@gmail.com');
       }
     } catch (err) {
       alert('Brak połączenia. Sprawdź internet i spróbuj ponownie.');
