@@ -69,3 +69,38 @@ Nie czyścimy tętna w bazie ani nie rozdzielamy cache'u na wersję z HR i bez. 
 jeden i pełny, bo właściciel i trener mają prawo do kompletu, a dublowanie wierszy pod
 widoczność mnożyłoby stan, który może się rozjechać. Filtrujemy **przy odczycie** — tak
 jak wszędzie indziej w tej aplikacji.
+
+---
+
+## Kolumny `strava_*` w bazie — ZMIERZONE, problem teoretyczny
+
+**Zgłoszone 9 sierpnia 2026** przy porządkowaniu metryczki `index.html`, gdzie strona obiecywała
+integrację ze Stravą. Integracja jest **nieosiągalna od dawna**: w całym repozytorium nie ma ani
+jednego adresu `strava.com/oauth`, więc użytkownik nie ma jak zainicjować połączenia. Żywa
+integracja to intervals.icu.
+
+Podejrzenie brzmiało: tokeny części zawodników mogą wciąż leżeć w bazie z czasów, gdy Strava
+działała. **Sprawdzone — nie leżą.**
+
+| co | ile |
+|---|---|
+| `athletes.strava_access_token` | **0** (przy 47 zawodnikach) |
+| `athletes.strava_refresh_token` | **0** |
+| `athletes.strava_token_expires_at` | **0** |
+| `athletes.strava_athlete_id` / `strava_connected_at` | **0** / **0** |
+| `strava_activities` (cała tabela) | **0 wierszy** |
+| `training_logs` z `external_source='strava'` | **0** |
+| `athlete_intake_forms.strava_url` | **0** |
+| `jr_strava_bonuses` | **0 wierszy** |
+
+**Wniosek: nie ma czego kasować.** Zero danych uwierzytelniających, zero aktywności. Kolumny są
+puste i zostają — reguła „Strava porzucona, ale kod zostaje pod Garmina" nadal obowiązuje, a puste
+kolumny nic nie kosztują.
+
+**Jeden wyjątek, który NIE jest tokenem:** `training_logs.strava_link` ma **199 wypełnionych
+wierszy**. To adresy URL wklejone ręcznie przez zawodników przy logach, nie dane dostępowe —
+nie dają nikomu dostępu do cudzego konta i nie pochodzą z OAuth. Zostają.
+
+**Klauzule w `privacy.html`, `privacy-en.html` i `terms.html`** opisujące przetwarzanie danych ze
+Stravy są warunkowe („jeśli połączysz konto…"), więc nie kłamią. Przy tym stanie bazy można je
+kiedyś usunąć jako martwe, ale to zmiana w tekście prawnym — osobna decyzja, nie porządki.
