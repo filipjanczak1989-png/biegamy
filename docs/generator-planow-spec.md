@@ -64,7 +64,7 @@ Strefy liczone od P10:
 | Regeneracja | P10 + 120 s/km | osobna jednostka po mocnym akcencie | skalibrowane (mediana 122) |
 | Maratońskie (M) | P10 + 25 s/km | fragmenty długich | **brak danych**, wzór wyjściowy |
 | Próg (T) | P10 + 30 s/km | tempo, próg mleczanowy | skalibrowane (mediana 30) |
-| Interwały (I) | P10 + 5 s/km | VO2max | ⚠️ **niezatwierdzone** — patrz niżej |
+| Interwały (I) | P10 + 5 s/km | VO2max | skalibrowane (mediana 5, potwierdzone przez Filipa) |
 | Rytmy (R) | P10 − 30 s/km | przebieżki, akcenty | **brak danych**, wzór wyjściowy |
 
 **Kalibracja.** Skalibrowane na 489 treningach z waszej biblioteki planów,
@@ -89,9 +89,9 @@ najczęstszą jednostką w planach.
 Maratońskie i Rytmy zostają na wzorach wyjściowych — biblioteka nie ma
 dla nich osobnego typu treningu, więc nie ma czego zmierzyć.
 
-⚠️ **Interwały — wartość niezatwierdzona, nie wdrażać.** Pomiar mówi
-P10 + 5 s/km, czyli interwały zadawane mniej więcej w tempie dziesiątki,
-a nie szybciej niż ona. Czeka na potwierdzenie Filipa.
+**Interwały — P10 + 5 s/km, zatwierdzone przez Filipa 10/8.** Kilometrówki
+w tempie dziesiątki to normalna jednostka w planach BiegaMy. Poniżej dowód,
+że liczba nie jest artefaktem pomiaru — żeby nikt nie liczył tego od nowa.
 
 Hipoteza „w próbce mieszają się różne długości odcinków" — sprawdzona.
 Tłumaczy ogony, nie tłumaczy środka:
@@ -116,9 +116,8 @@ medianę +2, średnia zakresu +5, a same pola z jedną wartością (n=42, bez
 zakresów i mieszanek) +5. Pola dwutokenowe to zakresy o medianie
 rozpiętości 10 s/km, nie mieszanki „tempo odcinka + tempo truchtu".
 
-Czyli: +5 trzyma się niezależnie od tego, jak liczyć. Do potwierdzenia
-zostaje pytanie merytoryczne, nie pomiarowe. Do tego czasu generator nie
-wystawia strefy interwałowej.
+Czyli: +5 trzyma się niezależnie od tego, jak liczyć. Generator wystawia
+strefę interwałową normalnie.
 
 Format tempa — wzorzec projektu:
 ```js
