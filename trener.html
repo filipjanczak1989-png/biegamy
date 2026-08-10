@@ -2183,147 +2183,47 @@ function closeViewTrainingPlanModal() {
 }
 window.closeViewTrainingPlanModal = closeViewTrainingPlanModal;
 
+// Render przeniesiony do window.PLANVIEW (sb.js) — ten sam podglad konsumuje
+// zawodnik. Tutaj zostaje WYLACZNIE to, co trenerskie: globale pod edycje/kopie,
+// docelowy kontener i trzy zestawy przyciskow akcji wstrzykiwane przez opts.
 function renderPlanView(plan, workouts) {
   // Cache w globalu dla edycji/kopii
   _tpCurrentPlanData = plan;
   _tpCurrentWorkouts = workouts;
-  
+
   const content = document.getElementById('tp-view-content');
-  const planTypeLabels = { weekly: 'TYDZIEŃ · 7 dni', micro: 'MICRO · 2 tyg', meso: 'MESO · 4 tyg', macro: 'MACRO · 12 tyg' };
-  const raceLabels = { '5k': '5 km', '10k': '10 km', 'half': 'Półmaraton', 'marathon': 'Maraton', 'custom': 'Inny' };
-  const statusColors = { draft: '#fbbf24', approved: '#22c55e', rejected: '#9ca3af', completed: '#8b5cf6' };
-  const statusLabels = { draft: 'DRAFT', approved: 'AKTYWNY', rejected: 'ODRZUCONY', completed: 'ZAKOŃCZONY' };
 
-  // Group workouts by week
-  const weekGroups = {};
-  for (const w of workouts) {
-    if (!weekGroups[w.week_number]) weekGroups[w.week_number] = [];
-    weekGroups[w.week_number].push(w);
-  }
+  content.innerHTML = window.PLANVIEW.render(plan, workouts, {
+    weekActions: (wn) =>
+      `<button onclick="copyWeekToAthlete(${wn})" title="Kopiuj cały tydzień innemu zawodnikowi" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:5px 9px;border-radius:6px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;letter-spacing:0.05em;">${window.icHtml('act-copy',11,'margin-right:4px;vertical-align:-2px;')}KOPIUJ</button>`,
 
-  const typeColors = {
-    'Bieg spokojny': '#3b82f6',
-    'Wybieganie': '#06b6d4',
-    'Tempo': '#f59e0b',
-    'Interwały': '#ef4444',
-    'Regeneracja': '#10b981',
-    'Wzmacniający': '#8b5cf6',
-    'Odpoczynek': '#6b7280',
-    'Start': '#e8561e',
-    'Zastępczy': '#ec4899'
-  };
+    workoutActions: (w, p) => [
+      p.status === 'draft'   // edycja tylko dla draftu
+        ? `<button onclick="editWorkout('${w.id}')" title="Edytuj trening" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;">${window.icHtml('nut-edit',13)}</button>`
+        : '',
+      `<button onclick="copyWorkoutToAthlete('${w.id}')" title="Kopiuj trening innemu zawodnikowi" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;">${window.icHtml('act-copy',13)}</button>`
+    ],
 
-  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
-
-  let html = `
-    <!-- Header info -->
-    <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:18px;margin-bottom:18px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="background:${statusColors[plan.status]}20;color:${statusColors[plan.status]};padding:3px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;font-weight:700;">${statusLabels[plan.status]}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${planTypeLabels[plan.plan_type] || ''}</span>
-      </div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.02em;color:var(--fg);margin-bottom:4px;">${plan.target_race_type ? raceLabels[plan.target_race_type] : 'Plan ogólny'}${plan.target_time ? ' · ' + plan.target_time : ''}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.04em;">${new Date(plan.start_date).toLocaleDateString('pl', { day: 'numeric', month: 'long' })} → ${new Date(plan.end_date).toLocaleDateString('pl', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-      <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(34,197,94,0.15);">
-        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Treningów</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_workouts || 0}</div></div>
-        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Łącznie</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_distance_km || 0} km</div></div>
-        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Avg/tydz</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.input_target_volume_km || '—'} km</div></div>
-      </div>
-    </div>`;
-
-  // AI Summary + Rationale
-  if (plan.ai_summary || plan.ai_rationale) {
-    html += `
-      <div style="background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:18px;">
-        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:8px;">📋 O tym planie</div>
-        ${plan.ai_summary ? `<div style="font-family:Inter,sans-serif;font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:10px;">${escapeHtml(plan.ai_summary)}</div>` : ''}
-        ${plan.ai_rationale ? `<details><summary style="cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;">Pełne uzasadnienie ▾</summary><div style="font-family:Inter,sans-serif;font-size:12px;color:#cbd5e1;line-height:1.7;margin-top:10px;white-space:pre-wrap;">${escapeHtml(plan.ai_rationale)}</div></details>` : ''}
-        ${plan.ai_warnings ? `<div style="margin-top:10px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24;">⚠️ ${escapeHtml(plan.ai_warnings)}</div>` : ''}
-      </div>`;
-  }
-
-  // Tygodnie
-  html += '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">📅 Plan po tygodniach</div>';
-  
-  const weekNums = Object.keys(weekGroups).map(n => parseInt(n)).sort((a,b) => a-b);
-  for (const wn of weekNums) {
-    const wks = weekGroups[wn];
-    const weekKm = wks.reduce((s, w) => s + (Number(w.target_distance_km) || 0), 0);
-    const weekStart = new Date(wks[0].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
-    const weekEnd = new Date(wks[wks.length-1].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
-
-    html += `
-      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;">
-          <div style="flex:1;min-width:0;">
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">Tydzień ${wn}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:8px;letter-spacing:0.04em;">${weekStart} – ${weekEnd}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.05em;">${weekKm.toFixed(1)} km</span>
-            <button onclick="copyWeekToAthlete(${wn})" title="Kopiuj cały tydzień innemu zawodnikowi" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:5px 9px;border-radius:6px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;letter-spacing:0.05em;">${window.icHtml('act-copy',11,'margin-right:4px;vertical-align:-2px;')}KOPIUJ</button>
-          </div>
-        </div>`;
-
-    for (const w of wks) {
-      const date = new Date(w.date);
-      const dayLabel = dayNames[date.getDay()];
-      const dateLabel = date.toLocaleDateString('pl', { day: 'numeric', month: 'short' });
-      const color = typeColors[w.workout_type] || '#6b7280';
-      const isRest = w.workout_type === 'Odpoczynek';
-      const canEdit = plan.status === 'draft'; // edycja tylko dla draftu
-      // ✨ steps: czytelny breakdown structured workout (Interwały/Tempo) — tylko gdy steps są
-      const _stepsTxt = (window.renderWorkoutSteps && w.steps) ? window.renderWorkoutSteps(w.steps).short : '';
-      const _stepsSens = (window.renderWorkoutSteps && w.steps) ? (window.renderWorkoutSteps(w.steps).sens || '') : '';   /* P5 */
-      const _stepsHtml = _stepsTxt
-        ? `${_stepsSens ? '<div style="font-size:10px;color:var(--fg);opacity:0.85;margin-bottom:4px;line-height:1.4;font-style:italic;">' + escapeHtml(_stepsSens) + '</div>' : ''}<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);line-height:1.55;margin-top:5px;padding:6px 9px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">${escapeHtml(_stepsTxt)}</div>`
-        : '';
-
-      html += `
-        <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
-          <div style="min-width:48px;text-align:center;">
-            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${dayLabel}</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);">${dateLabel}</div>
-          </div>
-          <div style="flex:1;min-width:0;${isRest ? 'opacity:0.5;' : ''}">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-              <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;font-weight:600;">${w.workout_type.toUpperCase()}</span>
-              ${w.target_distance_km ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);">${w.target_distance_km} km</span>` : ''}
-              ${w.target_pace ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">@ ${w.target_pace}</span>` : ''}
-              ${w.target_hr_zone ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:#ef4444;">HR Z${w.target_hr_zone}</span>` : ''}
-            </div>
-            ${w.title ? `<div style="font-family:Inter,sans-serif;font-size:12px;color:var(--fg);font-weight:600;margin-bottom:2px;">${escapeHtml(w.title)}</div>` : ''}
-            ${w.description ? `<div style="font-family:Inter,sans-serif;font-size:11px;color:#cbd5e1;line-height:1.5;">${escapeHtml(w.description)}</div>` : ''}
-            ${_stepsHtml}
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            ${canEdit ? `<button onclick="editWorkout('${w.id}')" title="Edytuj trening" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;">${window.icHtml('nut-edit',13)}</button>` : ''}
-            <button onclick="copyWorkoutToAthlete('${w.id}')" title="Kopiuj trening innemu zawodnikowi" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;">${window.icHtml('act-copy',13)}</button>
-          </div>
-        </div>`;
-    }
-
-    html += '</div>';
-  }
-
-  // Action buttons (tylko dla draft)
-  if (plan.status === 'draft') {
-    html += `
+    footer: (p) => {
+      if (p.status === 'draft') {
+        return `
       <div style="position:sticky;bottom:0;background:linear-gradient(180deg,transparent 0%,#0c0c10 30%);padding:20px 0;margin-top:20px;display:flex;gap:8px;">
         <button onclick="rejectTrainingPlan()" style="flex:1;background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.3);color:var(--accent);padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">❌ Odrzuć</button>
         <button onclick="approveTrainingPlanFlow()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 14px rgba(34,197,94,0.4);">✅ Zatwierdź i wstaw do kalendarza</button>
       </div>`;
-  } else if (plan.status === 'approved') {
-    html += `
+      }
+      if (p.status === 'approved') {
+        return `
       <div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:10px;text-align:center;">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.08em;">✅ Plan aktywny w kalendarzu zawodnika</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;">Zatwierdzony: ${plan.approved_at ? new Date(plan.approved_at).toLocaleString('pl') : '—'}</div>
-        <button type="button" id="tp-send-watch" onclick="wyslijPlanNaZegarek('${plan.athlete_id}','${plan.start_date}','${plan.end_date}', this, document.getElementById('tp-send-watch-status'))" style="width:100%;margin:10px 0 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:12px;border:none;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer;">⌚ Wyślij cały plan na zegarek</button>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;">Zatwierdzony: ${p.approved_at ? new Date(p.approved_at).toLocaleString('pl') : '—'}</div>
+        <button type="button" id="tp-send-watch" onclick="wyslijPlanNaZegarek('${p.athlete_id}','${p.start_date}','${p.end_date}', this, document.getElementById('tp-send-watch-status'))" style="width:100%;margin:10px 0 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:12px;border:none;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer;">⌚ Wyślij cały plan na zegarek</button>
         <div id="tp-send-watch-status" style="display:none;margin-top:8px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.4;white-space:pre-line;"></div>
       </div>`;
-  }
-
-  content.innerHTML = html;
+      }
+      return '';
+    }
+  });
 }
 
 // ═══ w1 E3b: wyślij cały plan na zegarek (bulk, N-calls do intervals-push) ═══

@@ -1517,6 +1517,174 @@
     };
   })();
 
+  /* ═══ PLANVIEW — podgląd planu treningowego (SSOT: trener + zawodnik) ═══
+     Wydzielone z trener.html renderPlanView. Zwraca STRING HTML — o tym, gdzie
+     go wstawić, decyduje wołający. Zero getElementById, zero globali strony.
+
+     opts (wszystkie opcjonalne) sterują WYŁĄCZNIE przyciskami akcji:
+       opts.weekActions(weekNumber, workoutsOfWeek, plan) -> HTML
+       opts.workoutActions(workout, plan)                 -> HTML albo [HTML, …]
+       opts.footer(plan, workouts)                        -> HTML
+     Bez opts = czysty podgląd (tryb zawodnika). Gdy workoutActions nic nie zwróci,
+     kolumna przycisków w ogóle się nie renderuje.
+
+     Zależności: window.escapeHtml, window.renderWorkoutSteps. icHtml NIE jest
+     potrzebny — używały go tylko przyciski trenerskie, które zostały w trener.html.
+
+     ⚠️ NIE „przywracaj zgodności 1:1" ze starym renderem z trener.html.
+     Stary kod NIE escapował trzech pól: workout_type, target_pace i
+     plan.target_time. Tu są escapowane i tak ma zostać. Powód: dopóki to był
+     render panelu trenerskiego, dane pochodziły wyłącznie od trenera. Teraz ten
+     sam podgląd konsumuje strona zawodnika, a target_pace to wolne pole
+     tekstowe wpisywane ręcznie (w bazie siedzą m.in. „5:;45/km”,
+     „Tempo startowe”) — po wpięciu generatora treść przestaje pochodzić tylko
+     od trenera. Escapowanie to jedyna celowa różnica w zachowaniu wobec
+     oryginału; reszta wyjścia jest identyczna (bramka: scratchpad/p1_regresja.js). */
+  window.PLANVIEW = (function () {
+    var PLAN_TYPE_LABELS = { weekly: 'TYDZIEŃ · 7 dni', micro: 'MICRO · 2 tyg', meso: 'MESO · 4 tyg', macro: 'MACRO · 12 tyg' };
+    var RACE_LABELS   = { '5k': '5 km', '10k': '10 km', 'half': 'Półmaraton', 'marathon': 'Maraton', 'custom': 'Inny' };
+    var STATUS_COLORS = { draft: '#fbbf24', approved: '#22c55e', rejected: '#9ca3af', completed: '#8b5cf6' };
+    var STATUS_LABELS = { draft: 'DRAFT', approved: 'AKTYWNY', rejected: 'ODRZUCONY', completed: 'ZAKOŃCZONY' };
+    var TYPE_COLORS = {
+      'Bieg spokojny': '#3b82f6',
+      'Wybieganie': '#06b6d4',
+      'Tempo': '#f59e0b',
+      'Interwały': '#ef4444',
+      'Regeneracja': '#10b981',
+      'Wzmacniający': '#8b5cf6',
+      'Odpoczynek': '#6b7280',
+      'Start': '#e8561e',
+      'Zastępczy': '#ec4899'
+    };
+    var DAY_NAMES = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+
+    function esc(s) { return window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s); }
+
+    function grupujPoTygodniach(workouts) {
+      var g = {};
+      for (var i = 0; i < workouts.length; i++) {
+        var w = workouts[i];
+        if (!g[w.week_number]) g[w.week_number] = [];
+        g[w.week_number].push(w);
+      }
+      return g;
+    }
+
+    function stepsHtml(w) {
+      var r = (window.renderWorkoutSteps && w.steps) ? window.renderWorkoutSteps(w.steps) : null;
+      var txt = r ? r.short : '';
+      if (!txt) return '';
+      var sens = (r && r.sens) || '';
+      return (sens ? '<div style="font-size:10px;color:var(--fg);opacity:0.85;margin-bottom:4px;line-height:1.4;font-style:italic;">' + esc(sens) + '</div>' : '')
+        + '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--accent);line-height:1.55;margin-top:5px;padding:6px 9px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;white-space:pre-line;">' + esc(txt) + '</div>';
+    }
+
+    function render(plan, workouts, opts) {
+      workouts = workouts || [];
+      opts = opts || {};
+      var weekGroups = grupujPoTygodniach(workouts);
+
+      var html = `
+    <!-- Header info -->
+    <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:18px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="background:${STATUS_COLORS[plan.status]}20;color:${STATUS_COLORS[plan.status]};padding:3px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;font-weight:700;">${STATUS_LABELS[plan.status]}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${PLAN_TYPE_LABELS[plan.plan_type] || ''}</span>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.02em;color:var(--fg);margin-bottom:4px;">${plan.target_race_type ? RACE_LABELS[plan.target_race_type] : 'Plan ogólny'}${plan.target_time ? ' · ' + esc(plan.target_time) : ''}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.04em;">${new Date(plan.start_date).toLocaleDateString('pl', { day: 'numeric', month: 'long' })} → ${new Date(plan.end_date).toLocaleDateString('pl', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+      <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(34,197,94,0.15);">
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Treningów</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_workouts || 0}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Łącznie</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_distance_km || 0} km</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Avg/tydz</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.input_target_volume_km || '—'} km</div></div>
+      </div>
+    </div>`;
+
+      if (plan.ai_summary || plan.ai_rationale) {
+        html += `
+      <div style="background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:18px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:8px;">📋 O tym planie</div>
+        ${plan.ai_summary ? `<div style="font-family:Inter,sans-serif;font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:10px;">${esc(plan.ai_summary)}</div>` : ''}
+        ${plan.ai_rationale ? `<details><summary style="cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;">Pełne uzasadnienie ▾</summary><div style="font-family:Inter,sans-serif;font-size:12px;color:#cbd5e1;line-height:1.7;margin-top:10px;white-space:pre-wrap;">${esc(plan.ai_rationale)}</div></details>` : ''}
+        ${plan.ai_warnings ? `<div style="margin-top:10px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24;">⚠️ ${esc(plan.ai_warnings)}</div>` : ''}
+      </div>`;
+      }
+
+      html += '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">📅 Plan po tygodniach</div>';
+
+      var weekNums = Object.keys(weekGroups).map(function (n) { return parseInt(n, 10); }).sort(function (a, b) { return a - b; });
+      for (var i = 0; i < weekNums.length; i++) {
+        var wn = weekNums[i];
+        var wks = weekGroups[wn];
+        var weekKm = wks.reduce(function (s, w) { return s + (Number(w.target_distance_km) || 0); }, 0);
+        var weekStart = new Date(wks[0].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+        var weekEnd = new Date(wks[wks.length - 1].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+        var weekActs = opts.weekActions ? (opts.weekActions(wn, wks, plan) || '') : '';
+
+        html += `
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">Tydzień ${wn}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:8px;letter-spacing:0.04em;">${weekStart} – ${weekEnd}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.05em;">${weekKm.toFixed(1)} km</span>
+            ${weekActs}
+          </div>
+        </div>`;
+
+        for (var j = 0; j < wks.length; j++) {
+          var w = wks[j];
+          var date = new Date(w.date);
+          var dayLabel = DAY_NAMES[date.getDay()];
+          var dateLabel = date.toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+          var color = TYPE_COLORS[w.workout_type] || '#6b7280';
+          var isRest = w.workout_type === 'Odpoczynek';
+          var wActs = opts.workoutActions ? (opts.workoutActions(w, plan) || '') : '';
+          if (Array.isArray(wActs)) wActs = wActs.filter(Boolean).join('\n            ');
+
+          html += `
+        <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
+          <div style="min-width:48px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${dayLabel}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);">${dateLabel}</div>
+          </div>
+          <div style="flex:1;min-width:0;${isRest ? 'opacity:0.5;' : ''}">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+              <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;font-weight:600;">${esc(String(w.workout_type || '').toUpperCase())}</span>
+              ${w.target_distance_km ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);">${w.target_distance_km} km</span>` : ''}
+              ${w.target_pace ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">@ ${esc(w.target_pace)}</span>` : ''}
+              ${w.target_hr_zone ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:#ef4444;">HR Z${w.target_hr_zone}</span>` : ''}
+            </div>
+            ${w.title ? `<div style="font-family:Inter,sans-serif;font-size:12px;color:var(--fg);font-weight:600;margin-bottom:2px;">${esc(w.title)}</div>` : ''}
+            ${w.description ? `<div style="font-family:Inter,sans-serif;font-size:11px;color:#cbd5e1;line-height:1.5;">${esc(w.description)}</div>` : ''}
+            ${stepsHtml(w)}
+          </div>
+          ${wActs ? `<div style="display:flex;flex-direction:column;gap:4px;">
+            ${wActs}
+          </div>` : ''}
+        </div>`;
+        }
+
+        html += '</div>';
+      }
+
+      html += opts.footer ? (opts.footer(plan, workouts) || '') : '';
+      return html;
+    }
+
+    return {
+      render: render,
+      PLAN_TYPE_LABELS: PLAN_TYPE_LABELS,
+      RACE_LABELS: RACE_LABELS,
+      STATUS_COLORS: STATUS_COLORS,
+      STATUS_LABELS: STATUS_LABELS,
+      TYPE_COLORS: TYPE_COLORS,
+      DAY_NAMES: DAY_NAMES
+    };
+  })();
+
   // ═══ intervals.icu drill-down (SSOT — przeniesione z kalendarz.html; kalendarz+trener konsumują) ═══
 // ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
 let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {};
