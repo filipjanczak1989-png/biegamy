@@ -52,11 +52,18 @@
      ocena, bez pokrycia w danych z biblioteki. Jeśli kiedyś będą dane — zmierzyć
      i podmienić. Maraton ma 16 tygodni zamiast rozważanych 12 świadomie:
      ostrożniej znaczy tu lepiej. */
+  /* minSzczyt      — poniżej tej objętości plan na dany dystans jest fikcją (ZA_MALA_BAZA)
+     udzialDlugiego — jaki ułamek tygodnia bierze wybieganie. NIE jest płaski: przy
+                      stałych 33% próg minDlugieProc dla maratonu byłby nieosiągalny
+                      dla nikogo (0,33 × 70 = 23,1 km przy wymaganych 23,2) i silnik
+                      odrzucałby KAŻDY maraton. Długie rośnie z dystansem, jak w realnych planach.
+     minDlugieProc  — ile procent dystansu docelowego musi sięgnąć najdłuższe wybieganie
+                      (ZA_KROTKIE_WYBIEGANIE). Bramka na szczyt tygodniowy tego nie łapie. */
   var DYSTANSE = {
-    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1 },
-    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1 },
-    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2 },
-    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3 }
+    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1, minSzczyt: 20, udzialDlugiego: 0.30, minDlugieProc: 0.60 },
+    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1, minSzczyt: 25, udzialDlugiego: 0.33, minDlugieProc: 0.60 },
+    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2, minSzczyt: 30, udzialDlugiego: 0.36, minDlugieProc: 0.55 },
+    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3, minSzczyt: 45, udzialDlugiego: 0.40, minDlugieProc: 0.55 }
   };
 
   var MAX_POPRAWA = 0.08;        // cel czasowy: max 8% szybciej niż prognoza z obecnej formy
@@ -200,6 +207,21 @@
 
     var budowa = Math.max(1, tygodnie - d.taper);
     var peak = Math.max(obecna, Math.min(d.peakKm, obecna * MNOZNIK_SZCZYTU));
+
+    // ZA_MALA_BAZA — jedyna odmowa, którą człowiek może sam naprawić, więc niesie
+    // konkretną liczbę do osiągnięcia. Sufit obecna×MNOZNIK obniża szczyt, a niższy
+    // szczyt jest łatwiej osiągalny — bez tej bramki ściana narastania przestawała
+    // się odzywać dokładnie dla maratonu i półmaratonu.
+    if (obecna * MNOZNIK_SZCZYTU < d.minSzczyt) {
+      var wymBaza = Math.ceil(d.minSzczyt / MNOZNIK_SZCZYTU);
+      return odmowa('ZA_MALA_BAZA',
+        'Przy ' + Math.round(obecna) + ' km/tydz ' + d.etykieta.toLowerCase() + ' wymagałby dojścia do ' + d.minSzczyt +
+        ' km/tydz, czyli ' + (Math.round(d.minSzczyt / obecna * 10) / 10) + '× więcej niż biegasz teraz. Zbuduj bazę do ~' +
+        wymBaza + ' km/tydz albo wybierz bliższy cel.',
+        { obecna_km: Math.round(obecna), minSzczyt_km: d.minSzczyt, wymaganaBaza_km: wymBaza,
+          objetoscZalozona: zalozonaObjetosc, dystans: we.dystans });
+    }
+
     if (peak > obecna) {
       var przyrost = Math.pow(peak / obecna, 1 / budowa) - 1;
       if (przyrost > MAX_PRZYROST_TYG) {
@@ -305,7 +327,7 @@
     var km = new Array(sloty.length), opisy = new Array(sloty.length);
     var zajete = 0, spokojne = [];
     for (i = 0; i < typy.length; i++) {
-      if (typy[i] === 'Wybieganie')        { km[i] = 0.33 * kmTyg; zajete += km[i]; }
+      if (typy[i] === 'Wybieganie')        { km[i] = k.d.udzialDlugiego * kmTyg; zajete += km[i]; }
       else if (typy[i] === 'Regeneracja')  { km[i] = 0.10 * kmTyg; zajete += km[i]; }
       else if (typy[i] === 'Tempo' || typy[i] === 'Interwały') {
         var j = jednostkaJakosci(typy[i], 0.20 * kmTyg, k.p10);
@@ -375,6 +397,28 @@
         var strefa = STREFA_TYPU[jest.typ];
         treningi.push(trening(idx, dow, t, jest.typ, jest.km, fmtTempo(tempoStrefy(k.p10, strefa)) + '/km', null, jest.opis));
       }
+    }
+
+    /* DRUGA BRAMKA — mierzona na GOTOWYM planie, nie na prognozie.
+       Poprawna arytmetyka objętości nie gwarantuje sensownego wybiegania: długie to
+       ułamek tygodnia, więc maraton potrafił przejść z najdłuższym 10,6 km. To jest
+       liczba, którą zawodnik odczuje bezpośrednio — ważniejsza niż suma tygodnia.
+       Liczona z realnego wyjścia, żeby nie dublować wzoru układania tygodnia. */
+    var najdluzsze = treningi.reduce(function (m, w) {
+      return w.workout_type === 'Wybieganie' ? Math.max(m, w.target_distance_km || 0) : m;
+    }, 0);
+    var progDlugiego = k.d.minDlugieProc * k.d.km;
+    if (najdluzsze < progDlugiego - 0.05) {
+      var potrzebnyPeak = progDlugiego / k.d.udzialDlugiego;
+      var bazaDlaDlugiego = Math.ceil(potrzebnyPeak / MNOZNIK_SZCZYTU);
+      return odmowa('ZA_KROTKIE_WYBIEGANIE',
+        'Najdłuższe wybieganie w takim planie to ' + (Math.round(najdluzsze * 10) / 10) + ' km, a przed startem na ' +
+        k.d.etykieta.toLowerCase() + ' trzeba dobiec co najmniej ' + (Math.round(progDlugiego * 10) / 10) + ' km (' +
+        Math.round(k.d.minDlugieProc * 100) + '% dystansu). Zbuduj bazę do ~' + bazaDlaDlugiego +
+        ' km/tydz albo wybierz bliższy cel.',
+        { najdluzsze_km: Math.round(najdluzsze * 10) / 10, wymagane_km: Math.round(progDlugiego * 10) / 10,
+          procDystansu: Math.round(k.d.minDlugieProc * 100), obecna_km: Math.round(k.obecna),
+          wymaganaBaza_km: bazaDlaDlugiego, dystans: wejscie.dystans });
     }
 
     var sumaKm = treningi.reduce(function (s, w) { return s + (w.target_distance_km || 0); }, 0);
@@ -558,20 +602,71 @@
       brakObj.ok === false && brakObj.sciana.kod === 'SKOK_OBJETOSCI' && brakObj.sciana.szczegoly.objetoscZalozona === true,
       brakObj.ok ? 'PRZESZLO' : brakObj.sciana);
 
-    sekcja('⚠️ KONSEKWENCJA sufitu obecna×1.6 — DZIURA DO DECYZJI FILIPA');
-    // Sufit względny obniża szczyt, a niższy szczyt jest ŁATWIEJ osiągalny — więc
-    // ściana objętości przestaje działać dokładnie tam, gdzie jest najpotrzebniejsza.
-    // Test NIE jest zgodą na taki stan; jest zapisem, żeby to nie zniknęło z pola widzenia.
+    // Skrót do najdłuższego wybiegania w planie
+    function najdluzszeW(r) {
+      return r.ok ? Math.max.apply(null, r.treningi
+        .filter(function (w) { return w.workout_type === 'Wybieganie'; })
+        .map(function (w) { return w.target_distance_km; })) : null;
+    }
+
+    sekcja('ŚCIANA — za mała baza (dziura po suficie obecna×1.6, ZAMKNIĘTA)');
     var mar20 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(16),
                           poziom: poziom({ objetoscTygodniowa: 20 }) }));
-    var najdl = mar20.ok ? Math.max.apply(null, mar20.treningi
-      .filter(function (w) { return w.workout_type === 'Wybieganie'; })
-      .map(function (w) { return w.target_distance_km; })) : null;
-    check('maraton z 20 km/tydz PRZECHODZI (przed sufitem był odbijany)', mar20.ok === true, mar20.ok ? null : mar20.sciana);
-    check('…ze szczytem 32 km/tydz i najdłuższym wybieganiem ~10,6 km na 42 km wyścigu',
-      mar20.ok && mar20.plan.input_target_volume_km === 32 && najdl < 11, [mar20.plan && mar20.plan.input_target_volume_km, najdl]);
-    check('ściana objętości NIE odzywa się już dla maratonu ani półmaratonu przy minimum tygodni',
-      uloz(we({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTygodni(10), poziom: poziom({ objetoscTygodniowa: 15 }) })).ok === true, null);
+    check('maraton z 20 km/tydz → ZA_MALA_BAZA (wcześniej PRZECHODZIŁ)',
+      mar20.ok === false && mar20.sciana.kod === 'ZA_MALA_BAZA', mar20.ok ? 'PRZESZLO' : mar20.sciana);
+    check('odmowa niesie drogę wyjścia: ile trzeba biegać',
+      mar20.sciana.szczegoly.wymaganaBaza_km === 29 && mar20.sciana.szczegoly.minSzczyt_km === 45,
+      mar20.sciana.szczegoly);
+    check('komunikat zawiera liczby, nie samo „nie da się"',
+      /20 km\/tydz/.test(mar20.sciana.komunikat) && /45 km\/tydz/.test(mar20.sciana.komunikat)
+      && /Zbuduj bazę do ~29/.test(mar20.sciana.komunikat), mar20.sciana.komunikat);
+    var half15 = uloz(we({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTygodni(10),
+                           poziom: poziom({ objetoscTygodniowa: 15 }) }));
+    check('półmaraton z 15 km/tydz → odbite', half15.ok === false && half15.sciana.kod === 'ZA_MALA_BAZA',
+      half15.ok ? 'PRZESZLO' : half15.sciana);
+    check('próg ZA_MALA_BAZA liczony z minSzczyt / MNOZNIK_SZCZYTU dla każdego dystansu',
+      ['5k', '10k', 'half', 'marathon'].every(function (dy) {
+        var d = DYSTANSE[dy], graniczna = d.minSzczyt / MNOZNIK_SZCZYTU;
+        var pod = uloz(we({ dystans: dy, dniWTygodniu: 5, dataStartu: zaTygodni(d.minTygodni + 6),
+                            poziom: poziom({ objetoscTygodniowa: graniczna - 0.5 }) }));
+        var nad = uloz(we({ dystans: dy, dniWTygodniu: 5, dataStartu: zaTygodni(d.minTygodni + 6),
+                            poziom: poziom({ objetoscTygodniowa: graniczna + 0.5 }) }));
+        return pod.ok === false && pod.sciana.kod === 'ZA_MALA_BAZA'
+            && !(nad.ok === false && nad.sciana.kod === 'ZA_MALA_BAZA');
+      }), null);
+
+    sekcja('ŚCIANA — za krótkie wybieganie (bramka niezależna od objętości)');
+    var mar29 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(16),
+                          poziom: poziom({ objetoscTygodniowa: 29 }) }));
+    check('maraton z 29 km/tydz przechodzi ZA_MALA_BAZA, ale ginie na wybieganiu',
+      mar29.ok === false && mar29.sciana.kod === 'ZA_KROTKIE_WYBIEGANIE', mar29.ok ? 'PRZESZLO' : mar29.sciana);
+    check('odmowa podaje ile km trzeba dobiec i ile to % dystansu',
+      mar29.sciana.szczegoly.wymagane_km === 23.2 && mar29.sciana.szczegoly.procDystansu === 55
+      && mar29.sciana.szczegoly.wymaganaBaza_km === 37, mar29.sciana.szczegoly);
+    var mar36 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
+                          poziom: poziom({ objetoscTygodniowa: 36 }) }));
+    check('maraton z 36 km/tydz nadal odbity (tuż pod progiem)',
+      mar36.ok === false && mar36.sciana.kod === 'ZA_KROTKIE_WYBIEGANIE', mar36.ok ? 'PRZESZLO' : mar36.sciana);
+    var mar37 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
+                          poziom: poziom({ objetoscTygodniowa: 37 }) }));
+    check('maraton z 37 km/tydz PRZECHODZI (pierwsza wartość, która przechodzi)', mar37.ok === true,
+      mar37.ok ? null : mar37.sciana);
+    check('…i jego najdłuższe wybieganie sięga ≥ 23 km', najdluzszeW(mar37) >= 23, najdluzszeW(mar37));
+    check('KAŻDY wygenerowany plan spełnia próg wybiegania',
+      [['5k', 6, 4, 25], ['10k', 8, 4, 30], ['half', 12, 4, 40], ['marathon', 18, 5, 45],
+       ['marathon', 20, 6, 90], ['half', 16, 3, 30]].every(function (c) {
+        var rr = uloz(we({ dystans: c[0], dataStartu: zaTygodni(c[1]), dniWTygodniu: c[2],
+                           poziom: poziom({ objetoscTygodniowa: c[3] }) }));
+        return rr.ok && najdluzszeW(rr) >= DYSTANSE[c[0]].minDlugieProc * DYSTANSE[c[0]].km - 0.05;
+      }), null);
+    check('próg wybiegania jest OSIĄGALNY dla każdego dystansu przy peakKm',
+      ['5k', '10k', 'half', 'marathon'].every(function (dy) {
+        var d = DYSTANSE[dy];
+        return d.udzialDlugiego * d.peakKm >= d.minDlugieProc * d.km;
+      }), ['5k', '10k', 'half', 'marathon'].map(function (dy) {
+        var d = DYSTANSE[dy];
+        return dy + ': ' + Math.round(d.udzialDlugiego * d.peakKm * 10) / 10 + ' vs ' + Math.round(d.minDlugieProc * d.km * 10) / 10;
+      }));
 
     sekcja('ŚCIANA — cel czasowy ponad 8%');
     var pgn10 = prognozaCzasu(300, 10);             // p10=5:00/km => 50:00
@@ -695,7 +790,7 @@
 
     sekcja('SUFIT SZCZYTU — dwa ograniczenia naraz');
     [['5k', 6, 4, 25], ['10k', 8, 4, 30], ['half', 12, 4, 40], ['marathon', 20, 5, 50],
-     ['marathon', 20, 6, 90], ['half', 14, 3, 12]].forEach(function (c) {
+     ['marathon', 20, 6, 90], ['half', 16, 3, 30]].forEach(function (c) {
       var rr = uloz(we({ dystans: c[0], dataStartu: zaTygodni(c[1]), dniWTygodniu: c[2],
                          poziom: poziom({ objetoscTygodniowa: c[3] }) }));
       if (!rr.ok) { check(c[0] + ' @' + c[3] + ' km/tydz: plan powstaje', false, rr.sciana); return; }
@@ -789,7 +884,7 @@
       w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0));
     check('4 dni: ratunek NIE odpala się (kształt był poprawny)',
       Math.abs(rj.treningi.filter(function (w) { return w.week_number === 6 && w.workout_type === 'Wybieganie'; })[0].target_distance_km
-        - 0.33 * rj.meta.objetosciTygodni[5]) < 0.1, null);
+        - DYSTANSE.half.udzialDlugiego * rj.meta.objetosciTygodni[5]) < 0.1, null);
 
     check('liczbaOdcinkow: widełki Filipa 4-5→4, 6-8→6, powyżej→8',
       liczbaOdcinkow(4) === 4 && liczbaOdcinkow(5) === 4 && liczbaOdcinkow(6) === 6 &&
