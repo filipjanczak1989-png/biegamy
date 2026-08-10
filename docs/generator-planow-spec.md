@@ -58,13 +58,67 @@ T2 = T1 × (D2 / D1) ^ 1.06
 
 Strefy liczone od P10:
 
-| strefa | tempo | zastosowanie |
+| strefa | tempo | zastosowanie | pochodzenie |
+|---|---|---|---|
+| Spokojne (E) | P10 + 95 s/km | większość objętości, długie | skalibrowane (mediana 97) |
+| Regeneracja | P10 + 120 s/km | osobna jednostka po mocnym akcencie | skalibrowane (mediana 122) |
+| Maratońskie (M) | P10 + 25 s/km | fragmenty długich | **brak danych**, wzór wyjściowy |
+| Próg (T) | P10 + 30 s/km | tempo, próg mleczanowy | skalibrowane (mediana 30) |
+| Interwały (I) | P10 + 5 s/km | VO2max | ⚠️ **niezatwierdzone** — patrz niżej |
+| Rytmy (R) | P10 − 30 s/km | przebieżki, akcenty | **brak danych**, wzór wyjściowy |
+
+**Kalibracja.** Skalibrowane na 489 treningach z waszej biblioteki planów,
+sierpień 2026. Zastrzeżenie: `pb_10k` to wartość BIEŻĄCA, nie migawka
+z chwili generowania — snapshotu poziomu wyjściowego w bazie nie ma.
+
+Zmierzony rozkład różnicy (tempo zadane − P10), s/km:
+
+| strefa | n | p25 | mediana | p75 |
+|---|---|---|---|---|
+| łatwe (spokojny + wybieganie) | 489 | 80 | 97 | 113 |
+| Regeneracja | 270 | 96 | 122 | 133 |
+| Tempo | 48 | 22 | 30 | 35 |
+| Interwały | 119 | −9 | 5 | 10 |
+
+Zmiany względem wzorów wyjściowych: spokojne +75 → +95 (mediana 97, ale
+95 jest okrągłe i leży między spokojnym 97 a wybieganiem 93). Próg +8 → +30
+— wzór wyjściowy był o 22 s/km za szybki, czyli mylił próg z wyścigiem.
+Regeneracja to nowa strefa: nie było jej w spisie, a jest trzecią
+najczęstszą jednostką w planach.
+
+Maratońskie i Rytmy zostają na wzorach wyjściowych — biblioteka nie ma
+dla nich osobnego typu treningu, więc nie ma czego zmierzyć.
+
+⚠️ **Interwały — wartość niezatwierdzona, nie wdrażać.** Pomiar mówi
+P10 + 5 s/km, czyli interwały zadawane mniej więcej w tempie dziesiątki,
+a nie szybciej niż ona. Czeka na potwierdzenie Filipa.
+
+Hipoteza „w próbce mieszają się różne długości odcinków" — sprawdzona.
+Tłumaczy ogony, nie tłumaczy środka:
+
+| odcinek | n | mediana (najszybsze tempo − P10) |
 |---|---|---|
-| Spokojne (E) | P10 + 75 s/km | większość objętości, długie |
-| Maratońskie (M) | P10 + 25 s/km | fragmenty długich |
-| Próg (T) | P10 + 8 s/km | tempo, próg mleczanowy |
-| Interwały (I) | P10 − 12 s/km | VO2max |
-| Rytmy (R) | P10 − 30 s/km | przebieżki, akcenty |
+| 200 m | 9 | −67 |
+| 1000 m | 28 | −6 |
+| 400 m | 11 | −1 |
+| 600 m | 26 | +5 |
+| brak w opisie | 21 | +6 |
+| 800 m | 18 | +7 |
+| 100 m | 4 | +24 |
+| 300 m | 2 | +64 |
+
+Skrajne −67 to dziewięć jednostek po 200 m, +64 to dwie po 300 m
+(prawdopodobnie źle opisane). Na dystansach 400–1000 m, które stanowią
+większość próbki, mediana leży między −6 a +7.
+
+Wartość nie zależy też od metody parsowania: najszybszy token z pola daje
+medianę +2, średnia zakresu +5, a same pola z jedną wartością (n=42, bez
+zakresów i mieszanek) +5. Pola dwutokenowe to zakresy o medianie
+rozpiętości 10 s/km, nie mieszanki „tempo odcinka + tempo truchtu".
+
+Czyli: +5 trzyma się niezależnie od tego, jak liczyć. Do potwierdzenia
+zostaje pytanie merytoryczne, nie pomiarowe. Do tego czasu generator nie
+wystawia strefy interwałowej.
 
 Format tempa — wzorzec projektu:
 ```js
