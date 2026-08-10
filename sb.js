@@ -4293,7 +4293,24 @@ window.SHARECARD = (function () {
   const STOPNIE = [[0.88,0.66],[0.93,0.70],[0.96,0.74],[0.975,0.78],[0.985,0.82]];
   const PROG = 38;
 
-  let _stan = { logId: null, momentId: null, slotId: null, log: null, mozeEdytowac: true, onZamkniecie: null };
+  // CEL komponentu: {typ:'log'|'moment', id}. Wcześniej był wszyty `logId`, bo tło miał
+  // wyłącznie trening. Od kiedy kamień też może mieć własne zdjęcie, ta sama ścieżka zapisu
+  // musi trafiać raz do `training_logs`, raz do `delivered_moments` — stąd typ przy id,
+  // a nie dwa równoległe pola, które trzeba sprawdzać w każdym miejscu z osobna.
+  let _stan = { cel: null, slotId: null, log: null, mom: null, mozeEdytowac: true, onZamkniecie: null };
+  function _celLog()    { return _stan.cel && _stan.cel.typ === 'log'    ? _stan.cel.id : null; }
+  function _celMoment() { return _stan.cel && _stan.cel.typ === 'moment' ? _stan.cel.id : null; }
+  // Ścieżka w Storage: prefiks `m-` dla momentu. UUID-y się nie zderzą, ale przy oglądaniu
+  // bucketu trzeba widzieć, co jest czym — a `usunTlo` składa tę samą ścieżkę z identyfikatora.
+  function _sciezkaTla(uid) {
+    if (!_stan.cel) return null;
+    return uid + '/' + (_stan.cel.typ === 'moment' ? 'm-' : '') + _stan.cel.id + '.jpg';
+  }
+  function _tabelaTla()  { return _stan.cel && _stan.cel.typ === 'moment' ? 'delivered_moments' : 'training_logs'; }
+  function _biezaceTlo() {
+    if (_stan.cel && _stan.cel.typ === 'moment') return _stan.mom && _stan.mom.card_bg_url;
+    return _stan.log && _stan.log.card_bg_url;
+  }
   let _crop = null;
   let _podgladUrl = null;
   let _plik = null;
@@ -4334,7 +4351,7 @@ window.SHARECARD = (function () {
     const bShare = slot.querySelector('[data-sc="share"]');
     if (bShare) bShare.addEventListener('click', function (e) {
       e.stopPropagation();                 // karta logu w „Dziś" ma własny onclick → editLog
-      _stan = { logId: log.id, slotId: slotId, log: log, mozeEdytowac: mozeEdytowac };
+      _stan = { cel: { typ: 'log', id: log.id }, slotId: slotId, log: log, mom: null, mozeEdytowac: mozeEdytowac };
       przygotujKarte(bShare);
     });
   }
@@ -4597,16 +4614,17 @@ window.SHARECARD = (function () {
     stan.textContent = 'Wgrywam…';
     const blob = await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.86); });
     const uid = window._authUid;
-    if (!blob || !uid || !_stan.logId) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się przygotować pliku'); return; }
-    const sciezka = uid + '/' + _stan.logId + '.jpg';
+    if (!blob || !uid || !_stan.cel) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się przygotować pliku'); return; }
+    const sciezka = _sciezkaTla(uid);
     const { error: upErr } = await window.storageUploadRetry('card-bg', sciezka, blob, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się wgrać tła'); return; }
     const { data: urlData } = window.sb.storage.from('card-bg').getPublicUrl(sciezka);
     const url = urlData.publicUrl + '?t=' + Date.now();   // nowy hash w EF → nowa karta, stare linki żyją
-    const { error: dbErr } = await window.sb.from('training_logs').update({ card_bg_url: url }).eq('id', _stan.logId);
+    const { error: dbErr } = await window.sb.from(_tabelaTla()).update({ card_bg_url: url }).eq('id', _stan.cel.id);
     if (dbErr) { btn.disabled = false; stan.textContent = ''; powiadom('Nie udało się zapisać tła'); return; }
 
     if (_stan.log) _stan.log.card_bg_url = url;   // ten sam obiekt co w liście strony
+    if (_stan.mom) _stan.mom.card_bg_url = url;
     const zPodgladu = st.zPodgladu;
     zamknijKadrownik();
     przerysuj();
@@ -4618,12 +4636,13 @@ window.SHARECARD = (function () {
   }
 
   async function usunTlo(btn, zPodgladu) {
-    if (!_stan.logId || !window._authUid) return;
+    if (!_stan.cel || !window._authUid) return;
     btn.disabled = true;
-    await window.sb.storage.from('card-bg').remove([window._authUid + '/' + _stan.logId + '.jpg']);
-    const { error } = await window.sb.from('training_logs').update({ card_bg_url: null }).eq('id', _stan.logId);
+    await window.sb.storage.from('card-bg').remove([_sciezkaTla(window._authUid)]);
+    const { error } = await window.sb.from(_tabelaTla()).update({ card_bg_url: null }).eq('id', _stan.cel.id);
     if (error) { btn.disabled = false; powiadom('Nie udało się usunąć tła'); return; }
     if (_stan.log) _stan.log.card_bg_url = null;
+    if (_stan.mom) _stan.mom.card_bg_url = null;
     przerysuj();
     powiadom('Tło usunięte — karta wróci do domyślnego');
     if (zPodgladu) await odswiezPodglad();
@@ -4657,7 +4676,7 @@ window.SHARECARD = (function () {
       + '<button type="button" data-sc="udostepnij" class="btn btn-primary btn-sm" style="width:100%;">Udostępnij ↗</button>'
       + '</div>'
       + (_iOS() ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;max-width:' + szer + 'px;line-height:1.5;">Na iPhonie plik otwiera się zamiast zapisywać — przytrzymaj obraz i wybierz „Zapisz obraz".</div>' : '')
-      + (_stan.mozeEdytowac && _stan.log && _stan.log.card_bg_url
+      + (_stan.mozeEdytowac && _biezaceTlo()
           ? '<button type="button" data-sc="usun" style="background:none;border:none;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;cursor:pointer;text-decoration:underline;">Usuń własne tło</button>'
           : '')
       + '<div data-sc="stanPodgladu" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;min-height:15px;"></div>';
@@ -4692,7 +4711,7 @@ window.SHARECARD = (function () {
     // Karta momentu idzie INNĄ ścieżką w EF: {moment_id} zamiast {log_id}. Autoryzacja liczy
     // się tam po wierszu momentu, nie po logu — właściciel dostaje 403 dla momentu, którego
     // trener nie zatwierdził. Klient tego nie zakłada, tylko obsługuje (patrz pokazMoment).
-    const cialo = _stan.momentId ? { moment_id: _stan.momentId } : { log_id: _stan.logId };
+    const cialo = _celMoment() ? { moment_id: _celMoment() } : { log_id: _celLog() };
     const res = await fetch(fnUrl, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
@@ -4709,7 +4728,7 @@ window.SHARECARD = (function () {
   }
 
   async function przygotujKarte(btn) {
-    if (!_stan.logId) { powiadom('Brak treningu do wygenerowania'); return; }
+    if (!_celLog()) { powiadom('Brak treningu do wygenerowania'); return; }
     btn.disabled = true;
     btn.textContent = 'Renderuję kartę…';
     // Pierwsza karta to cold start EF plus render — bez tej podpowiedzi wygląda
@@ -4793,12 +4812,31 @@ window.SHARECARD = (function () {
     zapisz();
   }
 
-  // Karta MOMENTU (kamień milowy) — bez slotu i bez przycisku, wołana z banera w „Dziś".
-  // Własne tło świadomie niedostępne: kamień dotyczy setek treningów, nie jednego, więc nie
-  // ma naturalnego zdjęcia do podpięcia (decyzja Filipa 6/8).
+  // Karta MOMENTU — bez slotu i bez przycisku, wołana z banera w „Dziś".
+  //
+  // WŁASNE TŁO: dostępne WYŁĄCZNIE dla kamienia (zmiana decyzji z 6/8 — wtedy uznaliśmy,
+  // że kamień dotyczy setek treningów, więc nie ma naturalnego zdjęcia; praktyka pokazała,
+  // że kto przebiega tysiąc kilometrów, chce tam SWOJE zdjęcie). Pozostałe rodzaje idą
+  // biblioteką — miesiąc powstaje z crona, więc nie ma momentu, w którym człowiek
+  // wybrałby kadr, a pb i tydzień opisują wynik, nie człowieka.
+  //
+  // Typ czytamy Z BAZY, nie z argumentu: wołający mógłby się pomylić, a przycisk „Zmień tło"
+  // przy karcie miesięcznej prowadziłby do zapisu, który EF i tak zignoruje.
+  // WŁAŚCICIELSTWA nie sprawdzamy tutaj i nie musimy: UPDATE chroni RLS
+  // (`dm_ath_mark_shown` — athlete_id musi należeć do auth.uid()), więc trener, który
+  // widzi moment przez `dm_coach_sel`, nie zapisze tła nawet gdyby zobaczył przycisk.
+  // To jego kilometry i jego zdjęcie — ta sama granica co przy tle treningu.
   async function pokazMoment(momentId, onZamkniecie) {
     if (!momentId) return;
-    _stan = { logId: null, momentId: momentId, slotId: null, log: null, mozeEdytowac: false, onZamkniecie: onZamkniecie || null };
+    _stan = { cel: { typ: 'moment', id: momentId }, slotId: null, log: null, mom: null,
+              mozeEdytowac: false, onZamkniecie: onZamkniecie || null };
+
+    const { data: mrow } = await window.sb.from('delivered_moments')
+      .select('id,type,card_bg_url').eq('id', momentId).maybeSingle();
+    if (mrow) {
+      _stan.mom = mrow;
+      _stan.mozeEdytowac = mrow.type === 'kamien';
+    }
 
     // Render trwa 1,8–4,6 s, więc klik musi od razu coś pokazać — inaczej wygląda na martwy
     // przycisk. Czekacz leży na tym samym z-indexie co podgląd (9500).

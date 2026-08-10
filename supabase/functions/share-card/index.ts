@@ -636,7 +636,7 @@ async function kartaMomentu(
 ): Promise<Response> {
   // payload w select: karta tygodniowa czyta stamtąd „poprzedni rekord" (fakt zamrożony)
   const { data: mom } = await admin.from("delivered_moments")
-    .select("id,athlete_id,type,evidence,payload,status,created_at").eq("id", momentId).maybeSingle();
+    .select("id,athlete_id,type,evidence,payload,status,created_at,card_bg_url").eq("id", momentId).maybeSingle();
   if (!mom) return json({ error: "nie ma takiego momentu" }, 404);
 
   const { data: ath } = await admin.from("athletes")
@@ -653,6 +653,10 @@ async function kartaMomentu(
 
   const ev = (mom.evidence || {}) as Record<string, unknown>;
   let plik = "", bohater = "", podpis = "", metaTekst = "";
+  // Tylko kamień może mieć własne tło (K1 mówił inaczej — patrz migracja 20260810120000).
+  // Pozostałe rodzaje idą biblioteką: pb i tydzień dotyczą jednego wyniku albo okresu,
+  // a miesiąc powstaje z crona, więc nie ma momentu, w którym człowiek wybrałby zdjęcie.
+  let tloMomentu: string | null = null;
   let jednostka: string | null = null;
   const staty: Stat[] = [];
 
@@ -683,7 +687,14 @@ async function kartaMomentu(
     const nazwa = KAMIEN_NAZWY[kat]?.[prog];
     if (!nazwa) return json({ error: "nieznany kamień" }, 422);
     podpis = nazwa;
-    plik = `kamien-${ath.id}-${kat}-${prog}.jpg`;
+    // Klucz jest NIEZMIENNY, więc tło dorzucone później musi dać INNY klucz — inaczej
+    // Storage oddałby starą kartę i zmiana wyglądałaby na nieudaną. Sufiks `-{hash8}`
+    // to ten sam wzorzec co przy karcie treningu i przy okazji niesie układ:
+    // klucz z sufiksem JEST portretem z definicji, bez sufiksu — standardem.
+    tloMomentu = dozwoloneTlo(mom.card_bg_url);
+    plik = tloMomentu
+      ? `kamien-${ath.id}-${kat}-${prog}-${await hash8(tloMomentu)}.jpg`
+      : `kamien-${ath.id}-${kat}-${prog}.jpg`;
     if (kat === "pierwszy") {
       // Dystans RZECZYWISTY tego biegu, nie kanoniczny: pierwszy półmaraton na 21,4 km
       // to jego liczba. Detektor (K2) MUSI wpisać `dystans_km` do evidence.
@@ -799,10 +810,11 @@ async function kartaMomentu(
   // a nie żywy raport. Gdyby kiedyś miało być inaczej, do klucza wchodzi hash treści.
   return await wyrenderuj(admin, {
     plik, publicUrl, ziarno: plik, dataDoSezonu: mom.created_at, ath: ath as Zawodnik,
-    // Karty momentów nie przechodzą przez kadrownik, więc nie mają skąd wziąć wyboru
-    // układu — idą standardem. Gdyby kiedyś miały mieć portret, wybór musi się najpierw
-    // gdzieś utrwalić, bo klucz cache jest niezmienny.
-    meta: metaTekst || fmtData(mom.created_at), bohater, jednostka, podpis, staty, uklad: "standard",
+    // Układ WYNIKA ZE ŹRÓDŁA TŁA, tak samo jak przy karcie treningu: własne zdjęcie jest
+    // z założenia o człowieku, więc dostaje portret; biblioteka to kadry dobrane pod układ
+    // standardowy. Dziś własne tło ma tylko kamień, reszta rodzajów ma `tloMomentu === null`.
+    meta: metaTekst || fmtData(mom.created_at), bohater, jednostka, podpis, staty,
+    wlasneTlo: tloMomentu, uklad: tloMomentu ? "portret" : "standard",
   });
 }
 
