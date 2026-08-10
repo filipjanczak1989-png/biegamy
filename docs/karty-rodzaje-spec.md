@@ -349,6 +349,55 @@ python tools/sprawdz-run-types.py     # kod 0 = zgodne, 1 = rozjazd
 
 **Znana krawędź: „miesiąc bez biegów po fakcie".** Moment miesięczny powstaje, gdy w miesiącu był przynajmniej jeden bieg. Gdyby ktoś później skasował wszystkie logi z tamtego miesiąca, karta zwróci 422 i baner domknie się po cichu — bez błędu, ale i bez karty. Uznane za poprawne: lepszy brak karty niż karta z zerami. To samo dotyczy karty tygodniowej.
 
+### Trzy obserwacje z 9 sierpnia (zwiad wykonany)
+
+**1. Własne tło dla karty kamienia — zmiana decyzji z K1.** Wtedy uznaliśmy, że kamień nie ma naturalnego zdjęcia. Praktyka mówi inaczej: kto przebiega tysiąc kilometrów, chce tam SWOJE zdjęcie.
+
+Przeszkoda jest strukturalna: **kamień nie wisi na jednym logu**, więc `training_logs.card_bg_url` nie ma jak zadziałać. Zwiad tabeli: `delivered_moments` ma kolumny `id, athlete_id, type, evidence, payload, suggested_text, edited_text, status, reviewed_by, created_at, reviewed_at, shown_at` — **żadnego miejsca na tło**.
+
+Do zaprojektowania, trzy pytania w tej kolejności:
+- **gdzie żyje URL** — nowa kolumna `delivered_moments.card_bg_url` (czysto, lustrzanie do `training_logs`) albo klucz w `payload` (bez migracji, ale `payload` bywa nadpisywany przy ponownej detekcji — ryzykowne);
+- **jak kadrownik go zapisuje** — dziś zapisuje po `log_id`; potrzebuje drugiej ścieżki po `moment_id`;
+- **co z kluczem cache** — klucz kamienia `kamien-{ath}-{kat}-{prog}.jpg` jest NIEZMIENNY, więc tło dorzucone po wygenerowaniu karty nie zmieni obrazka. Wzorzec jest już w karcie treningu: sufiks `-{hash8}` z hasha tła, który przy okazji niesie informację o układzie (portret vs standard).
+
+**2. ✅ ROZSTRZYGNIĘTE — miasto ZDJĘTE z karty (9/8).** Sugerowało miejsce biegu, a było miejscem zamieszkania. Kasia biegła w Karkonoszach, karta napisała „Środa Wielkopolska". Karta bierze `athletes.city` (`share-card` l. 479–483), bo nic innego nie ma.
+
+Zwiad: **żadna tabela nie ma kolumny lokalizacji treningu.** `training_logs` — nie ma. `intervals_activities` — nie ma. W `raw_data` **zero** wystąpień `latitude`/`longitude`/`location` (EF zapisuje wyliczony payload, nie surowy obiekt aktywności).
+
+Lokalizacja istnieje **tylko pośrednio**, w `intervals_activities.name`, jako przedrostek automatycznej nazwy z Garmina: „Podgórzyn Bieganie", „Kostrzyn Bieganie", „Ustronie Morskie Kolarstwo". Zmierzone pokrycie:
+
+| | |
+|---|---|
+| logi z `external_source='intervals'` | **959** |
+| wierszy w `intervals_activities` (cache) | **219**, powiązanych 214 |
+| nazwy dające się sparsować (kończą się na Bieganie/Chodzenie/Kolarstwo/Kajakarstwo) | **~176 z 219** |
+| efektywne pokrycie lokalizacją | **~18% logów z intervals, ~9% wszystkich** |
+
+Cache napełnia się **na żądanie** — przy otwarciu szczegółów aktywności — więc niskie pokrycie nie jest błędem, tylko konsekwencją. Parsowanie polega na odcięciu ostatniego wyrazu (radzi sobie z „Ustronie Morskie"), ale **przewraca się na nazwach zmienionych ręcznie**: „Kostrzyn - Trening biegowy 29/7", „moczenie nóżek poraz 2😀😇", „Łubowo Pływanie open water".
+
+⚠️ **Najgorsza z możliwych opcji to fallback na profil**: karta czasem pokazywałaby miejsce biegu, a czasem miejsce zamieszkania, i **oglądający nie ma jak ich odróżnić**. To gorsze niż dzisiejszy stan, bo dziś nieprawda jest przynajmniej konsekwentna. **Wybrano (b): linia miasta usunięta z bloku tożsamości w OBU układach i we wszystkich pięciu rodzajach kart.** Zostały dwie linie: imię i meta. Powrót do miasta jest możliwy dopiero wtedy, gdy będzie skąd wziąć miejsce BIEGU — powód jest zapisany w komentarzu w `share-card`, żeby nikt nie przywrócił tego jako „drobnego ulepszenia".
+
+Alternatywa (a) — backfill cache'u i lokalizacja tylko tam, gdzie pewna — zostaje na później i wymagałaby wywołania szczegółów dla ~745 aktywności.
+
+**3. ✅ ZAMKNIĘTE — przewyższenie: karta NIE gubi nic po drodze. Nie ma tu błędu.** Zmierzone na biegu Kasi z 6 sierpnia (Podgórzyn, 27,58 km):
+
+```
+training_logs.elevation_gain                    510
+intervals_activities.total_elevation_gain       510.13815
+raw_data->stats->elev_gain_m                    510.13815
+karta: String(log.elevation_gain)               510          (share-card l. 875, bez przeliczeń)
+```
+
+Trzy źródła zgodne co do metra. To **wyklucza hipotezy (a) i (b)** — karta nie gubi, sync nie zapisuje czegoś innego. Zostaje **(c): intervals.icu liczy inaczej niż zegarek**. Zegarek Kasi pokazał ~600 m, intervals mówi 510 m; różnica ~15% jest typowa dla korekty wysokości opartej o model terenu zamiast o barometr.
+
+**Sprawa zamknięta 9 sierpnia — żeby za miesiąc nikt nie szukał błędu tam, gdzie go nie ma.** Karta drukuje `String(log.elevation_gain)` bez żadnego przeliczenia, a wartość w bazie jest identyczna z tym, co oddało intervals.icu. Żadna nasza warstwa nic nie gubi i nic nie zaokrągla.
+
+Różnica, którą widać gołym okiem, jest **między intervals.icu a zegarkiem**, nie w naszym kodzie: ~510 m wobec ~600 m, czyli ok. 15%. To typowy rozjazd między korektą wysokości z modelu terenu a pomiarem barometrycznym z zegarka. Rozstrzygnięcie wymagałoby wartości z Garmin Connect dla TEJ aktywności — nie mamy jej w bazie i nie da się jej wyliczyć.
+
+**Decyzja: zostajemy przy wartości z intervals.** Nie dlatego, że jest lepsza, tylko dlatego, że jest **ta sama, którą pokazują wykresy w aplikacji** — karta i aplikacja nie mogą mówić dwóch różnych liczb o tym samym biegu. Gdyby kiedyś zmieniać źródło, trzeba zmienić oba naraz.
+
+Osobna, wciąż otwarta sprawa to **audyt `elevation_gain`** (46% wypełnienia, jeden zawodnik z 64 m/km) — to problem kompletności i wartości odstających, nie tej różnicy.
+
 **Audyt `elevation_gain`** — 46% wypełnienia, jeden zawodnik z 64 m/km. Przed jakąkolwiek kartą przewyższeniową.
 
 **Baner nie mówi, co niesie** — zawsze „Nowy moment!". Przy kolejce myli nawet nas.

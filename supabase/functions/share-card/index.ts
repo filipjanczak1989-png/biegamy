@@ -56,7 +56,7 @@ const SIATKA: Record<number, { x: number[]; dividery: number[] }> = {
 // Najwyżej wychodzi logo — mediana 12,5, max 28,2 — bo góra celowo jaśnieje z 0,76 do 0,30.
 type Uklad = {
   scrim: string;
-  imie: number; meta: number; miasto: number;
+  imie: number; meta: number;
   bohaterY: number; bohaterPx: number; bohaterMalyPx: number; jednostkaPx: number; podpisY: number;
   dividerY: number; dividerH: number;
   statIkonaY: number; statWartoscY: number; statJednostkaY: number;
@@ -68,7 +68,7 @@ const UKLADY: Record<string, Uklad> = {
   standard: {
     scrim: "linear-gradient(to bottom, rgba(7,7,10,0.76) 0%, rgba(7,7,10,0.40) 51.85%, " +
            "rgba(7,7,10,0.48) 66.67%, rgba(7,7,10,0.72) 100%)",
-    imie: 348, meta: 402, miasto: 440,
+    imie: 348, meta: 402,
     bohaterY: 500, bohaterPx: 210, bohaterMalyPx: 168, jednostkaPx: 78, podpisY: 770,
     dividerY: 900, dividerH: 190,
     statIkonaY: 898, statWartoscY: 962, statJednostkaY: 1030,
@@ -79,7 +79,7 @@ const UKLADY: Record<string, Uklad> = {
   portret: {
     scrim: "linear-gradient(to bottom, rgba(7,7,10,0.30) 0%, rgba(7,7,10,0.10) 22.22%, " +
            "rgba(7,7,10,0.14) 44.44%, rgba(7,7,10,0.72) 57.78%, rgba(7,7,10,0.82) 100%)",
-    imie: 700, meta: 745, miasto: 780,
+    imie: 700, meta: 745,
     bohaterY: 820, bohaterPx: 150, bohaterMalyPx: 120, jednostkaPx: 56, podpisY: 975,
     dividerY: 1052, dividerH: 118,
     statIkonaY: 1050, statWartoscY: 1082, statJednostkaY: 1144,
@@ -403,7 +403,7 @@ async function avatarUri(url: string | null): Promise<string | null> {
 type Stat = { ikona: string; etykieta: string; wartosc: string; jednostka: string };
 
 function zbudujKarte(o: {
-  boot: Boot; bgUri: string; imie: string; av: string | null; meta: string; miasto: string | null;
+  boot: Boot; bgUri: string; imie: string; av: string | null; meta: string;
   bohater: string; jednostka: string | null; podpis: string; staty: Stat[]; u: Uklad;
 }): El {
   const u = o.u;
@@ -469,19 +469,19 @@ function zbudujKarte(o: {
     position: "absolute", left: 74, top: u.imie, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 38, color: COLS.tekst,
   }, o.imie));
-  // Meta w DWÓCH liniach: miasto osobno, żeby cały tekst mieścił się w lewej strefie
-  // przyciemnienia. Jedna długa linia wychodziła na jasne niebo i traciła kontrast —
-  // a przy bibliotece teł każde zdjęcie ma jasne miejsce gdzie indziej.
+  // MIASTA TU NIE MA I NIE BĘDZIE, dopóki nie będzie skąd wziąć miejsca BIEGU.
+  // Brało `athletes.city`, czyli miejsce ZAMIESZKANIA, a układ karty czyta się jako miejsce
+  // treningu — Kasia biegła w Karkonoszach, karta mówiła „Środa Wielkopolska". Zwiad 9/8:
+  // lokalizacji treningu NIE MA w żadnej kolumnie (`training_logs`, `intervals_activities`),
+  // w `raw_data` zero wystąpień latitude/longitude. Istnieje pośrednio w
+  // `intervals_activities.name` („Podgórzyn Bieganie"), ale pokrycie to ~9% wszystkich logów,
+  // a parsowanie przewraca się na nazwach zmienionych ręcznie.
+  // Fallback na profil ODRZUCONY: karta pokazywałaby raz miejsce biegu, raz zamieszkania,
+  // a oglądający nie ma jak ich odróżnić — gorsze niż konsekwentna nieprawda.
   dzieci.push(txt({
     position: "absolute", left: 74, top: u.meta, fontFamily: "DMSans", fontWeight: 400,
     fontSize: 24, color: COLS.wtorny,
   }, o.meta));
-  if (o.miasto) {
-    dzieci.push(txt({
-      position: "absolute", left: 74, top: u.miasto, fontFamily: "DMSans", fontWeight: 400,
-      fontSize: 22, color: COLS.wygaszony,
-    }, o.miasto));
-  }
 
   // Bohater: liczba albo czas, z opcjonalną jednostką (wyrównane dołem).
   // Zejście do 168 px przy 7+ znakach: czas „1:29:44" w 210 px ma ~640 px i przy dłuższym
@@ -565,7 +565,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-type Zawodnik = { full_name: string | null; avatar_url: string | null; city: string | null; gender: string | null };
+type Zawodnik = { full_name: string | null; avatar_url: string | null; gender: string | null };
 
 // Klient service_role przez fabrykę, nie przez `ReturnType<typeof createClient>`:
 // gołe createClient w pozycji typu gubi parametry schematu i każdy odczytany wiersz
@@ -601,7 +601,7 @@ async function wyrenderuj(admin: Admin, o: {
   const el = zbudujKarte({
     boot, bgUri: `data:image/jpeg;base64,${b64(bgBajty)}`,
     imie: fmtImie(o.ath.full_name), av: await avatarUri(o.ath.avatar_url),
-    meta: o.meta, miasto: (o.ath.city || "").trim() || null,
+    meta: o.meta,
     bohater: o.bohater, jednostka: o.jednostka, podpis: o.podpis,
     u: UKLADY[o.uklad || "standard"] || UKLADY.standard,
     staty: o.staty.slice(0, (UKLADY[o.uklad || "standard"] || UKLADY.standard).maxKolumn),
@@ -640,7 +640,7 @@ async function kartaMomentu(
   if (!mom) return json({ error: "nie ma takiego momentu" }, 404);
 
   const { data: ath } = await admin.from("athletes")
-    .select("id,full_name,avatar_url,city,user_id,coach_id,gender").eq("id", mom.athlete_id).maybeSingle();
+    .select("id,full_name,avatar_url,user_id,coach_id,gender").eq("id", mom.athlete_id).maybeSingle();
   if (!ath) return json({ error: "nie ma zawodnika" }, 404);
 
   const wlasciciel = ath.user_id === userId;
@@ -835,7 +835,7 @@ Deno.serve(async (req) => {
     if (log.distance_km == null) return json({ error: "trening bez dystansu" }, 422);
 
     const { data: ath } = await admin.from("athletes")
-      .select("id,full_name,avatar_url,hr_public,city,user_id,coach_id,gender")
+      .select("id,full_name,avatar_url,hr_public,user_id,coach_id,gender")
       .eq("id", log.athlete_id).maybeSingle();
     if (!ath) return json({ error: "nie ma zawodnika" }, 404);
     // Wzorzec domowy: właściciel ALBO trener TEGO zawodnika. Cudzych nie generujemy.
