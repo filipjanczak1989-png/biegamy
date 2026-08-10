@@ -959,6 +959,14 @@ body > *{position:relative;z-index:1;}
     <div id="push-prompt-banner"></div>
     <!-- Pending duels banner (renderowane przez loadPendingDuelsBanner) -->
     <div id="today-pending-duels"></div>
+    <!-- Zachęta do generatora planu — TYLKO gdy zawodnik nie ma trenera ORAZ nie ma
+         dziś treningu. Wzorzec wizualny: #icu-home-banner (kafel przy braku czegoś).
+         Po wygenerowaniu planu człowiek ma trening na dziś, więc pusty stan znika
+         sam i CTA razem z nim — nie ma osobnej ścieżki chowania. -->
+    <div id="gen-cta" style="display:none;margin-bottom:12px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:14px;">
+      <div style="font-size:13px;color:var(--fg);line-height:1.5;margin-bottom:10px;">Nie masz planu? Ułóż go w minutę.</div>
+      <button onclick="openGenModal()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">Ułóż plan</button>
+    </div>
     <!-- Pill typu treningu (renderowana przez loadToday) -->
     <div id="today-type-pill-wrap" style="display:none;margin-bottom:12px;"></div>
     <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
@@ -1549,6 +1557,59 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
   </div>
 </div>
 
+<!-- GENERATOR PLANU — wzorzec #goal-modal. Trzy pytania; poziom liczymy z training_logs,
+     więc o niego NIE pytamy. Silnik: window.GeneratorPlanu (js/generator-planu.js). -->
+<div id="gen-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">Ułóż plan</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+      Tempa policzymy z Twoich treningów — nie musisz nic podawać.
+    </div>
+
+    <div id="gen-form">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Dystans</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="gen-dystans">
+          <button type="button" class="type-pill" onclick="genSelDystans(this,'5k')">5 km</button>
+          <button type="button" class="type-pill" onclick="genSelDystans(this,'10k')">10 km</button>
+          <button type="button" class="type-pill" onclick="genSelDystans(this,'half')">Półmaraton</button>
+          <button type="button" class="type-pill" onclick="genSelDystans(this,'marathon')">Maraton</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:6px;position:relative;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Kiedy — wpisz nazwę biegu</label>
+        <input id="gen-race-input" type="text" placeholder="np. Maraton Warszawski 2026" autocomplete="off"
+          oninput="goalSuggest(this.value, { sugId:'gen-suggest', pick:'genPickRace' })"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+        <div id="gen-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--card2);border:1px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,0.6);"></div>
+      </div>
+      <div id="gen-race-linked" style="display:none;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:9px 10px;margin-bottom:8px;font-size:12px;color:var(--green);"></div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">…albo sama data startu</label>
+        <input id="gen-date-input" type="date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Dni biegania w tygodniu</label>
+        <div style="display:flex;gap:6px;" id="gen-dni">
+          <button type="button" class="type-pill" onclick="genSelDni(this,3)">3</button>
+          <button type="button" class="type-pill" onclick="genSelDni(this,4)">4</button>
+          <button type="button" class="type-pill" onclick="genSelDni(this,5)">5</button>
+          <button type="button" class="type-pill" onclick="genSelDni(this,6)">6</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeGenModal()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+        <button id="gen-submit" onclick="genUlozPlan()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Ułóż plan →</button>
+      </div>
+    </div>
+
+    <div id="gen-wynik" style="display:none;"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -1687,6 +1748,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sb.js"></script>
+<script src="js/generator-planu.js"></script>
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
 
@@ -3260,14 +3322,19 @@ function closeAddGoal() {
 }
 
 // Autocomplete: szuka w tabeli races po nazwie lub mieście
+// opts (opcjonalne) pozwalają wpiąć tę samą wyszukiwarkę w inny formularz —
+// generator planów używa jej przez { sugId, pick }. Wywołanie bez opts zachowuje
+// się dokładnie jak dotąd (modal celu startowego).
 let _goalSuggestTimer = null;
-async function goalSuggest(q) {
-  // Reset linkowania jeśli użytkownik zmienia tekst
-  if (window._goalLinkedRace && window._goalLinkedRace.name !== q) {
+async function goalSuggest(q, opts) {
+  const sugId = (opts && opts.sugId) || 'goal-suggest';
+  const pickFn = (opts && opts.pick) || 'goalPickRace';
+  // Reset linkowania jeśli użytkownik zmienia tekst (tylko modal celu)
+  if (!opts && window._goalLinkedRace && window._goalLinkedRace.name !== q) {
     goalUnlinkRace();
   }
   clearTimeout(_goalSuggestTimer);
-  const sg = document.getElementById('goal-suggest');
+  const sg = document.getElementById(sugId);
   if (!sg) return;
   if (!q || q.trim().length < 2) {
     sg.style.display = 'none'; sg.innerHTML = '';
@@ -3291,7 +3358,7 @@ async function goalSuggest(q) {
       const d = new Date(r.date + 'T00:00:00');
       const dStr = d.toLocaleDateString('pl-PL', { day:'numeric', month:'short' });
       const dist = r.distance_km ? Math.round(r.distance_km*10)/10 + ' km' : '';
-      return '<div onclick="goalPickRace(\'' + r.id + '\',\'' + escAttrJS(r.name) + '\',\'' + r.date + '\')" '
+      return '<div onclick="' + pickFn + '(\'' + r.id + '\',\'' + escAttrJS(r.name) + '\',\'' + r.date + '\')" '
         + 'style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" '
         + 'onmouseover="this.style.background=\'rgba(var(--accent-rgb),0.08)\'" onmouseout="this.style.background=\'transparent\'">'
         + '<div style="background:var(--accent);color:#fff;border-radius:8px;padding:4px 8px;font-family:Bebas Neue,sans-serif;font-size:13px;flex-shrink:0;">'+dStr+'</div>'
@@ -4477,6 +4544,337 @@ async function loadAvatarTopbar(athleteId) {
 }
 
 // ── SILNIK MOMENTU (Slice 3 — snapshot-builder, DEBUG-ONLY, gated ?silnik=1) ──
+/* ═══ GENERATOR PLANU — warstwa klienta (P3) ═══════════════════════════════════
+   Silnik: window.GeneratorPlanu.uloz() z js/generator-planu.js — czysta funkcja.
+   Tutaj wyłącznie: widoczność CTA, formularz, zebranie poziomu z bazy i pokazanie
+   wyniku. ZAPISU NIE MA — to P4. Podglądu planu przez PLANVIEW też nie, też P4. */
+
+// CTA żyje w pustym stanie #today-card: potrzeba BRAKU trenera i BRAKU treningu
+// na dziś. Oba sygnały przychodzą asynchronicznie z dwóch różnych funkcji, więc
+// decyzję podejmujemy dopiero, gdy znamy oba (null = jeszcze nie wiadomo).
+function _odswiezCtaGeneratora() {
+  const el = document.getElementById('gen-cta');
+  if (!el) return;
+  const znane = window._brakTrenera != null && window._brakTreninguDzis != null;
+  el.style.display = (znane && window._brakTrenera && window._brakTreninguDzis) ? 'block' : 'none';
+}
+window._odswiezCtaGeneratora = _odswiezCtaGeneratora;
+
+let _genDystans = null, _genDni = null, _genRaceDate = null;
+
+function openGenModal() {
+  _genDystans = null; _genDni = null; _genRaceDate = null;
+  document.querySelectorAll('#gen-dystans .type-pill, #gen-dni .type-pill').forEach(b => b.classList.remove('on'));
+  const ri = document.getElementById('gen-race-input'); if (ri) ri.value = '';
+  const di = document.getElementById('gen-date-input'); if (di) di.value = '';
+  const lk = document.getElementById('gen-race-linked'); if (lk) lk.style.display = 'none';
+  const sg = document.getElementById('gen-suggest'); if (sg) { sg.style.display = 'none'; sg.innerHTML = ''; }
+  document.getElementById('gen-form').style.display = 'block';
+  const wy = document.getElementById('gen-wynik'); wy.style.display = 'none'; wy.innerHTML = '';
+  const m = document.getElementById('gen-modal'); m.style.display = 'flex';
+}
+function closeGenModal() { document.getElementById('gen-modal').style.display = 'none'; }
+window.openGenModal = openGenModal; window.closeGenModal = closeGenModal;
+
+function genSelDystans(btn, key) {
+  _genDystans = key;
+  document.querySelectorAll('#gen-dystans .type-pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function genSelDni(btn, n) {
+  _genDni = n;
+  document.querySelectorAll('#gen-dni .type-pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+window.genSelDystans = genSelDystans; window.genSelDni = genSelDni;
+
+// Wybór biegu z kalendarza startów — ta sama wyszukiwarka co w modalu celu
+window.genPickRace = function (raceId, raceName, raceDate) {
+  _genRaceDate = raceDate;
+  document.getElementById('gen-race-input').value = raceName;
+  document.getElementById('gen-date-input').value = raceDate;
+  const sg = document.getElementById('gen-suggest'); if (sg) { sg.style.display = 'none'; sg.innerHTML = ''; }
+  const lk = document.getElementById('gen-race-linked');
+  if (lk) { lk.textContent = 'Z kalendarza startów: ' + raceDate; lk.style.display = 'block'; }
+};
+
+/* Poziom wyjściowy — WYŁĄCZNIE z training_logs, zgodnie ze specem.
+   Świadomie NIE używamy athletes.pb_*: te wartości są niedatowane i mogą pochodzić
+   sprzed lat, a przeszacowanie tempa w górę to dokładnie ten błąd, przez który
+   ludzie odchodzą od konkurencji. Brak danych => silnik odmawia i pyta. */
+function _genP10ZLogu(l) {
+  const km = parseFloat(l.distance_km) || 0;
+  const sek = _silnikToSec(l.duration);
+  if (km < 3 || !sek || sek <= 0) return null;                 // <3 km: Riegel przestaje być wiarygodny
+  if (window.isRunType && !window.isRunType(l.training_type)) return null;
+  return window.GeneratorPlanu._p10ZWyniku(km, sek);
+}
+
+async function _genZbierzPoziom() {
+  const odKiedy = new Date(); odKiedy.setDate(odKiedy.getDate() - 365);
+  const { data: logs } = await sb.from('training_logs')
+    .select('logged_at,distance_km,duration,training_type')
+    .eq('athlete_id', _athleteId)
+    .not('training_type', 'like', '__badge__%')
+    .gte('logged_at', odKiedy.toISOString())
+    .order('logged_at', { ascending: false });
+  const rows = logs || [];
+
+  // 1) najlepszy wynik z 12 miesięcy → Riegel
+  let p10 = null;
+  rows.forEach(l => { const p = _genP10ZLogu(l); if (p != null && (p10 == null || p < p10)) p10 = p; });
+
+  // 2) brak wyniku → średnie tempo biegów ≥5 km z ostatnich 8 tygodni + 20 s/km
+  if (p10 == null) {
+    const gr8 = Date.now() - 56 * 86400000;
+    const temp = [];
+    rows.forEach(l => {
+      if (new Date(l.logged_at).getTime() < gr8) return;
+      const km = parseFloat(l.distance_km) || 0, sek = _silnikToSec(l.duration);
+      if (km < 5 || !sek) return;
+      if (window.isRunType && !window.isRunType(l.training_type)) return;
+      temp.push(sek / km);
+    });
+    if (temp.length) p10 = temp.reduce((a, b) => a + b, 0) / temp.length + 20;
+  }
+
+  // objętość: średnia tygodniowa z ostatnich 4 tygodni (tylko biegowe)
+  const gr4 = Date.now() - 28 * 86400000;
+  let km4 = 0;
+  rows.forEach(l => {
+    if (new Date(l.logged_at).getTime() < gr4) return;
+    if (window.isRunType && !window.isRunType(l.training_type)) return;
+    km4 += parseFloat(l.distance_km) || 0;
+  });
+
+  return { p10sec: p10, wynik: null, objetoscTygodniowa: km4 > 0 ? km4 / 4 : null };
+}
+
+function _genKluczDaty(d) {   // lokalny klucz YYYY-MM-DD, nie toISOString (cofa o dzień w +tz)
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+async function genUlozPlan() {
+  const data = _genRaceDate || (document.getElementById('gen-date-input').value || '').trim();
+  if (!_genDystans) { toast('Wybierz dystans'); return; }
+  if (!data)        { toast('Podaj datę startu albo wybierz bieg z kalendarza'); return; }
+  if (!_genDni)     { toast('Wybierz, ile dni w tygodniu biegasz'); return; }
+
+  const btn = document.getElementById('gen-submit');
+  btn.disabled = true; btn.textContent = 'Liczę…';
+  let wynik;
+  try {
+    const poziom = await _genZbierzPoziom();
+    wynik = window.GeneratorPlanu.uloz({
+      dystans: _genDystans,
+      dataStartu: data,
+      dniWTygodniu: _genDni,
+      today: _genKluczDaty(new Date()),
+      poziom: poziom,
+      celCzasowy: null
+    });
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Ułóż plan →';
+    toast('Błąd: ' + e.message);
+    return;
+  }
+  btn.disabled = false; btn.textContent = 'Ułóż plan →';
+  _genPokazWynik(wynik);
+}
+window.genUlozPlan = genUlozPlan;
+
+function _genPokazWynik(w) {
+  const form = document.getElementById('gen-form');
+  const box = document.getElementById('gen-wynik');
+  const esc = window.escapeHtml;
+
+  if (!w.ok) {
+    // Komunikat ze ŚCIANY, nigdy generyczne „nie udało się" — te zdania niosą
+    // drogę wyjścia i to jest ich cała wartość.
+    const s = w.sciana;
+    const baza = s.szczegoly && s.szczegoly.wymaganaBaza_km;
+    box.innerHTML =
+      '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:16px;margin-bottom:14px;">'
+      + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#fbbf24;font-family:DM Mono,monospace;margin-bottom:8px;">Nie ułożę tego planu</div>'
+      + '<div style="font-size:14px;color:var(--fg);line-height:1.6;">' + esc(s.komunikat) + '</div>'
+      + (baza ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2);font-family:DM Mono,monospace;font-size:11px;color:var(--muted);">Cel do osiągnięcia: <span style="color:#fbbf24;">' + esc(String(baza)) + ' km/tydz</span></div>' : '')
+      + '</div>'
+      + '<button onclick="_genWrocDoFormularza()" style="width:100%;background:var(--card2);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">← Zmień odpowiedzi</button>';
+    form.style.display = 'none'; box.style.display = 'block';
+    return;
+  }
+
+  const p = w.plan, m = w.meta;
+  window._genWynik = w;          // trzymamy do zapisu — patrz genZapiszPlan()
+  box.innerHTML =
+    '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:16px;margin-bottom:12px;">'
+    + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:DM Mono,monospace;margin-bottom:8px;">Plan gotowy</div>'
+    + '<div style="display:flex;gap:16px;margin-bottom:12px;">'
+    +   '<div><div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:#22c55e;line-height:1;">' + m.tygodnie + '</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;">TYGODNI</div></div>'
+    +   '<div><div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:#22c55e;line-height:1;">' + p.total_workouts + '</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;">JEDNOSTEK</div></div>'
+    +   '<div><div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:#22c55e;line-height:1;">' + p.total_distance_km + '</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;">KM ŁĄCZNIE</div></div>'
+    + '</div>'
+    + '<div style="font-size:13px;color:var(--fg2);line-height:1.6;">' + esc(p.ai_summary) + '</div>'
+    + '</div>'
+    + '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">'
+    + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Twoje tempa</div>'
+    + '<div style="font-family:DM Mono,monospace;font-size:12px;color:var(--fg2);line-height:1.9;">'
+    +   'spokojne <span style="color:var(--accent);">' + esc(m.tempa.E) + '/km</span> · '
+    +   'regeneracja <span style="color:var(--accent);">' + esc(m.tempa.Reg) + '/km</span><br>'
+    +   'tempo <span style="color:var(--accent);">' + esc(m.tempa.T) + '/km</span> · '
+    +   'interwały <span style="color:var(--accent);">' + esc(m.tempa.I) + '/km</span>'
+    + '</div></div>'
+    + (m.zalozenia && m.zalozenia.length
+        ? '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-bottom:12px;">' + esc(m.zalozenia.join(' ')) + '</div>' : '')
+    + '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.22);border-radius:12px;padding:14px;margin-bottom:12px;font-size:12px;color:#fbbf24;line-height:1.6;">'
+    + esc(p.ai_warnings) + '</div>'
+    // PODGLĄD planu PRZED zapisem — ten sam renderer, którego używa panel trenerski.
+    // Bez opts, czyli czysty podgląd: zero przycisków akcji, zero stopki zatwierdzania.
+    + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Podgląd planu</div>'
+    + '<div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;padding-right:4px;">'
+    +   (window.PLANVIEW ? window.PLANVIEW.render(p, w.treningi, {}) : '')
+    + '</div>'
+    + '<div id="gen-zapis-status" style="display:none;font-size:11px;font-family:DM Mono,monospace;line-height:1.5;margin-bottom:10px;"></div>'
+    + '<div style="display:flex;gap:8px;">'
+    +   '<button onclick="_genWrocDoFormularza()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">← Zmień</button>'
+    +   '<button id="gen-zapisz" onclick="genZapiszPlan()" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;font-weight:600;">Zapisz do kalendarza</button>'
+    + '</div>';
+  form.style.display = 'none'; box.style.display = 'block';
+}
+
+/* ── ZAPIS PLANU ──────────────────────────────────────────────────────────────
+   Bezpośrednio z klienta, na zwykłych politykach RLS — bez Edge Function.
+   approve-training-plan NIE nadaje się do tej ścieżki: jego guard porównuje
+   plan.coach_id z uid trenera (index.ts:92), a plan samodzielny ma tam NULL.
+   Poza tym EF wysyła powiadomienie i push „Otrzymałeś nowy plan treningowy" —
+   zawiadamianie człowieka o jego własnym kliknięciu to szum.
+
+   ⚠️ status='approved' przy approved_by=NULL to NIE jest niespójność i nie należy
+   tego „naprawiać". 'approved' jest jedyną wartością, którą reszta systemu czyta
+   jako plan aktywny (detect-moment filtruje .eq('status','approved')), a
+   approved_by zostaje NULL, bo nikt tego planu nie zatwierdzał — powstał sam.
+
+   Kolejność jest odwrotna niż w EF: najpierw trainings, potem jednostki planu
+   z gotowym calendar_training_id. EF linkuje osobnym UPDATE per trening, co
+   z klienta oznaczałoby ~110 round-tripów. */
+async function genZapiszPlan() {
+  const w = window._genWynik;
+  if (!w || !w.ok || !_athleteId) return;
+  const btn = document.getElementById('gen-zapisz');
+  const stat = document.getElementById('gen-zapis-status');
+  const pokaz = (txt, kolor) => { stat.style.display = 'block'; stat.style.color = kolor || 'var(--muted)'; stat.textContent = txt; };
+
+  btn.disabled = true; btn.textContent = 'Zapisuję…';
+  try {
+    // ── 1. Kolizje: pytamy, zanim cokolwiek ruszymy ──
+    const { data: istn, error: eIstn } = await sb.from('trainings')
+      .select('id,status')
+      .eq('athlete_id', _athleteId)
+      .gte('date', w.plan.start_date)
+      .lte('date', w.plan.end_date);
+    if (eIstn) throw new Error('odczyt kalendarza: ' + eIstn.message);
+
+    const planowane = (istn || []).filter(t => t.status === 'planned');
+    const wykonane  = (istn || []).filter(t => t.status !== 'planned');
+    if (planowane.length) {
+      const pyt = 'Masz już ' + planowane.length + ' zaplanowanych treningów w tym okresie'
+        + (wykonane.length ? ' (' + wykonane.length + ' wykonanych zostanie nietkniętych)' : '')
+        + '. Zastąpić?';
+      if (!confirm(pyt)) { btn.disabled = false; btn.textContent = 'Zapisz do kalendarza'; return; }
+
+      const { error: eDel } = await sb.from('trainings').delete().in('id', planowane.map(t => t.id));
+      if (eDel) throw new Error('kasowanie starych: ' + eDel.message);
+
+      // ⚠️ Brak błędu NIE znaczy, że coś zniknęło: odrzucenie przez RLS USING kasuje
+      // 0 wierszy i nie zgłasza niczego. Bez tego odczytu dołożylibyśmy duplikaty.
+      const { data: poDel } = await sb.from('trainings')
+        .select('id').eq('athlete_id', _athleteId).eq('status', 'planned')
+        .gte('date', w.plan.start_date).lte('date', w.plan.end_date);
+      if ((poDel || []).length) throw new Error('stare treningi nie zostały usunięte (' + poDel.length + ') — przerywam, żeby nie zdublować kalendarza');
+    }
+
+    // ── 2. Wiersz planu ──
+    const { data: plan, error: ePlan } = await sb.from('training_plans').insert({
+      athlete_id: _athleteId,
+      coach_id: null,
+      source: 'self',
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      approved_by: null,
+      plan_type: w.plan.plan_type,
+      start_date: w.plan.start_date,
+      end_date: w.plan.end_date,
+      target_race_type: w.plan.target_race_type,
+      target_race_date: w.plan.target_race_date,
+      target_time: w.plan.target_time,
+      input_current_volume_km: w.plan.input_current_volume_km,
+      input_target_volume_km: w.plan.input_target_volume_km,
+      total_workouts: w.plan.total_workouts,
+      total_distance_km: w.plan.total_distance_km,
+      ai_summary: w.plan.ai_summary,
+      ai_warnings: w.plan.ai_warnings
+    }).select('id').single();
+    if (ePlan) throw new Error('zapis planu: ' + ePlan.message);
+
+    // ── 3. Treningi do kalendarza ──
+    const doKalendarza = w.treningi.map(t => ({
+      athlete_id: _athleteId,
+      coach_id: null,
+      date: t.date,
+      type: t.workout_type,
+      distance_km: t.target_distance_km,
+      pace: t.target_pace,
+      description: t.description || t.title || null,
+      status: 'planned'
+    }));
+    const { data: wstawione, error: eTr } = await sb.from('trainings').insert(doKalendarza).select('id,date');
+    if (eTr) {
+      await sb.from('training_plans').delete().eq('id', plan.id);   // rollback wiersza planu
+      throw new Error('zapis treningów: ' + eTr.message);
+    }
+    const poDacie = {};
+    (wstawione || []).forEach(t => { poDacie[t.date] = t.id; });
+
+    // ── 4. Jednostki planu, z gotowym linkiem do kalendarza ──
+    const teraz = new Date().toISOString();
+    const jednostki = w.treningi.map(t => ({
+      plan_id: plan.id,
+      date: t.date,
+      day_of_week: t.day_of_week,
+      week_number: t.week_number,
+      workout_type: t.workout_type,
+      title: t.title,
+      description: t.description,
+      target_distance_km: t.target_distance_km,
+      target_pace: t.target_pace,
+      calendar_training_id: poDacie[t.date] || null,
+      inserted_into_calendar_at: poDacie[t.date] ? teraz : null
+    }));
+    const { error: eJed } = await sb.from('training_plan_workouts').insert(jednostki);
+    if (eJed) {
+      // Sprzątamy OBA kroki, żeby nie zostawić kalendarza bez planu.
+      await sb.from('trainings').delete().in('id', (wstawione || []).map(t => t.id));
+      await sb.from('training_plans').delete().eq('id', plan.id);
+      throw new Error('zapis jednostek: ' + eJed.message);
+    }
+
+    pokaz('Plan zapisany — ' + (wstawione || []).length + ' treningów w kalendarzu.', '#22c55e');
+    btn.textContent = 'Zapisano ✓';
+    setTimeout(() => { closeGenModal(); location.reload(); }, 1200);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Zapisz do kalendarza';
+    pokaz('Nie zapisałem planu: ' + e.message, 'var(--accent)');
+  }
+}
+window.genZapiszPlan = genZapiszPlan;
+
+function _genWrocDoFormularza() {
+  document.getElementById('gen-wynik').style.display = 'none';
+  document.getElementById('gen-form').style.display = 'block';
+}
+window._genWrocDoFormularza = _genWrocDoFormularza;
+/* ═══ koniec GENERATOR PLANU (P3) ══════════════════════════════════════════════ */
+
 function _silnikToSec(s){                          // "MM:SS"/"H:MM:SS"/min → sekundy (lustro pbToSec)
   if(!s) return null;
   const p=String(s).trim().split(':').map(Number);
@@ -5930,9 +6328,13 @@ async function loadTodayTraining() {
     else if (tBan0) { tBan0.style.display = 'none'; }
     const cwCta0 = document.getElementById('today-cwiczenia-cta'); if (cwCta0) cwCta0.style.display = 'none';
     window._todayTraining = null;
+    window._brakTreninguDzis = true;      // sygnal dla CTA generatora
+    _odswiezCtaGeneratora();
     return;
   }
   window._todayTraining = data; // cache dla log modala
+  window._brakTreninguDzis = false;
+  _odswiezCtaGeneratora();
   
   const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
   const badge = document.getElementById('today-badge');
@@ -5972,7 +6374,7 @@ async function loadTodayTraining() {
   ].filter(Boolean).join('');
   
   if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; if(divider) divider.style.display='block'; }
-  if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
+  if(desc) desc.textContent = data.description || 'Brak opisu treningu.';
   const cwCta = document.getElementById('today-cwiczenia-cta');
   if (cwCta) {
     const _eref = window.parseExerciseRef ? window.parseExerciseRef(data.exercise_ref) : null;
@@ -6007,6 +6409,10 @@ async function loadCoachMessage() {
     const { data: ath } = await sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
     const coachSection = document.getElementById('coach-msg-section');
     if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
+    // Generator jest wylacznie dla zawodnikow BEZ trenera. Korzystamy z tego samego
+    // odczytu, zeby nie dokladac drugiego zapytania o te sama kolumne.
+    window._brakTrenera = !(ath && ath.coach_id);
+    _odswiezCtaGeneratora();
   }
   
   if (!_athleteId) return;
