@@ -4754,7 +4754,7 @@ function _genSprawdzTempo(dystansKlucz, czasS) {
   /* Twarde granice liczy SILNIK — ta sama funkcja, ta sama tabela rekordów
      i ten sam komunikat co dla celu czasowego. Tutaj zostaje wyłącznie
      MIĘKKI próg, który PYTA zamiast odrzucać. */
-  const twarde = window.GeneratorPlanu.sanityCzasu(dystansKlucz, czasS);
+  const twarde = window.GeneratorPlanu.sanityCzasu(dystansKlucz, czasS, 'wynik');
   if (twarde) return { ok: false, tekst: twarde.komunikat };
   const dystansKm = window.GeneratorPlanu.DYSTANSE[dystansKlucz].km;
   const tempo = czasS / dystansKm;

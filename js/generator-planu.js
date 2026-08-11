@@ -77,45 +77,71 @@
   };
 
   /* ── SANITY CZASU: JEDNO ŹRÓDŁO ────────────────────────────────────────────
-     `rekord` w DYSTANSE to męski rekord świata w sekundach, zweryfikowany
-     11/8/2026 (NIE przepisany z pamięci — dwa okazały się nieaktualne):
-       5 km    755 s = 12:35,36  Cheptegei 2020 (5000 m, tor)
-       10 km  1571 s = 26:11,00  Cheptegei 2020 (10 000 m, tor)
-       półm.  3440 s = 57:20     Kiplimo, Lizbona 2026
-       maraton 7170 s = 1:59:30  Sawe, Londyn 26.04.2026
+     `rekord` w DYSTANSE to MĘSKI rekord świata w sekundach. Męski, bo szybszy —
+     granica z niego obejmuje wszystkich. Zweryfikowany w sieci 11.08.2026,
+     NIE przepisany z pamięci (dwa okazały się nieaktualne):
+
+       5 km    755 s = 12:35,36  Joshua Cheptegei (UGA), 5000 m tor, 14.08.2020
+                                 worldathletics.org/records
+       10 km  1571 s = 26:11,00  Joshua Cheptegei (UGA), 10 000 m tor,
+                                 Valencia, 07.10.2020
+       półm.  3440 s = 57:20     Jacob Kiplimo (UGA), Lisbon Half Marathon,
+                                 08.03.2026 — worldathletics.org/news/report/
+                                 jacob-kiplimo-half-marathon-world-record-lisbon
+       maraton 7170 s = 1:59:30  Sabastian Sawe (KEN), London Marathon,
+                                 26.04.2026 — pierwsze sub-2 w biegu z rywalizacją;
+                                 en.wikipedia.org/wiki/2026_London_Marathon
+
      Dla 5 i 10 km biorę rekordy TOROWE — są szybsze od szosowych (12:51 / 26:24),
      więc próg z nich nie odetnie nikogo prawdziwego.
 
-     ⚠️ Progi LICZĄ SIĘ z rekordu, nie są wpisane osobno. Komunikat odmowy też
-     cytuje `rekord` z tej samej tabeli — dzięki temu aktualizacja rekordu
-     przesuwa próg i treść komunikatu jednocześnie, bez szansy na rozjazd.
-     ⚠️ Rekordy się poprawiają — przy aktualizacji zmienić TYLKO `rekord`. */
-  var MARGINES_REKORDU = 0.95;   // próg = rekord × 0,95, zaokrąglony do pełnej minuty
-  var TEMPO_MARSZU = 720;        // 12:00/km — górna granica, przeliczana per dystans
+     ⚠️ Progi LICZĄ SIĘ z rekordu, nie są wpisane osobno. Komunikat odmowy cytuje
+     ten sam `rekord`, więc aktualizacja przesuwa próg i treść jednocześnie.
+     ⚠️ Rekordy się poprawiają — przy aktualizacji zmienić TYLKO `rekord`.
+
+     GÓRNA granica liczy się od TEMPA MARSZU (12:00/km), nie od rekordu. Gdyby
+     szła od rekordu, maraton × 1,25 dałby 2:29:23 i odrzucałby każdego amatora.
+     Margines jest RÓŻNY dla wyniku i celu, bo to różne rzeczy:
+       WYNIK to FAKT — ktoś to przebiegł, więc liczba ma oparcie w rzeczywistości.
+       CEL to ZAMIAR — ktoś może chcieć spokojnie ukończyć, więc luźniej.
+     ⚠️ Przy wątpliwości POLUZOWAĆ, nie zacieśniać: fałszywa odmowa kosztuje
+     więcej niż przepuszczenie dziwnej liczby, bo człowiek odchodzi zamiast
+     poprawić. Kontrola: maraton w 6 godzin (normalny pierwszy start) przechodzi
+     w obu trybach z ogromnym zapasem — 6:00 wobec limitów 10:32 i 11:48. */
+  var MARGINES_REKORDU = 0.95;   // dolny próg = rekord × 0,95
+  var TEMPO_MARSZU = 720;        // 12:00/km — baza górnej granicy
+  var LUZ_WYNIK = 1.25;          // wynik: fakt, więc ciaśniej
+  var LUZ_CEL   = 1.40;          // cel: zamiar, więc luźniej
 
   Object.keys(DYSTANSE).forEach(function (k) {
-    DYSTANSE[k].minCzas = Math.round(DYSTANSE[k].rekord * MARGINES_REKORDU / 60) * 60;
-    DYSTANSE[k].maxCzas = Math.round(DYSTANSE[k].km * TEMPO_MARSZU);
+    var d = DYSTANSE[k];
+    d.minCzas       = Math.round(d.rekord * MARGINES_REKORDU / 60) * 60;
+    d.maxCzasWynik  = Math.round(d.km * TEMPO_MARSZU * LUZ_WYNIK);
+    d.maxCzasCel    = Math.round(d.km * TEMPO_MARSZU * LUZ_CEL);
   });
 
-  /* Wspólny sanity dla CELU (silnik) i WYNIKU w kroku 4 (klient przez API).
-     Jedna implementacja, jeden komunikat — inaczej dwa miejsca rozjadą się
-     przy pierwszej zmianie. Zwraca null, gdy czas jest w skali. */
-  function sanityCzasu(dystansKey, sek) {
+  /* Wspólny sanity dla CELU (silnik woła wprost) i WYNIKU w kroku 4 (klient woła
+     przez API). Jedna implementacja, jeden komunikat, jedna tabela rekordów —
+     inaczej dwa miejsca rozjadą się przy pierwszej zmianie.
+     `tryb` domyślnie 'cel', bo luźniejszy: przy braku informacji przepuszczamy.
+     Zwraca null, gdy czas jest w skali. */
+  function sanityCzasu(dystansKey, sek, tryb) {
     var d = DYSTANSE[dystansKey];
     if (!d || !(sek > 0)) return null;
+    var gora = tryb === 'wynik' ? d.maxCzasWynik : d.maxCzasCel;
     if (sek < d.minCzas) {
       return { kod: 'CZAS_POZA_SKALA',
         komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to szybciej niż rekord świata (' +
                    fmtCzas(d.rekord) + '). Sprawdź, czy dobrze wpisałeś czas.',
         szczegoly: { podany_s: sek, prog_s: d.minCzas, rekord_s: d.rekord,
-                     dystans: dystansKey, kierunek: 'za_szybko' } };
+                     dystans: dystansKey, tryb: tryb || 'cel', kierunek: 'za_szybko' } };
     }
-    if (sek > d.maxCzas) {
+    if (sek > gora) {
       return { kod: 'CZAS_POZA_SKALA',
-        komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to tempo marszu (' +
-                   fmtTempo(sek / d.km) + '/km). Sprawdź, czy dobrze wpisałeś czas.',
-        szczegoly: { podany_s: sek, prog_s: d.maxCzas, dystans: dystansKey, kierunek: 'za_wolno' } };
+        komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to ' + fmtTempo(sek / d.km) +
+                   '/km — wolniej niż marsz. Sprawdź, czy dobrze wpisałeś czas.',
+        szczegoly: { podany_s: sek, prog_s: gora, dystans: dystansKey,
+                     tryb: tryb || 'cel', kierunek: 'za_wolno' } };
     }
     return null;
   }
@@ -285,7 +311,7 @@
          Rekordy TOROWE dla 5 i 10 km są szybsze od szosowych (12:51 / 26:24),
          więc próg z nich nie odetnie nikogo prawdziwego.
          ⚠️ Rekordy się poprawiają — przy aktualizacji przeliczyć progi. */
-      var zleCel = sanityCzasu(we.dystans, we.celCzasowy);
+      var zleCel = sanityCzasu(we.dystans, we.celCzasowy, 'cel');
       if (zleCel) return odmowa(zleCel.kod, zleCel.komunikat, zleCel.szczegoly);
       var p10Celu = p10ZWyniku(d.km, we.celCzasowy);
 
@@ -1070,11 +1096,30 @@
       var REKORDY = { '5k': 755, '10k': 1571, 'half': 3440, 'marathon': 7170 };   // zweryfikowane 11/8/2026
       return Object.keys(REKORDY).every(function (k) { return DYSTANSE[k].minCzas < REKORDY[k]; });
     })(), null);
-    check('próg górny to ok. 12:00/km na każdym dystansie', (function () {
+    check('górna granica: CEL luźniejszy niż WYNIK na każdym dystansie', (function () {
       return ['5k', '10k', 'half', 'marathon'].every(function (k) {
-        var tempo = DYSTANSE[k].maxCzas / DYSTANSE[k].km;
-        return tempo > 700 && tempo < 740;
+        return DYSTANSE[k].maxCzasCel > DYSTANSE[k].maxCzasWynik;
       });
+    })(), null);
+    /* ⚠️ Kontrola z decyzji: maraton w 6 godzin to NORMALNY pierwszy start
+       i nie może być traktowany jak błąd. Limity to 10:32:56 (wynik) i
+       11:48:53 (cel), więc zapas jest ogromny — tak ma zostać. */
+    check('maraton w 6 GODZIN przechodzi jako WYNIK (normalny pierwszy start)',
+      sanityCzasu('marathon', 6 * 3600, 'wynik') === null, null);
+    check('maraton w 6 GODZIN przechodzi jako CEL',
+      sanityCzasu('marathon', 6 * 3600, 'cel') === null, null);
+    check('maraton w 7 godzin nadal przechodzi w obu trybach',
+      sanityCzasu('marathon', 7 * 3600, 'wynik') === null &&
+      sanityCzasu('marathon', 7 * 3600, 'cel') === null, null);
+    check('maraton w 11 godzin: odbity jako WYNIK, przepuszczony jako CEL', (function () {
+      return sanityCzasu('marathon', 11 * 3600, 'wynik') !== null
+          && sanityCzasu('marathon', 11 * 3600, 'cel') === null;
+    })(), null);
+    check('domyślny tryb (bez argumentu) jest LUŹNIEJSZY — przy braku informacji przepuszczamy',
+      sanityCzasu('marathon', 11 * 3600) === null, null);
+    check('górne granice liczone od TEMPA MARSZU, nie od rekordu', (function () {
+      // od rekordu maraton x1,25 dalby 2:29:23 i odrzucal kazdego amatora
+      return DYSTANSE.marathon.maxCzasWynik > DYSTANSE.marathon.rekord * 3;
     })(), null);
     check('5 km w 1:30:00 (18:00/km) → CZAS_POZA_SKALA, kierunek za_wolno', (function () {
       var r = uloz(we({ dystans: '5k', dniWTygodniu: 4, dataStartu: zaTygodni(6),
