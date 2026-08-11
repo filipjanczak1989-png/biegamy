@@ -1617,10 +1617,10 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
       <div id="gen-fallback" style="display:none;margin-bottom:20px;padding:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.22);border-radius:12px;">
         <div style="font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:12px;">Nie mam jeszcze Twoich biegów. Podaj ostatni wynik:</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="gen-fb-dystans">
-          <button type="button" class="type-pill" onclick="genSelFbDystans(this,5)">5 km</button>
-          <button type="button" class="type-pill" onclick="genSelFbDystans(this,10)">10 km</button>
-          <button type="button" class="type-pill" onclick="genSelFbDystans(this,21.097)">Półmaraton</button>
-          <button type="button" class="type-pill" onclick="genSelFbDystans(this,42.195)">Maraton</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,'5k')">5 km</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,'10k')">10 km</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,'half')">Półmaraton</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,'marathon')">Maraton</button>
         </div>
         <div id="gen-fb-czas-pola" style="margin-bottom:10px;"></div>
         <input id="gen-fb-km" type="number" inputmode="decimal" min="0" step="1" placeholder="ile km tygodniowo biegasz teraz — np. 25"
@@ -4717,12 +4717,15 @@ window.genSelDystans = genSelDystans; window.genSelDni = genSelDni;
 /* ── KROK 4: wynik + objętość ────────────────────────────────────────────────
    Sanity check liczony po TEMPIE, nie po czasie na dystansie — jeden próg
    obsługuje wszystkie cztery dystanse i nie trzeba go pielęgnować per dystans. */
-const GEN_TEMPO_TWARDE_MIN = 150;   // 2:30/km — szybciej niż rekord świata
-const GEN_TEMPO_TWARDE_MAX = 720;   // 12:00/km — tempo marszu
+/* ⚠️ Twardych granic tu NIE MA. Były tu dwie liczby (150 i 720 s/km) — jeden
+   zakres dla wszystkich dystansów, przez co bezużyteczny: 2:30/km to
+   jednocześnie absurd na piątce i WOLNIEJ niż rekord maratonu. Teraz liczy je
+   GeneratorPlanu.sanityCzasu() z tabeli rekordów w DYSTANSE — jedno źródło
+   dla progu, komunikatu i obu miejsc (cel czasowy i wynik w kroku 4). */
 const GEN_TEMPO_MIEKKIE    = 180;   // 3:00/km — realne, ale rzadkie: Kasia biega 3:2x
 
-function genSelFbDystans(btn, km) {
-  _genFbDystans = km;
+function genSelFbDystans(btn, klucz) {
+  _genFbDystans = klucz;   // KLUCZ ('5k'/'10k'/'half'/'marathon') — km bierzemy z DYSTANSE
   document.querySelectorAll('#gen-fb-dystans .type-pill').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
 }
@@ -4747,10 +4750,14 @@ function _genFbBlad(tekst) {
 
 /* Zwraca {ok, tekst} albo {ok:true, potwierdz}. Miękki próg PYTA zamiast
    odrzucać — odrzucenie realnego wyniku jest gorsze niż jedno kliknięcie. */
-function _genSprawdzTempo(dystansKm, czasS) {
+function _genSprawdzTempo(dystansKlucz, czasS) {
+  /* Twarde granice liczy SILNIK — ta sama funkcja, ta sama tabela rekordów
+     i ten sam komunikat co dla celu czasowego. Tutaj zostaje wyłącznie
+     MIĘKKI próg, który PYTA zamiast odrzucać. */
+  const twarde = window.GeneratorPlanu.sanityCzasu(dystansKlucz, czasS);
+  if (twarde) return { ok: false, tekst: twarde.komunikat };
+  const dystansKm = window.GeneratorPlanu.DYSTANSE[dystansKlucz].km;
   const tempo = czasS / dystansKm;
-  if (tempo < GEN_TEMPO_TWARDE_MIN) return { ok: false, tekst: 'Sprawdź czas — to szybciej niż rekord świata.' };
-  if (tempo > GEN_TEMPO_TWARDE_MAX) return { ok: false, tekst: 'Sprawdź czas — to tempo marszu.' };
   if (tempo < GEN_TEMPO_MIEKKIE) {
     const t = window.GeneratorPlanu._fmtTempo(tempo);
     return { ok: true, potwierdz: 'To wychodzi ' + t + '/km na ' + dystansKm + ' km. Na pewno dobrze?' };
@@ -4879,7 +4886,7 @@ async function genUlozPlan() {
         return;
       }
 
-      poziom.wynik  = { dystans_km: _genFbDystans, czas_s: czasS };
+      poziom.wynik  = { dystans_km: window.GeneratorPlanu.DYSTANSE[_genFbDystans].km, czas_s: czasS };
       poziom.p10sec = null;              // silnik liczy Rieglem tylko gdy p10sec == null
       poziom.objetoscTygodniowa = km;
     }

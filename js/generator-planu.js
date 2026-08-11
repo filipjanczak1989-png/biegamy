@@ -70,11 +70,55 @@
                       Bramka odpala się wyłącznie gdy udzialDlugiego × peak < 11,6,
                       czyli przy peak < 32 km/tydz — to zależy od objętości, nie od sufitu. */
   var DYSTANSE = {
-    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1, minSzczyt: 20, udzialDlugiego: 0.30, minDlugieProc: 0.60, maxDlugieKm: 14, minCzas: 720,  maxCzas: 3600 },
-    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1, minSzczyt: 25, udzialDlugiego: 0.33, minDlugieProc: 0.60, maxDlugieKm: 18, minCzas: 1500, maxCzas: 7200 },
-    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2, minSzczyt: 30, udzialDlugiego: 0.36, minDlugieProc: 0.55, maxDlugieKm: 22, minCzas: 3240, maxCzas: 15190 },
-    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3, minSzczyt: 45, udzialDlugiego: 0.40, minDlugieProc: 0.55, maxDlugieKm: 34, minCzas: 6780, maxCzas: 30380 }
+    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1, minSzczyt: 20, udzialDlugiego: 0.30, minDlugieProc: 0.60, maxDlugieKm: 14, rekord: 755 },
+    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1, minSzczyt: 25, udzialDlugiego: 0.33, minDlugieProc: 0.60, maxDlugieKm: 18, rekord: 1571 },
+    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2, minSzczyt: 30, udzialDlugiego: 0.36, minDlugieProc: 0.55, maxDlugieKm: 22, rekord: 3440 },
+    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3, minSzczyt: 45, udzialDlugiego: 0.40, minDlugieProc: 0.55, maxDlugieKm: 34, rekord: 7170 }
   };
+
+  /* ── SANITY CZASU: JEDNO ŹRÓDŁO ────────────────────────────────────────────
+     `rekord` w DYSTANSE to męski rekord świata w sekundach, zweryfikowany
+     11/8/2026 (NIE przepisany z pamięci — dwa okazały się nieaktualne):
+       5 km    755 s = 12:35,36  Cheptegei 2020 (5000 m, tor)
+       10 km  1571 s = 26:11,00  Cheptegei 2020 (10 000 m, tor)
+       półm.  3440 s = 57:20     Kiplimo, Lizbona 2026
+       maraton 7170 s = 1:59:30  Sawe, Londyn 26.04.2026
+     Dla 5 i 10 km biorę rekordy TOROWE — są szybsze od szosowych (12:51 / 26:24),
+     więc próg z nich nie odetnie nikogo prawdziwego.
+
+     ⚠️ Progi LICZĄ SIĘ z rekordu, nie są wpisane osobno. Komunikat odmowy też
+     cytuje `rekord` z tej samej tabeli — dzięki temu aktualizacja rekordu
+     przesuwa próg i treść komunikatu jednocześnie, bez szansy na rozjazd.
+     ⚠️ Rekordy się poprawiają — przy aktualizacji zmienić TYLKO `rekord`. */
+  var MARGINES_REKORDU = 0.95;   // próg = rekord × 0,95, zaokrąglony do pełnej minuty
+  var TEMPO_MARSZU = 720;        // 12:00/km — górna granica, przeliczana per dystans
+
+  Object.keys(DYSTANSE).forEach(function (k) {
+    DYSTANSE[k].minCzas = Math.round(DYSTANSE[k].rekord * MARGINES_REKORDU / 60) * 60;
+    DYSTANSE[k].maxCzas = Math.round(DYSTANSE[k].km * TEMPO_MARSZU);
+  });
+
+  /* Wspólny sanity dla CELU (silnik) i WYNIKU w kroku 4 (klient przez API).
+     Jedna implementacja, jeden komunikat — inaczej dwa miejsca rozjadą się
+     przy pierwszej zmianie. Zwraca null, gdy czas jest w skali. */
+  function sanityCzasu(dystansKey, sek) {
+    var d = DYSTANSE[dystansKey];
+    if (!d || !(sek > 0)) return null;
+    if (sek < d.minCzas) {
+      return { kod: 'CZAS_POZA_SKALA',
+        komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to szybciej niż rekord świata (' +
+                   fmtCzas(d.rekord) + '). Sprawdź, czy dobrze wpisałeś czas.',
+        szczegoly: { podany_s: sek, prog_s: d.minCzas, rekord_s: d.rekord,
+                     dystans: dystansKey, kierunek: 'za_szybko' } };
+    }
+    if (sek > d.maxCzas) {
+      return { kod: 'CZAS_POZA_SKALA',
+        komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to tempo marszu (' +
+                   fmtTempo(sek / d.km) + '/km). Sprawdź, czy dobrze wpisałeś czas.',
+        szczegoly: { podany_s: sek, prog_s: d.maxCzas, dystans: dystansKey, kierunek: 'za_wolno' } };
+    }
+    return null;
+  }
 
   var MAX_POPRAWA = 0.08;        // cel czasowy: max 8% szybciej niż prognoza z obecnej formy
   var MAX_PRZYROST_TYG = 0.08;   // objętość: max 8% tydzień do tygodnia
@@ -241,16 +285,8 @@
          Rekordy TOROWE dla 5 i 10 km są szybsze od szosowych (12:51 / 26:24),
          więc próg z nich nie odetnie nikogo prawdziwego.
          ⚠️ Rekordy się poprawiają — przy aktualizacji przeliczyć progi. */
-      if (we.celCzasowy < d.minCzas) {
-        return odmowa('CZAS_POZA_SKALA',
-          'Ten czas jest szybszy niż rekord świata. Sprawdź, czy dobrze wpisałeś.',
-          { podany_s: we.celCzasowy, prog_s: d.minCzas, dystans: we.dystans, kierunek: 'za_szybko' });
-      }
-      if (we.celCzasowy > d.maxCzas) {
-        return odmowa('CZAS_POZA_SKALA',
-          'Ten czas to ' + fmtTempo(we.celCzasowy / d.km) + '/km — wolniej niż marsz. Sprawdź, czy dobrze wpisałeś.',
-          { podany_s: we.celCzasowy, prog_s: d.maxCzas, dystans: we.dystans, kierunek: 'za_wolno' });
-      }
+      var zleCel = sanityCzasu(we.dystans, we.celCzasowy);
+      if (zleCel) return odmowa(zleCel.kod, zleCel.komunikat, zleCel.szczegoly);
       var p10Celu = p10ZWyniku(d.km, we.celCzasowy);
 
       var prognoza = prognozaCzasu(p10Formy, d.km);
@@ -743,6 +779,7 @@
               MAX_TEMPO_KM: MAX_TEMPO_KM, MAX_TEMPO_MIN: MAX_TEMPO_MIN,
               START_POD_BAZA: START_POD_BAZA, SZCZYT_NAD_BAZA: SZCZYT_NAD_BAZA },
     ZAMKNIECIE: ZAMKNIECIE,
+    sanityCzasu: sanityCzasu,
     _sprawdzSciane: sprawdzSciane,
     _riegel: riegel,
     _p10ZWyniku: p10ZWyniku,
@@ -1010,8 +1047,14 @@
     var c2400 = cel10(24 * 60);
     check('10 km w 24:00 (szybciej niż próg 25:00) → CZAS_POZA_SKALA',
       c2400.ok === false && c2400.sciana.kod === 'CZAS_POZA_SKALA', c2400.ok ? 'PRZESZLO' : c2400.sciana.kod);
-    check('…komunikat mówi wprost o rekordzie świata',
-      c2400.ok === false && /szybszy niż rekord świata/.test(c2400.sciana.komunikat), null);
+    check('…komunikat CYTUJE rekord, nie mówi tylko „sprawdź"',
+      c2400.ok === false && /szybciej niż rekord świata \(26:11\)/.test(c2400.sciana.komunikat),
+      c2400.ok ? null : c2400.sciana.komunikat);
+    check('…a rekord w komunikacie pochodzi z DYSTANSE — JEDNO ŹRÓDŁO',
+      c2400.ok === false && c2400.sciana.szczegoly.rekord_s === DYSTANSE['10k'].rekord, null);
+    check('próg minCzas jest WYLICZONY z rekordu, nie wpisany osobno',
+      DYSTANSE['10k'].minCzas === Math.round(DYSTANSE['10k'].rekord * 0.95 / 60) * 60,
+      [DYSTANSE['10k'].minCzas, DYSTANSE['10k'].rekord]);
     var c2800 = cel10(28 * 60);
     check('10 km w 28:00 → ODRZUCONE ścianą (18% poprawy), plan NIE powstaje',
       c2800.ok === false && c2800.sciana.kod === 'CEL_ZA_AMBITNY' && !c2800.plan && !c2800.treningi,
