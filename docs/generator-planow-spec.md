@@ -258,6 +258,39 @@ plan przygotowań pod konkretne zawody.
 
 ---
 
+## Sygnalizacja różnicy
+
+Gdzie plan sam mówi, czym jest automat, a czym człowiek. **Trzy miejsca, nie więcej.**
+
+Zasada nadrzędna: **mówimy PRAWDĘ o granicach automatu, nie reklamujemy.**
+Plan naszpikowany zachętami podważa sam siebie — jeśli produkt jest dobry,
+nie trzeba go bronić w co drugim akapicie.
+
+**1. Stopka planu — raz, na końcu.** Tekst z sekcji „Pozycjonowanie":
+plan się nie dostosuje, Filip i Kasia tak. Jedno wystąpienie, nie powtarzane
+przy tygodniach ani jednostkach.
+
+**2. Ściana odmowy.** Już zaprojektowana — patrz „Ściana". Generator mówi,
+czego nie potrafi, i kto potrafi. Nic tu nie dokładamy.
+
+**3. Przy jednostkach jakościowych — jedno zdanie.** Tempo akcentu jest
+policzone ze wzoru, nie dobrane do człowieka. Mówimy to wprost, razem z tym,
+czego wzór nie widzi:
+
+> Te tempa wyliczyliśmy z Twojego P10. Trener ustaliłby je inaczej —
+> patrząc, jak kończysz ostatnie powtórzenie i co mówisz po treningu.
+
+Zdanie pojawia się **przy jednostkach jakościowych** (Tempo, Interwały,
+Progresja), nie przy spokojnych i nie przy każdej z osobna.
+
+**Czego w sygnalizacji nie ma:**
+
+- banerów w treści planu
+- oznaczeń „PREMIUM" i wariantów płatnych
+- blokad podglądu — człowiek widzi cały plan, który dostał
+
+---
+
 ## Czego NIE robimy
 
 - **adaptacji** — żadnego „za trudne / za łatwe", żadnego przeliczania w trakcie
