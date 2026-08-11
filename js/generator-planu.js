@@ -954,6 +954,25 @@
     check('plan.target_time wypełnione, gdy cel podany (ślad intencji dla trenera)',
       c330.ok && c330.plan.target_time === '3:30:00', c330.ok ? c330.plan.target_time : null);
 
+    /* Regresja zgłoszona przez Filipa: wpisał "3:00" jako cel maratoński,
+       a jednopolowy parser odczytał to jako 3 MINUTY. Klient ma teraz trzy pola
+       (godz/min/sek), ale silnik musi bronić się sam — gdyby kiedyś przyszło
+       tu 180 s, ma to być odmowa, a nie plan z tempem 0:04/km. */
+    var celMar3h = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
+                             poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 10800 }));
+    check('maraton z celem 3:00:00 → plan powstaje', celMar3h.ok === true, celMar3h.ok ? null : celMar3h.sciana);
+    check('…a tempo maratońskie jest ~4:16-4:25/km, nie ~0:04/km', (function () {
+      if (!celMar3h.ok) return false;
+      var m = celMar3h.meta.tempa.M.split(':');
+      var sek = (+m[0]) * 60 + (+m[1]);
+      return sek > 240 && sek < 280;
+    })(), celMar3h.ok ? celMar3h.meta.tempa.M : null);
+    var celMar180 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
+                              poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 180 }));
+    check('maraton z celem 180 s ("3:00" źle sparsowane) → ODMOWA, nie absurdalny plan',
+      celMar180.ok === false && celMar180.sciana.kod === 'POZIOM_POZA_SKALA',
+      celMar180.ok ? 'PRZESZLO' : celMar180.sciana.kod);
+
     sekcja('OSTATNIE DNI PRZED STARTEM');
     /* Regresja zgłoszona przez Filipa: „dzień przed startem pokazuje rozbieganie
        7 km". Zmierzone: zepsute było 6 z 7 dni tygodnia startu (Pn dawał

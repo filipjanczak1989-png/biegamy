@@ -1582,8 +1582,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
            CEL_ZA_AMBITNY (max 8% poprawy wobec prognozy z formy). -->
       <div style="margin-bottom:16px;">
         <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Masz cel czasowy? (opcjonalnie)</label>
-        <input id="gen-cel" type="text" inputmode="numeric" autocomplete="off" placeholder="np. 3:00:00 albo 45:30"
-          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+        <div id="gen-cel-pola"></div>
       </div>
 
       <div style="margin-bottom:6px;position:relative;">
@@ -1623,8 +1622,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
           <button type="button" class="type-pill" onclick="genSelFbDystans(this,21.097)">Półmaraton</button>
           <button type="button" class="type-pill" onclick="genSelFbDystans(this,42.195)">Maraton</button>
         </div>
-        <input id="gen-fb-czas" type="text" inputmode="numeric" autocomplete="off" placeholder="czas — np. 48:15 albo 3:50:00"
-          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;margin-bottom:10px;">
+        <div id="gen-fb-czas-pola" style="margin-bottom:10px;"></div>
         <input id="gen-fb-km" type="number" inputmode="decimal" min="0" step="1" placeholder="ile km tygodniowo biegasz teraz — np. 25"
           style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
         <div id="gen-fb-blad" style="display:none;margin-top:10px;font-size:12px;color:#fbbf24;font-family:'DM Sans',sans-serif;line-height:1.5;"></div>
@@ -4582,9 +4580,88 @@ async function loadAvatarTopbar(athleteId) {
 // CTA żyje w pustym stanie #today-card: potrzeba BRAKU trenera i BRAKU treningu
 // na dziś. Oba sygnały przychodzą asynchronicznie z dwóch różnych funkcji, więc
 // decyzję podejmujemy dopiero, gdy znamy oba (null = jeszcze nie wiadomo).
+/* ⚠️ TRYB TESTOWY — generator widoczny WYŁĄCZNIE dla wskazanych zawodników.
+   Docelowy warunek to `coach_id IS NULL` (generator jest dla ludzi bez trenera),
+   ale przed wypuszczeniem Filip musi go dopracować — a jako zawodnik MA trenera,
+   więc docelowego warunku by nie przeszedł.
+
+   ⚠️ PRZED WYPUSZCZENIEM: zdjąć GEN_TESTERZY i wrócić do _brakTrenera.
+   Dopóki ta lista działa, 20 zawodników bez trenera NIE ZOBACZY generatora.
+
+   ⚠️ To wyłącznie widoczność PRZYCISKU. Baza jest nietknięta: zapis planu nadal
+   wymaga coach_id IS NULL po stronie RLS, więc tester z trenerem obejrzy podgląd,
+   ale zapisu do kalendarza nie przepchnie. */
+const GEN_TESTERZY = ['56092926-2cf1-44b6-952f-38614497fdc2'];
+
+/* ── KOMPONENT: CZAS W TRZECH POLACH ───────────────────────────────────────────
+   Jedno pole tekstowe było pułapką: Filip wpisał "3:00" jako cel maratoński,
+   a parser (lustro pbToSec) odczytał dwuczłonowy zapis jako mm:ss — czyli
+   3 minuty. Trzy pola nie da się przeczytać dwuznacznie.
+
+   ⚠️ POLE GODZIN JEST ZAWSZE WIDOCZNE, także przy 5 km. Ktoś biegnie piątkę
+   w 40 minut, ktoś maraton w 6 godzin — ukrywanie godzin przy krótkich
+   dystansach zgadywałoby za człowieka.
+
+   Zmierzone: przy 380 px viewportu treść modala ma 292 px (20+20 padding
+   overlaya, 24+24 padding karty), więc siatka 3 × 1fr z gapem 8 px daje
+   92 px na kolumnę — mieści się bez ściskania.
+
+   Jeden komponent obsługuje OBA miejsca: cel czasowy i wynik w kroku 4. */
+function _czasPolaHtml(prefix) {
+  const pole = function (sufiks, etykieta, maxLen, ph) {
+    return '<div>'
+      + '<input id="' + prefix + '-' + sufiks + '" type="text" inputmode="numeric" autocomplete="off"'
+      + ' maxlength="' + maxLen + '" placeholder="' + ph + '"'
+      + ' oninput="_czasOnInput(this,\'' + prefix + '\',\'' + sufiks + '\')"'
+      + ' style="width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--border);color:var(--fg);'
+      + 'font-family:DM Mono,monospace;font-size:16px;text-align:center;padding:10px 4px;border-radius:8px;outline:none;">'
+      + '<div style="text-align:center;font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;">' + etykieta + '</div>'
+      + '</div>';
+  };
+  return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    + pole('h', 'godz', 2, '0') + pole('m', 'min', 2, '00') + pole('s', 'sek', 2, '00')
+    + '</div>';
+}
+
+/* Auto-przejście po dwóch cyfrach + walidacja 0-59 dla minut i sekund.
+   Godziny bez górnego ograniczenia poza maxlength — 6-godzinny maraton ma przejść. */
+function _czasOnInput(el, prefix, sufiks) {
+  el.value = el.value.replace(/\D/g, '');
+  if ((sufiks === 'm' || sufiks === 's') && el.value.length === 2 && parseInt(el.value, 10) > 59) {
+    el.value = '59';
+  }
+  if (el.value.length >= 2) {
+    const nast = sufiks === 'h' ? 'm' : (sufiks === 'm' ? 's' : null);
+    if (nast) { const n = document.getElementById(prefix + '-' + nast); if (n) n.focus(); }
+  }
+}
+window._czasOnInput = _czasOnInput;
+
+/* Zwraca sekundy albo null. Godziny opcjonalne (puste = 0), min i sek wymagane. */
+function _czasZPol(prefix) {
+  const g = function (s) { const e = document.getElementById(prefix + '-' + s); return e ? e.value.trim() : ''; };
+  const h = g('h'), m = g('m'), s = g('s');
+  if (m === '' && s === '' && h === '') return null;
+  if (m === '' || s === '') return null;          // niepełny czas = brak czasu
+  const mm = parseInt(m, 10), ss = parseInt(s, 10), hh = h === '' ? 0 : parseInt(h, 10);
+  if (isNaN(mm) || isNaN(ss) || isNaN(hh) || mm > 59 || ss > 59) return null;
+  const sek = hh * 3600 + mm * 60 + ss;
+  return sek > 0 ? sek : null;
+}
+
+function _czasResetPol(prefix) {
+  ['h', 'm', 's'].forEach(function (x) {
+    const e = document.getElementById(prefix + '-' + x); if (e) e.value = '';
+  });
+}
+
 function _odswiezCtaGeneratora() {
   const el = document.getElementById('gen-cta');
   if (!el) return;
+  if (GEN_TESTERZY.length) {
+    el.style.display = (_athleteId && GEN_TESTERZY.includes(_athleteId) && window._brakTreninguDzis) ? 'block' : 'none';
+    return;
+  }
   const znane = window._brakTrenera != null && window._brakTreninguDzis != null;
   el.style.display = (znane && window._brakTrenera && window._brakTreninguDzis) ? 'block' : 'none';
 }
@@ -4598,7 +4675,12 @@ function openGenModal() {
   document.querySelectorAll('#gen-dystans .type-pill, #gen-dni .type-pill').forEach(b => b.classList.remove('on'));
   const ri = document.getElementById('gen-race-input'); if (ri) ri.value = '';
   const di = document.getElementById('gen-date-input'); if (di) di.value = '';
-  const cl = document.getElementById('gen-cel'); if (cl) cl.value = '';
+  // Komponent czasu wstrzykiwany raz, przy otwarciu — jedna implementacja na oba pola
+  const clp = document.getElementById('gen-cel-pola');
+  if (clp && !clp.innerHTML) clp.innerHTML = _czasPolaHtml('gen-cel');
+  const fbp = document.getElementById('gen-fb-czas-pola');
+  if (fbp && !fbp.innerHTML) fbp.innerHTML = _czasPolaHtml('gen-fb-czas');
+  _czasResetPol('gen-cel'); _czasResetPol('gen-fb-czas');
   const lk = document.getElementById('gen-race-linked'); if (lk) lk.style.display = 'none';
   const sg = document.getElementById('gen-suggest'); if (sg) { sg.style.display = 'none'; sg.innerHTML = ''; }
   document.getElementById('gen-form').style.display = 'block';
@@ -4638,7 +4720,7 @@ function _genFbReset() {
   const fb = document.getElementById('gen-fallback');
   if (!fb) return;
   fb.style.display = 'none';
-  document.getElementById('gen-fb-czas').value = '';
+  _czasResetPol('gen-fb-czas');
   document.getElementById('gen-fb-km').value = '';
   fb.querySelectorAll('.type-pill').forEach(b => b.classList.remove('on'));
   _genFbBlad('');
@@ -4746,7 +4828,7 @@ async function genUlozPlan() {
     const fb = document.getElementById('gen-fallback');
     if (fb && fb.style.display !== 'none') {
       _genFbBlad('');
-      const czasS = _silnikToSec((document.getElementById('gen-fb-czas').value || '').trim());
+      const czasS = _czasZPol('gen-fb-czas');
       const km    = parseFloat(document.getElementById('gen-fb-km').value);
 
       // Brak WYNIKU to nie to samo co brak objętości — inna droga wyjścia.
@@ -4783,7 +4865,7 @@ async function genUlozPlan() {
       today: _genKluczDaty(new Date()),
       poziom: poziom,
       // _silnikToSec zwraca null dla pustego pola → puste = jak dotąd, tempa z historii
-      celCzasowy: _silnikToSec((document.getElementById('gen-cel').value || '').trim())
+      celCzasowy: _czasZPol('gen-cel')
     });
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Ułóż plan →';
