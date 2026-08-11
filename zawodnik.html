@@ -1577,6 +1577,15 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         </div>
       </div>
 
+      <!-- Cel czasowy — OPCJONALNY. Puste = tempa z historii, jak dotąd.
+           Wypełnione = tempa liczone z celu, ale dopiero po przejściu ściany
+           CEL_ZA_AMBITNY (max 8% poprawy wobec prognozy z formy). -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Masz cel czasowy? (opcjonalnie)</label>
+        <input id="gen-cel" type="text" inputmode="numeric" autocomplete="off" placeholder="np. 3:00:00 albo 45:30"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+      </div>
+
       <div style="margin-bottom:6px;position:relative;">
         <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Kiedy — wpisz nazwę biegu</label>
         <input id="gen-race-input" type="text" placeholder="np. Maraton Warszawski 2026" autocomplete="off"
@@ -1598,6 +1607,27 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
           <button type="button" class="type-pill" onclick="genSelDni(this,5)">5</button>
           <button type="button" class="type-pill" onclick="genSelDni(this,6)">6</button>
         </div>
+      </div>
+
+      <!-- Krok 4 — pokazywany WYŁĄCZNIE po BRAK_POZIOMU z silnika.
+           Świadomie NIE sięgamy do athletes.pb_*: te wartości są niedatowane,
+           mogą być sprzed lat i zawyżą tempo — to ten błąd, przez który ludzie
+           odchodzą od konkurencji. Pytamy o świeży wynik.
+           Oba pola są WYMAGANE. Objętości nie zgadujemy tym bardziej niż tempa:
+           steruje reżimem progresji, więc pomyłka o 3× psuje plan w obie strony. -->
+      <div id="gen-fallback" style="display:none;margin-bottom:20px;padding:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.22);border-radius:12px;">
+        <div style="font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:12px;">Nie mam jeszcze Twoich biegów. Podaj ostatni wynik:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="gen-fb-dystans">
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,5)">5 km</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,10)">10 km</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,21.097)">Półmaraton</button>
+          <button type="button" class="type-pill" onclick="genSelFbDystans(this,42.195)">Maraton</button>
+        </div>
+        <input id="gen-fb-czas" type="text" inputmode="numeric" autocomplete="off" placeholder="czas — np. 48:15 albo 3:50:00"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;margin-bottom:10px;">
+        <input id="gen-fb-km" type="number" inputmode="decimal" min="0" step="1" placeholder="ile km tygodniowo biegasz teraz — np. 25"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+        <div id="gen-fb-blad" style="display:none;margin-top:10px;font-size:12px;color:#fbbf24;font-family:'DM Sans',sans-serif;line-height:1.5;"></div>
       </div>
 
       <div style="display:flex;gap:8px;">
@@ -4560,13 +4590,15 @@ function _odswiezCtaGeneratora() {
 }
 window._odswiezCtaGeneratora = _odswiezCtaGeneratora;
 
-let _genDystans = null, _genDni = null, _genRaceDate = null;
+let _genDystans = null, _genDni = null, _genRaceDate = null, _genFbDystans = null;
 
 function openGenModal() {
-  _genDystans = null; _genDni = null; _genRaceDate = null;
+  _genDystans = null; _genDni = null; _genRaceDate = null; _genFbDystans = null;
+  _genFbReset();
   document.querySelectorAll('#gen-dystans .type-pill, #gen-dni .type-pill').forEach(b => b.classList.remove('on'));
   const ri = document.getElementById('gen-race-input'); if (ri) ri.value = '';
   const di = document.getElementById('gen-date-input'); if (di) di.value = '';
+  const cl = document.getElementById('gen-cel'); if (cl) cl.value = '';
   const lk = document.getElementById('gen-race-linked'); if (lk) lk.style.display = 'none';
   const sg = document.getElementById('gen-suggest'); if (sg) { sg.style.display = 'none'; sg.innerHTML = ''; }
   document.getElementById('gen-form').style.display = 'block';
@@ -4587,6 +4619,50 @@ function genSelDni(btn, n) {
   btn.classList.add('on');
 }
 window.genSelDystans = genSelDystans; window.genSelDni = genSelDni;
+
+/* ── KROK 4: wynik + objętość ────────────────────────────────────────────────
+   Sanity check liczony po TEMPIE, nie po czasie na dystansie — jeden próg
+   obsługuje wszystkie cztery dystanse i nie trzeba go pielęgnować per dystans. */
+const GEN_TEMPO_TWARDE_MIN = 150;   // 2:30/km — szybciej niż rekord świata
+const GEN_TEMPO_TWARDE_MAX = 720;   // 12:00/km — tempo marszu
+const GEN_TEMPO_MIEKKIE    = 180;   // 3:00/km — realne, ale rzadkie: Kasia biega 3:2x
+
+function genSelFbDystans(btn, km) {
+  _genFbDystans = km;
+  document.querySelectorAll('#gen-fb-dystans .type-pill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+window.genSelFbDystans = genSelFbDystans;
+
+function _genFbReset() {
+  const fb = document.getElementById('gen-fallback');
+  if (!fb) return;
+  fb.style.display = 'none';
+  document.getElementById('gen-fb-czas').value = '';
+  document.getElementById('gen-fb-km').value = '';
+  fb.querySelectorAll('.type-pill').forEach(b => b.classList.remove('on'));
+  _genFbBlad('');
+}
+
+function _genFbBlad(tekst) {
+  const el = document.getElementById('gen-fb-blad');
+  if (!el) return;
+  el.textContent = tekst || '';
+  el.style.display = tekst ? 'block' : 'none';
+}
+
+/* Zwraca {ok, tekst} albo {ok:true, potwierdz}. Miękki próg PYTA zamiast
+   odrzucać — odrzucenie realnego wyniku jest gorsze niż jedno kliknięcie. */
+function _genSprawdzTempo(dystansKm, czasS) {
+  const tempo = czasS / dystansKm;
+  if (tempo < GEN_TEMPO_TWARDE_MIN) return { ok: false, tekst: 'Sprawdź czas — to szybciej niż rekord świata.' };
+  if (tempo > GEN_TEMPO_TWARDE_MAX) return { ok: false, tekst: 'Sprawdź czas — to tempo marszu.' };
+  if (tempo < GEN_TEMPO_MIEKKIE) {
+    const t = window.GeneratorPlanu._fmtTempo(tempo);
+    return { ok: true, potwierdz: 'To wychodzi ' + t + '/km na ' + dystansKm + ' km. Na pewno dobrze?' };
+  }
+  return { ok: true };
+}
 
 // Wybór biegu z kalendarza startów — ta sama wyszukiwarka co w modalu celu
 window.genPickRace = function (raceId, raceName, raceDate) {
@@ -4665,13 +4741,49 @@ async function genUlozPlan() {
   let wynik;
   try {
     const poziom = await _genZbierzPoziom();
+
+    // Krok 4 ma pierwszeństwo nad (pustymi) logami.
+    const fb = document.getElementById('gen-fallback');
+    if (fb && fb.style.display !== 'none') {
+      _genFbBlad('');
+      const czasS = _silnikToSec((document.getElementById('gen-fb-czas').value || '').trim());
+      const km    = parseFloat(document.getElementById('gen-fb-km').value);
+
+      // Brak WYNIKU to nie to samo co brak objętości — inna droga wyjścia.
+      if (!_genFbDystans || !czasS) {
+        btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        _genPokazZadanie();
+        return;
+      }
+      if (!(km > 0)) {
+        btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        _genFbBlad('Podaj też, ile km tygodniowo biegasz teraz — bez tego nie wiem, od czego zacząć.');
+        return;
+      }
+      const spr = _genSprawdzTempo(_genFbDystans, czasS);
+      if (!spr.ok) {
+        btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        _genFbBlad(spr.tekst);
+        return;
+      }
+      if (spr.potwierdz && !confirm(spr.potwierdz)) {
+        btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        return;
+      }
+
+      poziom.wynik  = { dystans_km: _genFbDystans, czas_s: czasS };
+      poziom.p10sec = null;              // silnik liczy Rieglem tylko gdy p10sec == null
+      poziom.objetoscTygodniowa = km;
+    }
+
     wynik = window.GeneratorPlanu.uloz({
       dystans: _genDystans,
       dataStartu: data,
       dniWTygodniu: _genDni,
       today: _genKluczDaty(new Date()),
       poziom: poziom,
-      celCzasowy: null
+      // _silnikToSec zwraca null dla pustego pola → puste = jak dotąd, tempa z historii
+      celCzasowy: _silnikToSec((document.getElementById('gen-cel').value || '').trim())
     });
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Ułóż plan →';
@@ -4679,6 +4791,17 @@ async function genUlozPlan() {
     return;
   }
   btn.disabled = false; btn.textContent = 'Ułóż plan →';
+
+  // BRAK_POZIOMU to nie odmowa, tylko brak danych — dokładamy krok 4 zamiast
+  // pokazywać ścianę. Formularz zostaje na ekranie, człowiek nic nie traci.
+  if (!wynik.ok && wynik.sciana.kod === 'BRAK_POZIOMU') {
+    const fb2 = document.getElementById('gen-fallback');
+    if (fb2 && fb2.style.display === 'none') {
+      fb2.style.display = 'block';
+      fb2.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+  }
   _genPokazWynik(wynik);
 }
 window.genUlozPlan = genUlozPlan;
@@ -4733,6 +4856,14 @@ function _genPokazWynik(w) {
     + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Podgląd planu</div>'
     + '<div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;padding-right:4px;">'
     +   (window.PLANVIEW ? window.PLANVIEW.render(p, w.treningi, {}) : '')
+    + '</div>'
+    // Stopka — JEDYNE miejsce w planie, gdzie mówimy o granicy automatu.
+    // Raz, nie przy tygodniach i nie przy jednostkach. Mówimy prawdę o tym,
+    // czego plan nie potrafi — nie reklamujemy. Patrz docs/generator-planow-spec.md.
+    + '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.65;">'
+    +   'Ten plan się nie dostosuje. Jeśli złapiesz kontuzję, tydzień Ci wypadnie '
+    +   'albo coś przestanie działać — plan tego nie zauważy.<br>'
+    +   '<span style="color:var(--fg2);">Filip i Kasia zauważą.</span>'
     + '</div>'
     + '<div id="gen-zapis-status" style="display:none;font-size:11px;font-family:DM Mono,monospace;line-height:1.5;margin-bottom:10px;"></div>'
     + '<div style="display:flex;gap:8px;">'
@@ -4867,6 +4998,22 @@ async function genZapiszPlan() {
   }
 }
 window.genZapiszPlan = genZapiszPlan;
+
+/* Odmowa po kroku 4. Świadomie NIE wygląda jak ściana: człowiek nie zrobił nic
+   źle, system po prostu nie widział go jeszcze biegnącego. To zadanie z drogą
+   powrotu, nie komunikat o błędzie. */
+function _genPokazZadanie() {
+  const box = document.getElementById('gen-wynik');
+  box.innerHTML =
+    '<div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:16px;margin-bottom:14px;">'
+    + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--green);font-family:DM Mono,monospace;margin-bottom:8px;">Jeszcze jeden krok</div>'
+    + '<div style="font-size:14px;color:var(--fg);line-height:1.6;">Przebiegnij najpierw dziesiątkę na czas, wtedy ułożę plan pod Twoje tempo.</div>'
+    + '</div>'
+    + '<button onclick="_genWrocDoFormularza()" style="width:100%;background:var(--card2);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">← Wróć</button>';
+  document.getElementById('gen-form').style.display = 'none';
+  box.style.display = 'block';
+}
+window._genPokazZadanie = _genPokazZadanie;
 
 function _genWrocDoFormularza() {
   document.getElementById('gen-wynik').style.display = 'none';
@@ -6052,7 +6199,7 @@ async function loadWeekPlan() {
     const dist = t.distance_km ? parseFloat(t.distance_km) : 0;
     const paceDisplay = t.pace || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
     const hrDisplay = t.heart_rate || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
-    const descDisplay = t.description || '<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>';
+    const descDisplay = t.description || '<span style="color:var(--muted);font-style:italic;">Brak opisu treningu.</span>';
 
     const statusDot = isDone
       ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(61,184,112,0.5);flex-shrink:0;"></div>`
@@ -6090,7 +6237,7 @@ async function loadWeekPlan() {
             <div style="font-size:18px;font-family:DM Mono,monospace;color:var(--fg);margin-top:2px;">${t.pace}</div>
           </div>`:''}
         </div>`:''}
-        ${descDisplay!=='<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>'?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${escapeHtml(descDisplay)}</div>`:''}
+        ${t.description?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${escapeHtml(t.description)}</div>`:''}
         ${!isDone&&!isRest?`<button onclick="openModalForDate('${t.date}',event)" style="margin-top:12px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(224,85,32,0.35);">↓ Zaloguj wynik</button>`:''}
       </div>
     </div></div>`;
