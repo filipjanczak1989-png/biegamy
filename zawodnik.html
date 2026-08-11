@@ -4637,6 +4637,18 @@ function _czasOnInput(el, prefix, sufiks) {
 }
 window._czasOnInput = _czasOnInput;
 
+/* ⚠️ Stan pól MUSI być odróżnialny od wyniku. `_czasZPol` zwraca null zarówno dla
+   pustych pól, jak i dla niepełnych — a to dwie różne sytuacje. Filip wpisał "28"
+   w minutach, zostawił sekundy puste, cel CICHO ZNIKNĄŁ i powstał plan z temp
+   z historii. Wyglądało to jak "28:00 przeszło walidację", choć ściana nigdy
+   nie dostała celu do sprawdzenia. */
+function _czasStan(prefix) {
+  const g = function (s) { const e = document.getElementById(prefix + '-' + s); return e ? e.value.trim() : ''; };
+  const wyp = ['h', 'm', 's'].filter(function (x) { return g(x) !== ''; }).length;
+  if (wyp === 0) return 'pusty';
+  return _czasZPol(prefix) == null ? 'niepelny' : 'ok';
+}
+
 /* Zwraca sekundy albo null. Godziny opcjonalne (puste = 0), min i sek wymagane. */
 function _czasZPol(prefix) {
   const g = function (s) { const e = document.getElementById(prefix + '-' + s); return e ? e.value.trim() : ''; };
@@ -4817,6 +4829,13 @@ async function genUlozPlan() {
   if (!_genDystans) { toast('Wybierz dystans'); return; }
   if (!data)        { toast('Podaj datę startu albo wybierz bieg z kalendarza'); return; }
   if (!_genDni)     { toast('Wybierz, ile dni w tygodniu biegasz'); return; }
+  // Niepełny cel NIE MOŻE cicho zniknąć — inaczej plan powstaje z historii,
+  // a człowiek jest przekonany, że policzyliśmy go pod jego cel.
+  if (_czasStan('gen-cel') === 'niepelny') {
+    toast('Uzupełnij cel czasowy — minuty i sekundy są wymagane');
+    const mm = document.getElementById('gen-cel-m'); if (mm) mm.focus();
+    return;
+  }
 
   const btn = document.getElementById('gen-submit');
   btn.disabled = true; btn.textContent = 'Liczę…';
@@ -4832,6 +4851,13 @@ async function genUlozPlan() {
       const km    = parseFloat(document.getElementById('gen-fb-km').value);
 
       // Brak WYNIKU to nie to samo co brak objętości — inna droga wyjścia.
+      // Niepełny czas to NIE to samo co brak wyniku: człowiek próbował go podać.
+      // Zadanie „przebiegnij dziesiątkę" byłoby wtedy odpowiedzią na inne pytanie.
+      if (_czasStan('gen-fb-czas') === 'niepelny') {
+        btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        _genFbBlad('Uzupełnij czas — minuty i sekundy są wymagane.');
+        return;
+      }
       if (!_genFbDystans || !czasS) {
         btn.disabled = false; btn.textContent = 'Ułóż plan →';
         _genPokazZadanie();

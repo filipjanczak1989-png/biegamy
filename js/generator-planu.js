@@ -70,10 +70,10 @@
                       Bramka odpala się wyłącznie gdy udzialDlugiego × peak < 11,6,
                       czyli przy peak < 32 km/tydz — to zależy od objętości, nie od sufitu. */
   var DYSTANSE = {
-    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1, minSzczyt: 20, udzialDlugiego: 0.30, minDlugieProc: 0.60, maxDlugieKm: 14 },
-    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1, minSzczyt: 25, udzialDlugiego: 0.33, minDlugieProc: 0.60, maxDlugieKm: 18 },
-    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2, minSzczyt: 30, udzialDlugiego: 0.36, minDlugieProc: 0.55, maxDlugieKm: 22 },
-    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3, minSzczyt: 45, udzialDlugiego: 0.40, minDlugieProc: 0.55, maxDlugieKm: 34 }
+    '5k':       { km: 5.0,     etykieta: '5 km',        minTygodni: 4,  peakKm: 30, taper: 1, minSzczyt: 20, udzialDlugiego: 0.30, minDlugieProc: 0.60, maxDlugieKm: 14, minCzas: 720,  maxCzas: 3600 },
+    '10k':      { km: 10.0,    etykieta: '10 km',       minTygodni: 6,  peakKm: 40, taper: 1, minSzczyt: 25, udzialDlugiego: 0.33, minDlugieProc: 0.60, maxDlugieKm: 18, minCzas: 1500, maxCzas: 7200 },
+    'half':     { km: 21.0975, etykieta: 'Półmaraton',  minTygodni: 10, peakKm: 55, taper: 2, minSzczyt: 30, udzialDlugiego: 0.36, minDlugieProc: 0.55, maxDlugieKm: 22, minCzas: 3240, maxCzas: 15190 },
+    'marathon': { km: 42.195,  etykieta: 'Maraton',     minTygodni: 16, peakKm: 70, taper: 3, minSzczyt: 45, udzialDlugiego: 0.40, minDlugieProc: 0.55, maxDlugieKm: 34, minCzas: 6780, maxCzas: 30380 }
   };
 
   var MAX_POPRAWA = 0.08;        // cel czasowy: max 8% szybciej niż prognoza z obecnej formy
@@ -226,12 +226,32 @@
     if (we.celCzasowy != null) {
       if (!(we.celCzasowy > 0)) return odmowa('ZLY_CEL', 'Cel czasowy musi być liczbą sekund.', { celCzasowy: we.celCzasowy });
 
-      var p10Celu = p10ZWyniku(d.km, we.celCzasowy);
-      if (p10Celu < 150 || p10Celu > 600) {
-        return odmowa('POZIOM_POZA_SKALA',
-          'Tempo wynikające z celu (' + fmtTempo(p10Celu) + '/km na 10 km) wygląda na błąd w danych.',
-          { p10sec: Math.round(p10Celu), zCelu: true });
+      /* Sanity PER DYSTANS. Wcześniej był jeden uniwersalny zakres 2:30–12:00/km
+         liczony po P10 — i przez to bezużyteczny: cel 10 km w 28:00 dawał P10
+         2:48/km, mieścił się w zakresie i przechodził, mimo że to 4 minuty od
+         rekordu świata. 2:30/km jest jednocześnie absurdem na 5 km i wolniejsze
+         od rekordu maratonu, więc jedna liczba nie może obsłużyć obu końców.
+
+         minCzas = rekord świata (męski) × 0,95, zaokrąglony w dół. Rekordy
+         zweryfikowane 11/8/2026, NIE przepisane z pamięci:
+           5 km    12:35,36  Cheptegei 2020 (5000 m tor)   → próg 12:00
+           10 km   26:11,00  Cheptegei 2020 (10 000 m tor) → próg 25:00
+           półm.      57:20  Kiplimo, Lizbona 2026         → próg 54:00
+           maraton  1:59:30  Sawe, Londyn 26.04.2026       → próg 1:53:00
+         Rekordy TOROWE dla 5 i 10 km są szybsze od szosowych (12:51 / 26:24),
+         więc próg z nich nie odetnie nikogo prawdziwego.
+         ⚠️ Rekordy się poprawiają — przy aktualizacji przeliczyć progi. */
+      if (we.celCzasowy < d.minCzas) {
+        return odmowa('CZAS_POZA_SKALA',
+          'Ten czas jest szybszy niż rekord świata. Sprawdź, czy dobrze wpisałeś.',
+          { podany_s: we.celCzasowy, prog_s: d.minCzas, dystans: we.dystans, kierunek: 'za_szybko' });
       }
+      if (we.celCzasowy > d.maxCzas) {
+        return odmowa('CZAS_POZA_SKALA',
+          'Ten czas to ' + fmtTempo(we.celCzasowy / d.km) + '/km — wolniej niż marsz. Sprawdź, czy dobrze wpisałeś.',
+          { podany_s: we.celCzasowy, prog_s: d.maxCzas, dystans: we.dystans, kierunek: 'za_wolno' });
+      }
+      var p10Celu = p10ZWyniku(d.km, we.celCzasowy);
 
       var prognoza = prognozaCzasu(p10Formy, d.km);
       var poprawa = (prognoza - we.celCzasowy) / prognoza;
@@ -928,10 +948,10 @@
     check('cel 2:00 w maratonie → ściana ambicji (p10 2:37/km mieści się w sanity)',
       cRWS.ok === false && cRWS.sciana.kod === 'CEL_ZA_AMBITNY', cRWS.ok ? null : cRWS.sciana.kod);
     var cNiemozliwy = celMar(90 * 60);
-    check('cel fizycznie niemożliwy (1:30 maraton) → POZIOM_POZA_SKALA',
-      cNiemozliwy.ok === false && cNiemozliwy.sciana.kod === 'POZIOM_POZA_SKALA', cNiemozliwy.ok ? null : cNiemozliwy.sciana.kod);
-    check('…i odmowa mówi, że to dane, nie ambicja',
-      cNiemozliwy.ok === false && cNiemozliwy.sciana.szczegoly.zCelu === true, null);
+    check('cel fizycznie niemożliwy (1:30 maraton) → CZAS_POZA_SKALA',
+      cNiemozliwy.ok === false && cNiemozliwy.sciana.kod === 'CZAS_POZA_SKALA', cNiemozliwy.ok ? null : cNiemozliwy.sciana.kod);
+    check('…i odmowa mówi o rekordzie świata, nie o ambicji',
+      cNiemozliwy.ok === false && /rekord świata/.test(cNiemozliwy.sciana.komunikat), cNiemozliwy.ok ? null : cNiemozliwy.sciana.komunikat);
 
     /* Cel bez żadnego poziomu — ściana nie ma z czym porównać, więc wymagamy kroku 4. */
     var cBezPoziomu = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
@@ -970,8 +990,59 @@
     var celMar180 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
                               poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 180 }));
     check('maraton z celem 180 s ("3:00" źle sparsowane) → ODMOWA, nie absurdalny plan',
-      celMar180.ok === false && celMar180.sciana.kod === 'POZIOM_POZA_SKALA',
+      celMar180.ok === false && celMar180.sciana.kod === 'CZAS_POZA_SKALA',
       celMar180.ok ? 'PRZESZLO' : celMar180.sciana.kod);
+
+    sekcja('SANITY CZASU — progi PER DYSTANS, z rekordów świata');
+    /* Zgłoszenie Filipa: „cel 10 km w 28:00 przeszedł walidację". Zmierzone —
+       NIE przeszedł: ściana CEL_ZA_AMBITNY go odbija (18,1% poprawy wobec jego
+       prognozy 34:12). Objawem był CICHY ZANIK celu w kliencie przy niepełnym
+       czasie, nie dziura w silniku.
+
+       Ale sanity faktycznie było bezużyteczne: jeden zakres 2:30–12:00/km po P10
+       obsługiwał wszystkie dystanse, więc 28:00 na dziesiątce mieściło się w nim
+       bez problemu. Teraz progi są per dystans, z rekordów zweryfikowanych 11/8. */
+    var p10Filip = 205.2;   // 3:25/km — zmierzone z realnych logów
+    var cel10 = function (sek) {
+      return uloz(we({ dystans: '10k', dniWTygodniu: 5, dataStartu: zaTygodni(13),
+                       poziom: poziom({ p10sec: p10Filip, objetoscTygodniowa: 129 }), celCzasowy: sek }));
+    };
+    var c2400 = cel10(24 * 60);
+    check('10 km w 24:00 (szybciej niż próg 25:00) → CZAS_POZA_SKALA',
+      c2400.ok === false && c2400.sciana.kod === 'CZAS_POZA_SKALA', c2400.ok ? 'PRZESZLO' : c2400.sciana.kod);
+    check('…komunikat mówi wprost o rekordzie świata',
+      c2400.ok === false && /szybszy niż rekord świata/.test(c2400.sciana.komunikat), null);
+    var c2800 = cel10(28 * 60);
+    check('10 km w 28:00 → ODRZUCONE ścianą (18% poprawy), plan NIE powstaje',
+      c2800.ok === false && c2800.sciana.kod === 'CEL_ZA_AMBITNY' && !c2800.plan && !c2800.treningi,
+      c2800.ok ? 'PLAN POWSTAL' : c2800.sciana.kod);
+    check('10 km w 34:12 (= jego prognoza) → przechodzi', cel10(2052).ok === true, null);
+    var cMar150 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
+                            poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 110 * 60 }));
+    check('maraton w 1:50 (szybciej niż próg 1:53) → CZAS_POZA_SKALA',
+      cMar150.ok === false && cMar150.sciana.kod === 'CZAS_POZA_SKALA', cMar150.ok ? 'PRZESZLO' : cMar150.sciana.kod);
+
+    /* Progi MUSZĄ leżeć poniżej rekordu — inaczej odcięłyby realny wynik. */
+    check('każdy próg minCzas jest szybszy niż rekord świata tego dystansu', (function () {
+      var REKORDY = { '5k': 755, '10k': 1571, 'half': 3440, 'marathon': 7170 };   // zweryfikowane 11/8/2026
+      return Object.keys(REKORDY).every(function (k) { return DYSTANSE[k].minCzas < REKORDY[k]; });
+    })(), null);
+    check('próg górny to ok. 12:00/km na każdym dystansie', (function () {
+      return ['5k', '10k', 'half', 'marathon'].every(function (k) {
+        var tempo = DYSTANSE[k].maxCzas / DYSTANSE[k].km;
+        return tempo > 700 && tempo < 740;
+      });
+    })(), null);
+    check('5 km w 1:30:00 (18:00/km) → CZAS_POZA_SKALA, kierunek za_wolno', (function () {
+      var r = uloz(we({ dystans: '5k', dniWTygodniu: 4, dataStartu: zaTygodni(6),
+                        poziom: poziom({ objetoscTygodniowa: 25 }), celCzasowy: 90 * 60 }));
+      return r.ok === false && r.sciana.kod === 'CZAS_POZA_SKALA' && r.sciana.szczegoly.kierunek === 'za_wolno';
+    })(), null);
+    check('5 km w 1:00:00 (marsz) NADAL przechodzi — nie odcinamy chodziarzy', (function () {
+      var r = uloz(we({ dystans: '5k', dniWTygodniu: 4, dataStartu: zaTygodni(6),
+                        poziom: poziom({ objetoscTygodniowa: 25 }), celCzasowy: 3600 }));
+      return r.ok === true || r.sciana.kod !== 'CZAS_POZA_SKALA';
+    })(), null);
 
     sekcja('OSTATNIE DNI PRZED STARTEM');
     /* Regresja zgłoszona przez Filipa: „dzień przed startem pokazuje rozbieganie
