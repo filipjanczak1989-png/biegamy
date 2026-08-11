@@ -1628,6 +1628,13 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         <div id="gen-fb-blad" style="display:none;margin-top:10px;font-size:12px;color:#fbbf24;font-family:'DM Sans',sans-serif;line-height:1.5;"></div>
       </div>
 
+      <!-- Trwały komunikat walidacji. ŚWIADOMIE nie toast: toast znika po 2,2 s,
+           a przez brak słowa „błąd" trafiał do Anim.successToast i renderował się
+           jako ZIELONA pigułka z ptaszkiem — błąd walidacji wyglądał jak
+           potwierdzenie sukcesu. Ten komunikat zostaje, dopóki człowiek nie
+           poprawi danych i nie kliknie ponownie. -->
+      <div id="gen-blad" style="display:none;margin-bottom:12px;padding:11px 13px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:10px;font-size:12px;color:#fbbf24;line-height:1.5;"></div>
+
       <div style="display:flex;gap:8px;">
         <button onclick="closeGenModal()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>
         <button id="gen-submit" onclick="genUlozPlan()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Ułóż plan →</button>
@@ -4693,6 +4700,7 @@ function openGenModal() {
   const fbp = document.getElementById('gen-fb-czas-pola');
   if (fbp && !fbp.innerHTML) fbp.innerHTML = _czasPolaHtml('gen-fb-czas');
   _czasResetPol('gen-cel'); _czasResetPol('gen-fb-czas');
+  _genBlad('');
   const lk = document.getElementById('gen-race-linked'); if (lk) lk.style.display = 'none';
   const sg = document.getElementById('gen-suggest'); if (sg) { sg.style.display = 'none'; sg.innerHTML = ''; }
   document.getElementById('gen-form').style.display = 'block';
@@ -4739,6 +4747,15 @@ function _genFbReset() {
   document.getElementById('gen-fb-km').value = '';
   fb.querySelectorAll('.type-pill').forEach(b => b.classList.remove('on'));
   _genFbBlad('');
+}
+
+/* Trwały komunikat walidacji formularza — odpowiednik _genFbBlad, ale dla
+   głównego formularza, nie dla kroku 4. Czyszczony przy każdej próbie. */
+function _genBlad(tekst) {
+  const el = document.getElementById('gen-blad');
+  if (!el) return;
+  el.textContent = tekst || '';
+  el.style.display = tekst ? 'block' : 'none';
 }
 
 function _genFbBlad(tekst) {
@@ -4833,13 +4850,14 @@ function _genKluczDaty(d) {   // lokalny klucz YYYY-MM-DD, nie toISOString (cofa
 
 async function genUlozPlan() {
   const data = _genRaceDate || (document.getElementById('gen-date-input').value || '').trim();
-  if (!_genDystans) { toast('Wybierz dystans'); return; }
-  if (!data)        { toast('Podaj datę startu albo wybierz bieg z kalendarza'); return; }
-  if (!_genDni)     { toast('Wybierz, ile dni w tygodniu biegasz'); return; }
+  _genBlad('');                       // czyścimy przy każdej próbie
+  if (!_genDystans) { _genBlad('Wybierz dystans.'); return; }
+  if (!data)        { _genBlad('Podaj datę startu albo wybierz bieg z kalendarza.'); return; }
+  if (!_genDni)     { _genBlad('Wybierz, ile dni w tygodniu biegasz.'); return; }
   // Niepełny cel NIE MOŻE cicho zniknąć — inaczej plan powstaje z historii,
   // a człowiek jest przekonany, że policzyliśmy go pod jego cel.
   if (_czasStan('gen-cel') === 'niepelny') {
-    toast('Uzupełnij cel czasowy — minuty i sekundy są wymagane');
+    _genBlad('Uzupełnij cel czasowy — minuty i sekundy są wymagane.');
     const mm = document.getElementById('gen-cel-m'); if (mm) mm.focus();
     return;
   }
@@ -4902,7 +4920,7 @@ async function genUlozPlan() {
     });
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Ułóż plan →';
-    toast('Błąd: ' + e.message);
+    _genBlad('Nie udało się ułożyć planu: ' + e.message);
     return;
   }
   btn.disabled = false; btn.textContent = 'Ułóż plan →';
