@@ -107,15 +107,23 @@
      ⚠️ Przy wątpliwości POLUZOWAĆ, nie zacieśniać: fałszywa odmowa kosztuje
      więcej niż przepuszczenie dziwnej liczby, bo człowiek odchodzi zamiast
      poprawić. Kontrola: maraton w 6 godzin (normalny pierwszy start) przechodzi
-     w obu trybach z ogromnym zapasem — 6:00 wobec limitów 10:32 i 11:48. */
-  var MARGINES_REKORDU = 0.95;   // dolny próg = rekord × 0,95
+     w obu trybach z ogromnym zapasem — 6:00 wobec limitów 10:32 i 11:48.
+
+     ⚠️ ROLA SANITY ZALEŻY OD TEGO, CZY JEST PUNKT ODNIESIENIA:
+       WYNIK (krok 4) — historii NIE MA, sanity jest JEDYNĄ bramką → ciasno.
+       CEL             — historia ZAWSZE jest (BRAK_POZIOMU odrzuca wcześniej),
+                         więc rozstrzyga ściana CEL_ZA_AMBITNY, a sanity stoi
+                         za nią jako backstop → luźno w obie strony. */
+  var MARGINES_WYNIK = 0.95;     // wynik: rekord × 0,95 — jedyna bramka, ciasno
+  var MARGINES_CEL   = 0.80;     // cel: rekord × 0,80 — backstop, ściana jest przed nim
   var TEMPO_MARSZU = 720;        // 12:00/km — baza górnej granicy
   var LUZ_WYNIK = 1.25;          // wynik: fakt, więc ciaśniej
   var LUZ_CEL   = 1.40;          // cel: zamiar, więc luźniej
 
   Object.keys(DYSTANSE).forEach(function (k) {
     var d = DYSTANSE[k];
-    d.minCzas       = Math.round(d.rekord * MARGINES_REKORDU / 60) * 60;
+    d.minCzasWynik  = Math.round(d.rekord * MARGINES_WYNIK / 60) * 60;
+    d.minCzasCel    = Math.round(d.rekord * MARGINES_CEL / 60) * 60;
     d.maxCzasWynik  = Math.round(d.km * TEMPO_MARSZU * LUZ_WYNIK);
     d.maxCzasCel    = Math.round(d.km * TEMPO_MARSZU * LUZ_CEL);
   });
@@ -129,11 +137,12 @@
     var d = DYSTANSE[dystansKey];
     if (!d || !(sek > 0)) return null;
     var gora = tryb === 'wynik' ? d.maxCzasWynik : d.maxCzasCel;
-    if (sek < d.minCzas) {
+    var dol  = tryb === 'wynik' ? d.minCzasWynik : d.minCzasCel;
+    if (sek < dol) {
       return { kod: 'CZAS_POZA_SKALA',
         komunikat: d.etykieta + ' w ' + fmtCzas(sek) + ' to szybciej niż rekord świata (' +
                    fmtCzas(d.rekord) + '). Sprawdź, czy dobrze wpisałeś czas.',
-        szczegoly: { podany_s: sek, prog_s: d.minCzas, rekord_s: d.rekord,
+        szczegoly: { podany_s: sek, prog_s: dol, rekord_s: d.rekord,
                      dystans: dystansKey, tryb: tryb || 'cel', kierunek: 'za_szybko' } };
     }
     if (sek > gora) {
@@ -311,9 +320,13 @@
          Rekordy TOROWE dla 5 i 10 km są szybsze od szosowych (12:51 / 26:24),
          więc próg z nich nie odetnie nikogo prawdziwego.
          ⚠️ Rekordy się poprawiają — przy aktualizacji przeliczyć progi. */
-      var zleCel = sanityCzasu(we.dystans, we.celCzasowy, 'cel');
-      if (zleCel) return odmowa(zleCel.kod, zleCel.komunikat, zleCel.szczegoly);
-      var p10Celu = p10ZWyniku(d.km, we.celCzasowy);
+      /* ⚠️ KOLEJNOŚĆ: ŚCIANA PRZED SANITY. Do tego bloku wchodzi się wyłącznie
+         z istniejącym P10 — BRAK_POZIOMU stoi wyżej i wcześniej odrzuca każdego
+         bez historii. Skoro historia ZAWSZE jest, to ściana ma lepszy punkt
+         odniesienia: mówi „realny cel na ten start: 31:28" z JEGO danych,
+         zamiast „szybciej niż rekord świata (26:11)" z tabeli, która o nim
+         nic nie wie. Sanity zostaje ZA ścianą, jako backstop na to, co ściana
+         przepuściła. Odwrócenie tej kolejności psuje komunikat. */
 
       var prognoza = prognozaCzasu(p10Formy, d.km);
       var poprawa = (prognoza - we.celCzasowy) / prognoza;
@@ -336,7 +349,16 @@
          bywają niewidoczne (powrót po kontuzji, pacerowanie, maraton jako
          jednostka przed ultra), a wolniejsze tempa dadzą spokojniejszy plan.
          O to właśnie chodzi. */
-      p10 = p10Celu;
+
+      /* SANITY jako BACKSTOP, już za ścianą. Łapie wyłącznie to, co ściana
+         przepuściła — czyli cele mieszczące się w 8% od prognozy zawodnika.
+         Skoro prognoza jest sensowna (POZIOM_POZA_SKALA pilnuje P10 z formy),
+         to i cel jest sensowny, więc ten próg prawie nigdy nie odpala. Dlatego
+         jest LUŹNY: przy istniejącej historii to ściana rozstrzyga. */
+      var zleCel = sanityCzasu(we.dystans, we.celCzasowy, 'cel');
+      if (zleCel) return odmowa(zleCel.kod, zleCel.komunikat, zleCel.szczegoly);
+
+      p10 = p10ZWyniku(d.km, we.celCzasowy);
     }
 
     // Objętość — ile trzeba dołożyć i czy da się to zrobić w tempie ≤8%/tydz.
@@ -1011,11 +1033,10 @@
     check('cel 2:00 w maratonie → ściana ambicji (p10 2:37/km mieści się w sanity)',
       cRWS.ok === false && cRWS.sciana.kod === 'CEL_ZA_AMBITNY', cRWS.ok ? null : cRWS.sciana.kod);
     var cNiemozliwy = celMar(90 * 60);
-    check('cel fizycznie niemożliwy (1:30 maraton) → CZAS_POZA_SKALA',
-      cNiemozliwy.ok === false && cNiemozliwy.sciana.kod === 'CZAS_POZA_SKALA', cNiemozliwy.ok ? null : cNiemozliwy.sciana.kod);
-    check('…i odmowa mówi o rekordzie świata, nie o ambicji',
-      cNiemozliwy.ok === false && /rekord świata/.test(cNiemozliwy.sciana.komunikat), cNiemozliwy.ok ? null : cNiemozliwy.sciana.komunikat);
-
+    check('cel 1:30 w maratonie u kogoś Z HISTORIĄ → ŚCIANA, nie sanity',
+      cNiemozliwy.ok === false && cNiemozliwy.sciana.kod === 'CEL_ZA_AMBITNY', cNiemozliwy.ok ? null : cNiemozliwy.sciana.kod);
+    check('…bo komunikat ze ŚCIANY podaje liczbę Z JEGO DANYCH, nie z tabeli rekordów',
+      cNiemozliwy.ok === false && /Realny cel na ten start/.test(cNiemozliwy.sciana.komunikat), cNiemozliwy.ok ? null : cNiemozliwy.sciana.komunikat);
     /* Cel bez żadnego poziomu — ściana nie ma z czym porównać, więc wymagamy kroku 4. */
     var cBezPoziomu = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
                                 poziom: { p10sec: null, wynik: null, objetoscTygodniowa: 70 },
@@ -1052,8 +1073,8 @@
     })(), celMar3h.ok ? celMar3h.meta.tempa.M : null);
     var celMar180 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
                               poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 180 }));
-    check('maraton z celem 180 s ("3:00" źle sparsowane) → ODMOWA, nie absurdalny plan',
-      celMar180.ok === false && celMar180.sciana.kod === 'CZAS_POZA_SKALA',
+    check('maraton z celem 180 s ("3:00" źle sparsowane) → ODMOWA ze ściany, nie absurdalny plan',
+      celMar180.ok === false && celMar180.sciana.kod === 'CEL_ZA_AMBITNY',
       celMar180.ok ? 'PRZESZLO' : celMar180.sciana.kod);
 
     sekcja('SANITY CZASU — progi PER DYSTANS, z rekordów świata');
@@ -1070,31 +1091,46 @@
       return uloz(we({ dystans: '10k', dniWTygodniu: 5, dataStartu: zaTygodni(13),
                        poziom: poziom({ p10sec: p10Filip, objetoscTygodniowa: 129 }), celCzasowy: sek }));
     };
+    /* ⚠️ ROLA SANITY ZALEŻY OD PUNKTU ODNIESIENIA — to sedno tej sekcji.
+       Przy CELU historia ZAWSZE istnieje (BRAK_POZIOMU odrzuca wcześniej każdego
+       bez niej), więc rozstrzyga ŚCIANA: jej komunikat podaje liczbę z danych
+       zawodnika, a nie z tabeli rekordów, która o nim nic nie wie.
+       Sanity jest jedyną bramką dopiero w kroku 4 — tryb 'wynik'. */
     var c2400 = cel10(24 * 60);
-    check('10 km w 24:00 (szybciej niż próg 25:00) → CZAS_POZA_SKALA',
-      c2400.ok === false && c2400.sciana.kod === 'CZAS_POZA_SKALA', c2400.ok ? 'PRZESZLO' : c2400.sciana.kod);
-    check('…komunikat CYTUJE rekord, nie mówi tylko „sprawdź"',
-      c2400.ok === false && /szybciej niż rekord świata \(26:11\)/.test(c2400.sciana.komunikat),
+    check('10 km w 24:00 u kogoś Z HISTORIĄ → ŚCIANA rozstrzyga, nie sanity',
+      c2400.ok === false && c2400.sciana.kod === 'CEL_ZA_AMBITNY', c2400.ok ? 'PRZESZLO' : c2400.sciana.kod);
+    check('…a komunikat cytuje JEGO prognozę, nie rekord świata',
+      c2400.ok === false && /Realny cel na ten start: 31:28/.test(c2400.sciana.komunikat),
       c2400.ok ? null : c2400.sciana.komunikat);
+    check('sanity w trybie WYNIK (brak historii) NADAL cytuje rekord — jedyna bramka',
+      /szybciej niż rekord świata \(26:11\)/.test(sanityCzasu('10k', 24 * 60, 'wynik').komunikat),
+      sanityCzasu('10k', 24 * 60, 'wynik').komunikat);
     check('…a rekord w komunikacie pochodzi z DYSTANSE — JEDNO ŹRÓDŁO',
-      c2400.ok === false && c2400.sciana.szczegoly.rekord_s === DYSTANSE['10k'].rekord, null);
-    check('próg minCzas jest WYLICZONY z rekordu, nie wpisany osobno',
-      DYSTANSE['10k'].minCzas === Math.round(DYSTANSE['10k'].rekord * 0.95 / 60) * 60,
-      [DYSTANSE['10k'].minCzas, DYSTANSE['10k'].rekord]);
+      sanityCzasu('10k', 24 * 60, 'wynik').szczegoly.rekord_s === DYSTANSE['10k'].rekord, null);
+    check('próg WYNIKU jest WYLICZONY z rekordu, nie wpisany osobno',
+      DYSTANSE['10k'].minCzasWynik === Math.round(DYSTANSE['10k'].rekord * 0.95 / 60) * 60,
+      [DYSTANSE['10k'].minCzasWynik, DYSTANSE['10k'].rekord]);
+    check('próg CELU jest LUŹNIEJSZY od progu WYNIKU (ściana stoi przed nim)',
+      DYSTANSE['10k'].minCzasCel < DYSTANSE['10k'].minCzasWynik,
+      [DYSTANSE['10k'].minCzasCel, DYSTANSE['10k'].minCzasWynik]);
     var c2800 = cel10(28 * 60);
     check('10 km w 28:00 → ODRZUCONE ścianą (18% poprawy), plan NIE powstaje',
       c2800.ok === false && c2800.sciana.kod === 'CEL_ZA_AMBITNY' && !c2800.plan && !c2800.treningi,
       c2800.ok ? 'PLAN POWSTAL' : c2800.sciana.kod);
     check('10 km w 34:12 (= jego prognoza) → przechodzi', cel10(2052).ok === true, null);
-    var cMar150 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(20),
-                            poziom: poziom({ p10sec: 250, objetoscTygodniowa: 70 }), celCzasowy: 110 * 60 }));
-    check('maraton w 1:50 (szybciej niż próg 1:53) → CZAS_POZA_SKALA',
-      cMar150.ok === false && cMar150.sciana.kod === 'CZAS_POZA_SKALA', cMar150.ok ? 'PRZESZLO' : cMar150.sciana.kod);
+
+    /* Krok 4: BEZ historii sanity jest jedyną bramką i musi łapać sama. */
+    check('WYNIK 10 km w 24:00 → CZAS_POZA_SKALA (jedyna bramka)',
+      sanityCzasu('10k', 24 * 60, 'wynik') !== null, null);
+    check('WYNIK maraton 1:50 → CZAS_POZA_SKALA', sanityCzasu('marathon', 110 * 60, 'wynik') !== null, null);
+    check('WYNIK 10 km w 38:00 (realny) → przechodzi', sanityCzasu('10k', 38 * 60, 'wynik') === null, null);
 
     /* Progi MUSZĄ leżeć poniżej rekordu — inaczej odcięłyby realny wynik. */
-    check('każdy próg minCzas jest szybszy niż rekord świata tego dystansu', (function () {
+    check('oba progi dolne są szybsze niż rekord świata tego dystansu', (function () {
       var REKORDY = { '5k': 755, '10k': 1571, 'half': 3440, 'marathon': 7170 };   // zweryfikowane 11/8/2026
-      return Object.keys(REKORDY).every(function (k) { return DYSTANSE[k].minCzas < REKORDY[k]; });
+      return Object.keys(REKORDY).every(function (k) {
+        return DYSTANSE[k].minCzasWynik < REKORDY[k] && DYSTANSE[k].minCzasCel < REKORDY[k];
+      });
     })(), null);
     check('górna granica: CEL luźniejszy niż WYNIK na każdym dystansie', (function () {
       return ['5k', '10k', 'half', 'marathon'].every(function (k) {
