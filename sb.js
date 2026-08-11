@@ -1541,7 +1541,9 @@
      od trenera. Escapowanie to jedyna celowa różnica w zachowaniu wobec
      oryginału; reszta wyjścia jest identyczna (bramka: scratchpad/p1_regresja.js). */
   window.PLANVIEW = (function () {
-    var PLAN_TYPE_LABELS = { weekly: 'TYDZIEŃ · 7 dni', micro: 'MICRO · 2 tyg', meso: 'MESO · 4 tyg', macro: 'MACRO · 12 tyg' };
+    // Etykiety BEZ zaszytej liczby tygodni — „MACRO · 12 tyg" kłamało na 10-tygodniowym
+    // planie. Długość liczymy z dat planu, więc zawsze zgadza się z zawartością.
+    var PLAN_TYPE_LABELS = { weekly: 'TYDZIEŃ', micro: 'MICRO', meso: 'MESO', macro: 'MACRO' };
     var RACE_LABELS   = { '5k': '5 km', '10k': '10 km', 'half': 'Półmaraton', 'marathon': 'Maraton', 'custom': 'Inny' };
     var STATUS_COLORS = { draft: '#fbbf24', approved: '#22c55e', rejected: '#9ca3af', completed: '#8b5cf6' };
     var STATUS_LABELS = { draft: 'DRAFT', approved: 'AKTYWNY', rejected: 'ODRZUCONY', completed: 'ZAKOŃCZONY' };
@@ -1559,6 +1561,15 @@
     var DAY_NAMES = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
 
     function esc(s) { return window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s); }
+
+    function etykietaTypu(plan) {
+      var baza = PLAN_TYPE_LABELS[plan.plan_type] || '';
+      if (!plan.start_date || !plan.end_date) return baza;
+      var dni = Math.round((new Date(plan.end_date) - new Date(plan.start_date)) / 86400000);
+      if (!isFinite(dni) || dni < 0) return baza;
+      var tyg = Math.floor(dni / 7) + 1;
+      return baza ? (baza + ' · ' + tyg + (tyg === 1 ? ' tydzień' : ' tyg')) : baza;
+    }
 
     function grupujPoTygodniach(workouts) {
       var g = {};
@@ -1589,7 +1600,7 @@
     <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:18px;margin-bottom:18px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="background:${STATUS_COLORS[plan.status]}20;color:${STATUS_COLORS[plan.status]};padding:3px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;font-weight:700;">${STATUS_LABELS[plan.status]}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${PLAN_TYPE_LABELS[plan.plan_type] || ''}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${etykietaTypu(plan)}</span>
       </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.02em;color:var(--fg);margin-bottom:4px;">${plan.target_race_type ? RACE_LABELS[plan.target_race_type] : 'Plan ogólny'}${plan.target_time ? ' · ' + esc(plan.target_time) : ''}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.04em;">${new Date(plan.start_date).toLocaleDateString('pl', { day: 'numeric', month: 'long' })} → ${new Date(plan.end_date).toLocaleDateString('pl', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
