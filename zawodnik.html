@@ -12521,6 +12521,29 @@ setTimeout(function(){ _frCheck(0); }, 1500);
 // ══════════════════════════════════════════════════════════════════
 const BASE_URL = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/';
 
+/* ── WYZWANIA CZASOWE ──────────────────────────────────────────────────────
+   Odznaki z OKNA CZASOWEGO — w odróżnieniu od reszty katalogu, która liczy
+   całą historię („500 km w życiu"). Reguła jest JEDNA i generyczna, więc
+   druga edycja wyzwania to nowy wpis w tej tablicy, bez dotykania kodu.
+
+   ⚠️ Każdy wpis wymaga RÓWNIEŻ pozycji w BADGES — w OBU plikach
+   (zawodnik.html i odznaki.html). Lista jest zduplikowana i już rozjechana:
+   wspólnych 64, tylko tutaj 33, tylko tam 44 (zmierzone 12.08.2026).
+   Bez wpisu tutaj odznaka jest przyznawana, ale niewidoczna na ekranie
+   odznak; bez wpisu tam — odwrotnie. Żadne z tych nie daje objawu błędu.
+
+   ⚠️ `id` MUSI być nazwą pliku .webp w biegamy-assets/badges/, bo klient
+   składa URL jako BASE_URL + badge.id + '.webp'. Podkreślniki, ZERO polskich
+   znaków — „maratończyk" i „gaduła" nie mają grafiki właśnie dlatego,
+   a brak pliku wygląda jak odznaka NIEZDOBYTA, nie jak zepsuta.
+
+   Tabela w bazie zamiast tej stałej: świadomie PO wrześniu. Wyzwań będzie
+   kilka rocznie, a tabela i tak nie usunie duplikacji BADGES. */
+const WYZWANIA = [
+  { id: '100km_wrzesien_2026', nazwa: '100 km dla Kasi', prog_km: 100, od: '2026-09-01', do: '2026-09-20' },
+  { id: 'razem_wrzesien_2026', nazwa: 'Razem',           prog_km: 1,   od: '2026-09-01', do: '2026-09-20' },
+];
+
 const BADGES = [
   // PODSTAWOWE
   {id:'pierwszy_krok',   name:'Pierwszy krok',      desc:'Zapisz pierwszy trening',         rarity:'common',   cat:'Podstawowe'},
@@ -12640,6 +12663,11 @@ const BADGES = [
   {id:'wieczny_optymista',    name:'Wieczny optymista',    desc:'10 treningów oznaczonych "good feel"',   rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'swiety_mikolaj',       name:'Święty Mikołaj',       desc:'Bieg 6 grudnia',                         rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'dzien_biegacza',       name:'Dzień Biegacza',       desc:'Bieg 1 czerwca',                         rarity:'rare',      cat:'Sekretne', hidden:true},
+  // WYZWANIA — odznaki z OKNA CZASOWEGO. Reguła w WYZWANIA/_checkBadgeRules.
+  // ⚠️ Kategoria 'Wyzwania' istnieje w odznaki.html; TUTAJ jest nowa. Ten plik
+  // nie pomija pustych kategorii (:13254), więc pokaże się od razu jako 0/2.
+  {id:'100km_wrzesien_2026',  name:'100 km dla Kasi',      desc:'100 km między 1 a 20 września 2026',     rarity:'epic',      cat:'Wyzwania'},
+  {id:'razem_wrzesien_2026',  name:'Razem',                desc:'Przebiegnij choć 1 km dla Kasi',         rarity:'common',    cat:'Wyzwania'},
 ];
 
 const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
@@ -12940,6 +12968,21 @@ async function _checkBadgeRules(logs) {
   if (total >= 1000) awardBadge('dystans_1000');
   if (total >= 2000) awardBadge('dystans_2000');
   if (total >= 5000) awardBadge('dystans_5000');
+
+  // WYZWANIA CZASOWE — jedyne reguły liczące z OKNA DAT, nie z całej historii.
+  // `logs` niesie już logged_at przy każdym wierszu (checkBadges go pobiera),
+  // więc nie trzeba osobnego zapytania ani zmian w RLS.
+  // Porównanie po tekście ISO (slice 0,10), NIE przez new Date(): logged_at to
+  // timestamptz, a konwersja na Date przesuwałaby granicę doby o strefę —
+  // ta sama pułapka co klucz daty w kalendarzu.
+  WYZWANIA.forEach(function (w) {
+    var km = logs.reduce(function (s, l) {
+      var d = String(l.logged_at || '').slice(0, 10);
+      if (d < w.od || d > w.do) return s;
+      return s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0);
+    }, 0);
+    if (km >= w.prog_km) awardBadge(w.id);
+  });
 
   // PERFORMANCE
   const tempoCount = logs.filter(l => l.training_type === 'Tempo').length;
