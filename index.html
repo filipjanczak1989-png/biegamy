@@ -458,18 +458,19 @@ body.show-hero .container { display: none; }
   color: var(--muted);
   margin-bottom: 24px;
 }
-/* MECHANIKA — ten sam krój co cytat, mniejszy. Trzy linijki, bez ikon.
-   Wysokość policzona pod overflow:hidden hero: 3 x 13px x 1.6 + marginesy
-   = ~90 px. Przy 360x640 zostaje 214 px na zdjęcie, więc nic się nie utnie. */
+/* MECHANIKA — JEDNA linia, nad cytatem. Ten sam krój co .logo-sub (podtytuł),
+   tylko czytelniejszy rozmiar. Ma informować, nie krzyczeć: cytat zostaje
+   najmocniejszym elementem hero.
+   Wcześniej były tu trzy linijki — zagęściły stronę, która ma cytat i trzy
+   przyciski. Jedna linia kosztuje ~30 px zamiast ~100 px. */
 .hero-jak {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
-  letter-spacing: 0.04em;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
   color: var(--fg2);
-  margin: -12px 0 20px;
+  margin: 0 0 14px;
 }
-.hero-jak span { display: block; }
 .hero-cta {
   display: block;
   width: 100%;
@@ -640,6 +641,12 @@ body.loading::after {
       <div class="logo-text">Biega<span>My</span></div>
       <div class="logo-sub">Coaching Biegowy</div>
     </div>
+    <!-- MECHANIKA — czym to jest, w 15 sekund. Nie „platforma treningowa",
+         tylko rzecz, ktora dzieje sie naprawde. JEDNA linia, nad cytatem:
+         trzy linijki zageszczaly strone, ktora ma juz cytat i trzy przyciski.
+         Do tej pory slowa "plan" i "zegarek" byly WYLACZNIE w <title> i meta —
+         widzial je Google, nie widzial ich czlowiek, ktory kliknal. -->
+    <div class="hero-jak">Plan od trenera prosto na Twój zegarek.</div>
     <!-- Quote + tagline -->
     <div>
       <div class="hero-quote">
@@ -647,16 +654,6 @@ body.loading::after {
         <span class="line2">Obiecuję, że <span class="accent">będzie warto</span>.</span>
       </div>
       <div class="hero-tagline">Filip &amp; Kasia · Twoi trenerzy</div>
-    </div>
-    <!-- MECHANIKA — czym to jest, w 15 sekund. Nie „platforma treningowa",
-         tylko trzy kroki, ktore dzieja sie naprawde. Bez ikon i bez kart:
-         trzy linijki tekstu, zeby nie rozpychac hero. #hero-landing ma
-         overflow:hidden, wiec nadmiar bylby UCINANY, nie przewijany —
-         zmierzony budzet przy 360x640: tresc 426 px, zdjecie zostaje 214 px. -->
-    <div class="hero-jak">
-      <span>Trener pisze Ci plan.</span>
-      <span>Plan ląduje na Twoim zegarku.</span>
-      <span>Trener widzi wykonanie i odpisuje.</span>
     </div>
     <!-- CTA -->
     <div class="hero-cta-wrap">
