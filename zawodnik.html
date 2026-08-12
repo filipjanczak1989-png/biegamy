@@ -979,6 +979,28 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
+<!-- ───── LICZNIK #100kmDlaKasi ────────────────────────────────────────────
+     Dwa poziomy: INDYWIDUALNY nad WSPOLNYM. Nazwa wyzwania mowi o 100 km,
+     wiec pasek indywidualny musi byc pierwszy — to jest JEGO wyzwanie.
+     Wspolny pokazuje, w co sie wpisuje, i dlatego jest nizej.
+     Widoczny WYLACZNIE 1-20 wrzesnia, dla kazdego zalogowanego. -->
+<div id="spol-pasek" class="fade-in" style="display:none;margin:4px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;">
+  <div style="font-size:10px;letter-spacing:0.1em;color:var(--accent);font-family:DM Mono,monospace;font-weight:700;margin-bottom:10px;">#100kmDlaKasi</div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--fg2);margin-bottom:4px;">
+    <span id="spol-ja-etykieta">Twoje 100 km</span><span id="spol-ja-liczby" style="color:var(--fg);font-weight:600;"></span>
+  </div>
+  <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;margin-bottom:12px;">
+    <div id="spol-ja-fill" style="height:100%;width:0%;border-radius:4px;background:var(--accent);transition:width .6s;"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--fg2);margin-bottom:4px;">
+    <span>Razem</span><span id="spol-my-liczby" style="color:var(--fg);font-weight:600;"></span>
+  </div>
+  <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;">
+    <div id="spol-my-fill" style="height:100%;width:0%;border-radius:4px;background:var(--fg3);transition:width .6s;"></div>
+  </div>
+  <div id="spol-stopka" style="margin-top:8px;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;"></div>
+</div>
+
 <!-- ───── WIDGET POGODY (3 dni) — przeniesiony pod „Dzisiejszy trening" ───── -->
 <div id="weather-widget" class="fade-in" style="margin:4px 16px 4px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -4674,6 +4696,53 @@ function _czasResetPol(prefix) {
   });
 }
 
+/* ── LICZNIK #100kmDlaKasi w „Dziś" ────────────────────────────────────────
+   Dwa paski, indywidualny nad wspólnym. Jedno RPC zamiast dwóch zapytań:
+   zmierzone 12.08 — zwykły select i RPC kosztują tyle samo (~220 ms), bo to
+   latencja do Supabase, nie zapytanie. Próg opłacalności łączenia (50 ms)
+   jest przekroczony czterokrotnie, więc wkład idzie tym samym wywołaniem.
+
+   Bez `await` przy wywołaniu — RPC nie może opóźniać widoku „Dziś". */
+async function _odswiezLicznikSpolecznosci() {
+  const el = document.getElementById('spol-pasek');
+  if (!el) return;
+  const dzis = new Date().toLocaleDateString('sv');          // klucz LOKALNY
+  if (dzis < SPOL_OKNO_OD || dzis > SPOL_OKNO_DO) return;    // przed 1.09 — nikomu
+
+  let d;
+  try {
+    const r = await sb.rpc('community_km');
+    if (r.error || !r.data || !r.data.length) return;        // cicho, pasek zostaje ukryty
+    d = r.data[0];
+  } catch (e) { return; }
+
+  const km    = Number(d.km) || 0;
+  const wklad = d.wklad == null ? 0 : Number(d.wklad);
+
+  // PASEK INDYWIDUALNY. Po przekroczeniu 100 km zostaje PEŁNY z oznaczeniem
+  // odznaki — nie znika, bo zniknięcie skasowałoby jedyny ślad, że cel padł.
+  const zdobyte = wklad >= SPOL_PROG_INDYW;
+  const fillJa = document.getElementById('spol-ja-fill');
+  fillJa.style.width = Math.min(100, Math.round(wklad / SPOL_PROG_INDYW * 100)) + '%';
+  document.getElementById('spol-ja-liczby').textContent = Math.round(wklad) + ' / ' + SPOL_PROG_INDYW;
+  if (zdobyte) {
+    document.getElementById('spol-ja-etykieta').textContent = 'Twoje 100 km ✓ odznaka';
+    fillJa.style.background = 'var(--green)';
+  }
+
+  // PASEK WSPÓLNY
+  document.getElementById('spol-my-fill').style.width =
+    Math.min(100, Math.round(km / SPOL_CEL_KM * 100)) + '%';
+  document.getElementById('spol-my-liczby').textContent =
+    Math.round(km).toLocaleString('pl-PL') + ' / ' + SPOL_CEL_KM.toLocaleString('pl-PL') + ' km';
+
+  const dni = Math.ceil((new Date(SPOL_DATA_AMES + 'T00:00:00') - new Date()) / 86400000);
+  document.getElementById('spol-stopka').textContent =
+    dni > 0 ? dni + ' dni do startu Kasi' : dni === 0 ? 'Kasia biegnie DZIŚ' : '';
+  el.style.display = 'block';
+}
+window._odswiezLicznikSpolecznosci = _odswiezLicznikSpolecznosci;
+
 function _odswiezCtaGeneratora() {
   const el = document.getElementById('gen-cta');
   if (!el) return;
@@ -6692,6 +6761,7 @@ async function loadCoachMessage() {
     // Generator jest wylacznie dla zawodnikow BEZ trenera. Korzystamy z tego samego
     // odczytu, zeby nie dokladac drugiego zapytania o te sama kolumne.
     window._brakTrenera = !(ath && ath.coach_id);
+    try { _odswiezLicznikSpolecznosci(); } catch(e) {}   // bez await — nie blokuje widoku
     _odswiezCtaGeneratora();
   }
   
@@ -12521,6 +12591,18 @@ setTimeout(function(){ _frCheck(0); }, 1500);
 // ══════════════════════════════════════════════════════════════════
 const BASE_URL = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/';
 
+/* ── #100kmDlaKasi — STALE WYZWANIA ────────────────────────────────────────
+   ⚠️ KOPIA. Te same wartości żyją w index.html (licznik landingu) i w SQL
+   (community_km — tam na sztywno, bo SQL nie sięgnie do JS). Zgodności
+   pilnuje tools/sprawdz-spol-stale.py — kod wyjścia 1 przy rozjeździe.
+   Rozjazd nie daje błędu: licznik po prostu startuje w innym momencie niż
+   wyzwanie, a pasek indywidualny dobija do innej liczby niż odznaka. */
+const SPOL_OKNO_OD    = '2026-09-01';
+const SPOL_OKNO_DO    = '2026-09-20';
+const SPOL_CEL_KM     = 6000;
+const SPOL_PROG_INDYW = 100;
+const SPOL_DATA_AMES  = '2026-09-20';
+
 /* ── WYZWANIA CZASOWE ──────────────────────────────────────────────────────
    Odznaki z OKNA CZASOWEGO — w odróżnieniu od reszty katalogu, która liczy
    całą historię („500 km w życiu"). Reguła jest JEDNA i generyczna, więc
@@ -12540,8 +12622,8 @@ const BASE_URL = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/'
    Tabela w bazie zamiast tej stałej: świadomie PO wrześniu. Wyzwań będzie
    kilka rocznie, a tabela i tak nie usunie duplikacji BADGES. */
 const WYZWANIA = [
-  { id: '100km_wrzesien_2026', nazwa: '100 km dla Kasi', prog_km: 100, od: '2026-09-01', do: '2026-09-20' },
-  { id: 'razem_wrzesien_2026', nazwa: 'Razem',           prog_km: 1,   od: '2026-09-01', do: '2026-09-20' },
+  { id: '100km_wrzesien_2026', nazwa: '100 km dla Kasi', prog_km: SPOL_PROG_INDYW, od: SPOL_OKNO_OD, do: SPOL_OKNO_DO },
+  { id: 'razem_wrzesien_2026', nazwa: 'Razem',           prog_km: 1,                od: SPOL_OKNO_OD, do: SPOL_OKNO_DO },
 ];
 
 const BADGES = [
