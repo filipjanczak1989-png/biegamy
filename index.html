@@ -458,6 +458,18 @@ body.show-hero .container { display: none; }
   color: var(--muted);
   margin-bottom: 24px;
 }
+/* MECHANIKA — ten sam krój co cytat, mniejszy. Trzy linijki, bez ikon.
+   Wysokość policzona pod overflow:hidden hero: 3 x 13px x 1.6 + marginesy
+   = ~90 px. Przy 360x640 zostaje 214 px na zdjęcie, więc nic się nie utnie. */
+.hero-jak {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  color: var(--fg2);
+  margin: -12px 0 20px;
+}
+.hero-jak span { display: block; }
 .hero-cta {
   display: block;
   width: 100%;
@@ -636,11 +648,35 @@ body.loading::after {
       </div>
       <div class="hero-tagline">Filip &amp; Kasia · Twoi trenerzy</div>
     </div>
+    <!-- MECHANIKA — czym to jest, w 15 sekund. Nie „platforma treningowa",
+         tylko trzy kroki, ktore dzieja sie naprawde. Bez ikon i bez kart:
+         trzy linijki tekstu, zeby nie rozpychac hero. #hero-landing ma
+         overflow:hidden, wiec nadmiar bylby UCINANY, nie przewijany —
+         zmierzony budzet przy 360x640: tresc 426 px, zdjecie zostaje 214 px. -->
+    <div class="hero-jak">
+      <span>Trener pisze Ci plan.</span>
+      <span>Plan ląduje na Twoim zegarku.</span>
+      <span>Trener widzi wykonanie i odpisuje.</span>
+    </div>
     <!-- CTA -->
     <div class="hero-cta-wrap">
       <button class="hero-cta" onclick="skipToLogin()">Zaczynamy →</button>
       <button class="hero-skip" onclick="window.location.href='demo.html'" style="border:1px solid rgba(232,86,30,0.45);border-radius:12px;padding:12px 18px;color:#e8561e;background:rgba(232,86,30,0.07);font-weight:700;">Zobacz demo — bez konta</button>
       <button class="hero-skip" onclick="dismissHero()">O nas</button>
+    </div>
+    <!-- LICZNIK #100kmDlaKasi — renderowany WYLACZNIE 1–20 wrzesnia.
+         Warunek na DATE, nie na tryb testowy: landing widza obcy.
+         Przed 1 wrzesnia element nie pojawia sie wcale — bez „0 / 6000",
+         bez zapowiedzi. Dane z RPC community_km(), ktore ma EXECUTE dla
+         anon: czlowiek z Facebooka jest wylogowany z definicji. -->
+    <div id="hero-licznik" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;color:var(--fg2);margin-bottom:8px;">
+        #100kmDlaKasi — razem <span id="hero-licznik-km" style="color:var(--fg);font-weight:700;"></span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;">
+        <div id="hero-licznik-fill" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));transition:width 0.6s ease;"></div>
+      </div>
+      <div id="hero-licznik-podpis" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;color:var(--muted);"></div>
     </div>
   </div>
 </div>
@@ -782,10 +818,62 @@ async function checkSession() {
     // Pierwszy raz - pokaż hero
     document.body.classList.remove('loading');
     document.body.classList.add('show-hero');
+    // Licznik dociągamy PO pokazaniu hero i bez await — RPC nie może opóźniać
+    // pierwszego malowania. Poza oknem 1–20.09 funkcja kończy się natychmiast.
+    try { _licznikLandingu(); } catch (e) {}
   } else {
     // Wraca - od razu formularz
     document.body.classList.remove('loading');
   }
+}
+
+/* ── LICZNIK #100kmDlaKasi NA LANDINGU ──────────────────────────────────────
+   Widoczny WYŁĄCZNIE 1–20 września. Warunek na DATĘ, nie na listę testerów:
+   landing ogląda człowiek z Facebooka, którego nie znamy. Poza oknem element
+   nie renderuje się wcale — bez „0 / 6000" i bez zapowiedzi.
+
+   Dane z RPC community_km(). Funkcja jest SECURITY DEFINER i ma EXECUTE dla
+   anon, bo wylogowany nie przeczyta training_logs (RLS) — sprawdzone: wywołanie
+   z samym apikey zwraca 200 i wyłącznie {km, obliczone_at}, a bezpośredni
+   odczyt training_logs daje 401 „permission denied".
+
+   ⚠️ Data startu Kasi NIE JEST w bazie (athletes.target_date puste). Do czasu
+   ustalenia zostaje null → wiersz z odliczaniem się nie pokazuje, reszta paska
+   działa. Po ustaleniu wpisać 'RRRR-MM-DD'. */
+const SPOL_OKNO_OD  = '2026-09-01';
+const SPOL_OKNO_DO  = '2026-09-20';
+const SPOL_CEL_KM   = 6000;
+const SPOL_DATA_AMES = null;
+
+async function _licznikLandingu() {
+  const el = document.getElementById('hero-licznik');
+  if (!el) return;
+
+  // Klucz daty LOKALNY, nie toISOString — ta druga cofa o dzień w strefie +02:00
+  const dzis = new Date().toLocaleDateString('sv');
+  if (dzis < SPOL_OKNO_OD || dzis > SPOL_OKNO_DO) return;   // poza oknem: ani śladu
+
+  let km = null;
+  try {
+    const { data, error } = await sb.rpc('community_km');
+    if (error || !data || !data.length) return;             // cicho — pasek zostaje ukryty
+    km = Number(data[0].km) || 0;
+  } catch (e) { return; }
+
+  const proc = Math.min(100, Math.round(km / SPOL_CEL_KM * 100));
+  document.getElementById('hero-licznik-km').textContent =
+    Math.round(km).toLocaleString('pl-PL') + ' / ' + SPOL_CEL_KM.toLocaleString('pl-PL') + ' km';
+  document.getElementById('hero-licznik-fill').style.width = proc + '%';
+
+  const podpis = document.getElementById('hero-licznik-podpis');
+  if (SPOL_DATA_AMES) {
+    const dni = Math.ceil((new Date(SPOL_DATA_AMES + 'T00:00:00') - new Date()) / 86400000);
+    podpis.textContent = dni > 0 ? 'Kasia biegnie MŚ 100 km za ' + dni + ' dni'
+                       : dni === 0 ? 'Kasia biegnie MŚ 100 km DZIŚ' : proc + '%';
+  } else {
+    podpis.textContent = proc + '%';
+  }
+  el.style.display = 'block';
 }
 
 // Dismiss hero - pierwszy raz idzie na o-nas, oznacz że user widział landing
