@@ -12684,6 +12684,14 @@ const BADGES = [
   {id:'7_usmiechow',     name:'Optymista',           desc:'7 treningów z nastrojem "dobrze"',          rarity:'common',   cat:'Mental'},
   {id:'po_kontuzji',     name:'Phoenix',             desc:'Powrót po 30 dniach przerwy',               rarity:'rare',     cat:'Mental'},
   {id:'mistrz_tempa',    name:'Mistrz tempa',        desc:'5 treningów tempo w miesiącu',              rarity:'epic',     cat:'Performance'},
+  // GRUPA B — definicje skopiowane z odznaki.html wraz z dopisaniem regul.
+
+  // GRUPA B — definicje skopiowane z odznaki.html wraz z dopisaniem regul.
+  {id:'pierwszy_kumpel', name:'Pierwszy kumpel',     desc:'Pierwsza zaakceptowana znajomość',          rarity:'common',   cat:'Społeczność'},
+  {id:'krag_5',          name:'Krąg 5',              desc:'5 znajomych',                               rarity:'common',   cat:'Społeczność'},
+  {id:'krag_25',         name:'Krąg 25',             desc:'25 znajomych',                              rarity:'rare',     cat:'Społeczność'},
+  {id:'krag_50',         name:'Krąg 50',             desc:'50 znajomych',                              rarity:'epic',     cat:'Społeczność'},
+  {id:'pierwszy_start',  name:'Pierwszy start',      desc:'Zapisz się na pierwsze zawody',             rarity:'common',   cat:'Starty'},
   // WYZWANIA — odznaki z OKNA CZASOWEGO. Reguła w WYZWANIA/_checkBadgeRules.
   // ⚠️ Kategoria 'Wyzwania' istnieje w odznaki.html; TUTAJ jest nowa. Ten plik
   // nie pomija pustych kategorii (:13254), więc pokaże się od razu jako 0/2.
@@ -12950,9 +12958,7 @@ async function checkBadges() {
   await loadAchievements();
 
   const { data: hist, error: histErr } = await sb.from('training_logs')
-    // `id` dołożone 12.08.2026: log_reactions liczy reakcje OTRZYMANE, czyli
-    // filtrowane po id MOICH logów. Bez tego pola kontekst zawsze dawałby 0.
-    .select('id,logged_at,distance_km,training_type,pace,feel')   // dokładnie te pola, które czytają reguły
+    .select('logged_at,distance_km,training_type,pace,feel')   // dokładnie te pola, które czytają reguły
     .eq('athlete_id', _athleteId)
     .not('training_type', 'like', '__badge__%')
     .order('logged_at', { ascending: true });
@@ -12966,40 +12972,35 @@ async function checkBadges() {
   const kluczBackfill = BADGE_BACKFILL_KEY + _athleteId;
   const cicho = !localStorage.getItem(kluczBackfill);
 
-  /* ── KONTEKST POZA-LOGOWY (rozszerzenie kontraktu, 12.08.2026) ─────────────
-     Do tej pory reguły widziały WYŁĄCZNIE training_logs. Grupa B potrzebuje
-     danych z sześciu innych tabel — dlatego ten obiekt.
+  /* ── KONTEKST POZA-LOGOWY ──────────────────────────────────────────────────
+     Reguły widziały do tej pory WYŁĄCZNIE training_logs. Te dwa źródła są
+     jedynymi z grupy B, które przeszły zwiad — reszta odpadła merytorycznie:
 
-     RÓWNOLEGLE, nie po kolei: Promise.all daje jeden round-trip zamiast sześciu.
-     Zmierzone ładunki są drobne (follows ~3 wiersze, messages ~24, race_signups
-     ~5, log_reactions ~4, training_plans ~13 na osobę) — mniejsze łącznie niż
-     samo zapytanie o logi (~71). Pięć z sześciu leci `head:true, count:'exact'`,
-     czyli oddaje SAMĄ LICZBĘ, zero wierszy.
+       profile_posts  — tabela ma ZERO wierszy (funkcja postów nieużywana)
+       messages       — decyzja produktowa, do C
+       log_reactions  — mierzy CUDZE reakcje, na które zawodnik nie ma wpływu
+       training_plans — brak statusu „ukończony" (approved/draft/rejected)
+       athletes.pb_*  — trzyma BIEŻĄCĄ wartość, nie historię zmian, więc
+                        „pobij rekord" nie ma z czym porównać
+       duration       — text w dwóch formatach ('0:35:14' obok gołego '22')
+       lider          — wymaga rankingu MIĘDZY zawodnikami, a RLS
+                        (athletes_read_own_logs) daje wyłącznie własne logi
+
+     RÓWNOLEGLE: Promise.all daje jeden round-trip zamiast dwóch. Oba lecą
+     `head:true, count:'exact'` — oddają SAMĄ LICZBĘ, zero wierszy.
 
      checkBadges jest wołane BEZ await (:6415), więc nie blokuje ładowania —
      te zapytania idą w tle po wyrenderowaniu widoku.
 
-     ⚠️ Każde źródło ma `.catch` na null: awaria jednej tabeli nie może
-     wywrócić całego przebiegu odznak. Reguła czytająca null po prostu
-     nie przyzna — lepiej niż wyjątek gubiący pozostałe 50 reguł.
-
-     ⚠️ log_reactions liczy reakcje OTRZYMANE (cudze na moich logach), nie dane
-     przeze mnie — kolumna athlete_id w tej tabeli to AUTOR reakcji. Stąd filtr
-     po id moich logów, a nie po athlete_id. */
+     ⚠️ `.catch` na null przy każdym: awaria jednej tabeli nie może wywrócić
+     całego przebiegu. Reguła czytająca null po prostu nie przyzna — lepiej
+     niż wyjątek gubiący pozostałe 50 reguł. */
   const _cnt = (q) => q.then(r => (r && typeof r.count === 'number') ? r.count : null).catch(() => null);
-  const _mojeLogiIds = (hist || []).map(l => l.id).filter(Boolean);
-  const [ctxFollows, ctxMessages, ctxSignups, ctxPosts, ctxPlans, ctxReakcje] = await Promise.all([
+  const [ctxFollows, ctxSignups] = await Promise.all([
     _cnt(sb.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', _athleteId)),
-    _cnt(sb.from('messages').select('id', { count: 'exact', head: true }).eq('athlete_id', _athleteId).eq('sender', 'athlete')),
     _cnt(sb.from('race_signups').select('id', { count: 'exact', head: true }).eq('athlete_id', _athleteId)),
-    sb.from('profile_posts').select('type').eq('athlete_id', _athleteId).then(r => r.data || null).catch(() => null),
-    sb.from('training_plans').select('status,end_date').eq('athlete_id', _athleteId).then(r => r.data || null).catch(() => null),
-    _mojeLogiIds.length
-      ? _cnt(sb.from('log_reactions').select('id', { count: 'exact', head: true }).in('log_id', _mojeLogiIds))
-      : Promise.resolve(0),
   ]);
-  const ctx = { follows: ctxFollows, messages: ctxMessages, signups: ctxSignups,
-                posts: ctxPosts, plans: ctxPlans, reakcje: ctxReakcje };
+  const ctx = { follows: ctxFollows, signups: ctxSignups };
 
   _badgeKolejka = new Set();
   let pelnyPrzebieg = true;
@@ -13342,6 +13343,23 @@ async function _checkBadgeRules(logs, ctx) {
     tempoMies[k] = (tempoMies[k] || 0) + 1;
   });
   if (Object.values(tempoMies).some(n => n >= 5)) awardBadge('mistrz_tempa');
+
+  /* ══ GRUPA B — jedyne dwa źródła poza training_logs, które przeszły zwiad ══
+     ⚠️ null oznacza NIEUDANE zapytanie, nie zero. `>= 1` na null daje false,
+     więc awaria tabeli nie przyznaje niczego — ale i niczego nie odbiera.
+     Świadomie NIE piszemy `(ctx.follows || 0)`, bo to zrównałoby awarię z zerem. */
+  if (ctx && ctx.follows !== null && ctx.follows !== undefined) {
+    if (ctx.follows >= 1)  awardBadge('pierwszy_kumpel');
+    if (ctx.follows >= 5)  awardBadge('krag_5');
+    if (ctx.follows >= 25) awardBadge('krag_25');
+    if (ctx.follows >= 50) awardBadge('krag_50');
+  }
+  // pierwszy_start: opis mówi „zapisz się na pierwsze zawody" i dokładnie to
+  // mierzymy. Siostrzana 5_startow ODRZUCONA — obiecuje „ukończ 5 zawodów",
+  // a race_signups nie ma kolumny ukończenia, więc liczyłaby zapisy.
+  if (ctx && ctx.signups !== null && ctx.signups !== undefined) {
+    if (ctx.signups >= 1) awardBadge('pierwszy_start');
+  }
   // rakieta: szybsze tempo niż w poprzednim tygodniu
   // (uproszczone - sprawdzimy średnie tempo bieżącego vs poprzedniego tygodnia)
   const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(prevWeekStart.getDate() - 7);
