@@ -834,13 +834,24 @@ async function checkSession() {
    z samym apikey zwraca 200 i wyłącznie {km, obliczone_at}, a bezpośredni
    odczyt training_logs daje 401 „permission denied".
 
-   ⚠️ Data startu Kasi NIE JEST w bazie (athletes.target_date puste). Do czasu
-   ustalenia zostaje null → wiersz z odliczaniem się nie pokazuje, reszta paska
-   działa. Po ustaleniu wpisać 'RRRR-MM-DD'. */
+   Data startu Kasi: IAU 100 km World Championships, 20.09.2026, Ames
+   (A Coruña, Hiszpania) — potwierdzone 12.08.2026. */
 const SPOL_OKNO_OD  = '2026-09-01';
 const SPOL_OKNO_DO  = '2026-09-20';
 const SPOL_CEL_KM   = 6000;
-const SPOL_DATA_AMES = null;
+const SPOL_DATA_AMES = '2026-09-20';
+
+/* ⚠️ PROWIZORKA TESTOWA — do usunięcia 12.08.2026, tego samego dnia.
+   Otwiera licznik na JEDEN konkretny dzień, żeby dało się sprawdzić
+   w incognito, czy sb.js nie dokleja Bearera z wygasłej sesji (curl tego
+   nie wykryje — to ta sama pułapka co przy publicznym profilu).
+
+   ŚWIADOMIE równość na dokładną datę, nie poszerzenie SPOL_OKNO_OD:
+   prowizorka WYGASA SAMA o północy, nawet gdyby nikt jej nie cofnął.
+   Poszerzenie okna zostawiłoby licznik widoczny dla wszystkich aż do
+   1 września — a prowizorka bez sprawdzalnego warunku cofnięcia zostaje
+   na miesiące. Zadanie w tle usuwa martwy kod, nie ratuje przed wyciekiem. */
+const SPOL_TEST_DZIEN = '2026-08-12';
 
 async function _licznikLandingu() {
   const el = document.getElementById('hero-licznik');
@@ -848,7 +859,9 @@ async function _licznikLandingu() {
 
   // Klucz daty LOKALNY, nie toISOString — ta druga cofa o dzień w strefie +02:00
   const dzis = new Date().toLocaleDateString('sv');
-  if (dzis < SPOL_OKNO_OD || dzis > SPOL_OKNO_DO) return;   // poza oknem: ani śladu
+  const wOknie = (dzis >= SPOL_OKNO_OD && dzis <= SPOL_OKNO_DO)
+              || dzis === SPOL_TEST_DZIEN;                  // ⚠️ prowizorka, wygasa sama
+  if (!wOknie) return;                                      // poza oknem: ani śladu
 
   let km = null;
   try {
