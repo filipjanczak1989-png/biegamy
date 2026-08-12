@@ -12931,7 +12931,19 @@ async function loadAchievements() {
 // biegów. Skutek: progi powyżej ~100 km i wszystko, co patrzy wstecz (ciągi dni,
 // „czy kiedykolwiek", liczniki typów, treningi w miesiącu) nigdy się nie odpalało.
 // 34 z 79 sprawdzanych odznak nie miało ANI JEDNEGO zdobywcy, choć 13 osób ma ponad 500 km.
-const BADGE_BACKFILL_KEY = 'bm_badges_backfill_v1_';
+/* ⚠️ WERSJONOWANY ŚWIADOMIE — podbicie unieważnia znaczniki na wszystkich
+   urządzeniach, więc najbliższy przebieg idzie CICHO (cicho = brak znacznika).
+
+   TWARDA REGUŁA: każde dołożenie reguł liczących WSTECZ = podbicie tej wersji.
+   Mechanizm rozróżnia „pierwszy przebieg po naprawie" od „normalnej pracy",
+   ale NIE rozróżnia „nowa reguła dla starej historii" od „świeżo zdobyta
+   odznaka" — dla niego jedno i drugie to zwykła zdobycz.
+
+   v2 (12.08.2026): grupa A dołożyła 20 reguł liczących z całej historii.
+   Bez podbicia znacznik z 5.08 dawałby cicho=false i ~200 zaległych przyznań
+   poszłoby GŁOŚNO. Zmierzone: do 11 pushy i 46 s nieprzerwanych pop-upów
+   na osobę (pop-up co 4200 ms), u 28 zawodników, za treningi sprzed miesięcy. */
+const BADGE_BACKFILL_KEY = 'bm_badges_backfill_v2_';
 
 async function checkBadges() {
   if (!_athleteId) return;
