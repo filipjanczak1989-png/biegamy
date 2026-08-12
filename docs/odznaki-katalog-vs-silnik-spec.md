@@ -111,6 +111,47 @@ Dwie drogi, do wyboru po wrześniu:
 
 Drogi nie wykluczają się: A dopisać, B i C ukryć do czasu.
 
+## Dwa systemy reguł, które nie mogą się nałożyć
+
+`BADGES` + `_checkBadgeRules` liczą **całą historię** („500 km w życiu").
+`WYZWANIA` liczą **okno dat**. To dwie różne rzeczy i muszą takie zostać.
+
+> **Odznaka wyzwania nie może mieć reguły progowej w `_checkBadgeRules`.**
+> Reguły tam liczą całą historię, więc `if (total >= 100)
+> awardBadge('100km_wrzesien_2026')` odpaliłoby natychmiast 20 z 28 zawodników.
+> Wpis w `BADGES` jest bezpieczny i **wymagany** — niesie nazwę, opis i ikonę,
+> a nie warunek. Jedyną regułą dla wyzwania jest pętla po `WYZWANIA` z oknem dat.
+
+### Skala, przed którą to broni — zmierzona 12.08.2026
+
+```
+gdyby regula liczyla CALA HISTORIE:
+  maja >= 100 km w zyciu :  20 z 28 zawodnikow z logami  -> '100 km dla Kasi' natychmiast
+  maja >=   1 km w zyciu :  28 z 28                      -> 'Razem' natychmiast
+
+stan faktyczny (okno 2026-09-01 -> 2026-09-20, pomiar 2026-08-12):
+  zawodnikow z jakimikolwiek km w oknie :  0
+  dostaliby '100km_wrzesien_2026'       :  0
+  dostaliby 'razem_wrzesien_2026'       :  0
+```
+
+Bez tych liczb rozdzielenie systemów brzmi jak przezorność. Z nimi widać, że
+pojedyncza reguła progowa w złym miejscu rozdałaby odznakę wyzwania **20 osobom
+za bieganie sprzed roku** — zanim wyzwanie w ogóle wystartuje.
+
+Dlaczego wpis w `BADGES` jest wymagany, a nie tylko niegroźny: `awardBadge` nie
+waliduje wobec listy, więc brak definicji **nie zatrzymuje przyznania** — zabiera
+tylko pop-up (`BADGES.find()` → `undefined`, wyciszone przez `if (badge)`),
+usuwa odznakę z sekcji w `zawodnik.html` i sprawia, że powiadomienie brzmi
+„Zdobyłeś odznakę: 100km_wrzesien_2026 🏅" zamiast nazwy. To dokładnie ten sam
+objaw co 24 odznaki przyznane bez definicji w katalogu (sekcja wyżej).
+
+### Bramka przy każdym nowym wyzwaniu
+
+Testem jednostkowym tego nie sprawdzisz — potrzebny jest pomiar na produkcji.
+Przed wypuszczeniem policz, ilu zawodników dostałoby odznakę **przed** datą `od`.
+Wynik inny niż 0 oznacza, że okno nie działa.
+
 ## Zasada na przyszłość
 
 **Nowa pozycja w katalogu bez reguły w silniku = obietnica bez pokrycia.**
