@@ -152,6 +152,31 @@ Testem jednostkowym tego nie sprawdzisz — potrzebny jest pomiar na produkcji.
 Przed wypuszczeniem policz, ilu zawodników dostałoby odznakę **przed** datą `od`.
 Wynik inny niż 0 oznacza, że okno nie działa.
 
+## Zasada: pole musi nieść tę informację, o której mówi opis
+
+> **Odznaka musi mierzyć to, co obiecuje jej opis.** Sprawdzić, czy pole niesie
+> tę informację, o której mowa — `created_at` to moment zapisu, nie treningu;
+> `city` to profil, nie miejsce biegu; `precipitation_sum` to doba, nie godzina.
+> **Wszystkie trzy wyglądają poprawnie w kodzie.**
+
+To jest najgroźniejsza klasa błędu w tym module, bo nie daje żadnego objawu:
+reguła się kompiluje, test przechodzi, odznaka się przyznaje. Wychodzi dopiero,
+gdy człowiek zapyta, dlaczego dostał „Nocnego maratończyka" za trening o 14:00.
+
+Zmierzone przypadki tej pułapki (12.08.2026):
+
+| pole | co wygląda, że mierzy | co mierzy naprawdę | dowód |
+|---|---|---|---|
+| `logged_at` (godzina) | porę biegu | moment/sposób wpisu | 10:00 → 582 logów (OCR), 12:00 → 419 (ręczne) = **50,4% syntetycznych** |
+| `athletes.city` | miejsce biegu | miasto zamieszkania z profilu | wypełnione u **17 z 48**; 3 z 11 miast nie geokodują się |
+| `precipitation_sum` | opad podczas biegu | sumę z całej doby | bieg o 6:00 dostaje odznakę za ulewę o 20:00 |
+| `pace` | średnie tempo biegu | cokolwiek wpisano | **8 wierszy** z `0:00`, `0:01`, `0:16` u 6 zawodników |
+
+Test jednostkowy tego nie wykryje — dane testowe tworzy autor reguły, więc
+powielają jego założenie. Wykrywa to tylko **predykcja na produkcji**: policz
+przed wdrożeniem, ilu zawodników dostanie odznakę. Wynik u wszystkich albo
+u nikogo oznacza, że reguła mierzy nie to, co trzeba.
+
 ## Zasada na przyszłość
 
 **Nowa pozycja w katalogu bez reguły w silniku = obietnica bez pokrycia.**

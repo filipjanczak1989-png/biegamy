@@ -12663,6 +12663,27 @@ const BADGES = [
   {id:'wieczny_optymista',    name:'Wieczny optymista',    desc:'10 treningów oznaczonych "good feel"',   rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'swiety_mikolaj',       name:'Święty Mikołaj',       desc:'Bieg 6 grudnia',                         rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'dzien_biegacza',       name:'Dzień Biegacza',       desc:'Bieg 1 czerwca',                         rarity:'rare',      cat:'Sekretne', hidden:true},
+  // GRUPA A — definicje skopiowane z odznaki.html 12.08.2026 wraz z dopisaniem
+  // regul w _checkBadgeRules. Wczesniej byly TYLKO w katalogu, wiec odznaka
+  // przyznana bez definicji tutaj nie mialaby pop-upu ani ikony w tej sekcji.
+  {id:'pierwsza_5tka',   name:'Pierwsza piątka',     desc:'Pierwsze 5 km w jednym treningu',           rarity:'common',   cat:'Dystans'},
+  {id:'dwucyfrowy',      name:'Dwucyfrowy',          desc:'Pierwszy bieg 10 km+',                      rarity:'common',   cat:'Dystans'},
+  {id:'half_marathon',   name:'Półmaratończyk',      desc:'21 km w jednym treningu',                   rarity:'epic',     cat:'Dystans'},
+  {id:'ultra',           name:'Ultra',               desc:'50 km+ w jednym treningu',                  rarity:'legendary',cat:'Dystans'},
+  {id:'sub_5min_km',     name:'Sub 5:00/km',         desc:'Trening ze średnim tempem poniżej 5:00/km', rarity:'rare',     cat:'Performance'},
+  {id:'sub_4min_km',     name:'Sub 4:00/km',         desc:'Trening ze średnim tempem poniżej 4:00/km', rarity:'epic',     cat:'Performance'},
+  {id:'sub_3_30_km',     name:'Sub 3:30/km',         desc:'Trening ze średnim tempem poniżej 3:30/km', rarity:'legendary',cat:'Performance'},
+  {id:'tydzien_50km',    name:'Tydzień 50 km',       desc:'50 km w jednym tygodniu',                   rarity:'rare',     cat:'Tygodniowe'},
+  {id:'tydzien_100km',   name:'Tydzień 100 km',      desc:'100 km w jednym tygodniu',                  rarity:'epic',     cat:'Tygodniowe'},
+  {id:'tydzien_150km',   name:'Tydzień 150 km',      desc:'150 km w jednym tygodniu',                  rarity:'legendary',cat:'Tygodniowe'},
+  {id:'4_w_tygodniu',    name:'4 razy w tygodniu',   desc:'4 treningi w jednym tygodniu',              rarity:'common',   cat:'Konsystencja'},
+  {id:'6_w_tygodniu',    name:'6 razy w tygodniu',   desc:'6 treningów w jednym tygodniu',             rarity:'rare',     cat:'Konsystencja'},
+  {id:'streak_50',       name:'Streak 50',           desc:'50 dni z rzędu',                            rarity:'epic',     cat:'Konsystencja'},
+  {id:'streak_365',      name:'Rok bez przerwy',     desc:'365 dni z rzędu',                           rarity:'legendary',cat:'Konsystencja'},
+  {id:'kiepski_dzien',   name:'Mimo wszystko',       desc:'Trening po oznaczeniu nastroju jako "źle"', rarity:'rare',     cat:'Mental'},
+  {id:'7_usmiechow',     name:'Optymista',           desc:'7 treningów z nastrojem "dobrze"',          rarity:'common',   cat:'Mental'},
+  {id:'po_kontuzji',     name:'Phoenix',             desc:'Powrót po 30 dniach przerwy',               rarity:'rare',     cat:'Mental'},
+  {id:'mistrz_tempa',    name:'Mistrz tempa',        desc:'5 treningów tempo w miesiącu',              rarity:'epic',     cat:'Performance'},
   // WYZWANIA — odznaki z OKNA CZASOWEGO. Reguła w WYZWANIA/_checkBadgeRules.
   // ⚠️ Kategoria 'Wyzwania' istnieje w odznaki.html; TUTAJ jest nowa. Ten plik
   // nie pomija pustych kategorii (:13254), więc pokaże się od razu jako 0/2.
@@ -13155,6 +13176,123 @@ async function _checkBadgeRules(logs) {
   // easy_rider: 20 treningów typu "Spokojny"
   const spokojnyCount = logs.filter(l => l.training_type === 'Spokojny' || l.training_type === 'Bieg spokojny').length;
   if (spokojnyCount >= 20) awardBadge('easy_rider');
+
+  /* ══ GRUPA A — reguły dopisane 12.08.2026 ══════════════════════════════════
+     Odznaki, które MIAŁY definicję w katalogu, ale nigdy nie miały reguły w
+     silniku — czyli obietnice bez pokrycia (patrz docs/odznaki-katalog-vs-
+     silnik-spec.md). Grupa A = liczone WYŁĄCZNIE z pól, które checkBadges już
+     pobiera (logged_at, distance_km, training_type, pace, feel). Zero zmian
+     w zapytaniu, zero nowych kolumn, pełny zasięg dla wszystkich zawodników.
+
+     ⚠️ NIE dopisywać tu odznak liczonych z intervals_activities.raw_data —
+     tylko 12 z 48 zawodników ma podpięty zegarek, więc byłyby niedostępne
+     dla 57% aktywnych. To osobna decyzja produktowa, nie rozszerzenie tej listy. */
+
+  // ── DYSTANS W JEDNYM BIEGU (nie suma życiowa) ──
+  // Liczone z distance_km, NIE z training_type: typ 'maraton'/'polmaraton' ma
+  // w bazie ZERO wystąpień — ludzie logują starty jako zwykły bieg z dystansem.
+  const maxDist = logs.reduce((m, l) =>
+    window.isRunType(l.training_type) ? Math.max(m, parseFloat(l.distance_km) || 0) : m, 0);
+  if (maxDist >= 5)       awardBadge('pierwsza_5tka');
+  if (maxDist >= 10)      awardBadge('dwucyfrowy');
+  if (maxDist >= 21.0975) awardBadge('half_marathon');
+  if (maxDist >= 50)      awardBadge('ultra');
+  /* ⚠️ 'maratończyk' (>= 42.195 km) ŚWIADOMIE NIE PRZYZNAWANY. Dwa powody:
+     (1) nie ma pliku maratończyk.webp w biegamy-assets — brak grafiki daje
+         onerror -> opacity 0.2, czyli odznaka ZDOBYTA wygląda jak niezdobyta;
+     (2) id zawiera polski znak, a ten plik składa URL bez encodeURIComponent
+         (odznaki.html koduje) — te same dwa URL-e rozjeżdżają się na 'ń'.
+     Odblokować dopiero po wgraniu grafiki pod BEZ-diakrytycznym id. Nikt tej
+     odznaki nie ma (0 wystąpień w achievements), więc zmiana id jest darmowa. */
+
+  // ── TEMPO ──
+  // ⚠️ PODŁOGA FIZJOLOGICZNA: pole `pace` zawiera śmieci ('0:00', '0:01', '0:16'
+  // — zmierzone 8 wierszy u 6 zawodników). Bez podłogi sub_3_30 dostałoby 8 osób
+  // zamiast 3, czyli odznaka elity za zepsute dane. 130 s/km jest poniżej rekordu
+  // świata na 1 km (2:11 = 131 s), więc nic prawdziwego nie odrzuca.
+  // Minimum 3 km, żeby nie liczyć krótkich odcinków jako "średniego tempa".
+  const PACE_PODLOGA = 130;
+  const bestPace = logs.reduce((m, l) => {
+    if (!window.isRunType(l.training_type)) return m;
+    if ((parseFloat(l.distance_km) || 0) < 3) return m;
+    const mm = /^(\d+):([0-5]\d)$/.exec(String(l.pace || ''));
+    if (!mm) return m;
+    const s = +mm[1] * 60 + +mm[2];
+    if (s < PACE_PODLOGA) return m;
+    return m === null ? s : Math.min(m, s);
+  }, null);
+  if (bestPace !== null && bestPace < 300) awardBadge('sub_5min_km');
+  if (bestPace !== null && bestPace < 240) awardBadge('sub_4min_km');
+  if (bestPace !== null && bestPace < 210) awardBadge('sub_3_30_km');
+
+  // ── NAJLEPSZY TYDZIEŃ W HISTORII ──
+  // Istniejące odznaki tygodniowe liczą TYLKO bieżący tydzień (tydzien_mocy,
+  // 5_dni_ruchu…). Te liczą maksimum z całej historii — opis mówi "50 km
+  // w jednym tygodniu", bez zawężenia do "w tym". Klucz tygodnia po poniedziałku.
+  const tygodnie = {};
+  logs.forEach(l => {
+    const d = new Date(l.logged_at.slice(0, 10) + 'T00:00:00');
+    const dw = d.getDay() === 0 ? 6 : d.getDay() - 1;
+    d.setDate(d.getDate() - dw);
+    // ⚠️ Klucz z LOKALNYCH pól, NIE przez toISOString(): ta druga konwertuje do
+    // UTC i w strefie +02:00 cofa poniedziałek na niedzielę, rozbijając jeden
+    // tydzień na dwa. Self-test to złapał — 50 km w tygodniu nie przyznawało się.
+    const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const t = (tygodnie[k] = tygodnie[k] || { km: 0, n: 0 });
+    t.n++;
+    if (window.isRunType(l.training_type)) t.km += parseFloat(l.distance_km) || 0;
+  });
+  const tygList  = Object.values(tygodnie);
+  const maxTygKm = tygList.reduce((m, t) => Math.max(m, t.km), 0);
+  const maxTygN  = tygList.reduce((m, t) => Math.max(m, t.n), 0);
+  if (maxTygKm >= 50)  awardBadge('tydzien_50km');
+  if (maxTygKm >= 100) awardBadge('tydzien_100km');
+  if (maxTygKm >= 150) awardBadge('tydzien_150km');
+  if (maxTygN  >= 4)   awardBadge('4_w_tygodniu');
+  if (maxTygN  >= 6)   awardBadge('6_w_tygodniu');
+
+  // ── STREAK (maxStreak policzony wyżej) ──
+  if (maxStreak >= 5)   awardBadge('bez_wymowek');    // "5 dni bez pominięcia"
+  if (maxStreak >= 50)  awardBadge('streak_50');
+  if (maxStreak >= 365) awardBadge('streak_365');
+
+  // ── NASTRÓJ ──
+  // ⚠️ Wartości pola to 'good' / 'mid' / 'bad' — angielskie, nie polskie napisy.
+  // Pokrycie: 27 z 28 zawodników ma choć jeden log z feel, 21 ma co najmniej 5.
+  const feelBad  = logs.filter(l => l.feel === 'bad').length;
+  const feelGood = logs.filter(l => l.feel === 'good').length;
+  if (feelBad  >= 1) awardBadge('kiepski_dzien');
+  if (feelGood >= 7) awardBadge('7_usmiechow');
+
+  // ── POWRÓT PO PRZERWIE ──
+  // Phoenix: przerwa >= 30 dni, po której PADŁ kolejny trening. Liczy się
+  // powrót, nie sama przerwa — dlatego sprawdzamy odstęp MIĘDZY dniami.
+  let maxPrzerwa = 0;
+  for (let i = 1; i < days.length; i++) {
+    const diff = (new Date(days[i]) - new Date(days[i - 1])) / 86400000;
+    if (diff > maxPrzerwa) maxPrzerwa = diff;
+  }
+  if (maxPrzerwa >= 30) awardBadge('po_kontuzji');
+
+  // ── RUTYNA MISTRZA: 4 treningi/tydzień przez 4 KOLEJNE tygodnie ──
+  const tygKlucze = Object.keys(tygodnie).sort();
+  let seria4 = 0;
+  for (let i = 0; i < tygKlucze.length; i++) {
+    const ciagly = i === 0 ? true :
+      (new Date(tygKlucze[i]) - new Date(tygKlucze[i - 1])) / 86400000 === 7;
+    seria4 = (ciagly && tygodnie[tygKlucze[i]].n >= 4) ? seria4 + 1
+           : (tygodnie[tygKlucze[i]].n >= 4 ? 1 : 0);
+    if (seria4 >= 4) { awardBadge('rutyna_mistrza'); break; }
+  }
+
+  // ── MISTRZ TEMPA: 5 treningów typu Tempo w JEDNYM miesiącu kalendarzowym ──
+  const tempoMies = {};
+  logs.forEach(l => {
+    if (l.training_type !== 'Tempo') return;
+    const k = l.logged_at.slice(0, 7);
+    tempoMies[k] = (tempoMies[k] || 0) + 1;
+  });
+  if (Object.values(tempoMies).some(n => n >= 5)) awardBadge('mistrz_tempa');
   // rakieta: szybsze tempo niż w poprzednim tygodniu
   // (uproszczone - sprawdzimy średnie tempo bieżącego vs poprzedniego tygodnia)
   const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(prevWeekStart.getDate() - 7);
