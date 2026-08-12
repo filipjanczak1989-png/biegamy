@@ -5,3 +5,11 @@ fix_*.py
 # Security audit output — NEVER commit (repo deploys to public GitHub Pages)
 .security-audit/
 build/
+
+# Klucze podpisujące Androida (TWA). Build stoi w ../biegamy-android, więc te
+# pliki nie powinny tu w ogóle trafić — to zabezpieczenie na wypadek pomyłki.
+# ⚠️ Repo jest publiczne I SERWUJE PLIKI Z KROPKĄ (sprawdzone: /.gitignore → 200),
+# więc keystore w repo = klucz podpisujący pod publicznym adresem.
+*.keystore
+*.jks
+android.keystore
