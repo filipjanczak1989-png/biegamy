@@ -1,0 +1,32 @@
+-- ── LIMIT DYSTANSU NA POJEDYNCZY LOG ────────────────────────────────────────
+-- CHECK NIE BRONI LICZNIKA — od tego jest cap 100 km/doba w community_km().
+-- Ten warunek blokuje wylacznie wartosci ujemne i absurdy rzedu 10 000, czyli
+-- literowki i zlosliwosc. Dlatego prog dobrany tak, by NIGDY nie odpalil sie
+-- na prawdziwych danych:
+--   rekord wsrod typow BIEGOWYCH   109,72 km  (te licza sie do licznika)
+--   rekord calego importu intervals 118,99 km
+--   rekord calej bazy              300,00 km  (Wzmacniajacy — poza licznikiem)
+--   500 km = 1,67x zapasu wobec rekordu bazy, batch intervals bezpieczny
+--
+-- !! ZERO JEST DOZWOLONE (>= 0, nie > 0) SWIADOMIE. Dwie zywe sciezki wysylaja
+--    zero przy pustym polu dystansu:
+--      kalendarz.html:2564  logDist = parseFloat(...) || dist || null,
+--                           gdzie dist = parseFloat(...) || 0   (:2391)
+--      gra.html:8426        (d.distance/1000).toFixed(2) -> "0.00" przy zerze
+--    Warunek `> 0` wywalilby logowanie z kalendarza i zapis z gry.
+--
+-- !! NULL JEST DOZWOLONY: 152 wiersze go maja (trening bez dystansu; dzien
+--    startu z generatora planow wstawia distance_km = null celowo).
+--
+-- !! BATCH INTERVALS: intervals-sync robi insert(rows) i przy bledzie zwraca
+--    od razu, wiec JEDEN zly wiersz zabilby CALY import. Przy progu 500 ryzyko
+--    jest teoretyczne (rekord importu 118,99), ale sciezka zostaje krucha —
+--    rozbicie batcha na pojedyncze wiersze jest w backlogu na pazdziernik.
+--
+-- Zmierzone 14.08.2026 przed dodaniem: 2014 wierszy, 0 lamie warunek.
+-- Zweryfikowane po dodaniu zapytaniem do pg_constraint (convalidated = true),
+-- nie brakiem bledu. Test zachowania (insert + rollback):
+--   -5 ODRZUCONE · 600 ODRZUCONE · 0 przechodzi · 109,72 przechodzi
+alter table training_logs
+  add constraint training_logs_distance_sane
+  check (distance_km is null or (distance_km >= 0 and distance_km <= 500));
