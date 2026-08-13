@@ -14,6 +14,14 @@
 # ⚠️ ROZJAZD DAT = licznik startuje w innym momencie niz wyzwanie, a pasek
 # indywidualny dobija do innej liczby niz odznaka. Zadne z tego nie daje bledu
 # — po prostu pokazuje nieprawde.
+#
+# !! OGRANICZENIE: TA BRAMKA CZYTA REPO, NIE BAZE.
+#    Rozjazd "SQL zastosowany w bazie, plik jeszcze nie w repo" jest dla niej
+#    NIEWIDZIALNY — w sesji 14.08.2026 zdarzyl sie DWA RAZY (constraint i cap),
+#    oba wychwycone recznie, nie przez bramke. Zielone swiatlo znaczy "pliki sa
+#    spojne miedzy soba", a NIE "produkcja zgadza sie z repo".
+#    Sprawdzenie produkcji wymagaloby odpytania pg_get_functiondef i porownania
+#    z plikiem — osobne narzedzie, osobna decyzja.
 import re, io, sys
 
 OCZEKIWANE = {

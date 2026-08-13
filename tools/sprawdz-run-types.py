@@ -12,6 +12,14 @@
 #
 # Dlaczego skrypt, a nie grep: `grep -c` liczy LINIE zawierajace slowo, wiec daje rozne
 # liczby dla roznych plikow i nie mowi nic o zawartosci listy. Ta bramka porownuje ZBIORY.
+#
+# !! OGRANICZENIE: TA BRAMKA CZYTA REPO, NIE BAZE.
+#    Rozjazd "SQL zastosowany w bazie, plik jeszcze nie w repo" jest dla niej
+#    NIEWIDZIALNY — w sesji 14.08.2026 zdarzyl sie DWA RAZY (constraint i cap),
+#    oba wychwycone recznie, nie przez bramke. Zielone swiatlo znaczy "pliki sa
+#    spojne miedzy soba", a NIE "produkcja zgadza sie z repo".
+#    Sprawdzenie produkcji wymagaloby odpytania pg_get_functiondef i porownania
+#    z plikiem — osobne narzedzie, osobna decyzja.
 import re, io, sys, glob
 
 ZRODLA = [
@@ -32,8 +40,8 @@ ZRODLA = [
 #
 # !! Przy SWIADOMYM dodaniu lub usunieciu zrodla te stala podnosi/obniza sie
 #    RECZNIE, w tym samym commicie co zmiana. Nowe pliki tylko ja podnosza.
-MIN_ZRODEL = 6   # stan na 14.08.2026: sb.js, silnik-momentu, suma_biegowa,
-                 # community_km, community_km_okno, cap_licznika
+MIN_ZRODEL = 7   # stan na 14.08.2026: sb.js, silnik-momentu, suma_biegowa,
+                 # community_km, community_km_okno, cap_licznika, licznik_bez_cache
 # ── WYKRYWANIE ZRODEL SQL PO TRESCI, NIE PO NAZWIE PLIKU ────────────────────
 # Enumerowanie wzorcow nazw (*_suma_biegowa, *community_km, ...) nie zlapie pliku
 # nazwanego inaczej za miesiac, a objawem bedzie CICHY rozjazd: kilometry z nowego
