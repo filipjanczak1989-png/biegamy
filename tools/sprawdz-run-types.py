@@ -32,8 +32,8 @@ ZRODLA = [
 #
 # !! Przy SWIADOMYM dodaniu lub usunieciu zrodla te stala podnosi/obniza sie
 #    RECZNIE, w tym samym commicie co zmiana. Nowe pliki tylko ja podnosza.
-MIN_ZRODEL = 5   # stan na 14.08.2026: sb.js, silnik-momentu, suma_biegowa,
-                 # community_km, community_km_okno
+MIN_ZRODEL = 6   # stan na 14.08.2026: sb.js, silnik-momentu, suma_biegowa,
+                 # community_km, community_km_okno, cap_licznika
 # ── WYKRYWANIE ZRODEL SQL PO TRESCI, NIE PO NAZWIE PLIKU ────────────────────
 # Enumerowanie wzorcow nazw (*_suma_biegowa, *community_km, ...) nie zlapie pliku
 # nazwanego inaczej za miesiac, a objawem bedzie CICHY rozjazd: kilometry z nowego

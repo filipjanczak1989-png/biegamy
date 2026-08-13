@@ -89,25 +89,70 @@ else:
             znalezione.setdefault('OKNO_OD',    []).append(('WYZWANIA', od.strip("'")))
             znalezione.setdefault('OKNO_DO',    []).append(('WYZWANIA', do.strip("'")))
 
-# ── 3. SQL — migracja z community_km() ──
-import glob
-SQL = sorted(glob.glob('supabase/migrations/*community_km*.sql'))
-if not SQL:
-    bledy.append('brak migracji *community_km*.sql — SQL trzyma daty na sztywno i NIKT ich nie pilnuje')
+# ── 3. SQL — GRANICE OKNA WYKRYWANE PO TRESCI ───────────────────────────────
+# Wzorzec przywiazany do konkretnej formy (`logged_at < 'data'`) przestal
+# dzialac, gdy granice zmienily sie na inkluzywne warszawskie
+# (`(logged_at at time zone 'Europe/Warsaw')::date <= '2026-09-20'`).
+# To ta sama pulapka co enumerowanie nazw plikow: zmiana formy zapisu CICHO
+# wypycha plik z kontroli, a bramka nadal swieci na zielono.
+#
+# Lapiemy KAZDE porownanie logged_at do literalu daty — z konwersja strefy
+# albo bez, z dowolnym operatorem (>=, <=, <, >, =).
+import glob, datetime
+WZOR_DATY = r"logged_at[^\n]{0,80}?(>=|<=|<|>|=)\s*'(\d{4}-\d{2}-\d{2})'"
+
+# !! TWARDY DOLNY PROG, jak MIN_ZRODEL w sprawdz-run-types.py. Bez niego
+#    utrata wykrywania wyglada identycznie jak brak granic: liczba znalezisk
+#    po prostu spada, a bramka przechodzi.
+#    Stan na 14.08.2026: najnowsza migracja ma 4 porownania — po dwie granice
+#    w v_km i w v_wklad. Spadek = bramka przestala rozpoznawac forme zapisu,
+#    NIE = granice zniknely. Przy swiadomej zmianie liczby zapytan podnies
+#    lub obniz RECZNIE, w tym samym commicie.
+MIN_ZNALEZISK = 4
+
+SQL = sorted(glob.glob('supabase/migrations/*.sql'))
+
+# Plik ROZSTRZYGAJACY to najnowsza migracja definiujaca community_km — jego
+# tresc odpowiada temu, co stoi w bazie. Starsze zostaja w repo jako historia
+# i NIE MOGA wliczac sie do progu: inaczej zamaskowalyby utrate wykrywania
+# w najnowszej (wykryte testem negatywnym 14.08 — bramka przechodzila mimo
+# zmiany formy zapisu, bo stare pliki dostarczaly brakujace trafienia).
+# Wykrywanie po TRESCI, nie po nazwie.
+# !! Szukamy plikow, ktore funkcje DEFINIUJA, nie tych, ktore ja wspominaja.
+#    Samo 'community_km' w tresci lapie takze komentarze w innych migracjach
+#    (np. limit_dystansu.sql pisze "cap ... w community_km()") — a taki plik
+#    wygral sortowanie i bramka szukala granic tam, gdzie ich nigdy nie bylo.
+WZOR_DEF = r"create\s+(?:or\s+replace\s+)?function\s+community_km"
+kandydaci = [f for f in SQL if re.search(WZOR_DEF, czytaj(f) or '', re.I)]
+najnowsza = max(kandydaci) if kandydaci else None
+
+trafienia = []          # (plik, operator, data) — TYLKO z pliku rozstrzygajacego
+if najnowsza:
+    for m in re.finditer(WZOR_DATY, czytaj(najnowsza) or ''):
+        trafienia.append((najnowsza, m.group(1), m.group(2)))
+
+if not najnowsza:
+    bledy.append('ZADNA migracja nie definiuje community_km — granice okna '
+                 'sa poza kontrola')
+elif len(trafienia) < MIN_ZNALEZISK:
+    bledy.append('ZA MALO GRANIC w %s: znaleziono %d, oczekiwano co najmniej %d. '
+                 'To NIE znaczy, ze granice zniknely — najpewniej zmienila sie '
+                 'forma zapisu i wypadly z kontroli. Znalezione: %s'
+                 % (najnowsza, len(trafienia), MIN_ZNALEZISK,
+                    ', '.join('%s %s' % (op, d) for _, op, d in trafienia) or '(nic)'))
 else:
-    s = czytaj(SQL[-1])
-    daty = re.findall(r"logged_at\s*>=\s*'([0-9-]+)'", s or '')
-    konce = re.findall(r"logged_at\s*<\s*'([0-9-]+)'", s or '')
-    for d in set(daty):
-        znalezione.setdefault('OKNO_OD', []).append((SQL[-1], d))
-    # w SQL koniec jest EKSKLUZYWNY (< 21.09), wiec porownujemy z DO + 1 dzien
-    import datetime
-    for d in set(konce):
-        try:
-            popr = (datetime.date.fromisoformat(d) - datetime.timedelta(days=1)).isoformat()
-        except ValueError:
-            popr = d
-        znalezione.setdefault('OKNO_DO', []).append((SQL[-1] + ' (< , wiec -1 dzien)', popr))
+    for f, op, d in trafienia:
+        if op in ('>=', '>'):
+            znalezione.setdefault('OKNO_OD', []).append((f, d))
+        elif op == '<':
+            # koniec EKSKLUZYWNY -> porownujemy z DO + 1 dzien
+            try:
+                d = (datetime.date.fromisoformat(d) - datetime.timedelta(days=1)).isoformat()
+            except ValueError:
+                pass
+            znalezione.setdefault('OKNO_DO', []).append((f + ' (<, wiec -1 dzien)', d))
+        elif op == '<=':
+            znalezione.setdefault('OKNO_DO', []).append((f, d))
 
 # ── PORONANIE ──
 print('BRAMKA #100kmDlaKasi — zgodnosc stalych\n')
