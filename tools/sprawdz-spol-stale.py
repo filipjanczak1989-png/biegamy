@@ -17,9 +17,9 @@
 import re, io, sys
 
 OCZEKIWANE = {
-    'OKNO_OD':    '2026-09-01',
+    'OKNO_OD':    '2026-08-15',
     'OKNO_DO':    '2026-09-20',
-    'CEL_KM':     '6000',
+    'CEL_KM':     '10000',
     'PROG_INDYW': '100',
     'DATA_AMES':  '2026-09-20',
 }
