@@ -60,6 +60,11 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .ath-info{flex:1;min-width:0;}
 .ath-name{font-size:14px;font-weight:500;margin-bottom:2px;}
 .ath-goal{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Blad walidacji PB — INLINE. W trener.html to nie jest preferencja: pola
+   ath-pb-* siedza w modalu (z-index 9998), a showToast ma 200, wiec toast
+   zginalby pod modalem. Patrz .ai/LEKCJE.md #5. */
+.pb-err{display:none;margin:8px 0 0;font-size:11px;line-height:1.45;color:#e05050;}
+.pb-err.on{display:block;}
 .ath-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
 .ath-km{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;}
 .ath-km-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
@@ -812,14 +817,15 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div id="ppb-edit-form" style="display:none;margin-bottom:16px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</label>
-            <input id="ppb-mar-in" type="text" placeholder="3:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-mar-in" type="text" placeholder="3:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</label>
-            <input id="ppb-half-in" type="text" placeholder="1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-half-in" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</label>
-            <input id="ppb-10k-in" type="text" placeholder="45:30" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-10k-in" type="text" placeholder="45:30" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</label>
-            <input id="ppb-5k-in" type="text" placeholder="22:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-5k-in" type="text" placeholder="22:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
         </div>
+        <div id="ppb-err" class="pb-err"></div>
         <button onclick="savePanelPB()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz PB →</button>
       </div>
       <!-- Cele startowe -->
@@ -3048,19 +3054,62 @@ function renderPanelGoals(goals) {
 
 function togglePanelPBEdit() {
   const f = document.getElementById('ppb-edit-form');
+  /* Wejscie i wyjscie z edycji czysci stan bledu — inaczej czerwone ramki
+     przezylyby anulowanie i wrocily przy nastepnym otwarciu panelu. */
+  const e = document.getElementById('ppb-err');
+  if (e) { e.textContent = ''; e.classList.remove('on'); }
+  _PPB_POLA.forEach(([id]) => { const el = document.getElementById(id); if (el) el.style.borderColor = ''; });
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
   document.getElementById('ppb-edit-btn').innerHTML = f.style.display === 'none' ? (window.icHtml('nut-edit',12,'margin-right:5px;vertical-align:-2px;') + 'Edytuj PB') : '✕ Anuluj';
 }
 
+/* Wspolny walidator dla OBU miejsc PB w trener.html. Zwraca obiekt updates
+   albo null, gdy cokolwiek nie przeszlo.
+   !! BLAD MUSI BYC INLINE, nie toastem: pola ath-pb-* siedza w MODALU
+      (z-index 9998), a showToast ma 200 — komunikat zginalby pod modalem
+      i trener zobaczylby tylko, ze "zapis nic nie robi". */
+function _walidujPBTrener(pola, errId) {
+  const errEl = document.getElementById(errId);
+  const updates = {};
+  let zle = null, ostrz = null;
+  for (const [id, dyst, kol] of pola) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = window.dopelnijPB(el.value, dyst);
+    const w = window.walidujPB(el.value, dyst);
+    el.style.borderColor = w.ok ? '' : '#e05050';
+    if (!w.ok) { if (!zle) zle = { el, blad: w.blad }; continue; }
+    updates[kol] = w.sekundy === null ? null : el.value;
+    if (w.ostrzezenie && !ostrz) ostrz = w.ostrzezenie;
+  }
+  if (errEl) {
+    errEl.textContent = zle ? zle.blad : '';
+    errEl.classList.toggle('on', !!zle);
+  }
+  if (zle) { zle.el.focus(); return null; }
+  if (ostrz) showToast(ostrz);
+  return updates;
+}
+
+const _PPB_POLA = [
+  ['ppb-mar-in',  42.195,  'pb_marathon'],
+  ['ppb-half-in', 21.0975, 'pb_half'],
+  ['ppb-10k-in',  10,      'pb_10k'],
+  ['ppb-5k-in',   5,       'pb_5k'],
+];
+const _ATH_PB_POLA = [
+  ['ath-pb-mar',  42.195,  'pb_marathon'],
+  ['ath-pb-half', 21.0975, 'pb_half'],
+  ['ath-pb-10k',  10,      'pb_10k'],
+  ['ath-pb-5k',   5,       'pb_5k'],
+];
+
 async function savePanelPB() {
   const id = window._selectedAthleteId;
   if (!id) return;
-  const { error } = await sb.from('athletes').update({
-    pb_marathon: document.getElementById('ppb-mar-in').value.trim() || null,
-    pb_half: document.getElementById('ppb-half-in').value.trim() || null,
-    pb_10k: document.getElementById('ppb-10k-in').value.trim() || null,
-    pb_5k: document.getElementById('ppb-5k-in').value.trim() || null,
-  }).eq('id', id);
+  const updates = _walidujPBTrener(_PPB_POLA, 'ppb-err');
+  if (!updates) return;
+  const { error } = await sb.from('athletes').update(updates).eq('id', id);
   if (error) { showToast('Błąd: ' + error.message); return; }
   showToast('PB zapisane ✓');
   togglePanelPBEdit();
@@ -3998,6 +4047,9 @@ async function saveAthlete() {
     return;
   }
 
+  const pbUpdates = _walidujPBTrener(_ATH_PB_POLA, 'ath-pb-err');
+  if (!pbUpdates) return;
+
   const { error } = await sb.from('athletes').insert({
     coach_id: _coachId,
     full_name: name,
@@ -4005,10 +4057,7 @@ async function saveAthlete() {
     goal: document.getElementById('ath-goal').value.trim() || null,
     target_race: document.getElementById('ath-goal').value.trim() || null,
     target_date: document.getElementById('ath-target-date').value || null,
-    pb_marathon: document.getElementById('ath-pb-mar').value.trim() || null,
-    pb_half: document.getElementById('ath-pb-half').value.trim() || null,
-    pb_10k: document.getElementById('ath-pb-10k').value.trim() || null,
-    pb_5k: document.getElementById('ath-pb-5k').value.trim() || null,
+    ...pbUpdates,
     active: true
   });
 
@@ -6852,29 +6901,30 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Maraton</label>
           <input id="ath-pb-mar" type="text" placeholder="3:45:00" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,42.195);this.style.borderColor='#2a2a32'">
         </div>
         <div>
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Półmaraton</label>
           <input id="ath-pb-half" type="text" placeholder="1:45:00" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,21.0975);this.style.borderColor='#2a2a32'">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
         <div>
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 10 km</label>
-          <input id="ath-pb-10k" type="text" placeholder="45:30" maxlength="5"
+          <input id="ath-pb-10k" type="text" placeholder="45:30" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,10);this.style.borderColor='#2a2a32'">
         </div>
         <div>
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 5 km</label>
-          <input id="ath-pb-5k" type="text" placeholder="22:00" maxlength="5"
+          <input id="ath-pb-5k" type="text" placeholder="22:00" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,5);this.style.borderColor='#2a2a32'">
         </div>
       </div>
+      <div id="ath-pb-err" class="pb-err"></div>
       <div style="display:flex;gap:8px;">
         <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
         <button onclick="saveAthlete()" style="flex:2;background:#d4501a;color:#f0ede8;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz zawodnika →</button>

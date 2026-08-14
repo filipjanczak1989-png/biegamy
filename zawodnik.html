@@ -503,6 +503,10 @@ body > *{position:relative;z-index:1;}
 .feel-grid{display:flex;flex-direction:row;gap:8px;}
 .feel-btn{flex:1;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);font-size:20px;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px;}
 .feel-lbl{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;}
+/* Blad walidacji PB — INLINE pod polem, nie toastem. Komunikat jest dlugi
+   i czlowiek musi go czytac JEDNOCZESNIE z poprawianiem pola; toast znika. */
+.pb-err{display:none;margin-top:6px;font-size:10px;line-height:1.45;color:var(--red);font-family:'DM Sans',sans-serif;}
+.pb-err.on{display:block;}
 .feel-btn:hover{transform:scale(1.06);}
 .feel-btn.sel-good{border-color:var(--green);background:rgba(61,184,112,0.12);}
 .feel-btn.sel-mid{border-color:var(--yellow);background:rgba(232,184,64,0.12);}
@@ -728,6 +732,9 @@ body > *{position:relative;z-index:1;}
 .ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);}
 .ob-pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
 .ob-pb-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;}
+/* Siatka jest 2-kolumnowa, wiec dlugi komunikat NIE miesci sie w kafelku —
+   blad idzie do wspolnego obszaru pod siatka, a kafelek dostaje tylko ramke. */
+.ob-pb-item.zle{border-color:var(--red);}
 .ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .ob-pb-input{width:100%;background:transparent;border:none;color:var(--fg);font-family:'Bebas Neue',sans-serif;font-size:26px;outline:none;padding:0;}
 .ob-pb-input::placeholder{color:rgba(240,237,232,0.15);}
@@ -1380,22 +1387,26 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Maraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
-        <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <div id="pb-mar-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Półmaraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
-        <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <div id="pb-half-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">10 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
-        <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <div id="pb-10k-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">5 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
-        <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <div id="pb-5k-err" class="pb-err"></div>
       </div>
     </div>
     <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
@@ -3349,23 +3360,58 @@ function toggleEditPBs() {
   _editingPBs = !_editingPBs;
   ['pb-mar','pb-half','pb-10k','pb-5k'].forEach(id => {
     document.getElementById(id).style.display = _editingPBs ? 'none' : '';
-    document.getElementById(id+'-input').style.display = _editingPBs ? 'block' : 'none';
+    const inp = document.getElementById(id+'-input');
+    inp.style.display = _editingPBs ? 'block' : 'none';
+    /* Wejscie i wyjscie z edycji czysci stan bledu — inaczej czerwona ramka
+       i komunikat przezylyby anulowanie i wrocily przy nastepnym otwarciu. */
+    inp.style.borderColor = 'var(--accent)';
+    const err = document.getElementById(id+'-err');
+    if (err) { err.textContent = ''; err.classList.remove('on'); }
   });
   document.getElementById('save-pbs-row').style.display = _editingPBs ? 'block' : 'none';
   document.getElementById('edit-pbs-btn').innerHTML = _editingPBs ? '✕ Anuluj' : (window.icHtml('nut-edit',13,'margin-right:5px;vertical-align:-2px;') + 'Edytuj');
 }
 
+/* Kolejnosc jak w gridzie — zeby bledy wyswietlily sie od gory tak, jak
+   czlowiek patrzy na ekran. [id_pola, dystans_km, kolumna_w_bazie] */
+const _PB_POLA = [
+  ['pb-mar-input',  42.195,  'pb_marathon'],
+  ['pb-half-input', 21.0975, 'pb_half'],
+  ['pb-10k-input',  10,      'pb_10k'],
+  ['pb-5k-input',   5,       'pb_5k'],
+];
+
 async function savePBs() {
   if (!_athleteId) return;
-  const updates = {
-    pb_marathon: document.getElementById('pb-mar-input').value.trim() || null,
-    pb_half: document.getElementById('pb-half-input').value.trim() || null,
-    pb_10k: document.getElementById('pb-10k-input').value.trim() || null,
-    pb_5k: document.getElementById('pb-5k-input').value.trim() || null,
-  };
+
+  const updates = {}, ostrzezenia = [];
+  let pierwszeZle = null;
+
+  for (const [id, dyst, kol] of _PB_POLA) {
+    const el = document.getElementById(id);
+    const errEl = document.getElementById(id.replace('-input', '-err'));
+    /* dopelnijPB wolane PONOWNIE, mimo ze jest na onblur: blur nie zawsze pada
+       (Enter, autofill przegladarki, tap w "Zapisz" bez opuszczenia pola). */
+    el.value = window.dopelnijPB(el.value, dyst);
+    const w = window.walidujPB(el.value, dyst);
+
+    el.style.borderColor = w.ok ? 'var(--accent)' : 'var(--red)';
+    errEl.textContent = w.ok ? '' : w.blad;
+    errEl.classList.toggle('on', !w.ok);
+
+    if (!w.ok) { if (!pierwszeZle) pierwszeZle = el; continue; }
+    updates[kol] = w.sekundy === null ? null : el.value;
+    if (w.ostrzezenie) ostrzezenia.push(w.ostrzezenie);
+  }
+
+  /* Pokazujemy WSZYSTKIE bledy naraz, ale zapisu nie robimy w ogole — inaczej
+     czlowiek poprawialby pola po jednym, z zapisem po kazdym. */
+  if (pierwszeZle) { pierwszeZle.focus(); return; }
+
   const { error } = await sb.from('athletes').update(updates).eq('id', _athleteId);
   if (error) { toast('Błąd: ' + error.message); return; }
-  toast('Życiówki zapisane ✓');
+  /* Ostrzezenie toastem, bo zapis PRZESZEDL — nie ma czego poprawiac przy polu. */
+  toast(ostrzezenia.length ? ostrzezenia[0] + ' Zapisano.' : 'Życiówki zapisane ✓');
   toggleEditPBs();
   await loadProfile();
 }
@@ -5572,6 +5618,48 @@ function obSelectPrivacy(p) {
   });
 }
 
+/* Onboarding: [id_pola, dystans_km, kolumna]. Ten sam uklad co _PB_POLA
+   w savePBs — obie listy karmia window.walidujPB (SSOT w sb.js). */
+const _OB_PB_POLA = [
+  ['ob-pb-5k',   5,       'pb_5k'],
+  ['ob-pb-10k',  10,      'pb_10k'],
+  ['ob-pb-half', 21.0975, 'pb_half'],
+  ['ob-pb-mar',  42.195,  'pb_marathon'],
+];
+
+/* Zwraca true, gdy mozna isc dalej. PUSTE POLA PRZECHODZA — pominiecie
+   zyciowek jest legalne i ekran sam o tym mowi ("Mozesz uzupelnic pozniej"). */
+function obWalidujPB() {
+  const errEl = document.getElementById('ob-pb-err');
+  let zle = null;
+  for (const [id, dyst] of _OB_PB_POLA) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = window.dopelnijPB(el.value, dyst);
+    const w = window.walidujPB(el.value, dyst);
+    el.closest('.ob-pb-item')?.classList.toggle('zle', !w.ok);
+    if (!w.ok && !zle) zle = { el, blad: w.blad };
+  }
+  if (errEl) {
+    errEl.textContent = zle ? zle.blad : '';
+    errEl.classList.toggle('on', !!zle);
+  }
+  if (zle) { zle.el.focus(); return false; }
+  return true;
+}
+
+/* "Pomin" czysci zyciowki i idzie dalej. Bez tego oba przyciski wolaly
+   obNext(3), wiec bledna wartosc blokowalaby TAKZE pominiecie ekranu. */
+function obSkipPB() {
+  _OB_PB_POLA.forEach(([id]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.closest('.ob-pb-item')?.classList.remove('zle'); }
+  });
+  const errEl = document.getElementById('ob-pb-err');
+  if (errEl) { errEl.textContent = ''; errEl.classList.remove('on'); }
+  obNext(3);
+}
+
 function obNext(step) {
   // Validate step 1
   if (step === 1) {
@@ -5579,6 +5667,7 @@ function obNext(step) {
       // Let them proceed without coach — they can set later
     }
   }
+  if (step === 3 && !obWalidujPB()) return;   // zyciowki: blad zatrzymuje na ekranie
   document.getElementById('ob-s' + step).style.display = 'none';
   const next = document.getElementById('ob-s' + (step + 1));
   if (next) next.style.display = 'flex';
@@ -5617,14 +5706,15 @@ async function obFinish() {
     const _fresh = _terms && (Date.now() - Date.parse(_terms)) < 86400000;
     if (_terms && _fresh) athleteData.terms_accepted_at = _terms;
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
-    const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
-    const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
-    const pbHalf = document.getElementById('ob-pb-half')?.value.trim();
-    const pbMar = document.getElementById('ob-pb-mar')?.value.trim();
-    if (pb5k) athleteData.pb_5k = pb5k;
-    if (pb10k) athleteData.pb_10k = pb10k;
-    if (pbHalf) athleteData.pb_half = pbHalf;
-    if (pbMar) athleteData.pb_marathon = pbMar;
+    /* Filtr ostatniej szansy. Bramka z komunikatem stoi w obNext(3) — tutaj
+       tylko NIE ZAPISUJEMY tego, co nie przeszlo. Onboardingu nie wolno
+       zablokowac na literowce w zyciowce: czlowiek zostalby bez konta. */
+    for (const [id, dyst, kol] of _OB_PB_POLA) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const w = window.walidujPB(window.dopelnijPB(el.value, dyst), dyst);
+      if (w.ok && w.sekundy !== null) athleteData[kol] = window.dopelnijPB(el.value, dyst);
+    }
 
     // Jeśli mamy _athleteId (użytkownik już istnieje) — tylko update
     if (_athleteId) {
@@ -11676,26 +11766,27 @@ window.sendDuelChallenge = sendDuelChallenge;
     <div class="ob-pb-grid">
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">5 km</div>
-        <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="22:00" maxlength="5" inputmode="numeric" oninput="autoColonResult(this)">
+        <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="22:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">10 km</div>
-        <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="45:00" maxlength="5" inputmode="numeric" oninput="autoColonResult(this)">
+        <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="45:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Półmaraton</div>
-        <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)">
+        <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Maraton</div>
-        <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="3:30:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)">
+        <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="3:30:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)">
       </div>
     </div>
+    <div id="ob-pb-err" class="pb-err" style="text-align:center;margin-top:12px;"></div>
     <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;margin-top:16px;">Możesz uzupełnić później w profilu</div>
   </div>
   <div class="ob-footer">
     <button class="ob-btn" onclick="obNext(3)">Dalej &#x2192;</button>
-    <button class="ob-btn-ghost" onclick="obNext(3)">Pomiń</button>
+    <button class="ob-btn-ghost" onclick="obSkipPB()">Pomiń</button>
   </div>
 </div>
 

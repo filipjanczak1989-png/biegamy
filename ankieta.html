@@ -342,6 +342,10 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',sa
   margin-top:5px;line-height:1.4;
 }
 .field-hint a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);}
+/* Blad walidacji PB — INLINE, nad podpowiedzia. Wiersz jest 2-kolumnowy,
+   wiec komunikat idzie pod cala pare pol, a bledne pole dostaje ramke. */
+.pb-err{display:none;margin-top:6px;font-size:11px;line-height:1.45;color:#e05050;}
+.pb-err.on{display:block;}
 
 input[type="text"], input[type="email"], input[type="tel"], 
 input[type="number"], input[type="date"], input[type="time"],
@@ -860,13 +864,14 @@ select{
     <div class="field">
       <label class="field-label">Życiówki (jeśli masz)</label>
       <div class="row">
-        <input type="text" id="f_pb_5k" placeholder="5km: 22:30">
-        <input type="text" id="f_pb_10k" placeholder="10km: 48:15">
+        <input type="text" id="f_pb_5k" placeholder="5km: 22:30" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)">
+        <input type="text" id="f_pb_10k" placeholder="10km: 48:15" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)">
       </div>
       <div class="row" style="margin-top:8px;">
-        <input type="text" id="f_pb_half" placeholder="Półmaraton: 1:45:00">
-        <input type="text" id="f_pb_marathon" placeholder="Maraton: 3:50:00">
+        <input type="text" id="f_pb_half" placeholder="Półmaraton: 1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)">
+        <input type="text" id="f_pb_marathon" placeholder="Maraton: 3:50:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)">
       </div>
+      <div id="pb-err-ankieta" class="pb-err"></div>
       <div class="field-hint">Wpisz tylko to co masz. Resztę zostaw puste.</div>
     </div>
 
@@ -1576,6 +1581,38 @@ function validateSection(n) {
 // ════════════════════════════════════════════════════════════════════
 // SUBMIT
 // ════════════════════════════════════════════════════════════════════
+/* [id_pola, dystans_km]. Karmi window.walidujPB (SSOT w sb.js) — ten sam
+   walidator co savePBs, onboarding i oba panele trenera. */
+const _ANK_PB_POLA = [
+  ['f_pb_5k',       5      ],
+  ['f_pb_10k',      10     ],
+  ['f_pb_half',     21.0975],
+  ['f_pb_marathon', 42.195 ],
+];
+
+/* Bramka TYLKO na submit. Draft (saveDraft, debounce 1200 ms) zostaje
+   nietkniety — to zapis w trakcie pisania, a accept_intake_form_terms
+   i tak kopiuje wylacznie ankiety ze statusem 'submitted' (migracja
+   20260713130000, RAISE gdy status inny). */
+function walidujPBAnkieta() {
+  const errEl = document.getElementById('pb-err-ankieta');
+  let zle = null;
+  for (const [id, dyst] of _ANK_PB_POLA) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = window.dopelnijPB(el.value, dyst);
+    const w = window.walidujPB(el.value, dyst);
+    el.style.borderColor = w.ok ? '' : '#e05050';
+    if (!w.ok && !zle) zle = { el, blad: w.blad };
+  }
+  if (errEl) {
+    errEl.textContent = zle ? zle.blad : '';
+    errEl.classList.toggle('on', !!zle);
+  }
+  if (zle) { zle.el.scrollIntoView({ behavior:'smooth', block:'center' }); zle.el.focus(); return false; }
+  return true;
+}
+
 async function submitForm() {
   // Walidacja zgód
   const consentData = document.getElementById('consent_data').checked;
@@ -1589,7 +1626,11 @@ async function submitForm() {
     return;
   }
   errorEl.classList.remove('show');
-  
+
+  /* PB dopiero PO zgodach: zgody sa przy przycisku, wiec ich blad czlowiek
+     widzi tam, gdzie stoi. Dopiero potem przewijamy go w gore do zyciowek. */
+  if (!walidujPBAnkieta()) return;
+
   // Zapisz finalnie jako submitted
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;

@@ -286,7 +286,13 @@
   window.autoColonPace = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,4);if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
   // Live oninput format MM:SS — czasy PB 5k/10k (2-cyfr. minuty): ':' PO 2 cyfrach, cap 5
   // -> "4530"->"45:30", "2200"->"22:00". (Byl fork: autoColonResult zawodnik + autoColonShort trener.)
-  window.autoColonResult = function(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=3)v=v.slice(0,2)+":"+v.slice(2);el.value=v.slice(0,5);};
+  // !! ROZLUZNIONE 14.08.2026 o warstwe H:MM:SS. Powod: cap .slice(0,5) dawal
+  //    maksimum "99:59" = 1 h 39 min, wiec czlowiek przechodzacy dziesiatke
+  //    w 1:40 NIE MOGL wpisac swojego wyniku. Ponizej 5 cyfr zachowanie jest
+  //    bajt w bajt takie jak bylo ("453"->"45:3", "4530"->"45:30").
+  //    Bezpieczne, bo konsumenci tej maski to WYLACZNIE pola PB 5/10 km
+  //    (6 sztuk: zawodnik x2 + onboarding x2 + trener x2) — sprawdzone grepem.
+  window.autoColonResult = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,6);if(v.length>=5)v=v.slice(0,-4)+":"+v.slice(-4,-2)+":"+v.slice(-2);else if(v.length>=3)v=v.slice(0,2)+":"+v.slice(2);el.value=v;};
   // Live oninput format H:MM:SS — czasy biegu/PB. Model "od prawej" (ostatnie 2=sek), cap 6 cyfr:
   // >=5 cyfr -> H:MM:SS/HH:MM:SS; >=3 -> M:SS/MM:SS. "530"->"5:30", "104500"->"10:45:00".
   // (Byl fork rozjechany: autoColonTime zawodnik/narzedzia + kalAutoColonTime kalendarz + autoColon trener.)
@@ -294,6 +300,71 @@
   // OUTPUT-formatter (secs->string DISPLAY; odwrotnosc autocolon-input). h>0 ? H:MM:SS : M:SS.
   // Render pace/splitow/VDOT/stref (narzedzia+zawodnik). (Byl fork bajt-identyczny x2.)
   window._secsToTime = function(secs){secs=Math.round(secs);const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0");};
+
+  // ── WALIDACJA PB (SSOT dla 5 sciezek zapisu athletes.pb_*) ─────────────────
+  // !! MASKA NIE JEST KONTROLA. autoColonTime("99999") sklada "9:99:99",
+  //    autoColonResult("56") zostawia "56" bez dwukropka — obie te wartosci
+  //    siedzialy w produkcji i wymagaly migracji 14.08.2026 (10 z 102 wartosci).
+  //    Czlowiek widzi dwukropki i zaklada, ze system go pilnuje. Nie pilnowal.
+  // !! NAPRAWA JEST OBOK MASKI, NIE W NIEJ: autoColonTime ma 8 obcych
+  //    konsumentow (l-time, calc-riegel-time, lm-time...), gdzie model
+  //    "od prawej" jest poprawny. Zmiana maski zepsulaby tamte pola.
+  window._PB_DYST = {
+    5:       { gen:'5 km',        loc:'5 km',           rek:750,  przyklad:'22:00'   },
+    10:      { gen:'10 km',       loc:'10 km',          rek:1560, przyklad:'45:30'   },
+    21.0975: { gen:'półmaratonu', loc:'półmaratonie',   rek:3420, przyklad:'1:45:00' },
+    42.195:  { gen:'maratonu',    loc:'maratonie',      rek:7200, przyklad:'3:45:00' }
+  };
+  window._PB_KSZTALT = /^\d{1,2}(:\d{1,2}){0,2}$/;
+
+  // Dopelnienie na blur. TO NIE JEST ZGADYWANIE INTENCJI: wartosc dwuczlonowa
+  // na HM/maratonie nie ma drugiego mozliwego odczytania. "2:04" jako 2 min 4 s
+  // byloby szybsze od rekordu swiata o rzad wielkosci, wiec jedyny sensowny
+  // odczyt to 2 godz. 04 min. Poprawka jest JAWNA — czlowiek widzi ja w swoim
+  // polu, przed zapisem, i moze ja cofnac. Renderowi ani migracji nie wolno
+  // zgadywac za czlowieka; polu wejsciowemu wolno mu podpowiedziec.
+  window.dopelnijPB = function(txt, dyst){
+    const v = String(txt||'').trim();
+    if (!v || !window._PB_KSZTALT.test(v)) return v;   // czego nie rozumiemy, tego nie ruszamy
+    const dlugi = dyst > 20, n = v.split(':').length;
+    if (n === 1) return dlugi ? v + ':00:00' : v + ':00';
+    if (n === 2 && dlugi) return v + ':00';
+    return v;
+  };
+
+  // Zwraca {ok, sekundy, blad, ostrzezenie}. sekundy===null znaczy "wyczysc do NULL".
+  // !! KOLEJNOSC SPRAWDZEN JEST ISTOTNA — ustalona testem na 102 wartosciach:
+  //    zera PRZED dwukropkiem  -> inaczej "0" dostaje blad zamiast wyczyszczenia
+  //    ksztalt PRZED dwukropkiem -> inaczej "abc" daje "czytamy jako abc sekund"
+  window.walidujPB = function(txt, dyst){
+    const v = String(txt||'').trim(), d = window._PB_DYST[dyst];
+    if (!v) return { ok:true, sekundy:null };
+    if (window._PB_KSZTALT.test(v) && !/[1-9]/.test(v)) return { ok:true, sekundy:null };
+    if (!window._PB_KSZTALT.test(v))
+      return { ok:false, blad:'Czas zapisz jako ' + (dyst>20 ? 'godziny:minuty:sekundy' : 'minuty:sekundy')
+        + ' — same cyfry i dwukropki, np. „' + d.przyklad + '”.' };
+    const cz = v.split(':').map(Number);
+    if (cz.length === 1)
+      return { ok:false, blad:'Podaj czas z dwukropkiem. Samo „' + v + '” czytamy jako ' + v
+        + ' sekund — dla ' + d.gen + ' wpisz „' + window.dopelnijPB(v, dyst) + '”.' };
+    const zle = cz.slice(1).findIndex(n => n >= 60);
+    if (zle > -1)
+      return { ok:false, blad:'Minuty i sekundy muszą być mniejsze niż 60, a masz tu „'
+        + cz[zle+1] + '”. „' + v + '” nie jest czasem.' };
+    const sek = cz.length === 3 ? cz[0]*3600 + cz[1]*60 + cz[2] : cz[0]*60 + cz[1];
+    if (sek === 0) return { ok:true, sekundy:null };
+    if (dyst > 20 && cz.length === 2)
+      return { ok:false, blad:'Na ' + d.loc + ' podaj też sekundy: „' + v + ':00” to ' + cz[0]
+        + ' godz. ' + cz[1] + ' min. Samo „' + v + '” znaczyłoby ' + cz[0] + ' min ' + cz[1] + ' s.' };
+    if (sek < d.rek)
+      return { ok:false, blad:'„' + v + '” na ' + d.loc + ' to szybciej niż rekord świata. '
+        + 'Sprawdź, czy nie zamieniłeś minut z godzinami.' };
+    const sKm = sek / dyst;
+    if (sKm > 600)
+      return { ok:true, sekundy:sek, ostrzezenie:'To tempo ' + window._secsToTime(Math.round(sKm))
+        + '/km — wolniej niż 10:00/km. Jeśli tak było, zostaw.' };
+    return { ok:true, sekundy:sek };
+  };
 
   // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
   // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).

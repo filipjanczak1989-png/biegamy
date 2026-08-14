@@ -116,3 +116,43 @@ bramka zadziałała dokładnie tak, jak miała.
 **Objaw ostrzegawczy.** Flaga dodana „na wszelki wypadek", zanim cokolwiek
 zawiodło. Każdy przełącznik wyłączający kontrolę wymaga powodu **sprzed**
 jego użycia, nie usprawiedliwienia po fakcie.
+
+---
+
+## 5. Maska wejściowa jako ŹRÓDŁO śmieciowych danych (14.08.2026)
+
+**Co się stało.** `autoColonTime('99999')` składa `'9:99:99'` z pięciu cyfr —
+wartość, która potem siedzi w bazie i wymaga migracji. Maska **formatuje, ale
+nie waliduje**, a wygląda, jakby walidowała: człowiek widzi dwukropki
+pojawiające się same i zakłada, że system go pilnuje.
+
+**Skala.** 10 ze 102 wartości PB wymagało prostowania. Wszystkie trzy klasy
+błędu przeszły **przez** maski, nie obok nich:
+
+| wejście | maska | wynik w bazie | co człowiek miał na myśli |
+|---|---|---|---|
+| `99999` | `autoColonTime` | `9:99:99` | cokolwiek — 99 minut nie istnieje |
+| `0204` | `autoColonTime` | `02:04` | 2 godz. 04 min na półmaratonie |
+| `56` | `autoColonResult` | `56` | 56 minut na dziesiątce |
+
+Pierwszą maska **wyprodukowała**. Drugą przetłumaczyła na przeciwne
+znaczenie („od prawej" = mm:ss). Trzeciej nie tknęła, bo poniżej trzech cyfr
+nie wstawia dwukropka.
+
+**Dlaczego to groźniejsze niż brak maski.** Pole zupełnie bez maski wygląda na
+niepilnowane i człowiek sam się stara. Pole z maską daje **fałszywe poczucie
+kontroli** — po obu stronach: użytkownik ufa, że format jest wymuszany,
+a programista widzi „maska jest, temat zamknięty" i nie dopisuje walidacji.
+Dokładnie to się stało: dwa z pięciu miejsc zapisu miały poprawne maski
+rozdzielone per dystans i **żadnej** walidacji.
+
+**Zasada.** Każda maska wejściowa potrzebuje **walidatora obok** —
+formatowanie nie jest kontrolą. Maska pomaga wpisać, walidator decyduje,
+czy zapisać.
+
+**Wskazówka wykonawcza.** Naprawa idzie **obok maski, nie w niej**.
+`autoColonTime` ma ośmiu obcych konsumentów, u których model „od prawej"
+jest poprawny — zmiana maski naprawiłaby PB i zepsuła czasy treningów.
+Sprawdź listę konsumentów, zanim ruszysz współdzieloną funkcję: przy
+`autoColonResult` grep pokazał, że używają jej **wyłącznie** pola PB 5/10 km,
+więc ją rozluźnić było bezpiecznie. Przy `autoColonTime` nie było.
