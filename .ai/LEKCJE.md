@@ -88,3 +88,31 @@ nie wykryje, że przestała patrzeć.
 faktycznie zasila i kiedy** — nie co sugeruje nazwa. Ta sama zasada jest
 zapisana w `docs/odznaki-katalog-vs-silnik-spec.md` jako „pole musi nieść
 tę informację, o której mówi opis".
+
+---
+
+## 4. Obchodzenie weryfikacji odruchowo, „bo i tak nic nie sprawdza" (14.08.2026)
+
+**Co zrobiłem źle.** Commitując guard licznika, dodałem `--no-verify`
+zapobiegawczo — nie dlatego, że hook zablokował commit, tylko żeby nie
+zablokował. Dopiero po fakcie sprawdziłem, że repo nie ma żadnych hooków.
+
+**Dlaczego to było groźne mimo zerowych skutków.** Konsekwencji dziś nie
+było, ale odruch jest trwalszy niż stan repo. W backlogu jest pozycja
+o podpięciu bramek (`sprawdz-spol-stale.py`, `sprawdz-run-types.py`) tak,
+żeby **blokowały** commit. Nawyk dopisywania `--no-verify` unieważniłby
+tę pracę w dniu, w którym wejdzie — i to po cichu, bo commit dalej by
+przechodził. To ta sama klasa co lekcja 2: mechanizm kontrolny, który
+formalnie istnieje, ale nic nie zatrzymuje.
+
+**Kolejność też była zła.** Sprawdziłem `.git/hooks` **po** commicie.
+Gdyby hook istniał, dowiedziałbym się o tym już po ominięciu go.
+
+**Zasada.** Nigdy nie dodawaj `--no-verify`, `--no-gpg-sign` ani innego
+wyłącznika weryfikacji, dopóki nie zażąda tego człowiek. Jeśli hook
+zablokuje commit, **to jest sygnał do sprawdzenia, nie do ominięcia** —
+bramka zadziałała dokładnie tak, jak miała.
+
+**Objaw ostrzegawczy.** Flaga dodana „na wszelki wypadek", zanim cokolwiek
+zawiodło. Każdy przełącznik wyłączający kontrolę wymaga powodu **sprzed**
+jego użycia, nie usprawiedliwienia po fakcie.
