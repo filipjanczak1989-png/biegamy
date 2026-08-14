@@ -644,6 +644,108 @@
   };
 
   // ═══════════════════════════════════════════════════════════════
+  // 🔄 SERVICE WORKER — rejestracja + pasek nowej wersji (SSOT dla 6 stron)
+  // ═══════════════════════════════════════════════════════════════
+  //
+  // !! BYLO: bajt-identyczny blok (md5 1a80a10c22) w index/kalendarz/profil/
+  //    trener/wyzwania/zawodnik, a w nim `controllerchange -> location.reload()`
+  //    BEZ WARUNKU I BEZ PYTANIA. Kazdy deploy przeladowywal wszystkim otwarta
+  //    karte w ciagu <= 60 s, w losowym momencie interakcji. 14.08.2026 bylo
+  //    11 auto-bumpow = do 11 resetow u kazdego, kto mial aplikacje otwarta.
+  //    Maciek zglosil to jako "ekran miga i wraca do stanu poczatkowego".
+  //
+  // !! DLACZEGO PASEK, A NIE "NIE ROBIMY NIC": bez paska czlowiek NIE WIE,
+  //    ze siedzi na starej wersji. To ma znaczenie przy zglaszaniu bledow —
+  //    chcemy wiedziec, czy patrzy na kod sprzed trzech deployow, czy na
+  //    biezacy. Pasek daje mu sprawczosc zamiast zaskoczenia, a to byla
+  //    cala skarga.
+  //
+  // !! skipWaiting()/clients.claim() w sw.js ZOSTAJA. Bez nich przycisk
+  //    "Odswiez" nic by nie dal: nowy SW czeka, dopoki zyje kontrolowany
+  //    klient, a przeladowanie klienta go nie zwalnia. Musielibysmy odbudowac
+  //    postMessage + controllerchange, czyli dokladnie to, co likwidujemy.
+  //
+  // !! showToast SIE NIE NADAJE: ma pointer-events:none (nie da sie kliknac),
+  //    znika po 2,5 s, a w trener.html i profil.html jest przeslonity wlasnymi
+  //    implementacjami. Dlatego pasek jest samodzielny.
+  window.bmPasekNowejWersji = function () {
+    if (document.getElementById('bm-nowa-wersja')) return;      // tylko raz na zycie strony
+    var p = document.createElement('div');
+    p.id = 'bm-nowa-wersja';
+    // !! POZYCJA: DOL, NAD NAWIGACJA — nie gora. Gora jest zajeta przez trwaly
+    //    chrome, ktorego nie wolno zaslonic: w zawodnik.html .topbar ma dzwonek
+    //    (#zawodnik-bell) i badge zegarka (#watch-badge-slot) w rzedzie
+    //    zaczynajacym sie na y=54px, a profil.html ma naglowek i przycisk
+    //    wstecz na `calc(env(safe-area-inset-top,0px) + 8px/12px)`.
+    //    Zmierzone: tylko profil.html ma viewport-fit=cover, wiec tylko tam
+    //    inset jest niezerowy — i akurat tam pasek na gorze siadalby wprost
+    //    na przycisku wstecz.
+    // !! 80px odstepu od dolu: .bottom-nav (theme.css) ma ok. 66px wysokosci
+    //    + env(safe-area-inset-bottom). 80 czysci ja z zapasem.
+    // !! z-index 400, nie 300. Zmierzone maksima ponizej 400 na szesciu
+    //    stronach: kalendarz 350, profil/trener/zawodnik 300, wyzwania 100.
+    //    400 przebija wszystkie, a zostaje o dwa rzedy wielkosci pod warstwa
+    //    modali (9998-99999) — patrz [[reference_zindex_kanon]]: kanon
+    //    200/250/300 dotyczy TYLKO chrome'u, modale siedza w tysiacach.
+    // !! SWIADOMY KOMPROMIS: pasek moze nachodzic na dolny arkusz (.modal-bg
+    //    ma z-index 100). Akceptujemy, bo pasek ma krzyzyk, a modal jest
+    //    przejsciowy — i tak czy siak jest to mniej szkodliwe niz poprzednie
+    //    zachowanie, ktore CALE zadanie kasowalo przeladowaniem.
+    p.style.cssText =
+      'position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:50%;' +
+      'transform:translateX(-50%);z-index:400;display:flex;align-items:center;gap:10px;' +
+      'background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.14);' +
+      'border-radius:12px;padding:9px 12px;font-family:\'DM Sans\',sans-serif;' +
+      'font-size:13px;color:#f0ede8;box-shadow:0 8px 24px rgba(0,0,0,0.45);max-width:92vw;';
+    var txt = document.createElement('span');
+    txt.textContent = 'Nowa wersja aplikacji';
+    var ok = document.createElement('button');
+    ok.type = 'button'; ok.textContent = 'Odśwież';
+    ok.style.cssText = 'background:var(--accent,#e8561e);color:#fff;border:none;border-radius:8px;' +
+      'padding:6px 12px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer;flex-shrink:0;';
+    ok.addEventListener('click', function () { window.location.reload(); });
+    var x = document.createElement('button');
+    x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', 'Zamknij');
+    x.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.5);' +
+      'font-size:15px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;';
+    x.addEventListener('click', function () { p.remove(); });
+    p.appendChild(txt); p.appendChild(ok); p.appendChild(x);
+    document.body.appendChild(p);
+  };
+
+  window.bmRejestrujSW = function () {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(function (reg) {
+          reg.addEventListener('updatefound', function () {
+            var nowy = reg.installing;
+            if (!nowy) return;
+            nowy.addEventListener('statechange', function () {
+              // controller !== null znaczy, ze strona JUZ jest kontrolowana przez
+              // starego SW, czyli to AKTUALIZACJA. Przy pierwszej instalacji
+              // controller jest null i pasek sie nie pokazuje — nowy uzytkownik
+              // nie ma po co widziec "nowa wersja" przy pierwszym wejsciu.
+              if (nowy.state === 'installed' && navigator.serviceWorker.controller) {
+                window.bmPasekNowejWersji();          // ZAMIAST location.reload()
+              }
+            });
+          });
+          setInterval(function () {
+            if (document.visibilityState === 'visible' && typeof reg.update === 'function') {
+              // .catch() bo bez niego kazda nieudana aktualizacja szla jako
+              // unhandledrejection do client_errors ("Failed to update a ServiceWorker").
+              reg.update().catch(function (e) {
+                console.warn('[PWA] update nieudany:', e && e.message);
+              });
+            }
+          }, 60000);
+        })
+        .catch(function (err) { console.warn('[PWA] rejestracja SW nieudana:', err); });
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════════════
   // 🎨 MOTYWY — przełączanie tokenów (theme.css html[data-theme])
   // ═══════════════════════════════════════════════════════════════
   window.setTheme = function(name){
@@ -1404,7 +1506,16 @@
     try { d = sessionStorage.getItem('bm_vt_dir'); sessionStorage.removeItem('bm_vt_dir'); } catch(_){}
     if (d !== 'fwd' && d !== 'back') return;                // nawigacja nie-swipe → cross-fade (E1)
     document.documentElement.setAttribute('data-vt-dir', d);
-    try { e.viewTransition.finished.finally(function(){ document.documentElement.removeAttribute('data-vt-dir'); }); }
+    /* finished ODRZUCA, gdy przejscie zostanie pominiete albo przerwane.
+       .finally() przepuszcza odrzucenie dalej, a try/catch lapie wylacznie rzut
+       synchroniczny — stad 42 unhandledrejection u 7 osob w 7 dni w client_errors
+       ("Transition was skipped", "Skipping view transition...", "aborted because
+       of invalid state"). Pominiete przejscie NIE JEST bledem, wiec polykamy je
+       cicho; .catch() PRZED .finally(), zeby sprzatanie atrybutu wykonalo sie
+       w obu przypadkach. */
+    try { e.viewTransition.finished
+            .catch(function(){})
+            .finally(function(){ document.documentElement.removeAttribute('data-vt-dir'); }); }
     catch(_){ document.documentElement.removeAttribute('data-vt-dir'); }
   });
 

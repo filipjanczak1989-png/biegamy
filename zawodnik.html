@@ -5846,9 +5846,35 @@ async function obFinish() {
     }
 
     if (_athleteId) {
+      try { sessionStorage.removeItem('bm_ob_reload'); } catch(_) {}   /* sukces czysci licznik */
       await loadLogs();
     } else {
-      setTimeout(() => window.location.reload(), 800);
+      /* Reload jest RATUNKIEM NA WYSCIG (sesja jeszcze nie rozpropagowana).
+         !! BYLO bez licznika: po przeladowaniu onboarding pokazuje sie od nowa
+            (flaga biegamy_needs_onboarding), czlowiek klika "Gotowe" ponownie
+            i cykl sie powtarza. Nie jest to petla samoczynna — obFinish leci
+            tylko z przycisku — ale przy trwalej awarii (RLS, duplikat maila,
+            brak sieci) uzytkownik kraze bez konca i ANI RAZU nie dowiaduje sie
+            dlaczego; widzi tylko, ze ekran sie resetuje.
+         !! Limit 1: jesli jedno przeladowanie nie pomoglo, drugie tez nie
+            pomoze — to juz awaria trwala, nie wyscig.
+         !! sessionStorage, nie localStorage: licznik ma zniknac z karta. */
+      let proby = 0;
+      try { proby = parseInt(sessionStorage.getItem('bm_ob_reload') || '0', 10) || 0; } catch(_) {}
+      if (proby < 1) {
+        try { sessionStorage.setItem('bm_ob_reload', String(proby + 1)); } catch(_) {}
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        /* !! NIE czyscimy licznika tutaj. Gdyby czyscic, trzeci klik zaczynalby
+           od zera i znowu przeladowywal — reset co drugie klikniecie. Licznik
+           znika dopiero przy sukcesie albo z zamknieciem karty. */
+        if (errEl) {
+          errEl.textContent = 'Nie udało się dokończyć zakładania konta. Odśwież stronę '
+            + 'albo napisz do nas — możliwe, że konto z tym adresem już istnieje.';
+          errEl.style.display = 'block';
+        }
+        if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+      }
     }
 
   } catch(e) {
@@ -12179,50 +12205,11 @@ window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
 
 <!-- PWA Service Worker -->
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                // Fallback gdy controllerchange nie odpali w 5s
-                setTimeout(function() {
-                  if (!refreshing) {
-                    console.warn('[PWA] controllerchange nie odpalił, force reload');
-                    window.location.reload();
-                  }
-                }, 5000);
-              }
-            });
-          }
-        });
-        // Periodic update check co 60s (tylko gdy karta widoczna)
-        setInterval(function() {
-          if (document.visibilityState === 'visible' && typeof reg.update === 'function') {
-            reg.update();
-          }
-        }, 60000);
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
+/* Rejestracja SW -> window.bmRejestrujSW (SSOT w sb.js). Bylo SZESC bajt-
+   identycznych kopii, kazda z `controllerchange -> location.reload()` bez
+   warunku: po kazdym deployu otwarta karta przeladowywala sie sama w ciagu
+   <= 60 s. 14.08.2026 = 11 auto-bumpow = do 11 resetow u uzytkownika. */
+if (window.bmRejestrujSW) window.bmRejestrujSW();
 </script>
 
 <!-- ═══════════════════════════ SEKCJA FORMY (Faza A mockup) ═══════════════════════════ -->
