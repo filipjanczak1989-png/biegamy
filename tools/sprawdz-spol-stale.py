@@ -140,7 +140,28 @@ WZOR_DATY = r"logged_at[^\n]{0,80}?(>=|<=|<|>|=)\s*'(\d{4}-\d{2}-\d{2})'"
 #    w v_km i w v_wklad. Spadek = bramka przestala rozpoznawac forme zapisu,
 #    NIE = granice zniknely. Przy swiadomej zmianie liczby zapytan podnies
 #    lub obniz RECZNIE, w tym samym commicie.
+#
+# !! GUARD "DO DZIS" NIE WLICZA SIE DO TEGO PROGU i tak ma byc. WZOR_DATY
+#    wymaga LITERALU daty ('2026-08-15'), a guard porownuje z now() — wiec
+#    po dodaniu guardu liczba znalezisk dalej wynosi 4, nie 6. Podniesienie
+#    progu do 6 zepsuloby bramke: szukalaby literalow, ktorych nigdy nie bedzie.
+#    Guard ma WLASNA kontrole (MIN_GUARDOW ponizej) — osobna, bo to osobny
+#    niezmiennik: granice okna pilnuja ZAKRESU wyzwania, guard pilnuje tego,
+#    ze licznik nie wyprzedza rzeczywistosci.
 MIN_ZNALEZISK = 4
+
+# ── GUARD "DO DZIS" — licznik nie pokazuje kilometrow z przyszlosci ─────────
+# Bez tego bramka swiecilaby na zielono po cichym usunieciu guardu: granice
+# okna zostalyby na miejscu, wiec MIN_ZNALEZISK dalej by sie zgadzal, a licznik
+# znowu liczylby biegi, ktore sie nie odbyly (14.08.2026: 1 log w przyszlosci
+# = 100% wartosci licznika).
+#
+# Wzorzec lapie PRAWA STRONE porownania, bo lewa bywa lamana na dwie linie.
+# Swiadomie NIE akceptujemy wariantow (current_date, now()::date bez strefy):
+# now()::date idzie w UTC i miedzy polnoca a 02:00 czasu polskiego wycinalby
+# dzisiejsze logi. Inna forma = bramka pada, i o to chodzi.
+WZOR_GUARDU = r"<=\s*\(\s*now\(\)\s*at\s+time\s+zone\s*'Europe/Warsaw'\s*\)::date"
+MIN_GUARDOW = 2          # po jednym w v_km i w v_wklad
 
 SQL = sorted(glob.glob('supabase/migrations/*.sql'))
 
@@ -163,9 +184,17 @@ if najnowsza:
     for m in re.finditer(WZOR_DATY, czytaj(najnowsza) or ''):
         trafienia.append((najnowsza, m.group(1), m.group(2)))
 
+guardow = len(re.findall(WZOR_GUARDU, czytaj(najnowsza) or '')) if najnowsza else 0
+
 if not najnowsza:
     bledy.append('ZADNA migracja nie definiuje community_km — granice okna '
                  'sa poza kontrola')
+elif guardow < MIN_GUARDOW:
+    bledy.append('BRAK GUARDU "DO DZIS" w %s: znaleziono %d, oczekiwano %d '
+                 '(po jednym w v_km i v_wklad). Bez niego licznik pokazuje '
+                 'kilometry z data w przyszlosci — cap 100 km/doba tego NIE '
+                 'lapie, bo kazdy przyszly dzien ma wlasny kubelek.'
+                 % (najnowsza, guardow, MIN_GUARDOW))
 elif len(trafienia) < MIN_ZNALEZISK:
     bledy.append('ZA MALO GRANIC w %s: znaleziono %d, oczekiwano co najmniej %d. '
                  'To NIE znaczy, ze granice zniknely — najpewniej zmienila sie '
@@ -173,6 +202,8 @@ elif len(trafienia) < MIN_ZNALEZISK:
                  % (najnowsza, len(trafienia), MIN_ZNALEZISK,
                     ', '.join('%s %s' % (op, d) for _, op, d in trafienia) or '(nic)'))
 else:
+    print('  OK    GUARD       "do dzis" x%d w %s (licznik nie wyprzedza rzeczywistosci)'
+          % (guardow, najnowsza.split('/')[-1].split('\\')[-1]))
     for f, op, d in trafienia:
         if op in ('>=', '>'):
             znalezione.setdefault('OKNO_OD', []).append((f, d))
