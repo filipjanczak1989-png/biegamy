@@ -4249,6 +4249,7 @@ window._renderKmLongterm = async function(tryb) {
   const MON = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
   const kmOf = (l) => window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0;
   let buckets = [];
+  let zakresMies = '';        /* rok zdjety z osi Miesiecy -> idzie do podpisu sumy */
   if (tryb === 'year') {
     const byY = {};
     logs.forEach(l => { const y = new Date(l.logged_at).getFullYear(); byY[y] = (byY[y] || 0) + kmOf(l); });
@@ -4269,26 +4270,60 @@ window._renderKmLongterm = async function(tryb) {
     }
   } else {
     const now = new Date();
+    /* Rok szedl na os jako " '26" — 7 znakow = 33,6 px w kolumnie 19,5 px.
+       To byly JEDYNE dwie etykiety Miesiecy, ktore sie nie miescily; pozostale
+       dziesiec ("sie" = 14,4 px) bylo w porzadku. Wiec zamiast przerzedzac
+       cala os, zdejmujemy suffix i przenosimy rok do podpisu sumy pod wykresem:
+       informacja zostaje, os zostaje kompletna, kolizja znika. */
+    let odMies = '', doMies = '', odRok = '', doRok = '';
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const y = d.getFullYear(), m = d.getMonth();
+      if (i === 11) { odMies = MON[m]; odRok = String(y).slice(2); }
+      if (i === 0)  { doMies = MON[m]; doRok = String(y).slice(2); }
       const km = logs.filter(l => { const dl = new Date(l.logged_at); return dl.getFullYear() === y && dl.getMonth() === m; })
         .reduce((s, l) => s + kmOf(l), 0);
-      buckets.push({ lbl: MON[m] + (m === 0 || i === 11 ? " '" + String(y).slice(2) : ''), km: Math.round(km) });
+      buckets.push({ lbl: MON[m], km: Math.round(km) });
     }
+    /* Gdy oba konce sa w tym samym roku (okno konczace sie w grudniu), rok
+       pada raz: "sty – gru '26" zamiast "sty '26 – gru '26". */
+    zakresMies = odRok === doRok
+      ? odMies + ' – ' + doMies + " '" + doRok
+      : odMies + " '" + odRok + ' – ' + doMies + " '" + doRok;
   }
   const maxKm = Math.max(...buckets.map(b => b.km), 1);
-  box.innerHTML = buckets.map(b => {
+  /* PRZERZEDZENIE OSI. Etykieta DD.MM ma 24 px (DM Mono 8 px), a kolumna
+     przy 12 kubelkach 19,5 px na ekranie 360 px i 16,2 px na 320 px.
+     white-space:nowrap nie pozwala jej zawinac -> "27.0703.0810.08".
+     Co druga etykieta daje 45 px / 38,3 px na podpis, czyli zapas 89% / 60%.
+     !! KOTWICA OD KONCA, nie `i % 2`: przy parzystej liczbie kubelkow naiwny
+        modulo zostawilby bez podpisu OSTATNI slupek, czyli biezacy tydzien.
+     !! Prog 8: ponizej dziewieciu kubelkow kolumna ma >= 27 px nawet na 320 px,
+        wiec etykieta sie miesci i przerzedzanie tylko odbieraloby informacje
+        (przy 2 kubelkach zostalby JEDEN podpis). Dzis week/month zawsze daja
+        12, ale prog chroni przed zmiana tej stalej w przyszlosci.
+     !! Miesiace i Lata sie NIE przerzedzaja — tam etykiety sie mieszcza,
+        problemem byl wylacznie suffix roku, zdjety wyzej. */
+  const coKtora = (tryb === 'week' && buckets.length > 8) ? 2 : 1;
+  box.innerHTML = buckets.map((b, i) => {
+    const pokazEt = (buckets.length - 1 - i) % coKtora === 0;
     const h = Math.max(3, Math.round(110 * b.km / maxKm));
     const isMax = b.km === maxKm && b.km > 0;
     const col = isMax ? 'linear-gradient(180deg,#e8561e,#fb923c)' : 'rgba(232,86,30,0.45)';
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;">'
       + '<div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;">' + (b.km || '') + '</div>'
       + '<div style="width:100%;max-width:26px;height:' + h + 'px;background:' + col + ';border-radius:4px 4px 0 0;transition:height 0.6s var(--ease-out);"></div>'
-      + '<div style="font-size:8px;color:rgba(255,255,255,0.45);font-family:\'DM Mono\',monospace;white-space:nowrap;">' + b.lbl + '</div></div>';
+      /* &nbsp; zamiast pustki: div bez tresci nie tworzy line boxa i ma
+         wysokosc 0, wiec kolumna bez podpisu bylaby nizsza, a przy
+         align-items:flex-end jej slupek zjechalby w dol. Wysokosc line boxa
+         zalezy od metryk fontu i line-height, nie od tego, ktory to glif —
+         wiec "&nbsp;" i "27.07" daja identyczna wysokosc. */
+      + '<div style="font-size:8px;color:rgba(255,255,255,0.45);font-family:\'DM Mono\',monospace;white-space:nowrap;">' + (pokazEt ? b.lbl : '&nbsp;') + '</div></div>';
   }).join('');
   const total = buckets.reduce((s, b) => s + b.km, 0);
-  const okres = tryb === 'year' ? (buckets.length + ' lat') : (tryb === 'week' ? '12 tygodni' : '12 miesięcy');
+  const okres = tryb === 'year' ? (buckets.length + ' lat')
+              : tryb === 'week' ? '12 tygodni'
+              : '12 miesięcy (' + zakresMies + ')';
   if (sumEl) sumEl.textContent = 'Suma ' + okres + ': ' + total.toLocaleString('pl-PL') + ' km';
 };
 window.loadFormaSection = async function() {

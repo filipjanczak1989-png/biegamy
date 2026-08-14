@@ -2274,7 +2274,7 @@ window._icuRenderSplits = function (d, el) {
       title: 'Heatmap · 13 tygodni',
       sections: [
         { heading: 'Co to jest', body: 'Heatmap to <b>GitHub-style mapa cieplna</b> — 13 tygodni × 7 dni. Każda komórka = jeden dzień, kolor pokazuje intensywność treningu (TRIMP).' },
-        { heading: 'Jak czytać', body: '5 poziomów intensywności:<br><br>⬜ <b>0</b> — brak treningu (regeneracja lub odpoczynek)<br>🟩 <b>1-30 TRIMP</b> — lekki (spokojny bieg, krótka aktywność)<br>🟢 <b>31-60 TRIMP</b> — średni (typowy trening 60min)<br>🟠 <b>61-100 TRIMP</b> — wysoki (tempo, długi, interwały)<br>🔴 <b>&gt; 100 TRIMP</b> — bardzo wysoki (long, ciężki interwałowy, race)<br><br>Hover na komórkę = data, TRIMP, kcal.' },
+        { heading: 'Jak czytać', body: '5 poziomów intensywności:<br><br>⬜ <b>0</b> — brak treningu (regeneracja lub odpoczynek)<br>🟩 <b>1-30 TRIMP</b> — lekki (spokojny bieg, krótka aktywność)<br>🟢 <b>31-60 TRIMP</b> — średni (typowy trening 60min)<br>🟠 <b>61-100 TRIMP</b> — wysoki (tempo, długi, interwały)<br>🔴 <b>&gt; 100 TRIMP</b> — bardzo wysoki (long, ciężki interwałowy, race)<br><br>Dotknij dowolnej komórki, żeby zobaczyć datę i TRIMP tego dnia (oraz kalorie, jeśli są policzone). Dzień z treningiem otworzy się w kalendarzu.' },
         { heading: 'Co robić', body: '• <b>Patrz na pattern, nie pojedyncze dni</b> — szukasz mieszanki kolorów. Same zielone = brak intensywności. Same czerwone = brak regeneracji.<br>• <b>Białe dni 2× w tygodniu</b> = zdrowa regeneracja. 0 białych dni &gt; 2 tygodnie = ryzyko przemęczenia.<br>• <b>Dwa czerwone z rzędu</b> = sprawdź czy następny jest biały/zielony. Twardy-twardy-twardy = receptura na kontuzję.' }
       ]
     },
