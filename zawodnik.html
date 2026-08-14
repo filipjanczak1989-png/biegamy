@@ -443,7 +443,7 @@ body > *{position:relative;z-index:1;}
 
 /* Form fields */
 .field{margin-bottom:16px;}
-.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:7px;}
+.field label{display:block;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg2);font-family:DM Mono,monospace;margin-bottom:7px;}
 .field input,.field textarea,.field select{
   width:100%;background:rgba(255,255,255,0.04);
   border:1px solid rgba(255,255,255,0.09);
@@ -899,8 +899,11 @@ body > *{position:relative;z-index:1;}
 .ht-tile{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:transform 0.18s,border-color 0.18s;-webkit-tap-highlight-color:transparent;}
 .ht-tile:active{transform:scale(0.96);}
 .ht-tile:hover{border-color:rgba(var(--accent-rgb),0.5);}
-.ht-tile img{width:42px;height:42px;object-fit:contain;}
-.ht-lbl{font-size:8px;letter-spacing:0.03em;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.1;}
+.ht-tile img{width:32px;height:32px;object-fit:contain;}
+/* 10px + ls:0 to maksimum, jakie mieści się w jednym wierszu. Kafel przy ekranie
+   360px ma 57,6px, z tego na treść 49,6px; DM Mono liczy 0,6em na znak, więc
+   limit to 8 znaków (48,0px). WYZWANIA siedzi na granicy z zapasem 1,6px. */
+.ht-lbl{font-size:10px;letter-spacing:0;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.1;}
 </style>
 <div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
 <div class="today-hero fade-in" style="flex:1;margin:0;">
@@ -926,7 +929,11 @@ body > *{position:relative;z-index:1;}
 </div>
 <!-- Kafelki po prawej -->
 <div id="home-tiles-row-right" style="display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;">
-  <button class="ht-tile" onclick="showSection('cwiczenia');return false;"><img data-ic="icon-ex-section.webp" alt=""><span class="ht-lbl">Ćwiczenia</span></button>
+  <!-- CIAŁO, nie "Ćwiczenia": 9 znaków nie mieści się w kaflu przy 10px (54,0 > 49,6px).
+       Obejmuje obie zakładki sekcji — Wzmacnianie i Oddech. SIŁA pomijałaby oddech
+       i rozgrzewkę, ĆWICZ. z kropką wygląda na ucięte w rzędzie pełnych słów.
+       Pozostałe podpisy też są rzeczownikami: ODZNAKI, STARTY, WYZWANIA, CZAT. -->
+  <button class="ht-tile" onclick="showSection('cwiczenia');return false;"><img data-ic="icon-ex-section.webp" alt=""><span class="ht-lbl">Ciało</span></button>
   <button class="ht-tile" onclick="location.href='wyzwania.html'"><img data-ic="icon-radio-trophy.webp" alt=""><span class="ht-lbl">Wyzwania</span></button>
   <button class="ht-tile" onclick="location.href='odznaki.html'"><img data-ic="icon-nav-medal.webp" alt=""><span class="ht-lbl">Odznaki</span></button>
   <button class="ht-tile" id="ht-starty" style="position:relative;" onclick="location.href='races.html'"><span id="starty-dot" style="display:none;position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card),0 2px 8px var(--glow-o);"></span><img data-ic="icon-nav-flag.webp" alt=""><span class="ht-lbl">Starty</span></button>
@@ -1757,7 +1764,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
       <!-- KALORIE — opcjonalne, auto-suggest z MET pokazany jako podpis w label -->
       <div style="margin-bottom:10px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;margin-bottom:4px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg2);font-family:'DM Mono',monospace;margin-bottom:4px;">
           <span>🔥 Kalorie spalone</span>
           <span id="l-kcal-suggest" style="color:var(--accent);font-size:9px;letter-spacing:0;text-transform:none;font-family:'Inter',sans-serif;font-style:italic;"></span>
         </label>
