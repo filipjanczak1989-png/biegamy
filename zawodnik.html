@@ -4609,18 +4609,12 @@ async function loadAvatarTopbar(athleteId) {
 // CTA żyje w pustym stanie #today-card: potrzeba BRAKU trenera i BRAKU treningu
 // na dziś. Oba sygnały przychodzą asynchronicznie z dwóch różnych funkcji, więc
 // decyzję podejmujemy dopiero, gdy znamy oba (null = jeszcze nie wiadomo).
-/* ⚠️ TRYB TESTOWY — generator widoczny WYŁĄCZNIE dla wskazanych zawodników.
-   Docelowy warunek to `coach_id IS NULL` (generator jest dla ludzi bez trenera),
-   ale przed wypuszczeniem Filip musi go dopracować — a jako zawodnik MA trenera,
-   więc docelowego warunku by nie przeszedł.
+/* Generator jest dla ludzi bez trenera. Warunek widocznosci CTA pokrywa sie
+   co do zawodnika z polityka training_plans_insert_self (coach_id IS NULL na
+   wierszu athletes) — kto widzi przycisk, ten zapisze plan.
 
-   ⚠️ PRZED WYPUSZCZENIEM: zdjąć GEN_TESTERZY i wrócić do _brakTrenera.
-   Dopóki ta lista działa, 20 zawodników bez trenera NIE ZOBACZY generatora.
-
-   ⚠️ To wyłącznie widoczność PRZYCISKU. Baza jest nietknięta: zapis planu nadal
-   wymaga coach_id IS NULL po stronie RLS, więc tester z trenerem obejrzy podgląd,
-   ale zapisu do kalendarza nie przepchnie. */
-const GEN_TESTERZY = ['56092926-2cf1-44b6-952f-38614497fdc2'];
+   Tryb testowy GEN_TESTERZY zdjety 14.08.2026. Od teraz CTA widzi kazdy
+   zawodnik bez trenera, ktory nie ma zaplanowanego treningu na dzis. */
 
 /* ── KOMPONENT: CZAS W TRZECH POLACH ───────────────────────────────────────────
    Jedno pole tekstowe było pułapką: Filip wpisał "3:00" jako cel maratoński,
@@ -4748,10 +4742,6 @@ window._odswiezLicznikSpolecznosci = _odswiezLicznikSpolecznosci;
 function _odswiezCtaGeneratora() {
   const el = document.getElementById('gen-cta');
   if (!el) return;
-  if (GEN_TESTERZY.length) {
-    el.style.display = (_athleteId && GEN_TESTERZY.includes(_athleteId) && window._brakTreninguDzis) ? 'block' : 'none';
-    return;
-  }
   const znane = window._brakTrenera != null && window._brakTreninguDzis != null;
   el.style.display = (znane && window._brakTrenera && window._brakTreninguDzis) ? 'block' : 'none';
 }
