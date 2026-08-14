@@ -4707,7 +4707,9 @@ async function _odswiezLicznikSpolecznosci() {
   const el = document.getElementById('spol-pasek');
   if (!el) return;
   const dzis = new Date().toLocaleDateString('sv');          // klucz LOKALNY
-  if (dzis < SPOL_OKNO_OD || dzis > SPOL_OKNO_DO) return;    // przed 1.09 — nikomu
+  const wOknie = (dzis >= SPOL_OKNO_OD && dzis <= SPOL_OKNO_DO)
+              || dzis === SPOL_TEST_DZIEN;                  // prowizorka, wygasa sama
+  if (!wOknie) return;                                      // poza oknem: ani śladu
 
   let d;
   try {
@@ -12602,6 +12604,21 @@ const SPOL_OKNO_DO    = '2026-09-20';
 const SPOL_CEL_KM     = 10000;
 const SPOL_PROG_INDYW = 100;
 const SPOL_DATA_AMES  = '2026-09-20';
+
+/* PROWIZORKA TESTOWA 14.08 — wygasa sama o polnocy przez ROWNOSC na dokladna
+   date (nie zakres, nie >=). Od 15.08 okno otwiera sie naprawde, wiec ta stala
+   niczego juz nie zmienia — do usuniecia przy najblizszym spokojnym commicie.
+
+   Powod, dla ktorego warunek cofniecia siedzi w KODZIE, a nie w obietnicy:
+   krok "wroc i posprzataj" jest najslabszym ogniwem kazdego planu. 12.08 ta
+   sama prowizorka miala zadanie w tle, ktore zostalo ubite — i nie mialo to
+   znaczenia, bo rownosc na date wygasla sama.
+
+   Po co w ogole: zobaczyc UKLAD dwoch paskow (indywidualny nad wspolnym)
+   przed premiera. Logika poza guardem jest przetestowana — cap, strefa
+   i zgodnosc v_wklad z v_km sprawdzone szescioma testami — ale sam render
+   dwoch paskow obok siebie bylby inaczej ogladany pierwszy raz publicznie. */
+const SPOL_TEST_DZIEN = '2026-08-14';
 
 /* ── WYZWANIA CZASOWE ──────────────────────────────────────────────────────
    Odznaki z OKNA CZASOWEGO — w odróżnieniu od reszty katalogu, która liczy

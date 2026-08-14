@@ -57,23 +57,6 @@ else:
             bledy.append('index.html: brak ' + klucz)
         else:
             znalezione.setdefault(klucz, []).append(('index.html', m.group(1)))
-    # PROWIZORKA SPOL_TEST_DZIEN — rozroznienie AKTYWNA vs WYGASLA.
-    # Prowizorka jest rownoscia na dokladna date, wiec wygasa sama o polnocy.
-    # Dopoki data jest DZISIEJSZA lub przyszla — licznik naprawde jest widoczny
-    # poza oknem i bramka MUSI padac. Gdy data minie, zostaje martwy kod:
-    # warto go sprzatnac, ale nic juz nie odslania, wiec nie blokujemy.
-    m_test = re.search(r"SPOL_TEST_DZIEN\s*=\s*'([^']+)'", s)
-    if m_test:
-        import datetime as _dt
-        dzis_iso = _dt.date.today().isoformat()
-        if m_test.group(1) >= dzis_iso:
-            bledy.append("index.html: PROWIZORKA SPOL_TEST_DZIEN = %s jest AKTYWNA — "
-                         "licznik widoczny poza oknem %s..%s"
-                         % (m_test.group(1), OCZEKIWANE['OKNO_OD'], OCZEKIWANE['OKNO_DO']))
-        else:
-            print('  INFO  SPOL_TEST_DZIEN = %s juz WYGASLA (rownosc na date) — '
-                  'martwy kod do sprzatniecia' % m_test.group(1))
-
 # ── 2. zawodnik.html — licznik "Dzis" + WYZWANIA ──
 s = czytaj('zawodnik.html')
 if s is None:
@@ -110,6 +93,33 @@ else:
             znalezione.setdefault('PROG_INDYW', []).append(('WYZWANIA', prog))
             znalezione.setdefault('OKNO_OD',    []).append(('WYZWANIA', od.strip("'")))
             znalezione.setdefault('OKNO_DO',    []).append(('WYZWANIA', do.strip("'")))
+
+# ── PROWIZORKA SPOL_TEST_DZIEN — W KAZDYM PLIKU Z LICZNIKIEM ────────────────
+# Rozroznienie AKTYWNA vs WYGASLA. Prowizorka jest rownoscia na dokladna date,
+# wiec wygasa sama o polnocy. Dopoki data jest DZISIEJSZA lub przyszla, licznik
+# naprawde jest widoczny poza oknem i bramka MUSI padac. Gdy data minie,
+# zostaje martwy kod: warto go sprzatnac, ale nic juz nie odslania.
+#
+# !! SPRAWDZAMY OBA PLIKI. Wczesniej ten test siedzial w bloku index.html
+#    i mial nazwe pliku wpisana na sztywno — prowizorka zostawiona wylacznie
+#    w zawodnik.html przeszlaby NIEZAUWAZONA. Ta sama klasa bledu co
+#    enumerowanie nazw plikow przy wykrywaniu zrodel SQL.
+import datetime as _dt
+_dzis_iso = _dt.date.today().isoformat()
+for _plik in ('index.html', 'zawodnik.html'):
+    _tresc = czytaj(_plik)
+    if not _tresc:
+        continue
+    _m = re.search(r"SPOL_TEST_DZIEN\s*=\s*'([^']+)'", _tresc)
+    if not _m:
+        continue
+    if _m.group(1) >= _dzis_iso:
+        bledy.append("%s: PROWIZORKA SPOL_TEST_DZIEN = %s jest AKTYWNA — "
+                     "licznik widoczny poza oknem %s..%s"
+                     % (_plik, _m.group(1), OCZEKIWANE['OKNO_OD'], OCZEKIWANE['OKNO_DO']))
+    else:
+        print('  INFO  %s: SPOL_TEST_DZIEN = %s juz WYGASLA (rownosc na date) — '
+              'martwy kod do sprzatniecia' % (_plik, _m.group(1)))
 
 # ── 3. SQL — GRANICE OKNA WYKRYWANE PO TRESCI ───────────────────────────────
 # Wzorzec przywiazany do konkretnej formy (`logged_at < 'data'`) przestal
