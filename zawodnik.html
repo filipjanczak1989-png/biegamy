@@ -4544,13 +4544,36 @@ async function _renderPredykcje() {
       .select('pb_5k,pb_10k,pb_half,pb_marathon').eq('id', _athleteId).maybeSingle();
     const PBS = [ ['5 km', 5, ath?.pb_5k], ['10 km', 10, ath?.pb_10k],
       ['Półmaraton', 21.0975, ath?.pb_half], ['Maraton', 42.195, ath?.pb_marathon] ]
-      .map(([n, d, s]) => ({ n, d, s: (s && +s > 0) ? +s : null }));
+      /* window.walidujPB (SSOT w sb.js) — ten sam walidator, ktory pilnuje
+         pieciu sciezek zapisu. Zastepuje `+s` ORAZ reguly "czlon >= 60"
+         i "h:mm na dlugim", bo obie ma juz w srodku.
+         DLACZEGO `+s` bylo zle: dla poprawnego "25:20" dawalo NaN (PB
+         wypadalo po cichu, karta znikala 30 osobom), a dla "56" dawalo 56
+         — czyli 56 SEKUND na dziesiatce. Stad "0:56" i piatka "0:27".
+         !! GUARD `> 0` PRZEZYWA jako `w.sekundy > 0`: walidujPB oddaje
+            sekundy:null dla "0"/"0:00:00", a null > 0 to false. Jedno
+            wyrazenie lapie zera, braki i wartosci nieparsowalne.
+         !! `w.ok`, NIE `!w.ostrzezenie` — tempo > 10:00/km jest ok:true
+            z ostrzezeniem. Wolna zyciowka to nadal zyciowka.
+         !! WARTOSCI h:mm NA HM/MARATONIE SA TU ODRZUCANE, NIE RATOWANE.
+            Ratunek (dopelnijPB) siedzi na onblur przy polu wejsciowym —
+            render nie zgaduje za czlowieka. Klasa jest pusta: 0 takich
+            wartosci w bazie po normalizacji, wszystkie 5 sciezek zapisu
+            zamkniete walidacja. Gdyby jednak cos przecieklo (reczna edycja
+            w bazie, przyszly importer), render zdegraduje do "PB —" plus
+            ekstrapolacja z sasiedniego dystansu — do DEGRADACJI, nie do
+            absurdu. Patrz .ai/LEKCJE.md #5. */
+      .map(([n, d, raw]) => {
+        const w = window.walidujPB(raw, d);
+        return { n, d, s: (w.ok && w.sekundy > 0) ? w.sekundy : null };
+      });
     const majace = PBS.filter(p => p.s);
     if (!majace.length) { box.style.display = 'none'; return; }
     const tsb = (window._formaLast && typeof window._formaLast.tsb === 'number') ? window._formaLast.tsb : 0;
     const kor = tsb < -20 ? 0.025 : tsb < -10 ? 0.015 : tsb < 5 ? 0.005 : tsb <= 15 ? 0 : tsb <= 25 ? 0.005 : 0.01;
-    const fmt = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
-      return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
+    /* Lokalna kopia usunieta -> window._secsToTime (SSOT sb.js:296).
+       Semantycznie identyczna (`h ?` vs `h > 0 ?` — dla dodatnich to samo). */
+    const fmt = window._secsToTime;
     const esc = window.escapeHtml || (x => String(x));
     tb.innerHTML = PBS.map(p => {
       const baza = majace.reduce((a, b) => Math.abs(Math.log(b.d/p.d)) < Math.abs(Math.log(a.d/p.d)) ? b : a);
