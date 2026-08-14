@@ -57,8 +57,22 @@ else:
             bledy.append('index.html: brak ' + klucz)
         else:
             znalezione.setdefault(klucz, []).append(('index.html', m.group(1)))
-    if 'SPOL_TEST_DZIEN' in s:
-        bledy.append('index.html: ZOSTALA PROWIZORKA SPOL_TEST_DZIEN — licznik widoczny poza oknem')
+    # PROWIZORKA SPOL_TEST_DZIEN — rozroznienie AKTYWNA vs WYGASLA.
+    # Prowizorka jest rownoscia na dokladna date, wiec wygasa sama o polnocy.
+    # Dopoki data jest DZISIEJSZA lub przyszla — licznik naprawde jest widoczny
+    # poza oknem i bramka MUSI padac. Gdy data minie, zostaje martwy kod:
+    # warto go sprzatnac, ale nic juz nie odslania, wiec nie blokujemy.
+    m_test = re.search(r"SPOL_TEST_DZIEN\s*=\s*'([^']+)'", s)
+    if m_test:
+        import datetime as _dt
+        dzis_iso = _dt.date.today().isoformat()
+        if m_test.group(1) >= dzis_iso:
+            bledy.append("index.html: PROWIZORKA SPOL_TEST_DZIEN = %s jest AKTYWNA — "
+                         "licznik widoczny poza oknem %s..%s"
+                         % (m_test.group(1), OCZEKIWANE['OKNO_OD'], OCZEKIWANE['OKNO_DO']))
+        else:
+            print('  INFO  SPOL_TEST_DZIEN = %s juz WYGASLA (rownosc na date) — '
+                  'martwy kod do sprzatniecia' % m_test.group(1))
 
 # ── 2. zawodnik.html — licznik "Dzis" + WYZWANIA ──
 s = czytaj('zawodnik.html')
