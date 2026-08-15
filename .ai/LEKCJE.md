@@ -156,3 +156,38 @@ jest poprawny — zmiana maski naprawiłaby PB i zepsuła czasy treningów.
 Sprawdź listę konsumentów, zanim ruszysz współdzieloną funkcję: przy
 `autoColonResult` grep pokazał, że używają jej **wyłącznie** pola PB 5/10 km,
 więc ją rozluźnić było bezpiecznie. Przy `autoColonTime` nie było.
+
+---
+
+## 6. `try/catch` nie łapie funkcji zwracających wartość-śmieć zamiast rzucać (15.08.2026)
+
+**Co zrobiłem źle.** Helper `_dzienWaw` miał `try/catch` wokół
+`toLocaleDateString`, a **gałąź `catch` nie odpalała się nigdy**:
+
+```js
+try { return new Date(iso).toLocaleDateString('sv', {timeZone:'Europe/Warsaw'}); }
+catch (_) { return String(iso || '').slice(0, 10); }   // martwy kod
+```
+
+`toLocaleDateString('sv')` na złej dacie **nie rzuca** — zwraca napis
+`'Invalid Date'`. A `new Date(null)` to epoka, czyli `'1970-01-01'`.
+
+**Dlaczego to groźne.** Oba przeszłyby dalej jako **prawdopodobnie wyglądający
+klucz dnia**. `'1970-01-01'` posortowałoby się na początek listy dni i rozbiło
+matematykę streaków — a wynik nadal wyglądałby jak data, więc nic by nie
+zapaliło się na czerwono. Wartość-śmieć jest gorsza od wyjątku właśnie tym,
+że płynie dalej.
+
+**Jak to wyszło.** Testem na wartościach granicznych (`'abc'`, `null`), nie
+przeglądem kodu. Czytając ten helper trzy razy, za każdym razem uznawałem
+`try/catch` za wystarczające zabezpieczenie.
+
+**Zasada.** Przy funkcjach **formatujących** waliduj **WEJŚCIE przed
+wywołaniem**, nie licz na wyjątek. `Number`, `Date`, `toLocaleDateString`,
+`parseInt`, `JSON.parse` (ten akurat rzuca) — sprawdź dla każdej z osobna,
+czy sygnalizuje błąd wyjątkiem, czy wartością specjalną (`NaN`,
+`Invalid Date`, `null`, `undefined`, epoka).
+
+**Objaw ostrzegawczy.** `try/catch`, którego gałąź `catch` **nigdy nie została
+wykonana w teście**. Jeśli nie potrafisz podać wejścia, które ją odpala, to
+albo jest zbędna, albo pilnuje nie tego, co myślisz.
