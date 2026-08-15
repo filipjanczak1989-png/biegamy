@@ -6650,11 +6650,31 @@ async function loadLogs() {
       try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
       // Odznaki NIE dostają już listy z UI: ta ma .limit(5) na potrzeby kafelków w „Dziś",
       // a reguły patrzą na całe życie. checkBadges bierze historię własnym zapytaniem.
-      // Trener-view pomijamy — RLS na achievements pozwala pisać wyłącznie własne wiersze,
-      // więc byłby to pełny fetch historii po to, żeby dostać odmowę zapisu.
-      const _obcyProfil = (new URLSearchParams(window.location.search).get('from') === 'trener')
-                       || sessionStorage.getItem('_fromTrener') === '1';
-      if (!_obcyProfil) { try { checkBadges(); } catch(e) { console.error('checkBadges error:', e); } }
+      /* !! BYL TU GUARD `_obcyProfil` NA ?from=trener — USUNIETY 15.08.2026.
+         Mial odrozniac "trener oglada CUDZY profil" od "trener oglada SWOJ",
+         a odroznial "wszedl z panelu" od "wszedl bezposrednio". Jedyny link
+         z panelu (trener.html:311, menu awatara, podpis "Widok zawodnika")
+         niesie ?from=trener, wiec trener NIGDY nie przeliczal wlasnych odznak.
+         Skutek zmierzony: Kasia bez odznaki od 8 lipca, Filip od 12 sierpnia.
+         Uzasadnienie guardu mowilo o odmowie zapisu z RLS — sluszne dla CUDZEGO
+         profilu, ale tu _athleteId zawsze jest wlasne, wiec odmowy nie bylo.
+
+         !! CUDZY PROFIL NIE ISTNIEJE W TYM PLIKU: zawodnik.html nie czyta
+            zadnego parametru z athlete_id (zna tylko from/tab/silnik/section/
+            report_id/prog/onboarding/log/duel/duel_name/cw/breath), a wszystkie
+            szesc przypisan _athleteId idzie przez .eq('user_id', user.id) albo
+            przez onboarding. Trener oglada cudze dane w trener.html, we wlasnym
+            DOM-ie (prefiks pfo-, renderFormaForAthlete(id,'pfo')).
+
+         !! NIE DODAWAC TU "sprawdzenia, czy to wlasny profil". _athleteId JEST
+            wyprowadzone z auth.uid(), wiec taki warunek bylby TAUTOLOGIA —
+            porownaniem wartosci z jej wlasnym zrodlem, zawsze prawdziwym.
+            Wygladalby na zabezpieczenie, nie bedac nim, a to jest GORSZE niz
+            jego brak: nastepna osoba przeczyta go jako dowod, ze ktos ten
+            przypadek przemyslal, i nie sprawdzi. Gdyby kiedys doszedl podglad
+            cudzego profilu, ten kod i tak trzeba bedzie napisac od nowa —
+            z prawdziwym zrodlem tozsamosci. */
+      try { checkBadges(); } catch(e) { console.error('checkBadges error:', e); }
     } else {
       document.getElementById('log-list').innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>');
     }
@@ -13198,7 +13218,18 @@ async function loadAchievements() {
    Bez podbicia znacznik z 5.08 dawałby cicho=false i ~200 zaległych przyznań
    poszłoby GŁOŚNO. Zmierzone: do 11 pushy i 46 s nieprzerwanych pop-upów
    na osobę (pop-up co 4200 ms), u 28 zawodników, za treningi sprzed miesięcy. */
-const BADGE_BACKFILL_KEY = 'bm_badges_backfill_v3_';
+/* v4 (15.08.2026): usuniecie guardu _obcyProfil sprawia, ze komplet regul
+   zaczyna dzialac WSTECZ dla trenerow, ktorzy do tej pory byli pomijani.
+   Skutek jest identyczny jak dolozenie regul liczacych wstecz, wiec obowiazuje
+   ta sama twarda zasada: podbicie klucza w TYM SAMYM commicie.
+   Zmierzone przed zmiana (prawdziwe _checkBadgeRules na realnych logach):
+   Kasia 41 zaleglych odznak (dolne ograniczenie — zapytania wewnetrzne
+   zamockowane na puste), Filip 2. Bez podbicia Kasia dostalaby 41 pop-upow
+   przez 172 s i 41 pushy, o ile na jej urzadzeniu istnialby marker v3.
+   !! Podbicie kosztuje dzis prawie nic: filtr WYZW (dodany 15.08) przepuszcza
+      odznaki wyzwania nawet przy cicho=true, wiec kazdy dostanie push
+      o wyzwaniu, a bezglosnie wejda wylacznie zaleglosci historyczne. */
+const BADGE_BACKFILL_KEY = 'bm_badges_backfill_v4_';
 
 async function checkBadges() {
   if (!_athleteId) return;
