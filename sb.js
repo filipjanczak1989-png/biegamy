@@ -301,6 +301,29 @@
   // Render pace/splitow/VDOT/stref (narzedzia+zawodnik). (Byl fork bajt-identyczny x2.)
   window._secsToTime = function(secs){secs=Math.round(secs);const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0");};
 
+  /* Klucz dnia w dobie WARSZAWSKIEJ — odpowiednik
+     `(logged_at at time zone 'Europe/Warsaw')::date` z community_km().
+     Obie strony MUSZA dzielic te sama definicje doby, inaczej licznik
+     i odznaki licza to samo wyzwanie w innych granicach.
+     !! NIE `String(iso).slice(0,10)` — to doba UTC. Bieg o 00:51 czasu
+        polskiego to 22:51 UTC dnia POPRZEDNIEGO, wiec wypadal poza oknem
+        wyzwania. Zaobserwowane 15.08.2026 na logu Macka.
+     !! NIE `new Date(iso)` + pola lokalne — to strefa PRZEGLADARKI. Dla kogos
+        w Polsce wychodzi to samo, ale przy podrozy rozjezdza sie z licznikiem,
+        ktory zawsze liczy po Warszawie.
+     'sv' bo ta lokalizacja oddaje YYYY-MM-DD; ten sam trik jest juz uzyty
+     przy sprawdzaniu okna licznika w zawodnik.html. */
+  window._dzienWaw = function (iso) {
+    /* !! WALIDACJA PRZED, nie try/catch PO: toLocaleDateString NIE RZUCA na
+       zlej dacie — oddaje napis "Invalid Date", a `new Date(null)` to epoka,
+       czyli "1970-01-01". Oba przeszlyby dalej jako prawdopodobnie wygladajacy
+       klucz dnia i zatrulyby matematyke streaka. Wylapane testem. */
+    const d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return String(iso || '').slice(0, 10);  // stare zachowanie
+    try { return d.toLocaleDateString('sv', { timeZone: 'Europe/Warsaw' }); }
+    catch (_) { return String(iso).slice(0, 10); }
+  };
+
   // ── WALIDACJA PB (SSOT dla 5 sciezek zapisu athletes.pb_*) ─────────────────
   // !! MASKA NIE JEST KONTROLA. autoColonTime("99999") sklada "9:99:99",
   //    autoColonResult("56") zostawia "56" bez dwukropka — obie te wartosci

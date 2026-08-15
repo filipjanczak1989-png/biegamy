@@ -13138,15 +13138,30 @@ async function _wyslijOdznaki(cicho) {
   }
 
   const ids = (wstawione || []).map(r => r.badge_id);
-  if (cicho || !ids.length) return ids.length;
+  if (!ids.length) return 0;
+
+  /* Cichy backfill wycisza ZALEGLOSCI HISTORYCZNE, ale NIE odznaki wyzwania —
+     te sa zdobyte DZIS i sa glownym sygnalem zwrotnym w trwajacym wyzwaniu.
+     Zaobserwowane 15.08.2026, w dniu otwarcia: Tomasz Kopec dostal 11 odznak
+     w cichej paczce, w tym razem_wrzesien_2026 — zero powiadomien, zero pusha,
+     mimo ze mial subskrypcje i spelnil warunek.
+     !! FILTR, NIE WYLACZENIE CISZY: ktos z 20 zaleglosciami I odznaka wyzwania
+        ma dostac JEDEN push o wyzwaniu, nie dwadziescia jeden.
+     !! Warunek na LISTE ID (WYZWANIA), nie na earned_at. earned_at to czas
+        WSTAWIENIA wiersza — przy backfillu odznaka za bieg z kwietnia tez
+        dostaje `now()`, wiec proba "cicho tylko to, co sprzed dzisiaj"
+        przepuscilaby GLOSNO cala zaleglosc, czyli dokladnie odwrotnie. */
+  const WYZW = new Set(WYZWANIA.map(w => w.id));
+  const glosne = cicho ? ids.filter(id => WYZW.has(id)) : ids;
+  if (!glosne.length) return ids.length;
 
   // showBadgePopup korzysta z JEDNEGO węzła DOM i chowa go po 3800 ms — dwa pop-upy
   // odpalone razem zamazują się nawzajem. Stąd odstęp, a nie wspólne setTimeout(400).
-  ids.forEach((id, i) => {
+  glosne.forEach((id, i) => {
     const badge = BADGES.find(b => b.id === id);
     if (badge) setTimeout(() => showBadgePopup(badge), 400 + i * 4200);
   });
-  await sb.from('notifications').insert(ids.map(id => ({
+  await sb.from('notifications').insert(glosne.map(id => ({
     athlete_id: _athleteId,
     type: 'badge',
     from_athlete_id: null,
@@ -13280,7 +13295,7 @@ async function _checkBadgeRules(logs, ctx) {
   // ta sama pułapka co klucz daty w kalendarzu.
   WYZWANIA.forEach(function (w) {
     var km = logs.reduce(function (s, l) {
-      var d = String(l.logged_at || '').slice(0, 10);
+      var d = window._dzienWaw(l.logged_at);
       if (d < w.od || d > w.do) return s;
       return s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0);
     }, 0);
@@ -13294,7 +13309,7 @@ async function _checkBadgeRules(logs, ctx) {
   if (intCount >= 5)   awardBadge('interwalowiec');
 
   // STREAK — licz max ciąg dni kalendarzowych
-  const days = [...new Set(logs.map(l => l.logged_at.slice(0, 10)))].sort();
+  const days = [...new Set(logs.map(l => window._dzienWaw(l.logged_at)))].sort();
   let maxStreak = 1, curStreak = 1;
   for (let i = 1; i < days.length; i++) {
     const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
@@ -13317,7 +13332,7 @@ async function _checkBadgeRules(logs, ctx) {
     return d >= weekStart && d < weekEnd;
   });
   const weekKm   = weekLogs.reduce((s, l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0), 0);
-  const weekDays = new Set(weekLogs.map(l => l.logged_at.slice(0,10))).size;
+  const weekDays = new Set(weekLogs.map(l => window._dzienWaw(l.logged_at))).size;
   const wknd = weekLogs.filter(l => { const d = new Date(l.logged_at); return d.getDay()===6||d.getDay()===0; }).length;
   const wkTempo = weekLogs.filter(l => l.training_type==='Tempo').length;
   const wkInt   = weekLogs.filter(l => l.training_type==='Interwały').length;
@@ -13513,7 +13528,7 @@ async function _checkBadgeRules(logs, ctx) {
   // w jednym tygodniu", bez zawężenia do "w tym". Klucz tygodnia po poniedziałku.
   const tygodnie = {};
   logs.forEach(l => {
-    const d = new Date(l.logged_at.slice(0, 10) + 'T00:00:00');
+    const d = new Date(window._dzienWaw(l.logged_at) + 'T00:00:00');
     const dw = d.getDay() === 0 ? 6 : d.getDay() - 1;
     d.setDate(d.getDate() - dw);
     // ⚠️ Klucz z LOKALNYCH pól, NIE przez toISOString(): ta druga konwertuje do
