@@ -4,6 +4,20 @@ name: Rollback
 # Pole ma wartosc domyslna, wiec cofniecie ostatniej zmiany to samo
 # "Run workflow" — bez wpisywania czegokolwiek.
 #
+# !! JAK TO ODPALIC Z TELEFONU — czytaj ZANIM zaczniesz szukac przycisku:
+#    APLIKACJA GITHUB TEGO NIE MA. workflow_dispatch z polami dziala WYLACZNIE
+#    w przegladarce i dopiero PO przelaczeniu na wersje desktopowa
+#    (menu przegladarki -> "Wersja na komputer" / "Request Desktop Website").
+#    Na wersji mobilnej przycisk "Run workflow" po prostu sie nie renderuje.
+#    Potem: Actions -> lewa kolumna "All workflows" -> Rollback -> Run workflow.
+#    Skrot: github.com/filipjanczak1989-png/biegamy/actions/workflows/rollback.yml
+#
+# !! COFNIECIE ROLLBACKU WYMAGA JAWNEGO SHA. Puste pole wybiera ostatni commit
+#    CZLOWIEKA, a commit revertu tworzy bot — wiec filtr go pomija i domyslny
+#    cel wskaze ten sam commit, ktory wlasnie cofnales. Zeby przywrocic, podaj
+#    w polu sha commita "revert: ..." (zobaczysz go w historii main).
+#    Zmierzone 15.08.2026 przy tescie od konca do konca.
+#
 # !! ROLLBACK NIE DOTYKA BAZY. Zaden workflow w tym repo jej nie rusza —
 #    migracje stosuje sie recznie (supabase db query --linked), a pliki
 #    w supabase/migrations/ sa ZAPISEM HISTORII, nie mechanizmem wykonawczym.
