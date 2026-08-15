@@ -1635,7 +1635,8 @@
       try {                                    // ZAPIS PIERWSZY, rysowanie potem
         var b = lista('bm_vt_bledy');
         b.unshift({ t: czas(), u: location.pathname.replace(/^\//, ''), r: rodzaj,
-                    m: String(tresc || '').slice(0, 120), p: String(plik || '').slice(-46), l: linia || '' });
+                    m: String(tresc || '').slice(0, 120), p: (function(u){ u = String(u || ''); return u.length > 96 ? u.slice(0, 96) + '…' : u; })(plik),  // od PRAWEJ
+                    l: linia || '' });
         zapisz('bm_vt_bledy', JSON.stringify(b.slice(0, 10)));
       } catch (_) {}
     }
@@ -1708,16 +1709,28 @@
         o.style.borderColor = o.style.color = (n || bledy.length) ? '#fb923c' : '#4ade80';
 
         if (_dump) {                            // ?vtdebug=dump — odczyt PO FAKCIE, z innej strony
+          /* NAJPIERW ODCZYTAJ WSZYSTKO, POTEM SKŁADAJ NAPIS. `_zSesji` ustawia
+             się dopiero przy pierwszym sięgnięciu do localStorage, a w napisie
+             stoi PRZED śladem — więc składanie „w locie" pokazywało „sessionStorage"
+             także wtedy, gdy dane przyszły z localStorage. Złapane testem
+             przyrządu przed wdrożeniem; wcześniej ten sam efekt maskował
+             `slad()`, który czytał jako pierwszy. */
+          var _slady = lista('bm_vt_slad'), _odrz = dziennik();
           o.textContent = 'VT — ZRZUT  (tryb: ' + tryb() + ')'
-            + '\nźródło: ' + (_zSesji ? 'sessionStorage — okno żyło przez cały czas'
-                                      : 'localStorage — OKNO ZOSTAŁO ZAMKNIĘTE, sesja przepadła')
+            /* FAKT, NIE WNIOSEK. Poprzednia wersja drukowała „OKNO ZOSTAŁO
+               ZAMKNIĘTE" — a zaobserwowane było wyłącznie „sessionStorage pusty".
+               Pusty sessionStorage ma co najmniej trzy przyczyny: zamknięte okno,
+               nowa karta, nowa instancja przeglądarki wbudowanej na każdy link.
+               Wniosek wydrukowany jako obserwacja to .ai/LEKCJE.md #9 i #10. */
+            + '\nźródło: ' + (_zSesji ? 'sessionStorage'
+                                      : 'sessionStorage pusty — dane z localStorage')
             + '\nprzejścia  swap ' + sw + ' / reveal ' + rv + '   odrzucenia ' + n
             + (bledy.length ? '\n\nBŁĘDY (' + bledy.length + '):\n'
-                + bledy.map(function(b){ return '· ' + b.t + ' [' + b.u + '] ' + b.r + ': ' + b.m + (b.p ? '\n    ' + b.p + ':' + b.l : ''); }).join('\n')
+                + bledy.map(function(b){ return '· ' + b.t + ' [' + b.u + '] ' + b.r + ': ' + b.m + (b.p ? '\n    ' + b.p + (b.l ? ':' + b.l : '') : ''); }).join('\n')
               : '\n\nBŁĘDY: brak')
-            + (dziennik().length ? '\n\nODRZUCENIA:\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n') : '')
+            + (_odrz.length ? '\n\nODRZUCENIA:\n' + _odrz.map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n') : '')
             + '\n\nŚLAD ŁADOWANIA (ostatni na dole):\n'
-            + (lista('bm_vt_slad').map(function(s){ return '· ' + s.t + ' ' + (s.u || '/') + ' → ' + s.f + (s.x ? ' ' + s.x : ''); }).join('\n') || '(pusty)');
+            + (_slady.map(function(s){ return '· ' + s.t + ' ' + (s.u || '/') + ' → ' + s.f + (s.x ? '  ' + s.x : ''); }).join('\n') || '(pusty)');
           return;
         }
 
@@ -1759,22 +1772,63 @@
     window.addEventListener('error', function(e){
       try {
         var c = e && e.target;
-        if (c && c !== window && (c.src || c.href)) zapiszBlad('zasób', 'nie wczytał się', c.src || c.href, '');
+        if (c && c !== window && (c.src || c.href)) {
+          /* TAG I IDENTYFIKATOR, nie sam adres. Poprzednia wersja zapisała
+             „zasób nie wczytał się: <adres strony>" i nie dało się z tego
+             wyczytać, KTÓRY element zawiódł — a to była jedyna informacja,
+             po którą się sięgało. Pusty src rozwija się do adresu dokumentu,
+             więc bez tagu wygląda to jak awaria strony, a jest to obrazek. */
+          var opis = (c.tagName || '?').toLowerCase()
+            + (c.id ? '#' + c.id : '')
+            + (!c.id && c.className && typeof c.className === 'string' ? '.' + c.className.split(/\s+/)[0] : '');
+          zapiszBlad('zasób', opis + ' — nie wczytał się', c.src || c.href, '');
+        }
         else zapiszBlad('js', (e && e.message) || 'error', (e && e.filename) || '', (e && e.lineno) || '');
       } catch (_) {}
       rysuj();
     }, true);
 
+    /* ZRZUT STANU DOM — czy strona cokolwiek narysowała.
+       !! ZAPISYWANY DO ŚLADU ZAWSZE, niezależnie od tego, czy ramka się pokaże.
+          Gdy ramki nie ma, to jest jedyne, co zostaje po czarnym ekranie.
+       `_calView` to `let` z bloku <script> strony — w tym samym realmie dzieli
+       globalne środowisko leksykalne, więc widać go po nazwie; `typeof` chroni
+       przed brakiem i przed TDZ. */
+    function stanDom(){
+      var cz = function(id){
+        try {
+          var el = document.getElementById(id);
+          if (!el) return id.replace('-view', '') + ':brak';
+          var d = '';
+          try { d = (window.getComputedStyle ? getComputedStyle(el).display : el.style.display) || '?'; } catch (_) { d = '?'; }
+          return id.replace('-view', '') + ':' + d + '/' + (el.offsetHeight || 0);
+        } catch (_) { return id + ':błąd'; }
+      };
+      var cv = '?';
+      try { cv = (typeof _calView !== 'undefined') ? String(_calView) : 'brak'; } catch (_) { cv = 'niedostępny'; }
+      var dzieci = '?', wys = '?';
+      try { dzieci = document.body ? document.body.childElementCount : 'brak body'; } catch (_) {}
+      try { wys = document.body ? document.body.scrollHeight : '-'; } catch (_) {}
+      return 'calView=' + cv + ' body=' + dzieci + 'el/' + wys + 'px  '
+        + cz('classic-view') + ' ' + cz('mobile-view') + ' ' + cz('tiles-view');
+    }
+
     /* RYSUJ NATYCHMIAST, jeśli jest gdzie. Poprzednia wersja przy
        readyState==='loading' czekała na DOMContentLoaded — a na kalendarz.html
        sb.js stoi w linii 1292, więc readyState to WŁAŚNIE 'loading'. Gdy strona
        umarła wcześniej, ramka nie powstawała nigdy i brak ramki wyglądał
-       na dowód, że sb.js się nie wykonał. Nie był. */
-    slad('sb.js');
+       na dowód, że sb.js się nie wykonał. Nie był.
+       !! STRONA ZRZUTU NIE DOPISUJE SIĘ DO ŚLADU (`if (!_dump)`) — inaczej jej
+          własny wpis czyta się jak nawigację użytkownika. Tak właśnie
+          „22:46:27 trener.html" wyglądało na cofnięcie, a było stroną zrzutu. */
+    if (!_dump) slad('sb.js');
     if (document.body) rysuj();
-    document.addEventListener('DOMContentLoaded', function(){ slad('DOMContentLoaded'); rysuj(); });
-    window.addEventListener('load', function(){ slad('load'); rysuj(); });
-    setTimeout(function(){ slad('+1500ms'); rysuj(); }, 1500);   // _appVersion dojeżdża z caches.keys()
+    document.addEventListener('DOMContentLoaded', function(){ if (!_dump) slad('DOMContentLoaded'); rysuj(); });
+    window.addEventListener('load', function(){ if (!_dump) slad('load'); rysuj(); });
+    setTimeout(function(){
+      if (!_dump) { slad('+1500ms'); slad('DOM', stanDom()); }
+      rysuj();
+    }, 1500);   // _appVersion dojeżdża z caches.keys()
 
     /* SAMOKONTROLA PRZYRZĄDU — ?vtdebug=selftest.
        Rzuca ODRZUCENIE, którego nikt nie obsługuje, więc licznik MUSI skoczyć.
