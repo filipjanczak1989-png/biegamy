@@ -56,10 +56,47 @@ jobs:
             git push
           fi
 
-      - name: Stage site (bez .git/.github)
+      # Na Pages ma trafiac STRONA, a nie caly katalog roboczy. Sprawdzone
+      # 15.08.2026 na wdrozonym serwisie: kazdy z ponizszych katalogow byl
+      # publicznie pobieralny (HTTP 200), m.in. docs/zaleglosci-bezpieczenstwo.md
+      # i .ai/LEKCJE.md. Repo jest publiczne, wiec to NIE JEST wyciek — te pliki
+      # i tak sa na GitHubie. Powod wykluczenia jest inny: nie serwujemy
+      # z originu aplikacji rzeczy, ktore nie sa aplikacja.
+      #
+      # !! ZWERYFIKOWANE, ZE STRONA TEGO NIE LADUJE: zero dopasowan na
+      #    src=/href=/fetch(/import z tych katalogow w *.html, *.js, *.css.
+      #    Trafienia na "supabase/" w kodzie to wylacznie adresy *.supabase.co.
+      #
+      # !! CZEGO SWIADOMIE NIE WYKLUCZAMY:
+      #      CNAME            — bez niego Pages gubi domene wlasna
+      #      js/ vendor/ assets/ — strona to laduje
+      #      README*.md CLAUDE.md — dokumentacja w korzeniu repo, nieszkodliwa
+      #    Oszczednosc miejsca jest przy okazji i jest mala (~1,1 MB przy
+      #    artefakcie liczonym w dziesiatkach MB — patrz zaleglosc o assets/ gry).
+      #    Sens jest porzadkowy, nie wydajnosciowy.
+      - name: Stage site (bez .git/.github i bez zaplecza)
         run: |
           mkdir -p /tmp/site
-          rsync -a --exclude '.git' --exclude '.github' ./ /tmp/site/
+          # Wiodacy ukosnik KOTWICZY wzorzec do korzenia transferu. Bez niego
+          # rsync dopasowuje KAZDY komponent sciezki, wiec przyszly js/tools/
+          # albo assets/docs/ zniknalby po cichu. Dzis takich katalogow nie ma
+          # (sprawdzone 15.08.2026: zero dopasowan ponizej korzenia), i wlasnie
+          # dlatego kotwica kosztuje teraz nic, a pozniej kosztowalaby debugowanie.
+          rsync -a \
+            --exclude '/.git' \
+            --exclude '/.github' \
+            --exclude '/tests' \
+            --exclude '/tools' \
+            --exclude '/docs' \
+            --exclude '/.ai' \
+            --exclude '/supabase' \
+            ./ /tmp/site/
+          echo "Wdrazane: $(du -sh /tmp/site | cut -f1)"
+          for k in tests tools docs .ai supabase; do
+            test ! -e "/tmp/site/$k" || { echo "BLAD: $k trafil do artefaktu"; exit 1; }
+          done
+          test -f /tmp/site/CNAME || { echo "BLAD: brak CNAME — domena wlasna padnie"; exit 1; }
+          test -f /tmp/site/zawodnik.html || { echo "BLAD: brak zawodnik.html"; exit 1; }
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

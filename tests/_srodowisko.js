@@ -15,6 +15,15 @@
 // !! CONSOLE JEST WYCISZANE NA CZAS ŁADOWANIA. Kod strony ma skutki uboczne
 //    przy wczytaniu (hero loguje kilka linii). Bez wyciszenia wyniki testów
 //    toną w szumie.
+//
+// !! TIMERY SĄ ZAPISYWANE, NIE ODPALANE. Kontekst testowy to preparat, nie
+//    działająca aplikacja — nikt nie ogląda animacji hero. Prawdziwy setTimeout
+//    powodował, że robota zaplanowana PRZY ŁADOWANIU strony budziła się już po
+//    zakończeniu testów, sięgała po podmienioną atrapę Supabase i wywracała
+//    przebieg jako unhandledRejection (zmierzone 15.08.2026 na odznaki.test.js:
+//    19/20 zielonych i cały plik na czerwono, bez wskazania winnego testu).
+//    Zaplanowane wywołania lądują w ctx.__timery — test, który ich potrzebuje,
+//    może je odpalić ręcznie albo podstawić własny setTimeout.
 'use strict';
 
 const fs = require('node:fs');
@@ -118,11 +127,45 @@ function zaladujSb() {
   return ctx;
 }
 
+/** Podmienia timery na zapisujące. Patrz nagłówek: preparat, nie aplikacja. */
+function zamrozTimery(ctx) {
+  ctx.__timery = [];
+  const zapisz = (fn, ms) => { ctx.__timery.push({ fn, ms: ms || 0 }); return ctx.__timery.length; };
+  ctx.setTimeout = zapisz;
+  ctx.setInterval = zapisz;
+  ctx.requestAnimationFrame = (fn) => zapisz(fn, 0);
+  ctx.clearTimeout = () => {};
+  ctx.clearInterval = () => {};
+  ctx.cancelAnimationFrame = () => {};
+  return ctx;
+}
+
+/** Stabilny rejestr elementów: getElementById('x') oddaje ZA KAŻDYM RAZEM ten sam
+ *  obiekt, a `style` jest zwykłym obiektem, nie połykającym Proxy. Bez tego nie da
+ *  się odczytać, co render wpisał — domyślna atrapa produkuje nowy element przy
+ *  każdym wywołaniu, więc `innerHTML` i `display` znikają razem z nim.
+ *  Instalować PO załadowaniu strony: render woła getElementById dopiero w trakcie. */
+function stabilnyDom(ctx) {
+  const rejestr = new Map();
+  const daj = (id) => {
+    if (!rejestr.has(id)) {
+      const el = atrapaElementu();
+      el.id = id;
+      el.style = {};                       // zapisywalny, w odróżnieniu od Proxy
+      rejestr.set(id, el);
+    }
+    return rejestr.get(id);
+  };
+  ctx.document.getElementById = daj;
+  ctx.document.querySelector = (s) => (typeof s === 'string' && s[0] === '#') ? daj(s.slice(1)) : atrapaElementu();
+  return { daj, rejestr };
+}
+
 /** Kontekst z sb.js + wszystkimi blokami <script> danej strony. */
 function zaladujStrone(plikHtml) {
-  const ctx = zaladujSb();
+  const ctx = zamrozTimery(zaladujSb());
   blokiSkryptow(plikHtml).forEach((kod, i) => cicho(ctx, kod, `${plikHtml}#${i}`));
   return ctx;
 }
 
-module.exports = { zaladujSb, zaladujStrone, blokiSkryptow, atrapaElementu, atrapaPrzegladarki };
+module.exports = { zaladujSb, zaladujStrone, blokiSkryptow, atrapaElementu, atrapaPrzegladarki, zamrozTimery, stabilnyDom };

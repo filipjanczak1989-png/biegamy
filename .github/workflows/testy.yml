@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TESTY — osobny workflow, celowo NIEZALEŻNY od deploy.yml i rollback.yml.
+#
+# !! DLACZEGO NIE `workflow_call` Z ROLLBACKU. Rollback jest narzędziem
+#    ostatniej szansy: uruchamia się dokładnie wtedy, gdy coś już się pali,
+#    często z telefonu i pod presją. Gdyby zależał od testów, to każda awaria
+#    testów — pusty cache zależności, padnięty runner, literówka w tym pliku,
+#    czerwony test niezwiązany z awarią — blokowałaby wycofanie zmiany.
+#    Narzędzie ratunkowe nie może zależeć od niczego, co samo może być zepsute.
+#
+# !! DLACZEGO NIE BLOKUJE TEŻ DEPLOYU. Ten sam argument w słabszej postaci:
+#    łańcuch testy → deploy oznacza, że awaria testów zatrzymuje wdrożenie
+#    hotfiksa. Blokowanie ma iść przez OCHRONĘ GAŁĘZI (Settings → Branches →
+#    wymagany status check `testy`), czyli przez bramkę PRZED wejściem kodu
+#    do main, a nie przez zależność między workflowami PO wejściu.
+#    Różnica jest praktyczna: ochronę gałęzi da się świadomie ominąć jednym
+#    kliknięciem, gdy trzeba; zerwanego łańcucha workflowów nie.
+#
+# !! ZERO ZALEŻNOŚCI DO ZAINSTALOWANIA. Zestaw stoi na `node:test` i `node:vm`,
+#    repo nie ma package.json i to jest zaleta — nie ma `npm ci`, nie ma cache,
+#    nie ma czego zepsuć przy pierwszym uruchomieniu za pół roku.
+name: testy
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # `node --test <katalog>` wysypuje sie na MODULE_NOT_FOUND w Node 24.12
+      # (zmierzone lokalnie 15.08.2026) — dlatego jawny wzorzec plikow.
+      - name: Uruchom zestaw
+        id: uruchom
+        run: node --test tests/*.test.js
+
+      - name: Podsumowanie
+        if: always()
+        run: |
+          if [ "${{ steps.uruchom.outcome }}" = "success" ]; then
+            echo "### ✅ Testy przeszły" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Testy padły" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Każdy test w tym zestawie odpowiada realnej bliźnie — czerwony" >> $GITHUB_STEP_SUMMARY
+            echo "oznacza, że wróciła usterka, która już raz dotknęła ludzi." >> $GITHUB_STEP_SUMMARY
+            echo "Zanim poprawisz oczekiwanie w teście, przeczytaj jego komentarz." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Pliki: \`tests/*.test.js\` · środowisko: \`tests/_srodowisko.js\`" >> $GITHUB_STEP_SUMMARY
