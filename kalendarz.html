@@ -848,7 +848,9 @@ html { scroll-behavior: smooth; }
   background:linear-gradient(180deg,rgba(232,86,26,.08),rgba(232,86,26,0));}
 .mday-date{width:44px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
   border-radius:10px;padding:6px 0;background:var(--chip,#1e1e1e);}
-.mday-date.is-today{background:var(--accent,#e8561e);color:#fff;}
+/* Bialy na pomaranczowym dawal 3,63:1 — ponizej AA. Ciemny tekst na tym samym
+   tle: 5,41:1. Znacznik DZIS zyskuje kontrast bez ruszania koloru akcentu. */
+.mday-date.is-today{background:var(--accent,#e8561e);color:#0b0b0f;}
 .mday-dow{font-size:11px;font-weight:700;letter-spacing:.04em;opacity:.85;}
 .mday-dnum{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;}
 .mday-body{flex:1;min-width:0;}
@@ -861,10 +863,13 @@ html { scroll-behavior: smooth; }
 .mday-vol{font-size:13px;opacity:.85;margin-top:2px;}
 .mday-pace{font-size:12px;opacity:.6;margin-top:1px;}
 .mday-ring{flex:none;}
-.mday-chev{flex:none;opacity:.4;color:var(--text,#f2f2f2);}
+/* Afordancje: 0.4 dawalo 3,56:1. 0.62 daje 6,88 — przechodzi z zapasem
+   i ZOSTAJE POD --fg2 (7,25), wiec chevron i CTA nie krzycza glosniej niz
+   tekst drugorzedny. Od 0.68 juz --fg2 przebijaja. */
+.mday-chev{flex:none;opacity:.62;color:var(--text,#f2f2f2);}
 .mday-logtype{color:var(--text,#f2f2f2);}
 .mday-check{color:var(--mday-done,#34d17f);font-size:13px;}
-.mday-cta{color:rgba(242,242,242,0.4);font-weight:500;font-size:13px;}
+.mday-cta{color:rgba(242,242,242,0.62);font-weight:500;font-size:13px;}
 .mday-empty{opacity:.35;font-weight:600;}
 .mday--empty-future{opacity:.6;}
 .mday--empty-cta{border-style:dashed;}

@@ -33,7 +33,26 @@
   --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
   --accent:#e8561e; --accent2:#ff7040; --accent3:#ff9060; --accent-rgb:232,86,30;
   --fg:#f0ede8; --fg2:rgba(240,237,232,0.65); --fg3:rgba(240,237,232,0.32);
-  --muted:#5a5766; --muted2:#2a2830;
+  /* --muted PODNIESIONY 15.08.2026 z #5a5766 (2,86:1 na --bg / 2,72:1 na --card).
+     Stara wartosc nie przechodzila WCAG AA nigdzie, a 69% z 1153 uzyc to tekst
+     PONIZEJ 12px (9px x284, 10px x259, 11px x166) — wyjatek dla duzego tekstu
+     (3:1) nie ma tu zastosowania.
+     PIEC z szesciu plikow, ktore ja nadpisaly, wybralo JASNIEJSZA (3,12-5,49):
+     ankieta #8a857c, index #6e6a7c, demo 0.40, gra 0.38. Wyjatek: wieza.html
+     #555 poszla w DRUGA strone (2,70), czyli ciemniej niz kanon. To piec
+     niezaleznych decyzji, ze wartosc kanoniczna jest za ciemna, podjetych przez
+     obejscie zamiast poprawy zrodla.
+     #8a8798 = 5,75 na --bg, 5,46 na --card, 4,93 na --card3. Ten sam odcien co
+     poprzednio (chlodny fiolet-szary) — przy 1125 uzyciach tekstowych zmiana
+     odcienia bylaby odczuwalna jako zmiana palety, nie jako poprawka kontrastu.
+     !! ODSTEP DO --fg2 SIE SCISNAL: na --card fg2=7,25 vs muted=5,46, iloraz
+        1,33. To nie wybor kandydata, tylko ograniczenie strukturalne — miedzy
+        4,5 a 7,25 nie ma miejsca na trzy wyrazne poziomy. --fg2 i --muted robia
+        teraz prawie to samo; scalenie ich to osobna pozycja backlogu.
+     !! NIE-TEKSTOWE uzycia to tylko CZTERY: .nav-it svg (stroke, ponizej w tym
+        pliku), .sec-title::before (tlo, zawodnik.html), border-left w
+        nutrition.html i trener.html. RAMKI KART ida z --border, NIE z --muted. */
+  --muted:#8a8798; --muted2:#2a2830;
   --green:#3db870; --yellow:#e8b840; --red:#e05050; --blue:#4e8cd6; --purple:#8a62d8;
   --glow-o:rgba(232,86,30,0.32); --glow-o2:rgba(232,86,30,0.14);
   --glow-g:rgba(61,184,112,0.25); --glow-b:rgba(78,140,214,0.2);
@@ -121,10 +140,29 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px calc(22px + env(safe-area-inset-bottom, 0px));z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}
 .nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
 .nav-it svg{width:22px;height:22px;stroke:var(--muted);stroke-width:1.7;transition:stroke 0.15s;}
-.nav-it.active svg{stroke:var(--accent);}
+/* STAN AKTYWNY NA --accent2, NIE --accent. Po podniesieniu --muted do #8a8798
+   (5,75 na tle nawigacji rgba(7,7,11,0.92)) akcent #e8561e ma 5,54 — czyli
+   NIEAKTYWNE ikony byly JASNIEJSZE od aktywnej. Pomaranczowy ma niska
+   luminancje, bo dominuje w niej kanal zielony, a #e8561e ma go malo.
+   --accent2 daje 7,32 (1,27x) i dziala we WSZYSTKICH motywach: ocean 1,38x,
+   forest 1,63x, grape 1,19x, gold 2,00x.
+
+   !! NIE PROBUJ NAPRAWIAC TEGO OSOBNA ZMIENNA DLA NAWIGACJI — policzone,
+      nie da sie. Akcent ma 5,54 na tle nav; stosunek 1,9x wymagalby stroke
+      o kontrascie 2,91, a AA wymaga 4,50. Sprzeczne. Maksimum osiagalne przy
+      zachowaniu AA to 1,23x, i to i tak pada na motywie grape (akcent 4,62 =
+      parytet 1,03x). Rozwiazanie lezy po stronie stanu AKTYWNEGO, nie
+      nieaktywnego: to nie --muted jest za jasny, to --accent jest za ciemny
+      jak na role "tu jestes".
+
+   !! POSWIATA ZOSTAJE NA --accent-rgb swiadomie. Halo 14px o alfie 0,75 nie
+      jest odczytywane jako osobny kolor, w przeciwienstwie do solidnego
+      gradientu kreski. Alternatywa wymagalaby dodania --accent2-rgb do :root
+      i czterech motywow — nieproporcjonalne do rozmytego halo. */
+.nav-it.active svg{stroke:var(--accent2);}
 .nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
-.nav-it.active .nav-lbl{color:var(--accent);}
-.nav-it.active::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:32px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 3px 3px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);}
+.nav-it.active .nav-lbl{color:var(--accent2);}
+.nav-it.active::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:32px;height:2px;background:linear-gradient(90deg,transparent,var(--accent2),transparent);border-radius:0 0 3px 3px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);}
 /* #nav-mount = wrapper montażu NAV. Na stronach z `body>*{z-index:1}` (zawodnik/kalendarz)
    ten div łapie kontekst stackingu na z-index:1 i więzi w nim fixed-nav → sekcje in-flow
    (Forma/Społeczność/Ćwiczenia, też z-index:1, później w DOM) malują się NA navie = nieklikalny.
