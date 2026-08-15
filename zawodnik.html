@@ -12220,7 +12220,11 @@ const PRS = (() => {
   return { launch: open, close };
 })();
 window.PRS = PRS;
-window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
+/* window.PRSclose przeniesiony do sb.js — obie strony z nakładką PRS
+   (zawodnik.html i kalendarz.html) mają w markupie onclick="PRSclose()",
+   a alias istniał tylko tutaj. Skutek: krzyżyk w kalendarzu nie działał
+   w ogóle — 9 wystąpień u 4 osób przez trzy tygodnie. Pilnuje tego
+   tests/handlery.test.js. */
 </script>
 
 <!-- PWA Service Worker -->

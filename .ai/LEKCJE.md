@@ -194,6 +194,11 @@ albo jest zbędna, albo pilnuje nie tego, co myślisz.
 
 ---
 
+**Wpadłem w tę pułapkę ponownie tego samego dnia**, w `tools/przeglad-bledow.js`,
+przy pierwszym uruchomieniu na żywych danych — każdy wiersz pokazywał
+„Invalid Date". Napisanie lekcji nie chroni przed jej powtórzeniem —
+chroni test.
+
 ## 7. Opisanie mechanizmu w komunikacie commita URUCHOMIŁO ten mechanizm (15.08.2026)
 
 **Co się stało.** Commit dodający workflow *Rollback* tłumaczył w uzasadnieniu,

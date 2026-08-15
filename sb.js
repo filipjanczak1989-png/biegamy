@@ -641,6 +641,19 @@
     else document.addEventListener('DOMContentLoaded', function(){ document.head.appendChild(_style); });
   }
 
+  /* Alias krzyżyka nakładki PRS. Markup `onclick="PRSclose()"` stoi w DWÓCH
+     stronach (zawodnik.html, kalendarz.html), a alias istniał wyłącznie
+     w zawodnik.html — więc w kalendarzu krzyżyk nie zamykał nic.
+     Zmierzone przed naprawą: 9 wystąpień „PRSclose is not defined" u 4 osób,
+     na czterech różnych silnikach, przez trzy tygodnie, zanim ktokolwiek
+     to zgłosił. Znalezione dopiero przez tools/przeglad-bledow.js — bo Safari
+     i Chrome nazywają ten błąd inaczej i rozbijał się na dwie pozycje.
+     !! SAM SILNIK PRS ZOSTAJE ZDUPLIKOWANY w obu stronach i te kopie już się
+        rozjechały (33 linie, w tym LOGIKA doboru zestawu). Scalenie to osobna
+        robota z ryzykiem wizualnym, nie część naprawy krzyżyka.
+     Klasy pilnuje tests/handlery.test.js. */
+  window.PRSclose = function () { if (window.PRS) window.PRS.close(); };
+
   window.showToast = function(msg, type) {
     type = type || 'info';
     const colors = {
