@@ -1523,23 +1523,46 @@
   //   PRZED pierwszą okazją renderu → ten listener rejestruje się ZANIM pagereveal
   //   poleci. Failure-safe: gdyby (kiedyś) się spóźnił / brak dir → atrybut nie
   //   wchodzi → zostaje cross-fade z ETAPU 1. NIGDY zły kierunek.
+  /* PRZEJSCIE CROSS-DOKUMENTOWE MA DWA ZDARZENIA, KAZDE Z WLASNYM `finished`:
+     `pageswap` na STARYM dokumencie i `pagereveal` na NOWYM. Oba odrzucaja,
+     gdy przegladarka pominie przejscie — a `@view-transition{navigation:auto}`
+     w theme.css sprawia, ze przejscie powstaje przy KAZDEJ nawigacji w obrebie
+     originu. Do 15.08.2026 nasluchiwalismy wylacznie `pagereveal`, i to tylko
+     przy swipie, wiec odrzucenia z pozostalych sciezek nie mialy odbiorcy. */
+  window.addEventListener('pageswap', function(e){
+    /* Stary dokument znika za chwile — nie ma tu czego sprzatac, chodzi
+       WYLACZNIE o oznaczenie odrzucenia jako obsluzonego. */
+    try { if (e && e.viewTransition) e.viewTransition.finished.catch(function(){}); } catch(_){}
+  });
+
   window.addEventListener('pagereveal', function(e){
     if (!e || !e.viewTransition) return;                    // brak aktywnej cross-doc VT (fallback / same-doc)
     var d = null;
     try { d = sessionStorage.getItem('bm_vt_dir'); sessionStorage.removeItem('bm_vt_dir'); } catch(_){}
-    if (d !== 'fwd' && d !== 'back') return;                // nawigacja nie-swipe → cross-fade (E1)
-    document.documentElement.setAttribute('data-vt-dir', d);
+    /* !! NIE MA TU WCZESNEGO WYJSCIA — I TO JEST CALA NAPRAWA.
+       Poprzednia wersja wracala w tym miejscu przy nawigacji nie-swipe, ZANIM
+       cokolwiek przypiela do `finished`. Promise przegladarki i tak odrzucal
+       przy pominietym przejsciu, tylko juz bez odbiorcy.
+       Warunkowany jest ATRYBUT, nie przypiecie handlera — animacja zostaje
+       bit w bit ta sama: `data-vt-dir` wchodzi wylacznie przy swipie, wiec
+       zwykla nawigacja nadal dostaje cross-fade z ETAPU 1.
+       ZMIERZONE, ze poprzednia poprawka nie dzialala: build 13318c5 (ten
+       Z `.catch()`) nadal produkowal wiersze, bo handler do niego nie dochodzil.
+       Patrz .ai/LEKCJE.md #9. */
+    var kierunkowa = (d === 'fwd' || d === 'back');
+    if (kierunkowa) document.documentElement.setAttribute('data-vt-dir', d);
     /* finished ODRZUCA, gdy przejscie zostanie pominiete albo przerwane.
        .finally() przepuszcza odrzucenie dalej, a try/catch lapie wylacznie rzut
        synchroniczny — stad 42 unhandledrejection u 7 osob w 7 dni w client_errors
        ("Transition was skipped", "Skipping view transition...", "aborted because
        of invalid state"). Pominiete przejscie NIE JEST bledem, wiec polykamy je
        cicho; .catch() PRZED .finally(), zeby sprzatanie atrybutu wykonalo sie
-       w obu przypadkach. */
+       w obu przypadkach — i zeby `.finally()` nie zwrocil DRUGIEGO, juz
+       nieobsluzonego odrzucenia. */
     try { e.viewTransition.finished
             .catch(function(){})
-            .finally(function(){ document.documentElement.removeAttribute('data-vt-dir'); }); }
-    catch(_){ document.documentElement.removeAttribute('data-vt-dir'); }
+            .finally(function(){ if (kierunkowa) document.documentElement.removeAttribute('data-vt-dir'); }); }
+    catch(_){ if (kierunkowa) document.documentElement.removeAttribute('data-vt-dir'); }
   });
 
   // Włącznik debug z URL (telefon bez konsoli): ?swipedebug=1 → flaga on (persist w localStorage), ?swipedebug=0 → off.
