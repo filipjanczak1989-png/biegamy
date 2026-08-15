@@ -2188,6 +2188,53 @@ window._icuRenderSplits = function (d, el) {
     });
   };
 
+  /* Pytanie o drugi trening tego samego dnia. Zastępuje trigger cooldownu,
+     zdjęty 16.08.2026 (supabase/migrations/20260816_zdjecie_cooldownu.sql).
+
+     !! MÓWI, CO JUŻ JEST — nie „błąd duplikatu". Człowiek ma rozpoznać własny
+        wpis i sam rozstrzygnąć. Stara reguła szła jeszcze dalej i radziła
+        USUNĄĆ poprzedni log, czyli skasować prawdziwe dane.
+
+     !! MODAL W DOM-ie, NIE confirm(). W zainstalowanej aplikacji przeglądarka
+        potrafi zablokować confirm()/alert() BEZ ŚLADU — wtedy pytanie by się
+        nie pokazało, a zapis poszedłby dalej, więc człowiek zapisałby drugi
+        wpis nie widząc pytania. Wzorzec z window.askBikeOrRun, sprawdzonej
+        w tej samej funkcji saveLog.
+
+     !! Klik w tło = ANULUJ. W askBikeOrRun tło znaczy „zostaw jak jest", bo tam
+        obie odpowiedzi są nieszkodliwe. Tutaj jedna dopisuje wiersz, więc
+        domyślną musi być ta, która nic nie robi. */
+  window.pytajODrugiTrening = function (opis) {
+    return new Promise(function (resolve) {
+      try { var s = document.getElementById('_dupAsk'); if (s) s.remove(); } catch (_) {}
+      var m = document.createElement('div');
+      m.id = '_dupAsk';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10001;display:flex;'
+        + 'align-items:center;justify-content:center;padding:20px;';
+      var done = function (v) { try { m.remove(); } catch (_) {} resolve(v); };
+      var esc = window.escapeHtml || function (x) { return String(x); };
+      m.innerHTML = '<div style="max-width:380px;width:100%;background:linear-gradient(140deg,#1a1422,#13101a);'
+        + 'border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:22px;text-align:center;">'
+        + '<div style="font-size:40px;line-height:1;margin-bottom:10px;">🏃</div>'
+        + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;margin-bottom:10px;">'
+        + 'Masz już trening z tego dnia</div>'
+        + '<div style="font-family:\'DM Mono\',monospace;font-size:13px;color:#fff;background:rgba(255,255,255,0.06);'
+        + 'border-radius:10px;padding:10px 12px;margin-bottom:12px;">' + esc(opis) + '</div>'
+        + '<div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:16px;">'
+        + 'To drugi trening czy pomyłka?</div>'
+        + '<div style="display:flex;gap:10px;">'
+        + '<button id="_dupNie" style="flex:1;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);'
+        + 'border-radius:12px;padding:12px;font-size:13px;cursor:pointer;">Anuluj</button>'
+        + '<button id="_dupTak" style="flex:1;background:linear-gradient(135deg,#e8561e,#ff8a4c);color:#fff;border:none;'
+        + 'border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">Dodaj drugi</button>'
+        + '</div></div>';
+      m.addEventListener('click', function (e) { if (e.target === m) done(false); });
+      document.body.appendChild(m);
+      document.getElementById('_dupNie').onclick = function () { done(false); };
+      document.getElementById('_dupTak').onclick = function () { done(true); };
+    });
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // 📈 FORMA HELPERS — TRIMP calculation (CTL/ATL/TSB feature)
   // ═══════════════════════════════════════════════════════════════

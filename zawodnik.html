@@ -7337,6 +7337,46 @@ async function saveLog() {
 
   // Upload screena — użyj _pendingFiles (nowe) + _existingAttachments (już zapisane)
   let attachmentUrl = null;
+  /* Data logu policzona TUTAJ, przed uploadem — potrzebna do pytania o drugi
+     trening. Niżej używana ponownie do logged_at (nie liczymy jej dwa razy). */
+  const _now = new Date();
+  const _localToday = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
+  const logDate = _logDate || _localToday;
+
+  /* ── PYTANIE O DRUGI TRENING ─────────────────────────────────────────────
+     Zastępuje trigger cooldownu (zdjęty 16.08.2026). Ostrzega, nie blokuje:
+     z 91 grup „duplikatów" w bazie 38 RÓŻNI SIĘ treścią, czyli to prawdziwe
+     drugie treningi. Twardy UNIQUE zablokowałby je.
+
+     !! LECI PRZED UPLOADEM. Gdyby stało po nim, anulowanie zostawiałoby pliki
+        w storage — czyli produkowałoby dokładnie te sieroty, od których zaczął
+        się cały ten wątek. Sprawdzone, że wcześniej w saveLog nic nie idzie do
+        storage: OCR trzyma pliki w _pendingFiles, uploady są dopiero niżej.
+     !! Warunek wąski: ten dzień + ten typ. Szerszy nękałby ludzi robiących bieg
+        i siłownię tego samego dnia. Przy edycji nie pytamy — nie ma czego
+        duplikować. */
+  if (!_editingLogId && _athleteId) {
+    try {
+      const { data: _juz } = await sb.from('training_logs')
+        .select('training_type,distance_km,duration,pace')
+        .eq('athlete_id', _athleteId)
+        .eq('training_type', _logType)
+        .gte('logged_at', logDate + 'T00:00:00')
+        .lte('logged_at', logDate + 'T23:59:59')
+        .not('training_type', 'like', '__badge__%')
+        .limit(1);
+      if (_juz && _juz.length) {
+        const p = _juz[0];
+        const opis = [p.training_type, p.distance_km ? p.distance_km + ' km' : null, p.duration, p.pace ? p.pace + '/km' : null]
+          .filter(Boolean).join(' · ');
+        if (!(await window.pytajODrugiTrening(opis))) {
+          btn.textContent = 'Zapisz log →'; btn.disabled = false; _savingLog = false;
+          return;
+        }
+      }
+    } catch (e) { console.warn('[saveLog] sprawdzenie drugiego treningu pominięte:', e); }
+  }
+
   const filesToUpload = window._pendingFiles && window._pendingFiles.length > 0
     ? window._pendingFiles
     : (() => { const fi = document.getElementById('l-file'); return fi.files.length > 0 ? Array.from(fi.files) : []; })();
@@ -7391,10 +7431,7 @@ async function saveLog() {
   
   console.log('[saveLog] Finalny attachmentUrl:', attachmentUrl);
 
-  // Wyznacz datę logu — użyj lokalnej strefy czasowej
-  const now = new Date();
-  const localToday = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  const logDate = _logDate || localToday;
+  // logDate policzone WYŻEJ, przed uploadem (potrzebne do pytania o drugi trening).
   // Utwórz datę w lokalnej strefie (noon) żeby uniknąć przesunięcia UTC
   const loggedAtDate = new Date(logDate + 'T12:00:00');
   const tzOffset = -loggedAtDate.getTimezoneOffset();
@@ -7463,27 +7500,11 @@ async function saveLog() {
     const insertResult = await sb.from('training_logs').insert(insertPayload);
     error = insertResult.error;
     if (error) {
-      // ✨ SPECJALNY HANDLING dla cooldown (3h między logami) - to NIE jest błąd, to feature
-      if (error.message && error.message.startsWith('COOLDOWN:')) {
-        const remainingSec = parseInt(error.message.split(':')[1]) || 0;
-        const remainingMin = Math.ceil(remainingSec / 60);
-        const h = Math.floor(remainingMin / 60);
-        const m = remainingMin % 60;
-        const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
-        // Pokaż przyjazny komunikat
-        alert(
-          '⏱️ Trzeba poczekać\n\n' +
-          'Ostatni log treningowy zapisałeś niedawno.\n' +
-          'Pozostało jeszcze: ' + timeStr + '\n\n' +
-          'To ograniczenie chroni przed przypadkowymi duplikatami.\n' +
-          'Jeśli chcesz zalogować nowy trening teraz — usuń poprzedni log.'
-        );
-        error.message = 'Cooldown — zaczekaj ' + timeStr; // dla toast
-      } else {
-        console.error('[saveLog INSERT] error:', error);
-        console.error('[saveLog INSERT] payload był:', JSON.stringify(insertPayload, null, 2));
-        // Dla innych błędów - normalny toast (bez alert popupa)
-      }
+      // Cooldown zdjety 16.08.2026 — regula porownywala logged_at (poludnie)
+      // z zegarem sciennym, wiec blokowala rano prawdziwe zapisy. Zastapiony
+      // pytaniem o drugi trening, wyzej w tej funkcji.
+      console.error('[saveLog INSERT] error:', error);
+      console.error('[saveLog INSERT] payload byl:', JSON.stringify(insertPayload, null, 2));
     }
   }
 
@@ -8394,12 +8415,6 @@ const CIRCUIT = {
       const { error } = await sb.from('training_logs').insert(payload);
       const sv = this._el('circuit-save');
       if (error) {
-        if (error.message && error.message.indexOf('COOLDOWN:') === 0) {
-          this._el('circuit-next').textContent = 'Log pominięty — ostatni trening < 3h temu.';
-          if (sv) sv.style.display = 'none';
-          this._setBtn('done');
-          return;
-        }
         this._el('circuit-next').textContent = 'Błąd zapisu — spróbuj ponownie.';
         this._setBtn('save');
         return;
