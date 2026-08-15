@@ -383,3 +383,32 @@ opisuje **stan innego systemu** i może się z kodem rozjechać.
 **Objaw ostrzegawczy.** Pole o nazwie sugerującej tożsamość (`build`,
 `version`, `revision`), którego wartość powstaje **gdzie indziej** niż
 opisywana rzecz. Nazwa jest wtedy obietnicą, a nie pomiarem.
+
+## 12. Notatka bez daty ważności starzeje się w nieprawdę (15.08.2026)
+
+Wpis `W3 secret rotation PENDING` leżał w pamięci **miesiąc po wykonanej
+rotacji** — rotacja 13.07, odczyt 15.08. Przy odczycie brzmiał jak stan
+bieżący: „klucz eksponowany, rotacja czeka". Nie czekała.
+
+Ten sam wpis niósł ostrzeżenie o pułapce (nazwa sekretu w Vault z trailing
+space), która **też już nie istniała**. Czyli notatka nie tylko myliła co do
+stanu — kazała szukać czegoś, czego nie ma.
+
+**Zasada.** Zapis o stanie **PRZEJŚCIOWYM** — `pending`, `TODO`, `tymczasowo`,
+`do sprawdzenia`, `zrobimy jutro` — musi nieść **albo datę weryfikacji, albo
+sposób sprawdzenia stanu faktycznego**. Inaczej przy następnym odczycie brzmi
+jak fakt bieżący, bo nic w nim nie mówi, że mógł się zdezaktualizować.
+
+**Wskazówka wykonawcza.** Do wpisu o stanie przejściowym dopisz zapytanie albo
+polecenie, które **sprawdza stan naprawdę**. Tutaj wystarczyłoby jedno:
+
+```sql
+select name from vault.secrets;    -- 15.08 oddało: service_role_key_REVOKED_20260713
+```
+
+Wpis, który sam mówi, jak się zweryfikować, nie zestarzeje się w nieprawdę —
+najwyżej w nieaktualne polecenie, a to widać od razu.
+
+**Objaw ostrzegawczy.** Notatka opisująca coś, co miało się zdarzyć „jutro",
+czytana po miesiącach. Także: „PENDING" bez daty, „tymczasowo" bez warunku
+zakończenia, „do usunięcia po X" bez sprawdzenia, czy X już było.
