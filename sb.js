@@ -1584,8 +1584,8 @@
     try {
       var q = new URLSearchParams(location.search).get('vtdebug');
       if (q === '1' || q === 'selftest' || q === 'dump') localStorage.setItem('bm_vt_debug', '1');
-      else if (q === '0') { localStorage.removeItem('bm_vt_debug'); KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); }); }
-      else if (q === 'reset') KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); });
+      else if (q === '0') { localStorage.removeItem('bm_vt_debug'); KLUCZE.forEach(function(k){ try{sessionStorage.removeItem(k);}catch(_){} try{localStorage.removeItem(k);}catch(_){} }); }
+      else if (q === 'reset') KLUCZE.forEach(function(k){ try{sessionStorage.removeItem(k);}catch(_){} try{localStorage.removeItem(k);}catch(_){} });
     } catch (_) {}
     var wlaczony = false, _dump = false;
     try {
@@ -1594,9 +1594,27 @@
     } catch (_) {}
     if (!wlaczony) return;
 
-    function ile(k){ try { return +(sessionStorage.getItem(k) || 0); } catch (_) { return 0; } }
-    function dolicz(k){ try { sessionStorage.setItem(k, String(ile(k) + 1)); } catch (_) {} }
-    function lista(k){ try { return JSON.parse(sessionStorage.getItem(k) || '[]'); } catch (_) { return []; } }
+    /* DWA MAGAZYNY, NIE JEDEN. sessionStorage ginie razem z oknem, a przeglądarka
+       wbudowana Messengera potrafi je zamknąć dokładnie wtedy, gdy strona padnie —
+       czyli w jedynym momencie, dla którego ten ślad istnieje. localStorage
+       przeżywa zamknięcie okna.
+       !! localStorage NIE GINIE SAM — po diagnozie trzeba wejść na ?vtdebug=0,
+          które czyści OBA magazyny. Inaczej ślad z dziś zostaje tam na zawsze.
+       Odczyt woli sessionStorage; gdy tam pusto, a w localStorage coś jest,
+       znaczy to, że okno zostało zamknięte — i dump to pokazuje. */
+    var _zSesji = true;
+    function czytaj(k){
+      try { var v = sessionStorage.getItem(k); if (v !== null) return v; } catch (_) {}
+      try { var w = localStorage.getItem(k); if (w !== null) { _zSesji = false; return w; } } catch (_) {}
+      return null;
+    }
+    function zapisz(k, v){
+      try { sessionStorage.setItem(k, v); } catch (_) {}
+      try { localStorage.setItem(k, v); } catch (_) {}
+    }
+    function ile(k){ return +(czytaj(k) || 0); }
+    function dolicz(k){ zapisz(k, String(ile(k) + 1)); }
+    function lista(k){ try { return JSON.parse(czytaj(k) || '[]'); } catch (_) { return []; } }
     function dziennik(){ return lista('bm_vt_log'); }
     function czas(){ try { return new Date().toTimeString().slice(0, 8); } catch (_) { return '??'; } }
 
@@ -1610,7 +1628,7 @@
       try {
         var l = lista('bm_vt_slad');
         l.push({ t: czas(), u: location.pathname.replace(/^\//, ''), f: faza, x: extra || '' });
-        sessionStorage.setItem('bm_vt_slad', JSON.stringify(l.slice(-40)));
+        zapisz('bm_vt_slad', JSON.stringify(l.slice(-40)));
       } catch (_) {}
     }
     function zapiszBlad(rodzaj, tresc, plik, linia){
@@ -1618,7 +1636,7 @@
         var b = lista('bm_vt_bledy');
         b.unshift({ t: czas(), u: location.pathname.replace(/^\//, ''), r: rodzaj,
                     m: String(tresc || '').slice(0, 120), p: String(plik || '').slice(-46), l: linia || '' });
-        sessionStorage.setItem('bm_vt_bledy', JSON.stringify(b.slice(0, 10)));
+        zapisz('bm_vt_bledy', JSON.stringify(b.slice(0, 10)));
       } catch (_) {}
     }
 
@@ -1690,7 +1708,9 @@
         o.style.borderColor = o.style.color = (n || bledy.length) ? '#fb923c' : '#4ade80';
 
         if (_dump) {                            // ?vtdebug=dump — odczyt PO FAKCIE, z innej strony
-          o.textContent = 'VT — ZRZUT sessionStorage  (tryb: ' + tryb() + ')'
+          o.textContent = 'VT — ZRZUT  (tryb: ' + tryb() + ')'
+            + '\nźródło: ' + (_zSesji ? 'sessionStorage — okno żyło przez cały czas'
+                                      : 'localStorage — OKNO ZOSTAŁO ZAMKNIĘTE, sesja przepadła')
             + '\nprzejścia  swap ' + sw + ' / reveal ' + rv + '   odrzucenia ' + n
             + (bledy.length ? '\n\nBŁĘDY (' + bledy.length + '):\n'
                 + bledy.map(function(b){ return '· ' + b.t + ' [' + b.u + '] ' + b.r + ': ' + b.m + (b.p ? '\n    ' + b.p + ':' + b.l : ''); }).join('\n')
@@ -1724,7 +1744,7 @@
         dolicz('bm_vt_cnt');
         var log = dziennik();
         log.unshift({ t: czas(), ctx: ctx, msg: String((r && r.message) || r).slice(0, 90) });
-        sessionStorage.setItem('bm_vt_log', JSON.stringify(log.slice(0, 5)));
+        zapisz('bm_vt_log', JSON.stringify(log.slice(0, 5)));
       } catch (_) {}
       rysuj();
     });
