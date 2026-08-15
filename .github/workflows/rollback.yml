@@ -1,0 +1,150 @@
+name: Rollback
+
+# Cofniecie zlego deployu ma byc JEDNA akcja z telefonu, nie panika.
+# Pole ma wartosc domyslna, wiec cofniecie ostatniej zmiany to samo
+# "Run workflow" — bez wpisywania czegokolwiek.
+#
+# !! ROLLBACK NIE DOTYKA BAZY. Zaden workflow w tym repo jej nie rusza —
+#    migracje stosuje sie recznie (supabase db query --linked), a pliki
+#    w supabase/migrations/ sa ZAPISEM HISTORII, nie mechanizmem wykonawczym.
+#    Cofniecie kodu zostawia wiec BAZE Z PRZODU. Przy migracjach dodajacych to
+#    nieszkodliwe; przy DROP, zmianie typu, zmianie sygnatury funkcji albo CHECK
+#    stary kod moze przestac dzialac. Stad twarda blokada nizej.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA do cofniecia (puste = ostatni commit czlowieka)'
+        required: false
+        default: ''
+      mimo_sql:
+        description: 'Cofnij MIMO plikow w supabase/ (przeczytaj podsumowanie)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rollback
+  cancel-in-progress: false
+
+jobs:
+  cofnij:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0                       # revert i git log potrzebuja historii
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ustal cel
+        id: cel
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.sha }}" ]; then
+            CEL=$(git rev-parse --verify "${{ inputs.sha }}^{commit}")
+          else
+            # !! NIE HEAD. Po KAZDYM deployu na szczycie main stoi bot
+            #    "chore: bump SW cache [skip ci]" — zmierzone 15.08: 9 z ostatnich
+            #    20 commitow, przeplatane z ludzkimi jeden do jednego.
+            #    Cofniecie bumpa nie cofa ZADNEGO kodu, za to OBNIZA CACHE_VERSION,
+            #    czyli zostawia ludzi na starym cache'u. Gorsze niz nic.
+            CEL=$(git log --format='%H %an' -50 \
+                  | grep -v 'github-actions\[bot\]' | head -1 | cut -d' ' -f1)
+          fi
+          if [ -z "$CEL" ]; then
+            echo "::error::Nie znalazlem commita do cofniecia"; exit 1
+          fi
+          # Historia jest liniowa (praca przez rebase), wiec merge to anomalia,
+          # a `git revert` bez -m nie wie, ktora strone cofnac.
+          if [ "$(git rev-list --parents -n1 "$CEL" | wc -w)" -gt 2 ]; then
+            echo "::error::$CEL to merge — cofnij recznie, workflow nie zgaduje strony"; exit 1
+          fi
+          echo "cel=$CEL" >> "$GITHUB_OUTPUT"
+
+      # POKAZ ZANIM COFNIESZ. Podsumowanie ($GITHUB_STEP_SUMMARY) jest czytelne
+      # na telefonie, w przeciwienstwie do logu.
+      - name: Pokaz, co zostanie cofniete
+        id: podglad
+        run: |
+          set -euo pipefail
+          CEL='${{ steps.cel.outputs.cel }}'
+          SQL=$(git show --name-only --format= "$CEL" | grep '^supabase/' || true)
+          {
+            echo "## Rollback"
+            echo ""
+            echo "**Cofam:** \`$(git rev-parse --short "$CEL")\` — $(git log -1 --format=%s "$CEL")"
+            echo ""
+            echo "**Autor:** $(git log -1 --format='%an, %ad' --date=format:'%Y-%m-%d %H:%M' "$CEL")"
+            echo ""
+            echo "**Pliki:**"
+            echo ''
+            echo '```'
+            git show --name-status --format= "$CEL"
+            echo '```'
+            if [ -n "$SQL" ]; then
+              echo ""
+              echo "### :warning: W ZAKRESIE SA PLIKI Z supabase/"
+              echo ""
+              echo '```'
+              echo "$SQL"
+              echo '```'
+              echo ""
+              echo "Rollback **nie dotyka bazy** — zaden workflow w tym repo jej nie rusza."
+              echo "Po cofnieciu **baza zostanie z przodu, a kod wroci do tylu**."
+              echo "Przy migracjach dodajacych to nieszkodliwe. Przy DROP, zmianie typu,"
+              echo "zmianie sygnatury funkcji albo CHECK — stary kod moze przestac dzialac."
+              echo "To samo dotyczy supabase/functions: revert w repo NIE cofa wdrozonej EF."
+              echo ""
+              echo "Jesli mimo to chcesz cofnac, uruchom ponownie z **Cofnij MIMO plikow w supabase/**."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          { echo "sql<<KONIEC"; echo "$SQL"; echo "KONIEC"; } >> "$GITHUB_OUTPUT"
+
+      # BLOKADA, nie ostrzezenie. Na telefonie, w pospiechu, ostrzezenie w logu
+      # jest niewidoczne — twarde zatrzymanie wymusza decyzje. Przelacznik
+      # zostawia droge na sytuacje awaryjna.
+      - name: Blokada przy plikach z supabase/
+        if: steps.podglad.outputs.sql != '' && inputs.mimo_sql != true
+        run: |
+          echo "::error::W cofanym commicie sa pliki z supabase/. Przeczytaj podsumowanie i uruchom ponownie z 'Cofnij MIMO plikow w supabase/'."
+          exit 1
+
+      - name: Cofnij i wypchnij
+        run: |
+          set -euo pipefail
+          CEL='${{ steps.cel.outputs.cel }}'
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git revert --no-commit "$CEL"
+          if git diff --cached --quiet; then
+            echo "::error::Revert niczego nie zmienia — commit jest juz cofniety?"; exit 1
+          fi
+          # Wlasny komunikat, NIE `git revert --no-edit`. Tamten daje
+          # Revert "<oryginalny temat>", a jesli temat zawieral [skip ci]
+          # (kazdy bump bota zawiera), deploy zostalby POMINIETY.
+          TEMAT=$(git log -1 --format=%s "$CEL" | sed 's/\[skip ci\]//g; s/  */ /g; s/ *$//')
+          git commit -m "revert: $TEMAT" -m "Cofniete workflow-em Rollback. Zrodlo: $CEL"
+          git push
+          {
+            echo ""
+            echo "**Wypchniete:** \`$(git rev-parse --short HEAD)\` — \`$(git log -1 --format=%s)\`"
+            echo ""
+            echo "Deploy startuje w nastepnym kroku. Zwykle ~25 s + propagacja CDN."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # !! Push z GITHUB_TOKEN NIE WYZWALA workflowow (zabezpieczenie GitHuba przed
+  #    petlami). Bez tego kroku main bylby cofniety, a produkcja dalej stalaby
+  #    na zlej wersji — najgorszy mozliwy wynik, bo wygladalby jak sukces.
+  #    Deploy wolany jawnie, przez workflow_call, zeby nie duplikowac logiki.
+  wdroz:
+    needs: cofnij
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: main          # galaz, NIE sha — bump robi `git push`, a z odlaczonej HEAD nie ma dokad
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
