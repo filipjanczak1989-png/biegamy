@@ -263,3 +263,41 @@ A do przywrócenia pojedynczego pliku ze zdalnego stanu:
 `checkout` albo `clean`**, uruchomione w katalogu roboczym, w którym trwa
 praca. Każde z nich potrafi skasować rzecz, której nie jesteś właścicielem
 w tej sesji.
+
+## 9. Dowód o KODZIE nie jest dowodem o OBJAWIE (15.08.2026)
+
+14.08.2026 poprawka `.catch()` na `viewTransition.finished` została
+zatwierdzona jako zamknięcie 42 błędów w `client_errors`. Zmiana była
+poprawna — i objęła **ZERO z 9 wierszy**, które przyszły po niej.
+Handler wychodził wcześniej (`sb.js:1530`) i nigdy nie dochodził
+do naprawionej linii.
+
+Żeby poprawny diff był dowodem na zniknięcie objawu, trzeba pokazać
+**dodatkowo**, że każdy producent objawu przechodzi przez zmienioną
+linię. Tego nikt nie sprawdził.
+
+**Dane obalające leżały w tabeli przez 16 godzin** — kolumna `app_version`
+pokazywała, że build **z poprawką** produkuje nowe wiersze. Jedno zapytanie:
+
+```sql
+select app_version, count(*), max(created_at)
+from public.client_errors
+where message ilike '%ransition%' and created_at >= now() - interval '3 days'
+group by app_version order by 3 desc;
+```
+
+**Zasada.** Gdy naprawiasz coś, co ma licznik w produkcji, weryfikacją jest
+**LICZNIK, nie diff**. A gdy naprawa nie ma licznika — **zbuduj go przed
+naprawą, nie po**. Licznik zbudowany po naprawie nie umie pokazać, że
+potrafiłby zaświecić na czerwono, więc jego zero nic nie znaczy.
+
+**Wskazówka wykonawcza.** Przyrząd pomiarowy i naprawa idą **osobnymi
+wdrożeniami, w tej kolejności**. Gdyby poszły razem, zero po wdrożeniu
+mogłoby znaczyć „naprawione" albo „przyrząd nie działa", a tych dwóch
+rzeczy nie da się rozróżnić po fakcie.
+
+**Objaw ostrzegawczy.** Uzasadnienie łączące **pomiar o szerokim zakresie**
+z **naprawą o wąskim**, w jednym spójnym zdaniu. Sprawdź, czy oba mówią
+o tym samym zbiorze. Tutaj brzmiało to tak — i ślad został w komentarzu
+w kodzie: „stąd 42 unhandledrejection u 7 osób", dopisane przy linii,
+która obsługiwała wyłącznie nawigacje swipe'owe.

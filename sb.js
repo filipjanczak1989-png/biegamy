@@ -1545,6 +1545,85 @@
   // Włącznik debug z URL (telefon bez konsoli): ?swipedebug=1 → flaga on (persist w localStorage), ?swipedebug=0 → off.
   (function(){ try { var d = new URLSearchParams(location.search).get('swipedebug'); if (d === '1') localStorage.setItem('bm_swipe_debug','1'); else if (d === '0') localStorage.removeItem('bm_swipe_debug'); } catch(e){} })();
 
+  /* ─── LICZNIK NIEOBSŁUŻONYCH ODRZUCEŃ — ?vtdebug=1 ────────────────────────
+     TYMCZASOWY PRZYRZĄD POMIAROWY. Wchodzi OSOBNYM wdrożeniem, PRZED naprawą
+     View Transitions, i wychodzi osobnym commitem po weryfikacji.
+
+     !! WCHODZI SAM, BEZ NAPRAWY — I TO JEST CAŁY SENS. Gdyby przyrząd
+        i naprawa poszły jednym wdrożeniem, zero na liczniku mogłoby znaczyć
+        „naprawione" albo „przyrząd nie działa", a tych dwóch rzeczy nie da
+        się rozróżnić po fakcie. Dokładnie tak zamknęliśmy 14.08 poprawkę,
+        która objęła zero z dziewięciu wierszy. Patrz .ai/LEKCJE.md #9.
+        Pierwszy pomiar jest więc TESTEM NEGATYWNYM: na buildzie BEZ naprawy
+        licznik MUSI rosnąć. Jeśli stoi na zerze — przyrząd jest zepsuty
+        i żaden późniejszy wynik nic nie znaczy.
+
+     !! NIE WOLNO TU PRZYPINAĆ .catch() DO viewTransition.finished. Przypięcie
+        czegokolwiek OZNACZA ODRZUCENIE JAKO OBSŁUŻONE, czyli byłoby naprawą
+        przebraną za pomiar — licznik pokazałby zero, bo sam by to zero
+        wyprodukował. Obserwujemy WYŁĄCZNIE zdarzenie 'unhandledrejection'
+        i nie wołamy na nim preventDefault().
+
+     !! LICZNIK ŻYJE W sessionStorage, nie w pamięci. Przejście cross-dokumentowe
+        ma DWA zdarzenia: 'pageswap' na starym dokumencie i 'pagereveal' na nowym,
+        każde z własnym `finished`. Odrzucenie ze starego dokumentu wypadnie tuż
+        przed jego zniszczeniem, więc licznik trzymany w pamięci zniknąłby razem
+        z nim. Stąd też etykieta `ctx` — pokazuje, KTÓRE z dwóch zdarzeń było
+        ostatnie w TYM dokumencie, co rozstrzyga, czy wystarczy pokryć
+        'pagereveal', czy trzeba też 'pageswap'.                                */
+  (function(){
+    try {
+      var q = new URLSearchParams(location.search).get('vtdebug');
+      if (q === '1') localStorage.setItem('bm_vt_debug', '1');
+      else if (q === '0') { localStorage.removeItem('bm_vt_debug'); sessionStorage.removeItem('bm_vt_cnt'); sessionStorage.removeItem('bm_vt_log'); }
+      else if (q === 'reset') { sessionStorage.removeItem('bm_vt_cnt'); sessionStorage.removeItem('bm_vt_log'); }
+    } catch (_) {}
+    var wlaczony = false;
+    try { wlaczony = localStorage.getItem('bm_vt_debug') === '1'; } catch (_) {}
+    if (!wlaczony) return;
+
+    var ctx = '—';   // ostatnie zdarzenie VT W TYM dokumencie
+    window.addEventListener('pageswap',   function(e){ if (e && e.viewTransition) ctx = 'pageswap'; });
+    window.addEventListener('pagereveal', function(e){ if (e && e.viewTransition) ctx = 'pagereveal'; });
+
+    function ile(){ try { return +(sessionStorage.getItem('bm_vt_cnt') || 0); } catch (_) { return 0; } }
+    function dziennik(){ try { return JSON.parse(sessionStorage.getItem('bm_vt_log') || '[]'); } catch (_) { return []; } }
+
+    function rysuj(){
+      try {
+        var o = document.getElementById('_vt_dbg');
+        if (!o) {
+          o = document.createElement('div'); o.id = '_vt_dbg';
+          o.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;background:rgba(0,0,0,0.92);'
+            + 'color:#fb923c;font:600 11px/1.45 monospace;padding:9px 11px;border-radius:8px;border:1px solid #fb923c;'
+            + 'white-space:pre-wrap;word-break:break-word;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+          (document.body || document.documentElement).appendChild(o);
+        }
+        var n = ile();
+        o.style.borderColor = o.style.color = n ? '#fb923c' : '#4ade80';
+        o.textContent = 'VT ⚠ nieobsłużone odrzucenia: ' + n
+          + '\nbuild: ' + (window._appVersion || '…')
+          + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n') : '\n(klikaj między stronami — licznik ma rosnąć)');
+      } catch (_) {}
+    }
+
+    window.addEventListener('unhandledrejection', function(e){
+      // BEZ preventDefault() — odrzucenie ma pozostać nieobsłużone.
+      var r = e && e.reason;
+      try {
+        sessionStorage.setItem('bm_vt_cnt', String(ile() + 1));
+        var log = dziennik();
+        log.unshift({ t: new Date().toTimeString().slice(0, 8), ctx: ctx, msg: String((r && r.message) || r).slice(0, 90) });
+        sessionStorage.setItem('bm_vt_log', JSON.stringify(log.slice(0, 5)));
+      } catch (_) {}
+      rysuj();
+    });
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rysuj);
+    else rysuj();
+    setTimeout(rysuj, 1500);   // _appVersion dojeżdża z caches.keys() asynchronicznie
+  })();
+
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
   // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.
   window.wxIcon = function(code, cloudPct){
