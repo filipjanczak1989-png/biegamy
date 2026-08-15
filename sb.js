@@ -641,6 +641,29 @@
     else document.addEventListener('DOMContentLoaded', function(){ document.head.appendChild(_style); });
   }
 
+  /* ── ETYKIETY ODZNAK ─────────────────────────────────────────────────────
+     Klucze zostają angielskie w danych (122 + 110 wpisów w dwóch kopiach
+     BADGES) — zmiana dotyczy WYŁĄCZNIE wyświetlania, więc zero migracji.
+     Było w dwóch kopiach: zawodnik.html i odznaki.html.
+
+     „Zwykła", nie „pospolita": pospolita jest pogardliwa wobec kogoś, kto
+     właśnie ją dostał. „Wyczyn" zamiast „epicka" — słowo z języka biegaczy,
+     nie z gry karcianej. „Legenda" krótsza i mocniejsza niż „legendarna",
+     a pigułka ma letter-spacing 0.18em i uppercase. */
+  window.RARITY_LABEL = { common: 'Zwykła', rare: 'Rzadka', epic: 'Wyczyn', legendary: 'Legenda' };
+
+  /* !! MAPA TYLKO TAM, GDZIE KLUCZ JEST SPÓJNY, A ZŁA JEST SAMA NAZWA.
+        Rozdwojony klucz poprawiamy W DANYCH, nie mapą.
+        Konkretnie: `Społeczność` / `Społecznościowe` to był JEDEN pojęciowo
+        klucz w dwóch pisowniach, a `cat` jest kluczem GRUPUJĄCYM galerię
+        (`new Set(BADGES.map(b => b.cat))`). Mapa dałaby efekt gorszy niż
+        rozdwojenie: dwie sekcje o IDENTYCZNYM tytule. Poprawione w danych.
+        `Performance` ma jedną pisownię, niczego nie rozdwaja i siedzi w obu
+        rozjechanych kopiach BADGES — tu mapa jest właściwa.
+     !! „Tempo i moc", nie „Wydajność" (brzmi jak arkusz kalkulacyjny)
+        i nie „Wyniki" (kolidowałoby z kategorią `Starty`). */
+  window.KAT_LABEL = { 'Performance': 'Tempo i moc' };
+
   /* Alias krzyżyka nakładki PRS. Markup `onclick="PRSclose()"` stoi w DWÓCH
      stronach (zawodnik.html, kalendarz.html), a alias istniał wyłącznie
      w zawodnik.html — więc w kalendarzu krzyżyk nie zamykał nic.

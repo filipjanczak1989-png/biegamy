@@ -12720,7 +12720,7 @@ setTimeout(function(){ _frCheck(0); }, 1500);
     <!-- ✨ SEKCJA 1: Za co zdobyta (tylko dla earned) -->
     <div id="bd-earned-section" style="display:none;background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.25);border-radius:12px;padding:12px 14px;margin:6px 0 12px;text-align:left;">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:#3db870;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-        <span style="font-size:14px;">✓</span> Za co zdobyta
+        <span style="font-size:14px;">✓</span> Zdobyta
       </div>
       <div id="bd-earned-date" style="font-size:13px;color:var(--fg);font-weight:600;margin-bottom:4px;"></div>
       <div id="bd-earned-context" style="font-size:12px;color:var(--fg2);line-height:1.5;"></div>
@@ -12729,7 +12729,7 @@ setTimeout(function(){ _frCheck(0); }, 1500);
     <!-- ✨ SEKCJA 2: Jak zdobyć -->
     <div style="background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;text-align:left;">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-        <img data-ic="icon-nav-target.webp" style="width:15px;height:15px;flex-shrink:0;" alt=""> Jak zdobyć
+        <img data-ic="icon-nav-target.webp" style="width:15px;height:15px;flex-shrink:0;" alt=""> <span id="bd-howto-txt">Jak zdobyć</span>
       </div>
       <div id="bd-desc" style="font-size:13px;color:var(--fg);line-height:1.5;"></div>
     </div>
@@ -12886,14 +12886,14 @@ const BADGES = [
   {id:'maszyna_biegania', name:'Maszyna do biegania', desc:'10 treningów < 5:00/km',             rarity:'epic',     cat:'Tempo'},
 
   // ── SPOŁECZNOŚCIOWE (NOWE) ────────────────────────────────────────
-  {id:'pierwszy_fan',         name:'Pierwszy fan',         desc:'Pierwszy follow',                       rarity:'common',   cat:'Społecznościowe'},
-  {id:'stary_druh',           name:'Stary druh',           desc:'1 rok obserwacji znajomego',            rarity:'rare',     cat:'Społecznościowe'},
-  {id:'coach_whisperer',      name:'Coach Whisperer',      desc:'50 wiadomości do trenera',              rarity:'rare',     cat:'Społecznościowe'},
-  {id:'spam_friend',          name:'Spam Friend',          desc:'100 wiadomości do znajomego',           rarity:'epic',     cat:'Społecznościowe'},
-  {id:'pliszka',              name:'Pliszka',              desc:'Pierwsza akceptacja zaproszenia',       rarity:'common',   cat:'Społecznościowe'},
-  {id:'pierwszy_pojedynek',   name:'Pierwszy pojedynek',   desc:'Wyzwij znajomego 1v1',                  rarity:'common',   cat:'Społecznościowe'},
-  {id:'zwyciezca_pojedynku',  name:'Zwycięzca pojedynku',  desc:'Wygraj 1v1',                            rarity:'rare',     cat:'Społecznościowe'},
-  {id:'mistrz_pojedynkow',    name:'Mistrz pojedynków',    desc:'Wygraj 10 razy 1v1',                    rarity:'epic',     cat:'Społecznościowe'},
+  {id:'pierwszy_fan',         name:'Pierwszy fan',         desc:'Pierwszy follow',                       rarity:'common',   cat:'Społeczność'},
+  {id:'stary_druh',           name:'Stary druh',           desc:'1 rok obserwacji znajomego',            rarity:'rare',     cat:'Społeczność'},
+  {id:'coach_whisperer',      name:'Coach Whisperer',      desc:'50 wiadomości do trenera',              rarity:'rare',     cat:'Społeczność'},
+  {id:'spam_friend',          name:'Spam Friend',          desc:'100 wiadomości do znajomego',           rarity:'epic',     cat:'Społeczność'},
+  {id:'pliszka',              name:'Pliszka',              desc:'Pierwsza akceptacja zaproszenia',       rarity:'common',   cat:'Społeczność'},
+  {id:'pierwszy_pojedynek',   name:'Pierwszy pojedynek',   desc:'Wyzwij znajomego 1v1',                  rarity:'common',   cat:'Społeczność'},
+  {id:'zwyciezca_pojedynku',  name:'Zwycięzca pojedynku',  desc:'Wygraj 1v1',                            rarity:'rare',     cat:'Społeczność'},
+  {id:'mistrz_pojedynkow',    name:'Mistrz pojedynków',    desc:'Wygraj 10 razy 1v1',                    rarity:'epic',     cat:'Społeczność'},
 
   // ── SPECJALNE / FUN (NOWE) ────────────────────────────────────────
   {id:'maraton_dni',           name:'Maraton dni',           desc:'1 trening dziennie 26 dni',                  rarity:'epic',     cat:'Specjalne'},
@@ -12955,7 +12955,8 @@ const BADGES = [
   {id:'razem_wrzesien_2026',  name:'Razem',                desc:'Przebiegnij choć 1 km dla Kasi',         rarity:'common',    cat:'Wyzwania'},
 ];
 
-const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+/* RARITY_LABEL i KAT_LABEL -> sb.js (SSOT). Byly w dwoch kopiach: tutaj
+   i w odznaki.html, obie mapujace angielski na angielski. */
 const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'#ffcc00'};
 const RARITY_BG    = {common:'rgba(232,160,64,0.12)',rare:'rgba(170,200,255,0.12)',epic:'rgba(200,126,240,0.12)',legendary:'rgba(255,204,0,0.12)'};
 
@@ -12984,6 +12985,15 @@ async function showBadgeDetail(badgeId, isHidden) {
   if (!modal) return;
   const earned = window._earnedBadges.has(badgeId);
   const col = RARITY_COLOR[badge.rarity] || '#fff';
+  /* Dla ZDOBYTEJ odznaki reguła jest odpowiedzią na „za co”, nie na „jak zdobyć” —
+     człowiek już ją ma. Zła była sama etykieta: Maciek szukał „za co” i znajdował
+     datę, bo reguła siedziała pod „jak zdobyć”.
+     !! USTAWIANE PRZED ROZGAŁĘZIENIEM, nie w gałęziach. Karta to JEDEN, wielokrotnie
+        używany węzeł DOM — ustawienie tylko w gałęzi „zdobyta” zostawiłoby „Za co”
+        na następnej, niezdobytej odznace. */
+  const _howto = document.getElementById('bd-howto-txt');
+  if (_howto) _howto.textContent = earned ? 'Za co' : 'Jak zdobyć';
+
   const bg = RARITY_BG[badge.rarity] || 'rgba(255,255,255,0.1)';
 
   const earnedSection = document.getElementById('bd-earned-section');
@@ -12994,7 +13004,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     document.getElementById('bd-img').style.opacity = '0.15';
     document.getElementById('bd-img').alt = '?';
     document.getElementById('bd-name').textContent = 'Odznaka sekretna';
-    document.getElementById('bd-cat').textContent = badge.cat || '';
+    document.getElementById('bd-cat').textContent = (window.KAT_LABEL||{})[badge.cat] || badge.cat || '';
     const rar = document.getElementById('bd-rarity');
     rar.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
     rar.style.background = bg;
@@ -13010,7 +13020,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     document.getElementById('bd-img').style.opacity = earned ? '1' : '0.4';
     document.getElementById('bd-img').alt = badge.name;
     document.getElementById('bd-name').textContent = badge.name;
-    document.getElementById('bd-cat').textContent = badge.cat || '';
+    document.getElementById('bd-cat').textContent = (window.KAT_LABEL||{})[badge.cat] || badge.cat || '';
     const rar = document.getElementById('bd-rarity');
     rar.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
     rar.style.background = bg;
@@ -13058,7 +13068,7 @@ async function showBadgeDetail(badgeId, isHidden) {
             if (closestLog.training_type) parts.push(closestLog.training_type);
             if (closestLog.distance_km) parts.push(closestLog.distance_km + ' km');
             if (closestLog.pace) parts.push(closestLog.pace);
-            ctxEl.innerHTML = '🏃 Po treningu: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
+            ctxEl.innerHTML = '🏃 Tego dnia: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
           } else {
             // Brak treningu tego dnia — pusty context
             ctxEl.textContent = '';
@@ -13785,7 +13795,7 @@ function renderBadgesSection() {
     const catBadges = BADGES.filter(b => b.cat === cat);
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
     html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);">${cat}</div>
+      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);">${(window.KAT_LABEL||{})[cat] || cat}</div>
       <div style="font-size:9px;font-family:DM Mono,monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
     </div>
     <div class="badge-grid">`;

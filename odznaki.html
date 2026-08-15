@@ -84,12 +84,12 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
     <div id="bd-cat"></div>
     <div id="bd-rarity"></div>
     <div id="bd-earned-section">
-      <div id="bd-earned-hdr"><img data-ic="icon-radio-trophy.webp" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;" alt="">Za co zdobyta</div>
+      <div id="bd-earned-hdr"><img data-ic="icon-radio-trophy.webp" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;" alt="">Zdobyta</div>
       <div id="bd-earned-date"></div>
       <div id="bd-earned-context"></div>
     </div>
     <div id="bd-howto-section">
-      <div id="bd-howto-hdr"><img data-ic="icon-nav-target.webp" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;" alt="">Jak zdobyć</div>
+      <div id="bd-howto-hdr"><img data-ic="icon-nav-target.webp" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;" alt=""><span id="bd-howto-txt">Jak zdobyć</span></div>
       <div id="bd-desc"></div>
     </div>
     <div id="bd-status"></div>
@@ -107,7 +107,7 @@ window._earnedBadges = new Set();
 })();
 
 const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'#ffcc00'};
-const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+/* RARITY_LABEL i KAT_LABEL -> sb.js (SSOT). Byly w dwoch kopiach. */
 const RARITY_BG = {common:'rgba(232,160,64,0.15)',rare:'rgba(170,200,255,0.15)',epic:'rgba(200,126,240,0.15)',legendary:'rgba(255,204,0,0.15)'};
 const BASE_URL = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/';
 const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
@@ -286,7 +286,7 @@ function renderBadgesSection() {
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
     if (earnedInCat === 0) continue; // Pokaż kategorie tylko ze zdobytymi
 
-    html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:10px;">${cat} <span style="color:var(--accent);">${earnedInCat}/${catBadges.length}</span></div>`;
+    html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:10px;">${(window.KAT_LABEL||{})[cat] || cat} <span style="color:var(--accent);">${earnedInCat}/${catBadges.length}</span></div>`;
     html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">`;
 
     for (const b of catBadges) {
@@ -343,6 +343,15 @@ async function showBadgeDetail(badgeId, isHidden) {
   if (!modal) return;
 
   const earned = window._earnedBadges.has(badgeId);
+  /* Dla ZDOBYTEJ odznaki reguła jest odpowiedzią na „za co”, nie na „jak zdobyć” —
+     człowiek już ją ma. Zła była sama etykieta: Maciek szukał „za co” i znajdował
+     datę, bo reguła siedziała pod „jak zdobyć”.
+     !! USTAWIANE PRZED ROZGAŁĘZIENIEM, nie w gałęziach. Karta to JEDEN, wielokrotnie
+        używany węzeł DOM — ustawienie tylko w gałęzi „zdobyta” zostawiłoby „Za co”
+        na następnej, niezdobytej odznace. */
+  const _howto = document.getElementById('bd-howto-txt');
+  if (_howto) _howto.textContent = earned ? 'Za co' : 'Jak zdobyć';
+
   const col = RARITY_COLOR[badge.rarity] || '#fff';
   const bg = RARITY_BG[badge.rarity] || 'rgba(255,255,255,0.1)';
 
@@ -360,7 +369,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     img.style.opacity = '0.15';
     img.alt = '?';
     nameEl.textContent = 'Odznaka sekretna';
-    catEl.textContent = badge.cat || '';
+    catEl.textContent = (window.KAT_LABEL||{})[badge.cat] || badge.cat || '';
     rarEl.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
     rarEl.style.background = bg;
     rarEl.style.color = col;
@@ -374,7 +383,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     img.style.opacity = earned ? '1' : '0.4';
     img.alt = badge.name;
     nameEl.textContent = badge.name;
-    catEl.textContent = badge.cat || '';
+    catEl.textContent = (window.KAT_LABEL||{})[badge.cat] || badge.cat || '';
     rarEl.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
     rarEl.style.background = bg;
     rarEl.style.color = col;
@@ -418,7 +427,7 @@ async function showBadgeDetail(badgeId, isHidden) {
             if (closestLog.training_type) parts.push(closestLog.training_type);
             if (closestLog.distance_km) parts.push(closestLog.distance_km + ' km');
             if (closestLog.pace) parts.push(closestLog.pace);
-            ctxEl.innerHTML = '🏃 Po treningu: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
+            ctxEl.innerHTML = '🏃 Tego dnia: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
           } else {
             ctxEl.textContent = '';
           }
