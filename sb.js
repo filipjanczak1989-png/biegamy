@@ -1558,6 +1558,14 @@
         licznik MUSI rosnąć. Jeśli stoi na zerze — przyrząd jest zepsuty
         i żaden późniejszy wynik nic nie znaczy.
 
+     !! PIERWSZA RUNDA DAŁA ZERO I NIE DAŁO SIĘ TEGO ZINTERPRETOWAĆ. Zero
+        znaczyło jednocześnie trzy rzeczy: przyrząd zepsuty / nie trafiono
+        w nawigacje / to urządzenie objawu nie robi. Stąd `?vtdebug=selftest`
+        (przyrząd dowodzi, że umie zaświecić) i liczniki `pageswap`
+        / `pagereveal` (widać, czy przejście dokumentu w ogóle zaszło).
+        Ta sama zasada co `assert potrafi wykryć fałsz` w tests/czas.test.js
+        i `--samokontrola` w tools/sprawdz-pb-walidacja.js.
+
      !! NIE WOLNO TU PRZYPINAĆ .catch() DO viewTransition.finished. Przypięcie
         czegokolwiek OZNACZA ODRZUCENIE JAKO OBSŁUŻONE, czyli byłoby naprawą
         przebraną za pomiar — licznik pokazałby zero, bo sam by to zero
@@ -1572,22 +1580,52 @@
         ostatnie w TYM dokumencie, co rozstrzyga, czy wystarczy pokryć
         'pagereveal', czy trzeba też 'pageswap'.                                */
   (function(){
+    var KLUCZE = ['bm_vt_cnt', 'bm_vt_log', 'bm_vt_swap', 'bm_vt_reveal'];
     try {
       var q = new URLSearchParams(location.search).get('vtdebug');
-      if (q === '1') localStorage.setItem('bm_vt_debug', '1');
-      else if (q === '0') { localStorage.removeItem('bm_vt_debug'); sessionStorage.removeItem('bm_vt_cnt'); sessionStorage.removeItem('bm_vt_log'); }
-      else if (q === 'reset') { sessionStorage.removeItem('bm_vt_cnt'); sessionStorage.removeItem('bm_vt_log'); }
+      if (q === '1' || q === 'selftest') localStorage.setItem('bm_vt_debug', '1');
+      else if (q === '0') { localStorage.removeItem('bm_vt_debug'); KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); }); }
+      else if (q === 'reset') KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); });
     } catch (_) {}
     var wlaczony = false;
     try { wlaczony = localStorage.getItem('bm_vt_debug') === '1'; } catch (_) {}
     if (!wlaczony) return;
 
-    var ctx = '—';   // ostatnie zdarzenie VT W TYM dokumencie
-    window.addEventListener('pageswap',   function(e){ if (e && e.viewTransition) ctx = 'pageswap'; });
-    window.addEventListener('pagereveal', function(e){ if (e && e.viewTransition) ctx = 'pagereveal'; });
-
-    function ile(){ try { return +(sessionStorage.getItem('bm_vt_cnt') || 0); } catch (_) { return 0; } }
+    function ile(k){ try { return +(sessionStorage.getItem(k) || 0); } catch (_) { return 0; } }
+    function dolicz(k){ try { sessionStorage.setItem(k, String(ile(k) + 1)); } catch (_) {} }
     function dziennik(){ try { return JSON.parse(sessionStorage.getItem('bm_vt_log') || '[]'); } catch (_) { return []; } }
+
+    /* Liczniki PRZEJŚĆ, nie tylko odrzuceń. Bez nich „klikałem, a licznik stoi"
+       jest nierozstrzygalne: nie wiadomo, czy przejście dokumentu w ogóle
+       zaszło. Zmierzone 15.08: na zawodnik.html 4 z 6 pozycji dolnego paska
+       to href="#" + showSection(), czyli ZERO nawigacji. */
+    var ctx = '—';   // ostatnie zdarzenie VT W TYM dokumencie
+    window.addEventListener('pageswap',   function(e){ if (e && e.viewTransition) { ctx = 'pageswap';   dolicz('bm_vt_swap'); } });
+    window.addEventListener('pagereveal', function(e){ if (e && e.viewTransition) { ctx = 'pagereveal'; dolicz('bm_vt_reveal'); } });
+
+    /* Które elementy TEJ strony naprawdę nawigują — czytane z żywego DOM-u,
+       nie z mojej listy. Lista w komentarzu zestarzałaby się przy pierwszej
+       zmianie paska, a właśnie na nieaktualnym wyobrażeniu o tym, co nawiguje,
+       przepadła pierwsza runda pomiaru. */
+    function nawigujace(){
+      var e = [];
+      try {
+        [].forEach.call(document.querySelectorAll('a[href]'), function(a){
+          var h = a.getAttribute('href') || '';
+          if (/^[a-z0-9_-]+\.html/i.test(h)) e.push(a);
+        });
+        [].forEach.call(document.querySelectorAll('[onclick]'), function(el){
+          if (/location\.href\s*=/.test(el.getAttribute('onclick') || '')) e.push(el);
+        });
+      } catch (_) {}
+      var etyk = [], widziane = {};
+      e.forEach(function(el){
+        var t = '';
+        try { t = (el.getAttribute('title') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 14); } catch (_) {}
+        if (t && !widziane[t]) { widziane[t] = 1; etyk.push(t); }
+      });
+      return etyk.slice(0, 8);
+    }
 
     function rysuj(){
       try {
@@ -1595,15 +1633,22 @@
         if (!o) {
           o = document.createElement('div'); o.id = '_vt_dbg';
           o.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;background:rgba(0,0,0,0.92);'
-            + 'color:#fb923c;font:600 11px/1.45 monospace;padding:9px 11px;border-radius:8px;border:1px solid #fb923c;'
+            + 'font:600 11px/1.45 monospace;padding:9px 11px;border-radius:8px;border:1px solid;'
             + 'white-space:pre-wrap;word-break:break-word;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
           (document.body || document.documentElement).appendChild(o);
         }
-        var n = ile();
+        var n = ile('bm_vt_cnt'), sw = ile('bm_vt_swap'), rv = ile('bm_vt_reveal');
         o.style.borderColor = o.style.color = n ? '#fb923c' : '#4ade80';
-        o.textContent = 'VT ⚠ nieobsłużone odrzucenia: ' + n
+        var nav = nawigujace();
+        o.textContent = 'VT — przyrząd pomiarowy'
+          + '\n  pageswap:   ' + sw
+          + '\n  pagereveal: ' + rv
+          + '\n  odrzucenia: ' + n
           + '\nbuild: ' + (window._appVersion || '…')
-          + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n') : '\n(klikaj między stronami — licznik ma rosnąć)');
+          + (nav.length ? '\nnawigują tutaj: ' + nav.join(' · ') : '\n(na tej stronie nic nie nawiguje)')
+          + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n')
+               : (sw + rv ? '\n(przejścia są, odrzuceń brak — to urządzenie objawu nie robi)'
+                          : '\n(brak przejść — klikaj w to, co wyżej)'));
       } catch (_) {}
     }
 
@@ -1611,7 +1656,7 @@
       // BEZ preventDefault() — odrzucenie ma pozostać nieobsłużone.
       var r = e && e.reason;
       try {
-        sessionStorage.setItem('bm_vt_cnt', String(ile() + 1));
+        dolicz('bm_vt_cnt');
         var log = dziennik();
         log.unshift({ t: new Date().toTimeString().slice(0, 8), ctx: ctx, msg: String((r && r.message) || r).slice(0, 90) });
         sessionStorage.setItem('bm_vt_log', JSON.stringify(log.slice(0, 5)));
@@ -1622,6 +1667,21 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rysuj);
     else rysuj();
     setTimeout(rysuj, 1500);   // _appVersion dojeżdża z caches.keys() asynchronicznie
+
+    /* SAMOKONTROLA PRZYRZĄDU — ?vtdebug=selftest.
+       Rzuca ODRZUCENIE, którego nikt nie obsługuje, więc licznik MUSI skoczyć.
+       Rozcina węzeł, którego pierwsza runda nie rozcięła: zero na liczniku
+       znaczyło jednocześnie „przyrząd zepsuty", „nie trafiłem w nawigacje"
+       i „to urządzenie objawu nie robi", a tych trzech nie dało się odróżnić.
+       !! ODPALANE NA KOŃCU, po rejestracji listenera — inaczej sprawdzałoby
+          przyrząd, który jeszcze nie istnieje, i zawsze dawało zero.
+       !! setTimeout, nie wywołanie wprost: odrzucenie musi wypaść w osobnym
+          zadaniu, żeby przeglądarka zdążyła uznać je za NIEobsłużone. */
+    try {
+      if ((new URLSearchParams(location.search).get('vtdebug')) === 'selftest') {
+        setTimeout(function(){ Promise.reject(new Error('vtdebug selftest — przyrzad dziala')); }, 300);
+      }
+    } catch (_) {}
   })();
 
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
