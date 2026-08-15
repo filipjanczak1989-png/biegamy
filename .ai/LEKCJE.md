@@ -223,3 +223,43 @@ z rozbiciem, które łamie dopasowanie.
 ma **w ogóle** — nie „failed", tylko brak. Nieudany workflow zostawia ślad;
 pominięty nie zostawia żadnego. Zanim zaczniesz debugować plik workflow,
 sprawdź, czy run w ogóle powstał.
+
+---
+
+## 8. Test „na sucho", który modyfikuje prawdziwe repo, nie jest testem na sucho (15.08.2026)
+
+**Co się stało — dwa razy w ciągu godziny, przy testowaniu workflow Rollback.**
+
+**Raz.** `git reset --hard HEAD` po próbnym rewercie skasował **niezacommitowane
+zmiany w `deploy.yml`** — moją własną, świeżo napisaną edycję. `rollback.yml`
+przeżył tylko dlatego, że był nieśledzony.
+
+**Dwa.** Próba `git revert --no-commit`, a po niej **`git revert --quit`** —
+i to jest sedno. `--quit` **nie przywraca niczego**: czyści stan sekwencera,
+ale zostawia zmiany w indeksie i w drzewie roboczym. Kolejny `git checkout -- .`
+odtworzył pliki **z indeksu**, czyli **utrwalił cofnięcie zamiast je usunąć**.
+Do przerwania rewertu służy **`git revert --abort`**, nie `--quit`.
+
+Skutek: w katalogu roboczym siedziało cofnięcie, którego nikt nie zamawiał,
+w repo, z którego się wypycha. Zauważyłem dopiero przy kolejnym `git status`.
+
+**Dlaczego to jest gorsze niż strata własnej pracy.** Za pierwszym razem
+straciłem swoje. Za drugim **mogłem wypchnąć cudzą zmianę jako cofniętą** —
+i wyglądałoby to na świadomą decyzję, bo commit revertu niczym się nie różni
+od zamierzonego.
+
+**Zasada.** Symulację logiki workflow rób na **kopii repo** (`git clone` do
+katalogu tymczasowego) albo na sztucznych danych. Jeśli naprawdę musisz
+w prawdziwym — sprawdź `git status` **przed i po**, i **przywróć, zanim
+zrobisz cokolwiek innego**. Nie „później", bo później się o tym zapomina.
+
+**Wskazówka wykonawcza.** Do cofania próbnych operacji używaj polecenia, które
+przywraca stan **sprzed** operacji, nie tego, które tylko kończy operację:
+`revert --abort` / `cherry-pick --abort` / `merge --abort` — nie `--quit`.
+A do przywrócenia pojedynczego pliku ze zdalnego stanu:
+`git checkout origin/main -- <plik>` (celne), nie `reset --hard` (hurtowe).
+
+**Objaw ostrzegawczy.** Polecenie testowe zawierające **`reset`, `revert`,
+`checkout` albo `clean`**, uruchomione w katalogu roboczym, w którym trwa
+praca. Każde z nich potrafi skasować rzecz, której nie jesteś właścicielem
+w tej sesji.
