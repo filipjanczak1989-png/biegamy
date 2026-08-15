@@ -343,3 +343,38 @@ więc nie da się na tej podstawie twierdzić, że „to wina wersji".
 a Ty zaczynasz szukać przyczyny w niej: „źle kliknął", „zepsuty przyrząd",
 „nie to urządzenie". Najpierw sprawdź, czy ktokolwiek produkuje objaw
 DZIŚ — i w jakim środowisku.
+
+## 11. Wskaźnik zastępczy podany jako pomiar (15.08.2026)
+
+Linia `build:` w overlayu diagnostycznym pokazywała `window._appVersion`,
+czyli **nazwę cache'u zapisaną przez Service Workera** — a nie wersję
+wykonującego się `sb.js`. SW aktualizuje swój cache dopiero przy `activate`,
+więc etykieta systematycznie zostawała w tyle za kodem pobranym z sieci.
+
+A instrukcja weryfikacji, którą podałem Filipowi **dwa razy**, brzmiała:
+*„sprawdź, czy `build` się zgadza"*. Czyli: zweryfikuj kod polem, które
+mierzy co innego.
+
+Wyszło dopiero, gdy jeden zrzut pokazał `cache SW = c0e6333` (stary)
+i **jednocześnie** dane, które potrafi wyprodukować wyłącznie `7782816`
+(nowy). Wyglądało to na dwie wersje `sb.js` w jednej sesji. Nie było —
+kod był jeden, kłamał napis.
+
+**To samo dotyczy `client_errors.app_version`** (`sb.js:4788`), czyli
+kolumny, na której opieraliśmy zdanie „build **z poprawką** produkuje nowe
+wiersze". Wniosek się obronił, bo niosły go **znaczniki czasu** (wiersze
+przyszły kilkanaście godzin po wdrożeniu), ale sformułowanie twierdziło
+więcej, niż dane pozwalały.
+
+**Zasada.** Zanim każesz komuś weryfikować cokolwiek polem X, sprawdź,
+**co X faktycznie mierzy** — nie co sugeruje jego nazwa. Jedno spojrzenie
+w miejsce przypisania wystarcza.
+
+**Wskazówka wykonawcza.** Identyfikator wersji kodu ma być **stałą w tym
+samym pliku, co kod** (`var PRZYRZAD = 'v7'`) — wtedy z definicji mówi
+o tym, co się wykonuje. Wartość czytana z cache, z bazy albo z nagłówka
+opisuje **stan innego systemu** i może się z kodem rozjechać.
+
+**Objaw ostrzegawczy.** Pole o nazwie sugerującej tożsamość (`build`,
+`version`, `revision`), którego wartość powstaje **gdzie indziej** niż
+opisywana rzecz. Nazwa jest wtedy obietnicą, a nie pomiarem.

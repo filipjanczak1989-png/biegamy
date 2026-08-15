@@ -1580,6 +1580,15 @@
         ostatnie w TYM dokumencie, co rozstrzyga, czy wystarczy pokryć
         'pagereveal', czy trzeba też 'pageswap'.                                */
   (function(){
+    /* WERSJA PRZYRZĄDU — stała w TYM pliku, więc mówi o kodzie, KTÓRY SIĘ WYKONUJE.
+       Podbijaj przy każdej zmianie overlaya.
+       !! POWÓD ISTNIENIA: linia „build:" pokazywała `window._appVersion`, czyli
+          nazwę cache'u zapisaną przez Service Workera — a nie wersję działającego
+          sb.js. SW aktualizuje cache dopiero przy `activate`, więc etykieta
+          systematycznie zostawała w tyle. Instrukcja „sprawdź, czy build się
+          zgadza" kazała więc weryfikować kod polem mierzącym co innego.
+          Patrz .ai/LEKCJE.md #11. */
+    var PRZYRZAD = 'v7';
     var KLUCZE = ['bm_vt_cnt', 'bm_vt_log', 'bm_vt_swap', 'bm_vt_reveal', 'bm_vt_slad', 'bm_vt_bledy'];
     try {
       var q = new URLSearchParams(location.search).get('vtdebug');
@@ -1741,7 +1750,7 @@
           + '\n  odrzucenia: ' + n
           + (bledy.length ? '\n  BŁĘDY JS:   ' + bledy.length + '  ← ?vtdebug=dump' : '')
           + '\ntryb: ' + tryb()
-          + '\nbuild: ' + (window._appVersion || '…')
+          + '\nprzyrząd: ' + PRZYRZAD + '   cache SW: ' + (window._appVersion || '…')
           + (nav.length ? '\nnawigują tutaj: ' + nav.join(' · ') : '\n(na tej stronie nic nie nawiguje)')
           + (bledy.length ? '\n' + bledy.slice(0, 2).map(function(b){ return '✖ ' + b.r + ': ' + b.m; }).join('\n') : '')
           + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n')
@@ -1825,8 +1834,36 @@
     if (document.body) rysuj();
     document.addEventListener('DOMContentLoaded', function(){ if (!_dump) slad('DOMContentLoaded'); rysuj(); });
     window.addEventListener('load', function(){ if (!_dump) slad('load'); rysuj(); });
+    /* ZIMNY CZY CIEPŁY START. Czarny ekran wystąpił na sesji zimnej i nie
+       odtworzył się na ciepłej — więc bez tej informacji każdy kolejny przebieg
+       jest nieporównywalny z poprzednim. `transferSize === 0` znaczy „z cache",
+       a nie „nie pobrano": zasób był, tylko nie poleciał po sieci. */
+    function start(){
+      var w = [];
+      try {
+        var e = performance.getEntriesByType('resource') || [];
+        var sb = null, bajty = 0;
+        for (var i = 0; i < e.length; i++) {
+          bajty += (e[i].transferSize || 0);
+          if (!sb && /\/sb\.js/.test(e[i].name)) sb = e[i];
+        }
+        w.push('sieć=' + Math.round(bajty / 1024) + 'kB');
+        if (sb) w.push('sb.js=' + (sb.transferSize ? Math.round(sb.transferSize / 1024) + 'kB/' + Math.round(sb.duration) + 'ms' : 'z cache'));
+        var n = (performance.getEntriesByType('navigation') || [])[0];
+        if (n) w.push('nawigacja=' + Math.round(n.duration) + 'ms');
+      } catch (_) { w.push('performance niedostępne'); }
+      try {
+        if (typeof caches !== 'undefined') {
+          caches.keys().then(function(ks){
+            var ile = ks.filter(function(k){ return k.indexOf('biegamy-') === 0; }).length;
+            slad('START', w.join(' ') + ' cacheSW=' + (ile ? ile + ' wpisów' : 'PUSTY (zimny)'));
+          }).catch(function(){ slad('START', w.join(' ') + ' cacheSW=błąd'); });
+        } else slad('START', w.join(' ') + ' cacheSW=brak API');
+      } catch (_) { slad('START', w.join(' ')); }
+    }
+
     setTimeout(function(){
-      if (!_dump) { slad('+1500ms'); slad('DOM', stanDom()); }
+      if (!_dump) { slad('+1500ms'); slad('DOM', stanDom()); start(); }
       rysuj();
     }, 1500);   // _appVersion dojeżdża z caches.keys()
 
