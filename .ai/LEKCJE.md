@@ -301,3 +301,45 @@ z **naprawą o wąskim**, w jednym spójnym zdaniu. Sprawdź, czy oba mówią
 o tym samym zbiorze. Tutaj brzmiało to tak — i ślad został w komentarzu
 w kodzie: „stąd 42 unhandledrejection u 7 osób", dopisane przy linii,
 która obsługiwała wyłącznie nawigacje swipe'owe.
+
+## 10. Zero na liczniku może być POPRAWNYM pomiarem (15.08.2026)
+
+Szukaliśmy błędu w przyrządzie i w sposobie klikania, a przyczyną było to,
+że kohorta Filipa (**pełny Chrome Android**) przestała produkować objaw
+**pięć dni wcześniej — u WSZYSTKICH, nie tylko u niego**.
+
+Jego `user_agent` był **identyczny co do znaku** z osobą, która wiersz
+wyprodukowała, a on sam wyprodukował cztery, ostatni 26.07.
+
+**Zanim uznasz brak wyniku za awarię pomiaru, sprawdź, czy zjawisko
+w ogóle jeszcze zachodzi — i to w rozbiciu na kohorty, nie łącznie.**
+
+```
+suma:  161 wierszy VT           → wygląda na żywy problem
+
+w rozbiciu (ostatnie 5 dni):
+  Messenger WebView      89     ostatni 15.08 19:47      19  ← ŻYWE
+  iOS Safari             51     ostatni 15.08 21:05      19  ← ŻYWE
+  pełny Chrome Android   18     ostatni 10.08 20:15       0  ← HISTORIA
+  inne                    3     ostatni 23.07             0  ← HISTORIA
+```
+
+Suma wyglądała na jeden problem u wszystkich. W rozbiciu okazało się,
+że **18 wierszy to historia**, a żywe są dwie inne kohorty — o innych
+komunikatach, czyli prawdopodobnie o innym mechanizmie.
+
+**Zasada.** Agregat ukrywa moment, w którym zjawisko wygasło w części
+populacji. Każdy pomiar „czy to jeszcze się dzieje" rozbijaj na kohorty
+**i podawaj datę ostatniego wystąpienia w każdej**, nie samą sumę.
+
+**Wskazówka wykonawcza.** Do rozbicia bierz to, co odróżnia ŚRODOWISKA,
+nie osoby: `user_agent` (silnik, WebView vs pełna przeglądarka),
+`app_version`, kanał wejścia. ⚠️ Pełny Chrome podaje **zredukowany**
+UA (`Chrome/150.0.0.0`), a WebView pełny (`Chrome/150.0.7871.181`) —
+zmiana na poziomie łatki jest po stronie przeglądarki niewidoczna,
+więc nie da się na tej podstawie twierdzić, że „to wina wersji".
+
+**Objaw ostrzegawczy.** Osoba weryfikująca nie potrafi odtworzyć objawu,
+a Ty zaczynasz szukać przyczyny w niej: „źle kliknął", „zepsuty przyrząd",
+„nie to urządzenie". Najpierw sprawdź, czy ktokolwiek produkuje objaw
+DZIŚ — i w jakim środowisku.

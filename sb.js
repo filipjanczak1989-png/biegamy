@@ -1627,6 +1627,23 @@
       return etyk.slice(0, 8);
     }
 
+    /* KTÓRE ŚRODOWISKO — bo to ono, a nie urządzenie, decyduje o objawie.
+       Zmierzone 15.08.2026: 89 wierszy z Messengera (WebView) i 51 z Safari iOS,
+       przy ZERZE z pełnego Chrome Androida od 10.08. Część konfiguracji
+       Messengera otwiera linki w domyślnej przeglądarce zamiast we własnej —
+       bez tej linijki „zero" znaczyłoby jednocześnie „brak objawu" i „testowałem
+       nie w tym silniku, co trzeba". Patrz .ai/LEKCJE.md #10. */
+    function tryb(){
+      var u = '';
+      try { u = navigator.userAgent || ''; } catch (_) {}
+      if (/FB_IAB|FBAV/.test(u))   return 'Messenger WebView';
+      if (/Instagram/.test(u))     return 'Instagram WebView';
+      if (/\bwv\b/.test(u))        return 'inny WebView';
+      if (/iPhone|iPad/.test(u))   return /CriOS/.test(u) ? 'Chrome iOS' : 'Safari iOS';
+      if (/Android/.test(u))       return 'pełny Chrome Android';
+      return 'przeglądarka (desktop?)';
+    }
+
     function rysuj(){
       try {
         var o = document.getElementById('_vt_dbg');
@@ -1644,6 +1661,7 @@
           + '\n  pageswap:   ' + sw
           + '\n  pagereveal: ' + rv
           + '\n  odrzucenia: ' + n
+          + '\ntryb: ' + tryb()
           + '\nbuild: ' + (window._appVersion || '…')
           + (nav.length ? '\nnawigują tutaj: ' + nav.join(' · ') : '\n(na tej stronie nic nie nawiguje)')
           + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n')
