@@ -191,3 +191,35 @@ czy sygnalizuje błąd wyjątkiem, czy wartością specjalną (`NaN`,
 **Objaw ostrzegawczy.** `try/catch`, którego gałąź `catch` **nigdy nie została
 wykonana w teście**. Jeśli nie potrafisz podać wejścia, które ją odpala, to
 albo jest zbędna, albo pilnuje nie tego, co myślisz.
+
+---
+
+## 7. Opisanie mechanizmu w komunikacie commita URUCHOMIŁO ten mechanizm (15.08.2026)
+
+**Co się stało.** Commit dodający workflow *Rollback* tłumaczył w uzasadnieniu,
+dlaczego rollback musi czyścić znacznik pomijania CI z tematu cofanego commita.
+Wyjaśnienie zawierało ten znacznik **dosłownie, trzy razy**. GitHub czyta całą
+wiadomość commita, nie tylko pierwszą linię — i **pominął deploy**.
+
+Efekt: commit wylądował na GitHubie, workflow się zarejestrował, ale run nie
+powstał. Diagnoza zajęła kilkanaście minut, bo objaw wyglądał jak zepsuty
+`deploy.yml` — a plik był w porządku.
+
+**Dlaczego to nie było groźne akurat tutaj.** `deploy.yml` robi
+`rsync --exclude '.github'`, więc zmiana wyłącznie w workflowach i tak nie
+zmienia zawartości strony. Pominięty deploy był przypadkiem poprawnym
+zachowaniem. **Następnym razem może nie być.**
+
+**Zasada.** Komunikat commita to **wejście dla automatu**, nie tylko tekst dla
+człowieka. Zanim wkleisz do niego nazwę mechanizmu sterującego CI, sprawdź, czy
+CI go nie wykona. Dotyczy to znaczników pomijania builda, słów zamykających
+zgłoszenia (`fixes #123`, `closes #123`) i wyzwalaczy botów.
+
+**Jak pisać o takich znacznikach.** W plikach w repo — dosłownie, bo tam są
+tylko treścią. W komunikacie commita — opisowo („znacznik pomijania CI"), albo
+z rozbiciem, które łamie dopasowanie.
+
+**Objaw ostrzegawczy.** Push przeszedł, commit widać na GitHubie, a runa nie
+ma **w ogóle** — nie „failed", tylko brak. Nieudany workflow zostawia ślad;
+pominięty nie zostawia żadnego. Zanim zaczniesz debugować plik workflow,
+sprawdź, czy run w ogóle powstał.
