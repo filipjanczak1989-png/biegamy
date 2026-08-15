@@ -1580,20 +1580,47 @@
         ostatnie w TYM dokumencie, co rozstrzyga, czy wystarczy pokryć
         'pagereveal', czy trzeba też 'pageswap'.                                */
   (function(){
-    var KLUCZE = ['bm_vt_cnt', 'bm_vt_log', 'bm_vt_swap', 'bm_vt_reveal'];
+    var KLUCZE = ['bm_vt_cnt', 'bm_vt_log', 'bm_vt_swap', 'bm_vt_reveal', 'bm_vt_slad', 'bm_vt_bledy'];
     try {
       var q = new URLSearchParams(location.search).get('vtdebug');
-      if (q === '1' || q === 'selftest') localStorage.setItem('bm_vt_debug', '1');
+      if (q === '1' || q === 'selftest' || q === 'dump') localStorage.setItem('bm_vt_debug', '1');
       else if (q === '0') { localStorage.removeItem('bm_vt_debug'); KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); }); }
       else if (q === 'reset') KLUCZE.forEach(function(k){ sessionStorage.removeItem(k); });
     } catch (_) {}
-    var wlaczony = false;
-    try { wlaczony = localStorage.getItem('bm_vt_debug') === '1'; } catch (_) {}
+    var wlaczony = false, _dump = false;
+    try {
+      wlaczony = localStorage.getItem('bm_vt_debug') === '1';
+      _dump = new URLSearchParams(location.search).get('vtdebug') === 'dump';
+    } catch (_) {}
     if (!wlaczony) return;
 
     function ile(k){ try { return +(sessionStorage.getItem(k) || 0); } catch (_) { return 0; } }
     function dolicz(k){ try { sessionStorage.setItem(k, String(ile(k) + 1)); } catch (_) {} }
-    function dziennik(){ try { return JSON.parse(sessionStorage.getItem('bm_vt_log') || '[]'); } catch (_) { return []; } }
+    function lista(k){ try { return JSON.parse(sessionStorage.getItem(k) || '[]'); } catch (_) { return []; } }
+    function dziennik(){ return lista('bm_vt_log'); }
+    function czas(){ try { return new Date().toTimeString().slice(0, 8); } catch (_) { return '??'; } }
+
+    /* ŚLAD PRZEŻYWA ŚMIERĆ STRONY. Ramka nie pomoże, gdy dokument umrze przed
+       pierwszym malowaniem — a właśnie to zaobserwowaliśmy 15.08 na kalendarz.html
+       w Messenger WebView: czarny ekran BEZ ramki, mimo z-index 2147483647
+       i braku bramki logowania. Dlatego każdy etap ładowania i każdy błąd
+       lądują w sessionStorage NATYCHMIAST, zanim cokolwiek próbujemy narysować.
+       Odczyt z innej, działającej strony: ?vtdebug=dump                        */
+    function slad(faza, extra){
+      try {
+        var l = lista('bm_vt_slad');
+        l.push({ t: czas(), u: location.pathname.replace(/^\//, ''), f: faza, x: extra || '' });
+        sessionStorage.setItem('bm_vt_slad', JSON.stringify(l.slice(-40)));
+      } catch (_) {}
+    }
+    function zapiszBlad(rodzaj, tresc, plik, linia){
+      try {                                    // ZAPIS PIERWSZY, rysowanie potem
+        var b = lista('bm_vt_bledy');
+        b.unshift({ t: czas(), u: location.pathname.replace(/^\//, ''), r: rodzaj,
+                    m: String(tresc || '').slice(0, 120), p: String(plik || '').slice(-46), l: linia || '' });
+        sessionStorage.setItem('bm_vt_bledy', JSON.stringify(b.slice(0, 10)));
+      } catch (_) {}
+    }
 
     /* Liczniki PRZEJŚĆ, nie tylko odrzuceń. Bez nich „klikałem, a licznik stoi"
        jest nierozstrzygalne: nie wiadomo, czy przejście dokumentu w ogóle
@@ -1651,19 +1678,39 @@
           o = document.createElement('div'); o.id = '_vt_dbg';
           o.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;background:rgba(0,0,0,0.92);'
             + 'font:600 11px/1.45 monospace;padding:9px 11px;border-radius:8px;border:1px solid;'
-            + 'white-space:pre-wrap;word-break:break-word;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+            + 'white-space:pre-wrap;word-break:break-word;box-shadow:0 4px 20px rgba(0,0,0,0.5);'
+            // zrzut bywa dłuższy niż ekran — musi dać się przewinąć, więc TYLKO tam
+            // wpuszczamy zdarzenia wskaźnika; w trybie licznika ramka nie może
+            // przechwytywać kliknięć, bo zasłoniłaby nawigację, którą mierzymy.
+            + (_dump ? 'max-height:78vh;overflow-y:auto;pointer-events:auto;' : 'pointer-events:none;');
           (document.body || document.documentElement).appendChild(o);
         }
         var n = ile('bm_vt_cnt'), sw = ile('bm_vt_swap'), rv = ile('bm_vt_reveal');
-        o.style.borderColor = o.style.color = n ? '#fb923c' : '#4ade80';
+        var bledy = lista('bm_vt_bledy');
+        o.style.borderColor = o.style.color = (n || bledy.length) ? '#fb923c' : '#4ade80';
+
+        if (_dump) {                            // ?vtdebug=dump — odczyt PO FAKCIE, z innej strony
+          o.textContent = 'VT — ZRZUT sessionStorage  (tryb: ' + tryb() + ')'
+            + '\nprzejścia  swap ' + sw + ' / reveal ' + rv + '   odrzucenia ' + n
+            + (bledy.length ? '\n\nBŁĘDY (' + bledy.length + '):\n'
+                + bledy.map(function(b){ return '· ' + b.t + ' [' + b.u + '] ' + b.r + ': ' + b.m + (b.p ? '\n    ' + b.p + ':' + b.l : ''); }).join('\n')
+              : '\n\nBŁĘDY: brak')
+            + (dziennik().length ? '\n\nODRZUCENIA:\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n') : '')
+            + '\n\nŚLAD ŁADOWANIA (ostatni na dole):\n'
+            + (lista('bm_vt_slad').map(function(s){ return '· ' + s.t + ' ' + (s.u || '/') + ' → ' + s.f + (s.x ? ' ' + s.x : ''); }).join('\n') || '(pusty)');
+          return;
+        }
+
         var nav = nawigujace();
         o.textContent = 'VT — przyrząd pomiarowy'
           + '\n  pageswap:   ' + sw
           + '\n  pagereveal: ' + rv
           + '\n  odrzucenia: ' + n
+          + (bledy.length ? '\n  BŁĘDY JS:   ' + bledy.length + '  ← ?vtdebug=dump' : '')
           + '\ntryb: ' + tryb()
           + '\nbuild: ' + (window._appVersion || '…')
           + (nav.length ? '\nnawigują tutaj: ' + nav.join(' · ') : '\n(na tej stronie nic nie nawiguje)')
+          + (bledy.length ? '\n' + bledy.slice(0, 2).map(function(b){ return '✖ ' + b.r + ': ' + b.m; }).join('\n') : '')
           + (n ? '\n' + dziennik().map(function(w){ return '· ' + w.t + ' [' + w.ctx + '] ' + w.msg; }).join('\n')
                : (sw + rv ? '\n(przejścia są, odrzuceń brak — to urządzenie objawu nie robi)'
                           : '\n(brak przejść — klikaj w to, co wyżej)'));
@@ -1676,15 +1723,38 @@
       try {
         dolicz('bm_vt_cnt');
         var log = dziennik();
-        log.unshift({ t: new Date().toTimeString().slice(0, 8), ctx: ctx, msg: String((r && r.message) || r).slice(0, 90) });
+        log.unshift({ t: czas(), ctx: ctx, msg: String((r && r.message) || r).slice(0, 90) });
         sessionStorage.setItem('bm_vt_log', JSON.stringify(log.slice(0, 5)));
       } catch (_) {}
       rysuj();
     });
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rysuj);
-    else rysuj();
-    setTimeout(rysuj, 1500);   // _appVersion dojeżdża z caches.keys() asynchronicznie
+    /* BŁĘDY JS I BŁĘDY ZASOBÓW. Faza CAPTURE (trzeci argument `true`) jest tu
+       konieczna: błąd wczytania <script>/<img>/<link> NIE BĄBELKUJE, więc zwykły
+       listener na window go nie widzi. To jedyny sposób, żeby zobaczyć np. że
+       supabase-js z obcego CDN nie dojechał — a `kalendarz.html` ładuje go
+       PRZED sb.js i nie ma go w cache Service Workera.
+       !! client_errors tego nie zobaczy: ma bramkę `if (!window._authUid) return`,
+          a błąd przy ładowaniu strony leci ZANIM getSession() się rozwiąże. */
+    window.addEventListener('error', function(e){
+      try {
+        var c = e && e.target;
+        if (c && c !== window && (c.src || c.href)) zapiszBlad('zasób', 'nie wczytał się', c.src || c.href, '');
+        else zapiszBlad('js', (e && e.message) || 'error', (e && e.filename) || '', (e && e.lineno) || '');
+      } catch (_) {}
+      rysuj();
+    }, true);
+
+    /* RYSUJ NATYCHMIAST, jeśli jest gdzie. Poprzednia wersja przy
+       readyState==='loading' czekała na DOMContentLoaded — a na kalendarz.html
+       sb.js stoi w linii 1292, więc readyState to WŁAŚNIE 'loading'. Gdy strona
+       umarła wcześniej, ramka nie powstawała nigdy i brak ramki wyglądał
+       na dowód, że sb.js się nie wykonał. Nie był. */
+    slad('sb.js');
+    if (document.body) rysuj();
+    document.addEventListener('DOMContentLoaded', function(){ slad('DOMContentLoaded'); rysuj(); });
+    window.addEventListener('load', function(){ slad('load'); rysuj(); });
+    setTimeout(function(){ slad('+1500ms'); rysuj(); }, 1500);   // _appVersion dojeżdża z caches.keys()
 
     /* SAMOKONTROLA PRZYRZĄDU — ?vtdebug=selftest.
        Rzuca ODRZUCENIE, którego nikt nie obsługuje, więc licznik MUSI skoczyć.
