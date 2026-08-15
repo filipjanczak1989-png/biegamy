@@ -7391,6 +7391,26 @@ async function saveLog() {
     const base = Date.now();
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
+      /* IDEMPOTENCJA UPLOADU. Ścieżka niesie `Date.now()`, więc KAŻDA ponowna
+         próba zapisu tworzyła NOWE obiekty zamiast nadpisać istniejące.
+         Zmierzone 2.08.2026: jedna osoba, 147 plików, 51 MB, w 11 minut —
+         przy CZTERECH różnych rozmiarach, czyli te same zdjęcia wgrane ~49 razy.
+         Wyzwalaczem był wtedy cooldown, ale zapis może paść po uploadzie na
+         SIEDEM sposobów (RLS, NOT NULL, CHECK, FK, sieć, wyjątek JS, walidacja).
+
+         !! DLACZEGO TAK, A NIE CZYSZCZENIE _pendingFiles NA BŁĘDZIE — i to jest
+            powód nieoczywisty z kodu. Po nieudanym zapisie modal ZOSTAJE OTWARTY,
+            a podgląd nadal pokazuje wybrane zdjęcia. Gdyby błąd czyścił listę,
+            człowiek kliknąłby „Zapisz" jeszcze raz — widząc swoje zdjęcia —
+            i zapisał log BEZ ŻADNEGO ZAŁĄCZNIKA, nie dostając o tym informacji.
+            To zamiana widocznej usterki na CICHĄ UTRATĘ DANYCH.
+
+         !! Znacznik siedzi NA OBIEKCIE File, nie w osobnej mapie: File żyje
+            dokładnie tyle co _pendingFiles i ginie razem z nim przy closeModal().
+            Osobna mapa wymagałaby własnego sprzątania, czyli drugiego miejsca,
+            które można zapomnieć wyczyścić.
+         Pilnuje tego tests/upload-idempotencja.test.js. */
+      if (file._bmPath) { allUrls.push(file._bmPath); continue; }
       // Kompresja + strażnik rozmiaru (SSOT prepUpload). Nieskompresowalny >15MB (wideo/HEIC-fail) → pomiń.
       const prep = await window.prepUpload(file, 1600, 0.85);
       if (!prep.ok) { toast('Plik za duży (max 15 MB): ' + file.name); continue; }
@@ -7400,6 +7420,7 @@ async function saveLog() {
       console.log('[saveLog] Upload ' + (i+1) + '/' + filesToUpload.length + ':', file.name, Math.round(file.size/1024)+'KB' + (up!==file ? '→'+Math.round(up.size/1024)+'KB' : '') + ' →', path);
       const { error: upErr } = await window.storageUploadRetry('training-screenshots', path, up, {upsert:true, contentType: prep.contentType});
       if (!upErr) {
+        file._bmPath = path;   // ← znacznik idempotencji, patrz komentarz wyżej
         // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
         allUrls.push(path);
         console.log('[saveLog] ✅ Upload OK (PATH):', path);
