@@ -68,6 +68,44 @@ Never set `innerHTML` with untrusted data without escape/validation. Use the rig
 
 Full XSS audit closed May 2026 — see `git log --grep "(anti-XSS)"` for the trail.
 
+## Gates (bramki)
+
+Two gate tools guard invariants that live in more than one file:
+
+- `tools/bramka-reguly.js` — training rules (`RUN_TYPES`, effort weights, TSB
+  thresholds) are duplicated between `sb.js` (browser) and
+  `supabase/functions/_shared/reguly-treningow.mjs` (Deno). There is no build
+  step, so the copies cannot be merged — the gate detects divergence instead.
+  It also asserts the three report/plan/brief Edge Functions import the shared
+  module and contain no reconstructed formulas of their own.
+- `tools/bramka-commit.js` — flags commits touching migrations, DB privileges
+  or secrets. Reads only ADDED lines of the diff.
+- `tools/sprawdz-run-types.py`, `tools/sprawdz-spol-stale.py` — constants that
+  must match across HTML, JS and SQL.
+
+Both JS gates support `--samokontrola`: they break a rule on purpose and assert
+it gets caught. ⚠️ A gate that goes green because it crashed mid-run is worse
+than no gate — it claims to have checked. CI runs the self-test first.
+
+**The real lock is CI**, `.github/workflows/bramka.yml` (`on: push`).
+Deliberately NOT called by `deploy.yml` or `rollback.yml`: rollback must work
+when everything else is broken, and a gate can be broken too.
+
+### Install the local hook (once per clone)
+
+```bash
+git config core.hooksPath .githooks
+```
+
+⚠️ `.git/hooks` is not versioned, so the hook does not survive `git clone` —
+this line is the only thing that brings it back. The hook is a **reminder**,
+not a lock: `git commit --no-verify` bypasses it and GitHub.com has no
+server-side hooks.
+
+To prove the CI gate can actually fail, run the `bramki` workflow manually with
+`test_negatywny: true` — it injects a rule divergence plus a forbidden file and
+the run must go red.
+
 ## Conventions
 - Polish-first naming: variable names, comments, and UI text are in Polish throughout the game layer and much of the main app
 - No TypeScript, no linting tooling — consistency is maintained by convention

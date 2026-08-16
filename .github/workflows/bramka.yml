@@ -1,0 +1,83 @@
+# BRAMKI — jedyne miejsce, w którym reguły REALNIE blokują.
+#
+# ⚠️ TEN WORKFLOW NIE JEST WOŁANY PRZEZ deploy.yml ANI rollback.yml.
+#    Świadomie. Rollback musi działać wtedy, gdy wszystko inne jest zepsute —
+#    a bramka też może być zepsuta. Łańcuch „rollback czeka na bramkę" znaczy,
+#    że zepsuta bramka blokuje ratunek. Ta sama zasada co w testy.yml.
+#
+# ⚠️ HOOK LOKALNY (.githooks/pre-commit) to PRZYPOMNIENIE, nie zamek:
+#    da się go ominąć `--no-verify` (.ai/LEKCJE.md #4) i nie przeżywa
+#    `git clone`, bo `.git/hooks` nie jest wersjonowane. Zamek jest TUTAJ.
+#
+# ⚠️ KAŻDA BRAMKA URUCHAMIA NAJPIERW SAMOKONTROLĘ. Bramka, która świeci na
+#    zielono, bo wywróciła się w środku, jest gorsza niż jej brak — udaje,
+#    że sprawdziła. Samokontrola psuje regułę i sprawdza, że została złapana.
+name: bramki
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      test_negatywny:
+        description: 'Wstrzyknij naruszenie i sprawdź, że workflow CZERWIENIEJE'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  bramki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # bramka-commit czyta zakres pushu, nie sam HEAD
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # ── TEST NEGATYWNY (tylko z ręcznego uruchomienia) ──────────────────
+      # Dowód, że workflow potrafi zaczerwienić. Bez tego „zielony" nie znaczy
+      # nic: nie wiadomo, czy bramka sprawdza, czy tylko się nie wywraca.
+      - name: Wstrzyknij naruszenie (test negatywny)
+        if: inputs.test_negatywny
+        run: |
+          echo "⚠️ TEST NEGATYWNY — psuję reguły celowo. Ten run MA być czerwony."
+          sed -i "s/'spacer': 0.5/'spacer': 1.5/" sb.js
+          mkdir -p supabase/migrations
+          echo "GRANT SELECT ON public.athletes TO anon;" > supabase/migrations/99999999_test_negatywny.sql   # bramka:przyklad
+          git add -A
+
+      # ── SAMOKONTROLA OBU BRAMEK ─────────────────────────────────────────
+      - name: Samokontrola — bramka reguł
+        run: node tools/bramka-reguly.js --samokontrola
+
+      - name: Samokontrola — bramka commita
+        run: node tools/bramka-commit.js --samokontrola
+
+      # ── BRAMKI WŁAŚCIWE ─────────────────────────────────────────────────
+      - name: Reguły treningowe (sb.js vs _shared + EF bez własnych kopii)
+        run: node tools/bramka-reguly.js
+
+      - name: Zakres commita (migracje, uprawnienia, sekrety)
+        run: |
+          if [ "${{ inputs.test_negatywny }}" = "true" ]; then
+            node tools/bramka-commit.js
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "Pierwszy push gałęzi — brak zakresu do porównania, pomijam."
+          else
+            node tools/bramka-commit.js --zakres "${{ github.event.before }}..${{ github.sha }}"
+          fi
+
+      # ── BRAMKI SPÓJNOŚCI ŹRÓDEŁ (do 16.08.2026 nikt ich nie uruchamiał) ──
+      - name: RUN_TYPES — lista typów biegowych w 8 źródłach
+        run: python tools/sprawdz-run-types.py
+
+      - name: Stałe wyzwania #100kmDlaKasi w 3 źródłach
+        run: python tools/sprawdz-spol-stale.py

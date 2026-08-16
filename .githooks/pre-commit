@@ -1,0 +1,67 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# PRE-COMMIT — PRZYPOMNIENIE, NIE ZAMEK.
+#
+# ⚠️ Ten hook da się ominąć jedną flagą (`git commit --no-verify`) i NIE
+#    PRZEŻYWA `git clone`, bo katalog `.git/hooks` nie jest wersjonowany.
+#    GitHub.com nie ma hooków po stronie serwera. Zamek jest w CI:
+#    .github/workflows/bramka.yml
+#
+#    Ma to sens mimo to: łapie pomyłkę zanim wyjdzie z maszyny, czyli wtedy,
+#    gdy naprawa kosztuje `git reset`, a nie rewert na produkcji.
+#
+# INSTALACJA (raz na klon — patrz CLAUDE.md):
+#     git config core.hooksPath .githooks
+# ─────────────────────────────────────────────────────────────────────────────
+set -e
+
+KORZEN=$(git rev-parse --show-toplevel)
+cd "$KORZEN"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "  hook: brak node — pomijam bramki (CI i tak sprawdzi)."
+  exit 0
+fi
+
+status=0
+
+# ⚠️ SAMOKONTROLA PRZED SPRAWDZENIEM. Bramka, która przechodzi dlatego, że
+#    wywróciła się w środku, jest gorsza niż jej brak — udaje, że sprawdziła.
+if ! node tools/bramka-reguly.js --samokontrola >/dev/null 2>&1; then
+  echo "  ⚠ SAMOKONTROLA bramki reguł PADŁA — bramce nie można ufać."
+  node tools/bramka-reguly.js --samokontrola || true
+  status=1
+fi
+
+if ! node tools/bramka-commit.js --samokontrola >/dev/null 2>&1; then
+  echo "  ⚠ SAMOKONTROLA bramki commita PADŁA — bramce nie można ufać."
+  node tools/bramka-commit.js --samokontrola || true
+  status=1
+fi
+
+node tools/bramka-reguly.js || status=1
+node tools/bramka-commit.js || status=1
+
+if command -v python >/dev/null 2>&1; then
+  python tools/sprawdz-run-types.py  || status=1
+  python tools/sprawdz-spol-stale.py || status=1
+fi
+
+if [ "$status" -ne 0 ]; then
+  cat <<'KONIEC'
+
+  ────────────────────────────────────────────────────────────────
+  ⚠ BRAMKA COŚ ZGŁOSIŁA.
+
+  To jest PRZYPOMNIENIE, nie blokada. Blokada jest w CI
+  (.github/workflows/bramka.yml) i tamtej nie ominiesz.
+
+  Jeśli wiesz, co robisz:   git commit --no-verify
+  Ale wtedy CI zaczerwieni push, a nie commit — czyli dowiesz się
+  o tym później i drożej.
+  ────────────────────────────────────────────────────────────────
+
+KONIEC
+fi
+
+exit "$status"
