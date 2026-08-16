@@ -733,9 +733,22 @@ async function openReportModal(reportId) {
   }
   document.getElementById('zar-meta').textContent = metaTxt;
   
+  /* Znacznik starszej metryki. Raporty sprzed 16.08.2026 mają metryka_wersja=NULL:
+     liczby formy (CTL/ATL/TSB) policzono wtedy naiwną EMA od zera, bez FORMA-SEED,
+     którego używa wykres w aplikacji. Zmierzone na 23 zawodnikach: u 10 z nich
+     raport nazwałby stan INNĄ kategorią niż wykres, największy rozjazd 58 pkt TSB.
+     Bez tego zdania czytelnik porówna raport z wykresem i zobaczy sprzeczność
+     bez wyjaśnienia — a znacznik w bazie, którego nikt nie widzi, nikogo nie chroni. */
+  const starszaMetryka = !report.metryka_wersja
+    ? '<div style="background:rgba(240,237,232,0.05);border-left:2px solid var(--muted);'
+      + 'border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.5;color:var(--muted);">'
+      + 'Liczby formy w tym raporcie policzono starszą metodą — mogą różnić się od wykresu w aplikacji.'
+      + '</div>'
+    : '';
+
   // Treść (preferuj edytowaną wersję trenera)
   const finalMd = report.content_markdown_edited || report.content_markdown;
-  document.getElementById('zar-content').innerHTML = finalMd ? mdToHtml(finalMd) : '<div style="text-align:center;color:rgba(240,237,232,0.5);padding:60px 20px;font-size:13px;">Ten raport nie ma jeszcze treści.</div>';
+  document.getElementById('zar-content').innerHTML = starszaMetryka + (finalMd ? mdToHtml(finalMd) : '<div style="text-align:center;color:rgba(240,237,232,0.5);padding:60px 20px;font-size:13px;">Ten raport nie ma jeszcze treści.</div>');
   
   // Feedback
   document.getElementById('zar-fb-text').value = report.athlete_feedback || '';
