@@ -3504,14 +3504,18 @@ async function renderDbAthletes(list) {
 async function deleteAthlete(id, name) {
   if (!confirm('Usunąć zawodnika: ' + name + '?\nZostaną usunięte wszystkie jego treningi i wiadomości. Operacja nieodwracalna.')) return;
 
-  // Usuń powiązane dane
-  await sb.from('training_logs').delete().eq('athlete_id', id);
-  await sb.from('trainings').delete().eq('athlete_id', id);
-  await sb.from('messages').delete().eq('athlete_id', id);
-
-  // Usuń zawodnika
+  /* Trzy kasowania powiazanych tabel zdjete 16.08.2026. Zmierzone na produkcji:
+     training_logs.athlete_id, trainings.athlete_id i messages.athlete_id maja
+     FK -> athletes ON DELETE CASCADE, wiec baza kasuje je sama.
+     Robily one wiecej szkody niz pozytku: kazde z nich moglo cicho pasc
+     (wynik nie byl odbierany), a wtedy dane znikaly CZESCIOWO, po czym
+     kasowanie zawodnika i tak lecialo dalej. */
   const { error } = await sb.from('athletes').delete().eq('id', id);
-  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (error) {
+    zglosNieudanyZapis('delete', 'athletes', error);
+    showToast(komunikatBledu(error));
+    return;
+  }
 
   if (window._selectedAthleteId === id) {
     document.getElementById('panel').classList.remove('on');

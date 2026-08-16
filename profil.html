@@ -721,6 +721,10 @@ let _profileData = null;
   var _tp=new URLSearchParams(location.search).get('tab');if(_tp)setTimeout(function(){switchProfileTab(_tp);},300);
   // ?open=icu — wejście z banera "Połącz zegarek" (zawodnik.html): otwórz Ustawienia + przewiń do sekcji intervals.icu
   var _open=new URLSearchParams(location.search).get('open');
+  /* ?open=usuwanie — jedyne wejscie do usuwania konta. Odsylacz z zawodnik.html,
+     gdzie 16.08.2026 zdjeto druga, niepelna implementacje. */
+  if(_open==='usuwanie' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){
+    var d=document.getElementById('danger-zone'); if(d) d.scrollIntoView({behavior:'smooth',block:'center'}); }); },300);
   if(_open==='icu' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }); }, 350);
 })();
 
