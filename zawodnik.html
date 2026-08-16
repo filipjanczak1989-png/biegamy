@@ -2048,6 +2048,8 @@ async function openModal() {
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
   window._logSource = 'manual';
+  /* Nowy klucz idempotencji na kazde otwarcie formularza — patrz sb.js. */
+  window._kluczZapisu = window.nowyKluczZapisu ? window.nowyKluczZapisu() : null;
 
   // Reset wierszy interwałów (zostaw 1 pusty)
   const ivList = document.getElementById('intervals-list');
@@ -2109,6 +2111,8 @@ function openModalForDate(dateStr, e) {
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
   window._logSource = 'manual';
+  /* Nowy klucz idempotencji na kazde otwarcie formularza — patrz sb.js. */
+  window._kluczZapisu = window.nowyKluczZapisu ? window.nowyKluczZapisu() : null;
 
   // Prefilluj z treningu dla tej daty (szukaj w week-plan data)
   _prefillLogFromDate(dateStr);
@@ -2417,6 +2421,8 @@ if (document.readyState === 'loading') {
 
 let _logType = 'Spokojny';
 window._logSource = 'manual';
+  /* Nowy klucz idempotencji na kazde otwarcie formularza — patrz sb.js. */
+  window._kluczZapisu = window.nowyKluczZapisu ? window.nowyKluczZapisu() : null;
 
 function selType(el, type) {
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
@@ -7422,7 +7428,23 @@ async function saveLog() {
           return;
         }
       }
-    } catch (e) { console.warn('[saveLog] sprawdzenie drugiego treningu pominięte:', e); }
+    } catch (e) {
+      /* ⚠️ DWIE ROZNE SYTUACJE, DWIE ROZNE REAKCJE. Do 16.08.2026 jeden catch
+         polykal obie i w obu wypadkach ZAPISYWAL:
+           · „pytajODrugiTrening is not a function" — BLAD PROGRAMISTY albo
+             stara strona z cache SW. Ma krzyczec i zostawic slad, bo inaczej
+             nie odroznimy zepsutego mechanizmu od dzialajacego. Magdalena
+             miala cztery duplikaty i ZERO wpisow w client_errors — wlasnie
+             dlatego nie umiemy dzis powiedziec, czy modal sie pokazal.
+           · zapytanie padlo (siec, RLS) — SYTUACJA UZYTKOWNIKA. Ma przepuscic:
+             lepiej zapisac trening bez sprawdzenia niz nie zapisac wcale. */
+      if (/is not a function|undefined/i.test(String(e && e.message))) {
+        console.error('[saveLog] MECHANIZM NIEDOSTEPNY:', e);
+        try { window.zglosNieudanyZapis('brak-funkcji', 'pytajODrugiTrening', e); } catch (_) {}
+      } else {
+        console.warn('[saveLog] sprawdzenie drugiego treningu pominięte:', e);
+      }
+    }
   }
 
   const filesToUpload = window._pendingFiles && window._pendingFiles.length > 0
@@ -7543,6 +7565,10 @@ async function saveLog() {
   }
 
   let error;
+  /* Odcisk zamka deklarowany TU, nie w bloku INSERT-a — inaczej `if (error)`
+     nizej go nie widzi i zamek nigdy sie nie zwalnia po nieudanym zapisie.
+     Zlapane przy wykonaniu, nie w projekcie. */
+  let _odcisk = null;
   if (_editingLogId) {
     // UPDATE istniejącego logu
     const updateData = {...logData};
@@ -7565,9 +7591,41 @@ async function saveLog() {
     }
   } else {
     // INSERT nowego logu
-    const insertPayload = {...logData, athlete_id: _athleteId, attachment_url: attachmentUrl, source: (window._logSource || 'manual')};
+    /* WARSTWA B — zamek między KARTAMI. Klucz idempotencji chroni przed
+       powtórzeniem TEGO SAMEGO formularza, ale dwie otwarte karty mają dwa
+       różne klucze i dwa niezależne `_savingLog`. `localStorage` jest wspólny.
+       ⚠️ Odcisk z TREŚCI, nie z klucza — bo w dwóch kartach klucze są różne,
+          a treść ta sama. Okno 60 s: krócej niż jakikolwiek prawdziwy drugi
+          trening tego samego dnia (zmierzone: zero takich w całej historii). */
+    _odcisk = window.odciskZapisu([_athleteId, logDate, _logType,
+                                         logData.distance_km, logData.duration]);
+    if (!window.zamekZapisu(_odcisk, 60)) {
+      console.warn('[saveLog] identyczny zapis z innej karty w ostatnich 60 s — pomijam');
+      btn.textContent = 'Zapisz log →'; btn.disabled = false; _savingLog = false;
+      toast('Ten trening jest już zapisany');
+      return;
+    }
+    const insertPayload = {...logData, athlete_id: _athleteId, attachment_url: attachmentUrl, source: (window._logSource || 'manual'),
+        /* ⚠️ KLUCZ IDEMPOTENCJI. Indeks `training_logs_external_uniq` na
+           (athlete_id, external_source, external_id) ISTNIEJE OD DAWNA —
+           zbudowany dla importu z intervals.icu. Wpisy reczne mialy tam NULL,
+           wiec ich nie obejmowal. Teraz obejmuje: powtorzone wyslanie TEGO
+           SAMEGO formularza lamie indeks (23505) zamiast tworzyc duplikat.
+           ⚠️ `external_source: 'app'`, NIE 'manual' — kolumna znaczy „z jakiego
+              systemu zewnetrznego pochodzi ten identyfikator", a tu nie ma
+              zadnego systemu zewnetrznego. Sprawdzone: wszyscy konsumenci
+              (trener.html, profil.html, sb.js, share-card, intervals-*)
+              rozrozniaja po `source === 'intervals'`, nie po tej kolumnie. */
+        external_source: 'app', external_id: (window._kluczZapisu || null)};
     const insertResult = await sb.from('training_logs').insert(insertPayload);
     error = insertResult.error;
+    /* 23505 = zlamany unikat, czyli TEN SAM formularz wyslany drugi raz.
+       Dla czlowieka to sukces: jego trening JEST zapisany. Nie pokazujemy
+       bledu i nie zglaszamy — zglaszanie zasypaloby client_errors retry'ami. */
+    if (error && (error.code === '23505')) {
+      console.warn('[saveLog] powtorzony zapis tego samego formularza — pomijam');
+      error = null;
+    }
     if (error) {
       // Cooldown zdjety 16.08.2026 — regula porownywala logged_at (poludnie)
       // z zegarem sciennym, wiec blokowala rano prawdziwe zapisy. Zastapiony
@@ -7578,6 +7636,12 @@ async function saveLog() {
   }
 
   if (error) {
+    /* ⚠️ ZAPIS PADL -> ZWALNIAMY ZAMEK NATYCHMIAST. Zamek ma blokowac
+       powtorzenie UDANEGO zapisu, nie legalna powtorke po bledzie. Bez tej
+       linii czlowiek, ktoremu padla siec, klikalby „Zapisz" jeszcze raz
+       i dostawal „Ten trening jest juz zapisany" — a nie bylby.
+       To zamienialoby ochrone przed duplikatem w UTRATE treningu. */
+    if (_odcisk && window.zwolnijZamek) window.zwolnijZamek(_odcisk);
     // Zglaszamy: to jest moment, w ktorym czlowiek chcial zapisac i nie mogl.
     // Rozroznienie insert/update ma znaczenie — to dwie rozne polityki RLS.
     window.zglosNieudanyZapis(_editingLogId ? 'update' : 'insert', 'training_logs', error);

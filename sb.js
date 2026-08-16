@@ -2261,6 +2261,63 @@ window._icuRenderSplits = function (d, el) {
      !! Klik w tło = ANULUJ. W askBikeOrRun tło znaczy „zostaw jak jest", bo tam
         obie odpowiedzi są nieszkodliwe. Tutaj jedna dopisuje wiersz, więc
         domyślną musi być ta, która nic nie robi. */
+  /* ── PODWOJNY ZAPIS: klucz idempotencji + zamek miedzy kartami ──────────
+     Zmierzone 16.08.2026: od zdjecia cooldownu powstalo 10 nadmiarowych
+     wierszy u 3 osob i WSZYSTKIE w oknie 30 sekund — czyli sto procent to
+     retry, zero swiadomych. Magdalena: cztery identyczne zapisy w 15 s,
+     dwa w TEJ SAMEJ sekundzie. Pytanie „Masz juz trening z tego dnia" tego
+     nie lapie i nie moglo: dziala miedzy roznymi wypelnieniami formularza,
+     a tu chodzi o JEDNO wypelnienie wyslane kilka razy. */
+
+  /* Klucz zycia formularza. Nowy przy KAZDYM otwarciu, ten sam przez cale
+     wypelnianie — wiec powtorzone wyslanie tej samej tresci ma ten sam klucz. */
+  window.nowyKluczZapisu = function () {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+    } catch (_) {}
+    /* Starsze WebView (Messenger) nie ma randomUUID — losowosc wystarczajaca,
+       bo klucz zyje minuty, nie lata, i jest unikalny w obrebie jednej osoby. */
+    return 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  };
+
+  /* Zamek miedzy KARTAMI. `_savingLog` w zawodnik.html jest zmienna
+     per-zaladowanie strony, wiec dwie otwarte karty maja dwa niezalezne
+     guardy i zadna nie widzi drugiej. localStorage jest wspolny dla wszystkich
+     kart tego samego originu.
+     ⚠️ NIE dziala miedzy URZADZENIAMI ani po wyczyszczeniu danych przegladarki
+        — to warstwa tania, nie szczelna. Twarda bariera moglaby byc wylacznie
+        po stronie bazy (trigger z oknem 60 s), a to osobna decyzja. */
+  window.zamekZapisu = function (odcisk, sekundy) {
+    var klucz = 'bm_zapis_' + odcisk;
+    var okno = (sekundy || 60) * 1000;
+    try {
+      var byl = +localStorage.getItem(klucz) || 0;
+      if (byl && (Date.now() - byl) < okno) return false;   // ktos wlasnie zapisuje
+      localStorage.setItem(klucz, String(Date.now()));
+      return true;
+    } catch (_) { return true; }    /* brak localStorage nie moze BLOKOWAC zapisu */
+  };
+
+  /* ⚠️ ZWOLNIENIE ZAMKA PO NIEUDANYM ZAPISIE. Bez tego zamek blokowalby
+     LEGALNA powtorke: czlowiekowi padl zapis (siec, RLS), klika „Zapisz"
+     jeszcze raz w ciagu 30 sekund i dostaje „juz zapisane" — a NIE JEST.
+     To zamienilo by ochrone przed duplikatem w utrate treningu, czyli
+     naprawe w gorsza wersje problemu.
+     Rozroznienie jest proste, bo zamek zna JEDEN fakt: czy zapis sie UDAL.
+     Udal sie  -> zamek zostaje przez okno (blokuje retry TEGO SAMEGO).
+     Nie udal  -> zamek znika NATYCHMIAST (powtorka jest w pelni legalna). */
+  window.zwolnijZamek = function (odcisk) {
+    try { localStorage.removeItem('bm_zapis_' + odcisk); } catch (_) {}
+  };
+
+  /* Odcisk tresci — te same dane w tej samej dobie daja ten sam napis. */
+  window.odciskZapisu = function (czesci) {
+    return (czesci || []).map(function (x) { return String(x == null ? '' : x); })
+      .join('|').toLowerCase().replace(/[^a-z0-9|.:-]/g, '');
+  };
+
   window.pytajODrugiTrening = function (opis) {
     return new Promise(function (resolve) {
       try { var s = document.getElementById('_dupAsk'); if (s) s.remove(); } catch (_) {}
