@@ -264,6 +264,12 @@ przywraca stan **sprzed** operacji, nie tego, które tylko kończy operację:
 A do przywrócenia pojedynczego pliku ze zdalnego stanu:
 `git checkout origin/main -- <plik>` (celne), nie `reset --hard` (hurtowe).
 
+**Ta sama zasada dotyczy testów na PRODUKCJI, nie tylko w repo.** 16.08.2026
+test limitu kubełka przekroczył limit czasu i **zostawił limit 1 MB nałożony
+na żywym buckecie** — wykryte i cofnięte, ale nie zaplanowane. Każda zmiana
+konfiguracji produkcji na potrzeby testu musi mieć **twardy timeout
+i przywrócenie w tej samej komendzie**, nie w następnej.
+
 **Objaw ostrzegawczy.** Polecenie testowe zawierające **`reset`, `revert`,
 `checkout` albo `clean`**, uruchomione w katalogu roboczym, w którym trwa
 praca. Każde z nich potrafi skasować rzecz, której nie jesteś właścicielem
@@ -412,3 +418,47 @@ najwyżej w nieaktualne polecenie, a to widać od razu.
 **Objaw ostrzegawczy.** Notatka opisująca coś, co miało się zdarzyć „jutro",
 czytana po miesiącach. Także: „PENDING" bez daty, „tymczasowo" bez warunku
 zakończenia, „do usunięcia po X" bez sprawdzenia, czy X już było.
+
+## 13. Pomiar, który wygląda na dowód, ale liczby się nie zgadzają (16.08.2026)
+
+**Co się stało.** Test limitu kubełka: chciałem sprawdzić, czy nałożenie
+`file_size_limit` blokuje **odczyt** istniejących, większych plików — bo gdyby
+tak, cztery osoby straciłyby awatary i dowiedzielibyśmy się o tym od nich, nie
+od nas. Kubełek z limitem **1 048 576 B**, plik **8 372 707 B**. Pobranie
+zwróciło `kod=200`, `pobrano=1 288 000 B`.
+
+Kusiło przeczytać to jako **„ucięte przez limit"** — pasuje do hipotezy, kod
+sukcesu, a rozmiar mniejszy od pliku. Tyle że **1 288 000 to nie 1 048 576**.
+Różnica 23%. To była **moja własna zwłoka `--max-time` na wolnym łączu**,
+nie limit.
+
+**Dlaczego to groźne.** Hipoteza „limit tnie odczyt" **nie tłumaczyła**
+obserwacji — tylko do niej **pasowała z grubsza**. Gdybym na tym poprzestał,
+wyciągnąłbym wniosek odwrotny do prawdziwego i albo zablokował potrzebną
+zmianę, albo — gorzej — opisał ludziom nieistniejące ryzyko jako zmierzone.
+
+**Zasada.** Zanim uznasz pomiar za potwierdzenie hipotezy, sprawdź, czy liczby
+zgadzają się **DOKŁADNIE**. Jeśli „mniej więcej" — to znaczy, że tłumaczysz je
+czymś innym, niż myślisz. Zgodność co do rzędu wielkości jest sygnałem, żeby
+szukać dalej, a nie dowodem.
+
+**Co rozstrzygnęło.** Zmiana pytania. Zamiast *„ile się pobrało"* — *„czy plik
+jest cały"*: range request na **ostatnie bajty** (`-r 8372000-8372706`).
+Odpowiedź `206` z 707 bajtami jest jednoznaczna i **niewrażliwa na przepustowość
+łącza**, czyli na tę zmienną, która zafałszowała pierwszy pomiar. Do tego
+`Content-Length: 8372707` w nagłówku — serwer sam deklaruje pełny rozmiar.
+
+**Wskazówka wykonawcza.** Gdy pomiar zależy od czasu, sieci albo zwłoki, dobierz
+taki wariant pytania, który od nich **nie zależy**: nagłówek zamiast treści,
+zakres zamiast całości, istnienie zamiast rozmiaru.
+
+**Objaw ostrzegawczy.** Zdanie w rodzaju „mniej więcej tyle, ile się
+spodziewałem", „w okolicach limitu", „prawie dokładnie". Oraz każdy pomiar,
+w którym wynik jest **mniejszy** od oczekiwanego, a wytłumaczenie brzmi
+„pewnie ucięło" — bo „ucięło" ma zwykle drugą, prostszą przyczynę:
+przerwane pobieranie.
+
+**Trzeci raz tego dnia.** Ta sama rodzina co #9 (dowód o kodzie zamiast
+o objawie), #10 (zero jako poprawny pomiar) i #11 (wskaźnik zastępczy podany
+jako pomiar): za każdym razem obserwacja była prawdziwa, a **wniosek z niej
+nie wynikał**.

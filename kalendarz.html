@@ -2536,7 +2536,7 @@ async function saveTraining() {
       for (let fi = 0; fi < fileSources.length; fi++) {
         const file = fileSources[fi];
         const prep = await window.prepUpload(file, 1600, 0.85);
-        if (!prep.ok) { alert('Plik za duży (max 15 MB): ' + file.name); continue; }
+        if (!prep.ok) { alert(file.name + '\n\n' + window.komunikatZaDuzy(file.size, 15 * 1024 * 1024, 'zrzut')); continue; }
         const path = athRow2.id + '/log_' + base + '_' + fi + '.' + prep.ext;
         const { error: upErr } = await sb.storage
           .from('training-screenshots').upload(path, prep.data, {upsert:true, contentType: prep.contentType});

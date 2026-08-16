@@ -3613,10 +3613,22 @@ async function deleteGoal(idx) {
 
 async function uploadAvatar(input) {
   if (!input.files[0] || !_athleteId) return;
+  /* AWATAR PRZEZ prepUpload — do 16.08.2026 szedl SUROWY plik z aparatu.
+     Zmierzone: 10 awatarow, 25,6 MB, najwiekszy 7,98 MB.
+     Najwiekszy render awatara w calej aplikacji to 96 px (profil.html), wiec
+     przy DPR 3 potrzeba 288 px. Skalujemy do 400 px — zapas nawet na DPR 4,
+     a plik schodzi do kilkudziesieciu kB. Jakosc nie ucierpi; dzis marnujemy
+     transfer u kazdego, kto otwiera liste zawodnikow.
+     !! Limit 512 kB jest PO STRONIE KLIENTA, nie kubelka. Awatary leza
+        w `biegamy-assets` razem z 541 plikami zasobow aplikacji (max 2,4 MB),
+        wiec limit kubelka zablokowalby wgrywanie grafik. Twardej bariery dla
+        awatara NIE MAMY — wymagalaby przeniesienia do pustego kubelka
+        `avatars`. Koszt: 10 plikow + 10 wierszy avatar_url. W zaleglosci. */
   const file = input.files[0];
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = 'avatars/' + _athleteId + '.' + ext;
-  const { error } = await window.storageUploadRetry('biegamy-assets', path, file, {upsert:true, contentType: file.type});
+  const prep = await window.prepUpload(file, 400, 0.85, 512 * 1024);
+  if (!prep.ok) { toast(window.komunikatZaDuzy(file.size, 512 * 1024, 'awatar')); return; }
+  const path = 'avatars/' + _athleteId + '.' + prep.ext;
+  const { error } = await window.storageUploadRetry('biegamy-assets', path, prep.data, {upsert:true, contentType: prep.contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
   if (urlData?.publicUrl) {
@@ -5832,9 +5844,18 @@ async function obFinish() {
     // Avatar upload — uploaduj do biegamy-assets/avatars i zapisz URL do athletes.avatar_url
     if (_obAvatarFile && _athleteId) {
       try {
-        const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
-        const path = 'avatars/' + _athleteId + '.' + ext;
-        const { error: upErr } = await window.storageUploadRetry('biegamy-assets', path, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
+        /* TRZECIA sciezka awatara (onboarding). Tez szla SUROWYM plikiem.
+           !! Ten blok siedzi w try/catch, ktory POLYKA blad — wiec za duzy plik
+              gubil awatar po cichu, w momencie zakladania konta. Teraz
+              czlowiek dostaje komunikat, a onboarding leci dalej: awatar mozna
+              dodac pozniej, konta zakladac drugi raz sie nie da. */
+        const prepAv = await window.prepUpload(_obAvatarFile, 400, 0.85, 512 * 1024);
+        if (!prepAv.ok) {
+          toast(window.komunikatZaDuzy(_obAvatarFile.size, 512 * 1024, 'awatar'));
+          throw new Error('awatar za duzy — pomijam, onboarding leci dalej');
+        }
+        const path = 'avatars/' + _athleteId + '.' + prepAv.ext;
+        const { error: upErr } = await window.storageUploadRetry('biegamy-assets', path, prepAv.data, { upsert: true, contentType: prepAv.contentType });
         if (!upErr) {
           const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
           if (urlData?.publicUrl) {

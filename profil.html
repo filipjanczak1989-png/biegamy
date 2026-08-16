@@ -1407,10 +1407,22 @@ function openChat() { _openPeerChat(_targetId,_profileData&&_profileData.full_na
 // ── AVATAR UPLOAD ─────────────────────────────────────────────────
 async function uploadAvatar(input) {
   if (!input.files[0] || !_myId) return;
+  /* AWATAR PRZEZ prepUpload — do 16.08.2026 szedl SUROWY plik z aparatu.
+     Zmierzone: 10 awatarow, 25,6 MB, najwiekszy 7,98 MB.
+     Najwiekszy render awatara w calej aplikacji to 96 px (profil.html), wiec
+     przy DPR 3 potrzeba 288 px. Skalujemy do 400 px — zapas nawet na DPR 4,
+     a plik schodzi do kilkudziesieciu kB. Jakosc nie ucierpi; dzis marnujemy
+     transfer u kazdego, kto otwiera liste zawodnikow.
+     !! Limit 512 kB jest PO STRONIE KLIENTA, nie kubelka. Awatary leza
+        w `biegamy-assets` razem z 541 plikami zasobow aplikacji (max 2,4 MB),
+        wiec limit kubelka zablokowalby wgrywanie grafik. Twardej bariery dla
+        awatara NIE MAMY — wymagalaby przeniesienia do pustego kubelka
+        `avatars`. Koszt: 10 plikow + 10 wierszy avatar_url. W zaleglosci. */
   const file = input.files[0];
-  const ext = file.name.split('.').pop();
-  const path = `avatars/${_myId}.${ext}`;
-  const { error: upErr } = await sb.storage.from('biegamy-assets').upload(path, file, { upsert: true });
+  const prep = await window.prepUpload(file, 400, 0.85, 512 * 1024);
+  if (!prep.ok) { showToast(window.komunikatZaDuzy(file.size, 512 * 1024, 'awatar')); return; }
+  const path = `avatars/${_myId}.${prep.ext}`;
+  const { error: upErr } = await sb.storage.from('biegamy-assets').upload(path, prep.data, { upsert: true, contentType: prep.contentType });
   if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
   const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
   const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
@@ -1988,7 +2000,7 @@ async function submitPost() {
   if (_postType === 'photo') {
     if (!_postImgFile) { showToast('Wybierz zdjęcie'); return; }
     const prep = await window.prepUpload(_postImgFile, 1600, 0.85);
-    if (!prep.ok) { showToast('Zdjęcie za duże (max 15 MB)'); return; }
+    if (!prep.ok) { showToast(window.komunikatZaDuzy(_postImgFile.size, 15 * 1024 * 1024, 'zrzut')); return; }
     const path = `${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${prep.ext}`;
     const { error: upErr } = await sb.storage.from('profile-posts').upload(path, prep.data, {contentType: prep.contentType});
     if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }

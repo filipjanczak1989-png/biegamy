@@ -4557,6 +4557,41 @@ window._icuRenderSplits = function (d, el) {
 
   // Przygotowanie pliku do uploadu — SSOT kompresji + strażnik rozmiaru.
   // Nieskompresowalny (wideo / HEIC-fail) i > maxRawBytes → {ok:false,tooBig}. Inaczej {ok,data,ext,contentType}.
+  /* Komunikat o za duzym pliku — SSOT. Do 16.08.2026 istnialy CZTERY rozne
+     napisy w czterech plikach, z trzema roznymi liczbami.
+     !! ALE TYLKO DWA Z NICH DOTYCZA prepUpload. Sprawdzone przed ujednoliceniem:
+          kalendarz.html:2539  prepUpload -> „max 15 MB"   <- ten
+          profil.html:1991     prepUpload -> „max 15 MB"   <- i ten
+          nutrition.html:7720  WLASNA kontrola 10 MB przed wyslaniem zdjecia do
+                               analizy AI — inny limit z POWODU (co przyjmuje
+                               endpoint), nie storage. NIE ruszamy.
+          kalendarz.html:3575  sciezka OCR, wlasny prog 5 MB. NIE ruszamy.
+        Ujednolicenie wszystkich czterech zrownaloby rzeczy, ktore tylko
+        wygladaja tak samo.
+     !! Komunikat mowi TRZY rzeczy: ile plik wazy, ile wolno, i CO ZROBIC.
+        Sam limit nie pomaga czlowiekowi, ktory nie wie, skad wzial 12 MB.
+     !! RADA jest parametrem, nie stalym napisem — patrz RADY_ZA_DUZY. */
+  window.RADY_ZA_DUZY = {
+    zrzut: 'Wyślij zrzut ekranu z zegarka albo aplikacji, nie zdjęcie ekranu '
+         + 'zrobione telefonem — zrzut waży kilkanaście razy mniej i jest czytelniejszy.',
+    awatar: 'Wybierz zdjęcie o mniejszej rozdzielczości albo przytnij je w galerii '
+          + 'telefonu — awatar wyświetla się w rozmiarze miniatury.',
+    ogolna: 'Wybierz mniejszy plik albo zmniejsz jego rozdzielczość.'
+  };
+
+  window.komunikatZaDuzy = function (bajty, maxBajtow, kontekst) {
+    var mb = function (b) {
+      return (Math.round(b / 1048576 * 10) / 10).toString().replace('.', ',');
+    };
+    /* !! RADA ZALEZY OD KONTEKSTU. Pierwsza wersja mowila wszedzie „wyslij zrzut
+       ekranu z zegarka" — przy AWATARZE to bez sensu, bo nikt nie ustawia sobie
+       zrzutu z zegarka jako zdjecia profilowego. Komunikat, ktory doradza rzecz
+       niepasujaca do sytuacji, jest gorszy od samego „za duzy plik": wyglada na
+       pomylke aplikacji, wiec czlowiek przestaje mu ufac. */
+    var rada = window.RADY_ZA_DUZY[kontekst] || window.RADY_ZA_DUZY.ogolna;
+    return 'Plik ma ' + mb(bajty) + ' MB, a maksimum to ' + mb(maxBajtow) + ' MB. ' + rada;
+  };
+
   window.prepUpload = async function(file, maxDim, quality, maxRawBytes) {
     maxRawBytes = maxRawBytes || 15 * 1024 * 1024;
     var up = await window.downscaleImage(file, maxDim || 1600, quality || 0.85);
