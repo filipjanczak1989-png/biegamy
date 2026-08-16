@@ -2318,7 +2318,54 @@ window._icuRenderSplits = function (d, el) {
     'start': 5.0,
     'wyścig': 5.0,
   };
-  window.FORMA_FEEL_MODIFIERS = { 'good': 1.0, 'mid': 1.1, 'bad': 1.3 };
+  /* ⚠️ 'great' ma mnoznik 1.0, tak samo jak 'good'. To NIE jest przeoczenie:
+     mnoznik PODNOSI TRIMP za treningi, ktore bolaly (bad = 1.3), a nie obniza
+     za te, ktore poszly dobrze. Powyzej 'good' nie ma juz czego odejmowac.
+     Brak oceny (NULL) tez daje 1.0 — patrz formaTRIMP. */
+  window.FORMA_FEEL_MODIFIERS = { 'great': 1.0, 'good': 1.0, 'mid': 1.1, 'bad': 1.3 };
+
+  /* ── SAMOPOCZUCIE — SSOT. Do 16.08.2026 skala zyla w DZIEWIECIU kopiach:
+       trzy zestawy ikon (emoji 1F60A/1F610/1F613, emoji 1F604/1F610/1F629,
+       dwa warianty SVG) i dwa nazewnictwa („Świetnie" vs „DOBRZE" dla TEJ SAMEJ
+       wartosci `good`).
+     ⚠️ DRABINA PRZESUNIETA: `good` nazywa sie teraz „Dobrze", a „Świetnie" to
+        NOWY, najwyzszy poziom `great`. Powod: gałąź w EF brzmi „czuje sie
+        SWIETNIE" i odpala wylacznie na szczycie skali — a szczytem bylo `good`
+        nazwane „Świetnie", wiec etykieta i tresc raportu mowily co innego.
+        Wartosci w bazie sie NIE zmieniaja, zmienia sie tylko warstwa slow.
+     ⚠️ BRAK OCENY (NULL) ZWRACA PUSTY NAPIS, nie „neutralna" mine. 1602 z 2649
+        logow (60%) nie ma oceny, a cztery miejsca renderowaly je jako 1F610 —
+        czyli baza mowila „nie wiem", a ekran „przecietnie". Wszyscy konsumenci
+        owijaja wynik w `x ? ... : ''`, wiec pusty napis nie zostawia dziury
+        w ukladzie: element po prostu nie powstaje. */
+  window.FEEL_POZIOMY = ['bad', 'mid', 'good', 'great'];
+  window.FEEL_ETYKIETY = { bad: 'Ciężko', mid: 'Przeciętnie', good: 'Dobrze', great: 'Świetnie' };
+  window.FEEL_EMOJI = {
+    bad: String.fromCodePoint(0x1F613), mid: String.fromCodePoint(0x1F610),
+    good: String.fromCodePoint(0x1F60A), great: String.fromCodePoint(0x1F601)
+  };
+  window.FEEL_KOLORY = { bad: '#e05050', mid: '#e8b840', good: '#3db870', great: '#3db870' };
+
+  window.feelEmoji = function (feel) {
+    return window.FEEL_EMOJI[feel] || '';          /* brak oceny -> nic */
+  };
+
+  /* Ikona wektorowa w stylu reszty aplikacji (feather). Rozmiar parametrem:
+     lista logow uzywa 18 px, karta zawodnika 22 px. */
+  window.feelSvg = function (feel, px) {
+    var USTA = {
+      great: '<path d="M7 12.5s2 4 5 4 5-4 5-4"/>',      /* glebszy usmiech niz good */
+      good:  '<path d="M8 13s1.5 2 4 2 4-2 4-2"/>',
+      mid:   '<line x1="8" y1="13" x2="16" y2="13"/>',
+      bad:   '<path d="M16 16s-1.5-2-4-2-4 2-4 2"/>'
+    };
+    if (!USTA[feel]) return '';                    /* brak oceny -> nic */
+    var r = px || 18;
+    return '<svg width="' + r + '" height="' + r + '" viewBox="0 0 24 24" fill="none" stroke="'
+      + window.FEEL_KOLORY[feel] + '" stroke-width="2" stroke-linecap="round">'
+      + '<circle cx="12" cy="12" r="10"/>' + USTA[feel]
+      + '<line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
+  };
 
   window.formaDurationToMin = function(s) {
     if (!s || typeof s !== 'string') return 0;

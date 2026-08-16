@@ -1664,11 +1664,7 @@ function _renderTrainingItem(l, idx) {
   const screenImg = urls[0] || '';
 
   // feel emoji
-  const feelEmoji = {
-    good:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-    mid:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-    bad:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
-  }[l.feel] || '';
+  const feelEmoji = window.feelSvg(l.feel, 20);   /* SSOT: window.feelSvg (sb.js). Brak oceny -> pusty napis. */
 
   let html = '<div onclick="_openTrainingDetail(\''+l.id+'\')" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+escAttr(bgImg)+');background-size:cover;background-position:center 25%;cursor:pointer;">';
   // Gradient

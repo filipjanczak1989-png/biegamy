@@ -508,6 +508,7 @@ body > *{position:relative;z-index:1;}
 .pb-err{display:none;margin-top:6px;font-size:10px;line-height:1.45;color:var(--red);font-family:'DM Sans',sans-serif;}
 .pb-err.on{display:block;}
 .feel-btn:hover{transform:scale(1.06);}
+.feel-btn.sel-great{border-color:var(--green);background:rgba(61,184,112,0.18);}
 .feel-btn.sel-good{border-color:var(--green);background:rgba(61,184,112,0.12);}
 .feel-btn.sel-mid{border-color:var(--yellow);background:rgba(232,184,64,0.12);}
 .feel-btn.sel-bad{border-color:var(--red);background:rgba(224,80,80,0.12);}
@@ -1047,9 +1048,10 @@ body > *{position:relative;z-index:1;}
   <div style="font-size:10px;letter-spacing:0.2em;color:var(--accent);font-family:'DM Mono',monospace;">JAK POSZŁO?</div>
   <div id="fr-title" style="font-size:14px;font-weight:700;margin-top:6px;">Trening z zegarka</div>
   <div style="display:flex;gap:8px;margin-top:12px;">
-    <button class="feel-btn" data-fr="good" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128516;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">DOBRZE</div></button>
-    <button class="feel-btn" data-fr="mid" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128528;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">ŚREDNIO</div></button>
-    <button class="feel-btn" data-fr="bad" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;">&#128553;<div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">CIĘŻKO</div></button>
+    <button class="feel-btn" data-fr="great" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5s2 4 5 4 5-4 5-4"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">Świetnie</div></button>
+    <button class="feel-btn" data-fr="good" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">Dobrze</div></button>
+    <button class="feel-btn" data-fr="mid" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">Przeciętnie</div></button>
+    <button class="feel-btn" data-fr="bad" onclick="_frPick(this)" style="padding:11px 6px;font-size:20px;cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;margin-top:3px;color:var(--muted);font-family:'DM Mono',monospace;">Ciężko</div></button>
   </div>
   <textarea id="fr-comment" placeholder="Dodaj notatkę (opcjonalnie) — jak nogi, co bolało, warunki…" style="width:100%;margin-top:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:11px 13px;color:var(--fg);font-family:inherit;font-size:13px;min-height:58px;resize:vertical;box-sizing:border-box;"></textarea>
   <div style="display:flex;gap:10px;margin-top:10px;align-items:center;">
@@ -1801,9 +1803,11 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
       <div class="field">
         <label>Samopoczucie</label>
         <div class="feel-grid">
-          <div class="feel-btn" onclick="selFeel(this,'good')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">Świetnie</span></div>
-          <div class="feel-btn" onclick="selFeel(this,'mid')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">OK</span></div>
+          <div class="feel-btn" onclick="selFeel(this,'great')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5s2 4 5 4 5-4 5-4"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">Świetnie</span></div>
+          <div class="feel-btn" onclick="selFeel(this,'good')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">Dobrze</span></div>
+          <div class="feel-btn" onclick="selFeel(this,'mid')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">Przeciętnie</span></div>
           <div class="feel-btn" onclick="selFeel(this,'bad')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="feel-lbl">Ciężko</span></div>
+        
         </div>
       </div>
 
@@ -3064,7 +3068,7 @@ async function _loadStatsInProfile() {
       const type=l.training_type||'Trening';const color=typeColors2[type]||'#66636e';
       const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
       const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
-      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      const feel=window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
         <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escapeHtml(type)}</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${date}</div></div>
@@ -7106,7 +7110,7 @@ function renderLogsDb(data) {
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
     const col = tc[rawType] || '#66636e';
-    const feelEmoji = l.feel==='good'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':l.feel==='bad'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':l.feel?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'';
+    const feelEmoji = window.feelSvg(l.feel, 18);   /* SSOT: window.feelSvg (sb.js). Brak oceny -> pusty napis. */
     // Obrazek tła — run pool
     const bgImg = _runImgs[(idx * 7 + 3) % _runImgs.length];
     const bgPos = 'center 25%';
@@ -8817,7 +8821,7 @@ async function loadSocialFeed(compact) {
   const _cardBgPos = _cardBgObj.p;
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
-    const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
+    const feelEmoji = window.feelSvg(l.feel, 22);   /* SSOT: window.feelSvg (sb.js). Brak oceny -> pusty napis. */
     // Bezpieczny escape ID: single quote w wartości, double quote dla atrybutu
     const safeId = (athId || '').replace(/'/g, '');
     const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(\'' + safeId + '\')"');
@@ -10443,7 +10447,7 @@ async function loadStats() {
       const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
       const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
       const pace=l.pace?l.pace+'/km':'';
-      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      const feel=window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
         <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">

@@ -2963,7 +2963,7 @@ async function loadPanelStats() {
       const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
       const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
       const pace=l.pace?l.pace+'/km':'';
-      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      const feel=window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
         <div style="width:3px;height:32px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">
@@ -4860,7 +4860,7 @@ async function loadCoachSocialFeed() {
     const type = l.training_type || 'Trening';
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
-    const feelEmoji = {good:'&#x1F60A;',mid:'&#x1F610;',bad:'&#x1F613;'}[l.feel]||'';
+    const feelEmoji = window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
     let screensHtml = '';
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
@@ -6435,7 +6435,7 @@ async function loadAthleteDetailStats(athleteId, container) {
       const color=typeColors2[type]||'#66636e';
       const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
       const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
-      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      const feel=window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       return `<div style="background:var(--card2);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:8px;margin-bottom:4px;">
         <div style="width:3px;height:28px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">

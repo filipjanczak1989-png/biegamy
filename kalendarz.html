@@ -400,6 +400,11 @@ nav{
   -webkit-tap-highlight-color:transparent;
 }
 .feel-log-btn:hover{border-color:rgba(255,255,255,0.16);background:rgba(255,255,255,0.06);}
+.feel-log-btn.active-great{
+  border-color:rgba(61,184,112,0.65);
+  background:linear-gradient(145deg,rgba(61,184,112,0.22),rgba(61,184,112,0.08));
+  box-shadow:0 0 18px rgba(61,184,112,0.20);
+}
 .feel-log-btn.active-good{
   border-color:rgba(61,184,112,0.45);
   background:linear-gradient(145deg,rgba(61,184,112,0.14),rgba(61,184,112,0.05));
@@ -1646,7 +1651,7 @@ function render() {
       const hr = log.heart_rate || '';
       const dur = log.duration || '';
       const feel = log.feel;
-      const feelIcon = feel === 'good' ? '😊' : feel === 'mid' ? '😐' : feel === 'bad' ? '😓' : '';
+      const feelIcon = window.feelEmoji(feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       
       return `<div class="training-card done ${type==='Odpoczynek'?'rest-card':''}" style="border-left:3px solid rgba(61,184,112,0.5);background:rgba(61,184,112,0.04);">
         <div class="card-type ${tc}" style="display:flex;align-items:center;justify-content:space-between;">
@@ -3514,8 +3519,14 @@ function closeLogModal() {
 
 function selectFeel(btn) {
   _logFeel = btn.dataset.feel;
+  /* ⚠️ Lista klas do zdjęcia idzie z window.FEEL_POZIOMY (SSOT w sb.js), a NIE
+     z ręcznego wyliczenia. Wcześniej stało tu 'active-good','active-mid','active-bad'
+     na sztywno — dołożenie czwartego poziomu zostawiłoby zacięte podświetlenie
+     poprzedniego wyboru, bo nikt by go nie zdjął. Fallback na wypadek, gdyby
+     sb.js jeszcze nie wstał. */
+  var poziomy = (window.FEEL_POZIOMY || ['bad','mid','good','great']);
   document.querySelectorAll('.feel-log-btn').forEach(b => {
-    b.classList.remove('active-good','active-mid','active-bad');
+    poziomy.forEach(function(p){ b.classList.remove('active-' + p); });
   });
   btn.classList.add('active-' + _logFeel);
 }
@@ -6233,18 +6244,10 @@ async function doCopyWeek() {
         <div style="margin-bottom:16px;">
           <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace;">Samopoczucie</label>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-            <button class="feel-log-btn" data-feel="good" onclick="selectFeel(this)">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2.5 4 2.5 4-2.5 4-2.5"/><circle cx="9" cy="9.5" r="1.2" fill="#3db870" stroke="none"/><circle cx="15" cy="9.5" r="1.2" fill="#3db870" stroke="none"/></svg>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Świetnie</div>
-            </button>
-            <button class="feel-log-btn" data-feel="mid" onclick="selectFeel(this)">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8.5" y1="14" x2="15.5" y2="14"/><circle cx="9" cy="9.5" r="1.2" fill="#e8b840" stroke="none"/><circle cx="15" cy="9.5" r="1.2" fill="#e8b840" stroke="none"/></svg>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Przeciętnie</div>
-            </button>
-            <button class="feel-log-btn" data-feel="bad" onclick="selectFeel(this)">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 16.5s1.5-2 3.5-2 3.5 2 3.5 2"/><circle cx="9" cy="9.5" r="1.2" fill="#e05050" stroke="none"/><circle cx="15" cy="9.5" r="1.2" fill="#e05050" stroke="none"/></svg>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Ciężko</div>
-            </button>
+            <button class="feel-log-btn" data-feel="great" onclick="selectFeel(this)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5s2 4 5 4 5-4 5-4"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Świetnie</div></button>
+            <button class="feel-log-btn" data-feel="good" onclick="selectFeel(this)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Dobrze</div></button>
+            <button class="feel-log-btn" data-feel="mid" onclick="selectFeel(this)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Przeciętnie</div></button>
+            <button class="feel-log-btn" data-feel="bad" onclick="selectFeel(this)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">Ciężko</div></button>
           </div>
         </div>
         <div style="position:sticky;bottom:0;padding:12px 0 calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--card);z-index:5;"><button onclick="saveLog()" style="width:100%;background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:14px;cursor:pointer;border-radius:8px;">Zapisz log →</button></div>

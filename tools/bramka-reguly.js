@@ -23,7 +23,7 @@ const KORZEN = path.join(__dirname, '..');
 /* ── PROGI — podnosić razem z dokładaniem reguł, NIGDY nie obniżać „żeby przeszło" ── */
 const MIN_RUN_TYPES = 10;
 const MIN_WAG = 21;
-const MIN_FEEL = 3;
+const MIN_FEEL = 4;   /* 3 -> 4 razem z dolozeniem `great` 16.08.2026 — prog podnosi sie W TYM SAMYM commicie co wartosc, inaczej chronilby starej listy */
 const MIN_PROGOW = 4;
 /* Część B — funkcje, które MUSZĄ brać reguły z modułu, i wzory, które NIE MOGĄ
    w nich wrócić. Progi są twarde z tego samego powodu co wyżej: bez nich
@@ -37,7 +37,10 @@ const ZAKAZANE_WZORY = [
   [/ctl\s*\+=\s*\(\s*t\s*-\s*ctl/i, 'własna EMA CTL (ctl += (t-ctl)...)'],
   [/Math\.min\(\s*sr[0-9a-z]*\s*\/\s*sd[0-9a-z]*\s*,\s*4\s*\)/i, 'własna monotonia (Math.min(sr/sd,4))'],
   [/\{\s*['"]?odpoczynek['"]?\s*:\s*0\s*,/i, 'własna tabela wag wysiłku'],
-  [/\{\s*good\s*:\s*1\.0\s*,\s*mid\s*:\s*1\.1/i, 'własna tabela mnożników samopoczucia'],
+  /* ⚠️ Kotwiczymy na PARZE mid/bad, nie na otwierającej klamrze. Wzorzec
+     `\{ good: 1.0` przestał łapać, gdy tabela dostała `great` na początku —
+     bramka przechodziłaby na kopii NOWEJ tabeli. */
+  [/mid\s*:\s*1\.1\s*,\s*bad\s*:\s*1\.3/i, 'własna tabela mnożników samopoczucia'],
   [/reduce\([^)]*parseFloat\(l\.distance_km\)|reduce\([^)]*Number\(l\.distance_km\)/i,
    'suma km bez isRunType'],
 ];

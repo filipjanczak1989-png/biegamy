@@ -33,7 +33,9 @@ export const FORMA_EFFORT_FACTORS = {
   'tempo': 3.5, 'progresja': 3.0, 'interwały': 4.5, 'start': 5.0, 'wyścig': 5.0,
 };
 
-export const FORMA_FEEL_MODIFIERS = { good: 1.0, mid: 1.1, bad: 1.3 };
+/* ⚠️ `great` = 1.0, tak jak `good`. Mnoznik PODNOSI TRIMP za trening, ktory
+   bolal (bad = 1.3) — powyzej `good` nie ma czego odejmowac. */
+export const FORMA_FEEL_MODIFIERS = { great: 1.0, good: 1.0, mid: 1.1, bad: 1.3 };
 
 /** Progi TSB — te same, którymi opisany jest wykres w aplikacji (`sb.js:2739`). */
 export const TSB_PROGI = { przeciazenie: -30, obciazenie: -10, neutralna: 5, optimum: 15 };
