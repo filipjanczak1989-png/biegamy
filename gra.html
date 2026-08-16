@@ -8430,7 +8430,12 @@ async function logAsTraining() {
       pace: null,
       heart_rate: null,
       comment: comment,
-      feel: d.finished ? 'great' : 'ok',
+      /* ⚠️ Do 16.08.2026 stalo tu `'ok'` — wartosc, ktorej NIE ZNA zadna skala
+         w aplikacji ani w EF (feel przyjmuje bad/mid/good/great). Wpadlaby
+         w domyslna „2", czyli cicho jako `mid`. Sciezka nie byla dotad uzyta
+         (source='game' mialo 0 wierszy), wiec nikt tego nie zauwazyl —
+         bomba nierozbrojona, nie wybuch. */
+      feel: d.finished ? 'great' : 'mid',
       source: 'game',
       logged_at: new Date().toISOString()
     });

@@ -13601,10 +13601,15 @@ async function _checkBadgeRules(logs, ctx) {
   if (maxStreak >= 365) awardBadge('streak_365');
 
   // ── NASTRÓJ ──
-  // ⚠️ Wartości pola to 'good' / 'mid' / 'bad' — angielskie, nie polskie napisy.
+  // ⚠️ Wartości pola to 'bad' / 'mid' / 'good' / 'great' — angielskie, nie polskie napisy.
   // Pokrycie: 27 z 28 zawodników ma choć jeden log z feel, 21 ma co najmniej 5.
+  // ⚠️ 'great' MUSI się tu liczyć razem z 'good'. Dokładne dopasowanie
+  //    `feel === 'good'` sprawiłoby, że kto wybierze NOWY, WYŻSZY poziom,
+  //    PRZESTANIE zbierać tę odznakę — mimo że czuje się lepiej niż wcześniej.
+  //    Cicha regresja: kod wygląda tak samo, zachowanie się zmienia.
+  const DOBRE_SAMOPOCZUCIE = ['good', 'great'];
   const feelBad  = logs.filter(l => l.feel === 'bad').length;
-  const feelGood = logs.filter(l => l.feel === 'good').length;
+  const feelGood = logs.filter(l => DOBRE_SAMOPOCZUCIE.includes(l.feel)).length;
   if (feelBad  >= 1) awardBadge('kiepski_dzien');
   if (feelGood >= 7) awardBadge('7_usmiechow');
 
@@ -13711,8 +13716,8 @@ async function _checkBadgeRules(logs, ctx) {
   } catch(e) {}
 
   // ── ULTRA-SEKRETNE ──
-  // wieczny_optymista: 10 treningów feel='good'
-  const goodFeelCount = logs.filter(l => l.feel === 'good').length;
+  // wieczny_optymista: 10 treningów z dobrym samopoczuciem ('good' albo 'great')
+  const goodFeelCount = logs.filter(l => DOBRE_SAMOPOCZUCIE.includes(l.feel)).length;
   if (goodFeelCount >= 10) awardBadge('wieczny_optymista');
   // swiety_mikolaj: bieg 6 grudnia
   if (logs.some(l => {
