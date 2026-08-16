@@ -552,10 +552,14 @@ function zbudujKarte(o: {
   const logoStopka = h("img", { position: "absolute", left: 72, top: u.stopkaLogoY, width: 200, height: 47 });
   (logoStopka.props as Record<string, unknown>).src = o.boot.logoUri;
   dzieci.push(logoStopka);
-  dzieci.push(txt({
-    position: "absolute", left: 74, top: u.stopkaHasloY, fontFamily: "DMSans", fontWeight: 400,
-    fontSize: 24, color: COLS.wtorny,
-  }, "Trenuj. Rywalizuj. Bądź lepszy."));
+  /* ⚠️ DRUGIE HASŁO USUNIĘTE 16.08.2026. Stopka niosła „Trenuj. Rywalizuj.
+     Bądź lepszy." obok „JESTEŚMY OBOK." u góry — czyli karta wychodziła w świat
+     z DWOMA hasłami marki naraz, w tym jednym odrzuconym. Zostaje jedno,
+     na górze; w stopce logo, tag i adres.
+     ⚠️ `stopkaHasloY` zostaje w UKLADY nieużyte — NIE usuwam go, bo
+        `karta-uklad.json` i bramka geometrii porównują kotwice układu, a
+        wyrwanie pola z jednej strony zrobiłoby rozjazd zamiast porządku.
+        Jeśli ma zniknąć, to razem z wpisem w module i bramką. */
   dzieci.push(txt({
     position: "absolute", right: 72, top: u.stopkaTagY, fontFamily: "DMSans", fontWeight: 500,
     fontSize: 32, color: COLS.akcent, textAlign: "right",
