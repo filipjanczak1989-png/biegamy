@@ -77,7 +77,15 @@ jobs:
           if [ "${{ inputs.test_negatywny }}" = "true" ]; then
             node tools/bramka-commit.js
           elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "Pierwszy push gałęzi — brak zakresu do porównania, pomijam."
+            # ⚠️ PIERWSZY PUSH NOWEJ GAŁĘZI. `before` to same zera, więc nie ma
+            #    z czym porównać. Do 16.08.2026 ten przypadek był POMIJANY —
+            #    czyli nowa gałąź przemycała cokolwiek, a bramka świeciła
+            #    na zielono. Wyszło w teście negatywnym: zabroniony plik
+            #    migracji przeszedł, bo push był pierwszy.
+            #    Teraz liczymy od punktu rozejścia z gałęzią domyślną.
+            BAZA=$(git merge-base "origin/${{ github.event.repository.default_branch }}" "${{ github.sha }}")
+            echo "Pierwszy push gałęzi — zakres od punktu rozejścia: $BAZA"
+            node tools/bramka-commit.js --zakres "$BAZA..${{ github.sha }}"
           else
             node tools/bramka-commit.js --zakres "${{ github.event.before }}..${{ github.sha }}"
           fi
