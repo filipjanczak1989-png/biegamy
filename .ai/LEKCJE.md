@@ -113,6 +113,13 @@ wyłącznika weryfikacji, dopóki nie zażąda tego człowiek. Jeśli hook
 zablokuje commit, **to jest sygnał do sprawdzenia, nie do ominięcia** —
 bramka zadziałała dokładnie tak, jak miała.
 
+**16.08.2026 — drugi raz w dwa dni.** Obszedłem hook trzy razy, z czego **DWA
+razy bramka w ogóle nie blokowała** — sięgnąłem po flagę odruchowo, bo poprzednim
+razem była potrzebna. Nawyk powstał po **JEDNYM** uzasadnionym użyciu.
+
+**Zasada praktyczna.** Przed `--no-verify` uruchom bramkę osobno i przeczytaj
+wynik. Jeśli nie potrafisz powiedzieć, **CO** blokuje, to nie wiesz, co omijasz.
+
 **Objaw ostrzegawczy.** Flaga dodana „na wszelki wypadek", zanim cokolwiek
 zawiodło. Każdy przełącznik wyłączający kontrolę wymaga powodu **sprzed**
 jego użycia, nie usprawiedliwienia po fakcie.
