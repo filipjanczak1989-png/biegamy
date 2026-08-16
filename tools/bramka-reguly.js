@@ -25,6 +25,22 @@ const MIN_RUN_TYPES = 10;
 const MIN_WAG = 21;
 const MIN_FEEL = 3;
 const MIN_PROGOW = 4;
+/* Część B — funkcje, które MUSZĄ brać reguły z modułu, i wzory, które NIE MOGĄ
+   w nich wrócić. Progi są twarde z tego samego powodu co wyżej: bez nich
+   skasowanie pozycji z listy daje „zgodne" na pustym zbiorze. */
+const MIN_EF = 3;
+const MIN_WZORCOW = 5;
+const EF_OBJETE = [
+  'generate-athlete-report', 'generate-coach-brief', 'generate-training-plan',
+];
+const ZAKAZANE_WZORY = [
+  [/ctl\s*\+=\s*\(\s*t\s*-\s*ctl/i, 'własna EMA CTL (ctl += (t-ctl)...)'],
+  [/Math\.min\(\s*sr[0-9a-z]*\s*\/\s*sd[0-9a-z]*\s*,\s*4\s*\)/i, 'własna monotonia (Math.min(sr/sd,4))'],
+  [/\{\s*['"]?odpoczynek['"]?\s*:\s*0\s*,/i, 'własna tabela wag wysiłku'],
+  [/\{\s*good\s*:\s*1\.0\s*,\s*mid\s*:\s*1\.1/i, 'własna tabela mnożników samopoczucia'],
+  [/reduce\([^)]*parseFloat\(l\.distance_km\)|reduce\([^)]*Number\(l\.distance_km\)/i,
+   'suma km bez isRunType'],
+];
 
 const bledy = [];
 const uwagi = [];
@@ -102,6 +118,30 @@ async function main() {
     bledy.push('progi TSB: sb.js nie wystawia `formaZoneLabel` — bramka nie ma czego porównać.');
   }
 
+  /* ── CZĘŚĆ B: EF biorą reguły z modułu i nie mają własnych kopii ── */
+  const fsB = require('fs');
+  if (EF_OBJETE.length < MIN_EF) {
+    bledy.push(`część B: objęto ${EF_OBJETE.length} EF, próg to ${MIN_EF}. Lista się skurczyła — rozstrzygnij, nie obniżaj progu.`);
+  }
+  if (ZAKAZANE_WZORY.length < MIN_WZORCOW) {
+    bledy.push(`część B: ${ZAKAZANE_WZORY.length} wzorców, próg to ${MIN_WZORCOW}.`);
+  }
+  for (const ef of EF_OBJETE) {
+    const sciezka = path.join(KORZEN, 'supabase/functions', ef, 'index.ts');
+    let kod;
+    try { kod = fsB.readFileSync(sciezka, 'utf8'); }
+    catch (_) { bledy.push(`część B: nie ma pliku ${ef}/index.ts — lista EF_OBJETE jest nieaktualna.`); continue; }
+    if (!/from\s+["']\.\.\/_shared\/reguly-treningow\.mjs["']/.test(kod)) {
+      bledy.push(`${ef}: NIE importuje ../_shared/reguly-treningow.mjs — liczy po swojemu.`);
+    }
+    const trafienia = ZAKAZANE_WZORY.filter(([rx]) => rx.test(kod)).map(([, opis]) => opis);
+    if (trafienia.length) {
+      bledy.push(`${ef}: wrócił własny wzór → ${trafienia.join('; ')}`);
+    } else {
+      uwagi.push(`${ef}: importuje moduł, ${ZAKAZANE_WZORY.length} wzorców sprawdzonych, brak własnych kopii`);
+    }
+  }
+
   if (samokontrola) {
     /* ⚠️ TEST NEGATYWNY: bramka, która nigdy nie świeci na czerwono, jest ozdobą.
        Psujemy kopię i sprawdzamy, że ROZJAZD zostaje zgłoszony. */
@@ -118,7 +158,12 @@ async function main() {
                         : '  ✗ SAMOKONTROLA PADŁA: zmieniona waga NIE została zgłoszona');
     console.log(zlapanyProg ? '  ✓ samokontrola: za krótka lista ZŁAPANA (próg działa)'
                             : '  ✗ SAMOKONTROLA PADŁA: próg minimalnej liczby pozycji NIE zadziałał');
-    if (!zlapane || !zlapanyProg) process.exit(1);
+    /* Część B: podsuwamy kod z odtworzonym wzorem — musi zostać zgłoszony. */
+    const udawany = 'let ctl=0; for (const t of x) { ctl += (t-ctl)*(1/42); }';
+    const zlapanyWzor = ZAKAZANE_WZORY.some(([rx]) => rx.test(udawany));
+    console.log(zlapanyWzor ? '  ✓ samokontrola: odtworzona własna EMA w EF ZŁAPANA'
+                            : '  ✗ SAMOKONTROLA PADŁA: własna EMA w EF NIE została wykryta');
+    if (!zlapane || !zlapanyProg || !zlapanyWzor) process.exit(1);
   }
 
   console.log('\n  BRAMKA REGUŁ — sb.js vs _shared/reguly-treningow.mjs\n');

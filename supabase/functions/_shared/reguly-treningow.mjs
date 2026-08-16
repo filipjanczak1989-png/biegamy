@@ -89,10 +89,23 @@ export function kluczDaty(d, strefa = 'Europe/Warsaw') {
  *          treningu.
  *      v3: clamp outliera — pojedyncze ultra w oknie seeda nie może udawać bazy.
  */
+/** Do dziesiątych — tak jak seria wykresu w `sb.js`. */
+const d1 = (x) => Math.round(x * 10) / 10;
+
 export function formaSeria(logi, { koniec = new Date(), dni = 90, strefa = 'Europe/Warsaw' } = {}) {
   const dzienne = {};
   for (const l of logi || []) {
-    const k = kluczDaty(l.logged_at || l.date, strefa);
+    /* ⚠️ KUBEŁKUJEMY PO DACIE ZAPISANEJ, NIE PO STREFIE. `logged_at` niesie
+       datę treningu jako fakt (wpisy ręczne są stemplowane na 12:00, właśnie
+       żeby doba nie była sporna) — konwersja do Europe/Warsaw przesuwałaby
+       wpisy zapisane blisko północy o dzień. Aplikacja robi dokładnie to samo:
+       `log.logged_at.split('T')[0]` (sb.js:3171). Zmierzone: konwersja dawała
+       rozjazd ATL u 3 z 25 osób.
+       ⚠️ `kluczDaty` (Europe/Warsaw) zostaje — ale do pytania „który dziś jest
+       dzień", a nie „do którego dnia należy ten trening". To dwie różne rzeczy
+       i mylenie ich było źródłem błędu `TODAY_ISO` w EF. */
+    const sur = l.logged_at || l.date;
+    const k = typeof sur === 'string' ? sur.split('T')[0] : kluczDaty(sur, strefa);
     dzienne[k] = (dzienne[k] || 0) + formaTRIMP(l);
   }
 
@@ -127,16 +140,78 @@ export function formaSeria(logi, { koniec = new Date(), dni = 90, strefa = 'Euro
     const t = dzienne[k] || 0;
     ctl += (t - ctl) / 42;
     atl += (t - atl) / 7;
-    seria.push({ dzien: k, trimp: t, ctl, atl, tsb: ctl - atl });
+    /* ⚠️ ZAOKRĄGLENIE DO 0,1 JEST CZĘŚCIĄ KONTRAKTU, nie kosmetyką. Aplikacja
+       trzyma serię w dziesiątych (`ctlData.push(Math.round(ctl*10)/10)`, sb.js:3256)
+       i dopiero z niej czyta wartość dnia. EMA biegnie dalej na SUROWEJ liczbie —
+       zaokrąglamy tylko to, co wychodzi na zewnątrz. Bez tego kroku wartości
+       z końcówką .x5 rozjeżdżały się o 1 punkt względem wykresu u 4 z 25 osób. */
+    seria.push({ dzien: k, trimp: t, ctl: d1(ctl), atl: d1(atl), tsb: d1(ctl - atl) });
   }
 
-  const tsb = Math.round(ctl - atl);
+  const tsb = Math.round(d1(ctl - atl));
   return {
-    ctl: Math.round(ctl), atl: Math.round(atl), tsb,
+    ctl: Math.round(d1(ctl)), atl: Math.round(d1(atl)), tsb,
     forma: opisFormy(tsb),
     seed: Math.round(seed), blok_start: blokStart,
     seria,
   };
+}
+
+/**
+ * Monotonia i strain z ostatnich 7 dni.
+ * Wzór przeniesiony 1:1 z trzech EF (`athlete-report:679`, `coach-brief:513`,
+ * `training-plan:272`), gdzie żył w trzech identycznych kopiach.
+ *
+ * ⚠️ `strain` mnoży przez monotonię NIEZAOKRĄGLONĄ, a zwracana `monotonia_7d`
+ *    jest zaokrąglona do 0,1. Zaokrąglenie najpierw zmieniłoby strain o kilka
+ *    procent — wygląda niewinnie, a jest zmianą liczby, którą dostaje model.
+ * ⚠️ Odchylenie dzielone przez 7 (populacyjne), nie przez 6. Tak było i tak zostaje.
+ */
+export function monotoniaIStrain(trimpDzienny) {
+  const w7 = (trimpDzienny || []).slice(-7);
+  const suma = w7.reduce((a, b) => a + b, 0);
+  const sr = suma / 7;
+  const sd = Math.sqrt(w7.reduce((a, b) => a + (b - sr) * (b - sr), 0) / 7);
+  const mono = sr <= 0 ? 0 : (sd > 0 ? Math.min(sr / sd, 4) : 4);
+  return { monotonia_7d: Math.round(mono * 10) / 10, strain_7d: Math.round(suma * mono) };
+}
+
+/**
+ * Trend EF (efektywności tlenowej) — nachylenie regresji liniowej, w % na 90 dni.
+ * `punkty`: [{ x: dzień jako liczba, y: EF }]. Poniżej 5 punktów → null.
+ */
+export function trendEfPct(punkty) {
+  const pkt = punkty || [];
+  if (pkt.length < 5) return null;
+  const n = pkt.length;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  for (const p of pkt) { sx += p.x; sy += p.y; sxy += p.x * p.y; sxx += p.x * p.x; }
+  const nachylenie = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
+  return Math.round(nachylenie * 90 / ((sy / n) || 1) * 1000) / 10;
+}
+
+/**
+ * SKALE SAMOPOCZUCIA — ⚠️ CELOWO DWIE, bo służą różnym rzeczom i mają różne
+ * zakresy. Ujednolicenie zmieniłoby treść raportów, więc jest osobną decyzją.
+ *   RAPORT (3..9)  → liczba `srednie_samopoczucie` w raw_data_snapshot
+ *   TON    (1..4)  → wybór tonu wypowiedzi trenera (próg 3,5 = „świetnie")
+ *
+ * ⚠️ `great` NIE WYSTĘPUJE W DANYCH — sprawdzone 16.08.2026, zero logów;
+ *    kolumna `feel` przyjmuje tylko `bad`/`good`/`mid`/NULL. Zostawiamy
+ *    w mapie: gdy klient kiedyś zacznie tę wartość zapisywać, brak wpisu
+ *    oznaczałby ciche potraktowanie jej jako nieznanej.
+ * ⚠️ SKUTEK UBOCZNY, DO ROZSTRZYGNIĘCIA: bez `great` maksimum skali TON wynosi
+ *    3,0, więc próg 3,5 jest NIEOSIĄGALNY — gałąź „czuje się ŚWIETNIE" nie
+ *    odpaliła ani razu, nawet dla kogoś, kto każdy trening ocenia na `good`.
+ */
+export const SAMOPOCZUCIE_RAPORT = { bad: 3, mid: 5, good: 7, great: 9 };
+export const SAMOPOCZUCIE_TON = { bad: 1, mid: 2, good: 3, great: 4 };
+export const SAMOPOCZUCIE_DOMYSLNE = { raport: 5, ton: 2 };
+
+export function sredniaSamopoczucia(logi, skala = SAMOPOCZUCIE_RAPORT, domyslna = 5) {
+  const z = (logi || []).filter((l) => l.feel);
+  if (!z.length) return null;
+  return z.reduce((s, l) => s + (skala[l.feel] || domyslna) / z.length, 0);
 }
 
 /** Wersja metryki zapisywana przy raporcie — patrz `ai_reports.metryka_wersja`. */

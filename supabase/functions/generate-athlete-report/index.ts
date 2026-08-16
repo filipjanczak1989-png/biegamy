@@ -16,6 +16,10 @@
 // ════════════════════════════════════════════════════════════════════
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  formaSeria, monotoniaIStrain, trendEfPct, sumaKmBiegowych, sredniaSamopoczucia,
+  SAMOPOCZUCIE_RAPORT, SAMOPOCZUCIE_TON, TSB_PROGI, METRYKA_WERSJA,
+} from "../_shared/reguly-treningow.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -646,12 +650,13 @@ Deno.serve(async (req) => {
       .not("training_type", "like", "__badge__%")
       .order("logged_at", { ascending: true });
 
-    /* ═══ RAPORT-AI+ (24.07): analityka 90 dni dla modelu — forma/monotonia/EF/wellness.
-       SWIADOMY DUPLIKAT wag z sb.js (FORMA_EFFORT_FACTORS/FEEL) — zmiana tam => zmiana tu. ═══ */
+    /* ═══ RAPORT-AI+ : analityka 90 dni dla modelu — forma/monotonia/EF/wellness.
+       16.08.2026: wzory przeniesione do ../_shared/reguly-treningow.mjs. Wczesniej
+       stala tu wlasna EMA BEZ seeda, przez co u 10 z 23 zawodnikow raport nazywal
+       stan formy inna kategoria niz wykres, ktory widzi ten sam czlowiek.
+       Bramka tools/bramka-reguly.js pilnuje, zeby kopia nie wrocila. ═══ */
     let _analityka: any = null;
     try {
-      const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
-      const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
       const _durMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
         const p=t.split(':').map(Number); if(p.some(isNaN)) return 0;
         return p.length===3 ? p[0]*60+p[1]+p[2]/60 : p.length===2 ? p[0]+p[1]/60 : (+t||0); };
@@ -660,30 +665,24 @@ Deno.serve(async (req) => {
         .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace,distance_km")
         .eq("athlete_id", athlete_id).gte("logged_at", od90)
         .not("training_type","like","__badge__%");
-      const dni: Record<string, number> = {};
+      /* `dni`/`_EFF`/`_FEEL` zdjete 16.08.2026 — dzienny TRIMP liczy teraz
+         formaSeria() z ../_shared. `efPts` zostaje: to punkty do trendu EF,
+         ktorego modul nie zbiera (potrzebuje HR i tempa, nie tylko czasu). */
       const efPts: { x:number, y:number }[] = [];
       const TLEN=/spokoj|wybieg|d\u0142ug|dlug|regener/, WYKL=/interwa|tempo|progres|start|wy\u015bcig|zawod|si\u0142|sil/;
       for (const l of (l90||[])) {
         const typ=String(l.training_type||'').toLowerCase().trim();
-        const tr=_durMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
-        const dk=String(l.logged_at).slice(0,10); dni[dk]=(dni[dk]||0)+tr;
         if (TLEN.test(typ)&&!WYKL.test(typ)&&l.heart_rate>=80&&l.heart_rate<=200) {
           const m=String(l.gap_pace||l.pace||'').match(/^(\d{1,2}):(\d{2})/);
           if (m) { const sek=+m[1]*60+ +m[2];
             if (sek>=150&&sek<=720) efPts.push({ x:new Date(l.logged_at).getTime()/864e5, y:(1000/sek)/l.heart_rate*1000 }); }
         }
       }
-      let ctl=0, atl=0; const dTR: number[]=[];
-      for (let k=89;k>=0;k--) { const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
-        const t=dni[ds]||0; dTR.push(t); ctl+=(t-ctl)*(1/42); atl+=(t-atl)*(1/7); }
-      const w7=dTR.slice(-7), sum7=w7.reduce((a,b)=>a+b,0), sr7=sum7/7;
-      const sd7=Math.sqrt(w7.reduce((a,b)=>a+(b-sr7)*(b-sr7),0)/7);
-      const mono=sr7<=0?0:(sd7>0?Math.min(sr7/sd7,4):4);
-      let efTrendPct: number|null = null;
-      if (efPts.length>=5) { const n=efPts.length; let sx=0,sy=0,sxy=0,sxx=0;
-        for (const p of efPts){sx+=p.x;sy+=p.y;sxy+=p.x*p.y;sxx+=p.x*p.x;}
-        const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx||1);
-        efTrendPct=Math.round(slope*90/((sy/n)||1)*1000)/10; }
+      /* Forma z modulu — TA SAMA implementacja co wykres w aplikacji (z FORMA-SEED). */
+      const _forma = formaSeria(l90 || [], { koniec: new Date(), dni: 90 });
+      const dTR: number[] = _forma.seria.map((d: any) => d.trimp);
+      const _ms = monotoniaIStrain(dTR);
+      const efTrendPct = trendEfPct(efPts);
       let wellnessInfo: any = null;
       try {
         const odW=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
@@ -720,12 +719,16 @@ Deno.serve(async (req) => {
       };
 
       _analityka = {
-        ctl: Math.round(ctl), atl: Math.round(atl), tsb: Math.round(ctl-atl),
-        monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(sum7*mono),
+        ctl: _forma.ctl, atl: _forma.atl, tsb: _forma.tsb,
+        /* ⚠️ GOTOWA INTERPRETACJA, nie sama liczba. Model nie ma zgadywac, gdzie
+           lezy granica przeciazenia — `forma` niesie te sama etykiete, ktora
+           czlowiek widzi pod wykresem (progi TSB_PROGI z ../_shared). */
+        forma: _forma.forma,
+        monotonia_7d: _ms.monotonia_7d, strain_7d: _ms.strain_7d,
         trend_ef_90d_pct: efTrendPct, biegi_tlenowe_z_hr: efPts.length,
         wellness: wellnessInfo,
         porownanie_okresow: _porownanie,   /* KROK 2: postep m/m */
-        _opis: "CTL=baza dlugoterminowa, TSB=swiezosc (+5..+15 optimum startowe, <-25 przeciazenie); monotonia>=2.0 = brak zroznicowania bodzcow (ryzyko); trend_ef dodatni = baza tlenowa rosnie; wellness null = zawodnik nie trackuje."
+        _opis: "CTL=baza dlugoterminowa, ATL=zmeczenie, TSB=swiezosc. POLE `forma` NIESIE JUZ GOTOWA OCENE (przeciazenie/obciazenie/neutralna/optimum/swiezosc) policzona tymi samymi progami co wykres w aplikacji — UZYJ JEJ, nie wymyslaj wlasnych granic. Liczby sa w minuto-wysilkach, nie w TSS, wiec nie porownuj ich z progami z innych aplikacji. monotonia>=2.0 = brak zroznicowania bodzcow (ryzyko); trend_ef dodatni = baza tlenowa rosnie; wellness null = zawodnik nie trackuje."
       };
     } catch(_) { /* analityka opcjonalna — raport dziala bez niej */ }
 
@@ -810,8 +813,13 @@ Deno.serve(async (req) => {
 
     const totalPlanned = plannedTrainings?.length || 0;
     const totalLogged = logs?.length || 0;
-    const totalDistance = (logs || []).reduce((sum, l) => sum + (parseFloat(l.distance_km) || 0), 0);
-    const avgFeel = (logs || []).filter(l => l.feel).reduce((sum, l, _, arr) => sum + ({mid:5,good:7,great:9,bad:3}[l.feel] || 5) / arr.length, 0);
+    /* ⚠️ TYLKO BIEGOWE. Do 16.08.2026 suma obejmowala tez `Zastepczy` — u Kasi
+       dawalo to 235,4 km zamiast 201,0 (+17%), a raport przedstawil to jako
+       objetosc biegowa („po prostu biegasz"). Marsz/rower ida osobnym polem,
+       zeby model dalej widzial je jako obciazenie ogolne. */
+    const totalDistance = sumaKmBiegowych(logs || []);
+    const dystansNiebiegowy = Math.round(((logs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0) - totalDistance) * 10) / 10;
+    const avgFeel = sredniaSamopoczucia(logs || [], SAMOPOCZUCIE_RAPORT, 5) || 0;
 
     const screenUrls: { url: string; logDate: string; logType: string; logComment: string }[] = [];
     if (logs) {
@@ -1015,7 +1023,14 @@ ${reactText}
     if (logs && logs.length >= 3) {
       const feelLogs = logs.filter((l: any) => l.feel);
       if (feelLogs.length >= 3) {
-        const feelScore = (f: string) => f === 'great' ? 4 : f === 'good' ? 3 : f === 'mid' ? 2 : f === 'bad' ? 1 : 2;
+        /* ⚠️ INNA SKALA NIZ `avgFeel` powyzej (1..4 vs 3..9) — celowo, bo sluzy
+           doborowi tonu, nie liczbie w raporcie. Ujednolicenie zmieniloby tresc
+           raportow, wiec jest osobna decyzja.
+           ⚠️ ZMIERZONE 16.08.2026: `great` nie wystepuje w danych (0 logow), wiec
+           maksimum tej skali to 3,0 i prog `avg >= 3.5` nizej jest NIEOSIAGALNY —
+           galaz „czuje sie SWIETNIE" nie odpalila ani razu. Nie ruszam progu:
+           to zmienia tresc raportow i czeka na decyzje. */
+        const feelScore = (f: string) => SAMOPOCZUCIE_TON[f] ?? 2;
         const avg = feelLogs.reduce((s: number, l: any) => s + feelScore(l.feel), 0) / feelLogs.length;
         let trendNote = '';
         if (avg >= 3.5) trendNote = '🟢 zawodnik czuje się ŚWIETNIE — chwal i delikatnie pcham do progresu';
@@ -1346,6 +1361,10 @@ ${reportMarkdown}
         report_type: reportTypeTag,
         priority,
         content_markdown: reportMarkdown,
+        /* Wersja metryk formy — patrz ai_reports.metryka_wersja. NULL na starych
+           wierszach znaczy „liczone naiwna EMA bez seeda"; raporty.html mowi o tym
+           czytelnikowi, zeby nie porownywal ich z wykresem jak rowne z rownym. */
+        metryka_wersja: METRYKA_WERSJA,
         summary,
         raw_data_snapshot: { 
           ...context, 

@@ -15,6 +15,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { formaSeria, monotoniaIStrain, sumaKmBiegowych } from "../_shared/reguly-treningow.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -478,40 +479,29 @@ async function collectCoachContext(admin: any, coachId: string) {
     .select("id", { count: "exact", head: true })
     .eq("status", "submitted");
 
-    /* ═══ BRIEF+ (24.07): analityka rosteru dla modelu — TSB/monotonia (Foster) + gotowosc wellness.
-     Wagi = SWIADOMY DUPLIKAT sb.js (jak w RAPORT-AI+) — zmiana tam => zmiana tu. ═══ */
+    /* ═══ BRIEF+ : analityka rosteru dla modelu — TSB/monotonia (Foster) + gotowosc wellness.
+     16.08.2026: wagi i wzory przeniesione do ../_shared/reguly-treningow.mjs.
+     Panel trenera pokazywal inna forme niz wykres tego samego zawodnika. ═══ */
   let analityka: Record<string, any> = {};
   try {
-    const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
-    const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
-    const _dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
-      const p=t.split(':').map(Number); if(p.some(isNaN)) return 0;
-      return p.length===3?p[0]*60+p[1]+p[2]/60:p.length===2?p[0]+p[1]/60:(+t||0); };
-    const od90 = new Date(Date.now()-90*864e5).toISOString();
+    const od90 = new Date(Date.now() - 90*864e5).toISOString();
     const { data: l90 } = await admin.from("training_logs")
       .select("athlete_id,logged_at,training_type,duration,feel,distance_km")
       .in("athlete_id", athleteIds).gte("logged_at", od90)
       .not("training_type","like","__badge__%");
-    const dni: Record<string, Record<string, number>> = {};
-    for (const l of (l90||[])) {
-      const typ=String(l.training_type||'').toLowerCase().trim();
-      const tr=_dMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
-      const dk=String(l.logged_at).slice(0,10);
-      (dni[l.athlete_id]=dni[l.athlete_id]||{})[dk]=((dni[l.athlete_id]||{})[dk]||0)+tr;
-    }
     const odW=new Date(Date.now()-8*864e5).toISOString().slice(0,10);
     const { data: wel } = await admin.from("wellness")
       .select("athlete_id,date,resting_hr,hrv,sleep_secs")
       .in("athlete_id", athleteIds).gte("date", odW).order("date",{ascending:false});
+    /* `dni`/`_EFF`/`_FEEL`/`_dMin` zdjete 16.08.2026 — dzienny TRIMP liczy teraz
+       formaSeria() z ../_shared, razem z seedem, ktorego ta kopia nigdy nie miala. */
     const perW: Record<string, any[]> = {};
     (wel||[]).forEach((w: any)=>{ (perW[w.athlete_id]=perW[w.athlete_id]||[]).push(w); });
     for (const aid of athleteIds) {
-      const d=dni[aid]||{}; let ctl=0, atl=0; const dTR: number[]=[];
-      for (let k=89;k>=0;k--){ const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
-        const t=d[ds]||0; dTR.push(t); ctl+=(t-ctl)*(1/42); atl+=(t-atl)*(1/7); }
-      const w7=dTR.slice(-7), s7=w7.reduce((a,b)=>a+b,0), sr=s7/7;
-      const sd=Math.sqrt(w7.reduce((a,b)=>a+(b-sr)*(b-sr),0)/7);
-      const mono=sr<=0?0:(sd>0?Math.min(sr/sd,4):4);
+      /* 16.08.2026: wlasna EMA bez seeda zastapiona modulem ../_shared —
+         panel trenera pokazywal inna forme niz wykres tego samego zawodnika. */
+      const _f = formaSeria((l90||[]).filter((x:any)=>x.athlete_id===aid), { koniec: new Date(), dni: 90 });
+      const _m = monotoniaIStrain(_f.seria.map((d:any)=>d.trimp));
       let got: any=null; const wl=perW[aid];
       if (wl&&wl.length>=3){ const o=wl[0], baza=wl.slice(1);
         const m=(arr:any[])=>{const v=arr.filter((x:any)=>x!=null);return v.length?v.reduce((x:number,y:number)=>x+y,0)/v.length:null;};
@@ -531,9 +521,9 @@ async function collectCoachContext(admin: any, coachId: string) {
         else if (wiek<60) km60_30+=(+l.distance_km||0);
       }
       const trendKm = Math.round(km30)-Math.round(km60_30);
-      analityka[aid]={ tsb: Math.round(ctl-atl), ctl: Math.round(ctl),
+      analityka[aid]={ tsb: _f.tsb, ctl: _f.ctl, atl: _f.atl, forma: _f.forma,
         km_30d: Math.round(km30), zmiana_km_msc: trendKm,
-        monotonia_7d: Math.round(mono*10)/10, strain_7d: Math.round(s7*mono), gotowosc: got };
+        monotonia_7d: _m.monotonia_7d, strain_7d: _m.strain_7d, gotowosc: got };
     }
   } catch(_) { /* analityka opcjonalna */ }
 
@@ -581,7 +571,8 @@ async function callClaude(coach: any, ctx: any) {
     if (!logs || logs.length === 0) {
       return { count: 0, total_km: 0, avg_pace: null, avg_hr: null, feel_distribution: {} };
     }
-    const km = logs.reduce((s, l) => s + (Number(l.distance_km) || 0), 0);
+    /* ⚠️ TYLKO BIEGOWE — `Zastepczy`/rower/marsz poza suma, jak w aplikacji. */
+    const km = sumaKmBiegowych(logs);
     const hrs = logs.filter(l => l.heart_rate).map(l => Number(l.heart_rate));
     const avgHr = hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : null;
     // pace pomijam w średniej (string "5:30/km") — zostawiam użytkownikowi do interpretacji

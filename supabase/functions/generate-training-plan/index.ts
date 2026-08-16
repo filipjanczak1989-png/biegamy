@@ -38,6 +38,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { formaSeria, monotoniaIStrain, trendEfPct } from "../_shared/reguly-treningow.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SB_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;   // rotacja: nowy sb_secret priorytet, legacy fallback
@@ -243,38 +244,28 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
      CZWARTY swiadomy duplikat wag sb.js (obok RAPORT-AI+/BRIEF+) — zmiana tam => tu. ═══ */
   let analityka: any = null;
   try {
-    const _EFF: Record<string, number> = { 'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'d\u0142ugi':2.5,'wzmacniaj\u0105cy':1.5,'zast\u0119pczy':1.5,'tempo':3.5,'progresja':3.0,'interwa\u0142y':4.5,'start':5.0,'wy\u015bcig':5.0 };
-    const _FEEL: Record<string, number> = { good:1.0, mid:1.1, bad:1.3 };
-    const _dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0;
-      const q=t.split(':').map(Number); if(q.some(isNaN)) return 0;
-      return q.length===3?q[0]*60+q[1]+q[2]/60:q.length===2?q[0]+q[1]/60:(+t||0); };
     const od90p = new Date(Date.now()-90*864e5).toISOString();
     const { data: l90p } = await supabase.from("training_logs")
       .select("logged_at,training_type,duration,feel,heart_rate,gap_pace,pace")
       .eq("athlete_id", athleteId).gte("logged_at", od90p)
       .not("training_type","like","__badge__%");
-    const dniP: Record<string, number> = {};
     const efP: {x:number,y:number}[] = [];
     const TLENp=/spokoj|wybieg|d\u0142ug|dlug|regener/, WYKLp=/interwa|tempo|progres|start|wy\u015bcig|zawod|si\u0142|sil/;
     for (const l of (l90p||[])) {
       const typ=String(l.training_type||'').toLowerCase().trim();
-      const tr=_dMin(l.duration)*(_EFF[typ]!==undefined?_EFF[typ]:1.5)*(_FEEL[String(l.feel)]||1.0);
-      const dk=String(l.logged_at).slice(0,10); dniP[dk]=(dniP[dk]||0)+tr;
+      
       if (TLENp.test(typ)&&!WYKLp.test(typ)&&l.heart_rate>=80&&l.heart_rate<=200) {
         const m=String(l.gap_pace||l.pace||'').match(/^(\d{1,2}):(\d{2})/);
         if (m){ const sek=+m[1]*60+ +m[2];
           if(sek>=150&&sek<=720) efP.push({x:new Date(l.logged_at).getTime()/864e5,y:(1000/sek)/l.heart_rate*1000}); } }
     }
     let ctlP=0, atlP=0; const dTRp: number[]=[];
-    for (let k=89;k>=0;k--){ const ds=new Date(Date.now()-k*864e5).toISOString().slice(0,10);
-      const t=dniP[ds]||0; dTRp.push(t); ctlP+=(t-ctlP)*(1/42); atlP+=(t-atlP)*(1/7); }
-    const w7p=dTRp.slice(-7), s7p=w7p.reduce((a,b)=>a+b,0), sr7p=s7p/7;
-    const sd7p=Math.sqrt(w7p.reduce((a,b)=>a+(b-sr7p)*(b-sr7p),0)/7);
-    const monoP=sr7p<=0?0:(sd7p>0?Math.min(sr7p/sd7p,4):4);
-    let efPct: number|null=null;
-    if (efP.length>=5){ const n=efP.length; let sx=0,sy=0,sxy=0,sxx=0;
-      for(const q of efP){sx+=q.x;sy+=q.y;sxy+=q.x*q.y;sxx+=q.x*q.x;}
-      const sl=(n*sxy-sx*sy)/(n*sxx-sx*sx||1); efPct=Math.round(sl*90/((sy/n)||1)*1000)/10; }
+    /* 16.08.2026: trzecia kopia tej samej EMA zastapiona modulem ../_shared.
+       Ta kopia rowniez nie miala seeda, wiec generator planu widzial inna forme
+       niz zawodnik na swoim wykresie. */
+    const _fp = formaSeria(l90p || [], { koniec: new Date(), dni: 90 });
+    const _mp = monotoniaIStrain(_fp.seria.map((d:any)=>d.trimp));
+    const efPct = trendEfPct(efP);
     let wellP: any=null;
     try {
       const odWp=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
@@ -285,8 +276,8 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
         wellP={ ostatni_dzien:o.date, resting_hr:o.resting_hr, hrv:o.hrv, readiness:o.readiness,
           sen_h:o.sleep_secs!=null?Math.round(o.sleep_secs/360)/10:null, dni_z_danymi:welp.length }; }
     } catch(_){}
-    analityka = { ctl: Math.round(ctlP), atl: Math.round(atlP), tsb: Math.round(ctlP-atlP),
-      monotonia_7d: Math.round(monoP*10)/10, strain_7d: Math.round(s7p*monoP),
+    analityka = { ctl: _fp.ctl, atl: _fp.atl, tsb: _fp.tsb, forma: _fp.forma,
+      monotonia_7d: _mp.monotonia_7d, strain_7d: _mp.strain_7d,
       trend_ef_90d_pct: efPct, biegi_tlenowe_z_hr: efP.length, wellness: wellP };
   } catch(_) { /* analityka opcjonalna */ }
 
@@ -1589,7 +1580,7 @@ ${context.analityka ? `- Forma dzis: CTL ${context.analityka.ctl} / TSB ${contex
 Wpisy oznaczone ⌚zegarek pochodzą z automatycznego importu intervals.icu (zegarek zawodnika):
 - **HR i tempo z tych wpisów są ZMIERZONE, nie deklarowane** — przy rozbieżności między odczuciem a danymi ⌚ ufaj liczbom, ale odczucie komentuj (np. "tempo było OK, ale skoro czułeś się ciężko...").
 - Typ treningu ⌚ pochodzi z planu na ten dzień (auto-dopasowanie) — jest wiarygodny.
-- "Zastępczy" z ⌚ = aktywność niebiegowa (rower/spacer) — NIE licz jej do objętości biegowej, ale uwzględnij jako obciążenie ogólne.
+- "Zastępczy" z ⌚ = aktywność niebiegowa (rower/spacer) — uwzględnij jako obciążenie ogólne. Sumy kilometrów, które dostajesz, JUŻ ją wykluczają (isRunType w kodzie), więc nie odejmuj jej drugi raz.
 - Kalibruj strefy tempa/HR nowego planu na danych ⌚ (są dokładniejsze niż wpisy ręczne).
 
 ## OSTATNIE LOGI TRENINGOWE Z ODCZUCIAMI ZAWODNIKA (max 30):
