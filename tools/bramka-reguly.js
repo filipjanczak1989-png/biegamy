@@ -166,7 +166,15 @@ async function main() {
     const zlapanyWzor = ZAKAZANE_WZORY.some(([rx]) => rx.test(udawany));
     console.log(zlapanyWzor ? '  ✓ samokontrola: odtworzona własna EMA w EF ZŁAPANA'
                             : '  ✗ SAMOKONTROLA PADŁA: własna EMA w EF NIE została wykryta');
-    if (!zlapane || !zlapanyProg || !zlapanyWzor) process.exit(1);
+    /* ⚠️ SAMOKONTROLA KONCZY SIE TUTAJ, nie leci dalej do raportu.
+       Do 16.08.2026 tryb --samokontrola wykonywal TEZ porownanie wlasciwe,
+       wiec self-test padal, gdy w repo byl prawdziwy rozjazd — a w CI jego
+       awaria PRZESLANIALA pozostale bramki (wszystkie kroki `skipped`).
+       Wyszlo dopiero w tescie negatywnym: run byl czerwony z wlasciwego
+       powodu, ale raport wskazywal na zly krok.
+       Self-test ma odpowiadac na pytanie „czy bramka umie zlapac", a nie
+       „czy dzis jest co lapac" — to dwa rozne pytania. */
+    process.exit((zlapane && zlapanyProg && zlapanyWzor) ? 0 : 1);
   }
 
   console.log('\n  BRAMKA REGUŁ — sb.js vs _shared/reguly-treningow.mjs\n');

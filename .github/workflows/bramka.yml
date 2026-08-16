@@ -54,18 +54,25 @@ jobs:
           echo "GRANT SELECT ON public.athletes TO anon;" > supabase/migrations/99999999_test_negatywny.sql   # bramka:przyklad
           git add -A
 
+      # ⚠️ `if: always()` na KAZDEJ bramce. Bez tego pierwsza czerwona przerywa
+      #    job i reszta jest `skipped` — czyli widac JEDNA usterke zamiast
+      #    wszystkich, a przy naprawie wychodza pojedynczo, run po runie.
+      #    Wyszlo w tescie negatywnym 16.08.2026.
       # ── SAMOKONTROLA OBU BRAMEK ─────────────────────────────────────────
       - name: Samokontrola — bramka reguł
         run: node tools/bramka-reguly.js --samokontrola
 
       - name: Samokontrola — bramka commita
+        if: always()
         run: node tools/bramka-commit.js --samokontrola
 
       # ── BRAMKI WŁAŚCIWE ─────────────────────────────────────────────────
       - name: Reguły treningowe (sb.js vs _shared + EF bez własnych kopii)
+        if: always()
         run: node tools/bramka-reguly.js
 
       - name: Zakres commita (migracje, uprawnienia, sekrety)
+        if: always()
         run: |
           if [ "${{ inputs.test_negatywny }}" = "true" ]; then
             node tools/bramka-commit.js
@@ -77,7 +84,9 @@ jobs:
 
       # ── BRAMKI SPÓJNOŚCI ŹRÓDEŁ (do 16.08.2026 nikt ich nie uruchamiał) ──
       - name: RUN_TYPES — lista typów biegowych w 8 źródłach
+        if: always()
         run: python tools/sprawdz-run-types.py
 
       - name: Stałe wyzwania #100kmDlaKasi w 3 źródłach
+        if: always()
         run: python tools/sprawdz-spol-stale.py
