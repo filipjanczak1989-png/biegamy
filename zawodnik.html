@@ -1343,15 +1343,15 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
   <!-- ODPRAWA-PUSH-TOGGLE: opt-out porannego pusha -->
   <div id="odprawa-push-card" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:0 0 12px;align-items:center;gap:10px;cursor:pointer;" onclick="toggleOdprawaPush()">
-    <div style="font-size:18px;flex-shrink:0;">\u2600\ufe0f</div>
+    <div style="font-size:18px;flex-shrink:0;">☀️</div>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:12.5px;font-weight:600;">Poranny sygna\u0142</div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:1px;line-height:1.3;">Push rano tylko gdy jest co\u015b wa\u017cnego \u2014 m\u0119czenie, \u015bwie\u017co\u015b\u0107, trening albo start.</div>
+      <div style="font-size:12.5px;font-weight:600;">Poranny sygnał</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:1px;line-height:1.3;">Push rano tylko gdy jest coś ważnego — męczenie, świeżość, trening albo start.</div>
     </div>
-    <div id="odprawa-push-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;">\u2026</div>
+    <div id="odprawa-push-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;">…</div>
   </div>
   <div id="odprawa-hour-row" style="display:none;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:8px 14px;margin:-12px 0 12px;">
-    <span style="font-size:11px;color:var(--muted);">O kt\u00f3rej godzinie?</span>
+    <span style="font-size:11px;color:var(--muted);">O której godzinie?</span>
     <select id="odprawa-hour-sel" onchange="setOdprawaHour(this.value)" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--fg);font-size:12px;font-family:'DM Mono',monospace;">
       <option value="5">5:00</option><option value="6">6:00</option><option value="7">7:00</option>
       <option value="8">8:00</option><option value="9">9:00</option><option value="10">10:00</option>
@@ -12685,7 +12685,7 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
 
   <!-- VO2MAX-KARTA: silnik tlenowy z trendem (KM i inni z Garminem premium) -->
   <div id="forma-vo2max" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:12px;">
-    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">\ud83e\udec1 Silnik tlenowy \u00b7 VO\u2082max</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🫁 Silnik tlenowy · VO₂max</div>
     <div id="forma-vo2max-tresc"></div>
   </div>
 
