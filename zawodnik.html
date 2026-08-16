@@ -9226,10 +9226,10 @@ function loadChallenges() {
     {id:'40km_tydzien',   badge:'40km_tydzien',    title:'40 km / tydzień',    desc:'40 km od poniedziałku',       target:40, unit:'km',       kind:'km',      color:'#e8b840'},
     {id:'60km_tydzien',   badge:'60km_tydzien',    title:'60 km / tydzień',    desc:'60 km od poniedziałku',       target:60, unit:'km',       kind:'km',      color:'#FC4C02'},
     {id:'80km_tydzien',   badge:'80km_tydzien',    title:'80+ km / tydzień',   desc:'80 km od poniedziałku',       target:80, unit:'km',       kind:'km',      color:'#ff4444'},
-    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Szybki tydzień',     desc:'2 treningi tempowe',          target:2,  unit:'tempo',    kind:'tempo',   color:'#FC4C02'},
+    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Dwa akcenty',       desc:'2× tempo lub interwały',      target:2,  unit:'akcenty',  kind:'jakosc',   color:'#FC4C02'},
     {id:'3_dni_pod_rzad', badge:'3_dni_pod_rzad',  title:'3 dni pod rząd',     desc:'3 kolejne dni treningów',     target:3,  unit:'dni',      kind:'streak',  color:'#e8b840'},
     {id:'forma_rosnie',   badge:'forma_rosnie',    title:'Forma rośnie',       desc:'4 treningi w tym tygodniu',   target:4,  unit:'treningi', kind:'sessions',color:'#3db870'},
-    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'Trening co drugi dzień',      target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
+    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'4 dni, żadnej przerwy >2 dni', target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
     {id:'mieszany_ogien', badge:'mieszany_ogien',  title:'Mieszany ogień',     desc:'Easy + Tempo + Interwały',    target:3,  unit:'typy',     kind:'mix',     color:'#FC4C02'},
   ];
 
@@ -9253,9 +9253,23 @@ function loadChallenges() {
   function buildCard(ch, prog, earned, isMonthly) {
     const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
     const col = ch.color;
-    const almostLabel = (!earned && pct >= 60)
+    /* ⚠️ WARUNEK NA POSTEP, NIE NA ODZNAKE. Do 16.08.2026 stalo tu `!earned`,
+       czyli „czy masz juz odznake" — a odznaka przyznaje sie w checkBadges,
+       ktore ten widok tylko CZYTA, nigdy nie uruchamia. Miedzy osiagnieciem
+       progu a przyznaniem odznaki karta liczyla `target - prog` i pokazywala
+       liczbe UJEMNA: „Zostalo -1 dni do odznaki".
+       Zmierzone na 18 wyzwaniach x 2 przypadki (rowno progowi i powyzej):
+       BLEDNE BYLY 36 z 36 — jedna funkcja obsluguje wszystkie wyzwania.
+       ⚠️ U `bez_skipa` okno bylo WIECZNE: ta odznaka jako jedyna z 18 nie ma
+       reguly przyznawania, wiec `earned` nigdy nie stawalo sie prawda.
+       TRZY STANY, nie dwa — prog osiagniety bez odznaki dostaje wlasny
+       komunikat zamiast pustki: czlowiek ma wiedziec, ze zrobil swoje. */
+    const osiagniete = (prog || 0) >= ch.target;
+    const almostLabel = (!osiagniete && pct >= 60)
       ? `<div style="font-size:10px;color:${col};font-family:DM Mono,monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
-      : '';
+      : (osiagniete && !earned)
+        ? `<div style="font-size:10px;color:${col};font-family:DM Mono,monospace;margin-top:6px;">Próg osiągnięty ✓ — odznaka doleci po przeliczeniu</div>`
+        : '';
     return `<div style="background:var(--card);border:1px solid ${earned?col:'var(--border)'};border-radius:16px;padding:14px 16px;margin-bottom:10px;${earned?'box-shadow:0 0 16px '+col+'22;':''}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
         <img src="${BASE}${ch.badge}.webp" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;${earned?'box-shadow:0 0 12px '+col+'55;':'filter:grayscale(0.4) brightness(0.7);'}" onerror="this.style.display='none'">
@@ -9312,8 +9326,18 @@ function loadChallenges() {
     const wsess = wl.length;
     const msess = all.length;
     const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
-    const wTempo = wl.filter(l => l.training_type==='Tempo').length;
+    /* „Dwa akcenty" liczy JEDNOSTKI JAKOSCIOWE, nie same tempowe: generator planu
+       daje JEDEN akcent na tydzien i na przemian Tempo/Interwaly, wiec wyzwanie
+       wymagajace dwoch TEMPOWYCH przeczylo planowi, ktory sam wystawia. */
+    const wJakosc = wl.filter(l => l.training_type==='Tempo' || l.training_type==='Interwały').length;
     const wDays = [...new Set(wl.map(l=>l.logged_at.slice(0,10)))].sort();
+    /* Najwieksza przerwa miedzy dniami z treningiem — „bez_skipa" mierzy
+       REGULARNOSC, nie sume dni. Bez tego opis mowilby co innego niz warunek. */
+    let wLuka = 0;
+    for (let i = 1; i < wDays.length; i++) {
+      const l2 = Math.round((new Date(wDays[i]) - new Date(wDays[i-1])) / 86400000);
+      if (l2 > wLuka) wLuka = l2;
+    }
 
     // streak
     let streak = 0, prev = null;
@@ -9329,8 +9353,11 @@ function loadChallenges() {
       if (ch.kind==='sessions')return wsess;
       if (ch.kind==='weekend') return wknd;
       if (ch.kind==='streak')  return streak;
-      if (ch.kind==='tempo')   return wTempo;
-      if (ch.kind==='altdays') return Math.floor(wDays.length);
+      if (ch.kind==='jakosc')  return wJakosc;   /* tempo LUB interwaly */
+      /* ⚠️ POSTEP POKAZUJE DNI, ale prog zalicza sie TYLKO przy zachowanej
+         regularnosci — inaczej opis („zadnej przerwy >2 dni") mowilby co innego
+         niz pasek. Przerwa dluzsza niz 2 dni trzyma postep pod progiem. */
+      if (ch.kind==='altdays') return wLuka <= 2 ? wDays.length : Math.min(wDays.length, ch.target - 1);
       if (ch.kind==='mix') {
         const types = new Set(wl.map(l=>l.training_type));
         return [types.has('Spokojny'),types.has('Tempo'),types.has('Interwały')].filter(Boolean).length;
@@ -13408,19 +13435,52 @@ async function _checkBadgeRules(logs, ctx) {
   const wknd = weekLogs.filter(l => { const d = new Date(l.logged_at); return d.getDay()===6||d.getDay()===0; }).length;
   const wkTempo = weekLogs.filter(l => l.training_type==='Tempo').length;
   const wkInt   = weekLogs.filter(l => l.training_type==='Interwały').length;
+  /* Najdluzsza SERIA kolejnych dni i najwieksza PRZERWA w biezacym tygodniu.
+     ⚠️ Nazwy z prefiksem `wk`, bo `maxPrzerwa` jest juz zajete nizej — tam
+        liczy przerwe w CALEJ historii dla odznaki `po_kontuzji`. */
+  const wkDni = [...new Set(weekLogs.map(l => window._dzienWaw(l.logged_at)))].sort();
+  let wkMaxSeria = wkDni.length ? 1 : 0, wkSeria = wkDni.length ? 1 : 0, wkMaxPrzerwa = 0;
+  for (let i = 1; i < wkDni.length; i++) {
+    const luka = Math.round((new Date(wkDni[i]) - new Date(wkDni[i-1])) / 86400000);
+    if (luka > wkMaxPrzerwa) wkMaxPrzerwa = luka;
+    wkSeria = luka === 1 ? wkSeria + 1 : 1;
+    if (wkSeria > wkMaxSeria) wkMaxSeria = wkSeria;
+  }
 
   if (weekLogs.length >= 3)  awardBadge('tydzien_mocy');
   if (weekLogs.length >= 5)  awardBadge('5_dni_ruchu');
   if (weekLogs.length >= 4)  awardBadge('forma_rosnie');
   if (wknd >= 2)             awardBadge('weekend_runner');
-  if (wkTempo >= 2)          awardBadge('szybki_tydzien');
+  /* „Dwa akcenty": tempo LUB interwaly. Do 16.08.2026 liczylo same tempowe,
+     a generator planu daje JEDEN akcent na tydzien i na przemian Tempo/Interwaly
+     — wyzwanie zachecalo do czegos, czego plan nikomu nie wystawia.
+     ⚠️ id odznaki ZOSTAJE `szybki_tydzien`: 5 osob juz ja ma, a plik grafiki
+        nazywa sie tak samo. Zmiana id osierocilaby jedno i drugie.
+     Zmierzone na calej historii: przy nowej regule kwalifikuje sie 12 zamiast 5. */
+  if (wkTempo + wkInt >= 2)  awardBadge('szybki_tydzien');
   if (wkInt >= 2)            awardBadge('interwalowy_tydz');
   if (wkTempo >= 1 && wkInt >= 1 && weekLogs.some(l=>l.training_type==='Spokojny')) awardBadge('mieszany_ogien');
   if (weekKm >= 20)  awardBadge('20km_tydzien');
   if (weekKm >= 40)  awardBadge('40km_tydzien');
   if (weekKm >= 60)  awardBadge('60km_tydzien');
   if (weekKm >= 80)  awardBadge('80km_tydzien');
-  if (weekDays >= 3) awardBadge('3_dni_pod_rzad');
+  /* ⚠️ „3 dni pod rzad" liczylo `weekDays >= 3`, czyli DNI W TYGODNIU, nie serie.
+     Karta wyzwania liczyla przy tym PRAWDZIWY streak — odznaka i karta mierzyly
+     rozne rzeczy pod ta sama nazwa. Teraz obie licza serie.
+     Zmierzone na calej historii: odznake ma 22 osoby, przy prawdziwej serii
+     kwalifikuje sie 21. DWIE (Martyna, Natalia) zachowaja odznake, ktorej przy
+     tej regule by nie dostaly — `achievements` NIE kasujemy. */
+  if (wkMaxSeria >= 3) awardBadge('3_dni_pod_rzad');
+
+  /* bez_skipa — do 16.08.2026 JEDYNA z 18 odznak wyzwan BEZ reguly przyznawania.
+     Skutek: `earned` nigdy nie stawalo sie prawda, wiec karta w nieskonczonosc
+     pokazywala „Zostalo -1 dni". 14 osob widzialo wartosci od 0 do -3.
+     Warunek dopasowany DO OPISU, nie odwrotnie: samo „4 dni w tygodniu"
+     duplikowaloby `forma_rosnie`, a regularnosc niesie inny sens metodyczny.
+     ⚠️ BADGE_BACKFILL_KEY NIE podbijany swiadomie — przy jednej regule cisza
+        jest gorsza niz powiadomienie. Zmierzone: 20 osob dostanie bez_skipa,
+        7 dostanie szybki_tydzien, 6 obie naraz — 27 pushy, max 2 na osobe. */
+  if (weekDays >= 4 && wkMaxPrzerwa <= 2) awardBadge('bez_skipa');
 
   // MIESIĘCZNE — bieżący miesiąc
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -213,10 +213,10 @@ function loadChallenges() {
     {id:'40km_tydzien',   badge:'40km_tydzien',    title:'40 km / tydzień',    desc:'40 km od poniedziałku',       target:40, unit:'km',       kind:'km',      color:'#e8b840'},
     {id:'60km_tydzien',   badge:'60km_tydzien',    title:'60 km / tydzień',    desc:'60 km od poniedziałku',       target:60, unit:'km',       kind:'km',      color:'#FC4C02'},
     {id:'80km_tydzien',   badge:'80km_tydzien',    title:'80+ km / tydzień',   desc:'80 km od poniedziałku',       target:80, unit:'km',       kind:'km',      color:'#ff4444'},
-    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Szybki tydzień',     desc:'2 treningi tempowe',          target:2,  unit:'tempo',    kind:'tempo',   color:'#FC4C02'},
+    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Dwa akcenty',       desc:'2× tempo lub interwały',      target:2,  unit:'akcenty',  kind:'jakosc',   color:'#FC4C02'},
     {id:'3_dni_pod_rzad', badge:'3_dni_pod_rzad',  title:'3 dni pod rząd',     desc:'3 kolejne dni treningów',     target:3,  unit:'dni',      kind:'streak',  color:'#e8b840'},
     {id:'forma_rosnie',   badge:'forma_rosnie',    title:'Forma rośnie',       desc:'4 treningi w tym tygodniu',   target:4,  unit:'treningi', kind:'sessions',color:'#3db870'},
-    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'Trening co drugi dzień',      target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
+    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'4 dni, żadnej przerwy >2 dni', target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
     {id:'mieszany_ogien', badge:'mieszany_ogien',  title:'Mieszany ogień',     desc:'Easy + Tempo + Interwały',    target:3,  unit:'typy',     kind:'mix',     color:'#FC4C02'},
   ];
 
@@ -240,9 +240,23 @@ function loadChallenges() {
   function buildCard(ch, prog, earned, isMonthly) {
     const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
     const col = ch.color;
-    const almostLabel = (!earned && pct >= 60)
-      ? `<div style="font-size:10px;color:${col};font-family:'DM Mono',monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
-      : '';
+    /* ⚠️ WARUNEK NA POSTEP, NIE NA ODZNAKE. Do 16.08.2026 stalo tu `!earned`,
+       czyli „czy masz juz odznake" — a odznaka przyznaje sie w checkBadges,
+       ktore ten widok tylko CZYTA, nigdy nie uruchamia. Miedzy osiagnieciem
+       progu a przyznaniem odznaki karta liczyla `target - prog` i pokazywala
+       liczbe UJEMNA: „Zostalo -1 dni do odznaki".
+       Zmierzone na 18 wyzwaniach x 2 przypadki (rowno progowi i powyzej):
+       BLEDNE BYLY 36 z 36 — jedna funkcja obsluguje wszystkie wyzwania.
+       ⚠️ U `bez_skipa` okno bylo WIECZNE: ta odznaka jako jedyna z 18 nie ma
+       reguly przyznawania, wiec `earned` nigdy nie stawalo sie prawda.
+       TRZY STANY, nie dwa — prog osiagniety bez odznaki dostaje wlasny
+       komunikat zamiast pustki: czlowiek ma wiedziec, ze zrobil swoje. */
+    const osiagniete = (prog || 0) >= ch.target;
+    const almostLabel = (!osiagniete && pct >= 60)
+      ? `<div style="font-size:10px;color:${col};font-family:DM Mono,monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
+      : (osiagniete && !earned)
+        ? `<div style="font-size:10px;color:${col};font-family:DM Mono,monospace;margin-top:6px;">Próg osiągnięty ✓ — odznaka doleci po przeliczeniu</div>`
+        : '';
     return `<div style="background:var(--card);border:1px solid ${earned?col:'var(--border)'};border-radius:16px;padding:14px 16px;margin-bottom:10px;${earned?'box-shadow:0 0 16px '+col+'22;':''}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
         <img src="${BASE}${ch.badge}.webp" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;${earned?'box-shadow:0 0 12px '+col+'55;':'filter:grayscale(0.4) brightness(0.7);'}" onerror="this.style.display='none'">
@@ -299,8 +313,18 @@ function loadChallenges() {
     const wsess = wl.length;
     const msess = all.length;
     const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
-    const wTempo = wl.filter(l => l.training_type==='Tempo').length;
+    /* „Dwa akcenty" liczy JEDNOSTKI JAKOSCIOWE, nie same tempowe: generator planu
+       daje JEDEN akcent na tydzien i na przemian Tempo/Interwaly, wiec wyzwanie
+       wymagajace dwoch TEMPOWYCH przeczylo planowi, ktory sam wystawia. */
+    const wJakosc = wl.filter(l => l.training_type==='Tempo' || l.training_type==='Interwały').length;
     const wDays = [...new Set(wl.map(l=>l.logged_at.slice(0,10)))].sort();
+    /* Najwieksza przerwa miedzy dniami z treningiem — „bez_skipa" mierzy
+       REGULARNOSC, nie sume dni. Bez tego opis mowilby co innego niz warunek. */
+    let wLuka = 0;
+    for (let i = 1; i < wDays.length; i++) {
+      const l2 = Math.round((new Date(wDays[i]) - new Date(wDays[i-1])) / 86400000);
+      if (l2 > wLuka) wLuka = l2;
+    }
 
     // streak
     let streak = 0, prev = null;
@@ -316,8 +340,11 @@ function loadChallenges() {
       if (ch.kind==='sessions')return wsess;
       if (ch.kind==='weekend') return wknd;
       if (ch.kind==='streak')  return streak;
-      if (ch.kind==='tempo')   return wTempo;
-      if (ch.kind==='altdays') return Math.floor(wDays.length);
+      if (ch.kind==='jakosc')  return wJakosc;   /* tempo LUB interwaly */
+      /* ⚠️ POSTEP POKAZUJE DNI, ale prog zalicza sie TYLKO przy zachowanej
+         regularnosci — inaczej opis („zadnej przerwy >2 dni") mowilby co innego
+         niz pasek. Przerwa dluzsza niz 2 dni trzyma postep pod progiem. */
+      if (ch.kind==='altdays') return wLuka <= 2 ? wDays.length : Math.min(wDays.length, ch.target - 1);
       if (ch.kind==='mix') {
         const types = new Set(wl.map(l=>l.training_type));
         return [types.has('Spokojny'),types.has('Tempo'),types.has('Interwały')].filter(Boolean).length;
