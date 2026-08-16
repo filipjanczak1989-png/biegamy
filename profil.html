@@ -887,6 +887,7 @@ async function savePB(key, val) {
   const upd = {};
   upd[key] = val || null;
   const { error } = await sb.from('athletes').update(upd).eq('id', _myId);
+  if (error && window.zglosNieudanyZapis) window.zglosNieudanyZapis('update', 'athletes/profil', error);
   if (error) { showToast('Błąd: ' + error.message); return; }
   if (_profileData) _profileData[key] = val;
   showToast('Zyciówka zapisana ✓');

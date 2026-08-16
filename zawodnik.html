@@ -568,7 +568,12 @@ body > *{position:relative;z-index:1;}
   background:rgba(12,12,18,0.96);border:1px solid rgba(255,255,255,0.1);
   color:var(--fg);font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;
   padding:10px 20px;border-radius:22px;opacity:0;transition:all 0.25s;
-  white-space:nowrap;z-index:9999;backdrop-filter:blur(16px);
+  /* max-width + zawijanie: komunikat PostgREST ma ~73 znaki, a przy nowrap
+     i 11px DM Mono mieści się ~45 — reszta wystawała poza ekran telefonu.
+     ⚠️ sb.js ma POPRAWNY showToast (max-width:90vw), ale sb.js:4823 oddaje
+     pierwszeństwo funkcji ze strony, a ta lokalna kopia go przesłaniała. */
+  white-space:normal;max-width:calc(100vw - 32px);text-align:center;
+  z-index:9999;backdrop-filter:blur(16px);
   box-shadow:0 8px 32px rgba(0,0,0,0.6);
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -2945,7 +2950,13 @@ async function sendProfileMsg() {
   if (!inp || !inp.value.trim() || !_athleteId) return;
   const body = inp.value.trim();
   inp.value = '';
-  await sb.from('messages').insert({ athlete_id: _athleteId, sender: 'athlete', body, sent_at: new Date().toISOString() });
+  const { error: _msgErr } = await sb.from('messages').insert({ athlete_id: _athleteId, sender: 'athlete', body, sent_at: new Date().toISOString() });
+  if (_msgErr) {
+    // Do 16.08 ta sciezka nie miala ZADNEJ obslugi bledu — nieudana wysylka
+    // byla calkowicie cicha, a pole juz wyczyszczone, wiec tresc przepadala.
+    window.zglosNieudanyZapis('insert', 'messages', _msgErr);
+    if (typeof toast === 'function') toast(window.komunikatBledu(_msgErr));
+  }
   _loadProfileMsgs();
 }
 
@@ -3409,7 +3420,7 @@ async function savePBs() {
   if (pierwszeZle) { pierwszeZle.focus(); return; }
 
   const { error } = await sb.from('athletes').update(updates).eq('id', _athleteId);
-  if (error) { toast('Błąd: ' + error.message); return; }
+  if (error) { window.zglosNieudanyZapis('update', 'athletes/pb', error); toast(window.komunikatBledu(error)); return; }
   /* Ostrzezenie toastem, bo zapis PRZESZEDL — nie ma czego poprawiac przy polu. */
   toast(ostrzezenia.length ? ostrzezenia[0] + ' Zapisano.' : 'Życiówki zapisane ✓');
   toggleEditPBs();
@@ -3536,17 +3547,18 @@ async function saveGoal() {
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _athleteId);
-  if (error) { toast('Błąd: ' + error.message); return; }
+  if (error) { window.zglosNieudanyZapis('insert', 'race_goals', error); toast(window.komunikatBledu(error)); return; }
 
   // Auto-signup do race_signups jeśli powiązano z kalendarzem
   if (raceId) {
     try {
+      // 8/8: zapis na zawody — jednorazowa akcja, latwa do przegapienia
       const { error: sErr } = await sb.from('race_signups').upsert({
         race_id: raceId,
         athlete_id: _athleteId
       }, { onConflict: 'race_id,athlete_id' });
       // signup_count utrzymuje trigger trg_race_signup_count (AFTER INSERT) — bez klienckiego update
-      if (sErr) console.warn('Auto-signup failed:', sErr);
+      if (sErr) { window.zglosNieudanyZapis('upsert', 'race_signups', sErr); console.warn('Auto-signup failed:', sErr); }
     } catch(e) { console.warn('Auto-signup failed:', e); }
   }
 
@@ -7158,6 +7170,7 @@ async function deleteLog(logId) {
   const { data: delData, error } = await sb.from('training_logs').delete()
     .eq('id', logId).eq('athlete_id', _athleteId).select('id');
   if (error) {
+    window.zglosNieudanyZapis('delete', 'training_logs', error);
     console.error('deleteLog error:', error);
     toast('Błąd usuwania: ' + error.message);
     return;
@@ -7530,10 +7543,13 @@ async function saveLog() {
   }
 
   if (error) {
+    // Zglaszamy: to jest moment, w ktorym czlowiek chcial zapisac i nie mogl.
+    // Rozroznienie insert/update ma znaczenie — to dwie rozne polityki RLS.
+    window.zglosNieudanyZapis(_editingLogId ? 'update' : 'insert', 'training_logs', error);
     btn.textContent = 'Zapisz log →';
     btn.disabled = false;
     _savingLog = false;
-    toast('Błąd: ' + error.message);
+    toast(window.komunikatBledu(error));
     return;
   }
 

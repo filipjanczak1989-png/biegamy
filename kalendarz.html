@@ -2431,7 +2431,8 @@ async function saveTraining() {
         pace: pace||null, heart_rate: hr||null, description: desc||null, exercise_ref: eref,
         steps: _seOut, steps_version: _seOut ? 1 : null, status
       }).eq('id', dbId);
-      if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
+      if (updErr) { window.zglosNieudanyZapis && window.zglosNieudanyZapis('update','trainings',updErr);
+                    notify(window.komunikatBledu ? window.komunikatBledu(updErr) : ('Błąd zapisu: ' + updErr.message)); return; }
     } else {
       // Sprawdź czy mamy wybrane zawodnika — jeśli nie, zapytaj
       const selEl = document.getElementById('athlete-select');
@@ -2456,7 +2457,8 @@ async function saveTraining() {
         steps_version: _seOut ? 1 : null,
         status
       });
-      if (insErr) { notify('Błąd: ' + insErr.message); return; }
+      if (insErr) { window.zglosNieudanyZapis && window.zglosNieudanyZapis('insert','trainings',insErr);
+                    notify(window.komunikatBledu ? window.komunikatBledu(insErr) : ('Błąd: ' + insErr.message)); return; }
     }
     closeModal();
     await loadTrainingsFromDB();

@@ -2188,6 +2188,76 @@ window._icuRenderSplits = function (d, el) {
     });
   };
 
+  /* ── ODRZUCONE ZAPISY ────────────────────────────────────────────────────
+     Do 16.08.2026 nie mieliśmy ŻADNEJ widoczności, jak często komuś nie udaje
+     się czegoś zapisać. PostgREST oddaje błąd jako WARTOŚĆ, nie wyjątek, więc
+     `window.addEventListener('error')` go nie widzi, a kod robił tylko
+     console.error. O Adamie (2.08, 49 nieudanych prób zapisu treningu)
+     dowiedzieliśmy się WYŁĄCZNIE po śladzie w storage — czyli przez usterkę,
+     którą naprawiliśmy tego samego dnia. Ten ślad już nie powstanie.
+
+     !! WĄSKI ZAKRES: tylko tam, gdzie człowiek CHCIAŁ coś zapisać i nie mógł.
+        W kliencie jest 271 wywołań zapisu; instrumentujemy osiem. Reguła dla
+        nowego kodu: jeśli po `{ error }` pokazujesz człowiekowi komunikat —
+        zgłoś też zapis. `notifications` (tło: odznaki, pushe) NIE podlega. */
+
+  var _wZglaszaniu = false;
+
+  /* !! NIGDY `details` ANI `hint`. Sprawdzone empirycznie 16.08.2026 na żywej
+     bazie: `message` niesie wyłącznie nazwę ograniczenia i tabeli, ale
+     `details` niesie CAŁY ODRZUCONY WIERSZ —
+       „Failing row contains (8c713bc0…, null, 767aa4e6…, 99999, …)"
+     — razem z athlete_id i wszystkimi wartościami. Przy FK jest tam klucz:
+       „Key (athlete_id)=(00000000-…) is not present in table athletes".
+     Zapisanie tego do client_errors wsadziłoby dane osobowe do tabeli
+     diagnostycznej. Pilnuje tego tests/zglaszanie-zapisow.test.js. */
+  window.zglosNieudanyZapis = function (operacja, tabela, error) {
+    /* Trzy zabezpieczenia przed pętlą — to JEDYNE miejsce, w którym błąd
+       w logowaniu błędów mógłby zapętlić aplikację. */
+    if (_wZglaszaniu) return;                      // 1) re-entrancy
+    if (tabela === 'client_errors') return;        // 2) nigdy o sobie samym
+    try { if (!window._authUid) return; } catch (_) { return; }  // 3) bez sesji RLS i tak odrzuci
+    _wZglaszaniu = true;
+    try {
+      var kod = (error && (error.code || error.name)) || 'brak-kodu';
+      var tresc = String((error && error.message) || '').slice(0, 300);
+      window.sb.from('client_errors').insert({
+        user_id: window._authUid,
+        url: (location.pathname + location.search).slice(0, 990),
+        kind: 'zapis',
+        source: String(tabela || '').slice(0, 90),
+        message: (operacja || '?') + ' · ' + kod + ' · ' + tresc,
+        user_agent: String(navigator.userAgent || '').slice(0, 500),
+        app_version: window._appVersion || null,
+        created_at: new Date().toISOString()
+      }).then(function () { _wZglaszaniu = false; },
+              function () { _wZglaszaniu = false; });   // self-swallow: NIE logujemy porażki logowania
+    } catch (_) { _wZglaszaniu = false; }
+  };
+
+  /* Polskie zdanie mówiące, CO ZROBIĆ. Surowy komunikat PostgREST po angielsku
+     nie mówi człowiekowi nic — a przy toaście bez `max-width` widać z niego
+     jakieś 45 znaków ze środka.
+     !! OSTATNI PRZYPADEK JEST NAJWAŻNIEJSZY: kodów, których jeszcze nie
+        widzieliśmy, NIE tłumaczymy — bo tłumaczenie czegoś nieobserwowanego
+        to zgadywanie. Kod leci wtedy do konsoli I do client_errors, żeby dało
+        się dopisać właściwe zdanie, gdy zobaczymy, co realnie występuje. */
+  window.komunikatBledu = function (error) {
+    var m = String((error && error.message) || '');
+    var k = (error && error.code) || '';
+    if (k === '42501' || /row-level security/i.test(m))
+      return 'Nie masz uprawnień do tego zapisu. Wyloguj się i zaloguj ponownie.';
+    if (k === '23503' || /foreign key/i.test(m))
+      return 'Twoja sesja wygasła. Zaloguj się ponownie.';
+    if (/distance_sane/.test(m))
+      return 'Dystans wygląda nieprawidłowo — sprawdź wartość.';
+    if (k === 'PGRST116' || /no rows|0 rows/i.test(m))
+      return 'Nie udało się zapisać. Odśwież stronę i spróbuj jeszcze raz.';
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m))
+      return 'Brak połączenia. Sprawdź internet — dane nie zostały wysłane.';
+    return 'Nie udało się zapisać. Spróbuj ponownie za chwilę.' + (k ? ' (' + k + ')' : '');
+  };
+
   /* Pytanie o drugi trening tego samego dnia. Zastępuje trigger cooldownu,
      zdjęty 16.08.2026 (supabase/migrations/20260816_zdjecie_cooldownu.sql).
 
