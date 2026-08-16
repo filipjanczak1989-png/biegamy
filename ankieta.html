@@ -863,14 +863,29 @@ select{
 
     <div class="field">
       <label class="field-label">Życiówki (jeśli masz)</label>
-      <div class="row">
-        <input type="text" id="f_pb_5k" placeholder="5km: 22:30" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)">
-        <input type="text" id="f_pb_10k" placeholder="10km: 48:15" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)">
+      <!-- ⚠️ UKŁAD: jeden wiersz na dystans, data OBOK czasu, nie pod nim.
+           Data jest wizualnie drugorzędna (węższa, wyszarzona etykieta „kiedy"),
+           bo jest opcjonalna — pole bez daty zapisuje się normalnie. -->
+      <div id="pb-wiersze" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;gap:6px;align-items:center;">
+          <input type="text" id="f_pb_5k" placeholder="5 km: 22:30" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)">
+          <input type="month" id="f_pb_5k_at" aria-label="Kiedy padło PB na 5 km" title="Kiedy? (opcjonalne)" max="" style="font-size:12px;color:var(--muted);">
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;gap:6px;align-items:center;">
+          <input type="text" id="f_pb_10k" placeholder="10 km: 48:15" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)">
+          <input type="month" id="f_pb_10k_at" aria-label="Kiedy padło PB na 10 km" title="Kiedy? (opcjonalne)" max="" style="font-size:12px;color:var(--muted);">
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;gap:6px;align-items:center;">
+          <input type="text" id="f_pb_half" placeholder="Półmaraton: 1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)">
+          <input type="month" id="f_pb_half_at" aria-label="Kiedy padło PB na Półmaraton" title="Kiedy? (opcjonalne)" max="" style="font-size:12px;color:var(--muted);">
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 124px;gap:6px;align-items:center;">
+          <input type="text" id="f_pb_marathon" placeholder="Maraton: 3:50:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)">
+          <input type="month" id="f_pb_marathon_at" aria-label="Kiedy padło PB na Maraton" title="Kiedy? (opcjonalne)" max="" style="font-size:12px;color:var(--muted);">
+        </div>
       </div>
-      <div class="row" style="margin-top:8px;">
-        <input type="text" id="f_pb_half" placeholder="Półmaraton: 1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)">
-        <input type="text" id="f_pb_marathon" placeholder="Maraton: 3:50:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)">
-      </div>
+      <div style="color:var(--muted);font-size:11px;margin-top:6px;">Miesiąc obok życiówki jest opcjonalny — pomaga nam odróżnić rekord sprzed miesiąca od tego sprzed lat.</div>
+      <div id="pb-daty-blad" style="color:var(--red,#e05050);font-size:11px;margin-top:4px;"></div>
       <div id="pb-err-ankieta" class="pb-err"></div>
       <div class="field-hint">Wpisz tylko to co masz. Resztę zostaw puste.</div>
     </div>
@@ -1295,6 +1310,11 @@ function hydrateForm(d) {
   if (d.longest_distance_km) document.getElementById('f_longest_km').value = d.longest_distance_km;
   if (d.longest_distance_time) document.getElementById('f_longest_time').value = d.longest_distance_time;
   if (d.pb_5k) document.getElementById('f_pb_5k').value = d.pb_5k;
+  /* Daty: kolumna trzyma pierwszy dzien miesiaca, <input type="month"> chce 'YYYY-MM'. */
+  for (const k of ['pb_5k', 'pb_10k', 'pb_half', 'pb_marathon']) {
+    const el = document.getElementById('f_' + k + '_at');
+    if (el && d[k + '_at']) el.value = String(d[k + '_at']).slice(0, 7);
+  }
   if (d.pb_10k) document.getElementById('f_pb_10k').value = d.pb_10k;
   if (d.pb_half) document.getElementById('f_pb_half').value = d.pb_half;
   if (d.pb_marathon) document.getElementById('f_pb_marathon').value = d.pb_marathon;
@@ -1394,6 +1414,17 @@ function showSaveIndicator() {
 // ════════════════════════════════════════════════════════════════════
 function collectFormData(status) {
   const get = id => document.getElementById(id)?.value.trim() || null;
+  const dateyPB = () => {
+    const out = {}, bledy = [];
+    for (const k of ['pb_5k', 'pb_10k', 'pb_half', 'pb_marathon']) {
+      const w = window.walidujDatePB(get('f_' + k + '_at'), get('f_' + k));
+      out[k + '_at'] = w.ok ? w.data : null;
+      if (!w.ok) bledy.push(k.replace('pb_', '') + ': ' + w.blad);
+    }
+    const el = document.getElementById('pb-daty-blad');
+    if (el) el.textContent = bledy.length ? 'Pominięto daty — ' + bledy.join(', ') : '';
+    return out;
+  };
   const getNum = id => {
     const v = document.getElementById(id)?.value;
     return v ? Number(v) : null;
@@ -1429,6 +1460,11 @@ function collectFormData(status) {
     pb_10k: get('f_pb_10k'),
     pb_half: get('f_pb_half'),
     pb_marathon: get('f_pb_marathon'),
+    /* Daty PB przez walidator (SSOT w sb.js). Niepoprawna data NIE blokuje
+       zapisu ankiety — zapisujemy null i mowimy o tym pod polem. Ankieta jest
+       jednorazowa; wywalenie czlowieka z calego formularza za zly miesiac
+       kosztowaloby wiecej niz pusta kolumna. */
+    ...dateyPB(),
     preferred_terrain: getRadio('terrain'),
     sleep_hours: getRadio('sleep'),
     sleep_bedtime: get('f_bedtime'),

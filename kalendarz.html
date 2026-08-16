@@ -1029,6 +1029,12 @@ html { scroll-behavior: smooth; }
           <button class="type-pill" onclick="selType(this,'Start','start')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Start</button>
           <button class="type-pill" onclick="selType(this,'Zastępczy','zastepczy')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/></svg> Zastępczy</button>
         </div>
+      <div id="kal-luzny-sekcja" style="display:none;margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="checkbox" id="kal-luzny" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+          <span>Biegłem treningowo, nie na maksa</span>
+        </label>
+      </div>
       </div>
       <div class="field-row">
         <div class="field">
@@ -2375,6 +2381,13 @@ function selType(el, type, cls) {
   el.className = `type-pill sel ${cls}-p`;
   selectedType = type;
   selectedTypeCls = cls;
+  /* ⚠️ Trzecia kopia tego samego pytania (zawodnik.html, modal OCR, ten).
+     Wspolny jest tylko warunek — window.jestStartem (SSOT w sb.js). */
+  const jest = window.jestStartem ? window.jestStartem(type) : false;
+  const sek = document.getElementById('kal-luzny-sekcja');
+  const chk = document.getElementById('kal-luzny');
+  if (sek) sek.style.display = jest ? 'block' : 'none';
+  if (!jest && chk) chk.checked = false;
 }
 
 function onKalFileChange(input) {
@@ -2576,6 +2589,8 @@ async function saveTraining() {
         const { error: logInsErr } = await sb.from('training_logs').insert({
           athlete_id: athRow2.id,
           training_type: selectedType,
+          casual_effort: (window.jestStartem && window.jestStartem(selectedType))
+            ? !!document.getElementById('kal-luzny')?.checked : false,
           distance_km: logDist,
           pace: logPace,
           strava_link: logStrava,
@@ -3373,6 +3388,19 @@ function selLmType(btn, type) {
   btn.style.borderColor = 'rgba(var(--accent-rgb),0.4)';
   btn.style.color = 'var(--accent)';
   window._logType2 = type;
+  kalPokazLuzny(type);
+}
+
+/* Wspolna dla obu miejsc, ktore zmieniaja typ w tym modalu: klikniecia
+   (selLmType) i resetu przy otwarciu. ⚠️ Przy typie innym niz start CZYSCIMY
+   zaznaczenie — ukrycie sekcji nie jest tym samym co jej wyzerowanie, a zapis
+   nie moze zalezec od tego, czy uzytkownik zdazyl kliknac z powrotem. */
+function kalPokazLuzny(type) {
+  const jest = window.jestStartem ? window.jestStartem(type) : false;
+  const sek = document.getElementById('lm-luzny-sekcja');
+  const chk = document.getElementById('lm-luzny');
+  if (sek) sek.style.display = jest ? 'block' : 'none';
+  if (!jest && chk) chk.checked = false;
 }
 
 // Toast — kalendarz nie miał żadnego mechanizmu powiadomień, a komponent karty
@@ -3483,6 +3511,14 @@ function openLogModal(e, ds, idx) {
     b.style.color = isActive ? '#5090e0' : 'var(--muted)';
   });
   window._logType2 = _logType2;
+  kalPokazLuzny(_logType2);
+  {
+    /* Edycja: odtworz zaznaczenie z wpisu. Bez tego czlowiek edytujacy start
+       oznaczony jako luzny zapisalby go z powrotem jako maks. */
+    const chk = document.getElementById('lm-luzny');
+    if (chk) chk.checked = !!(existingLog && existingLog.casual_effort
+      && window.jestStartem && window.jestStartem(_logType2));
+  }
 
   // ✨ Title zmienia się w zależności czy edytujemy czy logujemy nowy
   const titleEl = document.getElementById('log-modal-title');
@@ -3648,6 +3684,10 @@ async function saveLog() {
   if (existingLogId) {
     const { error: updErr } = await sb.from('training_logs').update({
       training_type: _logType2,
+      /* ⚠️ ZAWSZE false poza startem — znaczenie kolumny istnieje tylko
+         dla TYPY_STARTU, a sekcja bywa ukryta bez wyczyszczenia. */
+      casual_effort: (window.jestStartem && window.jestStartem(_logType2))
+        ? !!document.getElementById('lm-luzny')?.checked : false,
       distance_km: dist,
       duration: time,
       pace, heart_rate: hr,
@@ -3660,6 +3700,10 @@ async function saveLog() {
     const { error: insErr } = await sb.from('training_logs').insert({
       athlete_id: ath.id,
       training_type: _logType2,
+      /* ⚠️ ZAWSZE false poza startem — znaczenie kolumny istnieje tylko
+         dla TYPY_STARTU, a sekcja bywa ukryta bez wyczyszczenia. */
+      casual_effort: (window.jestStartem && window.jestStartem(_logType2))
+        ? !!document.getElementById('lm-luzny')?.checked : false,
       distance_km: dist,
       duration: time,
       pace, heart_rate: hr,
@@ -6207,6 +6251,20 @@ async function doCopyWeek() {
           <button class="lm-type-pill" onclick="selLmType(this,'Wzmacniający')" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">Wzmacniający</button>
           <button class="lm-type-pill" onclick="selLmType(this,'Start')" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">Start</button>
           <button class="lm-type-pill" onclick="selLmType(this,'Zastępczy')" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">Zastępczy</button>
+        </div>
+      </div>
+
+      <!-- START: „treningowo" — bliźniak sekcji z zawodnik.html.
+           ⚠️ To DRUGA implementacja modalu logowania, nie ta sama. Obie muszą
+              pytać, inaczej połowa startów wchodzi bez znacznika. Wspólny jest
+              tylko warunek: window.jestStartem (SSOT w sb.js). -->
+      <div id="lm-luzny-sekcja" style="display:none;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+          <input type="checkbox" id="lm-luzny" style="width:16px;height:16px;accent-color:#5090e0;cursor:pointer;">
+          <span>Biegłem treningowo, nie na maksa</span>
+        </label>
+        <div style="color:var(--muted);font-size:11px;margin-top:3px;">
+          Domyślnie liczymy start jako maksymalny wysiłek.
         </div>
       </div>
 

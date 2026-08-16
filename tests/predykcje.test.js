@@ -252,3 +252,199 @@ describe('⚠️ MODYFIKATOR TSB ZDJĘTY — predykcja nie zależy od formy dnia
     assert.notEqual(zMod(-25), zMod(0));
   });
 });
+
+/** Wyciąga podwiersze (drugą linię wiersza) — od 16.08.2026 niosą niepewność. */
+function podwiersze(html) {
+  return [...html.matchAll(/margin-top:1px;">([^<]*)</g)].map((m) => m[1].trim());
+}
+
+describe('⚠️ WYKŁADNIK INDYWIDUALNY ODRZUCONY — karta stoi na 1,06 dla wszystkich', () => {
+  /* BLIZNA ODWROTNA NIŻ ZWYKLE: tu zmierzona poprawa NIE weszła.
+     Mediana wykładnika z par PB u nas to 1,091 przy literaturowym 1,06,
+     94 ze 123 par leży wyżej, a na startach w górę poprawiłoby to rozjazd
+     z +7,8% na +3,9%. Odrzucone, bo wykładnik z dwóch PB opisuje krzywą
+     człowieka tylko wtedy, gdy oba PB są z tego samego momentu formy —
+     a tego nie da się sprawdzić u 32 z 34 osób (94%), bo `pb_*` nie mają dat.
+     ⚠️ Ten test pilnuje, żeby indywidualny wykładnik nie wrócił bocznymi
+        drzwiami: JEDYNYM wykładnikiem w karcie ma być 1,06. */
+
+  test('maraton Maćka liczy się z 1,06, nie z jego własnego 1,157', async () => {
+    const { html } = await renderuj(MACIEK, 0);
+    const maraton = wiersze(html).find((x) => x.nazwa === 'Maraton');
+    /* baza = półmaraton 2:14:00 (najbliższy logarytmicznie), stosunek x2,0 */
+    const z106 = fmt(8040 * Math.pow(42.195 / 21.0975, 1.06));
+    const zWlasnym = fmt(8040 * Math.pow(42.195 / 21.0975, 1.157));
+    assert.equal(maraton.wartosc, z106);
+    assert.notEqual(maraton.wartosc, zWlasnym, 'wrócił wykładnik indywidualny');
+  });
+
+  test('kontrola negatywna: 1,06 i 1,157 dają na maratonie RÓŻNE liczby', () => {
+    /* Bez tego test wyżej przechodziłby także wtedy, gdyby oba warianty
+       zbiegały się do tej samej wartości i nie sprawdzał niczego. */
+    assert.notEqual(Math.round(8040 * Math.pow(2, 1.06)), Math.round(8040 * Math.pow(2, 1.157)));
+  });
+});
+
+describe('⚠️ SANITY (wariant B) — szacunek sprzeczny z PB znika, nie jest korygowany', () => {
+  /* Riegel z k > 1 jest monotoniczny, więc szacunek szybszy od życiówki na
+     KRÓTSZYM dystansie może powstać tylko przy PB, które się wzajemnie nie
+     składają. Dziś takich przypadków jest 0 z 41 — reguła istnieje ZANIM
+     będzie potrzebna, bo powstanie przy pierwszej aktualizacji jednego PB
+     bez drugiego, a wtedy nikt jej nie będzie szukał. */
+
+  /* Piątka 40:00 przy dysze 41:00: z dychy Riegel liczy półmaraton na
+     ~1:30, ale sama piątka mówi, że ten człowiek biega 8:00/km. */
+  const NIESPOJNY = { pb_5k: '20:00', pb_10k: '60:00', pb_half: null, pb_marathon: null };
+
+  /* ⚠️ PRZYPADEK ZNALEZIONY PRZEGLĄDEM ZUPEŁNYM, NIE WYMYŚLONY.
+     Moja pierwsza wersja tego testu zakładała inny mechanizm i przechodziła
+     z powodu niezwiązanego z regułą — baza wychodziła na 5 km, więc nie było
+     czego naruszać. Przejrzałem więc 56 056 kombinacji życiówek: naruszenie
+     powstaje 1172 razy i ZAWSZE tak samo — cel półmaraton, baza dziesiątka,
+     a w polu 5 km siedzi czas z dłuższego dystansu.
+     To ta sama klasa błędu, co blizna `+s` opisana na górze pliku: kolumna
+     jest typu `text` i przyjmuje wszystko. */
+  const POMYLONE_POLE = { pb_5k: '1:46:00', pb_10k: '41:00', pb_half: null, pb_marathon: null };
+
+  test('⚠️ czas z innego dystansu w polu 5 km kasuje szacunek półmaratonu', async () => {
+    const { html } = await renderuj(POMYLONE_POLE, 0);
+    const hm = wiersze(html).find((x) => x.nazwa === 'Półmaraton');
+    /* baza = 10 km 41:00 (x2,11) -> ~1:30:28, a „PB 5 km” to 1:46:00.
+       Dane są sprzeczne i NIE WIADOMO, które pole jest błędne — więc nie
+       pokazujemy nic, zamiast wybierać za człowieka. */
+    assert.equal(hm.wartosc, '—', 'sprzeczny szacunek ma zniknąć, nie zostać obcięty');
+    assert.equal(hm.etykieta, 'PB się nie zgadzają');
+  });
+
+  test('kontrola negatywna: ta sama dziesiątka z sensowną piątką daje normalny szacunek', async () => {
+    /* Bez tego test wyżej przechodziłby także wtedy, gdyby karta kasowała
+       półmaraton z jakiegokolwiek innego powodu. */
+    const { html } = await renderuj(
+      { pb_5k: '19:30', pb_10k: '41:00', pb_half: null, pb_marathon: null }, 0);
+    const hm = wiersze(html).find((x) => x.nazwa === 'Półmaraton');
+    assert.equal(hm.etykieta, 'szacunek');
+    assert.notEqual(hm.wartosc, '—');
+  });
+
+  test('komplet spójnych PB nie wywołuje ani jednego „—"', async () => {
+    const { html } = await renderuj(MACIEK, 0);
+    assert.equal(wiersze(html).filter((x) => x.wartosc === '—').length, 0);
+  });
+});
+
+describe('⚠️ ZAKRES przy ekstrapolacji dalekiej — próg 3×, pasmo 1,06–1,15 z literatury', () => {
+  /* Pasmo pochodzi z ROZRZUTU W LITERATURZE, nie z naszych danych — ta sama
+     zasada, co przy zdjęciu modyfikatora TSB: nie podstawiamy liczby
+     skalibrowanej na próbce, której nie umiemy opisać. */
+
+  test('Maciek NIE dostaje zakresu — jego maraton to x2,0, poniżej progu', async () => {
+    const { html } = await renderuj(MACIEK, 0);
+    assert.deepEqual(podwiersze(html), [], 'x2,0 ma zostać punktem');
+  });
+
+  test('jedno PB na 5 km → maraton (x8,4) dostaje podwiersz z górną krawędzią', async () => {
+    const { html } = await renderuj(
+      { pb_5k: '25:00', pb_10k: null, pb_half: null, pb_marathon: null }, 0);
+    const pod = podwiersze(html);
+    const gorny = fmt(1500 * Math.pow(42.195 / 5, 1.15));
+    assert.ok(pod.some((x) => x === 'realnie do ' + gorny),
+      'brak podwiersza z krawędzią 1,15; są: ' + JSON.stringify(pod));
+  });
+
+  test('próg działa w OBIE strony: x2,11 bez zakresu, x4,22 z zakresem', async () => {
+    const { html } = await renderuj(
+      { pb_5k: null, pb_10k: '50:00', pb_half: null, pb_marathon: null }, 0);
+    const w = wiersze(html), pod = podwiersze(html);
+    assert.ok(w.find((x) => x.nazwa === 'Półmaraton'), 'półmaraton ma być liczony');
+    assert.equal(pod.length, 1, 'tylko maraton (x4,22) ma podwiersz, półmaraton (x2,11) nie');
+  });
+
+  test('⚠️ ekstrapolacja W DÓŁ nigdy nie dostaje zakresu', async () => {
+    /* Wyższy wykładnik daje w dół czasy SZYBSZE, więc pasmo 1,06–1,15
+       produkowałoby tam liczby fizycznie niemożliwe — piątka w 12:39
+       z maratonu 2:27. `stosunek` < 1 odcina ten kierunek sam. */
+    const { html } = await renderuj(
+      { pb_5k: null, pb_10k: null, pb_half: null, pb_marathon: '2:27:00' }, 0);
+    assert.deepEqual(podwiersze(html), [], 'w dół nie ma zakresu, choć x8,4');
+  });
+
+  test('górna krawędź jest ZAWSZE wolniejsza od wartości głównej', async () => {
+    /* ⚠️ Pierwsza wersja brała PIERWSZY podwiersz z brzegu i porównywała go
+       z maratonem — a przy samej piątce podwiersz mają DWA wiersze
+       (półmaraton x4,22 i maraton x8,44). Test przechodził lub padał
+       zależnie od kolejności, nie od reguły. Teraz para (wartość, krawędź)
+       jest wiązana przez wspólny blok HTML. */
+    const { html } = await renderuj(
+      { pb_5k: '25:00', pb_10k: null, pb_half: null, pb_marathon: null }, 0);
+    const naSek = (t) => t.split(':').map(Number).reduce((a, b) => a * 60 + b, 0);
+    const WZ = new RegExp('<strong[^>]*>([^<]+)</strong></span></div>'
+      + '<div[^>]*margin-top:1px;">realnie do ([^<]+)<', 'g');
+    const bloki = [...html.matchAll(WZ)];
+    assert.ok(bloki.length >= 2, 'przy samej piątce podwiersz mają dwa wiersze, jest: ' + bloki.length);
+    for (const [, wartosc, krawedz] of bloki) {
+      assert.ok(naSek(krawedz.trim()) > naSek(wartosc.trim()),
+        'krawędź 1,15 musi być wolniejsza niż 1,06: ' + wartosc + ' vs ' + krawedz);
+    }
+  });
+});
+
+describe('⚠️ SANITY I DOLNA KRAWĘDŹ PASMA TO JEDNA REGUŁA, NIE DWIE', () => {
+  /* Pytanie z 16.08.2026: czy „odcięcie dolnej granicy pasma" jest nową regułą,
+     czy tą samą, co sanity. Odpowiedź: TĄ SAMĄ, i to bez żadnej zmiany w kodzie.
+     `riegel` (wykładnik 1,06) jest JEDNOCZEŚNIE wartością główną wiersza
+     i dolną krawędzią pasma — pasmo rozciąga się od niego W GÓRĘ, do 1,15.
+     Sanity porównuje życiówki z krótszych dystansów właśnie z `riegel`,
+     więc chroni dokładnie tę krawędź.
+     ⚠️ Ten test istnieje po to, żeby ktoś nie dopisał drugiej, równoległej
+        kontroli na `gorny` albo na osobno liczoną krawędź. Gdyby pasmo
+        kiedyś przestało zaczynać się na 1,06 (np. środek pasma jako wartość
+        główna), ten test PADNIE — i o to chodzi. */
+
+  test('gdy pasmo jest pokazane, jego dolna krawędź JEST wartością główną', async () => {
+    const { html } = await renderuj(
+      { pb_5k: '25:00', pb_10k: null, pb_half: null, pb_marathon: null }, 0);
+    const WZ = new RegExp('<strong[^>]*>([^<]+)</strong></span></div>'
+      + '<div[^>]*margin-top:1px;">realnie do ([^<]+)<', 'g');
+    const bloki = [...html.matchAll(WZ)];
+    assert.ok(bloki.length >= 1, 'oczekiwano wiersza z pasmem');
+    for (const [, glowna] of bloki) {
+      /* wartość główna = Riegel z 1,06 = dolna krawędź; podwiersz niesie górną */
+      const w = wiersze(html).find((x) => x.wartosc === glowna.trim());
+      assert.ok(w, 'wartość główna ma być zwykłym wierszem karty, nie osobnym bytem');
+      assert.equal(w.etykieta, 'szacunek');
+    }
+  });
+
+  test('⚠️ sprzeczność kasuje CAŁY wiersz razem z pasmem, nie samą liczbę', async () => {
+    /* Gdyby to były dwie reguły, dałoby się dostać wiersz bez wartości głównej,
+       ale z podwierszem „realnie do…" — czyli pasmo bez dolnej krawędzi. */
+    const { html } = await renderuj(
+      { pb_5k: '1:46:00', pb_10k: '41:00', pb_half: null, pb_marathon: null }, 0);
+    const hm = wiersze(html).find((x) => x.nazwa === 'Półmaraton');
+    assert.equal(hm.wartosc, '—');
+    /* ⚠️ Pierwsza wersja dzieliła HTML po nazwie wiersza i łapała TAKŻE maraton,
+       który pasmo dostaje najzupełniej prawidłowo (baza 10 km, x4,2, i żadna
+       życiówka nie jest od niego wolniejsza). Blok trzeba wyciąć po jego
+       własnych granicach, nie po nazwie. */
+    const bloki = html.split('<div style="padding:5px 0;');
+    const blokHM = bloki.find((b) => b.includes('Półmaraton'));
+    assert.ok(blokHM, 'blok półmaratonu ma istnieć');
+    assert.ok(!/realnie do/.test(blokHM),
+      'skasowany wiersz nie może zostawić po sobie podwiersza z górną krawędzią');
+    assert.ok(/sprawdź życiówki/.test(blokHM), 'ma powiedzieć, co jest nie tak');
+    /* kontrola dodatnia: maraton TEGO SAMEGO człowieka pasmo dostaje */
+    const blokM = bloki.find((b) => b.includes('Maraton') && !b.includes('Półmaraton'));
+    assert.ok(/realnie do/.test(blokM), 'maraton nie jest sprzeczny, więc pasmo ma zostać');
+  });
+
+  test('kontrola negatywna: jedna funkcja, nie dwie — brak drugiego porównania', () => {
+    /* Czytamy źródło: `sprzecznosc` ma wystąpić DOKŁADNIE raz jako definicja
+       i nie wolno porównywać `gorny` z życiówkami osobno. */
+    const fs = require('node:fs');
+    const src = fs.readFileSync(require('node:path').join(__dirname, '..', 'zawodnik.html'), 'utf8');
+    const ciało = src.slice(src.indexOf('const sprzecznosc'), src.indexOf('const podwiersz'));
+    assert.equal((ciało.match(/majace\.some/g) || []).length, 1,
+      'druga kontrola na życiówkach = duplikat reguły');
+    assert.ok(!/q\.s\s*>=\s*gorny/.test(src), 'górna krawędź nie ma własnego sanity');
+  });
+});

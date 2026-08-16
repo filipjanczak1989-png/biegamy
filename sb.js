@@ -359,6 +359,80 @@
   // !! KOLEJNOSC SPRAWDZEN JEST ISTOTNA — ustalona testem na 102 wartosciach:
   //    zera PRZED dwukropkiem  -> inaczej "0" dostaje blad zamiast wyczyszczenia
   //    ksztalt PRZED dwukropkiem -> inaczej "abc" daje "czytamy jako abc sekund"
+  /* ── DATA PRZY ŻYCIÓWCE ────────────────────────────────────────────────────
+     Miesiąc + rok, przechowywane jako PIERWSZY DZIEŃ MIESIĄCA (`date`).
+     ⚠️ Dzień jest umowny i nie wolno go czytać jako daty biegu.
+
+     DLACZEGO OSOBNA FUNKCJA, A NIE ROZSZERZENIE `walidujPB`: walidujPB
+     odpowiada na pytanie „czy ten czas jest sensowny na tym dystansie" i jest
+     wołane m.in. z `onblur` przy każdym wpisywanym znaku. Data ma inny cykl
+     życia (może istnieć bez czasu w trakcie wypełniania) i inne reguły.
+     Sklejenie ich znaczyłoby, że wpisanie daty przed czasem daje błąd na polu,
+     którego człowiek jeszcze nie dotknął. */
+  window.PB_DATA_OD = '1990-01';
+
+  /** `mies` w formacie 'YYYY-MM' (jak z <input type="month">). `pbTxt` — czas PB. */
+  window.walidujDatePB = function (mies, pbTxt) {
+    const pusta = !mies || !String(mies).trim();
+    const maPB = !!(pbTxt && String(pbTxt).trim());
+    if (pusta) return { ok: true, data: null };          /* brak daty jest legalny */
+    const m = /^(\d{4})-(\d{2})$/.exec(String(mies).trim());
+    if (!m) return { ok: false, blad: 'Podaj miesiąc i rok' };
+    const rok = +m[1], msc = +m[2];
+    if (msc < 1 || msc > 12) return { ok: false, blad: 'Nieprawidłowy miesiąc' };
+    /* ⚠️ Data z PRZYSZŁOŚCI. Bariery w bazie na to NIE MA i to jest świadome —
+       `current_date` jest STABLE, więc CHECK go nie przyjmie. Tu jest jedyne
+       miejsce, które tego pilnuje. Patrz migracja 20260816_athletes_pb_daty. */
+    const dzis = new Date();
+    const terazMies = dzis.getFullYear() * 12 + dzis.getMonth();
+    if (rok * 12 + (msc - 1) > terazMies) return { ok: false, blad: 'Data z przyszłości' };
+    const od = window.PB_DATA_OD.split('-');
+    if (rok * 12 + (msc - 1) < +od[0] * 12 + (+od[1] - 1))
+      return { ok: false, blad: 'Nie wcześniej niż ' + od[0] };
+    /* ⚠️ Data bez życiówki to sierota: nic nie znaczy i nie da się jej pokazać.
+       Odrzucamy dopiero TUTAJ, nie w bazie — CHECK międzykolumnowy blokowałby
+       legalną kolejność „najpierw data, potem czas" przy edycji pola po polu. */
+    if (!maPB) return { ok: false, blad: 'Najpierw wpisz życiówkę' };
+    return { ok: true, data: m[1] + '-' + m[2] + '-01' };
+  };
+
+  /* WIEK REKORDU NA KARCIE — z progiem, nie zawsze.
+     „PB z 2019" przy kazdym wierszu to szum dla kogos, kto wpisal zyciowke
+     w zeszlym roku. Pokazujemy tylko wtedy, gdy wiek niesie informacje:
+       0-1 rok  -> nic          (rekord aktualny)
+       2-3 lata -> „PB z 2023"  (fakt, bez oceny)
+       4+ lat   -> „PB z 2019 — szacunek moze byc zawyzony"
+
+     ⚠️ PROG 4 LAT TO DECYZJA, NIE POMIAR — i tak ma zostac opisany.
+        Zmierzone 16.08.2026: w bazie NIE MA ani jednej obserwacji rekordu
+        starszego niz rok. Najstarszy log w calej bazie ma date 2025-07-13,
+        czyli 1,1 roku. Rozklad wieku rekordow: 59 par w przedziale 0-1 rok,
+        ZERO powyzej. Korelacja wiek<->rozjazd w tym co mamy: r = -0,118
+        (czyli w pierwszym roku nic nie rosnie — to jedyne, co potwierdzone).
+        Progu nie da sie sprawdzic wczesniej niz okolo 2030.
+
+     DLACZEGO MIMO TO WCHODZI, skoro TSB i wykladnik odrzucilismy: tamte
+     ZMIENIALY LICZBE na podstawie zgadnietej wielkosci. To nie twierdzi nic
+     o wielkosci i nie rusza zadnej prognozy — mowi „ta liczba opiera sie na
+     czyms sprzed pieciu lat", co jest odczytem z pola, nie oszacowaniem. */
+  window.PB_WIEK_PROG_OSTRZEZENIA = 4;
+
+  /** 'YYYY-MM-DD' -> { tekst, ostrzega } ; pusty tekst = nie pokazuj nic. */
+  window.pbWiek = function (dataISO, teraz) {
+    const pusto = { tekst: '', ostrzega: false };
+    if (!dataISO) return pusto;
+    const d = String(dataISO).slice(0, 7).split('-');
+    if (d.length < 2) return pusto;
+    const t = teraz ? new Date(teraz) : new Date();
+    const mies = (t.getFullYear() * 12 + t.getMonth()) - (+d[0] * 12 + (+d[1] - 1));
+    if (mies < 0) return pusto;                    /* data z przyszlosci — nie zgadujemy */
+    const lata = Math.floor(mies / 12);
+    if (lata < 2) return pusto;                    /* 0-1 rok: rekord aktualny */
+    const rok = d[0];
+    if (lata < window.PB_WIEK_PROG_OSTRZEZENIA) return { tekst: 'PB z ' + rok, ostrzega: false };
+    return { tekst: 'PB z ' + rok + ' — szacunek może być zawyżony', ostrzega: true };
+  };
+
   window.walidujPB = function(txt, dyst){
     const v = String(txt||'').trim(), d = window._PB_DYST[dyst];
     if (!v) return { ok:true, sekundy:null };
@@ -2395,6 +2469,16 @@ window._icuRenderSplits = function (d, el) {
         czyli baza mowila „nie wiem", a ekran „przecietnie". Wszyscy konsumenci
         owijaja wynik w `x ? ... : ''`, wiec pusty napis nie zostawia dziury
         w ukladzie: element po prostu nie powstaje. */
+  /* Typy logu, przy których pytamy „czy na maksa". SSOT — tę samą listę
+     sprawdza modal w `zawodnik.html`, modal w `kalendarz.html` (osobna
+     implementacja) i odczyt przy edycji wpisu.
+     ⚠️ `Wyścig` jest tu, bo w bazie występuje obok `Start` (84 wiersze łącznie),
+        mimo że dzisiejsze modale oferują tylko `Start`. Pominięcie go zrobiłoby
+        z niego wpis, którego nikt nigdy nie oznaczy. */
+  window.TYPY_STARTU = ['Start', 'Wyścig'];
+  window.jestStartem = (t) => window.TYPY_STARTU
+    .some((x) => x.toLowerCase() === String(t || '').toLowerCase().trim());
+
   window.FEEL_POZIOMY = ['bad', 'mid', 'good', 'great'];
   window.FEEL_ETYKIETY = { bad: 'Ciężko', mid: 'Przeciętnie', good: 'Dobrze', great: 'Świetnie' };
   window.FEEL_EMOJI = {

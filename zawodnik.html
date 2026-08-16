@@ -1395,24 +1395,28 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Maraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
         <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-mar-at" type="month" aria-label="Kiedy padło PB na maratonie" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-mar-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Półmaraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
         <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-half-at" type="month" aria-label="Kiedy padło PB na półmaratonie" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-half-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">10 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
         <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-10k-at" type="month" aria-label="Kiedy padło PB na 10 km" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-10k-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">5 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
         <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-5k-at" type="month" aria-label="Kiedy padło PB na 5 km" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-5k-err" class="pb-err"></div>
       </div>
     </div>
@@ -1725,6 +1729,20 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
           <button class="type-pill" onclick="selType(this,'Pływanie')">🏊 Pływanie</button>
           <button class="type-pill" onclick="selType(this,'Siłownia')">🏋️ Siłownia</button>
           <button class="type-pill" onclick="selType(this,'Zastępczy')">🔄 Zastępczy</button>
+        </div>
+      </div>
+
+      <!-- START: „treningowo" (widoczne tylko gdy typ = Start / Wyścig).
+           ⚠️ DOMYŚLNIE ODZNACZONE = na maksa. Zmierzone 16.08.2026: 48 z 65
+              istniejących startów to prawdziwe maksy, więc domyślne „na maksa"
+              jest prawdziwe dla ~74% wpisów i nie zmusza większości do klikania. -->
+      <div class="field" id="start-luzny-section" style="display:none;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="l-luzny" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+          <span>Biegłem treningowo, nie na maksa</span>
+        </label>
+        <div style="color:var(--muted);font-size:11px;margin-top:3px;">
+          Zaznacz, jeśli to był luźny parkrun albo bieg w planie. Domyślnie liczymy start jako maksymalny wysiłek.
         </div>
       </div>
 
@@ -2431,6 +2449,17 @@ function selType(el, type) {
   // Pokaż sekcję interwałów
   const ivSec = document.getElementById('intervals-section');
   if (ivSec) ivSec.style.display = (type === 'Interwały') ? 'block' : 'none';
+  /* Znacznik „treningowo" — tylko przy starcie. `window.TYPY_STARTU` to SSOT
+     (sb.js), bo tę samą listę sprawdza kalendarz i odczyt przy edycji. */
+  const luzSec = document.getElementById('start-luzny-section');
+  if (luzSec) {
+    const jest = window.jestStartem ? window.jestStartem(type) : (type === 'Start' || type === 'Wyścig');
+    luzSec.style.display = jest ? 'block' : 'none';
+    /* ⚠️ Przy zmianie typu na inny CZYŚCIMY zaznaczenie. Bez tego ktoś, kto
+       zaznaczył „treningowo" i przełączył typ na Spokojny, zapisałby ukryty
+       znacznik na wpisie, gdzie nie ma on żadnego znaczenia. */
+    if (!jest) { const c = document.getElementById('l-luzny'); if (c) c.checked = false; }
+  }
   // Sugeruj tętno jeśli pole puste
   const hrEl = document.getElementById('l-hr');
   if (hrEl && !hrEl.value) {
@@ -3281,7 +3310,7 @@ async function loadProfile() {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
     const { data: ath } = await sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals,is_public,avatar_url')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_at,pb_half_at,pb_10k_at,pb_5k_at,goal,target_date,full_name,race_goals,is_public,avatar_url')
       .eq('id', _athleteId).single();
     if (ath?.avatar_url) {
       const img = document.getElementById('avatar-img');
@@ -3300,6 +3329,13 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
+      /* Daty PB. Kolumna trzyma pierwszy dzien miesiaca, <input type="month">
+         oczekuje 'YYYY-MM'. */
+      for (const [wej, kol] of [['pb-5k-at', 'pb_5k_at'], ['pb-10k-at', 'pb_10k_at'],
+                                ['pb-half-at', 'pb_half_at'], ['pb-mar-at', 'pb_marathon_at']]) {
+        const el = document.getElementById(wej);
+        if (el) el.value = ath[kol] ? String(ath[kol]).slice(0, 7) : '';
+      }
       // Ustaw status prywatności
       _isPublic = ath.is_public === true; // domyślnie prywatny (RODO privacy-by-default, spójne z profil.html)
       _updatePrivacyUI();
@@ -3398,6 +3434,10 @@ function toggleEditPBs() {
     inp.style.borderColor = 'var(--accent)';
     const err = document.getElementById(id+'-err');
     if (err) { err.textContent = ''; err.classList.remove('on'); }
+    /* Pole daty chodzi w parze z polem czasu — pokazuje sie i chowa razem,
+       i tak samo czysci ramke bledu. */
+    const dat = document.getElementById(id+'-at');
+    if (dat) { dat.style.display = _editingPBs ? 'block' : 'none'; dat.style.borderColor = 'var(--border)'; }
   });
   document.getElementById('save-pbs-row').style.display = _editingPBs ? 'block' : 'none';
   document.getElementById('edit-pbs-btn').innerHTML = _editingPBs ? '✕ Anuluj' : (window.icHtml('nut-edit',13,'margin-right:5px;vertical-align:-2px;') + 'Edytuj');
@@ -3406,10 +3446,10 @@ function toggleEditPBs() {
 /* Kolejnosc jak w gridzie — zeby bledy wyswietlily sie od gory tak, jak
    czlowiek patrzy na ekran. [id_pola, dystans_km, kolumna_w_bazie] */
 const _PB_POLA = [
-  ['pb-mar-input',  42.195,  'pb_marathon'],
-  ['pb-half-input', 21.0975, 'pb_half'],
-  ['pb-10k-input',  10,      'pb_10k'],
-  ['pb-5k-input',   5,       'pb_5k'],
+  ['pb-mar-input',  42.195,  'pb_marathon', 'pb-mar-at'],
+  ['pb-half-input', 21.0975, 'pb_half',     'pb-half-at'],
+  ['pb-10k-input',  10,      'pb_10k',      'pb-10k-at'],
+  ['pb-5k-input',   5,       'pb_5k',       'pb-5k-at'],
 ];
 
 async function savePBs() {
@@ -3418,7 +3458,7 @@ async function savePBs() {
   const updates = {}, ostrzezenia = [];
   let pierwszeZle = null;
 
-  for (const [id, dyst, kol] of _PB_POLA) {
+  for (const [id, dyst, kol, idData] of _PB_POLA) {
     const el = document.getElementById(id);
     const errEl = document.getElementById(id.replace('-input', '-err'));
     /* dopelnijPB wolane PONOWNIE, mimo ze jest na onblur: blur nie zawsze pada
@@ -3433,6 +3473,20 @@ async function savePBs() {
     if (!w.ok) { if (!pierwszeZle) pierwszeZle = el; continue; }
     updates[kol] = w.sekundy === null ? null : el.value;
     if (w.ostrzezenie) ostrzezenia.push(w.ostrzezenie);
+    /* ⚠️ ZLA DATA BLOKUJE ZAPIS TAK SAMO JAK ZLY CZAS — inaczej czlowiek
+       zobaczylby „Zyciowki zapisane ✓" i pusta date, bez zadnego sladu, ze
+       cos odrzucono. Ankieta traktuje to lagodniej (tam formularz jest
+       jednorazowy i dluzszy), tu edycja jest tania i wraca sie do niej. */
+    const elD = idData ? document.getElementById(idData) : null;
+    const wd = window.walidujDatePB(elD ? elD.value : null, el.value);
+    if (elD) elD.style.borderColor = wd.ok ? 'var(--border)' : 'var(--red)';
+    if (!wd.ok) {
+      errEl.textContent = wd.blad;
+      errEl.classList.add('on');
+      if (!pierwszeZle) pierwszeZle = elD || el;
+      continue;
+    }
+    updates[kol + '_at'] = wd.data;
   }
 
   /* Pokazujemy WSZYSTKIE bledy naraz, ale zapisu nie robimy w ogole — inaczej
@@ -4582,9 +4636,10 @@ async function _renderPredykcje() {
     const tb = document.getElementById('forma-predykcje-tabela');
     if (!box || !tb || !_athleteId) return;
     const { data: ath } = await sb.from('athletes')
-      .select('pb_5k,pb_10k,pb_half,pb_marathon').eq('id', _athleteId).maybeSingle();
-    const PBS = [ ['5 km', 5, ath?.pb_5k], ['10 km', 10, ath?.pb_10k],
-      ['Półmaraton', 21.0975, ath?.pb_half], ['Maraton', 42.195, ath?.pb_marathon] ]
+      .select('pb_5k,pb_10k,pb_half,pb_marathon,pb_5k_at,pb_10k_at,pb_half_at,pb_marathon_at').eq('id', _athleteId).maybeSingle();
+    const PBS = [ ['5 km', 5, ath?.pb_5k, ath?.pb_5k_at], ['10 km', 10, ath?.pb_10k, ath?.pb_10k_at],
+      ['Półmaraton', 21.0975, ath?.pb_half, ath?.pb_half_at],
+      ['Maraton', 42.195, ath?.pb_marathon, ath?.pb_marathon_at] ]
       /* window.walidujPB (SSOT w sb.js) — ten sam walidator, ktory pilnuje
          pieciu sciezek zapisu. Zastepuje `+s` ORAZ reguly "czlon >= 60"
          i "h:mm na dlugim", bo obie ma juz w srodku.
@@ -4604,9 +4659,9 @@ async function _renderPredykcje() {
             w bazie, przyszly importer), render zdegraduje do "PB —" plus
             ekstrapolacja z sasiedniego dystansu — do DEGRADACJI, nie do
             absurdu. Patrz .ai/LEKCJE.md #5. */
-      .map(([n, d, raw]) => {
+      .map(([n, d, raw, kiedy]) => {
         const w = window.walidujPB(raw, d);
-        return { n, d, s: (w.ok && w.sekundy > 0) ? w.sekundy : null };
+        return { n, d, s: (w.ok && w.sekundy > 0) ? w.sekundy : null, kiedy: kiedy || null };
       });
     const majace = PBS.filter(p => p.s);
     if (!majace.length) { box.style.display = 'none'; return; }
@@ -4628,9 +4683,28 @@ async function _renderPredykcje() {
        Semantycznie identyczna (`h ?` vs `h > 0 ?` — dla dodatnich to samo). */
     const fmt = window._secsToTime;
     const esc = window.escapeHtml || (x => String(x));
+    /* ⚠️ WYKLADNIK INDYWIDUALNY — ODRZUCONY 16.08.2026, nie odlozony.
+       Zmierzone u nas: mediana wykladnika z par PB = 1,091 przy literaturowym
+       1,06, i 94 ze 123 par lezy wyzej. Na prawdziwych startach W GORE
+       poprawialoby to rozjazd z +7,8% na +3,9%. Mimo to NIE wchodzi.
+       POWOD: wykladnik z dwoch PB opisuje krzywa czlowieka tylko wtedy, gdy
+       oba PB pochodza z TEGO SAMEGO momentu formy. Tego nie da sie sprawdzic
+       u 32 z 34 osob (94%) — pola `pb_*` nie maja dat, a odtworzenie daty
+       z logow udaje sie dla 6 ze 111 PB (5%). Maciek z k=1,157 moze byc kims
+       ze swieza piatka i dziesiatka sprzed dwoch lat; wtedy 1,157 mierzy
+       roznice formy miedzy dwoma momentami, a nie jego fizjologie.
+       ⚠️ To NIE znaczy, ze PB sa sprzeczne — poza pasmem 1,00-1,20 lezy tylko
+          18 ze 123 par (15%), mediana jest zdrowa. Problemem jest NIEWIEDZA
+          o dacie, nie sprzecznosc danych.
+       ⚠️ WARUNEK POWROTU: daty przy PB albo wyniki startow. Patrz zaleglosc
+          `project_zaleglosc_pb_bez_dat_wykladnik_odrzucony`. */
+    const K_DOLNA = 1.06;      /* wykladnik Riegela — dolna krawedz pasma z literatury */
+    const K_GORNA = 1.15;      /* gorna krawedz tego samego pasma */
+    const PROG_ZAKRESU = 3;    /* od ilu razy dystans jest „daleko" — patrz nizej */
     tb.innerHTML = PBS.map(p => {
       const baza = majace.reduce((a, b) => Math.abs(Math.log(b.d/p.d)) < Math.abs(Math.log(a.d/p.d)) ? b : a);
-      const riegel = baza.s * Math.pow(p.d / baza.d, 1.06);
+      const stosunek = p.d / baza.d;
+      const riegel = baza.s * Math.pow(stosunek, K_DOLNA);
       const dzis = riegel;   /* bez modyfikatora — patrz komentarz wyzej */
       /* ⚠️ DWA RODZAJE WIERSZY, NIE JEDEN. Po zdjeciu modyfikatora predykcja na
          dystansie, gdzie czlowiek MA PB, wychodzi DOKLADNIE rowna temu PB —
@@ -4639,13 +4713,62 @@ async function _renderPredykcje() {
          to prognoza na dzis. Zamiast tego: gdzie jest rekord, pokazujemy REKORD
          i mowimy, ze to rekord. Szacunek zostaje tam, gdzie naprawde szacujemy. */
       const maRekord = !!p.s;
-      const wartosc = maRekord ? fmt(p.s) : fmt(dzis);
-      const etykieta = maRekord ? 'Twój rekord' : 'szacunek';
-      const kolor = maRekord ? '#3db870' : '#e8561e';
-      return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;">'
+      /* ⚠️ SANITY, WARIANT B: gdy szacunek wychodzi SZYBSZY niz zyciowka na
+         KROTSZYM dystansie, nie pokazujemy go WCALE — zamiast korygowac.
+         Korekta wymagalaby wiedzy, ktore z dwoch PB jest bledne, a tej nie
+         mamy: 94% PB jest bez daty. Podstawienie liczby tam, gdzie dane sa
+         wzajemnie sprzeczne, daje wynik rownie falszywy, tylko trudniejszy
+         do zauwazenia — bo wyglada na policzony.
+         ⚠️ Dzis takich przypadkow jest ZERO (41 szacunkow, 0 naruszen). Regula
+            jest tu ZANIM bedzie potrzebna: powstanie przy pierwszej aktualizacji
+            jednego PB bez drugiego, a wtedy nikt jej nie bedzie szukal. */
+      const sprzecznosc = !maRekord && majace.some(q => q.d < p.d && q.s >= riegel);
+      /* ⚠️ ZAKRES ZAMIAST PUNKTU przy ekstrapolacji dalekiej. Pasmo bierze sie
+         z rozrzutu wykladnika W LITERATURZE (1,06-1,15), NIE z naszych danych —
+         to jest ta sama zasada co przy zdjeciu modyfikatora TSB: nie podstawiamy
+         liczby skalibrowanej na probce, ktorej nie umiemy opisac.
+         Prog 3x wynika z szerokosci pasma: przy x2,0 przedzial ma 6,4%, przy
+         x3,0 juz 10,4%, przy x8,4 az 21,2%. Ponizej progu podawanie zakresu
+         udawaloby niepewnosc, powyzej podawanie punktu udawaloby pewnosc.
+         `stosunek` < 1 przy ekstrapolacji W DOL, wiec warunek sam odcina ten
+         kierunek — i dobrze, bo wyzszy wykladnik daje tam czasy SZYBSZE,
+         a pasmo w dol produkowalo liczby fizycznie niemozliwe (piatka w 12:39
+         z maratonu 2:27). */
+      const daleko = !maRekord && !sprzecznosc && stosunek >= PROG_ZAKRESU;
+      const gorny = daleko ? baza.s * Math.pow(stosunek, K_GORNA) : null;
+      const wartosc = maRekord ? fmt(p.s) : (sprzecznosc ? '—' : fmt(dzis));
+      const etykieta = maRekord ? 'Twój rekord' : (sprzecznosc ? 'PB się nie zgadzają' : 'szacunek');
+      const kolor = maRekord ? '#3db870' : (sprzecznosc ? 'rgba(255,255,255,0.35)' : '#e8561e');
+      /* Drugi wiersz zamiast dluzszej liczby: „4:39:23-4:57:22" to 15 znakow
+         w kolumnie, ktora dzis ma 7. Kolumna zostaje 7-znakowa. */
+      /* ⚠️ WIEK REKORDU. Do dzis karta mowila „Twoj rekord" i milczala o tym,
+         ze rekord moze byc sprzed trzech lat — czyli podawala liczbe
+         nieaktualna z etykieta sugerujaca aktualnosc. `pbSprzed` milczy
+         ponizej dwoch miesiecy, bo dzien w kolumnie jest umowny (trzymamy
+         pierwszy dzien miesiaca) i nie wolno udawac wiekszej dokladnosci. */
+      /* ⚠️ WIEK REKORDU — Z PROGIEM, NIE ZAWSZE. Do dzis karta mowila „Twoj
+         rekord" i milczala o tym, ze rekord moze byc sprzed pieciu lat, czyli
+         podawala liczbe nieaktualna z etykieta sugerujaca aktualnosc. Ale
+         pokazywanie wieku przy KAZDYM wierszu bylo rozmazaniem niepewnosci
+         wszedzie zamiast pokazania jej tam, gdzie jest — ta sama zasada, co
+         przy pasmie. Progi i ich brak pokrycia: patrz sb.js/pbWiek. */
+      const wiek = (maRekord && window.pbWiek) ? window.pbWiek(p.kiedy) : { tekst: '', ostrzega: false };
+      const podwiersz = maRekord ? wiek.tekst
+        : daleko ? 'realnie do ' + fmt(gorny)
+        : (sprzecznosc ? 'sprawdź życiówki na krótszych dystansach' : '');
+      /* Ostrzezenie ma byc widoczne jako ostrzezenie, nie jako kolejna szara
+         linijka — inaczej znika w tle dokladnie tam, gdzie ma zatrzymac wzrok. */
+      const kolorPod = wiek.ostrzega ? '#e8b840' : 'rgba(255,255,255,0.4)';
+      return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
         + '<span style="color:rgba(255,255,255,0.75);">' + esc(p.n) + '</span>'
         + '<span style="font-family:DM Mono,monospace;"><span style="color:rgba(255,255,255,0.45);font-size:10.5px;">' + etykieta + '</span>'
-        + '  <strong style="color:' + kolor + ';margin-left:10px;">' + wartosc + '</strong></span></div>';
+        + '  <strong style="color:' + kolor + ';margin-left:10px;">' + wartosc + '</strong></span></div>'
+        + (podwiersz
+            ? '<div style="text-align:right;color:' + kolorPod + ';font-size:10.5px;margin-top:1px;">'
+              + esc(podwiersz) + '</div>'
+            : '')
+        + '</div>';
     }).join('');
     box.style.display = 'block';
   } catch (e) { /* predyktor opcjonalny */ }
@@ -7253,6 +7376,17 @@ function editLog(idx) {
     p.classList.remove('on');
     if (p.textContent.trim().includes(_logType)) p.classList.add('on');
   });
+  /* Znacznik „treningowo" przy edycji. ⚠️ Sekcję trzeba pokazać RĘCZNIE —
+     powyższa pętla ustawia klasę na pigułce, ale nie woła `selType`, więc
+     sekcja zostałaby ukryta i człowiek edytujący start nie zobaczyłby
+     własnego zaznaczenia (ani nie mógłby go cofnąć). */
+  {
+    const jest = window.jestStartem ? window.jestStartem(_logType) : false;
+    const sek = document.getElementById('start-luzny-section');
+    const chk = document.getElementById('l-luzny');
+    if (sek) sek.style.display = jest ? 'block' : 'none';
+    if (chk) chk.checked = jest && !!l.casual_effort;
+  }
   // Ustaw samopoczucie
   feel = l.feel || '';
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
@@ -7525,6 +7659,13 @@ async function saveLog() {
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
+    /* ⚠️ ZAWSZE false POZA STARTEM, nawet gdyby checkbox został zaznaczony.
+       Sekcja jest ukrywana przy zmianie typu, ale ukrycie to nie to samo co
+       wyczyszczenie — zapis nie może zależeć od tego, czy `selType` zdążył
+       posprzątać. Znaczenie kolumny („start biegnięty luźno") istnieje
+       wyłącznie dla typów z `TYPY_STARTU`. */
+    casual_effort: (window.jestStartem && window.jestStartem(_logType))
+      ? !!document.getElementById('l-luzny')?.checked : false,
     logged_at: loggedAtISO
   };
 

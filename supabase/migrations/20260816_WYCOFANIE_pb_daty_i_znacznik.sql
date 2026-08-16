@@ -1,0 +1,56 @@
+-- PLAN WYCOFANIA dla trzech migracji z 16.08.2026:
+--   20260816_training_logs_casual_effort.sql
+--   20260816_athletes_pb_daty.sql
+--   20260816_intake_pb_daty.sql
+--
+-- ⚠️ TEN PLIK NIE JEST MIGRACJĄ DO URUCHOMIENIA. Jest odpowiedzią na pytanie,
+--    które zadaje `tools/bramka-commit.js`: „rollback kodu strukturalnie nie
+--    cofnie migracji — jaki jest plan?". Uruchamiać RĘCZNIE i tylko świadomie.
+--
+-- ⚠️ KOLEJNOŚĆ MA ZNACZENIE: funkcja przed kolumnami. `accept_intake_form`
+--    odwołuje się do `pb_*_at`; usunięcie kolumn przed przywróceniem starej
+--    wersji funkcji zostawi funkcję, która wywala się przy pierwszym wywołaniu
+--    (czyli przy przyjmowaniu zawodnika) — i to jest ścieżka, której nikt nie
+--    testuje codziennie, więc awaria wyszłaby dopiero przy nowym kliencie.
+
+-- ── KROK 1: przywróć starą wersję accept_intake_form ────────────────────────
+-- Wersja sprzed zmiany leży w ~/.cache/sb-audit/rollback_accept_intake_form.sql
+-- (zrzut `pg_get_functiondef` wykonany PRZED migracją, 3398 znaków).
+-- ⚠️ Zrzut brać z `-o json`, NIE `-o csv`: przy csv do pliku wsiąka nagłówek
+--    kolumny i komunikat CLI o dostępnej aktualizacji, co daje plik, który
+--    wygląda na SQL i nie jest. Ten błąd wystąpił przy pierwszym podejściu.
+--
+--   supabase db query --linked --workdir ~/.cache/sb-audit \
+--     -f rollback_accept_intake_form.sql
+
+-- ── KROK 2: kolumny ─────────────────────────────────────────────────────────
+-- ⚠️ DROP COLUMN KASUJE DANE BEZPOWROTNIE. Jeśli ktokolwiek zdążył wpisać datę
+--    PB albo oznaczyć start jako treningowy, ta informacja znika i nie da się
+--    jej odtworzyć — `pb_*` nie mają historii, a `casual_effort` jest
+--    deklaracją człowieka, której nie wyliczymy ponownie.
+--    PRZED wykonaniem: zrób zrzut tego, co zniknie.
+--
+--   select id, pb_5k_at, pb_10k_at, pb_half_at, pb_marathon_at
+--     from public.athletes
+--    where coalesce(pb_5k_at, pb_10k_at, pb_half_at, pb_marathon_at) is not null;
+--   select id, athlete_id, logged_at from public.training_logs where casual_effort;
+
+-- alter table public.athletes drop constraint if exists athletes_pb_daty_sensowne;
+-- alter table public.athletes
+--   drop column if exists pb_5k_at, drop column if exists pb_10k_at,
+--   drop column if exists pb_half_at, drop column if exists pb_marathon_at;
+-- alter table public.athlete_intake_forms
+--   drop column if exists pb_5k_at, drop column if exists pb_10k_at,
+--   drop column if exists pb_half_at, drop column if exists pb_marathon_at;
+-- alter table public.training_logs drop column if exists casual_effort;
+
+-- ── CZEGO NIE TRZEBA COFAĆ ──────────────────────────────────────────────────
+-- GRANT SELECT na `athletes.pb_*_at` znika razem z kolumnami — uprawnienie
+-- kolumnowe nie przeżywa DROP COLUMN. Żadna z tych migracji nie nadała nic
+-- roli `anon` ani nie ruszyła uprawnień tabelowych, więc po wycofaniu stan
+-- uprawnień wraca sam.
+
+-- ── WERSJA ŁAGODNIEJSZA (zalecana zamiast DROP) ─────────────────────────────
+-- Jeśli problemem jest interfejs, a nie schemat: zdejmij pola z UI i zostaw
+-- kolumny. Puste kolumny nic nie kosztują, a dane już wpisane przeżyją.
+-- DROP ma sens tylko wtedy, gdy sam schemat okaże się błędny.
