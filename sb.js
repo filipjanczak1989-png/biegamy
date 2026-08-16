@@ -359,78 +359,76 @@
   // !! KOLEJNOSC SPRAWDZEN JEST ISTOTNA — ustalona testem na 102 wartosciach:
   //    zera PRZED dwukropkiem  -> inaczej "0" dostaje blad zamiast wyczyszczenia
   //    ksztalt PRZED dwukropkiem -> inaczej "abc" daje "czytamy jako abc sekund"
-  /* ── DATA PRZY ŻYCIÓWCE ────────────────────────────────────────────────────
-     Miesiąc + rok, przechowywane jako PIERWSZY DZIEŃ MIESIĄCA (`date`).
-     ⚠️ Dzień jest umowny i nie wolno go czytać jako daty biegu.
+  /* ── ROK PRZY ŻYCIÓWCE ─────────────────────────────────────────────────────
+     `athletes.pb_*_year` — `smallint`, sam rocznik.
+     ⚠️ Rocznik NIE ODRÓŻNIA stycznia od grudnia. Do wyświetlania („PB z 2023")
+        to wystarcza; do przyszłego pytania „czy dwa PB są z tego samego okresu
+        formy" zostawia ±12 miesięcy niepewności. Odnotowane, nie do naprawy
+        przy okazji. Patrz project_zaleglosc_pb_bez_dat_wykladnik_odrzucony.
 
      DLACZEGO OSOBNA FUNKCJA, A NIE ROZSZERZENIE `walidujPB`: walidujPB
      odpowiada na pytanie „czy ten czas jest sensowny na tym dystansie" i jest
-     wołane m.in. z `onblur` przy każdym wpisywanym znaku. Data ma inny cykl
-     życia (może istnieć bez czasu w trakcie wypełniania) i inne reguły.
-     Sklejenie ich znaczyłoby, że wpisanie daty przed czasem daje błąd na polu,
-     którego człowiek jeszcze nie dotknął. */
-  window.PB_DATA_OD = '1990-01';
+     wołane m.in. z `onblur` przy każdym znaku. Rok ma inny cykl życia (może
+     istnieć bez czasu w trakcie wypełniania) i inne reguły. Sklejenie ich
+     znaczyłoby błąd na polu, którego człowiek jeszcze nie dotknął. */
+  window.PB_ROK_OD = 1990;
 
-  /** `mies` w formacie 'YYYY-MM' (jak z <input type="month">). `pbTxt` — czas PB. */
-  window.walidujDatePB = function (mies, pbTxt) {
-    const pusta = !mies || !String(mies).trim();
+  /** `rok` jak z <input type="number">. `pbTxt` — czas PB. */
+  window.walidujRokPB = function (rok, pbTxt) {
+    const pusty = rok === null || rok === undefined || String(rok).trim() === '';
     const maPB = !!(pbTxt && String(pbTxt).trim());
-    if (pusta) return { ok: true, data: null };          /* brak daty jest legalny */
-    const m = /^(\d{4})-(\d{2})$/.exec(String(mies).trim());
-    if (!m) return { ok: false, blad: 'Podaj miesiąc i rok' };
-    const rok = +m[1], msc = +m[2];
-    if (msc < 1 || msc > 12) return { ok: false, blad: 'Nieprawidłowy miesiąc' };
-    /* ⚠️ Data z PRZYSZŁOŚCI. Bariery w bazie na to NIE MA i to jest świadome —
-       `current_date` jest STABLE, więc CHECK go nie przyjmie. Tu jest jedyne
-       miejsce, które tego pilnuje. Patrz migracja 20260816_athletes_pb_daty. */
-    const dzis = new Date();
-    const terazMies = dzis.getFullYear() * 12 + dzis.getMonth();
-    if (rok * 12 + (msc - 1) > terazMies) return { ok: false, blad: 'Data z przyszłości' };
-    const od = window.PB_DATA_OD.split('-');
-    if (rok * 12 + (msc - 1) < +od[0] * 12 + (+od[1] - 1))
-      return { ok: false, blad: 'Nie wcześniej niż ' + od[0] };
-    /* ⚠️ Data bez życiówki to sierota: nic nie znaczy i nie da się jej pokazać.
-       Odrzucamy dopiero TUTAJ, nie w bazie — CHECK międzykolumnowy blokowałby
-       legalną kolejność „najpierw data, potem czas" przy edycji pola po polu. */
+    if (pusty) return { ok: true, rok: null };          /* brak roku jest legalny */
+    const txt = String(rok).trim();
+    if (!/^\d{4}$/.test(txt)) return { ok: false, blad: 'Podaj rok, np. 2023' };
+    const n = Number(txt);
+    /* ⚠️ Rok z PRZYSZŁOŚCI. Bariery w bazie na to NIE MA i to jest świadome:
+       `extract(year from current_date)` jest STABLE, a CHECK wymaga IMMUTABLE.
+       To jedyne miejsce, które tego pilnuje. */
+    const teraz = new Date().getFullYear();
+    if (n > teraz) return { ok: false, blad: 'Rok z przyszłości' };
+    if (n < window.PB_ROK_OD) return { ok: false, blad: 'Nie wcześniej niż ' + window.PB_ROK_OD };
+    /* ⚠️ Rok bez życiówki to sierota: nic nie znaczy i nie da się go pokazać.
+       Odrzucamy tutaj, nie w bazie — CHECK międzykolumnowy blokowałby legalną
+       kolejność „najpierw rok, potem czas" przy edycji pola po polu. */
     if (!maPB) return { ok: false, blad: 'Najpierw wpisz życiówkę' };
-    return { ok: true, data: m[1] + '-' + m[2] + '-01' };
+    return { ok: true, rok: n };
   };
 
-  /* WIEK REKORDU NA KARCIE — z progiem, nie zawsze.
-     „PB z 2019" przy kazdym wierszu to szum dla kogos, kto wpisal zyciowke
-     w zeszlym roku. Pokazujemy tylko wtedy, gdy wiek niesie informacje:
-       0-1 rok  -> nic          (rekord aktualny)
-       2-3 lata -> „PB z 2023"  (fakt, bez oceny)
-       4+ lat   -> „PB z 2019 — szacunek moze byc zawyzony"
+  /* WIEK REKORDU NA KARCIE — Z PROGIEM, NIE ZAWSZE.
+     „PB z 2019" przy każdym wierszu to szum dla kogoś, kto wpisał życiówkę
+     w zeszłym roku. Pokazujemy tylko wtedy, gdy wiek niesie informację:
+       0–1 rok  -> nic          (rekord aktualny)
+       2–3 lata -> „PB z 2023"  (fakt, bez oceny)
+       4+ lat   -> „PB z 2019 — może być zawyżone"
 
-     ⚠️ PROG 4 LAT TO DECYZJA, NIE POMIAR — i tak ma zostac opisany.
+     ⚠️ PRÓG 4 LAT: LICZBA WYBRANA Z ROZSĄDKU, NIE Z POMIARU.
         Zmierzone 16.08.2026: w bazie NIE MA ani jednej obserwacji rekordu
-        starszego niz rok. Najstarszy log w calej bazie ma date 2025-07-13,
-        czyli 1,1 roku. Rozklad wieku rekordow: 59 par w przedziale 0-1 rok,
-        ZERO powyzej. Korelacja wiek<->rozjazd w tym co mamy: r = -0,118
-        (czyli w pierwszym roku nic nie rosnie — to jedyne, co potwierdzone).
-        Progu nie da sie sprawdzic wczesniej niz okolo 2030.
+        starszego niż rok — najstarszy log ma datę 2025-07-13, czyli 1,1 roku.
+        Rozkład wieku rekordów: 59 par w przedziale 0–1 rok, ZERO powyżej.
+        Korelacja wiek↔rozjazd w tym, co mamy: r = −0,118 (czyli w pierwszym
+        roku nic nie rośnie — to jedyne, co potwierdzone).
+        DO ZWERYFIKOWANIA, GDY BĘDZIE 5+ OSÓB Z PB STARSZYM NIŻ 4 LATA.
+        Dziś takich osób jest 0, a przy dzisiejszym tempie zbierania danych
+        warunek spełni się najwcześniej około 2030.
 
-     DLACZEGO MIMO TO WCHODZI, skoro TSB i wykladnik odrzucilismy: tamte
-     ZMIENIALY LICZBE na podstawie zgadnietej wielkosci. To nie twierdzi nic
-     o wielkosci i nie rusza zadnej prognozy — mowi „ta liczba opiera sie na
-     czyms sprzed pieciu lat", co jest odczytem z pola, nie oszacowaniem. */
+     DLACZEGO MIMO TO WCHODZI, skoro modyfikator TSB i wykładnik indywidualny
+     odrzuciliśmy: tamte ZMIENIAŁY LICZBĘ na podstawie zgadniętej wielkości.
+     To nie twierdzi nic o wielkości i nie rusza żadnej prognozy — mówi „ta
+     liczba opiera się na czymś sprzed pięciu lat", co jest odczytem z pola. */
   window.PB_WIEK_PROG_OSTRZEZENIA = 4;
 
-  /** 'YYYY-MM-DD' -> { tekst, ostrzega } ; pusty tekst = nie pokazuj nic. */
-  window.pbWiek = function (dataISO, teraz) {
+  /** rok (smallint) -> { tekst, ostrzega } ; pusty tekst = nie pokazuj nic. */
+  window.pbWiek = function (rok, terazRok) {
     const pusto = { tekst: '', ostrzega: false };
-    if (!dataISO) return pusto;
-    const d = String(dataISO).slice(0, 7).split('-');
-    if (d.length < 2) return pusto;
-    const t = teraz ? new Date(teraz) : new Date();
-    const mies = (t.getFullYear() * 12 + t.getMonth()) - (+d[0] * 12 + (+d[1] - 1));
-    if (mies < 0) return pusto;                    /* data z przyszlosci — nie zgadujemy */
-    const lata = Math.floor(mies / 12);
-    if (lata < 2) return pusto;                    /* 0-1 rok: rekord aktualny */
-    const rok = d[0];
-    if (lata < window.PB_WIEK_PROG_OSTRZEZENIA) return { tekst: 'PB z ' + rok, ostrzega: false };
-    return { tekst: 'PB z ' + rok + ' — szacunek może być zawyżony', ostrzega: true };
+    if (rok === null || rok === undefined || rok === '') return pusto;
+    const n = Number(rok);
+    if (!Number.isFinite(n)) return pusto;
+    const teraz = terazRok || new Date().getFullYear();
+    const lata = teraz - n;
+    if (lata < 0) return pusto;                    /* rok z przyszłości — nie zgadujemy */
+    if (lata < 2) return pusto;                    /* 0–1 rok: rekord aktualny */
+    if (lata < window.PB_WIEK_PROG_OSTRZEZENIA) return { tekst: 'PB z ' + n, ostrzega: false };
+    return { tekst: 'PB z ' + n + ' — może być zawyżone', ostrzega: true };
   };
 
   window.walidujPB = function(txt, dyst){

@@ -818,16 +818,16 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</label>
             <input id="ppb-mar-in" type="text" placeholder="3:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;">
-            <input id="ppb-mar-in-at" type="month" aria-label="Kiedy padło PB na maratonie" title="Kiedy? (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
+            <input type="number" id="ppb-mar-in-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na maratonie" title="Rok (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</label>
             <input id="ppb-half-in" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;">
-            <input id="ppb-half-in-at" type="month" aria-label="Kiedy padło PB na półmaratonie" title="Kiedy? (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
+            <input type="number" id="ppb-half-in-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na półmaratonie" title="Rok (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</label>
             <input id="ppb-10k-in" type="text" placeholder="45:30" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;">
-            <input id="ppb-10k-in-at" type="month" aria-label="Kiedy padło PB na 10 km" title="Kiedy? (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
+            <input type="number" id="ppb-10k-in-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na 10 km" title="Rok (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</label>
             <input id="ppb-5k-in" type="text" placeholder="22:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;">
-            <input id="ppb-5k-in-at" type="month" aria-label="Kiedy padło PB na 5 km" title="Kiedy? (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
+            <input type="number" id="ppb-5k-in-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na 5 km" title="Rok (opcjonalne)" style="width:100%;margin-top:4px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 5px;"></div>
         </div>
         <div id="ppb-err" class="pb-err"></div>
         <button onclick="savePanelPB()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz PB →</button>
@@ -3020,7 +3020,7 @@ async function loadPanelStats() {
 async function loadPanelPB() {
   const id = window._selectedAthleteId;
   if (!id) return;
-  const { data: a } = await sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_at,pb_half_at,pb_10k_at,pb_5k_at,race_goals,goal,target_date').eq('id', id).maybeSingle();
+  const { data: a } = await sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,race_goals,goal,target_date').eq('id', id).maybeSingle();
   if (!a) return;
   document.getElementById('ppb-mar').textContent = a.pb_marathon || '—';
   document.getElementById('ppb-half').textContent = a.pb_half || '—';
@@ -3030,11 +3030,11 @@ async function loadPanelPB() {
   document.getElementById('ppb-half-in').value = a.pb_half || '';
   document.getElementById('ppb-10k-in').value = a.pb_10k || '';
   document.getElementById('ppb-5k-in').value = a.pb_5k || '';
-  /* Daty PB: kolumna trzyma pierwszy dzien miesiaca, <input type="month"> chce 'YYYY-MM'. */
-  for (const [wej, kol] of [['ppb-5k-in-at', 'pb_5k_at'], ['ppb-10k-in-at', 'pb_10k_at'],
-                            ['ppb-half-in-at', 'pb_half_at'], ['ppb-mar-in-at', 'pb_marathon_at']]) {
+  /* Roczniki PB (smallint). */
+  for (const [wej, kol] of [['ppb-5k-in-rok', 'pb_5k_year'], ['ppb-10k-in-rok', 'pb_10k_year'],
+                            ['ppb-half-in-rok', 'pb_half_year'], ['ppb-mar-in-rok', 'pb_marathon_year']]) {
     const el = document.getElementById(wej);
-    if (el) el.value = a[kol] ? String(a[kol]).slice(0, 7) : '';
+    if (el) el.value = a[kol] ? String(a[kol]) : '';
   }
   // Cele
   let goals = [];
@@ -3095,10 +3095,10 @@ function _walidujPBTrener(pola, errId) {
        blokuje zapis tak samo jak zly czas: trener wpisujacy zyciowke
        podopiecznego nie ma jak zauwazyc cicho porzuconej daty. */
     const elD = idData ? document.getElementById(idData) : null;
-    const wd = window.walidujDatePB(elD ? elD.value : null, el.value);
+    const wd = window.walidujRokPB(elD ? elD.value : null, el.value);
     if (elD) elD.style.borderColor = wd.ok ? '' : '#e05050';
     if (!wd.ok) { if (!zle) zle = { el: elD || el, blad: wd.blad }; continue; }
-    updates[kol + '_at'] = wd.data;
+    updates[kol + '_year'] = wd.rok;
   }
   if (errEl) {
     errEl.textContent = zle ? zle.blad : '';
@@ -3110,10 +3110,10 @@ function _walidujPBTrener(pola, errId) {
 }
 
 const _PPB_POLA = [
-  ['ppb-mar-in',  42.195,  'pb_marathon', 'ppb-mar-in-at'],
-  ['ppb-half-in', 21.0975, 'pb_half', 'ppb-half-in-at'],
-  ['ppb-10k-in',  10,      'pb_10k', 'ppb-10k-in-at'],
-  ['ppb-5k-in',   5,       'pb_5k', 'ppb-5k-in-at'],
+  ['ppb-mar-in',  42.195,  'pb_marathon', 'ppb-mar-in-rok'],
+  ['ppb-half-in', 21.0975, 'pb_half', 'ppb-half-in-rok'],
+  ['ppb-10k-in',  10,      'pb_10k', 'ppb-10k-in-rok'],
+  ['ppb-5k-in',   5,       'pb_5k', 'ppb-5k-in-rok'],
 ];
 const _ATH_PB_POLA = [
   ['ath-pb-mar',  42.195,  'pb_marathon'],

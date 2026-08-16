@@ -743,6 +743,7 @@ body > *{position:relative;z-index:1;}
 .ob-pb-item.zle{border-color:var(--red);}
 .ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .ob-pb-input{width:100%;background:transparent;border:none;color:var(--fg);font-family:'Bebas Neue',sans-serif;font-size:26px;outline:none;padding:0;}
+.ob-pb-rok{width:100%;margin-top:4px;padding:4px 6px;font-size:11px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:DM Mono,monospace;}
 .ob-pb-input::placeholder{color:rgba(240,237,232,0.15);}
 .ob-avatar-wrap{text-align:center;padding:8px 0 20px;}
 .ob-avatar-circle{
@@ -1395,28 +1396,28 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Maraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
         <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-        <input id="pb-mar-at" type="month" aria-label="Kiedy padło PB na maratonie" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
+        <input type="number" id="pb-mar-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na maratonie" title="Rok (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-mar-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Półmaraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
         <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-        <input id="pb-half-at" type="month" aria-label="Kiedy padło PB na półmaratonie" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
+        <input type="number" id="pb-half-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na półmaratonie" title="Rok (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-half-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">10 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
         <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-        <input id="pb-10k-at" type="month" aria-label="Kiedy padło PB na 10 km" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
+        <input type="number" id="pb-10k-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na 10 km" title="Rok (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-10k-err" class="pb-err"></div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
         <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">5 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
         <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="7" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-        <input id="pb-5k-at" type="month" aria-label="Kiedy padło PB na 5 km" title="Kiedy? (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
+        <input type="number" id="pb-5k-rok" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w którym padło PB na 5 km" title="Rok (opcjonalne)" style="display:none;width:100%;margin-top:6px;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;">
         <div id="pb-5k-err" class="pb-err"></div>
       </div>
     </div>
@@ -3310,7 +3311,7 @@ async function loadProfile() {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
     const { data: ath } = await sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_at,pb_half_at,pb_10k_at,pb_5k_at,goal,target_date,full_name,race_goals,is_public,avatar_url')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,goal,target_date,full_name,race_goals,is_public,avatar_url')
       .eq('id', _athleteId).single();
     if (ath?.avatar_url) {
       const img = document.getElementById('avatar-img');
@@ -3329,12 +3330,11 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
-      /* Daty PB. Kolumna trzyma pierwszy dzien miesiaca, <input type="month">
-         oczekuje 'YYYY-MM'. */
-      for (const [wej, kol] of [['pb-5k-at', 'pb_5k_at'], ['pb-10k-at', 'pb_10k_at'],
-                                ['pb-half-at', 'pb_half_at'], ['pb-mar-at', 'pb_marathon_at']]) {
+      /* Roczniki PB (smallint). */
+      for (const [wej, kol] of [['pb-5k-rok', 'pb_5k_year'], ['pb-10k-rok', 'pb_10k_year'],
+                                ['pb-half-rok', 'pb_half_year'], ['pb-mar-rok', 'pb_marathon_year']]) {
         const el = document.getElementById(wej);
-        if (el) el.value = ath[kol] ? String(ath[kol]).slice(0, 7) : '';
+        if (el) el.value = ath[kol] ? String(ath[kol]) : '';
       }
       // Ustaw status prywatności
       _isPublic = ath.is_public === true; // domyślnie prywatny (RODO privacy-by-default, spójne z profil.html)
@@ -3436,7 +3436,7 @@ function toggleEditPBs() {
     if (err) { err.textContent = ''; err.classList.remove('on'); }
     /* Pole daty chodzi w parze z polem czasu — pokazuje sie i chowa razem,
        i tak samo czysci ramke bledu. */
-    const dat = document.getElementById(id+'-at');
+    const dat = document.getElementById(id+'-rok');
     if (dat) { dat.style.display = _editingPBs ? 'block' : 'none'; dat.style.borderColor = 'var(--border)'; }
   });
   document.getElementById('save-pbs-row').style.display = _editingPBs ? 'block' : 'none';
@@ -3446,10 +3446,10 @@ function toggleEditPBs() {
 /* Kolejnosc jak w gridzie — zeby bledy wyswietlily sie od gory tak, jak
    czlowiek patrzy na ekran. [id_pola, dystans_km, kolumna_w_bazie] */
 const _PB_POLA = [
-  ['pb-mar-input',  42.195,  'pb_marathon', 'pb-mar-at'],
-  ['pb-half-input', 21.0975, 'pb_half',     'pb-half-at'],
-  ['pb-10k-input',  10,      'pb_10k',      'pb-10k-at'],
-  ['pb-5k-input',   5,       'pb_5k',       'pb-5k-at'],
+  ['pb-mar-input',  42.195,  'pb_marathon', 'pb-mar-rok'],
+  ['pb-half-input', 21.0975, 'pb_half',     'pb-half-rok'],
+  ['pb-10k-input',  10,      'pb_10k',      'pb-10k-rok'],
+  ['pb-5k-input',   5,       'pb_5k',       'pb-5k-rok'],
 ];
 
 async function savePBs() {
@@ -3478,7 +3478,7 @@ async function savePBs() {
        cos odrzucono. Ankieta traktuje to lagodniej (tam formularz jest
        jednorazowy i dluzszy), tu edycja jest tania i wraca sie do niej. */
     const elD = idData ? document.getElementById(idData) : null;
-    const wd = window.walidujDatePB(elD ? elD.value : null, el.value);
+    const wd = window.walidujRokPB(elD ? elD.value : null, el.value);
     if (elD) elD.style.borderColor = wd.ok ? 'var(--border)' : 'var(--red)';
     if (!wd.ok) {
       errEl.textContent = wd.blad;
@@ -3486,7 +3486,7 @@ async function savePBs() {
       if (!pierwszeZle) pierwszeZle = elD || el;
       continue;
     }
-    updates[kol + '_at'] = wd.data;
+    updates[kol + '_year'] = wd.rok;
   }
 
   /* Pokazujemy WSZYSTKIE bledy naraz, ale zapisu nie robimy w ogole — inaczej
@@ -4636,10 +4636,10 @@ async function _renderPredykcje() {
     const tb = document.getElementById('forma-predykcje-tabela');
     if (!box || !tb || !_athleteId) return;
     const { data: ath } = await sb.from('athletes')
-      .select('pb_5k,pb_10k,pb_half,pb_marathon,pb_5k_at,pb_10k_at,pb_half_at,pb_marathon_at').eq('id', _athleteId).maybeSingle();
-    const PBS = [ ['5 km', 5, ath?.pb_5k, ath?.pb_5k_at], ['10 km', 10, ath?.pb_10k, ath?.pb_10k_at],
-      ['Półmaraton', 21.0975, ath?.pb_half, ath?.pb_half_at],
-      ['Maraton', 42.195, ath?.pb_marathon, ath?.pb_marathon_at] ]
+      .select('pb_5k,pb_10k,pb_half,pb_marathon,pb_5k_year,pb_10k_year,pb_half_year,pb_marathon_year').eq('id', _athleteId).maybeSingle();
+    const PBS = [ ['5 km', 5, ath?.pb_5k, ath?.pb_5k_year], ['10 km', 10, ath?.pb_10k, ath?.pb_10k_year],
+      ['Półmaraton', 21.0975, ath?.pb_half, ath?.pb_half_year],
+      ['Maraton', 42.195, ath?.pb_marathon, ath?.pb_marathon_year] ]
       /* window.walidujPB (SSOT w sb.js) — ten sam walidator, ktory pilnuje
          pieciu sciezek zapisu. Zastepuje `+s` ORAZ reguly "czlon >= 60"
          i "h:mm na dlugim", bo obie ma juz w srodku.
@@ -4743,7 +4743,7 @@ async function _renderPredykcje() {
          w kolumnie, ktora dzis ma 7. Kolumna zostaje 7-znakowa. */
       /* ⚠️ WIEK REKORDU. Do dzis karta mowila „Twoj rekord" i milczala o tym,
          ze rekord moze byc sprzed trzech lat — czyli podawala liczbe
-         nieaktualna z etykieta sugerujaca aktualnosc. `pbSprzed` milczy
+         nieaktualna z etykieta sugerujaca aktualnosc. `pbWiek` milczy
          ponizej dwoch miesiecy, bo dzien w kolumnie jest umowny (trzymamy
          pierwszy dzien miesiaca) i nie wolno udawac wiekszej dokladnosci. */
       /* ⚠️ WIEK REKORDU — Z PROGIEM, NIE ZAWSZE. Do dzis karta mowila „Twoj
@@ -5921,7 +5921,15 @@ async function obFinish() {
       const el = document.getElementById(id);
       if (!el) continue;
       const w = window.walidujPB(window.dopelnijPB(el.value, dyst), dyst);
-      if (w.ok && w.sekundy !== null) athleteData[kol] = window.dopelnijPB(el.value, dyst);
+      if (!(w.ok && w.sekundy !== null)) continue;
+      athleteData[kol] = window.dopelnijPB(el.value, dyst);
+      /* ⚠️ ROK TYLKO ZA PRZYJETYM CZASEM. Ta sama zasada, co w accept_intake_form:
+         rok bez zyciowki jest sierota, a rok przy ODRZUCONEJ zyciowce bylby
+         podpiety pod czas, ktorego nie zapisujemy. Onboardingu nie blokujemy
+         na zlym roku — po cichu go pomijamy, tak jak zla zyciowke. */
+      const elR = document.getElementById(id + '-rok');
+      const wr = window.walidujRokPB(elR ? elR.value : null, el.value);
+      if (wr.ok && wr.rok) athleteData[kol + '_year'] = wr.rok;
     }
 
     // Jeśli mamy _athleteId (użytkownik już istnieje) — tylko update
@@ -12113,18 +12121,22 @@ window.sendDuelChallenge = sendDuelChallenge;
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">5 km</div>
         <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="22:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,5)">
+        <input class="ob-pb-rok" id="ob-pb-5k-rok" type="number" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w ktorym padlo PB na 5 km" title="Rok (opcjonalne)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">10 km</div>
         <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="45:00" maxlength="7" inputmode="numeric" oninput="autoColonResult(this)" onblur="this.value=dopelnijPB(this.value,10)">
+        <input class="ob-pb-rok" id="ob-pb-10k-rok" type="number" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w ktorym padlo PB na 10 km" title="Rok (opcjonalne)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Półmaraton</div>
         <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,21.0975)">
+        <input class="ob-pb-rok" id="ob-pb-half-rok" type="number" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w ktorym padlo PB na półmaratonie" title="Rok (opcjonalne)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Maraton</div>
         <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="3:30:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)" onblur="this.value=dopelnijPB(this.value,42.195)">
+        <input class="ob-pb-rok" id="ob-pb-mar-rok" type="number" inputmode="numeric" min="1990" max="2026" step="1" placeholder="rok" aria-label="Rok, w ktorym padlo PB na maratonie" title="Rok (opcjonalne)">
       </div>
     </div>
     <div id="ob-pb-err" class="pb-err" style="text-align:center;margin-top:12px;"></div>
