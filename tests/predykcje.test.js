@@ -55,10 +55,28 @@ async function renderuj(pb, tsb) {
   return { box, html: tab.innerHTML, widoczna: box.style.display === 'block' };
 }
 
-/** Wyciąga z HTML pary [nazwa, PB, prognoza] — render nie ma innego wyjścia niż innerHTML. */
+/** Wyciąga z HTML trójki [nazwa, etykieta, wartość] — render nie ma innego
+ *  wyjścia niż innerHTML.
+ *  ⚠️ OD 16.08.2026 KARTA MA DWA RODZAJE WIERSZY. Wcześniej każdy pokazywał
+ *     „PB X" i obok prognozę; po zdjęciu modyfikatora TSB obie liczby na
+ *     dystansie z rekordem były IDENTYCZNE, więc wiersz mówił „Twoja życiówka
+ *     to Twoja życiówka" i sugerował, że to prognoza na dziś.
+ *     Teraz: `etykieta` to „Twój rekord" albo „szacunek", `wartość` to jedna
+ *     liczba. Pole `prognoza` zachowane jako alias, żeby starsze asercje
+ *     o LICZBACH nadal opisywały to samo zjawisko — zmienił się kształt karty,
+ *     nie matematyka Riegela. */
 function wiersze(html) {
-  return [...html.matchAll(/>([^<>]+)<\/span><span style="font-family:DM Mono[^"]*"><span[^>]*>PB ([^<]*)<\/span>\s*<strong[^>]*>([^<]+)<\/strong>/g)]
-    .map((m) => ({ nazwa: m[1].trim(), pb: m[2].trim(), prognoza: m[3].trim() }));
+  return [...html.matchAll(/>([^<>]+)<\/span><span style="font-family:DM Mono[^"]*"><span[^>]*>([^<]*)<\/span>\s*<strong[^>]*>([^<]+)<\/strong>/g)]
+    .map((m) => {
+      const etykieta = m[2].trim(), wartosc = m[3].trim();
+      /* `pb` jako alias ZACHOWUJE ZNACZENIE starszych asercji: „PB odrzucone
+         przez walidator ma się pokazać jako brak". W nowej karcie odrzucone PB
+         nie daje etykiety „Twój rekord", tylko „szacunek" — więc `pb` = '—'
+         dokładnie wtedy, kiedy dawniej. Blizna zostaje ta sama, zmienił się
+         tylko sposób, w jaki karta to mówi. */
+      return { nazwa: m[1].trim(), etykieta, wartosc, prognoza: wartosc,
+               pb: etykieta === 'Twój rekord' ? wartosc : '—' };
+    });
 }
 
 const MACIEK = { pb_5k: '25:20', pb_10k: '56:00', pb_half: '2:14:00', pb_marathon: null };
@@ -67,15 +85,24 @@ describe('REGRESJA — zgłoszenie Maćka, 14.08.2026', () => {
   // !! JEDYNY TEST W CAŁYM ZESTAWIE ODPOWIADAJĄCY KONKRETNEMU CZŁOWIEKOWI
   //    I KONKRETNEMU ZGŁOSZENIU. Maciek napisał, że karta predykcji pokazuje
   //    mu bzdury. Miał życiówki 25:20 / 56:00 / 2:14:00 i pusty maraton.
-  //    Poniższe cztery wartości to wynik PO naprawie, policzony przy tsb = 0.
+  //    Poniższe cztery wartości to wynik PO naprawie.
   //    Jeżeli ten test kiedyś zapali się na czerwono, znaczy to, że zmieniła
   //    się albo formuła, albo korekta TSB, albo formatowanie — i trzeba do
   //    Maćka napisać, a nie poprawić oczekiwanie w teście.
-  test('25:20 / 56:00 / 2:14:00 / (brak) -> 25:28 / 56:17 / 2:14:40 / 4:40:47', async () => {
+  //
+  //    ⚠️ 16.08.2026 TEN TEST SIĘ ZAPALIŁ I OCZEKIWANIE ZOSTAŁO ZMIENIONE —
+  //    świadomie, bo zmieniła się KOREKTA TSB: została zdjęta w całości.
+  //    Stare wartości niosły mnożnik 1,005 (TSB „neutralne"). Nowe to czysty
+  //    Riegel z PB. Maraton spadł o 84 s, trzy pozostałe wiersze pokazują teraz
+  //    DOKŁADNIE życiówki Maćka — bo Riegel przy D2=D1 mnoży przez 1.
+  //    ⚠️ ZOBOWIĄZANIE Z TEGO KOMENTARZA POZOSTAJE W MOCY: Maciek ma zobaczyć
+  //       inne liczby niż wczoraj i należy mu to powiedzieć, nie licząc na to,
+  //       że nie zauważy.
+  test('25:20 / 56:00 / 2:14:00 / (brak) -> 25:20 / 56:00 / 2:14:00 / 4:39:23', async () => {
     const { html, widoczna } = await renderuj(MACIEK, 0);
     const w = wiersze(html);
     assert.equal(w.length, 4, 'karta ma ZAWSZE cztery wiersze, także bez PB');
-    assert.deepEqual(w.map((x) => x.prognoza), ['25:28', '56:17', '2:14:40', '4:40:47']);
+    assert.deepEqual(w.map((x) => x.wartosc), ['25:20', '56:00', '2:14:00', '4:39:23']);
     assert.deepEqual(w.map((x) => x.pb), ['25:20', '56:00', '2:14:00', '—']);
     assert.equal(widoczna, true);
   });
@@ -187,23 +214,41 @@ describe('guard `> 0` — miejsce, w którym łatwo „uprościć" i wpuścić z
   });
 });
 
-describe('korekta TSB — jedyne wejście spoza PB', () => {
-  test('brak _formaLast to tsb = 0, nie wywrotka', async () => {
-    const bez = await renderuj(MACIEK, undefined);
-    const zero = await renderuj(MACIEK, 0);
-    assert.deepEqual(wiersze(bez.html).map((x) => x.prognoza), wiersze(zero.html).map((x) => x.prognoza));
+describe('⚠️ MODYFIKATOR TSB ZDJĘTY — predykcja nie zależy od formy dnia', () => {
+  /* BLIZNA: modyfikator mnożył wynik Riegela przez 1,000–1,025 zależnie od TSB.
+     Zmierzone 16.08.2026 na 40 czystych startach: korelacja TSB z rozjazdem
+     r = 0,26 — i to w ZŁYM KIERUNKU. Ludzie ze „świeżością" biegli NAJDALEJ
+     od predykcji (+8,5%), z „obciążeniem" najbliżej (+2,8%). Modyfikator
+     działał odwrotnie do rzeczywistości.
+     ⚠️ Nie zastąpiono go łagodniejszym zakresem: nie ma podstawy dla ŻADNEGO
+        mnożnika, a zamiana jednej wymyślonej liczby na drugą różni się tylko
+        tym, że myli się mniej. */
+
+  test('TSB nie zmienia ANI JEDNEJ liczby na karcie', async () => {
+    const warianty = [undefined, -40, -25, -15, 0, 10, 15, 30, 60];
+    const bazowy = wiersze((await renderuj(MACIEK, warianty[0])).html).map((x) => x.wartosc);
+    for (const t of warianty.slice(1)) {
+      const teraz = wiersze((await renderuj(MACIEK, t)).html).map((x) => x.wartosc);
+      assert.deepEqual(teraz, bazowy, 'TSB ' + t + ' zmieniło wynik — modyfikator wrócił');
+    }
   });
 
-  test('głębokie obciążenie spowalnia prognozę, optimum jej nie rusza', async () => {
-    // Porównanie przez SEKUNDY, nie przez napisy: '25:58' > '25:20' wychodzi
-    // prawdą także leksykograficznie, więc test na napisach przechodziłby
-    // z niewłaściwego powodu i przestałby działać przy pierwszym przekroczeniu
-    // godziny (bo '1:00:30' < '25:20' jako tekst).
-    const sek = (t) => t.split(':').reduce((a, b) => a * 60 + +b, 0);
-    const zmeczony = wiersze((await renderuj(MACIEK, -25)).html)[0].prognoza;   // kor 0.025
-    const optimum  = wiersze((await renderuj(MACIEK, 10)).html)[0].prognoza;    // kor 0
-    assert.equal(optimum, '25:20', 'przy optimum prognoza = pełnia PB');
-    assert.ok(sek(zmeczony) > sek(optimum), `zmęczony ma być WOLNIEJSZY: ${zmeczony} vs ${optimum}`);
-    assert.equal(sek(zmeczony) - sek(optimum), Math.round(1520 * 0.025), 'i to dokładnie o korektę 2,5%');
+  test('⚠️ na dystansie z PB karta pokazuje REKORD, nie prognozę równą rekordowi', async () => {
+    /* To cała różnica między „tyle wynika z Twojej życiówki" a „tyle zrobisz
+       dziś". Riegel przy D2=D1 mnoży przez 1, więc obie liczby były identyczne,
+       a podpis sugerował prognozę na dzisiaj. */
+    const w = wiersze((await renderuj(MACIEK, 0)).html);
+    const piatka = w.find((x) => x.nazwa === '5 km');
+    assert.equal(piatka.etykieta, 'Twój rekord');
+    assert.equal(piatka.wartosc, '25:20', 'ma pokazywać PB, nie przeliczenie');
+    const maraton = w.find((x) => x.nazwa === 'Maraton');
+    assert.equal(maraton.etykieta, 'szacunek', 'bez PB ma być szacunek');
+  });
+
+  test('kontrola negatywna: wykrywacz odróżnia wynik z modyfikatorem od bez', () => {
+    /* Bez tego test wyżej przechodziłby także z przywróconym modyfikatorem,
+       gdyby renderer przestał w ogóle reagować na TSB z innego powodu. */
+    const zMod = (t) => Math.round(1520 * (1 + (t < -20 ? 0.025 : 0)));
+    assert.notEqual(zMod(-25), zMod(0));
   });
 });

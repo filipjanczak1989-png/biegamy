@@ -4610,8 +4610,20 @@ async function _renderPredykcje() {
       });
     const majace = PBS.filter(p => p.s);
     if (!majace.length) { box.style.display = 'none'; return; }
-    const tsb = (window._formaLast && typeof window._formaLast.tsb === 'number') ? window._formaLast.tsb : 0;
-    const kor = tsb < -20 ? 0.025 : tsb < -10 ? 0.015 : tsb < 5 ? 0.005 : tsb <= 15 ? 0 : tsb <= 25 ? 0.005 : 0.01;
+    /* ⚠️ MODYFIKATOR TSB ZDJETY 16.08.2026 — bez zastepnika.
+       Zmierzone na 40 czystych startach (odfiltrowanych po tempie): korelacja
+       TSB z rozjazdem predykcji r = 0,26, i to w ZLYM KIERUNKU — ludzie ze
+       „swiezoscia" biegli NAJDALEJ od predykcji (+8,5%), a z „obciazeniem"
+       najblizej (+2,8%). Modyfikator robil dokladnie odwrotnie.
+       ⚠️ NIE zastepujemy go zakresem lagodniejszym. Nie mamy podstawy dla
+          ZADNEGO mnoznika — ani 0,90, ani 0,98, ani „skalibrowanego" 0,995-1,005.
+          Zamiana jednej wymyslonej liczby na druga rozni sie tylko tym, ze myli
+          sie mniej; to argument kosmetyczny, nie merytoryczny.
+       Czysty Riegel mowi „tyle wynika z Twojej zyciowki", a nie „tyle zrobisz
+       dzis" — i to jest zdanie, ktore umiemy obronic.
+       ⚠️ WARUNEK POWROTU do modyfikatora: 30+ startow OZNACZONYCH jako
+          prawdziwe zawody, z data PB. Bez tego kazda kolejna proba skonczy sie
+          dobraniem liczby do 40 punktow. Patrz zaleglosc. */
     /* Lokalna kopia usunieta -> window._secsToTime (SSOT sb.js:296).
        Semantycznie identyczna (`h ?` vs `h > 0 ?` — dla dodatnich to samo). */
     const fmt = window._secsToTime;
@@ -4619,12 +4631,21 @@ async function _renderPredykcje() {
     tb.innerHTML = PBS.map(p => {
       const baza = majace.reduce((a, b) => Math.abs(Math.log(b.d/p.d)) < Math.abs(Math.log(a.d/p.d)) ? b : a);
       const riegel = baza.s * Math.pow(p.d / baza.d, 1.06);
-      const dzis = riegel * (1 + kor);
-      const pbTxt = p.s ? fmt(p.s) : '—';
+      const dzis = riegel;   /* bez modyfikatora — patrz komentarz wyzej */
+      /* ⚠️ DWA RODZAJE WIERSZY, NIE JEDEN. Po zdjeciu modyfikatora predykcja na
+         dystansie, gdzie czlowiek MA PB, wychodzi DOKLADNIE rowna temu PB —
+         bo Riegel przy D2=D1 to mnozenie przez 1. Pokazywanie obu liczb obok
+         siebie znaczylo „Twoja zyciowka to Twoja zyciowka" i sugerowalo, ze
+         to prognoza na dzis. Zamiast tego: gdzie jest rekord, pokazujemy REKORD
+         i mowimy, ze to rekord. Szacunek zostaje tam, gdzie naprawde szacujemy. */
+      const maRekord = !!p.s;
+      const wartosc = maRekord ? fmt(p.s) : fmt(dzis);
+      const etykieta = maRekord ? 'Twój rekord' : 'szacunek';
+      const kolor = maRekord ? '#3db870' : '#e8561e';
       return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;">'
         + '<span style="color:rgba(255,255,255,0.75);">' + esc(p.n) + '</span>'
-        + '<span style="font-family:DM Mono,monospace;"><span style="color:rgba(255,255,255,0.45);font-size:10.5px;">PB ' + pbTxt + '</span>'
-        + '  <strong style="color:#e8561e;margin-left:10px;">' + fmt(dzis) + '</strong></span></div>';
+        + '<span style="font-family:DM Mono,monospace;"><span style="color:rgba(255,255,255,0.45);font-size:10.5px;">' + etykieta + '</span>'
+        + '  <strong style="color:' + kolor + ';margin-left:10px;">' + wartosc + '</strong></span></div>';
     }).join('');
     box.style.display = 'block';
   } catch (e) { /* predyktor opcjonalny */ }
@@ -12640,9 +12661,9 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
 
   <!-- E1c PREDYKTOR CZASOW: Riegel z pb_* + korekta o dzisiejsze TSB -->
   <div id="forma-predykcje" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:12px;">
-    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;">🔮 Predykcje czasów <span style="font-size:8px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);">Riegel + forma dnia</span></div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;">🔮 Predykcje czasów <span style="font-size:8px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);">z Twoich życiówek</span></div>
     <div id="forma-predykcje-tabela"></div>
-    <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;">szacunek z Twoich PB skorygowany o dzisiejsze TSB — nie wyrocznia</div>
+    <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;">szacunek z Twoich życiówek, nie z bieżącej formy — mówi, co wynika z rekordu, nie co zrobisz dziś</div>
   </div>
 
 
