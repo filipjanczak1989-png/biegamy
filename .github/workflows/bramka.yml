@@ -71,11 +71,20 @@ jobs:
         if: always()
         run: node tools/bramka-reguly.js
 
-      - name: Zakres commita (migracje, uprawnienia, sekrety)
+      # ⚠️ `--ci` ZWEZA BLOKADE do rzeczy, na ktore wlasciwa reakcja brzmi
+      #    „cofnij natychmiast": sekrety i GRANT/REVOKE dla roli `anon`.
+      #    Migracje, sb.js i theme.css zostaja OSTRZEZENIEM — sa legalne, a w CI
+      #    blokada dziala PO fakcie: migracja juz poszla do bazy, a rollback KODU
+      #    jej nie cofnie. Czerwony run mowilby wtedy „cofnij" o czyms, czego
+      #    cofnac sie nie da, i uczyl omijania bramki.
+      #    W HOOKU zostaje bez zmian — tam blokada dziala PRZED.
+      #    Zmierzone na 32 commitach z 16.08.2026: bramka zatrzymalaby 5,
+      #    WSZYSTKIE na `supabase/migrations`; sekrety i anon — zero trafien.
+      - name: Zakres commita (sekrety i anon blokuja, reszta ostrzega)
         if: always()
         run: |
           if [ "${{ inputs.test_negatywny }}" = "true" ]; then
-            node tools/bramka-commit.js
+            node tools/bramka-commit.js --ci
           elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             # ⚠️ PIERWSZY PUSH NOWEJ GAŁĘZI. `before` to same zera, więc nie ma
             #    z czym porównać. Do 16.08.2026 ten przypadek był POMIJANY —
@@ -85,9 +94,9 @@ jobs:
             #    Teraz liczymy od punktu rozejścia z gałęzią domyślną.
             BAZA=$(git merge-base "origin/${{ github.event.repository.default_branch }}" "${{ github.sha }}")
             echo "Pierwszy push gałęzi — zakres od punktu rozejścia: $BAZA"
-            node tools/bramka-commit.js --zakres "$BAZA..${{ github.sha }}"
+            node tools/bramka-commit.js --ci --zakres "$BAZA..${{ github.sha }}"
           else
-            node tools/bramka-commit.js --zakres "${{ github.event.before }}..${{ github.sha }}"
+            node tools/bramka-commit.js --ci --zakres "${{ github.event.before }}..${{ github.sha }}"
           fi
 
       # ── BRAMKI SPÓJNOŚCI ŹRÓDEŁ (do 16.08.2026 nikt ich nie uruchamiał) ──

@@ -64,10 +64,16 @@ const OSTRZEZENIA_SCIEZEK = [
 const BLOKADY_TRESCI = [
   { re: /sb_secret_[A-Za-z0-9_-]{10,}/,
     opis: 'klucz sekretny Supabase (sb_secret_…)',
+    ciBlokada: true,
     czemu: 'Klucz o pełnym dostępie. W repo publicznym = nieodwracalne.' },
   { re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
     opis: 'klucz prywatny',
+    ciBlokada: true,
     czemu: 'Nigdy nie należy do repozytorium.' },
+  { re: /\b(GRANT|REVOKE)\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\b(TO|FROM)\s+anon\b/i,
+    opis: 'GRANT / REVOKE dla roli anon',
+    ciBlokada: true,
+    czemu: 'Uprawnienie dla NIEZALOGOWANEGO. Wyciek danych, nie usterka — cofaj natychmiast.' },
   { re: /\b(GRANT|REVOKE)\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b/i,
     opis: 'GRANT / REVOKE',
     czemu: 'Zmiana uprawnień w bazie. Ten sam argument co migracja: CI tego nie cofnie.' },
@@ -85,13 +91,26 @@ const BLOKADY_TRESCI = [
  * @param {{pliki: string[], dodane: string[]}} zmiana
  * @returns {{blokady: object[], ostrzezenia: object[]}}
  */
-function sprawdz(zmiana) {
+/* ⚠️ DWA TRYBY, BO BLOKADA ZNACZY CO INNEGO W KAZDYM Z NICH.
+   W HOOKU blokada dziala PRZED — jest jeszcze czas pomyslec, wiec moze byc
+   szeroka. W CI dziala PO: kod jest juz wypchniety, migracja juz poszla do bazy,
+   a rollback KODU jej nie cofnie. Czerwony run ma wiec sens tylko tam, gdzie
+   wlasciwa reakcja brzmi „cofnij natychmiast" — czyli przy sekretach
+   i uprawnieniach dla `anon`. Reszta zostaje w CI OSTRZEZENIEM: widac ja
+   w podsumowaniu runu, ale nie udaje, ze czemus zapobiegla.
+   ⚠️ Zmierzone na 32 commitach z 16.08.2026: bramka zatrzymalaby 5, WSZYSTKIE
+      na `supabase/migrations`. Sekrety i GRANT dla anon: ZERO trafien — czyli
+      reguly, ktore zostaja blokada, nie generuja falszywych alarmow. */
+function sprawdz(zmiana, tryb) {
+  const wCI = tryb === 'ci';
   const blokady = [], ostrzezenia = [];
   const pliki = zmiana.pliki || [];
   const dodane = zmiana.dodane || [];
 
   for (const p of pliki) {
-    for (const r of BLOKADY_SCIEZEK) if (r.re.test(p)) blokady.push({ gdzie: p, ...r });
+    /* Sciezki (migracje, sb.js, theme.css) w CI NIGDY nie blokuja: sa legalne,
+       wymagaja uwagi, a w momencie runu juz sie wydarzyly. */
+    for (const r of BLOKADY_SCIEZEK) if (r.re.test(p)) (wCI ? ostrzezenia : blokady).push({ gdzie: p, ...r });
     for (const r of OSTRZEZENIA_SCIEZEK) if (r.re.test(p)) ostrzezenia.push({ gdzie: p, ...r });
   }
   /* PRZYKLADY WLASNE. Bramka blokowala SAMA SIEBIE: asercje w tym pliku niosa
@@ -112,7 +131,16 @@ function sprawdz(zmiana) {
     for (const r of BLOKADY_TRESCI) {
       if (r.re.test(linia)) {
         // treści nie drukujemy — mogłaby zawierać sam sekret
-        blokady.push({ gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', ...r });
+        const wpis = { gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', ...r };
+        ((wCI && !r.ciBlokada) ? ostrzezenia : blokady).push(wpis);
+        /* ⚠️ JEDNA LINIA = JEDEN POWÓD. Reguły są uporządkowane od najbardziej
+           szczegółowej: `GRANT … TO anon` stoi PRZED ogólnym GRANT-em, więc
+           trafia pierwsza. Bez tego `break` linia z uprawnieniem dla `anon`
+           zgłaszała się DWA razy — raz jako blokada CI, raz jako ostrzeżenie —
+           i psuła trzy asercje samokontroli, które słusznie oczekiwały jednej.
+           Defekt wprowadzony razem z trybem CI 16.08.2026 i złapany przez
+           samokontrolę, zanim wyszedł poza tę maszynę. */
+        break;
       }
     }
   }
@@ -222,7 +250,24 @@ function samokontrola() {
   ok(P([], ['-- GRA' + 'NT SELECT ON athletes TO anon;']).blokady.length === 1,
      'zakomentowany PRAWDZIWY GRANT jednak blokuje (fałszywy alarm tańszy niż przeoczenie)');
 
-  console.log('\n  7) ZNACZNIK bramka:przyklad - wyjscie dla wlasnych danych testowych');
+  console.log('\n  7) TRYB CI - blokuje tylko to, na co reakcja to „cofnij natychmiast"');
+  const C = (pliki, dodane) => sprawdz({ pliki: pliki || [], dodane: dodane || [] }, 'ci');
+  ok(C([], ['sb_sec' + 'ret_AbCdEfGhIjKlMnOp']).blokady.length === 1, 'sekret BLOKUJE w CI');
+  ok(C([], ['-----BEGIN RSA PRIV' + 'ATE KEY-----']).blokady.length === 1, 'klucz prywatny BLOKUJE w CI');
+  ok(C([], ['GRA' + 'NT SELECT ON public.athletes TO anon;']).blokady.length === 1,
+     'GRANT dla anon BLOKUJE w CI');
+  ok(C([], ['REVO' + 'KE ALL ON public.athletes FROM anon;']).blokady.length === 1,
+     'REVOKE dla anon BLOKUJE w CI');
+  ok(C([], ['GRA' + 'NT SELECT ON public.x TO authenticated;']).blokady.length === 0,
+     'GRANT dla authenticated to w CI OSTRZEZENIE, nie blokada');
+  ok(C(['supabase/migrations/2026_x.sql'], []).blokady.length === 0,
+     'migracja NIE blokuje w CI (juz poszla do bazy, rollback kodu jej nie cofnie)');
+  ok(C(['supabase/migrations/2026_x.sql'], []).ostrzezenia.length === 1,
+     '...ale ostrzezenie ZOSTAJE widoczne w podsumowaniu runu');
+  ok(P(['supabase/migrations/2026_x.sql'], []).blokady.length === 1,
+     'w HOOKU migracja nadal BLOKUJE — tam jest jeszcze czas pomyslec');
+
+  console.log('\n  8) ZNACZNIK bramka:przyklad - wyjscie dla wlasnych danych testowych');
   ok(P([], ['GRA' + 'NT SELECT ON athletes TO anon;   // bramka:przyklad']).blokady.length === 0,
      'linia ze znacznikiem NIE blokuje');
   ok(P([], ['GRA' + 'NT SELECT ON athletes TO anon;']).blokady.length === 1,
@@ -260,8 +305,9 @@ function main() {
     return 1;
   }
 
-  const w = sprawdz(zmiana);
-  wypisz(w, naglowek + '   (' + zmiana.pliki.length + ' plików, ' + zmiana.dodane.length + ' dodanych linii)');
+  const tryb = process.argv.includes('--ci') ? 'ci' : 'hook';
+  const w = sprawdz(zmiana, tryb);
+  wypisz(w, naglowek + (tryb === 'ci' ? '   [CI: blokuja tylko sekrety i anon]' : '') + '   (' + zmiana.pliki.length + ' plików, ' + zmiana.dodane.length + ' dodanych linii)');
   return w.blokady.length ? 1 : 0;
 }
 
