@@ -66,10 +66,24 @@ jobs:
         if: always()
         run: node tools/bramka-commit.js --samokontrola
 
+      - name: Samokontrola — bramka karty
+        if: always()
+        run: node tools/bramka-karta.js --samokontrola
+
       # ── BRAMKI WŁAŚCIWE ─────────────────────────────────────────────────
       - name: Reguły treningowe (sb.js vs _shared + EF bez własnych kopii)
         if: always()
         run: node tools/bramka-reguly.js
+
+      # ⚠️ Karta udostępniania ma JEDEN renderer (EF). Zdublowana jest tylko
+      #    GEOMETRIA: klient mierzy jasność zdjęcia tam, gdzie EF postawi imię.
+      #    Rozjazd nie wywala niczego — sprawia, że kontrola jasności mierzy nie
+      #    to miejsce i przepuszcza nieczytelne karty.
+      #    Bramka porównuje WYNIK (piksele, krycie scrimu w punktach próbkowania),
+      #    nie zapis. NIE sprawdza malowania: czcionek, odstępów, zawijania.
+      - name: Karta udostępniania (geometria EF vs strefy klienta)
+        if: always()
+        run: node tools/bramka-karta.js
 
       # ⚠️ `--ci` ZWEZA BLOKADE do rzeczy, na ktore wlasciwa reakcja brzmi
       #    „cofnij natychmiast": sekrety i GRANT/REVOKE dla roli `anon`.

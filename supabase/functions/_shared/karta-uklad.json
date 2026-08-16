@@ -1,0 +1,48 @@
+{
+  "_komentarz": [
+    "SSOT geometrii karty udostępniania. Czytane przez share-card (rysuje) i przez",
+    "sb.js/SHARECARD (mierzy jasność kadru, zanim wpuści własne tło użytkownika).",
+    "",
+    "⚠️ TO NIE JEST PLIK O TREŚCI ANI O KOLORACH. Karta ma JEDEN renderer —",
+    "supabase/functions/share-card. Klient nie rysuje jej wcale, tylko pobiera",
+    "gotowy PNG. Kolory (COLS) i teksty mają więc jeden dom i nie mogą się",
+    "rozjechać. Rozjechać może się TYLKO geometria, bo klient musi wiedzieć,",
+    "GDZIE EF postawi imię, żeby zmierzyć tam jasność zdjęcia.",
+    "",
+    "⚠️ DLACZEGO TO JEST GROŹNE: przesunięcie `podpisY` w EF niczego nie wywali.",
+    "Klient dalej zmierzy stare miejsce, przepuści za jasny kadr i karta wyjdzie",
+    "nieczytelna — a kontrola jasności będzie raportować, że jest dobrze.",
+    "Zmierzone w kodzie klienta: te same piksele dają 65,3 w strefie standardowej",
+    "i 44,4 w portretowej przy progu 38.",
+    "",
+    "Kadrownik działa WYŁĄCZNIE przy własnym tle, czyli w układzie `portret` —",
+    "dlatego strefy klienta lustrzą tylko ten układ."
+  ],
+  "plotno": { "w": 1080, "h": 1350 },
+  "portret": {
+    "strefy": [
+      { "nazwa": "logo",       "x": 60, "y": 100,  "w": 360,  "h": 130, "mierz": true },
+      { "nazwa": "tozsamosc",  "x": 60, "y": 690,  "w": 580,  "h": 130, "mierz": true },
+      { "nazwa": "bohater",    "x": 60, "y": 820,  "w": 640,  "h": 175, "mierz": true },
+      { "nazwa": "podpis",     "x": 60, "y": 975,  "w": 640,  "h": 55,  "mierz": true },
+      { "nazwa": "statystyki", "x": 60, "y": 1050, "w": 960,  "h": 120, "mierz": false },
+      { "nazwa": "stopka",     "x": 0,  "y": 1180, "w": 1080, "h": 170, "mierz": false }
+    ],
+    "scrim": [
+      { "px": 0,    "pct": 0,     "krycie": 0.30 },
+      { "px": 300,  "pct": 22.22, "krycie": 0.10 },
+      { "px": 600,  "pct": 44.44, "krycie": 0.14 },
+      { "px": 780,  "pct": 57.78, "krycie": 0.72 },
+      { "px": 1350, "pct": 100,   "krycie": 0.82 }
+    ],
+    "kotwice_ef": {
+      "_komentarz": "Pola z UKLADY.portret w share-card, które MUSZĄ zgadzać się ze strefami wyżej.",
+      "podpisY": 975,
+      "statIkonaY": 1050,
+      "stopkaY": 1180,
+      "stopkaH": 170,
+      "imie": 700,
+      "meta": 745
+    }
+  }
+}

@@ -92,6 +92,20 @@ const UKLADY: Record<string, Uklad> = {
   },
 };
 
+/* Podpis karty = typ treningu. ⚠️ `Start` znaczy w bazie JEDNOCZEŚNIE zawody
+   i luźny parkrun — odbiorca linku widzi „21,01 km · START" i nie wie, czy
+   patrzy na wynik, czy na niedzielne wybieganie. Kolumna `casual_effort`
+   (16.08.2026) rozdziela te dwa przypadki i to jest jedyne miejsce, gdzie
+   różnica dociera do kogoś spoza aplikacji.
+   Zmierzone przy wprowadzaniu kolumny: 48 z 65 startów to prawdziwe maksy,
+   więc „ZAWODY" jest przypadkiem częstszym i domyślnym (casual_effort=false). */
+const TYPY_STARTU = ["start", "wyścig"];
+function podpisTreningu(typ: string | null, luzny: boolean | null): string {
+  const t = (typ || "").trim();
+  if (!TYPY_STARTU.includes(t.toLowerCase())) return t || "Bieg";
+  return luzny ? "Start treningowo" : "Zawody";
+}
+
 // Liczby okresu (suma, liczba biegów, najdłuższy, czas w ruchu) pochodzą z funkcji SQL
 // `suma_biegowa(athlete_id, od, do)` — JEDNO źródło wspólne z EF miesiac-cron. Dzięki temu
 // karta nie ma własnej kopii listy typów biegowych ani własnej implementacji tej samej
@@ -838,7 +852,7 @@ Deno.serve(async (req) => {
     if (moment_id) return await kartaMomentu(admin, user.id, moment_id);
 
     const { data: log } = await admin.from("training_logs")
-      .select("id,athlete_id,distance_km,duration,pace,heart_rate,elevation_gain,calories,training_type,logged_at,external_source,card_bg_url")
+      .select("id,athlete_id,distance_km,duration,pace,heart_rate,elevation_gain,calories,training_type,casual_effort,logged_at,external_source,card_bg_url")
       .eq("id", log_id).maybeSingle();
     if (!log) return json({ error: "nie ma takiego treningu" }, 404);
     // Odznaki (training_type '__badge__%') to nie treningi. Filtr w kodzie, NIE w PostgREST:
@@ -895,7 +909,7 @@ Deno.serve(async (req) => {
     return await wyrenderuj(admin, {
       plik, publicUrl, ziarno: log_id, dataDoSezonu: log.logged_at, ath: ath as Zawodnik,
       meta, bohater: fmtDystans(Number(log.distance_km)), jednostka: "KM",
-      podpis: log.training_type || "Bieg", staty, wlasneTlo, uklad,
+      podpis: podpisTreningu(log.training_type, log.casual_effort), staty, wlasneTlo, uklad,
     });
   } catch (e) {
     // Szczegóły TYLKO do logów EF — odpowiedź nie wystawia wnętrza na zewnątrz.
