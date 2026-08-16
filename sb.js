@@ -1604,19 +1604,6 @@
   // Włącznik debug z URL (telefon bez konsoli): ?swipedebug=1 → flaga on (persist w localStorage), ?swipedebug=0 → off.
   (function(){ try { var d = new URLSearchParams(location.search).get('swipedebug'); if (d === '1') localStorage.setItem('bm_swipe_debug','1'); else if (d === '0') localStorage.removeItem('bm_swipe_debug'); } catch(e){} })();
 
-  /* SPRZĄTACZKA PO PRZYRZĄDZIE ?vtdebug — ZNIKA PRZY NASTĘPNYM DEPLOYU.
-     Bezwarunkowo, bez flagi i bez URL-a: nie wiadomo, w ilu magazynach przyrząd
-     był włączany, bo każde środowisko ma własny localStorage — Chrome desktop,
-     Chrome Android i przeglądarka wbudowana Messengera to trzy różne.
-     !! Kod czyszczący `?vtdebug=0` szedł RAZEM z usuwanym blokiem, więc bez tej
-        pętli klucze zostałyby na urządzeniach NA ZAWSZE — aplikacja nie miałaby
-        czym ich skasować.
-     !! `bm_vt_dir` NIE jest na liście: to klucz kierunku swipe'a, nie przyrządu. */
-  try {
-    ['bm_vt_debug','bm_vt_cnt','bm_vt_log','bm_vt_swap','bm_vt_reveal','bm_vt_slad','bm_vt_bledy']
-      .forEach(function(k){ try{localStorage.removeItem(k);}catch(_){} try{sessionStorage.removeItem(k);}catch(_){} });
-  } catch (_) {}
-
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
   // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.
   window.wxIcon = function(code, cloudPct){
