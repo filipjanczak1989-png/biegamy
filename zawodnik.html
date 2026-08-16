@@ -4247,8 +4247,9 @@ function initFormaToggles() {
   });
 }
 
-/* CACHE-WELLNESS: jeden fetch wellness 60d na otwarcie Formy — odprawa+vo2max czytaja z pamieci
-   (bylo 2 osobne round-tripy: odprawa 21d + vo2max 60d). Cache per _athleteId, TTL sesji. */
+/* CACHE-WELLNESS: jeden fetch wellness 60d na otwarcie Formy. Karta VO2max
+   zdjeta 16.08.2026 (patrz commit), wiec `vo2max` nie jest juz pobierany —
+   kolumna ZOSTAJE w bazie, zasilana przez intervals-sync. */
 let _welCache = null, _welCacheFor = null, _welCacheAt = 0;
 async function _getWellness() {
   const teraz = Date.now();
@@ -4256,7 +4257,7 @@ async function _getWellness() {
   try {
     const od = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
     const { data } = await sb.from('wellness')
-      .select('date,resting_hr,hrv,sleep_secs,readiness,vo2max').eq('athlete_id', _athleteId)
+      .select('date,resting_hr,hrv,sleep_secs,readiness').eq('athlete_id', _athleteId)
       .gte('date', od).order('date', { ascending: false });
     _welCache = data || []; _welCacheFor = _athleteId; _welCacheAt = teraz;
     return _welCache;
@@ -4372,7 +4373,7 @@ window._renderKmLongterm = async function(tryb) {
 };
 window.loadFormaSection = async function() {
   if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
-  /* FIX: renderFormaForAthlete w try — jesli rzuci (edge-case danych), NIE blokuje odprawy/vo2max/predyktora */
+  /* FIX: renderFormaForAthlete w try — jesli rzuci (edge-case danych), NIE blokuje odprawy i predyktora */
   try {
     await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
   } catch (e) { console.warn('[forma-core]', e); }
@@ -4380,7 +4381,6 @@ window.loadFormaSection = async function() {
   try { _renderPredykcje(); } catch (e) { console.warn('[predykcje]', e); }        /* E1c */
   try { _renderOdprawa(); } catch (e) { console.warn('[odprawa]', e); }            /* PORANNA ODPRAWA */
   try { if (typeof _loadOdprawaPushState === 'function') _loadOdprawaPushState(); } catch (e) {}
-  try { _renderVo2max(); } catch (e) { console.warn('[vo2max]', e); }
   try { if (window._renderKmLongterm) window._renderKmLongterm('week'); } catch (e) { console.warn('[km-lt]', e); }   /* KM-LONGTERM */              /* VO2MAX-KARTA */
 };
 
@@ -4576,44 +4576,6 @@ async function _renderOdprawa() {
 
 /* ═══ E1c PREDYKTOR CZASOW: Riegel T2=T1*(D2/D1)^1.06 z najblizszego dystansem PB,
    korekta o TSB (forma dnia): głębokie obciążenie = wolniej dziś, optimum = pelnia PB. ═══ */
-/* ═══ VO2MAX-KARTA: silnik tlenowy zawodnika z zegarka (Garmin) + trend. Licznik postepu obok predyktora. ═══ */
-async function _renderVo2max() {
-  try {
-    const box = document.getElementById('forma-vo2max');
-    const tresc = document.getElementById('forma-vo2max-tresc');
-    if (!box || !tresc || !_athleteId) return;
-    const _welAll = await _getWellness();   /* CACHE-WELLNESS */
-    const wel = _welAll.filter(w => w.vo2max != null).slice().reverse();   /* asc, tylko z vo2max */
-    if (!wel || !wel.length) { box.style.display = 'none'; return; }
-    const pts = wel.map(w => +w.vo2max);
-    const teraz = pts[pts.length - 1];
-    /* trend: pierwsza vs ostatnia tercja */
-    let strzalka = '', kolor = 'var(--fg)', opis = '';
-    if (pts.length >= 4) {
-      const n3 = Math.ceil(pts.length / 3);
-      const pocz = pts.slice(0, n3).reduce((a, b) => a + b, 0) / n3;
-      const ost = pts.slice(-n3).reduce((a, b) => a + b, 0) / n3;
-      const d = Math.round((ost - pocz) * 10) / 10;
-      if (d >= 0.5) { strzalka = '\u2197'; kolor = '#4ade80'; opis = 'ro\u015bnie (+' + d + ' w 2 mies.) \u2014 baza tlenowa si\u0119 buduje'; }
-      else if (d <= -0.5) { strzalka = '\u2198'; kolor = '#fb923c'; opis = 'spadek (' + d + ') \u2014 mo\u017ce zm\u0119czenie albo przerwa'; }
-      else { strzalka = '\u2192'; kolor = 'rgba(255,255,255,0.6)'; opis = 'stabilnie \u2014 utrzymujesz poziom'; }
-    }
-    /* sparkline */
-    let spark = '';
-    if (pts.length >= 4) {
-      const mn = Math.min(...pts), mx = Math.max(...pts), zak = (mx - mn) || 1, W = 120, H = 26;
-      const path = pts.map((v, i) => (i === 0 ? 'M' : 'L') + (i / (pts.length - 1) * W).toFixed(1) + ',' + (H - (v - mn) / zak * H).toFixed(1)).join(' ');
-      spark = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:' + W + 'px;height:' + H + 'px;margin-top:8px;"><path d="' + path + '" fill="none" stroke="' + kolor + '" stroke-width="1.8"/></svg>';
-    }
-    tresc.innerHTML = '<div style="display:flex;align-items:baseline;gap:10px;">'
-      + '<span style="font-size:32px;font-weight:700;font-family:\'Bebas Neue\',sans-serif;color:' + kolor + ';line-height:1;">' + teraz + '</span>'
-      + '<span style="font-size:12px;color:' + kolor + ';">' + strzalka + '</span>'
-      + '<span style="font-size:10px;color:rgba(255,255,255,0.4);">ml/kg/min</span></div>'
-      + (opis ? '<div style="font-size:11.5px;color:var(--fg2);margin-top:5px;line-height:1.4;">' + opis + '</div>' : '')
-      + spark;
-    box.style.display = 'block';
-  } catch (e) { console.warn('[vo2max]', e); }
-}
 async function _renderPredykcje() {
   try {
     const box = document.getElementById('forma-predykcje');
@@ -12683,11 +12645,6 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
     <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;">szacunek z Twoich PB skorygowany o dzisiejsze TSB — nie wyrocznia</div>
   </div>
 
-  <!-- VO2MAX-KARTA: silnik tlenowy z trendem (KM i inni z Garminem premium) -->
-  <div id="forma-vo2max" style="display:none;background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:12px;">
-    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🫁 Silnik tlenowy · VO₂max</div>
-    <div id="forma-vo2max-tresc"></div>
-  </div>
 
   <!-- Heatmap aktywności (GitHub-style) — 13 tygodni × 7 dni -->
   <div style="background:linear-gradient(165deg,rgba(30,20,40,0.6),rgba(16,11,22,0.82));border:1px solid rgba(255,255,255,0.1);border-radius:18px;box-shadow:0 16px 40px -26px rgba(0,0,0,0.8);padding:14px;margin-top:16px;">
