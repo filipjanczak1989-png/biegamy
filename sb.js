@@ -1861,6 +1861,13 @@
        opts.weekActions(weekNumber, workoutsOfWeek, plan) -> HTML
        opts.workoutActions(workout, plan)                 -> HTML albo [HTML, …]
        opts.footer(plan, workouts)                        -> HTML
+     …oraz JEDNA flaga treści:
+       opts.bezOstrzezen  — pomija blok ai_warnings.
+     Domyślnie FAŁSZ, więc panel trenerski (trener.html) widzi ostrzeżenie jak
+     dotąd. Woła to wyłącznie generator w zawodnik.html, bo tam ten sam ZAMKNIECIE
+     stoi już w karcie podsumowania NAD podglądem — bez flagi człowiek czytał
+     to samo zdanie dwa razy na jednym ekranie. Flaga, nie usunięcie: trener
+     ogląda plan bez karty podsumowania, więc jemu ostrzeżenie jest potrzebne.
      Bez opts = czysty podgląd (tryb zawodnika). Gdy workoutActions nic nie zwróci,
      kolumna przycisków w ogóle się nie renderuje.
 
@@ -1953,7 +1960,7 @@
         <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:8px;">📋 O tym planie</div>
         ${plan.ai_summary ? `<div style="font-family:Inter,sans-serif;font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:10px;">${esc(plan.ai_summary)}</div>` : ''}
         ${plan.ai_rationale ? `<details><summary style="cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;">Pełne uzasadnienie ▾</summary><div style="font-family:Inter,sans-serif;font-size:12px;color:#cbd5e1;line-height:1.7;margin-top:10px;white-space:pre-wrap;">${esc(plan.ai_rationale)}</div></details>` : ''}
-        ${plan.ai_warnings ? `<div style="margin-top:10px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24;">⚠️ ${esc(plan.ai_warnings)}</div>` : ''}
+        ${plan.ai_warnings && !opts.bezOstrzezen ? `<div style="margin-top:10px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24;">⚠️ ${esc(plan.ai_warnings)}</div>` : ''}
       </div>`;
       }
 

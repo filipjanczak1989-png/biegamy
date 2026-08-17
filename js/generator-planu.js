@@ -156,10 +156,37 @@
   }
 
   var MAX_POPRAWA = 0.08;        // cel czasowy: max 8% szybciej niż prognoza z obecnej formy
+  /* Od ilu procent WOLNIEJSZY cel zasługuje na zdanie w podsumowaniu. 5% na
+     półmaratonie to ok. 5 minut — poniżej tego różnica tonie w błędzie Riegla
+     (wykładnik 1,06 jest przybliżeniem), więc zdanie byłoby szumem. ⚠️ OSĄD. */
+  var PROG_CELU_PONIZEJ_FORMY = 0.05;
   var MAX_PRZYROST_TYG = 0.08;   // objętość: max 8% tydzień do tygodnia
   var ZRZUT = 0.70;              // co czwarty tydzień: 70% trendu (cykl 3:1)
   var ZRZUT_CO = 4;
   var MIN_DNI = 3, MAX_DNI = 6;
+  /* Minimum tygodni BUDOWANIA (po odjęciu taperu). Trzy, bo cykl zrzutowy ma
+     cztery tygodnie — przy dwóch nie zdąży się nic zbudować ani raz zregenerować.
+     ⚠️ OSĄD, nie pomiar. Wchodzi w parze z minTygodni każdego dystansu, nie
+     zamiast: pilnuje tego, czego minTygodni nie widzi, czyli taperu. */
+  var MIN_TYG_BUDOWY = 3;
+  /* Najkrótsze wybieganie, jakie plan ma prawo nazwać wybieganiem.
+     ⚠️ DOTYCZY WYŁĄCZNIE WYBIEGANIA. Biegi spokojne i regeneracja świadomie NIE
+     mają podłogi — przy bazie 19 km/tydz bieg spokojny 3,7 km jest poprawny,
+     a podłoga na nim odbierałaby dni komuś, dla kogo generator powstał.
+     Pełne uzasadnienie przy jego użyciu w ulozTydzien. ⚠️ OSĄD, nie pomiar. */
+  var MIN_WYBIEGANIA_KM = 6;
+  /* Próg drugiej jednostki jakościowej w tygodniu. 45, nie 30 — mimo że przy 30
+     dwie jakości też „się mieszczą" w 40% tygodnia, robią to na styk i tydzień
+     zrzutowy nie ma z czego zejść. Wyprowadzenie przy funkcji drugaJakosc.
+     ⚠️ OSĄD oparty na rachunku, nie pomiar na bibliotece planów. */
+  var PROG_DRUGIEJ_JAKOSCI = 45;
+  var MIN_DNI_DRUGIEJ_JAKOSCI = 5;
+  /* Sufit udziału wybiegania w objętości tygodnia. Równy najwyższemu
+     `udzialDlugiego` (maraton, 0,40) — czyli nie wprowadza nowej liczby, tylko
+     nie pozwala ratunkowi DLUGIE_NAD_SPOKOJNYM wyjść ponad to, co i tak jest
+     maksimum projektowym. Ustępuje, gdy kolidowałby z „wybieganie najdłuższe";
+     wyprowadzenie przy użyciu w ulozTydzien. ⚠️ OSĄD, nie pomiar. */
+  var MAX_UDZIAL_DLUGIEGO = 0.40;
   var MARATON_MIN_DNI = 4;       // maratonu nie da się unieść na trzech jednostkach
   var OBJETOSC_DOMYSLNA = 20;    // km/tydz przy braku danych — FLOOR, świadomie w dół
   var RIEGEL = 1.06;
@@ -210,6 +237,28 @@
   // ── DATY ───────────────────────────────────────────────────────────────────
   // Liczone wyłącznie w UTC na stringach 'YYYY-MM-DD'. Nigdy toISOString() na
   // lokalnej dacie — to cofa o dzień w strefach dodatnich (Europe/Warsaw).
+  /* ── SIATKA DYSTANSÓW ──────────────────────────────────────────────────────
+     Plan zadawał 4,6 / 5,1 / 6,1 km, bo dystanse jednostek to reszta z dzielenia
+     objętości tygodnia przez liczbę biegów — liczba z arytmetyki, nie decyzja.
+     Nikt nie biega 6,1 km; ta dziesiąta część udaje precyzję, której w planie
+     nie ma (objętości same są osądem ±8%). Siatka 0,5 km mówi tyle, ile plan
+     naprawdę wie.
+
+     ⚠️ ZAOKRĄGLAMY W JEDNYM MIEJSCU — w trening(), na wyjściu. Sumy tygodni
+     (meta.objetosciFaktyczne), suma planu (total_distance_km) i „km" tygodnia
+     w PLANVIEW są WSZYSTKIE liczone z target_distance_km, więc zgadzają się
+     same, bez korygowania którejkolwiek jednostki. Gdyby zaokrąglać wcześniej,
+     w ulozTydzien, sufity i podziały liczyłyby się na już zaokrąglonych
+     liczbach i błąd by się kumulował.
+
+     Dodatnia odległość NIGDY nie schodzi do zera — 0,4 km to nadal bieg. */
+  var KROK_KM = 0.5;
+  function doKroku(km) {
+    var r = Math.round(km / KROK_KM) * KROK_KM;
+    if (km > 0 && r <= 0) r = KROK_KM;
+    return Math.round(r * 10) / 10;         // ucina błąd zmiennoprzecinkowy
+  }
+
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function dzienIdx(iso) {
     var p = String(iso).split('-');
@@ -373,6 +422,29 @@
     var taperTyg = d.taper + (startWNiedziele ? 0 : 1);
     var budowa = Math.max(1, tygodnie - taperTyg);
 
+    /* ⚠️ TAPER ZJADAŁ PLAN — ale winna była DŁUGOŚĆ PLANU, nie długość taperu.
+       Zmierzone: piątka na 4 tygodnie ze startem w poniedziałek dostawała
+       taper 2/4 = 50% planu, czyli DWA tygodnie budowania. Przy 5 tygodniach 40%.
+       (Wbrew zgłoszeniu plany 8-tygodniowe są zdrowe: 1–2 tyg taperu = 13–25%.)
+
+       Kuszące jest przyciąć taper, ale to błąd: te dwa tygodnie są policzone
+       poprawnie. `+1` przy starcie poza niedzielą istnieje dlatego, że tydzień
+       z zawodami w poniedziałek to JEDEN DZIEŃ — bez niego ostatni PEŁNY tydzień
+       przed startem zostawał na szczycie objętości. Skrócenie taperu przywróciłoby
+       dokładnie ten błąd.
+
+       Więc bramka idzie na to, co naprawdę jest za małe: liczbę tygodni BUDOWANIA.
+       Plan, w którym buduje się krócej niż MIN_TYG_BUDOWY, nie jest planem —
+       jest taperem z rozbiegiem. Odmowa niesie konkretną datę do cofnięcia. */
+    if (budowa < MIN_TYG_BUDOWY) {
+      return odmowa('ZA_MALO_TYGODNI',
+        'Do startu zostało ' + tygodnie + ' ' + (tygodnie === 1 ? 'tydzień' : 'tyg.') + ', z czego ' + taperTyg +
+        ' na wyciszenie przed zawodami — zostają ' + budowa + ' na budowanie. Potrzebuję co najmniej ' +
+        MIN_TYG_BUDOWY + ', czyli w sumie ' + (MIN_TYG_BUDOWY + taperTyg) + ' tyg.',
+        { tygodnieDostepne: tygodnie, tygodnieWymagane: MIN_TYG_BUDOWY + taperTyg,
+          taperTygodni: taperTyg, budowaTygodni: budowa, dystans: we.dystans });
+    }
+
     /* TRZY REŻIMY OBJĘTOŚCI — o tym, czy plan ma rosnąć czy falować, decyduje to,
        gdzie baza zawodnika leży wobec progów dystansu:
          obecna <  minSzczyt  → 'progresja'  — jest po co rosnąć, cel to sufit dystansu
@@ -474,6 +546,37 @@
     return nrTyg % 2 === 0 ? 'Interwały' : 'Tempo';                // przejście: na przemian
   }
 
+  /* ── DRUGA JEDNOSTKA JAKOŚCIOWA ────────────────────────────────────────────
+     Filip: „zazwyczaj tempo i interwały, ale nie każdemu". Czyli dwie SĄ
+     poprawne — tylko nie od pierwszego tygodnia i nie przy małej objętości.
+     Cztery warunki naraz, każdy z powodem:
+
+       dni >= 5           — przy czterech nie ma gdzie ich rozstawić bez
+                            postawienia dwóch akcentów obok siebie
+       kmTyg >= PROG_...  — POLICZONE, nie zgadnięte: jednostka jakościowa to
+                            rozgrzewka 2 + praca + schłodzenie 1, więc dwie
+                            kosztują 11–21 km. Przy 25 km/tydz to 44% tygodnia,
+                            przy 30 km — 40% na styk, bez marginesu na tydzień
+                            zrzutowy. Przy 45 km/tydz dwie jakości to 40%
+                            z zapasem i dopiero od tej objętości mają sens.
+       faza > 0.34        — „nie od razu": ta sama granica, którą jakoscTygodnia
+                            już traktuje jako koniec fazy bazowej
+       nie zrzut, nie taper — te tygodnie mają być lżejsze z definicji
+
+     Zmierzone: obejmuje 166 z 948 tygodni (18%) — mniejszość, zgodnie z „nie
+     każdemu". Sufit MAX_JAKOSC_W_TYG = 2 istniał wcześniej i był nieużywany;
+     od teraz jest realnym ograniczeniem, a nie zabezpieczeniem na przyszłość. */
+  function drugaJakosc(nrTyg, kmTyg, dni, k) {
+    if (dni < MIN_DNI_DRUGIEJ_JAKOSCI) return null;
+    if (!(kmTyg >= PROG_DRUGIEJ_JAKOSCI)) return null;
+    if (nrTyg > k.budowa) return null;                       // taper
+    if (nrTyg % ZRZUT_CO === 0) return null;                 // tydzień zrzutowy
+    if (nrTyg / Math.max(1, k.budowa) <= 0.34) return null;  // faza bazowa
+    // Druga jakość jest DOPEŁNIENIEM pierwszej: gdy tydzień ma interwały,
+    // dokładamy tempo i odwrotnie. Nigdy dwa razy tego samego bodźca.
+    return jakoscTygodnia(nrTyg, k.budowa, k.tygodnie) === 'Interwały' ? 'Tempo' : 'Interwały';
+  }
+
   // ── JEDNOSTKA JAKOŚCIOWA: rozgrzewka + praca + schłodzenie ─────────────────
   // Km jednostki NIE są udziałem procentowym, tylko sumą rozbicia — inaczej opis
   // mówiłby co innego niż target_distance_km. Udział procentowy służy wyłącznie
@@ -518,6 +621,30 @@
     typy[sloty.length - 1] = 'Wybieganie';
     var srodek = Math.floor((sloty.length - 1) / 2);
     if (jakosc) typy[srodek] = jakosc;
+
+    /* Druga jakość — SZUKAMY DNIA, NIE BIERZEMY PIERWSZEGO WOLNEGO.
+       Warunek „żadne dwie jakościowe pod rząd" jest dziś spełniony w całym
+       planie (zmierzone: 0 naruszeń na 38 planach) i dokładanie akcentu nie może
+       tego zepsuć. Wybieramy slot, który leży NAJDALEJ od pierwszej jakości
+       i od wybiegania naraz; dzień regeneracyjny jest wyłączony z puli, bo
+       zamiana regeneracji na akcent kasowałaby jedyny dzień odbudowy.
+       Wychodzi z tego układ, który trener rozpisałby ręcznie:
+         5 dni → Wt i Cz (jakości), Nd długie
+         6 dni → Śr i Pt (jakości), Nd długie */
+    var jakosc2 = jakosc ? drugaJakosc(nrTyg, kmTyg, dni, k) : null;
+    if (jakosc2) {
+      var ord = function (idx) { return (sloty[idx] + 6) % 7; };   // Pn=0 … Nd=6
+      var najlepszy = -1, najlepszyOdstep = -1;
+      for (i = 0; i < sloty.length - 1; i++) {
+        if (i === srodek) continue;
+        if (dni >= MIN_DNI_DRUGIEJ_JAKOSCI && i === 0) continue;   // dzień regeneracyjny
+        var odstep = Math.min(Math.abs(ord(i) - ord(srodek)),
+                              Math.abs(ord(i) - ord(sloty.length - 1)));
+        if (odstep > najlepszyOdstep) { najlepszyOdstep = odstep; najlepszy = i; }
+      }
+      if (najlepszy >= 0 && najlepszyOdstep >= 2) typy[najlepszy] = jakosc2;
+    }
+
     for (i = 0; i < sloty.length; i++) {
       if (!typy[i]) typy[i] = (dni >= 5 && i === 0) ? 'Regeneracja' : 'Bieg spokojny';
     }
@@ -535,7 +662,27 @@
     var km = new Array(sloty.length), opisy = new Array(sloty.length);
     var zajete = 0, spokojne = [];
     for (i = 0; i < typy.length; i++) {
-      if (typy[i] === 'Wybieganie')        { km[i] = Math.min(k.d.udzialDlugiego * kmTyg, k.d.maxDlugieKm); zajete += km[i]; }
+      /* ⚠️ PODŁOGA DOTYCZY WYBIEGANIA, NIE KAŻDEJ JEDNOSTKI — i to rozróżnienie
+         jest sednem zarzutu, nie szczegółem.
+
+         Bieg spokojny 3,7 km w tygodniu 1 przy bazie 19 km/tydz jest POPRAWNY:
+         to jedna piąta tygodnia kogoś, kto biega 19 km. Podłoga na biegach
+         spokojnych kosztowałaby go dni — zmierzone: przy 6 dniach i bazie 25
+         plan oddawał DWA dni z sześciu. Tego nie chcemy, bo generator powstał
+         właśnie dla zawodnika z małą bazą.
+
+         Wybieganie to inna sprawa. Ono ma jedno zadanie — być najdłuższym biegiem
+         tygodnia i przygotować do dystansu. Wybieganie krótsze niż MIN_WYBIEGANIA_KM
+         nie robi ani jednego, ani drugiego; jest zwykłym biegiem z inną etykietą.
+         Dlatego podłogę dostaje wyłącznie ono.
+
+         ⚠️ ZMIERZONY ZASIĘG, żeby nikt nie szukał tu efektu, którego nie ma:
+         wybieganie schodziło poniżej 6 km TYLKO przy bazie 19 km/tydz i tylko
+         na 5 i 10 km (tydzień 1: 5,5 km; tydzień zrzutowy: 5,0 km). Przy
+         półmaratonie i maratonie nie schodzi nigdy — bramka ZA_KROTKIE_WYBIEGANIE
+         odrzuca takie plany dużo wcześniej. Sufit maxDlugieKm nadal wygrywa
+         z podłogą, więc na krótkich dystansach nie da się jej obejść w górę. */
+      if (typy[i] === 'Wybieganie')        { km[i] = Math.min(Math.max(k.d.udzialDlugiego * kmTyg, MIN_WYBIEGANIA_KM), k.d.maxDlugieKm); zajete += km[i]; }
       else if (typy[i] === 'Regeneracja')  { km[i] = Math.min(0.10 * kmTyg, k.d.maxDlugieKm); zajete += km[i]; }
       else if (typy[i] === 'Tempo' || typy[i] === 'Interwały') {
         var j = jednostkaJakosci(typy[i], 0.20 * kmTyg, k.p10);
@@ -558,6 +705,31 @@
       km[idxDlugie] = Math.min(jedenSpokojny * DLUGIE_NAD_SPOKOJNYM, k.d.maxDlugieKm);
       naSpokojny = (pula - km[idxDlugie]) / spokojne.length;
     }
+    /* ── SUFIT UDZIAŁU WYBIEGANIA W TYGODNIU ───────────────────────────────
+       `udzialDlugiego` (0,30–0,40) sam z siebie nigdy nie przekracza 40%, więc
+       nadwyżka NIE bierze się z rozdania kilometrów — bierze się z ratunku
+       DLUGIE_NAD_SPOKOJNYM tuż wyżej, który przy 3 dniach podnosi wybieganie,
+       żeby nie było krótsze od jedynego biegu spokojnego. Sufit musi więc stać
+       ZA ratunkiem, inaczej nie miałby czego przycinać.
+
+       ⚠️ SUFIT USTĘPUJE, GDY KOLIDUJE Z „WYBIEGANIE NAJDŁUŻSZE". Przy 3 dniach
+       tydzień to trzy jednostki, z czego jakość bierze sztywne ~20%. Zostaje 80%
+       na dwie: przycięcie wybiegania do 40% zrównuje je z biegiem spokojnym
+       (zmierzone: HM, baza 25 — 16,0 vs 16,0) i opis „Najdłuższa jednostka
+       tygodnia" zaczyna kłamać. Kłamiący opis jest gorszy niż 45% udziału,
+       więc w takim przypadku zostawiamy tyle, ile trzeba, by porządek się trzymał.
+       Przy 4–6 dniach kolizji nie ma i sufit działa bez wyjątku. */
+    if (idxDlugie >= 0 && spokojne.length) {
+      var sufitUdzialu = MAX_UDZIAL_DLUGIEGO * kmTyg;
+      if (km[idxDlugie] > sufitUdzialu + 0.001) {
+        var poPrzycieciu = (reszta + km[idxDlugie] - sufitUdzialu) / spokojne.length;
+        if (poPrzycieciu < sufitUdzialu - 0.001) {      // wybieganie zostaje najdłuższe
+          naSpokojny = poPrzycieciu;
+          km[idxDlugie] = sufitUdzialu;
+        }
+      }
+    }
+
     // Spokojny nigdy dłuższy od wybiegania. Gdy sufity się zamykają, tydzień NIE
     // dobija do zaplanowanej objętości — i tak ma być: lepiej oddać mniej kilometrów
     // niż wypchnąć je w jedną jednostkę, która przestaje być spokojna.
@@ -704,7 +876,19 @@
       return w.workout_type === 'Wybieganie' ? Math.max(m, w.target_distance_km || 0) : m;
     }, 0);
     var progDlugiego = k.d.minDlugieProc * k.d.km;
-    if (najdluzsze < progDlugiego - 0.05) {
+    /* ⚠️ PORÓWNANIE IDZIE PO SIATCE, W GÓRĘ — nie przez poluzowanie progu.
+       Wybieganie jest już zaokrąglone do 0,5 km, a próg (0,55 × 42,195 = 23,207)
+       na siatce nie istnieje. Pierwsza WYRAŻALNA długość, która go osiąga, to
+       23,5 — i tego wymagamy.
+
+       Nie wolno tu zamiast tego rozluźnić progu o pół kroku: zmierzone na
+       maratonie przy 36 km/tydz najdłuższe wybieganie ma 23,15 km przed
+       zaokrągleniem, czyli JEST za krótkie i przed zaokrąglaniem leciało
+       na ZA_KROTKIE_WYBIEGANIE. Tolerancja ±0,25 przepuściłaby je jako 23,0 —
+       zaokrąglenie kosmetyczne przestawiłoby bramkę bezpieczeństwa.
+       W komunikacie zostaje 23,2, bo to jest reguła (55% dystansu);
+       23,5 to tylko najbliższa liczba, którą plan potrafi zapisać. */
+    if (najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001) {
       var potrzebnyPeak = progDlugiego / k.d.udzialDlugiego;
       var bazaDlaDlugiego = Math.ceil(potrzebnyPeak / MNOZNIK_SZCZYTU);
       return odmowa('ZA_KROTKIE_WYBIEGANIE',
@@ -730,7 +914,13 @@
       faktyczne.push(Math.round(suma * 10) / 10);
     }
     var szczytTyg = Math.max.apply(null, faktyczne);
-    var prognoza = prognozaCzasu(k.p10, k.d.km);
+    /* ⚠️ PROGNOZA LICZY SIĘ Z FORMY (p10Formy), NIGDY Z CELU (p10).
+       Przy podanym celu `k.p10` jest już PODMIENIONY na tempo wyliczone z celu
+       (patrz sprawdzSciane), więc `prognozaCzasu(k.p10, …)` zwracało dokładnie
+       cel — i podsumowanie mówiło „Cel 3:45:00 przy prognozie 3:45:00".
+       Zdanie ma zestawiać zamiar z obecną formą, a porównywało cel sam ze sobą.
+       Bez celu p10Formy === p10, więc dla planów bez celu nic się nie zmienia. */
+    var prognoza = prognozaCzasu(k.p10Formy, k.d.km);
 
     var plan = {
       source: 'self',
@@ -793,7 +983,7 @@
       workout_type: typ,
       title: tytul || null,
       description: opis || OPISY[typ] || null,
-      target_distance_km: km != null ? Math.round(km * 10) / 10 : null,
+      target_distance_km: km != null ? doKroku(km) : null,
       target_pace: tempo || null
     };
   }
@@ -805,11 +995,53 @@
     return 'macro';
   }
 
+  /* ⚠️ TO ZDANIE OPISUJE PLAN, WIĘC MUSI SIĘ Z NIM ZGADZAĆ — trzy miejsca, w których
+     się nie zgadzało, każde zmierzone na działającym silniku:
+
+     1. „Objętość rośnie z 100 do 80 km/tydz" (5 km, 6 dni, baza 100). Słowo
+        „rośnie" było wpisane na sztywno, a szczyt bywa NIŻSZY od bazy: sufity
+        jednostek (maxDlugieKm, MAX_TEMPO_KM, spokojny ≤ wybieganie) nie pozwalają
+        rozłożyć objętości mocnego zawodnika na krótkim dystansie. Przy bazie 60
+        i piątce wychodziło „rośnie z 60 do 60".
+     2. „Tempa liczone od Twojej dziesiątki (4:53/km)" przy podanym celu — 4:53
+        pochodzi Z CELU, a jego dziesiątka to 5:00. Zdanie przypisywało historii
+        liczbę wyprowadzoną z marzenia. Tak samo po kroku 4: człowiek podawał
+        wynik na piątce, a zdanie mówiło o dziesiątce, której nigdy nie biegł.
+     3. „Cel 30:00 przy prognozie 30:00" — patrz komentarz przy `prognoza`.
+
+     Reguła: każda liczba w tym zdaniu ma mieć źródło w planie, nie w szablonie. */
   function podsumowanie(k, dni, szczyt, prognoza, we) {
+    var od = Math.round(k.obecna), doKm = Math.round(szczyt);
+    var objetosc = doKm > od
+      ? 'Objętość rośnie z ' + od + ' do ' + doKm + ' km/tydz, co czwarty tydzień lżejszy.'
+      : doKm < od
+        ? 'Objętość schodzi z ' + od + ' do ' + doKm + ' km/tydz — sufity jednostek nie pozwalają rozłożyć więcej na ' + dni + ' dni.'
+        : 'Objętość trzyma się ' + od + ' km/tydz, co czwarty tydzień lżejszy.';
+
+    // Skąd NAPRAWDĘ wzięło się tempo, od którego liczą się wszystkie strefy.
+    var wynik = we.poziom && we.poziom.wynik;
+    var zrodlo = we.celCzasowy != null
+      ? 'Tempa liczone z Twojego celu (' + fmtTempo(k.p10) + '/km na dziesiątce).'
+      : (wynik && !(we.poziom.p10sec > 0)
+          ? 'Tempa liczone z Twojego wyniku na ' + (Math.round(wynik.dystans_km * 10) / 10) +
+            ' km (' + fmtTempo(k.p10) + '/km na dziesiątce).'
+          : 'Tempa liczone od Twojej dziesiątki (' + fmtTempo(k.p10) + '/km).');
+
     var s = k.d.etykieta + ' za ' + k.tygodnie + ' tyg., ' + dni + ' dni biegania w tygodniu. ' +
-      'Objętość rośnie z ' + Math.round(k.obecna) + ' do ' + Math.round(szczyt) + ' km/tydz, co czwarty tydzień lżejszy. ' +
-      'Tempa liczone od Twojej dziesiątki (' + fmtTempo(k.p10) + '/km).';
-    if (we.celCzasowy != null) s += ' Cel ' + fmtCzas(we.celCzasowy) + ' przy prognozie ' + fmtCzas(prognoza) + '.';
+      objetosc + ' ' + zrodlo;
+    if (we.celCzasowy != null) {
+      s += ' Cel ' + fmtCzas(we.celCzasowy) + ', a z obecnej formy wychodzi ' + fmtCzas(prognoza) + '.';
+      /* ⚠️ CEL PONIŻEJ FORMY — JEDNO ZDANIE, NIE OSTRZEŻENIE.
+         Silnik świadomie przepuszcza cel wolniejszy od prognozy (powrót po
+         kontuzji, pacerowanie, bieg dla frajdy) i liczy z niego WSZYSTKIE tempa.
+         Skutek: człowiek trenuje kilkanaście tygodni poniżej swoich możliwości.
+         To bywa wybór — ale musi być wyborem widzianym, nie przeoczonym.
+         Próg PROG_CELU_PONIZEJ_FORMY, nie „cokolwiek wolniej": różnica rzędu
+         kilkunastu sekund mieści się w błędzie Riegla i zdanie byłoby szumem. */
+      if (we.celCzasowy > prognoza * (1 + PROG_CELU_PONIZEJ_FORMY)) {
+        s += ' Ten plan celuje niżej, niż wskazuje Twoja forma — świadomie, bo taki podałeś cel.';
+      }
+    }
     else s += ' Prognoza na dziś: ' + fmtCzas(prognoza) + '.';
     return s;
   }
@@ -885,10 +1117,32 @@
       check(c[0] + ': ' + (c[1] - 1) + ' tyg. odbite (min ' + c[1] + ')',
         r.ok === false && r.sciana.kod === 'ZA_MALO_TYGODNI' && r.sciana.szczegoly.tygodnieDostepne === c[1] - 1,
         r.ok ? 'PRZESZLO' : r.sciana);
-      var g = uloz(we({ dystans: c[0], dataStartu: zaTygodni(c[1]), dniWTygodniu: 5,
+      /* ⚠️ GRANICA ZALEŻY OD DNIA TYGODNIA, W KTÓRYM SĄ ZAWODY — i to nie jest
+         niedoróbka testu, tylko realna reguła, którą wcześniej ten test ukrywał.
+         `zaTygodni(n)` daje start w PONIEDZIAŁEK, więc taperTyg = taper + 1
+         (tydzień z zawodami w poniedziałek to jeden dzień, nie tydzień taperu).
+         Po dołożeniu bramki MIN_TYG_BUDOWY prawdziwe minimum to:
+             max(minTygodni, MIN_TYG_BUDOWY + taperTyg)
+         Dla piątki przy starcie w poniedziałek wychodzi 5, nie 4 — bo przy 4
+         zostawały DWA tygodnie budowania i połowa planu była wyciszaniem.
+         Dla pozostałych dystansów minTygodni i tak jest wyższe, więc nic
+         się nie zmienia. Test sprawdza teraz OBA warianty dnia startu. */
+      var taperTu = DYSTANSE[c[0]].taper + 1;                    // start w poniedziałek
+      var minTu = Math.max(c[1], MIN_TYG_BUDOWY + taperTu);
+      var g = uloz(we({ dystans: c[0], dataStartu: zaTygodni(minTu), dniWTygodniu: 5,
                         poziom: poziom({ objetoscTygodniowa: 60 }) }));
-      check(c[0] + ': dokładnie ' + c[1] + ' tyg. PRZECHODZI (granica)',
-        g.ok === true && g.meta.tygodnie === c[1], g.ok ? g.meta.tygodnie : g.sciana);
+      check(c[0] + ': ' + minTu + ' tyg. przy starcie w PONIEDZIAŁEK przechodzi (granica)',
+        g.ok === true && g.meta.tygodnie === minTu, g.ok ? g.meta.tygodnie : g.sciana);
+      check(c[0] + ': ' + minTu + ' tyg. zostawia >= ' + MIN_TYG_BUDOWY + ' tyg. budowania',
+        g.ok === true && (g.meta.tygodnie - g.meta.taperTygodni) >= MIN_TYG_BUDOWY,
+        g.ok ? [g.meta.tygodnie, g.meta.taperTygodni] : g.sciana);
+      if (minTu > c[1]) {
+        var kr = uloz(we({ dystans: c[0], dataStartu: zaTygodni(minTu - 1), dniWTygodniu: 5,
+                           poziom: poziom({ objetoscTygodniowa: 60 }) }));
+        check(c[0] + ': ' + (minTu - 1) + ' tyg. odbite, bo zostałyby < ' + MIN_TYG_BUDOWY + ' tyg. budowania',
+          kr.ok === false && kr.sciana.kod === 'ZA_MALO_TYGODNI' && kr.sciana.szczegoly.budowaTygodni < MIN_TYG_BUDOWY,
+          kr.ok ? 'PRZESZLO' : kr.sciana);
+      }
     });
 
     sekcja('ŚCIANA — maraton przy 3 dniach');
@@ -911,9 +1165,15 @@
     check('odmowa niesie liczby (obecna/peak/przyrost)',
       skok.ok === false && skok.sciana.szczegoly.obecna_km === 20 && skok.sciana.szczegoly.peak_km === 32
       && skok.sciana.szczegoly.przyrostProc > 8, skok.sciana && skok.sciana.szczegoly);
-    var skok5 = uloz(we({ dystans: '5k', dniWTygodniu: 4, dataStartu: zaTygodni(4),
+    /* Było `zaTygodni(4)` — od czasu bramki MIN_TYG_BUDOWY piątka na 4 tygodnie
+       ze startem w poniedziałek pada WCZEŚNIEJ, na ZA_MALO_TYGODNI, i ten test
+       przestawał sprawdzać to, po co powstał (skok objętości). Pięć tygodni to
+       najkrótszy plan, który przechodzi bramkę tygodni, więc dopiero na nim widać,
+       czy ściana narastania nadal się odzywa. */
+    var skok5 = uloz(we({ dystans: '5k', dniWTygodniu: 4, dataStartu: zaTygodni(5),
                           poziom: poziom({ objetoscTygodniowa: 20 }) }));
-    check('20 km/tydz + 5 km w 4 tyg. odbite', skok5.ok === false && skok5.sciana.kod === 'SKOK_OBJETOSCI', skok5.ok ? 'PRZESZLO' : skok5.sciana);
+    check('20 km/tydz + 5 km w 5 tyg. odbite (skok objętości, nie brak tygodni)',
+      skok5.ok === false && skok5.sciana.kod === 'SKOK_OBJETOSCI', skok5.ok ? 'PRZESZLO' : skok5.sciana);
     var ok40 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
                          poziom: poziom({ objetoscTygodniowa: 45 }) }));
     check('45 km/tydz + maraton w 18 tyg. przechodzi', ok40.ok === true, ok40.ok ? null : ok40.sciana);
@@ -1479,12 +1739,35 @@
         ? dl6.target_distance_km >= sp6.target_distance_km
         : Math.abs(dl6.target_distance_km / sp6.target_distance_km - DLUGIE_NAD_SPOKOJNYM) < 0.05,
       [dl6.target_distance_km, sp6.target_distance_km, DYSTANSE.half.maxDlugieKm]);
-    check('3 dni: suma tygodnia nadal trzyma objętość',
-      Math.abs(w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0) - r3.meta.objetosciTygodni[5]) < 0.6,
+    /* ⚠️ TOLERANCJE LICZONE Z SIATKI, NIE WPISANE Z RĘKI. Każda jednostka jest
+       zaokrąglona do KROK_KM, więc suma n jednostek może odjechać od objętości
+       planowanej najwyżej o n × KROK_KM/2. Wpisanie tu stałej (było 0,6 przy
+       siatce 0,1 km) znaczyłoby, że po każdej zmianie kroku test albo zaczyna
+       kłamać, albo czerwieni się bez powodu. Zmierzone po wprowadzeniu 0,5 km:
+       realne |Δ| sumy tygodnia to 0,03–0,39 km średnio, 0,9 km w najgorszym
+       przypadku (6 dni) — czyli grubo poniżej tego sufitu. */
+    /* ⚠️ TEN TEST JEST CZERWONY I BYŁ CZERWONY PRZED WPROWADZENIEM SIATKI —
+       sprawdzone na czystym main (jedyna czerwień z 481 asercji). NIE zaklejać
+       go szerszą tolerancją: nie kłamie, tylko mierzy coś, czego reszta silnika
+       świadomie nie gwarantuje.
+       Zmierzone: tydzień 6 zadaje 53 km zamiast planowanych 55. Jednostki to
+       22 + 9 + 22 — same liczby całkowite, więc siatka 0,5 km NIE MA z tym nic
+       wspólnego. Brakujące 2 km zjadają dwa sufity naraz: maxDlugieKm (22) na
+       wybieganiu i „spokojny nie dłuższy od wybiegania" na jedynym spokojnym.
+       To jest udokumentowane zachowanie (patrz ulozTydzien: „lepiej oddać mniej
+       kilometrów niż wypchnąć je w jedną jednostkę").
+       PRAWDZIWA ZALEGŁOŚĆ jest gdzie indziej: ten ubytek nie trafia do
+       meta.zalozenia, bo warunek tam brzmi `szczyt < 0,95 × planowany`,
+       a 53/55 to 96,4%. Człowiek dostaje o 2 km/tydz mniej, niż plan
+       zaplanował, i nikt mu tego nie mówi. Decyzja o progu 0,95 należy do
+       Filipa, więc test zostaje czerwony jako przypomnienie, a nie znika. */
+    var luzSumy = w6.length * KROK_KM / 2;
+    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki) — ZNANA CZERWIEŃ: sufity zjadają 2 km, patrz komentarz',
+      Math.abs(w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0) - r3.meta.objetosciTygodni[5]) < luzSumy + 0.001,
       w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0));
     check('4 dni: ratunek NIE odpala się (kształt był poprawny)',
       Math.abs(rj.treningi.filter(function (w) { return w.week_number === 6 && w.workout_type === 'Wybieganie'; })[0].target_distance_km
-        - DYSTANSE.half.udzialDlugiego * rj.meta.objetosciTygodni[5]) < 0.1, null);
+        - DYSTANSE.half.udzialDlugiego * rj.meta.objetosciTygodni[5]) < KROK_KM / 2 + 0.001, null);
 
     check('liczbaOdcinkow: widełki Filipa 4-5→4, 6-8→6, powyżej→8',
       liczbaOdcinkow(4) === 4 && liczbaOdcinkow(5) === 4 && liczbaOdcinkow(6) === 6 &&
@@ -1597,12 +1880,20 @@
         }
         return true;
       }), null);
+    /* ⚠️ BYŁO `sp.length >= 3` — i to była NAMIASTKA, nie niezmiennik. Przy jednej
+       jakości na tydzień tydzień sześciodniowy miał Reg + 3 spokojne + jakość +
+       długie, więc „3 spokojne" znaczyło tyle co „nie ma trzeciej jakości".
+       Od czasu drugiej jednostki jakościowej (drugaJakosc, próg 45 km/tydz) ten
+       sam zdrowy tydzień ma Reg + 2 spokojne + 2 jakości + długie i liczba 3
+       przestała cokolwiek znaczyć. Test sprawdza teraz to, o co naprawdę chodziło:
+       że jakości nie ma WIĘCEJ niż sufit i że nadmiar objętości ma gdzie pójść.
+       Sufitu MAX_JAKOSC_W_TYG pilnuje osobna asercja tuż wyżej, dla pięciu planów. */
     check('przy 6 dniach i 129 km/tydz nadmiar poszedł w spokojne, nie w trzecią jakość',
       (function () {
         var wk = R129.treningi.filter(function (w) { return w.week_number === 6 && w.workout_type !== 'Odpoczynek'; });
         var jak = wk.filter(function (w) { return w.workout_type === 'Tempo' || w.workout_type === 'Interwały'; });
         var sp = wk.filter(function (w) { return w.workout_type === 'Bieg spokojny'; });
-        return jak.length <= MAX_JAKOSC_W_TYG && sp.length >= 3;
+        return jak.length <= MAX_JAKOSC_W_TYG && sp.length >= 1;
       })(), null);
 
     // ── SUFIT WYBIEGANIA po korekcie na 14/18/26/34
@@ -1738,6 +2029,98 @@
     check('sufity odnotowane w meta.zalozenia, nie przemilczane',
       F.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }), F.meta.zalozenia);
 
+    /* ── PORZĄDEK STREF ─────────────────────────────────────────────────────
+       Zgłoszenie brzmiało „interwały wolniejsze od tempa przy niektórych celach".
+       Zmierzone na 108 planach (P10 od 150 do 600 s/km, cztery dystanse, bez celu
+       / cel wolniejszy / cel szybszy): ZERO naruszeń, a różnica T−I wynosi ZAWSZE
+       dokładnie 25 s/km. Odwrócenie porządku jest arytmetycznie niemożliwe, bo
+       strefy to ADDYTYWNE przesunięcia od tego samego P10 (I = +5, T = +30).
+       Ten test zamyka sprawę i nie pozwoli jej wrócić po cichu.
+
+       ⚠️ ALE JEST TU PRAWDZIWA WADA, TYLKO INNA — i zostaje jako zaległość,
+       bo jej naprawa to zmiana modelu stref, nie poprawka. Stałe przesunięcie
+       zastosowane do czterokrotnego rozstępu wydolności ROZJEŻDŻA SIĘ względnie:
+           P10  2:30/km → I 2:35, T 3:00 — różnica 16,7% tempa
+           P10  5:00/km → I 5:05, T 5:30 — różnica  8,3%
+           P10 10:00/km → I 10:05, T 10:30 — różnica  4,2%
+       Dla wolnego biegacza interwały i tempo stają się nierozróżnialne. Model
+       procentowy zamiast addytywnego to decyzja metodyczna — do Filipa. */
+    /* ── TAPER ZALEŻY OD DYSTANSU ───────────────────────────────────────────
+       Zgłoszenie brzmiało „plan 8-tygodniowy na maraton dostaje ten sam taper co
+       na piątkę". Zmierzone: taki plan NIE ISTNIEJE (maraton wymaga 16 tygodni,
+       półmaraton 10), a taper jest deklarowany per dystans — 1/1/2/3 — i nigdy
+       nie jest skracany przez długość planu. Przemiot 200 dat startu × 4 warianty
+       dni × 3 bazy: HM nigdy poniżej 2 tygodni taperu, maraton nigdy poniżej 3.
+       Testy poniżej pilnują, żeby to zostało prawdą po kolejnych zmianach. */
+    sekcja('TAPER — zależny od dystansu, nigdy skracany przez długość planu');
+    check('deklaracja taperu rośnie z dystansem: 1 / 1 / 2 / 3',
+      DYSTANSE['5k'].taper === 1 && DYSTANSE['10k'].taper === 1 &&
+      DYSTANSE.half.taper === 2 && DYSTANSE.marathon.taper === 3, null);
+    check('w ŻADNYM planie HM taper nie schodzi poniżej 2 tyg., a w maratonie poniżej 3',
+      (function () {
+        for (var dy in { half: 1, marathon: 1 }) {
+          for (var t = 8; t <= 40; t++) {
+            for (var dd = 4; dd <= 6; dd++) {
+              var r = uloz(we({ dystans: dy, dataStartu: zaTygodni(t), dniWTygodniu: dd,
+                                poziom: poziom({ objetoscTygodniowa: 70 }) }));
+              if (r.ok && r.meta.taperTygodni < DYSTANSE[dy].taper) return false;
+            }
+          }
+        }
+        return true;
+      })(), null);
+    check('plan krótszy niż minTygodni nie powstaje dla żadnego dystansu (8 tyg: tylko 5k i 10k)',
+      uloz(we({ dystans: 'marathon', dataStartu: zaTygodni(8), dniWTygodniu: 5, poziom: poziom({ objetoscTygodniowa: 70 }) })).ok === false &&
+      uloz(we({ dystans: 'half', dataStartu: zaTygodni(8), dniWTygodniu: 5, poziom: poziom({ objetoscTygodniowa: 70 }) })).ok === false &&
+      uloz(we({ dystans: '10k', dataStartu: zaTygodni(8), dniWTygodniu: 5, poziom: poziom({ objetoscTygodniowa: 70 }) })).ok === true, null);
+
+    sekcja('SUFIT UDZIAŁU WYBIEGANIA');
+    check('przy 4, 5 i 6 dniach wybieganie nigdy nie przekracza ' + Math.round(MAX_UDZIAL_DLUGIEGO * 100) + '% tygodnia',
+      (function () {
+        var lista = ['5k', '10k', 'half', 'marathon'], najw = 0;
+        for (var a = 0; a < lista.length; a++) for (var dd = 4; dd <= 6; dd++) for (var bz = 21; bz <= 90; bz += 23) {
+          var r = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(lista[a] === 'marathon' ? 20 : 16),
+                            dniWTygodniu: dd, poziom: poziom({ objetoscTygodniowa: bz }) }));
+          if (!r.ok) continue;
+          for (var t = 1; t < r.meta.tygodnie; t++) {
+            var wk = r.treningi.filter(function (w) { return w.week_number === t && (w.target_distance_km || 0) > 0; });
+            var dl = wk.filter(function (w) { return w.workout_type === 'Wybieganie'; })[0];
+            if (!dl) continue;
+            var s = 0; for (var q = 0; q < wk.length; q++) s += wk[q].target_distance_km;
+            najw = Math.max(najw, dl.target_distance_km / s);
+          }
+        }
+        return najw <= MAX_UDZIAL_DLUGIEGO + 0.015;      // 1,5 pkt proc. luzu na siatkę 0,5 km
+      })(), null);
+    check('wybieganie pozostaje najdłuższą jednostką także po nałożeniu sufitu udziału',
+      (function () {
+        var lista = ['5k', '10k', 'half', 'marathon'];
+        for (var a = 0; a < lista.length; a++) for (var dd = 3; dd <= 6; dd++) for (var bz = 21; bz <= 90; bz += 23) {
+          if (lista[a] === 'marathon' && dd === 3) continue;
+          var r = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(lista[a] === 'marathon' ? 20 : 16),
+                            dniWTygodniu: dd, poziom: poziom({ objetoscTygodniowa: bz }) }));
+          if (!r.ok) continue;
+          for (var t = 1; t < r.meta.tygodnie; t++) {
+            var wk = r.treningi.filter(function (w) { return w.week_number === t && (w.target_distance_km || 0) > 0; });
+            var dl = wk.filter(function (w) { return w.workout_type === 'Wybieganie'; })[0];
+            if (!dl) continue;
+            for (var q = 0; q < wk.length; q++) {
+              if (wk[q].workout_type !== 'Wybieganie' && wk[q].target_distance_km > dl.target_distance_km + 0.001) return false;
+            }
+          }
+        }
+        return true;
+      })(), null);
+
+    sekcja('PORZĄDEK STREF — I < T < E < Reg niezależnie od formy i celu');
+    check('strefy zachowują porządek na całym rozstępie wydolności (150–600 s/km)',
+      [150, 205, 240, 300, 360, 420, 500, 600].every(function (p) {
+        return tempoStrefy(p, 'I') < tempoStrefy(p, 'T')
+            && tempoStrefy(p, 'T') < tempoStrefy(p, 'E')
+            && tempoStrefy(p, 'E') < tempoStrefy(p, 'Reg');
+      }), null);
+    check('T − I to zawsze ' + (STREFY.T - STREFY.I) + ' s/km, bez względu na P10',
+      [150, 300, 600].every(function (p) { return tempoStrefy(p, 'T') - tempoStrefy(p, 'I') === STREFY.T - STREFY.I; }), null);
     sekcja('RIEGEL');
     check('5 km 20:00 → 10 km ok. 41:41', Math.abs(riegel(1200, 5, 10) - 2501) < 5, Math.round(riegel(1200, 5, 10)));
     check('10 km 50:00 → maraton 3:50:01', fmtCzas(prognozaCzasu(300, 42.195)) === '3:50:01', fmtCzas(prognozaCzasu(300, 42.195)));

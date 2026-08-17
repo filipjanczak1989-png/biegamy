@@ -1653,6 +1653,15 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
           oninput="goalSuggest(this.value, { sugId:'gen-suggest', pick:'genPickRace' })"
           style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
         <div id="gen-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--card2);border:1px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,0.6);"></div>
+        <!-- Bez tego zdania pole wygląda na zwykły wpis tekstowy i nikt nie wie,
+             że coś się pod nim wysunie. Zmierzone 17.08.2026: kalendarz startów
+             ma 16 zatwierdzonych biegów z datą w przyszłości, więc lista NIE jest
+             pusta i podpowiedź ma czego dotyczyć. Sięga jednak tylko do 25.10 —
+             stąd druga połowa zdania: kto celuje dalej, ma od razu wiedzieć,
+             że wpisze datę ręcznie, zamiast szukać biegu, którego tam nie ma. -->
+        <div style="margin-top:6px;font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.5;">
+          Wpisz dwie litery — podpowiemy biegi z kalendarza startów. Nie ma Twojego? Wpisz nazwę ręcznie i podaj datę niżej.
+        </div>
       </div>
       <div id="gen-race-linked" style="display:none;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:9px 10px;margin-bottom:8px;font-size:12px;color:var(--green);"></div>
       <div style="margin-bottom:16px;">
@@ -3545,7 +3554,12 @@ async function goalSuggest(q, opts) {
       .order('date', { ascending: true })
       .limit(8);
     if (!data || !data.length) {
-      sg.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Brak w kalendarzu — zapiszemy jako tekst</div>';
+      // Generator NIE „zapisze jako tekst" — bez daty startu nie ma czego liczyć,
+      // więc dostaje własne zdanie z drogą wyjścia. Modal celu zostaje jak był.
+      const brak = opts
+        ? 'Brak w kalendarzu — wpisz datę startu w polu niżej'
+        : 'Brak w kalendarzu — zapiszemy jako tekst';
+      sg.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">' + brak + '</div>';
       sg.style.display = 'block';
       return;
     }
@@ -4891,11 +4905,24 @@ async function loadAvatarTopbar(athleteId) {
    92 px na kolumnę — mieści się bez ściskania.
 
    Jeden komponent obsługuje OBA miejsca: cel czasowy i wynik w kroku 4. */
+/* ⚠️ ŻADNE Z TYCH PÓL NIE MA PLACEHOLDERA UDAJĄCEGO WARTOŚĆ.
+   Sekundy miały placeholder „00" — wyglądały na wypełnione, a były puste.
+   Filip wpisał 28 w minutach, zobaczył „ :28:00" i kliknął dalej; walidacja
+   odbiła go komunikatem o niepełnym czasie, bo sekundy naprawdę były puste.
+   Placeholder, który da się przeczytać jako gotową wartość, to nie podpowiedź
+   tylko kłamstwo — więc sekundy dostają PRAWDZIWE `value="00"`, a godziny
+   i minuty nie dostają nic. Etykieta pod polem mówi, co gdzie wpisać.
+
+   `onfocus=select()` jest częścią tej samej poprawki: pole z gotowym „00"
+   i maxlength=2 odrzucałoby wpisywanie (dwie cyfry już są). Zaznaczenie
+   przy wejściu sprawia, że pierwsza wciśnięta cyfra podmienia zawartość. */
+var SEKUNDY_DOMYSLNE = '00';
 function _czasPolaHtml(prefix) {
-  const pole = function (sufiks, etykieta, maxLen, ph) {
+  const pole = function (sufiks, etykieta, maxLen, wartosc) {
     return '<div>'
       + '<input id="' + prefix + '-' + sufiks + '" type="text" inputmode="numeric" autocomplete="off"'
-      + ' maxlength="' + maxLen + '" placeholder="' + ph + '"'
+      + ' maxlength="' + maxLen + '" value="' + wartosc + '"'
+      + ' onfocus="this.select()"'
       + ' oninput="_czasOnInput(this,\'' + prefix + '\',\'' + sufiks + '\')"'
       + ' style="width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--border);color:var(--fg);'
       + 'font-family:DM Mono,monospace;font-size:16px;text-align:center;padding:10px 4px;border-radius:8px;outline:none;">'
@@ -4903,7 +4930,7 @@ function _czasPolaHtml(prefix) {
       + '</div>';
   };
   return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
-    + pole('h', 'godz', 2, '0') + pole('m', 'min', 2, '00') + pole('s', 'sek', 2, '00')
+    + pole('h', 'godz', 2, '') + pole('m', 'min', 2, '') + pole('s', 'sek', 2, SEKUNDY_DOMYSLNE)
     + '</div>';
 }
 
@@ -4928,27 +4955,37 @@ window._czasOnInput = _czasOnInput;
    nie dostała celu do sprawdzenia. */
 function _czasStan(prefix) {
   const g = function (s) { const e = document.getElementById(prefix + '-' + s); return e ? e.value.trim() : ''; };
-  const wyp = ['h', 'm', 's'].filter(function (x) { return g(x) !== ''; }).length;
-  if (wyp === 0) return 'pusty';
+  // Sekundy mają wartość domyślną, więc SAME nie są wypełnieniem — inaczej pusty
+  // formularz zgłaszałby cel czasowy, którego nikt nie podał, i wywracał
+  // opcjonalność tego pola. Nośnikiem intencji są godziny i minuty.
+  if (g('h') === '' && g('m') === '') {
+    return g('s') === '' || g('s') === SEKUNDY_DOMYSLNE ? 'pusty' : 'niepelny';
+  }
   return _czasZPol(prefix) == null ? 'niepelny' : 'ok';
 }
 
-/* Zwraca sekundy albo null. Godziny opcjonalne (puste = 0), min i sek wymagane. */
+/* Zwraca sekundy albo null. Wymagane są MINUTY (albo godziny) — sekundy mają
+   wartość domyślną „00" i puste znaczą zero, dokładnie tak, jak wyglądają.
+   Wcześniej puste sekundy unieważniały cały czas: „28 min" czytało się jako
+   brak celu, plan powstawał z historii, a człowiek był przekonany, że
+   policzyliśmy go pod jego cel. */
 function _czasZPol(prefix) {
   const g = function (s) { const e = document.getElementById(prefix + '-' + s); return e ? e.value.trim() : ''; };
   const h = g('h'), m = g('m'), s = g('s');
-  if (m === '' && s === '' && h === '') return null;
-  if (m === '' || s === '') return null;          // niepełny czas = brak czasu
-  const mm = parseInt(m, 10), ss = parseInt(s, 10), hh = h === '' ? 0 : parseInt(h, 10);
+  if (h === '' && m === '') return null;
+  const hh = h === '' ? 0 : parseInt(h, 10);
+  const mm = m === '' ? 0 : parseInt(m, 10);
+  const ss = s === '' ? 0 : parseInt(s, 10);
   if (isNaN(mm) || isNaN(ss) || isNaN(hh) || mm > 59 || ss > 59) return null;
   const sek = hh * 3600 + mm * 60 + ss;
   return sek > 0 ? sek : null;
 }
 
 function _czasResetPol(prefix) {
-  ['h', 'm', 's'].forEach(function (x) {
+  ['h', 'm'].forEach(function (x) {
     const e = document.getElementById(prefix + '-' + x); if (e) e.value = '';
   });
+  const es = document.getElementById(prefix + '-s'); if (es) es.value = SEKUNDY_DOMYSLNE;
 }
 
 /* ── LICZNIK #100kmDlaKasi w „Dziś" ────────────────────────────────────────
@@ -5179,7 +5216,7 @@ async function genUlozPlan() {
   // Niepełny cel NIE MOŻE cicho zniknąć — inaczej plan powstaje z historii,
   // a człowiek jest przekonany, że policzyliśmy go pod jego cel.
   if (_czasStan('gen-cel') === 'niepelny') {
-    _genBlad('Uzupełnij cel czasowy — minuty i sekundy są wymagane.');
+    _genBlad('Uzupełnij cel czasowy — podaj minuty (sekundy mogą zostać na 00).');
     const mm = document.getElementById('gen-cel-m'); if (mm) mm.focus();
     return;
   }
@@ -5202,7 +5239,7 @@ async function genUlozPlan() {
       // Zadanie „przebiegnij dziesiątkę" byłoby wtedy odpowiedzią na inne pytanie.
       if (_czasStan('gen-fb-czas') === 'niepelny') {
         btn.disabled = false; btn.textContent = 'Ułóż plan →';
-        _genFbBlad('Uzupełnij czas — minuty i sekundy są wymagane.');
+        _genFbBlad('Uzupełnij czas — podaj minuty (sekundy mogą zostać na 00).');
         return;
       }
       if (!_genFbDystans || !czasS) {
@@ -5304,21 +5341,20 @@ function _genPokazWynik(w) {
     + '</div></div>'
     + (m.zalozenia && m.zalozenia.length
         ? '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-bottom:12px;">' + esc(m.zalozenia.join(' ')) + '</div>' : '')
+    /* ⚠️ JEDYNE miejsce, gdzie na tym ekranie stoi ZAMKNIECIE — zdanie o tym,
+       że plan się nie dostosuje. Było w TRZECH: tutaj, w środku podglądu
+       (PLANVIEW rysuje ai_warnings) i jeszcze raz w stopce nad przyciskiem
+       zapisu, przepisane ręcznie. Trzy kopie tego samego ostrzeżenia na jednym
+       przewinięciu nie ostrzegają trzy razy mocniej — zaczynają być tłem.
+       Zostaje to, które widać NAJPIERW; podgląd dostaje `bezOstrzezen`,
+       a stopka zniknęła. Treść nadal ma jedno źródło: ZAMKNIECIE w silniku. */
     + '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.22);border-radius:12px;padding:14px;margin-bottom:12px;font-size:12px;color:#fbbf24;line-height:1.6;">'
     + esc(p.ai_warnings) + '</div>'
     // PODGLĄD planu PRZED zapisem — ten sam renderer, którego używa panel trenerski.
-    // Bez opts, czyli czysty podgląd: zero przycisków akcji, zero stopki zatwierdzania.
+    // Czysty podgląd: zero przycisków akcji, zero stopki zatwierdzania.
     + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Podgląd planu</div>'
     + '<div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;padding-right:4px;">'
-    +   (window.PLANVIEW ? window.PLANVIEW.render(p, w.treningi, {}) : '')
-    + '</div>'
-    // Stopka — JEDYNE miejsce w planie, gdzie mówimy o granicy automatu.
-    // Raz, nie przy tygodniach i nie przy jednostkach. Mówimy prawdę o tym,
-    // czego plan nie potrafi — nie reklamujemy. Patrz docs/generator-planow-spec.md.
-    + '<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.65;">'
-    +   'Ten plan się nie dostosuje. Jeśli złapiesz kontuzję, tydzień Ci wypadnie '
-    +   'albo coś przestanie działać — plan tego nie zauważy.<br>'
-    +   '<span style="color:var(--fg2);">Filip i Kasia zauważą.</span>'
+    +   (window.PLANVIEW ? window.PLANVIEW.render(p, w.treningi, { bezOstrzezen: true }) : '')
     + '</div>'
     + '<div id="gen-zapis-status" style="display:none;font-size:11px;font-family:DM Mono,monospace;line-height:1.5;margin-bottom:10px;"></div>'
     + '<div style="display:flex;gap:8px;">'
