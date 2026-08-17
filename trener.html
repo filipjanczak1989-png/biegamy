@@ -3698,13 +3698,21 @@ async function loadAthleteTrainings(athleteId) {
   }
 }
 
+/* ⚠️ OBWÓDKA NA KROPCE = TRENING UŁOŻONY PRZEZ ZAWODNIKA, nie przez trenera.
+   Powód nie jest porządkowy: bez tego trener edytuje cudzą robotę w przekonaniu,
+   że poprawia własną. Znacznik musi być widoczny PRZED kliknięciem, stąd pasek
+   w siatce tygodnia, a nie etykieta w szczegółach.
+   Świadomie obwódka, a nie inny kolor wypełnienia — wypełnienie niesie już status
+   (zielone = wykonane), więc druga informacja w tym samym kanale byłaby nieczytelna.
+   `plan_source` czytamy WPROST; NULL (26 wierszy sprzed migracji) nie dostaje
+   obwódki, bo „nieznane" to nie to samo co „od zawodnika". */
 function renderWM_db(trainings) {
   const days = ['Pn','Wt','Sr','Cz','Pt','Sb','Nd'];
   document.getElementById('wmini').innerHTML = trainings.slice(0,7).map(t => {
     const d = new Date(t.date);
     return `<div class="wm">
       <div class="wm-n">${days[d.getDay()===0?6:d.getDay()-1]}</div>
-      <div class="wm-d" style="background:${t.status==='done'?'var(--green)':'var(--accent)'}"></div>
+      <div class="wm-d" style="background:${t.status==='done'?'var(--green)':'var(--accent)'};${t.plan_source==='generator'?'box-shadow:0 0 0 2px var(--muted);':''}" title="${t.plan_source==='generator'?'Ułożone przez zawodnika — nie przez Ciebie':''}"></div>
       <div class="wm-k">${t.distance_km||''}</div>
     </div>`;
   }).join('');
@@ -3881,6 +3889,7 @@ async function saveTr_db() {
   const { error } = await sb.from('trainings').insert({
     athlete_id: window._selectedAthleteId,
     coach_id: _coachId,
+    plan_source: 'coach',
     date,
     type: selType || selType,  // selType jest globalną zmienną z selT()
     distance_km: dist,

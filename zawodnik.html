@@ -2208,7 +2208,12 @@ async function _prefillLogFromDate(dateStr) {
   // Pokaż opis trenera w komentarzu jako placeholder (zawodnik widzi co planował trener)
   const commentEl = document.getElementById('l-comment');
   if (commentEl && training.description) {
-    commentEl.placeholder = '📋 Plan trenera: ' + training.description.slice(0, 200);
+    /* ⚠️ NIE ZAWSZE „trenera". Trening z generatora ma coach_id = NULL i do dziś
+       podpisywał się cudzym nazwiskiem — człowiek, który sam sobie ułożył plan,
+       czytał „Plan trenera". kalendarz.html (panel trenerski) zawsze wpisuje
+       coach_id, więc NULL jednoznacznie znaczy „nie od trenera". */
+    commentEl.placeholder = (_odTrenera(training) ? '📋 Plan trenera: ' : '📋 Twój plan: ')
+      + training.description.slice(0, 200);
   }
   
   // Przelicz tempo automatycznie jeśli dystans + czas są oba wypełnione
@@ -5174,7 +5179,26 @@ async function _genZbierzPoziom() {
   const rows = logs || [];
 
   // 1) najlepszy wynik z 12 miesięcy → Riegel
+  /* KOTWICA = PB NAJBLIZSZE CELOWI, nie jeden "najlepszy wynik".
+     Zbieramy LISTE KANDYDATOW - najlepszy wynik na kazdym dystansie osobno
+     (klucz: pelny kilometr) - a silnik wybierze ten, ktorego dystans lezy
+     najblizej celu, i policzy z niego VDOT bez posredniej konwersji przez
+     dziesiatke. Dwa biegi po 10 km to nie dwaj kandydaci: liczy sie szybszy.
+     p10 zostaje jako kotwica zapasowa, gdy kandydatow brak. */
   let p10 = null;
+  const najlepszeNaDystansie = new Map();
+  rows.forEach(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const sek = _silnikToSec(l.duration);
+    if (km < 3 || !sek || sek <= 0) return;                    // <3 km: Riegel niewiarygodny
+    if (window.isRunType && !window.isRunType(l.training_type)) return;
+    const klucz = Math.round(km);
+    const dotad = najlepszeNaDystansie.get(klucz);
+    if (!dotad || sek / km < dotad.czas_s / dotad.dystans_km) {
+      najlepszeNaDystansie.set(klucz, { dystans_km: km, czas_s: sek });
+    }
+  });
+  const kandydaci = Array.from(najlepszeNaDystansie.values());
   rows.forEach(l => { const p = _genP10ZLogu(l); if (p != null && (p10 == null || p < p10)) p10 = p; });
 
   // 2) brak wyniku → średnie tempo biegów ≥5 km z ostatnich 8 tygodni + 20 s/km
@@ -5200,7 +5224,8 @@ async function _genZbierzPoziom() {
     km4 += parseFloat(l.distance_km) || 0;
   });
 
-  return { p10sec: p10, wynik: null, objetoscTygodniowa: km4 > 0 ? km4 / 4 : null };
+  return { p10sec: kandydaci.length ? null : p10, wyniki: kandydaci, wynik: null,
+           objetoscTygodniowa: km4 > 0 ? km4 / 4 : null };
 }
 
 function _genKluczDaty(d) {   // lokalny klucz YYYY-MM-DD, nie toISOString (cofa o dzień w +tz)
@@ -5263,7 +5288,8 @@ async function genUlozPlan() {
         return;
       }
 
-      poziom.wynik  = { dystans_km: window.GeneratorPlanu.DYSTANSE[_genFbDystans].km, czas_s: czasS };
+      poziom.wyniki = [{ dystans_km: window.GeneratorPlanu.DYSTANSE[_genFbDystans].km, czas_s: czasS }];
+      poziom.wynik  = poziom.wyniki[0];  // zgodnosc ze stara sciezka
       poziom.p10sec = null;              // silnik liczy Rieglem tylko gdy p10sec == null
       poziom.objetoscTygodniowa = km;
     }
@@ -5403,17 +5429,17 @@ async function genZapiszPlan() {
         + (wykonane.length ? ' (' + wykonane.length + ' wykonanych zostanie nietkniętych)' : '')
         + '. Zastąpić?';
       if (!confirm(pyt)) { btn.disabled = false; btn.textContent = 'Zapisz do kalendarza'; return; }
-
-      const { error: eDel } = await sb.from('trainings').delete().in('id', planowane.map(t => t.id));
-      if (eDel) throw new Error('kasowanie starych: ' + eDel.message);
-
-      // ⚠️ Brak błędu NIE znaczy, że coś zniknęło: odrzucenie przez RLS USING kasuje
-      // 0 wierszy i nie zgłasza niczego. Bez tego odczytu dołożylibyśmy duplikaty.
-      const { data: poDel } = await sb.from('trainings')
-        .select('id').eq('athlete_id', _athleteId).eq('status', 'planned')
-        .gte('date', w.plan.start_date).lte('date', w.plan.end_date);
-      if ((poDel || []).length) throw new Error('stare treningi nie zostały usunięte (' + poDel.length + ') — przerywam, żeby nie zdublować kalendarza');
     }
+
+    /* ⚠️ WIERSZ PLANU POWSTAJE PRZED KASOWANIEM CZEGOKOLWIEK — i to jest jedyny
+       powód tej kolejności. `training_plans_insert_self` wymaga
+       `athletes.coach_id IS NULL`, a `trainings_athlete_delete` NIE ma takiego
+       warunku (potwierdzone na produkcyjnym RLS 17.08). Przy starej kolejności
+       zawodnik, któremu w międzyczasie przypisano trenera, kasował JEGO plan
+       (1360 wierszy `planned` w bazie było w zasięgu tej ścieżki), a dopiero
+       potem insert padał na RLS — kalendarz pusty, nic nie powstało.
+       Teraz RLS odbija PIERWSZYM zapytaniem, zanim cokolwiek zniknie.
+       ⚠️ Nie odwracać z powrotem „dla czytelności": kolejność jest nośna. */
 
     // ── 2. Wiersz planu ──
     const { data: plan, error: ePlan } = await sb.from('training_plans').insert({
@@ -5438,6 +5464,25 @@ async function genZapiszPlan() {
     }).select('id').single();
     if (ePlan) throw new Error('zapis planu: ' + ePlan.message);
 
+    // ── 2b. Dopiero teraz kasujemy stare. Wiersz planu już istnieje, więc RLS
+    //        potwierdził, że ten zawodnik ma prawo tworzyć własne plany.
+    if (planowane.length) {
+      const { error: eDel } = await sb.from('trainings').delete().in('id', planowane.map(t => t.id));
+      if (eDel) {
+        await sb.from('training_plans').delete().eq('id', plan.id);
+        throw new Error('kasowanie starych: ' + eDel.message);
+      }
+      // ⚠️ Brak błędu NIE znaczy, że coś zniknęło: odrzucenie przez RLS USING kasuje
+      // 0 wierszy i nie zgłasza niczego. Bez tego odczytu dołożylibyśmy duplikaty.
+      const { data: poDel } = await sb.from('trainings')
+        .select('id').eq('athlete_id', _athleteId).eq('status', 'planned')
+        .gte('date', w.plan.start_date).lte('date', w.plan.end_date);
+      if ((poDel || []).length) {
+        await sb.from('training_plans').delete().eq('id', plan.id);
+        throw new Error('stare treningi nie zostały usunięte (' + poDel.length + ') — przerywam, żeby nie zdublować kalendarza');
+      }
+    }
+
     // ── 3. Treningi do kalendarza ──
     const doKalendarza = w.treningi.map(t => ({
       athlete_id: _athleteId,
@@ -5447,6 +5492,9 @@ async function genZapiszPlan() {
       distance_km: t.target_distance_km,
       pace: t.target_pace,
       description: t.description || t.title || null,
+      // Kto to zaplanował. NIE wnioskujemy z coach_id — patrz migracja
+      // 20260817_trainings_plan_source.sql.
+      plan_source: 'generator',
       status: 'planned'
     }));
     const { data: wstawione, error: eTr } = await sb.from('trainings').insert(doKalendarza).select('id,date');
@@ -7050,6 +7098,15 @@ window._loadTodayMiniChart = async function() {
   } catch (e) { /* fire-and-forget: cicho */ }
 };
 
+/* Kto zaplanował trening. Czyta plan_source (migracja 20260817), a gdy go nie ma —
+   spada na coach_id, żeby 26 wierszy sprzed migracji nie zaczęło nagle twierdzić,
+   że zawodnik ułożył je sobie sam. NULL znaczy „nieznane", nie „generator". */
+function _odTrenera(t) {
+  if (!t) return true;
+  if (t.plan_source) return t.plan_source !== 'generator';
+  return !!t.coach_id;
+}
+
 async function loadTodayTraining() {
   if (!_athleteId) return;
   const today = new Date().toISOString().split('T')[0];
@@ -7119,6 +7176,11 @@ async function loadTodayTraining() {
   ].filter(Boolean).join('');
   
   if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; if(divider) divider.style.display='block'; }
+  /* ⚠️ ŚWIADOMIE BEZ ZNACZNIKA POCHODZENIA. Zawodnik ma w danym momencie albo
+     plan od trenera, albo swój — i wie który, bo sam go generował. Podpis pod
+     każdym treningiem byłby szumem. Znacznik jest potrzebny WYŁĄCZNIE trenerowi,
+     który ogląda cudze plany i mógłby edytować nie swoją robotę (trener.html).
+     Zostaje natomiast poprawka nieprawdziwego tekstu niżej — patrz _odTrenera. */
   if(desc) desc.textContent = data.description || 'Brak opisu treningu.';
   const cwCta = document.getElementById('today-cwiczenia-cta');
   if (cwCta) {
@@ -7785,7 +7847,11 @@ async function saveLog() {
               (trener.html, profil.html, sb.js, share-card, intervals-*)
               rozrozniaja po `source === 'intervals'`, nie po tej kolumnie. */
         external_source: 'app', external_id: (window._kluczZapisu || null)};
-    const insertResult = await sb.from('training_logs').insert(insertPayload);
+    /* `.select('id')` dołożone po to, żeby dało się powiązać ten log
+       z zaplanowanym treningiem (planned_training_id niżej). Przy powtórzonym
+       zapisie (23505) `data` jest puste i wiązania nie będzie — poprawnie,
+       bo pierwotny log już istnieje i to on niesie powiązanie. */
+    const insertResult = await sb.from('training_logs').insert(insertPayload).select('id');
     error = insertResult.error;
     /* 23505 = zlamany unikat, czyli TEN SAM formularz wyslany drugi raz.
        Dla czlowieka to sukces: jego trening JEST zapisany. Nie pokazujemy
@@ -7820,20 +7886,48 @@ async function saveLog() {
     return;
   }
 
-  // Oznacz trening z kalendarza jako wykonany (jeśli istnieje na ten dzień)
-  const { data: planned } = await sb.from('trainings')
-    .select('id')
+  /* ── DOPASOWANIE LOGU DO ZAPLANOWANEGO TRENINGU ──────────────────────────
+     Zmienione dwie rzeczy naraz, obie z pomiaru na 1333 jednostkach (17.08):
+
+     1. `.select('id')` → `.select('id,type,distance_km')`. Dystans MUSI być
+        odczytany TERAZ, bo `update` dwie linijki niżej go NADPISUJE faktycznym.
+        Po zapisie porównanie planu z wykonaniem jest już niemożliwe.
+
+     2. `.maybeSingle()` → `.limit(2)`. Przy DWÓCH zaplanowanych treningach tego
+        dnia maybeSingle rzuca błąd i cicho nie robi NIC — ani nie domyka, ani
+        nie wiąże. Zmierzone: 158 takich dni. Teraz jawnie odmawiamy wiązania,
+        zamiast zgadywać który.
+
+     ⚠️ KONTROLA ZDROWIA PRZED ZWIĄZANIEM. Sama zgodność daty nie wystarcza —
+     w danych historycznych są pary w rodzaju „Regeneracja 3 km ← bieg 20 km"
+     (×6,7) i „Wybieganie 14 km ← 5 km" (×0,36), spięte wyłącznie tym, że były
+     jedyne tego dnia. Wiążemy tylko przy stosunku 0,5–2,0. Poza tym pasmem
+     trening i tak zostaje domknięty (człowiek biegał), ale BEZ powiązania —
+     bo powiązanie ma znaczyć „to jest wykonanie TEGO planu", a nie „coś się
+     tego dnia wydarzyło". NULL jest tu uczciwszy niż zgadnięty identyfikator. */
+  const { data: plannedRows } = await sb.from('trainings')
+    .select('id,type,distance_km')
     .eq('athlete_id', _athleteId)
     .eq('date', logDate)
     .neq('status', 'done')
-    .maybeSingle();
+    .limit(2);
+  const planned = (plannedRows && plannedRows.length === 1) ? plannedRows[0] : null;
   if (planned) {
+    const planKm = parseFloat(planned.distance_km) || 0;
+    const stosunek = (planKm > 0 && dist > 0) ? (dist / planKm) : null;
+    const wiarygodne = stosunek !== null && stosunek >= 0.5 && stosunek <= 2.0;
     await sb.from('trainings').update({
       status: 'done',
       distance_km: dist,
       pace: pace || null,
       heart_rate: parseInt(document.getElementById('l-hr').value) || null
     }).eq('id', planned.id);
+    const idLogu = (insertResult.data && insertResult.data[0]) ? insertResult.data[0].id : null;
+    if (wiarygodne && idLogu) {
+      await sb.from('training_logs')
+        .update({ planned_training_id: planned.id })
+        .eq('id', idLogu);
+    }
   }
 
   btn.textContent = 'Zapisz log →';

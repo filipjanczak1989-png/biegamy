@@ -2455,7 +2455,12 @@ async function saveTraining() {
       const { error: updErr } = await sb.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
         pace: pace||null, heart_rate: hr||null, description: desc||null, exercise_ref: eref,
-        steps: _seOut, steps_version: _seOut ? 1 : null, status
+        steps: _seOut, steps_version: _seOut ? 1 : null, status,
+        // ⚠️ EDYCJA PRZEJMUJE AUTORSTWO. Trener poprawiający trening z generatora
+        //    czyni go swoim — od tej chwili to jego plan i tak ma być podpisany.
+        //    Bez tego znacznik „ułożone samodzielnie" zostawałby na treningu,
+        //    którego zawodnik już nie rozpoznaje jako swojego.
+        plan_source: 'coach'
       }).eq('id', dbId);
       if (updErr) { window.zglosNieudanyZapis && window.zglosNieudanyZapis('update','trainings',updErr);
                     notify(window.komunikatBledu ? window.komunikatBledu(updErr) : ('Błąd zapisu: ' + updErr.message)); return; }
@@ -2470,6 +2475,7 @@ async function saveTraining() {
       }
       const { error: insErr } = await sb.from('trainings').insert({
         coach_id: session.user.id,
+        plan_source: 'coach',
         athlete_id: finalAthleteId,
         date: editingDate,
         type: selectedType,
@@ -2509,6 +2515,7 @@ async function saveTraining() {
       description: desc || null,
       steps: _seOut,
       steps_version: _seOut ? 1 : null,
+      plan_source: 'coach',    // edycja przejmuje autorstwo — patrz wyżej
       status
     }).eq('id', athDbId);
     if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
@@ -6205,6 +6212,7 @@ async function doCopyWeek() {
       const td = new Date(targetStart); td.setDate(targetStart.getDate()+di);
       toInsert.push({
         coach_id: session.user.id,
+        plan_source: 'coach',
         athlete_id: athleteId,
         date: dateStr(td),
         type: t.type,

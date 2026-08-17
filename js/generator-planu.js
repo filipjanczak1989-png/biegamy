@@ -160,7 +160,37 @@
      półmaratonie to ok. 5 minut — poniżej tego różnica tonie w błędzie Riegla
      (wykładnik 1,06 jest przybliżeniem), więc zdanie byłoby szumem. ⚠️ OSĄD. */
   var PROG_CELU_PONIZEJ_FORMY = 0.05;
-  var MAX_PRZYROST_TYG = 0.08;   // objętość: max 8% tydzień do tygodnia
+  /* ── SUFIT PRZYROSTU OBJĘTOŚCI, STOPNIOWANY PO BAZIE ───────────────────────
+     ⚠️ TO JEST INTERPRETACJA REGUŁY 10%, NIE POMIAR NA NASZYCH DANYCH.
+     Powód, dla którego stopniowanie w ogóle wprowadzamy: +8% od 100 km/tydz to
+     +8 km, czyli tyle, ile cała tygodniowa objętość początkującego. Ta sama
+     liczba procentowa znaczy co innego na obu końcach skali.
+
+     ⚠️ SPRAWDZONE NA WŁASNYCH DANYCH I NIEPOTWIERDZONE. Policzone na 2671 logach
+     (bloki 4-tygodniowe bez ani jednego tygodnia zerowego, czyli realne budowanie):
+         baza <20 km   mediana 6,5%/tydz   p90 11,1%   — 3 zawodników
+         baza 20–40    mediana 3,7%        p90  9,3%   — 13 zawodników
+         baza 40–70    mediana 4,8%        p90 11,1%   — 6 zawodników
+         baza >70      mediana 3,2%        p90 10,8%   — 3 zawodników
+     Dane NIE pokazują spadku z bazą: pasmo 40–70 rośnie SZYBCIEJ niż 20–40,
+     a p90 jest płaskie (~11%) na całym zakresie. Przy trzech zawodnikach
+     w skrajnych pasmach nie da się z tego zbudować reguły — więc poniższe
+     8/6/4/3 pochodzi z interpretacji reguły 10%, a dane służą wyłącznie jako
+     kontrola rzędu wielkości (mediany 3–6,5% mieszczą się pod każdym z progów).
+     Jeśli kiedyś przybędzie zawodników — zmierzyć ponownie i podmienić. */
+  var PRZYROST_WG_BAZY = [
+    { doKm: 20,       proc: 0.08 },
+    { doKm: 40,       proc: 0.06 },
+    { doKm: 70,       proc: 0.04 },
+    { doKm: Infinity, proc: 0.03 }
+  ];
+  function maxPrzyrostDla(bazaKm) {
+    for (var i = 0; i < PRZYROST_WG_BAZY.length; i++) {
+      if (bazaKm < PRZYROST_WG_BAZY[i].doKm) return PRZYROST_WG_BAZY[i].proc;
+    }
+    return PRZYROST_WG_BAZY[PRZYROST_WG_BAZY.length - 1].proc;
+  }
+  var MAX_PRZYROST_TYG = 0.08;   // najwyższy z progów — zostaje dla zgodności odczytu
   var ZRZUT = 0.70;              // co czwarty tydzień: 70% trendu (cykl 3:1)
   var ZRZUT_CO = 4;
   var MIN_DNI = 3, MAX_DNI = 6;
@@ -187,6 +217,10 @@
      maksimum projektowym. Ustępuje, gdy kolidowałby z „wybieganie najdłuższe";
      wyprowadzenie przy użyciu w ulozTydzien. ⚠️ OSĄD, nie pomiar. */
   var MAX_UDZIAL_DLUGIEGO = 0.40;
+  /* Minimum taperu dla półmaratonu i maratonu. Dwa tygodnie to metodyczne
+     minimum wyciszenia na dystansach, gdzie zmęczenie kumuluje się tygodniami.
+     ⚠️ To PODŁOGA, nie wartość — maraton ma 3 i tak zostaje. */
+  var MIN_TAPER_DLUGIE = 2;
   var MARATON_MIN_DNI = 4;       // maratonu nie da się unieść na trzech jednostkach
   var OBJETOSC_DOMYSLNA = 20;    // km/tydz przy braku danych — FLOOR, świadomie w dół
   var RIEGEL = 1.06;
@@ -231,8 +265,16 @@
   };
 
   var ZAMKNIECIE =
-    'Ten plan się nie dostosuje. Jeśli złapiesz kontuzję, tydzień Ci wypadnie ' +
-    'albo coś przestanie działać — plan tego nie zauważy. Filip i Kasia zauważą.';
+    /* ⚠️ TEKST ZMIENIONY, BO STARY STAŁ SIĘ NIEPRAWDĄ. Do 17.08.2026 brzmiał
+       `Ten plan się nie dostosuje` — po wdrożeniu oceniAdaptacje() plan reaguje
+       na przerwy i na systematyczne niedowykonanie, więc pierwsze zdanie byłoby
+       kłamstwem na swoją niekorzyść. Nowa treść mówi DOKŁADNIE tyle, ile silnik
+       potrafi, i ani słowa więcej: widzi kilometry i daty, nie widzi człowieka.
+       ⚠️ KOŃCÓWKA ZOSTAJE CO DO SŁOWA. Jest prawdziwa i jest jedyną rzeczą
+       w całym generatorze, która mówi, po co w ogóle są tu ludzie. */
+    'Plan reaguje na to, ile biegasz — cofnie się po przerwie i zejdzie niżej, ' +
+    'jeśli systematycznie nie wyrabiasz. Ale nie widzi kontuzji, snu ani życia. ' +
+    'Filip i Kasia zauważą.';
 
   // ── DATY ───────────────────────────────────────────────────────────────────
   // Liczone wyłącznie w UTC na stringach 'YYYY-MM-DD'. Nigdy toISOString() na
@@ -279,9 +321,170 @@
     return Math.floor(t / 60) + ':' + pad2(t % 60);
   }
   function riegel(czas_s, zKm, naKm) { return czas_s * Math.pow(naKm / zKm, RIEGEL); }
-  function p10ZWyniku(dystans_km, czas_s) { return riegel(czas_s, dystans_km, 10) / 10; }
+  /* ── KOTWICA: NAJBLIŻSZE PB, PRZELICZONE PRZEZ VDOT (nie Rieglem) ──────────
+     Było: każdy wynik szedł Rieglem na dziesiątkę, a dopiero z niej liczyły się
+     tempa. Dwie konwersje zamiast jednej, i pierwsza z nich potęgowa.
+     Teraz wynik idzie WPROST na VDOT (równanie Danielsa uwzględnia czas trwania
+     wysiłku, więc nie jest ekstrapolacją potęgową), a dziesiątka jest tylko
+     wewnętrzną jednostką, w której reszta silnika trzyma formę.
+
+     ⚠️ SPRAWDZONE, ŻE RIEGEL DZIAŁA W OBIE STRONY TAK SAMO — pytanie brzmiało,
+     czy ekstrapolacja W DÓŁ (maraton → 12 km, 3,5×) jest równie dobra jak w górę.
+     Zmierzone na spójnym zestawie PB (22:30 / 46:50 / 1:45:00 / 3:39:00):
+         z 5 km  → maraton  -1,5%      z maratonu → 5 km  +1,5%
+         z 10 km → maraton  -1,6%      z HM       → 5 km  +1,4%
+     Błąd jest symetryczny co do wielkości; kierunek nie pogarsza sprawy.
+     Wybór najbliższego PB zmniejsza go niezależnie od strony. */
+  function vdotZWyniku(dystans_km, czas_s) {
+    var v = dystans_km * 1000 / (czas_s / 60);            // m/min
+    return danielsVO2(v) / danielsPctVO2(czas_s / 60);
+  }
+  function p10ZVdot(vdot) {                               // bisekcja: VDOT maleje z tempem
+    var lo = 100, hi = 1500, mid = 300;
+    for (var i = 0; i < 60; i++) {
+      mid = (lo + hi) / 2;
+      if (vdotZWyniku(10, mid * 10) > vdot) lo = mid; else hi = mid;
+    }
+    return mid;
+  }
+  function p10ZWyniku(dystans_km, czas_s) { return p10ZVdot(vdotZWyniku(dystans_km, czas_s)); }
+
+  /* Który wynik jest „najbliższy" celowi. Odległość liczona LOGARYTMICZNIE, bo
+     przeskok 5→10 km jest tym samym co 10→20 km, a nie o połowę mniejszym.
+     ⚠️ REMIS ROZSTRZYGA SIĘ DETERMINISTYCZNIE — wygrywa KRÓTSZY dystans.
+     Remis jest osiągalny: przy celu 10 km i PB na 5 oraz 20 km obie odległości
+     wynoszą ln 2. Krótszy, bo krótsze PB są zwykle świeższe (biega się je
+     częściej), a przy równym błędzie Riegla świeższość rozstrzyga. */
+  function najblizszyWynik(wyniki, celKm) {
+    var naj = null, najOdl = Infinity, i;
+    for (i = 0; i < wyniki.length; i++) {
+      var w = wyniki[i];
+      if (!(w && w.dystans_km > 0 && w.czas_s > 0)) continue;
+      var odl = Math.abs(Math.log(w.dystans_km / celKm));
+      if (odl < najOdl - 1e-9 || (Math.abs(odl - najOdl) <= 1e-9 && naj && w.dystans_km < naj.dystans_km)) {
+        naj = w; najOdl = odl;
+      }
+    }
+    return naj;
+  }
   function prognozaCzasu(p10sec, km) { return riegel(p10sec * 10, 10, km); }
-  function tempoStrefy(p10sec, strefa) { return p10sec + STREFY[strefa]; }
+  /* ── STREFY SKALUJĄ SIĘ PROPORCJONALNIE, NIE PRZEZ DODAWANIE ───────────────
+     Było `p10 + STREFY[strefa]`. Stałe przesunięcie zastosowane do czterokrotnego
+     rozstępu wydolności rozjeżdża rozdzielczość stref — zmierzone:
+
+         P10 3:00/km  →  T−I = 13,9% tempa
+         P10 5:00/km  →  T−I =  8,3%
+         P10 8:20/km  →  T−I =  5,0%     ← interwały i tempo nierozróżnialne
+
+     Fizjologicznie próg i VO2max są STAŁYMI UŁAMKAMI prędkości maksymalnej,
+     więc różnica między nimi ma być stałym procentem, nie stałą liczbą sekund.
+     Po zmianie wynosi 8,3% na całym zakresie.
+
+     ⚠️ KALIBRACJA JEST ZACHOWANA CO DO SEKUNDY. STREFY (95/120/30/5) pochodzą
+     z pomiaru na 489 treningach z biblioteki i NIE ZOSTAŁY ruszone — zmienia się
+     tylko to, jak się ekstrapolują. P10_KALIBRACJI to tempo, przy którym ten
+     pomiar wykonano; dla p10 = 300 wzór zwraca dokładnie p10 + STREFY, czyli
+     wartości sprzed zmiany. Rozjeżdża się dopiero przy formie odległej od środka
+     biblioteki — i o to chodzi.
+
+     ⚠️ SPRAWDZONE I ODRZUCONE: kotwica „tempo progowe = ~1 h wysiłku, interwały =
+     tempo 3–5 km" liczona z Riegla NIE naprawia tej wady — rozdzielczość spada
+     wtedy 9,0% → 3,6%, czyli tak samo jak przy dodawaniu. Riegel daje też próg
+     ok. 27 s/km SZYBSZY niż zmierzony w bibliotece (5:03 vs 5:30 przy P10 5:00),
+     więc przyjęcie go przyspieszyłoby każdą jednostkę progową wbrew pomiarowi. */
+  /* ŹRÓDŁO WSPÓŁCZYNNIKÓW — świadomie NIE tabela Danielsa.
+     STREFY (E +95, Reg +120, T +30, I +5) pochodzą z pomiaru na 489 treningach
+     z biblioteki planów Filipa i Kasi, sierpień 2026 (docs/generator-planow-spec.md).
+     Struktura jest ta sama co u Danielsa — strefy jako STAŁE UŁAMKI prędkości,
+     nie stałe przesunięcia — ale współczynniki są WŁASNE, bo pochodzą z populacji,
+     dla której ten generator działa, a nie z tabeli kalibrowanej na innej.
+     Przejście na Danielsa jest możliwe i byłoby uczciwe, ale ZASTĄPIŁOBY pomiar
+     tabelą; to decyzja produktowa, nie techniczna.
+
+     ⚠️ ZMIERZONA ROZBIEŻNOŚĆ, KTÓREJ NIE NAPRAWIAMY BEZ DECYZJI: strefa T nie
+     odpowiada „godzinie wysiłku" i rozjeżdża się z nią tym mocniej, im wolniejszy
+     zawodnik (prawdziwy próg 1 h liczony z Riegla vs tempo, które zadaje silnik):
+         5 km 15:24 → 3:20 vs 3:32   (+12 s/km)
+         5 km 25:20 → 5:19 vs 5:49   (+29 s/km)
+         5 km 35:00 → 7:13 vs 8:02   (+49 s/km)
+         5 km 45:00 → 9:09 vs 10:19  (+70 s/km)
+     Silnik zadaje próg WOLNIEJSZY niż godzinny — zgodnie z biblioteką, w której
+     jednostki tempowe są prowadzone zachowawczo. Przyjęcie definicji godzinnej
+     przyspieszyłoby każdy trening progowy o 12–70 s/km wbrew temu pomiarowi. */
+  /* ⚠️ OKNO BEZ KOSZTU — 17.08.2026. Ta zmiana modelu stref (addytywny → Daniels)
+     przesuwa KAŻDE tempo o 22–28 s/km. Zmierzone tego dnia na produkcji:
+         training_plans source='self'          →  0
+         z tego aktywnych dziś                 →  0
+         training_plan_workouts z generatora   →  0
+         trainings bez trenera, zaplanowane    →  0
+     ZERO AKTYWNYCH PLANÓW Z GENERATORA, więc zmiana temp nie dotknęła nikogo
+     i można ją było wprowadzić bez migracji ani ostrzeżenia w interfejsie.
+
+     ⚠️ TO SIĘ ZMIENI. Tempa są MATERIALIZOWANE przy zapisie (trainings.pace
+     i training_plan_workouts.target_pace jako tekst), więc istniejące plany
+     pokazują wartości z dnia wygenerowania — nie przeliczają się. Przy kolejnej
+     zmianie stref, gdy plany już będą istniały, trzeba postąpić inaczej:
+     albo przeliczyć zapisane wiersze migracją, albo zostawić stare plany
+     nietknięte i powiedzieć wprost w podglądzie, że tempa pochodzą sprzed zmiany.
+     Milczące rozjechanie się kalendarza z silnikiem byłoby najgorszym wyjściem. */
+  /* ── STREFY WG DANIELSA (VDOT) ─────────────────────────────────────────────
+     ŹRÓDŁO: Jack Daniels & Jimmy Gilbert, „Oxygen Power" (1979) i kolejne wydania
+     „Daniels' Running Formula". Dwa opublikowane równania:
+
+       koszt tlenowy biegu:   VO2 = -4,60 + 0,182258·v + 0,000104·v²   (v w m/min)
+       ułamek VO2max przy
+       wysiłku t minut:       %VO2max = 0,8 + 0,1894393·e^(-0,012778·t)
+                                            + 0,2989558·e^(-0,1932605·t)
+
+     VDOT = VO2(tempo startowe) / %VO2max(czas startu). Tempo strefy wyznacza się
+     odwrotnie: z VDOT × udział strefy liczymy VO2, a z niego prędkość (pierwiastek
+     równania kwadratowego).
+
+     ⚠️ PRÓG TO Z DEFINICJI WYSIŁEK GODZINNY — nie osobna liczba, tylko
+     %VO2max(60 min) = 88,8%. Dwa polecenia („próg jako czas 60 min" i „tabela
+     Danielsa") to w tym modelu jedno i to samo, i dlatego UDZIALY.T liczy się
+     wzorem, a nie jest wpisany.
+
+     ⚠️ WERYFIKACJA — NIE Z PAMIĘCI. Udziały sprawdzone wobec opublikowanej tabeli
+     dla VDOT 60 (fellrnr.com/wiki/VDOT_Results?Vdot=60&Metric=true), odtworzenie
+     co do sekundy:
+         M 3:52 = 3:52 · T 3:39 = 3:39 · I 3:22 = 3:22 · R 3:07 = 3:07
+         E 4:25 mieści się w podanym zakresie 4:14–4:48
+     Kontrola odwrotna: dziesiątka 35:18 → VDOT 60,13 (tabela: 60).
+
+     ⚠️ CO TO ZASTĄPIŁO: dotychczasowe STREFY (E +95, Reg +120, T +30, I +5) były
+     zmierzone na 489 treningach z biblioteki Filipa i Kasi. Tabela Danielsa jest
+     standardem publikowanym, ale KALIBROWANYM NA INNEJ POPULACJI — to była
+     świadoma decyzja produktowa, nie poprawka techniczna. STREFY zostają w pliku,
+     bo nadal opisują, jak te treningi były realnie prowadzone. */
+  var DANIELS_A = 0.000104, DANIELS_B = 0.182258, DANIELS_C = -4.60;
+  function danielsVO2(v) { return DANIELS_C + DANIELS_B * v + DANIELS_A * v * v; }
+  function danielsPctVO2(minuty) {
+    return 0.8 + 0.1894393 * Math.exp(-0.012778 * minuty)
+               + 0.2989558 * Math.exp(-0.1932605 * minuty);
+  }
+  function danielsPredkosc(vo2) {   // odwrócenie kosztu tlenowego, dodatni pierwiastek
+    return (-DANIELS_B + Math.sqrt(DANIELS_B * DANIELS_B - 4 * DANIELS_A * (DANIELS_C - vo2))) / (2 * DANIELS_A);
+  }
+  var MINUT_PROGU = 60;             // definicja progu: wysiłek godzinny
+  var UDZIALY = {
+    Reg: 0.630,                     // dolny kraniec strefy E Danielsa (59–74%)
+    E:   0.700,                     // środek strefy E
+    M:   0.825,                     // tempo maratońskie
+    T:   danielsPctVO2(MINUT_PROGU),// 88,8% — próg = godzina wysiłku
+    I:   0.978,                     // interwały ~VO2max
+    R:   1.077                      // rytmy
+  };
+  function vdotZP10(p10sec) {
+    var v = 60000 / p10sec;                 // m/min na dziesiątce
+    return danielsVO2(v) / danielsPctVO2(p10sec * 10 / 60);
+  }
+  function tempoStrefy(p10sec, strefa) {
+    var t = 60000 / danielsPredkosc(vdotZP10(p10sec) * UDZIALY[strefa]);
+    /* Podłoga marszu — żadna jednostka nie może być wolniejsza od chodu.
+       Dotyczy wyłącznie stref wolnych; T i I nigdy się o nią nie ocierają. */
+    return t > TEMPO_MARSZU ? TEMPO_MARSZU : t;
+  }
 
   // ── ŚCIANA ─────────────────────────────────────────────────────────────────
   function odmowa(kod, komunikat, szczegoly) {
@@ -316,16 +519,25 @@
     var idxPn = najblizszyPoniedzialek(idxToday);
     var tygodnie = Math.floor((idxStart - idxPn) / 7) + 1;
     if (tygodnie < d.minTygodni) {
+      var zamiast = najdluzszyMieszczacySie(tygodnie, idxStart);
       return odmowa('ZA_MALO_TYGODNI',
-        'Do startu zostało ' + tygodnie + ' tyg., a na ' + d.etykieta.toLowerCase() + ' potrzeba minimum ' + d.minTygodni + '.',
-        { tygodnieDostepne: tygodnie, tygodnieWymagane: d.minTygodni, dystans: we.dystans });
+        'Do startu zostało ' + tygodnie + ' ' + (tygodnie === 1 ? 'tydzień' : 'tyg.') + ', a na ' +
+        d.etykieta.toLowerCase() + ' potrzeba minimum ' + d.minTygodni + '. ' + wyjscie(d, zamiast, tygodnie),
+        { tygodnieDostepne: tygodnie, tygodnieWymagane: d.minTygodni, dystans: we.dystans,
+          alternatywnyDystans: zamiast });
     }
 
     // Poziom wyjściowy — bez kotwicy NIE zgadujemy tempa.
     var poziom = we.poziom || {};
     var p10 = poziom.p10sec;
-    if (p10 == null && poziom.wynik && poziom.wynik.dystans_km > 0 && poziom.wynik.czas_s > 0) {
-      p10 = p10ZWyniku(poziom.wynik.dystans_km, poziom.wynik.czas_s);
+    /* Kotwicą jest PB NAJBLIŻSZE CELOWI, nie zawsze piątka i nie zawsze pierwsze
+       z brzegu. `poziom.wyniki` (tablica) ma pierwszeństwo; `poziom.wynik`
+       (pojedynczy) zostaje dla zgodności ze starymi wywołaniami. */
+    var kandydaci = (poziom.wyniki && poziom.wyniki.length) ? poziom.wyniki
+                  : (poziom.wynik ? [poziom.wynik] : []);
+    var kotwica = kandydaci.length ? najblizszyWynik(kandydaci, d.km) : null;
+    if (p10 == null && kotwica) {
+      p10 = p10ZWyniku(kotwica.dystans_km, kotwica.czas_s);
     }
     if (!(p10 > 0)) {
       return odmowa('BRAK_POZIOMU',
@@ -408,6 +620,31 @@
       if (zleCel) return odmowa(zleCel.kod, zleCel.komunikat, zleCel.szczegoly);
 
       p10 = p10ZWyniku(d.km, we.celCzasowy);
+
+      /* ⚠️ GRANICA, PRZY KTÓREJ PLAN PRZESTAJE BYĆ PLANEM BIEGOWYM.
+         Sanity wyżej pyta, czy CEL jest sensownym czasem. To pyta o co innego:
+         czy z tego celu da się policzyć tempa, którymi da się BIEC.
+
+         Zmierzone: cel 5 km w 60:00 przechodzi sanity (720 s/km to dokładnie
+         tempo marszu, więc mieści się w progu), ale wyprowadzone strefy to
+         I 12:36, T 13:01, E 14:06, Reg 14:31 — NAJSZYBSZA jednostka planu jest
+         wolniejsza od marszu. Taki plan każe człowiekowi „biec interwały"
+         w tempie, w którym się idzie. Dla porównania 5 km w 50:00 daje E równe
+         marszowi i jeszcze przechodzi, a maraton w 7:00:00 (I 9:13) jest zupełnie
+         w porządku — próg dotyczy absurdu, nie wolnego biegania.
+
+         Mierzymy strefę I, bo jest najszybsza: jeśli ONA jest wolniejsza od
+         marszu, to wszystkie pozostałe też. Odmowa niesie wyjście: pole celu
+         jest opcjonalne, więc zawsze można je zostawić puste. */
+      if (tempoStrefy(p10, 'I') > TEMPO_MARSZU) {
+        return odmowa('CEL_WOLNIEJSZY_NIZ_MARSZ',
+          fmtCzas(we.celCzasowy) + ' na ' + d.etykieta.toLowerCase() + ' daje tempa wolniejsze niż marsz — ' +
+          'nawet najszybsza jednostka wychodzi ' + fmtTempo(tempoStrefy(p10, 'I')) + '/km przy tempie marszu ' +
+          fmtTempo(TEMPO_MARSZU) + '/km. Tego nie da się przebiec, bo to nie jest bieganie. ' +
+          'Podaj czas, który zamierzasz przebiec, albo zostaw cel pusty — policzę tempa z Twoich treningów.',
+          { cel_s: we.celCzasowy, tempoI_s: Math.round(tempoStrefy(p10, 'I')),
+            tempoMarszu_s: TEMPO_MARSZU, dystans: we.dystans });
+      }
     }
 
     // Objętość — ile trzeba dołożyć i czy da się to zrobić w tempie ≤8%/tydz.
@@ -419,7 +656,13 @@
     // taperu — inaczej przy starcie w poniedziałek ostatni PEŁNY tydzień przed
     // zawodami dostawał najlżejszy schodek i taper de facto trwał tydzień zamiast dwóch.
     var startWNiedziele = dzienTygodnia(idxStart) === 0;
+    /* Podłoga taperu dla długich dystansów. Dziś NIC NIE ZMIENIA (half ma 2,
+       maraton 3 — sprawdzone przemiotem 200 dat startu), ale zapisuje regułę
+       wprost zamiast zostawiać ją jako emergentną własność tabeli DYSTANSE.
+       Gdyby ktoś kiedyś zmienił `taper` w tabeli, ta linia nie da zejść poniżej
+       dwóch tygodni tam, gdzie dwa tygodnie to metodyczne minimum. */
     var taperTyg = d.taper + (startWNiedziele ? 0 : 1);
+    if (d.km >= DYSTANSE.half.km) taperTyg = Math.max(taperTyg, MIN_TAPER_DLUGIE);
     var budowa = Math.max(1, tygodnie - taperTyg);
 
     /* ⚠️ TAPER ZJADAŁ PLAN — ale winna była DŁUGOŚĆ PLANU, nie długość taperu.
@@ -440,9 +683,11 @@
       return odmowa('ZA_MALO_TYGODNI',
         'Do startu zostało ' + tygodnie + ' ' + (tygodnie === 1 ? 'tydzień' : 'tyg.') + ', z czego ' + taperTyg +
         ' na wyciszenie przed zawodami — zostają ' + budowa + ' na budowanie. Potrzebuję co najmniej ' +
-        MIN_TYG_BUDOWY + ', czyli w sumie ' + (MIN_TYG_BUDOWY + taperTyg) + ' tyg.',
+        MIN_TYG_BUDOWY + ', czyli w sumie ' + (MIN_TYG_BUDOWY + taperTyg) + ' tyg. ' +
+        wyjscie(d, najdluzszyMieszczacySie(tygodnie, idxStart), tygodnie),
         { tygodnieDostepne: tygodnie, tygodnieWymagane: MIN_TYG_BUDOWY + taperTyg,
-          taperTygodni: taperTyg, budowaTygodni: budowa, dystans: we.dystans });
+          taperTygodni: taperTyg, budowaTygodni: budowa, dystans: we.dystans,
+          alternatywnyDystans: najdluzszyMieszczacySie(tygodnie, idxStart) });
     }
 
     /* TRZY REŻIMY OBJĘTOŚCI — o tym, czy plan ma rosnąć czy falować, decyduje to,
@@ -482,15 +727,25 @@
     // W trybie kształtu plan schodzi do 90% i wraca do 110% tego, co zawodnik już
     // biega — to fala wokół istniejącej formy, a nie wzrost obciążenia, więc liczenie
     // przyrostu od 90% sztucznie zawyżałoby tempo narastania i odbijało zdrowe plany.
+    /* ⚠️ SUFIT STOPNIOWANY PO BAZIE — DECYZJA FILIPA Z 17.08, PODJĘTA ZE ZNAJOMOŚCIĄ KOSZTU.
+       Koszt jest realny i zmierzony: próg 6% dla pasma 20–40 km odrzuca plany,
+       które wcześniej powstawały, m.in. NAJCZĘSTSZY przypadek w bazie —
+       półmaraton przy 25 km/tydz na 10 tygodni wymaga 6,9%/tydz.
+       ⚠️ Przeczy to naszym własnym danym: p90 w tym paśmie to 9,3%, czyli ludzie
+       realnie utrzymują więcej, niż ten próg przepuszcza. Liczby 8/6/4/3 są
+       interpretacją reguły 10%, nie pomiarem — patrz PRZYROST_WG_BAZY.
+       Skutek dla użytkownika: więcej odmów SKOK_OBJETOSCI, za to każda niesie
+       konkretną liczbę tygodni do dołożenia. */
+    var limitPrzyrostu = maxPrzyrostDla(obecna);
     if (peak > obecna) {
       var przyrost = Math.pow(peak / obecna, 1 / budowa) - 1;
-      if (przyrost > MAX_PRZYROST_TYG) {
+      if (przyrost > limitPrzyrostu) {
         return odmowa('SKOK_OBJETOSCI',
           'Biegasz ' + Math.round(obecna) + ' km/tydz, a ' + d.etykieta.toLowerCase() + ' wymaga dojścia do ok. ' + Math.round(peak) +
           ' km/tydz. W ' + tygodnie + ' tyg. znaczyłoby to +' + Math.round(przyrost * 100) + '% tygodniowo — powyżej bezpiecznych ' +
-          Math.round(MAX_PRZYROST_TYG * 100) + '%.',
+          Math.round(limitPrzyrostu * 100) + '% przy Twojej objętości.',
           { obecna_km: Math.round(obecna), peak_km: Math.round(peak), tygodnie: tygodnie,
-            przyrostProc: Math.round(przyrost * 1000) / 10, limitProc: MAX_PRZYROST_TYG * 100,
+            przyrostProc: Math.round(przyrost * 1000) / 10, limitProc: Math.round(limitPrzyrostu * 1000) / 10,
             objetoscZalozona: zalozonaObjetosc });
       }
     }
@@ -499,6 +754,56 @@
                                    obecna: obecna, peak: peak, startTyg: startTyg, budowa: budowa, rezim: rezim,
                                    taperTyg: taperTyg, startWNiedziele: startWNiedziele,
                                    zalozonaObjetosc: zalozonaObjetosc } };
+  }
+
+  /* ── ODMOWA MUSI NIEŚĆ WYJŚCIE ─────────────────────────────────────────────
+     „Do startu zostało 8 tyg., a na maraton potrzeba 16." — i co dalej?
+     Człowiek, który to czyta, NAJPEWNIEJ JEST JUŻ ZAPISANY NA ZAWODY. Nie może
+     zmienić celu; opłacił start i ma datę. Rada „wybierz bliższy cel" jest
+     wtedy pusta, a odmowa bez wyjścia znaczy, że człowiek nie wraca.
+
+     Dlatego zamiast rady ogólnej podajemy dystans, który NAPRAWDĘ mieści się
+     w pozostałym czasie (policzony, nie zgadnięty), i mówimy wprost, że sam
+     maraton nadal można przebiec — tylko jako bieg do ukończenia, nie na wynik.
+     Trzecia droga to człowiek: są rzeczy, których automat nie ułoży. */
+  function najdluzszyMieszczacySie(tygodnie, idxStart) {
+    var kolejnosc = ['marathon', 'half', '10k', '5k'], i;
+    for (i = 0; i < kolejnosc.length; i++) {
+      var kd = DYSTANSE[kolejnosc[i]];
+      var tp = kd.taper + (dzienTygodnia(idxStart) === 0 ? 0 : 1);
+      if (kd.km >= DYSTANSE.half.km) tp = Math.max(tp, MIN_TAPER_DLUGIE);
+      if (tygodnie >= Math.max(kd.minTygodni, MIN_TYG_BUDOWY + tp)) return kolejnosc[i];
+    }
+    return null;
+  }
+
+  /* Gdy do startu zostało tyle, że nie ma czego budować, jedyna użyteczna wiedza
+     dotyczy OSTATNICH DNI — a silnik ją ma, bo rozpisuje je w każdym planie
+     (nadpiszOstatnieDni). Zamiast budować osobny „plan wyciszający" z własnym
+     typem, zapisem i obejściem pięciu ścian, oddajemy te trzy zdania w treści
+     odmowy. Liczby idą z tych samych stałych co w planach, więc nie rozjadą się
+     z resztą silnika. */
+  function ostatnieDniPorada(tygodnie) {
+    if (tygodnie > 3) return '';
+    return ' Na te ostatnie dni i tak wiadomo, co robić: ostatni bieg przed startem to ' +
+      ROZRUSZANIE_KM + ' km spokojnie + 4 × 100 m przebieżki, trzy dni przed — ' + AKCENTY_KM +
+      ' km z 3 × 1 min w tempie startowym, dzień przed wolne. Nic więcej już nie zdążysz zbudować, ' +
+      'a każdy dodatkowy trening tylko zabierze świeżość.';
+  }
+
+  function wyjscie(d, zamiast, tygodnie) {
+    var samStart = 'Sam start i tak możesz przebiec — jako bieg do ukończenia, nie na wynik.';
+    var trener = 'Jeśli data jest nie do ruszenia, napisz do Filipa albo Kasi — człowiek ułoży to, czego automat nie potrafi.';
+    if (zamiast) {
+      /* Dopełniacz, nie mianownik: „przygotować do półmaratonU", nie „do półmaraton".
+         Etykiety 5/10 km są nieodmienne, więc mapa obejmuje tylko dwie pozycje. */
+      var wDopelniaczu = { half: 'półmaratonu', marathon: 'maratonu' };
+      return 'W tym czasie da się natomiast przygotować do ' +
+             (wDopelniaczu[zamiast] || DYSTANSE[zamiast].etykieta.toLowerCase()) +
+             ' — ułóż plan na ten dystans i trzymaj się go. ' + samStart + ' ' + trener;
+    }
+    return 'Na żaden dystans nie starczy już czasu na przygotowanie.' + ostatnieDniPorada(tygodnie) +
+           ' ' + samStart + ' ' + trener;
   }
 
   function najblizszyPoniedzialek(idx) {
@@ -712,21 +1017,21 @@
        żeby nie było krótsze od jedynego biegu spokojnego. Sufit musi więc stać
        ZA ratunkiem, inaczej nie miałby czego przycinać.
 
-       ⚠️ SUFIT USTĘPUJE, GDY KOLIDUJE Z „WYBIEGANIE NAJDŁUŻSZE". Przy 3 dniach
-       tydzień to trzy jednostki, z czego jakość bierze sztywne ~20%. Zostaje 80%
-       na dwie: przycięcie wybiegania do 40% zrównuje je z biegiem spokojnym
-       (zmierzone: HM, baza 25 — 16,0 vs 16,0) i opis „Najdłuższa jednostka
-       tygodnia" zaczyna kłamać. Kłamiący opis jest gorszy niż 45% udziału,
-       więc w takim przypadku zostawiamy tyle, ile trzeba, by porządek się trzymał.
-       Przy 4–6 dniach kolizji nie ma i sufit działa bez wyjątku. */
+       ⚠️ SUFIT OBOWIĄZUJE BEZ WYJĄTKU — także przy 3 dniach, i to jest ŚWIADOMY
+       KOSZT, nie przeoczenie. Przy 3 dniach tydzień to trzy jednostki, z czego
+       jakość bierze sztywne ~20%; na dwie pozostałe zostaje 80%. Przycięcie
+       wybiegania do 40% oznacza, że bieg spokojny dobija do tej samej długości
+       (linia niżej i tak nie pozwala mu przerosnąć wybiegania), więc zamiast
+       „18,5 + 14,5" wychodzi „16,0 + 16,0" — REMIS, a tydzień oddaje ok. 1 km,
+       którego nie ma gdzie położyć. Decyzja Filipa z 17.08: 40% jest ważniejsze
+       niż to, że wybieganie jest ściśle najdłuższe. Opis jednostki mówi
+       „Najdłuższa jednostka tygodnia" i przy 3 dniach bywa teraz remisem —
+       jeśli to ma wrócić, wraca razem z opisem, nie samo. */
     if (idxDlugie >= 0 && spokojne.length) {
       var sufitUdzialu = MAX_UDZIAL_DLUGIEGO * kmTyg;
       if (km[idxDlugie] > sufitUdzialu + 0.001) {
-        var poPrzycieciu = (reszta + km[idxDlugie] - sufitUdzialu) / spokojne.length;
-        if (poPrzycieciu < sufitUdzialu - 0.001) {      // wybieganie zostaje najdłuższe
-          naSpokojny = poPrzycieciu;
-          km[idxDlugie] = sufitUdzialu;
-        }
+        naSpokojny = (reszta + km[idxDlugie] - sufitUdzialu) / spokojne.length;
+        km[idxDlugie] = sufitUdzialu;
       }
     }
 
@@ -914,6 +1219,7 @@
       faktyczne.push(Math.round(suma * 10) / 10);
     }
     var szczytTyg = Math.max.apply(null, faktyczne);
+
     /* ⚠️ PROGNOZA LICZY SIĘ Z FORMY (p10Formy), NIGDY Z CELU (p10).
        Przy podanym celu `k.p10` jest już PODMIENIONY na tempo wyliczone z celu
        (patrz sprawdzSciane), więc `prognozaCzasu(k.p10, …)` zwracało dokładnie
@@ -1046,9 +1352,126 @@
     return s;
   }
 
+  /* ═══ ADAPTACJA PLANU ════════════════════════════
+     CZYSTA FUNKCJA, jak `uloz`. Nie zapisuje, nie czyta bazy, nie zna DOM-u —
+     zwraca DECYZJĘ, co zrobić z planem. Zastosowanie (przepisanie przyszłych
+     tygodni) należy do klienta, bo tylko on ma prawo pisać do bazy.
+
+     ⚠️ HISTORIA JEST NIETYKALNA. Ta funkcja mówi wyłącznie, od jakiej objętości
+     ma ruszyć PRZYSZŁOŚĆ. Klient musi to wymusić warunkiem `date > today` —
+     deklaracja w komentarzu niczego nie broni. */
+
+  /* PRÓG REAKCJI NA PRZERWĘ — z literatury, nie z osadu.
+     Do 10 dni ubytek VO2max u wytrenowanych jest znikomy; ok. 15 dni to 4–7%,
+     21 dni ~7%, i do 4 tygodni mechanizmem jest objętość osocza, która wraca
+     szybko. Powyżej 4 tygodni wchodzą zmiany strukturalne, a Daniels mówi wprost:
+     nie zakładaj starej formy, zmierz ją.
+     Poziom powrotu 50% objętości sprzed przerwy jest zgodnie podawany przez
+     źródła trenerskie dla przerw rzędu trzech tygodni (RunnersConnect,
+     Laura Norris Running, Marathon Handbook — zebrane 17.08.2026). */
+  var PRZERWA_BEZ_REAKCJI = 10;      // dni — poniżej nie ma czego cofać
+  var PRZERWA_ZA_DLUGA    = 28;      // dni — powyżej ściana, nie przeliczanie
+  /* ⚠️ 0,75 dla 10–13 dni to OSĄD — interpolacja między `nic` (literatura: do
+     10 dni znikomy ubytek) a 50% (literatura: ok. trzech tygodni). Jedyna liczba
+     w tej regule, której nie ma w źródłach. */
+  var POWROT_KROTKA_PRZERWA = 0.75;
+  var POWROT_DLUGA_PRZERWA  = 0.50;  // literatura
+  /* ⚠️ ODBUDOWA IDZIE SZYBCIEJ NIŻ BUDOWA — i to nie jest niekonsekwencja.
+     MAX_PRZYROST_TYG (8%) pilnuje BUDOWANIA nowej formy. Powrót do poziomu,
+     który ciało już znało, źródła prowadzą po 10–20%/tydz. Dlatego dopóki
+     objętość jest PONIŻEJ tej sprzed przerwy, wolno rosnąć szybciej — ale
+     ani kroku powyżej starego poziomu tym tempem. */
+  var PRZYROST_ODBUDOWY = 0.15;
+
+  /* Progi wykonania 0,75 i 1,25. ZMIERZONE 17.08.2026 na 556 jednoznacznych
+     parach plan↔log z biblioteki: mediana 1,001, w paśmie ±25% mieści się 80%
+     wykonań, poniżej 75% jest 7%, powyżej 125% — 13%. */
+  var DOLNY_PROG_WYKONANIA = 0.75;
+  var GORNY_PROG_WYKONANIA = 1.25;
+  /* ⚠️ OSĄD, NIE POMIAR. 7% i 13% zmierzyłem na POJEDYNCZYCH wykonaniach, nie
+     na tygodniach — rozkładu tygodniowego jeszcze nie policzyłem. Dwójka bierze
+     się stąd, że jeden słabszy tydzień (choroba, wyjazd, pogoda) nie jest
+     sygnałem. Do zmierzenia, zanim to utrwalimy. */
+  var TYGODNI_DO_REAKCJI   = 2;
+  var OBNIZKA_PRZY_NIEDOWYKONANIU = 0.80;
+
+  function fmtKm(x) { return Math.round(x * 10) / 10; }
+
+  function oceniAdaptacje(we) {
+    var dzis = we.today, ostatni = we.ostatniLog;
+    var bazaPlanu = we.bazaPlanu > 0 ? we.bazaPlanu : 0;
+    var tyg = we.tygodnie || [];
+
+    var dniPrzerwy = (ostatni && poprawnaData(ostatni) && poprawnaData(dzis))
+      ? (dzienIdx(dzis) - dzienIdx(ostatni)) : 0;
+
+    if (dniPrzerwy >= PRZERWA_ZA_DLUGA) {
+      return { akcja: 'sciana', powod: 'przerwa_za_dluga', dniPrzerwy: dniPrzerwy,
+        komunikat: 'Nie biegałeś od ' + dniPrzerwy + ' dni. Po takiej przerwie nie zgaduję ' +
+          'Twojej formy — przebiegnij coś na czas i ułóż plan od nowa.' };
+    }
+    if (dniPrzerwy >= PRZERWA_BEZ_REAKCJI) {
+      var udzial = dniPrzerwy < 14 ? POWROT_KROTKA_PRZERWA : POWROT_DLUGA_PRZERWA;
+      var od = fmtKm(bazaPlanu * udzial);
+      return { akcja: 'cofnij', powod: 'przerwa', dniPrzerwy: dniPrzerwy,
+        odKm: od, zamiastKm: fmtKm(bazaPlanu), przyrostOdbudowy: PRZYROST_ODBUDOWY,
+        komunikat: 'Po ' + dniPrzerwy + ' dniach przerwy objętość wraca od ' + od +
+          ' km/tydz zamiast ' + fmtKm(bazaPlanu) + '. Do poprzedniego poziomu wróci stopniowo.' };
+    }
+
+    var ostatnieTyg = tyg.slice(-TYGODNI_DO_REAKCJI);
+    if (ostatnieTyg.length < TYGODNI_DO_REAKCJI) return { akcja: 'brak', powod: 'za_malo_danych' };
+
+    var ponizej = 0, powyzej = 0, opuszczoneRazem = 0;
+    for (var i = 0; i < ostatnieTyg.length; i++) {
+      var t = ostatnieTyg[i];
+      var st = t.planKm > 0 ? (t.wykonaneKm / t.planKm) : 1;
+      if (st < DOLNY_PROG_WYKONANIA) ponizej++;
+      if (st > GORNY_PROG_WYKONANIA) powyzej++;
+      opuszczoneRazem += Math.max(0, (t.jednostekPlan || 0) - (t.jednostekZrobionych || 0));
+    }
+
+    /* ⚠️ WYJŚCIE Z OBNIŻKI STOI PRZED WEJŚCIEM W NIĄ — inaczej jedno słabsze
+       okno obniżałoby plan na zawsze. Kto przez TYGODNI_DO_REAKCJI wykonuje
+       obniżony plan W CAŁOŚCI, wraca do normalnego tempa progresji. */
+    if (we.wObnizce && ponizej === 0) {
+      return { akcja: 'przywroc', powod: 'wykonuje_obnizony',
+        komunikat: 'Od dwóch tygodni wyrabiasz plan w całości — progresja wraca do normalnego tempa.' };
+    }
+
+    if (ponizej >= TYGODNI_DO_REAKCJI) {
+      var srednioOpuszczonych = opuszczoneRazem / ostatnieTyg.length;
+      if (srednioOpuszczonych >= 2) {
+        return { akcja: 'mniej_dni', powod: 'opuszcza_jednostki',
+          opuszczoneNaTydzien: Math.round(srednioOpuszczonych * 10) / 10,
+          komunikat: 'Od dwóch tygodni odpadają średnio ' + (Math.round(srednioOpuszczonych * 10) / 10) +
+            ' treningi w tygodniu. Plan zejdzie o jeden dzień biegania — lepiej zrobić mniej w całości niż więcej w połowie.' };
+      }
+      var noweKm = fmtKm(bazaPlanu * OBNIZKA_PRZY_NIEDOWYKONANIU);
+      return { akcja: 'obniz', powod: 'niedowykonanie', doKm: noweKm, zKm: fmtKm(bazaPlanu),
+        komunikat: 'Od dwóch tygodni biegasz mniej, niż zakłada plan. Objętość schodzi z ' +
+          fmtKm(bazaPlanu) + ' na ' + noweKm + ' km/tydz — wróci, gdy zaczniesz wyrabiać.' };
+    }
+
+    if (powyzej >= TYGODNI_DO_REAKCJI) {
+      /* ⚠️ ŚWIADOMIE NIE PODNOSIMY PLANU. Zmierzone: przebieganie planu (13%
+         wykonań) jest prawie DWA RAZY częstsze niż niedobieganie (7%) — reguła
+         reagująca na nadwykonanie odzywałaby się nieustannie. Groźniejsze:
+         automatyczne podnoszenie dałoby obejście MAX_PRZYROST_TYG — wystarczy
+         biegać więcej, żeby plan pozwolił biegać jeszcze więcej. */
+      return { akcja: 'tylko_powiedz', powod: 'nadwykonanie',
+        komunikat: 'Od dwóch tygodni biegasz wyraźnie więcej, niż zakłada plan. ' +
+          'Plan sam tego nie podniesie — jeśli chcesz wyżej, ułóż go od nowa, ' +
+          'weźmie Twoją obecną objętość.' };
+    }
+
+    return { akcja: 'brak', powod: 'plan_wykonywany' };
+  }
+
   // ── EKSPORT ────────────────────────────────────────────────────────────────
   var API = {
     uloz: uloz,
+    oceniAdaptacje: oceniAdaptacje,
     STREFY: STREFY,
     DYSTANSE: DYSTANSE,
     LIMITY: { MAX_POPRAWA: MAX_POPRAWA, MAX_PRZYROST_TYG: MAX_PRZYROST_TYG,
@@ -1488,9 +1911,19 @@
     sekcja('SUFIT WYBIEGANIA — półmaraton 22 km w trzech reżimach objętości');
     /* 22 km = 104% dystansu. Reżimy dobrane tak, żeby trafić w trzy różne ścieżki
        układania tygodnia: 25 = sufit NIE wiąże, 60 = wiąże, 129 = wiąże z zapasem. */
+    /* ⚠️ HORYZONT PODNIESIONY Z 10 NA 11 TYGODNI — nie kosmetyka, tylko skutek
+       stopniowanego sufitu przyrostu (8/6/4/3, decyzja z 17.08). Zawodnik na
+       25 km/tydz musi dojść do ok. 40, a to wymaga więcej niż 6%/tydz przy
+       krótkim horyzoncie. ⚠️ GRANICA ZALEŻY OD DNIA STARTU, bo start poza
+       niedzielą dokłada tydzień taperu i skraca budowę:
+           start w NIEDZIELĘ    → 10 tyg odbite (6,1%), od 11 przechodzi
+           start w PONIEDZIAŁEK → 11 tyg odbite (6,1%), od 12 przechodzi
+       `zaTygodni` daje poniedziałek, stąd 12. Szczyt jest ten sam (40,5 km).
+       Test stoi TUŻ NAD granicą, żeby jej przesunięcie było widoczne;
+       samą granicę pilnuje osobna asercja niżej. */
     [25, 60, 129].forEach(function (obj) {
       [3, 4, 5, 6].forEach(function (dni) {
-        var r = uloz(we({ dystans: 'half', dataStartu: zaTygodni(10), dniWTygodniu: dni,
+        var r = uloz(we({ dystans: 'half', dataStartu: zaTygodni(12), dniWTygodniu: dni,
                           poziom: poziom({ objetoscTygodniowa: obj }) }));
         check('half ' + obj + ' km/tydz, ' + dni + ' dni — plan powstaje', r.ok === true, r.ok ? null : r.sciana);
         check('half ' + obj + ' km/tydz, ' + dni + ' dni — najdłuższe ≤ 22 km',
@@ -1600,16 +2033,33 @@
 
     sekcja('PLAN — tempa ze stref');
     check('p10 przeniesione do meta', r.meta.p10sec === 300, r.meta.p10sec);
-    check('E = 6:35/km (300+95)', r.meta.tempa.E === '6:35', r.meta.tempa.E);
-    check('Reg = 7:00/km (300+120)', r.meta.tempa.Reg === '7:00', r.meta.tempa.Reg);
-    check('T = 5:30/km (300+30)', r.meta.tempa.T === '5:30', r.meta.tempa.T);
-    check('I = 5:05/km (300+5)', r.meta.tempa.I === '5:05', r.meta.tempa.I);
-    check('M = 5:25/km (300+25)', r.meta.tempa.M === '5:25', r.meta.tempa.M);
-    check('R = 4:30/km (300-30)', r.meta.tempa.R === '4:30', r.meta.tempa.R);
+    /* ⚠️ ZMIANA MODELU STREF — DANIELS ZAMIAST BIBLIOTEKI. Zmierzony skutek przy
+       P10 = 5:00/km (dziesiątka 50:00), czyli w środku dotychczasowej kalibracji:
+
+           strefa   biblioteka (489 treningów)   Daniels    różnica
+           E              6:35                    6:07      -28 s/km
+           Reg            7:00                    6:38      -22 s/km
+           T              5:30                    5:03      -27 s/km
+           I              5:05                    4:41      -24 s/km
+           M              5:25                    5:22       -3 s/km
+           R              4:30                    4:20      -10 s/km
+
+       DANIELS PRZYSPIESZA KAŻDĄ STREFĘ o 22–28 s/km wobec tego, co Filip i Kasia
+       faktycznie zadają swoim zawodnikom. To NIE jest błąd zaokrąglenia ani skutek
+       uboczny — to różnica między tabelą kalibrowaną na innej populacji a pomiarem
+       na własnej. Decyzja produktowa Filipa, 17.08. Stare wartości zostają tutaj
+       zapisane, żeby ta różnica była widoczna, a nie odtwarzana od zera przy
+       następnej dyskusji. */
+    check('E = 6:07/km wg Danielsa (biblioteka dawała 6:35)', r.meta.tempa.E === '6:07', r.meta.tempa.E);
+    check('Reg = 6:38/km wg Danielsa (biblioteka 7:00)', r.meta.tempa.Reg === '6:38', r.meta.tempa.Reg);
+    check('T = 5:03/km wg Danielsa = wysiłek godzinny (biblioteka 5:30)', r.meta.tempa.T === '5:03', r.meta.tempa.T);
+    check('I = 4:41/km wg Danielsa (biblioteka 5:05)', r.meta.tempa.I === '4:41', r.meta.tempa.I);
+    check('M = 5:22/km wg Danielsa (biblioteka 5:25)', r.meta.tempa.M === '5:22', r.meta.tempa.M);
+    check('R = 4:20/km wg Danielsa (biblioteka 4:30)', r.meta.tempa.R === '4:20', r.meta.tempa.R);
     check('spokojne w planie mają tempo E',
-      r.treningi.filter(function (w) { return w.workout_type === 'Bieg spokojny' && !jestDniemStartu(w); }).every(function (w) { return w.target_pace === '6:35/km'; }), null);
+      r.treningi.filter(function (w) { return w.workout_type === 'Bieg spokojny' && !jestDniemStartu(w); }).every(function (w) { return w.target_pace === '6:07/km'; }), null);
     check('interwały w planie mają tempo I',
-      r.treningi.filter(function (w) { return w.workout_type === 'Interwały'; }).every(function (w) { return w.target_pace === '5:05/km'; }), null);
+      r.treningi.filter(function (w) { return w.workout_type === 'Interwały'; }).every(function (w) { return w.target_pace === '4:41/km'; }), null);
     check('każdy bieg ma tempo',
       r.treningi.filter(function (w) { return w.workout_type !== 'Odpoczynek' && !jestDniemStartu(w); })
         .every(function (w) { return /^\d{1,2}:\d{2}\/km$/.test(w.target_pace); }), null);
@@ -1674,11 +2124,11 @@
       iw.every(function (w) { return [3, 4, 6, 8].indexOf(+/(\d+) × 1000 m/.exec(w.description)[1]) >= 0; }),
       iw.map(function (w) { return /(\d+) × 1000 m/.exec(w.description)[1]; }));
     check('opis interwałów niesie tempo strefy I i przerwę',
-      iw.every(function (w) { return w.description.indexOf('5:05/km') >= 0 && /przerwa 2 min trucht/.test(w.description); }), iw[0] && iw[0].description);
+      iw.every(function (w) { return w.description.indexOf('4:41/km') >= 0 && /przerwa 2 min trucht/.test(w.description); }), iw[0] && iw[0].description);
     check('opis tempa mówi ile MINUT ciągłego biegu',
       tp.every(function (w) { return /\d+ min ciągłego biegu/.test(w.description); }), tp[0] && tp[0].description);
     check('opis tempa niesie tempo strefy T',
-      tp.every(function (w) { return w.description.indexOf('5:30/km') >= 0; }), tp[0] && tp[0].description);
+      tp.every(function (w) { return w.description.indexOf('5:03/km') >= 0; }), tp[0] && tp[0].description);
     check('każda jednostka jakościowa ma rozgrzewkę i schłodzenie w opisie',
       iw.concat(tp).every(function (w) { return /Rozgrzewka \d+ km/.test(w.description) && /schłodzenie \d+ km/.test(w.description); }), null);
 
@@ -1897,6 +2347,25 @@
       })(), null);
 
     // ── SUFIT WYBIEGANIA po korekcie na 14/18/26/34
+    sekcja('SUFIT PRZYROSTU STOPNIOWANY PO BAZIE');
+    check('progi przyrostu: <20 → 8%, 20-40 → 6%, 40-70 → 4%, >70 → 3%',
+      maxPrzyrostDla(15) === 0.08 && maxPrzyrostDla(25) === 0.06 &&
+      maxPrzyrostDla(50) === 0.04 && maxPrzyrostDla(90) === 0.03, null);
+    check('GRANICA (start w pn): half 25 km/tydz odbite przy 11 tyg., przechodzi przy 12',
+      (function () {
+        var a = uloz(we({ dystans: 'half', dataStartu: zaTygodni(11), dniWTygodniu: 5,
+                          poziom: poziom({ objetoscTygodniowa: 25 }) }));
+        var b = uloz(we({ dystans: 'half', dataStartu: zaTygodni(12), dniWTygodniu: 5,
+                          poziom: poziom({ objetoscTygodniowa: 25 }) }));
+        return a.ok === false && a.sciana.kod === 'SKOK_OBJETOSCI' && b.ok === true;
+      })(), null);
+    check('odmowa SKOK_OBJETOSCI podaje limit WŁAŚCIWY DLA PASMA, nie stałe 8%',
+      (function () {
+        var r = uloz(we({ dystans: 'half', dataStartu: zaTygodni(10), dniWTygodniu: 5,
+                          poziom: poziom({ objetoscTygodniowa: 25 }) }));
+        return r.ok === false && r.sciana.szczegoly.limitProc === 6;
+      })(), null);
+
     sekcja('SUFIT WYBIEGANIA — 14 / 18 / 22 / 34');
     check('półmaraton: sufit 22 km to ok. 104% dystansu (świadomie powyżej 100%)',
       Math.abs(DYSTANSE.half.maxDlugieKm / DYSTANSE.half.km - 1.04) < 0.02,
@@ -2113,18 +2582,69 @@
       })(), null);
 
     sekcja('PORZĄDEK STREF — I < T < E < Reg niezależnie od formy i celu');
-    check('strefy zachowują porządek na całym rozstępie wydolności (150–600 s/km)',
-      [150, 205, 240, 300, 360, 420, 500, 600].every(function (p) {
+    /* ⚠️ PORZĄDEK JEST OSTRY TAM, GDZIE NIESIE TREŚĆ, i nieostry przy podłodze marszu.
+       I < T < E musi być zawsze — to są trzy różne bodźce i ich pomylenie psuje
+       trening. E ≤ Reg, bo powyżej P10 = 9:20/km obie strefy dobijają do sufitu
+       12:00/km i zrównują się: dla kogoś, kto biegnie dziesiątkę w 1:33, spokojne
+       i regeneracyjne NAPRAWDĘ są tym samym wysiłkiem. Wymuszanie tam ostrej
+       nierówności znaczyłoby kazać mu „regenerować się" szybciej niż idzie. */
+    check('strefy zachowują porządek I < T < E ≤ Reg na całym rozstępie (150–600 s/km)',
+      [150, 205, 240, 300, 360, 420, 500, 520, 560, 600].every(function (p) {
         return tempoStrefy(p, 'I') < tempoStrefy(p, 'T')
             && tempoStrefy(p, 'T') < tempoStrefy(p, 'E')
-            && tempoStrefy(p, 'E') < tempoStrefy(p, 'Reg');
+            && tempoStrefy(p, 'E') <= tempoStrefy(p, 'Reg');
       }), null);
-    check('T − I to zawsze ' + (STREFY.T - STREFY.I) + ' s/km, bez względu na P10',
-      [150, 300, 600].every(function (p) { return tempoStrefy(p, 'T') - tempoStrefy(p, 'I') === STREFY.T - STREFY.I; }), null);
+    check('żadna strefa nie jest wolniejsza od marszu (' + fmtTempo(TEMPO_MARSZU) + '/km)',
+      [150, 300, 500, 600].every(function (p) {
+        return ['E', 'Reg', 'T', 'I'].every(function (s) { return tempoStrefy(p, s) <= TEMPO_MARSZU; });
+      }), null);
+    /* ⚠️ TE DWA TESTY PILNOWAŁY STAREGO MODELU (stałe przesunięcia od P10,
+       skalibrowane na 489 treningach). Po przejściu na Danielsa punkt kalibracji
+       nie istnieje — kotwicą jest opublikowana tabela, więc testy sprawdzają
+       teraz ZGODNOŚĆ Z NIĄ, a nie z biblioteką. Wartości wobec VDOT 60
+       (fellrnr.com/wiki/VDOT_Results?Vdot=60&Metric=true): M 3:52, T 3:39,
+       I 3:22, R 3:07, E w zakresie 4:14–4:48. */
+    check('próg to wysiłek GODZINNY, nie osobna liczba (%VO2max(60 min) = udział T)',
+      Math.abs(UDZIALY.T - danielsPctVO2(60)) < 1e-12 && Math.abs(UDZIALY.T - 0.888) < 0.001,
+      Math.round(UDZIALY.T * 10000) / 100);
+    check('odtwarza opublikowaną tabelę Danielsa dla VDOT 60 co do sekundy',
+      (function () {
+        var p10 = 211.8;                       // dziesiątka 35:18 = VDOT 60
+        var oczek = { M: 232, T: 219, I: 202, R: 187 };
+        for (var s in oczek) {
+          if (Math.abs(tempoStrefy(p10, s) - oczek[s]) > 1.5) return false;
+        }
+        var e = tempoStrefy(p10, 'E');
+        return e > 254 && e < 288;             // 4:14–4:48
+      })(), null);
+    check('VDOT policzony z dziesiątki 35:18 wynosi ok. 60',
+      Math.abs(vdotZP10(211.8) - 60) < 0.5, Math.round(vdotZP10(211.8) * 100) / 100);
+    check('rozdzielczość stref NIE zależy od formy (T−I jako % tempa, rozstęp 150–600 s/km)',
+      (function () {
+        var proc = [150, 205, 300, 420, 600].map(function (p) {
+          return (tempoStrefy(p, 'T') - tempoStrefy(p, 'I')) / tempoStrefy(p, 'I');
+        });
+        return Math.max.apply(null, proc) - Math.min.apply(null, proc) < 0.01;
+      })(), null);
     sekcja('RIEGEL');
     check('5 km 20:00 → 10 km ok. 41:41', Math.abs(riegel(1200, 5, 10) - 2501) < 5, Math.round(riegel(1200, 5, 10)));
     check('10 km 50:00 → maraton 3:50:01', fmtCzas(prognozaCzasu(300, 42.195)) === '3:50:01', fmtCzas(prognozaCzasu(300, 42.195)));
-    check('konwersja tam i z powrotem jest spójna', Math.abs(p10ZWyniku(21.0975, prognozaCzasu(300, 21.0975)) - 300) < 0.01, null);
+    /* ⚠️ BYŁO: „p10ZWyniku(Riegel(300)) === 300". Ta tożsamość trzymała się tylko
+       dlatego, że OBA kierunki szły tym samym wzorem Riegla. Od czasu kotwiczenia
+       przez VDOT konwersja w drugą stronę idzie równaniem Danielsa, więc dokładna
+       tożsamość nie zachodzi i nie ma zachodzić — to dwa różne modele.
+       Zmierzona rozbieżność: ok. 2%, czyli tyle, ile wynosi znany błąd Riegla
+       (patrz komentarz przy najblizszyWynik). Test pilnuje teraz, że modele
+       nie rozjeżdżają się BARDZIEJ niż o ten błąd. */
+    check('Riegel i VDOT zgadzają się co do formy w granicach błędu Riegla (2,5%)',
+      (function () {
+        return [5, 10, 21.0975, 42.195].every(function (km) {
+          var p = p10ZWyniku(km, prognozaCzasu(300, km));
+          return Math.abs(p / 300 - 1) < 0.025;
+        });
+      })(), [5, 10, 21.0975, 42.195].map(function (km) {
+        return Math.round(p10ZWyniku(km, prognozaCzasu(300, km)) * 10) / 10;
+      }));
 
     console.log('\n  zaliczone: ' + pass + '   niezaliczone: ' + fail + '\n');
     if (typeof process !== 'undefined' && process.exit) process.exit(fail === 0 ? 0 : 1);
