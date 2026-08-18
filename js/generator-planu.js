@@ -1428,10 +1428,45 @@
      wykonań, poniżej 75% jest 7%, powyżej 125% — 13%. */
   var DOLNY_PROG_WYKONANIA = 0.75;
   var GORNY_PROG_WYKONANIA = 1.25;
-  /* ⚠️ OSĄD, NIE POMIAR. 7% i 13% zmierzyłem na POJEDYNCZYCH wykonaniach, nie
-     na tygodniach — rozkładu tygodniowego jeszcze nie policzyłem. Dwójka bierze
-     się stąd, że jeden słabszy tydzień (choroba, wyjazd, pogoda) nie jest
-     sygnałem. Do zmierzenia, zanim to utrwalimy. */
+  /* ZMIERZONE 18.08.2026 — 242 zamknięte tygodnie planowe, 22 zawodników,
+     11.05–17.08.2026. Wcześniej stał tu osąd („jeden słaby tydzień to nie
+     sygnał"); dwójka się obroniła, ale NIE z tego powodu, który zakładałem.
+
+     1) DRUGI TYDZIEŃ NIE POPRAWIA TRAFNOŚCI. Prawdopodobieństwo, że kolejny
+        tydzień też będzie słaby (<75% planu):
+              baza          0,388   (n=242)
+              po 1 słabym   0,575   (n=73)
+              po 2 słabych  0,588   (n=34)
+              po 3 słabych  0,588   (n=17)
+        Sygnał nasyca się PO PIERWSZYM tygodniu. Przyrost 1→2 to 1,3 pkt proc.
+        przy n=34, czyli głęboko w szumie — tych wartości nie da się rozróżnić.
+        ⚠️ Nie wolno więc mówić „czekamy 2 tygodnie, bo wtedy wiemy lepiej".
+        Wiemy tyle samo. Reguła myli się w ~4 przypadkach na 10 niezależnie
+        od N i to jest właściwość progu 0,75 na tygodniowym stosunku, nie
+        długości okna.
+
+     2) DWÓJKA BRONI SIĘ STABILNOŚCIĄ, NIE TRAFNOŚCIĄ. Symulacja tego automatu
+        na tej samej serii (wejście po N słabych, wyjście po N czystych,
+        cel skalowany w obniżce) — liczba zmian stanu:
+              N=1  92 zmiany   32,2% tygodni w obniżce   → stan co ~2,6 tyg
+              N=2  28 zmian    24,8%                     → stan co ~8,6 tyg
+              N=3  11 zmian    18,2%                     → stan co ~22 tyg
+              N=4   4 wejścia, ZERO wyjść                 8,3%
+        N=1 daje plan, który skacze w górę i w dół co dwa–trzy tygodnie —
+        to przestaje być plan. N=2 jest NAJMNIEJSZYM oknem, które tego nie robi.
+        ⚠️ ZERA WYJŚĆ PRZY N=4 NIE WOLNO CZYTAĆ JAKO „N=4 NIE WYPUSZCZA".
+        Wyjście wymaga N czystych tygodni z rzędu, a przy bazowym p=0,388 daje
+        to (1−p)^4 ≈ 14% szansy na jedno wejście. Przy zaobserwowanych czterech
+        wejściach prawdopodobieństwo, że ŻADNE się nie zakończy, wynosi ~55% —
+        czyli zero wyjść jest tu zwyczajnie spodziewane i nie dowodzi niczego.
+        Ten rachunek robi za nas `tools/pomiar-tygodni-reakcji.js`.
+
+     ⚠️ CZYM TO NAPRAWDĘ ZMIERZONO — czytać, zanim ktoś podniesie te liczby do
+     rangi dowodu. To są plany TRENERSKIE i AI, bo planów z generatora jest
+     ZERO (nikt go jeszcze nie użył). Zakładamy więc, że trzymanie się planu
+     trenera zachowuje się jak trzymanie się planu generatora. To wskaźnik
+     zastępczy, nie ten sam pomiar (LEKCJE #11). Przeliczyć, gdy pojawi się
+     kilkanaście planów z generatora — skrypt: tools/pomiar-tygodni-reakcji.js. */
   var TYGODNI_DO_REAKCJI   = 2;
   var OBNIZKA_PRZY_NIEDOWYKONANIU = 0.80;
 
