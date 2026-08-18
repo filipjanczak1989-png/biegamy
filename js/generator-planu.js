@@ -228,6 +228,14 @@
      a podłoga na nim odbierałaby dni komuś, dla kogo generator powstał.
      Pełne uzasadnienie przy jego użyciu w ulozTydzien. ⚠️ OSĄD, nie pomiar. */
   var MIN_WYBIEGANIA_KM = 6;
+  /* Najkrótsza jednostka, którą warto wpisać do planu. Poniżej tego przebranie
+     się, dojście i rozgrzewka trwają dłużej niż sam bieg — to nie jest trening,
+     tylko pozycja w kalendarzu.
+     ⚠️ OSĄD, NIE POMIAR — nie mam danych mówiących, gdzie leży ta granica.
+     Zmierzony jest ZASIĘG: przed wprowadzeniem podłogi 663 jednostki na 5644
+     tygodni schodziły poniżej 3 km, najkrótsza 1,5 km (Regeneracja przy bazie
+     15 km/tydz, gdzie liczy się ją jako 10% tygodnia). */
+  var MIN_JEDNOSTKI_KM = 3;
   /* Próg drugiej jednostki jakościowej w tygodniu. 45, nie 30 — mimo że przy 30
      dwie jakości też „się mieszczą" w 40% tygodnia, robią to na styk i tydzień
      zrzutowy nie ma z czego zejść. Wyprowadzenie przy funkcji drugaJakosc.
@@ -780,13 +788,38 @@
     if (peak > obecna) {
       var przyrost = Math.pow(peak / obecna, 1 / budowa) - 1;
       if (przyrost > limitPrzyrostu) {
+        /* ⚠️ TA ŚCIANA BYŁA JEDYNĄ Z PIĘCIU BEZ WYJŚCIA — mówiła „za duży skok"
+           i kończyła. Komentarz wyżej twierdził nawet, że „każda niesie konkretną
+           liczbę tygodni do dołożenia", a komunikat jej nie zawierał; kod
+           i komentarz rozjeżdżały się od 17.08.2026.
+           Człowiek, który to czyta, ma opłacony start i datę. Musi wyjść z tego
+           ekranu z liczbą: ile tygodni by wystarczyło ALBO jaki dystans mieści
+           się w jego dzisiejszej objętości. */
+        var budowaPotrzebna = Math.ceil(Math.log(peak / obecna) / Math.log(1 + limitPrzyrostu));
+        var tygPotrzebne = budowaPotrzebna + taperTyg;
+        // Szczyt, do którego DA SIĘ dojść w dostępnym czasie — i najdłuższy
+        // dystans, którego minimum się pod nim mieści.
+        var osiagalnySzczyt = obecna * Math.pow(1 + limitPrzyrostu, budowa);
+        var lzejszy = null, kol = ['marathon', 'half', '10k', '5k'];
+        for (var q = 0; q < kol.length; q++) {
+          if (kol[q] === we.dystans) continue;
+          if (DYSTANSE[kol[q]].km >= d.km) continue;              // tylko KRÓTSZY niż cel
+          if (DYSTANSE[kol[q]].minSzczyt <= osiagalnySzczyt) { lzejszy = kol[q]; break; }
+        }
+        var drogaWyjscia = lzejszy
+          ? ' Przy Twojej objętości w tym czasie mieści się ' + DYSTANSE[lzejszy].etykieta.toLowerCase() +
+            ' — albo ten sam dystans przy ' + tygPotrzebne + ' tyg. przygotowania.'
+          : ' Na ten dystans potrzeba ok. ' + tygPotrzebne + ' tyg. przygotowania zamiast ' + tygodnie +
+            '. Krótszy dystans też nie zmieści się w Twojej dzisiejszej objętości.';
         return odmowa('SKOK_OBJETOSCI',
           'Biegasz ' + Math.round(obecna) + ' km/tydz, a ' + d.etykieta.toLowerCase() + ' wymaga dojścia do ok. ' + Math.round(peak) +
           ' km/tydz. W ' + tygodnie + ' tyg. znaczyłoby to +' + Math.round(przyrost * 100) + '% tygodniowo — powyżej bezpiecznych ' +
-          Math.round(limitPrzyrostu * 100) + '% przy Twojej objętości.',
+          Math.round(limitPrzyrostu * 100) + '% przy Twojej objętości.' + drogaWyjscia + ' ' +
+          'Jeśli data jest nie do ruszenia, napisz do Filipa albo Kasi — człowiek ułoży to, czego automat nie potrafi.',
           { obecna_km: Math.round(obecna), peak_km: Math.round(peak), tygodnie: tygodnie,
             przyrostProc: Math.round(przyrost * 1000) / 10, limitProc: Math.round(limitPrzyrostu * 1000) / 10,
-            objetoscZalozona: zalozonaObjetosc });
+            tygodniePotrzebne: tygPotrzebne, osiagalnySzczyt_km: Math.round(osiagalnySzczyt),
+            alternatywnyDystans: lzejszy, objetoscZalozona: zalozonaObjetosc });
       }
     }
 
@@ -1079,7 +1112,80 @@
     // dobija do zaplanowanej objętości — i tak ma być: lepiej oddać mniej kilometrów
     // niż wypchnąć je w jedną jednostkę, która przestaje być spokojna.
     if (idxDlugie >= 0) naSpokojny = Math.min(naSpokojny, km[idxDlugie]);
-    spokojne.forEach(function (idx) { km[idx] = Math.max(2, naSpokojny); });
+    spokojne.forEach(function (idx) { km[idx] = naSpokojny; });
+
+    /* ── PODŁOGA JEDNOSTKI Z REDYSTRYBUCJĄ ─────────────────────────────────
+       ⚠️ TO ODWRACA WCZEŚNIEJSZĄ DECYZJĘ I TRZEBA WIEDZIEĆ, DLACZEGO.
+       Stało tu `Math.max(2, naSpokojny)` i komentarz, że podłoga NIE należy się
+       biegom spokojnym, bo „kosztowałaby dni" — przy 6 dniach i bazie 25 plan
+       oddawał dwa dni z sześciu. Tamten zarzut był słuszny wobec podłogi BEZ
+       REDYSTRYBUCJI: stara podłoga po prostu DOKŁADAŁA kilometry, których nikt
+       nie odjął, więc tydzień po cichu przekraczał swoją objętość.
+       Podłoga z redystrybucją znosi ten zarzut — brakujące kilometry bierzemy
+       z NAJDŁUŻSZEJ jednostki, więc suma tygodnia zostaje ta sama i żaden dzień
+       nie znika. Dopiero gdy dawca nie ma z czego oddać, dzień odpada — i to
+       jest uczciwe, bo znaczy, że na tylu dniach nie da się zrobić sensownych
+       jednostek z tej objętości.
+
+       Kolejność jest nośna: podłoga stoi ZA sufitem udziału i za „spokojny nie
+       dłuższy od wybiegania", bo obie te reguły ustalają, ile kto ma; podłoga
+       tylko przesuwa kilometry MIĘDZY jednostkami, nie tworzy ich. */
+    var biegowe = [];
+    for (i = 0; i < typy.length; i++) if (typy[i] !== 'Odpoczynek' && km[i] > 0) biegowe.push(i);
+
+    var brak = 0;
+    for (i = 0; i < biegowe.length; i++) {
+      var bi = biegowe[i];
+      if (km[bi] < MIN_JEDNOSTKI_KM) { brak += MIN_JEDNOSTKI_KM - km[bi]; km[bi] = MIN_JEDNOSTKI_KM; }
+    }
+    if (brak > 0) {
+      /* ⚠️ DAWCĄ JEST CAŁY ZAPAS PONAD PODŁOGĄ, NIE SAMA NAJDŁUŻSZA JEDNOSTKA.
+         Pierwsza wersja brała wyłącznie z najdłuższej, schodząc najwyżej do
+         drugiej co do długości — i przez to CICHO ZAWYŻAŁA tydzień: gdy
+         wszystkie jednostki się zrównały, nie było już od kogo brać, pętla
+         wychodziła, a podniesione kilometry zostawały. Zmierzone na 5644
+         tygodniach: suma rosła w 117 z nich, do +2,0 km. Pula proporcjonalna
+         domyka bilans z definicji — każdy oddaje w proporcji do swojego zapasu,
+         więc dopóki zapas w ogóle istnieje, niedobór da się pokryć. */
+      var straz = 0;
+      while (brak > 0.001 && straz++ < 30) {
+        var zapas = 0;
+        for (i = 0; i < biegowe.length; i++) zapas += Math.max(0, km[biegowe[i]] - MIN_JEDNOSTKI_KM);
+        if (zapas <= 0.001) break;
+        var bierz = Math.min(brak, zapas);
+        for (i = 0; i < biegowe.length; i++) {
+          var z = Math.max(0, km[biegowe[i]] - MIN_JEDNOSTKI_KM);
+          if (z > 0) km[biegowe[i]] -= bierz * (z / zapas);
+        }
+        brak -= bierz;
+      }
+      /* ⚠️ ZAPAS SIĘ SKOŃCZYŁ → ODDAJEMY DZIEŃ, NIE ZAWYŻAMY TYGODNIA.
+         Dzieje się to, gdy dni × MIN_JEDNOSTKI_KM przekracza objętość tygodnia
+         — np. 5 dni przy 13,5 km. Nie istnieje wtedy układ, w którym każda
+         jednostka ma sens; zamiana najkrótszej na Odpoczynek jest jedyną
+         uczciwą odpowiedzią, a jej kilometry wracają do pozostałych.
+         Zmierzone: dotyczy 123 tygodni z 5644 (2,2%), wyłącznie przy bazie
+         15–30 km/tydz i 4–6 dniach — czyli tam, gdzie arytmetyka nie zostawia
+         wyboru, a nie tam, gdzie ktoś normalnie biega. */
+      var obrona = 0;
+      while (brak > 0.001 && biegowe.length > 1 && obrona++ < 6) {
+        var najkr = -1;
+        for (i = 0; i < biegowe.length; i++) {
+          if (biegowe[i] === idxDlugie) continue;     // wybiegania nie kasujemy nigdy
+          if (najkr < 0 || km[biegowe[i]] < km[najkr]) najkr = biegowe[i];
+        }
+        if (najkr < 0) break;
+        var oddane = km[najkr];
+        typy[najkr] = 'Odpoczynek'; km[najkr] = 0; opisy[najkr] = null;
+        biegowe = biegowe.filter(function (x) { return x !== najkr; });
+        brak -= oddane;
+        if (brak < 0) {                               // nadwyżka wraca do najdłuższej
+          var najD = biegowe[0];
+          for (i = 1; i < biegowe.length; i++) if (km[biegowe[i]] > km[najD]) najD = biegowe[i];
+          km[najD] += -brak; brak = 0;
+        }
+      }
+    }
 
     return sloty.map(function (dow, idx) {
       return { dow: dow, typ: typy[idx], km: Math.round(km[idx] * 10) / 10, opis: opisy[idx] || null };
@@ -1472,6 +1578,31 @@
 
   function fmtKm(x) { return Math.round(x * 10) / 10; }
 
+  /* ── CZYJ JEST TEN TYDZIEŃ ─────────────────────────────────────────────────
+     Adaptacja wolno przeliczać WYŁĄCZNIE własne treningi. `plan_source` mówi,
+     kto zaplanował wpis: 'generator' to nasz, 'coach' to trenerski, NULL to
+     trenerski sprzed wprowadzenia kolumny ALBO nasz PO EDYCJI przez trenera
+     (edycja zeruje znacznik — celowo). Wszystko poza 'generator' jest cudze.
+
+     ⚠️ TYDZIEŃ Z CUDZYM WPISEM ODPADA W CAŁOŚCI, nie częściowo. Rozważane było
+     przeliczanie proporcjonalne tylko swoich jednostek i zostało odrzucone:
+     przy 3 jednostkach generatora i 1 trenerskiej obniżka o 20% zdejmuje
+     kilometry wyłącznie z naszej trójki, a trenerska zostaje pełna — wychodzi
+     tydzień, którego nikt nie zaprojektował, ani my, ani trener. Trener WIDZIAŁ
+     ten tydzień, więc jego decyzja jest świeższa niż nasza reguła.
+
+     ⚠️ KLASA BŁĘDU: „dwa systemy piszą do tej samej tabeli". Wróci przy każdej
+     przyszłej zmianie adaptacji, dlatego reguła stoi TUTAJ, jako czysta funkcja
+     z testami, a nie jako warunek wpleciony w zapytanie w zawodnik.html. */
+  function tydzienNalezyDoNas(wpisy) {
+    if (!wpisy || !wpisy.length) return true;      // pusty tydzień nie jest cudzy
+    for (var i = 0; i < wpisy.length; i++) {
+      var zr = wpisy[i] && wpisy[i].plan_source;
+      if (zr !== 'generator') return false;
+    }
+    return true;
+  }
+
   function oceniAdaptacje(we) {
     var dzis = we.today, ostatni = we.ostatniLog;
     var bazaPlanu = we.bazaPlanu > 0 ? we.bazaPlanu : 0;
@@ -1564,6 +1695,8 @@
               DOLNY_PROG_WYKONANIA: DOLNY_PROG_WYKONANIA, GORNY_PROG_WYKONANIA: GORNY_PROG_WYKONANIA,
               OBNIZKA_PRZY_NIEDOWYKONANIU: OBNIZKA_PRZY_NIEDOWYKONANIU },
     ZAMKNIECIE: ZAMKNIECIE,
+    tydzienNalezyDoNas: tydzienNalezyDoNas,
+    MIN_JEDNOSTKI_KM: MIN_JEDNOSTKI_KM,
     sanityCzasu: sanityCzasu,
     _sprawdzSciane: sprawdzSciane,
     _riegel: riegel,

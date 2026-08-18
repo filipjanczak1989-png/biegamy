@@ -5144,6 +5144,22 @@ async function _odswiezOcenePlanu() {
   if (!el || !_athleteId || !window.GeneratorPlanu) return;
   let r = null;
   try { r = await oceniMojPlan(); } catch (e) { }
+  /* ⚠️ MILCZENIE Z POWODU ≠ MILCZENIE Z AWARII. Gdy tygodnie wypadły z oceny,
+     bo trener w nich coś zmienił, mówimy to wprost. Bez tego zawodnik
+     z aktywnym trenerem widzi pustkę i nie ma jak zgadnąć, czy adaptacja
+     jest wyłączona, zepsuta, czy po prostu nie ma nic do powiedzenia. */
+  if (r && r.ocena && r.ocena.akcja === 'brak' && r.dane && r.dane.pominieteTygodnie > 0) {
+    const n = r.dane.pominieteTygodnie;
+    el.innerHTML =
+      '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:14px;">'
+      + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Plan pod opieką trenera</div>'
+      + '<div style="font-size:13px;color:var(--muted);line-height:1.6;">'
+      + (n === 1 ? 'W ostatnim tygodniu trener zmieniał Twoje treningi, więc go nie oceniam.'
+                 : 'W ostatnich ' + n + ' tygodniach trener zmieniał Twoje treningi, więc ich nie oceniam.')
+      + ' Jego decyzja jest świeższa niż moja reguła.</div></div>';
+    el.style.display = 'block';
+    return;
+  }
   // Brak planu, za mało danych albo plan wykonywany → milczymy. Panel, który
   // odzywa się bez powodu, uczy ludzi go nie czytać.
   if (!r || !r.ocena || r.ocena.akcja === 'brak') { el.style.display = 'none'; el.innerHTML = ''; return; }
@@ -5486,20 +5502,50 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
   const startOkna  = new Date(koniecOkna.getTime() - (L.TYGODNI_DO_REAKCJI * 7 - 1) * 86400000);
   const iso = d => _genKluczDaty(d);
 
-  const [{ data: jedn }, { data: logi }, { data: ostatni }] = await Promise.all([
+  const [{ data: jedn }, { data: logi }, { data: ostatni }, { data: wKalendarzu }] = await Promise.all([
     sb.from('training_plan_workouts').select('date,target_distance_km')
       .eq('plan_id', plan.id).gte('date', iso(startOkna)).lte('date', iso(koniecOkna)),
     sb.from('training_logs').select('logged_at,distance_km,training_type')
       .eq('athlete_id', athleteId).gte('logged_at', iso(startOkna)).lte('logged_at', iso(koniecOkna) + 'T23:59:59'),
     sb.from('training_logs').select('logged_at')
-      .eq('athlete_id', athleteId).order('logged_at', { ascending: false }).limit(1).maybeSingle()
+      .eq('athlete_id', athleteId).order('logged_at', { ascending: false }).limit(1).maybeSingle(),
+    /* ⚠️ CZYJ JEST TEN TYDZIEŃ — pytanie, bez którego adaptacja wchodzi trenerowi
+       w robotę. `plan_source` mówi, kto zaplanował dany trening: 'generator' to
+       nasz, 'coach' to trenerski, NULL to trenerski sprzed wprowadzenia kolumny
+       ALBO nasz PO EDYCJI przez trenera (edycja zeruje znacznik — celowo).
+       Wszystko poza 'generator' traktujemy jak cudze. */
+    sb.from('trainings').select('date,plan_source')
+      .eq('athlete_id', athleteId).gte('date', iso(startOkna)).lte('date', iso(koniecOkna))
   ]);
 
   const tygodnie = [];
+  let pominieteTygodnie = 0;
   for (let i = 0; i < L.TYGODNI_DO_REAKCJI; i++) {
     const od = new Date(startOkna.getTime() + i * 7 * 86400000);
     const doD = new Date(od.getTime() + 6 * 86400000);
     const wOknie = (d) => d >= iso(od) && d <= iso(doD);
+
+    /* ⚠️ TYDZIEŃ, W KTÓRYM TRENER COKOLWIEK RUSZYŁ, POMIJAMY W CAŁOŚCI.
+       Decyzja Filipa z 18.08.2026 i jest słuszna: trener WIDZIAŁ ten tydzień,
+       więc jego decyzja jest świeższa niż nasza reguła.
+
+       Rozważana alternatywa — przeliczać proporcjonalnie tylko swoje jednostki —
+       została odrzucona, bo daje tydzień, którego nikt nie zaprojektował:
+       przy 3 jednostkach generatora i 1 trenerskiej obniżka o 20% zdejmuje
+       kilometry wyłącznie z naszej trójki, a jednostka trenera zostaje pełna.
+       Suma tygodnia przestaje wtedy odpowiadać jakiemukolwiek zamiarowi —
+       ani naszemu, ani trenera. Pomijanie całego tygodnia jest PROSTSZE
+       (zero arytmetyki częściowej, zero interakcji z sufitami) i bezpieczniejsze.
+
+       ⚠️ CENA JEST REALNA I MUSI BYĆ WIDOCZNA: zawodnik, któremu trener rusza
+       coś co tydzień, NIGDY nie dostanie oceny adaptacji. Milczenie bez powodu
+       wygląda jak awaria, dlatego liczymy pominięte tygodnie i ekran o nich mówi. */
+    // Regułę „czyj to tydzień" trzyma silnik (jedno źródło, z testami) —
+    // tutaj tylko dowozimy jej wpisy z kalendarza.
+    if (!window.GeneratorPlanu.tydzienNalezyDoNas((wKalendarzu || []).filter(t => wOknie(t.date)))) {
+      pominieteTygodnie++; continue;
+    }
+
     const jt = (jedn || []).filter(j => wOknie(j.date));
     /* Tylko biegi — `isRunType` z sb.js jest jedynym źródłem tej listy.
        Zastępczy (rower, siłownia) nie wchodzi do kilometrażu, bo plan mówi
@@ -5525,6 +5571,7 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
     bazaPlanu: bazaObnizona != null ? bazaObnizona : bazaPierwotna,
     bazaPierwotna: bazaPierwotna,
     tygodnie: tygodnie,
+    pominieteTygodnie: pominieteTygodnie,
     wObnizce: bazaObnizona != null
   };
 }
