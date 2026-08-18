@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { rozstrzygnijKolizje, zbudujWzbogacenie } from '../_shared/kolizja-importu.mjs';
 
 const SB_URL = Deno.env.get('SUPABASE_URL')!;
 const ANON   = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';   // publiczny (== sb.js:32) — literal przetrwa Disable legacy anon
@@ -162,6 +163,22 @@ Deno.serve(async (req) => {
       .select('date, type').eq('athlete_id', athlete_id).gte('date', oldest).lte('date', newest);
     const planByDate = new Map((plans || []).map((p: { date: string; type: string }) => [p.date, p.type]));
 
+    /* KOLIZJA Z WPISEM RECZNYM — regula w ../_shared/kolizja-importu.mjs.
+       Do 18.08.2026 dedup patrzyl WYLACZNIE na wczesniejsze importy (external_id)
+       i o pracy czlowieka nie wiedzial nic: kto prowadzil dzienniczek recznie,
+       dostawal po podlaczeniu zegarka komplet duplikatow. Zmierzone: piec osob
+       ma dni z obydwoma zrodlami, jedna z nich 62 dni od kwietnia. */
+    const { data: reczne } = await svc.from('training_logs')
+      .select('id, logged_at, distance_km, training_type, external_id, source')
+      .eq('athlete_id', athlete_id)
+      .gte('logged_at', oldest).lte('logged_at', newest + 'T23:59:59');
+    const recznePoDacie = new Map<string, any[]>();
+    for (const r of (reczne || [])) {
+      const k = String(r.logged_at || '').slice(0, 10);
+      if (!recznePoDacie.has(k)) recznePoDacie.set(k, []);
+      recznePoDacie.get(k)!.push(r);
+    }
+
     // ⚠️⚠️ NAZWY PÓL = ZAŁOŻENIA — potwierdzić realnym curlem (klasa signed_at) ⚠️⚠️
     const rows = (Array.isArray(acts) ? acts : [])
       .filter((a: any) => !seen.has(String(a.id)))
@@ -197,11 +214,39 @@ Deno.serve(async (req) => {
         };
       });
 
-    let synced = 0;
-    if (rows.length) {
-      const { error } = await svc.from('training_logs').insert(rows);
+    /* ROZDZIAL SCIEZEK: co jest nowe -> INSERT, co koliduje jednoznacznie
+       z wpisem recznym -> UPDATE tamtego wiersza. Przy watpliwosci INSERT,
+       bo duplikat jest widoczny, a bledne scalenie nie jest. */
+    const doWstawienia: any[] = [];
+    const doWzbogacenia: { cel: string; dane: any }[] = [];
+    const zajeteCele = new Set<string>();
+    for (const r of rows) {
+      const dateKey = String(r.logged_at || '').slice(0, 10);
+      const kandydaci = (recznePoDacie.get(dateKey) || [])
+        .filter((k: any) => !zajeteCele.has(k.id));
+      const d = rozstrzygnijKolizje(
+        { distance_km: r.distance_km, isRun: r.pace != null },
+        kandydaci);
+      const cel = d && d.akcja === 'wzbogac' ? String(d.cel || '') : '';
+      if (cel) {
+        zajeteCele.add(cel);                      // jeden wpis reczny wchlania JEDNA aktywnosc
+        doWzbogacenia.push({ cel, dane: zbudujWzbogacenie(r) });
+      } else {
+        doWstawienia.push(r);
+      }
+    }
+
+    let synced = 0, wzbogacone = 0;
+    if (doWstawienia.length) {
+      const { error } = await svc.from('training_logs').insert(doWstawienia);
       if (error) return J(200, { ok: false, error: error.message });
-      synced = rows.length;
+      synced = doWstawienia.length;
+    }
+    for (const w of doWzbogacenia) {
+      /* Blad wzbogacenia NIE przerywa syncu — gorszy skutek to brak telemetrii
+         na jednym wpisie, a nie utrata calego importu. */
+      const { error } = await svc.from('training_logs').update(w.dane).eq('id', w.cel);
+      if (!error) wzbogacone++;
     }
     /* ═ E3-K3 WELLNESS: rura HRV/RHR/sen/waga (nazwy potwierdzone dumpem 23.07).
        Gate: intervals_can_wellness (flaga z probe'a K1b). 403 mimo flagi = cofnieta
@@ -244,7 +289,7 @@ Deno.serve(async (req) => {
         }
       }
     } catch (_) { /* wellness best-effort */ }
-    return J(200, { ok: true, synced, wellness: wellnessSynced });
+    return J(200, { ok: true, synced, wzbogacone, wellness: wellnessSynced });
   } catch (e) {
     return J(500, { ok: false, error: (e as Error).message });
   }
