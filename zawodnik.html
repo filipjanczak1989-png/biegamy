@@ -5458,11 +5458,24 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
   const L = window.GeneratorPlanu.LIMITY_ADAPTACJI;
 
   const { data: plan } = await sb.from('training_plans')
-    .select('id,start_date,end_date,input_target_volume_km')
+    .select('id,start_date,end_date,input_target_volume_km,baza_obnizona_km,obnizona_od')
     .eq('athlete_id', athleteId).eq('source', 'self').eq('status', 'approved')
     .lte('start_date', dzis).gte('end_date', dzis)
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (!plan) return null;
+
+  /* ⚠️ OBNIŻKA SKALUJE TO, Z CZYM PORÓWNUJEMY — bez tego reguła wyjścia jest
+     martwa. `ponizej` liczy się z `target_distance_km`, czyli z PIERWOTNYCH
+     jednostek; obniżka świadomie ich nie przepisuje (to byłaby ścieżka
+     DELETE+INSERT). Gdybyśmy zostawili cel bez zmian, człowiek po obniżce
+     nadal byłby mierzony planem sprzed niej i musiałby wrócić do 75% TAMTEGO
+     poziomu, żeby z obniżki wyjść — czyli wyjście odpalałoby wyłącznie wtedy,
+     gdy obniżka była zbędna. Silnik mówi „wykonuje obniżony plan w całości"
+     i dopiero ten mnożnik sprawia, że to zdanie znaczy to, co znaczy. */
+  const bazaPierwotna = Number(plan.input_target_volume_km) || 0;
+  const bazaObnizona  = plan.baza_obnizona_km != null ? Number(plan.baza_obnizona_km) : null;
+  const mnoznikCelu = (bazaObnizona != null && bazaPierwotna > 0)
+    ? (bazaObnizona / bazaPierwotna) : 1;
 
   /* Okno: PEŁNE tygodnie wstecz, bez tygodnia bieżącego. Tydzień w trakcie ma
      z natury mniej przebiegnięte niż zaplanowane, więc wliczony obniżałby plan
@@ -5494,7 +5507,7 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
     const lt = (logi || []).filter(l => wOknie(String(l.logged_at).slice(0, 10))
                                      && window.isRunType(l.training_type));
     tygodnie.push({
-      planKm: jt.reduce((s, j) => s + (Number(j.target_distance_km) || 0), 0),
+      planKm: jt.reduce((s, j) => s + (Number(j.target_distance_km) || 0), 0) * mnoznikCelu,
       wykonaneKm: lt.reduce((s, l) => s + (Number(l.distance_km) || 0), 0),
       jednostekPlan: jt.length,
       jednostekZrobionych: lt.length
@@ -5502,15 +5515,36 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
   }
 
   return {
+    planId: plan.id,
     today: dzis,
     ostatniLog: ostatni ? String(ostatni.logged_at).slice(0, 10) : null,
-    bazaPlanu: Number(plan.input_target_volume_km) || 0,
+    /* Baza to poziom, WEDŁUG którego plan dziś działa — obniżony, jeśli obniżka
+       trwa. `input_target_volume_km` zostaje nietknięte i trzyma poziom, do
+       którego plan ma wrócić; miksowanie tych dwóch znaczeń w jednej kolumnie
+       byłoby utratą informacji „skąd zeszliśmy". */
+    bazaPlanu: bazaObnizona != null ? bazaObnizona : bazaPierwotna,
+    bazaPierwotna: bazaPierwotna,
     tygodnie: tygodnie,
-    /* ⚠️ NIEZMIERZONE — nie mamy dziś kolumny „plan jest obniżony”. Do czasu jej
-       dodania wyjście z obniżki (akcja 'przywroc') NIE MOŻE odpalić. Wolę stałe
-       false i brakującą ścieżkę niż zgadywanie, które podniosłoby komuś plan. */
-    wObnizce: false
+    wObnizce: bazaObnizona != null
   };
+}
+
+/* Zapis stanu obniżki. WYŁĄCZNIE UPDATE na wierszu planu — żadnego kasowania
+   ani wstawiania treningów. Obniżka zmienia to, według czego oceniamy, a nie
+   to, co stoi w kalendarzu; cena tego wyboru jest opisana w migracji
+   20260818_training_plans_obnizka.sql.
+
+   ⚠️ Zapis jest cichy dla człowieka, ale NIE jest fire-and-forget jak
+   telemetria: gdy się nie uda, panel nadal pokaże komunikat o obniżce, której
+   w bazie nie ma, i przy następnym wejściu wszystko zacznie się od nowa.
+   Dlatego błąd zwracamy wywołującemu, zamiast go połykać. */
+async function _zapiszObnizke(planId, doKm) {
+  const { error } = await sb.from('training_plans').update(
+    doKm == null
+      ? { baza_obnizona_km: null, obnizona_od: null }
+      : { baza_obnizona_km: doKm, obnizona_od: _genKluczDaty(new Date()) }
+  ).eq('id', planId);
+  return !error;
 }
 
 /* Zwraca werdykt silnika albo null, gdy nie ma czego oceniać.
@@ -5518,7 +5552,27 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
 async function oceniMojPlan(athleteId, dzis) {
   const dane = await _zbierzDaneAdaptacji(athleteId || _athleteId, dzis || _genKluczDaty(new Date()));
   if (!dane) return null;
-  return { ocena: window.GeneratorPlanu.oceniAdaptacje(dane), dane: dane };
+  const ocena = window.GeneratorPlanu.oceniAdaptacje(dane);
+
+  /* ── UTRWALENIE STANU OBNIŻKI ────────────────────────────────────────────
+     Tylko dwie akcje ruszają ten stan i obie są UPDATE-em jednego wiersza:
+       'obniz'    → wchodzimy w obniżkę (silnik podaje `doKm`),
+       'przywroc' → wychodzimy z niej.
+     ⚠️ 'mniej_dni' i 'cofnij' CELOWO go nie dotykają. To inne reakcje, z innymi
+     współczynnikami (odbudowa po przerwie ma własne POWROT_*), a wrzucenie ich
+     do tej samej kolumny zrobiłoby z niej pole „coś jest nie tak" — czyli stan,
+     z którego nie da się poprawnie wyjść.
+     ⚠️ Zapis jest IDEMPOTENTNY z natury: przy trwającej obniżce silnik nie
+     zwraca 'obniz' po raz drugi, bo baza jest już obniżona i `ponizej` liczy
+     się względem niższego celu. Gdyby kiedyś zaczął — nadpisze tą samą liczbą. */
+  if (ocena.akcja === 'obniz' && dane.planId) {
+    if (!await _zapiszObnizke(dane.planId, ocena.doKm)) return { ocena: ocena, dane: dane, zapisano: false };
+    dane.wObnizce = true;
+  } else if (ocena.akcja === 'przywroc' && dane.planId) {
+    if (!await _zapiszObnizke(dane.planId, null)) return { ocena: ocena, dane: dane, zapisano: false };
+    dane.wObnizce = false;
+  }
+  return { ocena: ocena, dane: dane, zapisano: true };
 }
 window.oceniMojPlan = oceniMojPlan;
 

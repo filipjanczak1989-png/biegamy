@@ -2737,6 +2737,65 @@
         return Math.round(p10ZWyniku(km, prognozaCzasu(300, km)) * 10) / 10;
       }));
 
+    sekcja('ADAPTACJA PLANU');
+    /* ⚠️ DO 18.08.2026 CAŁA ADAPTACJA BYŁA BEZ TESTÓW, a `przywroc` był gałęzią,
+       która nie mogła odpalić: klient podstawiał `wObnizce: false` na sztywno,
+       bo nie było gdzie tego stanu trzymać. Gałąź istniała i wyglądała na
+       działającą — dokładnie ten kształt, co inne martwe gałęzie z sierpnia. */
+    function tydz(planKm, wykonaneKm, jP, jZ) {
+      return { planKm: planKm, wykonaneKm: wykonaneKm,
+               jednostekPlan: jP == null ? 4 : jP, jednostekZrobionych: jZ == null ? 4 : jZ };
+    }
+    function ad(o) {
+      return oceniAdaptacje(Object.assign({
+        today: '2026-08-17', ostatniLog: '2026-08-16', bazaPlanu: 40,
+        tygodnie: [tydz(40, 40), tydz(40, 40)], wObnizce: false
+      }, o));
+    }
+
+    check('plan wykonywany → nic nie mówimy', ad({}).akcja === 'brak', ad({}).akcja);
+    check('dwa tygodnie poniżej 75% → obniżka',
+      ad({ tygodnie: [tydz(40, 25), tydz(40, 26)] }).akcja === 'obniz',
+      ad({ tygodnie: [tydz(40, 25), tydz(40, 26)] }).akcja);
+    check('…i obniżka schodzi do 80% bazy',
+      ad({ tygodnie: [tydz(40, 25), tydz(40, 26)] }).doKm === 32,
+      ad({ tygodnie: [tydz(40, 25), tydz(40, 26)] }).doKm);
+    check('jeden słaby tydzień z dwóch → jeszcze nie reagujemy',
+      ad({ tygodnie: [tydz(40, 25), tydz(40, 40)] }).akcja === 'brak', null);
+    check('odpadają jednostki, nie kilometry → mniej dni zamiast obniżki',
+      ad({ tygodnie: [tydz(40, 20, 5, 2), tydz(40, 20, 5, 3)] }).akcja === 'mniej_dni', null);
+
+    /* Wyjście z obniżki — gałąź, dla której powstały kolumny
+       training_plans.baza_obnizona_km / obnizona_od. */
+    check('WYJŚCIE: w obniżce + wyrabia w całości → przywroc',
+      ad({ wObnizce: true }).akcja === 'przywroc', ad({ wObnizce: true }).akcja);
+    check('⚠️ ta sama sytuacja BEZ flagi obniżki → milczenie (dowód, że flaga jest nośna)',
+      ad({ wObnizce: false }).akcja === 'brak', null);
+    check('WYJŚCIE stoi PRZED wejściem — w obniżce i nadal nie wyrabia → nie przywracamy',
+      ad({ wObnizce: true, tygodnie: [tydz(40, 25), tydz(40, 26)] }).akcja === 'obniz', null);
+
+    /* ⚠️ TO JEST TEST NA POWÓD ISTNIENIA MNOŻNIKA W KLIENCIE.
+       Człowiek po obniżce z 40 na 32 km/tydz biega dokładnie te 32 km.
+       • mierzony OBNIŻONYM celem: 32/32 = 1,00 → wyrabia plan → wychodzi,
+       • mierzony PIERWOTNYM celem: 29/40 = 0,73 → poniżej progu 0,75 → obniżka
+         się utrwala i wyjście nie odpala NIGDY.
+       Drugi wariant to stan sprzed 18.08.2026. Skalowanie celu sprawia, że
+       zdanie silnika „wykonuje obniżony plan w całości" znaczy to, co mówi.
+       Mnożnik liczy klient w `_zbierzDaneAdaptacji`. */
+    check('po obniżce mierzymy OBNIŻONYM celem — 32/32 wychodzi z obniżki',
+      ad({ wObnizce: true, bazaPlanu: 32, tygodnie: [tydz(32, 32), tydz(32, 32)] }).akcja === 'przywroc', null);
+    check('…a ten sam bieg mierzony PIERWOTNYM celem obniżkę utrwala',
+      ad({ wObnizce: true, bazaPlanu: 32, tygodnie: [tydz(40, 29), tydz(40, 29)] }).akcja === 'obniz', null);
+
+    check('przerwa 10–27 dni → cofnięcie objętości, nie ściana',
+      ad({ ostatniLog: '2026-08-02' }).akcja === 'cofnij', ad({ ostatniLog: '2026-08-02' }).akcja);
+    check('przerwa 28+ dni → ściana, plan od nowa',
+      ad({ ostatniLog: '2026-07-01' }).akcja === 'sciana', ad({ ostatniLog: '2026-07-01' }).akcja);
+    check('nadwykonanie → tylko mówimy, NIE podnosimy planu',
+      ad({ tygodnie: [tydz(40, 60), tydz(40, 58)] }).akcja === 'tylko_powiedz', null);
+    check('za mało tygodni danych → milczenie, nie zgadywanie',
+      ad({ tygodnie: [tydz(40, 10)] }).akcja === 'brak', null);
+
     console.log('\n  zaliczone: ' + pass + '   niezaliczone: ' + fail + '\n');
     if (typeof process !== 'undefined' && process.exit) process.exit(fail === 0 ? 0 : 1);
   }
