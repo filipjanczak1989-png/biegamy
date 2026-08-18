@@ -988,6 +988,12 @@ body > *{position:relative;z-index:1;}
       <div style="font-size:13px;color:var(--fg);line-height:1.5;margin-bottom:10px;">Nie masz planu? Ułóż go w minutę.</div>
       <button onclick="openGenModal()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">Ułóż plan</button>
     </div>
+    <!-- MÓJ PLAN — co plan mówi o ostatnich tygodniach. Wypełniane przez
+         `_odswiezOcenePlanu()`; puste, gdy nie ma aktywnego planu z generatora
+         albo gdy silnik nie ma nic do powiedzenia (akcja 'brak').
+         ⚠️ To jedyne miejsce, w którym `oceniAdaptacje` w ogóle się odzywa —
+         żaden cron tego nie woła. Kto tu nie zajrzy, nie zobaczy oceny. -->
+    <div id="plan-ocena" style="display:none;margin-bottom:12px;"></div>
     <!-- Pill typu treningu (renderowana przez loadToday) -->
     <div id="today-type-pill-wrap" style="display:none;margin-bottom:12px;"></div>
     <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
@@ -1647,7 +1653,9 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
       <!-- Cel czasowy — OPCJONALNY. Puste = tempa z historii, jak dotąd.
            Wypełnione = tempa liczone z celu, ale dopiero po przejściu ściany
-           CEL_ZA_AMBITNY (max 8% poprawy wobec prognozy z formy). -->
+           CEL_ZA_AMBITNY: dopuszczalna poprawa to 0,75% na tydzień przygotowania,
+           z twardym sufitem 15%. NIE jest to stała 8% — była nią do 18.08.2026
+           i to był błąd (limit nie patrzył na horyzont). -->
       <div style="margin-bottom:16px;">
         <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Masz cel czasowy? (opcjonalnie)</label>
         <div id="gen-cel-pola"></div>
@@ -5110,6 +5118,50 @@ function _odswiezCtaGeneratora() {
 }
 window._odswiezCtaGeneratora = _odswiezCtaGeneratora;
 
+/* ── EKRAN „MÓJ PLAN” ───────────────────────────────────────────────────────
+   Pokazuje werdykt `oceniAdaptacje` w miejscu, gdzie człowiek i tak patrzy.
+   Świadomie NIE jest to osobna zakładka: ocena, po którą trzeba gdzieś pójść,
+   nie zostanie przeczytana, a to ona niesie zdanie „plan zszedł niżej i wróci,
+   gdy zaczniesz wyrabiać".
+
+   ⚠️ NIC TU NIE ZMIENIA PLANU. Ekran wyłącznie MÓWI. Zejście objętości w dół
+   ('obniz', 'mniej_dni', 'cofnij') wymaga przepisania przyszłych treningów,
+   czyli ścieżki DELETE+INSERT — tej samej, która w sierpniu potrafiła skasować
+   plan trenera. Póki nie jest oddzielnie przemyślana i przetestowana, plan
+   zmienia wyłącznie człowiek, klikając „ułóż od nowa". Nazwy akcji brzmią jak
+   rozkazy, ale tu są opisem. */
+const _OCENA_STYL = {
+  sciana:        { kolor: '#f87171', tlo: 'rgba(248,113,113,0.08)', naglowek: 'Plan wymaga odświeżenia' },
+  cofnij:        { kolor: '#fbbf24', tlo: 'rgba(251,191,36,0.08)',  naglowek: 'Po przerwie' },
+  obniz:         { kolor: '#fbbf24', tlo: 'rgba(251,191,36,0.08)',  naglowek: 'Plan schodzi niżej' },
+  mniej_dni:     { kolor: '#fbbf24', tlo: 'rgba(251,191,36,0.08)',  naglowek: 'Mniej dni biegania' },
+  przywroc:      { kolor: '#22c55e', tlo: 'rgba(34,197,94,0.07)',   naglowek: 'Progresja wraca' },
+  tylko_powiedz: { kolor: '#5090e0', tlo: 'rgba(80,144,224,0.07)',  naglowek: 'Biegasz więcej niż plan' }
+};
+
+async function _odswiezOcenePlanu() {
+  const el = document.getElementById('plan-ocena');
+  if (!el || !_athleteId || !window.GeneratorPlanu) return;
+  let r = null;
+  try { r = await oceniMojPlan(); } catch (e) { }
+  // Brak planu, za mało danych albo plan wykonywany → milczymy. Panel, który
+  // odzywa się bez powodu, uczy ludzi go nie czytać.
+  if (!r || !r.ocena || r.ocena.akcja === 'brak') { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const s = _OCENA_STYL[r.ocena.akcja];
+  if (!s) { el.style.display = 'none'; return; }
+  const esc = window.escapeHtml;
+  el.innerHTML =
+    '<div style="background:' + s.tlo + ';border:1px solid ' + s.kolor + '33;border-radius:12px;padding:14px;">'
+    + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:' + s.kolor + ';font-family:DM Mono,monospace;margin-bottom:8px;">' + esc(s.naglowek) + '</div>'
+    + '<div style="font-size:13px;color:var(--fg);line-height:1.6;">' + esc(r.ocena.komunikat || '') + '</div>'
+    + (r.ocena.akcja === 'sciana'
+        ? '<button onclick="openGenModal()" style="margin-top:12px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">Ułóż plan od nowa</button>'
+        : '')
+    + '</div>';
+  el.style.display = 'block';
+}
+window._odswiezOcenePlanu = _odswiezOcenePlanu;
+
 let _genDystans = null, _genDni = null, _genRaceDate = null, _genFbDystans = null;
 
 function openGenModal() {
@@ -5363,6 +5415,7 @@ async function genUlozPlan() {
       // _silnikToSec zwraca null dla pustego pola → puste = jak dotąd, tempa z historii
       celCzasowy: _czasZPol('gen-cel')
     });
+    _genZalogujProbe(wynik, poziom, data);
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Ułóż plan →';
     _genBlad('Nie udało się ułożyć planu: ' + e.message);
@@ -5383,6 +5436,126 @@ async function genUlozPlan() {
   _genPokazWynik(wynik);
 }
 window.genUlozPlan = genUlozPlan;
+
+/* ── ADAPTACJA PLANU — ZBIERANIE DANYCH I WOŁANIE SILNIKA ───────────────────
+   Reguły są w `GeneratorPlanu.oceniAdaptacje` (czysta funkcja, przetestowana).
+   Tutaj jest wyłącznie doniesienie jej danych z bazy — żadnej logiki decyzyjnej,
+   bo ta ma jedno miejsce.
+
+   ⚠️ DZIŚ JEDYNYM WYWOŁANIEM JEST WEJŚCIE UŻYTKOWNIKA na ekran „Mój plan”.
+   ŻADEN CRON TEGO NIE WOŁA — nie szukaj go, nie ma go. Funkcja jest napisana
+   tak, żeby dało się ją kiedyś przenieść na serwer (nie dotyka DOM-u, bierze
+   `athleteId` i `dzis` z argumentów, zwraca dane zamiast rysować), ale samo
+   przygotowanie NIE JEST wdrożeniem. Konsekwencja jest praktyczna: człowiek,
+   który nie otworzy tego ekranu, NIE ZOBACZY oceny — plan nie „reaguje sam”,
+   tylko odpowiada, kiedy się go zapyta.
+
+   ⚠️ PLAN CZYTAMY Z `training_plan_workouts`, NIE Z `trainings`. Zalogowanie
+   treningu NADPISUJE `trainings.distance_km` wartością wykonaną, więc porównanie
+   planu z wykonaniem po tej tabeli dałoby zawsze 1,00 — wskaźnik, który
+   z definicji nie może pokazać odchylenia. `target_distance_km` jest niezmienne. */
+async function _zbierzDaneAdaptacji(athleteId, dzis) {
+  const L = window.GeneratorPlanu.LIMITY_ADAPTACJI;
+
+  const { data: plan } = await sb.from('training_plans')
+    .select('id,start_date,end_date,input_target_volume_km')
+    .eq('athlete_id', athleteId).eq('source', 'self').eq('status', 'approved')
+    .lte('start_date', dzis).gte('end_date', dzis)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (!plan) return null;
+
+  /* Okno: PEŁNE tygodnie wstecz, bez tygodnia bieżącego. Tydzień w trakcie ma
+     z natury mniej przebiegnięte niż zaplanowane, więc wliczony obniżałby plan
+     każdemu, kto zajrzy w środę. To jest ta sama pułapka co zaległość
+     „tydzień w trakcie” przy karcie tygodniowej. */
+  const dzienTyg = (new Date(dzis + 'T00:00:00').getDay() + 6) % 7;   // pon=0
+  const koniecOkna = new Date(new Date(dzis + 'T00:00:00').getTime() - (dzienTyg + 1) * 86400000);
+  const startOkna  = new Date(koniecOkna.getTime() - (L.TYGODNI_DO_REAKCJI * 7 - 1) * 86400000);
+  const iso = d => _genKluczDaty(d);
+
+  const [{ data: jedn }, { data: logi }, { data: ostatni }] = await Promise.all([
+    sb.from('training_plan_workouts').select('date,target_distance_km')
+      .eq('plan_id', plan.id).gte('date', iso(startOkna)).lte('date', iso(koniecOkna)),
+    sb.from('training_logs').select('logged_at,distance_km,training_type')
+      .eq('athlete_id', athleteId).gte('logged_at', iso(startOkna)).lte('logged_at', iso(koniecOkna) + 'T23:59:59'),
+    sb.from('training_logs').select('logged_at')
+      .eq('athlete_id', athleteId).order('logged_at', { ascending: false }).limit(1).maybeSingle()
+  ]);
+
+  const tygodnie = [];
+  for (let i = 0; i < L.TYGODNI_DO_REAKCJI; i++) {
+    const od = new Date(startOkna.getTime() + i * 7 * 86400000);
+    const doD = new Date(od.getTime() + 6 * 86400000);
+    const wOknie = (d) => d >= iso(od) && d <= iso(doD);
+    const jt = (jedn || []).filter(j => wOknie(j.date));
+    /* Tylko biegi — `isRunType` z sb.js jest jedynym źródłem tej listy.
+       Zastępczy (rower, siłownia) nie wchodzi do kilometrażu, bo plan mówi
+       o bieganiu; wliczony zawyżałby wykonanie i chował niedobieganie. */
+    const lt = (logi || []).filter(l => wOknie(String(l.logged_at).slice(0, 10))
+                                     && window.isRunType(l.training_type));
+    tygodnie.push({
+      planKm: jt.reduce((s, j) => s + (Number(j.target_distance_km) || 0), 0),
+      wykonaneKm: lt.reduce((s, l) => s + (Number(l.distance_km) || 0), 0),
+      jednostekPlan: jt.length,
+      jednostekZrobionych: lt.length
+    });
+  }
+
+  return {
+    today: dzis,
+    ostatniLog: ostatni ? String(ostatni.logged_at).slice(0, 10) : null,
+    bazaPlanu: Number(plan.input_target_volume_km) || 0,
+    tygodnie: tygodnie,
+    /* ⚠️ NIEZMIERZONE — nie mamy dziś kolumny „plan jest obniżony”. Do czasu jej
+       dodania wyjście z obniżki (akcja 'przywroc') NIE MOŻE odpalić. Wolę stałe
+       false i brakującą ścieżkę niż zgadywanie, które podniosłoby komuś plan. */
+    wObnizce: false
+  };
+}
+
+/* Zwraca werdykt silnika albo null, gdy nie ma czego oceniać.
+   Bez efektów ubocznych — nic nie zapisuje i nic nie rysuje. */
+async function oceniMojPlan(athleteId, dzis) {
+  const dane = await _zbierzDaneAdaptacji(athleteId || _athleteId, dzis || _genKluczDaty(new Date()));
+  if (!dane) return null;
+  return { ocena: window.GeneratorPlanu.oceniAdaptacje(dane), dane: dane };
+}
+window.oceniMojPlan = oceniMojPlan;
+
+/* ── TELEMETRIA GENERATORA ──────────────────────────────────────────────────
+   Generator odmawia planu na 14 sposobów i do 18.08.2026 NIE WIEDZIELIŚMY,
+   które ściany realnie odpalają. Dwie usterki znalezione w sierpniu wyszły
+   tylko dlatego, że Maciek napisał; wszyscy, którzy odbili się i nie napisali,
+   byli dla nas niewidzialni.
+
+   ⚠️ TO JEST DOLNA GRANICA, NIE POMIAR — i tak trzeba czytać każdą liczbę
+   z `generator_proby`. Generator liczy się w przeglądarce, więc zapis idzie
+   stąd i może NIE DOJŚĆ: offline, zamknięta karta, błąd sieci, odrzucenie RLS.
+   „150 odmów" znaczy CO NAJMNIEJ 150, nigdy DOKŁADNIE 150; brak wzrostu NIE
+   znaczy „nikt nie próbował". Twardą liczbę dałoby dopiero policzenie planu
+   po stronie serwera (Edge Function) — dziś tego nie robimy. LEKCJE #11.
+
+   ⚠️ ŚWIADOMIE „FIRE AND FORGET" — bez await i bez pokazywania błędu. Człowiek
+   przyszedł po plan, nie po telemetrię; nieudany zapis NIE MOŻE mu zasłonić
+   wyniku. Dlatego catch jest pusty, a nie „pusty przez zapomnienie". */
+function _genZalogujProbe(w, poziom, dataStartu) {
+  try {
+    if (!_athleteId || !w) return;
+    const dni = Math.round(
+      (new Date(dataStartu).getTime() - new Date(_genKluczDaty(new Date())).getTime()) / 86400000);
+    sb.from('generator_proby').insert({
+      athlete_id: _athleteId,
+      wynik: w.ok ? 'plan' : 'odmowa',
+      kod_odmowy: w.ok ? null : (w.sciana && w.sciana.kod) || null,
+      dystans: _genDystans || null,
+      tygodnie: (dni >= 0 && dni < 5000) ? Math.floor(dni / 7) : null,
+      dni_w_tygodniu: _genDni || null,
+      baza_km: (poziom && poziom.objetoscTygodniowa > 0) ? poziom.objetoscTygodniowa : null,
+      cel_czasowy_s: _czasZPol('gen-cel'),
+      szczegoly: w.ok ? null : ((w.sciana && w.sciana.szczegoly) || null)
+    }).then(() => {}, () => {});
+  } catch (e) { /* patrz komentarz wyżej — telemetria nigdy nie psuje ekranu */ }
+}
 
 function _genPokazWynik(w) {
   const form = document.getElementById('gen-form');
@@ -7281,6 +7454,12 @@ async function loadCoachMessage() {
     window._brakTrenera = !(ath && ath.coach_id);
     try { _odswiezLicznikSpolecznosci(); } catch(e) {}   // bez await — nie blokuje widoku
     _odswiezCtaGeneratora();
+    /* Ocena planu — bez await, tym samym wzorcem co licznik wyżej.
+       ⚠️ Świadomie BEZ bramki na `_brakTrenera`: zawodnik mógł ułożyć plan
+       generatorem, a trenera dostać później — wtedy plan nadal jest jego
+       i ocena nadal go dotyczy. Koszt jest zerowy dla tych bez planu, bo
+       `_zbierzDaneAdaptacji` wychodzi po PIERWSZYM zapytaniu, gdy planu nie ma. */
+    try { _odswiezOcenePlanu(); } catch(e) {}
   }
   
   if (!_athleteId) return;

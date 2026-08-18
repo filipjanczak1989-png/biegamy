@@ -1521,6 +1521,13 @@
               DLUGIE_NAD_SPOKOJNYM: DLUGIE_NAD_SPOKOJNYM, MAX_ODCINKOW: MAX_ODCINKOW, MAX_JAKOSC_W_TYG: MAX_JAKOSC_W_TYG,
               MAX_TEMPO_KM: MAX_TEMPO_KM, MAX_TEMPO_MIN: MAX_TEMPO_MIN,
               START_POD_BAZA: START_POD_BAZA, SZCZYT_NAD_BAZA: SZCZYT_NAD_BAZA },
+    /* Wystawione, bo klient MUSI wiedzieć, ile tygodni pobrać z bazy, żeby
+       `oceniAdaptacje` miało z czego liczyć. Bez tego eksportu liczba 2 wylądowałaby
+       przepisana w zawodnik.html i rozjechałaby się przy pierwszej zmianie tutaj. */
+    LIMITY_ADAPTACJI: { TYGODNI_DO_REAKCJI: TYGODNI_DO_REAKCJI,
+              PRZERWA_BEZ_REAKCJI: PRZERWA_BEZ_REAKCJI, PRZERWA_ZA_DLUGA: PRZERWA_ZA_DLUGA,
+              DOLNY_PROG_WYKONANIA: DOLNY_PROG_WYKONANIA, GORNY_PROG_WYKONANIA: GORNY_PROG_WYKONANIA,
+              OBNIZKA_PRZY_NIEDOWYKONANIU: OBNIZKA_PRZY_NIEDOWYKONANIU },
     ZAMKNIECIE: ZAMKNIECIE,
     sanityCzasu: sanityCzasu,
     _sprawdzSciane: sprawdzSciane,
