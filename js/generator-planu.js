@@ -155,7 +155,30 @@
     return null;
   }
 
-  var MAX_POPRAWA = 0.08;        // cel czasowy: max 8% szybciej niż prognoza z obecnej formy
+  /* ── ILE POPRAWY WOLNO ZAŁOŻYĆ — ZALEŻY OD LICZBY TYGODNI ──────────────────
+     Do 18.08.2026 stało tu stałe 8% i to była ta sama pomyłka co przy suficie
+     objętości: `tygodnie` pojawiało się WYŁĄCZNIE w treści komunikatu, nigdy
+     w decyzji. Zdanie „potrzebujesz kilku sezonów, nie 113 tygodni" generował
+     kod, który nigdy nie spojrzał na 113 — a 113 tygodni TO SĄ dwa sezony.
+     Zmierzone przed poprawką: odpowiedź identyczna przy 11 i przy 300 tygodniach
+     (15,2% potrzebne, 8% limit, cel realny 2:10:15 w każdym przypadku).
+
+     ⚠️ 0,75%/tydz to INTERPRETACJA, NIE POMIAR. Literatura mówi o 8–15% poprawy
+     w pierwszym roku ustrukturyzowanego treningu u początkującego (RunnersConnect,
+     zebrane 18.08.2026) — czyli ok. 0,15–0,29%/tydz w skali roku. Nasze 0,75%/tydz
+     jest hojniejsze, bo dotyczy KRÓTKIEGO horyzontu, gdzie postęp jest najszybszy;
+     w skali roku sufit i tak go przycina. Jeśli kiedyś będą własne dane o parach
+     PB z datami — zmierzyć i podmienić.
+
+     ⚠️ SUFIT 15% JEST NIEZALEŻNY OD CZASU I TO JEST CELOWE. Poprawa nie skaluje
+     się liniowo w latach: pierwszy rok daje najwięcej, kolejne coraz mniej.
+     Bez sufitu reguła przy pięciu latach dopuszczałaby 195%, czyli wszystko. */
+  var POPRAWA_NA_TYDZIEN = 0.0075;   // ⚠️ OSĄD — interpretacja zakresu 0,5–1%
+  var MAX_POPRAWA_SUFIT  = 0.15;     // twardy sufit, niezależny od horyzontu
+  function maxPoprawaDla(tygodnie) {
+    return Math.min(Math.max(tygodnie, 0) * POPRAWA_NA_TYDZIEN, MAX_POPRAWA_SUFIT);
+  }
+  var MAX_POPRAWA = MAX_POPRAWA_SUFIT;   // zostaje w LIMITY dla zgodności odczytu
   /* Od ilu procent WOLNIEJSZY cel zasługuje na zdanie w podsumowaniu. 5% na
      półmaratonie to ok. 5 minut — poniżej tego różnica tonie w błędzie Riegla
      (wykładnik 1,06 jest przybliżeniem), więc zdanie byłoby szumem. ⚠️ OSĄD. */
@@ -591,17 +614,34 @@
 
       var prognoza = prognozaCzasu(p10Formy, d.km);
       var poprawa = (prognoza - we.celCzasowy) / prognoza;
-      if (poprawa > MAX_POPRAWA) {
-        var celRealny = prognoza * (1 - MAX_POPRAWA);
+      var limitPoprawy = maxPoprawaDla(tygodnie);
+      if (poprawa > limitPoprawy) {
+        var celRealny = prognoza * (1 - limitPoprawy);
+        var przySuficie = limitPoprawy >= MAX_POPRAWA_SUFIT - 1e-9;
         /* ⚠️ Najważniejszy komunikat w całym generatorze. Człowiek przychodzi
-           z marzeniem i ma wyjść z LICZBĄ, nie z odmową. Trzy zdania: co jest
-           nie tak, co jest realne, i że cel nie umarł — tylko nie na ten start. */
-        return odmowa('CEL_ZA_AMBITNY',
-          'Przy Twojej obecnej formie ' + fmtCzas(we.celCzasowy) + ' to za duży skok. ' +
-          'Realny cel na ten start: ' + fmtCzas(celRealny) + '. ' +
-          fmtCzas(we.celCzasowy) + ' jest w zasięgu, ale potrzebujesz kilku sezonów, nie ' +
-          tygodnie + ' tygodni.',
-          { poprawaProc: Math.round(poprawa * 1000) / 10, limitProc: MAX_POPRAWA * 100,
+           z marzeniem i ma wyjść z LICZBĄ, nie z odmową.
+           ⚠️ ZDANIE O SEZONACH USUNIĘTE. Brzmiało „potrzebujesz kilku sezonów,
+           nie N tygodni" i przy N = 113 samo sobie przeczyło — 113 tygodni TO SĄ
+           dwa sezony. Teraz komunikat rozróżnia DWA różne powody odmowy:
+             • za mało tygodni  → mówi, ile czasu by wystarczyło,
+             • sufit 15%        → mówi, że sam czas już nie wystarczy.
+           To są inne sytuacje i człowiek ma z nich wyjść z inną decyzją. */
+        var tyle = 'Przy Twojej obecnej formie ' + fmtCzas(we.celCzasowy) + ' to za duży skok. ' +
+                   'Realny cel na ten start: ' + fmtCzas(celRealny) + '.';
+        if (przySuficie) {
+          tyle += ' ' + fmtCzas(we.celCzasowy) + ' wymaga ' + Math.round(poprawa * 100) +
+                  '% poprawy, a nawet przy bardzo długim przygotowaniu zakładamy najwyżej ' +
+                  Math.round(MAX_POPRAWA_SUFIT * 100) + '% — postęp nie przyspiesza liniowo z czasem. ' +
+                  'Ten cel nie umarł, tylko nie na ten start.';
+        } else {
+          var potrzebaTyg = Math.ceil(poprawa / POPRAWA_NA_TYDZIEN);
+          tyle += ' Na ' + fmtCzas(we.celCzasowy) + ' potrzeba ok. ' + potrzebaTyg +
+                  ' tygodni przygotowania, a masz ' + tygodnie + '.';
+        }
+        return odmowa('CEL_ZA_AMBITNY', tyle,
+          { poprawaProc: Math.round(poprawa * 1000) / 10,
+            limitProc: Math.round(limitPoprawy * 1000) / 10,
+            przySuficie: przySuficie, tygodnie: tygodnie,
             prognoza_s: Math.round(prognoza), celRealny_s: Math.round(celRealny) });
       }
 
@@ -1664,8 +1704,11 @@
         return rr.ok && najdluzszeW(rr) >= DYSTANSE[c[0]].minDlugieProc * DYSTANSE[c[0]].km - 0.05;
       }), null);
     sekcja('CEL CZASOWY — ściana, tempa i przypadki brzegowe');
-    /* Forma 3:40 w maratonie → prognoza 13200 s. Limit 8% daje 12144 s = 3:22:24.
-       Ta liczba jest w specu i test pilnuje, że komunikat ją poda. */
+    /* Forma 3:40 w maratonie → prognoza 13200 s. Przy 18 tygodniach limit wynosi
+       18 × 0,75% = 13,5%, więc realny cel to 13200 × 0,865 = 11418 s = 3:10:18.
+       ⚠️ DO 18.08.2026 STAŁO TU 12144 s (3:22:24) I TO BYŁ ŚLAD PO USTERCE:
+       limit był stały (8%), więc ta sama odpowiedź wychodziła przy 11 i przy 300
+       tygodniach. Test przepisany świadomie — zmieniła się reguła, nie pomiar. */
     var p10_340 = (function () {
       // szukamy p10, dla którego prognoza maratonu ≈ 3:40:00
       var lo = 150, hi = 600;
@@ -1683,11 +1726,46 @@
     var c300 = celMar(3 * 3600);
     check('maraton 3:00 przy formie 3:40 → CEL_ZA_AMBITNY',
       c300.ok === false && c300.sciana.kod === 'CEL_ZA_AMBITNY', c300.ok ? 'PRZESZLO' : c300.sciana.kod);
-    check('…i podaje realny cel ≈ 3:22',
-      c300.ok === false && Math.abs(c300.sciana.szczegoly.celRealny_s - 12144) < 60,
+    check('…i podaje realny cel ≈ 3:10 (18 tyg × 0,75% = 13,5%)',
+      c300.ok === false && Math.abs(c300.sciana.szczegoly.celRealny_s - 11418) < 60,
       c300.ok ? null : c300.sciana.szczegoly.celRealny_s);
     check('…a komunikat NIESIE tę liczbę, nie tylko odmowę',
-      c300.ok === false && /3:2\d:\d\d/.test(c300.sciana.komunikat), c300.ok ? null : c300.sciana.komunikat);
+      c300.ok === false && /3:1\d:\d\d/.test(c300.sciana.komunikat), c300.ok ? null : c300.sciana.komunikat);
+
+    /* ⚠️ BLIZNA: TEN SAM CEL, DWA HORYZONTY → DWIE RÓŻNE ODPOWIEDZI.
+       Zgłoszenie Maćka 17.08.2026: przy 113 tygodniach generator odmawiał celu
+       zdaniem „potrzebujesz kilku sezonów, nie 113 tygodni" — a 113 tygodni TO SĄ
+       dwa sezony. Powód: `tygodnie` trafiało wyłącznie do treści komunikatu,
+       nigdy do decyzji. Ten test odpada, jeśli ktoś kiedyś znów odetnie limit
+       od horyzontu — bo wtedy obie odpowiedzi znów będą identyczne. */
+    var celMarTyg = function (celSek, tyg) {
+      return uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(tyg),
+                       poziom: poziom({ p10sec: p10_340, objetoscTygodniowa: 70 }),
+                       celCzasowy: celSek }));
+    };
+    /* 16, nie 12 — przy 12 tygodniach maraton pada wcześniej na ZA_MALO_TYGODNI
+       i test mierzyłby wtedy zupełnie inną ścianę. */
+    check('limit poprawy ZALEŻY od liczby tygodni (16 vs 30 → inny realny cel)',
+      (function () {
+        var a = celMarTyg(3 * 3600, 16), b = celMarTyg(3 * 3600, 30);
+        return a.ok === false && b.ok === false &&
+               a.sciana.szczegoly.celRealny_s > b.sciana.szczegoly.celRealny_s + 300;
+      })(), null);
+    check('…a komunikat przy KRÓTKIM horyzoncie mówi, ILE tygodni potrzeba',
+      (function () {
+        var a = celMarTyg(3 * 3600, 16);
+        return a.ok === false && a.sciana.szczegoly.przySuficie === false &&
+               /potrzeba ok\. \d+ tygodni/.test(a.sciana.komunikat);
+      })(), null);
+    check('…a przy suficie 15% NIE obiecuje, że wystarczy poczekać',
+      (function () {
+        var a = celMarTyg(Math.round(13200 * 0.75), 100);   // 25% poprawy, 100 tyg
+        return a.ok === false && a.sciana.szczegoly.przySuficie === true &&
+               /nie/.test(a.sciana.komunikat) && !/potrzeba ok\./.test(a.sciana.komunikat);
+      })(), null);
+    check('sufit 15% jest TWARDY — 300 tygodni nie podnosi limitu',
+      Math.abs(maxPoprawaDla(300) - 0.15) < 1e-9 && Math.abs(maxPoprawaDla(20) - 0.15) < 1e-9,
+      [maxPoprawaDla(300), maxPoprawaDla(20)]);
     var c330 = celMar(3 * 3600 + 30 * 60);
     check('maraton 3:30 przy formie 3:40 → przechodzi', c330.ok === true, c330.ok ? null : c330.sciana);
 
@@ -1698,12 +1776,15 @@
       cWolny.ok && cWolny.meta.tempaZCelu === true && cWolny.meta.p10sec > cWolny.meta.p10sec_forma,
       cWolny.ok ? [cWolny.meta.p10sec, cWolny.meta.p10sec_forma] : null);
 
-    /* Granica 8%: dokładnie 8% przechodzi (warunek to >, nie >=). */
+    /* Granica: dokładnie limit przechodzi (warunek to >, nie >=).
+       Przy 18 tygodniach limit = 13,5%; liczymy go z funkcji, nie z liczby
+       przepisanej ręcznie — inaczej test przestaje pilnować reguły. */
     var progn = prognozaCzasu(p10_340, DYSTANSE.marathon.km);
+    var lim18 = maxPoprawaDla(18);
     // ceil, nie round — zaokrąglenie w dół zepchnęłoby cel o ułamek ZA próg
-    check('dokładnie 8% poprawy → przechodzi', celMar(Math.ceil(progn * 0.92)).ok === true, null);
-    check('8,5% poprawy → odbite', (function () {
-      var r = celMar(Math.round(progn * 0.915));
+    check('dokładnie limit poprawy → przechodzi', celMar(Math.ceil(progn * (1 - lim18))).ok === true, null);
+    check('limit + 0,5 pp → odbite', (function () {
+      var r = celMar(Math.round(progn * (1 - lim18 - 0.005)));
       return r.ok === false && r.sciana.kod === 'CEL_ZA_AMBITNY';
     })(), null);
 
@@ -1783,7 +1864,9 @@
     check('10 km w 24:00 u kogoś Z HISTORIĄ → ŚCIANA rozstrzyga, nie sanity',
       c2400.ok === false && c2400.sciana.kod === 'CEL_ZA_AMBITNY', c2400.ok ? 'PRZESZLO' : c2400.sciana.kod);
     check('…a komunikat cytuje JEGO prognozę, nie rekord świata',
-      c2400.ok === false && /Realny cel na ten start: 31:28/.test(c2400.sciana.komunikat),
+      // 13 tygodni → limit 9,75%; prognoza 34:12 → realny cel 30:52.
+      // (Do 18.08.2026 przy stałym limicie 8% wychodziło 31:28.)
+      c2400.ok === false && /Realny cel na ten start: 30:52/.test(c2400.sciana.komunikat),
       c2400.ok ? null : c2400.sciana.komunikat);
     check('sanity w trybie WYNIK (brak historii) NADAL cytuje rekord — jedyna bramka',
       /szybciej niż rekord świata \(26:11\)/.test(sanityCzasu('10k', 24 * 60, 'wynik').komunikat),
@@ -1953,13 +2036,14 @@
         return dy + ': ' + Math.round(d.udzialDlugiego * d.peakKm * 10) / 10 + ' vs ' + Math.round(d.minDlugieProc * d.km * 10) / 10;
       }));
 
-    sekcja('ŚCIANA — cel czasowy ponad 8%');
+    sekcja('ŚCIANA — cel czasowy ponad limit poprawy');
     var pgn10 = prognozaCzasu(300, 10);             // p10=5:00/km => 50:00
     var celZa = uloz(we({ celCzasowy: Math.round(pgn10 * 0.85) }));
     check('cel 15% szybszy odbity', celZa.ok === false && celZa.sciana.kod === 'CEL_ZA_AMBITNY', celZa.ok ? 'PRZESZLO' : celZa.sciana);
     check('odmowa podaje realny cel', celZa.ok === false && celZa.sciana.szczegoly.celRealny_s > 0, celZa.sciana && celZa.sciana.szczegoly);
-    var celGranica = uloz(we({ celCzasowy: Math.round(pgn10 * (1 - MAX_POPRAWA)) }));
-    check('cel dokładnie 8% przechodzi (granica)', celGranica.ok === true, celGranica.ok ? null : celGranica.sciana);
+    // domyślne `we()` to 10 tygodni → limit 7,5%; liczony z funkcji, nie wpisany
+    var celGranica = uloz(we({ celCzasowy: Math.round(pgn10 * (1 - maxPoprawaDla(10))) }));
+    check('cel dokładnie na limicie przechodzi (granica)', celGranica.ok === true, celGranica.ok ? null : celGranica.sciana);
     var celWolny = uloz(we({ celCzasowy: Math.round(pgn10 * 1.10) }));
     check('cel wolniejszy niż prognoza przechodzi', celWolny.ok === true, celWolny.ok ? null : celWolny.sciana);
 
