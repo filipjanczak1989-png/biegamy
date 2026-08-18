@@ -264,14 +264,7 @@ let _logs = [];
 let _period = 'weeks';
 
 // ── HELPERS ──
-function _parseTimeToSecs(t) {
-  if (!t || !t.includes(':')) return null;
-  const parts = t.split(':').map(Number);
-  if (parts.some(isNaN)) return null;
-  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  if (parts.length === 2) return parts[0]*60 + parts[1];
-  return null;
-}
+// _parseTimeToSecs usunięty -> window._parseTimeToSecs (sb.js SSOT, INPUT-parser, centralizacja czasu)
 // _secsToTime usunięty -> window._secsToTime (sb.js SSOT, OUTPUT-formatter, centralizacja czasu)
 // autoColonTime usunięty -> window.autoColonTime (sb.js SSOT, centralizacja czasu FAZA B)
 
