@@ -40,8 +40,9 @@ ZRODLA = [
 #
 # !! Przy SWIADOMYM dodaniu lub usunieciu zrodla te stala podnosi/obniza sie
 #    RECZNIE, w tym samym commicie co zmiana. Nowe pliki tylko ja podnosza.
-MIN_ZRODEL = 7   # stan na 14.08.2026: sb.js, silnik-momentu, suma_biegowa,
-                 # community_km, community_km_okno, cap_licznika, licznik_bez_cache
+MIN_ZRODEL = 10  # stan na 18.08.2026: sb.js, silnik-momentu, suma_biegowa,
+                 # community_km, community_km_okno, cap_licznika, licznik_bez_cache,
+                 # licznik_bez_przyszlosci + DWA pomiary w tools/ (patrz niżej)
 # ── WYKRYWANIE ZRODEL SQL PO TRESCI, NIE PO NAZWIE PLIKU ────────────────────
 # Enumerowanie wzorcow nazw (*_suma_biegowa, *community_km, ...) nie zlapie pliku
 # nazwanego inaczej za miesiac, a objawem bedzie CICHY rozjazd: kilometry z nowego
@@ -53,8 +54,17 @@ MIN_TRAFIEN = 3
 # lista w IN (...) albo = ANY (ARRAY[...]) — obie formy wystepuja w repo
 WZOR_SQL = r"(?:in|=\s*ANY)\s*\(\s*(?:ARRAY)?\s*\[?\s*((?:'[^']+'\s*,\s*)+'[^']+')\s*\]?\s*\)"
 
+# !! SKANUJEMY TAKZE tools/*.sql — I TO NIE JEST ROZSZERZENIE "NA WSZELKI WYPADEK".
+#    Zmierzone 18.08.2026: liste typow mialy DWA pliki pomiarowe poza zasiegiem
+#    bramki (pomiar-odznaka-wyzwania.sql, pomiar-tygodni-reakcji.sql), oba
+#    z komentarzem "lista skopiowana z community_km(), przy zmianie tam zmien
+#    i tu". Komentarz proszacy czlowieka o pamiec nie jest bramka.
+#    Skutek rozjazdu bylby CICHY i gorszy niz w migracji: pomiar liczylby inna
+#    populacje niz regula, ktora ma mierzyc, i pokazywalby falszywe "BRAK
+#    ODZNAKI" albo falszywe zero. Pomiar, ktory myli sie inaczej niz kod,
+#    jest gorszy niz brak pomiaru, bo wyglada na dowod (LEKCJE #2 i #11).
 SQL = []
-for f in sorted(glob.glob('supabase/migrations/*.sql')):
+for f in sorted(glob.glob('supabase/migrations/*.sql') + glob.glob('tools/*.sql')):
     try:
         tresc = io.open(f, encoding='utf-8').read()
     except OSError:
