@@ -1515,6 +1515,12 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
             style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
       </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">HR maksymalne — jeśli je znasz</label>
+        <input id="calc-hrmax" type="number" placeholder="szacuję z wieku" min="120" max="230" oninput="calcZones()" onchange="zapiszHrMax(this)"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.4;">Najwyższa wartość z testu albo z zegarka. Puste = liczymy 220 − wiek, co potrafi się mylić o kilkanaście uderzeń. Zapisze się w profilu.</div>
+      </div>
       <div id="zones-result"></div>
     </div>
 
@@ -3190,6 +3196,27 @@ function _initCalcFromPBs() {
   }
 }
 
+/* Zapis HR max do profilu. Pole jest w kalkulatorze, ale wartość NIE jest
+   własnością kalkulatora — to dana o człowieku, która ma przeżyć zamknięcie
+   ekranu. Stąd zapis od razu przy zmianie, bez osobnego przycisku.
+   ⚠️ Zakres 120–230 sprawdzamy TU, mimo że pilnuje go też CHECK w bazie.
+   Nie z nieufności do bazy, tylko dlatego, że baza odpowie 400 i błąd wyląduje
+   w konsoli, a nie przed człowiekiem. Walidacja po stronie klienta jest po to,
+   żeby dało się powiedzieć, CO jest nie tak. */
+async function zapiszHrMax(input) {
+  if (!_athleteId) return;
+  const surowe = input.value.trim();
+  const v = surowe === '' ? null : parseInt(surowe);
+  if (v !== null && (!(v >= 120 && v <= 230))) {
+    // wzorzec z tego pliku — zawodnik.html nie ma własnego showToast, bierze go z sb.js
+    (window.showToast || alert)('HR maksymalne poza zakresem 120–230. Sprawdź wartość.', 'error');
+    return;
+  }
+  const { error } = await sb.from('athletes').update({ hr_max: v }).eq('id', _athleteId);
+  if (error) { (window.showToast || alert)('Nie udało się zapisać HR max: ' + error.message, 'error'); return; }
+  (window.showToast || alert)(v === null ? 'HR maksymalne wyczyszczone — wracamy do szacunku z wieku' : 'HR maksymalne zapisane w profilu ✓');
+}
+
 function calcZones() {
   const age = parseInt(document.getElementById('calc-age')?.value);
   const rhr = parseInt(document.getElementById('calc-rhr')?.value);
@@ -3199,7 +3226,16 @@ function calcZones() {
     el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz wiek i HR spoczynkowe</div>';
     return;
   }
-  const hrMax = 220 - age;
+  /* ⚠️ 220 − WIEK TO OSTATNIA DESKA, NIE PIERWSZY WYBÓR.
+     Ta formuła ma odchylenie standardowe ±10–12 uderzeń (Robergs & Landwehr
+     2002), więc dla konkretnego człowieka pomyłka o 20 uderzeń mieści się
+     w normie. Zgłoszenie Maćka 17.08.2026: „strefy to totalna bujda". Miał rację
+     co do metody. Dlatego: własny pomiar wygrywa, a szacunek MUSI się przyznać,
+     że jest szacunkiem — inaczej zgadywanie wygląda jak pomiar ([[LEKCJE]] #11). */
+  const hrPodany = parseInt(document.getElementById('calc-hrmax')?.value);
+  const hrMaxOk = hrPodany >= 120 && hrPodany <= 230;   // ten sam zakres co CHECK w bazie
+  const hrMax = hrMaxOk ? hrPodany : 220 - age;
+  const hrSzacowany = !hrMaxOk;
   const hrr = hrMax - rhr; // Heart Rate Reserve
   const zones = [
     { name: 'Z1 Regeneracja', pct: [50, 60], color: '#3db870', desc: 'Trucht, rozmowa możliwa' },
@@ -3219,7 +3255,17 @@ function calcZones() {
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm</div>${zoneRows}`;
+  /* Rezerwa ≤ 0 rozwala cały Karvonen — wszystkie strefy schodzą do jednej
+     liczby. Osiągalne bez złośliwości: HR max 120 (dolna granica) przy HR
+     spoczynkowym 120 (górna granica). Mówimy wprost, co jest nie tak. */
+  if (hrr < 20) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">HR maksymalne (' + hrMax + ') musi być wyraźnie wyższe od spoczynkowego (' + rhr + '). Sprawdź obie liczby.</div>';
+    return;
+  }
+  const zrodlo = hrSzacowany
+    ? '<span style="color:var(--muted);"> · szacunkowe (220 − wiek), wpisz swój pomiar wyżej</span>'
+    : '<span style="color:var(--muted);"> · Twój pomiar</span>';
+  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm${zrodlo}</div>${zoneRows}`;
 }
 
 function _parseTimeToSecs(t) {
@@ -3325,8 +3371,22 @@ async function loadProfile() {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
     const { data: ath } = await sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,goal,target_date,full_name,race_goals,is_public,avatar_url')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,goal,target_date,full_name,race_goals,is_public,avatar_url,hr_max,date_of_birth')
       .eq('id', _athleteId).single();
+    /* Kalkulator stref przestaje być kalkulatorem „wpisz wszystko od nowa":
+       wiek i HR max mamy w profilu, więc je wstawiamy. HR max tylko wtedy, gdy
+       człowiek go PODAŁ — pustego pola nie wypełniamy szacunkiem, bo wtedy
+       zniknęłaby różnica między „mój pomiar" a „zgadujemy z wieku". */
+    if (ath?.date_of_birth) {
+      const wiek = Math.floor((Date.now() - new Date(ath.date_of_birth).getTime()) / 31557600000);
+      const pw = document.getElementById('calc-age');
+      if (pw && !pw.value && wiek >= 10 && wiek <= 90) pw.value = wiek;
+    }
+    if (ath?.hr_max) {
+      const ph = document.getElementById('calc-hrmax');
+      if (ph && !ph.value) ph.value = ath.hr_max;
+    }
+    if (typeof calcZones === 'function') calcZones();
     if (ath?.avatar_url) {
       const img = document.getElementById('avatar-img');
       if (img) {

@@ -187,6 +187,11 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
           <input id="calc-rhr" type="number" placeholder="60" min="30" max="100" oninput="calcZones()">
         </div>
       </div>
+      <div class="calc-field" style="margin-bottom:12px;">
+        <label>HR maksymalne — jeśli je znasz</label>
+        <input id="calc-hrmax" type="number" placeholder="szacuję z wieku" min="120" max="230" oninput="calcZones()">
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.4;">Najwyższa wartość z testu albo z zegarka. Puste = liczymy 220 − wiek, co potrafi się mylić o kilkanaście uderzeń.</div>
+      </div>
       <div id="zones-result"><div class="chart-empty">Wpisz wiek i HR spoczynkowe</div></div>
     </div>
   </div>
@@ -505,7 +510,15 @@ function calcZones() {
     el.innerHTML = '<div class="chart-empty">Wpisz wiek i HR spoczynkowe</div>';
     return;
   }
-  const hrMax = 220 - age;
+  /* ⚠️ DRUGA Z DWÓCH KOPII TEJ LOGIKI — bliźniak jest w zawodnik.html
+     (funkcja o tej samej nazwie). Zmiana tutaj bez zmiany tam da dwie różne
+     odpowiedzi na to samo pytanie w jednej aplikacji. Powód rozjazdu jest
+     opisany w komentarzu przy tamtej kopii; skrót: 220 − wiek myli się o ±10–12
+     uderzeń, więc własny pomiar wygrywa, a szacunek musi się przyznać. */
+  const hrPodany = parseInt(document.getElementById('calc-hrmax')?.value);
+  const hrMaxOk = hrPodany >= 120 && hrPodany <= 230;   // ten sam zakres co CHECK w bazie
+  const hrMax = hrMaxOk ? hrPodany : 220 - age;
+  const hrSzacowany = !hrMaxOk;
   const hrr = hrMax - rhr;
   const zones = [
     { name:'Z1 Regeneracja',     pct:[50,60],  color:'#3db870', desc:'Trucht, rozmowa możliwa' },
@@ -524,7 +537,14 @@ function calcZones() {
         + '<div class="zone-desc">'+z.desc+'</div>'
       + '</div></div>';
   }).join('');
-  el.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">'+hrMax+'</strong> bpm · Rezerwa: <strong style="color:var(--fg);">'+hrr+'</strong> bpm</div>'+rows;
+  if (hrr < 20) {
+    el.innerHTML = '<div class="chart-empty">HR maksymalne ('+hrMax+') musi być wyraźnie wyższe od spoczynkowego ('+rhr+'). Sprawdź obie liczby.</div>';
+    return;
+  }
+  const zrodlo = hrSzacowany
+    ? '<span style="color:var(--muted);"> · szacunkowe (220 − wiek), wpisz swój pomiar wyżej</span>'
+    : '<span style="color:var(--muted);"> · Twój pomiar</span>';
+  el.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">'+hrMax+'</strong> bpm · Rezerwa: <strong style="color:var(--fg);">'+hrr+'</strong> bpm'+zrodlo+'</div>'+rows;
 }
 
 // ── STREFY TEMPA Z CZASÓW (Jack Daniels VDOT) ─────────────────────
