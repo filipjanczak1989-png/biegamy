@@ -637,10 +637,21 @@
         var tyle = 'Przy Twojej obecnej formie ' + fmtCzas(we.celCzasowy) + ' to za duży skok. ' +
                    'Realny cel na ten start: ' + fmtCzas(celRealny) + '.';
         if (przySuficie) {
-          tyle += ' ' + fmtCzas(we.celCzasowy) + ' wymaga ' + Math.round(poprawa * 100) +
-                  '% poprawy, a nawet przy bardzo długim przygotowaniu zakładamy najwyżej ' +
-                  Math.round(MAX_POPRAWA_SUFIT * 100) + '% — postęp nie przyspiesza liniowo z czasem. ' +
-                  'Ten cel nie umarł, tylko nie na ten start.';
+          /* ⚠️ JEDNA ŚCIEŻKA, NIE MENU — decyzja Filipa z 18.08.2026 i jest słuszna.
+             Pierwsza wersja rozbijała to na cel pośredni („1:48 za 40 tygodni")
+             plus cel odległy, przez co człowiek po odmowie musiał WYBIERAĆ
+             zamiast zrobić jedną rzecz. Trzy liczby to granica czytelności na
+             telefonie: obecna forma, realny cel teraz, perspektywa. Tyle.
+             ⚠️ Perspektywa mówi „konsekwentnej pracy", nie podaje daty — bo
+             tego nie wiemy. Etapów pośrednich świadomie NIE liczymy. */
+          var cykli = Math.ceil(Math.log(we.celCzasowy / prognoza) / Math.log(1 - MAX_POPRAWA_SUFIT));
+          var lataOpis = cykli <= 1 ? 'roku' : (cykli < 5 ? cykli + ' lat' : 'kilku lat');
+          /* Cel podajemy RAZ. Pierwsza wersja powtarzała go w drugim zdaniu
+             („1:30:00 wymaga 26%…") i wychodziły trzy czasy w czterech zdaniach
+             — złapał to test liczący czasy w komunikacie. */
+          tyle += ' To wymaga ' + Math.round(poprawa * 100) +
+                  '% poprawy — realnie ' + lataOpis + ' konsekwentnej pracy, bo postęp ' +
+                  'nie przyspiesza liniowo z czasem.';
         } else {
           var potrzebaTyg = Math.ceil(poprawa / POPRAWA_NA_TYDZIEN);
           tyle += ' Na ' + fmtCzas(we.celCzasowy) + ' potrzeba ok. ' + potrzebaTyg +
@@ -763,12 +774,36 @@
     // się odzywać dokładnie dla maratonu i półmaratonu.
     if (obecna * MNOZNIK_SZCZYTU < d.minSzczyt) {
       var wymBaza = Math.ceil(d.minSzczyt / MNOZNIK_SZCZYTU);
+      /* ⚠️ NAJWIĘKSZA STRATA STAREGO KOMUNIKATU NIE BYŁA BRAKIEM ŚCIEŻKI.
+         Brzmiał „zbuduj bazę do ~35 km/tydz" — prawda o maratonie, która CHOWA
+         to, że przy 12 km/tydz do pierwszego planu (piątka) brakuje pół
+         kilometra tygodniowo. Zmierzone progi 18.08.2026: 5 km od 12,5 km/tydz,
+         10 km od 16, półmaraton od 20,5, maraton od 36,5. Człowiek odchodził
+         od ekranu z liczbą 35, mając 12 — zamiast z jednym dodatkowym biegiem. */
+      var blizej = najblizszyOsiagalny(we, d);
+      var doCelu = tygodniDoBazy(obecna, wymBaza);
+      var kiedyCel = mgliscieTygodnie(doCelu + d.minTygodni, idxToday);
+      var sciezka = blizej
+        ? ' Najbliżej masz ' + DYSTANSE[blizej].etykieta.toLowerCase() +
+          ' — plan na ten dystans powstanie od razu. ' + d.etykieta +
+          ' realnie ' + kiedyCel + '.'
+        : (function () {
+            /* Nic nie przechodzi DZIŚ — więc mówimy, ile brakuje do pierwszego
+               planu w ogóle. To jedna liczba i jest mała; „35 km/tydz" było
+               prawdziwe, ale odbierało nadzieję na rok. */
+            var prog = bazaDlaDystansu(we, '5k');
+            if (!(prog > obecna)) return ' ' + d.etykieta + ' realnie ' + kiedyCel + '.';
+            var brak = Math.round((prog - obecna) * 10) / 10;
+            return ' Do pierwszego planu — na 5 km — brakuje Ci ' + brak +
+                   ' km tygodniowo, czyli ' + mgliscieTygodnie(tygodniDoBazy(obecna, prog), idxToday) +
+                   ' spokojnego biegania. ' + d.etykieta + ' realnie ' + kiedyCel + '.';
+          })();
       return odmowa('ZA_MALA_BAZA',
         'Przy ' + Math.round(obecna) + ' km/tydz ' + d.etykieta.toLowerCase() + ' wymagałby dojścia do ' + d.minSzczyt +
-        ' km/tydz, czyli ' + (Math.round(d.minSzczyt / obecna * 10) / 10) + '× więcej niż biegasz teraz. Zbuduj bazę do ~' +
-        wymBaza + ' km/tydz albo wybierz bliższy cel.',
+        ' km/tydz, czyli ' + (Math.round(d.minSzczyt / obecna * 10) / 10) + '× więcej niż biegasz teraz.' + sciezka,
         { obecna_km: Math.round(obecna), minSzczyt_km: d.minSzczyt, wymaganaBaza_km: wymBaza,
-          objetoscZalozona: zalozonaObjetosc, dystans: we.dystans });
+          objetoscZalozona: zalozonaObjetosc, dystans: we.dystans,
+          sciezkaDystans: blizej, sciezkaTygodni: doCelu + d.minTygodni });
     }
 
     // Baza porównania to OBECNA objętość, nie obniżony start pierwszego tygodnia.
@@ -839,6 +874,94 @@
      w pozostałym czasie (policzony, nie zgadnięty), i mówimy wprost, że sam
      maraton nadal można przebiec — tylko jako bieg do ukończenia, nie na wynik.
      Trzecia droga to człowiek: są rzeczy, których automat nie ułoży. */
+  /* ── ŚCIEŻKA: ODMOWA POLICZONA W PRZÓD ─────────────────────────────────────
+     Odmowa mówi „nie da się". Ścieżka mówi „nie da się TEGO, ale da się TO,
+     a tamto za tyle". Liczby biorą się z TYCH SAMYCH reguł, które odmawiają —
+     `maxPrzyrostDla` (pasma 8/6/4/3%) i sam silnik.
+
+     ⚠️ NAJBLIŻSZY DYSTANS PYTAMY SILNIKA, NIE WZORU. Kuszące było policzyć próg
+     z warunku `obecna × MNOZNIK_SZCZYTU < minSzczyt` — i byłoby ŹLE. Zmierzone
+     18.08.2026: dla półmaratonu wzór daje 18,75 km/tydz, a realny próg to 20,5,
+     bo wyżej odbija ZA_KROTKIE_WYBIEGANIE. Ścieżka policzona ze wzoru wysłałaby
+     człowieka prosto w drugą odmowę — a przycisk prowadzący do odmowy jest
+     gorszy niż brak przycisku. */
+  var _wSciezce = false;
+  function najblizszyOsiagalny(we, d) {
+    if (_wSciezce) return null;                 // strażnik rekurencji: ścieżka woła uloz()
+    _wSciezce = true;
+    try {
+      var kol = ['marathon', 'half', '10k', '5k'];
+      for (var i = 0; i < kol.length; i++) {
+        if (DYSTANSE[kol[i]].km >= d.km) continue;          // tylko KRÓTSZE od celu
+        var proba = {};
+        for (var k in we) if (Object.prototype.hasOwnProperty.call(we, k)) proba[k] = we[k];
+        proba.dystans = kol[i];
+        proba.celCzasowy = null;                            // cel czasowy nie przenosi się na inny dystans
+        var r = uloz(proba);
+        if (r && r.ok) return kol[i];
+      }
+      return null;
+    } finally { _wSciezce = false; }
+  }
+
+  /* Od jakiej bazy dany dystans w ogóle przechodzi — szukane POŁOWIENIEM po
+     silniku, nie wzorem (powód w komentarzu przy najblizszyOsiagalny).
+     ⚠️ To jest liczba, po którą człowiek naprawdę przychodzi. Przy bazie 12
+     do pierwszego planu brakuje pół kilometra tygodniowo, a stary komunikat
+     pokazywał 35 — liczbę prawdziwą, lecz odbierającą nadzieję na rok. */
+  function bazaDlaDystansu(we, dyst) {
+    if (_wSciezce) return null;
+    _wSciezce = true;
+    try {
+      var lo = 5, hi = 120, i;
+      var probuj = function (b) {
+        var p = {};
+        for (var k in we) if (Object.prototype.hasOwnProperty.call(we, k)) p[k] = we[k];
+        p.dystans = dyst; p.celCzasowy = null;
+        p.poziom = {};
+        for (var q in (we.poziom || {})) p.poziom[q] = we.poziom[q];
+        p.poziom.objetoscTygodniowa = b;
+        var r = uloz(p);
+        return !!(r && r.ok);
+      };
+      if (!probuj(hi)) return null;                 // nie przechodzi nawet przy 120
+      for (i = 0; i < 12; i++) {                    // 12 połowień => dokładność ~0,03 km
+        var mid = (lo + hi) / 2;
+        if (probuj(mid)) hi = mid; else lo = mid;
+      }
+      return Math.round(hi * 10) / 10;
+    } finally { _wSciezce = false; }
+  }
+
+  /* Ile tygodni narastania dzieli bazę `od` od bazy `cel`. Ten sam sufit
+     przyrostu, który odrzuca zbyt szybkie plany — więc ścieżka nie obiecuje
+     tempa, którego generator by nie pozwolił zrealizować. */
+  function tygodniDoBazy(od, cel) {
+    var t = 0, b = od;
+    if (!(od > 0) || !(cel > od)) return 0;
+    while (b < cel && t < 520) { b *= (1 + maxPrzyrostDla(b)); t++; }
+    return t;
+  }
+
+  /* ⚠️ NIE PRECYZYJNIEJ, NIŻ WIEMY — to jest cała treść tej funkcji.
+     „~3 tygodnie" w obietnicy na przyszłość brzmi jak termin, a jest wynikiem
+     modelu, który zakłada, że człowiek będzie rósł co tydzień o maksimum
+     bez choroby, wyjazdu i gorszego tygodnia. Poniżej 8 tygodni mówimy więc
+     „kilka tygodni"; do pół roku zaokrąglamy do dwóch tygodni; dalej podajemy
+     porę roku, bo miesiąc i tak się rozjedzie. */
+  var PORY = ['zimą', 'zimą', 'wiosną', 'wiosną', 'wiosną', 'latem',
+              'latem', 'latem', 'jesienią', 'jesienią', 'jesienią', 'zimą'];
+  function mgliscieTygodnie(tyg, idxOd) {
+    if (!(tyg > 0)) return 'już teraz';
+    if (tyg < 8) return 'kilka tygodni';
+    if (tyg <= 26) return 'za około ' + (Math.round(tyg / 2) * 2) + ' tygodni';
+    var iso = isoZIdx((idxOd || 0) + tyg * 7);
+    var mies = Number(iso.slice(5, 7)) - 1;
+    var rok = Number(iso.slice(0, 4));
+    var terazRok = Number(isoZIdx(idxOd || 0).slice(0, 4));
+    return PORY[mies] + (rok !== terazRok ? ' ' + rok : '');
+  }
+
   function najdluzszyMieszczacySie(tygodnie, idxStart) {
     var kolejnosc = ['marathon', 'half', '10k', '5k'], i;
     for (i = 0; i < kolejnosc.length; i++) {
@@ -1342,14 +1465,29 @@
     if (najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001) {
       var potrzebnyPeak = progDlugiego / k.d.udzialDlugiego;
       var bazaDlaDlugiego = Math.ceil(potrzebnyPeak / MNOZNIK_SZCZYTU);
+      /* Ta sama ścieżka co przy ZA_MALA_BAZA — wybieganie rośnie razem
+         z objętością, więc „ile brakuje" jest tu równie policzalne.
+         ⚠️ TEN BRZEG BYWA WĄSKI: przy 34 km/tydz do maratonu brakuje ~3 km/tydz,
+         czyli mniej niż 8 tygodni. Właśnie dlatego mgliscieTygodnie() mówi wtedy
+         „kilka tygodni", a nie „3 tygodnie" — model zakłada wzrost co tydzień
+         o maksimum, bez choroby, wyjazdu i gorszego tygodnia. Podanie liczby
+         byłoby precyzją, której nie mamy. */
+      var blizejW = najblizszyOsiagalny(wejscie, k.d);
+      var doBazyW = tygodniDoBazy(k.obecna, bazaDlaDlugiego);
+      var sciezkaWybiegania = (blizejW
+          ? 'Najbliżej masz ' + DYSTANSE[blizejW].etykieta.toLowerCase() +
+            ' — plan na ten dystans powstanie od razu. ' : '') +
+        'Wybieganie rośnie razem z objętością: przy ~' + bazaDlaDlugiego +
+        ' km/tydz zmieści się samo, czyli ' +
+        mgliscieTygodnie(doBazyW, dzienIdx(wejscie.today)) + ' budowania.';
       return odmowa('ZA_KROTKIE_WYBIEGANIE',
         'Najdłuższe wybieganie w takim planie to ' + (Math.round(najdluzsze * 10) / 10) + ' km, a przed startem na ' +
         k.d.etykieta.toLowerCase() + ' trzeba dobiec co najmniej ' + (Math.round(progDlugiego * 10) / 10) + ' km (' +
-        Math.round(k.d.minDlugieProc * 100) + '% dystansu). Zbuduj bazę do ~' + bazaDlaDlugiego +
-        ' km/tydz albo wybierz bliższy cel.',
+        Math.round(k.d.minDlugieProc * 100) + '% dystansu). ' + sciezkaWybiegania,
         { najdluzsze_km: Math.round(najdluzsze * 10) / 10, wymagane_km: Math.round(progDlugiego * 10) / 10,
           procDystansu: Math.round(k.d.minDlugieProc * 100), obecna_km: Math.round(k.obecna),
-          wymaganaBaza_km: bazaDlaDlugiego, dystans: wejscie.dystans });
+          wymaganaBaza_km: bazaDlaDlugiego, dystans: wejscie.dystans,
+          sciezkaDystans: blizejW, sciezkaTygodni: doBazyW });
     }
 
     var sumaKm = treningi.reduce(function (s, w) { return s + (w.target_distance_km || 0); }, 0);
@@ -1836,9 +1974,14 @@
     check('odmowa niesie drogę wyjścia: ile trzeba biegać',
       mar20.sciana.szczegoly.wymaganaBaza_km === 29 && mar20.sciana.szczegoly.minSzczyt_km === 45,
       mar20.sciana.szczegoly);
+    /* ⚠️ ZDANIE „Zbuduj bazę do ~29 km/tydz" ZNIKŁO Z KOMUNIKATU 18.08.2026
+       i to było celowe. Podawało liczbę odległą (baza pod maraton), a chowało
+       tę bliską — że przy 20 km/tydz dziesiątka jest gotowa OD RAZU. Liczba
+       nie zginęła: `wymaganaBaza_km` nadal jedzie w `szczegoly` i asercja
+       linijkę wyżej jej pilnuje. Zmieniła się treść, nie zawartość. */
     check('komunikat zawiera liczby, nie samo „nie da się"',
       /20 km\/tydz/.test(mar20.sciana.komunikat) && /45 km\/tydz/.test(mar20.sciana.komunikat)
-      && /Zbuduj bazę do ~29/.test(mar20.sciana.komunikat), mar20.sciana.komunikat);
+      && /Najbliżej masz 10 km/.test(mar20.sciana.komunikat), mar20.sciana.komunikat);
     var half15 = uloz(we({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTygodni(10),
                            poziom: poziom({ objetoscTygodniowa: 15 }) }));
     check('półmaraton z 15 km/tydz → odbite', half15.ok === false && half15.sciana.kod === 'ZA_MALA_BAZA',
