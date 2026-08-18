@@ -5646,10 +5646,40 @@ function _genZalogujProbe(w, poziom, dataStartu) {
       dni_w_tygodniu: _genDni || null,
       baza_km: (poziom && poziom.objetoscTygodniowa > 0) ? poziom.objetoscTygodniowa : null,
       cel_czasowy_s: _czasZPol('gen-cel'),
-      szczegoly: w.ok ? null : ((w.sciana && w.sciana.szczegoly) || null)
+      szczegoly: w.ok ? null : ((w.sciana && w.sciana.szczegoly) || null),
+      /* Znacznik sesyjny: ustawia go genSciezka(), zeruje ten zapis.
+         Dzieki temu 'sciezka' opisuje DOKLADNIE jedna probe — te, ktora
+         wyszla z klikniecia, a nie wszystko, co czlowiek zrobil potem. */
+      zrodlo: window._genZrodlo === 'sciezka' ? 'sciezka' : 'formularz'
     }).then(() => {}, () => {});
+    window._genZrodlo = null;
   } catch (e) { /* patrz komentarz wyżej — telemetria nigdy nie psuje ekranu */ }
 }
+
+/* ── PRZESKOK ŚCIEŻKĄ ───────────────────────────────────────────────────────
+   Przenosi parametry z odbitej próby i układa plan na wskazany dystans od razu.
+   ⚠️ NIE UŻYWA openGenModal() — ta funkcja KASUJE cały stan (dystans, dni,
+   datę, pola czasu), bo taki ma kontrakt przy zwykłym wejściu. Ścieżka
+   potrzebuje odwrotności: zachować to, co człowiek już podał, i zmienić
+   wyłącznie dystans.
+   ⚠️ DATY NIE PRZENOSIMY. Przy ZA_MALA_BAZA i ZA_KROTKIE_WYBIEGANIE problemem
+   jest objętość, nie termin — kopiowanie daty maratonu na plan 10 km dałoby
+   horyzont dobrany pod inny dystans. Zostawiamy datę, którą człowiek wpisał;
+   jeśli się nie mieści, odezwie się ZA_MALO_TYGODNI ze swoim własnym wyjściem. */
+function genSciezka(dystans) {
+  if (!dystans || !window.GeneratorPlanu.DYSTANSE[dystans]) return;
+  _genDystans = dystans;
+  window._genZrodlo = 'sciezka';        // telemetria: patrz migracja …_zrodlo.sql
+  document.querySelectorAll('#gen-dystans .type-pill').forEach(b => b.classList.remove('on'));
+  const pill = Array.from(document.querySelectorAll('#gen-dystans .type-pill'))
+    .find(b => (b.getAttribute('onclick') || '').indexOf("'" + dystans + "'") > -1);
+  if (pill) pill.classList.add('on');
+  // Cel czasowy nie przenosi się na inny dystans — 3:30 z maratonu nic nie znaczy na dychę.
+  _czasResetPol('gen-cel');
+  _genBlad('');
+  genUlozPlan();
+}
+window.genSciezka = genSciezka;
 
 function _genPokazWynik(w) {
   const form = document.getElementById('gen-form');
@@ -5667,6 +5697,16 @@ function _genPokazWynik(w) {
       + '<div style="font-size:14px;color:var(--fg);line-height:1.6;">' + esc(s.komunikat) + '</div>'
       + (baza ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2);font-family:DM Mono,monospace;font-size:11px;color:var(--muted);">Cel do osiągnięcia: <span style="color:#fbbf24;">' + esc(String(baza)) + ' km/tydz</span></div>' : '')
       + '</div>'
+      /* ŚCIEŻKA — przycisk pojawia się TYLKO wtedy, gdy silnik wskazał dystans,
+         który naprawdę przechodzi (weryfikuje to `najblizszyOsiagalny`
+         wywołaniem uloz()). Przycisk prowadzący do drugiej odmowy byłby gorszy
+         niż jego brak, więc nie zgadujemy tu niczego z komunikatu. */
+      + (s.szczegoly && s.szczegoly.sciezkaDystans
+          ? '<button data-dyst="' + esc(s.szczegoly.sciezkaDystans) + '" onclick="genSciezka(this.dataset.dyst)"'
+            + ' style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;'
+            + 'font-family:DM Mono,monospace;font-size:11px;cursor:pointer;font-weight:600;margin-bottom:8px;">'
+            + 'Ułóż plan na ' + esc(window.GeneratorPlanu.DYSTANSE[s.szczegoly.sciezkaDystans].etykieta) + ' →</button>'
+          : '')
       + '<button onclick="_genWrocDoFormularza()" style="width:100%;background:var(--card2);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">← Zmień odpowiedzi</button>';
     form.style.display = 'none'; box.style.display = 'block';
     return;
