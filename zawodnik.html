@@ -7148,8 +7148,27 @@ async function loadWeekPlan() {
     .order('date');
 
   if (error || !data || data.length === 0) {
-    document.getElementById('week-strip').innerHTML = 
-      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak planu na ten tydzień.<br>Trener wkrótce wyśle Twój plan.</div>';
+    /* ⚠️ PUSTY TYDZIEŃ MÓWIŁ JEDNO ZDANIE DLA WSZYSTKICH: „Trener wkrótce wyśle Twój
+       plan". U 28 zawodników bez `coach_id` to obietnica bez pokrycia — nikt
+       tego planu nie wyśle, bo nie ma komu. Zgłoszone przez Maćka 19.08.2026.
+
+       ⚠️ BEZ DRUGIEGO PRZYCISKU. CTA generatora (#gen-cta) stoi wyżej w tym
+       samym ekranie, w karcie „Dziś", i przy pustym tygodniu ZAWSZE jest
+       widoczne: zapytanie wyżej obejmuje dziś..+13 dni, więc pusty tydzień
+       implikuje pusty dzisiaj, czyli `_brakTreninguDzis === true`. Tekst tutaj
+       ma przestać kłamać, nie zdublować przycisk.
+
+       `_brakTrenera === null` znaczy „nie wiadomo" (loadCoachMessage jeszcze nie
+       odpowiedział). W tym stanie NIE obiecujemy trenera — zostaje samo zdanie
+       o braku planu. Na pierwszym ładowaniu warunek jest już znany, bo
+       loadCoachMessage() jest awaitowane przed loadWeekPlan(). */
+    const _bezTrenera = window._brakTrenera === true;
+    const _drugaLinia = _bezTrenera
+      ? 'Ułóż go w minutę — przycisk <strong style="color:var(--fg)">Ułóż plan</strong> wyżej.'
+      : (window._brakTrenera === false ? 'Trener wkrótce wyśle Twój plan.' : '');
+    document.getElementById('week-strip').innerHTML =
+      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak planu na ten tydzień.'
+      + (_drugaLinia ? '<br>' + _drugaLinia : '') + '</div>';
     return;
   }
 
@@ -7476,7 +7495,15 @@ function _odTrenera(t) {
 
 async function loadTodayTraining() {
   if (!_athleteId) return;
-  const today = new Date().toISOString().split('T')[0];
+  /* ⚠️ DZIEŃ PO WARSZAWIE, NIE PO UTC. Było `toISOString().split('T')[0]` — latem
+     (UTC+2) między 00:00 a 02:00 czasu polskiego pytaliśmy o WCZORAJSZY wiersz.
+     Ta data steruje `_brakTreninguDzis`, czyli drugim warunkiem widoczności CTA
+     generatora, a od 19.08 także prawdziwością zdania w pustym tygodniu
+     („przycisk Ułóż plan wyżej" — musi tam być, gdy to piszemy). Bez poprawki
+     ktoś z treningiem wczoraj i pustymi kolejnymi 14 dniami dostawał w nocy
+     tekst wskazujący na przycisk, którego nie widzi.
+     Helper `_dzienWaw` z sb.js jest SSOT dla klucza dnia. */
+  const today = window._dzienWaw(new Date().toISOString());
   const { data } = await sb
     .from('trainings')
     .select('*')
