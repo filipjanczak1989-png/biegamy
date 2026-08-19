@@ -561,7 +561,7 @@ async function init() {
     // Bez tego mapowania zawodnik nie znajduje żadnych raportów.
     const authUid = _athleteId;
     const { data: athRow, error: athErr } = await _sb.from('athletes')
-      .select('id')
+      .select('id,coach_id')
       .eq('user_id', authUid)
       .maybeSingle();
     if (athErr) {
@@ -571,6 +571,10 @@ async function init() {
       console.log('[raporty] ✅ Zmapowano auth.uid', authUid.substring(0,8) + '...', '→ athletes.id', athRow.id.substring(0,8) + '...');
       _athleteId = athRow.id;
       if (window._mountNav) window._mountNav();   // NAV re-mount z athletes.id (Profil→?id)
+      /* Pustka tej strony obiecywała raport od trenera KAŻDEMU — także 33 osobom
+         bez `coach_id`, którym nikt go nie wyśle. Kolumna dobrana do istniejącego
+         zapytania, bez drugiego round-tripu. */
+      window._brakTrenera = !athRow.coach_id;
     } else {
       console.warn('[raporty] ⚠️ Brak rekordu w athletes dla auth.uid', authUid, '— raportów nie da się pobrać');
     }
@@ -639,7 +643,9 @@ async function loadReports() {
     target.innerHTML = '<div class="empty">'
       + '<img class="empty-icon" src="assets/ui/pustki/pustka-raporty.webp" onerror="this.style.display=\'none\'">'
       + '<div class="empty-msg">Brak raportów</div>'
-      + '<div class="empty-hint">Trener wyśle Ci raport gdy będzie miał coś do przekazania' + diagInfo + '</div>'
+      + '<div class="empty-hint">' + (window._brakTrenera === true
+          ? 'Raporty przychodzą od trenera. Nie masz przypisanego trenera — możesz go wybrać w profilu.'
+          : 'Trener wyśle Ci raport gdy będzie miał coś do przekazania') + diagInfo + '</div>'
     + '</div>';
     return;
   }

@@ -1173,7 +1173,7 @@ body > *{position:relative;z-index:1;}
     </div>
     <div style="flex:1;">
       <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">Połącz zegarek</div>
-      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Garmin / Polar / Coros — trener widzi Twoje treningi</div>
+      <div id="icu-home-banner-sub" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Garmin / Polar / Coros</div>
     </div>
     <button onclick="location.href='profil.html?id='+_athleteId+'&open=icu'" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;">Połącz →</button>
   </div>
@@ -5103,6 +5103,21 @@ async function _odswiezLicznikSpolecznosci() {
 }
 window._odswiezLicznikSpolecznosci = _odswiezLicznikSpolecznosci;
 
+/* ── JEDNO ŹRÓDŁO PRAWDY O TYM, KOMU WOLNO OBIECAĆ TRENERA ─────────────────
+   `window._brakTrenera` ustawia loadCoachMessage() z odczytu athletes.coach_id.
+   TRZY STANY, nie dwa: true / false / null („jeszcze nie wiadomo"). Przy null
+   NIE obiecujemy trenera i NIE zaprzeczamy jego istnieniu — bierzemy wariant
+   neutralny. Zgłoszenie Maćka 19.08.2026: aplikacja mówiła „trener" 33 osobom
+   z `coach_id IS NULL`, czyli większości aktywnych kont.
+   ⚠️ Kto dokłada tekst z trenerem, woła TO, nie czyta `_brakTrenera` sam —
+   inaczej trzeci stan zginie na pierwszym copy-paste. */
+function tekstWgTrenera(zTrenerem, bezTrenera, gdyNieWiadomo) {
+  if (window._brakTrenera === true)  return bezTrenera;
+  if (window._brakTrenera === false) return zTrenerem;
+  return gdyNieWiadomo !== undefined ? gdyNieWiadomo : bezTrenera;
+}
+window.tekstWgTrenera = tekstWgTrenera;
+
 function _odswiezCtaGeneratora() {
   const el = document.getElementById('gen-cta');
   if (!el) return;
@@ -6261,6 +6276,37 @@ function obPreviewAvatar(input) {
 
 let _obPrivacy = 'private'; // domyślnie prywatny
 
+/* ⚠️ TO JEST TEKST PRAWNY, NIE UX. Człowiek podejmuje na jego podstawie decyzję
+   o danych zdrowotnych, więc musi być PRAWDĄ W BAZIE, nie miłym zdaniem.
+
+   ZWERYFIKOWANE NA PRODUKCJI 19.08.2026 — przy `coach_id IS NULL`
+   i `is_public = false` treningów nie widzi NIKT poza właścicielem konta:
+     · trainings.trainings_athlete_select — tylko własne (przez athletes.user_id)
+     · trainings.coach_manage_trainings   — wymaga trainings.coach_id = auth.uid(),
+                                            NULL nie matchuje
+     · training_logs — OBIE polityki wymagają athletes.coach_id = auth.uid()
+     · athletes.athletes_read_public — wymaga is_public = true
+     · widoki public_training_logs / public_athletes — oba filtrują is_public
+     · suma_biegowa() jest SECURITY DEFINER i bierze dowolne athlete_id,
+       ale ma GRANT tylko dla postgres/service_role — z klienta niewołalna
+     · żadna tabela w `public` nie ma wyłączonego RLS
+
+   ⚠️⚠️ KAŻDA ZMIANA TYCH POLITYK WYMAGA ZMIANY TEGO TEKSTU W TYM SAMYM COMMICIE.
+   Kod i słowa muszą się zgadzać ZAWSZE, nie tylko w dniu napisania. W szczególności
+   dotyczy to wracającego pomysłu wglądu w zawodników bez trenera (ZATRZYMANY
+   16.08.2026): wdrożenie go czyni to zdanie kłamstwem tego samego dnia. Właściwa
+   kolejność brzmi wtedy: najpierw tekst i zgoda, dopiero potem RLS.
+
+   Poza RLS zostaje service_role w Edge Functions i właściciel bazy — to
+   infrastruktura, jej miejsce jest w privacy.html, nie na karcie onboardingu. */
+function _obOdswiezPodpisPrywatnosci() {
+  const el = document.getElementById('ob-priv-sub');
+  if (!el) return;
+  el.textContent = _selectedCoachId
+    ? 'Tylko Ty i Twój trener widzicie Twoje treningi'
+    : 'Tylko Ty widzisz swoje treningi';
+}
+
 function obSelectPrivacy(p) {
   _obPrivacy = p;
   ['private','public'].forEach(v => {
@@ -6330,6 +6376,10 @@ function obNext(step) {
   document.getElementById('ob-s' + step).style.display = 'none';
   const next = document.getElementById('ob-s' + (step + 1));
   if (next) next.style.display = 'flex';
+  /* Podpis prywatności ustawiany przy WEJŚCIU na krok 5, nie w HTML: wybór
+     trenera dzieje się w kroku 1, więc `_selectedCoachId` jest już rozstrzygnięty.
+     Ustawiamy przy każdym przejściu — ktoś może się cofnąć i zmienić decyzję. */
+  if (step + 1 === 5) _obOdswiezPodpisPrywatnosci();
 }
 
 async function obFinish() {
@@ -8342,7 +8392,8 @@ async function saveLog() {
   const _isNewLog = !_editingLogId;
   const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
-  toast('Log zapisany! Trener widzi Twój wynik ✓');
+  toast(tekstWgTrenera('Log zapisany! Trener widzi Twój wynik ✓',
+                       'Log zapisany! Forma przeliczona ✓'));
   if (_isNewLog) {
     const _p = new URLSearchParams();
     if (_prsData.dist > 0) _p.set('dist', _prsData.dist);
@@ -8402,6 +8453,13 @@ async function checkIntervalsHomeBanner() {
     .eq('id', _athleteId)
     .maybeSingle();
   banner.style.display = data?.intervals_athlete_id ? 'none' : 'block';
+  /* Podpis dopiero tutaj, nie w HTML: „trener widzi Twoje treningi" było
+     wpisane na stałe i leciało też do tych, którzy trenera nie mają. */
+  const sub = document.getElementById('icu-home-banner-sub');
+  if (sub) sub.textContent = tekstWgTrenera(
+    'Garmin / Polar / Coros — trener widzi Twoje treningi',
+    'Garmin / Polar / Coros — Twoje biegi wchodzą same',
+    'Garmin / Polar / Coros — Twoje biegi wchodzą same');
 }
 
 // ─── PUSH NOTIFICATIONS ────────────────────────────────────────────
@@ -8565,7 +8623,9 @@ async function refreshEmailToggleUI() {
     const enabled = data?.email_reports_enabled !== false;
     
     if (enabled) {
-      statusEl.textContent = 'Włączone — raporty od trenera trafią też na maila';
+      statusEl.textContent = tekstWgTrenera(
+        'Włączone — raporty od trenera trafią też na maila',
+        'Włączone — powiadomienia trafią też na maila');
       pillEl.textContent = 'On';
       pillEl.style.background = 'rgba(61,184,112,0.15)';
       pillEl.style.color = 'var(--green)';
@@ -8671,7 +8731,9 @@ function showPushPrompt() {
       + '<div style="font-size:26px;flex-shrink:0;animation:bellNudge 2.2s ease-in-out 1s infinite;transform-origin:50% 20%;"><img src="' + window.assetUrl('icon-nav-bell.webp') + '" style="width:26px;height:26px;display:block;" alt=""></div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="font-size:13px;font-weight:700;color:var(--fg);letter-spacing:0.01em;">Włącz powiadomienia</div>'
-        + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">Nie przegap wiadomości od trenera, komentarzy i wyzwań.</div>'
+        + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">' + escapeHtml(tekstWgTrenera(
+            'Nie przegap wiadomości od trenera, komentarzy i wyzwań.',
+            'Nie przegap komentarzy, wyzwań i wiadomości od znajomych.')) + '</div>'
       + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
@@ -10757,7 +10819,22 @@ async function loadChatConvList() {
   var coachTime = coachLast ? _chatFmt(coachLast.sent_at) : '';
   var coachAv = document.getElementById('z-coach-av');
   var coachIni = coachAv ? coachAv.textContent : 'T';
-  el.appendChild(_convRow('coach', null, 'Trener', coachIni, null, coachPreview, coachTime, 0, true));
+  /* ⚠️ RZĄD TRENERA BYŁ DOPISYWANY BEZWARUNKOWO — i to była ślepa droga, nie
+     tylko zły tekst. Zawodnik bez trenera widział rozmowę „Trener", wchodził
+     w nią i pisał do `messages`, których nikt nie czyta. Zmierzone 19.08.2026:
+     33 osoby bez `coach_id`, z czego 32 nie mają ani jednego znajomego — czyli
+     dla 32 osób był to JEDYNY wpis w czacie i prowadził donikąd.
+
+     ⚠️ SKUTEK UBOCZNY, KTÓRY JEST WŁAŚCIWĄ NAPRAWĄ: pusty stan niżej
+     (`!el.children.length`) był MARTWY, bo rząd trenera zawsze go wypełniał.
+     Dopiero teraz może się pokazać — i dlatego dostaje CTA, a nie samo zdanie.
+
+     Przy `_brakTrenera === null` rząd POKAZUJEMY. Odwrotny domyślny niż
+     w tekstach: schowanie istniejącej rozmowy jest gorsze niż pokazanie jednej
+     zbędnej, bo zabiera kanał komuś, kto go ma. */
+  if (window._brakTrenera !== true) {
+    el.appendChild(_convRow('coach', null, 'Trener', coachIni, null, coachPreview, coachTime, 0, true));
+  }
 
   // Rzędy: Znajomi
   var allFriends = friendIds.map(function(id){
@@ -10780,7 +10857,25 @@ async function loadChatConvList() {
   });
 
   if (!el.children.length) {
-    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak konwersacji</div>';
+    /* Prowadzi do zakładki ZNAJDŹ, nie ZNAJOMI. Sprawdzone 19.08.2026:
+       „Znajomi" przy pustej liście pokazuje tylko drogowskaz „Użyj zakładki
+       Znajdź!", czyli kolejny ekran bez akcji. „Znajdź" ma pole wyszukiwania
+       działające od pierwszej litery. */
+    /* ⚠️ BEZ onclick="…" W STRINGU. Handler przez addEventListener, bo atrybut
+       z cudzysłowami w środku łamie się na pierwszym apostrofie — złapane
+       node --check przy tej właśnie zmianie. To ta sama klasa co ostrzeżenie
+       o JS-in-attribute w CLAUDE.md, tylko bez udziału danych użytkownika. */
+    el.innerHTML =
+      '<div style="text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;line-height:1.7;">'
+      + 'Nikogo tu jeszcze nie ma.<br>Dodaj znajomych, żeby pisać.'
+      + '<button id="chat-cta-znajomi" style="display:block;width:100%;margin-top:18px;background:var(--accent);'
+      + 'color:#fff;border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;'
+      + 'letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">Dodaj znajomych</button></div>';
+    var _ctaZn = document.getElementById('chat-cta-znajomi');
+    if (_ctaZn) _ctaZn.addEventListener('click', function () {
+      showSection('social');
+      setTimeout(function () { switchSocialTab('find'); }, 300);
+    });
   }
 }
 
@@ -12745,7 +12840,7 @@ window.sendDuelChallenge = sendDuelChallenge;
       <div class="ob-card-icon" style="font-size:0;">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <div><div class="ob-card-name">Prywatny</div><div class="ob-card-sub">Tylko Ty i Twój trener widzą Twoje treningi</div></div>
+      <div><div class="ob-card-name">Prywatny</div><div class="ob-card-sub" id="ob-priv-sub">Tylko Ty widzisz swoje treningi</div></div>
       <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
     </div>
     <div class="ob-card" id="ob-privacy-public" onclick="obSelectPrivacy('public')">
@@ -13196,7 +13291,24 @@ async function _frSave(){
   var r=await sb.from('training_logs').update(upd).eq('id',_frId);
   var card=document.getElementById('feel-report-card');
   if(r.error){ alert('Nie udalo sie zapisac - sprobuj ponownie.'); return; }
-  card.innerHTML='<div style="text-align:center;padding:6px 0;"><div style="font-size:22px;">&#129505;</div><div style="font-size:13px;font-weight:700;margin-top:4px;">Zapisane &mdash; dzi&#281;ki!</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Trener to zobaczy, a forma policzy si&#281; dok&#322;adniej.</div></div>';
+  /* ⚠️ JEDYNE MIEJSCE Z TEJ DZIEWIĄTKI, GDZIE BEZ-TRENERA JEST REALNIE W GORSZEJ
+     SYTUACJI, nie tylko czyta nieprawdziwe zdanie. Przy „Ciężko" ktoś z trenerem
+     ma człowieka, który to zobaczy; bez trenera nie ma nikogo. Tekst ma to
+     uszanować, nie zbyć: konkret (zwolnij + regeneracja) i droga (wsparcie
+     istnieje, także w tej aplikacji), bez udawania, że ktoś patrzy.
+     Decyzja Filipa z 19.08.2026 — brzmienie zostaje co do słowa.
+     ⚠️ To NIE jest detektor przeciążenia. Reaguje na JEDNO zaznaczenie „Ciężko"
+     po JEDNYM biegu, a nie na serię ciężkich dni — takiej reguły w aplikacji
+     nie ma i ten tekst jej nie udaje. Gdyby powstała, to jest jej miejsce. */
+  var _frCiezko = (_frFeel === 'bad');
+  var _frPodpis = _frCiezko
+    ? tekstWgTrenera(
+        'Trener to zobaczy, a forma policzy się dokładniej.',
+        'Zwolnij i przyjrzyj się regeneracji — a jeśli zmęczenie nie mija, to sygnał, żeby poszukać wsparcia trenera.')
+    : tekstWgTrenera(
+        'Trener to zobaczy, a forma policzy się dokładniej.',
+        'Forma policzy się dokładniej.');
+  card.innerHTML='<div style="text-align:center;padding:6px 0;"><div style="font-size:22px;">&#129505;</div><div style="font-size:13px;font-weight:700;margin-top:4px;">Zapisane &mdash; dzi&#281;ki!</div><div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5;">'+escapeHtml(_frPodpis)+'</div></div>';
   window._frReady=false; setTimeout(function(){ card.style.display='none'; }, 2600);
 }
 function _frSkip(){ try{ localStorage.setItem('fr_skip_'+_frId,'1'); }catch(e){} window._frReady=false; document.getElementById('feel-report-card').style.display='none'; }

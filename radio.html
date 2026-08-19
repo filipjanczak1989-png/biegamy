@@ -465,7 +465,7 @@ async function loadCatalog(){
   const { data, error } = await sb.from('radio_top').select('*').order('created_at', { ascending: true });
   if (error) { el.innerHTML = '<div class="rad-empty">Błąd ładowania katalogu.</div>'; return; }
   _radioTracks = data || [];
-  if (!_radioTracks.length) { el.innerHTML = '<div class="rad-empty">Biblioteka jest pusta 🎵<br>Trener jeszcze nie wgrał żadnych utworów.</div>'; return; }
+  if (!_radioTracks.length) { el.innerHTML = '<div class="rad-empty">Biblioteka jest pusta 🎵<br>Nic tu jeszcze nie ma.</div>'; return; }
   el.innerHTML = _radioTracks.map(function(t){
     return radioCardHtml(t, "radioPlay('" + t.id + "')");
   }).join('');
