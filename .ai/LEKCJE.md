@@ -521,3 +521,41 @@ w pomiarze użycia funkcji, która teoretycznie działa.
 `Athletes can insert own trainings` (dwa modele tożsamości w jednej tabeli,
 warunek nie do spełnienia) i `GEN_TESTERZY` (niepusta lista zamiast bramki
 wyłączonej). Wspólny mianownik: **warunek, nie kod**.
+
+### Zanim zbudujesz strażnika — policz populację (19.08.2026)
+
+Po trzech przypadkach w tygodniu sprawdziliśmy, **czy to wzorzec**. Okazało się,
+że nie — i to jest wynik pomiaru, nie odczucie.
+
+**Zmierzone na 119 plikach:** 431 eksportów `window.*`, z tego 13 bez ani jednego
+użycia. Po ręcznym sprawdzeniu każdego: **7 realnych** (4 martwe funkcje w `sb.js`
+— 1779 B, 0,5% pliku — i 3 zmienne zapisywane, nigdy nieczytane) oraz
+**6 fałszywych alarmów**.
+
+**ROZSTRZYGNIĘTE: BRAMKI NIE ROBIMY.** To decyzja, nie odłożenie. Trzy powody,
+każdy zmierzony:
+
+1. **Skaner mylił się w 6 z 13 przypadków (46%).** Fałszywki to wzorzec
+   `if (!window.X) { window.X = true; … }` — czytany i pisany w JEDNEJ linii —
+   dostęp przez alias (`w.FEEL_ETYKIETY` w teście) i plik vendora. Żeby je
+   uciszyć, trzeba analizy wywołań, nie wzorca w tekście.
+2. **Bramka z listą wyjątków to bramka, która przestaje sprawdzać.** Mamy na to
+   świeży dowód we własnym repo — `sprawdz-run-types.py` przed 14.08 odpalany
+   ręcznie był dekoracją, a nie strażą.
+3. **Łapie nie tę klasę.** Sprawdzone wprost na trzech przypadkach z tygodnia:
+   `logAsTraining` ✅ (eksport bez wywołań), `avg >= 3.5` ❌ (nie jest eksportem),
+   `PRSclose` ❌ (odwrotny kierunek — to łapie skaner handlerów). **Jeden na trzy.**
+   Ta lekcja mówi o „wołane, ale nieosiągalne"; skaner eksportów mierzy
+   „nie wołane" — zjawisko sąsiednie, nie to samo.
+
+**Trzy przypadki obok siebie w tygodniu wyglądały na klasę, a były zbiegiem
+okoliczności.** Wspólny objaw był prawdziwy, częstość — nie.
+
+⚠️ **Zasada: zanim zbudujesz strażnika, policz populację.** Jeśli wyjdzie
+kilkanaście trafień przy niskim szumie — bramka. Jeśli kilka przy szumie 46% —
+lekcja i jednorazowe sprzątanie. Koszt fałszywych alarmów płaci się przy KAŻDYM
+commicie, zysk inkasuje się raz.
+
+**Czwarte pytanie kontrolne** do listy wyżej: *czy ktokolwiek woła to, co
+wyeksportowałeś?* — `grep` po nazwie w całym repo, nie po jednym pliku, i pamiętaj
+o dostępie przez alias.
