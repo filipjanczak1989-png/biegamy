@@ -8378,6 +8378,26 @@ async function endGame() {
 
     // Save score do bazy w tle
     _saveScoreInBackground(M);
+
+    /* ⚠️ BRAKUJĄCA LINIA, PRZEZ KTÓRĄ CAŁA GAŁĄŹ BYŁA MARTWA. `_lastEndedGameData`
+       stało od zawsze na `null` i nigdy nie było przypisywane, więc guard
+       w `goLogRealTraining` nie przepuszczał ANI RAZU — a odbiorca po drugiej
+       stronie (`zawodnik.html`, klucz `biegamy_warmup_played`) czekał i zawsze
+       dostawał pustkę.
+       ⚠️ CO TO WŁĄCZA, żeby nikt nie szukał tu więcej: WYŁĄCZNIE toast po
+       przejściu na zawodnik.html. Doklejenie znacznika warm-upu do komentarza
+       loga to OSOBNA, DZIAŁAJĄCA ścieżka — `zawodnik.html` czyta wtedy
+       `game_scores` z dzisiaj, nie ten obiekt.
+       `game.t` liczy klatki przy 60 fps, stąd /60 na sekundy — ta sama arytmetyka
+       co przy `focusDur`. */
+    _lastEndedGameData = {
+      mode: M.id,
+      modeName: M.name,
+      avgReaction: game.reactionTimes && game.reactionTimes.length
+        ? Math.round(game.reactionTimes.reduce(function (a, b) { return a + b; }, 0) / game.reactionTimes.length)
+        : null,
+      duration: Math.round(game.t / 60),
+    };
   } catch (e) {
     console.error('endGame error:', e);
   }
@@ -8438,52 +8458,9 @@ async function _saveScoreInBackground(M) {
   }
 }
 
-// ═════════════════════════════════════════════════
-// LOG GAME AS TRAINING (warm-up mentalny)
-// ═════════════════════════════════════════════════
-async function logAsTraining() {
-  if (!_athleteId || !_lastEndedGameData) return;
-  const btn = document.getElementById('log-btn');
-  btn.disabled = true;
-  btn.textContent = 'Dodawanie...';
-
-  const d = _lastEndedGameData;
-  const distance_km = (d.distance / 1000).toFixed(2);
-  const minutes = Math.max(1, Math.ceil(d.duration / 60));
-
-  // Build comment
-  const comment = `${MODES[d.mode].emoji} ${d.modeName} · ${d.score} pkt · `
-    + (d.avgReaction ? `reakcja ${d.avgReaction}ms · ` : '')
-    + `focus ${d.focusDur}s`
-    + (d.finished ? ' · UKOŃCZONO ✓' : '');
-
-  try {
-    const { error } = await _sb.from('training_logs').insert({
-      athlete_id: _athleteId,
-      training_type: 'Warm-up mentalny',
-      distance_km: distance_km,
-      pace: null,
-      heart_rate: null,
-      comment: comment,
-      /* ⚠️ Do 16.08.2026 stalo tu `'ok'` — wartosc, ktorej NIE ZNA zadna skala
-         w aplikacji ani w EF (feel przyjmuje bad/mid/good/great). Wpadlaby
-         w domyslna „2", czyli cicho jako `mid`. Sciezka nie byla dotad uzyta
-         (source='game' mialo 0 wierszy), wiec nikt tego nie zauwazyl —
-         bomba nierozbrojona, nie wybuch. */
-      feel: d.finished ? 'great' : 'mid',
-      source: 'game',
-      logged_at: new Date().toISOString()
-    });
-    if (error) throw error;
-    btn.textContent = '✓ Dodano do logów';
-    btn.style.background = 'var(--green)';
-    showToast('✓ Zalogowane jako warm-up');
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = '+ Spróbuj ponownie';
-    showToast('Błąd: ' + (e.message || 'nieznany'));
-  }
-}
+// logAsTraining usunięte 19.08.2026 — _lastEndedGameData nigdy nie było ustawiane,
+// więc guard blokował zawsze. Jeśli wracasz do pomysłu „gra jako trening",
+// zacznij od przypisania tej zmiennej.
 
 function goHome() {
   document.getElementById('screen-end').classList.add('hidden');
@@ -8783,7 +8760,6 @@ window.closeTutorial = closeTutorial;
 window.goHome = goHome;
 window.switchTab = switchTab;
 window.loadLeaderboard = loadLeaderboard;
-window.logAsTraining = logAsTraining;
 // 🛍 Shop
 window.openShop = openShop;
 window.closeShop = closeShop;

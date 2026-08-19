@@ -469,3 +469,55 @@ przerwane pobieranie.
 o objawie), #10 (zero jako poprawny pomiar) i #11 (wskaźnik zastępczy podany
 jako pomiar): za każdym razem obserwacja była prawdziwa, a **wniosek z niej
 nie wynikał**.
+
+## 14. Martwa gałąź z pełną implementacją (19.08.2026)
+
+**Objaw.** Kod wygląda na działający, **bo jest kompletny** — funkcja, obsługa
+błędów, komunikat po drugiej stronie, wszystko na miejscu. A warunek wejścia
+nie jest spełniony **nigdy**, więc nie wykonał się ani raz.
+
+**Trzy przypadki w jednym tygodniu.**
+
+| gdzie | co było kompletne | co blokowało |
+|---|---|---|
+| reguła odznaki | próg `avg >= 3.5`, pełne liczenie | sufit skali to 3,0 — **arytmetycznie niemożliwe** |
+| `PRSclose` | wołanie z `onclick`, obsługa po stronie UI | funkcji o tej nazwie **nie było** |
+| `logAsTraining` (gra) | cała funkcja, insert, obsługa błędu, toast | `_lastEndedGameData` **nigdy nieprzypisane**, `id="log-btn"` nie istniał |
+
+**Dlaczego to groźne.** Zwykły martwy kod widać — jest niedokończony. Ten
+wygląda na skończoną funkcję, więc przy przeglądzie **broni się sam**: ktoś
+czyta ciało, widzi sens, idzie dalej. Gorzej: taki kod **przyciąga naprawy**.
+19.08 poprawiłem w `logAsTraining` typ `distance_km` ze stringa na liczbę —
+poprawnie co do treści, w ścieżce, której nikt nie przechodzi. To dokładanie
+kodu do utrzymania pod pozorem naprawy.
+
+**Czego NIE łapie skaner handlerów.** Skaner szuka funkcji, których **brakuje**
+(`onclick="fn()"` bez `fn`). Złapał przypadek `PRSclose`. Nie złapie i nie
+złapał dwóch pozostałych, bo tam **wszystko istniało** — brakowało przypisania
+zmiennej i możliwej do spełnienia wartości progu. **Kompletność to nie
+osiągalność.**
+
+**Zasada.** Zanim naprawisz gałąź, sprawdź, czy ktokolwiek nią przechodzi.
+Trzy pytania, wszystkie tanie:
+1. **Czy warunek wejścia da się spełnić?** Prześledź KAŻDĄ zmienną z guardu do
+   miejsca przypisania. `grep -c 'zmienna\s*=[^=]'` — jeśli 1, to sama
+   deklaracja i gałąź jest martwa.
+2. **Czy element z `getElementById` istnieje?** `grep 'id="…"'` po całym repo,
+   nie po jednym pliku.
+3. **Czy w bazie są ślady użycia?** Zero wierszy przy działającej funkcji to
+   nie „rzadko", tylko sygnał do sprawdzenia (1) i (2).
+
+**Rozstrzygnięcie zależy od odbiorcy, nie od kodu.** Te same objawy, dwa różne
+wnioski tego samego dnia:
+- `logAsTraining` — nikt nie czekał na wynik → **usunąć**, z nagrobkiem mówiącym
+  od czego zacząć, gdyby ktoś wracał do pomysłu.
+- `goLogRealTraining` — odbiorca (`zawodnik.html`, klucz `biegamy_warmup_played`)
+  **istniał i czekał** → **ożywić**, bo brakowała jedna linia, a nie pomysł.
+
+**Objaw ostrzegawczy.** „Dziwne, że nikt tego nie zgłosił." Oraz każde zero
+w pomiarze użycia funkcji, która teoretycznie działa.
+
+**Piąty raz w tej rodzinie.** Ta sama klasa co martwa polityka RLS
+`Athletes can insert own trainings` (dwa modele tożsamości w jednej tabeli,
+warunek nie do spełnienia) i `GEN_TESTERZY` (niepusta lista zamiast bramki
+wyłączonej). Wspólny mianownik: **warunek, nie kod**.
