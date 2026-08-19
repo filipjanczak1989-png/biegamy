@@ -8448,19 +8448,7 @@ async function logAsTraining() {
   btn.textContent = 'Dodawanie...';
 
   const d = _lastEndedGameData;
-  /* ⚠️ BYLO `(d.distance/1000).toFixed(2)` — czyli STRING "0.00", nie liczba.
-     Postgres rzutowal to na `numeric` i dzialalo, ale wzorzec byl kruchy:
-     przy walidacji po stronie klienta albo zmianie typu kolumny przestalby.
-
-     ⚠️ GUARD JEST JAWNY, NIE PRZYPADKOWY. Gdy `d.distance` jest NaN/undefined,
-     stary zapis dawal string "NaN", ktory Postgres przyjmowal jako `numeric NaN`
-     i dopiero CHECK `training_logs_distance_sane` go odrzucal (bo `NaN <= 500`
-     jest FALSZEM) — wywalajac CALY insert. Teraz brak dystansu to jawny `null`,
-     ktory ten sam CHECK dopuszcza wprost (`distance_km IS NULL OR ...`).
-     Zmierzone 19.08.2026: `Warm-up mentalny` ma w bazie 0 wierszy, wiec zmiana
-     nie dotyka zadnych danych historycznych. */
-  const _km = Number(d.distance) / 1000;
-  const distance_km = Number.isFinite(_km) ? Number(_km.toFixed(2)) : null;
+  const distance_km = (d.distance / 1000).toFixed(2);
   const minutes = Math.max(1, Math.ceil(d.duration / 60));
 
   // Build comment
