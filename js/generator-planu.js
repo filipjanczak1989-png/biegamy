@@ -335,16 +335,39 @@
   };
 
   var ZAMKNIECIE =
-    /* ⚠️ TEKST ZMIENIONY, BO STARY STAŁ SIĘ NIEPRAWDĄ. Do 17.08.2026 brzmiał
-       `Ten plan się nie dostosuje` — po wdrożeniu oceniAdaptacje() plan reaguje
-       na przerwy i na systematyczne niedowykonanie, więc pierwsze zdanie byłoby
-       kłamstwem na swoją niekorzyść. Nowa treść mówi DOKŁADNIE tyle, ile silnik
-       potrafi, i ani słowa więcej: widzi kilometry i daty, nie widzi człowieka.
-       ⚠️ KOŃCÓWKA ZOSTAJE CO DO SŁOWA. Jest prawdziwa i jest jedyną rzeczą
-       w całym generatorze, która mówi, po co w ogóle są tu ludzie. */
+    /* ⚠️ TEKST ZMIENIONY DWA RAZY I OBIE ZMIANY MAJĄ TEN SAM POWÓD: zdanie
+       przestawało być prawdą, bo silnik się zmieniał pod nim.
+
+       17.08.2026 — pierwsze zdanie brzmiało `Ten plan się nie dostosuje`.
+       Po wdrożeniu oceniAdaptacje() plan reaguje na przerwy i na systematyczne
+       niedowykonanie, więc było to kłamstwo na swoją niekorzyść.
+
+       19.08.2026 — końcówka brzmiała `Filip i Kasia zauważą.` i stał przy niej
+       komentarz „KOŃCÓWKA ZOSTAJE CO DO SŁOWA". Był słuszny WTEDY: plan się nie
+       dostosowywał, więc zdanie niosło całą prawdę o tym, kto tu pilnuje
+       człowieka. Po 17.08 wisiało bez kontekstu, a przede wszystkim NIGDY NIE
+       TRAFIAŁO DO WŁAŚCIWEGO ADRESATA.
+       ⚠️ TO NIE JEST ROZGAŁĘZIENIE, TYLKO PODMIANA — i to jest cała różnica
+       wobec pozostałych tekstów o trenerze w aplikacji. Generator jest dostępny
+       wyłącznie przy `coach_id IS NULL` (CTA + polityka training_plans_insert_self),
+       a `ai_warnings` zamraża się w wierszu W CHWILI GENEROWANIA. Każdy plan
+       niosący to zdanie powstał więc u kogoś, kto Filipa i Kasi nie ma. Gałąź
+       „z trenerem" nie miałaby żywej ścieżki, byłaby martwym kodem udającym
+       zabezpieczenie. Decyzja Filipa z 19.08.2026.
+
+       ⚠️ NOWA KOŃCÓWKA ZOSTAJE CO DO SŁOWA: „Słuchaj ciała bardziej niż planu."
+       Stara obiecywała cudzą uwagę, której czytelnik nie dostanie. Nowa daje mu
+       radę wykonalną bez nikogo — jedyną rzecz, jaką generator uczciwie może
+       powiedzieć komuś, kto trenuje sam. Jeśli kiedyś generator otworzy się dla
+       zawodników Z trenerem, TO JEST MOMENT na rozgałęzienie, nie wcześniej.
+
+       ⚠️ STARE PLANY ZOSTAJĄ ZE STARYM ZDANIEM — `ai_warnings` jest zamrożone
+       w `training_plans`, ta zmiana dotyczy wyłącznie planów generowanych od
+       teraz. Świadomie bez backfillu: przepisywanie ostrzeżenia pod planem,
+       który ktoś już przeczytał, to zmiana warunków po fakcie. */
     'Plan reaguje na to, ile biegasz — cofnie się po przerwie i zejdzie niżej, ' +
-    'jeśli systematycznie nie wyrabiasz. Ale nie widzi kontuzji, snu ani życia. ' +
-    'Filip i Kasia zauważą.';
+    'jeśli nie wyrabiasz. Nie widzi za to kontuzji, snu ani życia. ' +
+    'Słuchaj ciała bardziej niż planu.';
 
   // ── DATY ───────────────────────────────────────────────────────────────────
   // Liczone wyłącznie w UTC na stringach 'YYYY-MM-DD'. Nigdy toISOString() na
