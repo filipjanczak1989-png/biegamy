@@ -59,7 +59,13 @@
                       odrzucałby KAŻDY maraton. Długie rośnie z dystansem, jak w realnych planach.
      minDlugieProc  — ile procent dystansu docelowego musi sięgnąć najdłuższe wybieganie
                       (ZA_KROTKIE_WYBIEGANIE). Bramka na szczyt tygodniowy tego nie łapie.
-     maxDlugieKm    — SUFIT wybiegania. minDlugieProc pilnuje dołu i NIC nie pilnowało góry:
+     maxDlugieKm    — ⚠️ OD 19.08.2026 TO PODŁOGA SUFITU, NIE SUFIT. Sufit liczy
+                      `sufitWybiegania(d, baza)` = max(maxDlugieKm, min(0,30 × baza, 32)).
+                      Ta liczba jest wartością dla kogoś, kto NIE ma dużej bazy —
+                      i tylko dla niego jest wiążąca. Historycznie była sufitem;
+                      poniższy akapit opisuje, po co powstała, i nadal obowiązuje
+                      jako uzasadnienie CAPU 32 km:
+                      minDlugieProc pilnuje dołu i NIC nie pilnowało góry:
                       zawodnik na 129 km/tydz dostawał na półmaraton wybieganie 46,4 km.
                       Nadmiar objętości idzie do biegów spokojnych, nie w jedną jednostkę.
                       22 km przy półmaratonie to 104% dystansu — tyle wystarczy, żeby
@@ -277,8 +283,41 @@
      nigdy w kolejny akcent. Dziś układamy JEDNĄ jakość na tydzień, więc ten sufit
      jest zabezpieczeniem na przyszłość, nie ograniczeniem bieżącego zachowania. */
   var MAX_JAKOSC_W_TYG = 2;
-  var MAX_TEMPO_KM = 10;                 // sufit ciągłego akcentu progowego…
+  var MAX_TEMPO_KM = 10;                 // PODŁOGA sufitu ciągłego akcentu (patrz sufitAkcentu)…
   var MAX_TEMPO_MIN = 40;                // …albo 40 min, co wypadnie krócej
+
+  /* ── SUFITY JEDNOSTEK SĄ FUNKCJĄ BAZY, NIE STAŁYMI ─────────────────────────
+     Do 19.08.2026 `maxDlugieKm` (14/18/22/34) i `MAX_TEMPO_KM` (10) były
+     stałymi. ZMIERZONE, dlaczego to źle: przy bazie 25 km/tydz sufit nie
+     gryzł ANI RAZU (30% z 25 to 7,5 km, daleko pod 14), a przy bazie 80 na
+     piątce zjadał 24 km z 88 — czyli był bezczynny dla tych, których miał
+     chronić, i wiążący dla tych, dla których go nie pisano. Zgłoszenie Filipa:
+     plan zadawał 63 km/tydz zamiast 88.
+
+     ⚠️ NIE JEST TO „% TYGODNIA". Zmierzone: sam procent przywraca bug, dla
+     którego sufit powstał — przy bazie 129 wybieganie wracało do 51 km na
+     półmaratonie i 57 na maratonie. Dlatego rośnie z bazą, ale ma TWARDY CAP.
+
+     ⚠️ PODŁOGA TO DZISIEJSZA WARTOŚĆ, WIĘC NIKT NIE TRACI. Dla wybiegania jest
+     to `maxDlugieKm` DANEGO DYSTANSU (14/18/22/34), a nie globalne 14 — inaczej
+     maratończyk przy bazie 80 zszedłby z 34 km na 24, czyli zmiana pomyślana
+     jako podniesienie sufitu obniżyłaby go temu, kogo dotyczy najbardziej.
+     Dla akcentu podłogą jest MAX_TEMPO_KM = 10.
+
+     ⚠️ LICZONE Z BAZY (`k.obecna`), NIE Z TYGODNIA. Baza jest stała przez cały
+     plan, więc sufit też — nie kurczy się w taperze ani w tygodniu zrzutowym.
+     Kurczy się tam natomiast MAX_UDZIAL_DLUGIEGO (40% TYGODNIA) i to on jest
+     w tych tygodniach regułą wiążącą. Obie działają szeregowo, patrz układ
+     tygodnia niżej. */
+  var SUFIT_DLUGIE_UDZIAL_BAZY = 0.30, SUFIT_DLUGIE_CAP = 32;
+  var SUFIT_TEMPO_UDZIAL_BAZY  = 0.18, SUFIT_TEMPO_CAP  = 16;
+
+  function sufitWybiegania(d, baza) {
+    return Math.max(d.maxDlugieKm, Math.min((baza > 0 ? baza : 0) * SUFIT_DLUGIE_UDZIAL_BAZY, SUFIT_DLUGIE_CAP));
+  }
+  function sufitAkcentu(baza) {
+    return Math.max(MAX_TEMPO_KM, Math.min((baza > 0 ? baza : 0) * SUFIT_TEMPO_UDZIAL_BAZY, SUFIT_TEMPO_CAP));
+  }
 
   /* Kształt tygodnia przy bazie POWYŻEJ sufitu dystansu. Zawodnik na 129 km/tydz
      nie ma rosnąć, ale ma mieć falę — inaczej plan jest płaski przez cały okres.
@@ -1089,7 +1128,7 @@
     return MAX_ODCINKOW;
   }
 
-  function jednostkaJakosci(typ, kmZUdzialu, p10) {
+  function jednostkaJakosci(typ, kmZUdzialu, p10, baza) {
     var kmPracy = Math.max(1, Math.round(kmZUdzialu - ROZGRZEWKA - SCHLODZENIE));
     if (typ === 'Interwały') {
       var n = liczbaOdcinkow(kmPracy);          // liczbaOdcinkow tnie do MAX_ODCINKOW
@@ -1100,10 +1139,15 @@
               '/km, przerwa 2 min trucht, schłodzenie ' + SCHLODZENIE + ' km.'
       };
     }
-    // Sufit akcentu progowego: 10 km ALBO 40 min, co wypadnie krócej. Bez tego
-    // zawodnik na 129 km/tydz dostawał 23 km ciągłego biegu (90 min) jako „tempo".
+    /* Sufit akcentu progowego: sufitAkcentu(baza) ALBO 40 min, co wypadnie
+       krócej. Bez tego zawodnik na 129 km/tydz dostawał 23 km ciągłego biegu
+       (90 min) jako „tempo".
+       ⚠️ REGUŁA 40 MINUT ZOSTAJE STAŁA I NIE SKALUJE SIĘ Z BAZĄ — to granica
+       fizjologiczna ciągłego biegu progowego, nie granica objętościowa.
+       Zmierzone: przy bazie 88 i p10 3:25 to ona, a nie 15,8 km z bazy, ustala
+       pracę na ~12 km. Sufit z bazy zdejmuje blokadę, minuty pilnują sensu. */
     var tempoPace = tempoStrefy(p10, 'T');
-    kmPracy = Math.min(kmPracy, MAX_TEMPO_KM, Math.round(MAX_TEMPO_MIN * 60 / tempoPace));
+    kmPracy = Math.min(kmPracy, sufitAkcentu(baza), Math.round(MAX_TEMPO_MIN * 60 / tempoPace));
     kmPracy = Math.max(1, kmPracy);
     var minuty = Math.round(kmPracy * tempoPace / 60);
     return {
@@ -1162,6 +1206,11 @@
     // Spokojne absorbują resztę, żeby suma tygodnia trzymała się objętości.
     var km = new Array(sloty.length), opisy = new Array(sloty.length);
     var zajete = 0, spokojne = [];
+    /* Sufit wybiegania — funkcja BAZY, więc jedna liczba na cały plan, nie na
+       tydzień. Liczony raz, bo używają go cztery miejsca niżej (kotwica,
+       Regeneracja, wykrycie `przySuficie`, ratunek DLUGIE_NAD_SPOKOJNYM)
+       i rozjazd między nimi byłby niewidoczny. */
+    var _sufitDlugie = sufitWybiegania(k.d, k.obecna);
     for (i = 0; i < typy.length; i++) {
       /* ⚠️ PODŁOGA DOTYCZY WYBIEGANIA, NIE KAŻDEJ JEDNOSTKI — i to rozróżnienie
          jest sednem zarzutu, nie szczegółem.
@@ -1181,12 +1230,12 @@
          wybieganie schodziło poniżej 6 km TYLKO przy bazie 19 km/tydz i tylko
          na 5 i 10 km (tydzień 1: 5,5 km; tydzień zrzutowy: 5,0 km). Przy
          półmaratonie i maratonie nie schodzi nigdy — bramka ZA_KROTKIE_WYBIEGANIE
-         odrzuca takie plany dużo wcześniej. Sufit maxDlugieKm nadal wygrywa
+         odrzuca takie plany dużo wcześniej. Sufit `_sufitDlugie` nadal wygrywa
          z podłogą, więc na krótkich dystansach nie da się jej obejść w górę. */
-      if (typy[i] === 'Wybieganie')        { km[i] = Math.min(Math.max(k.d.udzialDlugiego * kmTyg, MIN_WYBIEGANIA_KM), k.d.maxDlugieKm); zajete += km[i]; }
-      else if (typy[i] === 'Regeneracja')  { km[i] = Math.min(0.10 * kmTyg, k.d.maxDlugieKm); zajete += km[i]; }
+      if (typy[i] === 'Wybieganie')        { km[i] = Math.min(Math.max(k.d.udzialDlugiego * kmTyg, MIN_WYBIEGANIA_KM), _sufitDlugie); zajete += km[i]; }
+      else if (typy[i] === 'Regeneracja')  { km[i] = Math.min(0.10 * kmTyg, _sufitDlugie); zajete += km[i]; }
       else if (typy[i] === 'Tempo' || typy[i] === 'Interwały') {
-        var j = jednostkaJakosci(typy[i], 0.20 * kmTyg, k.p10);
+        var j = jednostkaJakosci(typy[i], 0.20 * kmTyg, k.p10, k.obecna);
         km[i] = j.km; opisy[i] = j.opis; zajete += j.km;
       } else spokojne.push(i);
     }
@@ -1199,11 +1248,11 @@
     // dzielimy pulę spokojne+długie tak, żeby długie było DLUGIE_NAD_SPOKOJNYM razy
     // dłuższe od spokojnego. Przy 4+ dniach warunek nie zachodzi i nic się nie zmienia.
     var idxDlugie = typy.indexOf('Wybieganie');
-    var przySuficie = idxDlugie >= 0 && km[idxDlugie] >= k.d.maxDlugieKm - 0.001;
+    var przySuficie = idxDlugie >= 0 && km[idxDlugie] >= _sufitDlugie - 0.001;
     if (spokojne.length && idxDlugie >= 0 && !przySuficie && naSpokojny > 0.9 * km[idxDlugie]) {
       var pula = km[idxDlugie] + reszta;
       var jedenSpokojny = pula / (spokojne.length + DLUGIE_NAD_SPOKOJNYM);
-      km[idxDlugie] = Math.min(jedenSpokojny * DLUGIE_NAD_SPOKOJNYM, k.d.maxDlugieKm);
+      km[idxDlugie] = Math.min(jedenSpokojny * DLUGIE_NAD_SPOKOJNYM, _sufitDlugie);
       naSpokojny = (pula - km[idxDlugie]) / spokojne.length;
     }
     /* ── SUFIT UDZIAŁU WYBIEGANIA W TYGODNIU ───────────────────────────────
@@ -1557,7 +1606,7 @@
           ? ['Objętość wyjściowa nieznana — przyjęto ' + OBJETOSC_DOMYSLNA + ' km/tydz (świadomie w dół).']
           : []).concat(
           szczytTyg < Math.max.apply(null, objetosci) * 0.95
-            ? ['Sufity jednostek (wybieganie do ' + k.d.maxDlugieKm + ' km, akcent do ' + MAX_TEMPO_KM +
+            ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' + doKroku(sufitAkcentu(k.obecna)) +
                ' km) nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
                Math.round(szczytTyg) + ' km/tydz w szczycie zamiast ' + Math.round(Math.max.apply(null, objetosci)) + '.']
             : [])
@@ -1590,7 +1639,7 @@
 
      1. „Objętość rośnie z 100 do 80 km/tydz" (5 km, 6 dni, baza 100). Słowo
         „rośnie" było wpisane na sztywno, a szczyt bywa NIŻSZY od bazy: sufity
-        jednostek (maxDlugieKm, MAX_TEMPO_KM, spokojny ≤ wybieganie) nie pozwalają
+        jednostek (sufitWybiegania, sufitAkcentu, spokojny ≤ wybieganie) nie pozwalają
         rozłożyć objętości mocnego zawodnika na krótkim dystansie. Przy bazie 60
         i piątce wychodziło „rośnie z 60 do 60".
      2. „Tempa liczone od Twojej dziesiątki (4:53/km)" przy podanym celu — 4:53
@@ -1835,6 +1884,9 @@
     ZAMKNIECIE: ZAMKNIECIE,
     tydzienNalezyDoNas: tydzienNalezyDoNas,
     MIN_JEDNOSTKI_KM: MIN_JEDNOSTKI_KM,
+    sufitWybiegania: sufitWybiegania, sufitAkcentu: sufitAkcentu,
+    SUFIT_DLUGIE_UDZIAL_BAZY: SUFIT_DLUGIE_UDZIAL_BAZY, SUFIT_DLUGIE_CAP: SUFIT_DLUGIE_CAP,
+    SUFIT_TEMPO_UDZIAL_BAZY: SUFIT_TEMPO_UDZIAL_BAZY, SUFIT_TEMPO_CAP: SUFIT_TEMPO_CAP,
     sanityCzasu: sanityCzasu,
     _sprawdzSciane: sprawdzSciane,
     _riegel: riegel,
@@ -2327,20 +2379,25 @@
         var r = uloz(we({ dystans: 'half', dataStartu: zaTygodni(12), dniWTygodniu: dni,
                           poziom: poziom({ objetoscTygodniowa: obj }) }));
         check('half ' + obj + ' km/tydz, ' + dni + ' dni — plan powstaje', r.ok === true, r.ok ? null : r.sciana);
-        check('half ' + obj + ' km/tydz, ' + dni + ' dni — najdłuższe ≤ 22 km',
-          r.ok && najdluzszeW(r) <= 22.001, r.ok ? najdluzszeW(r) : r.sciana);
+        /* ⚠️ OCZEKIWANIA WPISANE LITERAŁAMI, NIE WZIĘTE Z sufitWybiegania() — inaczej
+           test byłby samozwrotny i przespałby każdą zmianę współczynnika. Skąd te
+           liczby: sufit = max(22, min(0,30 × baza, 32)), więc 25 i 60 km/tydz stoją
+           na PODŁODZE 22, a 129 dopiero sięga CAPU 32 (0,30 × 129 = 38,7 > 32). */
+        var oczek = { 25: 22, 60: 22, 129: 32 }[obj];
+        check('half ' + obj + ' km/tydz, ' + dni + ' dni — najdłuższe ≤ ' + oczek + ' km (sufit z bazy)',
+          r.ok && najdluzszeW(r) <= oczek + 0.001, r.ok ? najdluzszeW(r) : r.sciana);
         check('half ' + obj + ' km/tydz, ' + dni + ' dni — najdłuższe nadal ≥ progu 11,6 km',
           r.ok && najdluzszeW(r) >= DYSTANSE.half.minDlugieProc * DYSTANSE.half.km - 0.05,
           r.ok ? najdluzszeW(r) : r.sciana);
       });
     });
-    check('sufit half leży z zapasem NAD progiem minDlugieProc (nie powtarzamy pułapki maratońskiej)',
+    check('PODŁOGA sufitu half leży z zapasem NAD progiem minDlugieProc (nie powtarzamy pułapki maratońskiej)',
       DYSTANSE.half.maxDlugieKm - DYSTANSE.half.minDlugieProc * DYSTANSE.half.km > 5,
       Math.round((DYSTANSE.half.maxDlugieKm - DYSTANSE.half.minDlugieProc * DYSTANSE.half.km) * 10) / 10);
-    check('sufit half jest powyżej 100% dystansu docelowego',
+    check('PODŁOGA sufitu half jest powyżej 100% dystansu docelowego',
       DYSTANSE.half.maxDlugieKm > DYSTANSE.half.km,
       Math.round(DYSTANSE.half.maxDlugieKm / DYSTANSE.half.km * 100) + '%');
-    check('sufity pozostałych dystansów nietknięte (5k 14 / 10k 18 / marathon 34)',
+    check('PODŁOGI pozostałych dystansów nietknięte (5k 14 / 10k 18 / marathon 34)',
       DYSTANSE['5k'].maxDlugieKm === 14 && DYSTANSE['10k'].maxDlugieKm === 18
       && DYSTANSE.marathon.maxDlugieKm === 34,
       [DYSTANSE['5k'].maxDlugieKm, DYSTANSE['10k'].maxDlugieKm, DYSTANSE.marathon.maxDlugieKm]);
@@ -2772,16 +2829,26 @@
     check('półmaraton: sufit 22 km to ok. 104% dystansu (świadomie powyżej 100%)',
       Math.abs(DYSTANSE.half.maxDlugieKm / DYSTANSE.half.km - 1.04) < 0.02,
       Math.round(DYSTANSE.half.maxDlugieKm / DYSTANSE.half.km * 100) + '%');
-    check('sufit jest powyżej progu minDlugieProc dla każdego dystansu',
+    check('PODŁOGA sufitu jest powyżej progu minDlugieProc dla każdego dystansu',
       ['5k', '10k', 'half', 'marathon'].every(function (dy) {
         var d = DYSTANSE[dy];
         return d.maxDlugieKm > d.minDlugieProc * d.km;
       }), null);
-    check('żaden plan w żadnym reżimie nie przekracza sufitu wybiegania',
+    check('żaden plan w żadnym reżimie nie przekracza sufitu wybiegania LICZONEGO Z JEGO BAZY',
       [R25, R45, R60m, R60h, R129].every(function (r) {
         var d = DYSTANSE[r.plan.target_race_type];
+        var sufit = sufitWybiegania(d, r.plan.input_current_volume_km);
         return r.treningi.filter(function (w) { return w.workout_type === 'Wybieganie'; })
-          .every(function (w) { return w.target_distance_km <= d.maxDlugieKm + 0.05; });
+          .every(function (w) { return w.target_distance_km <= sufit + 0.05; });
+      }), null);
+    /* ⚠️ Powyższa asercja JEST samozwrotna (liczy sufit tą samą funkcją, którą
+       sprawdza) — pilnuje tylko spójności silnika z samym sobą. Twardą liczbę
+       pilnuje asercja capu niżej i test blizny „sufit-funkcja-bazy". */
+    check('CAP 32 km jest nieprzekraczalny dla każdego dystansu i każdej bazy',
+      ['5k', '10k', 'half', 'marathon'].every(function (dy) {
+        return [0, 20, 80, 129, 300, 10000].every(function (b) {
+          return sufitWybiegania(DYSTANSE[dy], b) <= Math.max(32, DYSTANSE[dy].maxDlugieKm) + 1e-9;
+        });
       }), null);
 
     /* ══════════ REGRESJA: przypadek Filipa z testu na zywca ══════════
@@ -2796,18 +2863,25 @@
     var Fjak = F.treningi.filter(function (w) { return w.workout_type === 'Tempo' || w.workout_type === 'Interwały'; });
 
     // 1. BRAK SUFITU DŁUGIEGO — było 46,4 km na półmaratonie
-    check('1) żadne wybieganie nie przekracza maxDlugieKm (' + DYSTANSE.half.maxDlugieKm + ' km)',
-      Fdl.every(function (w) { return w.target_distance_km <= DYSTANSE.half.maxDlugieKm + 0.05; }),
+    /* ⚠️ LICZBA PODNIESIONA Z 22 NA 32 ŚWIADOMIE, 19.08.2026. Przy bazie 129
+       sufit to max(22, min(38,7, 32)) = CAP 32. To NIE jest rozluźnienie bramki
+       na powrót buga: bug wynosił 46,4 km, a bez capu sam procent dawał tu 51 km
+       (zmierzone). Cap 32 stoi między jednym a drugim i jest twardy. */
+    check('1) żadne wybieganie nie przekracza 32 km (CAP przy bazie 129)',
+      Fdl.every(function (w) { return w.target_distance_km <= 32.05; }),
       Fdl.map(function (w) { return w.target_distance_km; }));
-    check('1) najdłuższe wybieganie NIE wraca do 46 km',
-      Math.max.apply(null, Fdl.map(function (w) { return w.target_distance_km; })) < 30, null);
+    check('1) najdłuższe wybieganie NIE wraca do 46 km ANI do 51 km z samego procentu',
+      Math.max.apply(null, Fdl.map(function (w) { return w.target_distance_km; })) < 36, null);
     check('1) reżim rozpoznany jako „fala"', F.meta.rezim === 'fala', F.meta.rezim);
 
     // 2. JAKOŚĆ BEZ SUFITU — było 23 km ciągłego biegu (90 min)
     var Ftempo = F.treningi.filter(function (w) { return w.workout_type === 'Tempo'; });
     var Fintw  = F.treningi.filter(function (w) { return w.workout_type === 'Interwały'; });
-    check('2) akcent progowy ≤ ' + MAX_TEMPO_KM + ' km ciągłego biegu',
-      Ftempo.every(function (w) { return +/\((\d+(?:\.\d+)?) km\)/.exec(w.description)[1] <= MAX_TEMPO_KM + 0.05; }),
+    /* ⚠️ 16 km to CAP sufitu akcentu, nie realna wartość — przy bazie 129 wiąże
+       reguła 40 MINUT, nie kilometry, i praca wychodzi 11 km. Obie asercje muszą
+       zostać: gdyby ktoś zdjął minuty, kilometry złapią to na 16. */
+    check('2) akcent progowy ≤ 16 km ciągłego biegu (CAP sufitu akcentu)',
+      Ftempo.every(function (w) { return +/\((\d+(?:\.\d+)?) km\)/.exec(w.description)[1] <= 16.05; }),
       Ftempo.map(function (w) { return w.description; }));
     check('2) akcent progowy ≤ ' + MAX_TEMPO_MIN + ' min',
       Ftempo.every(function (w) { return +/(\d+) min ciągłego biegu/.exec(w.description)[1] <= MAX_TEMPO_MIN; }),
@@ -2897,8 +2971,19 @@
     check('input_target_volume_km = faktyczny szczyt, nie planowany',
       F.plan.input_target_volume_km === Math.round(Math.max.apply(null, F.meta.objetosciFaktyczne)),
       [F.plan.input_target_volume_km, Math.max.apply(null, F.meta.objetosciFaktyczne)]);
-    check('sufity odnotowane w meta.zalozenia, nie przemilczane',
-      F.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }), F.meta.zalozenia);
+    /* ⚠️ PRZYPADEK PODMIENIONY 19.08.2026. Do tej pory notę sprawdzano na F
+       (half, 129 km/tydz, 6 dni) — po podniesieniu sufitów ten plan MIEŚCI pełną
+       objętość, więc nota słusznie nie powstaje i asercja na nim testowałaby
+       nieprawdę. Bierzemy przypadek, w którym sufity nadal gryzą: te same 129
+       km/tydz na TRZECH dniach (78 zamiast 142 — trzy jednostki nie udźwigną
+       142 km bez jednej monstrualnej). Nota ma być tam, gdzie jest strata. */
+    var Fnota = uloz({ dystans: 'half', dataStartu: zaTygodni(10), dniWTygodniu: 3, today: TODAY,
+                       poziom: { p10sec: 205, wynik: null, objetoscTygodniowa: 129 }, celCzasowy: null });
+    check('sufity odnotowane w meta.zalozenia, nie przemilczane (3 dni, 129 km/tydz)',
+      Fnota.ok && Fnota.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }),
+      Fnota.ok ? Fnota.meta.zalozenia : Fnota.sciana);
+    check('…a plan, który MIEŚCI objętość, noty NIE dostaje (nota nie jest ozdobą)',
+      !F.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }), F.meta.zalozenia);
 
     /* ── PORZĄDEK STREF ─────────────────────────────────────────────────────
        Zgłoszenie brzmiało „interwały wolniejsze od tempa przy niektórych celach".
