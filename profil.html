@@ -1874,7 +1874,11 @@ async function connectIntervals() {
     const data = await res.json();
     if (data.ok) {
       document.getElementById('icu-api-key').value = '';
-      showToast(`Połączono z intervals.icu — zsynchronizowano ${data.synced} treningów ✓`);
+      /* SSOT komunikatu w sb.js — patrz WATCH._komunikatSync. Fallback na wypadek
+         starego cache SW, w którym helpera jeszcze nie ma. */
+      showToast(window.WATCH && window.WATCH._komunikatSync
+        ? 'Połączono z intervals.icu — ' + window.WATCH._komunikatSync(data, 'zsynchronizowano ')
+        : `Połączono z intervals.icu — zsynchronizowano ${data.synced} treningów ✓`);
       await checkIntervalsStatus();
     } else {
       showToast('Błąd: ' + (data.error || 'nieznany'));

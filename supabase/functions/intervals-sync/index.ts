@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { rozstrzygnijKolizje, zbudujWzbogacenie } from '../_shared/kolizja-importu.mjs';
+import { wstawZOdzyskiem } from '../_shared/wstaw-z-odzyskiem.mjs';
 
 const SB_URL = Deno.env.get('SUPABASE_URL')!;
 const ANON   = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';   // publiczny (== sb.js:32) — literal przetrwa Disable legacy anon
@@ -237,10 +238,23 @@ Deno.serve(async (req) => {
     }
 
     let synced = 0, wzbogacone = 0;
+    let pominiete: { external_id: string; data: string; powod: string }[] = [];
     if (doWstawienia.length) {
-      const { error } = await svc.from('training_logs').insert(doWstawienia);
-      if (error) return J(200, { ok: false, error: error.message });
-      synced = doWstawienia.length;
+      /* ⚠️ JEDEN ZLY WIERSZ ZABIJAL CALY IMPORT. Do 19.08.2026 bylo tu
+         `if (error) return J(200,{ok:false})` — pojedyncza aktywnosc lamiaca
+         constraint kasowala synchronizacje WSZYSTKICH pozostalych, a czlowiek
+         dostawal `ok:false` bez wskazania winnej. Wzorzec byl niespojny z petla
+         wzbogacania NIZEJ, ktora swiadomie nie przerywa.
+         Strategia i pomiary — patrz `_shared/wstaw-z-odzyskiem.mjs`.
+         ⚠️ RATE LIMIT INTERVALS NIE JEST TU CZYNNIKIEM: API intervals.icu wolamy
+         RAZ, po liste aktywnosci (ok. linii 150). Odzysk dotyka wylacznie Supabase. */
+      const w = await wstawZOdzyskiem(svc, 'training_logs', doWstawienia);
+      synced = w.wstawione;
+      pominiete = w.pominiete;
+      /* Nie przeszlo NIC = awaria systemowa, nie „import z pominieciami".
+         Oddajemy PIERWOTNY blad batcha — inaczej „zsynchronizowano 0 z 452"
+         wygladaloby na spokojny wynik. */
+      if (!w.ok) return J(200, { ok: false, error: w.bladBatcha, pominietych: pominiete.length });
     }
     for (const w of doWzbogacenia) {
       /* Blad wzbogacenia NIE przerywa syncu — gorszy skutek to brak telemetrii
@@ -289,7 +303,14 @@ Deno.serve(async (req) => {
         }
       }
     } catch (_) { /* wellness best-effort */ }
-    return J(200, { ok: true, synced, wzbogacone, wellness: wellnessSynced });
+    /* `pominiete` NIESIE POWOD, nie tylko liczbe — bez tego czlowiek wie, ze cos
+       odpadlo, i nie ma jak sie dowiedziec co. Klient sklada z tego zdanie
+       „zaimportowano 438 z 440, 2 pominiete". */
+    return J(200, {
+      ok: true, synced, wzbogacone, wellness: wellnessSynced,
+      pominietych: pominiete.length,
+      pominiete: pominiete.slice(0, 20),   // cap na odpowiedz; licznik zostaje pelny
+    });
   } catch (e) {
     return J(500, { ok: false, error: (e as Error).message });
   }

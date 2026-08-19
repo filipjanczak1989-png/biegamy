@@ -1576,6 +1576,17 @@
 
     _noop: function() {},
 
+    /* SSOT komunikatu po imporcie — woła go WATCH.sync i profil.html, żeby zdanie
+       o pominiętych wierszach nie istniało w dwóch rozjeżdżających się wersjach. */
+    _komunikatSync: function(data, prefiks) {
+      var n = (data && data.synced) || 0;
+      var pom = (data && data.pominietych) || 0;
+      var baza = (prefiks || 'Zsynchronizowano ');
+      if (!pom) return baza + n + ' treningów ✓';
+      return baza + n + ' z ' + (n + pom) + ' treningów — ' + pom
+           + (pom === 1 ? ' pominięty' : ' pominięte') + ' ⚠️';
+    },
+
     // 5) SYNC — SSOT importu z zegarka (reużywa EF intervals-sync); profil-button i badge-↺ wołają to samo
     sync: async function(athleteId, onDone, full) {
       if (!athleteId) return { ok:false, error:'no_athlete' };
@@ -1589,7 +1600,11 @@
         });
         const data = await r.json();
         if (!data.ok) throw new Error(data.error || 'sync failed');
-        if (window.showToast) showToast('Zsynchronizowano ' + (data.synced ?? 0) + ' treningów ✓');
+        /* ⚠️ CZĘŚCIOWY IMPORT MUSI BYĆ WIDOCZNY. Do 19.08.2026 jeden zły wiersz
+           wywracał cały import i człowiek dostawał „Błąd synchronizacji"; teraz
+           reszta wchodzi, więc komunikat musi powiedzieć ILE i ŻE COŚ ODPADŁO —
+           inaczej cicha strata jest gorsza niż głośna awaria. */
+        if (window.showToast) showToast(window.WATCH._komunikatSync(data));
         if (typeof onDone === 'function') onDone(data);
         return data;
       } catch (e) {
