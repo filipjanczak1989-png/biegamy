@@ -559,3 +559,29 @@ commicie, zysk inkasuje się raz.
 **Czwarte pytanie kontrolne** do listy wyżej: *czy ktokolwiek woła to, co
 wyeksportowałeś?* — `grep` po nazwie w całym repo, nie po jednym pliku, i pamiętaj
 o dostępie przez alias.
+
+### ROZSTRZYGNIĘTE: RUN_TYPES zostaje w trzech kopiach do 20.09.2026
+
+Lista typów biegowych żyje w `sb.js`, `js/silnik-momentu.js` (+ inline w EF
+`detect-moment`) i w klauzulach `IN` w migracjach. Docelowo ma być **jedna
+definicja w bazie** — tabela albo `run_types()`.
+
+**NIE ruszamy w trakcie kampanii.** To inna klasa niż pozostałe długi z tej
+serii: **bramka DZIAŁA i pilnuje rozjazdu** (`tools/sprawdz-run-types.py`, od
+14.08 skanuje WSZYSTKIE `supabase/migrations/*.sql` po treści, nie po nazwie
+pliku, i chodzi w CI z `bramka.yml`). Dług jest więc **pod kontrolą**, a nie
+tykający.
+
+Scalenie dotknęłoby `community_km` i innych RPC — czyli kodu obsługującego
+**trwające wyzwanie #100kmDlaKasi**. Objawem rozjazdu w tych RPC jest **cichy
+błąd**: kilometry przestają się liczyć, bez wyjątku i bez komunikatu. Ryzyko
+zepsucia licznika w trakcie kampanii przewyższa zysk ze sprzątnięcia kopii,
+których i tak pilnuje zielona bramka.
+
+⚠️ **Warunek powrotu: po 20.09.2026**, gdy licznik przestanie być krytyczny.
+Nie „gdy będzie czas" — konkretna data, bo inaczej ta pozycja wróci przy
+pierwszym dotknięciu RPC i zostanie zrobiona w najgorszym możliwym momencie.
+
+**Zasada, którą to ilustruje:** dług pod działającą bramką ma inny priorytet niż
+dług bez niej. Bramka nie usuwa rozjazdu, ale zmienia go z „zdarzy się i nikt
+nie zauważy" na „zdarzy się i CI zaświeci". To wystarczy, żeby poczekać.
