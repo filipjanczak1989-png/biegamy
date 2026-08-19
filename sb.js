@@ -1576,6 +1576,29 @@
 
     _noop: function() {},
 
+    /* ⚠️ TOAST ZNIKA, WIĘC INFORMACJA MUSI ZOSTAĆ GDZIE INDZIEJ. Bez tego człowiek,
+       który zamknie ekran, nie ma jak wrócić do pytania „co się nie zaimportowało".
+       Piszemy do `client_errors` — jedyna tabela w tym projekcie, która trwale
+       przyjmuje sygnały z klienta (INSERT-only, RLS `auth.uid() = user_id`),
+       i którą czyta już `tools/przeglad-bledow.js`.
+       ⚠️ Reużywamy `_logClientError`, nie własnego insertu: niesie cap 10/load,
+       dedup 60 s i self-swallow. Własny zapis obszedłby wszystkie trzy. */
+    _zapiszSladPominietych: function(data) {
+      try {
+        var lista = (data && data.pominiete) || [];
+        if (!lista.length || typeof window._logKlienta !== 'function') return;
+        window._logKlienta({
+          kind: 'import_pominiety',
+          message: 'intervals: ' + (data.pominietych || lista.length) + ' pominietych z '
+                 + ((data.synced || 0) + (data.pominietych || 0)) + ' — '
+                 + lista.map(function(p){
+                     return (p.data || '?') + '/' + (p.external_id || '?') + ': ' + (p.powodCzytelny || p.powod || '?');
+                   }).join(' | '),
+          source: 'WATCH.sync'
+        });
+      } catch (_) {}
+    },
+
     /* SSOT komunikatu po imporcie — woła go WATCH.sync i profil.html, żeby zdanie
        o pominiętych wierszach nie istniało w dwóch rozjeżdżających się wersjach. */
     _komunikatSync: function(data, prefiks) {
@@ -1583,8 +1606,21 @@
       var pom = (data && data.pominietych) || 0;
       var baza = (prefiks || 'Zsynchronizowano ');
       if (!pom) return baza + n + ' treningów ✓';
+      /* ⚠️ POWÓD, NIE SAMA LICZBA. „Dwa pominięte" to zagadka dla kogoś, kto
+         właśnie podłączył zegarek. Gdy wszystkie odpadły z tego samego powodu —
+         mówimy go wprost; gdy z różnych — mówimy „różne powody", zamiast
+         wybierać jeden i sugerować, że tłumaczy całość. */
+      var lista = (data && data.pominiete) || [];
+      var powody = [];
+      for (var i = 0; i < lista.length; i++) {
+        var pw = lista[i] && (lista[i].powodCzytelny || lista[i].powod);
+        if (pw && powody.indexOf(pw) === -1) powody.push(pw);
+      }
+      var ogon = powody.length === 1 ? ' (' + powody[0] + ')'
+               : powody.length > 1  ? ' (różne powody — szczegóły w Narzędziach)'
+               : '';
       return baza + n + ' z ' + (n + pom) + ' treningów — ' + pom
-           + (pom === 1 ? ' pominięty' : ' pominięte') + ' ⚠️';
+           + (pom === 1 ? ' pominięty' : ' pominięte') + ogon + ' ⚠️';
     },
 
     // 5) SYNC — SSOT importu z zegarka (reużywa EF intervals-sync); profil-button i badge-↺ wołają to samo
@@ -1605,6 +1641,7 @@
            reszta wchodzi, więc komunikat musi powiedzieć ILE i ŻE COŚ ODPADŁO —
            inaczej cicha strata jest gorsza niż głośna awaria. */
         if (window.showToast) showToast(window.WATCH._komunikatSync(data));
+        window.WATCH._zapiszSladPominietych(data);
         if (typeof onDone === 'function') onDone(data);
         return data;
       } catch (e) {
@@ -5188,6 +5225,13 @@ window._icuRenderSplits = function (d, el) {
         }).then(function(){}, function(){});                // self-swallow (reject handler pusty, NIE await/.catch)
       } catch (_) {}
     }
+
+    /* ⚠️ WYSTAWIONE ŚWIADOMIE I WĄSKO. Jedyny obecny odbiorca to
+       `WATCH._zapiszSladPominietych` — trwały ślad po wierszach pominiętych przy
+       imporcie, których inaczej nie da się odzyskać po zniknięciu toasta.
+       Kto tu dopisuje kolejne wołanie: cap 10/load i dedup 60 s obowiązują też
+       Ciebie, a `kind` ma być NOWY, żeby dało się odfiltrować w przeglądzie. */
+    window._logKlienta = _logClientError;
 
     // 5. handlery — addEventListener (addytywny, nie nadpisuje window.onerror=)
     window.addEventListener('error', function(e){

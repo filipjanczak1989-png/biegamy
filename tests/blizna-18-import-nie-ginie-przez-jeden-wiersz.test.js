@@ -75,6 +75,23 @@ test('18 — jeden zły wiersz nie zabija importu', async (t) => {
     assert.deepStrictEqual(r.pominiete.map((p) => p.external_id).sort(), ['199', '7']);
   });
 
+  await t.test('⚠️ POWÓD JEST CZYTELNY DLA CZŁOWIEKA, nie tylko surowy z Postgresa', () => {
+    /* „Dwa pominięte" bez powodu to zagadka dla kogoś, kto właśnie podłączył
+       zegarek. ⚠️ Surowy tekst ZOSTAJE obok — podmiana zabrałaby jedyny ślad,
+       po którym da się dojść, co naprawdę odbiło. */
+    const c = W.czytelnyPowod;
+    assert.match(c('new row for relation "training_logs" violates check constraint "training_logs_distance_sane"'),
+      /dystans poza zakresem/);
+    assert.match(c('duplicate key value violates unique constraint "uq_ext"'), /duplikat/);
+    assert.match(c('null value in column "athlete_id" violates not-null constraint'),
+      /brak wymaganego pola: athlete_id/);
+    assert.match(c('insert or update violates foreign key constraint'), /nieistniejąc/);
+    /* ⚠️ NIEROZPOZNANY POWÓD ODDAJEMY SUROWO, nie chowamy pod „nieznany błąd" —
+       tekst, który dało się przeczytać, jest wart więcej niż uprzejma etykieta. */
+    assert.strictEqual(c('cos zupelnie nowego z bazy'), 'cos zupelnie nowego z bazy');
+    assert.strictEqual(c(''), '');
+  });
+
   await t.test('⚠️ POMINIĘTY NIESIE POWÓD I DATĘ, nie tylko liczbę', () => {
     /* Bez tego człowiek wie, że coś odpadło, i nie ma jak się dowiedzieć co —
        czyli dokładnie ten stan, na który była skarga („ok:false bez wskazania"). */
@@ -85,6 +102,8 @@ test('18 — jeden zły wiersz nie zabija importu', async (t) => {
         assert.strictEqual(p.external_id, '3');
         assert.match(p.data, /^\d{4}-\d{2}-\d{2}$/, 'data ma być kluczem dnia, nie całym znacznikiem');
         assert.match(p.powod, /distance_km/, 'powód ma pochodzić z bazy, nie być wymyślony');
+        assert.match(p.powodCzytelny, /dystans poza zakresem/, 'obok surowego ma stać wersja dla człowieka');
+        assert.notStrictEqual(p.powod, p.powodCzytelny, 'dwa pola, nie jedno — surowy zostaje do diagnozy');
       });
   });
 
@@ -154,6 +173,28 @@ test('18b — częściowy import jest WIDOCZNY, nie cichy', async (t) => {
     const t1 = komunikat({ synced: 438, pominietych: 2 });
     assert.match(t1, /438/); assert.match(t1, /440/); assert.match(t1, /2/);
     assert.ok(!/✓$/.test(t1), 'zdanie o stracie nie może kończyć się ptaszkiem sukcesu');
+  });
+
+  await t.test('⚠️ JEDEN WSPÓLNY POWÓD trafia do zdania wprost', () => {
+    const t1 = komunikat({ synced: 438, pominietych: 2, pominiete: [
+      { powodCzytelny: 'dystans poza zakresem 0–500 km' },
+      { powodCzytelny: 'dystans poza zakresem 0–500 km' },
+    ] });
+    assert.match(t1, /dystans poza zakresem/, 'człowiek ma wiedzieć CZEMU, nie tylko ILE');
+  });
+
+  await t.test('⚠️ RÓŻNE POWODY → nie wybieramy jednego i nie udajemy, że tłumaczy całość', () => {
+    const t1 = komunikat({ synced: 437, pominietych: 3, pominiete: [
+      { powodCzytelny: 'dystans poza zakresem 0–500 km' },
+      { powodCzytelny: 'duplikat — ten trening już jest' },
+      { powodCzytelny: 'brak wymaganego pola: athlete_id' },
+    ] });
+    assert.match(t1, /różne powody/);
+    assert.ok(!/dystans poza zakresem/.test(t1), 'jeden z trzech powodów nie może udawać całości');
+  });
+
+  await t.test('brak listy powodów nie psuje zdania (stary EF, świeży klient)', () => {
+    assert.match(komunikat({ synced: 438, pominietych: 2 }), /2 pominięte ⚠️$/);
   });
 
   await t.test('liczba pojedyncza po polsku', () => {

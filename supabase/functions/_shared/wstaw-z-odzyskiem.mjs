@@ -29,6 +29,25 @@
    ⚠️ OSĄD, nie pomiar. */
 export const ROWNOLEGLE_DOMYSLNIE = 10;
 
+/* ⚠️ POWÓD MUSI BYĆ CZYTELNY, INACZEJ „dwa pominięte" TO ZAGADKA dla kogoś, kto
+   właśnie podłączył zegarek. Surowy komunikat Postgresa („new row for relation
+   … violates check constraint \"training_logs_distance_sane\"") nie jest
+   odpowiedzią na pytanie „czemu mój bieg nie wszedł".
+   ⚠️ Gdy wzorzec nie pasuje, ODDAJEMY SUROWY TEKST, nie „nieznany błąd" —
+   nierozpoznany powód, który dało się przeczytać, jest wart więcej niż nasza
+   uprzejma etykieta zasłaniająca go w całości. */
+export function czytelnyPowod(surowy) {
+  const t = String(surowy || '');
+  if (/training_logs_distance_sane|distance_km/i.test(t)) return 'dystans poza zakresem 0–500 km';
+  if (/duplicate key|already exists|unique constraint/i.test(t)) return 'duplikat — ten trening już jest';
+  const nn = /null value in column "([^"]+)"/i.exec(t);
+  if (nn) return 'brak wymaganego pola: ' + nn[1];
+  if (/violates foreign key/i.test(t)) return 'odwołanie do nieistniejącego wiersza';
+  if (/invalid input syntax for type ([a-z ]+)/i.test(t)) return 'zła wartość dla typu ' + RegExp.$1.trim();
+  if (/check constraint "([^"]+)"/i.exec(t)) return 'nie spełnia reguły bazy: ' + RegExp.$1;
+  return t.slice(0, 120);
+}
+
 /**
  * ⚠️ `klient` jest typu `any` ŚWIADOMIE. Dokładny kształt `from().insert()`
  * w supabase-js to PostgrestFilterBuilder — thenable, ale NIE Promise, więc
@@ -39,7 +58,7 @@ export const ROWNOLEGLE_DOMYSLNIE = 10;
  * @param {string} tabela
  * @param {any[]} wiersze
  * @param {{rownolegle?:number, klucz?:(w:any)=>{external_id?:string,data?:string}}} [opcje]
- * @returns {Promise<{ok:boolean, wstawione:number, pominiete:{external_id:string,data:string,powod:string}[], bladBatcha:string|null}>}
+ * @returns {Promise<{ok:boolean, wstawione:number, pominiete:{external_id:string,data:string,powod:string,powodCzytelny:string}[], bladBatcha:string|null}>}
  */
 export async function wstawZOdzyskiem(klient, tabela, wiersze, opcje = {}) {
   const pominiete = [];
@@ -73,7 +92,10 @@ export async function wstawZOdzyskiem(klient, tabela, wiersze, opcje = {}) {
       }
     }));
     for (const z of wyniki) {
-      if (z) pominiete.push({ ...klucz(z.zly), powod: z.powod });
+      /* `powod` zostaje SUROWY (do logu i do diagnozy), `powodCzytelny` idzie do
+         człowieka. Dwa pola, nie jedno — podmiana surowego na ładny zabrałaby
+         jedyny ślad, po którym da się dojść, co naprawdę odbiło. */
+      if (z) pominiete.push({ ...klucz(z.zly), powod: z.powod, powodCzytelny: czytelnyPowod(z.powod) });
       else wstawione++;
     }
   }

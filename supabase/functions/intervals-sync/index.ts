@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     }
 
     let synced = 0, wzbogacone = 0;
-    let pominiete: { external_id: string; data: string; powod: string }[] = [];
+    let pominiete: { external_id: string; data: string; powod: string; powodCzytelny: string }[] = [];
     if (doWstawienia.length) {
       /* ⚠️ JEDEN ZLY WIERSZ ZABIJAL CALY IMPORT. Do 19.08.2026 bylo tu
          `if (error) return J(200,{ok:false})` — pojedyncza aktywnosc lamiaca
