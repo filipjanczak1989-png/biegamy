@@ -1494,6 +1494,45 @@
                tokenMartwy: !!(data && data.intervals_athlete_id && data.intervals_token_dead_at) };   // E4: połączony ALE token martwy (401)
     },
 
+    /* 2b) CZY RURA DOSYŁA — osobno od „czy jest token".
+       ⚠️ SAM CZAS NIE ODRÓŻNIA „rura zepsuta" od „człowiek ma przerwę", więc go
+       NIE UŻYWAMY jako sygnału. Odróżnia KONTRAST DWÓCH ŹRÓDEŁ: kto ma świeże
+       wpisy ręczne i zero z zegarka, ten nie ma przerwy w bieganiu — ma przerwę
+       w rurze. Kto nie loguje nic, po prostu nie trenuje i wtedy MILCZYMY.
+       Fałszywe oskarżenie o zepsute połączenie jest gorsze niż cisza.
+
+       ⚠️ KOTWICA TO DATA POŁĄCZENIA, NIE OKNO 14 DNI. „Wpisy ręczne z ostatnich
+       14 dni" łapało Przemysława, który połączył się WCZORAJ, a te wpisy zrobił
+       PRZED połączeniem — czyli oskarżałoby go o zepsutą rurę, zanim rura miała
+       okazję zadziałać. Warunek `logged_at > odKiedy` wyklucza go sam, bez
+       arbitralnego progu dni. Zmierzone 20.08.2026 na 28 połączonych kontach:
+       kotwica daje Adam 31, Szymon 14, Jagoda 11, Marta 2, WSZYSCY POZOSTALI 0.
+       Okno 14 dni zostaje jako drugi warunek — żeby wpisy sprzed miesięcy nie
+       trzymały panelu przy życiu u kogoś, kto już przestał trenować.
+
+       Zwraca { dosyla, recznePo }. `dosyla === null` = nie wiadomo (brak danych
+       / błąd) → wołający NIE pokazuje nic. */
+    stanDosylania: async function(athleteId, odKiedy) {
+      if (!athleteId || !odKiedy) return { dosyla: null, recznePo: 0 };
+      try {
+        const zZegarka = await window.sb.from('training_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('athlete_id', athleteId).eq('source', 'intervals');
+        if (zZegarka.error) return { dosyla: null, recznePo: 0 };
+        if ((zZegarka.count || 0) > 0) return { dosyla: true, recznePo: 0 };
+
+        const dni14 = new Date(Date.now() - 14 * 864e5).toISOString();
+        const swiezsze = odKiedy > dni14 ? odKiedy : dni14;   // PO połączeniu ORAZ w oknie 14 dni
+        const reczne = await window.sb.from('training_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('athlete_id', athleteId).neq('source', 'intervals')
+          .gt('logged_at', swiezsze);
+        if (reczne.error) return { dosyla: null, recznePo: 0 };
+        const n = reczne.count || 0;
+        return { dosyla: n > 0 ? false : null, recznePo: n };
+      } catch (_) { return { dosyla: null, recznePo: 0 }; }
+    },
+
     // 3) RENDER — jedna funkcja, 4 wagi. Async, bo pyta czyPolaczony o stan.
     //    opts = { athleteId, returnTo?, onSkip? (nazwa globalnej fn jako string) }
     render: async function(waga, opts) {
@@ -1560,8 +1599,33 @@
             '<div class="wc-unlock" style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
             + '<span>🔓 Odblokuj wysyłanie treningów na zegarek</span>'
             + '<button class="wc-btn-sm" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj ponownie</button></div>';
+          /* ⚠️ STAN POŚREDNI: token jest, treningi nie idą. Do 20.08.2026 nie było
+             go NIGDZIE — badge świecił „połączony", bo token istnieje, a ekran
+             „Został ostatni krok" pokazywał się RAZ, w onboardingu, i nigdy
+             więcej. Kto go pominął, nie miał gdzie zobaczyć, że rura stoi.
+             Zmierzone: 4 osoby w tym stanie, najdłużej 47 dni.
+
+             ⚠️ KOMUNIKAT MÓWI JEDNĄ RZECZ — że brakuje ostatniego kroku PO
+             STRONIE INTERVALS, i że to normalne. „Połączenie działa, ale nie
+             widzimy treningów" byłoby powtórzeniem błędu, który zmylił Maćka na
+             ekranie po OAuth: dwa sprzeczne zdania obok siebie, bez wskazania,
+             czyje to jest i co z tym zrobić.
+
+             ⚠️ ŻÓŁTY ZOSTAJE TUTAJ, badge nie zmienia koloru — informacja żyje
+             tam, gdzie człowiek i tak zagląda po szczegóły. To nie jest alarm
+             ani powiadomienie: zero pushy, zero maili, zero crona. */
+          const st2 = await this.stanDosylania(opts.athleteId, st.od_kiedy);
+          const brak = (st2.dosyla === false && !st.tokenMartwy) ?
+            '<div class="wc-brak">'
+            + '<div class="wc-brak-h">Został ostatni krok — w intervals.icu</div>'
+            + '<div class="wc-brak-p">Twoje konto jest połączone z BiegaMy. Teraz w intervals.icu trzeba podłączyć zegarek — dopiero wtedy treningi zaczną wpadać tutaj.</div>'
+            + '<a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">Otwórz połączenia intervals.icu ↗</a>'
+            + '<div class="wc-brak-p">Znajdź swój zegarek (Garmin / Polar / Suunto) i kliknij <b>Connect</b>. Potem wróć i naciśnij ↻ poniżej.</div>'
+            + '<div class="wc-brak-d">Od połączenia zapisałeś ' + st2.recznePo + ' ' + (st2.recznePo === 1 ? 'trening' : 'treningi/-ów') + ' ręcznie, a z zegarka nie wpadło nic.</div>'
+            + helpHtml(false)
+            + '</div>' : '';
           return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
-            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock;
+            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock + brak;
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
@@ -1717,6 +1781,12 @@
         + 'background:var(--accent);color:#fff;text-decoration:none;text-align:center;'
         + 'font-family:DM Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}'
         + '.wc-icu-co{display:block;margin:0 0 8px;font-size:11px;line-height:1.5;color:var(--muted)}'
+        /* Panel „nie dosyła". Żółty jak `wc-dead` — ta sama waga wizualna, bo to
+           ta sama klasa zdarzenia: połączenie jest, ale nic z niego nie wynika. */
+        + '.wc-brak{margin-top:8px;padding:12px;border:1px solid var(--yellow,#e8b840);border-radius:12px;background:rgba(232,184,64,.06);text-align:left}'
+        + '.wc-brak-h{font-family:DM Mono,monospace;font-size:11px;letter-spacing:.06em;color:var(--yellow,#e8b840);margin-bottom:6px;font-weight:600}'
+        + '.wc-brak-p{font-size:12px;line-height:1.55;color:var(--fg2,#c9c5d0);margin-bottom:8px}'
+        + '.wc-brak-d{font-size:10px;line-height:1.5;color:var(--muted);font-family:DM Mono,monospace;margin:2px 0 10px}'
         + '.wc-help-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}'
         + '.wc-help-steps li{padding-left:2px}'
         + '.wc-help-steps b{color:var(--fg)}'

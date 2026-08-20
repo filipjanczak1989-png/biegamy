@@ -1912,6 +1912,14 @@ async function syncIntervals() {
   if (btn) { btn.textContent = '↻ Synchronizuję...'; btn.disabled = true; }
   await window.WATCH.sync(_myId, null, true);   // FULL-SYNC: reczny przycisk ciagnie CALA historie
   if (btn) { btn.textContent = '↻ Synchronizuj aktywności'; btn.disabled = false; }
+  /* ⚠️ BEZ TEJ LINII PANEL „nie dosyła" NIE MIAŁ JAK ZNIKNĄĆ. Sekcja renderuje
+     się raz, przy wejściu; sync zaciągał treningi i zostawiał na ekranie żółty
+     komunikat mówiący, że nic nie wpadło — do najbliższego przeładowania strony.
+     Człowiek, który właśnie podłączył zegarek i nacisnął ↻, zobaczyłby, że nadal
+     „został ostatni krok", i miałby prawo uznać, że nie zadziałało.
+     `checkIntervalsStatus` przelicza stan od zera, więc panel schodzi w tym samym
+     kliknięciu, w którym wpadła pierwsza aktywność. */
+  await checkIntervalsStatus();
 }
 
 async function checkIntervalsStatus() {
