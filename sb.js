@@ -1494,6 +1494,16 @@
                tokenMartwy: !!(data && data.intervals_athlete_id && data.intervals_token_dead_at) };   // E4: połączony ALE token martwy (401)
     },
 
+    /* Odmiana „trening" przez liczbę. ⚠️ Polski ma TRZY formy, nie dwie —
+       `n === 1 ? 'trening' : 'treningi'` dałoby „5 treningi". Reguła: 1 →
+       trening; 2–4 → treningi, ALE nie 12–14; reszta → treningów. */
+    _odmienTrening: function(n) {
+      n = Math.abs(Number(n) || 0);
+      if (n === 1) return 'trening';
+      const d = n % 10, s = n % 100;
+      return (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) ? 'treningi' : 'treningów';
+    },
+
     /* 2b) CZY RURA DOSYŁA — osobno od „czy jest token".
        ⚠️ SAM CZAS NIE ODRÓŻNIA „rura zepsuta" od „człowiek ma przerwę", więc go
        NIE UŻYWAMY jako sygnału. Odróżnia KONTRAST DWÓCH ŹRÓDEŁ: kto ma świeże
@@ -1605,11 +1615,17 @@
              więcej. Kto go pominął, nie miał gdzie zobaczyć, że rura stoi.
              Zmierzone: 4 osoby w tym stanie, najdłużej 47 dni.
 
-             ⚠️ KOMUNIKAT MÓWI JEDNĄ RZECZ — że brakuje ostatniego kroku PO
-             STRONIE INTERVALS, i że to normalne. „Połączenie działa, ale nie
-             widzimy treningów" byłoby powtórzeniem błędu, który zmylił Maćka na
-             ekranie po OAuth: dwa sprzeczne zdania obok siebie, bez wskazania,
-             czyje to jest i co z tym zrobić.
+             ⚠️ KOMUNIKAT MÓWI JEDNĄ RZECZ. „Połączenie działa, ale nie widzimy
+             treningów" byłoby powtórzeniem błędu, który zmylił Maćka na ekranie
+             po OAuth: dwa sprzeczne zdania obok siebie, bez wskazania, czyje to
+             jest i co z tym zrobić.
+
+             ⚠️ ŚWIADOMIE NIE MÓWIMY „ostatni krok" — decyzja Filipa z 20.08.2026.
+             Po stronie intervals.icu może zostać jeszcze synchronizacja z Garminem,
+             której NIE KONTROLUJEMY i o której nic nie wiemy. Obietnica „to już
+             koniec" byłaby dokładnie tą samą klasą co „Połączono ✓" przy stojącej
+             rurze: zdaniem o cudzym systemie, którego nie mamy jak sprawdzić.
+             Stan nazwany neutralnie ma tę przewagę, że nie może się zdezaktualizować.
 
              ⚠️ ŻÓŁTY ZOSTAJE TUTAJ, badge nie zmienia koloru — informacja żyje
              tam, gdzie człowiek i tak zagląda po szczegóły. To nie jest alarm
@@ -1617,11 +1633,11 @@
           const st2 = await this.stanDosylania(opts.athleteId, st.od_kiedy);
           const brak = (st2.dosyla === false && !st.tokenMartwy) ?
             '<div class="wc-brak">'
-            + '<div class="wc-brak-h">Został ostatni krok — w intervals.icu</div>'
-            + '<div class="wc-brak-p">Twoje konto jest połączone z BiegaMy. Teraz w intervals.icu trzeba podłączyć zegarek — dopiero wtedy treningi zaczną wpadać tutaj.</div>'
-            + '<a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">Otwórz połączenia intervals.icu ↗</a>'
+            + '<div class="wc-brak-h">Konto połączone</div>'
+            + '<div class="wc-brak-p">Zostało podłączyć zegarek po stronie intervals.icu.</div>'
+            + '<a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">Otwórz ustawienia intervals.icu ↗</a>'
             + '<div class="wc-brak-p">Znajdź swój zegarek (Garmin / Polar / Suunto) i kliknij <b>Connect</b>. Potem wróć i naciśnij ↻ poniżej.</div>'
-            + '<div class="wc-brak-d">Od połączenia zapisałeś ' + st2.recznePo + ' ' + (st2.recznePo === 1 ? 'trening' : 'treningi/-ów') + ' ręcznie, a z zegarka nie wpadło nic.</div>'
+            + '<div class="wc-brak-d">Od połączenia zapisałeś ' + st2.recznePo + ' ' + WATCH._odmienTrening(st2.recznePo) + ' ręcznie, a z zegarka nie wpadło nic.</div>'
             + helpHtml(false)
             + '</div>' : '';
           return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
