@@ -1431,6 +1431,27 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════
+  /* ⚠️ JEDEN ADRES, NIE TRZY. Link do połączeń intervals.icu wchodzi w kilka
+     miejsc (instrukcja, ekran po OAuth, sekcja w profilu). Wklejany osobno
+     rozjedzie się tak samo jak nasze trzy różne listy marek zegarków.
+
+     Ścieżka udokumentowana przez autora intervals.icu (David, 30.07.2026,
+     forum.intervals.icu/t/api-access-to-intervals-icu/609/728): „you can now
+     deep link to the /settings/connections page and display only the blocks for
+     selected services", przykład `?services=polar,garmin`. Zbudowane wprost pod
+     „prompting users to connect" — czyli nasz przypadek.
+
+     ⚠️ BEZ `?services=` DO CZASU SPRAWDZENIA NAZW W PRZEGLĄDARCE. Potwierdzone
+     są wyłącznie `polar` i `garmin` (z przykładu autora); `suunto`, `coros`
+     i `wahoo` byłyby zgadywaniem. Gdyby nieznana nazwa dała stronę BEZ bloków,
+     link byłby gorszy niż jego brak — a to jest dwie minuty testu na żywym
+     koncie, nie rzecz do założenia.
+
+     ⚠️ `curl` daje 200, ale to SPA: 200 znaczy „serwer oddał powłokę", nie
+     „trasa po stronie klienta się rozwiązała". Ostateczne potwierdzenie wymaga
+     otwarcia na ZALOGOWANYM koncie — ta sama pułapka co przy weryfikacji EF. */
+  window.ICU_POLACZENIA_URL = 'https://intervals.icu/settings/connections';
+
   // window.WATCH — SSOT podłączenia zegarka (intervals.icu OAuth)
   // Reużywa flow z profil.html (authorizeIntervals) — jedna ścieżka, nie kopia.
   // Stan czytany z athletes.intervals_athlete_id (intervals_credentials ma RLS
@@ -1491,7 +1512,10 @@
         + '<ol class="wc-help-steps">'
         + '<li><b>Załóż darmowe konto na intervals.icu</b><br>Wejdź na intervals.icu i zarejestruj się (email, hasło, nazwa, waga — wymagana; resztę pomiń). Maila nie musisz potwierdzać.<img class="wc-help-img" src="' + window.assetUrl('krok1-rejestracja.webp') + '" alt="Krok 1 — rejestracja na intervals.icu" loading="lazy"></li>'
         + '<li><b>Ustawienia → Połączenia</b><br>Kliknij zębatkę ⚙️ w lewej kolumnie, wejdź w zakładkę Połączenia i znajdź kartę Garmin Connect.<img class="wc-help-img" src="' + window.assetUrl('krok2-polaczenia.webp') + '" alt="Krok 2 — Ustawienia → Połączenia" loading="lazy"></li>'
-        + '<li><b>Podłącz Garmina</b><br>Zaznacz trzy pola (Pobieranie aktywności, Pobierz dane kondycji, Prześlij zaplanowane treningi). Po trzecim przeniesie Cię na stronę Garmina — zaloguj się. Po wpisaniu hasła zegarek jest połączony.<img class="wc-help-img" src="' + window.assetUrl('krok3-garmin.webp') + '" alt="Krok 3 — podłącz Garmin Connect" loading="lazy"></li>'
+        + '<li><b>Podłącz zegarek</b><br>'
+        + '<a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">Otwórz połączenia intervals.icu ↗</a>'
+        + '<span class="wc-icu-co">Znajdź swój zegarek (Garmin / Polar / Suunto) i kliknij <b>Connect</b>. Potem wróć tutaj.</span>'
+        + 'Przy Garminie zaznacz trzy pola (Pobieranie aktywności, Pobierz dane kondycji, Prześlij zaplanowane treningi). Po trzecim przeniesie Cię na stronę Garmina — zaloguj się. Po wpisaniu hasła zegarek jest połączony.<img class="wc-help-img" src="' + window.assetUrl('krok3-garmin.webp') + '" alt="Krok 3 — podłącz Garmin Connect" loading="lazy"></li>'
         + '<li><b>Wróć do BiegaMy</b><br>Kliknij „Autoryzuj przez intervals.icu”, na ekranie zgody zaznacz Aktywności — Czytać ✓ i OK.<img class="wc-help-img" src="' + window.assetUrl('krok4-autoryzacja.webp') + '" alt="Krok 4 — autoryzacja w BiegaMy" loading="lazy"></li>'
         + '</ol>'
         + '<p class="wc-help-done">✅ Gotowe! Od teraz każdy trening wpada sam.</p>'
@@ -1686,6 +1710,13 @@
         + '.wc-status-connect{display:flex;flex-direction:column;gap:10px}'
         + '.wc-help-body{margin-top:8px;line-height:1.55;color:var(--muted);text-align:left;font-family:inherit;font-size:12px}'
         + '.wc-help-intro{margin:0 0 8px}'
+        /* Skrót do połączeń intervals.icu — WEWNĄTRZ kroku, nie zamiast niego.
+           `display:block` + margines, żeby na wąskim ekranie nie sklejał się
+           z tekstem kroku i był oczywistym celem kciuka (min-height 40 px). */
+        + '.wc-icu-link{display:block;margin:8px 0 6px;padding:11px 12px;border-radius:10px;'
+        + 'background:var(--accent);color:#fff;text-decoration:none;text-align:center;'
+        + 'font-family:DM Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}'
+        + '.wc-icu-co{display:block;margin:0 0 8px;font-size:11px;line-height:1.5;color:var(--muted)}'
         + '.wc-help-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}'
         + '.wc-help-steps li{padding-left:2px}'
         + '.wc-help-steps b{color:var(--fg)}'

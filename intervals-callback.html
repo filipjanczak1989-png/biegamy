@@ -28,6 +28,10 @@
   .icon{ font-size:34px; margin-bottom:12px; line-height:1; }
   .msg{ font-size:15px; font-weight:600; margin-bottom:6px; }
   .sub{ font-size:12px; color:var(--muted,rgba(240,237,232,0.55)); font-family:'DM Mono',monospace; line-height:1.5; }
+  /* Zapasowy link do instrukcji — MUSI wyglądać inaczej niż główny przycisk,
+     inaczej dwa identyczne prostokąty znoszą hierarchię i człowiek klika ten
+     bliżej kciuka, nie ten właściwy. */
+  .btn-ghost{ background:transparent; color:var(--muted,#8a8798); border:1px solid rgba(255,255,255,0.14); margin-top:10px; font-size:10px; letter-spacing:0.08em; }
   .btn{ display:inline-block; margin-top:18px; background:var(--accent,#e8561e); color:#fff; text-decoration:none; border-radius:12px; padding:12px 22px; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; }
   .kod-gra{ margin-top:16px; padding:10px 12px; border:1px dashed var(--accent,#e8561e); border-radius:12px; font-family:'DM Mono',monospace; font-size:11px; color:var(--fg,#f0ede8); line-height:1.5; }
   .kod-gra b{ color:var(--accent,#e8561e); letter-spacing:0.08em; }
@@ -112,11 +116,33 @@
       if (data.activities_count === 0) {
         // Sukces, ale intervals PUSTY → Garmin niepodłączony. Ton POZYTYWNY (✅, NIE błąd), bez auto-redirectu.
         // Instrukcja podłączenia Garmina żyje w profil.html?open=icu (WATCH.helpHtml) — reuse przez link (opcja B).
+        /* ⚠️ TEKST PRZEPISANY 20.08.2026. Stary brzmiał „Połączono! Jeszcze jeden
+           krok / Twój zegarek jest połączony, ale intervals.icu nie widzi jeszcze
+           treningów" — mówił, że coś jest połączone I JEDNOCZEŚNIE nie działa,
+           nie mówiąc CZYJE to jest ani CO zrobić. Nowy stawia granicę w nagłówku:
+           nasza część skończona, brakuje kroku po stronie intervals.icu.
+
+           ⚠️ GŁÓWNY PRZYCISK PROWADZI TERAZ DO INTERVALS, NIE DO NAS. Stary
+           `[Zobacz jak podłączyć zegarek]` szedł na profil.html?open=icu, gdzie
+           w stanie „połączony" renderuje się „Połączono ✓" + [Rozłącz] i ZERO
+           instrukcji — czyli dokładnie tam, gdzie człowiek nie znajdzie pomocy.
+           Link do profilu zostaje jako zapasowy, ale przestaje być jedyny.
+
+           ⚠️ target=_blank OBOWIĄZKOWY. Aplikacja chodzi jako PWA
+           (`display: standalone`), więc nowa karta otwiera systemową przeglądarkę
+           OBOK, zostawiając onboarding nietknięty — powrót idzie przełącznikiem
+           aplikacji. W tej samej karcie człowiek wypadłby z procesu i mógłby
+           nie wrócić. `rel=noopener noreferrer` jak przy pozostałych 29 linkach. */
         bodyEl.innerHTML =
           '<div class="icon">✅</div>' +
-          '<div class="msg">Połączono! Jeszcze jeden krok</div>' +
-          '<div class="sub">Twój zegarek jest połączony, ale intervals.icu nie widzi jeszcze treningów. Podłącz swój zegarek w intervals.icu, żeby biegi zaczęły wpadać do BiegaMy.</div>' +
-          '<a class="btn" href="profil.html?open=icu">Zobacz jak podłączyć zegarek</a>' + KOD_GRA;
+          '<div class="msg">Połączono z BiegaMy ✓</div>' +
+          '<div class="sub">Został ostatni krok — po stronie intervals.icu. ' +
+          'Nie widzi jeszcze Twoich treningów, bo nie ma połączenia z zegarkiem.</div>' +
+          '<a class="btn" href="' + (window.ICU_POLACZENIA_URL || 'https://intervals.icu/settings/connections') + '" ' +
+          'target="_blank" rel="noopener noreferrer">Otwórz połączenia intervals.icu ↗</a>' +
+          '<div class="sub" style="margin-top:10px;">Znajdź swój zegarek (Garmin / Polar / Suunto) ' +
+          'i kliknij <b>Connect</b>. Potem wróć tutaj.</div>' +
+          '<a class="btn btn-ghost" href="profil.html?open=icu">Nie wiesz, gdzie szukać? Instrukcja ze zrzutami</a>' + KOD_GRA;
         try{localStorage.setItem('biegus_bonus_zegarek','1');}catch(e){}
       } else {
         // count>0 → treningi są; count null/undefined (EF call padł, nieznane) → nie strasz. Oba: normalny sukces + redirect.
