@@ -4487,8 +4487,20 @@ window._renderKmLongterm = async function(tryb) {
   box.innerHTML = buckets.map((b, i) => {
     const pokazEt = (buckets.length - 1 - i) % coKtora === 0;
     const h = Math.max(3, Math.round(110 * b.km / maxKm));
-    const isMax = b.km === maxKm && b.km > 0;
-    const col = isMax ? 'linear-gradient(180deg,#e8561e,#fb923c)' : 'rgba(232,86,30,0.45)';
+    /* ⚠️ PODSWIETLAMY BIEZACY OKRES, NIE REKORD (21.08.2026, zgloszenie Macka:
+       „podswietla sie slupek w ktorym bylo najwiecej km. Malo to logiczne").
+       Stara regula `b.km === maxKm` byla ZAMIERZONA — oznaczala rekord — ale klada
+       akcent na przeszlosc, a przy okazji myli, bo BIEZACY OKRES JEST ZAWSZE
+       NIEPELNY: w piatek slupek tego tygodnia jest krotki I wyszarzony naraz,
+       czyli wyglada na regres, a jest po prostu kalendarzem.
+
+       ⚠️ W ZAKLADCE „LATA" ZMIANA JEST NIEWIDOCZNA I TO NIE JEST USTERKA.
+       Zmierzone 21.08.2026: z 39 osob z logami WSZYSTKIE 39 maja biezacy rok
+       rownoczesnie jako maksimum, a 37 z nich ma dane tylko z JEDNEGO roku,
+       wiec widza jeden slupek. Kto sprawdza efekt, ma patrzec na Tydzien
+       albo Miesiace — na Latach stary i nowy warunek wskazuja to samo. */
+    const isBiezacy = i === buckets.length - 1 && b.km > 0;
+    const col = isBiezacy ? 'linear-gradient(180deg,#e8561e,#fb923c)' : 'rgba(232,86,30,0.45)';
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;">'
       + '<div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;">' + (b.km || '') + '</div>'
       + '<div style="width:100%;max-width:26px;height:' + h + 'px;background:' + col + ';border-radius:4px 4px 0 0;transition:height 0.6s var(--ease-out);"></div>'
@@ -13050,8 +13062,15 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
     </div>
     <!-- FORMA-BANER-LIVE: zywy wynik gotowosci w pierscieniu grafiki (76.5% x, 48% y) -->
     <div id="forma-baner-wynik" style="position:absolute;left:76.5%;top:51%;transform:translate(-50%,-50%);z-index:3;text-align:center;line-height:0.78;text-shadow:0 2px 14px rgba(0,0,0,0.65);">
+      <!-- ⚠️ ZDJETY PODPIS „FORMA" POD LICZBA (21.08.2026, zgloszenie Macka „2x forma").
+           Slowo stalo dwa razy w jednym banerze: raz jako tytul ekranu (56 px, lewy
+           dolny rog, z kreska) i raz jako 9-pikselowy podpis pod liczba, ~120 px dalej.
+           ⚠️ CENA JEST REALNA I ZOSTAJE ZAPISANA: liczba w pierscieniu grafiki nie ma
+           teraz zadnej etykiety. Bronia jej dwie rzeczy — tytul ekranu tuz obok oraz
+           to, ze siedzi w pierscieniu, ktory sam sugeruje wskaznik. Gdyby okazalo sie
+           to za malo, wlasciwa poprawka NIE jest przywrocenie slowa „FORMA", tylko
+           nazwanie tego, czym ta liczba jest naprawde (wynik gotowosci 0-100). -->
       <div id="forma-baner-num" style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:#fff;">--</div>
-      <div style="font-size:9px;letter-spacing:0.22em;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-top:3px;font-weight:700;">FORMA</div>
     </div>
   </div>
   <style>
