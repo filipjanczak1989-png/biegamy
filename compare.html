@@ -17,7 +17,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sa
 /* Header */
 .header{position:sticky;top:0;z-index:10;background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 16px 0;}
 .header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
-.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+/* .back-btn usunięty 21.08.2026 — martwy styl. Przycisk powrotu na tej stronie
+   istnieje, ale siedzi w nagłówku hero (niżej, <a href="zawodnik.html#section-forma">)
+   i jest stylowany inline. Ta reguła została po układzie sprzed hero i nie miała
+   ani jednego użycia — jedyne wystąpienie „back-btn" w pliku było jej definicją. */
 
 /* Section titles */
 .section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;}
@@ -118,7 +121,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sa
       <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="height:50px;position:relative;">
           <canvas id="cmp-me-trimp-bars" style="max-height:50px;"></canvas>
-          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:0.1em;margin-top:2px;">TY · TRIMP</div>
+          <!-- Ta sama sierota co w zawodnik.html: compare pokazuje TRIMP piętnaście
+               razy i nie miało ani jednej ikony wyjaśniającej. -->
+          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:0.1em;margin-top:2px;">TY · TRIMP<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
         </div>
         <div style="height:50px;position:relative;">
           <canvas id="cmp-friend-trimp-bars" style="max-height:50px;"></canvas>

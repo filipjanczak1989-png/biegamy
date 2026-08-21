@@ -13212,7 +13212,11 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
     <div style="margin-top:8px;height:60px;position:relative;">
       <canvas id="forma-trimp-bars" style="max-height:60px;"></canvas>
     </div>
-    <div style="text-align:center;margin-top:2px;font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.4);letter-spacing:0.1em;">TRIMP DZIENNY</div>
+    <!-- ⚠️ IKONA „i" DODANA 21.08.2026. `trimp` był JEDYNYM z dziewięciu kluczy
+         METRIC_TOOLTIPS bez ani jednego wywołania — pełne wyjaśnienie istniało
+         w sb.js i nie dało się do niego dojść z żadnego ekranu. Pytanie Maćka
+         („nie ma co to trimp") miało odpowiedź napisaną, tylko schowaną. -->
+    <div style="text-align:center;margin-top:2px;font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.4);letter-spacing:0.1em;">TRIMP DZIENNY<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
   </div>
 
 
