@@ -627,3 +627,56 @@ co tydzień, czyli gorzej niż brak podziału. Dlatego pula jest **addytywna**:
 odważny — a nieznana jest prawie zawsze, bo forma liczy się na innym ekranie.
 
 Pilnuje tego `tests/blizna-21-cytaty-nie-sa-ozdoba.test.js`.
+
+### ROZSTRZYGNIĘTE 21.08.2026: automatyczne `missed` — NIE, i warunek powrotu
+
+Kusiło, żeby po X dniach oznaczać wiszące `planned` jako `missed` — 1290 wierszy
+u 23 osób, najstarszy z 6.04. **Odrzucone, bo „brak logu" to co najmniej trzy
+różne sytuacje**, a domysł w danych karmiących model jest gorszy niż pustka:
+pustka jest widocznie pusta, fałszywy `missed` wygląda na fakt.
+
+Zmierzone na 840 przeszłych `planned` (bez odpoczynków):
+
+| sygnał | ile | co znaczy |
+|---|---|---|
+| log TEGO dnia | 293 (35%) | zrobione, tylko nieoznaczone |
+| brak logu tego dnia, log ±1 dzień | 347 (41%) | prawdopodobnie zrobione, przesunięte |
+| cisza przez ±3 dni | 88 (10%) | prawdopodobnie naprawdę nie było |
+| pozostałe | 112 (14%) | niejednoznaczne |
+
+**76% wygląda na „zrobione, tylko nieoznaczone".** Automat pomyliłby się na
+trzech czwartych.
+
+⚠️ **WARUNEK POWROTU:** wracamy, gdy przycisk „Nie zrobiłem" będzie używany na
+tyle, że da się PORÓWNAĆ deklarację z brakiem logu. Dopiero wtedy będziemy
+wiedzieć, ile „pustych dni" to naprawdę pominięcia — dziś to zgadywanie.
+Zapytanie: `select count(*) from trainings where status='missed'`.
+
+⚠️ **Bezpieczny automat idzie w DRUGĄ stronę** i czeka na osobną decyzję: 293
+wiersze z logiem tego samego dnia powinny być `done`, nie `missed`. To naprawiłoby
+`completionRate28`, który dziś zaniża wykonanie o jedną trzecią i karmi EF
+zaleceniem „NIE dokładaj objętości". Przyczyna znana: jedyna ścieżka na `done`
+działa tylko przy DOKŁADNIE JEDNYM planie w danym dniu.
+
+### ROZSTRZYGNIĘTE 21.08.2026: adaptacja NIE przechodzi na `missed` — warunek powrotu
+
+`_zbierzDaneAdaptacji` liczy wykonanie jako `wykonaneKm / planKm` i **nie czyta
+`trainings.status` w ogóle**. Przełączenie na „opuścił jednostki" zmieniłoby
+ZNACZENIE, nie kalibrację:
+
+| sytuacja | miara km (dziś) | miara jednostek |
+|---|---|---|
+| 3 z 4 jednostek, każda −30% | 70% → obniżka | 75% → bez reakcji |
+| 4 z 4, ale jedna to spacer zamiast interwałów | 60% → obniżka | 100% → bez reakcji |
+
+Miara kilometrowa łapie **niedowykonanie w środku jednostki**, jednostkowa tylko
+**całe opuszczenia**. Próg ±25% jest skalibrowany do pierwszej.
+
+⚠️ **WARUNEK POWROTU: co najmniej 20 wierszy `missed` od realnych ludzi.** Wcześniej
+reguła oparta na tym polu widziałaby „nikt nic nie opuszcza" u wszystkich — czyli
+dokładnie tę klasę błędu, którą przyciskiem właśnie naprawiamy, tylko przeniesioną
+o poziom wyżej. Przy 20+ wierszach da się sprawdzić, czy „opuścił jednostkę"
+i „zrobił mniej km" naprawdę wymagają różnych reakcji planu.
+
+⚠️ Kierunek, gdy warunek się spełni: `missed` jako TRZECI sygnał OBOK kilometrów —
+odróżniający „biegał mniej" od „nie biegał wcale" — a nie zamiast progu.

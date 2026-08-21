@@ -7614,6 +7614,10 @@ function _odTrenera(t) {
   return !!t.coach_id;
 }
 
+/* Od której godziny „Nie zrobiłem" pojawia się przy DZISIEJSZYM treningu.
+   ⚠️ OSĄD OPARTY NA POMIARZE, nie na przeczuciu — patrz komentarz przy użyciu. */
+const GODZINA_NIE_ZROBILEM = 18;
+
 async function loadTodayTraining() {
   if (!_athleteId) return;
   /* ⚠️ DZIEŃ PO WARSZAWIE, NIE PO UTC. Było `toISOString().split('T')[0]` — latem
@@ -7656,7 +7660,21 @@ async function loadTodayTraining() {
      zrobić, a trening już odhaczony jako wykonany nie potrzebuje zaprzeczenia. */
   const _nz = document.getElementById('today-nie-zrobilem');
   if (_nz) {
-    const _widoczny = data.type !== 'Odpoczynek' && data.status !== 'done';
+    /* ⚠️ NIE POKAZUJEMY RANO. „Nie zrobiłem" obok planu na dziś o 7:00 to
+       zaproszenie do rezygnacji PRZED próbą — przycisk wyjścia postawiony,
+       zanim człowiek w ogóle zaczął.
+       Zmierzone na 1085 startach z zegarka (realne godziny, nie daty wpisów):
+         przed 12:00 — 17% · 12:00–17:59 — 26% · PO 18:00 — 53%
+       O 18:00 połowa dnia treningowego jest już za nami, a druga połowa dopiero
+       się zaczyna — kto pobiegł, ma już `done` albo log, więc przycisku i tak
+       nie zobaczy. To najwcześniejsza godzina, o której „nie zrobiłem" opisuje
+       fakt, a nie przewiduje porażki.
+       ⚠️ W KALENDARZU dni PRZESZŁE mają go zawsze — tam dzień jest zamknięty
+       i pytanie o godzinę nie ma sensu. */
+    const _godzTeraz = Number(new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false }));
+    const _poPoludniu = _godzTeraz >= GODZINA_NIE_ZROBILEM;
+    const _widoczny = data.type !== 'Odpoczynek' && data.status !== 'done'
+                      && (_poPoludniu || data.status === 'missed');
     _nz.style.display = _widoczny ? 'block' : 'none';
     _nz.dataset.stan = data.status || 'planned';
     if (data.status === 'missed') {

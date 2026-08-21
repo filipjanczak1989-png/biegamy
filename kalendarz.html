@@ -1653,7 +1653,7 @@ function render() {
               w bazie przy 1290 wiszących `planned`.
               Tylko dla PRZESZŁYCH i DZISIEJSZYCH dni — przyszłego treningu nie da
               się jeszcze nie zrobić. */''}
-        ${t._id && t.status!=='done' && t.type!=='Odpoczynek' && ds <= _dzisiajISO()
+        ${t._id && t.status!=='done' && t.type!=='Odpoczynek' && _mozeNieZrobil(ds)
           ? `<button class="card-approve" style="background:transparent;color:var(--muted);border:1px solid var(--border);"
                onclick="oznaczNieZrobioneKal(event,${JSON.stringify(t._id)})">${t.status==='missed'?'Nie zrobione ✓ · cofnij':'Nie zrobiłem'}</button>`
           : ''}
@@ -2639,6 +2639,18 @@ async function saveTraining() {
 
 /* Klucz dnia LOKALNY, nie toISOString — ta sama pułapka co przy CTA generatora:
    w strefach dodatnich UTC cofa o dobę i „dziś" znika z listy klikalnych dni. */
+/* Dzień PRZESZŁY — zawsze; DZISIEJSZY — dopiero od 18:00. Rano „Nie zrobiłem"
+   przy planie na dziś jest zaproszeniem do rezygnacji przed próbą; zmierzone,
+   że 53% treningów startuje po 18:00, a przed południem tylko 17%.
+   Dzień przyszły — nigdy, bo nie da się jeszcze czegoś nie zrobić. */
+const GODZINA_NIE_ZROBILEM = 18;
+function _mozeNieZrobil(ds) {
+  const dzis = _dzisiajISO();
+  if (ds < dzis) return true;
+  if (ds > dzis) return false;
+  return Number(new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false })) >= GODZINA_NIE_ZROBILEM;
+}
+
 function _dzisiajISO() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');

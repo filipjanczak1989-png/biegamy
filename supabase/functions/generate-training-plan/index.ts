@@ -862,6 +862,18 @@ function buildPrompt(
     }
   }
 
+  /* ⚠️ ROZRÓŻNIENIE, KTÓREGO MODEL DOTĄD NIE MIAŁ: „nie zalogował" to nie to samo
+     co „nie zrobił". Do 21.08.2026 `status='missed'` miał ZERO wierszy na 2207,
+     bo nie było gdzie kliknąć — więc każdy niewykonany trening wyglądał tak samo
+     jak wykonany-ale-niezalogowany. Od czasu przycisku „Nie zrobiłem" część
+     wierszy niesie DEKLARACJĘ człowieka, nie nasz domysł, i to jest mocniejszy
+     sygnał niż brak logu.
+     ⚠️ Zdanie powstaje TYLKO gdy `last28dMissed > 0` — inaczej wracamy do stanu,
+     w którym cisza znaczyła „nie wiadomo", a nie „nic nie opuścił". */
+  if (p.last28dMissed > 0) {
+    insights.push(`🙅 **${p.last28dMissed} z ${p.last28dPlanned} jednostek oznaczonych przez zawodnika jako NIEZROBIONE** (to jego deklaracja, nie brak logu — te dwie rzeczy różnią się znaczeniem). Reszta różnicy między planem a wykonaniem to dni bez logu, o których nie wiemy, czy trening był.`);
+  }
+
   // 4. Najczęściej omijane typy
   if (p.mostMissedTypes && p.mostMissedTypes.length > 0) {
     const tops = p.mostMissedTypes.slice(0, 2).map((m: any) => `${m.type} (${m.count}x)`).join(', ');
