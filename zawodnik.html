@@ -2037,9 +2037,33 @@ function toggleDayDetail(idx) {
 
    ⚠️ NIE PYTAMY „DLACZEGO". Powód bywa prywatny (choroba, praca, głowa), a każde
    dodatkowe pytanie to kolejny powód, żeby nie kliknąć. Chcemy FAKTU, nie ankiety. */
+/* Wczorajszy plan, którego nikt nie rozliczył. ⚠️ Stoi w karcie „Dziś" ŚWIADOMIE:
+   sam kalendarz to pięć kroków stąd i tam nikt tego nie znajdzie — a to właśnie
+   nieznajdowalność dała 0 wierszy `missed` na 2207. */
+async function _pokazNieZrobioneWczoraj() {
+  const btn = document.getElementById('today-nie-zrobilem');
+  if (!btn || !_athleteId) return;
+  const wczoraj = window._dzienWaw(new Date(Date.now() - 864e5).toISOString());
+  const { data } = await sb.from('trainings')
+    .select('id,type,status').eq('athlete_id', _athleteId).eq('date', wczoraj)
+    .limit(2);
+  /* ⚠️ Przy DWÓCH planach wczoraj milczymy: jeden przycisk nie powie, którego
+     dotyczy, a zgadywanie zapisałoby nieprawdę. Taki dzień rozlicza się
+     w kalendarzu, gdzie każda karta ma własny przycisk. */
+  const t = (data && data.length === 1) ? data[0] : null;
+  if (!t || t.type === 'Odpoczynek' || t.status === 'done') { btn.style.display = 'none'; return; }
+  window._wczorajszyTrening = t;
+  btn.style.display = 'block';
+  btn.dataset.stan = t.status || 'planned';
+  const zrobione = t.status === 'missed';
+  btn.textContent = zrobione ? 'Wczoraj: nie zrobione ✓ · cofnij' : 'Wczoraj nie zrobiłem';
+  btn.style.color = zrobione ? 'var(--fg2)' : 'var(--muted)';
+  btn.style.borderColor = zrobione ? 'rgba(255,255,255,0.22)' : 'var(--border)';
+}
+
 async function oznaczNieZrobione(btn) {
-  const t = window._todayTraining;
-  if (!t || !t.id) { toast('Brak zaplanowanego treningu na dziś'); return; }
+  const t = window._wczorajszyTrening;
+  if (!t || !t.id) { toast('Brak wczorajszego treningu do rozliczenia'); return; }
   const cofamy = btn.dataset.stan === 'missed';
   const nowy = cofamy ? 'planned' : 'missed';
   btn.disabled = true;
@@ -2049,12 +2073,12 @@ async function oznaczNieZrobione(btn) {
   t.status = nowy;
   btn.dataset.stan = nowy;
   if (nowy === 'missed') {
-    btn.textContent = 'Nie zrobione ✓ · cofnij';
+    btn.textContent = 'Wczoraj: nie zrobione ✓ · cofnij';
     btn.style.color = 'var(--fg2)';
     btn.style.borderColor = 'rgba(255,255,255,0.22)';
     toast('Zapisane. Plan wie, że tego dnia nie było treningu.');
   } else {
-    btn.textContent = 'Nie zrobiłem';
+    btn.textContent = 'Wczoraj nie zrobiłem';
     btn.style.color = 'var(--muted)';
     btn.style.borderColor = 'var(--border)';
     toast('Cofnięte');
@@ -7614,9 +7638,21 @@ function _odTrenera(t) {
   return !!t.coach_id;
 }
 
-/* Od której godziny „Nie zrobiłem" pojawia się przy DZISIEJSZYM treningu.
-   ⚠️ OSĄD OPARTY NA POMIARZE, nie na przeczuciu — patrz komentarz przy użyciu. */
-const GODZINA_NIE_ZROBILEM = 18;
+/* ⚠️ PLAN JEST ZOBOWIĄZANIEM DO PÓŁNOCY — decyzja Filipa z 21.08.2026.
+   „Nie zrobiłem" o dniu, KTÓRY JESZCZE TRWA, to deklaracja rezygnacji, a nie
+   zapis faktu. Dlatego przycisk dotyczy WCZORAJ, nie dziś — także w karcie
+   „Dziś", gdzie odnosi się do wczorajszego, nierozliczonego planu.
+   (Poprzednia wersja pokazywała go dziś od 18:00; zdjęte, bo nawet wieczorem
+   dzień jeszcze trwa i przycisk uprzedzał fakt.)
+
+   ⚠️ OKNO 14 DNI WSTECZ. Zmierzone na 1693 przerwach między logami z pół roku:
+     2–3 dni 598 · 4–7 dni 85 · 8–14 dni 23 · 15–28 dni 3 · >28 dni 3
+   Czyli 99,6% przerw mieści się w 14 dniach — wracający po tygodniu ma co
+   nadrobić, a bulk-oznaczanie planów sprzed miesiąca jest niemożliwe.
+   ⚠️ Górna granica NIE jest arbitralna: `last28dMissed` w EF liczy okno 28 dni,
+   więc okno 14 ogranicza wsteczne wypełnienie tej metryki do POŁOWY jej zakresu.
+   Bez limitu jedna sesja klikania zafałszowałaby wsad modelu. */
+const OKNO_NIE_ZROBILEM_DNI = 14;
 
 async function loadTodayTraining() {
   if (!_athleteId) return;
@@ -7656,35 +7692,11 @@ async function loadTodayTraining() {
     return;
   }
   window._todayTraining = data; // cache dla log modala
-  /* Przycisk „Nie zrobiłem" tylko przy ŻYWYM planie: odpoczynku nie ma czego nie
-     zrobić, a trening już odhaczony jako wykonany nie potrzebuje zaprzeczenia. */
+  /* Przycisk „Nie zrobiłem" NIE dotyczy dzisiejszego planu — patrz komentarz przy
+     OKNO_NIE_ZROBILEM_DNI. W karcie „Dziś" odnosi się do WCZORAJ. */
   const _nz = document.getElementById('today-nie-zrobilem');
-  if (_nz) {
-    /* ⚠️ NIE POKAZUJEMY RANO. „Nie zrobiłem" obok planu na dziś o 7:00 to
-       zaproszenie do rezygnacji PRZED próbą — przycisk wyjścia postawiony,
-       zanim człowiek w ogóle zaczął.
-       Zmierzone na 1085 startach z zegarka (realne godziny, nie daty wpisów):
-         przed 12:00 — 17% · 12:00–17:59 — 26% · PO 18:00 — 53%
-       O 18:00 połowa dnia treningowego jest już za nami, a druga połowa dopiero
-       się zaczyna — kto pobiegł, ma już `done` albo log, więc przycisku i tak
-       nie zobaczy. To najwcześniejsza godzina, o której „nie zrobiłem" opisuje
-       fakt, a nie przewiduje porażki.
-       ⚠️ W KALENDARZU dni PRZESZŁE mają go zawsze — tam dzień jest zamknięty
-       i pytanie o godzinę nie ma sensu. */
-    const _godzTeraz = Number(new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false }));
-    const _poPoludniu = _godzTeraz >= GODZINA_NIE_ZROBILEM;
-    const _widoczny = data.type !== 'Odpoczynek' && data.status !== 'done'
-                      && (_poPoludniu || data.status === 'missed');
-    _nz.style.display = _widoczny ? 'block' : 'none';
-    _nz.dataset.stan = data.status || 'planned';
-    if (data.status === 'missed') {
-      _nz.textContent = 'Nie zrobione ✓ · cofnij';
-      _nz.style.color = 'var(--fg2)'; _nz.style.borderColor = 'rgba(255,255,255,0.22)';
-    } else {
-      _nz.textContent = 'Nie zrobiłem';
-      _nz.style.color = 'var(--muted)'; _nz.style.borderColor = 'var(--border)';
-    }
-  }
+  if (_nz) _nz.style.display = 'none';        // dzisiejszego planu nie da się jeszcze nie zrobić
+  _pokazNieZrobioneWczoraj();                 // …ale wczorajszego już tak — fire-and-forget
   window._brakTreninguDzis = false;
   _odswiezCtaGeneratora();
   

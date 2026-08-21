@@ -2639,16 +2639,20 @@ async function saveTraining() {
 
 /* Klucz dnia LOKALNY, nie toISOString — ta sama pułapka co przy CTA generatora:
    w strefach dodatnich UTC cofa o dobę i „dziś" znika z listy klikalnych dni. */
-/* Dzień PRZESZŁY — zawsze; DZISIEJSZY — dopiero od 18:00. Rano „Nie zrobiłem"
-   przy planie na dziś jest zaproszeniem do rezygnacji przed próbą; zmierzone,
-   że 53% treningów startuje po 18:00, a przed południem tylko 17%.
-   Dzień przyszły — nigdy, bo nie da się jeszcze czegoś nie zrobić. */
-const GODZINA_NIE_ZROBILEM = 18;
+/* ⚠️ TYLKO DNI MINIONE, i nie starsze niż 14 dni.
+   „Nie zrobiłem" o dniu, KTÓRY JESZCZE TRWA, to deklaracja rezygnacji, a nie
+   zapis faktu — plan zostaje zobowiązaniem do północy (decyzja Filipa 21.08.2026).
+   Górna granica: zmierzone na 1693 przerwach między logami z pół roku — 99,6%
+   mieści się w 14 dniach (2–3 dni: 598, 4–7: 85, 8–14: 23, 15–28: 3, >28: 3).
+   Wracający po tygodniu ma co nadrobić, a wsteczne oznaczanie planów sprzed
+   miesiąca jest niemożliwe — inaczej jedna sesja klikania zafałszowałaby
+   `last28dMissed` w EF, który liczy okno 28 dni. */
+const OKNO_NIE_ZROBILEM_DNI = 14;
 function _mozeNieZrobil(ds) {
   const dzis = _dzisiajISO();
-  if (ds < dzis) return true;
-  if (ds > dzis) return false;
-  return Number(new Date().toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false })) >= GODZINA_NIE_ZROBILEM;
+  if (ds >= dzis) return false;                       // dziś i przyszłość — nie
+  const ile = Math.round((new Date(dzis + 'T00:00:00') - new Date(ds + 'T00:00:00')) / 864e5);
+  return ile <= OKNO_NIE_ZROBILEM_DNI;
 }
 
 function _dzisiajISO() {
