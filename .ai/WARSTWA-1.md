@@ -9,7 +9,7 @@ pytania**, nie sześć plików. Kilka z nich mieszka w więcej niż jednym miejs
 
 | # | element | pytanie, na które odpowiada | gdzie żyje | stan |
 |---|---|---|---|---|
-| 1 | **Pamięć projektu** | „czego już się nauczyliśmy i czego nie wolno powtórzyć" | `.ai/LEKCJE.md` (14 lekcji), zaległości, `.ai/feedback-maciej-14-08.md` | ✅ |
+| 1 | **Pamięć projektu** | „czego już się nauczyliśmy i czego nie wolno powtórzyć" | `.ai/LEKCJE.md` (15 lekcji), zaległości, `.ai/feedback-maciej-14-08.md` | ✅ |
 | 2 | **Rollback z telefonu** | „jak cofnąć wdrożenie, gdy nie mam laptopa" | `.github/workflows/rollback.yml` | ✅ przetestowany 15.08 w trzech ścieżkach |
 | 3 | **Testy z blizn** | „czy to, co już raz padło, padnie znowu" | `tests/` (**378 testów w 63 zestawach**), `testy.yml` w CI | ✅ każdy test odpowiada realnemu błędowi |
 | 4 | **Kolejka błędów z produkcji** | „co realnie psuje się u ludzi" | `tools/przeglad-bledow.js`, grupowanie po usterce | ✅ |

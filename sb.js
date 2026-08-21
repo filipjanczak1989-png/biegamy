@@ -1176,7 +1176,6 @@
     // Polscy raperzy
     { text: "Każdy dzień to nowa walka, każdy oddech nowa szansa.", author: "Quebonafide" },
     { text: "Dyscyplina przebije talent kiedy talent nie ma dyscypliny.", author: "Taco Hemingway" },
-    { text: "Zostaw wszystko na trasie, nie zostawiaj nic na potem.", author: "O.S.T.R." },
     { text: "Nie ma drogi na skróty do żadnego miejsca wartego dotarcia.", author: "Mata" },
     { text: "Robisz wynik wtedy gdy nikt nie patrzy.", author: "Pezet" },
     { text: "Jeden krok dalej niż wczoraj, to już jest progres.", author: "Białas" },
@@ -1189,14 +1188,13 @@
     { text: "Nie chodzi o to żeby być najszybszym, chodzi o to żeby się nie poddawać.", author: "Robert Korzeniowski" },
     { text: "Biegnij dla siebie, nie dla innych. To Twoja droga.", author: "Iwona Lewandowska" },
     { text: "Każdy maraton zaczyna się w głowie, nie w nogach.", author: "Henryk Szost" },
-    { text: "Ból na treningu to inwestycja w sukces na zawodach.", author: "Adam Kszczot" },
     { text: "Pasja bez dyscypliny to tylko marzenie.", author: "Anita Włodarczyk" },
 
     // Międzynarodowe legendy biegania
     { text: "No human is limited.", author: "Eliud Kipchoge" },
     { text: "Tylko dyscyplinowany umysł wygrywa w życiu.", author: "Eliud Kipchoge" },
     { text: "Bieganie to życie. Wszystko jest biegiem.", author: "Haile Gebrselassie" },
-    { text: "Możesz biec dalej niż myślisz. Granice są w głowie.", author: "Mo Farah" },
+    { text: "Możesz biec dalej niż myślisz. Granice są w głowie.", author: "Mo Farah", tylkoGotowy: true },
     { text: "Powinieneś biec dla siebie, nie żeby kogoś pokonać.", author: "Steve Prefontaine" },
     /* ⚠️ BYŁ TU LANCE ARMSTRONG („Zrezygnowanie jest na zawsze. Ból jest
        tymczasowy."), zdjęty 21.08.2026. Powód NIE jest moralizatorski i nie
@@ -1217,11 +1215,11 @@
     { text: "Nigdy nie pozwól żeby strach przed porażką cię paraliżował.", author: "Michael Jordan" },
     { text: "Marzenia nie działają, jeśli ty nie pracujesz.", author: "Kobe Bryant" },
     { text: "Bądź sobą — wszyscy inni są zajęci.", author: "Oscar Wilde" },
-    { text: "Niemożliwe to tylko duże słowo używane przez słabych.", author: "Muhammad Ali" },
+    { text: "Niemożliwe to tylko duże słowo używane przez słabych.", author: "Muhammad Ali", tylkoGotowy: true },
     { text: "Każdy mistrz był kiedyś początkującym.", author: "Muhammad Ali" },
     { text: "Sukces to nie szczęście. To wstawanie o 5 rano gdy nikt nie patrzy.", author: "Cristiano Ronaldo" },
     { text: "Talent wygrywa mecze, ale praca zespołowa i inteligencja wygrywają mistrzostwa.", author: "Michael Jordan" },
-    { text: "Jeśli się zatrzymasz, to skończysz. Jeśli pójdziesz dalej, jest szansa.", author: "Roger Federer" },
+    { text: "Jeśli się zatrzymasz, to skończysz. Jeśli pójdziesz dalej, jest szansa.", author: "Roger Federer", tylkoGotowy: true },
 
     // Filozofia stoicka i Wschód
     { text: "Nie chodzi o to ile długo żyjesz, ale jak.", author: "Seneka" },
@@ -1239,7 +1237,6 @@
     { text: "Mile run nie ma magii. Bieg ma magię.", author: "Arthur Lydiard" },
     { text: "Bądź jak woda.", author: "Bruce Lee" },
     { text: "Nie modlę się o lekkie życie, modlę się o siłę by znieść trudne.", author: "Bruce Lee" },
-    { text: "Im więcej się pocisz na treningu, tym mniej krwawisz w walce.", author: "Stare przysłowie wojskowe" },
     { text: "Najwięksi nigdy nie idą sami. Mają wokół siebie ludzi którzy wiedzą jak ciężko jest.", author: "Vince Lombardi" },
 
     // Polskie klasyki
@@ -1248,12 +1245,10 @@
     { text: "Nie cofaj się. Idź. Tylko tym sposobem znajdziesz drogę.", author: "Wojaczek" },
 
     // Krótkie kopniaki
-    { text: "Płacz w treningu, śmiej się na mecie.", author: "Anonim" },
     { text: "Słabsza wersja Ciebie z wczoraj — to ona jest Twoim przeciwnikiem.", author: "Stara mądrość" },
     { text: "Wytrwałość bije talent w 9 przypadkach na 10.", author: "Stara mądrość" },
     { text: "Robisz to dla siebie. Nikt inny nie zrobi tego za Ciebie.", author: "Anonim" },
     { text: "Jutro będziesz wdzięczny za to co zrobiłeś dziś.", author: "Anonim" },
-    { text: "Ciało robi to, do czego głowa go zmusi.", author: "Stara mądrość" },
     { text: "Najtrudniej jest wyjść z domu. Reszta to formalność.", author: "Anonim" },
     { text: "Każdy bieg to nowy rozdział. Stare zostaw za sobą.", author: "Anonim" },
     { text: "Nie liczy się szybkość. Liczy się że biegniesz.", author: "Anonim" },
@@ -1264,20 +1259,39 @@
   ];
 
   // Helper: 1 cytat per dzień (deterministyczny, seed = YYYYMMDD)
-  window.getDailyQuote = function(offsetDays = 0) {
+  /* ⚠️ CYTAT JEST CZĘŚCIĄ KOMUNIKATU APLIKACJI, NIE OZDOBĄ — zasada Filipa
+     z 21.08.2026. Aplikacja, która na karcie gotowości radzi „zwolnij, przyjrzyj
+     się regeneracji", a obok wyświetla „ból jest tymczasowy", mówi dwie sprzeczne
+     rzeczy — i człowiek uwierzy w tę bardziej efektowną.
+     ⚠️ KAŻDY NOWY CYTAT PRZECHODZI TO PYTANIE: co mówi komuś, kto właśnie dostał
+     ostrzeżenie o przeciążeniu? Jeśli odpowiedź brzmi „dociśnij" — nie wchodzi
+     albo dostaje `tylkoGotowy: true`.
+
+     `tylkoGotowy` = cytat dobry przy świeżości, szkodliwy przy przeciążeniu.
+     ⚠️ PULA JEST ADDYTYWNA, NIE ROZŁĄCZNA, i to jest wynik pomiaru, nie gust:
+     warunkowych jest TRZY. Osobna rotacja dla „wysokiej gotowości" pokazywałaby
+     te same trzy zdania w kółko — gorzej niż brak podziału. Dlatego przy wysokiej
+     gotowości pula to 56 + 3 = 59, a nie 3.
+     ⚠️ DOMYŚLNIE WYKLUCZAMY. Nieznana gotowość (a tak jest prawie zawsze na ekranie
+     głównym, bo `_formaLast` liczy się dopiero na ekranie FORMA) ma dawać wariant
+     BEZPIECZNY, nie odważny. */
+  window.QUOTES_BEZPIECZNE = () => window.QUOTES_LIBRARY.filter(q => !q.tylkoGotowy);
+
+  window.getDailyQuote = function(offsetDays = 0, gotowosc) {
     const today = new Date();
     today.setDate(today.getDate() + offsetDays);
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    return window.QUOTES_LIBRARY[seed % window.QUOTES_LIBRARY.length];
+    const pula = (gotowosc === 'wysoka') ? window.QUOTES_LIBRARY : window.QUOTES_BEZPIECZNE();
+    return pula[seed % pula.length];
   };
 
   // Helper: N deterministycznie zshuffle'owanych cytatów dnia (Mulberry32)
-  window.getDailyQuoteSet = function(count = 5) {
+  window.getDailyQuoteSet = function(count = 5, gotowosc) {
     const today = new Date();
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     let s = seed;
     const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-    const arr = [...window.QUOTES_LIBRARY];
+    const arr = [...((gotowosc === 'wysoka') ? window.QUOTES_LIBRARY : window.QUOTES_BEZPIECZNE())];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];

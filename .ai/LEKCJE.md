@@ -585,3 +585,45 @@ pierwszym dotknięciu RPC i zostanie zrobiona w najgorszym możliwym momencie.
 **Zasada, którą to ilustruje:** dług pod działającą bramką ma inny priorytet niż
 dług bez niej. Bramka nie usuwa rozjazdu, ale zmienia go z „zdarzy się i nikt
 nie zauważy" na „zdarzy się i CI zaświeci". To wystarczy, żeby poczekać.
+
+## 15. Treść ozdobna też jest komunikatem (21.08.2026)
+
+**8 z 64 cytatów motywacyjnych zachęcało do ignorowania bólu i zmęczenia** — na
+tym samym ekranie, na którym karta gotowości radzi odpuścić. Aplikacja mówiła
+dwie sprzeczne rzeczy, a bardziej efektowna była ta zła.
+
+Najostrzejsze pary, wszystkie widoczne jednocześnie:
+
+| aplikacja mówi | cytat mówił |
+|---|---|
+| „Zwolnij i przyjrzyj się regeneracji" (przy ocenie „Ciężko") | „Ciało robi to, do czego głowa go zmusi" |
+| „TSB < −30 — przeciążenie, ryzyko kontuzji" | „Ból na treningu to inwestycja w sukces na zawodach" |
+| „Dokładaj po trochu, ~5–10% na tydzień" | „Im więcej się pocisz na treningu, tym mniej krwawisz w walce" |
+
+**Zasada.** Każdy element widoczny obok metryk zdrowotnych — cytat, grafika,
+hasło — musi przejść test: **co to mówi komuś w kryzysie?** Nie „czy brzmi
+ładnie", tylko „co twierdzi wobec kogoś, kto właśnie dostał ostrzeżenie
+o przeciążeniu". Jeśli odpowiedź brzmi „dociśnij", treść nie wchodzi.
+
+**Objaw ostrzegawczy.** Treść dodana jako dekoracja i nigdy nieprzeglądana pod
+kątem tego, co twierdzi. Cytaty siedziały w kodzie od miesięcy, przeglądane
+wyłącznie pod kątem „czy ładne" i „czy autor kontrowersyjny" — nigdy pod kątem
+zgodności z resztą komunikatu.
+
+⚠️ **FILTR PO SŁOWACH NIE WYSTARCZY — i to jest osobna lekcja w środku tej.**
+Pierwszy przegląd zrobiłem regexem po „ból", „granice", „zmęczenie". Znalazł
+**2 z 8**. Przegapił „Płacz w treningu, śmiej się na mecie", „Ciało robi to, do
+czego głowa go zmusi", „Zostaw wszystko na trasie" — bo szkodliwość siedzi
+w ZNACZENIU, nie w słowniku. Filip podał liczbę 8 z własnego przeglądu i miał
+rację przeciw mojemu pomiarowi. **Gdy pytanie brzmi „co to twierdzi", trzeba
+przeczytać wszystko, nie przefiltrować.**
+
+**Rozstrzygnięcie ilościowe, które zmieniło projekt.** Trzy cytaty uznano za
+warunkowe (dobre przy świeżości, szkodliwe przy przeciążeniu). Naiwny podział na
+dwie pule dałby **3 zdania w rotacji** dla kogoś w wysokiej gotowości — te same
+co tydzień, czyli gorzej niż brak podziału. Dlatego pula jest **addytywna**:
+56 bezpiecznych dla wszystkich, +3 przy potwierdzonej wysokiej gotowości.
+⚠️ Domyślnie WYKLUCZAMY: nieznana gotowość ma dawać wariant bezpieczny, nie
+odważny — a nieznana jest prawie zawsze, bo forma liczy się na innym ekranie.
+
+Pilnuje tego `tests/blizna-21-cytaty-nie-sa-ozdoba.test.js`.
