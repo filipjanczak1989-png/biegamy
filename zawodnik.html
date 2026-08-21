@@ -1003,6 +1003,15 @@ body > *{position:relative;z-index:1;}
          training_logs.id, wiec karty z niego zrobic sie nie da — stad log z listy. -->
     <div id="sc-slot-dzis" style="margin-bottom:12px;"></div>
     <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
+    <!-- ⚠️ „NIE ZROBIŁEM" — jedno tapnięcie, BEZ modala i BEZ pytania „dlaczego".
+         Powód jest opcjonalny, nie warunkiem: kto chce, dopisze go w komentarzu
+         przy logu; kto nie chce, ma zamknąć sprawę jednym kliknięciem.
+         ⚠️ BRZMIENIE NIE OCENIA. Nie „Pominąłem", nie „Nie dałem rady" — sam fakt.
+         Ocena jest tu kosztowna: człowiek, który raz przeczyta o sobie „nie dałem
+         rady", drugi raz nie kliknie i wrócimy do zera wierszy.
+         ⚠️ ODWRACALNE. Akcja bez potwierdzenia MUSI mieć cofnięcie, inaczej
+         przypadkowy tap jest nie do naprawienia z tego ekranu. -->
+    <button id="today-nie-zrobilem" onclick="oznaczNieZrobione(this)" style="display:none;width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;cursor:pointer;">Nie zrobiłem</button>
   </div>
 </div>
 
@@ -2020,6 +2029,46 @@ function toggleDayDetail(idx) {
   el.style.display = isOpen ? 'none' : 'block';
   if (arr) arr.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
+/* ⚠️ STATUS BYŁ JEDNOKIERUNKOWY. Do 21.08.2026 dało się powiedzieć „zrobiłem"
+   (automatycznie, przy zapisie logu) i NIE dało się powiedzieć „nie zrobiłem" —
+   `<option value="missed">` istniał wyłącznie w edytorze planu w kalendarzu,
+   pięć kroków stąd, w formularzu pisanym dla trenera. Zmierzone: 0 wierszy
+   `missed` na 2207, przy 1290 wiszących `planned` u 23 osób, najstarszy z 6.04.
+
+   ⚠️ NIE PYTAMY „DLACZEGO". Powód bywa prywatny (choroba, praca, głowa), a każde
+   dodatkowe pytanie to kolejny powód, żeby nie kliknąć. Chcemy FAKTU, nie ankiety. */
+async function oznaczNieZrobione(btn) {
+  const t = window._todayTraining;
+  if (!t || !t.id) { toast('Brak zaplanowanego treningu na dziś'); return; }
+  const cofamy = btn.dataset.stan === 'missed';
+  const nowy = cofamy ? 'planned' : 'missed';
+  btn.disabled = true;
+  const { error } = await sb.from('trainings').update({ status: nowy }).eq('id', t.id);
+  btn.disabled = false;
+  if (error) { toast(window.komunikatBledu ? window.komunikatBledu(error) : ('Błąd: ' + error.message)); return; }
+  t.status = nowy;
+  btn.dataset.stan = nowy;
+  if (nowy === 'missed') {
+    btn.textContent = 'Nie zrobione ✓ · cofnij';
+    btn.style.color = 'var(--fg2)';
+    btn.style.borderColor = 'rgba(255,255,255,0.22)';
+    toast('Zapisane. Plan wie, że tego dnia nie było treningu.');
+  } else {
+    btn.textContent = 'Nie zrobiłem';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'var(--border)';
+    toast('Cofnięte');
+  }
+}
+window.oznaczNieZrobione = oznaczNieZrobione;
+
+/* ⚠️ MARTWA OD ZAWSZE, ZOSTAWIONA ŚWIADOMIE DO OSOBNEJ DECYZJI: `markDone` nie
+   jest wołana z ŻADNEGO miejsca w repo (sprawdzone 21.08.2026 — jedyne
+   wystąpienie to ta definicja). Przycisku „oznacz jako wykonany" w karcie „Dziś"
+   nie ma; jedyna działająca ścieżka na `status='done'` to zapis logu
+   (ok. linii 8391), i to TYLKO gdy tego dnia jest DOKŁADNIE JEDEN zaplanowany
+   trening. Stąd 293 przeszłe `planned`, które mają log tego samego dnia.
+   Nie kasuję razem z tą zmianą, żeby nie mieszać dwóch spraw w jednym commicie. */
 async function markDone(btn){
   if (!_athleteId || !window._todayTraining?.id) {
     // Brak treningu z bazy — tylko lokalna zmiana
@@ -7596,11 +7645,28 @@ async function loadTodayTraining() {
     else if (tBan0) { tBan0.style.display = 'none'; }
     const cwCta0 = document.getElementById('today-cwiczenia-cta'); if (cwCta0) cwCta0.style.display = 'none';
     window._todayTraining = null;
+    const _nzBrak = document.getElementById('today-nie-zrobilem');
+    if (_nzBrak) _nzBrak.style.display = 'none';   // nie ma planu = nie ma czego nie zrobić
     window._brakTreninguDzis = true;      // sygnal dla CTA generatora
     _odswiezCtaGeneratora();
     return;
   }
   window._todayTraining = data; // cache dla log modala
+  /* Przycisk „Nie zrobiłem" tylko przy ŻYWYM planie: odpoczynku nie ma czego nie
+     zrobić, a trening już odhaczony jako wykonany nie potrzebuje zaprzeczenia. */
+  const _nz = document.getElementById('today-nie-zrobilem');
+  if (_nz) {
+    const _widoczny = data.type !== 'Odpoczynek' && data.status !== 'done';
+    _nz.style.display = _widoczny ? 'block' : 'none';
+    _nz.dataset.stan = data.status || 'planned';
+    if (data.status === 'missed') {
+      _nz.textContent = 'Nie zrobione ✓ · cofnij';
+      _nz.style.color = 'var(--fg2)'; _nz.style.borderColor = 'rgba(255,255,255,0.22)';
+    } else {
+      _nz.textContent = 'Nie zrobiłem';
+      _nz.style.color = 'var(--muted)'; _nz.style.borderColor = 'var(--border)';
+    }
+  }
   window._brakTreninguDzis = false;
   _odswiezCtaGeneratora();
   

@@ -1646,6 +1646,17 @@ function render() {
         ${cwBtn}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
+        ${/* ⚠️ „Nie zrobiłem" JEDNYM TAPNIĘCIEM, bez modala i bez pytania „dlaczego".
+              Do 21.08.2026 jedyną drogą do statusu `missed` był edytor treningu —
+              pięć kroków stąd, w formularzu pisanym dla trenera („instrukcje dla
+              zawodnika", „deep-link dla zawodnika"). Efekt: 0 wierszy `missed`
+              w bazie przy 1290 wiszących `planned`.
+              Tylko dla PRZESZŁYCH i DZISIEJSZYCH dni — przyszłego treningu nie da
+              się jeszcze nie zrobić. */''}
+        ${t._id && t.status!=='done' && t.type!=='Odpoczynek' && ds <= _dzisiajISO()
+          ? `<button class="card-approve" style="background:transparent;color:var(--muted);border:1px solid var(--border);"
+               onclick="oznaczNieZrobioneKal(event,${JSON.stringify(t._id)})">${t.status==='missed'?'Nie zrobione ✓ · cofnij':'Nie zrobiłem'}</button>`
+          : ''}
       </div>`;
     }).join('');
 
@@ -2625,6 +2636,27 @@ async function saveTraining() {
   await loadTrainingsFromDB();
   notify(athDbId ? 'Trening zaktualizowany ✓' : `Dodano: ${selectedType}${dist > 0 ? ' · ' + dist + ' km' : ''}`);
 }
+
+/* Klucz dnia LOKALNY, nie toISOString — ta sama pułapka co przy CTA generatora:
+   w strefach dodatnich UTC cofa o dobę i „dziś" znika z listy klikalnych dni. */
+function _dzisiajISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function oznaczNieZrobioneKal(e, dbId) {
+  e.stopPropagation();                       // karta ma własny onclick (otwiera edycję)
+  if (!dbId) return;
+  const btn = e.currentTarget;
+  const cofamy = btn.textContent.indexOf('cofnij') !== -1;
+  btn.disabled = true;
+  const { error } = await sb.from('trainings').update({ status: cofamy ? 'planned' : 'missed' }).eq('id', dbId);
+  btn.disabled = false;
+  if (error) { notify(window.komunikatBledu ? window.komunikatBledu(error) : ('Błąd: ' + error.message)); return; }
+  notify(cofamy ? 'Cofnięte' : 'Zapisane — tego dnia nie było treningu');
+  await loadTrainingsFromDB();               // przerysuj z bazy, nie z pamięci
+}
+window.oznaczNieZrobioneKal = oznaczNieZrobioneKal;
 
 async function approveTraining(e, ds, idx, dbId) {
   e.stopPropagation();
