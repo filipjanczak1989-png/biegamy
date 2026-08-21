@@ -2874,6 +2874,11 @@ function showSection(name) {
     // Trener-view → skip athlete-specific reloads (spójne z initAuth logic)
     const _isFromTrenerHome = (new URLSearchParams(window.location.search).get('from') === 'trener')
                            || sessionStorage.getItem('_fromTrener') === '1';
+    /* Cytat przeliczany PONOWNIE przy powrocie na „Dziś": jeśli człowiek był
+       w międzyczasie na FORMIE, gotowość jest już znana i pula może się poszerzyć.
+       Bez tego warunkowe cytaty pokazałyby się dopiero przy następnym wejściu
+       do aplikacji. */
+    try { loadDailyMotivation(); } catch (e) {}
     if (_athleteId) {
       loadWeekPlan();
       if (!_isFromTrenerHome) {
@@ -4176,7 +4181,12 @@ async function loadDailyMotivation() {
 
   // Cytat — z window.QUOTES_LIBRARY (sb.js), bez emoji, w cudzysłowach
   const q = (() => {
-    const base = window.getDailyQuote();
+    /* ⚠️ GOTOWOŚĆ PRZEKAZANA — bez tego argumentu trzy cytaty warunkowe byłyby
+       nieosiągalne dla WSZYSTKICH 61 osób: mechanika kompletna, warunek wejścia
+       nigdy niespełniony (LEKCJE #14). `gotowoscDoCytatu()` oddaje `undefined`,
+       gdy formy jeszcze nie policzono albo zapis jest starszy niż doba — i wtedy
+       pula jest bezpieczna, zgodnie z projektem. */
+    const base = window.getDailyQuote(0, window.gotowoscDoCytatu && window.gotowoscDoCytatu());
     return { icon: '', text: '"' + base.text + '"', source: '— ' + base.author };
   })();
   

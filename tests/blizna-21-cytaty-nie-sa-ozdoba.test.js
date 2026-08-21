@@ -54,6 +54,52 @@ test('21 — cytaty są komunikatem, nie ozdobą', async (t) => {
     assert.ok(pelna > bezp, 'pula przy wysokiej gotowości ma być SZERSZA, nie inna');
   });
 
+  await t.test('⚠️ PRÓG 60 dzieli pule dokładnie tam, gdzie ma', () => {
+    /* ⚠️ LITERAŁ, NIE `w.PROG_GOTOWOSCI_CYTATY` — porównanie ze stałą z kodu
+       byłoby samozwrotne i przespałoby zmianę progu. Skąd 60: gotowość to
+       clamp(TSB+50), więc 60 ⟺ TSB +10, czyli okolica formy startowej. */
+    assert.strictEqual(w.PROG_GOTOWOSCI_CYTATY, 60, 'próg rozjechał się z tym, co pilnuje test');
+    assert.strictEqual(w._pulaCytatow(59).length, w.QUOTES_BEZPIECZNE().length, '59 to jeszcze pula bezpieczna');
+    assert.strictEqual(w._pulaCytatow(60).length, w.QUOTES_LIBRARY.length, '60 to już pula pełna');
+    assert.strictEqual(w._pulaCytatow(undefined).length, w.QUOTES_BEZPIECZNE().length, 'nie wiadomo → bezpieczna');
+    assert.strictEqual(w._pulaCytatow(0).length, w.QUOTES_BEZPIECZNE().length);
+  });
+
+  await t.test('⚠️ BRAMKA ŚWIEŻOŚCI: zapis starszy niż doba jest odrzucany', () => {
+    /* Wczorajsza świeżość u kogoś, kto właśnie zrobił mocny akcent, to nieprawda —
+       a ta nieprawda odblokowałaby cytat „dociśnij". */
+    const dzien = (przesun) => w._dzienWaw(new Date(Date.now() - przesun * 864e5).toISOString());
+    const magazyn = {};
+    global.localStorage = w.localStorage = {
+      getItem: (k) => (k in magazyn ? magazyn[k] : null),
+      setItem: (k, v) => { magazyn[k] = String(v); },
+    };
+    const poprzedni = w._formaLast; w._formaLast = null;   // wymuś ścieżkę z pamięci
+
+    magazyn.bm_gotowosc = JSON.stringify({ g: 75, d: dzien(0) });
+    assert.strictEqual(w.gotowoscDoCytatu(), 75, 'zapis z dziś ma być uznany');
+    magazyn.bm_gotowosc = JSON.stringify({ g: 75, d: dzien(1) });
+    assert.strictEqual(w.gotowoscDoCytatu(), 75, 'zapis z wczoraj jeszcze uznany');
+    magazyn.bm_gotowosc = JSON.stringify({ g: 75, d: dzien(2) });
+    assert.strictEqual(w.gotowoscDoCytatu(), undefined, 'sprzed dwóch dni — ODRZUCONY');
+    magazyn.bm_gotowosc = 'to nie jest json';
+    assert.strictEqual(w.gotowoscDoCytatu(), undefined, 'śmieci w pamięci nie mogą rzucać');
+    delete magazyn.bm_gotowosc;
+    assert.strictEqual(w.gotowoscDoCytatu(), undefined, 'brak zapisu → nie wiadomo');
+
+    w._formaLast = poprzedni;
+  });
+
+  await t.test('gotowość z BIEŻĄCEJ sesji ma pierwszeństwo przed pamięcią', () => {
+    const magazyn = { bm_gotowosc: JSON.stringify({ g: 90, d: w._dzienWaw(new Date().toISOString()) }) };
+    global.localStorage = w.localStorage = { getItem: (k) => magazyn[k] || null, setItem: () => {} };
+    const poprzedni = w._formaLast;
+    w._formaLast = { tsb: -20 };                       // dziś ciężko → gotowość 30
+    assert.strictEqual(w.gotowoscDoCytatu(), 30, 'świeży odczyt bije zapis sprzed godzin');
+    assert.strictEqual(w._pulaCytatow(w.gotowoscDoCytatu()).length, w.QUOTES_BEZPIECZNE().length);
+    w._formaLast = poprzedni;
+  });
+
   await t.test('⚠️ PULA ADDYTYWNA, NIE ROZŁĄCZNA — inaczej rotacja trzech zdań', () => {
     /* To jest wynik pomiaru, nie gust: warunkowych jest trzy. Osobna rotacja
        dla „wysokiej gotowości" pokazywałaby te same trzy zdania w kółko —

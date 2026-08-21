@@ -1277,11 +1277,54 @@
      BEZPIECZNY, nie odważny. */
   window.QUOTES_BEZPIECZNE = () => window.QUOTES_LIBRARY.filter(q => !q.tylkoGotowy);
 
+  /* ⚠️ PRÓG 60, NIE 80 — decyzja Filipa z 21.08.2026, podjęta z pomiarem w ręku.
+     Skala: `gotowosc = clamp(TSB + 50)` (sb.js, FORMA-PREMIUM-DIAL), więc
+     60 ⟺ TSB +10 — okolica formy startowej, którą aplikacja sama nazywa
+     „Świeży" (TSB +5) i „Wypoczęty" (TSB +15).
+     Próg 80 ⟺ TSB +30, czyli POWYŻEJ granicy „over-rested" (+25): cytat
+     o granicach w głowie byłby tam dopingiem do wyjścia z roztrenowania,
+     a nie nagrodą za szczyt.
+     Zmierzone na 90 dniach i 3549 osobodniach: próg 60 → 9,4% osobodni
+     i 16 z 61 osób; próg 80 → 2,8% i 8 osób. */
+  window.PROG_GOTOWOSCI_CYTATY = 60;
+
+  /* Gotowość do wyboru puli cytatów. Zwraca 0–100 albo `undefined` = NIE WIADOMO.
+     ⚠️ TRZY STANY, nie dwa — „nie wiadomo" musi dawać pulę BEZPIECZNĄ, bo cytat
+     renderuje się na ekranie GŁÓWNYM (setTimeout 200 ms po wczytaniu), a forma
+     liczy się dopiero po wejściu w zakładkę FORMA. Bez tego mechanizm milczałby
+     zawsze — dokładnie ta klasa błędu, którą opisuje LEKCJE #14.
+     ⚠️ BRAMKA ŚWIEŻOŚCI: wartość sprzed więcej niż doby jest odrzucana. TSB zmienia
+     się codziennie; wczorajsza świeżość u kogoś, kto właśnie zrobił mocny akcent,
+     to nieprawda — a ta nieprawda odblokowuje cytat „dociśnij". */
+  window.gotowoscDoCytatu = function () {
+    const zTsb = (t) => Math.max(0, Math.min(100, Math.round(t + 50)));
+    if (window._formaLast && typeof window._formaLast.tsb === 'number') {
+      return zTsb(window._formaLast.tsb);                 // policzone w TEJ sesji
+    }
+    try {
+      const zap = JSON.parse(localStorage.getItem('bm_gotowosc') || 'null');
+      if (!zap || typeof zap.g !== 'number' || !zap.d) return undefined;
+      const dzis = window._dzienWaw(new Date().toISOString());
+      const wczoraj = window._dzienWaw(new Date(Date.now() - 864e5).toISOString());
+      if (zap.d !== dzis && zap.d !== wczoraj) return undefined;   // za stare
+      return zap.g;
+    } catch (_) { return undefined; }
+  };
+
+  /* `gotowosc` = 0–100 albo undefined. ⚠️ Napis 'wysoka' też przechodzi — stara
+     sygnatura z 21.08, zostawiona świadomie, żeby czyjeś stare wywołanie nie
+     zaczęło po cichu oddawać innej puli. */
+  window._pulaCytatow = function (gotowosc) {
+    const wysoka = (gotowosc === 'wysoka')
+      || (typeof gotowosc === 'number' && gotowosc >= window.PROG_GOTOWOSCI_CYTATY);
+    return wysoka ? window.QUOTES_LIBRARY : window.QUOTES_BEZPIECZNE();
+  };
+
   window.getDailyQuote = function(offsetDays = 0, gotowosc) {
     const today = new Date();
     today.setDate(today.getDate() + offsetDays);
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const pula = (gotowosc === 'wysoka') ? window.QUOTES_LIBRARY : window.QUOTES_BEZPIECZNE();
+    const pula = window._pulaCytatow(gotowosc);
     return pula[seed % pula.length];
   };
 
@@ -1291,7 +1334,7 @@
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     let s = seed;
     const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-    const arr = [...((gotowosc === 'wysoka') ? window.QUOTES_LIBRARY : window.QUOTES_BEZPIECZNE())];
+    const arr = [...window._pulaCytatow(gotowosc)];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -4007,6 +4050,18 @@ window._icuRenderSplits = function (d, el) {
     const lastAtl = atlData[_todayIdx] || 0;
     const lastTsb = tsbData[_todayIdx] || 0;
     window._formaLast = { ctl: lastCtl, atl: lastAtl, tsb: lastTsb };   /* E1c: most dla predyktora czasow */
+    /* ⚠️ MOST DO EKRANU GŁÓWNEGO. Cytat renderuje się na „Dziś", forma liczy się
+       tutaj — bez utrwalenia gotowość byłaby znana WYŁĄCZNIE po wejściu w FORMĘ
+       i powrocie, czyli prawie nigdy. Zapis niesie DZIEŃ, bo czyta go bramka
+       świeżości w `gotowoscDoCytatu` (patrz tam: max doba wstecz).
+       localStorage, nie kolumna w bazie: to podpowiedź dla UI, nie dana
+       o zawodniku — nie ma po co jej synchronizować ani wozić przez sieć. */
+    try {
+      localStorage.setItem('bm_gotowosc', JSON.stringify({
+        g: Math.max(0, Math.min(100, Math.round(lastTsb + 50))),
+        d: window._dzienWaw(new Date().toISOString()),
+      }));
+    } catch (_) {}
     /* FORMA-PREMIUM-DIAL: orb gotowosci = TSB przeskalowany na 0-100 (clamp(TSB+50)) */
     try {
       const _dialVal = Math.max(0, Math.min(100, Math.round(lastTsb + 50)));
