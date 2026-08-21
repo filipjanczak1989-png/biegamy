@@ -1198,7 +1198,16 @@
     { text: "Bieganie to życie. Wszystko jest biegiem.", author: "Haile Gebrselassie" },
     { text: "Możesz biec dalej niż myślisz. Granice są w głowie.", author: "Mo Farah" },
     { text: "Powinieneś biec dla siebie, nie żeby kogoś pokonać.", author: "Steve Prefontaine" },
-    { text: "Zrezygnowanie jest na zawsze. Ból jest tymczasowy.", author: "Lance Armstrong" },
+    /* ⚠️ BYŁ TU LANCE ARMSTRONG („Zrezygnowanie jest na zawsze. Ból jest
+       tymczasowy."), zdjęty 21.08.2026. Powód NIE jest moralizatorski i nie
+       dotyczy dopingu jako takiego: aplikacja TRENERSKA cytująca go o bólu
+       i rezygnacji wysyła zły sygnał do społeczności biegowej, a każdy taki
+       cytat trzeba potem tłumaczyć. Kryterium Filipa: autor ma nie wymagać
+       tłumaczenia.
+       ⚠️ Zátopek to jedyny inny sprawdzony pod tym kątem sportowiec z puli bez
+       zastrzeżeń — oddał swoje olimpijskie złoto Ronowi Clarke'owi. Cytat
+       zweryfikowany w sieci, nie przepisany z pamięci. */
+    { text: "Jeśli chcesz pobiec — przebiegnij milę. Jeśli chcesz poznać inne życie — przebiegnij maraton.", author: "Emil Zátopek" },
     { text: "Góra to nie cel, góra to świątynia.", author: "Kilian Jornet" },
     { text: "Najgłębsza ciemność jest tuż przed świtem.", author: "Courtney Dauwalter" },
     { text: "Trzeba wierzyć w siebie kiedy nikt inny nie wierzy.", author: "Usain Bolt" },
@@ -3199,12 +3208,18 @@ window._icuRenderSplits = function (d, el) {
         { heading: 'Co robić', body: '• <b>ATL znacznie wyższe niż CTL</b> (np. ATL 70 / CTL 50) = jesteś przemęczony względem swojej bazy. TSB ujemne = patrz tam.<br>• <b>ATL niskie + CTL wysokie</b> = świeży na peak formy. Dobry moment na start.<br>• <b>ATL śledzi tygodniowy trening</b> — jeśli nie spada mimo "lekkiego tygodnia", sprawdź czy faktycznie odpoczywasz.' }
       ]
     },
+    /* ⚠️ TREŚĆ PRZEPISANA 21.08.2026. Stara zaczynała od „TRIMP (Training Impulse)
+       to jednostka obciążenia" pod tytułem „TRIMP · Jednostka obciążenia" — czyli
+       pierwsze zdanie powtarzało nagłówek, a człowiek, który nie wie, co to TRIMP,
+       nadal nie wiedział. Nowa mówi najpierw PO CO to komu, dopiero potem czym jest.
+       ⚠️ Liczby w przykładach są ILUSTRACJĄ rzędu wielkości, nie pomiarem — wynikają
+       z FORMA_EFFORT_FACTORS i zależą od typu oraz samopoczucia. */
     trimp: {
-      title: 'TRIMP · Jednostka obciążenia',
+      title: 'TRIMP · Ile kosztował Cię trening',
       sections: [
-        { heading: 'Co to jest', body: 'TRIMP (Training Impulse) to <b>jednostka obciążenia</b> pojedynczego treningu. Łączy w jednej liczbie: długość treningu × intensywność × samopoczucie.<br><br>60 minut spokojnego = ~50 TRIMP. 60 minut interwałów = ~120 TRIMP. 3h długi bieg = ~150 TRIMP.' },
-        { heading: 'Jak czytać', body: 'Im wyższy TRIMP, tym ciężej organizm pracował. To <b>waluta</b> której organizm "zapłaci" obciążeniem (ATL) i regeneracją.<br><br>Każdy TRIMP dnia wpływa na: TSB (jak czujesz się jutro), CTL (jak forma rośnie), heatmap (intensywność dnia).' },
-        { heading: 'Co robić', body: '• <b>Tygodniowy TRIMP</b> = suma wszystkich dni. Trzymaj progres ~5-10% tygodniowo.<br>• <b>Pojedynczy trening &gt; 200 TRIMP</b> = bardzo ciężki, wymaga 24-48h regeneracji<br>• <b>Dzień z 0 TRIMP</b> = pełna regeneracja, OK 1-2× tygodniowo' }
+        { heading: 'Co to jest', body: 'Jedna liczba mówiąca, <b>ile organizm zapłacił za dany trening</b>. Bierze pod uwagę trzy rzeczy naraz: jak długo biegłeś, jak ciężko i jak się przy tym czułeś.<br><br>Dzięki temu godzina truchtu i godzina interwałów przestają wyglądać tak samo — bo nie są tym samym.<br><br>Dla rzędu wielkości: godzina spokojnego biegu to mniej więcej 50, godzina interwałów około 120, trzygodzinne wybieganie w okolicach 150.' },
+        { heading: 'Po co na to patrzeć', body: 'Bo <b>kilometry kłamią</b>. Dziesięć kilometrów na rozmowę i dziesięć na maksa to ten sam dystans i zupełnie inne obciążenie — TRIMP widzi różnicę, licznik kilometrów nie.<br><br>Słupki pokazują dzień po dniu, gdzie naprawdę poszedł Twój wysiłek. To z nich liczy się wszystko wyżej na tym ekranie: zmęczenie, forma i świeżość.' },
+        { heading: 'Wysoki czy niski', body: 'Sam w sobie ani dobry, ani zły — znaczenie ma <b>układ słupków w czasie</b>.<br><br>• <b>Wysoki</b> (ponad ~200 w jednym dniu) — ciężka jednostka. Następny dzień powinien być lekki.<br>• <b>Niski albo zero</b> — dzień wolny. Potrzebny, nie stracony: to wtedy forma się buduje.<br>• <b>Same średnie słupki bez przerw</b> — najczęstszy błąd amatora. Ani nie odpoczywasz, ani nie dajesz bodźca.<br>• <b>Tydzień po tygodniu coraz wyżej</b> — dokładaj po trochu, ~5–10% na tydzień. Skok o połowę to prosta droga do kontuzji.' }
       ]
     },
     weekly_km: {
@@ -3905,6 +3920,15 @@ window._icuRenderSplits = function (d, el) {
       }
     }
 
+    /* Ile dni z zaplanowanym obciążeniem musi być między dziś a startem, żeby
+       prognoza w ogóle miała się z czego wziąć. JEDEN wystarczy, bo próg ma
+       odciąć liczenie z CZYSTEJ pustki, a nie oceniać jakość planu.
+       ⚠️ ŚWIADOMIE NIE WIĘCEJ — decyzja należy do Filipa, a zmierzony stan
+       (mediana 2 dni planu na kilkadziesiąt dni do startu) znaczy, że próg 3 albo
+       5 wyciszyłby prognozę PRAKTYCZNIE WSZYSTKIM. To osobna rozmowa: czy taka
+       prognoza ma sens przy planie pokrywającym 7% horyzontu. */
+    const MIN_DNI_PLANU_DO_PROGNOZY = 1;
+
     /* ═ E1a: prognoza TSB na dzien najblizszego startu (element opcjonalny per widok) ═ */
     try {
       const tsbStartEl = document.getElementById(idPrefix + '-tsb-start');
@@ -3915,7 +3939,36 @@ window._icuRenderSplits = function (d, el) {
           const rDate = new Date(r0.ms).toISOString().slice(0, 10);
           const idx = labels.indexOf(rDate.slice(5));
           const tsbR = (idx >= 0) ? tsbData[idx] : null;
-          if (tsbR != null) {
+
+          /* ⚠️ POKRYCIE PLANEM — bez tego prognoza liczyła się Z PUSTKI i mówiła
+             to na głos jako diagnozę. Zgłoszenie Maćka 20.08.2026: „nie wiem skąd
+             info że over rested, skoro nie ma planów w apce".
+
+             MECHANIZM: dla dni przyszłych `planTRIMP[d] || 0`. Zero obciążenia
+             znaczy, że ATL rozpada się w ~7 dni, CTL trzyma ~42, więc TSB = CTL−ATL
+             ROŚNIE MECHANICZNIE aż przebije +25 i aplikacja ogłasza „over-rested —
+             możesz tracić formę". To wynik arytmetyki, nie stanu zawodnika.
+
+             ⚠️ TO NIE JEST PROBLEM SAMYCH ZAWODNIKÓW BEZ TRENERA. Zmierzone
+             20.08.2026 na produkcji: najdłuższy plan w CAŁEJ bazie sięga 9 dni
+             w przód, pozostałych szesnaście osób ma 2 dni, a nikt bez trenera nie
+             ma ani jednego. Zawodnik z trenerem startujący za miesiąc ma dwa dni
+             planu i ~30 dni ekstrapolacji z zera — czyli tę samą pustkę, tylko
+             o dwa dni krótszą.
+
+             ⚠️ ETYKIETA ZNIKA RAZEM Z LICZBĄ. „wg zaplanowanych treningów
+             w kalendarzu" przy pustym kalendarzu kłamie podwójnie: sugeruje, że
+             plan istnieje, i że prognoza z niego wynika. */
+          let dniZPlanem = 0;
+          for (const d in planTRIMP) {
+            if (d > todayDateStr && d <= rDate && planTRIMP[d] > 0) dniZPlanem++;
+          }
+
+          if (dniZPlanem < MIN_DNI_PLANU_DO_PROGNOZY) {
+            tsbStartEl.innerHTML = '<span style="color:rgba(255,255,255,0.55);">'
+              + 'Brak zaplanowanych treningów — prognoza policzy się, gdy pojawi się plan.</span>';
+            tsbStartEl.style.display = 'block';
+          } else if (tsbR != null) {
             const ocena = tsbR > 25 ? ['#eab308','over-rested — możesz tracić formę']
               : tsbR >= 5 ? ['#4ade80','optimum — gotowość startowa']
               : tsbR >= -10 ? ['#e5e7eb','neutralnie — dołóż tapering']
