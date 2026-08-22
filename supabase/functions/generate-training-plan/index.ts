@@ -222,7 +222,7 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
   // 1. Profil zawodnika
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("full_name, race_goals, tdee, goal, target_date")   /* profile_data zdjęte: NULL u 61/61, nieużywane */
+    .select("full_name, race_goals, tdee, goal, target_date, city")   /* profile_data zdjęte: NULL u 61/61, nieużywane; city → prognoza pogody */
     .eq("id", athleteId)
     .maybeSingle();
 
@@ -2005,6 +2005,67 @@ serve(async (req) => {
     // ─── Build kontekstu ─────
     const context = await buildAthleteContext(supabase, athlete_id, coachId);   /* PLANER-2 P2 */
 
+    /* ═ POGODA NA DNI PLANU (22.08.2026) ═══════════════════════════════════
+       Interwały przy 30°C to inny trening niż przy 15°C, a wiatr zmienia sens
+       jednostki tempowej. Dane mieliśmy — brakowało podpięcia do wsadu.
+
+       ⚠️ PROGNOZA WIELODNIOWA, NIE „POGODA DZIŚ". Open-Meteo oddaje `daily` na
+       żądaną liczbę dni w JEDNYM zapytaniu (`get-weather` przyjmuje `days`,
+       cap 16), więc model dostaje te dni, na które faktycznie układa plan.
+       Gdyby kiedyś zostało tylko dziś — etykieta MUSI to powiedzieć wprost,
+       inaczej model rozciągnie jedną dobę na cały tydzień.
+
+       ⚠️ REUŻYWAMY EF `get-weather`, nie kopiujemy geokodowania ani Open-Meteo.
+       Ma własny cache po (miasto, dni), więc plany kilku osób z tej samej
+       miejscowości płacą za jedno zapytanie. Kopia oznaczałaby dwa miejsca do
+       poprawiania przy zmianie API — lekcja z RUN_TYPES.
+
+       ⚠️ BRAK MIASTA = BRAK SEKCJI, nie „brak pogody". Miasto jest ustawione
+       u 22 z 61 osób; dla reszty NIE WOŁAMY i sekcja się nie pojawia. Ta sama
+       zasada, przez którą zdjęliśmy „(brak Strava)".
+
+       ⚠️ MIASTO NIE JEST ZGADYWANE — pochodzi z `athletes.city`, wpisanego przez
+       człowieka; nie ma geolokalizacji po IP ani wartości domyślnej. Może być
+       jednak NIEAKTUALNE (ktoś się przeprowadził) albo niechlujne — w bazie stoi
+       „Kostrzyn" obok „Kostrzyn wlkp" i „Środa Wielkopolska" obok „Środa Wlkp.".
+       Dlatego etykieta w prompcie CYTUJE miasto, dla którego liczona jest pogoda:
+       jeśli jest złe, człowiek zobaczy to w uzasadnieniu planu. */
+    let weatherText = "";
+    try {
+      const _city = (context.athlete && context.athlete.city) || null;
+      if (_city && authHeader) {
+        const _dni = Math.min(16, Math.max(1, weeks * 7));
+        const _wr = await fetch(`${SUPABASE_URL}/functions/v1/get-weather`, {
+          method: "POST",
+          headers: { Authorization: authHeader, "Content-Type": "application/json" },
+          body: JSON.stringify({ city: _city, days: _dni }),
+        });
+        const _wj = await _wr.json().catch(() => null);
+        if (_wr.ok && _wj?.ok && Array.isArray(_wj.days) && _wj.days.length) {
+          const _wiersze = _wj.days.map((d: any) =>
+            `${d.date} | ${d.temp_min}–${d.temp_max}°C | ${d.label} | opady ${d.precip_mm}mm (${d.precip_pct}%) | wiatr ${d.wind_kmh} km/h`
+          ).join("\n");
+          weatherText = `
+
+═══════════════════════════════════════════════════════
+🌤️ PROGNOZA POGODY NA DNI PLANU — ${_wj.city || _city}
+═══════════════════════════════════════════════════════
+Prognoza wieloDNIOWA dla miasta z profilu zawodnika (${_wj.city || _city}). Jeśli to nie jest miejsce, w którym trenuje — zignoruj tę sekcję.
+
+${_wiersze}
+
+⛔ POGODA DOSTOSOWUJE JEDNOSTKĘ, NIE ODWOŁUJE JEJ.
+Nie usuwaj treningów, nie zamieniaj ich na „wolne" i nie skracaj planu z powodu prognozy. Prognoza na kilka dni do przodu bywa nietrafiona, a plan ma być wykonalny także wtedy, gdy pogoda okaże się inna.
+Co WOLNO i o czym warto napisać w rationale:
+• upał (≥25°C) → wolniejsze tempo docelowe, jednostka rano lub wieczorem, przypomnienie o nawodnieniu
+• mróz (≤−5°C) → dłuższa rozgrzewka, ostrożniej z interwałami, uwaga na nawierzchnię
+• silny wiatr (≥25 km/h) → interwały ze zmianą kierunku albo trasa osłonięta; tempo po wietrze kłamie
+• opady (≥70%) → uprzedź, że możliwa zmiana nawierzchni; NIE odwołuj jednostki
+`;
+        }
+      }
+    } catch (_) { /* pogoda jest dodatkiem — jej brak NIE psuje planu */ }
+
     // ─── Build prompt + call Claude ─────
     const prompt = buildPrompt(
       context,
@@ -2017,7 +2078,7 @@ serve(async (req) => {
       target_time,
       target_volume_km,
       sanitizedCoachNote, // ✨ v2
-    );
+    ) + weatherText;
 
     if (sanitizedCoachNote) {
       console.log(`[generate-training-plan] Coach note included (${sanitizedCoachNote.length} chars)`);
