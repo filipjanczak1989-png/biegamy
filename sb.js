@@ -1638,6 +1638,156 @@
     },
   };
 
+  /* ══ window.BOL — zgłaszanie bólu przez zawodnika ═══════════════════════════
+     ⚠️ POWSTAŁO, BO NIE BYŁO CZYM. Zmierzone 22.08.2026: `coach_athlete_notes`
+     z tagiem `kontuzja` — 0 wierszy w bazie; `athletes.profile_data` z ankiety
+     pytającej o kontuzje — NULL u 61/61; w aplikacji zawodnika ANI JEDNEJ
+     ścieżki zgłoszenia. Jedyną drogą była wiadomość do trenera, a 33 z 61 osób
+     trenera nie ma — czyli nie miały jak wcale.
+
+     ⚠️ TRZY POZIOMY I SZEŚĆ MIEJSC, NIE WIĘCEJ. Formularz, którego nikt nie
+     wypełni, jest wart tyle co dzisiejsza pustka — prostota wygrywa tu
+     z precyzją. Bez daty początku: samo zgłoszenie jest datą, a jeśli ból trwa,
+     człowiek zgłosi ponownie i CIĄGŁOŚĆ zgłoszeń powie więcej niż deklarowana
+     data. Dodamy, jeśli okaże się potrzebna.
+
+     ⚠️ NIE DIAGNOZUJEMY — ani tu, ani w prompcie. „Zmniejsz obciążenie" wolno,
+     „to zapalenie ścięgna Achillesa" nie. */
+  window.BOL = {
+    POZIOMY: [
+      { v: 1, etykieta: 'Boli lekko',      opis: 'Czuję, ale mogę biegać' },
+      { v: 2, etykieta: 'Boli mocno',      opis: 'Przeszkadza w bieganiu' },
+      { v: 3, etykieta: 'Nie mogę biegać', opis: 'Ból mnie zatrzymuje' }
+    ],
+    MIEJSCA: [
+      { v: 'stopa',    etykieta: 'Stopa' },
+      { v: 'achilles', etykieta: 'Ścięgno Achillesa' },
+      { v: 'lydka',    etykieta: 'Łydka' },
+      { v: 'kolano',   etykieta: 'Kolano' },
+      { v: 'udo',      etykieta: 'Udo' },
+      { v: 'inne',     etykieta: 'Inne' }
+    ],
+    nazwaMiejsca: function (v) {
+      var m = this.MIEJSCA.filter(function (x) { return x.v === v; })[0];
+      return m ? m.etykieta : String(v || '');
+    },
+    nazwaPoziomu: function (v) {
+      var p = this.POZIOMY.filter(function (x) { return x.v === Number(v); })[0];
+      return p ? p.etykieta : ('poziom ' + v);
+    },
+
+    /* Aktywne zgłoszenie albo null.
+       ⚠️ `catch` oddaje null zamiast rzucać: brak tabeli (np. na kliencie sprzed
+       migracji) ma dawać zachowanie sprzed zmiany, nie zepsuty ekran. */
+    aktywna: async function (athleteId) {
+      if (!athleteId) return null;
+      try {
+        var r = await window.sb.from('injuries')
+          .select('id,poziom,miejsce,notatka,created_at')
+          .eq('athlete_id', athleteId).is('resolved_at', null)
+          .order('created_at', { ascending: false }).limit(1);
+        if (r.error || !r.data || !r.data.length) return null;
+        return r.data[0];
+      } catch (_) { return null; }
+    },
+
+    zglos: async function (athleteId, poziom, miejsce, notatka) {
+      if (!athleteId || !poziom || !miejsce) return { ok: false };
+      var r = await window.sb.from('injuries').insert({
+        athlete_id: athleteId,
+        poziom: Number(poziom),
+        miejsce: miejsce,
+        notatka: (notatka || '').trim() || null
+      });
+      return r.error ? { ok: false, error: r.error } : { ok: true };
+    },
+
+    /* „Już nie boli".
+       ⚠️ BEZ TEGO CAŁA RESZTA JEST PUŁAPKĄ: zgłoszenie wisiałoby w nieskończoność,
+       a plan nigdy nie wróciłby do normy. Zamknięcie jest częścią tej samej
+       zmiany, nie osobną iteracją. */
+    zamknij: async function (id) {
+      if (!id) return { ok: false };
+      var r = await window.sb.from('injuries')
+        .update({ resolved_at: new Date().toISOString() }).eq('id', id);
+      return r.error ? { ok: false, error: r.error } : { ok: true };
+    },
+
+    /* Modal zgłoszenia. Zwraca { poziom, miejsce, notatka } albo null.
+       Krok 2 (miejsce) odsłania się dopiero po wybraniu poziomu — pierwszy ekran
+       ma być trzema przyciskami, nie formularzem. */
+    otworz: function () {
+      var self = this;
+      return new Promise(function (resolve) {
+        var ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);z-index:10060;display:flex;align-items:flex-end;justify-content:center;';
+        var pozHtml = self.POZIOMY.map(function (p) {
+          return '<button data-poz="' + p.v + '" class="_bol-poz" style="display:block;width:100%;text-align:left;background:var(--card,#141019);border:1px solid var(--border,#2a2733);border-radius:12px;padding:12px 14px;margin-bottom:8px;color:var(--fg,#f0ede8);cursor:pointer;">'
+            + '<div style="font-size:14px;font-weight:600;">' + p.etykieta + '</div>'
+            + '<div style="font-size:11px;color:var(--muted,#8a8798);margin-top:2px;">' + p.opis + '</div></button>';
+        }).join('');
+        var miejHtml = self.MIEJSCA.map(function (m) {
+          return '<button data-miej="' + m.v + '" class="_bol-miej" style="background:var(--card,#141019);border:1px solid var(--border,#2a2733);border-radius:10px;padding:10px 12px;color:var(--fg,#f0ede8);font-size:12px;cursor:pointer;">' + m.etykieta + '</button>';
+        }).join('');
+        ov.innerHTML =
+          '<div style="background:var(--bg,#0b0910);border:1px solid var(--border,#2a2733);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow-y:auto;">'
+          + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:.03em;margin-bottom:4px;">Coś boli?</div>'
+          + '<div style="font-size:12px;color:var(--muted,#8a8798);line-height:1.5;margin-bottom:14px;">Powiemy o tym planowi — dostosuje obciążenie. Nie musisz opisywać więcej, niż chcesz.</div>'
+          + '<div>' + pozHtml + '</div>'
+          + '<div id="_bol-krok2" style="display:none;">'
+          + '<div style="font-size:12px;color:var(--muted,#8a8798);margin:14px 0 8px;">Gdzie?</div>'
+          + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' + miejHtml + '</div>'
+          + '<input id="_bol-nota" type="text" placeholder="Dopisz coś (opcjonalnie)" style="width:100%;box-sizing:border-box;margin-top:12px;background:var(--card,#141019);border:1px solid var(--border,#2a2733);border-radius:10px;padding:11px 13px;color:var(--fg,#f0ede8);font-size:16px;outline:none;">'
+          + '<button id="_bol-zapisz" disabled style="width:100%;margin-top:12px;background:var(--accent,#e8561e);color:#fff;border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;cursor:pointer;opacity:.45;">Zgłoś</button>'
+          + '</div>'
+          + '<button id="_bol-anuluj" style="width:100%;margin-top:10px;background:transparent;color:var(--muted,#8a8798);border:1px solid var(--border,#2a2733);border-radius:10px;padding:11px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>'
+          + '</div>';
+        document.body.appendChild(ov);
+
+        var poziom = null, miejsce = null;
+        function zamknij(v) { try { document.body.removeChild(ov); } catch (_) {} resolve(v || null); }
+        ov.addEventListener('click', function (e) { if (e.target === ov) zamknij(null); });
+        ov.querySelector('#_bol-anuluj').addEventListener('click', function () { zamknij(null); });
+
+        var zapisz = ov.querySelector('#_bol-zapisz');
+        function odswiez() {
+          var gotowe = !!(poziom && miejsce);
+          zapisz.disabled = !gotowe;
+          zapisz.style.opacity = gotowe ? '1' : '.45';
+        }
+        function zaznacz(lista, wybrany) {
+          lista.forEach(function (x) {
+            x.style.borderColor = 'var(--border,#2a2733)';
+            x.style.background = 'var(--card,#141019)';
+          });
+          wybrany.style.borderColor = 'var(--accent,#e8561e)';
+          wybrany.style.background = 'rgba(232,86,30,.10)';
+        }
+        var pozBtns = [].slice.call(ov.querySelectorAll('._bol-poz'));
+        var miejBtns = [].slice.call(ov.querySelectorAll('._bol-miej'));
+        pozBtns.forEach(function (b) {
+          b.addEventListener('click', function () {
+            poziom = Number(b.getAttribute('data-poz'));
+            zaznacz(pozBtns, b);
+            ov.querySelector('#_bol-krok2').style.display = 'block';
+            odswiez();
+          });
+        });
+        miejBtns.forEach(function (b) {
+          b.addEventListener('click', function () {
+            miejsce = b.getAttribute('data-miej');
+            zaznacz(miejBtns, b);
+            odswiez();
+          });
+        });
+        zapisz.addEventListener('click', function () {
+          if (!poziom || !miejsce) return;
+          zamknij({ poziom: poziom, miejsce: miejsce, notatka: ov.querySelector('#_bol-nota').value });
+        });
+      });
+    }
+  };
+
   // window.WATCH — SSOT podłączenia zegarka (intervals.icu OAuth)
   // Reużywa flow z profil.html (authorizeIntervals) — jedna ścieżka, nie kopia.
   // Stan czytany z athletes.intervals_athlete_id (intervals_credentials ma RLS

@@ -2005,6 +2005,77 @@ serve(async (req) => {
     // ─── Build kontekstu ─────
     const context = await buildAthleteContext(supabase, athlete_id, coachId);   /* PLANER-2 P2 */
 
+  /* ═ AKTYWNE ZGŁOSZENIE BÓLU (22.08.2026) ══════════════════════════════════
+     Do tej pory model dowiadywał się o bólu wyłącznie z WOLNEGO TEKSTU: z czatu
+     („boli kolano" → „zmniejsz intensywność") albo z komentarza przy logu. Czat
+     mają tylko osoby Z TRENEREM — 33 z 61 nie miały żadnego kanału. Kanał
+     `coach_athlete_notes` z tagiem `kontuzja` miał ZERO wierszy w całej bazie.
+
+     ⚠️ CAŁA DOTYCHCZASOWA INSTRUKCJA METODYCZNA TO BYŁY TRZY SŁOWA: „zmniejsz
+     intensywność" — bez progu, bez rozróżnienia między pobolewaniem a czymś,
+     co powinno przerwać bieganie. Poniższe progi to decyzja Filipa z 22.08.
+
+     ⚠️ NIE ODMAWIAMY PLANU (wariant A). Nawet przy poziomie 3 plan powstaje —
+     bo człowiek bez planu pójdzie biegać bez planu. Zmienia się jego TREŚĆ.
+
+     ⚠️ MODEL NIE DIAGNOZUJE. „Zmniejsz obciążenie" wolno; nazwać uraz — nie. */
+  let bolText = "";
+  try {
+    const { data: _bol } = await supabase
+      .from("injuries")
+      .select("poziom, miejsce, notatka, created_at")
+      .eq("athlete_id", athlete_id)
+      .is("resolved_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const b = (_bol && _bol.length) ? _bol[0] : null;
+    if (b) {
+      const MIEJSCA: Record<string, string> = {
+        stopa: "stopa", achilles: "ścięgno Achillesa", lydka: "łydka",
+        kolano: "kolano", udo: "udo", inne: "inne miejsce",
+      };
+      const gdzie = MIEJSCA[b.miejsce] || b.miejsce;
+      const dni = Math.max(0, Math.round((Date.now() - new Date(b.created_at).getTime()) / 864e5));
+      const odKiedy = dni === 0 ? "dzisiaj" : (dni === 1 ? "wczoraj" : `${dni} dni temu`);
+      const nota = b.notatka ? `\nZawodnik dopisał: „${b.notatka}"` : "";
+
+      const REGULY: Record<number, string> = {
+        1: `POZIOM 1 — BOLI LEKKO („czuję, ale mogę biegać").
+• Objętość BEZ ZMIAN — to nie jest powód do cofania planu.
+• ZERO nowych akcentów obciążających ${gdzie}. Interwały i tempo tylko jeśli już były i przebiegały bezboleśnie.
+• W polu rationale napisz WPROST, że widzisz zgłoszenie i dlaczego NIE zmieniasz objętości. Milczenie zawodnik przeczyta jako „nie zauważyli".`,
+        2: `POZIOM 2 — BOLI MOCNO („przeszkadza w bieganiu").
+• OBJĘTOŚĆ −40% względem tego, co dałbyś bez zgłoszenia. Nie −20%: ból, który przeszkadza w bieganiu, to nie jest sytuacja na kosmetyczną korektę.
+• SAME BIEGI SPOKOJNE. Zero interwałów, zero tempa, zero podbiegów, zero akcentów jakiegokolwiek rodzaju.
+• W polu warnings MUSI paść zdanie: „To jest plan na czas dolegliwości, nie plan docelowy." Zawodnik ma wiedzieć, że to stan przejściowy, a nie że go spisaliśmy na straty.`,
+        3: `POZIOM 3 — NIE MOGĘ BIEGAĆ („ból mnie zatrzymuje").
+• PIERWSZY TYDZIEŃ BEZ BIEGANIA W OGÓLE. Ani jednej jednostki biegowej — zamiast tego odpoczynek i, jeśli ból na to pozwala, aktywność bezudarowa (rower, basen, mobilność).
+• Kolejne tygodnie ułóż jako POWRÓT, ale zaznacz w polu warnings, że właściwy plan zacznie się dopiero, gdy zawodnik oznaczy zgłoszenie jako zakończone („już nie boli" w aplikacji).
+• W polu warnings dopisz dokładnie to zdanie, bez dodawania niczego od siebie: „Ból uniemożliwiający bieganie warto skonsultować."
+• ⛔ NIE stawiaj diagnozy i NIE nazywaj urazu. Nie wiesz, co to jest, i nie masz jak sprawdzić.`,
+      };
+
+      bolText = `
+
+═══════════════════════════════════════════════════════
+🩹 ZAWODNIK ZGŁOSIŁ BÓL — ${gdzie.toUpperCase()}
+═══════════════════════════════════════════════════════
+Zgłoszone ${odKiedy}, nadal aktywne (zawodnik go nie zamknął).${nota}
+
+⚠️ TO JEST DEKLARACJA CZŁOWIEKA O JEGO CIELE, nie nasz domysł z danych. Ma
+pierwszeństwo przed wszystkim innym w tym prompcie — także przed planem
+progresji i przed nadchodzącym startem.
+
+${REGULY[Number(b.poziom)] || REGULY[2]}
+
+⛔ CZEGO NIE WOLNO W ŻADNYM Z POZIOMÓW:
+• stawiać diagnozy ani nazywać urazu
+• pisać, że „to przejdzie" — nie wiesz tego
+• ignorować zgłoszenia dlatego, że zbliża się start
+`;
+    }
+  } catch (_) { /* brak tabeli / błąd odczytu = zachowanie sprzed zmiany */ }
+
     /* ═ POGODA NA DNI PLANU (22.08.2026) ═══════════════════════════════════
        Interwały przy 30°C to inny trening niż przy 15°C, a wiatr zmienia sens
        jednostki tempowej. Dane mieliśmy — brakowało podpięcia do wsadu.
@@ -2078,7 +2149,7 @@ Co WOLNO i o czym warto napisać w rationale:
       target_time,
       target_volume_km,
       sanitizedCoachNote, // ✨ v2
-    ) + weatherText;
+    ) + bolText + weatherText;   /* ból PRZED pogodą — ma pierwszeństwo przed wszystkim */
 
     if (sanitizedCoachNote) {
       console.log(`[generate-training-plan] Coach note included (${sanitizedCoachNote.length} chars)`);

@@ -1012,6 +1012,9 @@ body > *{position:relative;z-index:1;}
          ⚠️ ODWRACALNE. Akcja bez potwierdzenia MUSI mieć cofnięcie, inaczej
          przypadkowy tap jest nie do naprawienia z tego ekranu. -->
     <button id="today-nie-zrobilem" onclick="oznaczNieZrobione(this)" style="display:none;width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;cursor:pointer;">Nie zrobiłem</button>
+    <!-- „Coś boli" — wypełniane przez _odswiezBol(); ścieżka NIEZALEŻNA od logu,
+         bo ból bywa poranny, bez biegania. -->
+    <div id="today-bol"></div>
   </div>
 </div>
 
@@ -2029,6 +2032,70 @@ function toggleDayDetail(idx) {
   el.style.display = isOpen ? 'none' : 'block';
   if (arr) arr.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
+/* ══ „COŚ BOLI" — zgłoszenie i jego zamknięcie ═══════════════════════════════
+   ⚠️ ŚCIEŻKA NIEZALEŻNA OD LOGU, I TO JEST SEDNO. Ból bywa poranny, bez biegania
+   — a wtedy informacja jest najcenniejsza, bo tłumaczy dzień bez treningu.
+   Przycisk stoi w karcie „Dziś" obok „Nie zrobiłem", nie w profilu: do profilu
+   wchodzi się raz na miesiąc, a ból zgłasza się w dniu, w którym boli.
+
+   ⚠️ AKTYWNE ZGŁOSZENIE MUSI BYĆ WIDOCZNE Z MOŻLIWOŚCIĄ ZAMKNIĘCIA. Bez „już
+   nie boli" kontuzja wisiałaby w nieskończoność, plan nigdy nie wróciłby do
+   normy, a model dostawałby „nie wiadomo" podane jako „ma kontuzję" — czyli
+   dokładnie tę klasę błędu, którą tępimy od tygodnia. */
+async function _odswiezBol() {
+  const box = document.getElementById('today-bol');
+  if (!box || !_athleteId) return;
+  const akt = window.BOL ? await window.BOL.aktywna(_athleteId) : null;
+  window._aktywnaKontuzja = akt;
+
+  if (!akt) {
+    box.innerHTML =
+      '<button id="today-bol-btn" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);'
+      + 'border:1px solid var(--border);border-radius:12px;padding:11px;font-family:\'DM Mono\',monospace;'
+      + 'font-size:11px;letter-spacing:0.06em;cursor:pointer;">Coś boli</button>';
+    const b = document.getElementById('today-bol-btn');
+    if (b) b.addEventListener('click', _zglosBol);
+    return;
+  }
+
+  const dni = Math.max(0, Math.round((Date.now() - new Date(akt.created_at).getTime()) / 864e5));
+  const odKiedy = dni === 0 ? 'dziś' : (dni === 1 ? 'od wczoraj' : 'od ' + dni + ' dni');
+  box.innerHTML =
+    '<div style="margin-top:8px;padding:12px;border:1px solid var(--yellow,#e8b840);border-radius:12px;'
+    + 'background:rgba(232,184,64,.06);text-align:left;">'
+    + '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:.06em;color:var(--yellow,#e8b840);font-weight:600;margin-bottom:4px;">'
+    + '🩹 ' + escapeHtml(window.BOL.nazwaPoziomu(akt.poziom)) + ' · ' + escapeHtml(window.BOL.nazwaMiejsca(akt.miejsce)) + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zgłoszone ' + odKiedy + '. Plan bierze to pod uwagę.</div>'
+    + '<button id="today-bol-koniec" style="width:100%;background:transparent;color:var(--fg2);'
+    + 'border:1px solid rgba(255,255,255,0.22);border-radius:10px;padding:10px;font-family:\'DM Mono\',monospace;'
+    + 'font-size:11px;cursor:pointer;">Już nie boli</button></div>';
+  const k = document.getElementById('today-bol-koniec');
+  if (k) k.addEventListener('click', async () => {
+    k.disabled = true;
+    const r = await window.BOL.zamknij(akt.id);
+    k.disabled = false;
+    if (!r.ok) { toast(window.komunikatBledu ? window.komunikatBledu(r.error) : 'Błąd zapisu'); return; }
+    toast('Zamknięte. Plan wróci do normy.');
+    _odswiezBol();
+  });
+}
+
+async function _zglosBol() {
+  if (!_athleteId || !window.BOL) return;
+  const w = await window.BOL.otworz();
+  if (!w) return;                                   // anulowano
+  const r = await window.BOL.zglos(_athleteId, w.poziom, w.miejsce, w.notatka);
+  if (!r.ok) { toast(window.komunikatBledu ? window.komunikatBledu(r.error) : 'Błąd zapisu'); return; }
+  /* ⚠️ Komunikat NIE STRASZY i NIE DIAGNOZUJE. Przy poziomie 3 dokładamy jedno
+     zdanie o konsultacji — bo ból uniemożliwiający bieganie to inna sprawa niż
+     pobolewanie — ale bez straszenia i bez nazywania urazu. */
+  toast(Number(w.poziom) === 3
+    ? 'Zgłoszone. Ból uniemożliwiający bieganie warto skonsultować.'
+    : 'Zgłoszone. Plan to uwzględni.');
+  _odswiezBol();
+}
+window._zglosBol = _zglosBol;
+
 /* ⚠️ STATUS BYŁ JEDNOKIERUNKOWY. Do 21.08.2026 dało się powiedzieć „zrobiłem"
    (automatycznie, przy zapisie logu) i NIE dało się powiedzieć „nie zrobiłem" —
    `<option value="missed">` istniał wyłącznie w edytorze planu w kalendarzu,
@@ -7711,6 +7778,7 @@ async function loadTodayTraining() {
     window._todayTraining = null;
     const _nzBrak = document.getElementById('today-nie-zrobilem');
     if (_nzBrak) _nzBrak.style.display = 'none';   // nie ma planu = nie ma czego nie zrobić
+    _odswiezBol();                                 // …ale ból zgłasza się także w dzień bez treningu
     window._brakTreninguDzis = true;      // sygnal dla CTA generatora
     _odswiezCtaGeneratora();
     return;
@@ -7721,6 +7789,7 @@ async function loadTodayTraining() {
   const _nz = document.getElementById('today-nie-zrobilem');
   if (_nz) _nz.style.display = 'none';        // dzisiejszego planu nie da się jeszcze nie zrobić
   _pokazNieZrobioneWczoraj();                 // …ale wczorajszego już tak — fire-and-forget
+  _odswiezBol();                              // ból jest niezależny od planu — pokazujemy zawsze
   window._brakTreninguDzis = false;
   _odswiezCtaGeneratora();
   

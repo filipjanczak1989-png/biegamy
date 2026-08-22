@@ -3477,10 +3477,23 @@ async function renderDbAthletes(list) {
       .gte('date', new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0]);
     (plannedRows || []).forEach(r => { if (!_plannedByAth[r.athlete_id]) _plannedByAth[r.athlete_id] = true; });
   }
+  /* ⚠️ AKTYWNE ZGŁOSZENIA BÓLU — żeby trener nie musiał ich wyławiać z czatu.
+     Do 22.08.2026 zawodnik mógł powiedzieć „boli mnie kolano" WYŁĄCZNIE
+     wiadomością, więc ból tonął między 39 innymi wiadomościami — albo nie
+     docierał wcale, bo 33 z 61 osób nie ma trenera.
+     ⚠️ Trener ma tu SELECT, nie UPDATE: zgłoszenie zamyka tylko ten, kogo boli
+     (polityka `injuries_trener_select`, migracja 20260822_injuries). */
+  const _bolByAth = {};
+  try {
+    const { data: _bolRows } = await sb.from('injuries')
+      .select('athlete_id,poziom,miejsce').is('resolved_at', null).in('athlete_id', _allIds);
+    (_bolRows || []).forEach(r => { if (!_bolByAth[r.athlete_id]) _bolByAth[r.athlete_id] = r; });
+  } catch (e) { /* brak tabeli = lista jak przedtem */ }
+
   const withLogs = list.map(a => {
     const hasRecentLog = _lastLogByAth[a.id] && (new Date(_lastLogByAth[a.id]) >= twoDaysAgo);
     const hasMissed = !hasRecentLog && !!_plannedByAth[a.id];
-    return { ...a, newLogs: _unreadByAth[a.id] || 0, hasMissed, lastLogAt: _lastLogByAth[a.id] || null };
+    return { ...a, newLogs: _unreadByAth[a.id] || 0, hasMissed, lastLogAt: _lastLogByAth[a.id] || null, bol: _bolByAth[a.id] || null };
   });
 
   const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
@@ -3508,7 +3521,8 @@ async function renderDbAthletes(list) {
         })()}
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.hasMissed
+${a.bol ? `<div data-badge="bol" title="Zawodnik zgłosił ból — ${window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom}, ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce}" style="background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.55);color:var(--yellow,#e8b840);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🩹 ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból'}</div>` : ''}
+                ${a.hasMissed
           ? `<div data-badge="missed" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
           : a.newLogs > 0
             ? `<div data-badge="new" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🆕 ${a.newLogs} log</div>`
