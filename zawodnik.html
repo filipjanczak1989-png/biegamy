@@ -2060,15 +2060,50 @@ async function _odswiezBol() {
 
   const dni = Math.max(0, Math.round((Date.now() - new Date(akt.created_at).getTime()) / 864e5));
   const odKiedy = dni === 0 ? 'dziś' : (dni === 1 ? 'od wczoraj' : 'od ' + dni + ' dni');
+
+  /* ⚠️ POZIOM 3 NIE MOŻE OZNACZAĆ CISZY. Człowiek klika „nie mogę biegać",
+     a plan przestaje zadawać treningi — bez tego zdania wyglądałoby to, jakby
+     aplikacja się zawiesiła albo o nim zapomniała. Jedno zdanie plus przycisk,
+     który już tu jest, wystarczy; nie budujemy osobnego ekranu. */
+  const czyPauza = Number(akt.poziom) === 3;
+
+  /* ⚠️ PRZYPOMNIENIE PO 30 DNIACH, ALE NIE PUSHEM. Kontuzja sprzed miesiąca to
+     zła pierwsza rzecz do zobaczenia rano — pytanie czeka tu, aż człowiek sam
+     wejdzie. Bez niego zgłoszenia zawisają: plan zostaje przykręcony u kogoś,
+     kto dawno wyzdrowiał, i nikt się o tym nie dowie. */
+  const ODROCZENIE_DNI = 7;
+  let odroczone = false;
+  try {
+    const t = Number(localStorage.getItem('bol_nadal_' + akt.id) || 0);
+    odroczone = t > 0 && (Date.now() - t) < ODROCZENIE_DNI * 864e5;
+  } catch (e) {}
+  const stare = dni >= 30 && !odroczone;
+
   box.innerHTML =
     '<div style="margin-top:8px;padding:12px;border:1px solid var(--yellow,#e8b840);border-radius:12px;'
     + 'background:rgba(232,184,64,.06);text-align:left;">'
     + '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:.06em;color:var(--yellow,#e8b840);font-weight:600;margin-bottom:4px;">'
     + '🩹 ' + escapeHtml(window.BOL.nazwaPoziomu(akt.poziom)) + ' · ' + escapeHtml(window.BOL.nazwaMiejsca(akt.miejsce)) + '</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zgłoszone ' + odKiedy + '. Plan bierze to pod uwagę.</div>'
+    + (stare
+        ? '<div style="font-size:12px;color:var(--fg2);line-height:1.5;margin-bottom:10px;">Zgłoszone ' + odKiedy + '. Nadal boli?</div>'
+        : '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zgłoszone ' + odKiedy + '. '
+          + (czyPauza
+              ? 'Plan wróci, gdy zamkniesz zgłoszenie — do tego czasu odpoczywaj.'
+              : 'Plan bierze to pod uwagę.')
+          + '</div>')
+    + (czyPauza && !stare
+        ? '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Ból uniemożliwiający bieganie warto skonsultować.</div>'
+        : '')
     + '<button id="today-bol-koniec" style="width:100%;background:transparent;color:var(--fg2);'
     + 'border:1px solid rgba(255,255,255,0.22);border-radius:10px;padding:10px;font-family:\'DM Mono\',monospace;'
-    + 'font-size:11px;cursor:pointer;">Już nie boli</button></div>';
+    + 'font-size:11px;cursor:pointer;">' + (stare ? 'Już nie boli' : 'Już nie boli') + '</button>'
+    + (stare
+        ? '<button id="today-bol-nadal" style="width:100%;margin-top:6px;background:transparent;color:var(--muted);'
+          + 'border:1px solid var(--border);border-radius:10px;padding:10px;font-family:\'DM Mono\',monospace;'
+          + 'font-size:11px;cursor:pointer;">Nadal boli</button>'
+        : '')
+    + '</div>';
+
   const k = document.getElementById('today-bol-koniec');
   if (k) k.addEventListener('click', async () => {
     k.disabled = true;
@@ -2076,6 +2111,18 @@ async function _odswiezBol() {
     k.disabled = false;
     if (!r.ok) { toast(window.komunikatBledu ? window.komunikatBledu(r.error) : 'Błąd zapisu'); return; }
     toast('Zamknięte. Plan wróci do normy.');
+    _odswiezBol();
+  });
+  /* „Nadal boli" NIE zapisuje nowego wiersza — odsuwa tylko pytanie, żeby nie
+     wracało przy każdym wejściu. Nowe zgłoszenie miałoby nową datę i zafałszowało
+     to, od kiedy ból trwa, a właśnie ciągłość jest tu informacją. */
+  const n = document.getElementById('today-bol-nadal');
+  if (n) n.addEventListener('click', () => {
+    /* localStorage, nie sessionStorage: odroczenie ma przeżyć zamknięcie apki,
+       inaczej pytanie wracałoby przy każdym uruchomieniu i „za jakiś czas"
+       byłoby nieprawdą. */
+    try { localStorage.setItem('bol_nadal_' + akt.id, String(Date.now())); } catch (e) {}
+    toast('Jasne. Zapytam znowu za tydzień.');
     _odswiezBol();
   });
 }

@@ -3521,7 +3521,7 @@ async function renderDbAthletes(list) {
         })()}
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-${a.bol ? `<div data-badge="bol" title="Zawodnik zgłosił ból — ${window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom}, ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce}" style="background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.55);color:var(--yellow,#e8b840);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🩹 ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból'}</div>` : ''}
+${a.bol ? `<div data-badge="bol" onclick="event.stopPropagation();openNotesModal('${sid}','kontuzja')" title="Zawodnik zgłosił ból — ${window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom}, ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce}. Klik: dopisz notatkę." style="background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.55);color:var(--yellow,#e8b840);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🩹 ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból'}</div>` : ''}
                 ${a.hasMissed
           ? `<div data-badge="missed" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
           : a.newLogs > 0
@@ -7649,10 +7649,16 @@ let _notesPreselectedAthlete = null;
 let _notesSelectedTag = 'inne';
 
 // ─── Otwórz modal — z opcjonalnym preselect athlete ────────────────
-async function openNotesModal(athleteId) {
+/* ⚠️ `tagStartowy` DODANY 22.08.2026: zgłoszenie bólu w aplikacji ma być
+   DODATKIEM do rozmowy, nie zamiennikiem — Kasia i tak napisze. Klik w badge 🩹
+   otwiera notatnik od razu z tagiem `kontuzja`, żeby trener dopisał, co ustalili
+   i co dalej, zamiast szukać tej ścieżki samodzielnie.
+   ⚠️ Notatnik JUŻ ISTNIAŁ (tag `kontuzja` był w nim od początku) — nie dokładamy
+   drugiego miejsca na to samo, tylko skracamy drogę do istniejącego. */
+async function openNotesModal(athleteId, tagStartowy) {
   _notesCurrentNoteId = null;
   _notesPreselectedAthlete = athleteId || window._selectedAthleteId || null;
-  _notesSelectedTag = 'inne';
+  _notesSelectedTag = tagStartowy || 'inne';
   
   // Pobierz listę zawodników trenera
   let athletesList = [];
