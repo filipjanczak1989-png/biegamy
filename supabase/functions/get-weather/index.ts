@@ -116,7 +116,18 @@ Deno.serve(async (req) => {
     }
 
     // ── Cache check (key includes days to avoid 3d/7d collision) ──
-    const cacheKey = cityRaw.toLowerCase() + '_' + reqDays;
+    /* ⚠️ WSPÓŁRZĘDNE W KLUCZU, gdy są podane. Klucz po samej NAZWIE ma dziurę:
+       kto poprawi „Kostrzyn" (mazowiecki, wybrany omyłkowo) na „Kostrzyn"
+       (wielkopolski, ten właściwy), dostanie TEN SAM klucz i przez 30 minut
+       widziałby pogodę ze złego miasta — uznałby, że poprawka nie zadziałała.
+       Przy zmianie NAZWY klucz i tak się różni, więc ta gałąź dotyczy wyłącznie
+       przypadku „ta sama nazwa, inne miejsce".
+       ⚠️ Współrzędne zaokrąglone do 2 miejsc (~1 km): ten sam człowiek nie ma
+       dostawać osobnego wpisu cache po przesunięciu pinezki o metr. */
+    const _geo = (body?.lat != null && body?.lon != null)
+      ? Number(body.lat).toFixed(2) + ',' + Number(body.lon).toFixed(2)
+      : '';
+    const cacheKey = cityRaw.toLowerCase() + '_' + reqDays + (_geo ? '_' + _geo : '');
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       console.log(`[Weather] Cache HIT for "${cityRaw}" (${reqDays}d)`);

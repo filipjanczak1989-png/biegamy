@@ -1518,6 +1518,126 @@
      otwarcia na ZALOGOWANYM koncie — ta sama pułapka co przy weryfikacji EF. */
   window.ICU_POLACZENIA_URL = 'https://intervals.icu/settings/connections';
 
+  /* ══ window.MIASTO — SSOT wyboru miejsca treningu ═══════════════════════════
+     Zastępuje `prompt()` w DWÓCH miejscach (profil.html:editCity,
+     zawodnik.html:_weatherSetCity). Jeden moduł, nie dwie kopie — ten projekt
+     ma już toast w sześciu kopiach i wie, jak to się kończy.
+
+     ⚠️ `prompt()` BYŁ TU GŁÓWNYM PROBLEMEM, nie geokodowanie. W zainstalowanej
+     PWA jest blokowany BEZ ŚLADU: człowiek klika „Wpisz miasto" i nie dzieje się
+     nic. To najlepsze wyjaśnienie, czemu 39 z 61 kont nie ma miasta — dla części
+     ludzi wpisanie go było fizycznie niemożliwe z ekranu, na którym widzą zachętę.
+
+     ⚠️ PODPOWIEDZI SĄ KONIECZNE, NIE OZDOBNE — zmierzone na Open-Meteo 22.08.2026:
+       „Środa Wielkopolska" → trafia        „Sroda Wielkopolska" → trafia
+       „Gdańsk" → trafia                    „Gdansk"  → trafia
+       „Łódź"  → trafia                     „Lodz"    → LODZA W KONGU I LODZANI W MALAWI
+       „Kostrzyn" → DWA wyniki: wielkopolski i mazowiecki Kostrzyń
+     Czyli: diakrytyki działają i NIE wymagamy nazw bez nich, ale brak diakrytyków
+     bywa zawodny, a nazwy bywają niejednoznaczne. Wpisanie na ślepo i zapis
+     pierwszego trafienia dałoby komuś pogodę z Konga. Dlatego człowiek WYBIERA
+     z listy, a lista pokazuje REGION.
+
+     ⚠️ ZAPISUJEMY lat/lon ORAZ nazwę: nazwa jest etykietą dla człowieka,
+     współrzędne są tym, czym liczymy. */
+  window.MIASTO = {
+    /* Podpowiedzi z Open-Meteo. Ten sam endpoint, którego używa EF `get-weather` —
+       nie dokładamy drugiego dostawcy geokodowania. */
+    szukaj: async function (fraza) {
+      const q = String(fraza || '').trim();
+      if (q.length < 2) return [];
+      const url = 'https://geocoding-api.open-meteo.com/v1/search?name='
+        + encodeURIComponent(q) + '&count=5&language=pl&format=json';
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return [];
+        const j = await r.json();
+        return (j && Array.isArray(j.results)) ? j.results : [];
+      } catch (_) { return []; }
+    },
+
+    /* Etykieta odróżniająca Kostrzyn od Kostrzynia. Region PRZED krajem, bo
+       w praktyce to on rozstrzyga — kraj jest prawie zawsze ten sam. */
+    etykieta: function (w) {
+      const czesci = [w.name];
+      if (w.admin1) czesci.push(w.admin1);
+      if (w.country_code && w.country_code !== 'PL') czesci.push(w.country_code);
+      return czesci.join(' · ');
+    },
+
+    /* ⚠️ MODAL, NIE `prompt()`. To jest sedno naprawy, nie geokodowanie:
+       `prompt()` w zainstalowanej PWA jest blokowany BEZ ŚLADU — człowiek klika
+       „Wpisz miasto" i NIC się nie dzieje, bez błędu. Najlepsze wyjaśnienie,
+       czemu 39 z 61 kont nie ma miasta.
+       Zwraca wybrany wynik geokodowania albo null (anulowano). */
+    otworz: function (biezace) {
+      return new Promise((resolve) => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);z-index:10050;display:flex;align-items:flex-end;justify-content:center;';
+        ov.innerHTML =
+          '<div style="background:var(--bg,#0b0910);border:1px solid var(--border,#2a2733);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));">'
+          + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:.03em;margin-bottom:4px;">Skąd biegasz?</div>'
+          + '<div style="font-size:12px;color:var(--muted,#8a8798);line-height:1.5;margin-bottom:14px;">Pokażemy pogodę na Twoje treningi. Zacznij pisać i wybierz z listy.</div>'
+          + '<input id="_mi-inp" type="text" autocomplete="off" placeholder="np. Środa Wielkopolska" '
+          + 'style="width:100%;box-sizing:border-box;background:var(--card,#141019);border:1px solid var(--border,#2a2733);border-radius:10px;padding:12px 14px;color:var(--fg,#f0ede8);font-size:16px;outline:none;">'
+          + '<div id="_mi-lista" style="margin-top:10px;max-height:44vh;overflow-y:auto;"></div>'
+          + '<button id="_mi-anuluj" style="width:100%;margin-top:12px;background:transparent;color:var(--muted,#8a8798);border:1px solid var(--border,#2a2733);border-radius:10px;padding:11px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>'
+          + '</div>';
+        document.body.appendChild(ov);
+        const inp = ov.querySelector('#_mi-inp');
+        const lista = ov.querySelector('#_mi-lista');
+        const zamknij = (v) => { try { document.body.removeChild(ov); } catch (_) {} resolve(v || null); };
+        ov.addEventListener('click', (e) => { if (e.target === ov) zamknij(null); });
+        ov.querySelector('#_mi-anuluj').addEventListener('click', () => zamknij(null));
+        if (biezace) inp.value = biezace;
+
+        let timer = null, pokolenie = 0;
+        const rysuj = (wyniki) => {
+          if (!wyniki.length) {
+            lista.innerHTML = '<div style="padding:12px;color:var(--muted,#8a8798);font-size:12px;">Brak wyników. Spróbuj pełnej nazwy — „Lodz" bez polskich znaków znajduje miasto w Kongu, „Łódź" znajduje Łódź.</div>';
+            return;
+          }
+          lista.innerHTML = '';
+          wyniki.forEach((w) => {
+            const b = document.createElement('button');
+            b.style.cssText = 'display:block;width:100%;text-align:left;background:var(--card,#141019);border:1px solid var(--border,#2a2733);border-radius:10px;padding:11px 13px;margin-bottom:6px;color:var(--fg,#f0ede8);font-size:13px;cursor:pointer;';
+            b.textContent = window.MIASTO.etykieta(w);
+            b.addEventListener('click', () => zamknij(w));
+            lista.appendChild(b);
+          });
+        };
+        inp.addEventListener('input', () => {
+          const moje = ++pokolenie;
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            const w = await window.MIASTO.szukaj(inp.value);
+            if (moje === pokolenie) rysuj(w);      // ⚠️ odrzuć odpowiedź starszego zapytania
+          }, 300);
+        });
+        setTimeout(() => { try { inp.focus(); } catch (_) {} }, 60);
+      });
+    },
+
+    /* Zapis. Zwraca { ok, city } albo { ok:false }. NIE renderuje toastów —
+       o komunikacie decyduje strona, bo mają różne systemy powiadomień. */
+    zapisz: async function (athleteId, wynik) {
+      if (!athleteId || !wynik || !wynik.name) return { ok: false };
+      const { error } = await window.sb.from('athletes').update({
+        city: wynik.name,
+        lat: (wynik.latitude != null) ? wynik.latitude : null,
+        lon: (wynik.longitude != null) ? wynik.longitude : null,
+      }).eq('id', athleteId);
+      if (error) return { ok: false, error: error };
+      /* Cache pogody trzymany po NAZWIE miasta — po zmianie miejsca trzeba go
+         wyczyścić w całości, bo klucz starego miasta nadal by trafiał. */
+      try {
+        Object.keys(sessionStorage).filter(k => k.indexOf('weather:') === 0)
+          .forEach(k => sessionStorage.removeItem(k));
+      } catch (_) {}
+      return { ok: true, city: wynik.name };
+    },
+  };
+
   // window.WATCH — SSOT podłączenia zegarka (intervals.icu OAuth)
   // Reużywa flow z profil.html (authorizeIntervals) — jedna ścieżka, nie kopia.
   // Stan czytany z athletes.intervals_athlete_id (intervals_credentials ma RLS

@@ -1130,25 +1130,33 @@ async function setGender(g) {
 
 async function editCity() {
   if (!_myId) return;
-  const current = _profileData?.city || '';
-  const val = prompt('Podaj miasto (np. Wrocław):', current);
-  if (val === null) return; // anulowano
-  const trimmed = val.trim();
-  if (trimmed === '') {
-    // Czyszczenie — UPDATE city: null
-    const { error } = await sb.from('athletes').update({ city: null }).eq('id', _myId);
-    if (error) { showToast('Błąd: ' + error.message); return; }
-    if (_profileData) _profileData.city = null;
-    showToast('Miasto usunięte');
-    renderCity(_profileData);
-    return;
-  }
-  const { error } = await sb.from('athletes').update({ city: trimmed }).eq('id', _myId);
-  if (error) { showToast('Błąd: ' + error.message); return; }
-  if (_profileData) _profileData.city = trimmed;
+  /* ⚠️ BYŁO `prompt()` — w zainstalowanej PWA blokowany BEZ ŚLADU, więc klik
+     w „Dodaj miasto" nie robił NIC. Modal z podpowiedziami żyje w sb.js
+     (window.MIASTO) — jeden dla profilu i dla karty pogody, nie dwie kopie.
+     ⚠️ Ścieżka CZYSZCZENIA miasta zniknęła razem z promptem: pusty tekst nie jest
+     już sposobem na usunięcie (modal oddaje wynik geokodowania albo nic).
+     Do usunięcia służy `usunMiasto()` niżej — osobna, jawna akcja zamiast
+     „wpisz nic i zapisz". */
+  const wybor = await window.MIASTO.otworz(_profileData?.city || '');
+  if (!wybor) return;                                   // anulowano
+  const zap = await window.MIASTO.zapisz(_myId, wybor);
+  if (!zap.ok) { showToast('Błąd: ' + (zap.error?.message || 'nie zapisano')); return; }
+  if (_profileData) _profileData.city = zap.city;
   showToast('Miasto zapisane ✓');
   renderCity(_profileData);
 }
+
+async function usunMiasto() {
+  if (!_myId) return;
+  const { error } = await sb.from('athletes').update({ city: null, lat: null, lon: null }).eq('id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (_profileData) { _profileData.city = null; _profileData.lat = null; _profileData.lon = null; }
+  try { Object.keys(sessionStorage).filter(k => k.indexOf('weather:') === 0).forEach(k => sessionStorage.removeItem(k)); } catch (e) {}
+  showToast('Miasto usunięte');
+  renderCity(_profileData);
+}
+window.usunMiasto = usunMiasto;
+
 
 function renderGoals(ath) {
   let goals = [];

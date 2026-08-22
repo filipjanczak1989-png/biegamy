@@ -4386,14 +4386,14 @@ window._weatherSetCity = async function() {
   if (!_athleteId) return;
   // Prefill z aktualnej wartości w widgecie (DOM jako single source post-fetch)
   const current = document.getElementById('weather-city')?.textContent?.trim() || '';
-  const val = prompt('Podaj miasto (np. Wrocław):', current);
-  if (val === null) return; // anulowano
-  const trimmed = val.trim();
-  if (!trimmed) return; // pusty input — nic nie rób
-
-  // UPDATE athletes.city + re-fetch weather
-  const { error } = await sb.from('athletes').update({ city: trimmed }).eq('id', _athleteId);
-  if (error) { (window.showToast || alert)('Błąd: ' + error.message); return; }
+  /* ⚠️ BYŁO `prompt()` — w zainstalowanej PWA blokowany BEZ ŚLADU, więc klik
+     w „Wpisz miasto" nie robił NIC. To najlepsze wyjaśnienie, czemu 39 z 61 kont
+     nie ma miasta. Modal z podpowiedziami żyje w sb.js (window.MIASTO), jeden
+     dla tej strony i dla profilu — nie dwie kopie. */
+  const wybor = await window.MIASTO.otworz(current);
+  if (!wybor) return;                       // anulowano
+  const zap = await window.MIASTO.zapisz(_athleteId, wybor);
+  if (!zap.ok) { (window.showToast || alert)('Błąd: ' + (zap.error?.message || 'nie zapisano')); return; }
   (window.showToast || alert)('Miasto zapisane ✓');
   // Clear ALL weather cache keys (defensive — różne city = różne keys)
   try {
@@ -6293,6 +6293,9 @@ async function initAuth() {
 
 let COACH_ID = null;
 let _selectedCoachId = null;
+/* Wybór z kroku 4. Trzymany do `obFinish`, bo konto powstaje dopiero tam —
+   w trakcie onboardingu nie ma jeszcze wiersza w `athletes` do zaktualizowania. */
+let _obMiasto = null;
 let _obMode = 'solo'; // solo | coach | find
 let _obGoal = 'improve';
 let _obAvatarFile = null;
@@ -6402,6 +6405,20 @@ function _obOdswiezPodpisPrywatnosci() {
     : 'Tylko Ty widzisz swoje treningi';
 }
 
+async function obWybierzMiasto() {
+  const w = await window.MIASTO.otworz(_obMiasto ? _obMiasto.name : '');
+  if (!w) return;                                    // anulowano — pole zostaje puste
+  _obMiasto = w;
+  const b = document.getElementById('ob-city-btn');
+  if (b) {
+    b.textContent = '📍 ' + window.MIASTO.etykieta(w);
+    b.style.color = 'var(--fg)';
+    b.style.borderStyle = 'solid';
+    b.style.borderColor = 'rgba(var(--accent-rgb),0.4)';
+  }
+}
+window.obWybierzMiasto = obWybierzMiasto;
+
 function obSelectPrivacy(p) {
   _obPrivacy = p;
   ['private','public'].forEach(v => {
@@ -6510,6 +6527,13 @@ async function obFinish() {
     const _fresh = _terms && (Date.now() - Date.parse(_terms)) < 86400000;
     if (_terms && _fresh) athleteData.terms_accepted_at = _terms;
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
+    /* Miasto z kroku 4 — tylko gdy człowiek COŚ wybrał. Brak wyboru zostawia
+       kolumny NULL, czyli „nie wiadomo", a nie zgadnięte miejsce. */
+    if (_obMiasto) {
+      athleteData.city = _obMiasto.name;
+      athleteData.lat = (_obMiasto.latitude != null) ? _obMiasto.latitude : null;
+      athleteData.lon = (_obMiasto.longitude != null) ? _obMiasto.longitude : null;
+    }
     /* Filtr ostatniej szansy. Bramka z komunikatem stoi w obNext(3) — tutaj
        tylko NIE ZAPISUJEMY tego, co nie przeszlo. Onboardingu nie wolno
        zablokowac na literowce w zyciowce: czlowiek zostalby bez konta. */
@@ -12931,6 +12955,20 @@ window.sendDuelChallenge = sendDuelChallenge;
       </div>
       <div><div class="ob-card-name">Przygotowanie do startu</div><div class="ob-card-sub">Mam zaplanowany wyścig i chcę się do niego przygotować</div></div>
       <div class="ob-check"></div>
+    </div>
+    <!-- ⚠️ MIASTO JAKO POLE OPCJONALNE W KROKU 4, NIE JAKO SZÓSTY KROK.
+         Onboarding ma pięć kroków, każdy z etykietą „Krok N z 5"; szósty
+         wymagałby przenumerowania wszystkich i wydłużał ścieżkę, w której każde
+         pole bez powodu zwiększa szansę porzucenia.
+         ⚠️ POWÓD JEST W ETYKIECIE, nie w tooltipie — „Pokażemy pogodę na Twoje
+         treningi" mówi, co człowiek z tego ma. Pole bez powodu to pole, które
+         się pomija.
+         ⚠️ POMINIĘCIE NIE BLOKUJE „Dalej" — miasto da się dodać później klikiem
+         w kartę pogody na „Dziś". -->
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:13px;color:var(--fg);margin-bottom:2px;">Skąd biegasz? <span style="color:var(--muted);font-size:11px;">— opcjonalnie</span></div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Pokażemy pogodę na Twoje treningi.</div>
+      <button type="button" id="ob-city-btn" onclick="obWybierzMiasto()" style="width:100%;background:var(--card2);border:1px dashed var(--border);color:var(--muted);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;text-align:left;">📍 Wybierz miejscowość</button>
     </div>
     <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:DM Mono,monospace;"></div>
   </div>
