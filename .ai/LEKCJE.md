@@ -680,3 +680,55 @@ i „zrobił mniej km" naprawdę wymagają różnych reakcji planu.
 
 ⚠️ Kierunek, gdy warunek się spełni: `missed` jako TRZECI sygnał OBOK kilometrów —
 odróżniający „biegał mniej" od „nie biegał wcale" — a nie zamiast progu.
+
+### ROZSTRZYGNIĘTE 22.08.2026: „nie wiem" ≠ „nie ma" we wsadzie modelu
+
+Audyt wszystkich pól promptu `generate-training-plan` pod jednym pytaniem: **czy
+model dostaje BRAK POMIARU podany jako POMIAR?**
+
+Znaleziony **jeden** jawny przypadek i **jeden** ukryty:
+
+| pole | stan | co model dostawał |
+|---|---|---|
+| `stravaText` | `strava_activities` = **0 wierszy, 0 osób** | nagłówek sekcji + `(brak Strava)` w KAŻDYM prompcie — **usunięte** |
+| `planVsExec` znak `⚪` | `status='missed'` = 0 → gałąź `❌` nieosiągalna | `⚪` znaczy jednocześnie „jeszcze nie" i „olał" — naprawi się samo, gdy przycisk zacznie produkować wiersze |
+
+⚠️ **Reszta pustek BYŁA już strażowana** — `mostMissedTypes`, `last28dMissed`,
+notatnik trenera, raporty AI. Ktoś przed nami tę zasadę stosował, tylko
+niekonsekwentnie: `watchInsightsText` ma warunek, sąsiedni `stravaText` nie miał.
+
+⚠️ **ZASADA NAZEWNICZA:** gdy pole jest WYŁĄCZONE, a nie puste, placeholder ma
+mówić **„nie zbieramy"**, nie **„brak"**. Pierwsze opisuje NAS, drugie opisuje
+ZAWODNIKA — i tylko pierwsze jest prawdą. „(brak Strava)" podawało cechę
+aplikacji jako cechę człowieka.
+
+**Usunięte przy okazji:** `profileData` — `athletes.profile_data` jest NULL
+u 61/61, a zmienna była przypisywana i nigdy nieużywana. Wożenie jej w zapytaniu
+sugerowało, że model dostaje profil zawodnika.
+
+### ⚠️ DZIURA W PRODUKCIE: zawodnik nie ma jak zgłosić kontuzji (22.08.2026)
+
+Przy audycie wsadu wyszło coś większego niż prompt. **Kontuzje są najważniejszą
+rzeczą, której model i trener powinni być świadomi — i nie ma ich skąd wziąć.**
+
+Zmierzone:
+- `coach_athlete_notes` (kanał `tag='kontuzja'`) — **2 wiersze w całej bazie**,
+  obie z tagiem `inne`. Zero kontuzji, zero celów, zero strategii, u nikogo.
+- `athletes.profile_data`, gdzie ląduje ankieta startowa pytająca o kontuzje —
+  **NULL u 61 z 61 kont**.
+- `zawodnik.html` — **ani jednej ścieżki zgłoszenia**. Słowo „kontuzja" pada tam
+  trzy razy: w opisie ćwiczeń, w karcie onboardingu („Powrót po przerwie lub
+  kontuzji" jako CEL) i w nazwie odznaki. Żadne z tych miejsc nie przyjmuje faktu
+  „boli mnie kolano".
+
+Dziś zawodnik może to powiedzieć **tylko wiadomością do trenera** — a 33 z 61
+osób trenera nie ma, więc **nie ma jak wcale**. Komentarz przy logu jest wolnym
+tekstem, którego nikt nie parsuje.
+
+⚠️ Prompt jest tu NIEWINNY: sekcja kontuzji jest strażowana, więc model dostaje
+CISZĘ, nie fałszywe „brak kontuzji". Problem nie leży w promptcie — leży w tym,
+że nie ma czym go nakarmić.
+
+⚠️ **WARUNEK POWROTU: gdy powstanie sposób zgłaszania kontuzji przez zawodnika.**
+Dopóki go nie ma, każda praca nad „uwzględnianiem kontuzji w planie" buduje na
+pustym kanale — czyli jest tą samą klasą błędu co mechanizm dla nikogo.

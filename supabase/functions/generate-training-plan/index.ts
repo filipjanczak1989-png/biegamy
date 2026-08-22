@@ -222,7 +222,7 @@ async function buildAthleteContext(supabase: any, athleteId: string, coachId?: s
   // 1. Profil zawodnika
   const { data: athlete } = await supabase
     .from("athletes")
-    .select("full_name, profile_data, race_goals, tdee, goal, target_date")
+    .select("full_name, race_goals, tdee, goal, target_date")   /* profile_data zdjęte: NULL u 61/61, nieużywane */
     .eq("id", athleteId)
     .maybeSingle();
 
@@ -664,7 +664,9 @@ function buildPrompt(
   coachNote: string,  // ✨ v2: nowy parametr
 ): string {
   const ath = context.athlete || {};
-  const profileData = ath.profile_data || {};
+  /* ⚠️ `profileData` USUNIĘTE 22.08.2026 — podwójny sierota. `athletes.profile_data`
+     jest NULL u 61 z 61 kont, a zmienna była przypisywana i NIGDY nieużywana.
+     Wożenie jej w zapytaniu sugerowało, że model dostaje profil zawodnika. */
   // ✨ v2.3: race_goals normalizacja przez helper
   const raceGoals = normalizeRaceGoals(ath.race_goals);
   
@@ -725,10 +727,20 @@ function buildPrompt(
     return `${date} | ${type} | ${km}km | ${pace} | HR ${hr}${feelStr}${commentStr}${screen}${watch}`;
   }).join("\n") || "(brak logów)";
 
-  // ─── Strava jako tekst ─────
-  const stravaText = context.strava.slice(0, 20).map((a: any) =>
-    `${a.start_date?.slice(0, 10)} | ${a.type || "?"} | ${((a.distance || 0) / 1000).toFixed(1)}km | ${Math.round((a.moving_time || 0) / 60)}min | HR avg ${a.average_heartrate || "-"} | elev ${Math.round(a.total_elevation_gain || 0)}m`
-  ).join("\n") || "(brak Strava)";
+  /* ⚠️ SEKCJA STRAVA ZDJĘTA Z PROMPTU 22.08.2026. `strava_activities` ma ZERO
+     wierszy dla ZERA osób — Strava została porzucona, kod został. Blok NIE BYŁ
+     strażowany (w odróżnieniu od sąsiedniego `watchInsightsText`), więc do
+     KAŻDEGO promptu, dla KAŻDEGO zawodnika, od zawsze szło:
+         ## OSTATNIE AKTYWNOŚCI STRAVA (max 20):
+         (brak Strava)
+     ⚠️ TO JEST RÓŻNICA MIĘDZY „NIE WIEM" A „NIE MA". Nagłówek obiecywał źródło
+     danych, a placeholder mówił, że u tego człowieka jest ono puste — czyli
+     podawał CECHĘ APLIKACJI jako CECHĘ ZAWODNIKA.
+     ⚠️ GDYBY STRAVA WRÓCIŁA: placeholder ma brzmieć „nie zbieramy", nie „brak".
+     Pierwsze opisuje nas, drugie opisuje zawodnika — i tylko pierwsze jest
+     prawdą, dopóki nikt nie ma podpiętego konta.
+     Odczyt z bazy ZOSTAJE (ok. linii 285): karmi `stats.stravaCount` zapisywany
+     w `training_plans.input_strava_activities_count` — ślad historyczny. */
 
   // ─── ✨ v4 (watch): WYKRESY Z ZEGARKA — INSIGHTY (tylko przeliczone wnioski, bez surowych serii) ─────
   const watchInsightsText = (context.watchInsights || []).map((w: any) => {
@@ -1583,7 +1595,6 @@ ${context.analityka ? `- Forma dzis: CTL ${context.analityka.ctl} / TSB ${contex
 - Średnia objętość/tydzień: ${stats.avgWeeklyKm} km
 - Liczba zalogowanych treningów: ${stats.logsCount}
 - Treningów zmierzonych zegarkiem (intervals.icu, ⌚): ${stats.watchLogsCount}
-- Liczba aktywności Strava: ${stats.stravaCount}
 - Logów z odczuciami zawodnika: ${stats.logsWithFeel}
 - Logów ze screenshotami Garmin/Strava: ${stats.logsWithAttachment}
 - Raportów AI o tym zawodniku: ${stats.aiReportsCount} (z opiniami: ${stats.reportsWithFeedbackCount})
@@ -1599,8 +1610,6 @@ Wpisy oznaczone ⌚zegarek pochodzą z automatycznego importu intervals.icu (zeg
 Format: data | typ | km | tempo | HR | ODCZUCIE: "..." | 📷 screen | ⌚ zegarek
 ${logsText}
 
-## OSTATNIE AKTYWNOŚCI STRAVA (max 20):
-${stravaText}
 
 ${watchInsightsText ? `## ⌚ WYKRESY Z ZEGARKA — INSIGHTY (przeliczone z detali intervals.icu — splity per km, strefy HR, kadencja):
 Odwołuj się do KONKRETÓW w rationale (np. "interwały z 2.07: splity 3:47–3:52, równo — trzymamy poziom"; "spokojny z 4.07: 40% w str.3 — biegasz za mocno na luźnych").
