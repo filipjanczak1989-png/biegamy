@@ -2034,7 +2034,16 @@ serve(async (req) => {
         stopa: "stopa", achilles: "ścięgno Achillesa", lydka: "łydka",
         kolano: "kolano", udo: "udo", inne: "inne miejsce",
       };
+      /* ⚠️ ŚWIADOMY DUPLIKAT słownika z `window.BOL.MIEJSCA` (sb.js) — EF nie ma
+         dostępu do kodu klienta. Dopełniacz jest potrzebny, bo zdanie w planie
+         brzmi „bo zgłosiłeś ból KOGO/CZEGO"; bez odmiany wychodzi „ból Kolano".
+         ⚠️ Przy `inne` nazwy NIE MA — zdanie kończy się na samym „ból". */
+      const DOPELNIACZ: Record<string, string | null> = {
+        stopa: "stopy", achilles: "ścięgna Achillesa", lydka: "łydki",
+        kolano: "kolana", udo: "uda", inne: null,
+      };
       const gdzie = MIEJSCA[b.miejsce] || b.miejsce;
+      const bolCzego = DOPELNIACZ[b.miejsce] ? `ból ${DOPELNIACZ[b.miejsce]}` : "ból";
       const dni = Math.max(0, Math.round((Date.now() - new Date(b.created_at).getTime()) / 864e5));
       const odKiedy = dni === 0 ? "dzisiaj" : (dni === 1 ? "wczoraj" : `${dni} dni temu`);
       const nota = b.notatka ? `\nZawodnik dopisał: „${b.notatka}"` : "";
@@ -2043,14 +2052,18 @@ serve(async (req) => {
         1: `POZIOM 1 — BOLI LEKKO („czuję, ale mogę biegać").
 • Objętość BEZ ZMIAN — to nie jest powód do cofania planu.
 • ZERO nowych akcentów obciążających ${gdzie}. Interwały i tempo tylko jeśli już były i przebiegały bezboleśnie.
-• W polu rationale napisz WPROST, że widzisz zgłoszenie i dlaczego NIE zmieniasz objętości. Milczenie zawodnik przeczyta jako „nie zauważyli".`,
+• W polu rationale napisz WPROST, że widzisz zgłoszenie i dlaczego NIE zmieniasz objętości. Milczenie zawodnik przeczyta jako „nie zauważyli".
+• W polu ai_warnings umieść DOKŁADNIE to zdanie, bez dodawania niczego od siebie: „Ten plan jest lżejszy, bo zgłosiłeś ${bolCzego}. Wróci do normy, gdy oznaczysz, że minęło."`,
         2: `POZIOM 2 — BOLI MOCNO („przeszkadza w bieganiu").
 • OBJĘTOŚĆ −40% względem tego, co dałbyś bez zgłoszenia. Nie −20%: ból, który przeszkadza w bieganiu, to nie jest sytuacja na kosmetyczną korektę.
 • SAME BIEGI SPOKOJNE. Zero interwałów, zero tempa, zero podbiegów, zero akcentów jakiegokolwiek rodzaju.
+• W polu ai_warnings umieść DOKŁADNIE to zdanie, bez dodawania niczego od siebie: „Ten plan jest lżejszy, bo zgłosiłeś ${bolCzego}. Wróci do normy, gdy oznaczysz, że minęło."
 • W polu warnings MUSI paść zdanie: „To jest plan na czas dolegliwości, nie plan docelowy." Zawodnik ma wiedzieć, że to stan przejściowy, a nie że go spisaliśmy na straty.`,
         3: `POZIOM 3 — NIE MOGĘ BIEGAĆ („ból mnie zatrzymuje").
 • PIERWSZY TYDZIEŃ BEZ BIEGANIA W OGÓLE. Ani jednej jednostki biegowej — zamiast tego odpoczynek i, jeśli ból na to pozwala, aktywność bezudarowa (rower, basen, mobilność).
 • Kolejne tygodnie ułóż jako POWRÓT, ale zaznacz w polu warnings, że właściwy plan zacznie się dopiero, gdy zawodnik oznaczy zgłoszenie jako zakończone („już nie boli" w aplikacji).
+• W polu ai_warnings umieść DOKŁADNIE to zdanie: „W tym planie nie ma biegania, bo zgłosiłeś ${bolCzego}. Wróci, gdy oznaczysz, że minęło."
+  ⚠️ NIE pisz tu „plan jest lżejszy" — przy tym poziomie plan nie jest lżejszy, tylko BEZ BIEGANIA. Zdanie o lżejszym planie należy do poziomów 1 i 2.
 • W polu warnings dopisz dokładnie to zdanie, bez dodawania niczego od siebie: „Ból uniemożliwiający bieganie warto skonsultować."
 • ⛔ NIE stawiaj diagnozy i NIE nazywaj urazu. Nie wiesz, co to jest, i nie masz jak sprawdzić.`,
       };

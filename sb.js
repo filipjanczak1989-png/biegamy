@@ -1660,13 +1660,22 @@
       { v: 3, etykieta: 'Nie mogę biegać', opis: 'Ból mnie zatrzymuje' }
     ],
     MIEJSCA: [
-      { v: 'stopa',    etykieta: 'Stopa' },
-      { v: 'achilles', etykieta: 'Ścięgno Achillesa' },
-      { v: 'lydka',    etykieta: 'Łydka' },
-      { v: 'kolano',   etykieta: 'Kolano' },
-      { v: 'udo',      etykieta: 'Udo' },
-      { v: 'inne',     etykieta: 'Inne' }
+      /* ⚠️ `dopelniacz` NIE JEST OZDOBĄ — zdanie w planie brzmi „bo zgłosiłeś ból
+         KOGO/CZEGO". Bez odmiany wychodzi „ból Kolano", a przy „Inne" nie da się
+         powiedzieć nic sensownego, więc to jedyne miejsce ma `dopelniacz: null`
+         i wołający musi wtedy opuścić nazwę („bo zgłosiłeś ból"). */
+      { v: 'stopa',    etykieta: 'Stopa',             dopelniacz: 'stopy' },
+      { v: 'achilles', etykieta: 'Ścięgno Achillesa', dopelniacz: 'ścięgna Achillesa' },
+      { v: 'lydka',    etykieta: 'Łydka',             dopelniacz: 'łydki' },
+      { v: 'kolano',   etykieta: 'Kolano',            dopelniacz: 'kolana' },
+      { v: 'udo',      etykieta: 'Udo',               dopelniacz: 'uda' },
+      { v: 'inne',     etykieta: 'Inne',              dopelniacz: null }
     ],
+    /* „ból kolana" / „ból" (gdy miejsce = inne). Jedno źródło dla klienta i EF. */
+    bolCzego: function (v) {
+      var m = this.MIEJSCA.filter(function (x) { return x.v === v; })[0];
+      return (m && m.dopelniacz) ? ('ból ' + m.dopelniacz) : 'ból';
+    },
     nazwaMiejsca: function (v) {
       var m = this.MIEJSCA.filter(function (x) { return x.v === v; })[0];
       return m ? m.etykieta : String(v || '');

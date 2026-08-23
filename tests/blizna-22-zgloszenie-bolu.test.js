@@ -122,6 +122,23 @@ test('22 — zgłoszenie bólu', async (t) => {
     assert.strictEqual(a.miejsce, 'achilles');
   });
 
+  await t.test('⚠️ ZDANIE W PLANIE ODMIENIA MIEJSCE — „ból kolana", nie „ból Kolano"', () => {
+    /* Zdanie brzmi „bo zgłosiłeś ból KOGO/CZEGO". Bez dopełniacza wychodziłoby
+       „ból Kolano" i całość czytałaby się jak wygenerowana maszynowo — a ma
+       brzmieć jak decyzja. */
+    assert.strictEqual(w.BOL.bolCzego('kolano'), 'ból kolana');
+    assert.strictEqual(w.BOL.bolCzego('stopa'), 'ból stopy');
+    assert.strictEqual(w.BOL.bolCzego('lydka'), 'ból łydki');
+    assert.strictEqual(w.BOL.bolCzego('achilles'), 'ból ścięgna Achillesa');
+    assert.strictEqual(w.BOL.bolCzego('udo'), 'ból uda');
+  });
+
+  await t.test('⚠️ „Inne" NIE dokleja nazwy — zdanie kończy się na samym „ból"', () => {
+    /* „bo zgłosiłeś ból inne" byłoby bełkotem; przy tym miejscu nazwa znika. */
+    assert.strictEqual(w.BOL.bolCzego('inne'), 'ból');
+    assert.strictEqual(w.BOL.bolCzego('nieznane-miejsce'), 'ból', 'nieznana wartość też nie może dokleić śmiecia');
+  });
+
   /* ══ TEST NEGATYWNY ══════════════════════════════════════════════════════
      Dowód, że asercja o zamknięciu pilnuje czegoś realnego. */
   await t.test('⚠️ REGRESJA: bez zamknięcia zgłoszenie zostaje aktywne na zawsze', async () => {

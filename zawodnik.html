@@ -2049,10 +2049,31 @@ async function _odswiezBol() {
   window._aktywnaKontuzja = akt;
 
   if (!akt) {
+    /* ⚠️ Z TRENEREM: DOKŁADAMY DROGĘ, NIE ZABIERAMY FUNKCJI. Kto ma trenera, ma
+       żywy kanał i tak z niego korzysta (39 wiadomości Kasi o bólu) — więc
+       najpierw mówimy, że rozmowa jest szybsza, a przycisk zgłoszenia ZOSTAJE
+       niżej. Ukrycie go byłoby zabraniem możliwości, nie wskazaniem lepszej —
+       ta sama zasada co przy pustym tygodniu i pustym czacie.
+       ⚠️ Wątek trenera jest JEDEN: `messages` kluczowane po `athlete_id`, więc
+       rozmowa należy do PRZYPISANEGO trenera i nie ma wyboru Filip/Kasia.
+       Wzorzec otwarcia skopiowany z panelu powiadomień (ok. linii 10937). */
+    const zTrenerem = window._brakTrenera === false;
     box.innerHTML =
-      '<button id="today-bol-btn" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);'
-      + 'border:1px solid var(--border);border-radius:12px;padding:11px;font-family:\'DM Mono\',monospace;'
-      + 'font-size:11px;letter-spacing:0.06em;cursor:pointer;">Coś boli</button>';
+      (zTrenerem
+        ? '<div style="margin-top:8px;padding:11px 12px;border:1px solid var(--border);border-radius:12px;text-align:left;">'
+          + '<div style="font-size:12px;color:var(--fg2);line-height:1.5;margin-bottom:9px;">Coś boli? Napisz do trenera — zobaczy to od razu.</div>'
+          + '<button id="today-bol-czat" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;'
+          + 'padding:11px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;'
+          + 'font-weight:600;cursor:pointer;">Napisz do trenera</button></div>'
+        : '')
+      + '<button id="today-bol-btn" style="width:100%;margin-top:8px;background:transparent;color:var(--muted);'
+      + 'border:1px solid var(--border);border-radius:12px;padding:11px;font-family:DM Mono,monospace;'
+      + 'font-size:11px;letter-spacing:0.06em;cursor:pointer;">' + (zTrenerem ? 'Albo zgłoś tutaj' : 'Coś boli') + '</button>';
+    const cz = document.getElementById('today-bol-czat');
+    if (cz) cz.addEventListener('click', () => {
+      showSection('msgs');
+      setTimeout(() => { try { openChatThread('coach', null, null); } catch (e) {} }, 400);
+    });
     const b = document.getElementById('today-bol-btn');
     if (b) b.addEventListener('click', _zglosBol);
     return;
