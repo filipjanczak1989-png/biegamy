@@ -3782,7 +3782,8 @@ function renderLogs_db(logs) {
       const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
       const pace = l.pace ? l.pace + '/km' : '';
       const gap = l.gap_pace ? 'GAP ' + l.gap_pace : '';   /* E2-UI parytet trenera */
-      const kad = l.cadence ? '👣 ' + (l.cadence * 2) : '';   /* zapis RPM, UI x2 */
+      const _kadT = window.kadencjaSpm ? window.kadencjaSpm(l.cadence, l.training_type) : null;   /* zapis = RPM jednej nogi; przeliczenie i bramka na typ w sb.js */
+      const kad = _kadT ? '👣 ' + _kadT : '';
       const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
       const watch = (l.source === 'intervals' && l.external_id)
         ? `<span onclick="event.stopPropagation();openCoachIcuModal('${l.id}')" style="color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">⌚ wykresy</span>`

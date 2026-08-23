@@ -1357,6 +1357,36 @@
     return window.RUN_TYPES.has((t || '').toLowerCase().trim());
   };
 
+  /* ⚠️ KADENCJA: intervals.icu oddaje RPM JEDNEJ NOGI, nie kroki na minutę.
+     Zmierzone na produkcji 24.08.2026 — biegi (`type='Run'`, n=274) mają
+     medianę 82 przy zakresie 58–93. Biegowa kadencja to dwa razy tyle, więc
+     mnożnik ×2 był już rozsypany po PIĘCIU miejscach w trzech plikach; tutaj
+     jest jedno.
+
+     ⚠️ ALE SAM MNOŻNIK NIE WYSTARCZY, bo to samo pole niesie przy innym sporcie
+     inną wielkość. Zmierzone w bazie, wszystko realne wiersze:
+       OpenWaterSwim  23–30   tempo ramion — pokazywało się jako „46 kroków/min"
+       Siłownia        8–95   n=9, dolny kraniec to „16 kroków/min" pod stopą
+       Spacer         do 145  → „290 kroków/min"
+       rower           0 z 7 aktywności ma cokolwiek (brak czujnika)
+     Nie-bieg nie dostaje więc przeliczenia, tylko `null`: liczby, której nie da
+     się uczciwie nazwać krokami, nie pokazujemy wcale.
+
+     ⚠️ ZERO ZNACZY „NIE ZMIERZONO", NIE „ZERO KROKÓW". W całej bazie nie ma ani
+     jednego wiersza z `cadence = 0` — intervals pomija pole, gdy zegarek nie
+     mierzy (14 z 347 rekordów szczegółów ma tam NULL). Traktujemy 0 jak brak,
+     żeby jedna zmiana po ich stronie nie wyprodukowała nagle „0 kroków/min". */
+  window.kadencjaSpm = function (cadence, typTreningu) {
+    var c = Number(cadence);
+    if (!isFinite(c) || c <= 0) return null;
+    if (!window.isRunType(typTreningu)) return null;
+    var spm = Math.round(c * 2);
+    /* Druga linia obrony, gdyby typ był wpisany błędnie: realne biegi mieszczą
+       się w 116–186 spm. Zakres jest celowo szerszy, żeby nie zjadł prawdy. */
+    if (spm < 100 || spm > 240) return null;
+    return spm;
+  };
+
   // Cel kcal = TDEE (maintenance, liczony triggerem DB calc_bmr_tdee) + korekta celu. Single source dla ±300.
   window.GOAL_KCAL_ADJUST = { deficit: -300, surplus: 300, maintain: 0 };
   window.computeTargetKcal = function(tdee, goal) {
@@ -2836,7 +2866,7 @@
 
   // ═══ intervals.icu drill-down (SSOT — przeniesione z kalendarz.html; kalendarz+trener konsumują) ═══
 // ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
-let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {};
+let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {}, _icuTypBiegu = null;   // _icuTypBiegu: typ treningu, z ktorego otwarto szczegoly — bramka kadencji (patrz kadencjaSpm)
 const _ICU_AXIS = { pace:'yPace', hr:'yHr', resp:'yResp', cad:'yCad', alt:'yAlt', temp:'yTemp' };
 const _ICU_BTN  = { pace:'ds-icu-tab-pace', hr:'ds-icu-tab-hr', resp:'ds-icu-tab-resp', cad:'ds-icu-tab-cad', alt:'ds-icu-tab-alt', temp:'ds-icu-tab-temp' };
 window._icuFmtPace = function (s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
@@ -2874,6 +2904,7 @@ window._renderIcuDetail = async function (logs) {
   loading.style.display = 'block';
   if (icuLogs.length > 1) { multiEl.textContent = 'trening 1 z ' + icuLogs.length; multiEl.style.display = 'block'; }  // nie gubimy drugiego
   const icuLog = icuLogs[0];
+  _icuTypBiegu = icuLog.training_type || null;   // ⚠️ USTAWIC PRZED renderem — kadencja bez typu jest nieodrozninalna od RPM roweru
 
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -2921,7 +2952,8 @@ window._icuRenderChart = function (d) {
   _icuMetricIdx.pace = dsets.length;
   dsets.push({ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)', borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.pace_s) });
   if (_icuHasHr)      { _icuMetricIdx.hr  = dsets.length; dsets.push({ label:'Tętno',    yAxisID:'yHr',  borderColor:'#ff5b5b', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.hr) }); }
-  if (has(S.cad))     { _icuMetricIdx.cad = dsets.length; dsets.push({ label:'Kadencja', yAxisID:'yCad', borderColor:'#5b8cff', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.cad.map(v=>v==null?v:v*2)) }); }   // ×2: per-noga→total spm (apka biegowa; rower=RPM byłby ×1)
+  /* Bramka na TYP, nie tylko na obecnosc danych: przy nie-biegu ta seria niosla RPM roweru albo tempo ramion pod etykieta „Kadencja". Brak wpisu w _icuMetricIdx = _icuSetMetric sam chowa przycisk. */
+  if (has(S.cad) && window.isRunType(_icuTypBiegu)) { _icuMetricIdx.cad = dsets.length; dsets.push({ label:'Kadencja', yAxisID:'yCad', borderColor:'#5b8cff', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.cad.map(v=>v==null?v:window.kadencjaSpm(v,_icuTypBiegu))) }); }
   if (has(S.alt_m))   { _icuMetricIdx.alt = dsets.length; dsets.push({ label:'Wysokość', yAxisID:'yAlt', borderColor:'#3db870', backgroundColor:'rgba(61,184,112,0.08)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.alt_m) }); }
   if (has(S.resp))    { _icuMetricIdx.resp = dsets.length; dsets.push({ label:'Oddech',      yAxisID:'yResp', borderColor:'#2dd4bf', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.resp) }); }   // gated has() — bez HR brak streamu → null
   if (has(S.temp))    { _icuMetricIdx.temp = dsets.length; dsets.push({ label:'Temperatura', yAxisID:'yTemp', borderColor:'#f2b134', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.temp) }); }   // uniwersalna
@@ -2977,7 +3009,7 @@ window._icuRenderStats = function (d) {
   const grp = (title, cells) => { const c = cells.filter(Boolean); return c.length ?
     `<div class="ds-label" style="margin:14px 0 8px;">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${c.join('')}</div>` : ''; };
 
-  const cad = st.avg_cadence!=null ? Math.round(st.avg_cadence*2) : null;   // ×2: per-noga→total spm
+  const cad = window.kadencjaSpm(st.avg_cadence, _icuTypBiegu);
   const groups = [
     grp('Tempo', [ cell('GAP', st.gap_pace_s!=null?_icuFmtPace(st.gap_pace_s):null, '/km', 'tempo wg terenu') ]),
     grp('Teren', [

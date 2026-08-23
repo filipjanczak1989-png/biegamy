@@ -4843,7 +4843,9 @@ async function _renderOdprawa() {
       linie.push(['\ud83d\udecc Sen', senTxt + (gotSig.sen < 6 * 3600 ? ' \u2014 kr\u00f3tko, zadbaj dzi\u015b' : '')]);
     }
     if (gotSig && gotSig.readiness != null) linie.push(['\u26a1 Gotowo\u015b\u0107 (Garmin)', gotSig.readiness + '/100']);
-    var ostBieg = (logs || []).find(l => l.cadence);
+    /* ⚠️ „ostatni bieg” musi znaczyć BIEG. Filtr po samym `l.cadence` łapał
+       rower i siłownię, a karta podpisywała to „kroków/min”. */
+    var ostBieg = (logs || []).find(function (l) { return window.kadencjaSpm(l.cadence, l.training_type) != null; });
     /* TREND-ODPRAWA: mini-sparkline snu (21 dni wellness) + kadencji (biegi z logow) */
     function _sparkT(pts, dobryKierunek, jednostka) {
       if (!pts || pts.length < 4) return '';
@@ -4863,9 +4865,9 @@ async function _renderOdprawa() {
     var senPts = (welData || []).slice().reverse().filter(function (w) { return w.sleep_secs != null; }).map(function (w) { return w.sleep_secs; });
     var senTrend = _sparkT(senPts, 'gora', 'sen');
     /* kadencja: z biegow (logi), chronologicznie */
-    var kadPts = (logs || []).slice().reverse().filter(function (l) { return l.cadence; }).map(function (l) { return +l.cadence * 2; });
+    var kadPts = (logs || []).slice().reverse().map(function (l) { return window.kadencjaSpm(l.cadence, l.training_type); }).filter(function (v) { return v != null; });
     var kadTrend = _sparkT(kadPts, 'gora', 'kad');
-    if (ostBieg && ostBieg.cadence) linie.push(['\ud83d\udc63 Kadencja (ost.)', (ostBieg.cadence * 2) + ' krok\u00f3w/min']);
+    if (ostBieg) linie.push(['\ud83d\udc63 Kadencja (ost.)', window.kadencjaSpm(ostBieg.cadence, ostBieg.training_type) + ' krok\u00f3w/min']);
 
     var _gval = Math.max(0, Math.min(100, Math.round(tsb + 50)));
     var _gcol = tsb >= 5 ? '#3ad884' : tsb >= -10 ? '#63a6f4' : tsb >= -25 ? '#f4c04a' : '#ff7a45';
@@ -8083,7 +8085,8 @@ function renderLogsDb(data) {
     const bgImg = _runImgs[(idx * 7 + 3) % _runImgs.length];
     const bgPos = 'center 25%';
     const screensHtml = l.attachment_url ? _makeScreensCarousel(l.attachment_url.split(',').filter(Boolean), 'log-'+l.id) : '';
-    const detParts = [l.pace ? l.pace+'/km' : '', l.gap_pace ? 'GAP '+l.gap_pace : '', l.heart_rate ? '♥ '+l.heart_rate : '', l.cadence ? '👣 '+(l.cadence*2) : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : '']   /* E2-UI: GAP + kadencja x2 (zapis RPM!) */.filter(Boolean);
+    const _kadL = window.kadencjaSpm ? window.kadencjaSpm(l.cadence, l.training_type) : null;   /* zapis = RPM jednej nogi; przeliczenie i bramka na typ w sb.js */
+    const detParts = [l.pace ? l.pace+'/km' : '', l.gap_pace ? 'GAP '+l.gap_pace : '', l.heart_rate ? '♥ '+l.heart_rate : '', _kadL ? '👣 '+_kadL : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : ''].filter(Boolean);
     return `<div onclick="editLog(${idx})" style="position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:10px;background-image:url(${bgImg});background-size:cover;background-position:${bgPos};cursor:pointer;" onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.05) 0%,rgba(7,5,12,0.55) 40%,rgba(7,5,12,0.96) 100%);pointer-events:none;"></div>
       <div style="height:70px;"></div>
