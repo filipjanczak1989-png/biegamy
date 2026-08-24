@@ -2896,6 +2896,7 @@ window._renderIcuDetail = async function (logs) {
   const zonesEl = document.getElementById('ds-icu-hrzones');
   if (_icuChart) { try { _icuChart.destroy(); } catch(e){} _icuChart = null; }
   loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none'; if (statsEl) statsEl.style.display='none'; if (zonesEl) zonesEl.style.display='none';
+  { const mp=document.getElementById('ds-icu-mapa'); if (mp) { mp.style.display='none'; mp.innerHTML=''; } }   // ⚠️ RESET RAZEM Z RESZTA: bez tego trasa z poprzedniego dnia zostawala na ekranie przy bledzie albo przy 403
   { const t=document.getElementById('ds-icu-tabs'); if (t) t.style.display='none'; }
 
   const icuLogs = (logs || []).filter(l => l.source === 'intervals' && l.external_id);
@@ -2926,6 +2927,7 @@ window._renderIcuDetail = async function (logs) {
     }
     chartWrap.style.display = 'block';   // canvas MUSI mieć wymiary PRZED new Chart (inaczej 0×0 → pusty wykres)
     splitsEl.style.display = 'block';
+    _icuRenderMapa(d, chartWrap);   // przed wykresem — ksztalt trasy jest pierwszym, co czlowiek rozpoznaje
     _icuRenderChart(d);
     _icuRenderSplits(d, splitsEl);
     _icuRenderStats(d);
@@ -2939,6 +2941,80 @@ window._renderIcuDetail = async function (logs) {
     msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
   }
 }
+
+/* ═ TRASA BIEGU (24.08.2026) ════════════════════════════════════════════════
+   ⚠️ TO NIE JEST MAPA I NIE MA UDAWAC MAPY. Rysujemy KSZTALT trasy w SVG:
+   linia bez ulic, bez nazw, bez kafelkow. Roznica jest istotna i warto ja znac
+   przed patrzeniem na wynik — kto szuka „gdzie dokladnie skrecilem", tego tu nie
+   znajdzie.
+   Powod jest architektoniczny, nie estetyczny: kazda prawdziwa mapa to
+   biblioteka (Leaflet ~140 kB) PLUS serwer kafelkow, czyli trzeci obcy origin
+   ladowany przy kazdym otwarciu treningu. Mamy juz zaleglosc „supabase-js z
+   obcego CDN poza cache SW" i wpuszczanie kolejnego dostawcy do sciezki
+   krytycznej byloby jej powieleniem. SVG jest zerowa zaleznoscia: dziala offline,
+   przechodzi przez Service Workera i nie wysyla nikomu adresu zawodnika.
+
+   ⚠️ Wejscie to polyline Google z EF (200 punktow, ~730 B) — NIE surowe latlngs. */
+window._icuDekodujTrase = function (str) {
+  if (!str || typeof str !== 'string') return [];
+  const pts = []; let i = 0, lat = 0, lon = 0;
+  while (i < str.length) {
+    let wynik = 0, przes = 0, b;
+    do { b = str.charCodeAt(i++) - 63; wynik |= (b & 0x1f) << przes; przes += 5; } while (b >= 0x20 && i < str.length);
+    lat += (wynik & 1) ? ~(wynik >> 1) : (wynik >> 1);
+    wynik = 0; przes = 0;
+    do { b = str.charCodeAt(i++) - 63; wynik |= (b & 0x1f) << przes; przes += 5; } while (b >= 0x20 && i < str.length);
+    lon += (wynik & 1) ? ~(wynik >> 1) : (wynik >> 1);
+    pts.push([lat / 1e5, lon / 1e5]);
+  }
+  return pts;
+};
+
+window._icuRenderMapa = function (d, przedElem) {
+  let box = document.getElementById('ds-icu-mapa');
+  /* Element tworzymy z JS, a nie w HTML kazdej strony: znacznik `ds-icu-*` jest
+     zduplikowany na CZTERECH stronach (zawodnik, kalendarz, profil, trener),
+     wiec dopisanie diva w kazdej z nich byloby piata kopia tego samego bledu. */
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'ds-icu-mapa';
+    box.style.cssText = 'display:none;margin:0 0 12px;';
+    if (przedElem && przedElem.parentNode) przedElem.parentNode.insertBefore(box, przedElem);
+  }
+  const pts = window._icuDekodujTrase(d && d.trasa);
+  /* Bieznia, VirtualRun i cudzy trening (bramka prywatnosci w EF) daja pustke —
+     karta znika bez komunikatu, bo brak trasy nie jest bledem. */
+  if (pts.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+  const laty = pts.map(p => p[0]), lony = pts.map(p => p[1]);
+  const laMin = Math.min.apply(null, laty), laMax = Math.max.apply(null, laty);
+  const loMin = Math.min.apply(null, lony), loMax = Math.max.apply(null, lony);
+  /* Poludniki zbiegaja sie ku biegunom — bez tego mnoznika trasa w Polsce
+     wychodzi rozciagnieta w poziomie o ~40%. */
+  const kx = Math.cos(((laMin + laMax) / 2) * Math.PI / 180);
+  const szer = Math.max((loMax - loMin) * kx, 1e-9), wys = Math.max(laMax - laMin, 1e-9);
+  const M = 6, W = 1000, H = Math.round(W * wys / szer);
+  const x = (lo) => M + ((lo - loMin) * kx / szer) * (W - 2 * M);
+  const y = (la) => M + (1 - (la - laMin) / wys) * (H - 2 * M);   // lat rosnie w gore, y w dol
+  const punkty = pts.map(p => x(p[1]).toFixed(1) + ',' + y(p[0]).toFixed(1)).join(' ');
+
+  /* Proporcje pudelka przycinamy: bieg tam i z powrotem ta sama ulica ma
+     stosunek bokow rzedu 30:1 i bez tego byl by pasKiem wysokim na 8 px.
+     `meet` sprawia, ze trasa i tak sie nie znieksztalca — dostaje tylko
+     puste marginesy. */
+  const propor = Math.min(0.62, Math.max(0.34, wys / szer));
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div style="position:relative;width:100%;aspect-ratio:1 / ' + propor.toFixed(3) + ';'
+    + 'border:1px solid var(--border);border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.02);">'
+    + '<svg viewBox="0 0 ' + W + ' ' + (H + 2 * M) + '" preserveAspectRatio="xMidYMid meet" '
+    + 'style="position:absolute;inset:0;width:100%;height:100%;">'
+    + '<polyline points="' + punkty + '" fill="none" stroke="#e8561e" stroke-width="2.5" '
+    + 'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + '<circle cx="' + x(pts[0][1]).toFixed(1) + '" cy="' + y(pts[0][0]).toFixed(1) + '" r="9" fill="#3ad884"/>'
+    + '<circle cx="' + x(pts[pts.length - 1][1]).toFixed(1) + '" cy="' + y(pts[pts.length - 1][0]).toFixed(1) + '" r="9" fill="#e8561e"/>'
+    + '</svg></div>';
+};
 
 window._icuRenderChart = function (d) {
   // świeży <canvas> co render — omija leftover-state Chart.js przy reużyciu ("Canvas is already in use" / pusty canvas przy 2. otwarciu)
