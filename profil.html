@@ -253,16 +253,13 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <div class="ps-val" id="ps-logs">—</div>
       <div class="ps-lbl">Treningi</div>
     </div>
-    <div class="ps-item" onclick="goToStats()" style="cursor:pointer;">
-      <div class="ps-val" id="ps-km" style="display:flex;align-items:center;justify-content:center;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/>
-          <line x1="12" y1="20" x2="12" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-      </div>
-      <div class="ps-lbl">Narzędzia</div>
-    </div>
+    <!-- Kafel „Narzędzia" usunięty 24.08.2026 razem z narzedzia.html. Prowadził
+         do czterech kalkulatorów, z których trzy nie umiały odczytać wpisanego
+         czasu (maska autoColonTime nie wstawia dwukropka poniżej 3 cyfr, a
+         _parseTimeToSecs zwraca null bez dwukropka), więc pole wyniku zostawało
+         puste i przez placeholder „6:00" wyglądało na policzone. Jeśli
+         kalkulatory mają wrócić — wracają z dopełnieniem czasu na blur, nie
+         z samą maską. -->
   </div>
 </div>
 
@@ -3187,7 +3184,7 @@ async function _openRacesModal() {
       +(dl>0?'<div style="font-size:10px;color:var(--accent);margin-top:3px;">za '+dl+' dni</div>':'')+'</div>';
   }).join('');
 }
-function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId; }
+// goToStats usunięte 24.08.2026 — jedyny wywołujący (kafel „Narzędzia") zniknął razem z narzedzia.html.
 </script>
 
 <!-- Dolna nawigacja — window.NAV (SSOT); montowana w init wg roli+id (N1b) -->

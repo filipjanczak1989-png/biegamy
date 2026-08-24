@@ -5906,7 +5906,15 @@ function _genZalogujProbe(w, poziom, dataStartu) {
       dni_w_tygodniu: _genDni || null,
       baza_km: (poziom && poziom.objetoscTygodniowa > 0) ? poziom.objetoscTygodniowa : null,
       cel_czasowy_s: _czasZPol('gen-cel'),
-      szczegoly: w.ok ? null : ((w.sciana && w.sciana.szczegoly) || null),
+      /* ⚠️ PLAN ODROCZONY JEST W TELEMETRII 'plan', a nie 'odmowa' — bo nim jest.
+         Ale bez tego zapisu nie da się policzyć, ilu ludziom generator oddaje
+         plan zaczynający się za rok; z zewnątrz wygląda to jak zwykły sukces. */
+      szczegoly: w.ok
+        ? (w.startOdroczony
+            ? { odroczony_tyg: w.startOdroczony.tygodni, start: w.startOdroczony.data,
+                tygodnieDoStartu: w.startOdroczony.tygodnieDoStartu }
+            : null)
+        : ((w.sciana && w.sciana.szczegoly) || null),
       /* Znacznik sesyjny: ustawia go genSciezka(), zeruje ten zapis.
          Dzieki temu 'sciezka' opisuje DOKLADNIE jedna probe — te, ktora
          wyszla z klikniecia, a nie wszystko, co czlowiek zrobil potem. */
@@ -5926,10 +5934,8 @@ function _genZalogujProbe(w, poziom, dataStartu) {
    jest objętość, nie termin — kopiowanie daty maratonu na plan 10 km dałoby
    horyzont dobrany pod inny dystans. Zostawiamy datę, którą człowiek wpisał;
    jeśli się nie mieści, odezwie się ZA_MALO_TYGODNI ze swoim własnym wyjściem. */
-function genSciezka(dystans) {
-  if (!dystans || !window.GeneratorPlanu.DYSTANSE[dystans]) return;
+function _genZaznaczDystans(dystans) {
   _genDystans = dystans;
-  window._genZrodlo = 'sciezka';        // telemetria: patrz migracja …_zrodlo.sql
   document.querySelectorAll('#gen-dystans .type-pill').forEach(b => b.classList.remove('on'));
   const pill = Array.from(document.querySelectorAll('#gen-dystans .type-pill'))
     .find(b => (b.getAttribute('onclick') || '').indexOf("'" + dystans + "'") > -1);
@@ -5937,9 +5943,38 @@ function genSciezka(dystans) {
   // Cel czasowy nie przenosi się na inny dystans — 3:30 z maratonu nic nie znaczy na dychę.
   _czasResetPol('gen-cel');
   _genBlad('');
+}
+
+function genSciezka(dystans) {
+  if (!dystans || !window.GeneratorPlanu.DYSTANSE[dystans]) return;
+  window._genZrodlo = 'sciezka';        // telemetria: patrz migracja …_zrodlo.sql
+  _genZaznaczDystans(dystans);
   genUlozPlan();
 }
 window.genSciezka = genSciezka;
+
+/* ── ŚCIEŻKA Z PLANU ODROCZONEGO ────────────────────────────────────────────
+   ⚠️ NIE UKŁADA PLANU OD RAZU — i to jest jedyny powód, dla którego nie jest
+   to `genSciezka`. Plan odroczony powstał dlatego, że data startu jest za
+   daleko; krótszy dystans W TEJ SAMEJ DACIE zostanie cofnięty dokładnie tak
+   samo, więc przycisk „ułóż od razu" prowadziłby do drugiego odroczenia.
+
+   Data jest tu jedyną rzeczą, której silnik NIE MOŻE wybrać za człowieka:
+   zmyślona wpisałaby do kalendarza zawody, których nie ma (dzień startu niesie
+   MARKER_STARTU). Więc wracamy do formularza z ustawionym dystansem i PUSTĄ
+   datą — człowiek podaje realny bieg albo wybiera go z kalendarza zawodów. */
+function genSciezkaBlizszyStart(dystans) {
+  if (!dystans || !window.GeneratorPlanu.DYSTANSE[dystans]) return;
+  window._genZrodlo = 'sciezka';
+  _genZaznaczDystans(dystans);
+  _genRaceDate = null;
+  const di = document.getElementById('gen-date-input');
+  if (di) di.value = '';
+  _genWrocDoFormularza();
+  _genBlad('Podaj datę bliższego startu — albo wybierz bieg z kalendarza.');
+  if (di) { di.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { di.focus(); } catch (e) {} }
+}
+window.genSciezkaBlizszyStart = genSciezkaBlizszyStart;
 
 function _genPokazWynik(w) {
   const form = document.getElementById('gen-form');
@@ -5984,6 +6019,24 @@ function _genPokazWynik(w) {
     + '</div>'
     + '<div style="font-size:13px;color:var(--fg2);line-height:1.6;">' + esc(p.ai_summary) + '</div>'
     + '</div>'
+    /* ── PLAN GOTOWY, ALE ZACZYNA SIĘ PÓŹNIEJ ────────────────────────────────
+       ⚠️ STOI ZARAZ POD „Plan gotowy" I TO JEST CELOWE. Człowiek z celem za dwa
+       lata dostaje zielony kafel „52 TYGODNI / 256 JEDNOSTEK" i bez tego bloku
+       wychodzi z ekranu przekonany, że ma co robić od jutra. Ma — dopiero za
+       98 tygodni. Zdanie musi paść, zanim wzrok zejdzie na tempa i podgląd.
+       Ten sam obowiązek co przy odmowie: wyjście, nie sama informacja. */
+    + (w.startOdroczony
+        ? '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:16px;margin-bottom:12px;">'
+          + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#fbbf24;font-family:DM Mono,monospace;margin-bottom:8px;">Ten plan rusza później</div>'
+          + '<div style="font-size:14px;color:var(--fg);line-height:1.6;">' + esc(w.startOdroczony.komunikat) + '</div>'
+          + (w.startOdroczony.sciezkaDystans
+              ? '<button data-dyst="' + esc(w.startOdroczony.sciezkaDystans) + '" onclick="genSciezkaBlizszyStart(this.dataset.dyst)"'
+                + ' style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;margin-top:14px;'
+                + 'font-family:DM Mono,monospace;font-size:11px;cursor:pointer;font-weight:600;">'
+                + 'Ułóż plan na ' + esc(window.GeneratorPlanu.DYSTANSE[w.startOdroczony.sciezkaDystans].etykieta) + ' →</button>'
+              : '')
+          + '</div>'
+        : '')
     + '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">'
     + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Twoje tempa</div>'
     + '<div style="font-family:DM Mono,monospace;font-size:12px;color:var(--fg2);line-height:1.9;">'

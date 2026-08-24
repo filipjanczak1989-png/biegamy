@@ -228,6 +228,21 @@
      ⚠️ OSĄD, nie pomiar. Wchodzi w parze z minTygodni każdego dystansu, nie
      zamiast: pilnuje tego, czego minTygodni nie widzi, czyli taperu. */
   var MIN_TYG_BUDOWY = 3;
+  /* ── NAJDŁUŻSZY PLAN, JAKI UKŁADAMY ────────────────────────────────────────
+     Do 24.08.2026 sufitu NIE BYŁO — `tygodnie` szło wprost z daty startu i nikt
+     go nie przycinał. ZMIERZONE, co z tego wychodziło: przy starcie za 113 tyg.
+     silnik oddawał 785 wierszy, przy 520 tyg. — 3634 wiersze i 816 kB JSON-a.
+     Bez błędu, bez ostrzeżenia. Plan na dziesięć lat wyglądał jak plan.
+
+     ⚠️ POWÓD SUFITU NIE JEST TECHNICZNY. Krzywa objętości planu 113-tygodniowego
+     (baza 30) osiąga szczyt w TYGODNIU 9, a potem 26 razy powtarza ten sam
+     cykl 49/49/49/34. To nie jest plan dwuletni — to plan 9-tygodniowy
+     z dwuletnią tapetą. Sufit nie odbiera niczego, co istniało; nazywa granicę,
+     za którą silnik i tak nic nowego nie mówi.
+
+     52, bo rok jest granicą naturalną: dłuższy horyzont to inny problem
+     (budowa bazy), a nie dłuższy ten sam plan. ⚠️ OSĄD, nie pomiar. */
+  var MAX_TYGODNI = 52;
   /* Najkrótsze wybieganie, jakie plan ma prawo nazwać wybieganiem.
      ⚠️ DOTYCZY WYŁĄCZNIE WYBIEGANIA. Biegi spokojne i regeneracja świadomie NIE
      mają podłogi — przy bazie 19 km/tydz bieg spokojny 3,7 km jest poprawny,
@@ -405,6 +420,15 @@
   }
   function dzienTygodnia(i) {   // 0=Nd … 6=Sb
     return new Date(i * 86400000).getUTCDay();
+  }
+  /* Data do CZYTANIA, nie do parsowania — „26 października 2026".
+     Rok zawsze, bo jedyny konsument mówi o dniu odległym o rok albo dwa,
+     a „26 października" bez roku jest tam zdaniem dwuznacznym. */
+  var MIESIACE_DOPELNIACZ = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+                             'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+  function fmtDataPl(idx) {
+    var d = new Date(idx * 86400000);
+    return d.getUTCDate() + ' ' + MIESIACE_DOPELNIACZ[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
   }
   function poprawnaData(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !isNaN(dzienIdx(s)); }
 
@@ -618,6 +642,26 @@
         d.etykieta.toLowerCase() + ' potrzeba minimum ' + d.minTygodni + '. ' + wyjscie(d, zamiast, tygodnie),
         { tygodnieDostepne: tygodnie, tygodnieWymagane: d.minTygodni, dystans: we.dystans,
           alternatywnyDystans: zamiast });
+    }
+
+    /* ── COFNIĘCIE DO ZAWODÓW ──────────────────────────────────────────────
+       Powyżej MAX_TYGODNI plan nie jest krótszy „od końca", tylko ZACZYNA SIĘ
+       PÓŹNIEJ. Kotwicą jest data startu, nie dzisiejszy poniedziałek — plan ma
+       kończyć się na zawodach, bo to jedyny punkt, względem którego taper,
+       szczyt i wybieganie cokolwiek znaczą.
+
+       ⚠️ PRZESUWAMY O WIELOKROTNOŚĆ 7 DNI, więc `idxPn` zostaje poniedziałkiem.
+       Cała reszta silnika liczy tygodnie od `idxPn` (`uloz` → `idxStartuPlanu`),
+       więc to jest JEDYNE miejsce, które musi o tym wiedzieć.
+
+       ⚠️ `budowa` i `taperTyg` liczą się NIŻEJ, z już przyciętego `tygodnie` —
+       gdyby ta linia trafiła za nie, plan miałby taper policzony dla horyzontu,
+       którego nie obejmuje. */
+    var przesunieteTyg = 0;
+    if (tygodnie > MAX_TYGODNI) {
+      przesunieteTyg = tygodnie - MAX_TYGODNI;
+      idxPn += przesunieteTyg * 7;
+      tygodnie = MAX_TYGODNI;
     }
 
     // Poziom wyjściowy — bez kotwicy NIE zgadujemy tempa.
@@ -923,6 +967,7 @@
     return { ok: true, kontekst: { d: d, p10: p10, p10Formy: p10Formy, tygodnie: tygodnie, idxPn: idxPn, idxStart: idxStart,
                                    obecna: obecna, peak: peak, startTyg: startTyg, budowa: budowa, rezim: rezim,
                                    taperTyg: taperTyg, startWNiedziele: startWNiedziele,
+                                   przesunieteTyg: przesunieteTyg, idxToday: idxToday,
                                    zalozonaObjetosc: zalozonaObjetosc } };
   }
 
@@ -961,6 +1006,58 @@
         proba.celCzasowy = null;                            // cel czasowy nie przenosi się na inny dystans
         var r = uloz(proba);
         if (r && r.ok) return kol[i];
+      }
+      return null;
+    } finally { _wSciezce = false; }
+  }
+
+  /* ── DYSTANS, KTÓRY DA SIĘ TRENOWAĆ OD ZARAZ ───────────────────────────────
+     Bliźniak `najblizszyOsiagalny`, ale odpowiada na INNE pytanie i dlatego
+     nie da się ich scalić.
+
+     `najblizszyOsiagalny` pyta: „co przejdzie w TEJ dacie?". Przy starcie za
+     150 tygodni odpowiedź jest bezużyteczna — krótszy dystans w tej samej
+     dacie też zostanie cofnięty o 98 tygodni, więc przycisk prowadziłby do
+     drugiego odroczenia. To ta sama pułapka co przycisk prowadzący do drugiej
+     odmowy, tylko cichsza: człowiek dostaje plan, który znowu zaczyna się za
+     dwa lata.
+
+     Ta funkcja pyta: „co przejdzie, gdyby start był NAJBLIŻSZY MOŻLIWY?" —
+     czyli probuje każdy krótszy dystans na jego własnym `minTygodni` od
+     dzisiejszego poniedziałku. Zwraca dystans, dla którego plan MOŻNA ułożyć
+     dziś — a datę wybierze człowiek, bo tylko on wie, na jaki bieg się zapisze.
+     ⚠️ Dlatego przycisk NIE układa planu od razu (tak działa `genSciezka`),
+     tylko wraca do formularza z pustą datą. Data zmyślona przez silnik
+     wpisałaby do kalendarza zawody, których nie ma. */
+  var HORYZONTY_PROBY = [8, 12, 16, 20, 26];   // „bliższy bieg" = do pół roku
+  function najblizszyTeraz(we, d, idxPnDzis) {
+    if (_wSciezce) return null;
+    _wSciezce = true;
+    try {
+      var kol = ['marathon', 'half', '10k', '5k'];
+      for (var i = 0; i < kol.length; i++) {
+        var kd = DYSTANSE[kol[i]];
+        if (kd.km >= d.km) continue;                        // tylko KRÓTSZE od celu
+        var proba = {};
+        for (var k in we) if (Object.prototype.hasOwnProperty.call(we, k)) proba[k] = we[k];
+        proba.dystans = kol[i];
+        proba.celCzasowy = null;
+        /* ⚠️ `minTygodni` NIE WYSTARCZY JAKO HORYZONT PRÓBY — zmierzone 24.08.2026.
+           To minimum METODYCZNE (ile trwa cykl), a nie objętościowe. Przy bazie 21
+           dziesiątka na swoim minimum odbija się o SKOK_OBJETOSCI: dojście do
+           szczytu 33,6 km/tydz w 5 tygodniach budowania to +9,9%/tydz przy limicie
+           6%. Próba na jednym horyzoncie odpowiadałaby więc „żaden dystans", choć
+           ten sam plan na 12 tygodni powstaje bez problemu.
+
+           Skanujemy do pół roku, bo tyle znaczy „bliższy bieg". Dalej to już nie
+           jest odpowiedź na pytanie „co mogę robić teraz". */
+        for (var h = 0; h < HORYZONTY_PROBY.length; h++) {
+          var tyg = HORYZONTY_PROBY[h];
+          if (tyg < kd.minTygodni + 1) continue;
+          proba.dataStartu = isoZIdx(idxPnDzis + tyg * 7);
+          var r = uloz(proba);
+          if (r && r.ok) return kol[i];
+        }
       }
       return null;
     } finally { _wSciezce = false; }
@@ -1602,10 +1699,47 @@
       generated_by_model: null
     };
 
+    /* ── PLAN, KTÓRY ZACZYNA SIĘ PÓŹNIEJ, MUSI TO POWIEDZIEĆ ───────────────
+       ⚠️ TO NIE JEST ODMOWA, ale niesie ten sam obowiązek co odmowa: człowiek
+       ma wyjść z tego ekranu z czymś do zrobienia. „Plan zaczyna się za 61
+       tygodni" bez dalszego ciągu jest gorsze od odmowy — wygląda jak sukces,
+       a zostawia rok pustki.
+
+       Dlatego zdanie mówi trzy rzeczy w tej kolejności: DLACZEGO plan jest
+       krótszy niż horyzont, KIEDY rusza, i CO robić do tego czasu. Dopiero
+       potem ścieżka na krótszy dystans. */
+    var startOdroczony = null;
+    if (k.przesunieteTyg > 0) {
+      var doStartu = k.tygodnie + k.przesunieteTyg;
+      var bliskoTeraz = najblizszyTeraz(wejscie, k.d, k.idxPn - k.przesunieteTyg * 7);
+      /* Powyżej pół roku `mgliscieTygodnie` oddaje porę roku z rokiem („latem
+         2028"), a data obok już to mówi. Doklejamy ją tylko wtedy, gdy naprawdę
+         dokłada informację — czyli gdy jest liczbą tygodni. */
+      var kiedy = k.przesunieteTyg <= 26
+        ? ', czyli ' + mgliscieTygodnie(k.przesunieteTyg, k.idxToday) : '';
+      startOdroczony = {
+        tygodni: k.przesunieteTyg,
+        tygodnieDoStartu: doStartu,
+        data: isoZIdx(k.idxPn),
+        sciezkaDystans: bliskoTeraz,
+        komunikat:
+          'Do startu jest ' + doStartu + ' tyg., a najdłuższy plan, jaki układam, to ' + MAX_TYGODNI +
+          ' — dłuższy powtarzałby ten sam cykl w kółko, zamiast cokolwiek dokładać. ' +
+          'Ten kończy się w dniu zawodów, więc rusza ' + fmtDataPl(k.idxPn) + kiedy + '. ' +
+          'Do tego czasu masz jedno zadanie: nie stracić tego, co już biegasz — plan jest policzony ' +
+          'z dzisiejszych ' + Math.round(k.obecna) + ' km/tydz i tyle zakłada w dniu, w którym ruszy.' +
+          (bliskoTeraz
+            ? ' Jeśli masz po drodze bliższy bieg, ułóż plan na ' +
+              DYSTANSE[bliskoTeraz].etykieta.toLowerCase() + ' i wróć tutaj, kiedy ten ruszy.'
+            : '')
+      };
+    }
+
     return {
       ok: true,
       plan: plan,
       treningi: treningi,
+      startOdroczony: startOdroczony,
       meta: {
         p10sec: Math.round(k.p10),                  // z czego liczone są STREFY (cel, gdy podany)
         p10sec_forma: Math.round(k.p10Formy),       // co wynika z historii — zostaje dla porównania
@@ -1632,6 +1766,14 @@
             ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' + doKroku(sufitAkcentu(k.obecna)) +
                ' km) nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
                Math.round(szczytTyg) + ' km/tydz w szczycie zamiast ' + Math.round(Math.max.apply(null, objetosci)) + '.']
+            : []).concat(
+          /* ⚠️ ZAŁOŻENIE, KTÓRE ROBI SIĘ FAŁSZYWE SAMO Z SIEBIE. Plan cofnięty
+             do zawodów liczy się z objętości Z DZIŚ, a rusza za wiele tygodni.
+             Silnik nie ma jak wiedzieć, co człowiek będzie biegał wtedy, więc
+             ma o tym POWIEDZIEĆ, a nie udawać, że pytanie nie istnieje. */
+          startOdroczony
+            ? ['Plan rusza dopiero ' + fmtDataPl(k.idxPn) + ', a policzony jest z dzisiejszej objętości (' +
+               Math.round(k.obecna) + ' km/tydz). Jeśli do tego czasu Twoja forma się zmieni — ułóż go wtedy jeszcze raz.']
             : [])
       }
     };
@@ -1896,7 +2038,8 @@
               MNOZNIK_SZCZYTU: MNOZNIK_SZCZYTU, ROZGRZEWKA: ROZGRZEWKA, SCHLODZENIE: SCHLODZENIE, ODCINEK_M: ODCINEK_M,
               DLUGIE_NAD_SPOKOJNYM: DLUGIE_NAD_SPOKOJNYM, MAX_ODCINKOW: MAX_ODCINKOW, MAX_JAKOSC_W_TYG: MAX_JAKOSC_W_TYG,
               MAX_TEMPO_KM: MAX_TEMPO_KM, MAX_TEMPO_MIN: MAX_TEMPO_MIN,
-              START_POD_BAZA: START_POD_BAZA, SZCZYT_NAD_BAZA: SZCZYT_NAD_BAZA },
+              START_POD_BAZA: START_POD_BAZA, SZCZYT_NAD_BAZA: SZCZYT_NAD_BAZA,
+              MIN_TYG_BUDOWY: MIN_TYG_BUDOWY, MAX_TYGODNI: MAX_TYGODNI },
     /* Wystawione, bo klient MUSI wiedzieć, ile tygodni pobrać z bazy, żeby
        `oceniAdaptacje` miało z czego liczyć. Bez tego eksportu liczba 2 wylądowałaby
        przepisana w zawodnik.html i rozjechałaby się przy pierwszej zmianie tutaj. */

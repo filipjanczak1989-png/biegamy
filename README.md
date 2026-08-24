@@ -31,7 +31,6 @@ biegamy.run/
 ├── kalendarz.html
 ├── gra.html
 ├── profil.html
-├── statystyki.html
 ├── odznaki.html
 ├── wyzwania.html
 ├── races.html
@@ -116,10 +115,9 @@ Service Worker cache się aktualizuje automatycznie po deploy:
 
 ### Shortcuts (długie naciśnięcie ikony)
 
-Skonfigurowane 3 skróty:
+Skonfigurowane skróty (źródłem prawdy jest `manifest.json`, nie ta lista):
 - 🏃 **Dodaj trening** → `/zawodnik.html?action=add-log` (UWAGA: musisz dodać obsługę `?action=add-log` w zawodnik.html jeśli chcesz auto-otwarcia formularza)
-- 👥 **Społeczność** → `/zawodnik.html?section=social`
-- 📊 **Statystyki** → `/statystyki.html`
+- 👤 **Zawodnik** → `/zawodnik.html` · 🧑‍🏫 **Trener** → `/trener.html` · 📻 **Radio** → `/radio.html`
 
 Jeśli nie chcesz tych skrótów, usuń sekcję `"shortcuts"` z manifest.json.
 

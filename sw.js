@@ -19,14 +19,18 @@ const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
 
 // Pliki które chcemy mieć offline od samego start (precache)
+/* Strony narzedzia.html i statystyki.html usuniete 24.08.2026 — zdjete stad
+   razem z plikami. Martwy wpis nie jest tu kosmetyka: install() robi addAll(),
+   a addAll odrzuca CALA obietnice, jesli choc jeden URL zwroci 404 — czyli
+   jeden nieistniejacy plik wywraca instalacje Service Workera w calosci.
+   Stary link z zewnatrz trafia teraz na 404.html (GH Pages serwuje je sam,
+   a navigationHandler oddaje odpowiedz sieci bez zmian). */
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/zawodnik.html',
   '/trener.html',
   '/profil.html',
-  '/statystyki.html',
-  '/narzedzia.html',
   '/odznaki.html',
   '/wyzwania.html',
   '/kalendarz.html',
