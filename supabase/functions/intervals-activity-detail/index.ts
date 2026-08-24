@@ -29,57 +29,10 @@ async function markIntervalsDead(svc: any, athleteId: string) {
   } catch (_) { /* best-effort */ }
 }
 const TARGET = 200;
-const PAYLOAD_V = 4;   // 4: doszla `trasa` (polyline). Podbicie ODSWIEZA 347 rekordow cache — patrz komentarz przy pobraniu mapy.
+const PAYLOAD_V = 3;
 const Z7 = ['Z1','Z2','Z3','Z4','Z5a','Z5b','Z5c'];
 
 const paceFromV = (v:number)=> (v && v > 0.3) ? Math.round(1000/v) : null;   // m/s -> s/km
-
-/* ═ TRASA (24.08.2026) ══════════════════════════════════════════════════════
-   ⚠️ ZAPIS, NIE STRUMIEN. Surowe latlngs z intervals to ~2700 punktow na bieg
-   (1 Hz). Zmierzone: jako jsonb to 40 B/punkt, czyli 164 MB na 4,3 mln punktow
-   w bazie — a `raw_data` CACHUJE SIE, wiec „na zadanie" nie znaczy „za darmo".
-   Probkujemy do 200 punktow i kodujemy polyline Google: 730 B na aktywnosc,
-   ~1,1 MB gdyby kiedykolwiek otwarto wszystkie 1573 aktywnosci z GPS. To nie
-   jest zero, ale miesci sie w 39 MB bazy przy limicie 500 MB.
-   ⚠️ 200 punktow to nie oszczednosc kosztem obrazu: przy szerokosci ~320 px
-   sasiednie probki i tak trafiaja w ten sam piksel. */
-const TRASA_PKT = 200;
-
-function probkujTrase(pts:number[][]):number[][]{
-  if(!Array.isArray(pts) || pts.length<=TRASA_PKT) return (pts||[]);
-  const krok=(pts.length-1)/(TRASA_PKT-1), out:number[][]=[];
-  for(let i=0;i<TRASA_PKT;i++) out.push(pts[Math.round(i*krok)]);
-  out[out.length-1]=pts[pts.length-1];   // koniec trasy MUSI zostac koncem
-  return out;
-}
-
-/* Polyline Google, precyzja 5 (≈1,1 m — ponizej bledu samego GPS). */
-function kodujTrase(pts:number[][]):string{
-  let plat=0, plon=0, out='';
-  for(const p of pts){
-    if(!p || p.length<2 || !isFinite(p[0]) || !isFinite(p[1])) continue;
-    const la=Math.round(p[0]*1e5), lo=Math.round(p[1]*1e5);
-    for(const d of [la-plat, lo-plon]){
-      let v = d<0 ? ~(d<<1) : (d<<1);
-      while(v>=0x20){ out+=String.fromCharCode((0x20|(v&0x1f))+63); v>>=5; }
-      out+=String.fromCharCode(v+63);
-    }
-    plat=la; plon=lo;
-  }
-  return out;
-}
-
-/* ⚠️ TRASA WSKAZUJE, GDZIE KTOS MIESZKA. Poczatek i koniec biegu to zwykle
-   drzwi wejsciowe. 32 z 61 profili jest publicznych, wiec bez tej bramki
-   otwarcie cudzego treningu oddawaloby adres domowy 32 osob obcemu czlowiekowi.
-   HR ma juz wlasna flage `hr_public` — trasa NIE MA takiej flagi i celowo jej
-   nie wymyslamy: widzi ja WYLACZNIE wlasciciel albo jego trener. */
-function stripTrasa(p:any){
-  if(!p) return p;
-  const c = structuredClone(p);
-  c.trasa = null; c.trasa_n = 0;
-  return c;
-}
 
 function computeSplits(time:number[], dist:number[], hr:number[]|null, alt:number[]|null){
   const out:any[] = []; if (!dist.length) return out;
@@ -156,51 +109,27 @@ Deno.serve(async (req)=>{
     const isOwner = !!ath && ath.user_id===user.id;
     const isCoach = !!ath && ath.coach_id===user.id;
     if(!ath || (!isOwner && !isCoach && !ath.is_public)) return J(403,{ok:false,error:'forbidden'});   // owner ∨ trener-TEGO-zawodnika ∨ publiczny profil (is_public)
-    const canSeeTrasa = isOwner || isCoach;   // ⚠️ BEZ furtki `is_public` — trasa to adres domowy, nie statystyka
     const canSeeHr = isOwner || isCoach || !!ath.hr_public;   // HR domyślnie PRYWATNY (hr_public=false) — publiczny widz bez hr_public → stripHr na WYJŚCIU
 
     const { data: cached }=await svc.from('intervals_activities')
       .select('id,raw_data').eq('athlete_id',athlete_id).eq('intervals_activity_id',activity_id).maybeSingle();
     if(cached?.raw_data && cached.raw_data.v===PAYLOAD_V && !refresh){
-      let out={ ...cached.raw_data, cached:true };
-      if(!canSeeHr) out=stripHr(out);
-      if(!canSeeTrasa) out=stripTrasa(out);   // ⚠️ trasa NIE ma flagi publicznej — patrz stripTrasa
-      return J(200, out);   // cache w bazie NIETKNIĘTY (pełny); strip TYLKO na wyjściu
+      const out={ ...cached.raw_data, cached:true };
+      return J(200, canSeeHr ? out : stripHr(out));   // cache w bazie NIETKNIĘTY (pełny); strip TYLKO na wyjściu
     }
 
     const { data: cred }=await svc.from('intervals_credentials').select('api_key,access_token').eq('athlete_id',athlete_id).maybeSingle();
     if(!cred) return J(200,{ok:false,error:'not_connected'});
     const authH = cred.access_token ? ('Bearer '+cred.access_token) : ('Basic '+btoa('API_KEY:'+cred.api_key));   // OAuth wygrywa
 
-    /* ⚠️ TRASA IDZIE TRZECIM WYWOLANIEM, NIE W `types=`. Endpoint `/streams`
-       przyjmuje dowolna liste typow, ale specyfikacja intervals.icu NIGDZIE nie
-       wymienia nazwy strumienia GPS — jedyne udokumentowane zrodlo latlngs to
-       `/activity/{id}/map` (schemat `MapData`: bounds + latlngs). Zgadywanie
-       nazwy typu byloby zalozeniem klasy `signed_at`, wiec bierzemy droge pewna.
-       ⚠️ To OSOBNE WYWOLANIE API, ale NIE osobna runda dla przegladarki ani
-       dodatkowy czas: leci w tym samym `Promise.all` co dwa pozostale.
-       Blad mapy NIE psuje szczegolow — trening bez trasy ma nadal wykres,
-       splity i strefy. */
-    const [sr,ar,mr]=await Promise.all([
+    const [sr,ar]=await Promise.all([
       fetch(`https://intervals.icu/api/v1/activity/${activity_id}/streams?types=time,distance,heartrate,velocity_smooth,altitude,cadence,temp,respiration`,{headers:{Authorization:authH}}),
       fetch(`https://intervals.icu/api/v1/activity/${activity_id}`,{headers:{Authorization:authH}}),
-      fetch(`https://intervals.icu/api/v1/activity/${activity_id}/map`,{headers:{Authorization:authH}}).catch(()=>null),
     ]);
     if(sr.status===401 || ar.status===401) await markIntervalsDead(svc, athlete_id);
     if(!sr.ok) return J(200,{ok:false,error:'intervals_streams_'+sr.status});
     if(!ar.ok) return J(200,{ok:false,error:'intervals_activity_'+ar.status});
     const streams=await sr.json(), act=await ar.json();
-
-    /* Bieznia i VirtualRun nie maja GPS-a w ogole — `trasa:null` to poprawna
-       odpowiedz, nie awaria. Renderer po stronie klienta chowa wtedy karte. */
-    let trasa:string|null = null, trasa_n = 0;
-    try {
-      if(mr && mr.ok){
-        const md = await mr.json();
-        const pts = probkujTrase(Array.isArray(md?.latlngs) ? md.latlngs : []);
-        if(pts.length >= 2){ trasa = kodujTrase(pts); trasa_n = pts.length; }
-      }
-    } catch(_) { /* brak mapy nie moze zabrac wykresu */ }
 
     const byType:Record<string,any[]>={};
     for(const s of (Array.isArray(streams)?streams:[])) byType[s.type]=s.data||[];
@@ -232,7 +161,6 @@ Deno.serve(async (req)=>{
     };
 
     const payload={ ok:true, v:PAYLOAD_V, activity_id, cached:false,
-      trasa, trasa_n,
       distance_km: Math.round((dist[dist.length-1]/1000)*100)/100,
       moving_time_s: act.moving_time ?? time[time.length-1],
       has_hr, series, splits, hr_zones, stats };
