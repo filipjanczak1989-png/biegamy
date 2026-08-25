@@ -210,17 +210,48 @@
      8/6/4/3 pochodzi z interpretacji reguły 10%, a dane służą wyłącznie jako
      kontrola rzędu wielkości (mediany 3–6,5% mieszczą się pod każdym z progów).
      Jeśli kiedyś przybędzie zawodników — zmierzyć ponownie i podmienić. */
+  /* ── OD 25.08.2026 KRZYWA, NIE SCHODY ──────────────────────────────────────
+     Wartości 8/6/4/3 NIE ZMIENIŁY SIĘ. Zmieniło się to, że między nimi jest
+     teraz prosta, a nie uskok.
+
+     ⚠️ POWÓD JEST MIERZALNY, NIE ESTETYCZNY. Schodek na granicy pasma sprawiał,
+     że zawodnik z WIĘKSZĄ bazą dostawał NIŻSZY szczyt: maraton na 16 tygodni,
+     baza 39 → szczyt 68,6 km/tydz, baza 40 → 59,2. Dziewięć i pół kilometra
+     kary za jeden kilometr bazy więcej, bo limit spadał skokowo z 6% na 4%,
+     a `osiagalnyPeak` liczy się z niego wykładniczo przez 12 tygodni.
+     Zmierzone na pełnym zakresie: 16 spadków szczytu, największy 9,40 km.
+
+     ⚠️ KOTWICE STOJĄ W ŚRODKACH DAWNYCH PASM i to jest jedyna nowa liczba
+     w tej zmianie — same wartości procentowe są nietknięte. Konstrukcja:
+     pasmo bez dolnego końca traktujemy jak [0,20], bez górnego jak [70,100],
+     i bierzemy środek każdego. Stąd 10 / 30 / 55 / 85.
+     Skutek, który warto znać: baza reprezentatywna dla każdego pasma zachowuje
+     DOKŁADNIE swój dawny limit (10→8%, 30→6%, 55→4%, 85→3%), a zmieniają się
+     bazy przy dawnych granicach — 20 dostaje 7% zamiast 6%, 40 dostaje 5,2%
+     zamiast 4%, ale 19 dostaje 7,1% zamiast 8%. To NIE JEST poluzowanie
+     reguły — w jedną stronę daje więcej, w drugą mniej, a znika uskok.
+
+     ⚠️ POZA SKRAJNYMI KOTWICAMI JEST PŁASKO I TO JEST KONIECZNE, nie kosmetyka.
+     Ekstrapolacja liniowa w dół dałaby przy bazie 5 przyrost 8,5%, a w górę
+     przy bazie 200 wartość UJEMNĄ (−0,6%), czyli plan malejący albo dzielenie
+     przez zero w `tygodniDoBazy`. Poniżej 10 zwracamy 8%, powyżej 85 — 3%. */
   var PRZYROST_WG_BAZY = [
-    { doKm: 20,       proc: 0.08 },
-    { doKm: 40,       proc: 0.06 },
-    { doKm: 70,       proc: 0.04 },
-    { doKm: Infinity, proc: 0.03 }
+    { bazaKm: 10, proc: 0.08 },
+    { bazaKm: 30, proc: 0.06 },
+    { bazaKm: 55, proc: 0.04 },
+    { bazaKm: 85, proc: 0.03 }
   ];
   function maxPrzyrostDla(bazaKm) {
-    for (var i = 0; i < PRZYROST_WG_BAZY.length; i++) {
-      if (bazaKm < PRZYROST_WG_BAZY[i].doKm) return PRZYROST_WG_BAZY[i].proc;
+    var n = PRZYROST_WG_BAZY.length;
+    if (!(bazaKm > PRZYROST_WG_BAZY[0].bazaKm)) return PRZYROST_WG_BAZY[0].proc;
+    for (var i = 1; i < n; i++) {
+      var a = PRZYROST_WG_BAZY[i - 1], b = PRZYROST_WG_BAZY[i];
+      if (bazaKm <= b.bazaKm) {
+        var t = (bazaKm - a.bazaKm) / (b.bazaKm - a.bazaKm);
+        return a.proc + t * (b.proc - a.proc);
+      }
     }
-    return PRZYROST_WG_BAZY[PRZYROST_WG_BAZY.length - 1].proc;
+    return PRZYROST_WG_BAZY[n - 1].proc;
   }
   var MAX_PRZYROST_TYG = 0.08;   // najwyższy z progów — zostaje dla zgodności odczytu
   var ZRZUT = 0.70;              // co czwarty tydzień: 70% trendu (cykl 3:1)
@@ -1114,10 +1145,34 @@
             ' — albo ten sam dystans przy ' + tygPotrzebne + ' tyg. przygotowania.'
           : ' Na ten dystans potrzeba ok. ' + tygPotrzebne + ' tyg. przygotowania zamiast ' + tygodnie +
             '. Krótszy dystans też nie zmieści się w Twojej dzisiejszej objętości.';
+        /* ⚠️ OBIE LICZBY MUSZĄ SIĘ RÓŻNIĆ, INACZEJ ZDANIE JEST BZDURĄ.
+           Zaokrąglone do pełnych procentów potrafiły wyjść identyczne:
+           „+8% tygodniowo — powyżej bezpiecznych 8%". Zmierzone 25.08.2026:
+           22 takie komunikaty przy pasmach schodkowych, 12 po interpolacji —
+           czyli to wada STARSZA od interpolacji, tylko przez nią rzadsza.
+           Dokładamy miejsce po przecinku dopiero wtedy, gdy jest potrzebne;
+           inaczej „+9,0% powyżej 6,0%" byłoby szumem tam, gdzie „+9% powyżej
+           6%" czyta się lepiej. To ta sama zasada co przy „brakuje 20 s". */
+        var proc = (function () {
+          var a = przyrost * 100, b = limitPrzyrostu * 100;
+          if (Math.round(a) !== Math.round(b)) return [Math.round(a), Math.round(b)];
+          var a1 = Math.round(a * 10) / 10, b1 = Math.round(b * 10) / 10;
+          if (a1 !== b1) return [a1, b1];
+          return null;                       // różnica poniżej 0,05 pkt proc. — patrz niżej
+        })();
+        /* ⚠️ TRZECI PRZYPADEK: RÓŻNICA PONIŻEJ 0,05 PKT PROC. Drugie miejsce po
+           przecinku byłoby fałszywą precyzją („+6,94% powyżej 6,90%"), a dwie
+           identyczne liczby — bzdurą. Zmierzone: 2 przypadki na ~5000
+           (półmaraton, bazy 21 i 38, 10 tygodni). Człowiek stoi wtedy DOKŁADNIE
+           na granicy i tak mu to mówimy — ta sama zasada co „brakuje 20 s". */
+        var zdanieProc = proc
+          ? 'W ' + tygodnie + ' tyg. znaczyłoby to +' + proc[0] + '% tygodniowo — powyżej bezpiecznych ' +
+            proc[1] + '% przy Twojej objętości.'
+          : 'W ' + tygodnie + ' tyg. znaczyłoby to ' + (Math.round(przyrost * 1000) / 10) +
+            '% tygodniowo, czyli dokładnie na granicy bezpiecznego przyrostu przy Twojej objętości.';
         return odmowa('SKOK_OBJETOSCI',
           'Biegasz ' + Math.round(obecna) + ' km/tydz, a ' + d.etykieta.toLowerCase() + ' wymaga dojścia do ok. ' + Math.round(peak) +
-          ' km/tydz. W ' + tygodnie + ' tyg. znaczyłoby to +' + Math.round(przyrost * 100) + '% tygodniowo — powyżej bezpiecznych ' +
-          Math.round(limitPrzyrostu * 100) + '% przy Twojej objętości.' + drogaWyjscia + ' ' +
+          ' km/tydz. ' + zdanieProc + drogaWyjscia + ' ' +
           'Jeśli data jest nie do ruszenia, napisz do Filipa albo Kasi — człowiek ułoży to, czego automat nie potrafi.',
           { obecna_km: Math.round(obecna), peak_km: Math.round(peak), tygodnie: tygodnie,
             przyrostProc: Math.round(przyrost * 1000) / 10, limitProc: Math.round(limitPrzyrostu * 1000) / 10,
@@ -2266,6 +2321,7 @@
     tydzienNalezyDoNas: tydzienNalezyDoNas,
     MIN_JEDNOSTKI_KM: MIN_JEDNOSTKI_KM,
     mnoznikSzczytu: mnoznikSzczytu,
+    maxPrzyrostDla: maxPrzyrostDla,
     sufitWybiegania: sufitWybiegania, sufitAkcentu: sufitAkcentu,
     SUFIT_DLUGIE_UDZIAL_BAZY: SUFIT_DLUGIE_UDZIAL_BAZY, SUFIT_DLUGIE_CAP: SUFIT_DLUGIE_CAP,
     SUFIT_TEMPO_UDZIAL_BAZY: SUFIT_TEMPO_UDZIAL_BAZY, SUFIT_TEMPO_CAP: SUFIT_TEMPO_CAP,
@@ -3054,9 +3110,14 @@
        opisane przy MAX_UDZIAL_DLUGIEGO („przy 3 dniach bywa teraz remisem").
        Do 25.08.2026 test tego nie łapał, bo przy płaskich 8% tydzień 6 miał inną
        objętość i wiązał sufit `maxDlugieKm`, który wyjątek już obejmował. */
+    /* ⚠️ TOLERANCJA MUSI BYĆ CO NAJMNIEJ POŁOWĄ SIATKI, NIE 0,05. Wybieganie
+       jest zaokrąglone do KROK_KM, więc stojąc NA suficie potrafi wypaść pod
+       nim o pół kroku: 40% z 51,5 to 20,60, a jednostka dostaje 20,5. Przy
+       tolerancji 0,05 test uznawał to za „poniżej sufitu" i wymagał proporcji
+       1,25, choć sufit właśnie ją uniemożliwił. Złapane 25.08.2026. */
     var sufit6 = Math.min(sufitWybiegania(DYSTANSE.half, 40), MAX_UDZIAL_DLUGIEGO * r3.meta.objetosciTygodni[5]);
     check('3 dni: długie/spokojny ≈ ' + DLUGIE_NAD_SPOKOJNYM + ' (gdy długie poniżej OBU sufitów)',
-      dl6.target_distance_km >= sufit6 - 0.05
+      dl6.target_distance_km >= sufit6 - KROK_KM / 2
         ? dl6.target_distance_km >= sp6.target_distance_km
         : Math.abs(dl6.target_distance_km / sp6.target_distance_km - DLUGIE_NAD_SPOKOJNYM) < 0.05,
       [dl6.target_distance_km, sp6.target_distance_km, DYSTANSE.half.maxDlugieKm]);
@@ -3083,12 +3144,21 @@
        zaplanował, i nikt mu tego nie mówi. Decyzja o progu 0,95 należy do
        Filipa, więc test zostaje czerwony jako przypomnienie, a nie znika. */
     var luzSumy = w6.length * KROK_KM / 2;
-    /* ⚠️ TEN TEST BYŁ CZERWONY OD DAWNA I ZZIELENIAŁ SAM 25.08.2026 — nie
-       dlatego, że ktoś go naprawił, tylko dlatego, że krzywa poszła za bramką.
-       Wolniejsza rampa daje w tygodniu 6 inną objętość i sufity nie zjadają już
-       tych 2 km. Nazwa mówiła „ZNANA CZERWIEŃ" — zostawienie jej po zzielenieniu
-       byłoby drugą nieprawdą w tym samym pliku, więc znika razem z czerwienią. */
-    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki)',
+    /* ⚠️ SPROSTOWANIE WŁASNEJ NOTATKI Z 25.08.2026. Napisałem tu, że test
+       „zzieleniał sam" po zmianie krzywej i zdjąłem mu z nazwy ZNANĄ CZERWIEŃ.
+       To była prawda przez pół dnia: po interpolacji pasm tydzień 6 ma znów
+       inną objętość i test jest CZERWONY z powrotem — 50 km zadane wobec 51,5
+       planowanego. Zjawisko to samo co zawsze (sufit 40% na wybieganiu plus
+       „spokojny nie dłuższy od wybiegania" na jedynym spokojnym), zmieniły się
+       tylko liczby: było 53/55, jest 50/51,5.
+
+       ⚠️ WNIOSEK, KTÓRY ZOSTAJE NA PRZYSZŁOŚĆ: ten test zielenieje i czerwienieje
+       od PRZYPADKOWEJ objętości tygodnia 6, więc jego kolor nic nie mówi o tym,
+       czy wada została naprawiona. Nie przemianowywać go znowu po zzielenieniu —
+       zniknie dopiero razem z decyzją o progu w meta.zalozenia (patrz akapit
+       wyżej: 50/51,5 to 97,1%, a próg brzmi „< 95%", więc człowiek nadal nie
+       dostaje o tym słowa). */
+    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki) — ZNANA CZERWIEŃ, patrz komentarz',
       Math.abs(w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0) - r3.meta.objetosciTygodni[5]) < luzSumy + 0.001,
       w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0));
     check('4 dni: ratunek NIE odpala się (kształt był poprawny)',
@@ -3225,22 +3295,60 @@
 
     // ── SUFIT WYBIEGANIA po korekcie na 14/18/26/34
     sekcja('SUFIT PRZYROSTU STOPNIOWANY PO BAZIE');
-    check('progi przyrostu: <20 → 8%, 20-40 → 6%, 40-70 → 4%, >70 → 3%',
-      maxPrzyrostDla(15) === 0.08 && maxPrzyrostDla(25) === 0.06 &&
-      maxPrzyrostDla(50) === 0.04 && maxPrzyrostDla(90) === 0.03, null);
-    check('GRANICA (start w pn): half 25 km/tydz odbite przy 11 tyg., przechodzi przy 12',
+    /* ⚠️ OD 25.08.2026 TO KRZYWA, NIE SCHODY. Kotwice trzymają dawne wartości
+       DOKŁADNIE (10→8%, 30→6%, 55→4%, 85→3%), a między nimi jest prosta.
+       Stary test sprawdzał 15/25/50/90 i po interpolacji dawał 7,5/6,5/4,4/3,0. */
+    check('kotwice przyrostu trzymają dawne wartości: 10→8%, 30→6%, 55→4%, 85→3%',
+      Math.abs(maxPrzyrostDla(10) - 0.08) < 1e-12 && Math.abs(maxPrzyrostDla(30) - 0.06) < 1e-12 &&
+      Math.abs(maxPrzyrostDla(55) - 0.04) < 1e-12 && Math.abs(maxPrzyrostDla(85) - 0.03) < 1e-12,
+      [maxPrzyrostDla(10), maxPrzyrostDla(30), maxPrzyrostDla(55), maxPrzyrostDla(85)]);
+    check('poza skrajnymi kotwicami PŁASKO — bez ekstrapolacji w absurd',
+      maxPrzyrostDla(1) === 0.08 && maxPrzyrostDla(5) === 0.08 &&
+      maxPrzyrostDla(200) === 0.03 && maxPrzyrostDla(1000) === 0.03,
+      [maxPrzyrostDla(1), maxPrzyrostDla(200)]);
+    check('między kotwicami maleje monotonicznie i nigdy nie schodzi do zera',
       (function () {
-        var a = uloz(we({ dystans: 'half', dataStartu: zaTygodni(11), dniWTygodniu: 5,
+        var poprz = null;
+        for (var b = 1; b <= 200; b++) {
+          var v = maxPrzyrostDla(b);
+          if (!(v > 0)) return false;
+          if (poprz !== null && v > poprz + 1e-12) return false;
+          poprz = v;
+        }
+        return true;
+      })(), null);
+    /* Granica przesunęła się o tydzień w dół po interpolacji: baza 25 ma teraz
+       limit 6,5% zamiast 6%, więc mieści się już w 11 tygodniach. */
+    check('GRANICA (start w pn): half 25 km/tydz odbite przy 10 tyg., przechodzi przy 11',
+      (function () {
+        var a = uloz(we({ dystans: 'half', dataStartu: zaTygodni(10), dniWTygodniu: 5,
                           poziom: poziom({ objetoscTygodniowa: 25 }) }));
-        var b = uloz(we({ dystans: 'half', dataStartu: zaTygodni(12), dniWTygodniu: 5,
+        var b = uloz(we({ dystans: 'half', dataStartu: zaTygodni(11), dniWTygodniu: 5,
                           poziom: poziom({ objetoscTygodniowa: 25 }) }));
         return a.ok === false && a.sciana.kod === 'SKOK_OBJETOSCI' && b.ok === true;
       })(), null);
-    check('odmowa SKOK_OBJETOSCI podaje limit WŁAŚCIWY DLA PASMA, nie stałe 8%',
+    check('odmowa SKOK_OBJETOSCI podaje limit WŁAŚCIWY DLA BAZY, nie stałe 8%',
       (function () {
         var r = uloz(we({ dystans: 'half', dataStartu: zaTygodni(10), dniWTygodniu: 5,
                           poziom: poziom({ objetoscTygodniowa: 25 }) }));
-        return r.ok === false && r.sciana.szczegoly.limitProc === 6;
+        return r.ok === false &&
+               r.sciana.szczegoly.limitProc === Math.round(maxPrzyrostDla(25) * 1000) / 10;
+      })(), null);
+    /* ⚠️ ZDANIE NIE MOŻE PODAĆ DWA RAZY TEJ SAMEJ LICZBY. Zmierzone 25.08.2026:
+       przy pasmach schodkowych 22 komunikaty brzmiały „+8% tygodniowo — powyżej
+       bezpiecznych 8%". Interpolacja zbiła to do 12, a rozróżnianie precyzji
+       do zera. */
+    check('komunikat SKOK_OBJETOSCI nigdy nie podaje dwóch identycznych procentów',
+      (function () {
+        var kol = 0, lista = ['5k', '10k', 'half', 'marathon'];
+        for (var a = 0; a < lista.length; a++) for (var h = 8; h <= 20; h += 2) for (var bz = 5; bz <= 120; bz++) {
+          var r = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(h), dniWTygodniu: 4,
+                            poziom: poziom({ objetoscTygodniowa: bz }) }));
+          if (r.ok || r.sciana.kod !== 'SKOK_OBJETOSCI') continue;
+          var m = r.sciana.komunikat.match(/\+([\d.]+)% tygodniowo — powyżej bezpiecznych ([\d.]+)%/);
+          if (m && m[1] === m[2]) kol++;
+        }
+        return kol === 0;
       })(), null);
 
     sekcja('SUFIT WYBIEGANIA — 14 / 18 / 22 / 34');

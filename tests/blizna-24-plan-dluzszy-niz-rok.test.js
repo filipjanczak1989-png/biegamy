@@ -371,7 +371,10 @@ test('KRZYWA NIE ROŚNIE SZYBCIEJ, NIŻ POZWALA BRAMKA', async (t) => {
           const r = G.uloz({ dystans, dniWTygodniu: 5, dataStartu: zaTyg(h), today: TODAY,
             poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
           if (!r.ok || r.meta.rezim === 'fala') continue;
-          const limit = baza < 20 ? 0.08 : baza < 40 ? 0.06 : baza < 70 ? 0.04 : 0.03;
+          /* ⚠️ LIMIT PYTAMY SILNIKA, NIE PRZEPISUJEMY. Od 25.08.2026 pasma są
+             interpolowane, więc `baza < 20 ? 0.08 : …` liczyłoby próg z reguły,
+             której silnik już nie stosuje — i test przepuszczałby wszystko. */
+          const limit = G.maxPrzyrostDla(baza);
           for (const t2 of trendy(r, baza)) {
             assert.ok(t2 <= limit + 1e-9,
               dystans + ' baza ' + baza + ' @' + h + 'tyg rośnie ' + (t2 * 100).toFixed(1) +
@@ -483,32 +486,27 @@ test('SZCZYT JEST MONOTONICZNY WZGLĘDEM BAZY', async (t) => {
     return out;
   };
 
-  /* ⚠️ URWISKO `peakKm` ZNIKNĘŁO, RESZTKA MA INNE ŹRÓDŁO I JEST PRZYPIĘTA.
-     Zostało 14 spadków, wszystkie na granicach pasm PRZYROST_WG_BAZY (20/40),
-     największy 9,40 km (maraton @16 tyg., baza 39→40, szczyt 68,6→59,2).
-     Wymuszenie monotoniczności TAM skasowałoby samo pasmowanie: przy 12
-     tygodniach budowy limit 6% daje 78,5 km, a 4% — 64,0. To osobna decyzja
-     (kandydat: interpolacja maxPrzyrostDla; zmierzone — 14 spadków → 3,
-     największy 0,90 km, 34 plany z 2964 zmieniają szczyt, ZERO nowych odmów).
-     Test pilnuje, żeby resztka nie urosła i nie wyszła poza granice pasm. */
-  await t.test('⚠️ spadki TYLKO na granicach pasm przyrostu i nie przybywa ich', () => {
+  /* ⚠️ GRANICE PASM ZNIKNĘŁY 25.08.2026 (interpolacja `maxPrzyrostDla`).
+     Było 16 spadków, największy 9,40 km (maraton @16 tyg., baza 39→40:
+     68,6 → 59,2). Jest 3, największy 0,90 km — dokładnie tyle, ile przewidywał
+     pomiar hipotezy przed wdrożeniem.
+
+     ⚠️ WSZYSTKIE TRZY MAJĄ JEDNO ŹRÓDŁO: `startTyg` na progu `peakKm`.
+     Reżim przełącza się na „falę", która startuje od 0,90 × baza zamiast od
+     bazy, a przy 5-6 tygodniach nie ma czasu tego odrobić. Zmierzone:
+     10 km @6 tyg., baza 39 → [39 41,1 42,9 …], baza 40 → [36 38,9 42 …].
+     Podłoga z 25.08 wyrównała SZCZYT, ale nie START — dołek fali jest
+     zamierzony, więc to osobna decyzja (zaległość, nie wada tej zmiany). */
+  await t.test('⚠️ spadki TYLKO na progu peakKm i nie przybywa ich', () => {
     const spadki = wszystkieSpadki();
     for (const sp of spadki) {
-      const pasmo = [20, 40, 70].some(g => sp.od < g && sp.doB >= g);
-      /* ⚠️ DRUGIE ŹRÓDŁO, ZNALEZIONE TYM TESTEM: `startTyg`. Na progu `peakKm`
-         reżim przełącza się na „falę", która startuje od 0,90 × baza zamiast
-         od bazy — a przy 5-6 tygodniach nie ma czasu tego odrobić. Zmierzone:
-         5 km @5 tyg., baza 29 → [29 30,7 31,9 …], baza 30 → [27 29,2 31,5 …].
-         Podłoga z 25.08 wyrównała SZCZYT, ale nie START; to osobna decyzja,
-         bo dołek fali jest zamierzony. Spadek 0,40 km. */
-      const prog = [G.DYSTANSE[sp.dystans].peakKm].some(g => sp.od < g && sp.doB >= g);
-      assert.ok(pasmo || prog,
-        'spadek POZA znanymi granicami: ' + sp.dystans + ' @' + sp.h + 'tyg baza ' +
+      assert.ok(sp.od < G.DYSTANSE[sp.dystans].peakKm && sp.doB >= G.DYSTANSE[sp.dystans].peakKm,
+        'spadek POZA progiem peakKm: ' + sp.dystans + ' @' + sp.h + 'tyg baza ' +
         sp.od + '→' + sp.doB + ' (−' + sp.ile.toFixed(2) + ' km)');
     }
-    assert.ok(spadki.length <= 16, 'przybyło spadków: ' + spadki.length + ' (było 16)');
+    assert.ok(spadki.length <= 3, 'przybyło spadków: ' + spadki.length + ' (było 3)');
     const naj = spadki.length ? Math.max.apply(null, spadki.map(x => x.ile)) : 0;
-    assert.ok(naj <= 9.4 + 1e-9, 'największy spadek urósł do ' + naj.toFixed(2) + ' km');
+    assert.ok(naj <= 0.9 + 1e-9, 'największy spadek urósł do ' + naj.toFixed(2) + ' km (było 0,90)');
   });
 
   /* Punkt styku obu gałęzi: w `obecna === peakKm` mieszany i fala muszą dać
@@ -537,5 +535,78 @@ test('SZCZYT JEST MONOTONICZNY WZGLĘDEM BAZY', async (t) => {
         }
       }
     }
+  });
+});
+
+/* == maxPrzyrostDla: KRZYWA, NIE SCHODY (25.08.2026) ========================
+   Schodek na granicy pasma sprawial, ze zawodnik z WIEKSZA baza dostawal
+   NIZSZY szczyt - maraton @16 tyg., baza 39 -> 68,6 km/tydz, baza 40 -> 59,2.
+   Wartosci 8/6/4/3 nie zmienily sie; zmienilo sie to, ze miedzy nimi jest
+   prosta, a nie uskok. */
+test('maxPrzyrostDla JEST CIAGLA I MONOTONICZNA', async (t) => {
+  await t.test('kotwice trzymaja dawne wartosci co do cyfry', () => {
+    for (const [baza, proc] of [[10, 0.08], [30, 0.06], [55, 0.04], [85, 0.03]]) {
+      assert.ok(Math.abs(G.maxPrzyrostDla(baza) - proc) < 1e-12,
+        'kotwica ' + baza + ' km/tydz daje ' + G.maxPrzyrostDla(baza) + ', a ma dawac ' + proc);
+    }
+  });
+
+  /* !! POZA SKRAJNYMI KOTWICAMI MUSI BYC PLASKO. Ekstrapolacja liniowa w dol
+     dalaby przy bazie 5 przyrost 8,5%, a w gore przy 200 - wartosc UJEMNA,
+     czyli plan malejacy i dzielenie przez zero w `tygodniDoBazy`. */
+  await t.test('!! ponizej 10 i powyzej 85 plasko, nigdy ujemnie ani zerowo', () => {
+    for (const b of [0.1, 1, 5, 9, 10]) assert.strictEqual(G.maxPrzyrostDla(b), 0.08, 'baza ' + b);
+    for (const b of [85, 100, 150, 200, 1000]) assert.strictEqual(G.maxPrzyrostDla(b), 0.03, 'baza ' + b);
+    for (let b = 1; b <= 200; b++) assert.ok(G.maxPrzyrostDla(b) > 0, 'baza ' + b + ' daje niedodatni przyrost');
+  });
+
+  await t.test('!! monotonicznie malejaca, bez skokow (przemiot co 1 km, 5-200)', () => {
+    let poprz = null;
+    for (let b = 5; b <= 200; b++) {
+      const v = G.maxPrzyrostDla(b);
+      if (poprz != null) {
+        assert.ok(v <= poprz + 1e-12, 'baza ' + b + ': przyrost UROSL (' + poprz + ' -> ' + v + ')');
+        /* Najwiekszy dopuszczalny krok to nachylenie najstromszego odcinka:
+           z 8% na 6% na dwudziestu kilometrach = 0,1 pkt proc. na kilometr. */
+        assert.ok(poprz - v <= 0.001 + 1e-12,
+          'baza ' + b + ': SKOK o ' + ((poprz - v) * 100).toFixed(2) + ' pkt proc. - to schodek, nie prosta');
+      }
+      poprz = v;
+    }
+  });
+
+  await t.test('!! maraton @16 tyg.: baza 40 NIE dostaje juz mniej niz baza 39', () => {
+    const sz = (baza) => {
+      const r = G.uloz({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTyg(16), today: TODAY,
+        poziom: { p10sec: 280, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+      assert.strictEqual(r.ok, true, 'baza ' + baza);
+      return Math.max.apply(null, r.meta.objetosciTygodni);
+    };
+    assert.ok(sz(40) >= sz(39), 'baza 39 -> ' + sz(39).toFixed(1) + ', baza 40 -> ' + sz(40).toFixed(1));
+  });
+
+  /* !! KOMUNIKAT MUSI ZGADZAC SIE Z REGULA. Skoro limit nie jest juz okragly,
+     zdanie "powyzej bezpiecznych N%" potrafilo podac te sama liczbe co przyrost
+     zawodnika. Zmierzone: 22 takie komunikaty przy pasmach schodkowych,
+     12 po interpolacji, 0 po rozroznieniu precyzji. */
+  await t.test('!! SKOK_OBJETOSCI nie podaje dwoch identycznych procentow', () => {
+    let kolizje = 0, sprawdzonych = 0;
+    for (const dystans of ['5k', '10k', 'half', 'marathon']) {
+      for (const h of [8, 10, 12, 14, 16, 20]) {
+        for (let b = 5; b <= 120; b++) {
+          const r = G.uloz({ dystans, dniWTygodniu: 4, dataStartu: zaTyg(h), today: TODAY,
+            poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: b }, celCzasowy: null });
+          if (r.ok || r.sciana.kod !== 'SKOK_OBJETOSCI') continue;
+          sprawdzonych++;
+          const m = r.sciana.komunikat.match(/\+([\d.]+)% tygodniowo — powyżej bezpiecznych ([\d.]+)%/);
+          if (m && m[1] === m[2]) kolizje++;
+        }
+      }
+    }
+    /* Straznik pustej probki: gdyby przyszla zmiana sprawila, ze SKOK_OBJETOSCI
+       przestaje sie odzywac, test przeszedlby na zero sprawdzen i nic nie badal.
+       Zmierzone dzis: 39 odmow w tej siatce wejsc. */
+    assert.ok(sprawdzonych >= 30, 'za malo odmow w probce: ' + sprawdzonych);
+    assert.strictEqual(kolizje, 0, kolizje + ' komunikatow podaje dwa razy te sama liczbe');
   });
 });
