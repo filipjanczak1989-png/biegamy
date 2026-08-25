@@ -1228,6 +1228,68 @@
     } finally { _wSciezce = false; }
   }
 
+  /* ── UBYTEK FAZY BUDOWY — JEDEN WZÓR DLA PLANU I DLA PRÓBY ────────────────
+     ⚠️ MUSI BYĆ WSPÓLNY. Nota mówi „plan zadaje X zamiast Y", a zdanie obok
+     mówi „przy N dniach dowiezie pełne Y". Gdyby plan i próba liczyły ubytek
+     dwoma wzorami, drugie zdanie obiecywałoby coś, czego pierwsze nie mierzy —
+     to ta sama klasa błędu co bramka licząca inaczej niż krzywa (25.08). */
+  function ubytekBudowyZ(objetosci, faktyczne, treningi, budowa) {
+    var dekl = 0, fakt = 0, jedn = 0, i;
+    for (i = 0; i < budowa && i < objetosci.length; i++) {
+      if (!(objetosci[i] > 0)) continue;
+      dekl += objetosci[i];
+      fakt += faktyczne[i];
+    }
+    for (i = 0; i < treningi.length; i++) {
+      if (treningi[i].week_number <= budowa && (treningi[i].target_distance_km || 0) > 0) jedn++;
+    }
+    return { dekl: dekl, fakt: fakt, ubytek: dekl - fakt, luz: jedn * KROK_KM / 2 };
+  }
+  function ubytekZWyniku(r) {
+    if (!r || !r.ok) return null;
+    return ubytekBudowyZ(r.meta.objetosciTygodni, r.meta.objetosciFaktyczne, r.treningi,
+                         r.meta.tygodnie - r.meta.taperTygodni);
+  }
+
+  /* ── ILE DNI DOMYKA OBJĘTOŚĆ ───────────────────────────────────────────────
+     ⚠️ PRZEMIATAMY WSZYSTKIE DNI, NIE INKREMENTUJEMY — i to nie jest ostrożność,
+     tylko konieczność. Zmierzone 25.08.2026: funkcja NIE jest monotoniczna.
+     Przy bazie 80 (5 km) plan oddaje 3,2% objętości przy 4 dniach, 5,7% przy
+     5 dniach i 0,2% przy 6. Rada „dodaj jeden dzień" wysłałaby człowieka
+     z czwórki na piątkę i POGORSZYŁA mu plan. Przyczyna: przy `dni >= 5`
+     wchodzi druga jednostka jakościowa i dzień regeneracyjny, a slot, który
+     przy 4 dniach absorbował resztę, przestaje istnieć.
+     Wada jest świadoma i przypięta testem blizny (109 inwersji, do 125 km) —
+     patrz zaległość „za mało dni przy wysokiej bazie". Ten komunikat jej NIE
+     naprawia; prowadzi wokół niej do faktycznego optimum.
+
+     ⚠️ STRAŻNIK REKURENCJI JEST OSOBNY OD `_wSciezce`, bo obie ścieżki mogą się
+     spotkać: próba dni woła `uloz()`, które samo woła `najblizszyOsiagalny`.
+     Ustawiamy oba — ścieżki dystansowe w próbie i tak są nam niepotrzebne,
+     a ich liczenie kosztowałoby kolejne wywołania silnika. */
+  var _wProbieDni = false;
+  function dniKtoreDomykaja(we, dniObecne) {
+    if (_wProbieDni || _wSciezce) return [];
+    _wProbieDni = true; _wSciezce = true;
+    try {
+      var out = [], d;
+      for (d = MIN_DNI; d <= MAX_DNI; d++) {
+        if (d === dniObecne) continue;
+        var proba = {};
+        for (var kk in we) if (Object.prototype.hasOwnProperty.call(we, kk)) proba[kk] = we[kk];
+        proba.dniWTygodniu = d;
+        var u = ubytekZWyniku(uloz(proba));
+        if (u && u.ubytek <= u.luz) out.push(d);
+      }
+      return out;
+    } finally { _wProbieDni = false; _wSciezce = false; }
+  }
+  /* „4" · „4 albo 6" · „3, 4 albo 6" — ostatni spójnik słowem, nie przecinkiem. */
+  function listaDni(dni) {
+    if (dni.length === 1) return String(dni[0]);
+    return dni.slice(0, -1).join(', ') + ' albo ' + dni[dni.length - 1];
+  }
+
   /* ── DYSTANS, KTÓRY DA SIĘ TRENOWAĆ OD ZARAZ ───────────────────────────────
      Bliźniak `najblizszyOsiagalny`, ale odpowiada na INNE pytanie i dlatego
      nie da się ich scalić.
@@ -1964,18 +2026,9 @@
        zastępuje ostatni bieg rozruszaniem, a dzień startu ma pusty dystans —
        tam deklaracja jest nadpisana celowo i porównywanie jej z realem
        zapalałoby notę na KAŻDYM planie. */
-    var budowaTyg = Math.max(0, k.tygodnie - k.taperTyg);
-    var deklBudowa = 0, faktBudowa = 0, jednostekBudowa = 0;
-    for (var bi = 0; bi < budowaTyg && bi < objetosci.length; bi++) {
-      if (!(objetosci[bi] > 0)) continue;
-      deklBudowa += objetosci[bi];
-      faktBudowa += faktyczne[bi];
-    }
-    for (var ji = 0; ji < treningi.length; ji++) {
-      if (treningi[ji].week_number <= budowaTyg && (treningi[ji].target_distance_km || 0) > 0) jednostekBudowa++;
-    }
-    var ubytekBudowy = deklBudowa - faktBudowa;
-    var luzSiatkiBudowy = jednostekBudowa * KROK_KM / 2;
+    var _ub = ubytekBudowyZ(objetosci, faktyczne, treningi, Math.max(0, k.tygodnie - k.taperTyg));
+    var deklBudowa = _ub.dekl, faktBudowa = _ub.fakt;
+    var ubytekBudowy = _ub.ubytek, luzSiatkiBudowy = _ub.luz;
 
     /* ⚠️ PROGNOZA LICZY SIĘ Z FORMY (p10Formy), NIGDY Z CELU (p10).
        Przy podanym celu `k.p10` jest już PODMIENIONY na tempo wyliczone z celu
@@ -2078,8 +2131,20 @@
           ubytekBudowy > luzSiatkiBudowy
             ? ['W fazie budowy plan zadaje ' + Math.round(faktBudowa) + ' km zamiast ' +
                Math.round(deklBudowa) + ' — o ' + Math.round(ubytekBudowy) + ' km mniej, niż wynika z jego własnej krzywej. ' +
-               'Sufity jednostek nie pozwalają rozłożyć tej objętości na ' + dni +
-               (dni === 1 ? ' dzień.' : (dni < 5 ? ' dni.' : ' dni.'))]
+               'Sufity jednostek nie pozwalają rozłożyć tej objętości na ' + dni + ' dni. ' +
+               /* ⚠️ DRUGIE ZDANIE MA NIEŚĆ LICZBĘ, NIE WSPÓŁCZUCIE. Pierwsze mówi,
+                  ILE plan traci; bez drugiego człowiek wie o stracie i nie wie,
+                  co z nią zrobić — a to jest ta sama zasada, co przy ścieżkach
+                  w odmowach. Gdy żadna liczba dni nie domyka, mówimy to WPROST,
+                  zamiast milczeć: milczenie czyta się jak „da się, tylko ci nie
+                  powiem". */
+               (function () {
+                 var ok = dniKtoreDomykaja(wejscie, dni);
+                 return ok.length
+                   ? 'Przy ' + listaDni(ok) + ' dniach plan dowiezie pełne ' + Math.round(deklBudowa) + ' km.'
+                   : 'Żadna liczba dni od ' + MIN_DNI + ' do ' + MAX_DNI +
+                     ' nie rozłoży tej objętości — plan zawsze odda część kilometrów.';
+               })()]
             : []).concat(
           /* ⚠️ ZAŁOŻENIE, KTÓRE ROBI SIĘ FAŁSZYWE SAMO Z SIEBIE. Plan cofnięty
              do zawodów liczy się z objętości Z DZIŚ, a rusza za wiele tygodni.
