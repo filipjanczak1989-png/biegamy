@@ -610,3 +610,60 @@ test('maxPrzyrostDla JEST CIAGLA I MONOTONICZNA', async (t) => {
     assert.strictEqual(kolizje, 0, kolizje + ' komunikatow podaje dwa razy te sama liczbe');
   });
 });
+
+/* == UBYTEK OBJETOSCI MUSI BYC POWIEDZIANY (25.08.2026) =====================
+   Warunek w meta.zalozenia porownywal SZCZYT ze SZCZYTEM, wiec plan, ktorego
+   szczyt sie zgadza, a srodkowe tygodnie nie - milczal. Zmierzone na 290
+   planach: 22 plany traca 0,5-2% i ZADEN nie dostawal noty; 4 z 13 planow
+   tracacych 5-10% (mediana 60 km) tez milczalo. */
+test('PLAN MOWI, GDY NIE DOWOZI WLASNEJ KRZYWEJ', async (t) => {
+  const plan = (dystans, dni, baza, h) => G.uloz({ dystans, dniWTygodniu: dni,
+    dataStartu: zaTyg(h), today: TODAY,
+    poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+
+  await t.test('!! plan tracacy 74 km w fazie budowy NIE MILCZY', () => {
+    const r = plan('5k', 5, 90, 14);
+    assert.strictEqual(r.ok, true);
+    const nota = r.meta.zalozenia.filter(z => z.includes('W fazie budowy'))[0];
+    assert.ok(nota, 'brak noty o ubytku; zalozenia: ' + JSON.stringify(r.meta.zalozenia));
+    assert.match(nota, /o \d+ km mniej/);
+  });
+
+  /* !! PROG LICZY SIE Z SIATKI. Kazda jednostka jest zaokraglona do KROK_KM,
+     wiec suma n jednostek moze odjechac o n x KROK_KM/2 bez zadnej wady.
+     Doslowne "gdy niezerowy" zapalaloby note na 176 z 290 planow - w wiekszosci
+     na 0,2 km, czyli na szumie siatki. */
+  await t.test('!! zdrowy plan NIE dostaje noty o zaokraglenia siatki', () => {
+    for (const [d, dni, b, h] of [['half', 5, 40, 14], ['10k', 6, 30, 12], ['marathon', 5, 55, 20]]) {
+      const r = plan(d, dni, b, h);
+      if (!r.ok) continue;
+      const nota = r.meta.zalozenia.filter(z => z.includes('W fazie budowy'));
+      assert.strictEqual(nota.length, 0,
+        d + ' ' + dni + 'dni baza ' + b + ' dostal note mimo zdrowej krzywej: ' + nota[0]);
+    }
+  });
+
+  /* Oba warunki zyja i lapia rozne rzeczy - szczyt mowi "plan nie siega tam,
+     gdzie mial", suma mowi "plan po drodze oddaje kilometry". */
+  await t.test('!! warunek SUMY lapie plany, ktorych warunek SZCZYTU nie widzi', () => {
+    let tylkoSuma = 0, razem = 0;
+    for (const d of ['5k', '10k', 'half', 'marathon']) {
+      for (let dni = 3; dni <= 6; dni++) {
+        if (d === 'marathon' && dni < 4) continue;
+        for (const b of [15, 20, 25, 30, 40, 55, 70, 90, 120]) {
+          for (const dh of [0, 4, 10]) {
+            const r = plan(d, dni, b, G.DYSTANSE[d].minTygodni + dh);
+            if (!r.ok) continue;
+            razem++;
+            const s1 = r.meta.zalozenia.some(z => z.includes('w szczycie zamiast'));
+            const s2 = r.meta.zalozenia.some(z => z.includes('W fazie budowy'));
+            if (s2 && !s1) tylkoSuma++;
+          }
+        }
+      }
+    }
+    assert.ok(razem > 200, 'za mala probka: ' + razem);
+    assert.ok(tylkoSuma >= 10,
+      'warunek sumy nie lapie juz nic ponad szczyt (' + tylkoSuma + ') - sprawdz, czy prog nie urosl');
+  });
+});

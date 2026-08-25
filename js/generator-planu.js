@@ -1942,6 +1942,41 @@
     }
     var szczytTyg = Math.max.apply(null, faktyczne);
 
+    /* ── UBYTEK OBJĘTOŚCI W FAZIE BUDOWY ──────────────────────────────────────
+       ⚠️ WARUNEK NA SZCZYCIE (0,95) NIE WYSTARCZA I TO JEST ZMIERZONE. Porównuje
+       SZCZYT ze SZCZYTEM, więc plan, którego szczyt się zgadza, a środkowe
+       tygodnie nie — milczy. Przemiot 290 planów, 25.08.2026:
+           ubytek 0,5–2%  : 22 plany, ŻADEN nie dostawał noty (mediana 3,3 km)
+           ubytek 2–5%    : 17 planów, 7 bez noty (mediana 23,3 km)
+           ubytek 5–10%   : 13 planów, 4 bez noty (mediana 60,3 km)
+           ubytek >10%    : 50 planów, 3 bez noty (mediana 179,3 km)
+       Plan potrafił stracić 60–180 km w fazie budowy i nie powiedzieć nic.
+
+       ⚠️ PRÓG LICZY SIĘ Z SIATKI, NIE JEST WPISANY. Każda jednostka jest
+       zaokrąglona do KROK_KM, więc suma n jednostek może odjechać od deklaracji
+       o n × KROK_KM/2 BEZ ŻADNEJ WADY. Dopiero powyżej tego mówimy o ubytku.
+       Zmierzone: warunek łapie 81 planów zamiast 66, a dokładka to przypadki
+       realne (5 km, 5 dni, baza 90: −74 km przy luzie siatki 15 km), nie
+       zaokrąglenia. Dosłowne „gdy niezerowy" zapaliłoby się na 176 z 290 —
+       w większości na 0,2 km, czyli na szumie.
+
+       ⚠️ FAZA BUDOWY, NIE CAŁY PLAN. W taperze `nadpiszOstatnieDni` ŚWIADOMIE
+       zastępuje ostatni bieg rozruszaniem, a dzień startu ma pusty dystans —
+       tam deklaracja jest nadpisana celowo i porównywanie jej z realem
+       zapalałoby notę na KAŻDYM planie. */
+    var budowaTyg = Math.max(0, k.tygodnie - k.taperTyg);
+    var deklBudowa = 0, faktBudowa = 0, jednostekBudowa = 0;
+    for (var bi = 0; bi < budowaTyg && bi < objetosci.length; bi++) {
+      if (!(objetosci[bi] > 0)) continue;
+      deklBudowa += objetosci[bi];
+      faktBudowa += faktyczne[bi];
+    }
+    for (var ji = 0; ji < treningi.length; ji++) {
+      if (treningi[ji].week_number <= budowaTyg && (treningi[ji].target_distance_km || 0) > 0) jednostekBudowa++;
+    }
+    var ubytekBudowy = deklBudowa - faktBudowa;
+    var luzSiatkiBudowy = jednostekBudowa * KROK_KM / 2;
+
     /* ⚠️ PROGNOZA LICZY SIĘ Z FORMY (p10Formy), NIGDY Z CELU (p10).
        Przy podanym celu `k.p10` jest już PODMIENIONY na tempo wyliczone z celu
        (patrz sprawdzSciane), więc `prognozaCzasu(k.p10, …)` zwracało dokładnie
@@ -2035,6 +2070,16 @@
             ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' + doKroku(sufitAkcentu(k.obecna)) +
                ' km) nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
                Math.round(szczytTyg) + ' km/tydz w szczycie zamiast ' + Math.round(Math.max.apply(null, objetosci)) + '.']
+            : []).concat(
+          /* ⚠️ DRUGI WARUNEK, NIE ZAMIAST PIERWSZEGO — łapią różne rzeczy.
+             Szczyt mówi „plan nie sięga tam, gdzie miał"; suma mówi „plan po
+             drodze oddaje kilometry". Plan może mieć poprawny szczyt i tracić
+             60 km w środku, albo obniżony szczyt bez ubytku gdzie indziej. */
+          ubytekBudowy > luzSiatkiBudowy
+            ? ['W fazie budowy plan zadaje ' + Math.round(faktBudowa) + ' km zamiast ' +
+               Math.round(deklBudowa) + ' — o ' + Math.round(ubytekBudowy) + ' km mniej, niż wynika z jego własnej krzywej. ' +
+               'Sufity jednostek nie pozwalają rozłożyć tej objętości na ' + dni +
+               (dni === 1 ? ' dzień.' : (dni < 5 ? ' dni.' : ' dni.'))]
             : []).concat(
           /* ⚠️ ZAŁOŻENIE, KTÓRE ROBI SIĘ FAŁSZYWE SAMO Z SIEBIE. Plan cofnięty
              do zawodów liczy się z objętości Z DZIŚ, a rusza za wiele tygodni.
@@ -3530,8 +3575,18 @@
     check('sufity odnotowane w meta.zalozenia, nie przemilczane (3 dni, 129 km/tydz)',
       Fnota.ok && Fnota.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }),
       Fnota.ok ? Fnota.meta.zalozenia : Fnota.sciana);
-    check('…a plan, który MIEŚCI objętość, noty NIE dostaje (nota nie jest ozdobą)',
-      !F.meta.zalozenia.some(function (z) { return /Sufity jednostek/.test(z); }), F.meta.zalozenia);
+    /* ⚠️ SPROSTOWANE 25.08.2026: TEN PLAN NIE MIEŚCI OBJĘTOŚCI I NIGDY NIE
+       MIEŚCIŁ. Asercja brzmiała „plan, który MIEŚCI objętość, noty NIE dostaje"
+       i przechodziła tylko dlatego, że jedyna wtedy istniejąca nota patrzyła na
+       SZCZYT: 135 z 141,9 to 95,1%, czyli o włos nad progiem 0,95.
+       ZMIERZONE: tygodnie 5-7 dowożą po 135 km zamiast 141,9 — łącznie 20,9 km
+       ubytku w fazie budowy przy luzie siatki 10,5 km. To nie jest zaokrąglenie.
+       Nota sumaryczna słusznie się teraz odzywa; nota szczytowa słusznie nie.
+       Test pilnuje OBU stron, zamiast twierdzić, że ubytku nie ma. */
+    check('nota SZCZYTOWA nie odzywa się przy 95,1% szczytu (próg 0,95 działa)',
+      !F.meta.zalozenia.some(function (z) { return /w szczycie zamiast/.test(z); }), F.meta.zalozenia);
+    check('⚠️ …ale nota SUMARYCZNA łapie te 21 km, które szczyt przepuścił',
+      F.meta.zalozenia.some(function (z) { return /W fazie budowy/.test(z); }), F.meta.zalozenia);
 
     /* ── PORZĄDEK STREF ─────────────────────────────────────────────────────
        Zgłoszenie brzmiało „interwały wolniejsze od tempa przy niektórych celach".
