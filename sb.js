@@ -315,7 +315,17 @@
      „75:30" na dziesiątce jest prawdziwym wynikiem, nie literówką. Parser ma
      ZROZUMIEĆ to, co formatter wypuścił; ocenianie, czy liczba ma sens, należy
      do warstwy walidacji, a nie do zamiany tekstu na sekundy.
-     Wszystkie 8 wywołań to kalkulatory (Riegel, strefy tętna, VDOT, tempo).
+
+     ⚠️ OD 24.08.2026 TA FUNKCJA NIE MA ANI JEDNEGO WYWOŁANIA W APLIKACJI.
+     Zdanie, które tu stało („wszystkie 8 wywołań to kalkulatory — Riegel,
+     strefy tętna, VDOT, tempo"), przestało być prawdą razem z usunięciem
+     kalkulatorów z narzedzia.html i zawodnik.html. Zostaje wyłącznie test
+     `tests/czas.test.js`.
+
+     ⚠️ NIE KASUJĘ JEJ PRZY OKAZJI — to osobna decyzja, a zachowanie „null bez
+     dwukropka" jest właśnie tym, co wywróciło kalkulatory. Jeśli wracają, mają
+     wrócić z dopełnieniem na blur (wzorzec `dopelnijPB`, którego pola PB używają
+     i dzięki któremu nigdy na to nie zachorowały) — a nie z samą maską.
 
      `trim()` doszedł przy przenosinach — obie lokalne kopie go nie miały,
      więc czas wklejony ze spacją na końcu dawał NaN w cichym `parts.some(isNaN)`. */

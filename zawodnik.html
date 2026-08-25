@@ -1392,10 +1392,6 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Statystyki</span>
     </button>
-    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
-      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
-    </button>
     <button id="ptab-badges" onclick="switchProfileTab('badges')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/></svg>
       <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Odznaki</span>
@@ -1515,82 +1511,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
     <div id="stats-content-profile"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div></div>
   </div>
 
-  <!-- TAB: KALKULATOR -->
-  <div id="ptab-panel-calc" style="display:none;">
-
-    <!-- Kalkulator stref tętna -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Strefy tętna (Karvonen)</div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Wiek</label>
-          <input id="calc-age" type="number" placeholder="30" min="10" max="80" oninput="calcZones()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">HR spoczynkowe</label>
-          <input id="calc-rhr" type="number" placeholder="60" min="30" max="100" oninput="calcZones()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
-        </div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">HR maksymalne — jeśli je znasz</label>
-        <input id="calc-hrmax" type="number" placeholder="szacuję z wieku" min="120" max="230" oninput="calcZones()" onchange="zapiszHrMax(this)"
-          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
-        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.4;">Najwyższa wartość z testu albo z zegarka. Puste = liczymy 220 − wiek, co potrafi się mylić o kilkanaście uderzeń. Zapisze się w profilu.</div>
-      </div>
-      <div id="zones-result"></div>
-    </div>
-
-    <!-- Prognoza czasów (Riegel) -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Prognoza czasów (Riegel)</div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Dystans bazowy</label>
-          <select id="calc-riegel-dist" onchange="calcRiegel()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:13px;padding:9px 10px;border-radius:8px;outline:none;cursor:pointer;">
-            <option value="5">5 km</option>
-            <option value="10" selected>10 km</option>
-            <option value="21.097">Półmaraton</option>
-            <option value="42.195">Maraton</option>
-          </select>
-        </div>
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Twój czas</label>
-          <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="8" oninput="autoColonTime(this);calcRiegel()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
-        </div>
-      </div>
-      <div id="riegel-result"></div>
-    </div>
-
-    <!-- Kalkulator tempa -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Kalkulator tempa</div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:20px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Dystans km</label>
-          <input id="calc-pace-dist" type="number" placeholder="10" step="0.1" oninput="calcPaceCalc()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Czas</label>
-          <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="8" oninput="autoColonTime(this);calcPaceCalc()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Tempo /km</label>
-          <input id="calc-pace-result" type="text" placeholder="6:00" readonly
-            style="width:100%;background:var(--card2);border:1px solid rgba(var(--accent-rgb),0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;cursor:default;">
-        </div>
-      </div>
-      <div id="pace-splits" style="display:none;">
-        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Splity (co 5 km)</div>
-        <div id="pace-splits-content" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-      </div>
-    </div>
-  </div>
+  <!-- TAB: KALKULATOR usunięty 24.08.2026 — patrz nagrobek przy funkcjach niżej. -->
 
 </div>
 
@@ -3162,10 +3083,9 @@ function switchProfileTab(tab) {
     info:   { svg: 'var(--accent)', bg: 'rgba(var(--accent-rgb),0.12)', border: 'rgba(var(--accent-rgb),0.4)', text: 'var(--accent)' },
     msgs:   { svg: '#5090e0',       bg: 'rgba(80,144,224,0.12)', border: 'rgba(80,144,224,0.4)', text: '#5090e0' },
     stats:  { svg: '#3db870',       bg: 'rgba(61,184,112,0.12)', border: 'rgba(61,184,112,0.4)', text: '#3db870' },
-    calc:   { svg: '#9a6fe8',       bg: 'rgba(154,111,232,0.12)', border: 'rgba(154,111,232,0.4)', text: '#9a6fe8' },
     badges: { svg: '#e8b840',       bg: 'rgba(232,184,64,0.12)',  border: 'rgba(232,184,64,0.4)',  text: '#e8b840' },
   };
-  ['info','msgs','stats','calc','badges'].forEach(t => {
+  ['info','msgs','stats','badges'].forEach(t => {
     const btn = document.getElementById('ptab-' + t);
     const panel = document.getElementById('ptab-panel-' + t);
     if (btn) {
@@ -3182,7 +3102,6 @@ function switchProfileTab(tab) {
   });
   if (tab === 'msgs')   _mountMsgsInProfile();
   if (tab === 'stats')  _loadStatsInProfile();
-  if (tab === 'calc')   _initCalcFromPBs();
   if (tab === 'badges') { loadAchievements().then(() => renderBadgesSection()); }
 }
 
@@ -3398,173 +3317,29 @@ function _updatePrivacyUI() {
   }
 }
 
-// ── KALKULATOR BIEGOWY ────────────────────────────────────────────
+/* ── KALKULATORY USUNIĘTE 24.08.2026 ────────────────────────────────────────
+   Były tu cztery: strefy tętna (Karvonen), Riegel, tempo i splity. Zdjęte
+   razem z bliźniaczą kopią w narzedzia.html — nie dlatego, że były martwe,
+   tylko dlatego, że trzy z nich nie umiały odczytać wpisanego czasu.
 
-function _initCalcFromPBs() {
-  // Pre-fill Riegel from best PB
-  const pbs = [
-    { dist: 5, val: document.getElementById('pb-5k')?.textContent },
-    { dist: 10, val: document.getElementById('pb-10k')?.textContent },
-    { dist: 21.097, val: document.getElementById('pb-half')?.textContent },
-    { dist: 42.195, val: document.getElementById('pb-mar')?.textContent },
-  ].filter(p => p.val && p.val !== '—' && p.val.includes(':'));
+   ⚠️ PRZYCZYNA JEST W MASCE, NIE W KALKULATORACH. `autoColonTime` (sb.js) nie
+   wstawia dwukropka poniżej 3 cyfr, a `_parseTimeToSecs` zwraca null bez
+   dwukropka. Wpisane „45" zostawało „45" → null → pole wyniku czyszczone →
+   przez placeholder „6:00" wyglądało na policzone. Zgłoszenie Maćka:
+   „generalnie to nic nie liczy". Kopia w zawodnik.html maskowała to tym, że
+   Riegel był wstępnie wypełniany życiówką (a ta ma dwukropek), więc otwierał
+   się z poprawnym wynikiem — psuł się dopiero po ręcznym wpisaniu.
 
-  if (pbs.length > 0) {
-    const best = pbs[0];
-    document.getElementById('calc-riegel-dist').value = best.dist;
-    document.getElementById('calc-riegel-time').value = best.val;
-    calcRiegel();
-  }
-}
+   ⚠️ athletes.hr_max ZOSTAJE W BAZIE, ale nie ma już ani jednego pisarza ani
+   czytelnika. Zmierzone 24.08.2026 przed usunięciem: 0 z 62 kont miało tę
+   wartość ustawioną, więc nic nie ginie. Jeśli kalkulatory mają wrócić —
+   wracają z dopełnieniem czasu na blur, nie z samą maską.
 
-/* Zapis HR max do profilu. Pole jest w kalkulatorze, ale wartość NIE jest
-   własnością kalkulatora — to dana o człowieku, która ma przeżyć zamknięcie
-   ekranu. Stąd zapis od razu przy zmianie, bez osobnego przycisku.
-   ⚠️ Zakres 120–230 sprawdzamy TU, mimo że pilnuje go też CHECK w bazie.
-   Nie z nieufności do bazy, tylko dlatego, że baza odpowie 400 i błąd wyląduje
-   w konsoli, a nie przed człowiekiem. Walidacja po stronie klienta jest po to,
-   żeby dało się powiedzieć, CO jest nie tak. */
-async function zapiszHrMax(input) {
-  if (!_athleteId) return;
-  const surowe = input.value.trim();
-  const v = surowe === '' ? null : parseInt(surowe);
-  if (v !== null && (!(v >= 120 && v <= 230))) {
-    // wzorzec z tego pliku — zawodnik.html nie ma własnego showToast, bierze go z sb.js
-    (window.showToast || alert)('HR maksymalne poza zakresem 120–230. Sprawdź wartość.', 'error');
-    return;
-  }
-  const { error } = await sb.from('athletes').update({ hr_max: v }).eq('id', _athleteId);
-  if (error) { (window.showToast || alert)('Nie udało się zapisać HR max: ' + error.message, 'error'); return; }
-  (window.showToast || alert)(v === null ? 'HR maksymalne wyczyszczone — wracamy do szacunku z wieku' : 'HR maksymalne zapisane w profilu ✓');
-}
+   ⚠️ Mamy ZMIERZONE tętno spoczynkowe (wellness.resting_hr, 9 zawodników,
+   mediana 51). Kalkulator go nie używał — kazał wpisać ręcznie, a jako
+   podpowiedź pokazywał 60, czyli wartość powyżej całego zaobserwowanego
+   zakresu 41–62. Jeśli strefy wracają, mają brać pomiar, nie podpowiedź. */
 
-function calcZones() {
-  const age = parseInt(document.getElementById('calc-age')?.value);
-  const rhr = parseInt(document.getElementById('calc-rhr')?.value);
-  const el = document.getElementById('zones-result');
-  if (!el) return;
-  if (!age || !rhr || age < 10 || age > 90 || rhr < 30 || rhr > 120) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz wiek i HR spoczynkowe</div>';
-    return;
-  }
-  /* ⚠️ 220 − WIEK TO OSTATNIA DESKA, NIE PIERWSZY WYBÓR.
-     Ta formuła ma odchylenie standardowe ±10–12 uderzeń (Robergs & Landwehr
-     2002), więc dla konkretnego człowieka pomyłka o 20 uderzeń mieści się
-     w normie. Zgłoszenie Maćka 17.08.2026: „strefy to totalna bujda". Miał rację
-     co do metody. Dlatego: własny pomiar wygrywa, a szacunek MUSI się przyznać,
-     że jest szacunkiem — inaczej zgadywanie wygląda jak pomiar ([[LEKCJE]] #11). */
-  const hrPodany = parseInt(document.getElementById('calc-hrmax')?.value);
-  const hrMaxOk = hrPodany >= 120 && hrPodany <= 230;   // ten sam zakres co CHECK w bazie
-  const hrMax = hrMaxOk ? hrPodany : 220 - age;
-  const hrSzacowany = !hrMaxOk;
-  const hrr = hrMax - rhr; // Heart Rate Reserve
-  const zones = [
-    { name: 'Z1 Regeneracja', pct: [50, 60], color: '#3db870', desc: 'Trucht, rozmowa możliwa' },
-    { name: 'Z2 Tlenowa baza', pct: [60, 70], color: '#5090e0', desc: 'Spokojny bieg, długie dystanse' },
-    { name: 'Z3 Tempo', pct: [70, 80], color: '#e8b840', desc: 'Komfortowo trudne' },
-    { name: 'Z4 Próg mleczanowy', pct: [80, 90], color: '#f06030', desc: 'Ciężkie, 10km–półmaraton' },
-    { name: 'Z5 VO2max', pct: [90, 100], color: '#e05050', desc: 'Maksymalny wysiłek, interwały' },
-  ];
-  const zoneRows = zones.map(z => {
-    const lo = Math.round(rhr + hrr * z.pct[0] / 100);
-    const hi = Math.round(rhr + hrr * z.pct[1] / 100);
-    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <div style="width:3px;height:40px;background:${z.color};border-radius:2px;flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div style="font-size:11px;font-weight:600;margin-bottom:1px;">${z.name} <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${z.color};">${lo}–${hi}</span> <span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">bpm</span></div>
-        <div style="font-size:10px;color:var(--muted);">${z.desc}</div>
-      </div>
-    </div>`;
-  }).join('');
-  /* Rezerwa ≤ 0 rozwala cały Karvonen — wszystkie strefy schodzą do jednej
-     liczby. Osiągalne bez złośliwości: HR max 120 (dolna granica) przy HR
-     spoczynkowym 120 (górna granica). Mówimy wprost, co jest nie tak. */
-  if (hrr < 20) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">HR maksymalne (' + hrMax + ') musi być wyraźnie wyższe od spoczynkowego (' + rhr + '). Sprawdź obie liczby.</div>';
-    return;
-  }
-  const zrodlo = hrSzacowany
-    ? '<span style="color:var(--muted);"> · szacunkowe (220 − wiek), wpisz swój pomiar wyżej</span>'
-    : '<span style="color:var(--muted);"> · Twój pomiar</span>';
-  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm${zrodlo}</div>${zoneRows}`;
-}
-
-// _parseTimeToSecs usunięty -> window._parseTimeToSecs (sb.js SSOT, INPUT-parser, centralizacja czasu)
-
-// _secsToTime usunięty -> window._secsToTime (sb.js SSOT, OUTPUT-formatter, centralizacja czasu)
-
-function calcRiegel() {
-  const distA = parseFloat(document.getElementById('calc-riegel-dist')?.value);
-  const timeStr = document.getElementById('calc-riegel-time')?.value;
-  const el = document.getElementById('riegel-result');
-  if (!el) return;
-
-  const secsA = _parseTimeToSecs(timeStr);
-  if (!secsA || !distA) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz czas dla wybranego dystansu</div>';
-    return;
-  }
-
-  // Riegel formula: T2 = T1 × (D2/D1)^1.06
-  const targets = [
-    { name: '5 km', dist: 5 },
-    { name: '10 km', dist: 10 },
-    { name: 'Półmaraton', dist: 21.097 },
-    { name: 'Maraton', dist: 42.195 },
-  ].filter(t => t.dist !== distA);
-
-  const paceA = secsA / distA;
-  const rows = targets.map(t => {
-    const secsB = secsA * Math.pow(t.dist / distA, 1.06);
-    const paceB = secsB / t.dist;
-    const paceStr = _secsToTime(paceB) + '/km';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="font-size:13px;">${t.name}</div>
-      <div style="text-align:right;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${_secsToTime(secsB)}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${paceStr}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  el.innerHTML = `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Na podstawie ${_secsToTime(secsA)} na ${distA} km · tempo ${_secsToTime(paceA)}/km</div>${rows}`;
-}
-
-function calcPaceCalc() {
-  const dist = parseFloat(document.getElementById('calc-pace-dist')?.value);
-  const timeStr = document.getElementById('calc-pace-time')?.value;
-  const resultEl = document.getElementById('calc-pace-result');
-  const splitsEl = document.getElementById('pace-splits');
-  const splitsContent = document.getElementById('pace-splits-content');
-  if (!resultEl) return;
-
-  const secs = _parseTimeToSecs(timeStr);
-  if (!secs || !dist || dist <= 0) {
-    resultEl.value = '';
-    if (splitsEl) splitsEl.style.display = 'none';
-    return;
-  }
-  const paceSecs = secs / dist;
-  resultEl.value = _secsToTime(paceSecs);
-
-  // Splits co 5 km
-  if (splitsEl && splitsContent && dist >= 5) {
-    splitsEl.style.display = 'block';
-    const interval = 5;
-    const numSplits = Math.floor(dist / interval);
-    let html = '';
-    for (let i = 1; i <= numSplits; i++) {
-      const splitSecs = paceSecs * interval * i;
-      html += `<div style="background:var(--card2);border-radius:8px;padding:6px 10px;font-family:DM Mono,monospace;font-size:10px;text-align:center;">
-        <div style="color:var(--muted);font-size:8px;margin-bottom:2px;">${i * interval} km</div>
-        <div style="color:var(--fg);">${_secsToTime(splitSecs)}</div>
-      </div>`;
-    }
-    splitsContent.innerHTML = html;
-  } else if (splitsEl) {
-    splitsEl.style.display = 'none';
-  }
-}
 
 async function loadProfile() {
   // Załaduj odznaki i wyrenderuj sekcję
@@ -3585,22 +3360,10 @@ async function loadProfile() {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
     const { data: ath } = await sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,goal,target_date,full_name,race_goals,is_public,avatar_url,hr_max,date_of_birth')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,pb_marathon_year,pb_half_year,pb_10k_year,pb_5k_year,goal,target_date,full_name,race_goals,is_public,avatar_url,date_of_birth')
       .eq('id', _athleteId).single();
-    /* Kalkulator stref przestaje być kalkulatorem „wpisz wszystko od nowa":
-       wiek i HR max mamy w profilu, więc je wstawiamy. HR max tylko wtedy, gdy
-       człowiek go PODAŁ — pustego pola nie wypełniamy szacunkiem, bo wtedy
-       zniknęłaby różnica między „mój pomiar" a „zgadujemy z wieku". */
-    if (ath?.date_of_birth) {
-      const wiek = Math.floor((Date.now() - new Date(ath.date_of_birth).getTime()) / 31557600000);
-      const pw = document.getElementById('calc-age');
-      if (pw && !pw.value && wiek >= 10 && wiek <= 90) pw.value = wiek;
-    }
-    if (ath?.hr_max) {
-      const ph = document.getElementById('calc-hrmax');
-      if (ph && !ph.value) ph.value = ath.hr_max;
-    }
-    if (typeof calcZones === 'function') calcZones();
+    /* Wstawianie wieku i HR max do kalkulatora stref zniknęło 24.08.2026 razem
+       z samym kalkulatorem — pola calc-age i calc-hrmax już nie istnieją. */
     if (ath?.avatar_url) {
       const img = document.getElementById('avatar-img');
       if (img) {

@@ -280,12 +280,66 @@
   /* Szczyt objętości = sufit bezpieczeństwa, nie cel do osiągnięcia.
      peakKm dystansu jest bezwzględnym sufitem, ale przy zawodniku na 30 km/tydz
      szczyt 70 to fikcja — stąd drugi sufit, względny.
-     ⚠️ MNOZNIK_SZCZYTU to OSĄD, nie pomiar.
      Podłoga na obecnej objętości jest dodatkiem do formuły min(): bez niej
      zawodnik biegający 90 km/tydz dostałby na maratonie szczyt 70, czyli
      COFNIĘCIE — a to dokładnie ten przypadek, dla którego sufit względny
      powstał. Plan nigdy nie proponuje mniej, niż ktoś już biega. */
-  var MNOZNIK_SZCZYTU = 1.6;
+  /* ── MNOŻNIK ZALEŻY OD HORYZONTU (24.08.2026) ──────────────────────────────
+     Do 24.08.2026 była to stała 1,6 — ta sama liczba przy 10 i przy 52
+     tygodniach. Ta sama pomyłka, którą naprawiliśmy 18.08 przy MAX_POPRAWA:
+     `tygodnie` występowało w treści komunikatu, nigdy w decyzji.
+
+     ⚠️ REGUŁA BEZPIECZEŃSTWA JUŻ ISTNIAŁA I JUŻ ZNAŁA HORYZONT — to jest
+     powód, dla którego ta zmiana jest bezpieczna, a nie poluzowaniem.
+     `SKOK_OBJETOSCI` liczy (peak/obecna)^(1/budowa) i odrzuca to, czego nie da
+     się dojść w tempie ≤ maxPrzyrostDla(baza). ZMIERZONE przy MNOZNIK=99
+     (czyli praktycznie zdjętym), baza 19,6, półmaraton:
+         10 tyg → SKOK_OBJETOSCI (+15,9% vs 8%)
+         12 tyg → SKOK_OBJETOSCI (+12,1% vs 8%)
+         16 tyg → SKOK_OBJETOSCI (+8,3%  vs 8%)
+         20 tyg → plan przechodzi
+     Mnożnik stał PRZED tą bramką i sprawiał, że przy dłuższych horyzontach
+     nigdy nie dochodziła do głosu.
+
+     ⚠️ ALE ZDJĄĆ GO CAŁKIEM NIE WOLNO i to też jest zmierzone: bez niego przy
+     ≥20 tygodniach szczyt skacze od razu do peakKm. Bramka mówi „bezpieczne",
+     bo 8%/tydz przez 50 tygodni matematycznie się spina — tylko nikt nie
+     utrzymuje 8%/tydz przez rok bez choroby, wyjazdu i słabszego miesiąca.
+     Tego `SKOK_OBJETOSCI` nie sprawdza, bo nie ma jak. To jest cała praca,
+     którą wykonuje ten mnożnik.
+
+     ── SKĄD 2,2 ──────────────────────────────────────────────────────────────
+     ⚠️ NIE DA SIĘ GO WYPROWADZIĆ Z REGUŁY PRZYROSTU i sprawdziłem to rachunkiem,
+     zamiast założyć. Przy 50 tygodniach budowania sama reguła dopuszcza:
+         baza <20  (8%/tydz): 1,08^50 = 46,9×
+         baza 20–40 (6%):     1,06^50 = 18,4×
+         baza 40–70 (4%):     1,04^50 =  7,1×
+         baza >70   (3%):     1,03^50 =  4,4×
+     Najniższa z tych liczb jest dwa razy wyższa od 2,2. Reguła przyrostu NIE
+     JEST więc źródłem tego sufitu — jest znacznie luźniejsza.
+
+     ⚠️ NASZE DANE TEŻ GO NIE UZASADNIAJĄ. Zmierzone 24.08.2026: pełny rok
+     historii w obu oknach ma DWÓCH zawodników (krotność 4,94 i 3,22); przy
+     oknie półrocznym czterech (mediana 1,15, p90 4,48, max 5,90). Mediana
+     i maksimum leżą po przeciwnych stronach 2,2, a n=2 to nie jest pomiar.
+
+     ⚠️ WIĘC 2,2 TO LICZBA Z SUFITU — dokładnie w tym samym sensie co
+     POPRAWA_NA_TYDZIEN. Mówię to wprost, żeby nikt nie szukał wyprowadzenia,
+     którego nie ma. Jej rola jest wyłącznie zaporowa: ma nie pozwolić, żeby
+     przy bardzo długim horyzoncie plan obiecał komuś potrojenie objętości.
+
+     ⚠️ DZIŚ TEN SUFIT JEST NIEOSIĄGALNY I TO NIE JEST PRZEOCZENIE. `tygodnie`
+     jest już przycięte przez MAX_TYGODNI = 52, więc mnożnik dochodzi najwyżej
+     do 1,6 + 0,52 = 2,12. Sufit 2,2 zacząłby wiązać dopiero przy planach
+     od 60 tygodni. Zostaje jako zapora na wypadek podniesienia MAX_TYGODNI —
+     jeśli ktoś je podniesie, ma znaleźć tę linię, a nie odkryć jej brak. */
+  var MNOZNIK_SZCZYTU = 1.6;                 // punkt wyjścia (krótki horyzont)
+  var MNOZNIK_NA_TYDZIEN = 0.01;             // +0,01 za każdy tydzień planu
+  var MNOZNIK_SZCZYTU_CAP = 2.2;             // ⚠️ liczba z sufitu, patrz wyżej
+  function mnoznikSzczytu(tygodnie) {
+    return Math.min(MNOZNIK_SZCZYTU + Math.max(tygodnie, 0) * MNOZNIK_NA_TYDZIEN,
+                    MNOZNIK_SZCZYTU_CAP);
+  }
 
   /* Jednostka jakościowa = rozgrzewka + praca + schłodzenie. Bez tego podziału
      suma km w planie nie zgadza się z tym, co człowiek faktycznie przebiegnie.
@@ -870,16 +924,57 @@
       startTyg = obecna * START_POD_BAZA;
     } else {
       rezim = (obecna < d.minSzczyt) ? 'progresja' : 'mieszany';
-      peak = Math.min(d.peakKm, obecna * MNOZNIK_SZCZYTU);
+      /* ⚠️ TRZECI SKŁADNIK min() DOSZEDŁ 24.08.2026 I BEZ NIEGO ZMIANA MNOŻNIKA
+         JEST REGRESJĄ. Zmierzone: maraton, 16 tygodni, baza 40 — stary mnożnik
+         dawał szczyt 64 (przyrost 3,68%/tydz, przechodzi), nowy dawał 70
+         (4,40%/tydz) i wpadał w SKOK_OBJETOSCI, czyli człowiek, który wczoraj
+         dostawał plan, dziś dostawałby odmowę.
+
+         Powód jest w PRZYROST_WG_BAZY, nie w mnożniku: pasma to [20,40) → 6%
+         i [40,70) → 4%, więc baza 39 ma limit 6%, a baza 40 już 4%. Ta
+         nieciągłość istniała przed zmianą — podniesienie szczytu tylko ją
+         odsłoniło. Przy 1,6 nikt o nią nie zahaczał, bo szczyt był niżej.
+
+         Reguła: NIE PROPONUJEMY SZCZYTU, KTÓREGO WŁASNA REGUŁA PRZYROSTU
+         ZABRANIA DOJŚĆ. `maxPrzyrostDla(obecna)^budowa` to dokładnie ta sama
+         liczba, którą chwilę niżej sprawdza SKOK_OBJETOSCI — więc obie strony
+         liczą z jednego wzoru i bramka nie może odrzucić szczytu, który sama
+         wyznaczyła. SKOK_OBJETOSCI zostaje i nadal łapie to, po co powstał:
+         przypadki, w których nawet obniżony szczyt nie mieści się w czasie
+         (bo `peak` ma jeszcze podłogę minSzczyt po stronie ZA_MALA_BAZA). */
+      var osiagalnyPeak = obecna * Math.pow(1 + maxPrzyrostDla(obecna), budowa);
+      /* ⚠️ `Math.max(..., obecna * MNOZNIK_SZCZYTU)` NIE JEST OZDOBNIKIEM —
+         bez niego ta linia KASUJE CAŁĄ ŚCIANĘ SKOK_OBJETOSCI. Miałem tę wersję
+         napisaną i złapał ją test blizny 11. Rachunek: jeśli peak ≤ obecna ×
+         (1+limit)^budowa, to (peak/obecna)^(1/budowa) − 1 ≤ limit ZAWSZE, więc
+         warunek `przyrost > limit` nie może być nigdy prawdziwy. Ściana
+         wyglądałaby na żywą, miała testy i komunikat z wyjściem, a nie dałoby
+         się jej wywołać żadnym wejściem.
+
+         Dlatego tłumimy WYŁĄCZNIE BONUS ZA HORYZONT, nigdy bazowe 1,6. Dzięki
+         temu zachowanie sprzed 24.08.2026 zostaje bit w bit — z odmowami
+         włącznie — a nowy mnożnik nie może nikomu odebrać planu, który
+         wcześniej dostawał. Zmierzone na obu przypadkach:
+           baza 40, maraton, 16 tyg. → osiągalny 66,6 > stary 64,0 → peak 66,6,
+                                        przyrost 4,00% = limit → PLAN (była regresja)
+           baza 25, half,   10 tyg. → osiągalny 37,6 < stary 40,0 → peak 40,0,
+                                        przyrost 6,94% > 6% → SKOK_OBJETOSCI (blizna 11 żyje) */
+      peak = Math.min(d.peakKm, obecna * mnoznikSzczytu(tygodnie),
+                      Math.max(osiagalnyPeak, obecna * MNOZNIK_SZCZYTU));
       startTyg = obecna;
     }
 
-    // ZA_MALA_BAZA — jedyna odmowa, którą człowiek może sam naprawić, więc niesie
-    // konkretną liczbę do osiągnięcia. Sufit obecna×MNOZNIK obniża szczyt, a niższy
-    // szczyt jest łatwiej osiągalny — bez tej bramki ściana narastania przestawała
-    // się odzywać dokładnie dla maratonu i półmaratonu.
-    if (obecna * MNOZNIK_SZCZYTU < d.minSzczyt) {
-      var wymBaza = Math.ceil(d.minSzczyt / MNOZNIK_SZCZYTU);
+    /* ZA_MALA_BAZA — jedyna odmowa, którą człowiek może sam naprawić, więc niesie
+       konkretną liczbę do osiągnięcia. Sufit obecna×mnożnik obniża szczyt, a niższy
+       szczyt jest łatwiej osiągalny — bez tej bramki ściana narastania przestawała
+       się odzywać dokładnie dla maratonu i półmaratonu.
+
+       ⚠️ MNOŻNIK MUSI BYĆ TU TEN SAM, CO PRZY LICZENIU `peak` — z tym samym
+       `tygodnie`. Gdyby bramka została na stałym 1,6, odrzucałaby bazy, dla
+       których szczyt policzony linijkę wyżej jest już osiągalny; komunikat
+       podawałby wtedy próg, którego silnik sam od siebie nie wymaga. */
+    if (obecna * mnoznikSzczytu(tygodnie) < d.minSzczyt) {
+      var wymBaza = Math.ceil(d.minSzczyt / mnoznikSzczytu(tygodnie));
       /* ⚠️ NAJWIĘKSZA STRATA STAREGO KOMUNIKATU NIE BYŁA BRAKIEM ŚCIEŻKI.
          Brzmiał „zbuduj bazę do ~35 km/tydz" — prawda o maratonie, która CHOWA
          to, że przy 12 km/tydz do pierwszego planu (piątka) brakuje pół
@@ -928,7 +1023,16 @@
     var limitPrzyrostu = maxPrzyrostDla(obecna);
     if (peak > obecna) {
       var przyrost = Math.pow(peak / obecna, 1 / budowa) - 1;
-      if (przyrost > limitPrzyrostu) {
+      /* ⚠️ TOLERANCJA JEST TU KONIECZNA, NIE KOSMETYCZNA — i pilnuje jej test.
+         Od 24.08.2026 `peak` bywa USTAWIONY DOKŁADNIE na tym limicie (patrz
+         `osiagalnyPeak` wyżej), a wtedy odwrotność potęgi nie wraca do tej samej
+         liczby: dla bazy 21, 9 tygodni budowy i limitu 6% wychodzi
+         0,06000000000000005 — większe od 0,06 o 5,6e-17. Bez tolerancji bramka
+         odrzucała szczyt, który sama przed chwilą wyznaczyła jako osiągalny;
+         zmierzone na 16 przypadkach (m.in. półmaraton, baza 21–26, 12 tygodni).
+         „Równo na limicie" ma przechodzić — o tym decyduje reguła, nie błąd
+         zaokrąglenia liczby zmiennoprzecinkowej. */
+      if (przyrost > limitPrzyrostu + 1e-9) {
         /* ⚠️ TA ŚCIANA BYŁA JEDYNĄ Z PIĘCIU BEZ WYJŚCIA — mówiła „za duży skok"
            i kończyła. Komentarz wyżej twierdził nawet, że „każda niesie konkretną
            liczbę tygodni do dołożenia", a komunikat jej nie zawierał; kod
@@ -1633,7 +1737,11 @@
        23,5 to tylko najbliższa liczba, którą plan potrafi zapisać. */
     if (najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001) {
       var potrzebnyPeak = progDlugiego / k.d.udzialDlugiego;
-      var bazaDlaDlugiego = Math.ceil(potrzebnyPeak / MNOZNIK_SZCZYTU);
+      /* ⚠️ TEN SAM MNOŻNIK I TEN SAM `tygodnie`, CO PRZY LICZENIU SZCZYTU —
+         inaczej komunikat podałby bazę wyższą, niż silnik naprawdę wymaga przy
+         tym horyzoncie, i wysłał człowieka budować kilometry, których nie
+         potrzebuje. Liczba w odmowie musi pochodzić z reguły, która odmówiła. */
+      var bazaDlaDlugiego = Math.ceil(potrzebnyPeak / mnoznikSzczytu(k.tygodnie));
       /* Ta sama ścieżka co przy ZA_MALA_BAZA — wybieganie rośnie razem
          z objętością, więc „ile brakuje" jest tu równie policzalne.
          ⚠️ TEN BRZEG BYWA WĄSKI: przy 34 km/tydz do maratonu brakuje ~3 km/tydz,
@@ -2035,7 +2143,8 @@
     LIMITY: { MAX_POPRAWA: MAX_POPRAWA, MAX_PRZYROST_TYG: MAX_PRZYROST_TYG,
               MIN_DNI: MIN_DNI, MAX_DNI: MAX_DNI, MARATON_MIN_DNI: MARATON_MIN_DNI,
               OBJETOSC_DOMYSLNA: OBJETOSC_DOMYSLNA, ZRZUT: ZRZUT, ZRZUT_CO: ZRZUT_CO,
-              MNOZNIK_SZCZYTU: MNOZNIK_SZCZYTU, ROZGRZEWKA: ROZGRZEWKA, SCHLODZENIE: SCHLODZENIE, ODCINEK_M: ODCINEK_M,
+              MNOZNIK_SZCZYTU: MNOZNIK_SZCZYTU, MNOZNIK_NA_TYDZIEN: MNOZNIK_NA_TYDZIEN,
+              MNOZNIK_SZCZYTU_CAP: MNOZNIK_SZCZYTU_CAP, ROZGRZEWKA: ROZGRZEWKA, SCHLODZENIE: SCHLODZENIE, ODCINEK_M: ODCINEK_M,
               DLUGIE_NAD_SPOKOJNYM: DLUGIE_NAD_SPOKOJNYM, MAX_ODCINKOW: MAX_ODCINKOW, MAX_JAKOSC_W_TYG: MAX_JAKOSC_W_TYG,
               MAX_TEMPO_KM: MAX_TEMPO_KM, MAX_TEMPO_MIN: MAX_TEMPO_MIN,
               START_POD_BAZA: START_POD_BAZA, SZCZYT_NAD_BAZA: SZCZYT_NAD_BAZA,
@@ -2050,6 +2159,7 @@
     ZAMKNIECIE: ZAMKNIECIE,
     tydzienNalezyDoNas: tydzienNalezyDoNas,
     MIN_JEDNOSTKI_KM: MIN_JEDNOSTKI_KM,
+    mnoznikSzczytu: mnoznikSzczytu,
     sufitWybiegania: sufitWybiegania, sufitAkcentu: sufitAkcentu,
     SUFIT_DLUGIE_UDZIAL_BAZY: SUFIT_DLUGIE_UDZIAL_BAZY, SUFIT_DLUGIE_CAP: SUFIT_DLUGIE_CAP,
     SUFIT_TEMPO_UDZIAL_BAZY: SUFIT_TEMPO_UDZIAL_BAZY, SUFIT_TEMPO_CAP: SUFIT_TEMPO_CAP,
@@ -2189,8 +2299,13 @@
                           poziom: poziom({ objetoscTygodniowa: 20 }) }));
     check('maraton z 20 km/tydz → ZA_MALA_BAZA (wcześniej PRZECHODZIŁ)',
       mar20.ok === false && mar20.sciana.kod === 'ZA_MALA_BAZA', mar20.ok ? 'PRZESZLO' : mar20.sciana);
+    /* ⚠️ 26, NIE 29 — od 24.08.2026 wymagana baza liczy się z mnożnika zależnego
+       od horyzontu (przy 16 tygodniach 1,76), więc TA liczba nie może być wpisana
+       na sztywno. Wyprowadzamy ją z tego samego wzoru, którego użył silnik:
+       gdyby ktoś zmienił mnożnik, test ma iść za nim, a nie zgasnąć na 29. */
     check('odmowa niesie drogę wyjścia: ile trzeba biegać',
-      mar20.sciana.szczegoly.wymaganaBaza_km === 29 && mar20.sciana.szczegoly.minSzczyt_km === 45,
+      mar20.sciana.szczegoly.wymaganaBaza_km === Math.ceil(45 / mnoznikSzczytu(16))
+      && mar20.sciana.szczegoly.minSzczyt_km === 45,
       mar20.sciana.szczegoly);
     /* ⚠️ ZDANIE „Zbuduj bazę do ~29 km/tydz" ZNIKŁO Z KOMUNIKATU 18.08.2026
        i to było celowe. Podawało liczbę odległą (baza pod maraton), a chowało
@@ -2199,14 +2314,18 @@
        linijkę wyżej jej pilnuje. Zmieniła się treść, nie zawartość. */
     check('komunikat zawiera liczby, nie samo „nie da się"',
       /20 km\/tydz/.test(mar20.sciana.komunikat) && /45 km\/tydz/.test(mar20.sciana.komunikat)
-      && /Najbliżej masz 10 km/.test(mar20.sciana.komunikat), mar20.sciana.komunikat);
+      && /Najbliżej masz półmaraton/.test(mar20.sciana.komunikat), mar20.sciana.komunikat);
     var half15 = uloz(we({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTygodni(10),
                            poziom: poziom({ objetoscTygodniowa: 15 }) }));
     check('półmaraton z 15 km/tydz → odbite', half15.ok === false && half15.sciana.kod === 'ZA_MALA_BAZA',
       half15.ok ? 'PRZESZLO' : half15.sciana);
-    check('próg ZA_MALA_BAZA liczony z minSzczyt / MNOZNIK_SZCZYTU dla każdego dystansu',
+    /* ⚠️ MNOŻNIK ZALEŻY OD HORYZONTU (24.08.2026), więc próg TEŻ. `TODAY` jest
+       poniedziałkiem, więc zaTygodni(n) daje dokładnie n tygodni planu i ten sam
+       n można podać mnoznikSzczytu(). Gdyby stało tu stałe 1,6, test liczyłby
+       próg z reguły, której silnik już nie stosuje. */
+    check('próg ZA_MALA_BAZA liczony z minSzczyt / mnoznikSzczytu(tygodnie) dla każdego dystansu',
       ['5k', '10k', 'half', 'marathon'].every(function (dy) {
-        var d = DYSTANSE[dy], graniczna = d.minSzczyt / MNOZNIK_SZCZYTU;
+        var d = DYSTANSE[dy], graniczna = d.minSzczyt / mnoznikSzczytu(d.minTygodni + 6);
         var pod = uloz(we({ dystans: dy, dniWTygodniu: 5, dataStartu: zaTygodni(d.minTygodni + 6),
                             poziom: poziom({ objetoscTygodniowa: graniczna - 0.5 }) }));
         var nad = uloz(we({ dystans: dy, dniWTygodniu: 5, dataStartu: zaTygodni(d.minTygodni + 6),
@@ -2222,16 +2341,20 @@
       mar29.ok === false && mar29.sciana.kod === 'ZA_KROTKIE_WYBIEGANIE', mar29.ok ? 'PRZESZLO' : mar29.sciana);
     check('odmowa podaje ile km trzeba dobiec i ile to % dystansu',
       mar29.sciana.szczegoly.wymagane_km === 23.2 && mar29.sciana.szczegoly.procDystansu === 55
-      && mar29.sciana.szczegoly.wymaganaBaza_km === 37, mar29.sciana.szczegoly);
-    var mar36 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
-                          poziom: poziom({ objetoscTygodniowa: 36 }) }));
-    check('maraton z 36 km/tydz nadal odbity (tuż pod progiem)',
-      mar36.ok === false && mar36.sciana.kod === 'ZA_KROTKIE_WYBIEGANIE', mar36.ok ? 'PRZESZLO' : mar36.sciana);
-    var mar37 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
-                          poziom: poziom({ objetoscTygodniowa: 37 }) }));
-    check('maraton z 37 km/tydz PRZECHODZI (pierwsza wartość, która przechodzi)', mar37.ok === true,
-      mar37.ok ? null : mar37.sciana);
-    check('…i jego najdłuższe wybieganie sięga ≥ 23 km', najdluzszeW(mar37) >= 23, najdluzszeW(mar37));
+      && mar29.sciana.szczegoly.wymaganaBaza_km === 33, mar29.sciana.szczegoly);
+    /* ⚠️ BRZEG PRZESUNĄŁ SIĘ Z 36/37 NA 32/33 (24.08.2026) — mnożnik przy
+       18 tygodniach to 1,78 zamiast 1,6, więc te same bazy sięgają wyżej.
+       Sprawdzamy PARĘ sąsiednich wartości, bo testem jest tu istnienie ostrego
+       progu, nie konkretna liczba: ostatnia odbita i pierwsza przechodząca. */
+    var mar32 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
+                          poziom: poziom({ objetoscTygodniowa: 32 }) }));
+    check('maraton z 32 km/tydz nadal odbity (tuż pod progiem)',
+      mar32.ok === false && mar32.sciana.kod === 'ZA_KROTKIE_WYBIEGANIE', mar32.ok ? 'PRZESZLO' : mar32.sciana);
+    var mar33 = uloz(we({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTygodni(18),
+                          poziom: poziom({ objetoscTygodniowa: 33 }) }));
+    check('maraton z 33 km/tydz PRZECHODZI (pierwsza wartość, która przechodzi)', mar33.ok === true,
+      mar33.ok ? null : mar33.sciana);
+    check('…i jego najdłuższe wybieganie sięga ≥ 23 km', najdluzszeW(mar33) >= 23, najdluzszeW(mar33));
     check('KAŻDY wygenerowany plan spełnia próg wybiegania',
       [['5k', 6, 4, 25], ['10k', 8, 4, 30], ['half', 12, 4, 40], ['marathon', 18, 5, 45],
        ['marathon', 20, 6, 90], ['half', 16, 3, 30]].every(function (c) {
@@ -2725,8 +2848,12 @@
                          poziom: poziom({ objetoscTygodniowa: c[3] }) }));
       if (!rr.ok) { check(c[0] + ' @' + c[3] + ' km/tydz: plan powstaje', false, rr.sciana); return; }
       var szczyt = Math.max.apply(null, rr.meta.objetosciTygodni);
-      check(c[0] + ' @' + c[3] + ' km/tydz: szczyt ≤ obecna × ' + MNOZNIK_SZCZYTU + ' (' + szczyt + ' ≤ ' + (c[3] * MNOZNIK_SZCZYTU) + ')',
-        szczyt <= c[3] * MNOZNIK_SZCZYTU + 0.05, szczyt);
+      /* ⚠️ MNOŻNIK LICZY SIĘ Z HORYZONTU TEGO PLANU (c[1]), nie ze stałej.
+         zaTygodni(n) daje dokładnie n tygodni, więc c[1] jest tym samym n,
+         które zobaczył silnik. */
+      var mnoz = mnoznikSzczytu(c[1]);
+      check(c[0] + ' @' + c[3] + ' km/tydz: szczyt ≤ obecna × ' + mnoz.toFixed(2) + ' (' + szczyt + ' ≤ ' + (c[3] * mnoz).toFixed(1) + ')',
+        szczyt <= c[3] * mnoz + 0.05, szczyt);
       var sufitDlaTego = Math.max(DYSTANSE[c[0]].peakKm, c[3] * SZCZYT_NAD_BAZA);
       check(c[0] + ' @' + c[3] + ' km/tydz: szczyt ≤ sufitu (' + szczyt + ' ≤ ' + Math.round(sufitDlaTego) + ')',
         szczyt <= sufitDlaTego + 0.05, szczyt);
@@ -2892,8 +3019,9 @@
       Math.abs(R25.meta.objetosciTygodni[0] - 25) < 0.6, R25.meta.objetosciTygodni[0]);
     check('progresja: szczyt WYRAŹNIE powyżej bazy (nie fala wokół 25)',
       szczytP(R25) >= 25 * 1.4, szczytP(R25));
-    check('progresja: szczyt nie przekracza sufitu dystansu ani obecna×1.6',
-      szczytP(R25) <= Math.min(DYSTANSE.half.peakKm, 25 * MNOZNIK_SZCZYTU) + 0.06, szczytP(R25));
+    check('progresja: szczyt nie przekracza sufitu dystansu ani obecna×mnożnik horyzontu',
+      szczytP(R25) <= Math.min(DYSTANSE.half.peakKm, 25 * mnoznikSzczytu(R25.meta.tygodnie)) + 0.06,
+      szczytP(R25));
 
     // ── 2. MIESZANY: miedzy minSzczyt a peakKm — rosnie DO peakKm, potem cykl 3:1
     var R45 = rezimTest(45, 'half', 16);

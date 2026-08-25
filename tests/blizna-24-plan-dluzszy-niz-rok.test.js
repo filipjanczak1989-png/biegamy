@@ -227,3 +227,121 @@ test('⚠️ narzedzia.html USUNIĘTE — nie wraca bokiem', async (t) => {
     assert.doesNotMatch(prof, /onclick="goToStats\(\)"/, 'kafel wrócił');
   });
 });
+
+/* ══ MNOŻNIK SZCZYTU ZALEŻY OD HORYZONTU (24.08.2026) ════════════════════════
+   Szósta stała, która „znała" liczbę tygodni wyłącznie z treści komunikatu.
+   Do 24.08 MNOZNIK_SZCZYTU = 1,6 dawał ten sam szczyt przy 10 i przy 52
+   tygodniach. Maciek z bazą 19,6 odbijał się o ZA_KROTKIE_WYBIEGANIE na
+   KAŻDYM horyzoncie — 10, 26, 52, 61 i 113 tygodni dawały identyczną odmowę. */
+test('MNOŻNIK SZCZYTU ROŚNIE Z HORYZONTEM', async (t) => {
+  await t.test('wzór: min(1,6 + tygodnie/100, 2,2)', () => {
+    assert.strictEqual(G.mnoznikSzczytu(0), 1.6);
+    assert.ok(Math.abs(G.mnoznikSzczytu(10) - 1.70) < 1e-9);
+    assert.ok(Math.abs(G.mnoznikSzczytu(52) - 2.12) < 1e-9);
+    assert.strictEqual(G.mnoznikSzczytu(200), 2.2);
+  });
+
+  /* ⚠️ SUFIT 2,2 JEST DZIŚ NIEOSIĄGALNY I TO JEST ŚWIADOME — `tygodnie` jest
+     przycięte przez MAX_TYGODNI, więc mnożnik dochodzi najwyżej do 2,12.
+     Test pilnuje, żeby ta zależność nie rozjechała się po cichu: gdyby ktoś
+     podniósł MAX_TYGODNI powyżej 60, sufit zacznie wiązać i ma o tym wiedzieć. */
+  await t.test('⚠️ przy MAX_TYGODNI = 52 sufit 2,2 nie może zadziałać', () => {
+    const najwyzszy = G.mnoznikSzczytu(G.LIMITY.MAX_TYGODNI);
+    assert.ok(najwyzszy < G.LIMITY.MNOZNIK_SZCZYTU_CAP,
+      'sufit zaczął wiązać — zmienił się MAX_TYGODNI, sprawdź komentarz przy MNOZNIK_SZCZYTU_CAP');
+    assert.ok(Math.abs(najwyzszy - 2.12) < 1e-9);
+  });
+
+  await t.test('szczyt NAPRAWDĘ rośnie z horyzontem przy tej samej bazie', () => {
+    const szczyt = (h) => {
+      const r = plan(h, { poziom: { p10sec: 330, wynik: null, objetoscTygodniowa: 19.6 } });
+      assert.strictEqual(r.ok, true, 'horyzont ' + h);
+      return Math.max.apply(null, r.meta.objetosciFaktyczne);
+    };
+    const s16 = szczyt(16), s26 = szczyt(26), s52 = szczyt(52);
+    assert.ok(s26 > s16, '26 tyg. nie dało wyższego szczytu niż 16 (' + s26 + ' vs ' + s16 + ')');
+    assert.ok(s52 > s26, '52 tyg. nie dało wyższego szczytu niż 26 (' + s52 + ' vs ' + s26 + ')');
+  });
+
+  /* ⚠️ TO JEST TA SAMA REGRESJA, KTÓRĄ ZŁAPAŁEM PODCZAS PISANIA TEJ ZMIANY.
+     Pierwsza wersja guardu (`peak` przycięty do osiągalnego BEZ `Math.max`
+     z bazowym 1,6) sprawiała, że przyrost nigdy nie mógł przekroczyć limitu,
+     więc SKOK_OBJETOSCI stawało się martwą gałęzią — ściana z własnym
+     komunikatem, testami i ścieżką wyjścia, której nie dało się wywołać. */
+  await t.test('⚠️ SKOK_OBJETOSCI nadal da się wywołać — nie jest martwą gałęzią', () => {
+    const r = G.uloz({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTyg(10), today: TODAY,
+      poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: 25 }, celCzasowy: null });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.sciana.kod, 'SKOK_OBJETOSCI');
+  });
+
+  /* ⚠️ TOLERANCJA 1e-9 W BRAMCE PRZYROSTU. `peak` bywa ustawiony DOKŁADNIE na
+     limicie, a wtedy (peak/obecna)^(1/budowa) wraca o 5,6e-17 za wysoko i
+     bramka odrzucała szczyt, który sama wyznaczyła jako osiągalny.
+     Zmierzone na 16 przypadkach, m.in. półmaraton przy bazie 21–26 na 12 tyg. */
+  await t.test('⚠️ szczyt równo na limicie przyrostu PRZECHODZI (błąd zaokrąglenia nie decyduje)', () => {
+    for (const baza of [21, 23, 26]) {
+      const r = G.uloz({ dystans: 'half', dniWTygodniu: 4, dataStartu: zaTyg(12), today: TODAY,
+        poziom: { p10sec: 330, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+      assert.strictEqual(r.ok, true, 'baza ' + baza + ' odbita: ' + (r.ok ? '' : r.sciana.kod));
+    }
+  });
+
+  /* MACIEK — zgłoszenie z 23.08. Bez celu czasowego przechodzi od 12 tygodni.
+     ⚠️ Z CELEM 2:00:00 NIE PRZECHODZI NIGDY i to NIE jest ta reguła: blokuje
+     go MAX_POPRAWA_SUFIT (15%), bo z prognozy 2:21:36 do 2:00:00 brakuje 15,3%.
+     Tamta stała jest bezczasowa ŚWIADOMIE — patrz komentarz przy niej. */
+  await t.test('MACIEK: bez celu przechodzi od 12 tygodni, poniżej nie', () => {
+    const macIek = (h) => G.uloz({ dystans: 'half', dniWTygodniu: 5, dataStartu: zaTyg(h),
+      today: TODAY, poziom: { p10sec: 385, wynik: null, objetoscTygodniowa: 19.6 }, celCzasowy: null });
+    assert.strictEqual(macIek(10).ok, false, '10 tyg. powinno odmówić');
+    assert.strictEqual(macIek(10).sciana.kod, 'ZA_KROTKIE_WYBIEGANIE');
+    for (const h of [12, 26, 52, 61, 113]) {
+      assert.strictEqual(macIek(h).ok, true, h + ' tyg. powinno przejść');
+    }
+  });
+
+  await t.test('⚠️ …a cel 2:00:00 odbija się o INNĄ ścianę, na każdym horyzoncie', () => {
+    for (const h of [12, 26, 52, 61, 113]) {
+      const r = G.uloz({ dystans: 'half', dniWTygodniu: 5, dataStartu: zaTyg(h), today: TODAY,
+        poziom: { p10sec: 385, wynik: null, objetoscTygodniowa: 19.6 }, celCzasowy: 7200 });
+      assert.strictEqual(r.ok, false, h + ' tyg.');
+      assert.strictEqual(r.sciana.kod, 'CEL_ZA_AMBITNY', h + ' tyg.');
+    }
+  });
+});
+
+test('⚠️ KALKULATORY USUNIĘTE — obie kopie, nie jedna', async (t) => {
+  const zaw = czytaj('zawodnik.html');
+
+  await t.test('funkcje nie wróciły', () => {
+    for (const fn of ['calcZones', 'calcRiegel', 'calcPaceCalc', '_initCalcFromPBs', 'zapiszHrMax']) {
+      assert.doesNotMatch(zaw, new RegExp('function ' + fn + '\\b'), fn + ' wróciło');
+    }
+  });
+
+  await t.test('pola formularza nie wróciły', () => {
+    for (const id of ['calc-age', 'calc-rhr', 'calc-hrmax', 'calc-riegel-time', 'calc-pace-time']) {
+      assert.doesNotMatch(zaw, new RegExp('id="' + id + '"'), id + ' wróciło');
+    }
+  });
+
+  /* ⚠️ ZAKŁADKA MUSI ZNIKNĄĆ RAZEM Z PANELEM. Sam przycisk bez panelu daje
+     kafel, który nic nie otwiera — gorzej niż brak kafla. */
+  await t.test('zakładka „Kalkulator" zniknęła z profilu i z przełącznika', () => {
+    assert.doesNotMatch(zaw, /id="ptab-calc"/);
+    assert.doesNotMatch(zaw, /id="ptab-panel-calc"/);
+    assert.doesNotMatch(zaw, /'info','msgs','stats','calc','badges'/);
+  });
+
+  /* athletes.hr_max zostaje w bazie, ale straciło jedynego pisarza i czytelnika.
+     Zmierzone przed usunięciem: 0 z 62 kont miało tę wartość. */
+  await t.test('hr_max nie jest już czytane z bazy bez odbiorcy', () => {
+    assert.doesNotMatch(zaw, /avatar_url,hr_max,date_of_birth/);
+  });
+
+  await t.test('nagrobek stoi i mówi, co było przyczyną', () => {
+    assert.match(zaw, /KALKULATORY USUNIĘTE 24\.08\.2026/);
+    assert.match(zaw, /autoColonTime/);
+  });
+});
