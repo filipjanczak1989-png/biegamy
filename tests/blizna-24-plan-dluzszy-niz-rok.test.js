@@ -345,3 +345,105 @@ test('⚠️ KALKULATORY USUNIĘTE — obie kopie, nie jedna', async (t) => {
     assert.match(zaw, /autoColonTime/);
   });
 });
+
+/* ══ KRZYWA IDZIE ZA BRAMKĄ (25.08.2026) ═════════════════════════════════════
+   `objetosciTygodni` budowała rampę po płaskim MAX_PRZYROST_TYG (8%), a bramka
+   SKOK_OBJETOSCI sprawdzała plan po stopniowanym maxPrzyrostDla(baza) (8/6/4/3%).
+   Zatwierdzany był inny plan niż wykonywany: maraton, baza 60, 30 tyg. — limit
+   bramki 4%/tydz, realny przyrost krzywej 8%, szczyt w tygodniu 3 z 30.
+   Dotyczyło 45 z 62 zawodników (każdego z bazą ≥ 20 km/tydz). */
+test('KRZYWA NIE ROŚNIE SZYBCIEJ, NIŻ POZWALA BRAMKA', async (t) => {
+  const trendy = (r, baza) => {
+    const o = r.meta.objetosciTygodni, budowa = r.meta.tygodnie - r.meta.taperTygodni;
+    const out = [];
+    // tylko pary trend→trend: pomijamy tydzień zrzutowy i ten zaraz po nim
+    for (let j = 1; j < budowa; j++) {
+      if ((j + 1) % 4 === 0 || j % 4 === 0) continue;
+      out.push((o[j] - 0.05) / (o[j - 1] + 0.05) - 1);   // luz na siatkę 0,1 km
+    }
+    return out;
+  };
+
+  await t.test('⚠️ w reżimie budowania trend nigdy nie przekracza pasma bazy', () => {
+    for (const dystans of ['5k', '10k', 'half', 'marathon']) {
+      for (const baza of [15, 22, 30, 45, 60]) {
+        for (const h of [16, 26, 40]) {
+          const r = G.uloz({ dystans, dniWTygodniu: 5, dataStartu: zaTyg(h), today: TODAY,
+            poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+          if (!r.ok || r.meta.rezim === 'fala') continue;
+          const limit = baza < 20 ? 0.08 : baza < 40 ? 0.06 : baza < 70 ? 0.04 : 0.03;
+          for (const t2 of trendy(r, baza)) {
+            assert.ok(t2 <= limit + 1e-9,
+              dystans + ' baza ' + baza + ' @' + h + 'tyg rośnie ' + (t2 * 100).toFixed(1) +
+              '%/tydz przy limicie ' + (limit * 100) + '%');
+          }
+        }
+      }
+    }
+  });
+
+  /* ⚠️ FALA JEST WYJĄTKIEM ŚWIADOMYM, NIE PRZEOCZENIEM — i test ma to utrwalić,
+     bo inaczej ktoś „naprawi" ją przy następnym czytaniu. Fala nie buduje nowej
+     formy, tylko wraca do objętości, którą zawodnik ma dziś (90% → 110%).
+     Przy 3%/tydz baza 129 nie zdążyła wrócić do własnych 110% w 10 tygodniach. */
+  await t.test('⚠️ reżim „fala" NADAL sięga 110% bazy — tam limit pasma nie obowiązuje', () => {
+    const r = G.uloz({ dystans: 'half', dniWTygodniu: 5, dataStartu: zaTyg(10), today: TODAY,
+      poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: 129 }, celCzasowy: null });
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(r.meta.rezim, 'fala');
+    const szczyt = Math.max.apply(null, r.meta.objetosciTygodni);
+    assert.ok(Math.abs(szczyt - 129 * G.LIMITY.SZCZYT_NAD_BAZA) < 0.6,
+      'fala nie dochodzi do 110% bazy: ' + szczyt);
+  });
+
+  /* Płaskowyż SKRÓCIŁ się, ale NIE ZNIKNĄŁ — i to jest osobny problem
+     (jeden `peak` na cały plan). Test pilnuje kierunku, nie rozwiązania. */
+  await t.test('szczyt wypada później niż przy płaskich 8%', () => {
+    const r = G.uloz({ dystans: 'marathon', dniWTygodniu: 5, dataStartu: zaTyg(30), today: TODAY,
+      poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: 60 }, celCzasowy: null });
+    const o = r.meta.objetosciTygodni;
+    const tydzienSzczytu = o.indexOf(Math.max.apply(null, o)) + 1;
+    assert.ok(tydzienSzczytu >= 5, 'szczyt w tygodniu ' + tydzienSzczytu + ' — wróciły płaskie 8%');
+  });
+});
+
+/* ══ ODMOWA CELU NA BRZEGU ═══════════════════════════════════════════════════
+   Maciek: prognoza 2:21:35, cel 2:00:00, realny cel 2:00:20 — a komunikat mówił
+   „2:00:00 to za duży skok". Dwadzieścia sekund nie jest za dużym skokiem. */
+test('CEL_ZA_AMBITNY NA BRZEGU MÓWI, ILE BRAKUJE', async (t) => {
+  const maciek = (cel) => G.uloz({ dystans: 'half', dniWTygodniu: 5, dataStartu: zaTyg(61),
+    today: TODAY, poziom: { p10sec: 385, wynik: null, objetoscTygodniowa: 19.6 }, celCzasowy: cel });
+
+  await t.test('⚠️ przy różnicy 20 s nie pada „za duży skok"', () => {
+    const s = maciek(7200).sciana;
+    assert.strictEqual(s.kod, 'CEL_ZA_AMBITNY');
+    assert.strictEqual(s.szczegoly.naBrzegu, true);
+    assert.strictEqual(s.szczegoly.brakuje_s, 20);
+    assert.match(s.komunikat, /Do 2:00:00 brakuje 20 s/);
+    assert.doesNotMatch(s.komunikat, /za duży skok/);
+  });
+
+  /* ⚠️ ODMOWA ZOSTAJE ODMOWĄ — zmieniło się zdanie, nie reguła. Sufit 15% stoi
+     nietknięty i cel dalej się o niego odbija. */
+  await t.test('⚠️ to nadal jest ODMOWA, sufit nie drgnął', () => {
+    const r = maciek(7200);
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.sciana.szczegoly.limitProc, 15);
+    assert.strictEqual(G.LIMITY.MAX_POPRAWA, 0.15);
+  });
+
+  await t.test('cel daleko od sufitu dostaje STARE zdanie', () => {
+    const s = maciek(6600).sciana;      // 1:50:00 — 22% poprawy
+    assert.strictEqual(s.szczegoly.naBrzegu, false);
+    assert.match(s.komunikat, /to za duży skok/);
+  });
+
+  /* Próg 1 pkt proc. jest mniejszy od niepewności samej prognozy: nasz wykładnik
+     Riegela to 1,06, a na własnych danych 1,091 — dla dziesiątki Maćka różnica
+     w prognozie półmaratonu wynosi 199 s, czyli 2,3%. */
+  await t.test('próg brzegu jest ciaśniejszy niż rozrzut samej prognozy', () => {
+    const t10 = 385 * 10, iloraz = 21.0975 / 10;
+    const a = t10 * Math.pow(iloraz, 1.06), b = t10 * Math.pow(iloraz, 1.091);
+    assert.ok((b - a) / a > 0.01, 'rozrzut wykładnika zszedł poniżej progu — przelicz próg');
+  });
+});

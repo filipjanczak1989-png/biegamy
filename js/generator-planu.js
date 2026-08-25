@@ -185,6 +185,9 @@
     return Math.min(Math.max(tygodnie, 0) * POPRAWA_NA_TYDZIEN, MAX_POPRAWA_SUFIT);
   }
   var MAX_POPRAWA = MAX_POPRAWA_SUFIT;   // zostaje w LIMITY dla zgodności odczytu
+  /* Poniżej tylu punktów procentowych od sufitu odmowa mówi „ile brakuje",
+     a nie „za duży skok". Wyprowadzenie przy użyciu (przypadek Maćka). */
+  var PROG_BRZEGU_CELU = 0.01;
   /* Od ilu procent WOLNIEJSZY cel zasługuje na zdanie w podsumowaniu. 5% na
      półmaratonie to ok. 5 minut — poniżej tego różnica tonie w błędzie Riegla
      (wykładnik 1,06 jest przybliżeniem), więc zdanie byłoby szumem. ⚠️ OSĄD. */
@@ -480,6 +483,14 @@
      a „26 października" bez roku jest tam zdaniem dwuznacznym. */
   var MIESIACE_DOPELNIACZ = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
                              'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+  /* Odstęp czasu DO CZYTANIA, nie do liczenia: „20 s", „1:05". Sekundy bez
+     zera wiodącego, bo „0:20" przy różnicy dwudziestu sekund czyta się jak czas
+     wyniku, a nie jak różnica. */
+  function fmtOdstep(sek) {
+    sek = Math.round(sek);
+    if (sek < 60) return sek + ' s';
+    return Math.floor(sek / 60) + ':' + pad2(sek % 60);
+  }
   function fmtDataPl(idx) {
     var d = new Date(idx * 86400000);
     return d.getUTCDate() + ' ' + MIESIACE_DOPELNIACZ[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
@@ -794,8 +805,31 @@
              • za mało tygodni  → mówi, ile czasu by wystarczyło,
              • sufit 15%        → mówi, że sam czas już nie wystarczy.
            To są inne sytuacje i człowiek ma z nich wyjść z inną decyzją. */
-        var tyle = 'Przy Twojej obecnej formie ' + fmtCzas(we.celCzasowy) + ' to za duży skok. ' +
-                   'Realny cel na ten start: ' + fmtCzas(celRealny) + '.';
+        /* ── PRZYPADEK BRZEGOWY: „za duży skok" o dwadzieścia sekund ────────
+           ⚠️ ZGŁOSZENIE MAĆKA, 23.08.2026. Prognoza 2:21:35, cel 2:00:00,
+           realny cel 2:00:20 — a pierwsze zdanie mówiło „2:00:00 to za duży
+           skok". Dwadzieścia sekund nie jest za dużym skokiem i człowiek, który
+           to czyta, ma prawo uznać komunikat za bzdurę. Kod WIEDZIAŁ, że jest
+           na brzegu (`przySuficie`, poprawa 15,2% przy limicie 15%) i nie
+           używał tej wiedzy w zdaniu, które człowiek czyta pierwsze.
+
+           ⚠️ PRÓG 1 PKT PROC. NIE JEST Z SUFITU — jest mniejszy od niepewności
+           samej prognozy. Zmierzone: nasz wykładnik Riegela to 1,06, a na
+           własnych danych wychodzi 1,091 (zaległość „indywidualny wykładnik").
+           Dla dziesiątki Maćka daje to prognozę półmaratonu 2:21:35 albo
+           2:24:54 — różnica 199 s, czyli 2,3% prognozy. Skoro sama prognoza ma
+           2,3% luzu, to spór o 1% jest sporem o szum, a nie o formę.
+
+           ⚠️ NIE RUSZAM SUFITU — odmowa zostaje, zmienia się tylko pierwsze
+           zdanie. Cel dalej jest poza regułą; człowiek ma tylko wiedzieć, że
+           chodzi o dwadzieścia sekund, a nie o przepaść. */
+        var brakujeCzasu = Math.round(celRealny) - we.celCzasowy;
+        var naBrzegu = (poprawa - limitPoprawy) <= PROG_BRZEGU_CELU && brakujeCzasu > 0;
+        var tyle = naBrzegu
+          ? 'Do ' + fmtCzas(we.celCzasowy) + ' brakuje ' + fmtOdstep(brakujeCzasu) +
+            '. Najszybszy cel, jaki ułożę na ten start, to ' + fmtCzas(celRealny) + '.'
+          : 'Przy Twojej obecnej formie ' + fmtCzas(we.celCzasowy) + ' to za duży skok. ' +
+            'Realny cel na ten start: ' + fmtCzas(celRealny) + '.';
         if (przySuficie) {
           /* ⚠️ JEDNA ŚCIEŻKA, NIE MENU — decyzja Filipa z 18.08.2026 i jest słuszna.
              Pierwsza wersja rozbijała to na cel pośredni („1:48 za 40 tygodni")
@@ -820,7 +854,8 @@
         return odmowa('CEL_ZA_AMBITNY', tyle,
           { poprawaProc: Math.round(poprawa * 1000) / 10,
             limitProc: Math.round(limitPoprawy * 1000) / 10,
-            przySuficie: przySuficie, tygodnie: tygodnie,
+            przySuficie: przySuficie, tygodnie: tygodnie, naBrzegu: naBrzegu,
+            brakuje_s: brakujeCzasu > 0 ? brakujeCzasu : null,
             prognoza_s: Math.round(prognoza), celRealny_s: Math.round(celRealny) });
       }
 
@@ -1280,10 +1315,44 @@
   // ── OBJĘTOŚĆ TYDZIEŃ PO TYGODNIU ───────────────────────────────────────────
   // Budowa: narastanie ≤8%/tydz do peaku, co czwarty tydzień zrzut do 70%.
   // Taper: schodek w dół, tydzień startowy najlżejszy.
+  /* ── KRZYWA IDZIE ZA BRAMKĄ, NIE OBOK NIEJ (25.08.2026) ────────────────────
+     Do 25.08 stało tu płaskie `MAX_PRZYROST_TYG` (8%), a bramka SKOK_OBJETOSCI
+     sprawdzała plan po stopniowanym `maxPrzyrostDla(baza)` (8/6/4/3%). Były to
+     DWIE RÓŻNE REGUŁY na tę samą rzecz: zatwierdzany był inny plan niż
+     wykonywany. Bramka liczy `(peak/obecna)^(1/budowa)`, czyli zakłada rampę
+     rozłożoną na wszystkie tygodnie budowania — a rampa szła 8%/tydz do szczytu
+     i potem stała.
+
+     ZMIERZONE PRZED ZMIANĄ (maraton, baza 60, 30 tyg.): limit bramki 4%/tydz,
+     realny przyrost krzywej 8%/tydz, szczyt osiągany w TYGODNIU 3 z 30, potem
+     23 tygodnie `70 70 70 [49]` z niezmiennym wybieganiem 28 km.
+     Dotyczyło 45 z 62 zawodników — każdego z bazą ≥ 20 km/tydz.
+
+     ⚠️ ZMIANA NIE DOTYKA ŻADNEGO ISTNIEJĄCEGO PLANU i to jest sprawdzone
+     w bazie, nie założone: `training_plans` ma 329 wierszy, wszystkie
+     `source='coach_ai'` (Edge Function), ZERO z `source='self'`; `trainings`
+     z `plan_source='generator'` — zero. Ten silnik nie zapisał jeszcze ani
+     jednego planu (3 udane generacje w `generator_proby`, żadna nie zapisana).
+     Krzywa i tak materializuje się przy GENEROWANIU — `uloz()` ma jedno
+     wywołanie (zawodnik.html), a ekran planu czyta wiersze
+     `training_plan_workouts`. Zapisany plan jest zamrożony. */
   function objetosciTygodni(k) {
     var out = [], biezaca = k.startTyg, i;
+    /* ⚠️ REŻIM „FALA" ZOSTAJE NA 8% I TO NIE JEST WYJĄTEK OD REGUŁY, TYLKO JEJ
+       ZAKRES. `maxPrzyrostDla` pilnuje BUDOWANIA NOWEJ formy. Fala nie buduje
+       niczego — oscyluje wokół objętości, którą zawodnik ma DZIŚ (90% → 110%),
+       więc dojście do 110% jest powrotem do znanego poziomu, nie przyrostem.
+       Ten sam podział jest już zapisany w silniku przy PRZYROST_ODBUDOWY (15%):
+       powrót do formy, którą ciało znało, idzie szybciej niż budowa.
+
+       ZMIERZONE, dlaczego to ma znaczenie: baza 129, półmaraton, 10 tygodni.
+       Przy 3%/tydz (pasmo >70) fala dochodzi tylko do 138,6 zamiast 141,9 —
+       czyli zawodnik na 129 km/tydz nie zdąża wrócić do własnych 110% w planie,
+       który z założenia nie ma go rozbudowywać. Złapane self-testem „fala:
+       szczyt = 110% bazy". */
+    var przyrostTyg = k.rezim === 'fala' ? MAX_PRZYROST_TYG : maxPrzyrostDla(k.obecna);
     for (i = 1; i <= k.budowa; i++) {
-      if (i > 1) biezaca = Math.min(k.peak, biezaca * (1 + MAX_PRZYROST_TYG));
+      if (i > 1) biezaca = Math.min(k.peak, biezaca * (1 + przyrostTyg));
       out.push(i % ZRZUT_CO === 0 ? biezaca * ZRZUT : biezaca);   // co 4. tydzień zrzut
     }
     var szczyt = Math.max.apply(null, out);
@@ -1450,12 +1519,26 @@
          nie robi ani jednego, ani drugiego; jest zwykłym biegiem z inną etykietą.
          Dlatego podłogę dostaje wyłącznie ono.
 
-         ⚠️ ZMIERZONY ZASIĘG, żeby nikt nie szukał tu efektu, którego nie ma:
-         wybieganie schodziło poniżej 6 km TYLKO przy bazie 19 km/tydz i tylko
-         na 5 i 10 km (tydzień 1: 5,5 km; tydzień zrzutowy: 5,0 km). Przy
-         półmaratonie i maratonie nie schodzi nigdy — bramka ZA_KROTKIE_WYBIEGANIE
-         odrzuca takie plany dużo wcześniej. Sufit `_sufitDlugie` nadal wygrywa
-         z podłogą, więc na krótkich dystansach nie da się jej obejść w górę. */
+         ⚠️ TA PODŁOGA NIE DZIAŁA I NIGDY NIE DZIAŁAŁA — sprostowane 25.08.2026.
+         Stało tu zdanie: „schodziło poniżej 6 km TYLKO przy bazie 19 km/tydz
+         i tylko na 5 i 10 km (tydzień 1: 5,5; zrzutowy: 5,0). Przy półmaratonie
+         i maratonie nie schodzi nigdy". PRZEMIERZONE na pełnym zakresie
+         (4 dystanse × 3–6 dni × bazy 12–140): 268 jednostek poniżej 6 km,
+         najkrótsza 3,0 km, bazy 12–29 km/tydz, dystanse 5 km, 10 km ORAZ
+         PÓŁMARATON, we wszystkich tygodniach planu — nie tylko zrzutowych.
+         Sprawdzone też na wersji sprzed zmiany krzywej: 256 przypadków, ta sama
+         najkrótsza 3,0 km i ten sam zakres baz. Czyli opis był nieprawdziwy
+         zanim krzywa się zmieniła; zmiana dołożyła 12 przypadków, nie zjawisko.
+
+         Mechanizm: podłoga jest nakładana TUTAJ, ale niżej stoją jeszcze
+         MAX_UDZIAL_DLUGIEGO i domykanie sumy tygodnia do `kmTyg`. Przy małej
+         objętości tygodnia i wielu dniach suma podłóg MIN_JEDNOSTKI_KM
+         przekracza budżet i różnicę oddaje wybieganie — czyli jedyna jednostka,
+         która miała podłogę, jest tą, z której się schodzi.
+
+         ⚠️ NIE NAPRAWIAM TEGO PRZY OKAZJI: kolejność „podłoga → sufit udziału →
+         domknięcie sumy" jest opisana niżej jako świadoma, więc zmiana wymaga
+         decyzji, która z trzech reguł ustępuje. Zapisane jako zaległość. */
       if (typy[i] === 'Wybieganie')        { km[i] = Math.min(Math.max(k.d.udzialDlugiego * kmTyg, MIN_WYBIEGANIA_KM), _sufitDlugie); zajete += km[i]; }
       else if (typy[i] === 'Regeneracja')  { km[i] = Math.min(0.10 * kmTyg, _sufitDlugie); zajete += km[i]; }
       else if (typy[i] === 'Tempo' || typy[i] === 'Interwały') {
@@ -2828,15 +2911,20 @@
     });
     // +0.06 to tolerancja zaokrąglenia: objętości raportujemy z dokładnością do
     // 0,1 km, więc 43,2 × 1,08 = 46,656 wychodzi na zewnątrz jako 46,7.
-    check('trend budowy (zrzuty odtworzone) rośnie ≤8% tydzień do tygodnia',
-      trend.every(function (v, i) { return i === 0 || v <= trend[i - 1] * (1 + MAX_PRZYROST_TYG) + 0.06; }), trend);
+    /* ⚠️ OD 25.08.2026 KRZYWA IDZIE ZA BRAMKĄ — przyrost jest stopniowany po bazie
+       (`maxPrzyrostDla`), nie płaski 8%. Baza tego planu to 40 km/tydz, czyli
+       pasmo [40,70) → 4%/tydz. Gdyby stało tu MAX_PRZYROST_TYG, test byłby
+       spełniony trywialnie (4% ≤ 8%) i przestałby cokolwiek pilnować. */
+    var przyrost40 = maxPrzyrostDla(40);
+    check('trend budowy rośnie ≤' + Math.round(przyrost40 * 100) + '% tydzień do tygodnia (pasmo bazy 40)',
+      trend.every(function (v, i) { return i === 0 || v <= trend[i - 1] * (1 + przyrost40) + 0.06; }), trend);
     check('trend budowy nigdy nie maleje',
       trend.every(function (v, i) { return i === 0 || v >= trend[i - 1] - 0.05; }), trend);
     check('co 4. tydzień lżejszy od poprzedniego', obj[3] < obj[2] && obj[7] < obj[6], [obj[2], obj[3], obj[6], obj[7]]);
     check('zrzut to ~70% trendu, nie przypadkowa liczba',
-      Math.abs(obj[3] / (obj[2] * (1 + MAX_PRZYROST_TYG)) - ZRZUT) < 0.01, [obj[2], obj[3]]);
-    check('wyjście ze zrzutu nie przeskakuje ponad nieprzerwany trend 8%/tydz',
-      obj[4] <= obj[2] * Math.pow(1 + MAX_PRZYROST_TYG, 2) + 0.05, [obj[2], obj[3], obj[4]]);
+      Math.abs(obj[3] / (obj[2] * (1 + przyrost40)) - ZRZUT) < 0.01, [obj[2], obj[3]]);
+    check('wyjście ze zrzutu nie przeskakuje ponad nieprzerwany trend',
+      obj[4] <= obj[2] * Math.pow(1 + przyrost40, 2) + 0.05, [obj[2], obj[3], obj[4]]);
     check('tydzień startowy najlżejszy z całego planu',
       obj[11] === Math.min.apply(null, obj), obj);
     check('szczyt nie przekracza peaku dystansu', Math.max.apply(null, obj) <= DYSTANSE.half.peakKm + 0.05, Math.max.apply(null, obj));
@@ -2934,10 +3022,18 @@
     var w6 = r3.treningi.filter(function (w) { return w.week_number === 6 && w.workout_type !== 'Odpoczynek'; });
     var dl6 = w6.filter(function (w) { return w.workout_type === 'Wybieganie'; })[0];
     var sp6 = w6.filter(function (w) { return w.workout_type === 'Bieg spokojny'; })[0];
-    // Proporcja obowiązuje tylko dopóki wybieganie nie stoi na suficie maxDlugieKm —
-    // przy suficie nadmiar świadomie zostaje w spokojnych, a nie w wybieganiu.
-    check('3 dni: długie/spokojny ≈ ' + DLUGIE_NAD_SPOKOJNYM + ' (gdy długie poniżej sufitu)',
-      dl6.target_distance_km >= DYSTANSE.half.maxDlugieKm - 0.05
+    /* Proporcja obowiązuje tylko dopóki wybieganie nie stoi NA SUFICIE — a sufity
+       są DWA i test znał tylko jeden.
+       ⚠️ Drugi to MAX_UDZIAL_DLUGIEGO (40% tygodnia) i to on wiąże tutaj:
+       tydzień 6 ma 48,7 km, 40% = 19,5 — dokładnie tyle dostaje wybieganie,
+       a spokojny dobija do tej samej liczby, bo linia „spokojny ≤ wybieganie"
+       nie pozwala mu przerosnąć. Wychodzi REMIS i to jest zachowanie ŚWIADOME,
+       opisane przy MAX_UDZIAL_DLUGIEGO („przy 3 dniach bywa teraz remisem").
+       Do 25.08.2026 test tego nie łapał, bo przy płaskich 8% tydzień 6 miał inną
+       objętość i wiązał sufit `maxDlugieKm`, który wyjątek już obejmował. */
+    var sufit6 = Math.min(sufitWybiegania(DYSTANSE.half, 40), MAX_UDZIAL_DLUGIEGO * r3.meta.objetosciTygodni[5]);
+    check('3 dni: długie/spokojny ≈ ' + DLUGIE_NAD_SPOKOJNYM + ' (gdy długie poniżej OBU sufitów)',
+      dl6.target_distance_km >= sufit6 - 0.05
         ? dl6.target_distance_km >= sp6.target_distance_km
         : Math.abs(dl6.target_distance_km / sp6.target_distance_km - DLUGIE_NAD_SPOKOJNYM) < 0.05,
       [dl6.target_distance_km, sp6.target_distance_km, DYSTANSE.half.maxDlugieKm]);
@@ -2964,7 +3060,12 @@
        zaplanował, i nikt mu tego nie mówi. Decyzja o progu 0,95 należy do
        Filipa, więc test zostaje czerwony jako przypomnienie, a nie znika. */
     var luzSumy = w6.length * KROK_KM / 2;
-    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki) — ZNANA CZERWIEŃ: sufity zjadają 2 km, patrz komentarz',
+    /* ⚠️ TEN TEST BYŁ CZERWONY OD DAWNA I ZZIELENIAŁ SAM 25.08.2026 — nie
+       dlatego, że ktoś go naprawił, tylko dlatego, że krzywa poszła za bramką.
+       Wolniejsza rampa daje w tygodniu 6 inną objętość i sufity nie zjadają już
+       tych 2 km. Nazwa mówiła „ZNANA CZERWIEŃ" — zostawienie jej po zzielenieniu
+       byłoby drugą nieprawdą w tym samym pliku, więc znika razem z czerwienią. */
+    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki)',
       Math.abs(w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0) - r3.meta.objetosciTygodni[5]) < luzSumy + 0.001,
       w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0));
     check('4 dni: ratunek NIE odpala się (kształt był poprawny)',
@@ -3342,10 +3443,21 @@
         }
         return najw <= MAX_UDZIAL_DLUGIEGO + 0.015;      // 1,5 pkt proc. luzu na siatkę 0,5 km
       })(), null);
-    check('wybieganie pozostaje najdłuższą jednostką także po nałożeniu sufitu udziału',
+    /* ⚠️ TEN TEST BYŁ ZIELONY Z PRZYPADKU, NIE Z PRAWDY — sprostowane 25.08.2026.
+       Chodził po bazach 21, 44, 67, 90 (krok 23) i akurat te nie łapały wady.
+       PRZEMIERZONE co 1 km/tydz na zakresie 12–140: wybieganie NIE jest
+       najdłuższą jednostką w 29 tygodniach (przed zmianą krzywej: 26 — czyli
+       wada jest starsza od niej). Dzieje się to wyłącznie tam, gdzie wybieganie
+       zeszło pod MIN_WYBIEGANIA_KM, czyli przy bazach 12–29 km/tydz.
+
+       Test asertuje więc to, co NAPRAWDĘ obowiązuje — niezmiennik trzyma się
+       wszędzie tam, gdzie podłoga wybiegania nie została złamana — i osobno
+       PILNUJE LICZBY wyjątków, żeby cicho nie urosła. Gdyby zostawić samo
+       `return true`, test dalej twierdziłby, że niezmiennik jest bezwarunkowy. */
+    check('wybieganie jest najdłuższą jednostką ZAWSZE, gdy nie złamano jego podłogi',
       (function () {
         var lista = ['5k', '10k', 'half', 'marathon'];
-        for (var a = 0; a < lista.length; a++) for (var dd = 3; dd <= 6; dd++) for (var bz = 21; bz <= 90; bz += 23) {
+        for (var a = 0; a < lista.length; a++) for (var dd = 3; dd <= 6; dd++) for (var bz = 12; bz <= 140; bz++) {
           if (lista[a] === 'marathon' && dd === 3) continue;
           var r = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(lista[a] === 'marathon' ? 20 : 16),
                             dniWTygodniu: dd, poziom: poziom({ objetoscTygodniowa: bz }) }));
@@ -3354,12 +3466,28 @@
             var wk = r.treningi.filter(function (w) { return w.week_number === t && (w.target_distance_km || 0) > 0; });
             var dl = wk.filter(function (w) { return w.workout_type === 'Wybieganie'; })[0];
             if (!dl) continue;
+            if (dl.target_distance_km < MIN_WYBIEGANIA_KM - 1e-9) continue;   // znany wyjątek, liczony niżej
             for (var q = 0; q < wk.length; q++) {
               if (wk[q].workout_type !== 'Wybieganie' && wk[q].target_distance_km > dl.target_distance_km + 0.001) return false;
             }
           }
         }
         return true;
+      })(), null);
+    check('⚠️ ZNANA WADA (starsza niż krzywa): wybieganie schodzi pod podłogę — liczba wyjątków nie rośnie',
+      (function () {
+        var lista = ['5k', '10k', 'half', 'marathon'], ile = 0;
+        for (var a = 0; a < lista.length; a++) for (var dd = 3; dd <= 6; dd++) for (var bz = 12; bz <= 140; bz++) {
+          if (lista[a] === 'marathon' && dd < 4) continue;
+          var r = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(lista[a] === 'marathon' ? 20 : 16),
+                            dniWTygodniu: dd, poziom: poziom({ objetoscTygodniowa: bz }) }));
+          if (!r.ok) continue;
+          for (var q = 0; q < r.treningi.length; q++) {
+            var w = r.treningi[q];
+            if (w.workout_type === 'Wybieganie' && w.target_distance_km < MIN_WYBIEGANIA_KM - 1e-9) ile++;
+          }
+        }
+        return ile <= 268;      // zmierzone 25.08.2026; przed zmianą krzywej 256
       })(), null);
 
     sekcja('PORZĄDEK STREF — I < T < E < Reg niezależnie od formy i celu');
