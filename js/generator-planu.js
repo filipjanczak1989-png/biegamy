@@ -996,6 +996,29 @@
                                         przyrost 6,94% > 6% → SKOK_OBJETOSCI (blizna 11 żyje) */
       peak = Math.min(d.peakKm, obecna * mnoznikSzczytu(tygodnie),
                       Math.max(osiagalnyPeak, obecna * MNOZNIK_SZCZYTU));
+      /* ── SZCZYT MUSI ROSNĄĆ Z BAZĄ, ZAWSZE ──────────────────────────────
+         ⚠️ TO NIE JEST KALIBRACJA, TYLKO CIĄGŁOŚĆ. `peakKm` jest stałą, więc
+         powyżej pewnej bazy `min()` przestaje zależeć od zawodnika i szczyt
+         zamiera na sufit dystansu — a tuż obok, po przekroczeniu `peakKm`,
+         reżim „fala" daje 1,10 × baza, czyli WIĘCEJ. Zmierzone 25.08.2026:
+             maraton    baza 69 → 70,0 (1,014×) mieszany
+                        baza 70 → 77,0 (1,100×) fala
+             półmaraton baza 54 → 55,0 (1,019×) mieszany
+                        baza 55 → 60,5 (1,100×) fala
+         Jeden kilometr bazy więcej dawał siedem kilometrów szczytu więcej,
+         a człowiek tuż POD progiem dostawał gorszy plan niż ten tuż NAD nim —
+         mimo że `fala` jest z założenia planem podtrzymania. Dwie realne osoby
+         siedziały w tej dziurze (bazy 54 i 67,3).
+
+         Podłoga jest DOKŁADNIE tym, co dałaby fala przy tej samej bazie, więc
+         w punkcie `obecna === peakKm` obie gałęzie dają tę samą liczbę i funkcja
+         jest ciągła. Zero nowych stałych — SZCZYT_NAD_BAZA już tu jest.
+
+         ⚠️ ŚWIADOMIE PRZEBIJA `d.peakKm`. Sufit dystansu i tak nie obowiązuje
+         powyżej progu (fala go przekracza od zawsze — patrz „podłoga na obecnej
+         objętości"), więc trzymanie go pod progiem tworzyło wyłącznie urwisko.
+         Sam `peakKm` zostaje osądem do przeliczenia — to osobna zaległość. */
+      peak = Math.max(peak, obecna * SZCZYT_NAD_BAZA);
       startTyg = obecna;
     }
 

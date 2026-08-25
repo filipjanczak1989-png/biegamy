@@ -447,3 +447,95 @@ test('CEL_ZA_AMBITNY NA BRZEGU MÓWI, ILE BRAKUJE', async (t) => {
     assert.ok((b - a) / a > 0.01, 'rozrzut wykładnika zszedł poniżej progu — przelicz próg');
   });
 });
+
+/* ══ SZCZYT MUSI ROSNĄĆ Z BAZĄ (25.08.2026) ══════════════════════════════════
+   `peakKm` jest stałą, więc powyżej pewnej bazy `min()` przestawał zależeć od
+   zawodnika i szczyt zamierał na sufit dystansu — a tuż obok, po przekroczeniu
+   `peakKm`, reżim „fala" dawał 1,10 × baza, czyli WIĘCEJ:
+       maraton    baza 69 → 70,0 (1,014×)  |  baza 70 → 77,0 (1,100×)
+       półmaraton baza 54 → 55,0 (1,019×)  |  baza 55 → 60,5 (1,100×)
+   Człowiek tuż POD progiem dostawał gorszy plan niż ten tuż NAD nim, mimo że
+   „fala" jest z założenia planem podtrzymania. Dwie realne osoby w tej dziurze. */
+test('SZCZYT JEST MONOTONICZNY WZGLĘDEM BAZY', async (t) => {
+  const szczyt = (dystans, baza, h) => {
+    const r = G.uloz({ dystans, dniWTygodniu: 5, dataStartu: zaTyg(h), today: TODAY,
+      poziom: { p10sec: 280, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+    return r.ok ? Math.max.apply(null, r.meta.objetosciTygodni) : null;
+  };
+
+  /* ⚠️ PRZEMIATAMY CO 1 km — krok 5 albo 10 przeskoczyłby próg `peakKm`
+     i nie zobaczyłby urwiska. Tak właśnie ta wada przetrwała dwa tygodnie.
+     Horyzonty od minTygodni, bo największy spadek (9,4 km) siedzi dokładnie
+     na minimum maratonu i przy h=20 był niewidoczny. */
+  const wszystkieSpadki = () => {
+    const out = [];
+    for (const dystans of ['5k', '10k', 'half', 'marathon']) {
+      for (let h = G.DYSTANSE[dystans].minTygodni; h <= 40; h++) {
+        let poprz = null, poprzB = null;
+        for (let b = 5; b <= 160; b++) {
+          const s = szczyt(dystans, b, h);
+          if (s == null) continue;
+          if (poprz != null && s < poprz - 1e-9) out.push({ dystans, h, od: poprzB, doB: b, ile: poprz - s });
+          poprz = s; poprzB = b;
+        }
+      }
+    }
+    return out;
+  };
+
+  /* ⚠️ URWISKO `peakKm` ZNIKNĘŁO, RESZTKA MA INNE ŹRÓDŁO I JEST PRZYPIĘTA.
+     Zostało 14 spadków, wszystkie na granicach pasm PRZYROST_WG_BAZY (20/40),
+     największy 9,40 km (maraton @16 tyg., baza 39→40, szczyt 68,6→59,2).
+     Wymuszenie monotoniczności TAM skasowałoby samo pasmowanie: przy 12
+     tygodniach budowy limit 6% daje 78,5 km, a 4% — 64,0. To osobna decyzja
+     (kandydat: interpolacja maxPrzyrostDla; zmierzone — 14 spadków → 3,
+     największy 0,90 km, 34 plany z 2964 zmieniają szczyt, ZERO nowych odmów).
+     Test pilnuje, żeby resztka nie urosła i nie wyszła poza granice pasm. */
+  await t.test('⚠️ spadki TYLKO na granicach pasm przyrostu i nie przybywa ich', () => {
+    const spadki = wszystkieSpadki();
+    for (const sp of spadki) {
+      const pasmo = [20, 40, 70].some(g => sp.od < g && sp.doB >= g);
+      /* ⚠️ DRUGIE ŹRÓDŁO, ZNALEZIONE TYM TESTEM: `startTyg`. Na progu `peakKm`
+         reżim przełącza się na „falę", która startuje od 0,90 × baza zamiast
+         od bazy — a przy 5-6 tygodniach nie ma czasu tego odrobić. Zmierzone:
+         5 km @5 tyg., baza 29 → [29 30,7 31,9 …], baza 30 → [27 29,2 31,5 …].
+         Podłoga z 25.08 wyrównała SZCZYT, ale nie START; to osobna decyzja,
+         bo dołek fali jest zamierzony. Spadek 0,40 km. */
+      const prog = [G.DYSTANSE[sp.dystans].peakKm].some(g => sp.od < g && sp.doB >= g);
+      assert.ok(pasmo || prog,
+        'spadek POZA znanymi granicami: ' + sp.dystans + ' @' + sp.h + 'tyg baza ' +
+        sp.od + '→' + sp.doB + ' (−' + sp.ile.toFixed(2) + ' km)');
+    }
+    assert.ok(spadki.length <= 16, 'przybyło spadków: ' + spadki.length + ' (było 16)');
+    const naj = spadki.length ? Math.max.apply(null, spadki.map(x => x.ile)) : 0;
+    assert.ok(naj <= 9.4 + 1e-9, 'największy spadek urósł do ' + naj.toFixed(2) + ' km');
+  });
+
+  /* Punkt styku obu gałęzi: w `obecna === peakKm` mieszany i fala muszą dać
+     tę samą liczbę, inaczej urwisko wraca — tylko przesunięte o kilometr. */
+  await t.test('⚠️ funkcja jest CIĄGŁA w punkcie przejścia mieszany → fala', () => {
+    for (const [dystans, h] of [['half', 16], ['marathon', 20], ['10k', 14], ['5k', 12]]) {
+      const prog = G.DYSTANSE[dystans].peakKm;
+      const pod = szczyt(dystans, prog - 1, h), nad = szczyt(dystans, prog, h);
+      assert.ok(pod != null && nad != null, dystans + ': brak planu na progu');
+      assert.ok(Math.abs(nad / (prog) - pod / (prog - 1)) < 0.02,
+        dystans + ': stosunek szczyt/baza skacze na progu — ' +
+        (pod / (prog - 1)).toFixed(3) + '× → ' + (nad / prog).toFixed(3) + '×');
+    }
+  });
+
+  await t.test('nikt poniżej progu nie dostaje mniej, niż dałaby fala', () => {
+    for (const dystans of ['5k', '10k', 'half', 'marathon']) {
+      for (const h of [12, 16, 20, 30]) {
+        if (G.DYSTANSE[dystans].minTygodni > h) continue;
+        for (let b = 5; b <= 160; b++) {
+          const s = szczyt(dystans, b, h);
+          if (s == null) continue;
+          assert.ok(s >= b * G.LIMITY.SZCZYT_NAD_BAZA - 0.06,
+            dystans + ' @' + h + ' baza ' + b + ': szczyt ' + s.toFixed(1) +
+            ' < fala ' + (b * G.LIMITY.SZCZYT_NAD_BAZA).toFixed(1));
+        }
+      }
+    }
+  });
+});
