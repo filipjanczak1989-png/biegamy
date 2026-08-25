@@ -667,3 +667,86 @@ test('PLAN MOWI, GDY NIE DOWOZI WLASNEJ KRZYWEJ', async (t) => {
       'warunek sumy nie lapie juz nic ponad szczyt (' + tylkoSuma + ') - sprawdz, czy prog nie urosl');
   });
 });
+
+/* == WIECEJ DNI NIE MOZE ZNACZYC MNIEJ KILOMETROW (25.08.2026) ==============
+   Czlowiek deklarujacy WIECEJ dni dostawal plan dowozacy MNIEJ objetosci.
+   Zmierzone: baza 80, 5 km — 4 dni oddaja 83 z 88 km/tydz, 5 dni tylko 79.
+   Przyczyna: przy 5 dniach wchodzi DRUGA jednostka jakosciowa
+   (MIN_DNI_DRUGIEJ_JAKOSCI = 5) i bierze sztywne 2 x sufitAkcentu, a slot,
+   ktory przy 4 dniach byl biegiem spokojnym, przestaje absorbowac reszte.
+   Do tego przy dni >= 5 pierwszy slot idzie na Regeneracje (<= 10% tygodnia).
+
+   !! TO NIE JEST TEST NA JEDNA LICZBE. Przemiata bazy 15-150 co 5, cztery
+   dystanse, trzy horyzonty i wszystkie przejscia dni. Strate liczy w KILOMETRACH
+   i porownuje z luzem siatki (jednostki x KROK_KM/2), zeby nie liczyc
+   zaokraglen jako wady. */
+test('WIECEJ DNI = NIE MNIEJ KILOMETROW', async (t) => {
+  const dowozi = (dystans, dni, baza, h) => {
+    const r = G.uloz({ dystans, dniWTygodniu: dni, dataStartu: zaTyg(h), today: TODAY,
+      poziom: { p10sec: 280, wynik: null, objetoscTygodniowa: baza }, celCzasowy: null });
+    if (!r.ok) return null;
+    const dk = r.meta.objetosciTygodni, fk = r.meta.objetosciFaktyczne;
+    const budowa = r.meta.tygodnie - r.meta.taperTygodni;
+    let fakt = 0, jedn = 0;
+    for (let i = 0; i < budowa && i < dk.length; i++) {
+      fakt += fk[i];
+      jedn += r.treningi.filter(w => w.week_number === i + 1 && (w.target_distance_km || 0) > 0).length;
+    }
+    return { fakt, luz: jedn * 0.25 };
+  };
+
+  const inwersje = () => {
+    const out = [];
+    for (const dystans of ['5k', '10k', 'half', 'marathon']) {
+      for (let baza = 15; baza <= 150; baza += 5) {
+        for (const dh of [0, 4, 10]) {
+          const h = G.DYSTANSE[dystans].minTygodni + dh;
+          for (let dni = 3; dni <= 5; dni++) {
+            if (dystans === 'marathon' && dni < G.LIMITY.MARATON_MIN_DNI) continue;
+            const a = dowozi(dystans, dni, baza, h), b = dowozi(dystans, dni + 1, baza, h);
+            if (!a || !b) continue;
+            const strata = a.fakt - b.fakt;
+            if (strata > Math.max(a.luz, b.luz)) {
+              out.push({ dystans, baza, h, z: dni, na: dni + 1, strata });
+            }
+          }
+        }
+      }
+    }
+    return out;
+  };
+
+  /* !! DZIS CZERWONY W 109 SERIACH — to jest ZNANA WADA, nie regresja tego
+     commita, i test ma ja TRZYMAC ZA GARDLO, a nie udawac, ze jej nie ma.
+     Rozklad zmierzony 25.08.2026 (strata ponad luz siatki):
+         3->4 :   0 przypadkow   (13 ze strata, wszystkie w granicach siatki)
+         4->5 : 109 przypadkow   mediana 31 km, max 125 km, bazy 70-130
+         5->6 :   0 przypadkow   (36 ze strata, wszystkie w granicach siatki)
+     Kierunki naprawy i ich koszt sa w zaleglosci
+     `project_zaleglosc_za_malo_dni_przy_wysokiej_bazie`. */
+  await t.test('!! ZNANA WADA: inwersje istnieja TYLKO na przejsciu 4->5 i nie przybywa ich', () => {
+    const inw = inwersje();
+    for (const i of inw) {
+      assert.strictEqual(i.z + '->' + i.na, '4->5',
+        'inwersja POZA przejsciem 4->5: ' + i.dystans + ' baza ' + i.baza + ' @' + i.h +
+        'tyg, ' + i.z + '->' + i.na + ' dni, strata ' + i.strata.toFixed(0) + ' km');
+    }
+    assert.ok(inw.length <= 109, 'przybylo inwersji: ' + inw.length + ' (bylo 109)');
+    const max = inw.length ? Math.max.apply(null, inw.map(x => x.strata)) : 0;
+    assert.ok(max <= 125 + 1, 'najwieksza strata urosla do ' + max.toFixed(0) + ' km (bylo 125)');
+  });
+
+  /* Kotwica przyczyny: gdyby ktos przesunal MIN_DNI_DRUGIEJ_JAKOSCI, ten test
+     ma pokazac, ze inwersja przeniosla sie razem z nim, a nie zniknela cicho. */
+  await t.test('!! przyczyna jest w drugiej jednostce jakosciowej — 4 dni maja jedna, 5 dni dwie', () => {
+    const jakosci = (dni) => {
+      const r = G.uloz({ dystans: '5k', dniWTygodniu: dni, dataStartu: zaTyg(14), today: TODAY,
+        poziom: { p10sec: 280, wynik: null, objetoscTygodniowa: 80 }, celCzasowy: null });
+      assert.strictEqual(r.ok, true, dni + ' dni');
+      return r.treningi.filter(w => w.week_number === 6 &&
+        (w.workout_type === 'Tempo' || w.workout_type === 'Interwały')).length;
+    };
+    assert.strictEqual(jakosci(4), 1);
+    assert.strictEqual(jakosci(5), 2);
+  });
+});
