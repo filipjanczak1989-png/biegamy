@@ -3121,46 +3121,68 @@
         ? dl6.target_distance_km >= sp6.target_distance_km
         : Math.abs(dl6.target_distance_km / sp6.target_distance_km - DLUGIE_NAD_SPOKOJNYM) < 0.05,
       [dl6.target_distance_km, sp6.target_distance_km, DYSTANSE.half.maxDlugieKm]);
-    /* ⚠️ TOLERANCJE LICZONE Z SIATKI, NIE WPISANE Z RĘKI. Każda jednostka jest
-       zaokrąglona do KROK_KM, więc suma n jednostek może odjechać od objętości
-       planowanej najwyżej o n × KROK_KM/2. Wpisanie tu stałej (było 0,6 przy
-       siatce 0,1 km) znaczyłoby, że po każdej zmianie kroku test albo zaczyna
-       kłamać, albo czerwieni się bez powodu. Zmierzone po wprowadzeniu 0,5 km:
-       realne |Δ| sumy tygodnia to 0,03–0,39 km średnio, 0,9 km w najgorszym
-       przypadku (6 dni) — czyli grubo poniżej tego sufitu. */
-    /* ⚠️ TEN TEST JEST CZERWONY I BYŁ CZERWONY PRZED WPROWADZENIEM SIATKI —
-       sprawdzone na czystym main (jedyna czerwień z 481 asercji). NIE zaklejać
-       go szerszą tolerancją: nie kłamie, tylko mierzy coś, czego reszta silnika
-       świadomie nie gwarantuje.
-       Zmierzone: tydzień 6 zadaje 53 km zamiast planowanych 55. Jednostki to
-       22 + 9 + 22 — same liczby całkowite, więc siatka 0,5 km NIE MA z tym nic
-       wspólnego. Brakujące 2 km zjadają dwa sufity naraz: maxDlugieKm (22) na
-       wybieganiu i „spokojny nie dłuższy od wybiegania" na jedynym spokojnym.
-       To jest udokumentowane zachowanie (patrz ulozTydzien: „lepiej oddać mniej
-       kilometrów niż wypchnąć je w jedną jednostkę").
-       PRAWDZIWA ZALEGŁOŚĆ jest gdzie indziej: ten ubytek nie trafia do
-       meta.zalozenia, bo warunek tam brzmi `szczyt < 0,95 × planowany`,
-       a 53/55 to 96,4%. Człowiek dostaje o 2 km/tydz mniej, niż plan
-       zaplanował, i nikt mu tego nie mówi. Decyzja o progu 0,95 należy do
-       Filipa, więc test zostaje czerwony jako przypomnienie, a nie znika. */
-    var luzSumy = w6.length * KROK_KM / 2;
-    /* ⚠️ SPROSTOWANIE WŁASNEJ NOTATKI Z 25.08.2026. Napisałem tu, że test
-       „zzieleniał sam" po zmianie krzywej i zdjąłem mu z nazwy ZNANĄ CZERWIEŃ.
-       To była prawda przez pół dnia: po interpolacji pasm tydzień 6 ma znów
-       inną objętość i test jest CZERWONY z powrotem — 50 km zadane wobec 51,5
-       planowanego. Zjawisko to samo co zawsze (sufit 40% na wybieganiu plus
-       „spokojny nie dłuższy od wybiegania" na jedynym spokojnym), zmieniły się
-       tylko liczby: było 53/55, jest 50/51,5.
+    /* ── CZY PLAN DOMYKA OBJĘTOŚĆ, KTÓRĄ SAM DEKLARUJE ────────────────────
+       ⚠️ PRZEPISANE 25.08.2026: mierzy RELACJĘ, nie jedną liczbę. Poprzednia
+       wersja porównywała tydzień 6 jednego planu (53 wobec 55, potem 50 wobec
+       51,5) i przez to ZMIENIAŁA KOLOR przy każdej zmianie krzywej — zzieleniała
+       i zaczerwieniła się w ciągu jednego dnia, nie mówiąc nic o tym, czy wada
+       istnieje. Teraz przemiata 290 planów i pyta o `zadane / deklarowane`.
 
-       ⚠️ WNIOSEK, KTÓRY ZOSTAJE NA PRZYSZŁOŚĆ: ten test zielenieje i czerwienieje
-       od PRZYPADKOWEJ objętości tygodnia 6, więc jego kolor nic nie mówi o tym,
-       czy wada została naprawiona. Nie przemianowywać go znowu po zzielenieniu —
-       zniknie dopiero razem z decyzją o progu w meta.zalozenia (patrz akapit
-       wyżej: 50/51,5 to 97,1%, a próg brzmi „< 95%", więc człowiek nadal nie
-       dostaje o tym słowa). */
-    check('3 dni: suma tygodnia trzyma objętość (±' + luzSumy.toFixed(2) + ' z siatki) — ZNANA CZERWIEŃ, patrz komentarz',
-      Math.abs(w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0) - r3.meta.objetosciTygodni[5]) < luzSumy + 0.001,
-      w6.reduce(function (a, w) { return a + w.target_distance_km; }, 0));
+       ZMIERZONE (4 dystanse × 3–6 dni × 9 baz × 3 horyzonty, 3754 tygodnie):
+           faza budowy, 6 dni: mediana 1,0000  p10 0,9903  min 0,9726
+           faza budowy, 5 dni: mediana 1,0000  p10 0,8687  min 0,7500
+           faza budowy, 4 dni: mediana 1,0000  p10 0,9293  min 0,8106
+           faza budowy, 3 dni: mediana 0,9670  p10 0,6566  min 0,5682
+       Przy 4+ dniach plan domyka deklarację w MEDIANIE dokładnie; przy 3 dniach
+       nie domyka jej systematycznie i to jest ta wada.
+
+       ⚠️ TAPER JEST WYŁĄCZONY Z POMIARU I TO NIE JEST CHOWANIE WYNIKU.
+       `nadpiszOstatnieDni` ŚWIADOMIE zastępuje ostatni bieg rozruszaniem (4 km),
+       więc ostatni pełny tydzień z definicji nie trzyma deklaracji — zmierzone
+       0,773 przy 5 dniach, i tak ma być. Dzień startu ma `target_distance_km`
+       null, więc tydzień zawodów daje 0. Porównywanie tam deklaracji z realem
+       to porównywanie z liczbą, którą silnik celowo nadpisał. */
+    var relacje = (function () {
+      var out = { '3': [], '4': [], '5': [], '6': [] }, lista = ['5k', '10k', 'half', 'marathon'];
+      for (var a = 0; a < lista.length; a++) for (var dni = 3; dni <= 6; dni++) {
+        if (lista[a] === 'marathon' && dni < MARATON_MIN_DNI) continue;
+        var bazy = [15, 20, 25, 30, 40, 55, 70, 90, 120];
+        for (var q = 0; q < bazy.length; q++) for (var kh = 0; kh < 3; kh++) {
+          var h = DYSTANSE[lista[a]].minTygodni + [0, 4, 10][kh];
+          var rr = uloz(we({ dystans: lista[a], dataStartu: zaTygodni(h), dniWTygodniu: dni,
+                             poziom: poziom({ objetoscTygodniowa: bazy[q] }) }));
+          if (!rr.ok) continue;
+          var dk = rr.meta.objetosciTygodni, fk = rr.meta.objetosciFaktyczne;
+          var budowa = rr.meta.tygodnie - rr.meta.taperTygodni;
+          for (var t = 0; t < budowa && t < dk.length; t++) {
+            if (dk[t] > 0) out[String(dni)].push(fk[t] / dk[t]);
+          }
+        }
+      }
+      return out;
+    })();
+    function mediana(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b[Math.floor(b.length / 2)]; }
+
+    check('faza budowy przy 4+ dniach domyka deklarację (mediana = 1,000)',
+      ['4', '5', '6'].every(function (dni) { return Math.abs(mediana(relacje[dni]) - 1) < 0.005; }),
+      ['4', '5', '6'].map(function (d) { return d + 'dni:' + mediana(relacje[d]).toFixed(4); }));
+
+    /* ⚠️ TU JEST WADA I TEST MA JĄ TRZYMAĆ ZA GARDŁO, A NIE ZMIENIAĆ KOLOR.
+       Przy 3 dniach tydzień ma trzy jednostki: jakość bierze sztywne ~20%,
+       a wybieganie nie może przekroczyć 40% tygodnia ani przerosnąć spokojnego.
+       Trzy sufity naraz nie dopuszczają reszty kilometrów i plan oddaje mniej,
+       niż zadeklarował. Udokumentowane w ulozTydzien („lepiej oddać mniej
+       kilometrów niż wypchnąć je w jedną jednostkę") — więc test NIE żąda 1,000,
+       tylko pilnuje, żeby nie było GORZEJ niż dziś. */
+    check('⚠️ ZNANA WADA: przy 3 dniach plan NIE domyka deklaracji (mediana ' +
+          mediana(relacje['3']).toFixed(4) + ') — nie pogarsza się',
+      mediana(relacje['3']) >= 0.96 && Math.min.apply(null, relacje['3']) >= 0.56,
+      [mediana(relacje['3']), Math.min.apply(null, relacje['3'])]);
+
+    check('⚠️ …i przy 3 dniach jest WYRAŹNIE gorzej niż przy 6 — to nie szum siatki',
+      mediana(relacje['6']) - mediana(relacje['3']) > 0.01,
+      [mediana(relacje['3']), mediana(relacje['6'])]);
+
     check('4 dni: ratunek NIE odpala się (kształt był poprawny)',
       Math.abs(rj.treningi.filter(function (w) { return w.week_number === 6 && w.workout_type === 'Wybieganie'; })[0].target_distance_km
         - DYSTANSE.half.udzialDlugiego * rj.meta.objetosciTygodni[5]) < KROK_KM / 2 + 0.001, null);

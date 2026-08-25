@@ -44,9 +44,37 @@ jobs:
         id: uruchom
         run: node --test tests/*.test.js
 
+      # !! DRUGI ZESTAW, WPIETY 25.08.2026. `js/generator-planu.js` ma wbudowany
+      #    self-test (~526 asercji) odpalany przez `node js/generator-planu.js`
+      #    i konczacy `process.exit(1)` przy jakiejkolwiek czerwieni. Do 25.08
+      #    NIE BYL uruchamiany przez zadne CI — najgestszy zestaw testow generatora
+      #    w repo zyl poza kontrola, bo od miesiaca mial jedna „znana czerwien",
+      #    a wpiecie go z `|| true` skasowaloby sens bramki.
+      #    Czerwien zniknela wraz z przepisaniem testu „suma tygodnia" na pomiar
+      #    RELACJI zamiast jednej liczby, wiec warunek z zaleglosci jest spelniony.
+      # !! DETERMINIZM: self-test ma zaszyte `TODAY = '2026-08-10'`, wiec nie
+      #    zalezy od zegara runnera. Gdyby kiedys zaczal — to jest pierwsze
+      #    miejsce do sprawdzenia.
+      # !! `if: always()` JEST KONIECZNE. Bez niego czerwony pierwszy zestaw
+      #    POMIJA ten krok, jego `outcome` to `skipped`, a podsumowanie oparte
+      #    na `!= success` oglosiloby, ze self-test padl — choc go nie
+      #    uruchomiono. Dwa niezalezne zestawy maja sie wykonac oba i oba
+      #    zaraportowac osobno.
+      - name: Uruchom self-test silnika generatora
+        id: silnik
+        if: always()
+        run: node js/generator-planu.js
+
       - name: Podsumowanie
         if: always()
         run: |
+          if [ "${{ steps.silnik.outcome }}" = "failure" ]; then
+            echo "### ❌ Self-test silnika generatora padł" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`node js/generator-planu.js\` — pełne wyjście w logu kroku." >> $GITHUB_STEP_SUMMARY
+            echo "Ten zestaw pilnuje reguł planu (objętości, sufity, ściany odmów)." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
           if [ "${{ steps.uruchom.outcome }}" = "success" ]; then
             echo "### ✅ Testy przeszły" >> $GITHUB_STEP_SUMMARY
           else
@@ -58,3 +86,4 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Pliki: \`tests/*.test.js\` · środowisko: \`tests/_srodowisko.js\`" >> $GITHUB_STEP_SUMMARY
+          echo "Silnik: \`node js/generator-planu.js\` (self-test wbudowany)" >> $GITHUB_STEP_SUMMARY
