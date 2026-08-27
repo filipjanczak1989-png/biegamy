@@ -3494,6 +3494,11 @@ window.toast = function (msg) {
 function openLogModal(e, ds, idx) {
   e.stopPropagation();
   window._logSource = 'manual';   // reset atrybucji; source idzie tylko do INSERT
+  /* WARSTWA D — klucz idempotencji, nowy na KAŻDE otwarcie formularza, ten sam
+     przez całe wypełnianie. Dzięki temu powtórzone wysłanie TEGO SAMEGO
+     formularza łamie `training_logs_external_uniq` (23505) zamiast tworzyć
+     duplikat. Patrz sb.js → nowyKluczZapisu. */
+  window._kluczZapisu = window.nowyKluczZapisu ? window.nowyKluczZapisu() : null;
   const t = trainings[ds] && trainings[ds][idx];
   _logTrainingId = t?._id || null;
   _logDate2 = ds;
@@ -3711,7 +3716,30 @@ async function runLogOcr(input) {
     input.value = '';  // PWA fix: reset by ten sam plik re-firował change
   }
 }
+/* ⚠️ ŁATA 27.08.2026 — CZTERY OCHRONY, KTÓRYCH TA KOPIA NIE MIAŁA.
+   `saveLog` istnieje w DWÓCH plikach. Wersja w zawodnik.html dostała 16.08
+   komplet zabezpieczeń przed podwójnym zapisem; ta nie dostała żadnego.
+   Zmierzone 27.08: 25 grup duplikatów, 38 nadmiarowych logów, 8 osób —
+   i WSZYSTKIE mają `external_id` NULL, czyli wszystkie pochodzą stąd.
+   Odstępy: 19 z 21 mierzalnych par poniżej 5 SEKUND (najkrótsza 111 ms),
+   żadna powyżej minuty — to wielokrotne odpalenie handlera, nie człowiek.
+   Wartości w parach identyczne co do pola, więc to nie drugie rozpoznanie OCR.
+
+   To ŁATA, nie scalenie — dublowanie logiki zostaje, pilnuje go teraz
+   tests/blizna-26-kazdy-zapis-logu-ma-cztery-ochrony.test.js. */
+let _savingLogKal = false;
+
 async function saveLog() {
+  /* WARSTWA A — zapis w toku. Guzik (`onclick="saveLog()"`) nie ma blokady,
+     więc drugie tapnięcie wchodziło w funkcję, gdy pierwsze czekało na upload. */
+  if (_savingLogKal) { console.warn('[saveLog:kal] zapis juz trwa — pomijam'); return; }
+  _savingLogKal = true;
+  /* `finally` na końcu funkcji — wewnątrz jest sześć wcześniejszych `return`,
+     a każdy MUSI zwolnić flagę, inaczej jeden błąd zamraża zapisywanie do
+     przeładowania strony. Ciało celowo NIE jest przewcinane: to łata, a diff
+     ma pokazywać zmianę logiki, nie ruch białych znaków (ten sam wzorzec co
+     `try {` w zawodnik.html). */
+  try {
   const dist = parseFloat(document.getElementById('lm-dist').value) || null;
   const time = document.getElementById('lm-time').value.trim() || null;
   let pace = normalizePaceInput(document.getElementById('lm-pace').value);
@@ -3731,9 +3759,16 @@ async function saveLog() {
     const urls = []; const base = Date.now();
     for (let fi = 0; fi < ocrFiles.length; fi++) {
       const f = ocrFiles[fi];
+      /* WARSTWA C — znacznik idempotencji NA OBIEKCIE File. Bez niego każde
+         odpalenie budowało nową ścieżkę z `Date.now()`, więc TO SAMO zdjęcie
+         lądowało w Storage pod kolejną nazwą. Stąd 0 par z tym samym
+         `attachment_url` i 44 z różnym — różnica nazw NIE znaczyła, że ktoś
+         skanował dwa razy. Zmierzone: 67 plików wiszących przy nadmiarowych
+         logach, przy buckecie na 876 MB z 1 GB. */
+      if (f._bmPath) { urls.push(f._bmPath); continue; }
       const path = ath.id + '/log_' + base + '_' + fi + '.' + ((f.name.split('.').pop()) || 'jpg');
       const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, f, { upsert: true, contentType: f.type });
-      if (!upErr) urls.push(path);
+      if (!upErr) { f._bmPath = path; urls.push(path); }
     }
     if (urls.length) attachmentUrl = urls.join(',');
   }
@@ -3762,6 +3797,18 @@ async function saveLog() {
     }).eq('id', existingLogId);
     if (updErr) { notify('Błąd: ' + updErr.message); return; }
   } else {
+    /* WARSTWA B — zamek 60 s między KARTAMI, na odcisku TREŚCI. Guard wyżej
+       jest per-załadowanie strony, więc dwie otwarte karty mają dwa niezależne
+       guardy; `localStorage` jest wspólny. Odcisk z treści, nie z klucza —
+       w dwóch kartach klucze są różne, a treść ta sama. Tylko przy INSERT:
+       UPDATE jest idempotentny z natury i blokowanie go odbierałoby poprawki. */
+    const _odciskKal = window.odciskZapisu
+      ? window.odciskZapisu([ath.id, _logDate2, _logType2, dist, time]) : null;
+    if (_odciskKal && window.zamekZapisu && !window.zamekZapisu(_odciskKal, 60)) {
+      console.warn('[saveLog:kal] identyczny zapis z innej karty w ostatnich 60 s — pomijam');
+      notify('Ten trening jest już zapisany');
+      return;
+    }
     const { error: insErr } = await sb.from('training_logs').insert({
       athlete_id: ath.id,
       training_type: _logType2,
@@ -3776,9 +3823,27 @@ async function saveLog() {
       comment, feel: _logFeel,
       attachment_url: attachmentUrl,
       source: (window._logSource || 'manual'),
+      /* WARSTWA D — twarda bariera w BAZIE. Indeks `training_logs_external_uniq`
+         jest CZĘŚCIOWY (`WHERE external_source IS NOT NULL AND external_id IS
+         NOT NULL`), więc dopóki te pola były puste, ta ścieżka stała poza
+         ochroną. `external_source: 'app'`, NIE 'manual' — kolumna znaczy
+         „z jakiego systemu zewnętrznego pochodzi identyfikator", a tu żadnego
+         nie ma; konsumenci rozróżniają po `source === 'intervals'`. */
+      external_source: 'app', external_id: (window._kluczZapisu || null),
       logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
     });
-    if (insErr) { notify('Błąd: ' + insErr.message); return; }
+    /* 23505 = złamany unikat, czyli TEN SAM formularz wysłany drugi raz.
+       Dla człowieka to sukces: jego trening JEST zapisany. */
+    if (insErr && insErr.code === '23505') {
+      console.warn('[saveLog:kal] powtorzony zapis tego samego formularza — pomijam');
+    } else if (insErr) {
+      /* ⚠️ ZAPIS PADŁ → ZWALNIAMY ZAMEK NATYCHMIAST. Zamek ma blokować
+         powtórzenie UDANEGO zapisu, nie legalną powtórkę po błędzie — inaczej
+         ochrona przed duplikatem zamienia się w UTRATĘ treningu. */
+      if (_odciskKal && window.zwolnijZamek) window.zwolnijZamek(_odciskKal);
+      notify('Błąd: ' + insErr.message);
+      return;
+    }
   }
 
   // Oznacz trening jako wykonany i zaktualizuj dystans z logu
@@ -3810,6 +3875,7 @@ async function saveLog() {
   if (!existingLogId) {
     setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);
   }
+  } finally { _savingLogKal = false; }   // WARSTWA A — patrz nagłówek funkcji
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
