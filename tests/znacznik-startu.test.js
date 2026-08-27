@@ -37,17 +37,30 @@ describe('SSOT — jeden warunek dla trzech modali', () => {
 });
 
 describe('⚠️ TRZY MODALE MUSZĄ PYTAĆ — nie jeden', () => {
-  /* zawodnik.html i kalendarz.html mają OSOBNE implementacje modalu logowania,
-     a kalendarz dodatkowo osobny modal OCR. To nie jest do scalenia w tym
-     commicie — ale każdy z nich musi zapisywać kolumnę, inaczej część startów
-     wchodzi bez znacznika i próbka znowu jest zanieczyszczona. */
+  /* Trzy modale logowania nadal istnieją (zawodnik + dwa w kalendarzu) i każdy
+     musi podać znacznik, inaczej część startów wchodzi bez niego i próbka
+     znowu jest zanieczyszczona.
+     !! ZMIANA 27.08.2026: zapisy zostały SCALONE — kolumnę pisze teraz jedno
+        miejsce, `window.zapiszLog` w sb.js. Niezmiennik jest ten sam, ale
+        sprawdzamy go inaczej: każdy modal PODAJE `casual_effort` rdzeniowi,
+        a rdzeń go PRZEPUSZCZA do payloadu. Liczenie wystąpień w stronach
+        przestało mierzyć „ile ścieżek zapisu", bo ścieżka zapisu jest jedna. */
   const pliki = { 'zawodnik.html': czytaj('zawodnik.html'), 'kalendarz.html': czytaj('kalendarz.html') };
 
-  test('każda ścieżka zapisu Startu ustawia casual_effort', () => {
+  test('każdy modal PODAJE casual_effort do rdzenia', () => {
     assert.ok(/casual_effort:/.test(pliki['zawodnik.html']), 'zawodnik.html');
-    /* kalendarz: modal własny + OCR insert + OCR update = 3 zapisy */
-    assert.equal((pliki['kalendarz.html'].match(/casual_effort:/g) || []).length, 3,
-      'kalendarz ma trzy zapisy: modal własny, OCR insert, OCR update');
+    /* kalendarz: modal treningu (saveTraining) + log-modal (saveLog) = 2 */
+    assert.equal((pliki['kalendarz.html'].match(/casual_effort:/g) || []).length, 2,
+      'kalendarz ma dwa modale podające znacznik: saveTraining i saveLog');
+  });
+
+  test('⚠️ RDZEŃ faktycznie przepuszcza kolumnę do payloadu', () => {
+    /* Bez tego trzy modale mogłyby podawać znacznik w próżnię: rdzeń kopiuje
+       do payloadu tylko pola z jawnej listy, więc pominięcie `casual_effort`
+       na tej liście CICHO wyrzuciłoby kolumnę ze wszystkich trzech ścieżek
+       naraz — dokładnie ta klasa ryzyka, którą scalenie wprowadza. */
+    assert.match(czytaj('sb.js'), /'casual_effort',/,
+      'sb.js: casual_effort nie ma na liście pól kopiowanych do payloadu');
   });
 
   test('⚠️ żaden zapis nie ufa samemu checkboxowi — zawsze przez jestStartem', () => {

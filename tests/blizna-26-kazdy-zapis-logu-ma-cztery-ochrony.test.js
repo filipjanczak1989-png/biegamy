@@ -41,9 +41,12 @@ const WARSTWY = {
      i ZOSTAŁ ZIELONY: ochrona była wyłączona, a blizna tego nie widziała. */
   A_zapis_w_toku: {
     opis: 'guard „zapis już trwa" — odczyt + ustawienie + zwolnienie',
-    slad: (cialo) => /if\s*\(\s*_savingLog\w*\s*\)/.test(cialo)
-                  && /_savingLog\w*\s*=\s*true/.test(cialo)
-                  && /_savingLog\w*\s*=\s*false/.test(cialo),
+    /* Nazwa flagi celowo NIE jest przypięta do jednej: `_savingLog` w stronie,
+       `_zapisWToku` w rdzeniu. Sprawdzamy KSZTAŁT mechanizmu (odczyt, podniesienie,
+       opuszczenie), bo to on chroni, a nie konkretny identyfikator. */
+    slad: (cialo) => /if\s*\(\s*(?:_savingLog\w*|_zapisWToku)\s*\)/.test(cialo)
+                  && /(?:_savingLog\w*|_zapisWToku)\s*=\s*true/.test(cialo)
+                  && /(?:_savingLog\w*|_zapisWToku)\s*=\s*false/.test(cialo),
   },
   B_zamek_60s: {
     opis: 'zamek 60 s na odcisku treści + zwolnienie po błędzie',
@@ -57,7 +60,11 @@ const WARSTWY = {
   },
   D_external_id: {
     opis: 'external_source/external_id → twardy unikat w bazie',
-    slad: (cialo) => /external_source\s*:\s*'app'/.test(cialo) && /external_id/.test(cialo),
+    /* Dwie formy zapisu tego samego: pole w literale obiektu (strony) albo
+       przypisanie do payloadu (rdzeń). Przypięcie się do jednej zzieleniałoby
+       po zwykłym przepisaniu stylu, nie po utracie ochrony. */
+    slad: (cialo) => /external_source\s*(?::|=)\s*'app'/.test(cialo)
+                  && /external_id/.test(cialo),
   },
 };
 
@@ -65,33 +72,15 @@ const WARSTWY = {
 // `wymaga: true`  → zapis z FORMULARZA wypełnianego przez człowieka; komplet obowiązkowy.
 // `wymaga: false` → zapis bez formularza; `powod` mówi, dlaczego warstwy nie mają sensu.
 const REJESTR = {
-  'zawodnik.html:saveLog': {
+  'sb.js:zapiszLog': {
     wymaga: true,
-    opis: 'główny modal „Zaloguj trening" — wzorzec, od 16.08 komplet',
-  },
-  'kalendarz.html:saveLog': {
-    wymaga: true,
-    opis: 'log-modal w kalendarzu (ścieżka OCR) — ZAŁATANE 27.08.2026',
-  },
-  'kalendarz.html:saveTraining': {
-    wymaga: false,
-    PRZYPIETA_WADA: true,
-    powod:
-      'ZAPIS Z FORMULARZA BEZ ŻADNEJ Z CZTERECH WARSTW — to ta sama klasa wady '
-      + 'co załatana kopia saveLog, tylko wykryta później (27.08, przy zwiadzie). '
-      + 'Wpisuje log jako skutek uboczny oznaczania planu jako zrobiony; kolumna '
-      + '`source` ma default \'manual\', więc te wiersze są nie do odróżnienia od '
-      + 'ręcznych. Zmierzone 27.08: 75 par duplikatów manual+manual, WSZYSTKIE '
-      + 'z `external_id` NULL po obu stronach, obie mierzalne pary poniżej minuty. '
-      + '⚠️ NIE ZAŁATANE ŚWIADOMIE: funkcja ma ~200 linii, DWIE role (trener '
-      + 'i zawodnik) i 12 wyjść — dołożenie warstw to nie łata, tylko przebudowa, '
-      + 'i wymaga osobnej decyzji. Gdy ją dostanie: przenieś wpis na wymaga:true.',
+    opis: 'RDZEŃ — jedyne miejsce, które zapisuje log z formularza (scalone 27.08.2026)',
   },
   'kalendarz.html:executeMoveScreen': {
     wymaga: false,
     powod:
       'Nie jest zapisem formularza. Przenosi ZDJĘCIE na inny dzień i zakłada '
-      + 'kikut `training_type: \'Zdjęcie\'` bez dystansu, czasu i tętna, gdy '
+      + "kikut `training_type: 'Zdjęcie'` bez dystansu, czasu i tętna, gdy "
       + 'w dniu docelowym nie ma logu. Nie ma wypełniania, nie ma uploadu '
       + '(plik już jest w Storage), a powtórzenie daje wpis, który człowiek '
       + 'widzi od razu w kalendarzu — bo tam właśnie jest.',
@@ -99,12 +88,19 @@ const REJESTR = {
   'zawodnik.html:CIRCUIT.saveCircuitLog': {
     wymaga: false,
     powod:
-      'Nie jest zapisem formularza. `source: \'circuit\'` — log powstaje '
+      "Nie jest zapisem formularza. `source: 'circuit'` — log powstaje "
       + 'automatycznie na zakończenie obwodu, z pomiaru, a nie z pól. Nie ma '
       + 'guzika „Zapisz" do podwójnego tapnięcia ani załącznika do wgrania. '
       + 'W bazie 2 takie logi, zero duplikatów.',
   },
 };
+
+/* Wołający rdzeń — po scaleniu to ONI są „ścieżkami zapisu", nie INSERT-y. */
+const WOLAJACY = [
+  ['zawodnik.html', 'saveLog'],
+  ['kalendarz.html', 'saveLog'],
+  ['kalendarz.html', 'saveTraining'],
+];
 
 // ── WYSZUKIWANIE ŚCIEŻEK ─────────────────────────────────────────────────────
 /** Ciało jednostki obejmującej dany indeks. Koniec = pierwsze `}` w kolumnie 0,
@@ -117,29 +113,41 @@ const REJESTR = {
 function funkcjaZawierajaca(src, idx) {
   const przed = src.slice(0, idx);
   const kandydaci = [
-    ...przed.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(/gm),
-    ...przed.matchAll(/^(?:const|let|var)\s+(\w+)\s*=\s*\{/gm),
+    /* Puste grupy `()` trzymają jednolity kształt dopasowania: [1] = wcięcie,
+       [2] = nazwa. Bez nich wzorce bez wcięcia przesuwają numerację grup
+       i `nazwa` staje się `undefined` — cicho, bo dalej wszystko się „liczy". */
+    ...przed.matchAll(/^()(?:async\s+)?function\s+(\w+)\s*\(/gm),
+    /* Obiekt-kontener TYLKO na poziomie pliku. Dopuszczenie wcięcia sprawiało,
+       że zwykłe `const payload = {` wewnątrz metody stawało się „ścieżką"
+       i rejestr dostawał klucz `zawodnik.html:payload`. */
+    ...przed.matchAll(/^()(?:const|let|var)\s+(\w+)\s*=\s*\{/gm),
+    ...przed.matchAll(/^([ \t]*)window\.(\w+)\s*=\s*(?:async\s+)?function/gm),
   ].sort((a, b) => a.index - b.index);
   if (!kandydaci.length) return null;
   const start = kandydaci[kandydaci.length - 1];
-  const koniec = src.indexOf('\n}', start.index);
-  const doIdx = koniec === -1 ? src.length : koniec + 2;
-  /* Nazwa metody — TYLKO wewnątrz obiektu, inaczej wszystkie zapisy z CIRCUIT
-     zlałyby się w jeden wpis rejestru i dołożenie drugiego przeszłoby cicho.
-     ⚠️ Dla zwykłej funkcji dopisek jest szkodliwy: `if (…) {` wygląda dla
-        wzorca jak metoda i produkował klucze w rodzaju `saveLog.if`. */
+  const wciecie = start[1] || '';
+  /* Koniec = pierwsza linia zamykajaca NA TYM SAMYM WCIECIU co poczatek.
+     !! Pierwsza wersja szukala `}` w kolumnie 0 i dzialala, dopoki wszystkie
+        zapisy siedzialy w plikach HTML. Rdzen w sb.js jest wciety o dwa znaki
+        wewnatrz opakowania, wiec wycinanie konczylo sie natychmiast i test
+        mierzyl CUDZE cialo (`_ICU_BTN`). Zlapala to samo-kontrola nizej —
+        gdyby jej nie bylo, blizna zzielenialaby mierzac nie ten kod. */
+  const koniecWz = new RegExp('^' + wciecie + '\\};?[ \\t]*$', 'm');
+  const reszta = src.slice(start.index);
+  const m = koniecWz.exec(reszta.slice(1));
+  const doIdx = m ? start.index + 1 + m.index + m[0].length : src.length;
   const jestObiektem = /^(?:const|let|var)\s/.test(start[0]);
   const SLOWA_KLUCZOWE = new Set(['if', 'for', 'while', 'switch', 'catch', 'try', 'else', 'do', 'return', 'function']);
   let ostatnia = null;
   if (jestObiektem) {
     const metody = [...src.slice(start.index, idx)
       .matchAll(/^\s{2,}(\w+)\s*:\s*(?:async\s+)?function|^\s{2,}(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/gm)]
-      .map((m) => m[1] || m[2])
+      .map((m2) => m2[1] || m2[2])
       .filter((n) => n && !SLOWA_KLUCZOWE.has(n));
     ostatnia = metody.length ? metody[metody.length - 1] : null;
   }
   return {
-    nazwa: ostatnia ? `${start[1]}.${ostatnia}` : start[1],
+    nazwa: ostatnia ? `${start[2]}.${ostatnia}` : start[2],
     cialo: src.slice(start.index, doIdx),
     od: start.index,
     do: doIdx,
@@ -183,7 +191,7 @@ describe('samo-kontrola', () => {
   });
 
   test('wykrywacz w ogole cos znalazl', () => {
-    assert.ok(Object.keys(SCIEZKI).length >= 5,
+    assert.ok(Object.keys(SCIEZKI).length >= 3,
       'znaleziono ' + Object.keys(SCIEZKI).length + ' ścieżek — wzorzec przestał pasować, '
       + 'a wtedy CAŁY ten plik przechodzi mierząc pustkę');
   });
@@ -191,8 +199,8 @@ describe('samo-kontrola', () => {
   test('kazda warstwa jest wykrywalna — wzorzec z zawodnik.html ma komplet', () => {
     // Gdyby ślad którejś warstwy przestał pasować, test niżej zzieleniałby
     // na wszystkim. Wzorzec jest tu kotwicą: on MUSI mieć wszystkie cztery.
-    const cialo = SCIEZKI['zawodnik.html:saveLog'];
-    assert.ok(cialo, 'zniknął wzorzec — zawodnik.html:saveLog');
+    const cialo = SCIEZKI['sb.js:zapiszLog'];
+    assert.ok(cialo, 'zniknął rdzeń — sb.js:zapiszLog');
     for (const [nazwa, w] of Object.entries(WARSTWY)) {
       assert.ok(w.slad(cialo), `ślad warstwy ${nazwa} nie pasuje do wzorca — wykrywacz zepsuty`);
     }
@@ -242,25 +250,33 @@ describe('sciezki zapisu Z FORMULARZA maja komplet czterech ochron', () => {
   }
 });
 
-describe('PRZYPIETA WADA — saveTraining nadal bez ochron', () => {
-  // !! TEN TEST ŚWIECI NA ZIELONO PRZY ISTNIEJĄCEJ WADZIE i to jest świadome.
-  //    Wada jest ZMIERZONA i UDOKUMENTOWANA wyżej w REJESTRZE, a jej naprawa
-  //    wymaga decyzji, bo to przebudowa funkcji dwuroli. Test pilnuje, żeby
-  //    stan nie zmienił się PO CICHU w żadną stronę.
-  const KLUCZ = 'kalendarz.html:saveTraining';
-
-  test('wpis w rejestrze niesie liczby, nie samo „TODO"', () => {
-    const wpis = REJESTR[KLUCZ];
-    assert.equal(wpis.PRZYPIETA_WADA, true);
-    assert.match(wpis.powod, /75 par/, 'przypięta wada bez zmierzonej skali to TODO, nie blizna');
+describe('⚠️ SSOT — strony NIE PISZA do training_logs z formularza', () => {
+  /* Mocniejszy niezmiennik niż przed scaleniem. Wcześniej pilnowaliśmy, żeby
+     KAŻDA z kilku kopii miała cztery warstwy — i to nie wystarczyło, bo nowa
+     kopia powstawała bez nich. Teraz kopii nie ma: zapis z formularza ma
+     dokładnie jedno miejsce, a strony tylko je wołają. */
+  test('rdzen `window.zapiszLog` istnieje w sb.js', () => {
+    assert.match(czytaj('sb.js'), /window\.zapiszLog = async function/);
   });
 
-  test('stan faktyczny: ZERO z czterech warstw', () => {
-    const cialo = SCIEZKI[KLUCZ];
-    const ma = Object.entries(WARSTWY).filter(([, w]) => w.slad(cialo)).map(([n]) => n);
-    assert.deepEqual(ma, [],
-      'DOBRA WIADOMOŚĆ: saveTraining dostał ochronę (' + ma.join(', ') + ').\n'
-      + '→ Przenieś wpis w REJESTRZE na `wymaga: true` i usuń ten test. '
-      + 'Czerwony kolor znaczy tu „wada naprawiona, zaktualizuj rejestr", nie „regresja".');
+  test('⚠️ ZADNA strona nie ma wlasnego INSERT-a z formularza', () => {
+    const zForm = Object.keys(SCIEZKI)
+      .filter((k) => !k.startsWith('sb.js:'))
+      .filter((k) => REJESTR[k] && REJESTR[k].wymaga);
+    assert.deepEqual(zForm, [],
+      'strona odtworzyła własny zapis logu z formularza: ' + zForm.join(', ')
+      + ' → To jest dokładnie ta wada, która 27.08.2026 dała 38 nadmiarowych '
+      + 'logów u 8 osób. Zapis idzie przez window.zapiszLog z sb.js.');
+  });
+
+  test('wszystkie trzy modale WOLAJA rdzen', () => {
+    for (const [plik, fn] of WOLAJACY) {
+      const src = czytaj(plik);
+      const i = src.indexOf('function ' + fn + '(');
+      assert.ok(i > 0, plik + ': brak funkcji ' + fn);
+      const cialo = src.slice(i, src.indexOf('\n}', i));
+      assert.match(cialo, /window\.zapiszLog\(/,
+        plik + ':' + fn + ' nie woła rdzenia — albo zapisuje po swojemu, albo przestała zapisywać');
+    }
   });
 });

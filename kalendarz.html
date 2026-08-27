@@ -1794,6 +1794,10 @@ function goToday() {
 function openModal(ds, idx) {
   editingDate = ds;
   editingIndex = idx;
+  /* Klucz idempotencji na KAŻDE otwarcie — ten modal też potrafi zapisać log
+     (ogon gałęzi zawodnika w saveTraining) i do 27.08.2026 nie miał klucza
+     wcale, więc twardy unikat w bazie go nie obejmował. Patrz sb.js. */
+  window._kluczZapisu = window.nowyKluczZapisu ? window.nowyKluczZapisu() : null;
 
   // Reset form
   selectedType = 'Bieg spokojny';
@@ -2562,73 +2566,43 @@ async function saveTraining() {
     const logStrava = document.getElementById('f-log-strava')?.value || null;
     const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
     const logPace = normalizePaceInput(document.getElementById('f-log-pace')?.value || pace || null);   // 4. droga do training_logs.pace — normalizuj (goly token->M:SS; zakres z planu->null, nie do logu)
-    let attachmentUrl = null;
-
     // Collect files from both pickers
     const fileSources = [];
     if (allFiles && allFiles.files.length > 0) for (let f of allFiles.files) fileSources.push(f);
     if (logFiles && logFiles.files.length > 0) for (let f of logFiles.files) fileSources.push(f);
 
-    if (fileSources.length > 0) {
-      const urls = [];
-      const base = Date.now();
-      for (let fi = 0; fi < fileSources.length; fi++) {
-        const file = fileSources[fi];
-        const prep = await window.prepUpload(file, 1600, 0.85);
-        if (!prep.ok) { alert(file.name + '\n\n' + window.komunikatZaDuzy(file.size, 15 * 1024 * 1024, 'zrzut')); continue; }
-        const path = athRow2.id + '/log_' + base + '_' + fi + '.' + prep.ext;
-        const { error: upErr } = await sb.storage
-          .from('training-screenshots').upload(path, prep.data, {upsert:true, contentType: prep.contentType});
-        if (!upErr) {
-          // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
-          urls.push(path);
-        }
-      }
-      if (urls.length) attachmentUrl = urls.join(',');
-    }
-
-    // Jeśli status=done LUB są pliki — zapisz log z wynikiem
-    if (status === 'done' || attachmentUrl) {
-      // Sprawdź czy log już istnieje dla tej daty
+    /* ZAPIS PRZEZ SSOT — `window.zapiszLog` w sb.js. Ta ścieżka NIE MIAŁA
+       ŻADNEJ z czterech ochron: zmierzone 27.08 to 75 par duplikatów
+       manual+manual, wszystkie z `external_id` NULL po obu stronach.
+       ⚠️ Gałąź TRENERA wyżej nie dotyka `training_logs` (pisze tylko do
+          `trainings` i wychodzi), więc scalenie jej nie rusza. */
+    if (status === 'done' || fileSources.length) {
       const { data: existingLog } = await sb.from('training_logs')
         .select('id').eq('athlete_id', athRow2.id).not('training_type','like','__badge__%')
         .gte('logged_at', editingDate + 'T00:00:00')
         .lte('logged_at', editingDate + 'T23:59:59')
         .order('logged_at', { ascending: false }).limit(1)   // import intervals.icu może dać 2. log tego dnia → bez limit(1) maybeSingle rzuca PGRST116
         .maybeSingle();
-
-      if (existingLog) {
-        // UPDATE istniejącego logu — dołącz nowe zdjęcia
-        const upd = {};
-        if (attachmentUrl) upd.attachment_url = attachmentUrl;
-        if (logStrava) upd.strava_link = logStrava;
-        if (document.getElementById('f-comment')?.value) upd.comment = document.getElementById('f-comment').value;
-        if (Object.keys(upd).length) {
-          const { error: logUpdErr } = await sb.from('training_logs').update(upd).eq('id', existingLog.id);
-          if (logUpdErr) {
-            notify(logUpdErr.code === '42501' || logUpdErr.message?.includes('policy') ? 'Brak uprawnień do zapisu treningu' : 'Błąd zapisu: ' + logUpdErr.message);
-            return;
-          }
-        }
-      } else {
-        // INSERT nowego logu
-        const { error: logInsErr } = await sb.from('training_logs').insert({
-          athlete_id: athRow2.id,
-          training_type: selectedType,
-          casual_effort: (window.jestStartem && window.jestStartem(selectedType))
-            ? !!document.getElementById('kal-luzny')?.checked : false,
-          distance_km: logDist,
-          pace: logPace,
-          strava_link: logStrava,
-          attachment_url: attachmentUrl,
-          comment: document.getElementById('f-comment')?.value || null,
-          logged_at: new Date(editingDate + 'T12:00:00').toISOString()
-        });
-        if (logInsErr) {
-          notify(logInsErr.code === '42501' || logInsErr.message?.includes('policy') ? 'Brak uprawnień do zapisu treningu' : 'Błąd zapisu: ' + logInsErr.message);
-          return;
-        }
-      }
+      const _kom = document.getElementById('f-comment')?.value || null;
+      /* ⚠️ UPDATE CZĘŚCIOWY, `undefined` = NIE RUSZAJ. Gdy log tego dnia już
+         istnieje, ta ścieżka tylko DOPINA do niego zdjęcia/stravę/komentarz.
+         Nie wolno jej nadpisać dystansu, tempa ani typu wpisanych wcześniej
+         z innego ekranu — dlatego `typ: undefined` i brak pól liczbowych. */
+      const _w = await window.zapiszLog({
+        athleteId: athRow2.id,
+        dzien: editingDate,
+        typ: existingLog ? undefined : selectedType,
+        pola: existingLog
+          ? { strava_link: logStrava || undefined, comment: _kom || undefined }
+          : { distance_km: logDist, pace: logPace, strava_link: logStrava, comment: _kom,
+              casual_effort: (window.jestStartem && window.jestStartem(selectedType))
+                ? !!document.getElementById('kal-luzny')?.checked : false },
+        pliki: fileSources,
+        idLoguDoEdycji: existingLog ? existingLog.id : null,
+        kluczZapisu: window._kluczZapisu,
+        zrodlo: 'manual',
+      });
+      if (!_w.ok) { if (_w.komunikat) notify(_w.komunikat); return; }
     }
   }
 
@@ -3730,15 +3704,12 @@ async function runLogOcr(input) {
 let _savingLogKal = false;
 
 async function saveLog() {
-  /* WARSTWA A — zapis w toku. Guzik (`onclick="saveLog()"`) nie ma blokady,
-     więc drugie tapnięcie wchodziło w funkcję, gdy pierwsze czekało na upload. */
-  if (_savingLogKal) { console.warn('[saveLog:kal] zapis juz trwa — pomijam'); return; }
-  _savingLogKal = true;
-  /* `finally` na końcu funkcji — wewnątrz jest sześć wcześniejszych `return`,
-     a każdy MUSI zwolnić flagę, inaczej jeden błąd zamraża zapisywanie do
-     przeładowania strony. Ciało celowo NIE jest przewcinane: to łata, a diff
-     ma pokazywać zmianę logiki, nie ruch białych znaków (ten sam wzorzec co
-     `try {` w zawodnik.html). */
+  /* Guard STRONY, obok wspólnego guardu w `zapiszLog`. Nie jest zbędny:
+     zatrzymuje drugie tapnięcie ZANIM otworzy się pytanie o rower
+     (`askBikeOrRun`), którego rdzeń nie widzi. Guzik `onclick="saveLog()"`
+     własnej blokady nie ma.
+     `finally` na końcu — w środku są wcześniejsze `return` i każdy musi
+     zwolnić flagę, inaczej jeden błąd zamraża zapisywanie do przeładowania. */
   try {
   const dist = parseFloat(document.getElementById('lm-dist').value) || null;
   const time = document.getElementById('lm-time').value.trim() || null;
@@ -3752,99 +3723,35 @@ async function saveLog() {
   const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   if (!ath) { notify('Błąd konta'); return; }
 
-  // Upload screenshotów z OCR (jeśli są) → training-screenshots, zapis PATH
-  let attachmentUrl = null;
-  const ocrFiles = window._ocrFiles || [];
-  if (ocrFiles.length) {
-    const urls = []; const base = Date.now();
-    for (let fi = 0; fi < ocrFiles.length; fi++) {
-      const f = ocrFiles[fi];
-      /* WARSTWA C — znacznik idempotencji NA OBIEKCIE File. Bez niego każde
-         odpalenie budowało nową ścieżkę z `Date.now()`, więc TO SAMO zdjęcie
-         lądowało w Storage pod kolejną nazwą. Stąd 0 par z tym samym
-         `attachment_url` i 44 z różnym — różnica nazw NIE znaczyła, że ktoś
-         skanował dwa razy. Zmierzone: 67 plików wiszących przy nadmiarowych
-         logach, przy buckecie na 876 MB z 1 GB. */
-      if (f._bmPath) { urls.push(f._bmPath); continue; }
-      const path = ath.id + '/log_' + base + '_' + fi + '.' + ((f.name.split('.').pop()) || 'jpg');
-      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, f, { upsert: true, contentType: f.type });
-      if (!upErr) { f._bmPath = path; urls.push(path); }
-    }
-    if (urls.length) attachmentUrl = urls.join(',');
-  }
-
   // ✨ BUG 2 fix: UPDATE istniejący log albo INSERT nowy
   const existingLogId = window._existingLogId || null;
   // Soft-warning rower (tylko nowy log): bieg ≥15km & pace <3:20 → spytaj
   if (!existingLogId && window.looksLikeBike(_logType2, dist, pace)) {
     if (await window.askBikeOrRun(dist, pace) === 'bike') _logType2 = 'Zastępczy';
   }
-  // nie-bieg (Wzmacniający/Zastępczy/inny/Odpoczynek) nie ma tempa/km — po ew. flipie roweru
-  if (window.isRunType && !window.isRunType(_logType2)) pace = null;
-  if (existingLogId) {
-    const { error: updErr } = await sb.from('training_logs').update({
-      training_type: _logType2,
-      /* ⚠️ ZAWSZE false poza startem — znaczenie kolumny istnieje tylko
-         dla TYPY_STARTU, a sekcja bywa ukryta bez wyczyszczenia. */
+
+  /* ZAPIS PRZEZ SSOT — `window.zapiszLog` w sb.js. Upload, cztery ochrony,
+     offset strefy i czyszczenie tempa dla nie-biegów siedzą TAM, nie tutaj.
+     Wcześniej ta funkcja miała własną kopię wszystkiego i żadnej ochrony.
+     ⚠️ `undefined` = nie ruszaj kolumny. Przy edycji świadomie NIE wysyłamy
+        attachment_url, gdy nie ma nowych plików — inaczej edycja komentarza
+        skasowałaby zdjęcia dopięte wcześniej. */
+  const _wynik = await window.zapiszLog({
+    athleteId: ath.id,
+    dzien: _logDate2 || new Date().toLocaleDateString('sv-SE'),
+    typ: _logType2,
+    pola: {
+      distance_km: dist, duration: time, pace, heart_rate: hr,
+      strava_link: strava, comment, feel: _logFeel,
       casual_effort: (window.jestStartem && window.jestStartem(_logType2))
         ? !!document.getElementById('lm-luzny')?.checked : false,
-      distance_km: dist,
-      duration: time,
-      pace, heart_rate: hr,
-      strava_link: strava,
-      comment, feel: _logFeel,
-      ...(attachmentUrl ? { attachment_url: attachmentUrl } : {})
-    }).eq('id', existingLogId);
-    if (updErr) { notify('Błąd: ' + updErr.message); return; }
-  } else {
-    /* WARSTWA B — zamek 60 s między KARTAMI, na odcisku TREŚCI. Guard wyżej
-       jest per-załadowanie strony, więc dwie otwarte karty mają dwa niezależne
-       guardy; `localStorage` jest wspólny. Odcisk z treści, nie z klucza —
-       w dwóch kartach klucze są różne, a treść ta sama. Tylko przy INSERT:
-       UPDATE jest idempotentny z natury i blokowanie go odbierałoby poprawki. */
-    const _odciskKal = window.odciskZapisu
-      ? window.odciskZapisu([ath.id, _logDate2, _logType2, dist, time]) : null;
-    if (_odciskKal && window.zamekZapisu && !window.zamekZapisu(_odciskKal, 60)) {
-      console.warn('[saveLog:kal] identyczny zapis z innej karty w ostatnich 60 s — pomijam');
-      notify('Ten trening jest już zapisany');
-      return;
-    }
-    const { error: insErr } = await sb.from('training_logs').insert({
-      athlete_id: ath.id,
-      training_type: _logType2,
-      /* ⚠️ ZAWSZE false poza startem — znaczenie kolumny istnieje tylko
-         dla TYPY_STARTU, a sekcja bywa ukryta bez wyczyszczenia. */
-      casual_effort: (window.jestStartem && window.jestStartem(_logType2))
-        ? !!document.getElementById('lm-luzny')?.checked : false,
-      distance_km: dist,
-      duration: time,
-      pace, heart_rate: hr,
-      strava_link: strava,
-      comment, feel: _logFeel,
-      attachment_url: attachmentUrl,
-      source: (window._logSource || 'manual'),
-      /* WARSTWA D — twarda bariera w BAZIE. Indeks `training_logs_external_uniq`
-         jest CZĘŚCIOWY (`WHERE external_source IS NOT NULL AND external_id IS
-         NOT NULL`), więc dopóki te pola były puste, ta ścieżka stała poza
-         ochroną. `external_source: 'app'`, NIE 'manual' — kolumna znaczy
-         „z jakiego systemu zewnętrznego pochodzi identyfikator", a tu żadnego
-         nie ma; konsumenci rozróżniają po `source === 'intervals'`. */
-      external_source: 'app', external_id: (window._kluczZapisu || null),
-      logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
-    });
-    /* 23505 = złamany unikat, czyli TEN SAM formularz wysłany drugi raz.
-       Dla człowieka to sukces: jego trening JEST zapisany. */
-    if (insErr && insErr.code === '23505') {
-      console.warn('[saveLog:kal] powtorzony zapis tego samego formularza — pomijam');
-    } else if (insErr) {
-      /* ⚠️ ZAPIS PADŁ → ZWALNIAMY ZAMEK NATYCHMIAST. Zamek ma blokować
-         powtórzenie UDANEGO zapisu, nie legalną powtórkę po błędzie — inaczej
-         ochrona przed duplikatem zamienia się w UTRATĘ treningu. */
-      if (_odciskKal && window.zwolnijZamek) window.zwolnijZamek(_odciskKal);
-      notify('Błąd: ' + insErr.message);
-      return;
-    }
-  }
+    },
+    pliki: window._ocrFiles || [],
+    idLoguDoEdycji: existingLogId,
+    kluczZapisu: window._kluczZapisu,
+    zrodlo: (window._logSource || 'manual'),
+  });
+  if (!_wynik.ok) { if (_wynik.komunikat) notify(_wynik.komunikat); return; }
 
   // Oznacz trening jako wykonany i zaktualizuj dystans z logu
   if (_logTrainingId) {

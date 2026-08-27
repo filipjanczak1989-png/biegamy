@@ -3265,6 +3265,199 @@ window._icuRenderSplits = function (d, el) {
     });
   };
 
+  /* ═══════════════════════════════════════════════════════════════
+     ZAPIS LOGU — JEDYNE MIEJSCE, KTORE PISZE DO training_logs Z FORMULARZA
+     ═══════════════════════════════════════════════════════════════
+
+     Scalone 27.08.2026 z TRZECH kopii: zawodnik.html:saveLog (387 linii),
+     kalendarz.html:saveLog (147) i ogona kalendarz.html:saveTraining.
+     Kazda kopia miala inny zestaw ochron i innych wad:
+
+       - kalendarz:saveLog nie mial ZADNEJ z czterech warstw → 25 grup
+         duplikatow, 38 nadmiarowych logow u 8 osob, odstepy od 111 ms;
+       - saveTraining tez nie mial zadnej → 75 par manual+manual;
+       - zawodnik mial komplet warstw, ale NIE mial czyszczenia tempa dla
+         nie-biegow → 40 nie-biegowych logow ma dzis wypelnione tempo;
+       - kalendarz:saveLog nie kompresowal zdjec i nie ponawial uploadu,
+         wiec chwilowy blad sieci CICHO gubil zalacznik.
+
+     !! DRYF SZEDL W OBIE STRONY — zadna kopia nie byla kanoniczna. Dlatego
+        scalenie, a nie bramka pilnujaca zgodnosci z wzorcem: nie bylo wzorca.
+
+     KONTRAKT `pola`: `undefined` = NIE RUSZAJ kolumny, `null` = WYCZYSC.
+     !! To nie kosmetyka. Zawodnik MUSI moc wyczyscic attachment_url, gdy
+        czlowiek usunal wszystkie zdjecia, a saveTraining robi UPDATE
+        CZESCIOWY (tylko zalacznik/strava/komentarz). Uproszczenie tego do
+        „falsy = nie ruszaj" odbiera pierwsza mozliwosc; do „zawsze pisz"
+        kasuje dane przy drugiej. Pilnuje tego tests/blizna-27-*. */
+
+  /* Zamek „zapis w toku" WSPOLNY dla wszystkich modali jednego zaladowania
+     strony. Wczesniej kazda kopia miala wlasna flage albo zadna, wiec dwa
+     otwarte modale zapisywaly rownolegle. */
+  var _zapisWToku = false;
+
+  window.zapiszLog = async function (w) {
+    if (_zapisWToku) {
+      console.warn('[zapiszLog] zapis juz trwa — pomijam');
+      return { ok: false, powtorzony: false, komunikat: null, wToku: true };
+    }
+    _zapisWToku = true;
+    var odcisk = null;
+    try {
+      if (!w || !w.athleteId || !w.dzien) {
+        return { ok: false, komunikat: 'Błąd sesji — zaloguj się ponownie' };
+      }
+      var edycja = !!w.idLoguDoEdycji;
+      if (!edycja && !w.typ) {
+        return { ok: false, komunikat: 'Brak typu treningu — nie zapisano' };
+      }
+      var pola = Object.assign({}, w.pola || {});
+
+      /* NIE-BIEG NIE MA TEMPA. Poprawka zyla tylko w kalendarz.html; tutaj
+         obowiazuje wszystkich. Nie rusza danych juz zapisanych — 40 wierszy
+         z tempem przy nie-biegu zostaje do osobnej decyzji o backfillu. */
+      /* ⚠️ TYLKO gdy wolajacy W OGOLE podal tempo. Przy UPDATE czesciowym
+         (saveTraining dopina zdjecia do istniejacego logu) `pace` jest
+         `undefined` — wyzerowanie go tutaj SKASOWALOBY tempo wpisane
+         wczesniej z innego ekranu. Kontrakt „undefined = nie ruszaj"
+         obowiazuje takze normalizacje, nie tylko przepisanie pola. */
+      if (pola.pace !== undefined && window.isRunType && !window.isRunType(w.typ)) {
+        pola.pace = null;
+      }
+
+      /* logged_at Z JAWNYM OFFSETEM STREFY. Kalendarz pisal gole
+         'T12:00:00', ktore Postgres czyta w strefie sesji (UTC) — wychodzilo
+         14:00 czasu polskiego zamiast 12:00. Doba warszawska ta sama, wiec
+         klucz dnia byl bezpieczny, ale zmierzone 27.08: 341 z 876 logow
+         `manual` i 127 z 251 `ocr` stoi na innej godzinie niz reszta. */
+      var wPoludnie = new Date(w.dzien + 'T12:00:00');
+      var off = -wPoludnie.getTimezoneOffset();
+      var znak = off >= 0 ? '+' : '-';
+      var gg = String(Math.floor(Math.abs(off) / 60)).padStart(2, '0');
+      var mm2 = String(Math.abs(off) % 60).padStart(2, '0');
+      var loggedAt = w.dzien + 'T12:00:00' + znak + gg + ':' + mm2;
+
+      // ── UPLOAD: kompresja → retry → znacznik na obiekcie File ─────────────
+      /* Zalaczniki JUZ ZAPISANE (po ewentualnych usunieciach w modalu) —
+         nowo wgrane dokladaja sie do nich. Bez tego edycja logu ze zdjeciem
+         gubilaby stare zdjecia przy dodaniu nowego. */
+      var sciezki = (w.zalacznikiIstniejace || []).slice();
+      var pliki = w.pliki || [];
+      var baza = Date.now();
+      for (var i = 0; i < pliki.length; i++) {
+        var plik = pliki[i];
+        if (!plik) continue;
+        /* WARSTWA C. Znacznik siedzi NA OBIEKCIE File, bo File zyje dokladnie
+           tyle co lista wybranych plikow i ginie razem z nia przy zamknieciu
+           modala. Osobna mapa wymagalaby wlasnego sprzatania. */
+        if (plik._bmPath) { sciezki.push(plik._bmPath); continue; }
+        var prep = await window.prepUpload(plik, 1600, 0.85);
+        if (!prep.ok) {
+          return { ok: false, komunikat: window.komunikatZaDuzy
+            ? window.komunikatZaDuzy(plik.size, 15 * 1024 * 1024, 'zrzut')
+            : ('Plik za duży (max 15 MB): ' + plik.name) };
+        }
+        var rand = Math.random().toString(36).slice(2, 7);
+        var sciezka = w.athleteId + '/' + baza + '_' + i + '_' + rand + '.' + prep.ext;
+        var upWynik = await window.storageUploadRetry(
+          'training-screenshots', sciezka, prep.data,
+          { upsert: true, contentType: prep.contentType });
+        if (upWynik && upWynik.error) {
+          /* ⚠️ BLAD UPLOADU PRZERYWA ZAPIS. Kalendarz mial tu `if (!upErr)`
+             BEZ `else`, wiec log zapisywal sie BEZ zalacznika i czlowiek nie
+             dostawal o tym informacji — cicha utrata danych. */
+          return { ok: false, komunikat: 'Błąd uploadu: ' + upWynik.error.message };
+        }
+        plik._bmPath = sciezka;
+        sciezki.push(sciezka);
+      }
+      /* Trzy stany, nie dwa: sa zalaczniki → zapisz; czlowiek WYRAZNIE usunal
+         wszystkie → wyczysc na null; nie dotykal → zostaw `undefined`, czyli
+         nie ruszaj kolumny. Srodkowy przypadek jest tym, ktory ginie przy
+         „uproszczeniu" kontraktu do falsy/truthy. */
+      if (sciezki.length) pola.attachment_url = sciezki.join(',');
+      else if (w.wyczyscZalaczniki) pola.attachment_url = null;
+
+      // ── Payload: `undefined` pomijamy, `null` przechodzi jako wyczyszczenie ──
+      var payload = {};
+      ['distance_km', 'duration', 'pace', 'heart_rate', 'feel', 'comment',
+       'strava_link', 'elevation_gain', 'calories', 'casual_effort',
+       'attachment_url', 'planned_training_id'].forEach(function (k) {
+        if (pola[k] !== undefined) payload[k] = pola[k];
+      });
+      /* ⚠️ TAK SAMO `training_type`. Przy UPDATE czesciowym wolajacy podaje
+         `typ: undefined`, bo dopina zalacznik do CUDZEGO wpisu i nie ma prawa
+         zmieniac jego typu. Przy INSERT typ jest wymagany — sprawdzone nizej. */
+      if (w.typ !== undefined) payload.training_type = w.typ;
+
+      if (edycja) {
+        var wynikU = await sb.from('training_logs').update(payload)
+          .eq('id', w.idLoguDoEdycji).eq('athlete_id', w.athleteId).select('id');
+        if (!wynikU.error && (!wynikU.data || wynikU.data.length === 0)) {
+          wynikU.error = { message: 'Brak uprawnień do edycji — sprawdź polityki RLS' };
+        }
+        if (wynikU.error) {
+          if (window.zglosNieudanyZapis) window.zglosNieudanyZapis('update', 'training_logs', wynikU.error);
+          return { ok: false, blad: wynikU.error, komunikat: window.komunikatBledu(wynikU.error) };
+        }
+        return { ok: true, id: w.idLoguDoEdycji, powtorzony: false };
+      }
+
+      /* WARSTWA B — zamek 60 s na odcisku TRESCI, wylacznie przy INSERT.
+         Odcisk z tresci, nie z klucza: dwie karty maja rozne klucze, a ta
+         sama tresc. UPDATE jest idempotentny z natury. */
+      odcisk = window.odciskZapisu([w.athleteId, w.dzien, w.typ,
+                                    payload.distance_km, payload.duration]);
+      if (!window.zamekZapisu(odcisk, 60)) {
+        odcisk = null;   // nie nasz zamek — nie wolno go zwalniac w catch
+        /* ⚠️ KOMUNIKAT MUSI MOWIC, CO ZROBIC. W kalendarzu NIE MA pytania
+           „masz juz trening z tego dnia" (istnieje tylko w zawodnik.html),
+           wiec dla dwoch RoZNYCH treningow tego samego dnia — rano i wieczor,
+           ten sam typ i dystans — zamek jest JEDYNA bariera. Samo „juz
+           zapisany" byloby wtedy nieprawda. */
+        return { ok: false, zablokowanyZamkiem: true,
+                 komunikat: 'Ten trening jest już zapisany. Jeśli to drugi trening '
+                          + 'tego dnia — odczekaj chwilę i spróbuj ponownie.' };
+      }
+
+      /* WARSTWA D — twarda bariera w BAZIE. Indeks training_logs_external_uniq
+         jest CZESCIOWY (WHERE external_source IS NOT NULL AND external_id IS
+         NOT NULL), wiec puste pola trzymaly zapis poza ochrona.
+         `external_source: 'app'`, NIE 'manual' — kolumna znaczy „z jakiego
+         systemu zewnetrznego pochodzi identyfikator", a tu zadnego nie ma. */
+      payload.athlete_id = w.athleteId;
+      payload.logged_at = loggedAt;
+      payload.source = w.zrodlo || 'manual';
+      payload.external_source = 'app';
+      payload.external_id = w.kluczZapisu || null;
+
+      var wynikI = await sb.from('training_logs').insert(payload).select('id');
+      /* 23505 = zlamany unikat, czyli TEN SAM formularz wyslany drugi raz.
+         Dla czlowieka to sukces: jego trening JEST zapisany. Nie zglaszamy —
+         zglaszanie zasypaloby client_errors retry'ami. */
+      if (wynikI.error && wynikI.error.code === '23505') {
+        console.warn('[zapiszLog] powtorzony zapis tego samego formularza — pomijam');
+        return { ok: true, id: null, powtorzony: true };
+      }
+      if (wynikI.error) {
+        /* ⚠️ ZAPIS PADL → ZWALNIAMY ZAMEK NATYCHMIAST, inaczej ochrona przed
+           duplikatem zamienia sie w UTRATE treningu: czlowiek klika „Zapisz"
+           ponownie i slyszy „juz zapisane", a nie jest. */
+        if (odcisk) window.zwolnijZamek(odcisk);
+        odcisk = null;
+        if (window.zglosNieudanyZapis) window.zglosNieudanyZapis('insert', 'training_logs', wynikI.error);
+        return { ok: false, blad: wynikI.error, komunikat: window.komunikatBledu(wynikI.error) };
+      }
+      return { ok: true, id: (wynikI.data && wynikI.data[0]) ? wynikI.data[0].id : null, powtorzony: false };
+    } catch (e) {
+      if (odcisk) { try { window.zwolnijZamek(odcisk); } catch (_) {} }
+      console.error('[zapiszLog]', e);
+      return { ok: false, blad: e, komunikat: 'Błąd zapisu: ' + (e && e.message ? e.message : e) };
+    } finally {
+      _zapisWToku = false;
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // 📈 FORMA HELPERS — TRIMP calculation (CTL/ATL/TSB feature)
   // ═══════════════════════════════════════════════════════════════

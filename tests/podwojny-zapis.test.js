@@ -131,10 +131,17 @@ describe('⚠️ zamek między kartami', () => {
 });
 
 describe('⚠️ zapis wysyła klucz i rozdziela błędy', () => {
+  /* !! PRZENIESIONE 27.08.2026 ZE `zawodnik.html` DO `sb.js`. Trzy kopie
+     `saveLog` zostały scalone w jeden rdzeń `window.zapiszLog`; asercje są te
+     same co przed scaleniem, zmieniło się WYŁĄCZNIE miejsce. Blizny z 16.08
+     nie wolno przy takiej operacji skasować — to one opisują, czemu ten
+     mechanizm w ogóle istnieje. */
   const zaw = fs.readFileSync(path.join(KORZEN, 'zawodnik.html'), 'utf8');
+  const rdzen = fs.readFileSync(path.join(KORZEN, 'sb.js'), 'utf8');
 
   test('insert niesie external_source i external_id', () => {
-    assert.match(zaw, /external_source:\s*'app',\s*external_id:\s*\(window\._kluczZapisu/);
+    assert.match(rdzen, /payload\.external_source = 'app';/);
+    assert.match(rdzen, /payload\.external_id = w\.kluczZapisu \|\| null;/);
   });
 
   test('⚠️ external_source to NIE „intervals" — inaczej podszywalibyśmy się pod zegarek', () => {
@@ -142,17 +149,25 @@ describe('⚠️ zapis wysyła klucz i rozdziela błędy', () => {
        rozróżniają po `source === 'intervals'`. Gdyby wpis ręczny dostał
        `external_source: 'intervals'`, indeks nadal by działał, ale zapytania
        liczące treningi „z zegarka" zaczęłyby je łapać. */
+    assert.doesNotMatch(rdzen, /external_source = 'intervals'/);
     assert.doesNotMatch(zaw, /external_source:\s*'intervals'/);
   });
 
   test('klucz odnawiany przy KAŻDYM otwarciu formularza', () => {
-    const ile = (zaw.match(/window\._kluczZapisu = window\.nowyKluczZapisu/g) || []).length;
-    assert.equal(ile, 3, 'miejsc resetu klucza: ' + ile + ' (spodziewane 3)');
+    /* Po scaleniu klucz odnawiają WSZYSTKIE modale, które potrafią zapisać
+       log — także `kalendarz.html:openModal`, który do 27.08 nie miał go
+       wcale, więc twardy unikat w bazie tej ścieżki nie obejmował. */
+    const kal = fs.readFileSync(path.join(KORZEN, 'kalendarz.html'), 'utf8');
+    const wz = /window\._kluczZapisu = window\.nowyKluczZapisu/g;
+    const ileZ = (zaw.match(wz) || []).length;
+    const ileK = (kal.match(wz) || []).length;
+    assert.equal(ileZ, 3, 'zawodnik: miejsc resetu klucza ' + ileZ + ' (spodziewane 3)');
+    assert.equal(ileK, 2, 'kalendarz: miejsc resetu klucza ' + ileK + ' (spodziewane 2: openModal + openLogModal)');
   });
 
   test('23505 traktowane jako SUKCES, nie błąd', () => {
-    assert.match(zaw, /error\.code === '23505'/);
-    assert.match(zaw, /error = null/);
+    assert.match(rdzen, /wynikI\.error\.code === '23505'/);
+    assert.match(rdzen, /return \{ ok: true, id: null, powtorzony: true \};/);
   });
 
   test('⚠️ brak funkcji ZGŁASZANY, błąd zapytania PRZEPUSZCZANY', () => {
@@ -168,18 +183,34 @@ describe('⚠️ zapis wysyła klucz i rozdziela błędy', () => {
        wiec `if (error)` nizej go NIE WIDZIALO i zamek nigdy sie nie zwalnial
        po nieudanym zapisie. Testy jednostkowe helperow tego nie widza —
        to blad ZASIEGU w miejscu wywolania. */
-    const iDekl = zaw.indexOf('let _odcisk = null;');
-    const iZwoln = zaw.indexOf('window.zwolnijZamek(_odcisk)');
-    const iBlok = zaw.indexOf('_odcisk = window.odciskZapisu');
-    assert.ok(iDekl > 0, 'brak deklaracji `let _odcisk` w zasiegu funkcji');
+    const iDekl = rdzen.indexOf('var odcisk = null;');
+    const iBlok = rdzen.indexOf('odcisk = window.odciskZapisu');
+    const iZwoln = rdzen.indexOf('window.zwolnijZamek(odcisk)');
+    assert.ok(iDekl > 0, 'brak deklaracji `var odcisk` w zasiegu funkcji');
     assert.ok(iDekl < iBlok && iBlok < iZwoln, 'kolejnosc: deklaracja -> przypisanie -> zwolnienie');
-    assert.doesNotMatch(zaw, /const _odcisk = window\.odciskZapisu/,
+    assert.doesNotMatch(rdzen, /const odcisk = window\.odciskZapisu/,
       '`const` w bloku INSERT-a — zwolnienie zamka bedzie poza zasiegiem');
+    /* Rdzen ma dodatkowo `catch`, ktory tez zwalnia zamek — bez tego wyjatek
+       JS zostawialby zamek zalozony na 60 s przy NIEZAPISANYM treningu. */
+    assert.match(rdzen, /catch \(e\) \{[\s\S]{0,120}zwolnijZamek\(odcisk\)/);
+  });
+
+  test('⚠️ komunikat zamka MOWI, CO ZROBIC — nie samo „juz zapisane"', () => {
+    /* W kalendarzu NIE MA pytania „masz juz trening z tego dnia" — istnieje
+       wylacznie w zawodnik.html. Dla dwoch ROZNYCH treningow tego samego dnia
+       (rano i wieczor, ten sam typ i dystans) zamek jest wiec JEDYNA bariera,
+       a sam napis „juz zapisany" bylby wtedy NIEPRAWDA: trening drugi nie jest
+       zapisany, tylko odrzucony. Komunikat musi dawac wyjscie. */
+    assert.match(rdzen, /Ten trening jest już zapisany\./);
+    assert.match(rdzen, /odczekaj chwilę i spróbuj ponownie/);
+    const kal = fs.readFileSync(path.join(KORZEN, 'kalendarz.html'), 'utf8');
+    assert.doesNotMatch(kal, /pytajODrugiTrening/,
+      'kalendarz zyskal pytanie o drugi trening — zaktualizuj uzasadnienie tego testu');
   });
 
   test('zamek sprawdzany PRZED insertem, nie po', () => {
-    const iZamek = zaw.indexOf('window.zamekZapisu(_odcisk');
-    const iIns = zaw.indexOf('const insertPayload');
-    assert.ok(iZamek > 0 && iZamek < iIns, 'zamek po insercie albo go nie ma');
+    const iZamek = rdzen.indexOf('window.zamekZapisu(odcisk, 60)');
+    const iIns = rdzen.indexOf("sb.from('training_logs').insert(payload)");
+    assert.ok(iZamek > 0 && iIns > 0 && iZamek < iIns, 'zamek po insercie albo go nie ma');
   });
 });
