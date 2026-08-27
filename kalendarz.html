@@ -3141,9 +3141,17 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
         'Regeneracja':   ['Regeneracja','regeneracja','recovery'],
         'Start':         ['Start','start','race'],
       };
+      /* ⚠️ FALLBACK `|| [trainingType]` PUSZCZA DOWOLNY TYP, także nie-biegowy.
+         Dziś jest nieosiągalny przypadkiem, nie z zamysłu: `smartSuggest`
+         wychodzi na `isEdit`, a przy nowym treningu `selectedType` jest
+         zresetowany na „Bieg spokojny". Wystarczy jednak zawołać ją w innym
+         momencie, żeby mediana tempa liczyła się z treningów zastępczych —
+         a w bazie jest 40 nie-biegowych logów z tempem, w tym rowerowe
+         1:49/km. Filtr jest tu po to, żeby ta ścieżka nie ożyła po cichu. */
       const aliases = typeMap[trainingType] || [trainingType];
       const matching = logs.filter(l =>
         aliases.some(a => (l.training_type||'').toLowerCase().includes(a.toLowerCase()))
+        && (!window.isRunType || window.isRunType(l.training_type))
       );
 
       if (matching.length >= 3) {

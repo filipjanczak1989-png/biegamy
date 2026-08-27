@@ -1330,8 +1330,17 @@ async function loadBonuses() {
   if (days.length === 1) streak = 1;
   if (days.length > 0 && cur > streak) streak = cur;
 
-  // Tempo
-  const paceLogs = realLogs.filter(l => l.pace && l.pace.includes(':'));
+  /* Tempo — ŚREDNIA WYŁĄCZNIE Z BIEGÓW.
+     ⚠️ `realLogs` odsiewa tylko odznaki i „Warm-up mentalny", więc bez tego
+     filtra do średniej BIEGOWEJ wchodziły treningi zastępcze i wzmacniające.
+     Zmierzone 27.08.2026: 40 nie-biegowych logów ma wypełnione tempo, w tym
+     rowerowe 1:49/km — jedna taka pozycja zaniża średnią mocniej niż
+     kilkanaście prawdziwych biegów, a średnia zasila drabinę tierów.
+     `isRunType` to SSOT z sb.js (ta strona już go ładuje); brak funkcji nie
+     może wywalić gry, więc przy jej braku zachowujemy się jak dotąd. */
+  const paceLogs = realLogs.filter(l =>
+    l.pace && l.pace.includes(':')
+    && (!window.isRunType || window.isRunType(l.training_type)));
   let avgPaceSec = null;
   if (paceLogs.length) {
     const total = paceLogs.reduce((s, l) => {
