@@ -841,18 +841,6 @@ const SPOL_OKNO_DO  = '2026-09-20';
 const SPOL_CEL_KM   = 10000;
 const SPOL_DATA_AMES = '2026-09-20';
 
-/* PROWIZORKA TESTOWA 14.08 — wygasa sama o polnocy przez ROWNOSC na dokladna
-   date (nie zakres, nie >=). Od 15.08 okno otwiera sie naprawde, wiec ta stala
-   niczego juz nie zmienia — do usuniecia przy najblizszym spokojnym commicie.
-
-   Powod, dla ktorego warunek cofniecia siedzi w KODZIE, a nie w obietnicy:
-   krok "wroc i posprzataj" jest najslabszym ogniwem kazdego planu. 12.08 ta
-   sama prowizorka miala zadanie w tle, ktore zostalo ubite — i nie mialo to
-   znaczenia, bo rownosc na date wygasla sama.
-
-   Po co w ogole: sprawdzic w incognito, czy sb.js nie doklada Bearera
-   z martwej sesji. Curl tego nie wykryje, bo sam nie wysyla Authorization. */
-const SPOL_TEST_DZIEN = '2026-08-14';
 
 
 async function _licznikLandingu() {
@@ -861,8 +849,7 @@ async function _licznikLandingu() {
 
   // Klucz daty LOKALNY, nie toISOString — ta druga cofa o dzień w strefie +02:00
   const dzis = new Date().toLocaleDateString('sv');
-  const wOknie = (dzis >= SPOL_OKNO_OD && dzis <= SPOL_OKNO_DO)
-              || dzis === SPOL_TEST_DZIEN;                  // prowizorka, wygasa sama
+  const wOknie = (dzis >= SPOL_OKNO_OD && dzis <= SPOL_OKNO_DO);
   if (!wOknie) return;                                      // poza oknem: ani śladu
 
   let km = null;

@@ -3012,14 +3012,16 @@ function secToPace(sec) {
   const s = String(total % 60).padStart(2, '0');
   return m + ':' + s;
 }
-// Parsuje PB "H:MM:SS" lub "M:SS" na sekundy
-function pbToSec(pb) {
-  if (!pb) return null;
-  const parts = String(pb).trim().split(':').map(Number);
-  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  if (parts.length === 2) return parts[0]*60 + parts[1];
-  return null;
-}
+/* PB "H:MM:SS"/"M:SS" → sekundy: SSOT to `window._parseTimeToSecs` z sb.js.
+   Stała tu lokalna `pbToSec` o tej samej arytmetyce, ale BEZ osłony
+   `parts.some(isNaN)` — na "ab:cd" oddawała NaN zamiast null. U JEDYNEGO
+   dzisiejszego wywołania było to niewidoczne (`zonesFromPB` zaczyna od
+   `!pbSec`, a `!NaN` to true, więc i tak wychodziło null) — różnica jest
+   kontraktem dla następnego wywołania, nie naprawą czynnej wady. Usunięta
+   27.08.2026, nie przeniesiona: sb.js miał już wersję ściślejszą.
+   Zmierzone przed podmianą —
+   111 niepustych PB w bazie, wszystkie z dwukropkiem, zero spacji, zero
+   znaków spoza [0-9:], więc na realnych danych wynik bit w bit ten sam. */
 
 // Strefy tempa z PB (uproszczony model Danielsa)
 function zonesFromPB(pbSec, distKm) {
@@ -3075,10 +3077,10 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
 
     if (ath) {
       const candidates = [
-        { pb: pbToSec(ath.pb_marathon), km: 42.195 },
-        { pb: pbToSec(ath.pb_half),     km: 21.0975 },
-        { pb: pbToSec(ath.pb_10k),      km: 10 },
-        { pb: pbToSec(ath.pb_5k),       km: 5 },
+        { pb: window._parseTimeToSecs(ath.pb_marathon), km: 42.195 },
+        { pb: window._parseTimeToSecs(ath.pb_half),     km: 21.0975 },
+        { pb: window._parseTimeToSecs(ath.pb_10k),      km: 10 },
+        { pb: window._parseTimeToSecs(ath.pb_5k),       km: 5 },
       ].filter(c => c.pb);
 
       if (candidates.length) {
