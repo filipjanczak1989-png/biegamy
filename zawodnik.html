@@ -2243,12 +2243,31 @@ async function openModal() {
 
 let _logDate = null;
 
+/* ⚠️ BLIZNA: etykieta dnia liczona na KLUCZACH, nie na różnicy czasu.
+   Poprzednia wersja kotwiczyła datę trafioną na 12:00, a `today` na 00:00 —
+   dla DZISIAJ dawało to dokładnie pół dnia, a Math.round(0.5) === 1, więc
+   dzisiaj wyświetlało się jako „Jutro". Cała skala była przesunięta o dobę
+   (wczoraj → „Dziś", −2 dni → „Wczoraj"). Wada przeżyła miesiące i widziało
+   ją kilkanaście osób; zapis do bazy był przy tym POPRAWNY — kłamała sama
+   etykieta. Klucz dnia nie ma godziny, więc nie ma czego zaokrąglać.
+   Test: tests/blizna-25-etykieta-dnia-na-kluczach.test.js
+
+   `sv-SE` (lokalny YYYY-MM-DD) NIE jest tu wymienny z `_dzienWaw` (doba
+   warszawska): klucz etykiety musi pochodzić od tego samego producenta co
+   `_logDate` w openModal (2207) i co `logDate` w saveLog — inaczej telefon
+   ustawiony na obcą strefę dostałby nowy rozjazd tego samego kształtu. */
+function _kluczDnia(data) { return data.toLocaleDateString('sv-SE'); }
+function _numerDnia(klucz) {
+  const [y, m, d] = String(klucz).split('-').map(Number);
+  return Date.UTC(y, m - 1, d) / 86400000;   // obie kotwice o północy UTC → różnica CAŁKOWITA
+}
+
 function _updateLogDateDisplay() {
   const el = document.getElementById('l-date-display');
   if (!el) return;
-  const d = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const diff = Math.round((new Date(_logDate ? _logDate + 'T12:00:00' : new Date()) - today) / 86400000);
+  const kluczWybrany = _logDate || _kluczDnia(new Date());
+  const diff = _numerDnia(kluczWybrany) - _numerDnia(_kluczDnia(new Date()));
+  const d = new Date(kluczWybrany + 'T12:00:00');
   const label = diff === 0 ? 'Dziś' : diff === -1 ? 'Wczoraj' : diff === 1 ? 'Jutro' : d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
   el.textContent = label;
   el.style.color = diff === 0 ? 'var(--accent)' : diff < 0 ? 'var(--muted)' : '#3db870';
@@ -8495,22 +8514,22 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  // PRS — zapisz dane i odpal PRZED await loadLogs (nie po!)
-  const _prsDistVal = isNaN(dist) ? 0 : (dist || 0);
-  const _prsPaceVal = pace || '';
-  const _prsTimeVal = time || '';
-  const _prsTypeVal = _logType || '';
+  /* ⚠️ Po zapisie człowiek MUSI zobaczyć, NA KTÓRYM DNIU wylądował trening.
+     Wcześniej leciał na prs.html — ekran-historyjka z konfetti, który wbrew
+     nazwie NIE sprawdza, czy padł rekord (186 linii, zero porównania z
+     poprzednimi wynikami; odpalał się przy KAŻDYM nowym logu). Potwierdzenie
+     dnia dotyczy każdego zapisu, rekord jest rzadki — więc kalendarz zawsze.
+     Zmierzone 27.08.2026: 165 par „ten sam człowiek, ten sam dzień, ten sam
+     dystans" u 18 osób, 21 z nich w odstępie < 30 min. Brak potwierdzenia
+     dnia jest podejrzaną przyczyną — do ponownego pomiaru za tydzień.
+     `?openDay` otwiera drill-down dnia; wejście już istniało i jest
+     walidowane (kalendarz.html:2765 → 1761), nic tam nie dokładamy. */
   const _isNewLog = !_editingLogId;
-  const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
   toast(tekstWgTrenera('Log zapisany! Trener widzi Twój wynik ✓',
                        'Log zapisany! Forma przeliczona ✓'));
   if (_isNewLog) {
-    const _p = new URLSearchParams();
-    if (_prsData.dist > 0) _p.set('dist', _prsData.dist);
-    if (_prsData.pace) _p.set('pace', _prsData.pace);
-    if (_prsData.time) _p.set('time', _prsData.time);
-    setTimeout(() => { window.location.href = 'prs.html?' + _p.toString(); }, 200);
+    setTimeout(() => { window.location.href = 'kalendarz.html?openDay=' + logDate; }, 200);
   }
   await loadLogs();
 
