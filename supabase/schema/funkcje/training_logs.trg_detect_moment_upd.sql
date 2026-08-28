@@ -1,0 +1,1 @@
+CREATE TRIGGER trg_detect_moment_upd AFTER UPDATE OF distance_km, duration, training_type, logged_at ON public.training_logs FOR EACH ROW WHEN ((new.training_type !~~ '__badge__%'::text)) EXECUTE FUNCTION trigger_detect_moment_row()

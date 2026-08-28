@@ -6,3 +6,12 @@
 # dokładnie ta klasa rozjazdu, którą bramki mają wykrywać.
 # `-text` wyłącza jakąkolwiek konwersję.
 vendor/** -text
+
+# Migawka funkcji/triggerow zrzucana z bazy przez tools/funkcje-bazy.js.
+# Narzedzie pisze LF; `core.autocrlf=true` zamienialoby je na CRLF przy
+# checkoucie, wiec po swiezym klonie na Windows KAZDY z 53 plikow pokazywalby
+# sie jako zmieniony przy nastepnym `--zrzut` — staly falszywy sygnal, ktory
+# szybko uczy ignorowac wynik narzedzia.
+# (Sama SUMA jest na to odporna: normalizacja zwija `\s+`, wiec `` znika.
+#  Chodzi wylacznie o czystosc diffu.)
+supabase/schema/funkcje/** -text

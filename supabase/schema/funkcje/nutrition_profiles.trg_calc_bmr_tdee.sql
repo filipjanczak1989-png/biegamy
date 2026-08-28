@@ -1,0 +1,1 @@
+CREATE TRIGGER trg_calc_bmr_tdee BEFORE INSERT OR UPDATE ON public.nutrition_profiles FOR EACH ROW WHEN (((new.sex IS NOT NULL) AND (new.weight_kg IS NOT NULL) AND (new.height_cm IS NOT NULL) AND (new.age IS NOT NULL))) EXECUTE FUNCTION calc_bmr_tdee()

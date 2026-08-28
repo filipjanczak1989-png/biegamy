@@ -1,0 +1,59 @@
+# Sumy definicji funkcji z produkcji — sha256 z postaci ZNORMALIZOWANEJ
+# (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
+# Generowane: node tools/funkcje-bazy.js --zrzut
+# Porównanie:  node tools/funkcje-bazy.js
+# Liczba funkcji: 53
+
+82c329258c25f668  accept_intake_form
+a3ece9021a7333e4  accept_terms
+6658db0fe0ed7878  are_friends
+4925396f4b6308fb  athlete_intake_forms.trg_intake_updated_at
+d42dbc3a4ddc3885  athletes.trg_notify_filip_new_athlete
+d2a80b28c7ab2483  auth_is_coach
+5e333f97025b7cad  auth_my_athlete_id
+0e77f60f77d891b1  auto_resolve_past_event_notes
+af53be7038abac2f  biegus_ranking
+f7c505f0aebb99a8  bump_food_hit
+73702910edcaf470  calc_bmr_tdee
+f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
+4e2b79fe1e3b47f3  coaches.coaches_ensure_athlete_row
+b8dbf9dd18ca3f54  community_km
+6d0d28b7664a3e4e  count_pending_intakes
+9b69c5ad6b9560e2  delete_my_account
+0723ea23ebfdad19  ensure_coach_athlete_row
+40ec3907096b11eb  get_app_stats
+013b730325385fdf  handle_new_user
+911eb41b95030867  increment_play
+e824285492d2a019  intervals_connections.intervals_conn_update_ts
+0ecfdd4248741177  jr_buy_item
+4ca6859250d079a1  jr_can_perform_actions
+988f3cb64ddb06b6  jr_check_day_reset
+f4bfbcdc6a2809b1  jr_count_events_by_pattern
+220402466e613352  jr_equip_item
+fab08a2b8237300b  jr_get_achievements
+a17165a87e667dde  jr_get_my_biegamy_athlete_id
+e59abd7c724552bf  jr_get_player_stats
+098cebe0484bb11f  jr_get_shop
+686ff880e69391a2  jr_get_unused_training_logs
+8cf5c2d1864f8847  jr_init_player
+e8ef15923193e9c8  jr_perform_action
+5224d38481fba8b3  jr_unlock_achievement
+26b448bc351a1bce  lookup_food_by_barcode
+4452eadef4ca7df3  match_food_category
+e0f617aedb896511  notifications.notifications_send_push
+e6d620c60af5636f  notify_filip_new_athlete
+eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
+067fc22d9b769a04  race_signups.trg_race_signup_count
+00c6bf1a1b7ce0a2  review_moment
+25d900a25e2d2961  search_food_by_name
+159bb6e838f7e4d3  suma_biegowa
+ef47ede286094827  training_logs.trg_detect_moment_ins
+5aa4b4c80949ac5e  training_logs.trg_detect_moment_upd
+1911789ca515560a  trigger_detect_moment
+b3462703215e5e9d  trigger_detect_moment_row
+325b10c08b30d390  trigger_send_push
+36a451df2760ef76  update_can_updated_at
+7cc1783ce3a00ee9  update_intake_updated_at
+5b65af34591cec1c  update_intervals_conn_timestamp
+77b36f066a8617d3  update_race_signup_count
+71819c8eb342a0e4  user_has_msg_access

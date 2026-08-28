@@ -811,3 +811,76 @@ dla **35 z 63** zawodników bez trenera — od commita `ed63ce5`.
 powstrzymał budowanie mechanizmu dla nikogo przez sześć dni, aż do momentu,
 w którym było czym go nakarmić. To jest przykład warunku powrotu, który
 zaoszczędził pracę, a nie ją odroczył.
+
+---
+
+## 17. Katalog, który wygląda na źródło prawdy, a nigdy nim nie był (29.08.2026)
+
+`supabase/migrations/` ma nazwę, strukturę i konwencję nazewniczą migracji.
+Wszyscy — łącznie z Filipem i ze mną — czytali go jak **zapis stanu bazy**.
+Nie był nim ani przez jeden dzień.
+
+⚠️ **Dowód jest jednoznaczny: nie istnieje `supabase_migrations.schema_migrations`.**
+W bazie są wyłącznie wewnętrzne tabele migracji Supabase (`realtime`, `auth`,
+`storage`). Projekt nigdy nie użył `supabase db push`; SQL leci przez
+`supabase db query` na Management API. Pliki w `migrations/` to **dokumentacja
+pisana obok wykonania**, nie coś, z czego cokolwiek się wykonuje.
+
+### Skala, zmierzona 28.08.2026
+
+| | ile |
+|---|---|
+| funkcji w schemacie `public` na produkcji | **43** |
+| opisanych w `supabase/migrations/` | **8** |
+| opisanych tylko w pliku rollbacku audytu | 2 |
+| **bez definicji gdziekolwiek w repo** | **33** |
+
+Z ośmiu porównywalnych **dwie się rozjechały**, a `trigger_detect_moment` ma
+na produkcji poprawkę burstu z 5.08 (statement-level + dedup), której migracja
+nie zna.
+
+### Dlaczego to jest lekcja, a nie tylko zaległość
+
+Notatka z 15.08 opisywała **dwa przypadki**, w których „SQL trafił do bazy przed
+plikiem w repo" — czyli wyjątki od porządku. Pomiar pokazał coś innego:
+**to jest stan domyślny od początku projektu**, a te dwa przypadki były po
+prostu tymi, które ktoś zauważył.
+
+⚠️ **Różnica jest praktyczna, nie retoryczna.** Przy „dwóch wyjątkach" naprawą
+jest dyscyplina (commituj przed wykonaniem). Przy „stanie domyślnym" dyscyplina
+nie wystarcza, bo nie ma czego pilnować — nie istnieje nawet zapis, KIEDY
+cokolwiek wykonano (`pg_proc` nie trzyma daty utworzenia), więc bramka
+sprawdzająca kolejność w historii gita **nie ma z czym porównać**.
+
+### Objaw ogólny
+
+**Katalog o nazwie sugerującej mechanizm, przy braku mechanizmu.**
+`migrations/` bez tabeli migracji, `tests/` bez uruchamiania w CI, `vendor/`
+bez przypięcia sumy — każde z nich wygląda jak gwarancja i żadne nią nie jest,
+dopóki nie sprawdzisz, **co konkretnie tę gwarancję egzekwuje**.
+
+### Zasada praktyczna
+
+Zanim oprzesz wniosek na zawartości katalogu, sprawdź, **kto go czyta w czasie
+wykonania**. Jeśli odpowiedź brzmi „nikt, to dla ludzi" — to dokumentacja,
+i ma prawo być nieaktualna. Traktowanie jej jak stanu systemu jest wtedy
+błędem czytelnika, nie autora.
+
+⚠️ Konkretnie tu: pytanie „czy repo zgadza się z bazą?" było źle postawione.
+Właściwe brzmi: **„czy cokolwiek wymusza, żeby się zgadzały?"** — i odpowiedź
+brzmiała „nie", zanim jeszcze policzyliśmy rozjazdy.
+
+### Co z tego wyszło
+
+`supabase/schema/funkcje/` — migawka 53 obiektów (43 funkcje + 10 triggerów)
+zrzucona **z produkcji**, jeden plik na obiekt, plus `SUMY.txt`.
+`tools/funkcje-bazy.js` porównuje ją z bazą **lokalnie** (nie w CI: wymagałoby
+poświadczeń do produkcji, co zmienia CI w cel ataku).
+
+⚠️ Migawka odwraca pytanie: zamiast dowodzić KOLEJNOŚCI zdarzeń, których nikt
+nie zapisał, dowodzi RÓWNOŚCI stanów, którą da się sprawdzić w każdej chwili.
+
+Pokrewne: **#12** (notatka bez daty ważności starzeje się w nieprawdę) i
+**#16** (tekst o ograniczeniach starzeje się przy ulepszeniu) — w obu ta sama
+rodzina: zapis, którego nic nie wiąże z rzeczywistością, rozjeżdża się z nią
+po cichu i w tempie, którego nikt nie mierzy.
