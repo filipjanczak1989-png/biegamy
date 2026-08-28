@@ -15,7 +15,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <title>Łączenie z intervals.icu · BiegaMy</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>

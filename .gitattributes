@@ -1,0 +1,8 @@
+# ⚠️ PLIKI VENDOROWANE MUSZĄ BYĆ BAJT W BAJT TAKIE JAK ŹRÓDŁO.
+# `core.autocrlf=true` (domyślne na Windows) zamienia LF na CRLF przy checkoucie
+# plików uznanych za tekst. Dla vendora znaczyłoby to, że świeży klon ma INNĄ
+# sumę kontrolną niż plik z CDN — `tools/bramka-cdn.js` świeciłby na czerwono
+# lokalnie i na zielono w CI (Linux, autocrlf domyślnie wyłączony), czyli
+# dokładnie ta klasa rozjazdu, którą bramki mają wykrywać.
+# `-text` wyłącza jakąkolwiek konwersję.
+vendor/** -text

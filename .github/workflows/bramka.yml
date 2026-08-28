@@ -70,6 +70,10 @@ jobs:
         if: always()
         run: node tools/bramka-karta.js --samokontrola
 
+      - name: Samokontrola — bramka CDN
+        if: always()
+        run: node tools/bramka-cdn.js --samokontrola
+
       # ── BRAMKI WŁAŚCIWE ─────────────────────────────────────────────────
       - name: Reguły treningowe (sb.js vs _shared + EF bez własnych kopii)
         if: always()
@@ -84,6 +88,15 @@ jobs:
       - name: Karta udostępniania (geometria EF vs strefy klienta)
         if: always()
         run: node tools/bramka-karta.js
+
+      # ⚠️ Aplikacja jest offline-first, więc SDK z obcego originu jako skrypt
+      #    blokujący parser był twardą zależnością poza własnym cache. Drugi,
+      #    niezależny powód: adres `@2` to zakres PŁYWAJĄCY bez `integrity` —
+      #    kod u ludzi mógł się zmienić bez commita. Bramka pilnuje, żeby
+      #    dziewiętnasta strona nie wróciła do CDN przez skopiowanie tagu.
+      - name: supabase-js z własnego originu (self-host + suma vendora)
+        if: always()
+        run: node tools/bramka-cdn.js
 
       # ⚠️ `--ci` ZWEZA BLOKADE do rzeczy, na ktore wlasciwa reakcja brzmi
       #    „cofnij natychmiast": sekrety i GRANT/REVOKE dla roli `anon`.

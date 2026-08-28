@@ -18,7 +18,8 @@
   .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.1);border-top-color:#FC4C02;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
   @keyframes spin{to{transform:rotate(360deg);}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
 </head>
 <body>

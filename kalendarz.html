@@ -1307,7 +1307,8 @@ html { scroll-behavior: smooth; }
 <!-- NOTIF -->
 <div class="notif" id="notif"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────

@@ -43,6 +43,19 @@ const PRECACHE_URLS = [
   '/privacy-en.html',
   '/sb.js',
   '/vendor/three-r128.min.js',
+  /* D4: supabase-js z WŁASNEGO originu. Do 28.08.2026 18 stron brało go
+     z cdn.jsdelivr.net jako skrypt BLOKUJĄCY PARSER, poza tym cache —
+     czyli aplikacja offline-first miała twardą zależność od obcego originu.
+     ⚠️ Najgorszy scenariusz nie był „offline.html", tylko strona w połowie
+     żywa: HTML wstawał z tego precache, render ruszał, a potem skrypt CDN
+     padał i `window.supabase` nie istniało. `sb.js` ma guard i przeżywa,
+     ale skrypty stron używają `sb` bez guardu.
+     ⚠️ Plik jest BAJT W BAJT taki jak z CDN — celowo bez własnego nagłówka,
+     żeby sumę dało się w każdej chwili sprawdzić wobec źródła:
+       sha256 9a8142ffedb319a3ac0d4a8a123c9c2f7ffdb0e1e86cd9553889911b647175f6
+       212 718 B, @supabase/supabase-js 2.112.4, licencja MIT
+     Zgodność sumy pilnuje `tools/bramka-cdn.js`. */
+  '/vendor/supabase-js-2.112.4.min.js',
   '/theme.css',
   '/manifest.json',
   '/offline.html',

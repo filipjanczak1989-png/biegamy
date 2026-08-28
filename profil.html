@@ -17,7 +17,8 @@
 <link rel="shortcut icon" href="favicon.ico">
 <title>Profil Biegacza · BiegaMy</title>
 <!-- build: 2026-05-18-coach-picker -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>

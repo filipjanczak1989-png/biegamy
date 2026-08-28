@@ -472,15 +472,24 @@ async function init() {
   if (!sbReady && typeof window.SB_URL !== 'undefined' && typeof window.SB_KEY !== 'undefined') {
     console.log('[raporty] Creating sb client manually from window.SB_URL/SB_KEY');
     try {
-      // Załaduj Supabase JS SDK z CDN jeśli createClient nie ma
+      /* D4 SELF-HOST — najpierw własny origin, CDN dopiero gdy vendor nie wstał.
+         ⚠️ Ta strona ładuje SDK LENIWIE (dopiero gdy `createClient` brakuje),
+            więc nie dostała tagu w <head> jak pozostałe 17 — zachowanie zostaje,
+            zmienia się wyłącznie kolejność źródeł.
+         ⚠️ Vendor to build MINIFIKOWANY, a tu stał nieminifikowany
+            `dist/umd/supabase.js`. To ten sam UMD (212 426 B vs 212 718 B),
+            różnica jest kosmetyczna — ale odnotowana, żeby nikt nie szukał
+            zmiany zachowania tam, gdzie jej nie ma. */
       if (typeof window.supabase === 'undefined' || !window.supabase?.createClient) {
-        await new Promise((resolve, reject) => {
+        const _zaladujSdk = (src) => new Promise((resolve, reject) => {
           const s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+          s.src = src;
           s.onload = resolve;
           s.onerror = reject;
           document.head.appendChild(s);
         });
+        await _zaladujSdk('vendor/supabase-js-2.112.4.min.js')
+          .catch(() => _zaladujSdk('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'));
       }
       // window.supabase.createClient
       window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY, {
