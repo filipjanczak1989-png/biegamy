@@ -1103,7 +1103,14 @@ async function pickCoachNote(options) {
       const planLabel = options.planType ? options.planType.replace(/_/g,' ') : 'planu';
       const raceText = options.targetRace ? ` · ${options.targetRace}` : '';
       title = 'Coś co Klaudiusz powinien wiedzieć?';
-      subtitle = `Plan <strong style="color:#8b5cf6;">${planLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>${raceText}. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie, plany dnia. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em> <em style="color:#8b5cf6;display:block;margin-top:6px;font-style:normal;font-size:10px;">💡 To trwały brief tego zawodnika — zapisanie nadpisze go w bazie.</em>`;
+      /* ⚠️ „kontuzje" USUNIĘTE Z TEJ LISTY 28.08.2026 — patrz .ai/LEKCJE.md #16.
+         `generate-training-plan` CZYTA `injuries` (otwarte zgłoszenie zawodnika
+         trafia do promptu z progami), więc proszenie trenera o dopisanie kontuzji
+         „bo nie ma jej w danych" kazało mu wpisywać coś, co model już wie.
+         ⚠️ W wierszu RAPORTU niżej „kontuzje" ZOSTAJĄ i to nie jest przeoczenie:
+         `generate-athlete-report` i `generate-coach-brief` `injuries` NIE czytają
+         (sprawdzone 28.08). Ta sama fraza jest tam nadal prawdziwa. */
+      subtitle = `Plan <strong style="color:#8b5cf6;">${planLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>${raceText}. Możesz dorzucić kontekst którego nie ma w danych — sytuacja życiowa, ostatnie starty, samopoczucie, plany dnia. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em> <em style="color:#8b5cf6;display:block;margin-top:6px;font-style:normal;font-size:10px;">💡 To trwały brief tego zawodnika — zapisanie nadpisze go w bazie.</em>`;
       placeholder = 'np. ostatnio dużo pracował, mało spał. Lub: po ultra w górach w weekend, trzeba się rozkręcić. Lub: ma kontuzję ścięgna achilles, omijaj interwały. Lub: wraca po przerwie, trzeba spokojnie...';
       submitLabel = '✨ Generuj plan z komentarzem';
       skipLabel = 'Pomiń — generuj bez komentarza';

@@ -732,3 +732,82 @@ CISZĘ, nie fałszywe „brak kontuzji". Problem nie leży w promptcie — leży
 ⚠️ **WARUNEK POWROTU: gdy powstanie sposób zgłaszania kontuzji przez zawodnika.**
 Dopóki go nie ma, każda praca nad „uwzględnianiem kontuzji w planie" buduje na
 pustym kanale — czyli jest tą samą klasą błędu co mechanizm dla nikogo.
+
+---
+
+## 16. Tekst o OGRANICZENIACH produktu starzeje się przy każdym ulepszeniu (28.08.2026)
+
+Trzy razy to samo zdanie-typ, w trzech różnych miejscach, przez sześć tygodni.
+Za każdym razem **prawdziwe w dniu napisania** i za każdym razem **nikt nie
+wrócił do niego przy naprawie tego, o czym mówiło**.
+
+| data | zdanie | co je unieważniło |
+|---|---|---|
+| 17.08.2026 | „Ten plan **się nie dostosuje**" | wdrożenie `oceniAdaptacje()` — plan zaczął reagować na przerwy i niedowykonanie |
+| 19.08.2026 | „Filip i Kasia **zauważą**" | generator jest dostępny wyłącznie przy `coach_id IS NULL` — czytelnik nie ma ani Filipa, ani Kasi |
+| 28.08.2026 | „Nie widzi za to **kontuzji**, snu ani życia" | dołożenie reguł kontuzji — plan zaczął je widzieć i obniżać objętość |
+
+⚠️ **Kierunek pomyłki jest zawsze ten sam: na własną niekorzyść.** Produkt robi
+więcej, niż o sobie mówi. To nie jest wada kosmetyczna — człowiek czyta, że
+apka czegoś nie potrafi, i nie korzysta z czegoś, co dostał. Przy „nie widzi
+kontuzji" znaczyło to: *zgłoś ból, ale i tak nic z tego nie będzie*.
+
+⚠️ **Dlaczego to umyka.** Naprawiający patrzy na kod funkcji, nie na teksty,
+które o tej funkcji mówią. Zdanie leży w innym pliku, w innym module, czasem
+w innym języku (prompt EF). Nic w narzędziach nie wiąże „dodałem X" z „gdzieś
+napisane jest, że X nie ma".
+
+### Objaw ostrzegawczy: wyliczanka „nie widzi X, Y ani Z"
+
+Każdy element takiej listy to **obietnica, że X, Y i Z nigdy nie zostaną
+zaimplementowane**. Lista dwuelementowa starzeje się dwa razy szybciej niż
+jednoelementowa. Im dłuższa wyliczanka, tym większa szansa, że któryś element
+zniknie z niej po cichu — i tym mniejsza, że ktoś to zauważy.
+
+To samo dotyczy form pokrewnych: „nie ma jeszcze", „na razie nie", „tego nie
+potrafi", „musisz zrobić to ręcznie".
+
+### Zasada praktyczna
+
+**Przy dodawaniu funkcji sprawdź, czy żaden tekst w produkcie nie twierdzi,
+że jej nie ma.** Konkretnie — zanim domkniesz zmianę, przeszukaj repo pod
+kątem nazwy tego, co właśnie dołożyłeś, w zdaniach przeczących:
+
+```bash
+grep -rniE "nie (widzi|ma|potrafi|uwzględnia|reaguje)[^.]*<nazwa funkcji>" \
+  --include=*.html --include=*.js --include=*.ts .
+```
+
+⚠️ Szukaj **także w promptach Edge Functions** — tam teksty o ograniczeniach
+żyją równie chętnie, a nie są objęte żadnym testem interfejsu.
+
+⚠️ Poprawka idzie w **TYM SAMYM commicie** co funkcja. Osobny commit „poprawka
+tekstu" nie powstanie: nie ma nic, co by o nim przypomniało.
+
+### Czego to NIE rozwiązuje
+
+Nie da się tego zamknąć bramką, bo bramka musiałaby rozumieć, o czym jest
+zdanie. Zostaje odruch przy pisaniu i ten wpis. ⚠️ Blizna
+`tests/blizna-29-*` przypina JEDEN konkretny przypadek („ZAMKNIECIE nie
+twierdzi już, że plan nie widzi kontuzji") — to pilnuje nawrotu, nie klasy.
+
+Pokrewne: **#12** (notatka bez daty ważności starzeje się w nieprawdę — ta sama
+mechanika, ale w pamięci roboczej, nie w produkcie) i **#15** (treść ozdobna
+też jest komunikatem — tam sprzeczność była między dwoma tekstami, tu między
+tekstem a kodem).
+
+---
+
+### ✅ ZAMKNIĘTE 28.08.2026: warunek powrotu z „dziury w produkcie" (22.08) spełniony
+
+Wpis wyżej — *„zawodnik nie ma jak zgłosić kontuzji"* — kończył się warunkiem:
+*„każda praca nad uwzględnianiem kontuzji w planie buduje na pustym kanale"*.
+
+Kanał powstał (`injuries` + `window.BOL`), a 28.08 plan zaczął go czytać:
+Edge Function już wcześniej, a `js/generator-planu.js` — czyli jedyna ścieżka
+dla **35 z 63** zawodników bez trenera — od commita `ed63ce5`.
+
+⚠️ Warunek był postawiony słusznie i **zadziałał dokładnie tak, jak miał**:
+powstrzymał budowanie mechanizmu dla nikogo przez sześć dni, aż do momentu,
+w którym było czym go nakarmić. To jest przykład warunku powrotu, który
+zaoszczędził pracę, a nie ją odroczył.
