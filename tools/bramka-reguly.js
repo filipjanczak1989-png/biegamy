@@ -97,7 +97,11 @@ function mnoznikSilnika(poziom) {
   const a = bez.meta.objetosciTygodni, b = zBolem.meta.objetosciTygodni;
   /* Ostatni tydzień to taper — porównujemy pierwszy, gdzie krzywa jest pełna. */
   if (!(a[0] > 0)) { bledy.push('wejście kontrolne dało zerowy pierwszy tydzień'); return null; }
-  return { mnoznik: b[0] / a[0], pierwszyTydzien: b[0] };
+  const AKC = ['Interwały', 'Tempo'];
+  const akcBez = bez.treningi.filter((x) => AKC.includes(x.workout_type)).length;
+  const akcZ = zBolem.treningi.filter((x) => AKC.includes(x.workout_type)).length;
+  if (akcBez === 0) { bledy.push('plan kontrolny bramki nie ma akcentów — nie ma czego mierzyć'); return null; }
+  return { mnoznik: b[0] / a[0], pierwszyTydzien: b[0], akcenty: akcZ };
 }
 
 function zbierzZSb() {
@@ -269,6 +273,30 @@ async function main() {
       uwagi.push('kontuzja poziom 2: EF −' + procEf + '% = silnik ×' + p2.mnoznik.toFixed(2) + ' (zgodne)');
     }
   }
+  /* ── AKCENTY: ŚWIADOMA ASYMETRIA, PILNOWANA W JEDNĄ STRONĘ ──────────────
+     EF gasi „ZERO NOWYCH akcentów", silnik kliencki gasi WSZYSTKIE. To NIE jest
+     rozjazd do naprawienia, tylko różnica wynikająca z danych: prompt EF niesie
+     logi treningowe, dane z zegarka i analizę wykonania, więc model naprawdę
+     może ocenić, czy interwały „już były i przebiegały bezboleśnie". Silnik
+     kliencki dostaje wyłącznie objętość i PB — nie ma z czego tego ocenić,
+     więc bierze wersję ostrzejszą.
+     ⚠️ PILNUJEMY KIERUNKU, NIE RÓWNOŚCI. Groźny jest wyłącznie przypadek
+     odwrotny: gdyby klient stał się ŁAGODNIEJSZY od EF, zawodnik bez trenera
+     dostałby przy tej samej kontuzji plan z akcentami, których koleżanka
+     z trenerem by nie dostała. Bramka reagująca na samą RÓŻNICĘ zapalałaby się
+     na stanie zaakceptowanym — a bramka, którą się ignoruje, przestaje bronić
+     także tego, co powinna złapać. */
+  for (const poz of [1, 2, 3]) {
+    const p = mnoznikSilnika(poz);
+    if (p && p.akcenty !== 0) {
+      bledy.push('kontuzja poziom ' + poz + ': silnik kliencki zostawił ' + p.akcenty +
+        ' akcentów. Klient nie dostaje historii treningów, więc nie ma jak ocenić, ' +
+        'które akcenty są „nie nowe" — musi gasić wszystkie. Inaczej zawodnik BEZ ' +
+        'trenera dostaje plan łagodniejszy niż ten z trenerem.');
+    }
+  }
+  if (!bledy.length) uwagi.push('kontuzja: silnik gasi wszystkie akcenty na poziomach 1-3 (EF: „zero NOWYCH" — asymetria świadoma, patrz komentarz)');
+
   /* Poziom 3 nie ma procentu — ma zdanie „PIERWSZY TYDZIEŃ BEZ BIEGANIA".
      Sprawdzamy więc SKUTEK, jedyną postać, w jakiej obie kopie się spotykają. */
   const p3 = mnoznikSilnika(3);

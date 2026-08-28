@@ -156,3 +156,58 @@ describe('⚠️ SMIEC NA WEJSCIU NIE MOZE UDAWAC KONTUZJI ANI JEJ GUBIC', () =>
     assert.equal(a.meta.objetosciTygodni[0], b.meta.objetosciTygodni[0]);
   });
 });
+
+describe('⚠️ KOMUNIKAT MOWI, CO SIE ZMIENILO — plan nie zmienia sie po cichu', () => {
+  /* Zgloszone przez Filipa 28.08, po pierwszym wdrozeniu regul: czlowiek
+     zglasza „boli lekko", dostaje plan BEZ ANI JEDNEGO akcentu i czyta samo
+     „objetosc bez zmian". To ta sama klasa co „Ten plan jest lzejszy" przy
+     niezmienionej objetosci — tekst opisujacy inny plan niz ten, ktory dostal. */
+  const ostrz = (bol) => uloz(bol).plan.ai_warnings;
+
+  test('POZIOM 1 mowi o AKCENTACH i o objetosci bez zmian', () => {
+    const w = ostrz({ poziom: 1, opis: 'bol kolana' });
+    assert.match(w, /Bez akcentow|Bez akcentów/i, 'poziom 1 nie mowi, ze zniknely akcenty');
+    assert.match(w, /bez zmian/i, 'poziom 1 nie mowi, ze objetosc zostaje');
+  });
+
+  test('⚠️ POZIOM 1 NIE mowi „lzejszy" — objetosc sie nie zmienila', () => {
+    assert.doesNotMatch(ostrz({ poziom: 1, opis: 'bol kolana' }), /lżejszy|lzejszy/i,
+      'to jest dokladnie zdanie bez pokrycia, ktore usunelismy z EF');
+  });
+
+  test('POZIOM 2 mowi i o lzejszym planie, i o akcentach', () => {
+    const w = ostrz({ poziom: 2, opis: 'bol kolana' });
+    assert.match(w, /lżejszy/i);
+    assert.match(w, /akcent/i);
+  });
+
+  test('POZIOM 3 mowi o pierwszym tygodniu bez biegania', () => {
+    assert.match(ostrz({ poziom: 3, opis: 'bol kolana' }), /pierwszym tygodniu nie ma biegania/i);
+  });
+
+  test('nazwa miejsca WCHODZI do zdania, a jej brak NIE zostawia dziury', () => {
+    assert.match(ostrz({ poziom: 2, opis: 'ból kolana' }), /bo zgłosiłeś ból kolana\./);
+    /* „Inne" nie ma dopelniacza — zdanie ma sie skonczyc na samym „bol". */
+    assert.match(ostrz({ poziom: 2, opis: null }), /bo zgłosiłeś ból\./);
+  });
+
+  test('BEZ kontuzji zadnego zdania o bolu nie ma', () => {
+    const w = ostrz(null);
+    assert.doesNotMatch(w, /zgłosiłeś/i);
+    assert.doesNotMatch(w, /akcent/i);
+  });
+
+  test('⚠️ ZAMKNIECIE nie twierdzi juz, ze plan NIE WIDZI kontuzji', () => {
+    /* Zdanie wyliczalo „nie widzi za to KONTUZJI, snu ani zycia". Od dolozenia
+       regul plan je widzi — wyliczanka stala sie klamstwem na wlasna niekorzysc,
+       trzeci raz z tego samego powodu (17.08, 19.08, 28.08). */
+    assert.doesNotMatch(G.ZAMKNIECIE, /nie widzi[^.]*kontuzj/i);
+    assert.match(G.ZAMKNIECIE, /snu ani życia/i, 'sen i życie zostają — ich nadal nie widzi');
+  });
+
+  test('zdanie o bolu stoi PRZED zamknieciem', () => {
+    const w = ostrz({ poziom: 2, opis: 'ból kolana' });
+    assert.ok(w.indexOf('zgłosiłeś') < w.indexOf('Słuchaj ciała'),
+      'zamkniecie zakopalo zdanie o kontuzji — najwazniejsze na koncu');
+  });
+});

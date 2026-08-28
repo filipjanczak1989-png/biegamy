@@ -5506,7 +5506,14 @@ async function genUlozPlan() {
       poziom: poziom,
       // _silnikToSec zwraca null dla pustego pola → puste = jak dotąd, tempa z historii
       celCzasowy: _czasZPol('gen-cel'),
-      bol: _bolAkt ? { poziom: Number(_bolAkt.poziom) } : null
+      /* ⚠️ `opis` idzie STĄD, nie z silnika. Odmieniona nazwa miejsca („ból
+         kolana") żyje w `window.BOL.bolCzego` — słownik dopełniaczy ma już dwie
+         kopie (sb.js i EF, ta druga świadomie, bo EF nie widzi kodu klienta).
+         Trzecia, w czystym silniku, byłaby dokładnie tym, co zamykaliśmy
+         przez cały tydzień. Silnik dostaje gotową frazę i tylko ją wstawia. */
+      bol: _bolAkt
+        ? { poziom: Number(_bolAkt.poziom), opis: window.BOL.bolCzego(_bolAkt.miejsce) }
+        : null
     });
     _genZalogujProbe(wynik, poziom, data);
   } catch (e) {

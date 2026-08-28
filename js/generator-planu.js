@@ -472,12 +472,18 @@
        powiedzieć komuś, kto trenuje sam. Jeśli kiedyś generator otworzy się dla
        zawodników Z trenerem, TO JEST MOMENT na rozgałęzienie, nie wcześniej.
 
+       28.08.2026 — TRZECI RAZ, ten sam powód. Zdanie wyliczało „nie widzi za to
+       KONTUZJI, snu ani życia". Od dołożenia reguł kontuzji (patrz REGUŁY
+       KONTUZJI niżej) plan je widzi i obniża objętość — więc wyliczanka stała
+       się kłamstwem na swoją niekorzyść, dokładnie jak w 17.08. Kontuzja
+       wypada z listy; sen i życie zostają, bo ich nadal nie widzi.
+
        ⚠️ STARE PLANY ZOSTAJĄ ZE STARYM ZDANIEM — `ai_warnings` jest zamrożone
        w `training_plans`, ta zmiana dotyczy wyłącznie planów generowanych od
        teraz. Świadomie bez backfillu: przepisywanie ostrzeżenia pod planem,
        który ktoś już przeczytał, to zmiana warunków po fakcie. */
     'Plan reaguje na to, ile biegasz — cofnie się po przerwie i zejdzie niżej, ' +
-    'jeśli nie wyrabiasz. Nie widzi za to kontuzji, snu ani życia. ' +
+    'jeśli nie wyrabiasz. Nie widzi za to snu ani życia. ' +
     'Słuchaj ciała bardziej niż planu.';
 
   // ── DATY ───────────────────────────────────────────────────────────────────
@@ -1925,6 +1931,28 @@
     return (p === 1 || p === 2 || p === 3) ? p : 0;
   }
 
+  /* ⚠️ PLAN NIE MOŻE ZMIENIĆ SIĘ PO CICHU. Człowiek zgłasza „boli lekko",
+     dostaje plan bez ani jednego akcentu i czyta samo „objętość bez zmian" —
+     to ta sama klasa co „Ten plan jest lżejszy" przy niezmienionej objętości
+     (naprawione 28.08). Każdy poziom mówi WPROST, co się zmieniło, i tylko to.
+
+     ⚠️ `opis` (odmieniona nazwa miejsca, np. „ból kolana") PRZYCHODZI Z ZEWNĄTRZ.
+     Słownik dopełniaczy żyje w `window.BOL.MIEJSCA` (sb.js) i w EF — trzecia
+     kopia w tym pliku byłaby dokładnie tym, co zamykaliśmy cały tydzień.
+     Przy „inne" dopełniacza NIE MA, więc zdanie kończy się na samym „ból". */
+  function ostrzezenieBolu(poziom, opis) {
+    if (!poziom) return null;
+    var bo = 'bo zgłosiłeś ' + (opis || 'ból') + '.';
+    if (poziom === 1) {
+      return 'Bez akcentów, ' + bo + ' Objętość bez zmian. Wrócą, gdy oznaczysz, że minęło.';
+    }
+    if (poziom === 2) {
+      return 'Plan jest lżejszy i bez akcentów, ' + bo + ' Wróci do normy, gdy oznaczysz, że minęło.';
+    }
+    return 'W pierwszym tygodniu nie ma biegania, ' + bo
+         + ' Dalej plan jest lżejszy. Wróci do normy, gdy oznaczysz, że minęło.';
+  }
+
   function objetosciZBolem(objetosci, poziom) {
     if (!poziom) return objetosci;
     var out = objetosci.map(function (km) { return km * BOL_MNOZNIK[poziom]; });
@@ -1940,6 +1968,11 @@
 
     var k = brama.kontekst, dni = wejscie.dniWTygodniu;
     k.bolPoziom = poziomBolu(wejscie && wejscie.bol);
+    /* Ostrzezenie o kontuzji IDZIE PRZED zamknieciem: mowi o TYM planie,
+       a zamkniecie o generatorze w ogole. Odwrotna kolejnosc zakopywalaby
+       najwazniejsze zdanie pod tekstem, ktory jest ten sam zawsze. */
+    var _bolZd = ostrzezenieBolu(k.bolPoziom, (wejscie.bol && wejscie.bol.opis) || null);
+    var ostrzezenieBolem = _bolZd ? (_bolZd + ' ' + ZAMKNIECIE) : ZAMKNIECIE;
     var objetosci = objetosciZBolem(objetosciTygodni(k), k.bolPoziom);
     var treningi = [];
     var idxStartuPlanu = k.idxPn;
@@ -2109,7 +2142,7 @@
       total_workouts: treningi.filter(function (w) { return w.workout_type !== 'Odpoczynek'; }).length,
       total_distance_km: Math.round(sumaKm * 10) / 10,
       ai_summary: podsumowanie(k, dni, szczytTyg, prognoza, wejscie),
-      ai_warnings: ZAMKNIECIE,
+      ai_warnings: ostrzezenieBolem,
       generated_by_model: null
     };
 
