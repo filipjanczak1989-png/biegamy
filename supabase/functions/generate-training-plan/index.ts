@@ -2053,7 +2053,8 @@ serve(async (req) => {
 • Objętość BEZ ZMIAN — to nie jest powód do cofania planu.
 • ZERO nowych akcentów obciążających ${gdzie}. Interwały i tempo tylko jeśli już były i przebiegały bezboleśnie.
 • W polu rationale napisz WPROST, że widzisz zgłoszenie i dlaczego NIE zmieniasz objętości. Milczenie zawodnik przeczyta jako „nie zauważyli".
-• W polu ai_warnings umieść DOKŁADNIE to zdanie, bez dodawania niczego od siebie: „Ten plan jest lżejszy, bo zgłosiłeś ${bolCzego}. Wróci do normy, gdy oznaczysz, że minęło."`,
+• W polu ai_warnings umieść DOKŁADNIE to zdanie, bez dodawania niczego od siebie: „W tym planie nie ma nowych akcentów, bo zgłosiłeś ${bolCzego}. Wrócą, gdy oznaczysz, że minęło."
+  ⚠️ NIE pisz tu „plan jest lżejszy" — przy tym poziomie objętość jest BEZ ZMIAN, więc zdanie o lżejszym planie nie miałoby pokrycia. Zdanie o lżejszym planie należy wyłącznie do poziomu 2.`,
         2: `POZIOM 2 — BOLI MOCNO („przeszkadza w bieganiu").
 • OBJĘTOŚĆ −40% względem tego, co dałbyś bez zgłoszenia. Nie −20%: ból, który przeszkadza w bieganiu, to nie jest sytuacja na kosmetyczną korektę.
 • SAME BIEGI SPOKOJNE. Zero interwałów, zero tempa, zero podbiegów, zero akcentów jakiegokolwiek rodzaju.
@@ -2063,7 +2064,7 @@ serve(async (req) => {
 • PIERWSZY TYDZIEŃ BEZ BIEGANIA W OGÓLE. Ani jednej jednostki biegowej — zamiast tego odpoczynek i, jeśli ból na to pozwala, aktywność bezudarowa (rower, basen, mobilność).
 • Kolejne tygodnie ułóż jako POWRÓT, ale zaznacz w polu warnings, że właściwy plan zacznie się dopiero, gdy zawodnik oznaczy zgłoszenie jako zakończone („już nie boli" w aplikacji).
 • W polu ai_warnings umieść DOKŁADNIE to zdanie: „W tym planie nie ma biegania, bo zgłosiłeś ${bolCzego}. Wróci, gdy oznaczysz, że minęło."
-  ⚠️ NIE pisz tu „plan jest lżejszy" — przy tym poziomie plan nie jest lżejszy, tylko BEZ BIEGANIA. Zdanie o lżejszym planie należy do poziomów 1 i 2.
+  ⚠️ NIE pisz tu „plan jest lżejszy" — przy tym poziomie plan nie jest lżejszy, tylko BEZ BIEGANIA. Zdanie o lżejszym planie należy WYŁĄCZNIE do poziomu 2 (na poziomie 1 objętość jest bez zmian, więc też go tam nie ma).
 • W polu warnings dopisz dokładnie to zdanie, bez dodawania niczego od siebie: „Ból uniemożliwiający bieganie warto skonsultować."
 • ⛔ NIE stawiaj diagnozy i NIE nazywaj urazu. Nie wiesz, co to jest, i nie masz jak sprawdzić.`,
       };

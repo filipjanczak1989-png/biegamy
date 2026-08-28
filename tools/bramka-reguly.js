@@ -45,8 +45,60 @@ const ZAKAZANE_WZORY = [
    'suma km bez isRunType'],
 ];
 
+/* ── Część C — PROGI KONTUZJI ─────────────────────────────────────────────
+   Te same reguły istnieją w DWÓCH postaciach i nie da się ich scalić:
+     · `supabase/functions/generate-training-plan/index.ts` — jako ZDANIA
+       W PROMPCIE („OBJĘTOŚĆ −40%"), czyli prośba do modelu;
+     · `js/generator-planu.js` — jako ARYTMETYKA (mnożnik na objętość),
+       czyli gwarancja.
+   Zmiana procentu w prompcie bez zmiany mnożnika (albo odwrotnie) daje dwóch
+   zawodników z tą samą kontuzją i różnymi planami, w zależności od tego, czy
+   mają trenera. Dokładnie ta klasa, którą zamykaliśmy cały tydzień.
+   ⚠️ Czytamy przez ZACHOWANIE silnika, nie przez parsowanie jego źródła —
+   tak samo jak progi TSB niżej. Z EF wyciągamy liczbę z tekstu, bo tam
+   reguła NIE MA innej postaci niż tekst. */
+const BOL_TOLERANCJA = 0.01;
+const BOL_EF_PLIK = 'supabase/functions/generate-training-plan/index.ts';
+
 const bledy = [];
 const uwagi = [];
+
+/** Procent obniżki objętości zapisany w prompcie EF dla poziomu 2. */
+function procentZEf() {
+  const fs = require('fs');
+  let src;
+  try { src = fs.readFileSync(path.join(KORZEN, BOL_EF_PLIK), 'utf8'); }
+  catch (e) { bledy.push('nie da się odczytać ' + BOL_EF_PLIK + ': ' + e.message); return null; }
+  const m = /OBJĘTOŚĆ\s*−(\d+)%/.exec(src);
+  if (!m) {
+    bledy.push('w prompcie EF nie znaleziono progu „OBJĘTOŚĆ −NN%" dla poziomu 2 — '
+             + 'reguła zniknęła albo zmieniła brzmienie; bramka nie ma czego porównać');
+    return null;
+  }
+  return Number(m[1]);
+}
+
+/** Faktyczny mnożnik objętości silnika klienckiego dla danego poziomu bólu. */
+function mnoznikSilnika(poziom) {
+  const G = require(path.join(KORZEN, 'js/generator-planu.js'));
+  const TODAY = '2026-08-28';
+  const d = new Date(TODAY + 'T00:00:00'); d.setDate(d.getDate() + 14 * 7);
+  const we = {
+    dystans: 'half', dniWTygodniu: 5, dataStartu: d.toISOString().slice(0, 10),
+    today: TODAY, poziom: { p10sec: 300, wynik: null, objetoscTygodniowa: 40 },
+    celCzasowy: null,
+  };
+  const bez = G.uloz(we);
+  const zBolem = G.uloz(Object.assign({}, we, { bol: { poziom: poziom } }));
+  if (!bez.ok || !zBolem.ok) {
+    bledy.push('silnik odmówił na wejściu kontrolnym bramki (' + (bez.sciana || zBolem.sciana || {}).kod + ')');
+    return null;
+  }
+  const a = bez.meta.objetosciTygodni, b = zBolem.meta.objetosciTygodni;
+  /* Ostatni tydzień to taper — porównujemy pierwszy, gdzie krzywa jest pełna. */
+  if (!(a[0] > 0)) { bledy.push('wejście kontrolne dało zerowy pierwszy tydzień'); return null; }
+  return { mnoznik: b[0] / a[0], pierwszyTydzien: b[0] };
+}
 
 function zbierzZSb() {
   /* Ta sama piaskownica co testy (`tests/_srodowisko.js`), nie własna kopia —
@@ -166,6 +218,33 @@ async function main() {
     const zlapanyWzor = ZAKAZANE_WZORY.some(([rx]) => rx.test(udawany));
     console.log(zlapanyWzor ? '  ✓ samokontrola: odtworzona własna EMA w EF ZŁAPANA'
                             : '  ✗ SAMOKONTROLA PADŁA: własna EMA w EF NIE została wykryta');
+
+    /* Część C: udajemy, że prompt EF zmienił próg na −25%, a silnik został
+       na ×0.60. To jest DOKŁADNIE ten rozjazd, przed którym część C ma bronić:
+       jedna kopia reguły ruszona, druga nie. */
+    const przed3 = bledy.length;
+    const p2s = mnoznikSilnika(2);
+    if (p2s) {
+      const udawanyProc = 25;                      // EF mówiłby −25%
+      const oczekiwanyS = 1 - udawanyProc / 100;   // czyli ×0.75
+      if (Math.abs(p2s.mnoznik - oczekiwanyS) > BOL_TOLERANCJA) {
+        bledy.push('SAMOKONTROLA-kontuzja');
+      }
+    }
+    const zlapanyBol = bledy.length > przed3;
+    bledy.length = przed3;
+    console.log(zlapanyBol ? '  ✓ samokontrola: rozjazd progu kontuzji EF↔silnik ZŁAPANY'
+                           : '  ✗ SAMOKONTROLA PADŁA: rozjazd progu kontuzji NIE został wykryty');
+
+    /* ⚠️ Druga strona tej samej monety: bramka musi też PRZEPUSZCZAĆ, gdy
+       kopie są zgodne. Sama umiejętność świecenia na czerwono nie odróżnia
+       działającej bramki od takiej, która pada zawsze. */
+    const przed4 = bledy.length;
+    if (p2s && Math.abs(p2s.mnoznik - 0.60) > BOL_TOLERANCJA) bledy.push('SAMOKONTROLA-zgodne');
+    const przepuszcza = bledy.length === przed4;
+    bledy.length = przed4;
+    console.log(przepuszcza ? '  ✓ samokontrola: zgodne progi PRZEPUSZCZONE'
+                            : '  ✗ SAMOKONTROLA PADŁA: bramka zgłasza rozjazd przy zgodnych progach');
     /* ⚠️ SAMOKONTROLA KONCZY SIE TUTAJ, nie leci dalej do raportu.
        Do 16.08.2026 tryb --samokontrola wykonywal TEZ porownanie wlasciwe,
        wiec self-test padal, gdy w repo byl prawdziwy rozjazd — a w CI jego
@@ -174,7 +253,30 @@ async function main() {
        powodu, ale raport wskazywal na zly krok.
        Self-test ma odpowiadac na pytanie „czy bramka umie zlapac", a nie
        „czy dzis jest co lapac" — to dwa rozne pytania. */
-    process.exit((zlapane && zlapanyProg && zlapanyWzor) ? 0 : 1);
+    process.exit((zlapane && zlapanyProg && zlapanyWzor && zlapanyBol && przepuszcza) ? 0 : 1);
+  }
+
+  /* ── Część C: progi kontuzji EF (prompt) vs silnik kliencki (arytmetyka) ── */
+  const procEf = procentZEf();
+  const p2 = mnoznikSilnika(2);
+  if (procEf != null && p2) {
+    const oczekiwany = 1 - procEf / 100;
+    if (Math.abs(p2.mnoznik - oczekiwany) > BOL_TOLERANCJA) {
+      bledy.push('próg kontuzji poziom 2: prompt EF mówi −' + procEf + '% (mnożnik ' +
+        oczekiwany.toFixed(2) + '), silnik kliencki daje ' + p2.mnoznik.toFixed(3) +
+        ' — zawodnik z trenerem i bez dostaliby różne plany na tę samą kontuzję');
+    } else {
+      uwagi.push('kontuzja poziom 2: EF −' + procEf + '% = silnik ×' + p2.mnoznik.toFixed(2) + ' (zgodne)');
+    }
+  }
+  /* Poziom 3 nie ma procentu — ma zdanie „PIERWSZY TYDZIEŃ BEZ BIEGANIA".
+     Sprawdzamy więc SKUTEK, jedyną postać, w jakiej obie kopie się spotykają. */
+  const p3 = mnoznikSilnika(3);
+  if (p3 && p3.pierwszyTydzien !== 0) {
+    bledy.push('kontuzja poziom 3: pierwszy tydzień ma ' + p3.pierwszyTydzien +
+      ' km zamiast zera — prompt EF obiecuje „PIERWSZY TYDZIEŃ BEZ BIEGANIA"');
+  } else if (p3) {
+    uwagi.push('kontuzja poziom 3: pierwszy tydzień 0 km (zgodne z EF)');
   }
 
   console.log('\n  BRAMKA REGUŁ — sb.js vs _shared/reguly-treningow.mjs\n');

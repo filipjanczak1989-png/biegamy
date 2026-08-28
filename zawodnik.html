@@ -5490,6 +5490,14 @@ async function genUlozPlan() {
       poziom.objetoscTygodniowa = km;
     }
 
+    /* ⚠️ ODCZYT KONTUZJI JEST TUTAJ, NIE W SILNIKU. `GeneratorPlanu` to czysta
+       funkcja — sięgnięcie z niego po Supabase zabrałoby jedyną własność, dzięki
+       której da się go testować w Node bez atrapy. Wołający czyta, silnik liczy.
+       ⚠️ `aktywna()` oddaje `null` przy każdym błędzie (brak tabeli, brak sieci),
+       więc awaria odczytu daje plan JAK DOTĄD, a nie zepsuty ekran ani plan
+       udający, że kontuzji nie ma po cichu — patrz `window.BOL` w sb.js. */
+    const _bolAkt = window.BOL ? await window.BOL.aktywna(_athleteId) : null;
+
     wynik = window.GeneratorPlanu.uloz({
       dystans: _genDystans,
       dataStartu: data,
@@ -5497,7 +5505,8 @@ async function genUlozPlan() {
       today: _genKluczDaty(new Date()),
       poziom: poziom,
       // _silnikToSec zwraca null dla pustego pola → puste = jak dotąd, tempa z historii
-      celCzasowy: _czasZPol('gen-cel')
+      celCzasowy: _czasZPol('gen-cel'),
+      bol: _bolAkt ? { poziom: Number(_bolAkt.poziom) } : null
     });
     _genZalogujProbe(wynik, poziom, data);
   } catch (e) {

@@ -25,8 +25,16 @@
  *     wynik:       { dystans_km, czas_s } | null,   // gdy brak p10sec: przeliczamy Rieglem
  *     objetoscTygodniowa: number | null              // km/tydz; null => założenie 20 (patrz meta.zalozenia)
  *   },
- *   celCzasowy:    number | null      // sekundy; null = bez celu czasowego
+ *   celCzasowy:    number | null,     // sekundy; null = bez celu czasowego
+ *   bol:           { poziom: 1|2|3 } | null   // otwarte zgłoszenie bólu, patrz REGUŁY KONTUZJI
  * }
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠️ `bol` WCHODZI WEJŚCIEM, NIE JEST CZYTANY TUTAJ.                       ║
+ * ║ Silnik zostaje CZYSTĄ FUNKCJĄ — odczyt `injuries` robi wołający przez    ║
+ * ║ `window.BOL` (sb.js). Sięgnięcie po Supabase stąd zabrałoby jedyną       ║
+ * ║ własność, dzięki której ten plik da się przetestować w Node bez atrapy.  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * Wyjście mapuje się 1:1 na kolumny training_plans / training_plan_workouts,
  * żeby P4 był zwykłym insertem bez tłumaczenia pól.
@@ -1592,7 +1600,14 @@
 
   // ── SKŁADANIE TYGODNIA ─────────────────────────────────────────────────────
   function ulozTydzien(nrTyg, kmTyg, k, dni) {
-    var jakosc = jakoscTygodnia(nrTyg, k.budowa, k.tygodnie);
+    /* ⚠️ BRAMKA AKCENTU PRZY ZGŁOSZONYM BÓLU — patrz REGUŁY KONTUZJI niżej.
+       Gasimy jakość na KAŻDYM poziomie, także przy 1. Powód nieoczywisty:
+       reguła brzmi „zero NOWYCH akcentów", a w świeżo układanym planie
+       KAŻDY akcent jest nowy — silnik nie dostaje historii treningów i nie
+       ma jak sprawdzić, czy interwały „już były i przebiegały bezboleśnie".
+       Wybieramy wersję ostrzejszą, zgodnie z zasadą tego pliku: przy braku
+       danych nie zgadujemy w górę. */
+    var jakosc = k.bolPoziom ? null : jakoscTygodnia(nrTyg, k.budowa, k.tygodnie);
     var sloty = UKLAD_DNI[dni].slice();            // ostatni = niedziela = długie
     var typy = new Array(sloty.length), i;
 
@@ -1882,18 +1897,60 @@
   }
 
   // ── GŁÓWNE WEJŚCIE ─────────────────────────────────────────────────────────
+  /* ══ REGUŁY KONTUZJI ══════════════════════════════════════════════════════
+     ⚠️ TO JEST ZABEZPIECZENIE, NIE FUNKCJA — i tak trzeba je czytać.
+     Ten generator wyprodukował ZERO planów w 3,5 miesiąca (zmierzone 28.08.2026:
+     `training_plans` ma wyłącznie `source='coach_ai'`, a klient zapisuje
+     `source:'self'`). Nie dokładamy tego, bo ktoś dziś tego potrzebuje —
+     dokładamy, żeby w dniu, w którym PIERWSZY człowiek z kontuzją go użyje,
+     plan już to widział. Zabezpieczenie działa wtedy, gdy nikt na nie nie patrzy;
+     dopisane po fakcie jest warte tyle, co jego brak.
+
+     Do 28.08 kontuzje czytała WYŁĄCZNIE Edge Function `generate-training-plan`,
+     odpalana tylko przez trener.html. Dla 35 z 63 zawodników (bez trenera)
+     jedyną ścieżką jest ten silnik — więc dla nich zgłoszony ból nie wpływał
+     na plan NIGDY. Droga „CTA woła EF" jest zamknięta: EF zwraca 403, gdy
+     wołający nie jest trenerem zawodnika (`coach_id !== user.id`).
+
+     ⚠️ RÓŻNICA WOBEC EF JEST ZASADNICZA, NIE KOSMETYCZNA. Tam te progi są
+     ZDANIAMI W PROMPCIE — prośbą do modelu, bez gwarancji, że plan naprawdę
+     zejdzie. Tutaj są arytmetyką: mnożnik na objętość i zgaszona jakość.
+     Dlatego blizna sprawdza `meta.objetosciFaktyczne`, a nie treść próśb. */
+  var BOL_MNOZNIK = { 1: 1.00, 2: 0.60, 3: 0.60 };
+  var BOL_POZIOM_BEZ_BIEGANIA = 3;   // pierwszy tydzień zerowany całkowicie
+
+  /** 1|2|3 dla poprawnego zgłoszenia, 0 dla braku i dla śmieci na wejściu. */
+  function poziomBolu(bol) {
+    var p = bol ? Number(bol.poziom) : 0;
+    return (p === 1 || p === 2 || p === 3) ? p : 0;
+  }
+
+  function objetosciZBolem(objetosci, poziom) {
+    if (!poziom) return objetosci;
+    var out = objetosci.map(function (km) { return km * BOL_MNOZNIK[poziom]; });
+    /* Poziom 3 = „ból mnie zatrzymuje". Pierwszy tydzień BEZ BIEGANIA w ogóle;
+       kolejne idą jako powrót, czyli na mnożniku poziomu 2 — nigdy w górę. */
+    if (poziom === BOL_POZIOM_BEZ_BIEGANIA && out.length) out[0] = 0;
+    return out;
+  }
+
   function uloz(wejscie) {
     var brama = sprawdzSciane(wejscie);
     if (!brama.ok) return brama;
 
     var k = brama.kontekst, dni = wejscie.dniWTygodniu;
-    var objetosci = objetosciTygodni(k);
+    k.bolPoziom = poziomBolu(wejscie && wejscie.bol);
+    var objetosci = objetosciZBolem(objetosciTygodni(k), k.bolPoziom);
     var treningi = [];
     var idxStartuPlanu = k.idxPn;
 
     for (var t = 1; t <= k.tygodnie; t++) {
       var tydzienIdx0 = idxStartuPlanu + (t - 1) * 7;         // poniedziałek tego tygodnia
-      var jednostki = ulozTydzien(t, objetosci[t - 1], k, dni);
+      /* Tydzień o zerowej objętości (poziom 3, pierwszy tydzień) NIE dostaje
+         jednostek. Bez tego warunku `ulozTydzien` rozłożyłby zero kilometrów
+         na wszystkie dni i plan pokazałby biegi po 0 km — czyli formalnie
+         „bez biegania", a dla człowieka lista pustych treningów. */
+      var jednostki = objetosci[t - 1] > 0 ? ulozTydzien(t, objetosci[t - 1], k, dni) : [];
       var poDniu = {};
       jednostki.forEach(function (j) { poDniu[j.dow] = j; });
 
