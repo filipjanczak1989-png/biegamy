@@ -20,7 +20,11 @@
 //   window.safeExternalHref(url) — escape URL dla <a href> do linków zewnętrznych (https/http-only, bez whitelisty hostów)
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
 //   window.showToast(msg, type) — toast UI zamiast alert()
-//   window.QUOTES_LIBRARY — biblioteka cytatów (64, {text, author}) — single source of truth (zawodnik/raporty/kalendarz)
+//   window.QUOTES_LIBRARY — biblioteka cytatów ({text, author}) — single source of truth (zawodnik/raporty/kalendarz)
+//     ⚠️ BEZ LICZBY W KOMENTARZU. Stało tu „64", a w tablicy było 59 (28.08.2026,
+//     po usunięciu trzech o śmierci, niepewności i zemście — 56). Liczba wpisana
+//     ręcznie rozjeżdża się przy pierwszej zmianie i nikt tego nie zauważa,
+//     bo komentarz nie ma testu. Rozmiaru pilnuje blizna-21 (próg puli).
 //   window.getDailyQuote(offsetDays=0) — 1 cytat per dzień (deterministyczny seed YYYYMMDD)
 //   window.getDailyQuoteSet(count=5) — N deterministycznie zshuffle'owanych cytatów (Mulberry32)
 // ════════════════════════════════════════════════════════════════════
@@ -1232,12 +1236,9 @@
     { text: "Jeśli się zatrzymasz, to skończysz. Jeśli pójdziesz dalej, jest szansa.", author: "Roger Federer", tylkoGotowy: true },
 
     // Filozofia stoicka i Wschód
-    { text: "Nie chodzi o to ile długo żyjesz, ale jak.", author: "Seneka" },
     { text: "Przeszkoda jest drogą.", author: "Marek Aureliusz" },
     { text: "Masz władzę nad swoim umysłem, nie nad zewnętrznymi zdarzeniami. Zrozum to, a znajdziesz siłę.", author: "Marek Aureliusz" },
     { text: "Nie żądaj żeby rzeczy działy się tak jak chcesz. Chciej żeby się działy tak jak są.", author: "Epiktet" },
-    { text: "Jutrzejszy dzień jest najmniej pewną rzeczą w życiu.", author: "Marek Aureliusz" },
-    { text: "Najlepszą zemstą jest nie być podobnym do tego, kto cię skrzywdził.", author: "Marek Aureliusz" },
     { text: "Lepiej zwyciężyć siebie samego niż wygrać tysiąc bitw.", author: "Budda" },
     { text: "Tysiącletnia podróż zaczyna się od jednego kroku.", author: "Lao Tzu" },
     { text: "Walcz tylko z przeciwnikiem którego można pokonać.", author: "Sun Tzu" },

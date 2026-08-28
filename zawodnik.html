@@ -1225,7 +1225,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 </script>
 
 <!-- SEKCJA: WIADOMOŚCI -->
-<div id="section-msgs" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);height:100dvh;height:100vh;background:var(--bg);z-index:300;flex-direction:column;max-width:420px;width:100%;overflow:hidden;">
+<div id="section-msgs" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);height:100vh;height:100dvh;background:var(--bg);z-index:300;flex-direction:column;max-width:420px;width:100%;overflow:hidden;">
   <!-- CZAT: lista konwersacji (trener + znajomi) -->
   <div id="chat-list-view" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
     <div style="flex-shrink:0;padding:max(52px,env(safe-area-inset-top,52px)) 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
@@ -1963,6 +1963,41 @@ function toggleDayDetail(idx) {
    nie boli" kontuzja wisiałaby w nieskończoność, plan nigdy nie wróciłby do
    normy, a model dostawałby „nie wiadomo" podane jako „ma kontuzję" — czyli
    dokładnie tę klasę błędu, którą tępimy od tygodnia. */
+/* ⚠️ KOMUNIKAT MA MÓWIĆ TYLKO TO, CO ZACHODZI — inaczej obiecuje mechanizm,
+   którego nie ma. Do 28.08.2026 karta pisała „Plan bierze to pod uwagę"
+   KAŻDEMU, a toast po zgłoszeniu „Plan to uwzględni".
+
+   Zmierzone 28.08: kontuzje czyta WYŁĄCZNIE Edge Function
+   `generate-training-plan`, a tę odpala jedynie trener.html. Kliencki
+   `window.GeneratorPlanu` — czyli silnik pod CTA „Ułóż plan", jedyna ścieżka
+   dla zawodnika bez trenera — nie czyta ich w ogóle i sam to o sobie pisze
+   („Nie widzi za to kontuzji, snu ani życia", js/generator-planu.js).
+   35 z 63 zawodników nie ma trenera, więc dla nich obietnica była nieprawdą
+   zawsze: i z planem, i bez planu, i przed jego ułożeniem, i po.
+
+   ⚠️ „Plan wróci, gdy zamkniesz zgłoszenie" (poziom 3) było nieprawdą TAKŻE
+      u osób Z trenerem. EF ma to wprost w komentarzu: „NIE ODMAWIAMY PLANU
+      — nawet przy poziomie 3 plan powstaje, zmienia się jego TREŚĆ".
+      Po stronie klienta `czyPauza` nie steruje niczym poza tekstem: nic
+      nigdzie planu nie wstrzymuje ani nie przywraca.
+
+   Rozgałęzienie po `window._brakTrenera` — tym samym, po którym rozgałęzia
+   się CTA zgłoszenia niżej w tej samej funkcji.
+   ⚠️ Gdyby GeneratorPlanu zaczął kiedyś czytać `injuries`, to jest miejsce,
+      które trzeba poprawić w TYM SAMYM commicie — inaczej tekst zacznie
+      kłamać w drugą stronę, zaniżając to, co apka naprawdę robi. */
+function _bolCoDalej(czyPauza) {
+  const zTrenerem = window._brakTrenera === false;
+  if (zTrenerem) {
+    return czyPauza
+      ? 'Trener to widzi. Ból uniemożliwiający bieganie warto skonsultować.'
+      : 'Trener to widzi i weźmie pod uwagę przy planie.';
+  }
+  return czyPauza
+    ? 'Zapisane u Ciebie. Ból uniemożliwiający bieganie warto skonsultować.'
+    : 'Zapisane u Ciebie — zamknij, gdy przestanie boleć.';
+}
+
 async function _odswiezBol() {
   const box = document.getElementById('today-bol');
   if (!box || !_athleteId) return;
@@ -2029,9 +2064,7 @@ async function _odswiezBol() {
     + (stare
         ? '<div style="font-size:12px;color:var(--fg2);line-height:1.5;margin-bottom:10px;">Zgłoszone ' + odKiedy + '. Nadal boli?</div>'
         : '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zgłoszone ' + odKiedy + '. '
-          + (czyPauza
-              ? 'Plan wróci, gdy zamkniesz zgłoszenie — do tego czasu odpoczywaj.'
-              : 'Plan bierze to pod uwagę.')
+          + _bolCoDalej(czyPauza)
           + '</div>')
     + (czyPauza && !stare
         ? '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Ból uniemożliwiający bieganie warto skonsultować.</div>'
@@ -2078,9 +2111,10 @@ async function _zglosBol() {
   /* ⚠️ Komunikat NIE STRASZY i NIE DIAGNOZUJE. Przy poziomie 3 dokładamy jedno
      zdanie o konsultacji — bo ból uniemożliwiający bieganie to inna sprawa niż
      pobolewanie — ale bez straszenia i bez nazywania urazu. */
-  toast(Number(w.poziom) === 3
-    ? 'Zgłoszone. Ból uniemożliwiający bieganie warto skonsultować.'
-    : 'Zgłoszone. Plan to uwzględni.');
+  /* ⚠️ DRUGA KOPIA TEJ SAMEJ OBIETNICY — „Plan to uwzględni" stało tu obok
+     karty, która mówiła „Plan bierze to pod uwagę". Obie szły przez ten sam
+     nieistniejący mechanizm; poprawiane razem, przez ten sam helper. */
+  toast('Zgłoszone. ' + _bolCoDalej(Number(w.poziom) === 3));
   _odswiezBol();
 }
 window._zglosBol = _zglosBol;
@@ -10208,7 +10242,12 @@ async function loadFollowing() {
         ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${escapeHtml(a.goal)}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">M: ${escapeHtml(a.pb_marathon)}</div>` : ''}
+        ${/* ⚠️ Było samo „M: 2:59:07" — skrót, którego nikt nie rozwijał, i do tego
+              mylony z celem, bo tuż obok pod nazwiskiem stoi `a.goal` (wolny tekst
+              z ankiety, np. „Poprawa formy"). Zmierzone 28.08.2026: `pb_marathon`
+              ma 13 z 63 zawodników, a `goal` — 62, więc kolumna jest rzadka
+              i tym bardziej musi mówić, co pokazuje. */''}
+        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">PB maraton ${escapeHtml(a.pb_marathon)}</div>` : ''}
         <button onclick="event.stopPropagation();unfollowAthlete('${a.id}',this.closest('[onclick]'))" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;cursor:pointer;">Przestań</button>
       </div>
     </div>`;
@@ -10343,7 +10382,15 @@ async function acceptFriendFromSearch(targetId, btn) {
   if (!window._friendStatuses) window._friendStatuses={};
   window._friendStatuses[targetId]='accepted';
   btn.outerHTML='<span style="font-size:9px;color:var(--green);padding:5px 8px;">\u2713 Znajomi</span>';
-  toast('Jesteście znajomymi! \U0001f389');
+  /* ⚠️ Stało tu `\U0001f389` — escape ze składni Pythona/C. JavaScript nie zna
+     wielkiego `U`, więc gubił backslash i wypisywał goły tekst „U0001f389";
+     Maciek zgłosił to jako „jakiś kod uf coś tam". Emoji spoza BMP zapisuje się
+     w JS jako `\u{1F389}` (klamry) albo parą surogatów. Sąsiednie `✓`
+     i `⏳` w tych samych funkcjach były poprawne — małe `u`, cztery cyfry,
+     i to właśnie dlatego wada nie rzucała się w oczy przy czytaniu kodu.
+     Jedyne takie wystąpienie w repo (sprawdzone 28.08.2026; `\x1f`
+     w tools/ledger.js jest poprawnym escape'em JS, nie tą klasą). */
+  toast('Jesteście znajomymi! \u{1F389}');
   checkFriendRequests();
   var me = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
   var myName = me.data?.full_name || 'Ktoś';
