@@ -19,6 +19,7 @@
 // Uruchomienie:
 //   node tools/funkcje-bazy.js --zrzut     ← nadpisuje migawkę stanem produkcji
 //   node tools/funkcje-bazy.js             ← porównuje migawkę z produkcją
+//   node tools/funkcje-bazy.js --samokontrola  ← sprawdza, czy porównanie DZIAŁA
 //
 // ⚠️ NARZĘDZIE JEST LOKALNE, NIE W CI — świadomie. Sprawdzanie bazy w CI
 // wymagałoby wpuszczenia tam poświadczeń do produkcji, co zmienia CI w cel
@@ -145,9 +146,13 @@ function zrzut() {
   console.log('\n  Zrzucono ' + baza.size + ' obiektów (funkcje + triggery) do supabase/schema/funkcje/\n');
 }
 
-function porownaj() {
-  const baza = zBazy();
-  const mig = zMigawki();
+/* ⚠️ POROWNANIE JEST WYDZIELONE Z WEJSCIA/WYJSCIA CELOWO. Dopoki roznice
+   liczyly sie w srodku `porownaj()`, jedynym sposobem sprawdzenia, czy
+   narzedzie w ogole cokolwiek wykrywa, bylo odpytanie produkcji — czyli test
+   wymagajacy poswiadczen, ktorego nikt nie odpali przy zmianie samego
+   narzedzia. Teraz `--samokontrola` przepuszcza przez TE SAMA funkcje
+   spreparowane pary map, na sucho. */
+function roznice(baza, mig) {
   const wszystkie = [...new Set([...baza.keys(), ...mig.keys()])].sort();
   const rozne = [], tylkoBaza = [], tylkoMigawka = [];
   for (const n of wszystkie) {
@@ -155,6 +160,13 @@ function porownaj() {
     if (!baza.has(n)) { tylkoMigawka.push(n); continue; }
     if (suma(baza.get(n)) !== suma(mig.get(n))) rozne.push(n);
   }
+  return { rozne, tylkoBaza, tylkoMigawka };
+}
+
+function porownaj() {
+  const baza = zBazy();
+  const mig = zMigawki();
+  const { rozne, tylkoBaza, tylkoMigawka } = roznice(baza, mig);
   console.log('\n  MIGAWKA FUNKCJI — produkcja vs supabase/schema/funkcje/\n');
   console.log('  w bazie: ' + baza.size + ' | w migawce: ' + mig.size + '  (funkcje + triggery)');
   if (!rozne.length && !tylkoBaza.length && !tylkoMigawka.length) {
@@ -180,5 +192,122 @@ function porownaj() {
   return 1;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   SAMOKONTROLA — czy to porownanie w ogole potrafi swiecic na czerwono.
+
+   ⚠️ Bramka, ktora nigdy nie swieci na czerwono, jest ozdoba — i druga strona
+   tej monety: taka, ktora swieci zawsze, tez. Dlatego przypadkow jest CZTERY,
+   a czwarty sprawdza, ze poprawny stan zostaje PRZEPUSZCZONY.
+
+   ⚠️ KAZDY PRZYPADEK JEST PUSZCZANY NA FUNKCJI **I** NA TRIGGERZE. To nie jest
+   symetria dla symetrii: poprawka burstu z 5.08 siedzi POLOWICZNIE w definicji
+   triggera (`REFERENCING NEW TABLE AS nowe FOR EACH STATEMENT`), wiec
+   samokontrola pokrywajaca tylko funkcje zostawilaby najwiekszy realny rozjazd
+   poza testem. Triggery maja w kluczu kropke (`tabela.nazwa`), ida osobnym
+   zapytaniem i osobna nazwa pliku — to, ze funkcje sa wykrywane, NIE dowodzi,
+   ze triggery tez.
+
+   Dziala NA SUCHO, bez odpytywania bazy: test wymagajacy poswiadczen do
+   produkcji nie zostalby uruchomiony wtedy, kiedy jest najpotrzebniejszy —
+   przy zmianie samego narzedzia.
+   ───────────────────────────────────────────────────────────────────────── */
+const FUN = [
+  'CREATE OR REPLACE FUNCTION public.auth_is_coach()',
+  ' RETURNS boolean',
+  ' LANGUAGE sql',
+  'AS $function$',
+  '  SELECT EXISTS (SELECT 1 FROM public.coaches WHERE id = auth.uid());',
+  '$function$',
+].join('\n');
+
+/* Prawdziwa tresc z produkcji i prawdziwa regresja, ktora jej grozi: powrot do
+   wersji row-level z `migrations/` skasowalby poprawke burstu. */
+const TRG_STMT = 'CREATE TRIGGER trg_detect_moment_ins AFTER INSERT ON public.training_logs ' +
+  'REFERENCING NEW TABLE AS nowe FOR EACH STATEMENT EXECUTE FUNCTION trigger_detect_moment()';
+const TRG_ROW = 'CREATE TRIGGER trg_detect_moment_ins AFTER INSERT ON public.training_logs ' +
+  'FOR EACH ROW EXECUTE FUNCTION trigger_detect_moment()';
+
+const KLUCZ_FUN = 'auth_is_coach';
+const KLUCZ_TRG = 'training_logs.trg_detect_moment_ins';
+
+function wzorzec() {
+  return new Map([[KLUCZ_FUN, FUN], [KLUCZ_TRG, TRG_STMT]]);
+}
+
+function samokontrola() {
+  const wyniki = [];
+  const zdanie = (ok, opis) => {
+    wyniki.push(ok);
+    console.log((ok ? '  ✓ samokontrola: ' : '  ✗ SAMOKONTROLA PADŁA: ') + opis);
+  };
+
+  console.log('\n  SAMOKONTROLA — cztery przypadki, każdy na funkcji I na triggerze\n');
+
+  /* 1. ZMIENIONA TREŚĆ */
+  let mig = wzorzec();
+  mig.set(KLUCZ_FUN, FUN.replace('public.coaches', 'public.athletes'));
+  let r = roznice(wzorzec(), mig);
+  zdanie(r.rozne.length === 1 && r.rozne[0] === KLUCZ_FUN,
+    'funkcja o zmienionej treści ' + (r.rozne.includes(KLUCZ_FUN) ? 'ZŁAPANA' : 'NIE została wykryta'));
+
+  mig = wzorzec();
+  mig.set(KLUCZ_TRG, TRG_ROW);
+  r = roznice(wzorzec(), mig);
+  zdanie(r.rozne.length === 1 && r.rozne[0] === KLUCZ_TRG,
+    'trigger cofnięty do FOR EACH ROW (utrata poprawki burstu) ' +
+    (r.rozne.includes(KLUCZ_TRG) ? 'ZŁAPANY' : 'NIE został wykryty'));
+
+  /* 2. BRAK W MIGAWCE — obiekt jest w bazie, w repo go nie ma */
+  let baza = wzorzec();
+  baza.set('nowa_funkcja_z_produkcji', FUN);
+  r = roznice(baza, wzorzec());
+  zdanie(r.tylkoBaza.length === 1 && r.tylkoBaza[0] === 'nowa_funkcja_z_produkcji',
+    'funkcja w bazie, brak w migawce ' + (r.tylkoBaza.length === 1 ? 'ZŁAPANA' : 'NIE została wykryta'));
+
+  baza = wzorzec();
+  baza.set('training_logs.trg_nowy', TRG_STMT);
+  r = roznice(baza, wzorzec());
+  zdanie(r.tylkoBaza.length === 1 && r.tylkoBaza[0] === 'training_logs.trg_nowy',
+    'trigger w bazie, brak w migawce ' + (r.tylkoBaza.length === 1 ? 'ZŁAPANY' : 'NIE został wykryty'));
+
+  /* 3. DUCH W MIGAWCE — obiekt zniknal z bazy, plik zostal */
+  mig = wzorzec();
+  mig.set('skasowana_funkcja', FUN);
+  r = roznice(wzorzec(), mig);
+  zdanie(r.tylkoMigawka.length === 1 && r.tylkoMigawka[0] === 'skasowana_funkcja',
+    'duch funkcji w migawce ' + (r.tylkoMigawka.length === 1 ? 'ZŁAPANY' : 'NIE został wykryty'));
+
+  mig = wzorzec();
+  mig.set('training_logs.trg_skasowany', TRG_STMT);
+  r = roznice(wzorzec(), mig);
+  zdanie(r.tylkoMigawka.length === 1 && r.tylkoMigawka[0] === 'training_logs.trg_skasowany',
+    'duch triggera w migawce ' + (r.tylkoMigawka.length === 1 ? 'ZŁAPANY' : 'NIE został wykryty'));
+
+  /* 4. POPRAWNY STAN PRZEPUSZCZONY — bez tego samokontrola potrafi swiecic
+        na czerwono zawsze i nadal wygladac na zdana.
+     ⚠️ Wariant „po przeformatowaniu" jest tutaj, a nie osobno, bo to TEN SAM
+        warunek: normalizacja ma sprawiac, ze upgrade Postgresa (inne biale
+        znaki, inna wielkosc liter) NIE budzi bramki. Falszywy alarm uczy
+        ignorowac narzedzie rownie skutecznie jak brak alarmu. */
+  r = roznice(wzorzec(), wzorzec());
+  const czysto = !r.rozne.length && !r.tylkoBaza.length && !r.tylkoMigawka.length;
+  zdanie(czysto, 'zgodny stan ' + (czysto ? 'PRZEPUSZCZONY' : 'zgłoszony jako rozjazd — bramka krzyczy bez powodu'));
+
+  mig = new Map([
+    [KLUCZ_FUN, '  create or replace FUNCTION public.auth_is_coach()\n\n RETURNS   boolean\n' +
+      ' LANGUAGE sql\nAS $function$\n  SELECT EXISTS (SELECT 1 FROM public.coaches WHERE id = auth.uid());\n$function$  '],
+    [KLUCZ_TRG, TRG_STMT.replace(/ /g, '  ').toUpperCase()],
+  ]);
+  r = roznice(wzorzec(), mig);
+  const poFormacie = !r.rozne.length && !r.tylkoBaza.length && !r.tylkoMigawka.length;
+  zdanie(poFormacie, 'sama zmiana formatowania (białe znaki, wielkość liter) ' +
+    (poFormacie ? 'NIE budzi bramki' : 'zgłoszona jako rozjazd — fałszywy alarm'));
+
+  const zdane = wyniki.filter(Boolean).length;
+  console.log('\n  ' + zdane + '/' + wyniki.length + ' zdanych\n');
+  return wyniki.every(Boolean) ? 0 : 1;
+}
+
+if (process.argv.includes('--samokontrola')) process.exit(samokontrola());
 if (process.argv.includes('--zrzut')) { zrzut(); process.exit(0); }
 process.exit(porownaj());

@@ -2,6 +2,7 @@
 
 Generowane: `node tools/funkcje-bazy.js --zrzut`
 Porównanie: `node tools/funkcje-bazy.js`
+Sprawdzenie samego narzędzia: `node tools/funkcje-bazy.js --samokontrola`
 
 To **nie są migracje**. To zapis tego, co **faktycznie stoi na produkcji**
 w dniu zrzutu. Migracje w `supabase/migrations/` opisują osiem obiektów;
@@ -72,6 +73,25 @@ Przy jednym pliku na obiekt:
 `SUMY.txt` jest dodatkiem, nie alternatywą: jedna linia na obiekt pozwala
 zobaczyć w jednym diffie, **ile** się ruszyło, zanim otworzy się poszczególne pliki.
 
+## Czy to porównanie w ogóle działa
+
+`--samokontrola` sprawdza cztery przypadki i **każdy z nich osobno na funkcji
+i na triggerze** (8 zdań). Trzy wykrywające: zmieniona treść, obiekt w bazie bez
+pliku w migawce, duch w migawce bez obiektu w bazie. Czwarty odwrotny: **zgodny
+stan ma zostać PRZEPUSZCZONY** — bez niego narzędzie mogłoby świecić na czerwono
+zawsze i nadal wyglądać na zdane.
+
+⚠️ **Trigger nie jest tu wariantem funkcji.** Przypadek „zmieniona treść"
+na triggerze odtwarza **realną regresję**: powrót `trg_detect_moment_ins`
+z `FOR EACH STATEMENT` do `FOR EACH ROW`, czyli utratę poprawki burstu.
+Gdyby samokontrola pokrywała same funkcje, największy znany rozjazd
+zostałby poza testem.
+
+Do czwartego przypadku doklejony jest wariant „po przeformatowaniu" (inne białe
+znaki, inna wielkość liter): ma **nie** budzić bramki. To ten sam warunek co
+normalizacja sumy — fałszywy alarm po upgrade Postgresa uczyłby ignorować
+narzędzie równie skutecznie jak brak alarmu.
+
 ## Jak liczona jest suma
 
 ⚠️ Z postaci **znormalizowanej** (białe znaki zwinięte, małe litery), nie
@@ -89,4 +109,6 @@ repo↔baza i chcemy ją widzieć. Tak wyszedł `trigger_send_push`.
 - Nie jest sprawdzana w CI. Wymagałoby to poświadczeń do produkcji w CI, co
   zmienia CI w cel ataku — decyzja Filipa 29.08.2026. Porównanie uruchamia
   człowiek lokalnie, tam gdzie i tak wykonuje migracje.
+  ⚠️ Sama `--samokontrola` poświadczeń NIE wymaga (działa na sucho, na
+  spreparowanych mapach), więc mogłaby stać w CI — dziś nie stoi.
 - Nie obejmuje tabel, kolumn, indeksów ani polityk RLS. Tylko funkcje i triggery.
