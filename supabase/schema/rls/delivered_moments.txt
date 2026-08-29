@@ -1,0 +1,40 @@
+MIGAWKA STANU DOSTĘPU — public.delivered_moments
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : SELECT
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  authenticated / UPDATE na kolumnach:
+    card_bg_url, shown_at
+
+POLITYKI (4)
+
+  [1] dm_ath_mark_shown
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [2] dm_ath_sel
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : ((status = 'approved'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))))
+
+  [3] dm_ath_upd
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : ((status = 'approved'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))))
+      przy zapisie: ((status = 'approved'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))))
+
+  [4] dm_coach_sel
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (auth_is_coach() AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))

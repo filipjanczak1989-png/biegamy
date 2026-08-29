@@ -1,0 +1,37 @@
+MIGAWKA STANU DOSTĘPU — public.nutrition_profiles
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (4)
+
+  [1] coach_reads_athletes_profile
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.user_id = nutrition_profiles.athlete_id) AND (a.coach_id = auth.uid()))))
+
+  [2] users_read_own_profile
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (auth.uid() = athlete_id)
+
+  [3] users_update_own_profile
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (auth.uid() = athlete_id)
+
+  [4] users_write_own_profile
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : public
+      przy zapisie: (auth.uid() = athlete_id)

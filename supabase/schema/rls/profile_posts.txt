@@ -1,0 +1,38 @@
+MIGAWKA STANU DOSTĘPU — public.profile_posts
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (4)
+
+  [1] profile_posts_delete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))
+
+  [2] profile_posts_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : public
+      przy zapisie: (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))
+
+  [3] profile_posts_read
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : ((athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1)) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.is_public = true))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
+
+  [4] profile_posts_update
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))
+      przy zapisie: (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))

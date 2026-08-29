@@ -1,0 +1,38 @@
+MIGAWKA STANU DOSTĘPU — public.radio_playlist_tracks
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (4)
+
+  [1] rpt_delete_own
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (EXISTS ( SELECT 1 FROM radio_playlists p WHERE ((p.id = radio_playlist_tracks.playlist_id) AND (p.owner_id = auth.uid()))))
+
+  [2] rpt_insert_own
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: (EXISTS ( SELECT 1 FROM radio_playlists p WHERE ((p.id = radio_playlist_tracks.playlist_id) AND (p.owner_id = auth.uid()))))
+
+  [3] rpt_select_own
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (EXISTS ( SELECT 1 FROM radio_playlists p WHERE ((p.id = radio_playlist_tracks.playlist_id) AND (p.owner_id = auth.uid()))))
+
+  [4] rpt_update_own
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (EXISTS ( SELECT 1 FROM radio_playlists p WHERE ((p.id = radio_playlist_tracks.playlist_id) AND (p.owner_id = auth.uid()))))
+      przy zapisie: (EXISTS ( SELECT 1 FROM radio_playlists p WHERE ((p.id = radio_playlist_tracks.playlist_id) AND (p.owner_id = auth.uid()))))

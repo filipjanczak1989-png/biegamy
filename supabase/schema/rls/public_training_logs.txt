@@ -1,0 +1,18 @@
+MIGAWKA STANU DOSTĘPU — public.public_training_logs  (WIDOK)
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WIDOK NIE MA RLS
+security_invoker: NIE — czyta uprawnieniami WŁAŚCICIELA, RLS tabel źródłowych JEST OMIJANY
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : SELECT
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (0)
+  — brak

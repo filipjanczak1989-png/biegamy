@@ -1,0 +1,32 @@
+MIGAWKA STANU DOSTĘPU — public.peer_messages
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (3)
+
+  [1] peer_msg_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : public
+      przy zapisie: ((from_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1)) AND (EXISTS ( SELECT 1 FROM friendships WHERE ((friendships.status = 'accepted'::text) AND (((friendships.requester_id = peer_messages.from_id) AND (friendships.addressee_id = peer_messages.to_id)) OR ((friendships.requester_id = peer_messages.to_id) AND (friendships.addressee_id = peer_messages.from_id)))))))
+
+  [2] peer_msg_read
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : ((from_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1)) OR (to_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1)))
+
+  [3] peer_msg_update
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (to_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))

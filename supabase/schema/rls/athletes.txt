@@ -1,0 +1,48 @@
+MIGAWKA STANU DOSTĘPU — public.athletes
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  authenticated / SELECT na kolumnach:
+    active, auto_monthly_enabled, auto_monthly_hour, auto_report_day_of_week, auto_report_enabled, auto_report_hour, avatar_url, city, coach_id, coach_message, coach_message_at, created_at, date_of_birth, email, email_reports_enabled, full_name, gender, goal, hr_max, hr_public, id, intervals_athlete_id, intervals_can_wellness, intervals_can_write, intervals_connected_at, intervals_token_dead_at, is_public, klaudiusz_brief, last_auto_monthly_at, last_auto_weekly_at, lat, link_facebook, link_garmin, link_instagram, link_strava, lon, morning_push_enabled, morning_push_hour, onboarding_done, pb_10k, pb_10k_year, pb_5k, pb_5k_year, pb_half, pb_half_year, pb_marathon, pb_marathon_year, phone, race_goals, strava_athlete_id, strava_connected_at, target_date, target_race, terms_accepted_at, user_id
+
+POLITYKI (6)
+
+  [1] athletes_insert_own
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : public
+      przy zapisie: (user_id = auth.uid())
+
+  [2] athletes_read_by_coach
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (coach_id = auth.uid())
+
+  [3] athletes_read_own
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (user_id = auth.uid())
+
+  [4] athletes_read_public
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : ((is_public = true) AND (auth.uid() IS NOT NULL))
+
+  [5] athletes_self_delete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (user_id = auth.uid())
+
+  [6] athletes_update_own
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (user_id = auth.uid())

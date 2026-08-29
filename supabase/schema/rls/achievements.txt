@@ -1,0 +1,37 @@
+MIGAWKA STANU DOSTĘPU — public.achievements
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (4)
+
+  [1] athlete insert own
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : public
+      przy zapisie: (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [2] athlete read own
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [3] public athletes achievements visible
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.is_public = true)))
+
+  [4] public_achievements_read
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.is_public = true))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))))

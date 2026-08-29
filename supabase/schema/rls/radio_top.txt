@@ -1,0 +1,18 @@
+MIGAWKA STANU DOSTĘPU — public.radio_top  (WIDOK)
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WIDOK NIE MA RLS
+security_invoker: TAK — czyta uprawnieniami PYTAJĄCEGO, RLS tabel źródłowych DZIAŁA
+
+UPRAWNIENIA (tabelowe)
+  anon           : REFERENCES, SELECT, TRIGGER, TRUNCATE
+  authenticated  : REFERENCES, SELECT, TRIGGER, TRUNCATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (0)
+  — brak

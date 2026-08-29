@@ -1,0 +1,23 @@
+MIGAWKA STANU DOSTĘPU — public.coach_workout_templates
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, SELECT, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (1)
+
+  [1] coach_owns_workout_templates
+      polecenie : ALL   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (coach_id = auth.uid())
+      przy zapisie: (coach_id = auth.uid())

@@ -1,0 +1,32 @@
+MIGAWKA STANU DOSTĘPU — public.radio_comments
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (3)
+
+  [1] radio_comments_delete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : ((user_id = auth.uid()) OR auth_is_coach())
+
+  [2] radio_comments_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: (user_id = auth.uid())
+
+  [3] radio_comments_select
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : true

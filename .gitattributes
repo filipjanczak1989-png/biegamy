@@ -15,3 +15,4 @@ vendor/** -text
 # (Sama SUMA jest na to odporna: normalizacja zwija `\s+`, wiec `` znika.
 #  Chodzi wylacznie o czystosc diffu.)
 supabase/schema/funkcje/** -text
+supabase/schema/rls/** -text

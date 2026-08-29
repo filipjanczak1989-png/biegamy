@@ -1,0 +1,19 @@
+MIGAWKA STANU DOSTĘPU — public.radio_plays
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : — brak
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (0)
+  ⚠️ RLS WŁĄCZONE, ZERO POLITYK → dla ról bez BYPASSRLS tabela jest pusta.
+     Jeśli dane i tak wychodzą, idą przez funkcję SECURITY DEFINER.

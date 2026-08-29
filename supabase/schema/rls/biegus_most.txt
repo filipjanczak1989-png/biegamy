@@ -1,0 +1,33 @@
+MIGAWKA STANU DOSTĘPU — public.biegus_most
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (3)
+
+  [1] biegus_most_self_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [2] biegus_most_self_select
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [3] biegus_most_self_update
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))

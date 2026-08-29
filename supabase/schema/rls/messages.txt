@@ -1,0 +1,38 @@
+MIGAWKA STANU DOSTĘPU — public.messages
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (4)
+
+  [1] messages_delete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+
+  [2] messages_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: (user_has_msg_access(athlete_id) AND (sender = ANY (ARRAY['athlete'::text, 'coach'::text])) AND (((sender = 'athlete'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))) OR ((sender = 'coach'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))))
+
+  [3] messages_select
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : user_has_msg_access(athlete_id)
+
+  [4] messages_update
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : user_has_msg_access(athlete_id)
+      przy zapisie: user_has_msg_access(athlete_id)
