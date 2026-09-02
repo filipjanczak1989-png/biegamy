@@ -884,3 +884,123 @@ Pokrewne: **#12** (notatka bez daty ważności starzeje się w nieprawdę) i
 **#16** (tekst o ograniczeniach starzeje się przy ulepszeniu) — w obu ta sama
 rodzina: zapis, którego nic nie wiąże z rzeczywistością, rozjeżdża się z nią
 po cichu i w tempie, którego nikt nie mierzy.
+
+## 18. Oczywista wada, która przy pomiarze okazuje się najlepszym z wariantów (2.09.2026)
+
+⚠️ **TA LEKCJA ISTNIEJE PO TO, ŻEBY NIE OTWIERAĆ TEGO PONOWNIE.** Za pół roku
+ktoś — Filip albo ja — znowu spojrzy na `najblizszyWynik()` w generatorze
+i zobaczy coś, co wygląda na ewidentny błąd: **kotwica temp wybiera bieg
+NAJBLIŻSZY dystansowi docelowemu, a przy maratonie najbliższy jest zwykle
+32-kilometrowym wybieganiem — czyli biegiem wolnym z definicji.** Odruch
+„to trzeba naprawić" jest słuszny w opisie i błędny we wniosku. Zmierzone.
+
+### Objaw był prawdziwy i został policzony
+
+Na produkcji, 40 osób z użytecznymi logami:
+
+| | 5 km | 10 km | półmaraton | maraton |
+|---|---|---|---|---|
+| kotwica pochodzi z TRENINGU, nie ze startu | 80% | 90% | 90% | **83%** |
+
+Kotwica jest wolniejsza od najlepszego biegu tej samej osoby u **25 z 40**,
+mediana **−70 s/km** na maratonie, **zero przypadków w drugą stronę**.
+Skrajny: prognoza 6:57:57 zamiast 3:30:51.
+
+### Pięć wariantów, jeden przyrząd
+
+**Leave-one-out na startach.** Bierzemy osobę z ≥2 startami „na maksa" na
+różnych dystansach, **zatrzymujemy jeden start jako „zawody"** i pytamy każdą
+regułę o prognozę z pozostałych kandydatów. Porównujemy z faktycznym czasem.
+
+```
+n = 33 próby · 12 osób · największa osoba daje 21% prób
+
+                          mediana błędu   średnia    max    brak kotwicy
+DZIŚ „najbliższy dystans"      6,9%        11,4%     45%         0
+A  najlepszy VDOT             21,7%        21,6%     53%         0
+B  tylko starty                7,3%        20,8%     97%     6 z 33
+C  powyżej własnej mediany     9,2%        15,8%     45%         0
+D  odrzut odstających 90 s    11,8%        13,4%     45%         0
+E  odrzut „≥30 km i wolne"    12,1%        13,2%     45%         0
+```
+
+⚠️ **n=33 to nie pomiar, to kontrola rzędu wielkości** — mediana błędu per
+osoba idzie od 2,4% do 42%. Wystarcza jednak, żeby odróżnić „trzy razy gorzej"
+od „w granicach szumu", i to jest jedyne wejście, przy którym znamy odpowiedź.
+
+### Dlaczego obecna reguła wygrywa
+
+**Obecna reguła wygrywa, bo Riegel w górę myli się mocniej niż w dół.**
+Szybka piątka ekstrapolowana na maraton przeszacowuje mocniej, niż wolne
+wybieganie niedoszacowuje — a wariant „najlepszy VDOT" robi dokładnie tę
+pierwszą rzecz i dlatego jest najgorszy z całej piątki. Bliskość dystansu jest
+więc **ochroną przed ekstrapolacją**, nie przeoczeniem: im mniejszy przeskok,
+tym mniejszy błąd, niezależnie od tego, jak wolny był bieg źródłowy.
+
+### Trzy pułapki, w które wpadły warianty
+
+**1. Znacznik `Start` nie oddziela startu od ultra.** `training_type IN
+('Start','Wyścig')` + `casual_effort = false` istnieje od 16.08 i wygląda na
+gotowe rozwiązanie. W tej puli siedzą 33,5 km @ 9:05/km, 45,7 @ 9:12,
+64,5 @ 9:07 — wszystkie oznaczone jako maksymalny wysiłek, bo nimi były.
+Wariant B wybiera ultra jako kotwicę **2 z 3 razy, dokładnie tak samo jak
+reguła dzisiejsza**. Do tego start w granicach ×1,5 od celu maratońskiego ma
+**3 osoby z 66**.
+
+**2. Odrzucanie odstających odrzuca życiówkę, nie ultra.** Intuicja była
+mocna: rozstęp VDOT między startami tej samej osoby to 1–25 s/km, a 150–270
+pojawia się wyłącznie przy ultra/trailu — więc outlier powinien się sam
+odsłonić. ⚠️ **Ale ta separacja dotyczyła porównania startów ze startami.**
+W pełnej puli kandydatów 90% to biegi spokojne, więc mediana jest wolna
+i odstającym jest PB:
+
+```
+próg  45 s/km → odrzuca SZYBSZYCH: 39 · WOLNIEJSZYCH: 36
+próg  90 s/km → odrzuca SZYBSZYCH:  8 · WOLNIEJSZYCH: 15
+próg 120 s/km → odrzuca SZYBSZYCH:  1 · WOLNIEJSZYCH:  9   ← ale wtedy nie robi już nic
+```
+
+**3. Stała, która nie jest parametrem, tylko samą regułą.** Kierunek zmiany
+kotwicy w wariancie D **zmienia znak** wraz z progiem: dla piątki +96 s/km
+przy 60 s, +117 przy 90 i −25 przy 120. Nie ma z czego wziąć tej liczby,
+a wynik zależy od niej całkowicie. Po ośmiu stałych bez pokrycia, które
+z tego silnika wyrzuciliśmy, dziewiąta musiałaby zarobić na siebie — ta nie
+umie nawet powiedzieć, w którą stronę działa.
+
+### Objaw ogólny
+
+**Wada opisana poprawnie, z wnioskiem wyprowadzonym z proxy zamiast z prawdy.**
+Mierzyłem kotwicę względem „najlepszego kandydata tej osoby", traktując go jak
+prawdę o formie. Nie jest nią: jako predyktor realnych startów wypada trzy razy
+gorzej niż to, co skrytykował. Mechanizm był opisany dobrze — brakowało
+pytania **„a względem czego to jest gorsze?"**.
+
+To jest bliski krewny **#13** (pomiar, który wygląda na dowód) i **#11**
+(wskaźnik zastępczy podany jako pomiar). Różnica: tam proxy było zamiast
+pomiaru, tu proxy było **punktem odniesienia dla pomiaru** — subtelniejsze,
+bo liczby się zgadzały, tylko mierzyły odległość od czegoś, co samo jest gorsze.
+
+### Zasada praktyczna
+
+Zanim nazwiesz regułę wadliwą, sprawdź, **czym ją zastąpisz i czy to jest
+lepsze na danych**. Reguła, której mechanizm brzmi źle, a wynik jest najlepszy
+z dostępnych, jest dobrą regułą źle opisaną — i naprawia się ją **opisem, nie
+kodem**.
+
+### Co z tego wyszło
+
+Reguła doboru **nietknięta**. Zmieniło się to, że plan mówi, z czego liczy:
+zamiast „Tempa liczone od Twojej dziesiątki (6:04/km)" — liczby, której nikt
+nigdy nie biegł — stoi **„Tempa liczone z Twojego biegu na 32 km (6:30/km)"**,
+czyli bieg, który człowiek rozpoznaje. Pod tempami na ekranie wyniku doszedł
+blok „Skąd te tempa" z przyciskiem **„Mam lepszy wynik →"**, który otwiera
+krok 4 z podstawioną znaną objętością.
+
+⚠️ **To jest naprawa przyczyny, nie obejście skutku, i to jest cała pointa.**
+Skoro automat nie potrafi wybrać lepiej — a właśnie to zmierzyliśmy — to
+jedyną uczciwą drogą jest pokazać, z czego liczy, i zapytać człowieka.
+On jeden wie, czy tamto wybieganie było spacerem, czy sprawdzianem.
+
+Otwarte świadomie: sanity `[150, 600] s/km` przepuszcza marsz (20,7 km
+@ 8:58/km zostaje kandydatem). Zawężenie progu to nowa stała — po tym pomiarze
+nie wchodzi bez własnego uzasadnienia.

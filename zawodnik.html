@@ -1633,7 +1633,11 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
            Oba pola są WYMAGANE. Objętości nie zgadujemy tym bardziej niż tempa:
            steruje reżimem progresji, więc pomyłka o 3× psuje plan w obie strony. -->
       <div id="gen-fallback" style="display:none;margin-bottom:20px;padding:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.22);border-radius:12px;">
-        <div style="font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:12px;">Nie mam jeszcze Twoich biegów. Podaj ostatni wynik:</div>
+        <!-- Tekst jest ZMIENNY, bo krok 4 obsługuje dwie różne sytuacje: brak
+             jakiejkolwiek kotwicy (BRAK_POZIOMU) i kotwicę słabą, którą człowiek
+             może poprawić. Domyślna treść = ta pierwsza; drugą wstawia
+             genPoprawKotwice(), a _genFbReset() przywraca domyślną. -->
+        <div id="gen-fb-tytul" style="font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:12px;">Nie mam jeszcze Twoich biegów. Podaj ostatni wynik:</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="gen-fb-dystans">
           <button type="button" class="type-pill" onclick="genSelFbDystans(this,'5k')">5 km</button>
           <button type="button" class="type-pill" onclick="genSelFbDystans(this,'10k')">10 km</button>
@@ -5249,6 +5253,10 @@ async function _odswiezOcenePlanu() {
 window._odswiezOcenePlanu = _odswiezOcenePlanu;
 
 let _genDystans = null, _genDni = null, _genRaceDate = null, _genFbDystans = null;
+/* Czy krok 4 otwarto jako POPRAWKĘ kotwicy (człowiek ma już plan), czy jako
+   brak danych. Rozstrzyga wyłącznie treść komunikatu przy niepełnym wypełnieniu
+   — patrz genUlozPlan(). */
+let _genFbTrybPoprawka = false;
 
 function openGenModal() {
   _genDystans = null; _genDni = null; _genRaceDate = null; _genFbDystans = null;
@@ -5301,6 +5309,8 @@ function genSelFbDystans(btn, klucz) {
 }
 window.genSelFbDystans = genSelFbDystans;
 
+const _GEN_FB_TYTUL_DOMYSLNY = 'Nie mam jeszcze Twoich biegów. Podaj ostatni wynik:';
+
 function _genFbReset() {
   const fb = document.getElementById('gen-fallback');
   if (!fb) return;
@@ -5308,8 +5318,51 @@ function _genFbReset() {
   _czasResetPol('gen-fb-czas');
   document.getElementById('gen-fb-km').value = '';
   fb.querySelectorAll('.type-pill').forEach(b => b.classList.remove('on'));
+  const ty = document.getElementById('gen-fb-tytul');
+  if (ty) ty.textContent = _GEN_FB_TYTUL_DOMYSLNY;   // wróć do wersji „brak danych"
+  _genFbTrybPoprawka = false;
   _genFbBlad('');
 }
+
+/* ── POPRAW KOTWICĘ ─────────────────────────────────────────────────────────
+   ⚠️ TO JEST NAPRAWA PRZYCZYNY, NIE OBEJŚCIE SKUTKU, i dlatego wygląda tak
+   skromnie. Kotwicą temp jest PB najbliższe dystansowi docelowemu, a przy celu
+   maratońskim „najbliższe" bywa 32-kilometrowym wybieganiem — biegiem wolnym
+   z definicji. Zmierzone 2.09.2026 na produkcji: 83% kotwic maratońskich
+   pochodzi z treningu, nie ze startu, a kotwica jest wolniejsza od najlepszego
+   biegu tej osoby u 25 z 40 (mediana 70 s/km, ZERO w drugą stronę).
+
+   ⚠️ REGUŁY DOBORU NIE RUSZAMY I TO JEST ZMIERZONE, NIE ZAŁOŻONE. Pięć
+   wariantów (najlepszy VDOT, tylko starty, powyżej własnej mediany, odrzut
+   odstających, zawężenie puli) przeszło leave-one-out na 33 zatrzymanych
+   startach — obecna reguła wygrywa (mediana błędu 6,9%; „najlepszy VDOT" 21,7%).
+   Wyprowadzenie: .ai/LEKCJE.md #18. Skoro automat nie potrafi wybrać lepiej,
+   jedyną uczciwą drogą jest POKAZAĆ, z czego liczymy, i zapytać człowieka —
+   on jeden wie, czy to wybieganie było spacerem, czy sprawdzianem.
+
+   ⚠️ OBJĘTOŚĆ PODSTAWIAMY ZNANĄ. Krok 4 wymaga km/tydz, bo w swojej pierwotnej
+   roli (zero logów) nie ma ich skąd wziąć. Tutaj MAMY je z logów, więc kazanie
+   człowiekowi wpisać je z pamięci zamieniłoby poprawkę tempa w cichą zmianę
+   bazy planu. Pole zostaje edytowalne — podstawiamy, nie blokujemy. */
+function genPoprawKotwice() {
+  const fb = document.getElementById('gen-fallback');
+  if (!fb) return;
+  _genWrocDoFormularza();
+  _genFbReset();
+  const kot = window._genWynik && window._genWynik.meta && window._genWynik.meta.kotwica;
+  const ty = document.getElementById('gen-fb-tytul');
+  if (ty && kot) {
+    ty.textContent = 'Liczymy z Twojego biegu na ' + kot.dystans_km + ' km po ' + kot.tempo +
+      '/km — jeśli masz lepszy wynik, podaj go.';
+  }
+  const obj = window._genOstatniPoziom && window._genOstatniPoziom.objetoscTygodniowa;
+  const km = document.getElementById('gen-fb-km');
+  if (km && obj > 0) km.value = String(Math.round(obj));
+  _genFbTrybPoprawka = true;          // PO _genFbReset(), bo on ją zeruje
+  fb.style.display = 'block';
+  fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+window.genPoprawKotwice = genPoprawKotwice;
 
 /* Trwały komunikat walidacji formularza — odpowiednik _genFbBlad, ale dla
    głównego formularza, nie dla kroku 4. Czyszczony przy każdej próbie. */
@@ -5399,19 +5452,30 @@ async function _genZbierzPoziom() {
   const kandydaci = Array.from(najlepszeNaDystansie.values());
   rows.forEach(l => { const p = _genP10ZLogu(l); if (p != null && (p10 == null || p < p10)) p10 = p; });
 
-  // 2) brak wyniku → średnie tempo biegów ≥5 km z ostatnich 8 tygodni + 20 s/km
-  if (p10 == null) {
-    const gr8 = Date.now() - 56 * 86400000;
-    const temp = [];
-    rows.forEach(l => {
-      if (new Date(l.logged_at).getTime() < gr8) return;
-      const km = parseFloat(l.distance_km) || 0, sek = _silnikToSec(l.duration);
-      if (km < 5 || !sek) return;
-      if (window.isRunType && !window.isRunType(l.training_type)) return;
-      temp.push(sek / km);
-    });
-    if (temp.length) p10 = temp.reduce((a, b) => a + b, 0) / temp.length + 20;
-  }
+  /* ── NAGROBEK: „2) brak wyniku → średnie tempo biegów ≥5 km + 20 s/km" ──────
+     USUNIĘTE 2.09.2026 jako gałąź, do której NIE DA SIĘ WEJŚĆ. Nie była
+     martwa „prawdopodobnie" — warunek wejścia jest arytmetycznie niemożliwy:
+
+       wchodziła przy `p10 == null`, a `p10` liczy `_genP10ZLogu` z filtrem
+       (km ≥ 3 · `_silnikToSec` · `isRunType`) — DOKŁADNIE tym samym, którym
+       zbiera się `najlepszeNaDystansie` linijkę wyżej. Sama zaś wymagała
+       km ≥ 5, czyli PODZBIORU tego, co już odpadło. Jeśli `p10` było null,
+       to nie istniał ani jeden bieg ≥3 km, więc tym bardziej ani jeden ≥5 km
+       i `temp` zostawało puste. Gałąź nie mogła dołożyć nic, nigdy.
+
+     ⚠️ TO ZNACZY TEŻ, ŻE `p10sec` Z TEJ FUNKCJI ZAWSZE BYŁO `null`.
+     `kandydaci` jest niepuste dokładnie wtedy, gdy `p10` jest niepuste, więc
+     `kandydaci.length ? null : p10` oddaje null w obu przypadkach. Silnik
+     dostaje kotwicę z listy kandydatów albo BRAK_POZIOMU — trzeciej drogi nie
+     ma. Zostawiam to jawnie w `return` niżej zamiast upraszczać do `null`:
+     kontrakt silnika przewiduje `p10sec` i inni wołający mogą go podawać.
+
+     ⚠️ NIE PRZYWRACAĆ „BO SZKODA" — to była JEDYNA ścieżka, która zgadywała
+     tempo (średnia z biegów spokojnych + 20 s/km) zamiast liczyć je z wyniku.
+     Jej nieosiągalność jest zgodna z manifestem silnika („PRZY BRAKU DANYCH
+     ODMAWIAMY. NIGDY NIE ZGADUJEMY W GÓRĘ"), a nie wbrew niemu. Brak kotwicy
+     ma prowadzić do kroku 4 (pytania o wynik), nie do oszacowania.
+     Trzeci taki przypadek po `logAsTraining` i `autoLog`. */
 
   // objętość: średnia tygodniowa z ostatnich 4 tygodni (tylko biegowe)
   const gr4 = Date.now() - 28 * 86400000;
@@ -5449,6 +5513,9 @@ async function genUlozPlan() {
   let wynik;
   try {
     const poziom = await _genZbierzPoziom();
+    // Zapamiętane WYŁĄCZNIE po to, żeby genPoprawKotwice() mogło podstawić
+    // znaną objętość zamiast kazać ją wpisywać z pamięci.
+    window._genOstatniPoziom = poziom;
 
     // Krok 4 ma pierwszeństwo nad (pustymi) logami.
     const fb = document.getElementById('gen-fallback');
@@ -5467,6 +5534,18 @@ async function genUlozPlan() {
       }
       if (!_genFbDystans || !czasS) {
         btn.disabled = false; btn.textContent = 'Ułóż plan →';
+        /* ⚠️ DWIE SYTUACJE, DWA KOMUNIKATY — i pomylenie ich byłoby kłamstwem.
+           Krok 4 otwiera się z DWÓCH powodów: bo nie mamy ani jednego biegu
+           (BRAK_POZIOMU), albo bo człowiek sam kliknął „Mam lepszy wynik".
+           `_genPokazZadanie()` mówi „Przebiegnij najpierw dziesiątkę na czas" —
+           zdanie prawdziwe TYLKO w pierwszym przypadku. Komuś, kto ma za sobą
+           rok biegania i chciał poprawić kotwicę, jest zwyczajnie nieprawdziwe;
+           dostaje więc zwykłą walidację pola, a plan z dotychczasową kotwicą
+           nadal na niego czeka pod „← Wróć". */
+        if (_genFbTrybPoprawka) {
+          _genFbBlad('Wybierz dystans i podaj czas — albo wróć, plan z dotychczasowym tempem czeka.');
+          return;
+        }
         _genPokazZadanie();
         return;
       }
@@ -5878,6 +5957,26 @@ function _genPokazWynik(w) {
     +   'tempo <span style="color:var(--accent);">' + esc(m.tempa.T) + '/km</span> · '
     +   'interwały <span style="color:var(--accent);">' + esc(m.tempa.I) + '/km</span>'
     + '</div></div>'
+    /* ── SKĄD TE TEMPA ──────────────────────────────────────────────────────
+       ⚠️ STOI ZARAZ POD TEMPAMI, NIE W ZAŁOŻENIACH. To nie jest przypis —
+       to jest jedyne miejsce, w którym człowiek może złapać, że plan liczy mu
+       interwały z wolnego wybiegania. Wrzucone niżej, między noty o sufitach,
+       byłoby technicznie prawdziwe i praktycznie niewidoczne.
+       Pokazujemy TEMPO TEGO BIEGU, nie wyliczone p10 — „6:30/km na 32 km"
+       człowiek rozpoznaje, „6:04/km na dziesiątce" to liczba, której nigdy nie
+       biegł. Blok znika przy celu czasowym, bo wtedy tempa idą z celu i zdanie
+       w podsumowaniu już to mówi. */
+    + (m.kotwica && !m.tempaZCelu
+        ? '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">'
+          + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Skąd te tempa</div>'
+          + '<div style="font-size:13px;color:var(--fg2);line-height:1.6;">Liczymy z Twojego biegu na '
+          + esc(String(m.kotwica.dystans_km)) + ' km po ' + esc(m.kotwica.tempo) + '/km'
+          + ' — jeśli masz lepszy wynik, podaj go.</div>'
+          + '<button onclick="genPoprawKotwice()" style="width:100%;background:var(--card2);color:var(--fg);'
+          + 'border:1px solid var(--border);border-radius:10px;padding:11px;margin-top:12px;'
+          + 'font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Mam lepszy wynik →</button>'
+          + '</div>'
+        : '')
     + (m.zalozenia && m.zalozenia.length
         ? '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-bottom:12px;">' + esc(m.zalozenia.join(' ')) + '</div>' : '')
     /* ⚠️ JEDYNE miejsce, gdzie na tym ekranie stoi ZAMKNIECIE — zdanie o tym,

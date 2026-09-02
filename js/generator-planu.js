@@ -783,8 +783,23 @@
     var kandydaci = (poziom.wyniki && poziom.wyniki.length) ? poziom.wyniki
                   : (poziom.wynik ? [poziom.wynik] : []);
     var kotwica = kandydaci.length ? najblizszyWynik(kandydaci, d.km) : null;
+    /* ⚠️ KOTWICA MUSI WYJŚĆ NA ZEWNĄTRZ, BO PODSUMOWANIE O NIEJ MÓWI.
+       Do 2.09.2026 zostawała tutaj, a zdanie w `podsumowanie()` odgadywało
+       źródło z `we.poziom.wynik` — pola, którego główna ścieżka klienta NIE
+       ustawia (podaje `poziom.wyniki[]`, a `wynik` zostawia na null). Skutek:
+       każdy plan z logów mówił „Tempa liczone od Twojej dziesiątki", nawet gdy
+       kotwicą było 32-kilometrowe wybieganie, a dziesiątka tego człowieka jest
+       o półtorej minuty na kilometr szybsza. To ta sama wada, którą komentarz
+       przy `podsumowanie` opisuje jako naprawioną w punkcie 2 — wróciła razem
+       z przejściem na listę kandydatów.
+       `kotwicaUzyta` jest osobne od `kotwica`, bo przy podanym wprost `p10sec`
+       kandydat się liczy, ale NIE jest źródłem temp; zdanie ma mówić o tym,
+       z czego liczyliśmy, a nie o tym, co mieliśmy pod ręką. */
+    var kotwicaUzyta = null;
     if (p10 == null && kotwica) {
       p10 = p10ZWyniku(kotwica.dystans_km, kotwica.czas_s);
+      kotwicaUzyta = { dystans_km: kotwica.dystans_km, czas_s: kotwica.czas_s,
+                       tempo_s: kotwica.czas_s / kotwica.dystans_km };
     }
     if (!(p10 > 0)) {
       return odmowa('BRAK_POZIOMU',
@@ -1199,7 +1214,7 @@
                                    obecna: obecna, peak: peak, startTyg: startTyg, budowa: budowa, rezim: rezim,
                                    taperTyg: taperTyg, startWNiedziele: startWNiedziele,
                                    przesunieteTyg: przesunieteTyg, idxToday: idxToday,
-                                   zalozonaObjetosc: zalozonaObjetosc } };
+                                   zalozonaObjetosc: zalozonaObjetosc, kotwica: kotwicaUzyta } };
   }
 
   /* ── ODMOWA MUSI NIEŚĆ WYJŚCIE ─────────────────────────────────────────────
@@ -2191,6 +2206,15 @@
         p10sec: Math.round(k.p10),                  // z czego liczone są STREFY (cel, gdy podany)
         p10sec_forma: Math.round(k.p10Formy),       // co wynika z historii — zostaje dla porównania
         tempaZCelu: wejscie.celCzasowy != null,
+        /* Bieg, z którego policzyliśmy formę — `null`, gdy p10 przyszło wprost
+           albo gdy nie było kandydatów. Klient pokazuje go człowiekowi i pyta,
+           czy ma coś lepszego; to jedyna droga poprawienia kotwicy, która nie
+           wymaga zgadywania za niego. */
+        kotwica: k.kotwica
+          ? { dystans_km: Math.round(k.kotwica.dystans_km * 10) / 10,
+              czas_s: Math.round(k.kotwica.czas_s),
+              tempo: fmtTempo(k.kotwica.tempo_s) }
+          : null,
         tempa: {
           E:   fmtTempo(tempoStrefy(k.p10, 'E')),
           Reg: fmtTempo(tempoStrefy(k.p10, 'Reg')),
@@ -2291,13 +2315,26 @@
         ? 'Objętość schodzi z ' + od + ' do ' + doKm + ' km/tydz — sufity jednostek nie pozwalają rozłożyć więcej na ' + dni + ' dni.'
         : 'Objętość trzyma się ' + od + ' km/tydz, co czwarty tydzień lżejszy.';
 
-    // Skąd NAPRAWDĘ wzięło się tempo, od którego liczą się wszystkie strefy.
-    var wynik = we.poziom && we.poziom.wynik;
+    /* Skąd NAPRAWDĘ wzięło się tempo, od którego liczą się wszystkie strefy.
+       ⚠️ ŹRÓDŁO CZYTAMY Z `k.kotwica`, NIE ZGADUJEMY GO Z `we.poziom`.
+       Poprzednia wersja pytała o `we.poziom.wynik` — pole, którego główna
+       ścieżka nie wypełnia — więc zawsze wpadała w gałąź „od Twojej dziesiątki".
+       Silnik ZNAŁ kotwicę i jej nie przekazywał; teraz przekazuje.
+
+       ⚠️ POKAZUJEMY TEMPO TEGO BIEGU, NIE WYLICZONE P10 — i to jest cała
+       wartość tej zmiany. „6:30/km na 32 km" człowiek rozpoznaje: wie, że to
+       było wybieganie, i sam oceni, czy chce mieć z niego liczone tempa.
+       „6:04/km na dziesiątce" to liczba, której nigdy nie biegł i której nie
+       ma jak sprawdzić. ZMIERZONE 2.09.2026 (n=33, leave-one-out na startach):
+       reguła doboru kotwicy jest najlepsza z pięciu sprawdzonych, więc NIE
+       zmieniamy tego, CO wybieramy — zmieniamy to, czy o tym mówimy.
+       Wyprowadzenie: .ai/LEKCJE.md #18. */
+    var kot = k.kotwica;
     var zrodlo = we.celCzasowy != null
       ? 'Tempa liczone z Twojego celu (' + fmtTempo(k.p10) + '/km na dziesiątce).'
-      : (wynik && !(we.poziom.p10sec > 0)
-          ? 'Tempa liczone z Twojego wyniku na ' + (Math.round(wynik.dystans_km * 10) / 10) +
-            ' km (' + fmtTempo(k.p10) + '/km na dziesiątce).'
+      : (kot
+          ? 'Tempa liczone z Twojego biegu na ' + (Math.round(kot.dystans_km * 10) / 10) +
+            ' km (' + fmtTempo(kot.tempo_s) + '/km).'
           : 'Tempa liczone od Twojej dziesiątki (' + fmtTempo(k.p10) + '/km).');
 
     var s = k.d.etykieta + ' za ' + k.tygodnie + ' tyg., ' + dni + ' dni biegania w tygodniu. ' +
@@ -3397,6 +3434,23 @@
     sekcja('PLAN — komunikat produktowy i pola pod zapis');
     check('ai_warnings niesie zdanie o nieadaptacyjności', r.plan.ai_warnings === ZAMKNIECIE, r.plan.ai_warnings);
     check('ai_summary wspomina tempo dziesiątki', /5:00\/km/.test(r.plan.ai_summary), r.plan.ai_summary);
+    /* ⚠️ BLIZNA 2.09.2026 — ZDANIE O ŹRÓDLE TEMP MÓWIŁO O DZIESIĄTCE, KTÓREJ
+       NIKT NIE BIEGŁ. Główna ścieżka klienta podaje `poziom.wyniki[]` i zostawia
+       `poziom.wynik` na null, a stare zdanie pytało właśnie o `wynik` — więc
+       kotwica z 32-km wybiegania meldowała się jako „Twoja dziesiątka".
+       Te trzy asercje pilnują TRZECH RÓŻNYCH ścieżek, bo każda mówi co innego. */
+    var zLogow = uloz(we({ dystans: 'marathon', dataStartu: zaTygodni(24), dniWTygodniu: 5,
+      poziom: { p10sec: null, objetoscTygodniowa: 60,
+                wyniki: [{ dystans_km: 10, czas_s: 45 * 60 }, { dystans_km: 32, czas_s: 208 * 60 }] } }));
+    check('źródło temp cytuje BIEG, z którego liczyliśmy — nie „dziesiątkę"',
+      zLogow.ok && /z Twojego biegu na 32 km \(6:30\/km\)/.test(zLogow.plan.ai_summary),
+      zLogow.ok ? zLogow.plan.ai_summary : zLogow.sciana.kod);
+    check('…i meta niesie tę kotwicę, żeby klient mógł o nią dopytać',
+      zLogow.ok && zLogow.meta.kotwica && zLogow.meta.kotwica.dystans_km === 32 &&
+      zLogow.meta.kotwica.tempo === '6:30',
+      zLogow.ok ? zLogow.meta.kotwica : null);
+    check('⚠️ p10 podane WPROST → kotwica pusta, zdanie wraca do dziesiątki (dowód, że gałąź żyje)',
+      r.meta.kotwica === null && /od Twojej dziesiątki/.test(r.plan.ai_summary), r.meta.kotwica);
     check('source = self', r.plan.source === 'self', r.plan.source);
     check('status = draft', r.plan.status === 'draft', r.plan.status);
     check('target_race_type z listy CHECK bazy',
