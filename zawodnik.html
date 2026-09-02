@@ -5244,7 +5244,19 @@ async function _odswiezOcenePlanu() {
     '<div style="background:' + s.tlo + ';border:1px solid ' + s.kolor + '33;border-radius:12px;padding:14px;">'
     + '<div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:' + s.kolor + ';font-family:DM Mono,monospace;margin-bottom:8px;">' + esc(s.naglowek) + '</div>'
     + '<div style="font-size:13px;color:var(--fg);line-height:1.6;">' + esc(r.ocena.komunikat || '') + '</div>'
-    + (r.ocena.akcja === 'sciana'
+    /* ⚠️ PRZYCISK POD TRZEMA AKCJAMI, NIE POD JEDNĄ — i to jest cała naprawa
+       „komunikatu bez mechanizmu". `cofnij` i `mniej_dni` nie zmieniają planu
+       (świadomie: przepisywanie kalendarza to DELETE+INSERT, droga zamknięta
+       migracją 20260818, a `trainings_athlete_update` nie ma w RLS ani
+       `plan_source`, ani `status`). Ich zdania wskazują więc na czynność —
+       i ta czynność musi być pod ręką, inaczej nota mówi „ułóż plan od nowa"
+       i zostawia człowieka z szukaniem, gdzie.
+       Mechanizmu nie budujemy, bo on już istnieje: to ten przycisk.
+       ⚠️ `obniz` i `przywroc` przycisku NIE dostają — one MAJĄ swój mechanizm
+       (poprzeczka w `baza_obnizona_km`), więc zapraszanie do przegenerowania
+       planu byłoby namawianiem do skasowania kalendarza bez powodu.
+       `tylko_powiedz` też nie: tam komunikat sam mówi „jeśli chcesz wyżej". */
+    + (['sciana', 'cofnij', 'mniej_dni'].indexOf(r.ocena.akcja) >= 0
         ? '<button onclick="openGenModal()" style="margin-top:12px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">Ułóż plan od nowa</button>'
         : '')
     + '</div>';
@@ -5727,7 +5739,26 @@ async function _zbierzDaneAdaptacji(athleteId, dzis) {
     tygodnie.push({
       planKm: jt.reduce((s, j) => s + (Number(j.target_distance_km) || 0), 0) * mnoznikCelu,
       wykonaneKm: lt.reduce((s, l) => s + (Number(l.distance_km) || 0), 0),
-      jednostekPlan: jt.length,
+      /* ⚠️ TYLKO JEDNOSTKI BIEGOWE — `jt.length` LICZYŁO TEŻ DNI ODPOCZYNKU.
+         Generator zapisuje SIEDEM wierszy na tydzień: cztery biegi i trzy
+         `Odpoczynek` z pustym dystansem (sprawdzone na żywym planie: 7 = 4 + 3
+         w każdym tygodniu). `jednostekZrobionych` liczy natomiast wyłącznie
+         logi biegowe, więc różnica „zaplanowane − zrobione" doliczała trzy
+         nieistniejące braki tygodniowo.
+
+         ZMIERZONE, co z tego wychodziło:
+           • zawodnik robi WSZYSTKIE 4 biegi, tylko krótsze → silnik mówił
+             „odpadają średnio 3 treningi w tygodniu". Opuścił zero.
+           • zawodnik opuszcza 2 z 4 → „odpadają średnio 5 treningi
+             w tygodniu". Pięć z czterech.
+
+         ⚠️ SKUTEK POWAŻNIEJSZY NIŻ SAMA LICZBA: `mniej_dni` odpala się przy
+         `srednioOpuszczonych >= 2`, a trzy fałszywe braki przekraczały ten próg
+         ZAWSZE. `mniej_dni` stoi w kodzie PRZED `obniz`, więc gałąź `obniz` —
+         ta, która jako jedyna ma mechanizm, kolumnę w bazie i własną migrację —
+         była w produkcji nieosiągalna. Reagowała wyłącznie gałąź bez mechanizmu.
+         Po poprawce ten sam przypadek (4 biegi, 68% kilometrów) daje `obniz`. */
+      jednostekPlan: jt.filter(j => (Number(j.target_distance_km) || 0) > 0).length,
       jednostekZrobionych: lt.length
     });
   }

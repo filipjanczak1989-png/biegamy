@@ -482,9 +482,37 @@
        w `training_plans`, ta zmiana dotyczy wyłącznie planów generowanych od
        teraz. Świadomie bez backfillu: przepisywanie ostrzeżenia pod planem,
        który ktoś już przeczytał, to zmiana warunków po fakcie. */
-    'Plan reaguje na to, ile biegasz — cofnie się po przerwie i zejdzie niżej, ' +
-    'jeśli nie wyrabiasz. Nie widzi za to snu ani życia. ' +
-    'Słuchaj ciała bardziej niż planu.';
+    /* 2.09.2026 — CZWARTY RAZ, ale PIERWSZY W DRUGĄ STRONĘ. Trzy poprzednie
+       zmiany naprawiały zdanie, które starzało się NA WŁASNĄ NIEKORZYŚĆ:
+       silnik nauczył się czegoś, a tekst nadal mówił, że nie umie (LEKCJE #16).
+       Tym razem odwrotnie — tekst obiecywał WIĘCEJ, niż silnik robi:
+
+         „cofnie się po przerwie"      — `cofnij` nie zapisuje NICZEGO. Zero
+                                          zmian w kalendarzu, sam komunikat.
+         „zejdzie niżej, jeśli nie
+          wyrabiasz"                   — `obniz` obniża POPRZECZKĘ (kolumnę
+                                          baza_obnizona_km), nie jednostki planu.
+
+       ⚠️ TO JEST GROŹNIEJSZY KIERUNEK NIŻ TAMTEN. Tekst zaniżający własne
+       możliwości kosztuje nas zaufanie, gdy ktoś zauważy, że aplikacja umie
+       więcej. Tekst zawyżający kosztuje CZŁOWIEKA: ktoś po dwutygodniowej
+       przerwie mógł nie ułożyć planu od nowa, bo przeczytał, że plan cofnie
+       się sam. Sprawdzać PRZY KAŻDEJ ZMIANIE ADAPTACJI, w obie strony.
+
+       ⚠️ KOŃCÓWKA NADAL ZOSTAJE CO DO SŁOWA: „Słuchaj ciała bardziej niż
+       planu." Powód niezmieniony od 19.08 — generator jest dostępny wyłącznie
+       przy `coach_id IS NULL`, więc czyta to ktoś, kto trenuje sam, i jest to
+       jedyna rada wykonalna bez nikogo.
+
+       ⚠️ STARE PLANY ZOSTAJĄ ZE STARYM ZDANIEM — `ai_warnings` jest zamrożone
+       w `training_plans`. Dotyczy to dziś JEDNEGO planu (source='self',
+       utworzony 28.08.2026), więc backfill byłby wykonalny — i świadomie go
+       NIE robimy: przepisywanie ostrzeżenia pod planem, który ktoś przeczytał
+       i zaakceptował, to zmiana warunków po fakcie. Ten człowiek zobaczy nową
+       treść, gdy ułoży plan od nowa. */
+    'Plan nie zmienia się sam — ale odezwie się, gdy po przerwie albo po ' +
+    'słabszych tygodniach zakłada za dużo, i wtedy ułożysz go od nowa. ' +
+    'Nie widzi za to snu ani życia. Słuchaj ciała bardziej niż planu.';
 
   // ── DATY ───────────────────────────────────────────────────────────────────
   // Liczone wyłącznie w UTC na stringach 'YYYY-MM-DD'. Nigdy toISOString() na
@@ -2435,6 +2463,28 @@
   var OBNIZKA_PRZY_NIEDOWYKONANIU = 0.80;
 
   function fmtKm(x) { return Math.round(x * 10) / 10; }
+  /* Liczba DO CZYTANIA, nie do liczenia. `fmtKm` zostaje liczbą, bo idzie
+     w polach `odKm`/`doKm`/`zKm` prosto do bazy; to jest jej odpowiednik
+     na ekran: przecinek zamiast kropki i bez „,0" na końcu.
+     ⚠️ Osobne, a nie zmiana `fmtKm`, bo klient zapisuje `ocena.doKm` do
+     `baza_obnizona_km` (numeric) — string z przecinkiem trafiłby do bazy. */
+  function fmtKmTekst(x) {
+    var v = Math.round(x * 10) / 10;
+    return (Math.round(v) === v ? String(Math.round(v)) : String(v).replace('.', ','));
+  }
+  /* „2 treningi" · „5 treningów" · „2,5 treningu" — ułamek bierze dopełniacz
+     liczby pojedynczej, nie mnogiej. Ta sama troska co przy MIESIACE_DOPELNIACZ
+     i `wDopelniaczu` w wyjściu ze ściany. */
+  /* ⚠️ CZASOWNIK IDZIE ZA RZECZOWNIKIEM: „odpadają 2 treningi", ale „odpada
+     2,5 treningu" i „odpada 5 treningów". Mianownik mnogi rządzi orzeczeniem
+     w liczbie mnogiej, dopełniacz — w pojedynczej. Zwracamy oba naraz, bo
+     rozdzielenie ich to gwarantowany rozjazd przy pierwszej zmianie zdania. */
+  function treningiOdmiana(n) {
+    if (Math.round(n) !== n) return { rzecz: 'treningu', czas: 'odpada' };
+    var d = n % 10, s = n % 100;
+    if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return { rzecz: 'treningi', czas: 'odpadają' };
+    return { rzecz: 'treningów', czas: 'odpada' };
+  }
 
   /* ── CZYJ JEST TEN TYDZIEŃ ─────────────────────────────────────────────────
      Adaptacja wolno przeliczać WYŁĄCZNIE własne treningi. `plan_source` mówi,
@@ -2499,10 +2549,34 @@
     if (dniPrzerwy >= PRZERWA_BEZ_REAKCJI) {
       var udzial = dniPrzerwy < 14 ? POWROT_KROTKA_PRZERWA : POWROT_DLUGA_PRZERWA;
       var od = fmtKm(bazaPlanu * udzial);
+      /* ⚠️ ZDANIE OPISUJE PLAN, NIE OBIECUJE CZYNNOŚCI — 2.09.2026.
+         Brzmiało „objętość WRACA od 44 km/tydz zamiast 59. Do poprzedniego
+         poziomu WRÓCI stopniowo" i było kłamstwem na własną korzyść: `cofnij`
+         nie zapisuje niczego i nie zmienia ani jednego kilometra w kalendarzu.
+         Człowiek czytał obietnicę i dostawał plan bez zmian.
+
+         ⚠️ NIE PISZEMY „nie zmieniam go za Ciebie". Zdanie prawdziwe, ale
+         tłumaczy się z własnych ograniczeń, a czytelnik o nie nie pytał —
+         i zaprasza do pytania „to dlaczego nie?", na które odpowiedź jest
+         o naszym RLS, nie o jego bieganiu. Zamiast tego zdanie mówi, co JEST
+         (plan zakłada X), co z tego wynika (po przerwie za dużo), i wskazuje
+         przycisk, który liczy od nowa. Kto wykonuje czynność, widać z przycisku,
+         a nie z tłumaczenia.
+
+         ⚠️ MECHANIZMU ŚWIADOMIE NIE BUDUJEMY. Poprawne przeliczenie planu to
+         nowe wiersze, czyli DELETE+INSERT — droga zamknięta migracją
+         20260818_training_plans_obnizka.sql („nie wchodzi tu bocznymi
+         drzwiami"), bo w sierpniu skasowała plan trenera. Do tego
+         `trainings_athlete_update` nie ma w RLS ani `plan_source`, ani
+         `status`, więc przepisywanie kalendarza byłoby pilnowane wyłącznie
+         klauzulą WHERE w kliencie. Mechanizm już istnieje i jest przetestowany:
+         to `genUlozPlan` + `genZapiszPlan` pod tym przyciskiem. Różnica polega
+         tylko na tym, kto go naciska — i lepiej, żeby był to człowiek. */
       return { akcja: 'cofnij', powod: 'przerwa', dniPrzerwy: dniPrzerwy,
         odKm: od, zamiastKm: fmtKm(bazaPlanu), przyrostOdbudowy: PRZYROST_ODBUDOWY,
-        komunikat: 'Po ' + dniPrzerwy + ' dniach przerwy objętość wraca od ' + od +
-          ' km/tydz zamiast ' + fmtKm(bazaPlanu) + '. Do poprzedniego poziomu wróci stopniowo.' };
+        komunikat: 'Nie biegałeś ' + dniPrzerwy + ' dni. Ten plan zakłada ' + fmtKmTekst(bazaPlanu) +
+          ' km/tydz — po takiej przerwie to za dużo, realnie wychodzi ok. ' + fmtKmTekst(od) +
+          '. Ułóż plan od nowa, a policzę go od tego, co biegasz teraz.' };
     }
 
     /* ── TYDZIEŃ BEZ ZAPLANOWANYCH KILOMETRÓW NIE JEST TYGODNIEM WYKONANYM ────
@@ -2549,15 +2623,39 @@
     if (ponizej >= TYGODNI_DO_REAKCJI) {
       var srednioOpuszczonych = opuszczoneRazem / ostatnieTyg.length;
       if (srednioOpuszczonych >= 2) {
+        /* ⚠️ „PLAN ZEJDZIE o jeden dzień" — CZAS PRZYSZŁY BEZ WYKONAWCY.
+           Nic nie schodziło: `mniej_dni` niczego nie zapisuje. Zdanie mówi
+           teraz, ile dni plan ZAKŁADA i co z tym zrobić; liczba dni wynika
+           z jednostek biegowych tygodnia, więc nie trzeba jej wnosić osobno. */
+        var dniPlanu = Math.round(ostatnieTyg.reduce(function (s, t) {
+          return s + (t.jednostekPlan || 0); }, 0) / ostatnieTyg.length);
+        var _odm = treningiOdmiana(Math.round(srednioOpuszczonych * 10) / 10);
         return { akcja: 'mniej_dni', powod: 'opuszcza_jednostki',
           opuszczoneNaTydzien: Math.round(srednioOpuszczonych * 10) / 10,
-          komunikat: 'Od dwóch tygodni odpadają średnio ' + (Math.round(srednioOpuszczonych * 10) / 10) +
-            ' treningi w tygodniu. Plan zejdzie o jeden dzień biegania — lepiej zrobić mniej w całości niż więcej w połowie.' };
+          dniPlanu: dniPlanu,
+          komunikat: 'Od dwóch tygodni ' + _odm.czas + ' średnio ' + fmtKmTekst(srednioOpuszczonych) +
+            ' ' + _odm.rzecz + ' w tygodniu. Ten plan zakłada ' + dniPlanu +
+            ' dni biegania — lepiej zrobić mniej w całości niż więcej w połowie. ' +
+            'Ułóż plan od nowa i wybierz mniej dni.' };
       }
       var noweKm = fmtKm(bazaPlanu * OBNIZKA_PRZY_NIEDOWYKONANIU);
+      /* ⚠️ TU MECHANIZM JEST — ale robi co innego, niż mówiło zdanie.
+         `obniz` zapisuje `training_plans.baza_obnizona_km`, czyli zmienia to,
+         WEDŁUG CZEGO oceniamy. Jednostek w kalendarzu nie rusza (świadomie,
+         patrz migracja 20260818). Zdanie brzmiało „Objętość SCHODZI z 59 na 47
+         km/tydz" — a człowiek otwiera kalendarz i widzi niezmienione 59.
+
+         ⚠️ MIGRACJA WYMAGA UJAWNIENIA TEGO ROZJAZDU I ZAKŁADA, ŻE ROBI TO TO
+         ZDANIE: „kalendarz nadal pokazuje pierwotne kilometry, a oceniamy
+         według obniżonych. Rozjazd musi być POWIEDZIANY na ekranie — komunikat
+         z oceniAdaptacje podaje obie liczby". Podawał obie liczby, ale nie
+         mówił, że różnią się ROLĄ, więc warunek migracji nie był spełniony —
+         zdanie opisywało zmianę planu, a zmieniła się poprzeczka.
+         Teraz mówi to wprost. Mechanizm bez zmian. */
       return { akcja: 'obniz', powod: 'niedowykonanie', doKm: noweKm, zKm: fmtKm(bazaPlanu),
-        komunikat: 'Od dwóch tygodni biegasz mniej, niż zakłada plan. Objętość schodzi z ' +
-          fmtKm(bazaPlanu) + ' na ' + noweKm + ' km/tydz — wróci, gdy zaczniesz wyrabiać.' };
+        komunikat: 'Od dwóch tygodni biegasz mniej, niż zakłada plan. Od teraz mierzę Cię ' +
+          fmtKmTekst(noweKm) + ' km/tydz zamiast ' + fmtKmTekst(bazaPlanu) + ' — kalendarz zostaje ' +
+          'bez zmian, schodzi poprzeczka. Wróci na ' + fmtKmTekst(bazaPlanu) + ', gdy zaczniesz wyrabiać.' };
     }
 
     if (powyzej >= TYGODNI_DO_REAKCJI) {
@@ -4092,6 +4190,37 @@
       ad({ wObnizce: true, tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).akcja);
     check('jeden pusty + jeden pełny tydzień → też za mało, nie połowa dowodu',
       ad({ tygodnie: [tydz(0, 0, 0, 0), tydz(40, 10)] }).powod === 'za_malo_danych', null);
+
+    /* ⚠️ KOMUNIKAT NIE MOŻE OBIECYWAĆ CZYNNOŚCI, KTÓREJ NIKT NIE WYKONUJE.
+       `cofnij` i `mniej_dni` niczego nie zapisują — świadomie, bo przepisanie
+       kalendarza to DELETE+INSERT (migracja 20260818) i RLS na `trainings`
+       nie pilnowałby zakresu. Zdania mówią więc, co plan ZAKŁADA, i wskazują
+       przycisk. Te asercje pilnują, żeby czas przyszły nie wrócił. */
+    var _cof = ad({ ostatniLog: '2026-08-05' });
+    check('cofnij: NIE obiecuje, że objętość „wraca" sama',
+      _cof.akcja === 'cofnij' && !/wraca od|wróci stopniowo/.test(_cof.komunikat), _cof.komunikat);
+    check('cofnij: wskazuje czynność, którą człowiek może wykonać',
+      /Ułóż plan od nowa/.test(_cof.komunikat), _cof.komunikat);
+    var _mn = ad({ tygodnie: [tydz(40, 20, 5, 2), tydz(40, 20, 5, 3)] });
+    check('mniej_dni: NIE mówi „Plan zejdzie o jeden dzień" — nic nie schodzi',
+      _mn.akcja === 'mniej_dni' && !/Plan zejdzie/.test(_mn.komunikat), _mn.komunikat);
+    check('mniej_dni: podaje, ile dni plan ZAKŁADA (z jednostek, nie z osobnego wejścia)',
+      _mn.dniPlanu === 5 && /zakłada 5 dni/.test(_mn.komunikat), _mn.dniPlanu);
+    var _ob = ad({ tygodnie: [tydz(40, 25), tydz(40, 26)] });
+    check('obniz: mówi, że schodzi POPRZECZKA, a kalendarz zostaje',
+      /kalendarz zostaje bez zmian/.test(_ob.komunikat) && !/Objętość schodzi/.test(_ob.komunikat), _ob.komunikat);
+    check('ZAMKNIECIE nie obiecuje już, że plan „cofnie się po przerwie"',
+      !/cofnie się/.test(ZAMKNIECIE) && /nie zmienia się sam/.test(ZAMKNIECIE), ZAMKNIECIE);
+
+    /* ⚠️ GAŁĄŹ `obniz` BYŁA W PRODUKCJI ZASŁONIĘTA — `jednostekPlan` liczyło
+       dni odpoczynku, więc `srednioOpuszczonych >= 2` wychodziło zawsze
+       i `mniej_dni` (stojące wyżej) wygrywało każdy przypadek. Naprawione
+       po stronie klienta; tu pilnujemy RELACJI, żeby sens nie odjechał. */
+    check('⚠️ 4 biegi zrobione w całości, tylko krótsze → obniz, NIE mniej_dni',
+      ad({ tygodnie: [tydz(40, 27, 4, 4), tydz(40, 27, 4, 4)] }).akcja === 'obniz',
+      ad({ tygodnie: [tydz(40, 27, 4, 4), tydz(40, 27, 4, 4)] }).akcja);
+    check('…a realnie opuszczone jednostki nadal dają mniej_dni',
+      ad({ tygodnie: [tydz(40, 20, 4, 2), tydz(40, 20, 4, 2)] }).akcja === 'mniej_dni', null);
 
     console.log('\n  zaliczone: ' + pass + '   niezaliczone: ' + fail + '\n');
     if (typeof process !== 'undefined' && process.exit) process.exit(fail === 0 ? 0 : 1);
