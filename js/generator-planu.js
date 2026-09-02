@@ -2466,8 +2466,30 @@
     var bazaPlanu = we.bazaPlanu > 0 ? we.bazaPlanu : 0;
     var tyg = we.tygodnie || [];
 
-    var dniPrzerwy = (ostatni && poprawnaData(ostatni) && poprawnaData(dzis))
-      ? (dzienIdx(dzis) - dzienIdx(ostatni)) : 0;
+    /* ── DATA OSTATNIEGO BIEGU: BRAK ≠ ZERO DNI PRZERWY ───────────────────────
+       ⚠️ DO 2.09.2026 OBA PRZYPADKI DAWAŁY `dniPrzerwy = 0`, CZYLI „BIEGAŁ DZIŚ".
+       Zmierzone na żywym wejściu: zawodnik BEZ ANI JEDNEGO LOGU dostawał
+       „Od dwóch tygodni odpadają średnio 4 treningi w tygodniu. Plan zejdzie
+       o jeden dzień biegania" — zdanie o liczbie jednostek prawdziwe, ale
+       diagnoza fałszywa: człowiek, który nie biegał wcale, potrzebuje ściany
+       („przebiegnij coś na czas"), a nie strojenia liczby dni.
+
+       ⚠️ DATA W PRZYSZŁOŚCI MASKOWAŁA REALNĄ PRZERWĘ. Różnica wychodziła
+       ujemna, więc reguła przerwy milczała — a logowanie w przyszłość jest
+       wdrożone (KROK A+B), więc to nie jest przypadek hipotetyczny. Klient
+       odsiewa je zapytaniem, ta linia jest drugą barierą: silnik jest czystą
+       funkcją i musi bronić się sam przed każdym wejściem.
+
+       ⚠️ MILCZYMY, ZAMIAST ZGADYWAĆ, i to jest ta sama zasada co w `uloz`.
+       Bez daty nie da się rozstrzygnąć, czy patrzymy na przerwę, czy na
+       niedowykonanie — a przerwa jest ważniejsza i wyprzedza tamto w kolejce.
+       Odpowiedź „nie wiem" jest tu uczciwsza niż dowolna z dwóch diagnoz. */
+    var przerwaZnana = !!(ostatni && poprawnaData(ostatni) && poprawnaData(dzis));
+    var dniPrzerwy = przerwaZnana ? (dzienIdx(dzis) - dzienIdx(ostatni)) : 0;
+    if (przerwaZnana && dniPrzerwy < 0) przerwaZnana = false;   // log w przyszłości nie mierzy przerwy
+    if (!przerwaZnana) {
+      return { akcja: 'brak', powod: 'brak_daty_ostatniego_biegu' };
+    }
 
     if (dniPrzerwy >= PRZERWA_ZA_DLUGA) {
       return { akcja: 'sciana', powod: 'przerwa_za_dluga', dniPrzerwy: dniPrzerwy,
@@ -2483,13 +2505,34 @@
           ' km/tydz zamiast ' + fmtKm(bazaPlanu) + '. Do poprzedniego poziomu wróci stopniowo.' };
     }
 
-    var ostatnieTyg = tyg.slice(-TYGODNI_DO_REAKCJI);
+    /* ── TYDZIEŃ BEZ ZAPLANOWANYCH KILOMETRÓW NIE JEST TYGODNIEM WYKONANYM ────
+       ⚠️ STAŁO TU `t.planKm > 0 ? (wykonane/plan) : 1`, czyli pusty tydzień
+       liczył się jako wykonanie 1,00 — SUKCES. To nie jest szczegół: okno
+       adaptacji sięga dwóch PEŁNYCH tygodni wstecz, więc każdy świeżo zapisany
+       plan ma tam tygodnie, w których jeszcze nie istniał.
+
+       ZMIERZONE NA JEDYNYM ŻYWYM PLANIE (2.09.2026, plan z 28.08): okno
+       17–30.08 zawiera ZERO jednostek planu, a silnik odpowiadał
+       `powod: 'plan_wykonywany'` — „plan jest wykonywany" o dwóch tygodniach,
+       w których planu nie było. Gdyby ten człowiek był w obniżce, te same dwa
+       puste tygodnie dałyby `przywroc` z komunikatem „Od dwóch tygodni
+       wyrabiasz plan w całości".
+
+       Tydzień bez zaplanowanych kilometrów nie niesie ŻADNEJ informacji
+       o wykonaniu — ani dobrej, ani złej. Wypada więc z próby, a gdy zostanie
+       ich za mało, milczymy tak samo jak przy zbyt krótkiej historii.
+       ⚠️ Liczymy po `planKm`, nie po `jednostekPlan`: tydzień może mieć
+       jednostki o zerowym dystansie (Odpoczynek), a wtedy mianownik i tak
+       nie istnieje. */
+    var ostatnieTyg = tyg.slice(-TYGODNI_DO_REAKCJI).filter(function (t) {
+      return t && t.planKm > 0;
+    });
     if (ostatnieTyg.length < TYGODNI_DO_REAKCJI) return { akcja: 'brak', powod: 'za_malo_danych' };
 
     var ponizej = 0, powyzej = 0, opuszczoneRazem = 0;
     for (var i = 0; i < ostatnieTyg.length; i++) {
       var t = ostatnieTyg[i];
-      var st = t.planKm > 0 ? (t.wykonaneKm / t.planKm) : 1;
+      var st = t.wykonaneKm / t.planKm;
       if (st < DOLNY_PROG_WYKONANIA) ponizej++;
       if (st > GORNY_PROG_WYKONANIA) powyzej++;
       opuszczoneRazem += Math.max(0, (t.jednostekPlan || 0) - (t.jednostekZrobionych || 0));
@@ -4030,6 +4073,25 @@
       ad({ tygodnie: [tydz(40, 60), tydz(40, 58)] }).akcja === 'tylko_powiedz', null);
     check('za mało tygodni danych → milczenie, nie zgadywanie',
       ad({ tygodnie: [tydz(40, 10)] }).akcja === 'brak', null);
+
+    /* ⚠️ BLIZNY WEJŚCIA 2.09.2026 — trzy sposoby, na jakie „brak danych"
+       udawał „wszystko w porządku". Każdy zmierzony na realnym wejściu. */
+    check('BRAK daty ostatniego biegu → milczenie, NIE „biegał dziś"',
+      ad({ ostatniLog: null, tygodnie: [tydz(40, 0, 5, 0), tydz(40, 0, 5, 0)] }).powod === 'brak_daty_ostatniego_biegu',
+      ad({ ostatniLog: null, tygodnie: [tydz(40, 0, 5, 0), tydz(40, 0, 5, 0)] }));
+    check('…a wcześniej ta sama sytuacja dawała „mniej_dni" (dowód, że blizna jest nośna)',
+      ad({ ostatniLog: '2026-08-16', tygodnie: [tydz(40, 0, 5, 0), tydz(40, 0, 5, 0)] }).akcja === 'mniej_dni', null);
+    check('log z datą W PRZYSZŁOŚCI nie maskuje przerwy — milczymy zamiast zgadywać',
+      ad({ ostatniLog: '2026-09-30' }).powod === 'brak_daty_ostatniego_biegu',
+      ad({ ostatniLog: '2026-09-30' }));
+    check('⚠️ PUSTY tydzień nie jest tygodniem wykonanym — wypada z próby',
+      ad({ tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).powod === 'za_malo_danych',
+      ad({ tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }));
+    check('…i nie wypycha z obniżki planem, którego w tych tygodniach nie było',
+      ad({ wObnizce: true, tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).akcja === 'brak',
+      ad({ wObnizce: true, tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).akcja);
+    check('jeden pusty + jeden pełny tydzień → też za mało, nie połowa dowodu',
+      ad({ tygodnie: [tydz(0, 0, 0, 0), tydz(40, 10)] }).powod === 'za_malo_danych', null);
 
     console.log('\n  zaliczone: ' + pass + '   niezaliczone: ' + fail + '\n');
     if (typeof process !== 'undefined' && process.exit) process.exit(fail === 0 ? 0 : 1);
