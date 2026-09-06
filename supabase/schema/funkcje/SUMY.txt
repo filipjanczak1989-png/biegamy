@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Liczba funkcji: 53
+# Obiektow (funkcje + triggery): 55
 
 82c329258c25f668  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -49,6 +49,8 @@ eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
 159bb6e838f7e4d3  suma_biegowa
 ef47ede286094827  training_logs.trg_detect_moment_ins
 5aa4b4c80949ac5e  training_logs.trg_detect_moment_upd
+7061b121ba244c6d  trainings_guard_coach_plan
+f0ad39e0884f0332  trainings.trg_trainings_guard_coach_plan
 1911789ca515560a  trigger_detect_moment
 b3462703215e5e9d  trigger_detect_moment_row
 325b10c08b30d390  trigger_send_push

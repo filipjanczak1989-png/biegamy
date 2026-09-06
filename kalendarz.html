@@ -1024,9 +1024,13 @@ html { scroll-behavior: smooth; }
       <div class="field" id="f-date-picker-wrap" style="margin-bottom:14px;">
         <input type="date" id="f-date-picker" style="display:none;width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;" onchange="editingDate=this.value;const d=new Date(this.value);document.getElementById('modal-date-label').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});">
       </div>
+      <!-- Nota „to jest plan trenera" — wstawiana przez openModal(), gdy zawodnik
+           otwiera wiersz z coach_id. Stoi NAD polem typu, bo to pierwsze pole,
+           którego nie wolno mu ruszyć. -->
+      <div id="f-plan-trenera" style="display:none;margin-bottom:14px;padding:11px 13px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:10px;font-size:12px;color:#fbbf24;line-height:1.5;"></div>
       <div class="field">
         <label>Typ treningu</label>
-        <div class="type-pills">
+        <div class="type-pills" id="f-type-pills">
           <button class="type-pill sel spokojny-p" onclick="selType(this,'Bieg spokojny','spokojny')">Spokojny</button>
           <button class="type-pill" onclick="selType(this,'Interwały','interwaly')">Interwały</button>
           <button class="type-pill" onclick="selType(this,'Tempo','tempo')">Tempo</button>
@@ -1333,6 +1337,9 @@ const _initialDate = (() => {
 })();
 let currentWeekStart = getWeekStart(_initialDate); // aktualny tydzień (lub z URL)
 let editingDate = null;
+/* Czy trening otwarty w modalu ułożył trener (a my nim nie jesteśmy).
+   Ustawiane w openModal(), czytane przy zapisie — patrz saveTraining(). */
+let _planTrenera = false;
 let editingIndex = null;
 let selectedType = 'Bieg spokojny';
 let selectedTypeCls = 'spokojny';
@@ -1835,6 +1842,15 @@ function openModal(ds, idx) {
   const fDescEl = document.getElementById('f-desc');
   if(fDescEl) fDescEl.readOnly = false;
   if(fDescEl) { fDescEl.style.opacity=''; fDescEl.style.cursor=''; }
+  /* Reset blokady „plan trenera" — jak reszta pól wyżej. Bez tego modal
+     otwarty raz na treningu trenerskim zostawałby zablokowany dla następnego. */
+  _planTrenera = false;
+  const _ptNota = document.getElementById('f-plan-trenera');
+  if(_ptNota){ _ptNota.style.display='none'; _ptNota.textContent=''; }
+  ['f-type-pills','f-steps-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.style.pointerEvents=''; el.style.opacity=''; }
+  });
   const fLogDist = document.getElementById('f-log-dist');
   const fLogPace = document.getElementById('f-log-pace');
   const fLogStrava = document.getElementById('f-log-strava');
@@ -1873,6 +1889,29 @@ function openModal(ds, idx) {
   if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
     const t = trainings[ds][idx];
     document.getElementById('modal-title').textContent = 'Edytuj trening';
+
+    /* ── PLAN TRENERA JEST DO WYKONANIA, NIE DO PRZEPISANIA ────────────────
+       Od migracji 20260906 trigger `trg_trainings_guard_coach_plan` odrzuca
+       zapis typu, opisu, kroków i daty na wierszach z `coach_id`. Interfejs
+       MUSI powiedzieć to wcześniej: człowiek, który zmienia typ i dostaje
+       403 z bazy, nie wie, co zrobił źle — a „kliknąłem i nic" wygląda jak
+       awaria. Blokujemy więc pola i piszemy wprost, co wolno zapisać.
+       ⚠️ Trener widzi wszystko bez zmian: `_urlRole === 'coach'` to on. */
+    _planTrenera = (_urlRole !== 'coach') && !!t._coachId;
+    if (_planTrenera) {
+      const nota = document.getElementById('f-plan-trenera');
+      if (nota) {
+        nota.textContent = 'Ten trening ułożył Twój trener. Możesz zapisać, co zrobiłeś — ' +
+          'dystans, czas, tempo, tętno i status. Typ, opis i rozpiska zostają jego.';
+        nota.style.display = 'block';
+      }
+      ['f-type-pills','f-steps-field'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.pointerEvents = 'none'; el.style.opacity = '0.45'; }
+      });
+      const fd = document.getElementById('f-desc');
+      if (fd) { fd.readOnly = true; fd.style.opacity = '0.6'; fd.style.cursor = 'not-allowed'; }
+    }
 
     selectedType = t.type;
     selectedTypeCls = typeColors[t.type] || 'spokojny';
@@ -2521,8 +2560,23 @@ async function saveTraining() {
   const athDbId = existingT?._id || null;
 
   if (athDbId) {
-    // UPDATE — zawodnik edytuje swój trening
-    const { error: updErr } = await sb.from('trainings').update({
+    /* ⚠️ NA WIERSZU TRENERSKIM WYSYŁAMY WYŁĄCZNIE WYKONANIE. Trigger
+       `trg_trainings_guard_coach_plan` (migracja 20260906) i tak odrzuciłby
+       resztę kodem 42501, ale wysyłanie pól, o których wiemy, że zostaną
+       odrzucone, znaczyłoby, że CAŁY zapis pada — łącznie z dystansem
+       i statusem, które zawodnikowi wolno zapisać. Człowiek straciłby log
+       przez pole, którego nawet nie ruszył.
+       ⚠️ To NIE jest zamiast bramki w bazie, tylko przed nią: interfejs ma
+       nie prosić o rzeczy, których nie wolno, a baza ma ich pilnować
+       niezależnie od interfejsu. Patrz komentarz w openModal(). */
+    const _polaWykonania = {
+      distance_km: dist || null,
+      duration_min: time || null,
+      pace: pace || null,
+      heart_rate: hr || null,
+      status
+    };
+    const { error: updErr } = await sb.from('trainings').update(_planTrenera ? _polaWykonania : {
       type: selectedType,
       distance_km: dist || null,
       duration_min: time || null,
@@ -2863,6 +2917,13 @@ async function loadTrainingsFromDB() {
     if (!exists) {
       trainings[ds].push({
         _id: t.id,
+        /* ⚠️ POTRZEBNE INTERFEJSOWI, NIE TYLKO BAZIE. Od triggera
+           trg_trainings_guard_coach_plan (migracja 20260906) zamiar trenera
+           jest w bazie niezapisywalny przez zawodnika, a interfejs musi to
+           WIEDZIEĆ WCZEŚNIEJ — inaczej człowiek przeciąga kartę albo zmienia
+           typ i dostaje 403 zamiast wyjaśnienia. `coach_id` jest tym samym
+           kryterium, którego używa trigger i polityka coach_manage_trainings. */
+        _coachId: t.coach_id || null,
         type: t.type || 'Spokojny',
         exercise_ref: t.exercise_ref || null,
         dist: parseFloat(t.distance_km) || 0,
@@ -3819,6 +3880,25 @@ async function saveLog() {
 let _dragDs = null, _dragIdx = null;
 
 function dragStart(e, ds, idx) {
+  /* ⚠️ ODMOWA MUSI BYĆ SŁYSZALNA. Przeniesienie zapisuje `date`, a to od
+     migracji 20260906 kolumna chroniona na wierszach trenerskich — bez tej
+     bramki człowiek przeciągnąłby kartę i dostał 403 z bazy zamiast zdania
+     po polsku. Rozważane i odrzucone: `draggable="false"` na karcie (wtedy
+     `ondragstart` w ogóle nie leci, więc nie ma jak nic powiedzieć — a cicha
+     bezczynność wygląda jak awaria) oraz brak reakcji (to samo).
+     Zostaje: pozwalamy zacząć przeciąganie, przerywamy je i mówimy dlaczego.
+     ⚠️ Przesunięcie jednostki to zmiana PLANU, nie zapis wykonania. Kto biegł
+     w sobotę zamiast w niedzielę, loguje bieg w sobotę — jednostka trenera
+     zostaje na swoim dniu. Decyzja Filipa z 6.09.2026. */
+  const _t = trainings[ds] && trainings[ds][idx];
+  if (_t && _t._coachId && _urlRole !== 'coach') {
+    e.preventDefault();
+    /* `notify()`, NIE `showKalToast()` — ta druga jest w tym pliku wołana
+       dwa razy (przenoszenie screenshotów) i NIGDZIE NIE ZDEFINIOWANA, więc
+       rzuca ReferenceError. Zgłoszone osobno; tutaj nie powielam usterki. */
+    notify('Tego treningu nie przesuniesz — ułożył go trener. Zaloguj bieg w dniu, w którym biegłeś.');
+    return;
+  }
   _dragDs = ds; _dragIdx = idx;
   setTimeout(() => e.target.classList.add('dragging'), 0);
   e.dataTransfer.effectAllowed = 'move';
