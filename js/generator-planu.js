@@ -39,7 +39,12 @@
  * Wyjście mapuje się 1:1 na kolumny training_plans / training_plan_workouts,
  * żeby P4 był zwykłym insertem bez tłumaczenia pól.
  *
- * STREFY — skalibrowane na 489 treningach z biblioteki planów, sierpień 2026.
+ * TEMPA liczy równanie Danielsa (VDOT) — patrz „STREFY WG DANIELSA" niżej.
+ * ⚠️ Stała `STREFY` (E +95, Reg +120, T +30, I +5) to POMIAR NA 489 TRENINGACH
+ *    z biblioteki, sierpień 2026, i do 17.08.2026 była źródłem temp. Dziś NIE
+ *    UCZESTNICZY W ŻADNYM RACHUNKU: została w pliku i w API jako zapis tego,
+ *    jak te treningi były realnie prowadzone. Nagłówek twierdził, że tempa
+ *    z niej pochodzą — sprostowane 6.09.2026.
  * Źródło i zastrzeżenia: docs/generator-planow-spec.md.
  */
 (function (root) {
@@ -397,7 +402,25 @@
   var MAX_TEMPO_KM = 10;                 // PODŁOGA sufitu ciągłego akcentu (patrz sufitAkcentu)…
   var MAX_TEMPO_MIN = 40;                // …albo 40 min, co wypadnie krócej
 
-  /* ── SUFITY JEDNOSTEK SĄ FUNKCJĄ BAZY, NIE STAŁYMI ─────────────────────────
+  /* ── SUFITY JEDNOSTEK SĄ FUNKCJĄ BAZY, NIE STAŁYMI — POZA MARATONEM ───────
+     ⚠️ SPROSTOWANIE 6.09.2026, CZYTAĆ PRZED RESZTĄ TEGO AKAPITU.
+     Dla MARATONU `sufitWybiegania` jest STAŁĄ 34 na całym zakresie baz i nie
+     może być niczym innym: podłogą jest `maxDlugieKm` = 34, a sufit ruchomej
+     części to CAP 32. Ponieważ 32 < 34, `min(0,30 × baza, 32)` NIGDY nie
+     wygrywa z `max(…)`. Zmierzone dla baz 20–140:
+         5 km   14 14 18 24 30 32 32
+         10 km  18 18 18 24 30 32 32
+         half   22 22 22 24 30 32 32
+         maraton 34 34 34 34 34 34 34   ← stała
+     Czyli zmiana z 19.08 („sufity funkcją bazy") NIE DOTYKA dystansu, na
+     którym mieszkają największe bazy. Dla 5/10 km i półmaratonu funkcja
+     zaczyna wiązać dopiero od bazy ok. 47/60/73 km/tydz.
+     ⚠️ TO NIE JEST BŁĄD DO CICHEJ POPRAWKI: podniesienie CAPU powyżej 34
+     zmienia obciążenie maratończyków, a obniżenie `maxDlugieKm` odbiera im
+     wybieganie — obie drogi wymagają decyzji, nie refaktoru. Zapisane jako
+     zaległość; poniższy akapit opisuje zamiar, ten opisuje stan.
+
+     ── ZAMIAR (19.08.2026) ─────────────────────────────────────────────────
      Do 19.08.2026 `maxDlugieKm` (14/18/22/34) i `MAX_TEMPO_KM` (10) były
      stałymi. ZMIERZONE, dlaczego to źle: przy bazie 25 km/tydz sufit nie
      gryzł ANI RAZU (30% z 25 to 7,5 km, daleko pod 14), a przy bazie 80 na
@@ -1594,8 +1617,14 @@
        nie zrzut, nie taper — te tygodnie mają być lżejsze z definicji
 
      Zmierzone: obejmuje 166 z 948 tygodni (18%) — mniejszość, zgodnie z „nie
-     każdemu". Sufit MAX_JAKOSC_W_TYG = 2 istniał wcześniej i był nieużywany;
-     od teraz jest realnym ograniczeniem, a nie zabezpieczeniem na przyszłość. */
+     każdemu".
+     ⚠️ SUFIT MAX_JAKOSC_W_TYG = 2 NADAL NIE WIĄŻE i to jest sprostowanie.
+     Komentarz twierdził, że „od teraz jest realnym ograniczeniem" — nieprawda:
+     `jakoscTygodnia` daje najwyżej jedną jakość, `drugaJakosc` dokłada najwyżej
+     drugą, więc warunek `ileJakosci > 2` jest arytmetycznie nieosiągalny.
+     PRZEMIERZONE 1.09.2026 na pełnym zakresie (4 dystanse × 3–6 dni × bazy
+     12–140): maksimum w tygodniu = 2, czyli dokładnie sufit. Zostaje
+     zabezpieczeniem na wypadek trzeciej jakości, nie ograniczeniem bieżącym. */
   function drugaJakosc(nrTyg, kmTyg, dni, k) {
     if (dni < MIN_DNI_DRUGIEJ_JAKOSCI) return null;
     if (!(kmTyg >= PROG_DRUGIEJ_JAKOSCI)) return null;
@@ -1987,13 +2016,15 @@
     if (!poziom) return null;
     var bo = 'bo zgłosiłeś ' + (opis || 'ból') + '.';
     if (poziom === 1) {
-      return 'Bez akcentów, ' + bo + ' Objętość bez zmian. Wrócą, gdy oznaczysz, że minęło.';
+      return 'Bez akcentów, ' + bo + ' Objętość bez zmian. Gdy ból minie, ułóż plan od nowa — wrócą.';
     }
     if (poziom === 2) {
-      return 'Plan jest lżejszy i bez akcentów, ' + bo + ' Wróci do normy, gdy oznaczysz, że minęło.';
+      return 'Plan jest lżejszy i bez akcentów, ' + bo +
+        ' CAŁY jest policzony z bólem — nie podniesie się sam, gdy przestanie boleć. Ułóż go wtedy od nowa.';
     }
     return 'W pierwszym tygodniu nie ma biegania, ' + bo
-         + ' Dalej plan jest lżejszy. Wróci do normy, gdy oznaczysz, że minęło.';
+         + ' Dalej plan jest lżejszy — CAŁY, do dnia startu. Nie podniesie się sam,'
+         + ' gdy przestanie boleć; ułóż go wtedy od nowa.';
   }
 
   function objetosciZBolem(objetosci, poziom) {
@@ -2091,7 +2122,20 @@
        zaokrąglenie kosmetyczne przestawiłoby bramkę bezpieczeństwa.
        W komunikacie zostaje 23,2, bo to jest reguła (55% dystansu);
        23,5 to tylko najbliższa liczba, którą plan potrafi zapisać. */
-    if (najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001) {
+    /* ⚠️ BRAMKA USTEPUJE PRZY ZGLOSZONYM BOLU — decyzja Filipa z 6.09.2026.
+       Do tej pory bol 2 lub 3 zamienial plan w ODMOWE z uzasadnieniem o bazie:
+       maratonczyk biegajacy 80 km/tydz czytal „przy ~32 km/tydz zmiesci sie
+       samo", bo mnoznik 0,60 sciagal najdluzsze wybieganie z 34 na 21 km,
+       a bramka mierzy GOTOWY plan i nie wie, skad ten spadek. Czlowiek zglaszal
+       bol i dostawal diagnoze, ktora nie mial nic wspolnego z bolem.
+
+       ⚠️ ZGLOSILEM ZASTRZEZENIE I ZOSTALO ROZSTRZYGNIETE. Bramka ma
+       merytorycznie racje: plan naprawczy na maraton nie doprowadzi nikogo do
+       dystansu (zmierzone: najdluzsze 17-21 km wobec progu 23,2). Ale plan
+       naprawczy Z DEFINICJI ma krotkie wybiegania, wiec odmowa jest zla
+       odpowiedzia — wlasciwa jest zgoda POWIEDZIANA WPROST. Nota ponizej
+       (`zalozenia`) mowi liczbe, ktorej brakuje, zamiast ukrywac ja za odmowa. */
+    if (!k.bolPoziom && najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001) {
       var potrzebnyPeak = progDlugiego / k.d.udzialDlugiego;
       /* ⚠️ TEN SAM MNOŻNIK I TEN SAM `tygodnie`, CO PRZY LICZENIU SZCZYTU —
          inaczej komunikat podałby bazę wyższą, niż silnik naprawdę wymaga przy
@@ -2261,6 +2305,19 @@
         zalozenia: (k.zalozonaObjetosc
           ? ['Objętość wyjściowa nieznana — przyjęto ' + OBJETOSC_DOMYSLNA + ' km/tydz (świadomie w dół).']
           : []).concat(
+          /* ⚠️ PLAN, KTORY NIE DOWIEZIE DO DYSTANSU, MUSI TO POWIEDZIEC.
+             Bramka ZA_KROTKIE_WYBIEGANIE ustepuje przy zgloszonym bolu (patrz
+             komentarz przy niej), wiec powstaje plan, ktorego najdluzsze
+             wybieganie nie siega progu. To jest swiadomy wybor — plan naprawczy
+             ma krotkie wybiegania — ale przemilczany bylby oszustwem: czlowiek
+             widzi w naglowku „Maraton" i ma prawo zalozyc, ze plan do niego
+             doprowadzi. Nota podaje OBIE liczby, tak jak odmowa by podala. */
+          (k.bolPoziom && najdluzsze < Math.ceil(progDlugiego / KROK_KM) * KROK_KM - 0.001
+            ? ['Najdłuższe wybieganie w tym planie to ' + fmtKmTekst(najdluzsze) +
+               ' km, a przed startem na ' + k.d.etykieta.toLowerCase() + ' trzeba dobiec ' +
+               fmtKmTekst(progDlugiego) + ' km. Tak wychodzi z obniżonej objętości ' +
+               'po zgłoszeniu bólu — ten plan ma Cię przeprowadzić przez kontuzję, nie do mety.']
+            : [])).concat(
           szczytTyg < Math.max.apply(null, objetosci) * 0.95
             ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' + doKroku(sufitAkcentu(k.obecna)) +
                ' km) nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
@@ -4188,6 +4245,43 @@
     check('…i nie wypycha z obniżki planem, którego w tych tygodniach nie było',
       ad({ wObnizce: true, tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).akcja === 'brak',
       ad({ wObnizce: true, tygodnie: [tydz(0, 0, 0, 0), tydz(0, 0, 0, 0)] }).akcja);
+    /* ⚠️ BLIZNA 6.09.2026 — ZGŁOSZENIE BÓLU ZAMIENIAŁO SIĘ W ODMOWĘ O BAZIE.
+       Mnożnik 0,60 ściągał najdłuższe wybieganie pod próg, a bramka mierzy
+       GOTOWY plan i nie wie, skąd ten spadek — więc maratończyk na 60 km/tydz
+       czytał „przy ~32 km/tydz zmieści się samo". Teraz bramka ustępuje,
+       ale plan MÓWI, ile mu brakuje. */
+    (function () {
+      var wej = function (p) {
+        return { dystans: 'marathon', dataStartu: zaTygodni(26), dniWTygodniu: 5,
+                 today: TODAY, celCzasowy: null, poziom: poziom({ objetoscTygodniowa: 60 }),
+                 bol: p ? { poziom: p, opis: 'ból kolana' } : null };
+      };
+      var zdrowy = uloz(wej(null)), zBolem = uloz(wej(2)), zBolem3 = uloz(wej(3));
+      check('zgłoszony ból NIE zamienia planu w odmowę o bazie',
+        zBolem.ok && zBolem3.ok, zBolem.ok ? null : zBolem.sciana.kod);
+      check('…ale plan mówi WPROST, że nie dowozi do dystansu',
+        zBolem.ok && zBolem.meta.zalozenia.some(function (z) {
+          return z.indexOf('nie do mety') > -1 && z.indexOf('23,2') > -1; }),
+        zBolem.ok ? zBolem.meta.zalozenia : null);
+      check('…a plan BEZ bólu nadal podlega bramce (dowód, że nie zdjęliśmy jej wszystkim)',
+        zdrowy.ok && zdrowy.meta.najdluzsze_km >= 23.5 &&
+        !uloz({ dystans: 'marathon', dataStartu: zaTygodni(26), dniWTygodniu: 5, today: TODAY,
+                celCzasowy: null, poziom: poziom({ objetoscTygodniowa: 30 }) }).ok,
+        zdrowy.ok ? zdrowy.meta.najdluzsze_km : null);
+      check('ostrzeżenie nie obiecuje już, że plan podniesie się sam',
+        !/Wróci do normy, gdy oznaczysz/.test(zBolem.plan.ai_warnings) &&
+        /ułóż go wtedy od nowa|Ułóż go wtedy od nowa/i.test(zBolem.plan.ai_warnings),
+        zBolem.plan.ai_warnings);
+      check('trzy poziomy bólu = TRZY różne plany, nie dwa',
+        (function () {
+          var a = uloz(wej(1)), b = zBolem, c = zBolem3;
+          if (!(a.ok && b.ok && c.ok)) return false;
+          var szczyt = function (r) { return Math.max.apply(null, r.meta.objetosciFaktyczne); };
+          var tyg1 = function (r) { return r.meta.objetosciFaktyczne[0]; };
+          return szczyt(a) > szczyt(b) && szczyt(b) === szczyt(c) && tyg1(b) > 0 && tyg1(c) === 0;
+        })(), null);
+    })();
+
     check('jeden pusty + jeden pełny tydzień → też za mało, nie połowa dowodu',
       ad({ tygodnie: [tydz(0, 0, 0, 0), tydz(40, 10)] }).powod === 'za_malo_danych', null);
 
