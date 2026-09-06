@@ -798,10 +798,22 @@
     var tygodnie = Math.floor((idxStart - idxPn) / 7) + 1;
     if (tygodnie < d.minTygodni) {
       var zamiast = najdluzszyMieszczacySie(tygodnie, idxStart);
+      /* ⚠️ MINIMUM LICZONE, NIE PRZEPISANE Z TABELI. Stało tu samo `d.minTygodni`,
+         a to jest minimum METODYCZNE — obok niego stoi drugi warunek,
+         MIN_TYG_BUDOWY + taper, i to on bywa wyższy. ZMIERZONE dla wszystkich
+         czterech dystansów i siedmiu dni startu: rozjazd występuje wyłącznie
+         na PIĄTCE i wyłącznie przy starcie poza niedzielą — komunikat mówił
+         „minimum 4", a realnie plan powstaje dopiero od 5 tygodni (taper +1
+         zjada tydzień budowania). Sześć dni tygodnia na siedem.
+         Człowiek przesuwał start o tydzień i trafiał w tę samą ścianę, tylko
+         z inną liczbą. Teraz obie ściany podają tę samą, prawdziwą wartość. */
+      var taperTu = d.taper + (dzienTygodnia(idxStart) === 0 ? 0 : 1);
+      if (d.km >= DYSTANSE.half.km) taperTu = Math.max(taperTu, MIN_TAPER_DLUGIE);
+      var minRealne = Math.max(d.minTygodni, MIN_TYG_BUDOWY + taperTu);
       return odmowa('ZA_MALO_TYGODNI',
         'Do startu zostało ' + tygodnie + ' ' + (tygodnie === 1 ? 'tydzień' : 'tyg.') + ', a na ' +
-        d.etykieta.toLowerCase() + ' potrzeba minimum ' + d.minTygodni + '. ' + wyjscie(d, zamiast, tygodnie),
-        { tygodnieDostepne: tygodnie, tygodnieWymagane: d.minTygodni, dystans: we.dystans,
+        d.etykieta.toLowerCase() + ' potrzeba minimum ' + minRealne + '. ' + wyjscie(d, zamiast, tygodnie),
+        { tygodnieDostepne: tygodnie, tygodnieWymagane: minRealne, dystans: we.dystans,
           alternatywnyDystans: zamiast });
     }
 
@@ -1899,6 +1911,23 @@
       }
     }
 
+    /* ⚠️ „NAJDŁUŻSZA JEDNOSTKA TYGODNIA" TYLKO WTEDY, GDY NIĄ JEST.
+       `OPISY.Wybieganie` twierdzi to bezwarunkowo, a PRZEMIERZONE (4 dystanse
+       × 3–6 dni × bazy 15–130): w 14 tygodniach wybieganie jest KRÓTSZE od
+       biegu spokojnego — np. 5 km, 6 dni, baza 15, tydzień 3: wybieganie 3,0
+       przy spokojnym 5,5. Bierze się to z podłogi MIN_JEDNOSTKI_KM, która
+       dobiera brakujące kilometry z najdłuższej jednostki, czyli właśnie
+       z wybiegania.
+       ⚠️ NIE NAPRAWIAM TU ARYTMETYKI, tylko zdanie. Która z trzech reguł
+       (podłoga jednostki / sufit udziału / domknięcie sumy) ma ustąpić, to ta
+       sama otwarta decyzja co przy podłodze MIN_WYBIEGANIA_KM — a do czasu jej
+       podjęcia opis ma mówić prawdę o tym tygodniu, nie o zamiarze.
+       Komentarz przy MAX_UDZIAL_DLUGIEGO dopuszczał REMIS przy 3 dniach;
+       to są ostre nierówności przy 5 i 6, więc tamten wyjątek ich nie obejmuje. */
+    var _najdluzszaTyg = Math.max.apply(null, km.map(function (x) { return x || 0; }));
+    if (idxDlugie >= 0 && km[idxDlugie] < _najdluzszaTyg - 0.001 && !opisy[idxDlugie]) {
+      opisy[idxDlugie] = 'Spokojnie i równo, bez przyspieszania na końcu.';
+    }
     return sloty.map(function (dow, idx) {
       return { dow: dow, typ: typy[idx], km: Math.round(km[idx] * 10) / 10, opis: opisy[idx] || null };
     });
@@ -3632,6 +3661,55 @@
     sekcja('PLAN — komunikat produktowy i pola pod zapis');
     check('ai_warnings niesie zdanie o nieadaptacyjności', r.plan.ai_warnings === ZAMKNIECIE, r.plan.ai_warnings);
     check('ai_summary wspomina tempo dziesiątki', /5:00\/km/.test(r.plan.ai_summary), r.plan.ai_summary);
+
+    /* ⚠️ BLIZNY KOMUNIKATÓW 6.09.2026 — dwa zdania, które mówiły nieprawdę
+       o konkretnym planie, nie o silniku w ogóle. */
+    check('„Najdłuższa jednostka tygodnia" NIE pada, gdy wybieganie nią nie jest',
+      (function () {
+        var zle = 0;
+        ['5k', '10k', 'half', 'marathon'].forEach(function (dy) {
+          for (var dni = 3; dni <= 6; dni++) {
+            for (var b = 15; b <= 130; b += 5) {
+              var rr = uloz(we({ dystans: dy, dniWTygodniu: dni,
+                dataStartu: zaTygodni(DYSTANSE[dy].minTygodni + 8),
+                poziom: poziom({ objetoscTygodniowa: b }) }));
+              if (!rr.ok) continue;
+              var perW = {};
+              rr.treningi.forEach(function (t) {
+                if ((t.target_distance_km || 0) > 0) (perW[t.week_number] = perW[t.week_number] || []).push(t);
+              });
+              Object.keys(perW).forEach(function (w) {
+                var dl = perW[w].filter(function (t) { return t.workout_type === 'Wybieganie'; })[0];
+                if (!dl) return;
+                var max = Math.max.apply(null, perW[w].map(function (t) { return t.target_distance_km; }));
+                if (dl.target_distance_km < max - 1e-9 &&
+                    (dl.description || '').indexOf('Najdłuższa jednostka') > -1) zle++;
+              });
+            }
+          }
+        });
+        return zle === 0;
+      })(), null);
+
+    check('ZA_MALO_TYGODNI podaje minimum, przy którym plan NAPRAWDĘ powstaje',
+      (function () {
+        var zle = [];
+        ['5k', '10k', 'half', 'marathon'].forEach(function (dy) {
+          for (var dow = 0; dow < 7; dow++) {
+            var realne = null, mowi = null;
+            for (var d = 7; d <= 200 && realne === null; d++) {
+              var st = dzienIdx(TODAY) + d;
+              if (new Date(st * 86400000).getUTCDay() !== dow) continue;
+              var rr = uloz(we({ dystans: dy, dataStartu: isoZIdx(st), dniWTygodniu: 5,
+                poziom: poziom({ objetoscTygodniowa: DYSTANSE[dy].peakKm }) }));
+              if (rr.ok) { realne = Math.floor((st - najblizszyPoniedzialek(dzienIdx(TODAY))) / 7) + 1; break; }
+              if (rr.sciana.kod === 'ZA_MALO_TYGODNI' && mowi === null) mowi = rr.sciana.szczegoly.tygodnieWymagane;
+            }
+            if (mowi !== null && mowi !== realne) zle.push(dy + '/dow' + dow + ': mówi ' + mowi + ', realnie ' + realne);
+          }
+        });
+        return zle.length === 0;
+      })(), null);
     /* ⚠️ BLIZNA 2.09.2026 — ZDANIE O ŹRÓDLE TEMP MÓWIŁO O DZIESIĄTCE, KTÓREJ
        NIKT NIE BIEGŁ. Główna ścieżka klienta podaje `poziom.wyniki[]` i zostawia
        `poziom.wynik` na null, a stare zdanie pytało właśnie o `wynik` — więc
