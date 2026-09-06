@@ -1,0 +1,43 @@
+-- Anon traci pelne DML na zgloszeniach bolu.
+--
+-- STAN PRZED, zmierzony 6.09.2026:
+--     injuries: anon -> DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- Zamykal to WYLACZNIE brak polityki obejmujacej role `anon`/`public` — cztery
+-- polityki tej tabeli sa `authenticated`. Czyli anonim nie wchodzil tam nie
+-- dlatego, ze mu zabroniono, tylko dlatego, ze nikt mu jeszcze nie otworzyl.
+-- Jedna polityka z rola `public` dodana kiedykolwiek pozniej otwieralaby
+-- zgloszenia bolu bez niczyjej decyzji.
+--
+-- ⚠️ TO NIE JEST HIPOTETYCZNE RYZYKO, TYLKO ZNANY WZORZEC TEGO PROJEKTU.
+--    Przy D7 realna bramka dla `anon` okazal sie GRANT, nie polityka — i to
+--    jest powod, dla ktorego migawka z 29.08 w ogole zapisuje granty. Reguła
+--    dodana dzis do `tools/polityki-bazy.js` wypisuje takie przypadki jako
+--    „zaladowana bron": grant jest, polityki nie ma. `injuries` byla najciezsza
+--    z siedmiu, bo to dane o zdrowiu.
+--
+-- ⚠️ SPRAWDZONE PRZED COFNIECIEM, ta sama kontrola co 30.08: `authenticated`
+--    ma WLASNY grant (INSERT, SELECT, UPDATE) i nie dziedziczy niczego po
+--    `anon`. Cofniecie nie dotyka wiec ani zawodnika, ani trenera.
+--    (`authenticated` nie ma DELETE i to sie zgadza — tabela nie ma polityki
+--     DELETE, zgloszenia sie ZAMYKA przez `resolved_at`, nie kasuje.)
+
+revoke all on public.injuries from anon;
+
+-- ══ SAMOKONTROLA — WYKONANA 6.09.2026 ═════════════════════════════════════
+--   anon  -> `select count(*) from injuries`
+--            ERROR 42501: permission denied for table injuries
+--            ⚠️ TWARDA ODMOWA NA GRANCIE, nie pusty wynik. Przed migracja
+--               to samo zapytanie zwracalo 0 wierszy — czyli „nic tu nie ma"
+--               zamiast „nie wolno". Roznica jest cala tresc tej zmiany.
+--   zawodnik -> INSERT nowego zgloszenia: 1 wiersz (zglaszanie dziala dalej)
+--   `node tools/polityki-bazy.js`: relacji z grantem dla anon 11 -> 10,
+--   „zaladowana bron" 7 -> 6.
+--
+-- ══ KONTROLA PO MIGRACJI ═══════════════════════════════════════════════════
+-- Oczekiwane: anon znika z listy, authenticated bez zmian (INSERT, SELECT, UPDATE).
+-- select grantee, string_agg(privilege_type, ', ' order by privilege_type)
+--   from information_schema.role_table_grants
+--  where table_schema='public' and table_name='injuries' group by grantee;
+--
+-- Oczekiwane: `node tools/polityki-bazy.js` pokazuje o jedna pozycje mniej
+-- w sekcji „grant jest, ale zadna polityka go nie dosiega" (7 -> 6).

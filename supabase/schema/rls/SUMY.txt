@@ -35,7 +35,7 @@ d8600e9c66fbae0b  friendships
 7b94c0b3a4d466e4  game_events
 3f0cecaa72922d8d  game_scores
 c3b4f2b4304bac53  generator_proby
-32b5519b4d994896  injuries
+9b6a2dbefe06e15b  injuries
 3830cb4fd5a49f00  intervals_activities
 3f511879b465ecb7  intervals_connections
 97d69ce95217f81d  intervals_credentials
@@ -52,7 +52,7 @@ e3089c15729864e4  jr_shop_items
 488da0a22be4a50d  jr_workout_bonuses
 26da672144686e2e  log_comments
 e4fa4dafaa32a9de  log_reactions
-e1f82f32e9db8e02  messages
+da86f4f3c6315d40  messages
 76d61ab1e257669f  notifications
 d4b4606fa547fd4d  nutrition_meals
 4b6876ce9b3160e5  nutrition_profiles

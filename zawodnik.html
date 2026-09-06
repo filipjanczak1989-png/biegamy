@@ -3976,7 +3976,16 @@ async function recallMsg(msgId) {
 }
 
 async function clearAllMessages() {
-  if (!confirm('Usunąć całą historię wiadomości?')) return;
+  /* ⚠️ TEN PRZYCISK DO 6.09.2026 NIE KASOWAŁ NICZEGO. Filtr `sender='athlete'`
+     był tu od początku i jest poprawny — brakowało UPRAWNIENIA: `messages`
+     miała JEDNĄ politykę DELETE i była ona trenerska. Zapytanie zdejmowało
+     zero wierszy, a człowiek przedtem potwierdzał destrukcyjną akcję. RLS
+     oddaje 200 z pustą tablicą, nie 403, więc ekran nie miał jak tego pokazać.
+     Polityka `messages_delete_athlete` dodana migracją
+     20260906_messages_kazdy_kasuje_swoje.
+     ⚠️ Pytanie mówi teraz, co ZOSTANIE — bo to jest ta część, której człowiek
+     nie widzi po kliknięciu. */
+  if (!confirm('Usunąć swoje wiadomości? Wiadomości trenera zostaną.')) return;
   await sb.from('messages').delete().eq('athlete_id', _athleteId).eq('sender', 'athlete');
   await loadMessages();
 }

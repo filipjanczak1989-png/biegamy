@@ -5507,8 +5507,18 @@ async function deleteCoachMsg(e, msgId, isCoach) {
 }
 
 async function clearCoachChat() {
-  if (!confirm('Usunąć całą historię czatu?')) return;
-  await sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId);
+  /* ⚠️ TEKST MUSI ZGADZAĆ SIĘ Z POLITYKĄ. Do 6.09.2026 pytał o „całą historię
+     czatu" i tyle właśnie kasował — łącznie z wiadomościami zawodnika. Od
+     migracji 20260906_messages_kazdy_kasuje_swoje polityka `messages_delete`
+     ma warunek `sender = 'coach'`, więc znikają wyłącznie własne. Gdyby pytanie
+     zostało stare, obiecywałoby skutek, którego baza już nie wykona.
+     ⚠️ POWÓD ROZDZIAŁU: zawodnik pisze o kontuzji, o gorszym tygodniu,
+     o rzeczach osobistych. To jego zapis, nie wspólny.
+     ⚠️ Filtr `sender` jest TAKŻE tutaj, nie tylko w polityce — żeby zapytanie
+     prosiło dokładnie o to, co dostanie. Bez niego baza cicho odsiewałaby
+     resztę, a klient nie miałby jak odróżnić „odmówiono" od „nie było czego". */
+  if (!confirm('Usunąć swoje wiadomości? Wiadomości zawodnika zostaną.')) return;
+  await sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId).eq('sender', 'coach');
   await loadCoachChat();
 }
 

@@ -14,24 +14,29 @@ UPRAWNIENIA (tabelowe)
 UPRAWNIENIA (kolumnowe, ponad tabelowymi)
   — brak
 
-POLITYKI (4)
+POLITYKI (5)
 
   [1] messages_delete
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : authenticated
-      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+      warunek   : ((sender = 'coach'::text) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid()))))
 
-  [2] messages_insert
+  [2] messages_delete_athlete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : ((sender = 'athlete'::text) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.user_id = auth.uid()))))
+
+  [3] messages_insert
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : authenticated
       przy zapisie: (user_has_msg_access(athlete_id) AND (sender = ANY (ARRAY['athlete'::text, 'coach'::text])) AND (((sender = 'athlete'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))) OR ((sender = 'coach'::text) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))))
 
-  [3] messages_select
+  [4] messages_select
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : user_has_msg_access(athlete_id)
 
-  [4] messages_update
+  [5] messages_update
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : user_has_msg_access(athlete_id)
