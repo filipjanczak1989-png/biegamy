@@ -133,7 +133,23 @@ function zrzut() {
   }
   const linie = [];
   for (const [nazwa, tresc] of [...baza].sort((a, b) => a[0].localeCompare(b[0]))) {
-    fs.writeFileSync(path.join(KATALOG, nazwa + '.sql'), tresc.trimEnd() + '\n', 'utf8');
+    /* KONCE LINII NORMALIZOWANE DO LF — inaczej migawka przestaje byc diffem.
+       ZMIERZONE 6.09.2026: zrzut zmienil 33 z 53 plikow, w kazdym WYLACZNIE
+       przez dolozenie CR. Tresc funkcji byla identyczna — cialo przychodzi
+       z bazy tak, jak je tam wstawiono, a przez Management API potrafi wrocic
+       z CRLF. Efekt: `git status` po kazdym zrzucie pokazuje kilkadziesiat
+       „zmienionych" plikow, wiec jedyna prawdziwa zmiana ginie w szumie,
+       a czlowiek uczy sie przegladac ten diff pobieznie.
+       SUMY SA NA TO ODPORNE i dlatego narzedzie swiecilo na zielono mimo
+       rozjazdu — `normalizuj()` zwija biale znaki, wiec CR nie zmienia sha.
+       To ten sam ksztalt, przed ktorym ostrzega .gitattributes: „staly
+       falszywy sygnal, ktory szybko uczy ignorowac wynik narzedzia". Tam
+       pilnowalismy CHECKOUTU, tu brakowalo tej samej dyscypliny przy ZAPISIE.
+       `-text` w .gitattributes zostaje: on chroni przed konwersja gita,
+       ta linia przed konwersja zrodla. */
+    const CR = String.fromCharCode(13), LF = String.fromCharCode(10);
+    const trescLf = tresc.split(CR + LF).join(LF).split(CR).join(LF);
+    fs.writeFileSync(path.join(KATALOG, nazwa + '.sql'), trescLf.trimEnd() + '\n', 'utf8');
     linie.push(suma(tresc) + '  ' + nazwa);
   }
   fs.writeFileSync(PLIK_SUM,

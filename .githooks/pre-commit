@@ -53,12 +53,22 @@ if [ "$status" -ne 0 ]; then
   ────────────────────────────────────────────────────────────────
   ⚠ BRAMKA COŚ ZGŁOSIŁA.
 
-  To jest PRZYPOMNIENIE, nie blokada. Blokada jest w CI
-  (.github/workflows/bramka.yml) i tamtej nie ominiesz.
+  To jest PRZYPOMNIENIE, nie blokada. Jeśli wiesz, co robisz:
+      git commit --no-verify
 
-  Jeśli wiesz, co robisz:   git commit --no-verify
-  Ale wtedy CI zaczerwieni push, a nie commit — czyli dowiesz się
-  o tym później i drożej.
+  CO ZROBI CI (.github/workflows/bramka.yml) — zależy OD CZEGO:
+
+    • sekret w treści (sb_secret_…) albo nadanie praw dla `anon`
+      → CI ZACZERWIENI PUSH. Tego nie ominiesz.
+
+    • ścieżka: supabase/migrations, sb.js, theme.css
+      → w CI to OSTRZEŻENIE, nie blokada. Push przejdzie na zielono.
+        Tutaj blokuje, bo tu jeszcze możesz się zatrzymać;
+        w CI już nie ma czego zatrzymywać — kod jest wypchnięty.
+
+  ⚠ Do 6.09.2026 stało tu „CI zaczerwieni push" bez rozróżnienia.
+    Dla migracji było to NIEPRAWDĄ — a hook, który raz skłamie
+    o konsekwencji, uczy omijać się bez czytania.
   ────────────────────────────────────────────────────────────────
 
 KONIEC

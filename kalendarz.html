@@ -3997,7 +3997,12 @@ async function executeMoveScreen(logId, url, currentDs) {
     }
 
     document.getElementById('move-screen-modal')?.remove();
-    showKalToast('Screenshot przeniesiony ✓');
+    /* `notify()`, NIE `showKalToast()`. Ta druga NIE ISTNIALA NIGDZIE
+       w repo, a stala tu i w obsludze bledu nizej — czyli i potwierdzenie
+       przeniesienia, i komunikat o niepowodzeniu rzucaly ReferenceError.
+       Zlapane 6.09.2026 przez tests/handlery-w-kodzie.test.js; skaner
+       atrybutow nie mogl tego zobaczyc, bo to wywolanie z KODU. */
+    notify('Screenshot przeniesiony ✓');
     await renderWeek(currentWeekStart);
     // Dla zawodnika: przełącz na właściwy widok po załadowaniu danych
     if (_urlRole === 'athlete') {
@@ -4006,7 +4011,7 @@ async function executeMoveScreen(logId, url, currentDs) {
       renderTiles();
     }
   } catch(e) {
-    showKalToast('Błąd: ' + e.message);
+    notify('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Przenieś →'; btn.disabled = false; }
   }
 }

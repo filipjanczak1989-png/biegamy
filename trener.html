@@ -4048,7 +4048,15 @@ document.addEventListener('click', e => {
 // Override static functions with DB versions
 function saveTr() { saveTr_db(); }
 function saveSend() { saveSend_db(); }
-function addAthlete() { addAthlete_db(); }
+/* ⚠️ `addAthlete()` USUNIETE 6.09.2026 — wolalo `addAthlete_db()`, ktorego
+   NIE MA NIGDZIE w repo, wiec kazde wywolanie rzucaloby ReferenceError.
+   Samo `addAthlete` nie bylo wolane z zadnego miejsca (ani z kodu, ani
+   z atrybutu), wiec nikt tego nie odczul — ale funkcja wygladala jak
+   dzialajace wejscie „dodaj zawodnika" i przy pierwszym uzyciu bylaby
+   niespodzianka. Jej dwie siostry z tego samego refaktoru „_db"
+   (`saveTr_db`, `saveSend_db`) istnieja — nie dojechala jedna z trzech.
+   Zapisy zawodnikow ida dzis inna droga (patrz: rejestracja zamknieta).
+   Zlapane przez tests/handlery-w-kodzie.test.js. */
 
 // Auto colon for time fields h:mm:ss
 // autoColon usunięty -> window.autoColonTime (sb.js SSOT, centralizacja czasu FAZA B); PB mar/half oninput migrowane
