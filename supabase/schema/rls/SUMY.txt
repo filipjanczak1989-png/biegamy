@@ -79,7 +79,7 @@ e2855e44ee293171  recipes
 28c9b3825f0ddf72  security_events
 91d8940433172d4b  storage_cleanup_queue
 ac0e662b4ad2da19  strava_activities
-66def102817ba6a2  training_logs
+6fb88780208f2e4e  training_logs
 f7552bc34998c9af  training_plan_workouts
 331b60d4586532b9  training_plans
 8be1fae9dd9b55cc  trainings

@@ -292,6 +292,86 @@ function zrzut() {
   console.log('\n  Zrzucono ' + baza.size + ' relacji do supabase/schema/rls/\n');
 }
 
+const NL_ANON = String.fromCharCode(10);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REGUŁA `anon`: WŁAŚCIWYM WARUNKIEM ALARMU JEST PARA, NIE SAMA ROLA.
+
+   ⚠️ W schemacie żyją 104 polityki z rolą `public` na 42 tabelach i KAŻDA
+   z nich formalnie obejmuje `anon`. Zgłaszanie ich to szum: `anon` nie ma
+   grantu na 70 z 81 relacji, więc rola `public` jest tam martwą literą —
+   PostgreSQL odrzuca zapytanie na GRANCIE, zanim dojdzie do polityki. Reguła
+   alarmująca na samą rolę kazałaby przejrzeć 104 pozycje po to, żeby za każdym
+   razem stwierdzić „nie, tu nic nie grozi" — i po trzecim razie nikt by jej
+   nie czytał.
+
+   ALARM ODPALA PARA:
+     (1) `anon` MA grant (tabelowy albo kolumnowy), ORAZ
+     (2) sięga go polityka (rola `public`/`anon`) ALBO RLS jest WYŁĄCZONE.
+   Dopiero wtedy anonim naprawdę coś widzi albo zapisuje.
+
+   ⚠️ TO NIE JEST LISTA WYJĄTKÓW, TYLKO PRÓG. Cztery dzisiejsze trafienia są
+   ZAMIERZONE — trzy widoki publiczne (public_athletes, radio_comments_view,
+   radio_top) i anonimowa telemetria gry (game_events, INSERT kolumnowy).
+   Wypisanie ich z nazwy zamieniłoby regułę w listę, która rośnie po cichu.
+   Pilnujemy LICZBY: gdy urośnie, ktoś musi powiedzieć dlaczego. Ta sama zasada
+   co PROG_WYJATKOW w skanerze handlerów.
+
+   ⚠️ SIÓDEMKA BEZ POLITYKI TO ZAŁADOWANA BROŃ, NIE CISZA. injuries, recipes,
+   community_stats, recipe_favorites, radio_playlists, radio_playlist_tracks
+   i radio_tracks dają `anon` PEŁNE DML, a zamyka je WYŁĄCZNIE brak polityki
+   obejmującej `anon`. Jedna polityka z rolą `public` dodana kiedykolwiek później
+   otwiera je bez niczyjej decyzji — dlatego wypisujemy je zawsze, choć nie
+   podnoszą alarmu.
+   ⚠️ `injuries` to zgłoszenia bólu: DELETE, INSERT, UPDATE, SELECT dla anona.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const PROG_ANON = 4;
+
+/** Relacje, w których `anon` ma grant — wraz z tym, czy naprawdę go dosięga. */
+function anonPowierzchnia(baza) {
+  const out = [];
+  for (const [nazwa, rel] of baza) {
+    const txt = typeof rel === 'string' ? rel : (rel.tresc || '');
+    const mT = txt.match(/UPRAWNIENIA [(]tabelowe[)]([^]*?)UPRAWNIENIA [(]kolumnowe/);
+    let grant = null;
+    if (mT) {
+      for (const l of mT[1].split(NL_ANON)) {
+        if (l.trim().indexOf('anon') === 0 && l.indexOf('brak') === -1) grant = l.split(':')[1].trim();
+      }
+    }
+    const mK = txt.match(/UPRAWNIENIA [(]kolumnowe[^)]*[)]([^]*?)(?=POLITYKI|$)/);
+    const grantKol = !!(mK && mK[1].indexOf('anon') > -1 && mK[1].indexOf('brak') === -1);
+    if (!grant && !grantKol) continue;
+    const rlsWl = /RLS[ ]*:[ ]*WŁĄCZONE/.test(txt);
+    const dosiega = /role[ ]*:[ ]*(public|anon)/.test(txt);
+    out.push({ nazwa, grant: grant || '(kolumnowe)', rlsWl, dosiega,
+               alarm: (dosiega && rlsWl) || !rlsWl });
+  }
+  return out;
+}
+
+function raportAnon(baza) {
+  const w = anonPowierzchnia(baza);
+  const alarm = w.filter((x) => x.alarm);
+  const bron = w.filter((x) => !x.alarm);
+  console.log(NL_ANON + '  ── POWIERZCHNIA `anon` ──');
+  console.log('  relacji z grantem dla anon: ' + w.length
+    + ' | anon FAKTYCZNIE dosięga: ' + alarm.length + ' (próg ' + PROG_ANON + ')');
+  alarm.forEach((x) => console.log('    ! ' + x.nazwa + '  ' + (x.rlsWl ? 'RLS on' : 'RLS OFF')
+    + '  grant: ' + x.grant));
+  if (bron.length) {
+    console.log('  grant jest, ale żadna polityka go nie dosięga (RLS odmawia domyślnie):');
+    bron.forEach((x) => console.log('    · ' + x.nazwa + '  ' + x.grant));
+  }
+  if (alarm.length > PROG_ANON) {
+    console.log(NL_ANON + '  ✖ ANON DOSIĘGA WIĘCEJ RELACJI NIŻ PRÓG (' + alarm.length + ' > ' + PROG_ANON + ').');
+    console.log('     Nie podnoś progu bez powodu — najpierw sprawdź, CO doszło i czemu.' + NL_ANON);
+    return 1;
+  }
+  console.log('');
+  return 0;
+}
+
 function porownaj() {
   const baza = zBazy();
   const mig = zMigawki();
@@ -299,8 +379,8 @@ function porownaj() {
   console.log('\n  MIGAWKA DOSTĘPU — produkcja vs supabase/schema/rls/\n');
   console.log('  w bazie: ' + baza.size + ' | w migawce: ' + mig.size + '  (tabele + widoki)');
   if (!rozne.length && !tylkoBaza.length && !tylkoMigawka.length) {
-    console.log('\n  Zgodne.\n');
-    return 0;
+    console.log('\n  Zgodne.');
+    return raportAnon(baza);
   }
   if (tylkoBaza.length) {
     console.log('\n  NOWE W BAZIE, BRAK W MIGAWCE (' + tylkoBaza.length + '):');
@@ -317,7 +397,8 @@ function porownaj() {
   console.log('\n  ⚠️ ZANIM ZRÓWNASZ: sprawdź, KTÓRA STRONA jest nowsza.');
   console.log('     Maj→sierpień 2026 zmieniło się 14 polityk i ANI JEDNA zmiana');
   console.log('     nie trafiła do repo — a produkcja była za każdym razem nowsza.');
-  console.log('     Odświeżenie migawki: node tools/polityki-bazy.js --zrzut\n');
+  console.log('     Odświeżenie migawki: node tools/polityki-bazy.js --zrzut');
+  raportAnon(baza);
   return 1;
 }
 
@@ -402,8 +483,38 @@ function samokontrola() {
   r = roznice(wzorzecOdwr, mig);
   zdanie(czysta(r), 'sama KOLEJNOŚĆ ról i grantów ' + (czysta(r) ? 'NIE budzi bramki' : 'zgłoszona jako rozjazd — fałszywy alarm'));
 
+  /* ── REGUŁA `anon`: PARA GRANT + POLITYKA ────────────────────────────────
+     ⚠️ Reguła, która nigdy nie świeci na czerwono, jest ozdobą. Sprawdzamy
+        OBA warunki pary OSOBNO, bo cała jej treść polega na tym, że dopiero
+        RAZEM coś znaczą:
+          • sam grant dla `anon`, gdy żadna polityka go nie dosięga → CISZA,
+          • grant + polityka `public` → ALARM,
+          • grant + RLS wyłączone   → ALARM (polityki wtedy nie ma po co pytać).
+        Gdyby reguła alarmowała na sam grant, dzisiejsza siódemka „załadowanej
+        broni" zgłaszałaby się bez końca i nauczyłaby ignorować wynik. */
+  const relAnon = (rls, rolaPol, grantAnon) => new Map([['x',
+    'RLS            : ' + (rls ? 'WŁĄCZONE' : 'wyłączone') + NL_ANON
+    + 'UPRAWNIENIA (tabelowe)' + NL_ANON
+    + '  anon           : ' + (grantAnon ? 'SELECT' : '— brak') + NL_ANON
+    + 'UPRAWNIENIA (kolumnowe, ponad tabelowymi)' + NL_ANON + '  — brak' + NL_ANON
+    + 'POLITYKI (1)' + NL_ANON + '  [1] p' + NL_ANON + '      role      : ' + rolaPol + NL_ANON]]);
+  const ile = (m) => anonPowierzchnia(m).filter((x) => x.alarm).length;
+
+  zdanie(ile(relAnon(true, 'authenticated', false)) === 0,
+    'brak grantu dla anon → cisza (nawet przy polityce authenticated)');
+  zdanie(ile(relAnon(true, 'public', false)) === 0,
+    '⚠️ polityka `public` BEZ grantu dla anon → CISZA (to jest te 104 przypadki)');
+  zdanie(ile(relAnon(true, 'authenticated', true)) === 0,
+    'grant dla anon, ale żadna polityka go nie dosięga → cisza (załadowana broń)');
+  zdanie(ile(relAnon(true, 'public', true)) === 1,
+    '⚠️ PARA: grant dla anon + polityka `public` → ALARM');
+  zdanie(ile(relAnon(false, 'authenticated', true)) === 1,
+    '⚠️ grant dla anon + RLS WYŁĄCZONE → ALARM (polityki nie ma po co pytać)');
+
   const zdane = wyniki.filter(Boolean).length;
   console.log('\n  ' + zdane + '/' + wyniki.length + ' zdanych\n');
+
+
   return wyniki.every(Boolean) ? 0 : 1;
 }
 

@@ -26,16 +26,16 @@ POLITYKI (8)
       role      : public
       warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
 
-  [3] coach can mark logs read
+  [3] Coach reads athlete logs
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : public
+      warunek   : (EXISTS ( SELECT 1 FROM athletes WHERE ((athletes.id = training_logs.athlete_id) AND (athletes.coach_id = auth.uid()))))
+
+  [4] coach_updates_coach_fields
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid())))
       przy zapisie: (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid())))
-
-  [4] Coach reads athlete logs
-      polecenie : SELECT   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : (EXISTS ( SELECT 1 FROM athletes WHERE ((athletes.id = training_logs.athlete_id) AND (athletes.coach_id = auth.uid()))))
 
   [5] logs_delete
       polecenie : DELETE   rodzaj: PERMISSIVE

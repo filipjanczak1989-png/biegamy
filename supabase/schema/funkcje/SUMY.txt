@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 55
+# Obiektow (funkcje + triggery): 57
 
 82c329258c25f668  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -47,8 +47,10 @@ eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
 00c6bf1a1b7ce0a2  review_moment
 25d900a25e2d2961  search_food_by_name
 159bb6e838f7e4d3  suma_biegowa
+05da203ce2a0900e  training_logs_guard_coach_fields
 ef47ede286094827  training_logs.trg_detect_moment_ins
 5aa4b4c80949ac5e  training_logs.trg_detect_moment_upd
+29e861fa82230b08  training_logs.trg_training_logs_guard_coach_fields
 7061b121ba244c6d  trainings_guard_coach_plan
 f0ad39e0884f0332  trainings.trg_trainings_guard_coach_plan
 1911789ca515560a  trigger_detect_moment
