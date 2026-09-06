@@ -1,0 +1,46 @@
+-- Kasacja public.community_stats — martwej od 14.08.2026.
+--
+-- CZYM BYLA: dobowy cache licznika wyzwania #100kmDlaKasi. Zdjety
+-- 14.08.2026 migracja `20260814_licznik_bez_cache.sql`, ktora wyczyscila
+-- wiersze i napisala wprost: „Tabela jest teraz nieuzywana i mozna ja usunac
+-- osobno, swiadoma decyzja, a nie przy okazji". To jest ta decyzja.
+--
+-- ⚠️ LICZNIK NA LANDINGU NIE IDZIE PRZEZ TA TABELE i to jest najwazniejsze
+--    zdanie tego pliku. Idzie przez RPC `community_km()` z wlasnym EXECUTE
+--    dla `anon`. Kasacja `community_stats` go NIE DOTYKA. Gdyby ktos kiedys
+--    szukal, czemu licznik przestal dzialac — to nie tutaj.
+--
+-- STAN ZMIERZONY BEZPOSREDNIO PRZED KASACJA (6.09.2026):
+--       wierszy                    0
+--       funkcji uzywajacych        0     (przemiot po pg_proc.prosrc)
+--       widokow                    0
+--       kluczy obcych DO niej      0
+--       triggerow                  0
+--       POLITYK RLS                0
+--       wywolan z aplikacji        0     (grep po *.html, *.js, *.ts)
+--    ⚠️ RLS WLACZONE PRZY ZERZE POLITYK znaczy, ze nikt jej nie dotknal
+--       poza `service_role` — nawet gdyby chcial.
+--
+-- ⚠️ TERMIN BYL ZOBOWIAZANIEM I ZOSTAL DOTRZYMANY. Zaleglosc z 30.08 brzmiala
+--    „jesli do 30.09.2026 nic jej nie uzyje, kasujemy". Warunek jest mierzalnie
+--    spelniony od 14.08 (23 dni przed tym pomiarem, 16 przed poprzednim),
+--    a decyzje o wczesniejszej kasacji podjal Filip 6.09.2026. Zaleglosc
+--    zostaje ZAMKNIETA Z WYNIKIEM, nie usunieta — zeby za pol roku bylo
+--    wiadomo, ze ta tabela istniala i dlaczego zniknela.
+--
+-- ⚠️ 6.09.2026, kilka godzin wczesniej, cofnelismy jej grant dla `anon`
+--    (`20260906_szostka_bez_anon.sql`). Ten DROP zabiera i tabele, i reszte
+--    grantow — tamta migracja nie staje sie przez to zbedna, bo zdejmowala
+--    ekspozycje NATYCHMIAST, a ta zapadla po decyzji.
+
+drop table if exists public.community_stats;
+
+-- ══ KONTROLA PO MIGRACJI ═══════════════════════════════════════════════════
+-- Oczekiwane: 0 wierszy w obu zapytaniach.
+-- select count(*) from information_schema.tables
+--  where table_schema='public' and table_name='community_stats';
+-- select count(*) from information_schema.role_table_grants
+--  where table_schema='public' and table_name='community_stats';
+--
+-- Oczekiwane: licznik na landingu dziala dalej (idzie przez RPC, nie przez te tabele).
+-- select public.community_km();
