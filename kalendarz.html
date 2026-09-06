@@ -2531,7 +2531,28 @@ async function saveTraining() {
       description: desc || null,
       steps: _seOut,
       steps_version: _seOut ? 1 : null,
-      plan_source: 'coach',    // edycja przejmuje autorstwo — patrz wyżej
+      /* ⚠️ `plan_source` ZOSTAJE NIETKNIĘTE — było tu `'coach'`, skopiowane
+         z gałęzi TRENERA kilkadziesiąt linii wyżej. Tam ta linia ma sens
+         („trener poprawiający trening z generatora czyni go swoim"); tutaj
+         pisze ją ZAWODNIK, więc znaczyła coś zupełnie innego: własna edycja
+         przebierała jego trening za trenerski.
+
+         Łańcuch skutków był zamknięty i cały w kodzie, który działa:
+           zawodnik edytuje swój trening z generatora
+             → plan_source 'generator' → 'coach'
+             → GeneratorPlanu.tydzienNalezyDoNas() uznaje tydzień za cudzy
+             → adaptacja pomija go w całości
+             → panel: „W ostatnim tygodniu trener zmieniał Twoje treningi,
+                        więc go nie oceniam."
+         …pokazane komuś, kto Z DEFINICJI NIE MA TRENERA — generator jest
+         dostępny wyłącznie przy `coach_id IS NULL` (CTA + polityka
+         training_plans_insert_self). Zdanie nie było tylko nieprawdziwe;
+         było niemożliwe. Ta sama rodzina co „teksty obiecujące trenera",
+         zamykana 19.08.2026.
+
+         ⚠️ POMINIĘCIE POLA ≠ WPISANIE NULL. Nie podajemy `plan_source` wcale,
+         więc UPDATE go nie dotyka i znacznik zostaje taki, jaki był:
+         'generator' dla planu z generatora, 'coach' dla trenerskiego. */
       status
     }).eq('id', athDbId);
     if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
