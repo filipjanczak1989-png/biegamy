@@ -610,6 +610,16 @@ let _raceParticipants = {};  // raceId → [{id, full_name, avatar_url}, ...]
 let _raceFriends = {};       // raceId → [...] — TYLKO moi znajomi zapisani na ten bieg
 let _myFriends = new Set();  // athlete_id zaakceptowanych znajomych
 async function loadRaceParticipantsAvatars() {
+  /* ⚠️ TYLKO DLA TRENERA — decyzja Filipa z 6.09.2026, patrz nagrobek na dole pliku.
+     Dla zawodnika `signups_read` przepuszcza WYŁĄCZNIE jego własne wiersze, więc
+     ta funkcja budowała „awatary uczestników" złożone z jednej osoby: jego samego.
+     Znajomi wychodzili zawsze puści, mimo 126 realnych zapisów w bazie.
+     Pusty wynik był nieodróżnialny od „nikt się nie zapisał" — i to jest powód,
+     nie oszczędność zapytań. Trener ma `signups_coach_read`, więc u niego dane są
+     prawdziwe i zostają.
+     ⚠️ `signups_coach_read` NIE jest zawężone do WŁASNYCH zawodników — trener widzi
+     zapisy wszystkich. Osobna zaległość, ta sama klasa co D7; tu tego nie zmieniam. */
+  if (!_isCoach) return;
   const raceIds = _allRaces.filter(r => (r.signup_count||0) > 0).map(r => r.id);
   if (!raceIds.length) return;
 
@@ -739,8 +749,11 @@ function renderRaceCard(race) {
       return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
     }).join('');
     const moreCount = totalCount - parts.length;
+    /* ⚠️ BEZ onclick — wołał `showParticipants()`, którego już nie ma. Zostawiony
+       byłby ReferenceError u trenera (jedynego, komu ten blok się renderuje).
+       Dokładnie ten kształt łapie tests/handlery-w-kodzie.test.js. */
     const more = moreCount > 0
-      ? `<div onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg2);border:2px solid #0a0810;margin-left:-8px;font-family:DM Mono,monospace;font-weight:600;flex-shrink:0;cursor:pointer;">+${moreCount}</div>`
+      ? `<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg2);border:2px solid #0a0810;margin-left:-8px;font-family:DM Mono,monospace;font-weight:600;flex-shrink:0;">+${moreCount}</div>`
       : '';
     avatarsHtml = `<div style="display:flex;align-items:center;flex-shrink:0;">${avList}${more}</div>`;
   }
@@ -759,7 +772,8 @@ function renderRaceCard(race) {
   }
 
   const countLabel = totalCount > 0
-    ? `<span onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">${totalCount} z BiegaMy</span>`
+    /* Sam licznik, bez linku — lista uczestnikow usunieta, patrz nagrobek nizej. */
+    ? `<span>${totalCount} z BiegaMy</span>`
     : 'Bądź pierwszy!';
 
   // z1+: kto zgłosił (tylko trener, tylko pending)
@@ -1004,14 +1018,11 @@ function openRace(id) {
   document.getElementById('m-city').textContent = race.city || '—';
   document.getElementById('m-dist2').textContent = formatDistFull(race.distance_km);
   document.getElementById('m-count').textContent = race.signup_count > 0 ? `${race.signup_count} os.` : '0 os.';
-  // Pokaż uczestników dla zawodnika
-  if (!_isCoach) {
-    var partBtn = document.getElementById('m-participants-btn');
-    if (partBtn) {
-      partBtn.style.display = 'block';
-      partBtn.onclick = function() { showParticipants(race.id, race.name); };
-    }
-  }
+  /* Przycisk „uczestnicy" w modalu ZDJĘTY 6.09.2026 razem z showParticipants().
+     Pokazywał się WYŁĄCZNIE zawodnikowi (`if (!_isCoach)`) — czyli dokładnie
+     temu, komu RLS i tak nie oddawał żadnych nazwisk. */
+  var partBtn = document.getElementById('m-participants-btn');
+  if (partBtn) partBtn.style.display = 'none';
 
   // Opis
   const descEl = document.getElementById('m-desc');
@@ -1170,8 +1181,24 @@ async function doSignup(raceId) {
   const r = _allRaces.find(r => r.id === raceId);
   if (r) r.signup_count = (r.signup_count || 0) + 1;
 
-  // Dodaj do celów zawodnika
-  await addToGoals(race);
+  /* ⚠️ DWA ZAPISY, JEDEN SKUTEK — albo oba, albo żaden.
+     PostgREST nie da transakcji między tabelami z klienta, więc domykamy to
+     COFNIĘCIEM: gdy dopisanie celu padnie, kasujemy zapis na bieg i mówimy
+     o tym wprost. Poprzednia wersja wołała `addToGoals` bez sprawdzania wyniku,
+     więc rozjazd był CICHY — zostawał zapis bez celu, a komunikat i tak głosił
+     sukces („Cel dodany do Twojego profilu ✓").
+     ⚠️ Kolejność jest nośna: signup PIERWSZY, bo to on ma bramkę RLS
+     (`signups_insert`). Gdyby najpierw szedł cel, odrzucenie zapisu zostawiałoby
+     cel bez zapisu — ten sam rozjazd, tylko w drugą stronę. */
+  if (!await addToGoals(race)) {
+    await _sb.from('race_signups').delete().eq('race_id', raceId).eq('athlete_id', _athleteId);
+    _mySignups.delete(raceId);
+    if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
+    showToast('Nie udało się dopisać celu — zapis cofnięty. Spróbuj jeszcze raz.');
+    updateModalSignupBtn(false);
+    renderRaces();
+    return;
+  }
 
   showToast('Zapisano! Cel dodany do Twojego profilu ✓');
   updateModalSignupBtn(true);
@@ -1191,15 +1218,16 @@ async function doUnsignup(raceId) {
   if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
 
   // Usuń też cel powiązany z wyścigiem
-  await removeFromGoals(raceId);
+  const celZdjety = await removeFromGoals(raceId);
 
-  showToast('Zapis usunięty');
+  showToast(celZdjety ? 'Zapis usunięty' : 'Zapis usunięty, ale cel został w profilu — usuń go ręcznie.');
   updateModalSignupBtn(false);
   renderRaces();
 }
 
+/** Dopisuje bieg do celów zawodnika. Zwraca `true`, gdy stan jest spójny. */
 async function addToGoals(race) {
-  if (!_athleteId) return;
+  if (!_athleteId) return false;
   // Sprawdź czy cel z tym race_id już istnieje (lub po nazwie dla starych celów)
   const alreadyExists = _athleteGoals.some(g =>
     g.race_id === race.id ||
@@ -1210,32 +1238,51 @@ async function addToGoals(race) {
     var existing = _athleteGoals.find(function(g){ return g.name && g.name.toLowerCase() === race.name.toLowerCase(); });
     if (existing && !existing.race_id) {
       existing.race_id = race.id;
-      await _sb.from('athletes').update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
+      const { error: eUp } = await _sb.from('athletes')
+        .update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
+      if (eUp) { delete existing.race_id; return false; }
     }
-    return;
+    return true;   // cel już był — zapis jest spójny
   }
 
   const newGoal = { name: race.name, date: race.date, race_id: race.id };
   _athleteGoals.push(newGoal);
 
-  await _sb.from('athletes').update({
+  const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
   }).eq('id', _athleteId);
+  /* ⚠️ BŁĄD WRACA DO WOŁAJĄCEGO, NIE GINIE. Do 6.09.2026 ta funkcja nie
+     sprawdzała `error` w ogóle — zapis na bieg i dopisanie celu to DWA osobne
+     zapisy do dwóch tabel, bez transakcji, więc drugi mógł paść po cichu.
+     ZMIERZONE na produkcji: 12 ze 126 zapisów (9,5%) nie ma odpowiednika
+     w `race_goals`, u 6 osób, od kwietnia do sierpnia — czyli to nie ślad po
+     wdrożeniu funkcji, tylko trwający dryf. Człowiek widział „Zapisano! Cel
+     dodany do Twojego profilu ✓" i nie miał celu. */
+  if (error) { _athleteGoals.pop(); return false; }
+  return true;
 }
 
 // Usuń cel powiązany z wyścigiem (gdy zawodnik się wypisuje)
 async function removeFromGoals(raceId) {
-  if (!_athleteId) return;
+  if (!_athleteId) return true;
   const idx = _athleteGoals.findIndex(g => g.race_id === raceId);
-  if (idx === -1) return;
+  if (idx === -1) return true;
+  const kopia = _athleteGoals[idx];
   _athleteGoals.splice(idx, 1);
-  await _sb.from('athletes').update({
+  const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
   }).eq('id', _athleteId);
+  /* ⚠️ TU NIE COFAMY ZAPISU, W ODRÓŻNIENIU OD doSignup — i to jest świadome.
+     Zostaje cel bez zapisu, czyli „chcę biec, ale nie jestem zapisany".
+     To jest stan PRAWDZIWY i człowiek może go sam poprawić (cel da się usunąć
+     z profilu). Odwrotność — przywrócenie zapisu na bieg, z którego ktoś się
+     właśnie wypisał — byłaby gorsza: system cofałby jego decyzję. */
+  if (error) { _athleteGoals.splice(idx, 0, kopia); return false; }
+  return true;
 }
 
 // ── ADD/EDIT RACE ────────────────────────────────────────────────
@@ -1496,30 +1543,33 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-async function showParticipants(raceId, raceName) {
-  var res = await _sb.from('race_signups').select('athlete_id').eq('race_id', raceId).limit(50);
-  var ids = (res.data||[]).map(function(r){return r.athlete_id;});
-  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
-  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:70vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
-  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Uczestnicy</div>';
-  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
-  var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Ładowanie...</div>';
-  sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  if(!ids.length){li.innerHTML= PUSTKA.dekoruj('znajomi', '<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych uczestników</div>');return;}
-  var ar=await _sb.from('athletes').select('id,full_name,avatar_url').in('id',ids);
-  li.innerHTML='';
-  (ar.data||[]).forEach(function(a){
-    var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
-    row.addEventListener('click',function(){location.href='profil.html?id='+a.id;});
-    var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
-    if(a.avatar_url){var img=document.createElement('img');img.src=a.avatar_url;img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){this.style.opacity=0;};av.appendChild(img);}else{av.textContent=ini;}
-    var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:13px;font-weight:600;';nm.textContent=a.full_name||'Biegacz';
-    var arr=document.createElement('span');arr.innerHTML='›';arr.style.cssText='color:var(--muted);font-size:16px;';
-    row.appendChild(av);row.appendChild(nm);row.appendChild(arr);li.appendChild(row);
-  });
-}
+/* ── NAGROBEK: LISTA UCZESTNIKÓW (showParticipants) ────────────────────────
+   USUNIĘTA 6.09.2026. Nie dlatego, że nie działała — dlatego, że wyglądała,
+   jakby działała, i mówiła nieprawdę.
+
+   `race_signups` ma politykę `signups_read` = WYŁĄCZNIE własne wiersze (plus
+   `signups_coach_read` dla trenerów). Zwykły zawodnik dostawał więc z tego
+   zapytania SIEBIE albo nic — a ekran pisał „Brak zapisanych uczestników".
+   Nie „nie wolno Ci tego zobaczyć", tylko „nikt się nie zapisał". Zmierzone
+   6.09.2026: 126 zapisów, 25 osób, 45 biegów — komunikat był fałszywy przy
+   realnych danych.
+   ⚠️ To ten sam kształt, co w LEKCJE o RLS: polityka oddaje 200 z PUSTĄ
+   TABLICĄ, nie 403, więc brak uprawnień jest w interfejsie NIEODRÓŻNIALNY
+   od braku danych. Wydmuszka jest gorsza niż brak funkcji.
+
+   ⚠️ LICZNIK „N z BiegaMy" ZOSTAJE — idzie z `races.signup_count`, jest
+   anonimowy i nie ujawnia niczyjej tożsamości. To jedyne, co dzisiejsza
+   polityka prywatności pozwala pokazać wszystkim.
+
+   ⚠️ NIE „NAPRAWIAMY" TEGO POLUZOWANIEM RLS. `privacy.html` obiecuje, że dane
+   widzi „Ty oraz Twój trener", a `athletes.is_public` jest domyślnie `false`
+   (35 z 68 włączyło je świadomie; z 25 zapisanych na biegi publicznych jest
+   15). Pokazanie imion wszystkim byłoby zmianą tego, co ludzie o sobie
+   nawzajem widzą, bez ich zgody.
+   Decyzja Filipa z 6.09.2026: starty widzi TRENER (panel PORANEK w trener.html,
+   poszerzony na pełny horyzont). Jeśli kiedyś wejdzie „pokaż mój start
+   znajomym", wróci jako funkcja ZE ZGODĄ, nie jako dziura, która i tak
+   nie działała. */
 </script>
 </body>
 </html>

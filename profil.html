@@ -216,7 +216,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <button class="p-nav-tile" onclick="_tileWyzwania()"><img data-ic="icon-radio-trophy.webp" alt=""><span class="lbl">Wyzwania</span></button>
       <button class="p-nav-tile" onclick="_tileCzat()"><img data-ic="icon-nav-people.webp" alt=""><span class="lbl">Czat</span></button>
       <button class="p-nav-tile" onclick="_tileOdznaki()"><img data-ic="icon-nav-medal.webp" alt=""><span class="lbl">Odznaki</span></button>
-      <button class="p-nav-tile" onclick="_tileRaces()"><img data-ic="icon-nav-flag.webp" alt=""><span class="lbl">Starty</span></button>
+      <button class="p-nav-tile" id="p-tile-races" onclick="_tileRaces()"><img data-ic="icon-nav-flag.webp" alt=""><span class="lbl">Starty</span></button>
       <button class="p-nav-tile" onclick="location.href='zawodnik.html?tab=cwiczenia'"><img data-ic="icon-ex-section.webp" alt=""><span class="lbl">Ciało</span></button>
       <button class="p-nav-tile" id="p-tile-settings" onclick="openSettings()" style="display:none;"><img data-ic="icon-nav-settings.webp" alt=""><span class="lbl">Ustawienia</span></button>
     </div>
@@ -682,6 +682,16 @@ let _profileData = null;
 
   // Sprawdź prywatność cudzego profilu przed załadowaniem
   if (!_isOwnProfile) {
+    /* ⚠️ „Starty" ZNIKA NA CUDZYM PROFILU — 6.09.2026. Kafel otwierał
+       `_openRacesModal()`, które czyta `race_signups` po `athlete_id` cudzej
+       osoby; `signups_read` przepuszcza WYŁĄCZNIE własne wiersze, więc modal
+       ZAWSZE pisał „Brak zapisanych startów" — także wtedy, gdy tamten
+       człowiek miał ich kilkanaście. Pusty wynik jest nieodróżnialny od braku
+       danych, więc kafel kłamał o cudzym profilu.
+       Zapisy na zawody widzi ich właściciel i jego trener — patrz privacy.html
+       („Ty oraz Twój trener") i nagrobek w races.html. */
+    var _rcTile = document.getElementById('p-tile-races');
+    if (_rcTile) _rcTile.style.display = 'none';
     const { data: privCheck } = await sb.from('athletes')
       .select('is_public,full_name,coach_id')
       .eq('id', _targetId)
@@ -1178,7 +1188,7 @@ function renderGoals(ath) {
     const linked = !!g.race_id;
     // Klik: jeśli cel powiązany z race_id → showParticipants po race_id; inaczej openRaceDetails po nazwie
     const clickHandler = linked
-      ? 'showRaceParticipantsById(\'' + g.race_id + '\')'
+      ? 'showRaceDetailsById(\'' + g.race_id + '\')'
       : 'openRaceDetails(\'' + escHtml(g.name).replace(/'/g,"\\'") + '\')';
     const ctaLine = linked
       ? '<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;margin-top:2px;display:flex;align-items:center;gap:4px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>z kalendarza · zobacz uczestników</div>'
@@ -1222,10 +1232,13 @@ function openLinkGoalModal(upcomingIdx) {
 }
 
 // Zmodyfikuj saveGoalFromModal żeby uwzględniała _linkingGoalIdx
-async function showRaceParticipantsById(raceId) {
+/* Nazwa zmieniona 6.09.2026 z `showRaceParticipantsById`: modal nie pokazuje
+   juz uczestnikow (patrz nagrobek przy openRaceDetails), tylko szczegoly biegu.
+   Nazwa obiecujaca liste, ktorej nie ma, to ta sama klasa co katalog sugerujacy
+   mechanizm — LEKCJE #17. */
+async function showRaceDetailsById(raceId) {
   const { data: race } = await sb.from('races').select('id,name').eq('id', raceId).maybeSingle();
   if (!race) { showToast('Nie znaleziono wyścigu'); return; }
-  // Pobierz uczestników
   await openRaceDetails(race.name);
 }
 
@@ -2781,21 +2794,16 @@ async function openRaceDetails(raceName) {
     .limit(1);
   const race = races?.[0];
 
-  // Pobierz uczestników (przez race_signups lub przez race_goals zawodników)
-  let participants = [];
-  if (race) {
-    const { data: signups } = await sb.from('race_signups')
-      .select('athlete_id')
-      .eq('race_id', race.id)
-      .limit(50);
-    if (signups?.length) {
-      const ids = signups.map(s => s.athlete_id);
-      const { data: aths } = await sb.from('athletes')
-        .select('id,full_name,avatar_url,is_public')
-        .in('id', ids);
-      participants = (aths||[]).filter(a => a.is_public || a.id === _myId);
-    }
-  }
+  /* ── NAGROBEK: SEKCJA „BIEGNĄ (n)" ──────────────────────────────────────
+     USUNIĘTA 6.09.2026, ta sama wada co showParticipants() w races.html.
+     `signups_read` przepuszcza wyłącznie własne wiersze, więc lista zawsze
+     wychodziła pusta albo jednoosobowa, a nagłówek pisał „BIEGNĄ (0)"
+     i „Brak publicznych uczestników" — przy 126 realnych zapisach w bazie.
+     ⚠️ Filtr `is_public` był tu POPRAWNY i w races.html go NIE BYŁO — dwa
+     miejsca, dwie reguły na tę samą rzecz. Po usunięciu obu niespójność znika
+     u źródła, zamiast być wyrównywana w dwóch kopiach.
+     Wracamy do tego dopiero jako funkcja ZE ZGODĄ („pokaż mój start
+     znajomym"), nie jako lista widoczna z automatu. */
 
   // Zbuduj modal
   const overlay = document.createElement('div');
@@ -2817,23 +2825,7 @@ async function openRaceDetails(raceName) {
     if (links) html += '<div style="margin-bottom:14px;">'+links+'</div>';
   }
 
-  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;">BIEGNĄ ('+participants.length+')</div>';
-
-  if (!participants.length) {
-    html += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">Brak publicznych uczestników</div>';
-  } else {
-    html += participants.map(function(a) {
-      var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-      var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
-      var isMe = a.id === _myId;
-      return '<div data-rid="'+a.id+'" onclick="openAthleteProfile(this.dataset.rid)" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
-        + '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
-        + '<div style="flex:1;font-size:13px;font-weight:500;">' + (a.full_name||'Biegacz').replace(/</g,'&lt;') + (isMe ? ' <span style="font-size:10px;color:var(--accent);">(Ty)</span>' : '') + '</div>'
-        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
-        + '</div>';
-    }).join('');
-  }
-
+  /* Lista uczestników zdjęta — patrz nagrobek wyżej. Zostaje sam opis biegu. */
   html += '</div></div>';
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
@@ -3161,30 +3153,16 @@ function _tileCzat() {
 }
 function _tileWyzwania() { location.href='wyzwania.html'; }
 function _tileOdznaki() { location.href='odznaki.html'; }
-function _tileRaces() {
-  if (_isOwnProfile) { location.href='races.html'; return; }
-  _openRacesModal();
-}
-async function _openRacesModal() {
-  var res = await sb.from('race_signups').select('race_id').eq('athlete_id',_targetId).limit(20);
-  var ids = (res.data||[]).map(function(r){return r.race_id;});
-  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
-  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
-  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Starty zawodnika</div>';
-  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
-  var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
-  sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  if(!ids.length){li.innerHTML= PUSTKA.dekoruj('starty', '<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych startów</div>');return;}
-  var races=await sb.from('races').select('id,name,date,city,distance_km').in('id',ids).order('date',{ascending:true});
-  li.innerHTML=(races.data||[]).map(function(r){
-    var d=new Date(r.date+'T12:00:00');var dl=Math.ceil((d-new Date())/86400000);
-    return '<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-      +'<div style="font-size:14px;font-weight:600;">'+escHtml(r.name)+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'})+(r.city?' · '+r.city:'')+(r.distance_km?' · '+r.distance_km+' km':'')+'</div>'
-      +(dl>0?'<div style="font-size:10px;color:var(--accent);margin-top:3px;">za '+dl+' dni</div>':'')+'</div>';
-  }).join('');
-}
+function _tileRaces() { location.href = 'races.html'; }   // kafel widoczny tylko na własnym profilu
+/* ── NAGROBEK: _openRacesModal (starty CUDZEGO zawodnika) ──────────────────
+   USUNIĘTE 6.09.2026 razem z listą uczestników w races.html — ta sama wada.
+   Czytało `race_signups` filtrowane po `athlete_id` oglądanej osoby, a polityka
+   `signups_read` przepuszcza wyłącznie WŁASNE wiersze. Modal zawsze pokazywał
+   „Brak zapisanych startów", również o kimś, kto miał ich kilkanaście
+   (w bazie: 126 zapisów, 25 osób). Nie „nie wolno Ci tego zobaczyć", tylko
+   „nic tu nie ma" — RLS oddaje 200 z pustą tablicą, nie 403.
+   Kafel „Starty" jest teraz ukrywany na cudzym profilu (patrz wyżej), a na
+   własnym prowadzi do races.html, gdzie dane są prawdziwe. */
 // goToStats usunięte 24.08.2026 — jedyny wywołujący (kafel „Narzędzia") zniknął razem z narzedzia.html.
 </script>
 

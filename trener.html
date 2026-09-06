@@ -5333,19 +5333,39 @@ async function zaladujPoranek() {
     /* PORANEK-STARTY: kto sie sciga w najblizszych 7 dniach (races + race_signups) */
     let startyHtml = '';
     try {
+      /* PELNY HORYZONT, NIE 7 DNI — decyzja Filipa z 6.09.2026.
+         Okno tygodniowe pokazywalo 16 z 53 przyszlych startow podopiecznych
+         (zmierzone: 37 zapisow dalej niz 7 dni, 14 dalej niz 30). Problemem
+         nie byl brak danych — sa w `race_signups` od kwietnia — tylko to,
+         ze przychodzily TYDZIEN przed startem, czyli po czasie, w ktorym plan
+         dalo by sie jeszcze ulozyc. Trener nie mogl na tym planowac.
+         ⚠️ Zawodnik nadal NIE widzi cudzych zapisow: `signups_read` przepuszcza
+         tylko wlasne wiersze, a listy uczestnikow zostaly zdjete (nagrobki
+         w races.html i profil.html). Tu nie ruszamy RLS — trener ma
+         `signups_coach_read` od dawna, zmienia sie wylacznie zakres dat. */
       const dzisS = new Date().toISOString().slice(0, 10);
-      const za7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-      const { data: rc } = await sb.from('races').select('id,name,date')
-        .gte('date', dzisS).lte('date', za7).order('date');
+      const { data: rc } = await sb.from('races').select('id,name,date,distance_km')
+        .gte('date', dzisS).order('date');
       if (rc && rc.length) {
         const { data: sg } = await sb.from('race_signups')
           .select('race_id,athlete_id').in('race_id', rc.map(r => r.id)).in('athlete_id', ids);
         const imie = {}; (ath || []).forEach(a => imie[a.id] = (a.full_name || '').split(' ')[0]);
+        const dzisMs = new Date(dzisS + 'T00:00:00').getTime();
         const linie = rc.map(r => {
           const kto = (sg || []).filter(x => x.race_id === r.id).map(x => imie[x.athlete_id]).filter(Boolean);
           if (!kto.length) return '';
           const dd = String(r.date).slice(8, 10) + '.' + String(r.date).slice(5, 7);
-          return '<div style="padding:7px 12px;margin-top:6px;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:10px;font-size:11.5px;">\ud83c\udfc1 <strong>' + dd + ' ' + esc(r.name) + '</strong> <span style="color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">\u00b7 ' + kto.map(esc).join(', ') + '</span></div>';
+          /* Dystans i „za ile dni" — bez nich pelny horyzont jest lista nazw
+             bez wagi. Trener planuje wg tego, CO to za bieg i ILE zostalo.
+             Blizsze niz tydzien sa mocniej podswietlone, zeby poszerzenie okna
+             nie utopilo tego, co widac bylo dotad. */
+          const dyst = r.distance_km ? ' \u00b7 ' + (Math.round(r.distance_km * 10) / 10) + ' km' : '';
+          const ile = Math.round((new Date(r.date + 'T00:00:00').getTime() - dzisMs) / 864e5);
+          const zaIle = ile <= 0 ? 'dzis' : (ile === 1 ? 'jutro' : 'za ' + ile + ' dni');
+          const pilne = ile <= 7;
+          return '<div style="padding:7px 12px;margin-top:6px;background:rgba(232,86,30,' + (pilne ? '0.10' : '0.04') + ');border:1px solid rgba(232,86,30,' + (pilne ? '0.28' : '0.14') + ');border-radius:10px;font-size:11.5px;">\ud83c\udfc1 <strong>' + dd + ' ' + esc(r.name) + '</strong>'
+            + '<span style="color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + dyst + ' \u00b7 ' + zaIle + '</span>'
+            + '<div style="color:rgba(255,255,255,0.75);font-family:DM Mono,monospace;margin-top:2px;">' + kto.map(esc).join(', ') + '</div></div>';
         }).filter(Boolean);
         startyHtml = linie.join('');
       }

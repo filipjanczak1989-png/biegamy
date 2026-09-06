@@ -1,0 +1,29 @@
+-- WYCOFANIE 20260906_backfill_sierot_race_goals.sql
+--
+-- ⚠️ NIE MA CZYSTEGO WYCOFANIA I TRZEBA TO WIEDZIEĆ PRZED WYKONANIEM MIGRACJI.
+--    Backfill DOPISUJE elementy do tablicy JSON w `athletes.race_goals`.
+--    Kolumna nie ma historii, a cele dodane ręcznie przez zawodnika wyglądają
+--    dokładnie tak samo jak dopisane tutaj — po fakcie nie da się ich odróżnić
+--    inaczej niż po tym, że odpowiadają zapisowi w `race_signups`.
+--
+--    Poniższe zapytanie usuwa cele, które (a) mają `race_id`, (b) mają
+--    odpowiadający zapis w `race_signups`. To jest NAJBLIŻSZE odwrócenie, jakie
+--    się da — ale zdejmie też cele, które człowiek dodał sam i DOPIERO POTEM
+--    zapisał się na ten bieg. Takich nie odróżnimy.
+--
+-- ⚠️ PRZED WYCOFANIEM ZRÓB KOPIĘ:
+--    \copy (select id, race_goals from athletes where race_goals is not null)
+--      to 'race_goals_przed_wycofaniem.csv' csv header
+
+-- update athletes a
+--    set race_goals = (
+--      select coalesce(jsonb_agg(g), '[]'::jsonb)::text
+--      from jsonb_array_elements(coalesce(nullif(a.race_goals,'')::jsonb,'[]'::jsonb)) g
+--      where g->>'race_id' is null
+--         or not exists (select 1 from race_signups s
+--                        where s.athlete_id = a.id and s.race_id::text = g->>'race_id')
+--    )
+--  where race_goals is not null;
+
+-- Zakomentowane ŚWIADOMIE: to nie jest operacja do odpalenia odruchowo.
+-- Odkomentuj dopiero po zrobieniu kopii i po przeczytaniu akapitu wyżej.
