@@ -70,10 +70,38 @@ const BLOKADY_TRESCI = [
     opis: 'klucz prywatny',
     ciBlokada: true,
     czemu: 'Nigdy nie należy do repozytorium.' },
-  { re: /\b(GRANT|REVOKE)\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\b(TO|FROM)\s+anon\b/i,
-    opis: 'GRANT / REVOKE dla roli anon',
+  /* ⚠️ KIERUNEK MA ZNACZENIE — rozdzielone 6.09.2026, po tym jak ta reguła
+     zatrzymała w CI commit ZAMYKAJĄCY dostęp anona do zgłoszeń bólu
+     (`revoke all on public.injuries from anon`). Jedna reguła traktowała GRANT
+     i REVOKE identycznie i mówiła o obu „Wyciek danych — cofaj natychmiast".
+     Bramka świeciła więc na czerwono dokładnie na pracy, dla której powstała,
+     i kazała ją odwrócić — a jedynym wyjściem był `--no-verify`, którego CI
+     nie ma. Praca zamykająca dziurę nie miała jak wejść na zielono.
+
+     ⚠️ TO NIE JEST POLUZOWANIE OCHRONY I NA TYM POLEGA CAŁY ARGUMENT.
+     Ta bramka pilnuje WYCIEKU. `GRANT … TO anon` otwiera dane
+     niezalogowanemu — zostaje blokadą. `REVOKE … FROM anon` nie może niczego
+     wyciec; najgorsze, co potrafi, to zepsuć funkcję zależną od anona
+     (np. licznik na landingu idzie przez `community_km()` z własnym EXECUTE
+     dla anon). To jest ryzyko REGRESJI, nie wycieku — a bramka od sekretów
+     nie jest bramką od regresji i nie ma jak jej ocenić.
+     Ostrzeżenie niesie za to KONKRETNĄ kontrolę do wykonania, tę samą, którą
+     robiliśmy ręcznie 30.08 i 6.09: czy `authenticated` ma WŁASNY grant,
+     czy dziedziczył po `anon`.
+
+     ⚠️ ZNACZNIKA `bramka:przyklad` ŚWIADOMIE TU NIE UŻYWAMY. On jest dla
+     linii, które WYGLĄDAJĄ na naruszenie, a są danymi testowymi. `revoke`
+     w migracji jest prawdziwą instrukcją — oznaczenie jej „przykładem"
+     zamieniłoby marker w furtkę i po trzech użyciach nikt by nie wiedział,
+     co on właściwie znaczy. */
+  { re: /\bGRANT\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bTO\s+anon\b/i,
+    opis: 'GRANT dla roli anon',
     ciBlokada: true,
     czemu: 'Uprawnienie dla NIEZALOGOWANEGO. Wyciek danych, nie usterka — cofaj natychmiast.' },
+  { re: /\bREVOKE\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bFROM\s+anon\b/i,
+    opis: 'REVOKE dla roli anon (zawężenie dostępu)',
+    czemu: 'Kierunek BEZPIECZNY — anon traci dostęp, nic nie wycieka. SPRAWDŹ JEDNO: '
+         + 'czy `authenticated` ma WŁASNY grant, czy dziedziczył po `anon`.' },
   { re: /\b(GRANT|REVOKE)\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b/i,
     opis: 'GRANT / REVOKE',
     czemu: 'Zmiana uprawnień w bazie. Ten sam argument co migracja: CI tego nie cofnie.' },
@@ -256,8 +284,22 @@ function samokontrola() {
   ok(C([], ['-----BEGIN RSA PRIV' + 'ATE KEY-----']).blokady.length === 1, 'klucz prywatny BLOKUJE w CI');
   ok(C([], ['GRA' + 'NT SELECT ON public.athletes TO anon;']).blokady.length === 1,
      'GRANT dla anon BLOKUJE w CI');
-  ok(C([], ['REVO' + 'KE ALL ON public.athletes FROM anon;']).blokady.length === 1,
-     'REVOKE dla anon BLOKUJE w CI');
+  /* ⚠️ KIERUNEK: para asercji pilnujaca rozdzialu z 6.09.2026. Do tego dnia
+     stalo tu „REVOKE dla anon BLOKUJE w CI" i to bylo SPRAWDZANE — czyli
+     bramka zatrzymywala commit ZAMYKAJACY dostep anona i kazala go cofnac,
+     a samokontrola potwierdzala, ze robi to poprawnie. Zieleń testu nie znaczy
+     wiec, ze regula jest dobra; znaczy tylko, ze robi to, co napisano.
+     Obie strony musza byc przypiete, inaczej jedno „uproszczenie" regexpu
+     wraca do stanu, w ktorym naprawa nie ma jak wejsc na zielono. */
+  {
+    const w = C([], ['REVO' + 'KE ALL ON public.injuries FROM anon;']);
+    ok(w.blokady.length === 0 && w.ostrzezenia.length >= 1,
+       'REVOKE od anona OSTRZEGA, nie blokuje (zawezenie to nie wyciek)');
+    ok(/authenticated/i.test(JSON.stringify(w.ostrzezenia)),
+       '...i mowi, CO sprawdzic: czy authenticated ma wlasny grant');
+  }
+  ok(C([], ['GRA' + 'NT ALL ON public.injuries TO anon;']).blokady.length === 1,
+     'GRANT dla anona NADAL blokuje (dowod, ze rozdzial nie zdjal ochrony)');
   ok(C([], ['GRA' + 'NT SELECT ON public.x TO authenticated;']).blokady.length === 0,
      'GRANT dla authenticated to w CI OSTRZEZENIE, nie blokada');
   ok(C(['supabase/migrations/2026_x.sql'], []).blokady.length === 0,

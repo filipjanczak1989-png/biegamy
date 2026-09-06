@@ -7,5 +7,18 @@
 -- ⚠️ Odtwarzamy DOKLADNIE to, co bylo, lacznie z TRUNCATE i REFERENCES —
 --    rollback ma przywracac stan, nie wprowadzac wlasnej wersji.
 
-grant delete, insert, references, select, trigger, truncate, update
-  on public.injuries to anon;
+-- ⚠️ ZAPYTANIE JEST ZAKOMENTOWANE SWIADOMIE, tak samo jak w rollbacku backfillu
+--    z tego samego dnia. Dwa powody, oba dobre:
+--
+--    1. To jest NADANIE UPRAWNIEN NIEZALOGOWANEMU. `tools/bramka-commit.js`
+--       blokuje takie linie w CI i ma racje — nie odroznia (i nie powinien)
+--       grantu w pliku wycofania od grantu w migracji, bo oba sa tekstem
+--       w repo i oba mozna wykonac. Zakomentowanie jest wlasciwa odpowiedzia,
+--       nie obchodzeniem bramki: rollback ma OPISYWAC, jak cofnac, a nie byc
+--       gotowa instrukcja do odruchowego wklejenia.
+--    2. Odkomentowanie musi byc decyzja. Otwierasz anonowi PELNE DML na danych
+--       o zdrowiu — jesli robisz to swiadomie, kilka sekund na skasowanie
+--       dwoch myslnikow jest wlasciwym kosztem.
+--
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.injuries to anon;
