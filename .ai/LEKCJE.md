@@ -1004,3 +1004,111 @@ On jeden wie, czy tamto wybieganie było spacerem, czy sprawdzianem.
 Otwarte świadomie: sanity `[150, 600] s/km` przepuszcza marsz (20,7 km
 @ 8:58/km zostaje kandydatem). Zawężenie progu to nowa stała — po tym pomiarze
 nie wchodzi bez własnego uzasadnienia.
+
+
+## 19. Zieleń samokontroli nie dowodzi, że reguła jest dobra (6.09.2026)
+
+**Dowodzi tylko, że reguła robi to, co w niej napisano.**
+
+6.09.2026 `tools/bramka-commit.js` zablokowała w CI commit **zamykający**
+anonowi dostęp do zgłoszeń bólu — `revoke all on public.injuries from anon` —
+i nazwała to:
+
+> ✖ BLOKADA — GRANT / REVOKE dla roli anon
+> Uprawnienie dla NIEZALOGOWANEGO. Wyciek danych, nie usterka — cofaj natychmiast.
+
+⚠️ **A w samokontroli stała asercja `REVOKE dla anon BLOKUJE w CI` i była
+ZIELONA.** Test potwierdzał, że bramka robi to *poprawnie*. Bo robiła —
+poprawnie względem tego, co ktoś w niej napisał. Nikt nie napisał, że REVOKE
+jest odwrotnością GRANT-u.
+
+### Na czym polegał błąd
+
+Reguła była zdefiniowana przez **WZORZEC TEKSTU**, nie przez **SKUTEK** —
+jeden wzorzec dla `GRANT` i `REVOKE`, z jedną alternatywą `(TO|FROM)`
+na końcu. `GRANT … TO anon` **otwiera** dane niezalogowanemu.
+`REVOKE … FROM anon` **zamyka**. Bramka pilnująca wycieku traktowała
+oba jak wyciek, bo widziała tylko kształt linii.
+
+
+### Dlaczego to był ślepy zaułek, a nie niedogodność
+
+Lokalnie da się ominąć `--no-verify`. **W CI nie ma tej furtki.** Praca
+zamykająca dziurę w uprawnieniach nie miała więc jak wejść na zielono — a to
+jest dokładnie ta praca, dla której bramka powstała. Bramka, która karze za
+naprawę, uczy omijania szybciej niż bramka, której nie ma.
+
+⚠️ Kuszące było użycie istniejącego znacznika `bramka:przyklad`. Odrzucone:
+on jest dla linii, które **wyglądają** na naruszenie, a są danymi testowymi.
+`revoke` w migracji jest prawdziwą instrukcją. Oznaczenie jej „przykładem"
+zamieniłoby marker w furtkę i po trzech użyciach nikt by nie wiedział, co on
+znaczy — a limit 12 istnieje właśnie po to, żeby tego nie robić.
+
+### Objaw ostrzegawczy — do sprawdzenia przy KAŻDEJ regule
+
+**Reguła zdefiniowana przez wzorzec tekstu, a nie przez skutek.**
+Pytanie kontrolne brzmi:
+
+> Czy istnieje działanie, które pasuje do wzorca, a jest **odwrotnością** tego,
+> przed czym bramka broni?
+
+Jeśli tak — wzorzec opisuje kształt, nie zagrożenie, i prędzej czy później
+zatrzyma czyjąś naprawę.
+
+⚠️ **POZYCJA DO ZROBIENIA: przejrzeć pozostałe sześć bramek pod tym kątem.**
+`bramka-reguly`, `bramka-karta`, `bramka-cdn`, `sprawdz-run-types`,
+`sprawdz-spol-stale`, `polityki-bazy`/`funkcje-bazy`. Nie od razu — ale zapisane,
+bo pytanie jest tanie, a odpowiedź „nie sprawdzaliśmy" będzie kosztowna dokładnie
+wtedy, gdy ktoś będzie coś naprawiał w pośpiechu.
+
+### Poprawka
+
+Rozdzielone na dwie reguły: `GRANT … TO anon` zostaje **blokadą**,
+`REVOKE … FROM anon` staje się **ostrzeżeniem** niosącym konkretną kontrolę
+(„sprawdź, czy `authenticated` ma WŁASNY grant, czy dziedziczył po `anon`").
+Trzy asercje zamiast jednej — w tym ta, że **GRANT nadal blokuje**, żeby jedno
+„uproszczenie" regexpu nie zdjęło ochrony po cichu.
+
+⚠️ REVOKE może zepsuć funkcję zależną od anona (licznik na landingu idzie przez
+`community_km()` z własnym EXECUTE dla `anon`). To jest ryzyko **regresji**,
+nie wycieku — a bramka od sekretów nie jest bramką od regresji i nie ma jak jej
+ocenić. Rozdzielenie tych dwóch rzeczy jest całym sensem poprawki.
+
+---
+
+## 19b. Test uprawnień musi WYBRAĆ cel świadomie, nie wylosować (6.09.2026)
+
+Trzy razy w ciągu jednej doby test podszywający się pod użytkownika **nie
+zmierzył nic** i wyglądał na zielony. Za każdym razem inna przyczyna, ten sam
+mechanizm: **cel testu został wylosowany, a nie wybrany.**
+
+| wariant | co się stało | fałszywy odczyt |
+|---|---|---|
+| **własny posiłek** | `select id from nutrition_meals limit 1` trafiło w posiłek TRENERA — a trener jest też zawodnikiem | „1 zmieniony" → wyglądało, że uprawnienie trenerskie działa; działało `users_update_own_meals` |
+| **własny log** | ten sam kształt na `training_logs` | test mierzyłby własność zamiast relacji trener–zawodnik |
+| **różne wątki** | wiadomość zawodnika i trenera wybrane DWOMA osobnymi `limit 1` → różne rozmowy | RLS odciął zapytanie, UPDATE zmienił 0 wierszy, **ani błędu, ani wyniku** — wygląda jak „przeszło bez odmowy" |
+
+### Wspólny mianownik
+
+Testujemy **relację** (trener↔zawodnik, autor↔odbiorca), a `limit 1` wybiera
+wiersz po dostępności, nie po relacji. Cel musi być wybrany warunkiem, który
+opisuje badaną relację:
+
+```sql
+-- ŹLE: dowolny wiersz
+select id from nutrition_meals limit 1;
+-- DOBRZE: wiersz NALEŻĄCY DO KOGOŚ INNEGO niż testowany aktor
+select id from nutrition_meals m
+ where m.athlete_id <> '<uid trenera>'
+   and exists (select 1 from athletes a where a.user_id = m.athlete_id
+                 and a.coach_id = '<uid trenera>');
+```
+
+⚠️ **Trener jest też zawodnikiem** i to jest przyczyna dwóch z trzech wariantów.
+Każdy test uprawnień trenerskich musi jawnie wykluczyć jego własne wiersze.
+
+⚠️ **UPDATE/DELETE odrzucony przez RLS nie rzuca błędu** — zmienia zero wierszy
+i milczy (patrz notatka o `200 z pustą tablicą`). Test musi więc liczyć wiersze
+(`returning 1` + `count`), a nie zakładać, że brak wyjątku znaczy sukces.
+Milczenie jest tu nieodróżnialne od dwóch różnych rzeczy naraz: „zabroniono"
+i „nie było czego zmienić".

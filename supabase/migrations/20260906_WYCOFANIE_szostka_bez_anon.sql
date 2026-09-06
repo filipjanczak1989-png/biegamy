@@ -1,0 +1,25 @@
+-- WYCOFANIE 20260906_szostka_bez_anon.sql
+--
+-- ⚠️ CO WRACA: anon znowu dostaje PELNE DML na szesciu relacjach — recipes,
+--    recipe_favorites, radio_playlists, radio_playlist_tracks, radio_tracks
+--    i community_stats. Zamykac go bedzie wylacznie brak polityki obejmujacej
+--    `anon`, czyli stan sprzed migracji: chronione przez nieobecnosc, nie zakaz.
+--
+-- ⚠️ ZAPYTANIA SA ZAKOMENTOWANE SWIADOMIE, tak samo jak w rollbacku dla
+--    injuries i backfillu z tego samego dnia. To jest NADANIE UPRAWNIEN
+--    NIEZALOGOWANEMU — `tools/bramka-commit.js` blokuje takie linie w CI i ma
+--    racje. Rollback ma OPISYWAC, jak cofnac, a nie byc gotowa instrukcja
+--    do odruchowego wklejenia. Odkomentowanie ma byc decyzja.
+
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.recipes to anon;
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.recipe_favorites to anon;
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.radio_playlists to anon;
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.radio_playlist_tracks to anon;
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.radio_tracks to anon;
+-- grant delete, insert, references, select, trigger, truncate, update
+--   on public.community_stats to anon;
