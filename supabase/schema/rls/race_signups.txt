@@ -19,7 +19,7 @@ POLITYKI (4)
   [1] signups_coach_read
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : public
-      warunek   : (EXISTS ( SELECT 1 FROM coaches WHERE (coaches.id = auth.uid())))
+      warunek   : (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid())))
 
   [2] signups_delete
       polecenie : DELETE   rodzaj: PERMISSIVE

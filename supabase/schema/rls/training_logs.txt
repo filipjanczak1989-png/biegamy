@@ -14,55 +14,45 @@ UPRAWNIENIA (tabelowe)
 UPRAWNIENIA (kolumnowe, ponad tabelowymi)
   — brak
 
-POLITYKI (10)
+POLITYKI (8)
 
-  [1] athletes_delete_own_logs
-      polecenie : DELETE   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
-
-  [2] athletes_insert_own_logs
+  [1] athletes_insert_own_logs
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : public
       przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [3] athletes_read_own_logs
+  [2] athletes_read_own_logs
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : public
       warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
 
-  [4] athletes_update_own_logs
-      polecenie : UPDATE   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) OR (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
-
-  [5] coach can mark logs read
+  [3] coach can mark logs read
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid())))
       przy zapisie: (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid())))
 
-  [6] Coach reads athlete logs
+  [4] Coach reads athlete logs
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : public
       warunek   : (EXISTS ( SELECT 1 FROM athletes WHERE ((athletes.id = training_logs.athlete_id) AND (athletes.coach_id = auth.uid()))))
 
-  [7] logs_delete
+  [5] logs_delete
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : public
       warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [8] logs_delete_own
+  [6] logs_delete_own
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : public
       warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()) LIMIT 1))
 
-  [9] logs_insert
+  [7] logs_insert
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : public
       przy zapisie: (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [10] logs_update
+  [8] logs_update
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : public
       warunek   : (athlete_id = ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))

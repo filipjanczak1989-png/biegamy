@@ -54,7 +54,7 @@ e3089c15729864e4  jr_shop_items
 e4fa4dafaa32a9de  log_reactions
 e1f82f32e9db8e02  messages
 76d61ab1e257669f  notifications
-3ab0103592b89e75  nutrition_meals
+d4b4606fa547fd4d  nutrition_meals
 4b6876ce9b3160e5  nutrition_profiles
 5937c241953eedf3  nutrition_quotes
 6be4ecbdc6176f93  peer_messages
@@ -63,7 +63,7 @@ c78fb65246900fcf  profiles
 0f1287c20a793aa0  public_athletes
 3cf77e9cbd012f31  public_training_logs
 fd275a3e4b5a8b4b  push_subscriptions
-4d8020918c2af6ec  race_signups
+ad573034b541d7e0  race_signups
 6c26bb1355f5e395  races
 ed17741edc677b1d  radio_comments
 1df74960be86545e  radio_comments_view
@@ -79,7 +79,7 @@ e2855e44ee293171  recipes
 28c9b3825f0ddf72  security_events
 91d8940433172d4b  storage_cleanup_queue
 ac0e662b4ad2da19  strava_activities
-329dbd8fc146988f  training_logs
+66def102817ba6a2  training_logs
 f7552bc34998c9af  training_plan_workouts
 331b60d4586532b9  training_plans
 8be1fae9dd9b55cc  trainings

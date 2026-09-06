@@ -14,44 +14,29 @@ UPRAWNIENIA (tabelowe)
 UPRAWNIENIA (kolumnowe, ponad tabelowymi)
   — brak
 
-POLITYKI (8)
+POLITYKI (5)
 
-  [1] coach_deletes_athletes_meals
-      polecenie : DELETE   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.id = nutrition_meals.athlete_id) AND (a.coach_id = auth.uid()))))
-
-  [2] coach_inserts_athletes_meals
-      polecenie : INSERT   rodzaj: PERMISSIVE
-      role      : public
-      przy zapisie: (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.id = nutrition_meals.athlete_id) AND (a.coach_id = auth.uid()))))
-
-  [3] coach_reads_athletes_meals
+  [1] coach_reads_athletes_meals
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : public
       warunek   : (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.user_id = nutrition_meals.athlete_id) AND (a.coach_id = auth.uid()))))
 
-  [4] coach_updates_athletes_meals
-      polecenie : UPDATE   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.id = nutrition_meals.athlete_id) AND (a.coach_id = auth.uid()))))
-
-  [5] users_delete_own_meals
+  [2] users_delete_own_meals
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : public
       warunek   : (auth.uid() = athlete_id)
 
-  [6] users_insert_own_meals
+  [3] users_insert_own_meals
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : public
       przy zapisie: (auth.uid() = athlete_id)
 
-  [7] users_read_own_meals
+  [4] users_read_own_meals
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : public
       warunek   : (auth.uid() = athlete_id)
 
-  [8] users_update_own_meals
+  [5] users_update_own_meals
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : public
       warunek   : (auth.uid() = athlete_id)
