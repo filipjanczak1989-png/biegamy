@@ -4,8 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert');
 const G = require('../js/generator-planu.js');
 
-const TODAY = '2026-08-17';
-const zaTyg = n => G._isoZIdx(G._dzienIdx(TODAY) + n * 7);
+/* ⚠️ WTOREK, NIE PONIEDZIAŁEK — od 13.09.2026. `TODAY` był poniedziałkiem,
+   a `zaTyg(n)` liczył n×7 dni — pod starą regułą „plan od NASTĘPNEGO
+   poniedziałku" dawało n tygodni. Po naprawie `najblizszyPoniedzialek`
+   (blizna 34) te same daty dawałyby n+1. Wtorek + 6 dni = ten sam poniedziałek
+   startu co dawniej, więc oczekiwania niżej zostają bit w bit. */
+const TODAY = '2026-08-18';   // wtorek — patrz wyżej
+const zaTyg = n => G._isoZIdx(G._dzienIdx(TODAY) + 6 + (n - 1) * 7);
 function uloz(o) {
   return G.uloz(Object.assign({
     dystans: '5k', dniWTygodniu: 5, dataStartu: zaTyg(12), today: TODAY,

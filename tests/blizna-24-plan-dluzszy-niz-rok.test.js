@@ -25,9 +25,17 @@ const G = require('../js/generator-planu.js');
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8');
 
-const TODAY = '2026-08-24';
+/* ⚠️ WTOREK, NIE PONIEDZIAŁEK — od 13.09.2026. Do tego dnia `TODAY` był
+   poniedziałkiem, a `zaTyg(n)` liczył n×7 dni — pod starą regułą „plan od
+   NASTĘPNEGO poniedziałku" dawało to dokładnie n tygodni. Po naprawie
+   `najblizszyPoniedzialek` (dzisiejszy poniedziałek liczy się, blizna 34)
+   te same daty dawałyby n+1 i wszystkie oczekiwania niżej leciały na czerwono
+   — nie dlatego, że silnik się zepsuł, tylko że test opisywał wadę jako normę.
+   Wtorek + 6 dni daje ten sam poniedziałek startu planu co dawniej, więc
+   każda liczba niżej zostaje bit w bit. */
+const TODAY = '2026-08-25';   // wtorek — patrz wyżej
 const IDX = G._dzienIdx(TODAY);
-const zaTyg = (n) => G._isoZIdx(IDX + n * 7);
+const zaTyg = (n) => G._isoZIdx(IDX + 6 + (n - 1) * 7);
 
 function plan(tygodni, opcje) {
   return G.uloz(Object.assign({

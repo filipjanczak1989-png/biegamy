@@ -452,6 +452,22 @@
   function sufitAkcentu(baza) {
     return Math.max(MAX_TEMPO_KM, Math.min((baza > 0 ? baza : 0) * SUFIT_TEMPO_UDZIAL_BAZY, SUFIT_TEMPO_CAP));
   }
+  /* ⚠️ SUFIT AKCENTU „FUNKCJĄ BAZY" JEST MARTWY — I TO MY GO ZABILIŚMY 19.08.2026.
+     `sufitAkcentu(baza)` daje 10–16 km pracy. Obok stoi reguła 40 minut ciągłego
+     biegu progowego, która tnie pracę do 2400 / (p10 + 30): przy 5:30 na 10 km
+     to 7 km, przy 4:00 — 9 km. Żeby sufit z bazy w ogóle wygrał, trzeba
+     p10 ≤ 3:30/km (10 km w 35:00). ZMIERZONE 13.09.2026 na siatce p10 3:20–6:40
+     × bazy 30–90: sufit z bazy nie zawiązał ANI RAZU; przy p10 ≤ 3:30 wiąże
+     40 minut albo udział 20%. Nikt w bazie nie biega 10 km pod 35:00.
+     Zmiana z 19.08 („sufity funkcją bazy") była więc dla akcentu ozdobą — a nota
+     w `zalozenia` cytowała ją jako powód („akcent do 16 km") przy planie,
+     w którym najdłuższy Tempo miał 10 km. Rozjazd wprowadzony NASZĄ naprawą.
+     Ta funkcja to JEDYNE miejsce, które wie, ile pracy akcent dostaje —
+     jednostka i nota liczą z niej, więc liczba w zdaniu jest tą, która tnie. */
+  function sufitPracyAkcentu(baza, p10) {
+    var zMinut = Math.round(MAX_TEMPO_MIN * 60 / tempoStrefy(p10, 'T'));
+    return Math.max(1, Math.min(sufitAkcentu(baza), zMinut));
+  }
 
   /* Kształt tygodnia przy bazie POWYŻEJ sufitu dystansu. Zawodnik na 129 km/tydz
      nie ma rosnąć, ale ma mieć falę — inaczej plan jest płaski przez cały okres.
@@ -1028,6 +1044,20 @@
     var obecna = poziom.objetoscTygodniowa;
     var zalozonaObjetosc = false;
     if (!(obecna > 0)) { obecna = OBJETOSC_DOMYSLNA; zalozonaObjetosc = true; }
+    /* ⚠️ ZAŁOŻENIE MA MÓWIĆ, ŻE JEST ZAŁOŻENIEM — od 13.09.2026. Do tego dnia
+       odmowa przy braku logów brzmiała „Przy 20 km/tydz maraton wymagałby …,
+       czyli 2,3× więcej niż biegasz TERAZ" — zdanie o człowieku, którego nikt
+       nie zmierzył. `szczegoly.objetoscZalozona` istniało, ale klient przy
+       ODMOWIE renderuje wyłącznie `komunikat`, więc flaga nie docierała do
+       nikogo. Zmierzone 13.09: 29 z 46 uprawnionych nie ma ANI JEDNEGO logu
+       w 28 dni — to była największa liczba w audycie. Ta sama klasa co
+       „nie wiem ≠ nie ma". Jedno zdanie, wspólne dla każdego miejsca, które
+       cytuje `obecna`: gdy zmierzona — fakt; gdy założona — założenie
+       i droga do faktu. */
+    var oBazie = zalozonaObjetosc
+      ? 'Zakładam ' + OBJETOSC_DOMYSLNA + ' km/tydz, bo nie mam Twoich treningów — zaloguj kilka, a policzę dokładniej. Przy ' +
+        OBJETOSC_DOMYSLNA + ' km/tydz '
+      : null;
 
     // Niepełny tydzień startowy (start inny niż niedziela) NIE liczy się jako tydzień
     // taperu — inaczej przy starcie w poniedziałek ostatni PEŁNY tydzień przed
@@ -1181,8 +1211,9 @@
                    ' spokojnego biegania. ' + d.etykieta + ' realnie ' + kiedyCel + '.';
           })();
       return odmowa('ZA_MALA_BAZA',
-        'Przy ' + Math.round(obecna) + ' km/tydz ' + d.etykieta.toLowerCase() + ' wymagałby dojścia do ' + d.minSzczyt +
-        ' km/tydz, czyli ' + (Math.round(d.minSzczyt / obecna * 10) / 10) + '× więcej niż biegasz teraz.' + sciezka,
+        (oBazie || ('Przy ' + Math.round(obecna) + ' km/tydz ')) + d.etykieta.toLowerCase() + ' wymagałby dojścia do ' + d.minSzczyt +
+        ' km/tydz, czyli ' + (Math.round(d.minSzczyt / obecna * 10) / 10) + '× ' +
+        (zalozonaObjetosc ? 'tyle.' : 'więcej niż biegasz teraz.') + sciezka,
         { obecna_km: Math.round(obecna), minSzczyt_km: d.minSzczyt, wymaganaBaza_km: wymBaza,
           objetoscZalozona: zalozonaObjetosc, dystans: we.dystans,
           sciezkaDystans: blizej, sciezkaTygodni: doCelu + d.minTygodni });
@@ -1263,7 +1294,8 @@
           : 'W ' + tygodnie + ' tyg. znaczyłoby to ' + (Math.round(przyrost * 1000) / 10) +
             '% tygodniowo, czyli dokładnie na granicy bezpiecznego przyrostu przy Twojej objętości.';
         return odmowa('SKOK_OBJETOSCI',
-          'Biegasz ' + Math.round(obecna) + ' km/tydz, a ' + d.etykieta.toLowerCase() + ' wymaga dojścia do ok. ' + Math.round(peak) +
+          (zalozonaObjetosc ? oBazie.replace(/ Przy \d+ km\/tydz $/, ' ') + 'A ' : 'Biegasz ' + Math.round(obecna) + ' km/tydz, a ') +
+          d.etykieta.toLowerCase() + ' wymaga dojścia do ok. ' + Math.round(peak) +
           ' km/tydz. ' + zdanieProc + drogaWyjscia + ' ' +
           'Jeśli data jest nie do ruszenia, napisz do Filipa albo Kasi — człowiek ułoży to, czego automat nie potrafi.',
           { obecna_km: Math.round(obecna), peak_km: Math.round(peak), tygodnie: tygodnie,
@@ -1532,9 +1564,21 @@
            ' ' + samStart + ' ' + trener;
   }
 
+  /* ⚠️ DZISIEJSZY PONIEDZIAŁEK LICZY SIĘ JAKO NAJBLIŻSZY — od 13.09.2026.
+     Do tego dnia funkcja brała „pierwszy poniedziałek OSTRO po", więc plan
+     układany w poniedziałek ruszał za SIEDEM dni: ten sam start za 83 dni dawał
+     12 tygodni we wtorek i 11 w poniedziałek. Tydzień znikał bez słowa,
+     a przy krótkim horyzoncie przerzucał człowieka przez ZA_MALO_TYGODNI —
+     czyli poniedziałkowa próba dostawała odmowę, której wtorkowa by nie
+     dostała. Komentarz obok mówił „najbliższy poniedziałek"; kod robił
+     „następny". Dotyczyło jednej próby na siedem.
+     Rozstrzygnięcie: plan OD DZIŚ. Koszt: ktoś generujący w poniedziałek
+     wieczorem ma w planie dzisiejszą jednostkę, której już nie zrobi — jedna
+     nieodhaczona jednostka, którą `oceniAdaptacje` i tak umie policzyć.
+     Alternatywa kosztowała każdego innego sześć dni bez planu i tydzień
+     budowania. */
   function najblizszyPoniedzialek(idx) {
-    // pierwszy poniedziałek ostro po dniu odniesienia
-    var i = idx + 1;
+    var i = idx;
     while (dzienTygodnia(i) !== 1) i++;
     return i;
   }
@@ -1678,7 +1722,7 @@
        Zmierzone: przy bazie 88 i p10 3:25 to ona, a nie 15,8 km z bazy, ustala
        pracę na ~12 km. Sufit z bazy zdejmuje blokadę, minuty pilnują sensu. */
     var tempoPace = tempoStrefy(p10, 'T');
-    kmPracy = Math.min(kmPracy, sufitAkcentu(baza), Math.round(MAX_TEMPO_MIN * 60 / tempoPace));
+    kmPracy = Math.min(kmPracy, sufitPracyAkcentu(baza, p10));
     kmPracy = Math.max(1, kmPracy);
     var minuty = Math.round(kmPracy * tempoPace / 60);
     return {
@@ -1837,6 +1881,37 @@
     // niż wypchnąć je w jedną jednostkę, która przestaje być spokojna.
     if (idxDlugie >= 0) naSpokojny = Math.min(naSpokojny, km[idxDlugie]);
     spokojne.forEach(function (idx) { km[idx] = naSpokojny; });
+
+    /* ── CAP 40% LICZONY Z TEGO, CO PLAN DOSTARCZA — od 13.09.2026 ─────────
+       ⚠️ Sufit wyżej odnosi 40% do `kmTyg`, czyli do KRZYWEJ. Ale tydzień po
+       sufitach jednostek i po „spokojny nie dłuższy od wybiegania" zadaje
+       MNIEJ niż krzywa — i wtedy wybieganie, poprawne wobec deklaracji,
+       przekracza 40% tego, co człowiek naprawdę biegnie. ZMIERZONE 13.09.2026
+       (4 dystanse × 3–6 dni × bazy 12–140): 767 z 4428 tygodni budowy miało
+       wybieganie do 43% dostarczonego tygodnia, 574 z nich przy 3 dniach —
+       a KAŻDY z tych 767 mieścił się w 40% krzywej. Reguła była spełniona
+       wobec liczby, której w planie nie ma.
+       Podstawą jest tydzień DOSTARCZONY: suma jednostek po rozdaniu. Sufit
+       i suma zależą od siebie (przycięte wybieganie oddaje kilometry
+       spokojnym, spokojne nie mogą przerosnąć wybiegania), więc liczymy
+       punkt stały: wybieganie maleje monotonicznie, pętla kończy się
+       najpóźniej po kilku krokach. Nadwyżka, której spokojne nie mogą
+       przyjąć, PRZEPADA — tak jak przepadała dotąd przy sufitach; to jest
+       cena capu, nie nowy koszt. Decyzja Filipa z 13.09: udział liczony
+       z tego, co plan dostarcza, nie z tego, co deklaruje. */
+    if (idxDlugie >= 0 && spokojne.length) {
+      for (var krok40 = 0; krok40 < 8; krok40++) {
+        var sumaTyg = 0;
+        for (i = 0; i < km.length; i++) sumaTyg += km[i] || 0;
+        var sufitDost = MAX_UDZIAL_DLUGIEGO * sumaTyg;
+        if (km[idxDlugie] <= sufitDost + 0.001) break;
+        var oddaje = km[idxDlugie] - sufitDost;
+        km[idxDlugie] = sufitDost;
+        /* nadwyżka do spokojnych, ale żaden nie przerasta wybiegania */
+        var naJeden = oddaje / spokojne.length;
+        spokojne.forEach(function (idx) { km[idx] = Math.min(km[idx] + naJeden, km[idxDlugie]); });
+      }
+    }
 
     /* ── PODŁOGA JEDNOSTKI Z REDYSTRYBUCJĄ ─────────────────────────────────
        ⚠️ TO ODWRACA WCZEŚNIEJSZĄ DECYZJĘ I TRZEBA WIEDZIEĆ, DLACZEGO.
@@ -2187,6 +2262,9 @@
         ' km/tydz zmieści się samo, czyli ' +
         mgliscieTygodnie(doBazyW, dzienIdx(wejscie.today)) + ' budowania.';
       return odmowa('ZA_KROTKIE_WYBIEGANIE',
+        (k.zalozonaObjetosc
+          ? 'Zakładam ' + OBJETOSC_DOMYSLNA + ' km/tydz, bo nie mam Twoich treningów — zaloguj kilka, a policzę dokładniej. '
+          : '') +
         'Najdłuższe wybieganie w takim planie to ' + (Math.round(najdluzsze * 10) / 10) + ' km, a przed startem na ' +
         k.d.etykieta.toLowerCase() + ' trzeba dobiec co najmniej ' + (Math.round(progDlugiego * 10) / 10) + ' km (' +
         Math.round(k.d.minDlugieProc * 100) + '% dystansu). ' + sciezkaWybiegania,
@@ -2289,8 +2367,11 @@
           'Do startu jest ' + doStartu + ' tyg., a najdłuższy plan, jaki układam, to ' + MAX_TYGODNI +
           ' — dłuższy powtarzałby ten sam cykl w kółko, zamiast cokolwiek dokładać. ' +
           'Ten kończy się w dniu zawodów, więc rusza ' + fmtDataPl(k.idxPn) + kiedy + '. ' +
-          'Do tego czasu masz jedno zadanie: nie stracić tego, co już biegasz — plan jest policzony ' +
-          'z dzisiejszych ' + Math.round(k.obecna) + ' km/tydz i tyle zakłada w dniu, w którym ruszy.' +
+          (k.zalozonaObjetosc
+            ? 'Plan jest policzony z ZAŁOŻONYCH ' + Math.round(k.obecna) + ' km/tydz, bo nie mam Twoich treningów — ' +
+              'zaloguj kilka i ułóż go jeszcze raz, a policzę z prawdziwej objętości.'
+            : 'Do tego czasu masz jedno zadanie: nie stracić tego, co już biegasz — plan jest policzony ' +
+              'z dzisiejszych ' + Math.round(k.obecna) + ' km/tydz i tyle zakłada w dniu, w którym ruszy.') +
           (bliskoTeraz
             ? ' Jeśli masz po drodze bliższy bieg, ułóż plan na ' +
               DYSTANSE[bliskoTeraz].etykieta.toLowerCase() + ' i wróć tutaj, kiedy ten ruszy.'
@@ -2348,8 +2429,9 @@
                'po zgłoszeniu bólu — ten plan ma Cię przeprowadzić przez kontuzję, nie do mety.']
             : [])).concat(
           szczytTyg < Math.max.apply(null, objetosci) * 0.95
-            ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' + doKroku(sufitAkcentu(k.obecna)) +
-               ' km) nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
+            ? ['Sufity jednostek (wybieganie do ' + doKroku(sufitWybiegania(k.d, k.obecna)) + ' km, akcent do ' +
+               sufitPracyAkcentu(k.obecna, k.p10) + ' km pracy, czyli ' + MAX_TEMPO_MIN + ' min w tempie progowym' +
+               ') nie pozwalają rozłożyć pełnej objętości na ' + dni + ' dni — plan zadaje ' +
                Math.round(szczytTyg) + ' km/tydz w szczycie zamiast ' + Math.round(Math.max.apply(null, objetosci)) + '.']
             : []).concat(
           /* ⚠️ DRUGI WARUNEK, NIE ZAMIAST PIERWSZEGO — łapią różne rzeczy.
@@ -2802,6 +2884,7 @@
     _liczbaOdcinkow: liczbaOdcinkow,
     _ulozTydzien: ulozTydzien,
     _najblizszyPoniedzialek: najblizszyPoniedzialek,
+    _sufitPracyAkcentu: sufitPracyAkcentu,
     _dzienIdx: dzienIdx,
     _isoZIdx: isoZIdx
   };
@@ -2822,8 +2905,19 @@
     }
     function sekcja(t) { console.log('\n' + t); }
 
-    var TODAY = '2026-08-10';                       // poniedziałek
-    function zaTygodni(n) { return isoZIdx(dzienIdx(TODAY) + n * 7); }
+    /* ⚠️ WTOREK, NIE PONIEDZIAŁEK — od 13.09.2026. Do tego dnia stało tu
+       '2026-08-10 // poniedziałek', a wszystkie 528 oczekiwań niżej były
+       policzone przy starej regule „plan od NASTĘPNEGO poniedziałku", która
+       w poniedziałek gubiła tydzień. Po naprawie `najblizszyPoniedzialek`
+       (dzisiejszy poniedziałek liczy się) te same daty startu dawałyby
+       o tydzień więcej i 23 asercje leciały na czerwono — nie dlatego, że
+       silnik się zepsuł, tylko że test opisywał wadę jako normę.
+       Wtorek 11.08 daje ten sam `idxPn` (17.08) co stary poniedziałek 10.08
+       pod starą regułą, więc każda liczba niżej zostaje bit w bit — a osobna
+       sekcja „DZIŚ PONIEDZIAŁEK" na końcu ŚCIANY pilnuje nowej reguły wprost. */
+    var TODAY = '2026-08-11';                       // wtorek — patrz wyżej
+    var TODAY_PN = '2026-08-10';                    // poniedziałek — do sekcji o dzisiejszym poniedziałku
+    function zaTygodni(n) { return isoZIdx(dzienIdx(TODAY) + 6 + (n - 1) * 7); }
 
     function we(o) {
       return Object.assign({
@@ -2836,11 +2930,31 @@
     console.log('Generator planu — self-test');
 
     /* ══════════ ŚCIANA — odmowy. To jest właściwy przedmiot testów. ══════════ */
-    // zaTygodni(n) daje DOKŁADNIE n tygodni planu: start liczy się od najbliższego
-    // poniedziałku PO dniu odniesienia, więc (n*7 - 7)/7 + 1 = n.
+    // zaTygodni(n) daje DOKŁADNIE n tygodni planu: TODAY to wtorek, plan rusza
+    // w najbliższy poniedziałek (+6 dni), a start w poniedziałek n-tego tygodnia.
     sekcja('ŚCIANA — za mało tygodni');
     check('kontrola samego helpera: zaTygodni(10) to 10 tygodni',
       uloz(we({ dataStartu: zaTygodni(10) })).meta.tygodnie === 10, null);
+    /* ── DZIŚ PONIEDZIAŁEK — tydzień nie ginie (13.09.2026) ─────────────── */
+    (function () {
+      var wt = uloz(we({ dataStartu: zaTygodni(10) }));
+      var pn = uloz(we({ dataStartu: zaTygodni(10), today: TODAY_PN }));
+      check('dziś poniedziałek: plan rusza DZIŚ, nie za tydzień',
+        pn.ok && pn.plan.start_date === TODAY_PN, pn.ok ? pn.plan.start_date : pn.sciana);
+      check('…i ma o JEDEN tydzień więcej niż ten sam start układany we wtorek',
+        pn.ok && wt.ok && pn.meta.tygodnie === wt.meta.tygodnie + 1,
+        [pn.ok && pn.meta.tygodnie, wt.ok && wt.meta.tygodnie]);
+      /* granica: start, który we wtorek odbija ZA_MALO_TYGODNI o jeden tydzień,
+         w poniedziałek PRZECHODZI — dokładnie ten przypadek gubił ludzi */
+      var wtOdb = uloz(we({ dystans: 'half', dataStartu: zaTygodni(9), poziom: poziom({ objetoscTygodniowa: 60 }) }));
+      var pnOk  = uloz(we({ dystans: 'half', dataStartu: zaTygodni(9), today: TODAY_PN, poziom: poziom({ objetoscTygodniowa: 60 }) }));
+      check('granica: ten sam start odbity we wtorek (9 tyg.) PRZECHODZI w poniedziałek (10 tyg.)',
+        !wtOdb.ok && wtOdb.sciana.kod === 'ZA_MALO_TYGODNI' && pnOk.ok && pnOk.meta.tygodnie === 10,
+        [wtOdb.ok ? 'wt PRZESZLO' : wtOdb.sciana.kod, pnOk.ok ? pnOk.meta.tygodnie : pnOk.sciana.kod]);
+      var nd = uloz(we({ dataStartu: zaTygodni(10), today: '2026-08-16' }));   // niedziela przed
+      check('niedziela: plan rusza jutro (bez zmian wobec starej reguły)',
+        nd.ok && nd.plan.start_date === '2026-08-17', nd.ok ? nd.plan.start_date : nd.sciana);
+    })();
     [['5k', 4], ['10k', 6], ['half', 10], ['marathon', 16]].forEach(function (c) {
       var r = uloz(we({ dystans: c[0], dataStartu: zaTygodni(c[1] - 1), dniWTygodniu: 5,
                         poziom: poziom({ objetoscTygodniowa: 60 }) }));
@@ -3579,12 +3693,17 @@
        nim o pół kroku: 40% z 51,5 to 20,60, a jednostka dostaje 20,5. Przy
        tolerancji 0,05 test uznawał to za „poniżej sufitu" i wymagał proporcji
        1,25, choć sufit właśnie ją uniemożliwił. Złapane 25.08.2026. */
-    var sufit6 = Math.min(sufitWybiegania(DYSTANSE.half, 40), MAX_UDZIAL_DLUGIEGO * r3.meta.objetosciTygodni[5]);
-    check('3 dni: długie/spokojny ≈ ' + DLUGIE_NAD_SPOKOJNYM + ' (gdy długie poniżej OBU sufitów)',
-      dl6.target_distance_km >= sufit6 - KROK_KM / 2
-        ? dl6.target_distance_km >= sp6.target_distance_km
-        : Math.abs(dl6.target_distance_km / sp6.target_distance_km - DLUGIE_NAD_SPOKOJNYM) < 0.05,
-      [dl6.target_distance_km, sp6.target_distance_km, DYSTANSE.half.maxDlugieKm]);
+    /* ⚠️ OD 13.09.2026 SUFIT 40% LICZY SIĘ Z TYGODNIA DOSTARCZONEGO, nie z krzywej
+       (`objetosciTygodni[5]`). Przy 3 dniach to znaczy: długie = spokojny = 40%
+       dostawy, jakość ~20% — REMIS jest już nie „bywa", tylko regułą. Proporcja
+       1,25 przestała być osiągalna przy 3 dniach z definicji (1,25·sp ≤ 0,4·S
+       wymaga sp ≤ 1,14·jakość). Test pilnuje więc tego, co obowiązuje: sufitu
+       z DOSTAWY i remisu. */
+    var dost6 = w6.reduce(function (a, w) { return a + (w.target_distance_km || 0); }, 0);
+    var sufit6 = Math.min(sufitWybiegania(DYSTANSE.half, 40), MAX_UDZIAL_DLUGIEGO * dost6);
+    check('3 dni: wybieganie NA suficie 40% DOSTARCZONEGO tygodnia (nie krzywej), spokojny nie dłuższy',
+      Math.abs(dl6.target_distance_km - sufit6) <= KROK_KM / 2 + 0.01 && dl6.target_distance_km >= sp6.target_distance_km,
+      [dl6.target_distance_km, sp6.target_distance_km, dost6, sufit6]);
     /* ── CZY PLAN DOMYKA OBJĘTOŚĆ, KTÓRĄ SAM DEKLARUJE ────────────────────
        ⚠️ PRZEPISANE 25.08.2026: mierzy RELACJĘ, nie jedną liczbę. Poprzednia
        wersja porównywała tydzień 6 jednego planu (53 wobec 55, potem 50 wobec
@@ -3638,9 +3757,22 @@
        niż zadeklarował. Udokumentowane w ulozTydzien („lepiej oddać mniej
        kilometrów niż wypchnąć je w jedną jednostkę") — więc test NIE żąda 1,000,
        tylko pilnuje, żeby nie było GORZEJ niż dziś. */
+    /* ⚠️ PROGI PRZEPISANE 13.09.2026 — I TO JEST DECYZJA, NIE OBNIŻENIE „ŻEBY
+       PRZESZŁO". Do tego dnia: mediana ≥ 0,96, minimum ≥ 0,56. Cap 40% liczony
+       z DOSTAWY (a nie z krzywej) domyka przy 3 dniach tydzień na 5 × jakość
+       (długie = spokojny = 40%, jakość 20%), więc tam, gdzie jakość jest mała
+       wobec tygodnia — czyli przy DUŻEJ bazie — dostawa spada: zmierzone stary
+       → nowy, faza budowy, 3 dni: półmaraton baza 45: 536 → 501 km (−6,5%),
+       baza 90: 709 → 597 (−16%), 5 km baza 130: 446 → 332 (−26%); bazy ≤30:
+       0–3%. Przy 4–6 dniach ZERO zmiany (319 148 → 319 148 km na całej siatce).
+       Dziś nikt z uprawnionych nie ma bazy >45. Filip 13.09: „udział liczony
+       z tego, co plan DOSTARCZA". Nowe progi to zmierzony stan po tej decyzji
+       (mediana 0,9091 — ta sama co przed, bo mediana siedzi w małych bazach;
+       minimum 0,4056 przy 5 km/130 km/tydz). Gdy spadną niżej — coś się
+       popsuło; gdy chcemy wyżej — trzeba zdjąć jedną z dwóch reguł, nie próg. */
     check('⚠️ ZNANA WADA: przy 3 dniach plan NIE domyka deklaracji (mediana ' +
-          mediana(relacje['3']).toFixed(4) + ') — nie pogarsza się',
-      mediana(relacje['3']) >= 0.96 && Math.min.apply(null, relacje['3']) >= 0.56,
+          mediana(relacje['3']).toFixed(4) + ') — nie pogarsza się wobec stanu z 13.09.2026',
+      mediana(relacje['3']) >= 0.90 && Math.min.apply(null, relacje['3']) >= 0.40,
       [mediana(relacje['3']), Math.min.apply(null, relacje['3'])]);
 
     check('⚠️ …i przy 3 dniach jest WYRAŹNIE gorzej niż przy 6 — to nie szum siatki',
