@@ -4,7 +4,7 @@
 # Porównanie:  node tools/funkcje-bazy.js
 # Obiektow (funkcje + triggery): 59
 
-82c329258c25f668  accept_intake_form
+1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
 6658db0fe0ed7878  are_friends
 4925396f4b6308fb  athlete_intake_forms.trg_intake_updated_at

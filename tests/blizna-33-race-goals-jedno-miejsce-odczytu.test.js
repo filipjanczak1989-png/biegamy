@@ -9,6 +9,22 @@
 // dane były już „naprawione" nowym zapisem. Zmierzone 13.09.2026: 0 uszkodzonych
 // wartości u 34 osób — i ta liczba NICZEGO nie dowodzi, właśnie dlatego.
 //
+// !! JEDYNY UDOKUMENTOWANY PRZYPADEK — I DOWÓD, ŻE TAKICH NIE UMIEMY POLICZYĆ.
+//    15.05.2026 funkcja `accept_intake_form` wpisała do `race_goals` jednej
+//    zawodniczki ZDANIE z ankiety (206 znaków, pole „plany na rok") — wolny
+//    tekst w kolumnie z JSON-em. Od tego dnia każdy `JSON.parse` tej wartości
+//    padał. 13.09.2026 kolumna ma NULL. Jedyne miejsce w kodzie piszące NULL
+//    to „usuń cel" w kalendarz.html po nieudanym parse — czyli ktoś (trener
+//    albo ona) kliknął, dostał pustą listę i zapisał pustkę.
+//    CZEGO NIE DA SIĘ DOWIEŚĆ: czy między 15.05 a 13.09 próbowała dodać własny
+//    cel. Nie ma zapisów na biegi (0), propozycji (0), błędów innych niż szum
+//    View Transitions (23), a otwarcie modalu celu nie zostawia śladu. Ślad po
+//    nadpisaniu jest NIEODRÓŻNIALNY od „nigdy nie miała celów" — dlatego
+//    „0 nieparsowalnych dziś" nie jest liczbą poszkodowanych, tylko liczbą
+//    wartości, które jeszcze nikt nie zdążył nadpisać. Kanał `kind='dane'`
+//    istnieje po to, żeby następny taki przypadek miał datę i miejsce.
+//    Pisarz SQL zamknięty migracją 20260913_intake_bez_race_goals.sql.
+//
 // !! DWIE FUNKCJE ODCZYTU. `parseRaceGoals` (tablica zawsze) jest dla renderu.
 //    `czytajRaceGoals` → { cele, uszkodzone } jest dla miejsc, które zapisują —
 //    i te przy `uszkodzone` ODMAWIAJĄ, z toastem RACE_GOALS_ODMOWA. Helper

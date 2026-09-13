@@ -1,3 +1,27 @@
+-- accept_intake_form: ankieta NIE pisze do athletes.race_goals
+--
+-- CO: dwie galezie funkcji (UPDATE istniejacego zawodnika i INSERT nowego)
+--     wpisywaly `v_intake.race_goals_year` — WOLNY TEKST z ankiety („plany na
+--     rok") — do `athletes.race_goals`, kolumny, ktora WSZEDZIE indziej trzyma
+--     JSON (tablice celow). Po tej migracji `race_goals_year` idzie wylacznie
+--     do `goal` (tekst), tak jak dotad w COALESCE; `race_goals` funkcja nie dotyka.
+--
+-- DLACZEGO TERAZ: zmierzone 13.09.2026 — 1 z 7 ankiet miala w tym polu
+--     ZDANIE (206 znakow), zaakceptowana 15.05; osoba ma dzis race_goals NULL
+--     i cel od trenera — slad jak po sciezce „usun cel" w kalendarzu, ktora
+--     po nieudanym JSON.parse zapisywala NULL (naprawione w kliencie 13.09,
+--     commit 7d69a4e). To jest siedemnasty pisarz kolumny, poza zasiegiem
+--     helpera w sb.js, i pierwszy, ktory wywrocilby migracje typu na jsonb.
+--
+-- SKUTEK DLA CZLOWIEKA: zero — `goal` dostaje to samo co dotad; jedyna
+--     roznica to brak zdania w kolumnie, ktorej klient i tak nie umial odczytac.
+--
+-- WYCOFANIE: 20260913_WYCOFANIE_intake_bez_race_goals.sql — dzisiejsza
+--     definicja z migawki produkcji (supabase/schema/funkcje), bajt w bajt.
+--
+-- PO WYKONANIU: node tools/funkcje-bazy.js --zrzut  (migawka musi zobaczyc
+--     nowa tresc, inaczej nastepne porownanie zglosi rozjazd).
+
 CREATE OR REPLACE FUNCTION public.accept_intake_form(p_intake_id uuid)
  RETURNS uuid
  LANGUAGE plpgsql

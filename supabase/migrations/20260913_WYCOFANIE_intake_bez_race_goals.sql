@@ -1,3 +1,10 @@
+-- WYCOFANIE 20260913_intake_bez_race_goals.sql
+-- Przywraca definicje accept_intake_form sprzed migracji — tresc z migawki
+-- produkcji (supabase/schema/funkcje/accept_intake_form.sql, stan 13.09.2026).
+-- ⚠️ Przywraca tez WPISYWANIE wolnego tekstu do race_goals — to jest powod
+--    istnienia migracji glownej; wycofuj tylko, gdy cos w akceptacji ankiety
+--    przestalo dzialac.
+
 CREATE OR REPLACE FUNCTION public.accept_intake_form(p_intake_id uuid)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -91,6 +98,7 @@ BEGIN
 
                                   THEN v_existing.pb_marathon_year ELSE v_intake.pb_marathon_year END,
 
+            race_goals = COALESCE(NULLIF(race_goals, ''), v_intake.race_goals_year),
 
             gender = COALESCE(gender, v_gender)
 
@@ -118,7 +126,7 @@ BEGIN
 
       pb_5k, pb_10k, pb_half, pb_marathon,
 
-      pb_5k_year, pb_10k_year, pb_half_year, pb_marathon_year, goal, gender,
+      pb_5k_year, pb_10k_year, pb_half_year, pb_marathon_year, goal, race_goals, gender,
 
       terms_accepted_at
 
@@ -134,7 +142,7 @@ BEGIN
 
       COALESCE(v_intake.target_race_name, v_intake.race_goals_year),
 
-      v_gender,
+      v_intake.race_goals_year, v_gender,
 
       -- FAZA 4: realna zgoda RODO z intake → terms. consent_at = moment zaznaczenia zgód
 
