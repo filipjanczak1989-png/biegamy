@@ -2561,6 +2561,10 @@ function closeGoalModal() {
   document.getElementById('goal-modal').style.display = 'none';
   _goalSelectedRace = null;
   _linkingGoalIdx = -1;
+  // pola propozycji nie mogą przeżyć do następnego celu — miasto z poprzedniego biegu to gorszy placeholder niż pusty
+  var pc = document.getElementById('goal-propose-city'); if (pc) pc.value = '';
+  var pd = document.getElementById('goal-propose-dist'); if (pd) pd.value = '5';
+  var pdc = document.getElementById('goal-propose-dist-custom'); if (pdc) { pdc.value = ''; pdc.style.display = 'none'; }
 }
 
 // Cache wyścigów dla autocomplete
@@ -2728,24 +2732,79 @@ async function saveGoalFromModal() {
   renderGoals(_profileData);
 }
 
+/* ⚠️ DO 13.09.2026 TA FUNKCJA NIE ZAPISYWAŁA CELU. Wstawiała propozycję do
+   `races`, pokazywała „Propozycja wysłana do trenera ✓" i zamykała modal —
+   a `athletes.race_goals` zostawało nietknięte. Człowiek wpisał nazwę i datę,
+   dostał potwierdzenie i nie miał celu. Toast twierdził, że coś się wydarzyło.
+   Zmierzone na produkcji 13.09: tą ścieżką przeszła 1 osoba (5.07) i dopisała
+   sobie cel osobno, ręcznie.
+
+   ⚠️ DO TEGO DNIA WSTAWIAŁA TEŻ PLACEHOLDERY: `distance_km: 10` i `city: '—'`.
+   Kalendarz pokazywał nieprawdziwy dystans (górski „3xŚnieżka" zatwierdzony
+   jako 10 km), a rekord był niewykrywalny dla klucza data+miasto+dystans.
+   „Nie wiem" udające pomiar. Teraz człowiek podaje oba — zna je, skoro zgłasza
+   konkretny bieg — i oba są WYMAGANE, tak jak w races.html: druga droga nie
+   ma być łagodniejsza niż pierwsza.
+
+   KOLEJNOŚĆ: CEL PIERWSZY, PROPOZYCJA DRUGA. Jeśli propozycja padnie, człowiek
+   ma cel (prawda: „bieg nie jest w kalendarzu, masz go jako tekst"). Odwrotna
+   kolejność odtworzyłaby dzisiejszą wadę w innej postaci: propozycja jest,
+   celu nie ma. Id biegu losujemy po stronie klienta, żeby cel mógł nieść
+   `proposed_race_id` ZANIM propozycja w ogóle istnieje — dzięki temu
+   `addToGoals` w races.html powiąże cel z biegiem po zatwierdzeniu nawet
+   wtedy, gdy trener zmieni nazwę („Pko" → „PKO Poznań Maraton"). */
 async function proposeGoalAsRace() {
   const name = document.getElementById('goal-name-inp').value.trim();
   const date = document.getElementById('goal-date-inp').value;
+  const city = (document.getElementById('goal-propose-city')?.value || '').trim();
+  const distSel = document.getElementById('goal-propose-dist')?.value || '';
   if (!name) { showToast('Wpisz nazwę zawodów'); return; }
-  if (!date) { showToast('Podaj datę'); return; }
-  // Wyślij propozycję jako pending race
-  const { error } = await sb.from('races').insert({
-    name: name,
-    date: date,
-    distance_km: 10, // placeholder, trener uzupełni
-    city: '—',
-    status: 'pending',
-    added_by: _myId,
-    signup_count: 0
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('Podaj poprawną datę'); return; }
+  if (!city) { showToast('Podaj miasto — trener nie ma skąd go zgadnąć'); return; }
+  let distance_km;
+  if (distSel === 'other') {
+    distance_km = parseFloat(document.getElementById('goal-propose-dist-custom')?.value);
+    if (!(distance_km > 0)) { showToast('Podaj dystans w km'); return; }
+  } else {
+    distance_km = parseFloat(distSel);
+    if (!(distance_km > 0)) { showToast('Wybierz dystans'); return; }
+  }
+
+  let goals = [];
+  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  const exists = goals.some(function(g) {
+    return g.name && g.name.toLowerCase() === name.toLowerCase() && g.date === date;
   });
-  if (error) { showToast('Błąd: ' + error.message); return; }
-  showToast('Propozycja wysłana do trenera ✓');
+  if (exists) { showToast('Taki cel już istnieje'); return; }
+
+  const proposedId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+  const newGoal = { name: name, date: date };
+  if (proposedId) newGoal.proposed_race_id = proposedId;
+  goals.push(newGoal);
+
+  // 1. CEL — pierwszy, bo to jest to, co człowiek naprawdę chciał mieć
+  const { error: eCel } = await sb.from('athletes').update({
+    race_goals: JSON.stringify(goals),
+    goal: goals[0]?.name || null,
+    target_date: goals[0]?.date || null
+  }).eq('id', _myId);
+  if (eCel) { showToast('Nie udało się zapisać celu: ' + eCel.message); return; }
+  if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+
+  // 2. PROPOZYCJA — druga; jej pad zostawia stan prawdziwy: cel jest, biegu w kalendarzu nie ma
+  const payload = {
+    name: name, date: date, distance_km: distance_km, city: city,
+    status: 'pending', added_by: _myId, signup_count: 0
+  };
+  if (proposedId) payload.id = proposedId;
+  const { error: eProp } = await sb.from('races').insert(payload);
   closeGoalModal();
+  renderGoals(_profileData);
+  if (eProp) {
+    showToast('Cel zapisany · propozycji NIE udało się wysłać: ' + eProp.message);
+    return;
+  }
+  showToast('Cel zapisany · propozycja wysłana do trenera ✓');
 }
 
 async function removeGoal(idx) {
@@ -3208,7 +3267,23 @@ function _tileRaces() { location.href = 'races.html'; }   // kafel widoczny tylk
 
       <!-- Propozycja trenerowi (jeśli nie znaleziono) -->
       <div id="goal-propose-section" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Tych zawodów nie ma w kalendarzu BiegaMy. Możesz wysłać propozycję trenerowi:</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Tych zawodów nie ma w kalendarzu BiegaMy. Możesz wysłać propozycję trenerowi — podaj dystans i miasto, żeby w kalendarzu nie było zgadywania:</div>
+        <!-- ⚠️ BEZ opcji „Ultra": w races.html „Ultra" zapisuje 100 km jako placeholder
+             (osobna zaległość). Tu ultra idzie przez „Inny dystans" z prawdziwą liczbą. -->
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <select id="goal-propose-dist" onchange="document.getElementById('goal-propose-dist-custom').style.display = this.value === 'other' ? 'block' : 'none'"
+                  style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:13px;padding:10px 12px;border-radius:10px;outline:none;color-scheme:dark;">
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+            <option value="21.097">Półmaraton</option>
+            <option value="42.195">Maraton</option>
+            <option value="other">Inny dystans</option>
+          </select>
+          <input id="goal-propose-city" type="text" placeholder="Miasto" autocomplete="off"
+                 style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:13px;padding:10px 12px;border-radius:10px;outline:none;">
+        </div>
+        <input id="goal-propose-dist-custom" type="number" step="0.1" min="0.1" placeholder="Dystans w km, np. 15.5"
+               style="display:none;width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:13px;padding:10px 12px;border-radius:10px;outline:none;margin-bottom:8px;">
         <button onclick="proposeGoalAsRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:10px;padding:10px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.05em;cursor:pointer;"><img data-ic="icon-nut-export.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Wyślij propozycję trenerowi</button>
       </div>
 

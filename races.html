@@ -1275,14 +1275,15 @@ async function doUnsignup(raceId) {
 /** Dopisuje bieg do celów zawodnika. Zwraca `true`, gdy stan jest spójny. */
 async function addToGoals(race) {
   if (!_athleteId) return false;
-  // Sprawdź czy cel z tym race_id już istnieje (lub po nazwie dla starych celów)
-  const alreadyExists = _athleteGoals.some(g =>
-    g.race_id === race.id ||
-    (g.name && g.name.toLowerCase() === race.name.toLowerCase())
-  );
+  // Sprawdź czy cel z tym race_id już istnieje (lub po nazwie dla starych celów).
+  // `proposed_race_id` — cel zapisany w profilu PRZED wysłaniem propozycji (13.09.2026):
+  // id biegu losowane po stronie klienta, więc powiązanie przeżywa zmianę nazwy przez trenera.
+  const tenSam = (g) => g.race_id === race.id || g.proposed_race_id === race.id ||
+    (g.name && g.name.toLowerCase() === race.name.toLowerCase());
+  const alreadyExists = _athleteGoals.some(tenSam);
   if (alreadyExists) {
     // Zaktualizuj cel — dodaj race_id jeśli go nie ma
-    var existing = _athleteGoals.find(function(g){ return g.name && g.name.toLowerCase() === race.name.toLowerCase(); });
+    var existing = _athleteGoals.find(tenSam);
     if (existing && !existing.race_id) {
       existing.race_id = race.id;
       const { error: eUp } = await _sb.from('athletes')
