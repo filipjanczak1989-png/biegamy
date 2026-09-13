@@ -417,6 +417,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
     <div class="modal-links" id="m-links"></div>
     <div class="modal-actions">
       <!-- Trener: przyciski akcji -->
+      <div id="m-same-day" style="display:none;margin-bottom:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;font-size:11.5px;line-height:1.6;"></div>
       <div id="m-submitted-by" style="display:none;margin-bottom:8px;font-size:11px;color:var(--blue);font-family:'DM Mono',monospace;text-align:center;"></div>
       <div id="m-coach-pending" style="display:none;margin-bottom:10px;gap:8px;flex-direction:column;">
         <div style="display:flex;gap:8px;">
@@ -1064,6 +1065,14 @@ function openRace(id) {
     subEl.style.display = nm ? 'block' : 'none';
   }
 
+  // Trener przy propozycji: co JUŻ jest tego dnia — informacja, nie blokada
+  const sameDayEl = document.getElementById('m-same-day');
+  if (sameDayEl) {
+    const html = (_isCoach && race.status === 'pending') ? renderTegoDnia(race) : '';
+    sameDayEl.innerHTML = html;
+    sameDayEl.style.display = html ? 'block' : 'none';
+  }
+
   // Trener: pokaż odpowiednie przyciski, ukryj "Wezmę udział"
   const pendingEl = document.getElementById('m-coach-pending');
   const approvedEl = document.getElementById('m-coach-approved');
@@ -1096,6 +1105,44 @@ function updateModalSignupBtn(signed) {
     btn.className = 'modal-signup-btn';
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Wezmę udział!`;
   }
+}
+
+/* ⚠️ TRENER ZATWIERDZAŁ NA ŚLEPO. Pendingi siedzą w osobnej sekcji na górze
+   listy, zatwierdzone są pogrupowane miesiącami niżej — porównanie „czy to już
+   jest w kalendarzu" odbywało się w głowie, nie na ekranie. 12.09.2026 wszedł
+   „Pko" obok istniejącego biegu tego samego dnia w Poznaniu i Filip usuwał go
+   ręcznie. To jest JEDYNE miejsce, przez które przechodzi każde zatwierdzenie
+   (`approveRace` bierze `_currentRace` z tego modalu), więc tu pokazujemy,
+   co już jest.
+   Trzy decyzje, wszystkie świadome:
+     • TYLKO ten sam dzień — ±1 daje fałszywe trafienia (weekend biegowy),
+       a duplikat z pomyloną datą i tak nie da się złapać listą;
+     • INNE PENDINGI też — dwie propozycje tego samego biegu od dwóch osób to
+       najbardziej prawdopodobny duplikat, a wtedy żaden nie jest „w kalendarzu";
+     • ZERO trafień = sekcja UKRYTA, bez „brak kolizji" — nie uczymy oka
+       ignorowania ramki, która zwykle nic nie mówi.
+   Nie ocenia podobieństwa nazw: „Pko" = „PKO Poznań Maraton" rozstrzyga
+   trener, który zna kontekst; każda heurystyka tu albo przemilczy, albo
+   krzyknie nie tam. Zero zapytań — `_allRaces` trenera ma wszystkie statusy. */
+function kolizjeTegoDnia(race, wszystkie) {
+  const lista = wszystkie || _allRaces;
+  if (!race || !race.date) return [];
+  return lista.filter(r => r.id !== race.id && r.date === race.date && r.status !== 'rejected');
+}
+
+function renderTegoDnia(race, wszystkie) {
+  const kolizje = kolizjeTegoDnia(race, wszystkie);
+  if (!kolizje.length) return '';
+  const wiersze = kolizje.map(r => {
+    const czesci = [escHtml(r.name || '')];
+    if (r.city) czesci.push(escHtml(r.city));
+    czesci.push(escHtml(distanceLabel(r.distance_km)));
+    const pending = r.status === 'pending'
+      ? ' <span style="color:var(--blue);font-family:\'DM Mono\',monospace;font-size:10px;">(do zatwierdzenia)</span>' : '';
+    return '<div>' + czesci.join(' · ') + pending + '</div>';
+  });
+  return '<div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:4px;">Tego dnia w kalendarzu są już</div>'
+    + wiersze.join('');
 }
 
 async function approveRace() {
@@ -1490,7 +1537,17 @@ async function submitRace() {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────
+/* ⚠️ NULL W DYSTANSIE = „—", NIE „null km". Cztery helpery niżej dostają
+   `distance_km` prosto z bazy; bez tej bramki `${km} km` renderowało dosłownie
+   „null km", a `String(null)` w formatDistNum — „null". Do 13.09.2026 nikt tego
+   nie widział tylko dlatego, że dwie ścieżki zapisu wstawiały PLACEHOLDERY
+   (10 km z profilu, 100 km dla ultra) zamiast pustki — liczbę, która kłamie,
+   w miejsce znaku, który mówi „nie wiem". Gdy placeholdery znikają, NULL staje
+   się legalną wartością i musi mieć swój wygląd. */
+function _brakDystansu(km) { return km == null || km === '' || Number.isNaN(Number(km)); }
+
 function distanceLabel(km) {
+  if (_brakDystansu(km)) return '—';
   if (km === 5) return '5 km';
   if (km === 10) return '10 km';
   if (Math.abs(km - 21.097) < 0.2) return 'Półmaraton';
@@ -1500,6 +1557,7 @@ function distanceLabel(km) {
 }
 
 function formatDistNum(km) {
+  if (_brakDystansu(km)) return '—';
   if (Math.abs(km - 21.097) < 0.2) return '21';
   if (Math.abs(km - 42.195) < 0.2) return '42';
   if (km > 42.195) return `${Math.round(km)}`;
@@ -1507,12 +1565,14 @@ function formatDistNum(km) {
 }
 
 function formatDistUnit(km) {
+  if (_brakDystansu(km)) return '';
   if (Math.abs(km - 21.097) < 0.2) return '1 km';
   if (Math.abs(km - 42.195) < 0.2) return '2 km';
   return 'km';
 }
 
 function formatDistFull(km) {
+  if (_brakDystansu(km)) return '—';
   if (Math.abs(km - 21.097) < 0.2) return '21,097 km';
   if (Math.abs(km - 42.195) < 0.2) return '42,195 km';
   return `${km} km`;
