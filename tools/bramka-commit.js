@@ -70,6 +70,46 @@ const BLOKADY_TRESCI = [
     opis: 'klucz prywatny',
     ciBlokada: true,
     czemu: 'Nigdy nie należy do repozytorium.' },
+  /* ⚠️ KLUCZE OBCYCH USŁUG — dołożone 13.09.2026 po przemiocie sekretów CAŁEJ
+     historii (3608 commitów od 1.04.2026; bramka pilnowała od 16.08, więc
+     wszystko wcześniej nigdy nie było sprawdzone). Znalezione: klucz Resend
+     wpisany 13.07 do send-welcome-email (w drzewie DO 13.09, w historii NA
+     ZAWSZE) i klucz Google/Tenor z 10.04 (tylko w historii). Oba przeszłyby
+     tę bramkę dziś tak samo, jak przeszły wtedy — bo znała tylko `sb_secret_`
+     i PEM. Za tydzień wchodzi nowy klucz Resend (po rotacji) i ma być
+     złapany, jeśli ktoś go wklei w złe miejsce.
+
+     ⚠️ GRANICA TEGO NARZĘDZIA, NIE JEGO WADA: skan i bramka łapią KSZTAŁT
+     sekretu, nie sekret. Token bez rozpoznawalnego prefiksu (własny hook
+     secret, hasło, klucz o dowolnym formacie) PRZEJDZIE — i przejdzie zawsze,
+     bo z tekstu nie da się odróżnić hasła od identyfikatora. Wzorce niżej
+     to lista prefiksów, które dostawcy nadają swoim kluczom; każdy nowy
+     dostawca = nowa linia, a nie nowa nadzieja, że bramka „coś wyczuje".
+
+     Kształty CIASNE, nie „prefiks + cokolwiek": `re_` z ośmioma znakami,
+     podkreśleniem i 24 znakami to format Resend; samo `re_[A-Za-z0-9_]{20,}`
+     łapałoby zmienne `re_cos_dlugiego` w kodzie. Zmierzone na 60 ostatnich
+     commitach: 0 fałszywych trafień przy poniższych kształtach. */
+  { re: /\bre_[A-Za-z0-9]{8}_[A-Za-z0-9]{20,}\b/,
+    opis: 'klucz API Resend (re_…)',
+    ciBlokada: true,
+    czemu: 'Klucz do wysyłki maili w imieniu biegamy.run. W repo publicznym = rotacja, historia zostaje.' },
+  { re: /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{32,}\b/,
+    opis: 'klucz API OpenAI / Anthropic (sk-…)',
+    ciBlokada: true,
+    czemu: 'Klucz płatnego API. Wklejony do repo = cudze rachunki na Twoim koncie do czasu rotacji.' },
+  { re: /\bAIza[0-9A-Za-z_-]{35}\b/,
+    opis: 'klucz API Google (AIza…)',
+    ciBlokada: true,
+    czemu: 'Klucz Google Cloud. Ten sam kształt co klucz Tenora z 10.04.2026, który siedzi w historii do dziś.' },
+  { re: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b/,
+    opis: 'token GitHub (ghp_/github_pat_…)',
+    ciBlokada: true,
+    czemu: 'Token do repozytoriów — z nim ktoś wypycha na main i robi deploy.' },
+  { re: /\bAKIA[0-9A-Z]{16}\b/,
+    opis: 'klucz dostępu AWS (AKIA…)',
+    ciBlokada: true,
+    czemu: 'Klucz konta AWS.' },
   /* ⚠️ KIERUNEK MA ZNACZENIE — rozdzielone 6.09.2026, po tym jak ta reguła
      zatrzymała w CI commit ZAMYKAJĄCY dostęp anona do zgłoszeń bólu
      (`revoke all on public.injuries from anon`). Jedna reguła traktowała GRANT
@@ -433,6 +473,37 @@ function samokontrola() {
     ok(odAuth.ostrzezenia.some((o) => o.obiektAnon), 'REVOKE od authenticated NIE gasi — pilnujemy anona, nie kogokolwiek');
     ok(cicho(P([], ['cre' + 'ate temp table roboczo (x int);'])), 'CREATE TEMP TABLE cicho — poza public, default privileges nie dotyczy');
     ok(cicho(P([], ['cre' + 'ate index if not exists i on public.nowa (id);'])), 'CREATE INDEX cicho — to nie obiekt z grantami');
+  }
+
+  console.log('\n  10) KLUCZE OBCYCH USLUG (13.09.2026) — ksztalt klucza PADA, sasiedni nie-klucz PRZECHODZI');
+  /* ⚠️ Kazda para: prawdziwy KSZTALT (nie prawdziwy klucz — te sa zlozone
+     z fragmentow, zeby bramka nie blokowala samej siebie) musi byc blokada
+     TAKZE w CI, a najblizszy nie-klucz (zmienna, sciezka, identyfikator
+     o podobnym prefiksie) ma przejsc cicho. Bez drugiej strony wzorzec
+     „re_ + cokolwiek" przeszedlby test i zaczal krzyczec na kod. */
+  {
+    const resendKsztalt = 're_' + 'AbCdEfGh' + '_' + 'AbCdEfGhIjKlMnOpQrStUvWx';
+    ok(C([], ['const resend = new Resend("' + resendKsztalt + '");']).blokady.length === 1, 'klucz Resend (ksztalt re_8_24) BLOKUJE w CI');
+    ok(P([], ['const resend = new Resend("' + resendKsztalt + '");']).blokady.length === 1, '...i w hooku');
+    ok(cicho(P([], ['const re_szukaj_dlugiej_nazwy_zmiennej = /x/;'])), 'zmienna `re_cos_dlugiego` PRZECHODZI (kształt ciasny, nie prefiks)');
+    ok(cicho(P([], ["Deno.env.get('RESEND_API_KEY')"])), 'NAZWA sekretu Resend przechodzi (tak ma wygladac poprawny kod)');
+    const skKsztalt = 'sk-' + 'proj-' + 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd';
+    ok(C([], ['Authorization: Bearer ' + skKsztalt]).blokady.length === 1, 'klucz OpenAI (sk-proj-…) BLOKUJE w CI');
+    ok(C([], ['const k = "sk-' + 'ant-' + 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd";']).blokady.length === 1, 'klucz Anthropic (sk-ant-…) BLOKUJE w CI');
+    ok(cicho(P([], ['<div class="sk-item-header">'])), 'klasa CSS `sk-…` (krotka) PRZECHODZI');
+    ok(cicho(P([], ["Deno.env.get('OPENAI_API_KEY')"])), 'NAZWA sekretu OpenAI przechodzi');
+    const aizaKsztalt = 'AIza' + 'SyAbCdEfGhIjKlMnOpQrStUvWxYz0123456';
+    ok(C([], ['fetch(`https://tenor.googleapis.com/v2/search?key=' + aizaKsztalt + '`)']).blokady.length === 1, 'klucz Google (AIza…, jak Tenor 10.04) BLOKUJE w CI');
+    ok(cicho(P([], ['const AIzaCoś = 1; // 34 znaki to za malo'])), 'krotki napis z AIza PRZECHODZI');
+    ok(C([], ['token = "ghp_' + 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"']).blokady.length === 1, 'token GitHub ghp_ BLOKUJE w CI');
+    ok(C([], ['token = "github_pat_' + 'AbCdEfGhIjKlMnOpQrStUv_0123456789abcdef"']).blokady.length === 1, 'token GitHub github_pat_ BLOKUJE w CI');
+    ok(cicho(P([], ['git ls-files | grep github_pat'])), 'samo slowo github_pat bez tokenu PRZECHODZI');
+    ok(C([], ['aws_access_key_id = AKIA' + 'ABCDEFGHIJKLMNOP']).blokady.length === 1, 'klucz AWS AKIA… BLOKUJE w CI');
+    ok(cicho(P([], ['// AKIA to prefiks kluczy AWS'])), 'samo slowo AKIA PRZECHODZI');
+    /* ⚠️ GRANICA: token bez prefiksu przechodzi — i ma przechodzic, bo nie
+       da sie go odroznic od identyfikatora. Ta asercja istnieje po to, zeby
+       nikt nie myslal, ze bramka „wyczuwa" sekrety. */
+    ok(cicho(P([], ['const HOOK = "9f3c1b7e2a4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f";'])), 'GRANICA: token BEZ rozpoznawalnego prefiksu PRZECHODZI (ksztalt, nie sekret)');
   }
 
   console.log('\n  ' + (bledy
