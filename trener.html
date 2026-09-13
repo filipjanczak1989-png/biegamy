@@ -1700,10 +1700,7 @@ async function loadAthleteGoalsIntoModal() {
       .select('race_goals, pb_marathon, pb_half, pb_10k, pb_5k')
       .eq('id', id).maybeSingle();
 
-    let goals = [];
-    if (ath?.race_goals) {
-      try { goals = JSON.parse(ath.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) {}
-    }
+    let goals = window.parseRaceGoals(ath?.race_goals, 'trener.html:cele');
 
     // Filtruj tylko cele z przyszłą datą lub bez daty
     const today = new Date().toISOString().slice(0, 10);
@@ -3044,10 +3041,12 @@ async function loadPanelPB() {
     const el = document.getElementById(wej);
     if (el) el.value = a[kol] ? String(a[kol]) : '';
   }
-  // Cele
-  let goals = [];
-  try { goals = JSON.parse(a.race_goals || '[]'); } catch(e) {}
-  if (goals.length === 0 && a.goal) goals = [{name: a.goal, date: a.target_date||''}];
+  // Cele — panel ZAPISUJE z tej kopii (deletePanelGoal/savePanelGoal), więc przy
+  // uszkodzonej wartości zapamiętujemy odmowę zamiast pustej listy do nadpisania
+  const odczytCeli = window.czytajRaceGoals(a.race_goals, 'trener.html:panel');
+  window._panelGoalsUszkodzone = odczytCeli.uszkodzone;
+  let goals = odczytCeli.cele;
+  if (goals.length === 0 && a.goal && !odczytCeli.uszkodzone) goals = [{name: a.goal, date: a.target_date||''}];
   renderPanelGoals(goals);
 }
 
@@ -3150,9 +3149,10 @@ function addPanelGoal() {
 async function deletePanelGoal(idx) {
   const id = window._selectedAthleteId;
   if (!id) return;
+  if (window._panelGoalsUszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return; }
   const goals = (window._panelGoals || []).filter((_,i) => i !== idx);
   await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', id);
@@ -3165,9 +3165,10 @@ async function savePanelGoal() {
   const name = document.getElementById('ppb-goal-name').value.trim();
   const date = document.getElementById('ppb-goal-date').value;
   if (!name) { showToast('Podaj nazwę biegu'); return; }
+  if (window._panelGoalsUszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return; }
   const goals = [...(window._panelGoals||[]), {name, date}];
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', id);
@@ -3596,8 +3597,7 @@ async function selA_db_logs(athleteId) {
 // Najbliższy NADCHODZĄCY cel z race_goals (JSON-string). Zwraca {name,date,...}|null.
 // SSOT: wzorzec identyczny jak profil.html renderGoals (filter date≥dziś, sort rosnąco, [0]).
 function nextRace(raceGoalsStr) {
-  let goals = [];
-  try { goals = JSON.parse(raceGoalsStr || '[]'); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
+  const goals = window.parseRaceGoals(raceGoalsStr, 'trener.html:nextRace');
   const now = new Date();
   return goals
     .filter(g => g && g.date && new Date(g.date + 'T00:00:00') >= now)

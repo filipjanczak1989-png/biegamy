@@ -524,7 +524,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 <script>
 const _sb = window.sb;
 
-let _user = null, _athleteId = null, _athleteGoals = [], _isCoach = false;
+let _user = null, _athleteId = null, _athleteGoals = [], _athleteGoalsUszkodzone = false, _isCoach = false;
 let _allRaces = [], _mySignups = new Set();
 let _racesSeenBaseline = '';   // KROK 3: "ostatnia wizyta" sprzed tego wejścia — do badge "NOWE"
 let _activeDist = 'all', _searchVal = '';
@@ -546,7 +546,12 @@ let _currentRace = null;
     .maybeSingle();
   if (ath) {
     _athleteId = ath.id;
-    try { _athleteGoals = JSON.parse(ath.race_goals || '[]'); } catch(e) { _athleteGoals = []; }
+    /* Kopia W PAMIĘCI, z której addToGoals/removeFromGoals ZAPISUJĄ całą tablicę.
+       Uszkodzona wartość → zapis zablokowany (`_athleteGoalsUszkodzone`), inaczej
+       „Wezmę udział" nadpisałoby ją jednym celem. */
+    const odczytCeli = window.czytajRaceGoals(ath.race_goals, 'races.html:init');
+    _athleteGoalsUszkodzone = odczytCeli.uszkodzone;
+    _athleteGoals = odczytCeli.cele;
   }
 
   // Sprawdź czy trener
@@ -1275,6 +1280,7 @@ async function doUnsignup(raceId) {
 /** Dopisuje bieg do celów zawodnika. Zwraca `true`, gdy stan jest spójny. */
 async function addToGoals(race) {
   if (!_athleteId) return false;
+  if (_athleteGoalsUszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return false; }
   // Sprawdź czy cel z tym race_id już istnieje (lub po nazwie dla starych celów).
   // `proposed_race_id` — cel zapisany w profilu PRZED wysłaniem propozycji (13.09.2026):
   // id biegu losowane po stronie klienta, więc powiązanie przeżywa zmianę nazwy przez trenera.
@@ -1287,7 +1293,7 @@ async function addToGoals(race) {
     if (existing && !existing.race_id) {
       existing.race_id = race.id;
       const { error: eUp } = await _sb.from('athletes')
-        .update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
+        .update({ race_goals: window.serializeRaceGoals(_athleteGoals) }).eq('id', _athleteId);
       if (eUp) { delete existing.race_id; return false; }
     }
     return true;   // cel już był — zapis jest spójny
@@ -1297,7 +1303,7 @@ async function addToGoals(race) {
   _athleteGoals.push(newGoal);
 
   const { error } = await _sb.from('athletes').update({
-    race_goals: JSON.stringify(_athleteGoals),
+    race_goals: window.serializeRaceGoals(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
   }).eq('id', _athleteId);
@@ -1315,12 +1321,13 @@ async function addToGoals(race) {
 // Usuń cel powiązany z wyścigiem (gdy zawodnik się wypisuje)
 async function removeFromGoals(raceId) {
   if (!_athleteId) return true;
+  if (_athleteGoalsUszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return false; }
   const idx = _athleteGoals.findIndex(g => g.race_id === raceId);
   if (idx === -1) return true;
   const kopia = _athleteGoals[idx];
   _athleteGoals.splice(idx, 1);
   const { error } = await _sb.from('athletes').update({
-    race_goals: JSON.stringify(_athleteGoals),
+    race_goals: window.serializeRaceGoals(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
   }).eq('id', _athleteId);

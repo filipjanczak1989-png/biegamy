@@ -3139,6 +3139,100 @@ window._icuRenderSplits = function (d, el) {
     } catch (_) { _wZglaszaniu = false; }
   };
 
+  /* ── DANE, KTÓRYCH NIE UMIEMY ODCZYTAĆ → client_errors, kind='dane' ────────
+     Drugi kanał tego samego przyrządu. `zglosNieudanyZapis` mówi „baza odrzuciła
+     zapis"; ten mówi „baza oddała wartość, której klient nie rozumie". Do
+     13.09.2026 taka wartość była połykana przez `try { JSON.parse } catch { [] }`
+     w kilkunastu miejscach — bez śladu, a `[]` w miejscu, które zaraz zapisuje,
+     NADPISYWAŁO ją na stałe.
+     ⚠️ NIGDY TREŚCI. `race_goals` niesie nazwy startów i daty — dane osobowe.
+        Logujemy kolumnę, miejsce, powód, TYP i DŁUGOŚĆ. Tyle wystarcza, żeby
+        odróżnić „ucięty napis" od „obiekt zamiast tablicy".
+     ⚠️ Przyrząd sprawdzony 13.09.2026 zanim dostał drugi kanał: kod (3/3 inserty
+        w piaskownicy z sesją), payload (8/8 kolumn istnieje), RLS (insert jako
+        authenticated PRZESZEDŁ), przeglądarka→PostgREST (407 wierszy
+        `unhandledrejection` tą samą drogą). Te same trzy bezpieczniki pętli. */
+  window.zglosZleDane = function (kolumna, miejsce, powod, typ, dlugosc) {
+    if (_wZglaszaniu) return;
+    try { if (!window._authUid) return; } catch (_) { return; }
+    _wZglaszaniu = true;
+    try {
+      window.sb.from('client_errors').insert({
+        user_id: window._authUid,
+        url: (location.pathname + location.search).slice(0, 990),
+        kind: 'dane',
+        source: String(kolumna || '').slice(0, 90),
+        message: (String(miejsce || '?') + ' · ' + String(powod || '?') + ' · typ=' + String(typ || '?')
+                  + ' · dl=' + (Number(dlugosc) || 0)).slice(0, 300),
+        user_agent: String(navigator.userAgent || '').slice(0, 500),
+        app_version: window._appVersion || null,
+        created_at: new Date().toISOString()
+      }).then(function () { _wZglaszaniu = false; },
+              function () { _wZglaszaniu = false; });
+    } catch (_) { _wZglaszaniu = false; }
+  };
+
+  /* ── race_goals: JEDNO miejsce odczytu i zapisu ─────────────────────────────
+     `athletes.race_goals` to kolumna TEKSTOWA z JSON-em (34 osoby, 159 celów,
+     max 1922 znaki — stan 13.09.2026). Czytana była w 23 miejscach, pisana
+     w 14, każde przez własny `JSON.parse`/`JSON.stringify`.
+
+     ⚠️ DWIE FUNKCJE ODCZYTU, NIE JEDNA — i to jest cała treść tego bloku.
+        `parseRaceGoals` zwraca tablicę ZAWSZE i nadaje się do RENDERU: pusta
+        lista przy uszkodzonej wartości to prawda ekranu („nie umiem pokazać").
+        Ale 7 miejsc robi odczyt → modyfikuj → ZAPISZ, i tam `[]` przy uszkodzonej
+        wartości znaczy: dopisz jeden cel do pustej listy i nadpisz kolumnę.
+        Uszkodzenie nie „znika po cichu" — jest ZASTĘPOWANE, na stałe, bez śladu
+        (w zawodnik.html nawet bez kliknięcia, przy ładowaniu strony). Dlatego
+        „0 nieparsowalnych dziś" nie dowodzi, że nikt nie stracił celów.
+        Helper zwracający `[]` w takie miejsce przeniósłby cichą utratę
+        z siedmiu miejsc do jednego. Stąd `czytajRaceGoals` → { cele, uszkodzone }
+        i zasada: MIEJSCE ZAPISU ODMAWIA przy `uszkodzone`, z toastem
+        `RACE_GOALS_ODMOWA`, zamiast nadpisywać.
+
+     ⚠️ PRZYJMUJE NAPIS I OBIEKT. Od pierwszego dnia gotowe na `jsonb` — po
+        zmianie typu kolumny odczyt zwróci tablicę, nie napis, i nic tu nie
+        trzeba ruszać. `serializeRaceGoals` jest jedynym miejscem, które przy
+        migracji zmieni się z `JSON.stringify(arr)` na `arr`.
+
+     Nie-tablica (obiekt, liczba) → `[]` + zgłoszenie, NIE opakowanie: obiekt
+     `{name,date}` zamiast `[{…}]` to błąd zapisu, nie inny format — opakowanie
+     utrwaliłoby go jako legalny. */
+  window.RACE_GOALS_ODMOWA = 'Twoje cele są w stanie, którego nie umiem odczytać — nie nadpisuję ich. Napisz do nas.';
+
+  window.czytajRaceGoals = function (raw, miejsce) {
+    if (raw == null || raw === '') return { cele: [], uszkodzone: false };
+    var v = raw;
+    if (typeof raw === 'string') {
+      try { v = JSON.parse(raw); }
+      catch (_) {
+        window.zglosZleDane('athletes.race_goals', miejsce, 'nieparsowalne', 'string', raw.length);
+        return { cele: [], uszkodzone: true };
+      }
+    }
+    if (!Array.isArray(v)) {
+      window.zglosZleDane('athletes.race_goals', miejsce, 'nie-tablica', v === null ? 'null' : typeof v, String(raw).length);
+      return { cele: [], uszkodzone: true };
+    }
+    /* Element nie-obiekt (null, napis) wypada z listy, ale NIE unieważnia
+       całości: reszta celów jest prawdziwa i zapis jej nie zgubi. Zgłaszamy. */
+    var czyste = v.filter(function (g) { return g && typeof g === 'object'; });
+    if (czyste.length !== v.length) {
+      window.zglosZleDane('athletes.race_goals', miejsce, 'element-nie-obiekt', 'array', String(raw).length);
+    }
+    return { cele: czyste, uszkodzone: false };
+  };
+
+  /** Skrót dla RENDERU. Do miejsc, które ZAPISUJĄ, użyj `czytajRaceGoals` i sprawdź `uszkodzone`. */
+  window.parseRaceGoals = function (raw, miejsce) {
+    return window.czytajRaceGoals(raw, miejsce).cele;
+  };
+
+  /** Jedyne miejsce, które wie, w jakiej postaci kolumna przyjmuje wartość. */
+  window.serializeRaceGoals = function (cele) {
+    return JSON.stringify(Array.isArray(cele) ? cele : []);
+  };
+
   /* Polskie zdanie mówiące, CO ZROBIĆ. Surowy komunikat PostgREST po angielsku
      nie mówi człowiekowi nic — a przy toaście bez `max-width` widać z niego
      jakieś 45 znaków ze środka.
@@ -3731,11 +3825,8 @@ window._icuRenderSplits = function (d, el) {
   // Output: { name, date, daysLeft } | null
   // ────────────────────────────────────────────────────────────────────────
   window.computeNextRace = function(raceGoals) {
-    let goals = raceGoals;
-    if (typeof goals === 'string') {
-      try { goals = JSON.parse(goals); } catch(e) { return null; }
-    }
-    if (!Array.isArray(goals) || goals.length === 0) return null;
+    const goals = window.parseRaceGoals(raceGoals, 'sb.js:computeNextRace');
+    if (goals.length === 0) return null;
     const now = new Date();
     const upcoming = goals
       .filter(g => g.date && new Date(g.date) >= now)
@@ -4376,10 +4467,10 @@ window._icuRenderSplits = function (d, el) {
     const { data: ath } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
     let raceMarkers = [];
     try {
-      const rg = ath?.race_goals ? JSON.parse(ath.race_goals) : [];
+      const rg = window.parseRaceGoals(ath?.race_goals, 'sb.js:forma');
       const todayMs = today.getTime();
       const sixtyDaysLater = todayMs + 60 * 24 * 60 * 60 * 1000;
-      raceMarkers = (Array.isArray(rg) ? rg : [])
+      raceMarkers = rg
         .filter(r => r && r.date && r.name)
         .map(r => ({ date: r.date, name: r.name, ms: new Date(r.date).getTime() }))
         .filter(r => r.ms >= todayMs && r.ms <= sixtyDaysLater)

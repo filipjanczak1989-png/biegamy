@@ -337,7 +337,7 @@ async function renderCompare() {
   const compareRacesEl = document.getElementById('compare-races');
   if (compareRacesEl && meProf && meProf.race_goals) {
     try {
-      const myGoals = typeof meProf.race_goals === 'string' ? JSON.parse(meProf.race_goals) : meProf.race_goals;
+      const myGoals = window.parseRaceGoals(meProf.race_goals, 'compare.html:markery');
       const todayMs = Date.now();
       const ninetyDaysAgo = todayMs - 90 * 86400000;
       const upcomingMs = todayMs + 14 * 86400000; // v5: chart projection ma 14 dni

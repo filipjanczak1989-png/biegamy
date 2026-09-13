@@ -3306,8 +3306,7 @@ async function loadGoals() {
   var _rd = [];
   (data || []).forEach(function(a){
     if (a.target_date && a.goal) _rd.push({ id:a.id, name:a.goal, date:a.target_date, athlete_id:a.id, athlete_name:a.full_name||'' });
-    var rg = a.race_goals;
-    if (typeof rg === 'string') { try { rg = JSON.parse(rg); } catch(e) { rg = null; } }   // text→JSON, tolerancyjnie
+    var rg = window.parseRaceGoals(a.race_goals, 'kalendarz.html:_raceDays');
     if (Array.isArray(rg)) {
       rg.forEach(function(r){
         var d = r && r.date, nm = r && (r.name || r.goal || r.title);
@@ -3391,7 +3390,7 @@ async function openGoalModal(athleteId, celDate) {
     let prefill = null;
     if (celDate) {   // edycja KONKRETNEGO biegu po dacie (bieg wtórny)
       const { data: athG } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
-      let rg = []; try { rg = athG?.race_goals ? JSON.parse(athG.race_goals) : []; if (!Array.isArray(rg)) rg = []; } catch(e) { rg = []; }
+      const rg = window.parseRaceGoals(athG?.race_goals, 'kalendarz.html:prefill');
       prefill = rg.find(g => g.date === celDate) || null;
     }
     if (!prefill) prefill = window._goals.find(x => x.id === athleteId) || null;   // fallback: primary
@@ -3426,10 +3425,12 @@ async function deleteGoal() {
   const athleteId = _editingGoalAthleteId || _editingGoalId;
 
   const { data: athData } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
-  let goals = [];
-  if (athData?.race_goals) {
-    try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
-  }
+  /* ⚠️ ODCZYT PRZED ZAPISEM: przy uszkodzonej wartości ODMAWIAMY. Do 13.09.2026
+     nieudany parse dawał [] i ta funkcja zapisywała NULL — kasując wszystkie
+     cele człowieka po jednym kliknięciu „usuń". */
+  const odczyt = window.czytajRaceGoals(athData?.race_goals, 'kalendarz.html:deleteGoal');
+  if (odczyt.uszkodzone) { notify(window.RACE_GOALS_ODMOWA); return; }
+  let goals = odczyt.cele;
 
   // Usuń KONKRETNY bieg po dacie; fallback (brak celDate) — ostatni
   if (_editingGoalCelDate) {
@@ -3439,7 +3440,7 @@ async function deleteGoal() {
   }
 
   const { error } = await sb.from('athletes').update({
-    race_goals: goals.length > 0 ? JSON.stringify(goals) : null,
+    race_goals: goals.length > 0 ? window.serializeRaceGoals(goals) : null,
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', athleteId);
@@ -3467,10 +3468,9 @@ async function saveGoal() {
 
   // Pobierz aktualne race_goals i dodaj nowy cel do tablicy
   const { data: athData } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
-  let goals = [];
-  if (athData?.race_goals) {
-    try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
-  }
+  const odczyt = window.czytajRaceGoals(athData?.race_goals, 'kalendarz.html:saveGoal');
+  if (odczyt.uszkodzone) { notify(window.RACE_GOALS_ODMOWA); return; }
+  let goals = odczyt.cele;
 
   if (_editingGoalCelDate) {
     // Edycja KONKRETNEGO biegu (klucz = data) — update wpisu (może zmienić datę/nazwę), NIE push
@@ -3491,7 +3491,7 @@ async function saveGoal() {
   goals.sort((a, b) => a.date.localeCompare(b.date));
 
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', athleteId);

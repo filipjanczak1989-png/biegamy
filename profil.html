@@ -788,8 +788,7 @@ async function initPublicView(id) {
   renderPBs(a);   // canEdit = _isOwnProfile = false → zero onclicków, zero „+ Dodaj"
 
   // Cele read-only: bez onclick, bo modale startów czytają DB (anon → pusto). Te same klasy CSS.
-  var goals = [];
-  try { goals = JSON.parse(a.race_goals || '[]'); } catch(e) {}
+  var goals = window.parseRaceGoals(a.race_goals, 'profil.html:cudzyProfil');
   var upcoming = goals
     .filter(function(g){ return g && g.date && new Date(g.date + 'T00:00:00') >= new Date(); })
     .sort(function(x, y){ return new Date(x.date) - new Date(y.date); })
@@ -1167,8 +1166,7 @@ window.usunMiasto = usunMiasto;
 
 
 function renderGoals(ath) {
-  let goals = [];
-  try { goals = JSON.parse(ath.race_goals || '[]'); } catch(e) {}
+  let goals = window.parseRaceGoals(ath.race_goals, 'profil.html:renderGoals');
   if (ath.goal && ath.target_date) {
     if (!goals.some(g => g.name === ath.goal)) {
       goals.unshift({ name: ath.goal, date: ath.target_date });
@@ -1210,8 +1208,7 @@ function renderGoals(ath) {
 // Otwórz autocomplete modal w trybie "powiąż istniejący cel z wyścigiem"
 let _linkingGoalIdx = -1;
 function openLinkGoalModal(upcomingIdx) {
-  let goals = [];
-  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  let goals = window.parseRaceGoals(_profileData?.race_goals, 'profil.html:openLinkGoalModal');
   const upcoming = goals.filter(function(g){ return g.date && new Date(g.date + 'T00:00:00') >= new Date(); }).sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
   const target = upcoming[upcomingIdx];
   if (!target) return;
@@ -2655,8 +2652,9 @@ async function saveGoalFromModal() {
   if (!name) { showToast('Podaj nazwę zawodów'); return; }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('Podaj poprawną datę'); return; }
 
-  let goals = [];
-  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  const odczytCeli = window.czytajRaceGoals(_profileData?.race_goals, 'profil.html:zapis');
+  if (odczytCeli.uszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return; }
+  let goals = odczytCeli.cele;
 
   // Tryb linkowania istniejącego celu
   if (_linkingGoalIdx >= 0 && goals[_linkingGoalIdx]) {
@@ -2668,12 +2666,12 @@ async function saveGoalFromModal() {
     goals[_linkingGoalIdx].name = _goalSelectedRace.name;
     goals[_linkingGoalIdx].date = _goalSelectedRace.date;
     const { error } = await sb.from('athletes').update({
-      race_goals: JSON.stringify(goals),
+      race_goals: window.serializeRaceGoals(goals),
       goal: goals[0]?.name || null,
       target_date: goals[0]?.date || null
     }).eq('id', _myId);
     if (error) { showToast('Błąd: ' + error.message); return; }
-    if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+    if (_profileData) _profileData.race_goals = window.serializeRaceGoals(goals);
     // Auto-signup
     await sb.from('race_signups').upsert({
       race_id: _goalSelectedRace.id,
@@ -2705,7 +2703,7 @@ async function saveGoalFromModal() {
   goals.push(newGoal);
 
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _myId);
@@ -2727,7 +2725,7 @@ async function saveGoalFromModal() {
     showToast('Cel dodany ✓');
   }
 
-  if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+  if (_profileData) _profileData.race_goals = window.serializeRaceGoals(goals);
   closeGoalModal();
   renderGoals(_profileData);
 }
@@ -2770,8 +2768,9 @@ async function proposeGoalAsRace() {
     if (!(distance_km > 0)) { showToast('Wybierz dystans'); return; }
   }
 
-  let goals = [];
-  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  const odczytCeli = window.czytajRaceGoals(_profileData?.race_goals, 'profil.html:zapis');
+  if (odczytCeli.uszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return; }
+  let goals = odczytCeli.cele;
   const exists = goals.some(function(g) {
     return g.name && g.name.toLowerCase() === name.toLowerCase() && g.date === date;
   });
@@ -2784,12 +2783,12 @@ async function proposeGoalAsRace() {
 
   // 1. CEL — pierwszy, bo to jest to, co człowiek naprawdę chciał mieć
   const { error: eCel } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _myId);
   if (eCel) { showToast('Nie udało się zapisać celu: ' + eCel.message); return; }
-  if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+  if (_profileData) _profileData.race_goals = window.serializeRaceGoals(goals);
 
   // 2. PROPOZYCJA — druga; jej pad zostawia stan prawdziwy: cel jest, biegu w kalendarzu nie ma
   const payload = {
@@ -2808,8 +2807,9 @@ async function proposeGoalAsRace() {
 }
 
 async function removeGoal(idx) {
-  let goals = [];
-  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  const odczytCeli = window.czytajRaceGoals(_profileData?.race_goals, 'profil.html:zapis');
+  if (odczytCeli.uszkodzone) { showToast(window.RACE_GOALS_ODMOWA); return; }
+  let goals = odczytCeli.cele;
   // Posortowanie w renderGoals jest filter+sort upcoming, więc index w renderze to nie indeks w tablicy raw.
   // Pobieramy nazwę z renderu i znajdujemy w raw goals.
   // BUT: removeGoal(i) — i jest indeksem upcoming, więc znajdę cel w upcoming i usunę z goals
@@ -2829,12 +2829,12 @@ async function removeGoal(idx) {
   goals.splice(realIdx, 1);
 
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _myId);
   if (error) { showToast('Błąd: ' + error.message); return; }
-  if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+  if (_profileData) _profileData.race_goals = window.serializeRaceGoals(goals);
 
   // Jeśli cel miał race_id — usuń też signup
   if (removed.race_id) {

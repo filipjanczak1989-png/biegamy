@@ -3450,16 +3450,20 @@ async function loadProfile() {
       _isPublic = ath.is_public === true; // domyślnie prywatny (RODO privacy-by-default, spójne z profil.html)
       _updatePrivacyUI();
       // Cele startowe — race_goals JSON, fallback z goal+target_date (ustawione przez trenera w kalendarzu)
-      let goals = [];
-      if (ath.race_goals) {
-        try { const p = JSON.parse(ath.race_goals); if (Array.isArray(p)) goals = p; } catch(e) {}
-      }
+      /* ⚠️ TO MIEJSCE ZAPISUJE BEZ KLIKNIĘCIA. Do 13.09.2026 nieudany parse dawał
+         [] i — jeśli trener ustawił `goal` — ten blok nadpisywał race_goals jednym
+         celem przy samym ŁADOWANIU strony. Uszkodzona wartość nie zostawiała
+         śladu, bo była już zastąpiona. Teraz: uszkodzone → nic nie synchronizujemy
+         i blokujemy zapisy z kopii w pamięci (`_profileGoalsUszkodzone`). */
+      const odczytCeli = window.czytajRaceGoals(ath.race_goals, 'zawodnik.html:loadProfile');
+      window._profileGoalsUszkodzone = odczytCeli.uszkodzone;
+      let goals = odczytCeli.cele;
       // Jeśli race_goals puste ale jest goal/target_date (ustawione przez trenera) — pokaż to
-      if (!goals.length && ath.goal) {
+      if (!goals.length && ath.goal && !odczytCeli.uszkodzone) {
         goals = [{ name: ath.goal, date: ath.target_date || '' }];
         // Synchronizuj race_goals z tym co ustawił trener
         if (_athleteId) {
-          sb.from('athletes').update({ race_goals: JSON.stringify(goals) }).eq('id', _athleteId).then(() => {});
+          sb.from('athletes').update({ race_goals: window.serializeRaceGoals(goals) }).eq('id', _athleteId).then(() => {});
         }
       }
       window._profileGoals = goals;
@@ -3711,6 +3715,7 @@ async function saveGoal() {
     raceId = linkedRace.id;
   }
 
+  if (window._profileGoalsUszkodzone) { toast(window.RACE_GOALS_ODMOWA); return; }
   // Startuj od lokalnej kopii (już załadowanej przy loadProfile)
   let goals = Array.isArray(window._profileGoals) ? [...window._profileGoals] : [];
 
@@ -3719,9 +3724,9 @@ async function saveGoal() {
     const { data: fresh } = await sb.from('athletes')
       .select('race_goals')
       .eq('id', _athleteId).maybeSingle();
-    if (fresh?.race_goals) {
-      try { const p = JSON.parse(fresh.race_goals); if (Array.isArray(p)) goals = p; } catch(e) {}
-    }
+    const odczyt = window.czytajRaceGoals(fresh?.race_goals, 'zawodnik.html:saveGoal');
+    if (odczyt.uszkodzone) { toast(window.RACE_GOALS_ODMOWA); return; }
+    goals = odczyt.cele;
   }
 
   if (linkingIdx !== null && goals[linkingIdx]) {
@@ -3732,7 +3737,7 @@ async function saveGoal() {
   }
 
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _athleteId);
@@ -3760,12 +3765,13 @@ async function saveGoal() {
 
 async function deleteGoal(idx) {
   if (!confirm('Usunąć ten cel?')) return;
+  if (window._profileGoalsUszkodzone) { toast(window.RACE_GOALS_ODMOWA); return; }
   // Użyj lokalnej kopii — już zsynchronizowanej
   let goals = Array.isArray(window._profileGoals) ? [...window._profileGoals] : [];
   const removed = goals[idx];
   goals = goals.filter((_, i) => i !== idx);
   const { error } = await sb.from('athletes').update({
-    race_goals: JSON.stringify(goals),
+    race_goals: window.serializeRaceGoals(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _athleteId);
@@ -6390,8 +6396,7 @@ async function initAuth() {
 
     const { data: athFull } = await sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
     if (athFull) {
-      let goals=[];
-      try{goals=JSON.parse(athFull.race_goals||'[]');}catch(e){}
+      let goals=window.parseRaceGoals(athFull.race_goals,'zawodnik.html:najblizszyStart');
       if(!goals.length&&athFull.goal)goals=[{name:athFull.goal,date:athFull.target_date||''}];
       const today2=new Date();today2.setHours(0,0,0,0);
       const upcoming=goals.filter(g=>g.date&&new Date(g.date)>=today2).sort((a,b)=>new Date(a.date)-new Date(b.date));
