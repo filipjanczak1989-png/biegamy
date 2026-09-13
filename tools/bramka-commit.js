@@ -105,6 +105,49 @@ const BLOKADY_TRESCI = [
   { re: /\b(GRANT|REVOKE)\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b/i,
     opis: 'GRANT / REVOKE',
     czemu: 'Zmiana uprawnień w bazie. Ten sam argument co migracja: CI tego nie cofnie.' },
+  /* ⚠️ TRZY DZIURY ZMIERZONE 13.09.2026 w przeglądzie kierunku bramek — każda
+     przechodziła 0 blokad / 0 ostrzeżeń, a asercja „przepuszcza zwykły commit"
+     świeciła na zielono TAK SAMO z nimi, jak bez nich. Wspólna cecha: reguły
+     wyżej rozpoznają SŁOWO uprawnienia po GRANT — a tu wycieku nie robi słowo,
+     tylko jego brak albo inna składnia.
+
+     (1) CZŁONKOSTWO W ROLI. `grant <rola> to anon` nie ma słowa SELECT/ALL,
+         więc żadna reguła wyżej go nie widziała — a anon dostaje WSZYSTKO, co
+         ma `serwisowa`. Kierunek ma znaczenie tak samo jak przy GRANT/REVOKE:
+         `… TO anon` = wyciek (blokada, także w CI), `grant anon to <rola>` = ta rola
+         dziedziczy uprawnienia anona, czyli niewiele (ostrzeżenie). */
+  { re: /\bGRANT\s+(?!(?:ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE|REFERENCES|TRIGGER|TRUNCATE|CREATE|CONNECT|TEMP|TEMPORARY)\b)[a-z_][\w]*(?:\s*,\s*[a-z_][\w]*)*\s+TO\s+anon\b/i,
+    opis: 'GRANT <rola> TO anon (członkostwo w roli)',
+    ciBlokada: true,
+    czemu: 'anon dziedziczy WSZYSTKIE uprawnienia tej roli — bez ani jednego słowa SELECT w diffie. Wyciek, nie usterka.' },
+  { re: /\bGRANT\s+(?!(?:ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE|REFERENCES|TRIGGER|TRUNCATE|CREATE|CONNECT|TEMP|TEMPORARY)\b)[a-z_][\w]*(?:\s*,\s*[a-z_][\w]*)*\s+TO\s+[a-z_][\w]*/i,
+    opis: 'GRANT <rola> TO <rola> (członkostwo w roli)',
+    zawszeOstrzezenie: true,
+    czemu: 'Nadanie roli innej roli — bez słowa uprawnienia, więc reguła GRANT/REVOKE tego nie widzi. Sprawdź, CO ta rola potrafi.' },
+  /* (2) WYŁĄCZENIE RLS. Reguły nie było W OGÓLE — to nie para pod jednym
+         wzorcem, tylko brak. Nie ma powodu, dla którego migracja miałaby
+         wyłączać RLS; jeśli kiedyś będzie, niech to będzie świadoma rozmowa
+         przy czerwonym runie, nie cicha linia w środku pliku. */
+  { re: /\bALTER\s+TABLE\b[^;]*\bDISABLE\s+ROW\s+LEVEL\s+SECURITY\b/i,
+    opis: 'wyłączenie RLS (DISABLE ROW LEVEL SECURITY)',
+    ciBlokada: true,
+    czemu: 'Każdy z grantem czyta i pisze CAŁĄ tabelę. Nie ma migracji, która tego potrzebuje — cofaj natychmiast.' },
+  /* (3) NOWY OBIEKT W public. W Supabase `ALTER DEFAULT PRIVILEGES` dosypuje
+         anonowi ALL KAŻDEJ nowej tabeli i KAŻDEMU nowemu widokowi (zmierzone
+         w `pg_default_acl`; `public_training_logs` wystawiał 592 wiersze bez
+         logowania mimo jawnego GRANT tylko dla authenticated). Wyciek dzieje
+         się przez NIEOBECNOŚĆ tekstu — w diffie nie ma słowa GRANT, więc żadna
+         reguła tekstowa go nie zobaczy. Nie blokada, bo tworzenie tabel jest
+         normalne — ale komunikat ma mówić, co właśnie stało się niewidocznie.
+         Ostrzeżenie GAŚNIE, gdy ten sam diff niesie `REVOKE … ON <obiekt>
+         FROM anon` — patrz `bezRevoke()` niżej; to jedyna reguła tej bramki
+         patrząca dalej niż jedna linia, bo tu warunkiem jest PARA. */
+  { re: /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:UNLOGGED\s+)?(?:TABLE|VIEW|MATERIALIZED\s+VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?("?[a-z_][\w]*"?)\s*(?:\(|AS\b|WITH\b)/i,
+    opis: 'nowa tabela / widok w public',
+    zawszeOstrzezenie: true,
+    obiektAnon: true,
+    czemu: 'W Supabase CREATE TABLE/VIEW nadaje anon pełne DML przez ALTER DEFAULT PRIVILEGES — bez żadnego GRANT w diffie. '
+         + 'Dołóż `REVOKE' + ' ALL ON <obiekt> FROM anon;` w TEJ SAMEJ migracji albo zapisz świadomie, dlaczego anon ma widzieć.' },
   { re: /\b(CREATE|ALTER|DROP)\s+POLICY\b/i,
     opis: 'zmiana polityki RLS',
     czemu: 'RLS decyduje, kto widzi cudze dane. Wymaga własnego zwiadu, nie commita przy okazji.' },
@@ -154,13 +197,27 @@ function sprawdz(zmiana, tryb) {
   const MAX_PRZYKLADOW = 12;
   let przykladow = 0;
 
+  /* PARA CREATE ↔ REVOKE. Jedyna reguła patrząca dalej niż jedna linia:
+     ostrzeżenie o nowym obiekcie gaśnie, gdy TEN SAM diff odbiera anonowi
+     dostęp do TEGO obiektu. Instrukcja REVOKE bywa łamana na dwie linie
+     (czasownik z `all` w jednej linii, `on public.x from anon` w następnej), więc szukamy w złączonym
+     tekście dodanych linii, nie w pojedynczej. */
+  const calosc = dodane.join('\n');
+  const bezRevoke = (obiekt) => {
+    const nazwa = obiekt.replace(/"/g, '');
+    return !new RegExp('\\bREVOKE\\b[^;]*\\bON\\s+(?:TABLE\\s+)?(?:public\\.)?"?' + nazwa + '"?\\b[^;]*\\bFROM\\s+anon\\b', 'i').test(calosc);
+  };
+
   for (const linia of dodane) {
     if (ZNACZNIK.test(linia)) { przykladow++; continue; }
     for (const r of BLOKADY_TRESCI) {
-      if (r.re.test(linia)) {
+      const m = r.re.exec(linia);
+      if (m) {
+        if (r.obiektAnon && !bezRevoke(m[1])) break;   // para domknięta w tym samym diffie
         // treści nie drukujemy — mogłaby zawierać sam sekret
         const wpis = { gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', ...r };
-        ((wCI && !r.ciBlokada) ? ostrzezenia : blokady).push(wpis);
+        if (r.obiektAnon) wpis.gdzie = 'obiekt ' + m[1];
+        ((r.zawszeOstrzezenie || (wCI && !r.ciBlokada)) ? ostrzezenia : blokady).push(wpis);
         /* ⚠️ JEDNA LINIA = JEDEN POWÓD. Reguły są uporządkowane od najbardziej
            szczegółowej: `GRANT … TO anon` stoi PRZED ogólnym GRANT-em, więc
            trafia pierwsza. Bez tego `break` linia z uprawnieniem dla `anon`
@@ -320,6 +377,63 @@ function samokontrola() {
      'PONAD limit 12 wyjatkow -> bramka PADA (rosnaca lista = zla regula)');
   ok(P([], new Array(12).fill('GRA' + 'NT SELECT ON x TO y;  // bramka:przyklad')).blokady.length === 0,
      'dokladnie 12 wyjatkow jeszcze przechodzi');
+
+  console.log('\n  9) TRZY DZIURY Z 13.09.2026 — asercje NEGATYWNE, wrazliwe na KIERUNEK');
+  /* ⚠️ Do 13.09 kazda z tych linii dawala 0 blokad / 0 ostrzezen, a asercja
+     „przepuszcza zwykly commit" swiecila na zielono TAK SAMO z nimi. To jest
+     wlasciwy objaw: nie brak testu, tylko test niewrazliwy na kierunek.
+     Dlatego kazda para nizej ma DWIE strony: zla przechodzi na czerwono,
+     odwrotna (albo domknieta) na zielono. */
+  const cicho = (w) => w.blokady.length === 0 && w.ostrzezenia.length === 0;
+  {
+    /* (1) czlonkostwo w roli */
+    const doAnon = C([], ['gra' + 'nt serwisowa to anon;']);
+    ok(doAnon.blokady.length === 1, 'GRANT <rola> TO anon BLOKUJE w CI (anon dziedziczy cudze uprawnienia)');
+    ok(P([], ['gra' + 'nt serwisowa to anon;']).blokady.length === 1, '...i w hooku');
+    const odAnona = P([], ['gra' + 'nt anon to serwisowa;']);
+    ok(odAnona.blokady.length === 0 && odAnona.ostrzezenia.length === 1,
+       'GRANT anon TO <rola> tylko OSTRZEGA (kierunek odwrotny: rola dziedziczy po anonie)');
+    ok(!cicho(odAnona), '...ale NIE jest cicho — do 13.09 przechodzilo 0/0');
+    const dwie = P([], ['gra' + 'nt czytelnik, pisarz to serwisowa;']);
+    ok(dwie.ostrzezenia.length === 1 && dwie.blokady.length === 0, 'lista rol przed TO tez rozpoznana');
+    ok(P([], ['gra' + 'nt usage on schema public to authenticated;']).ostrzezenia.length === 0 ||
+       P([], ['gra' + 'nt usage on schema public to authenticated;']).blokady.length === 1,
+       'GRANT' + ' USAGE (uprawnienie) NIE udaje czlonkostwa — trafia w regule uprawnien');
+  }
+  {
+    /* (2) wylaczenie RLS — regula, ktorej NIE BYLO */
+    const off = 'alter table public.injuries dis' + 'able row level security;';
+    ok(P([], [off]).blokady.length === 1, 'DISABLE ROW LEVEL SECURITY blokuje w hooku');
+    ok(C([], [off]).blokady.length === 1, '...i w CI (cofaj natychmiast)');
+    const on = P([], ['alter table public.injuries enable row level security;']);
+    ok(cicho(on), 'ENABLE ROW LEVEL SECURITY przechodzi CICHO — kierunek bezpieczny, zero szumu');
+    const force = P([], ['alter table public.injuries force row level security;']);
+    ok(cicho(force), 'FORCE ROW LEVEL SECURITY tez cicho (zaostrzenie)');
+  }
+  {
+    /* (3) nowy obiekt w public = niewidzialny grant dla anon */
+    const tbl = P([], ['cre' + 'ate table public.nowa (id uuid primary key, dane text);']);
+    ok(tbl.blokady.length === 0 && tbl.ostrzezenia.length === 1, 'CREATE TABLE ostrzega, nie blokuje');
+    ok(/DEFAULT PRIVILEGES/.test(tbl.ostrzezenia[0].czemu) && new RegExp('REVOKE' + ' ALL').test(tbl.ostrzezenia[0].czemu),
+       '...i mowi, CO stalo sie niewidocznie i CO dolozyc');
+    ok(tbl.ostrzezenia[0].gdzie === 'obiekt nowa', '...i nazywa obiekt po imieniu');
+    const vw = P([], ['cre' + 'ate or replace view public.nowy_widok as select 1;']);
+    ok(vw.ostrzezenia.length === 1, 'CREATE VIEW tak samo (widok owner-run omija RLS — public_training_logs, 592 wiersze)');
+    const para = P([], ['cre' + 'ate table public.nowa (id uuid primary key);',
+                        'revo' + 'ke all on public.nowa from anon;']);
+    ok(!para.ostrzezenia.some((o) => o.obiektAnon), 'CREATE + REVOKE … FROM anon w tym samym diffie: ostrzezenie GASNIE (para domknieta)');
+    const paraLamana = P([], ['cre' + 'ate table public.nowa (id uuid primary key);',
+                              'revo' + 'ke all', '  on public.nowa from anon;']);
+    ok(!paraLamana.ostrzezenia.some((o) => o.obiektAnon), '...takze gdy REVOKE jest zlamany na dwie linie');
+    const innaTabela = P([], ['cre' + 'ate table public.nowa (id uuid primary key);',
+                              'revo' + 'ke all on public.inna from anon;']);
+    ok(innaTabela.ostrzezenia.some((o) => o.obiektAnon), 'REVOKE na INNYM obiekcie NIE gasi ostrzezenia (para musi dotyczyc tego samego)');
+    const odAuth = P([], ['cre' + 'ate table public.nowa (id uuid primary key);',
+                          'revo' + 'ke all on public.nowa from authenticated;']);
+    ok(odAuth.ostrzezenia.some((o) => o.obiektAnon), 'REVOKE od authenticated NIE gasi — pilnujemy anona, nie kogokolwiek');
+    ok(cicho(P([], ['cre' + 'ate temp table roboczo (x int);'])), 'CREATE TEMP TABLE cicho — poza public, default privileges nie dotyczy');
+    ok(cicho(P([], ['cre' + 'ate index if not exists i on public.nowa (id);'])), 'CREATE INDEX cicho — to nie obiekt z grantami');
+  }
 
   console.log('\n  ' + (bledy
     ? '✖ ' + bledy + ' asercji padło — BRAMCE NIE MOŻNA UFAĆ'
