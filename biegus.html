@@ -2047,7 +2047,9 @@ const rngZSeed=s=>mulberry32(hashSeed(s)());
 
 /* ---------- 3. AUDIO ---------- */
 const KODY_BONUS={
-  'ZEGAREK':{piora:75,opis:'Zegarek podpięty w BiegaMy — trening liczy się podwójnie!'},
+  /* ZEGAREK (+75) usuniety 06.10.2026: nagroda za KLIKNIECIE „polacz zegarek", nie za trening,
+     dedup tylko w localStorage — kazde urzadzenie/wyczyszczenie = kolejne 75. Komunikat
+     w intervals-callback.html tez zdjety (decyzja Filipa). Piora za treningi: MOST nizej. */
   'RADIO':{piora:30,opis:'Słuchacz Radia BiegaMy! 🎶'},
   'WALKA':{piora:50,opis:'Walka z (Za)Dyszką — do zobaczenia na treningu!'}};
 function przyznajKod(kod){                       /* ZEGAREK-auto: wspolna sciezka grantu */
@@ -2063,9 +2065,7 @@ function uzyjKodu(){
   const kod=raw.trim().toUpperCase();
   if(!KODY_BONUS[kod]){Gra?.toast?.('🤔 Nieznany kod. Sprawdź pisownię!');return;}
   if(!przyznajKod(kod))Gra?.toast?.('Ten kod już wykorzystany na tym urządzeniu 😉');}
-function sprawdzBonusZegarka(){                  /* ZEGAREK-auto: flaga stawiana przez intervals-callback (ten sam origin) */
-  try{if(localStorage.getItem('biegus_bonus_zegarek')==='1')
-    setTimeout(()=>przyznajKod('ZEGAREK'),1200); }catch(e){}}
+/* sprawdzBonusZegarka() usunieta 06.10.2026 razem z kodem ZEGAREK (patrz KODY_BONUS). */
 
 const RadioGry={ /* RADIO-nonstop: player na CALEJ grze — menu, karty, etapy */
   audio:null,playlista:null,ostatni:-1,czeka:false,
@@ -2333,7 +2333,7 @@ const Biegus={
     this.wiez=clamp(this.wiez+1,0,100);},
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
-sprawdzBonusZegarka();                           /* ZEGAREK-auto */
+/* sprawdzBonusZegarka() — wywolanie usuniete 06.10.2026 (bonus za podlaczenie zegarka zdjety) */
 function dataLokalna(d){d=d||new Date();                              /* M2: KANON dat — lokalna, nie toISOString (lekcja off-by-one UTC) */
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const DARY={                                                          /* M1 DARY: typ realnego treningu -> dar na 24h (edukacja trenerska w mechanice) */
