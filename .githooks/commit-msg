@@ -1,0 +1,47 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMIT-MSG — ROZSTRZYGNIĘCIE miękkich blokad bramki commita (od 6.10.2026).
+#
+# pre-commit nie zna jeszcze treści commita, więc migracja / polityka RLS / DROP
+# tylko się tam WYPISUJĄ. Ten hook dostaje plik z wiadomością ($1) i szuka
+# trailera:
+#     Bramka-zatwierdzona: <powód, co najmniej 10 znaków>
+# Jest → miękkie przechodzą jako „ZATWIERDZONE", powód zostaje w historii.
+# Nie ma → blokada, jak dotąd. Twarde (sekrety, GRANT dla anon, DISABLE RLS)
+# trailer NIE zdejmuje nigdy — bramka wypisze je ponownie i zatrzyma.
+#
+# INSTALACJA: ta sama co pre-commit — `git config core.hooksPath .githooks`.
+# ⚠️ `--no-verify` omija oba hooki. Zamek jest w CI (bramka.yml).
+# ─────────────────────────────────────────────────────────────────────────────
+set -e
+
+KORZEN=$(git rev-parse --show-toplevel)
+cd "$KORZEN"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "  hook: brak node — pomijam bramkę commita (CI i tak sprawdzi)."
+  exit 0
+fi
+
+if node tools/bramka-commit.js --wiadomosc "$1"; then
+  exit 0
+fi
+
+cat <<'KONIEC'
+
+  ────────────────────────────────────────────────────────────────
+  ⚠ COMMIT ZATRZYMANY przez bramkę (commit-msg).
+
+  Jeśli wyżej są WYŁĄCZNIE miękkie blokady (migracja, polityka RLS,
+  DROP) i wiesz, dlaczego to wchodzi — dopisz do TREŚCI commita:
+
+      Bramka-zatwierdzona: <powód>
+
+  np.  Bramka-zatwierdzona: D7b wykonana na prod 6.10, test 5/5, zatwierdził Filip
+
+  Jeśli wyżej jest blokada TWARDA (sekret, GRANT dla anon) — popraw diff.
+  Trailer jej nie zdejmie, a CI ją zaczerwieni.
+  ────────────────────────────────────────────────────────────────
+
+KONIEC
+exit 1

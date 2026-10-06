@@ -26,14 +26,26 @@
 //       codziennie, uczy omijania — nie ostrożności.
 //
 // UŻYCIE
-//     node tools/bramka-commit.js                    → zmiany zastage'owane (hook)
+//     node tools/bramka-commit.js                    → zmiany zastage'owane (ręcznie: pełna lista)
+//     node tools/bramka-commit.js --przed-wiadomoscia → hook pre-commit: twarde blokują,
+//                                                       miękkie tylko „czekają na trailer"
+//     node tools/bramka-commit.js --wiadomosc <plik>  → hook commit-msg: miękkie przechodzą
+//                                                       TYLKO z trailerem `Bramka-zatwierdzona: <powód>`
 //     node tools/bramka-commit.js --zakres A..B      → zakres commitów (CI)
 //     node tools/bramka-commit.js --samokontrola     → test bramki, OBIE strony
 //
 // Kod wyjścia: 0 = przeszło (ostrzeżenia nie blokują), 1 = blokada.
+//
+// ⚠️ ZATWIERDZENIE (06.10.2026) — zamiast `--no-verify`. Trailer w TREŚCI commita:
+//     Bramka-zatwierdzona: migracja D7b wykonana na prod 6.10, test 5/5, zatwierdził Filip
+//   zdejmuje blokady MIĘKKIE (migracja, polityka RLS, DROP, GRANT/REVOKE bez anon) i zostawia
+//   powód w historii. Blokad TWARDYCH (sekrety, klucze obcych usług, GRANT dla anon, DISABLE
+//   RLS, członkostwo anon w roli) trailer nie zdejmuje — na nie nie istnieje dobry powód.
+//   `--no-verify` nadal fizycznie działa (git tak ma), ale od tego dnia jest ODRUCHEM, nie drogą.
 'use strict';
 
 const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
 
 // ── REGUŁY ───────────────────────────────────────────────────────────────────
 
@@ -212,16 +224,34 @@ const BLOKADY_TRESCI = [
    ⚠️ Zmierzone na 32 commitach z 16.08.2026: bramka zatrzymalaby 5, WSZYSTKIE
       na `supabase/migrations`. Sekrety i GRANT dla anon: ZERO trafien — czyli
       reguly, ktore zostaja blokada, nie generuja falszywych alarmow. */
-function sprawdz(zmiana, tryb) {
+/* Trailer w tresci commita. Powod krotszy niz MIN_POWOD znakow to nie powod, tylko
+   odruch („ok", „tak") — nie liczy sie. */
+const TRAILER = /^Bramka-zatwierdzona:\s*(.*)$/im;
+const MIN_POWOD = 10;
+
+/* ⚠️ TRZECI PARAMETR — ZATWIERDZENIE (06.10.2026). Do tego dnia jedyna droga przez
+   miekka blokade (migracja, polityka RLS, DROP) w hooku brzmiala `--no-verify`, czyli
+   wylacznik WSZYSTKIEGO — takze twardych regul (sekrety, GRANT dla anon), bo flaga nie
+   rozroznia. Trailer w tresci commita `Bramka-zatwierdzona: <powod>` jest wylacznikiem
+   WASKIM: zdejmuje tylko miekkie blokady i zostawia POWOD w historii gita. Twarde
+   (`ciBlokada: true`) trailer NIE odblokowuje nigdy — na nie nie ma dobrego powodu.
+   `zatwierdzenie` = tresc powodu (string) albo null. */
+function sprawdz(zmiana, tryb, zatwierdzenie) {
   const wCI = tryb === 'ci';
+  const zatw = typeof zatwierdzenie === 'string' && zatwierdzenie.trim().length >= MIN_POWOD ? zatwierdzenie.trim() : null;
   const blokady = [], ostrzezenia = [];
   const pliki = zmiana.pliki || [];
   const dodane = zmiana.dodane || [];
+  const miekkaDo = (wpis) => {            // miekka blokada: hook → blokada, CI → ostrzezenie, hook+trailer → zatwierdzona
+    if (wCI) return ostrzezenia.push(wpis);
+    if (zatw) return ostrzezenia.push({ ...wpis, zatwierdzone: zatw });
+    return blokady.push(wpis);
+  };
 
   for (const p of pliki) {
     /* Sciezki (migracje, sb.js, theme.css) w CI NIGDY nie blokuja: sa legalne,
        wymagaja uwagi, a w momencie runu juz sie wydarzyly. */
-    for (const r of BLOKADY_SCIEZEK) if (r.re.test(p)) (wCI ? ostrzezenia : blokady).push({ gdzie: p, ...r });
+    for (const r of BLOKADY_SCIEZEK) if (r.re.test(p)) miekkaDo({ gdzie: p, ...r });
     for (const r of OSTRZEZENIA_SCIEZEK) if (r.re.test(p)) ostrzezenia.push({ gdzie: p, ...r });
   }
   /* PRZYKLADY WLASNE. Bramka blokowala SAMA SIEBIE: asercje w tym pliku niosa
@@ -257,7 +287,9 @@ function sprawdz(zmiana, tryb) {
         // treści nie drukujemy — mogłaby zawierać sam sekret
         const wpis = { gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', ...r };
         if (r.obiektAnon) wpis.gdzie = 'obiekt ' + m[1];
-        ((r.zawszeOstrzezenie || (wCI && !r.ciBlokada)) ? ostrzezenia : blokady).push(wpis);
+        if (r.zawszeOstrzezenie) ostrzezenia.push(wpis);
+        else if (r.ciBlokada) blokady.push(wpis);     // twarda: w CI, w hooku i Z trailerem — zawsze
+        else miekkaDo(wpis);
         /* ⚠️ JEDNA LINIA = JEDEN POWÓD. Reguły są uporządkowane od najbardziej
            szczegółowej: `GRANT … TO anon` stoi PRZED ogólnym GRANT-em, więc
            trafia pierwsza. Bez tego `break` linia z uprawnieniem dla `anon`
@@ -305,15 +337,35 @@ function wypisz(w, naglowek) {
   console.log('\n  ' + naglowek);
   console.log('  ' + '─'.repeat(72));
   for (const o of w.ostrzezenia) {
-    console.log('  ⚠  ' + o.opis);
-    console.log('     ' + o.czemu + '\n');
+    if (o.zatwierdzone) {
+      console.log('  ☑  ZATWIERDZONE — ' + o.opis + '   [' + o.gdzie + ']');
+      console.log('     powód z commita: ' + o.zatwierdzone + '\n');
+    } else {
+      console.log('  ⚠  ' + o.opis);
+      console.log('     ' + o.czemu + '\n');
+    }
+  }
+  for (const c of (w.oczekujace || [])) {
+    console.log('  ⏳ CZEKA NA TRAILER — ' + c.opis + '   [' + c.gdzie + ']');
+    console.log('     ' + c.czemu);
+    console.log('     Przejdzie TYLKO z trailerem w treści commita:  Bramka-zatwierdzona: <powód, ≥' + MIN_POWOD + ' znaków>\n');
   }
   for (const b of w.blokady) {
     console.log('  ✖  BLOKADA — ' + b.opis + '   [' + b.gdzie + ']');
     console.log('     ' + b.czemu + '\n');
   }
-  if (!w.blokady.length && !w.ostrzezenia.length) console.log('  ✅ Nic do zgłoszenia.\n');
+  if (!w.blokady.length && !w.ostrzezenia.length && !(w.oczekujace || []).length) console.log('  ✅ Nic do zgłoszenia.\n');
+  else if (!w.blokady.length && (w.oczekujace || []).length) console.log('  ⏳ Twardych blokad brak; miękkie czekają na trailer w commit-msg.\n');
   else if (!w.blokady.length) console.log('  ✅ Same ostrzeżenia — przechodzi.\n');
+}
+
+/* Trailer czytany z PLIKU wiadomosci (hook commit-msg dostaje go jako $1). Zwraca
+   tresc powodu albo null. Linia z trailerem bez powodu = brak trailera. */
+function czytajTrailer(plik) {
+  let tresc;
+  try { tresc = fs.readFileSync(plik, 'utf8'); } catch (_) { return null; }
+  const m = TRAILER.exec(tresc);
+  return m && m[1].trim().length >= MIN_POWOD ? m[1].trim() : null;
 }
 
 // ── SAMOKONTROLA ─────────────────────────────────────────────────────────────
@@ -506,6 +558,43 @@ function samokontrola() {
     ok(cicho(P([], ['const HOOK = "9f3c1b7e2a4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f";'])), 'GRANICA: token BEZ rozpoznawalnego prefiksu PRZECHODZI (ksztalt, nie sekret)');
   }
 
+  /* 11) TRAILER `Bramka-zatwierdzona:` — WASKI wylacznik (06.10.2026).
+     OBIE strony, jak zawsze: ze trailer ZDEJMUJE miekkie, i ze NIE zdejmuje twardych.
+     Bramka, ktora z trailerem przepuszcza sekret, bylaby gorsza niz `--no-verify`,
+     bo wygladalaby na zatwierdzona. */
+  {
+    console.log('\n  11) TRAILER Bramka-zatwierdzona — zdejmuje MIEKKIE, nigdy TWARDE');
+    const Z = (pliki, dodane, powod) => sprawdz({ pliki: pliki || [], dodane: dodane || [] }, 'hook', powod);
+    const POWOD = 'migracja wykonana na prod, test 5/5, zatwierdzil Filip';
+    const polityka = 'cre' + 'ate policy "x" on public.t for select to authenticated using (true);';
+    const dropFn = 'dr' + 'op function public.stara();';
+    ok(Z(['supabase/migrations/20261006_x.sql'], [], POWOD).blokady.length === 0, 'migracja + trailer → PRZECHODZI');
+    ok(Z(['supabase/migrations/20261006_x.sql'], [], POWOD).ostrzezenia.some((o) => o.zatwierdzone === POWOD), '...i powod jest widoczny w wyniku');
+    ok(Z([], [polityka], POWOD).blokady.length === 0, 'polityka RLS + trailer → PRZECHODZI');
+    ok(Z([], [dropFn], POWOD).blokady.length === 0, 'DROP + trailer → PRZECHODZI');
+    ok(Z([], ['GRA' + 'NT SELECT ON athletes TO authenticated;'], POWOD).blokady.length === 0, 'GRANT dla authenticated + trailer → PRZECHODZI');
+    ok(Z(['supabase/migrations/20261006_x.sql'], [], null).blokady.length === 1, 'migracja BEZ trailera → nadal BLOKUJE');
+    ok(Z(['supabase/migrations/20261006_x.sql'], [], 'ok').blokady.length === 1, 'powod krotszy niz ' + MIN_POWOD + ' znakow = brak powodu → BLOKUJE');
+    ok(Z([], [polityka], '          ').blokady.length === 1, 'same spacje = brak powodu → BLOKUJE');
+    ok(Z([], ['const k = "sb_secret_gelF7yVwgAAAAAAAAAAAAAAAAAAAAAAAA";'], POWOD).blokady.length === 1, 'sb_secret_ + trailer → NADAL BLOKUJE');   // bramka:przyklad
+    ok(Z([], ['GRA' + 'NT SELECT ON athletes TO anon;'], POWOD).blokady.length === 1, 'GRANT dla anon + trailer → NADAL BLOKUJE');
+    ok(Z([], ['gra' + 'nt serwisowa to anon;'], POWOD).blokady.length === 1, 'GRANT <rola> TO anon + trailer → NADAL BLOKUJE');
+    ok(Z([], ['alter table public.x dis' + 'able row level security;'], POWOD).blokady.length === 1, 'DISABLE RLS + trailer → NADAL BLOKUJE');
+    ok(Z([], ['-----BEGIN RSA PRIV' + 'ATE KEY-----'], POWOD).blokady.length === 1, 'klucz prywatny + trailer → NADAL BLOKUJE');
+    ok(Z([], ['const resend = new Resend("re_' + 'AbCdEfGh' + '_' + 'AbCdEfGhIjKlMnOpQrStUvWx' + '");'], POWOD).blokady.length === 1, 'klucz Resend + trailer → NADAL BLOKUJE');
+    /* czytajTrailer na prawdziwym pliku — hook commit-msg dostaje sciezke, nie tekst */
+    const os = require('node:os'), path = require('node:path');
+    const tmp = path.join(os.tmpdir(), 'bramka-trailer-' + process.pid + '.txt');
+    fs.writeFileSync(tmp, 'feat: cos\n\nopis\n\nBramka-zatwierdzona: ' + POWOD + '\nCo-Authored-By: x <x@x>\n');
+    ok(czytajTrailer(tmp) === POWOD, 'czytajTrailer: trailer w srodku wiadomosci jest znajdowany');
+    fs.writeFileSync(tmp, 'feat: cos\n\nBramka-zatwierdzona:\n');
+    ok(czytajTrailer(tmp) === null, 'czytajTrailer: pusty trailer = null');
+    fs.writeFileSync(tmp, 'feat: cos\n\nbez trailera\n');
+    ok(czytajTrailer(tmp) === null, 'czytajTrailer: brak trailera = null');
+    ok(czytajTrailer(tmp + '.nie-ma') === null, 'czytajTrailer: brak pliku = null (nie wyjatek)');
+    try { fs.unlinkSync(tmp); } catch (_) {}
+  }
+
   console.log('\n  ' + (bledy
     ? '✖ ' + bledy + ' asercji padło — BRAMCE NIE MOŻNA UFAĆ'
     : '✅ Bramka blokuje to, co trzeba, i przepuszcza resztę.') + '\n');
@@ -533,7 +622,26 @@ function main() {
   }
 
   const tryb = process.argv.includes('--ci') ? 'ci' : 'hook';
-  const w = sprawdz(zmiana, tryb);
+
+  /* Dwa kroki hooka. `--przed-wiadomoscia` (pre-commit): wiadomosci jeszcze nie ma, wiec
+     miekkie blokady NIE zatrzymuja — sa wypisane jako „czeka na trailer", a decyzja
+     zapada w commit-msg. `--wiadomosc <plik>` (commit-msg): trailer jest albo go nie ma,
+     i to jest rozstrzygniecie. Bez zadnej z flag (reczne uruchomienie) — jak dotad:
+     miekkie blokuja, zeby czlowiek zobaczyl pelna liste. */
+  const iw = process.argv.indexOf('--wiadomosc');
+  const zatwierdzenie = iw !== -1 && process.argv[iw + 1] ? czytajTrailer(process.argv[iw + 1]) : null;
+  let w;
+  if (tryb === 'hook' && process.argv.includes('--przed-wiadomoscia')) {
+    const sonda = sprawdz(zmiana, 'hook', 'sonda: co czeka na trailer');
+    w = { blokady: sonda.blokady,
+          ostrzezenia: sonda.ostrzezenia.filter((o) => !o.zatwierdzone),
+          oczekujace: sonda.ostrzezenia.filter((o) => o.zatwierdzone).map(({ zatwierdzone, ...o }) => o) };
+  } else {
+    w = sprawdz(zmiana, tryb, zatwierdzenie);
+  }
+  if (iw !== -1 && !zatwierdzenie && w.blokady.length) {
+    console.log('\n  ⚠ commit-msg: trailera `Bramka-zatwierdzona: <powód>` nie ma albo powód ma mniej niż ' + MIN_POWOD + ' znaków.');
+  }
   wypisz(w, naglowek + (tryb === 'ci' ? '   [CI: blokuja tylko sekrety i anon]' : '') + '   (' + zmiana.pliki.length + ' plików, ' + zmiana.dodane.length + ' dodanych linii)');
   return w.blokady.length ? 1 : 0;
 }

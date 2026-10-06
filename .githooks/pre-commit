@@ -40,7 +40,12 @@ if ! node tools/bramka-commit.js --samokontrola >/dev/null 2>&1; then
 fi
 
 node tools/bramka-reguly.js || status=1
-node tools/bramka-commit.js || status=1
+# ⚠️ --przed-wiadomoscia: tu NIE MA jeszcze treści commita, więc miękkie blokady
+#    (migracja, polityka RLS, DROP) tylko się WYPISUJĄ jako „czeka na trailer".
+#    Rozstrzyga hook commit-msg (obok), który dostaje wiadomość i szuka w niej
+#    `Bramka-zatwierdzona: <powód>`. Twarde blokady (sekrety, GRANT dla anon)
+#    zatrzymują już tutaj — na nie trailer nie działa.
+node tools/bramka-commit.js --przed-wiadomoscia || status=1
 
 if command -v python >/dev/null 2>&1; then
   python tools/sprawdz-run-types.py  || status=1
@@ -51,24 +56,17 @@ if [ "$status" -ne 0 ]; then
   cat <<'KONIEC'
 
   ────────────────────────────────────────────────────────────────
-  ⚠ BRAMKA COŚ ZGŁOSIŁA.
+  ⚠ BRAMKA ZATRZYMAŁA COMMIT — blokada TWARDA.
 
-  To jest PRZYPOMNIENIE, nie blokada. Jeśli wiesz, co robisz:
-      git commit --no-verify
+  Sekret w treści, klucz obcej usługi, GRANT dla `anon`, wyłączenie RLS:
+  tego nie zatwierdza żaden trailer i CI też to zaczerwieni. Popraw diff.
 
-  CO ZROBI CI (.github/workflows/bramka.yml) — zależy OD CZEGO:
-
-    • sekret w treści (sb_secret_…) albo nadanie praw dla `anon`
-      → CI ZACZERWIENI PUSH. Tego nie ominiesz.
-
-    • ścieżka: supabase/migrations, sb.js, theme.css
-      → w CI to OSTRZEŻENIE, nie blokada. Push przejdzie na zielono.
-        Tutaj blokuje, bo tu jeszcze możesz się zatrzymać;
-        w CI już nie ma czego zatrzymywać — kod jest wypchnięty.
-
-  ⚠ Do 6.09.2026 stało tu „CI zaczerwieni push" bez rozróżnienia.
-    Dla migracji było to NIEPRAWDĄ — a hook, który raz skłamie
-    o konsekwencji, uczy omijać się bez czytania.
+  (Miękkie sprawy — migracja, polityka RLS, DROP — NIE zatrzymują tutaj:
+   są wypisane wyżej jako „czeka na trailer" i rozstrzyga je hook
+   commit-msg. Przechodzą z wierszem w TREŚCI commita:
+       Bramka-zatwierdzona: <powód, co najmniej 10 znaków>
+   Powód zostaje w historii gita. `--no-verify` od 6.10.2026 nie jest
+   drogą — jest odruchem, który omija także blokady twarde.)
   ────────────────────────────────────────────────────────────────
 
 KONIEC

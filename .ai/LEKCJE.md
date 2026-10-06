@@ -1171,3 +1171,48 @@ nie diff).
 w `bramka-commit.js`) **nigdy nie trafił na origin** — lokalne `main` rozjechało się
 z GitHubem o jeden bump. Pamięć mówiła „WYPCHNIĘTE". To #12 w czystej postaci:
 „wypchnięte" trzeba sprawdzać `git log origin/main..HEAD`, nie zapisem z sesji.
+
+## 21. Wyłącznik, który wyłącza wszystko, uczy omijać wszystko (6.10.2026)
+
+Do tego dnia jedyną drogą przez miękką blokadę hooka (migracja, polityka RLS, DROP)
+było `git commit --no-verify`. Hook sam to doradzał: „jeśli wiesz, co robisz". Ale
+`--no-verify` nie rozróżnia — zdejmuje TAKŻE blokady twarde (sekret, klucz obcej
+usługi, GRANT dla anon), i nie zostawia śladu, DLACZEGO ktoś go użył. Paczka 1b
+przeszła dokładnie tą drogą, z uzasadnieniem w treści commita wpisanym ręcznie —
+czyli właściwy odruch, bez mechanizmu, który by go wymuszał. LEKCJE #4 (odruch
+`--no-verify` powstaje po JEDNYM uzasadnionym użyciu) i #19 (zieleń samokontroli
+nie dowodzi dobrej reguły) spotykają się tu w jednym miejscu.
+
+### Reguła
+
+**Zatwierdzenie ma być WĄSKIE i ZAPISANE.** Trailer w treści commita:
+
+```
+Bramka-zatwierdzona: <powód, co najmniej 10 znaków>
+```
+
+zdejmuje wyłącznie blokady miękkie i zostawia powód w historii gita. Blokad
+twardych (`ciBlokada: true`) nie zdejmuje nigdy — na nie nie istnieje dobry
+powód, więc nie ma czego wpisywać. Mechanika: `pre-commit` nie zna jeszcze
+wiadomości, więc miękkie tylko wypisuje jako „czeka na trailer" i zatrzymuje
+twarde; `commit-msg` dostaje plik wiadomości i rozstrzyga. Samokontrola bramki
+sprawdza OBIE strony (trailer przepuszcza migrację i politykę; trailer NIE
+przepuszcza `sb_secret_`, GRANT-u dla anon, DISABLE RLS, klucza prywatnego,
+klucza Resend) — bo trailer, który przepuszczałby sekret, byłby gorszy niż
+`--no-verify`: wyglądałby na zatwierdzony.
+
+### Objaw ostrzegawczy
+
+Każdy przełącznik „pomiń sprawdzanie" bez parametru ZAKRESU. Jeśli wyłącznik
+nie pyta „co pomijam", to z definicji pomija też to, czego nikt nie chciał
+pominąć — a użyty raz słusznie, zostaje w palcach (#4). Objaw towarzyszący:
+uzasadnienie wpisywane „obok" (w rozmowie, w pamięci sesji), a nie tam, gdzie
+czyta je przyszły `git log`.
+
+### Czego to NIE rozwiązuje
+
+`--no-verify` fizycznie nadal działa — git tak ma. Zamkiem jest CI, które miękkie
+i tak traktuje jako ostrzeżenia (#2 w `bramka-commit.js`: w CI kod jest już
+wypchnięty, migracja już w bazie). Trailer nie dokłada ochrony do CI; dokłada
+ŚLAD i ZAKRES do hooka. To wystarczy, bo problemem nie była siła blokady, tylko
+to, że jedyna droga obok niej była szersza niż potrzeba.
