@@ -1112,3 +1112,62 @@ i milczy (patrz notatka o `200 z pustą tablicą`). Test musi więc liczyć wier
 (`returning 1` + `count`), a nie zakładać, że brak wyjątku znaczy sukces.
 Milczenie jest tu nieodróżnialne od dwóch różnych rzeczy naraz: „zabroniono"
 i „nie było czego zmienić".
+
+## 20. Jedna bramka usera dla EF wołanych z frontu — `_shared/wymagaj-usera.mjs` (6.10.2026)
+
+**Co znaleźliśmy.** Zwiad 6.10 policzył bramki we wszystkich 34 Edge Functions:
+**13 nie miało żadnej** (ani `getUser`, ani sekretu), 2 miały słabą. Sześć z nich
+było wołanych z frontu i chodziło po `service_role` na nasz rachunek Anthropic,
+Unsplash i USDA: `ocr-training-screen`, `food-micronutrients`, `generate-recipe`,
+`food-image-fetch`, `food-search-off`, `food-search-usda`. Każdy z adresem mógł je
+odpalić — a front od zawsze wysyłał JWT sesji, więc bramka nic by nie zepsuła.
+Nikt jej nie dopisał, bo każdy EF powstawał osobno i wzorzec z `intervals-oauth`
+(JWT → `getUser()` → 401) nie był nigdzie nazwany jako obowiązek.
+
+⚠️ **Najgorszy wariant to nie brak bramki, tylko bramka pozorna.** `generate-recipe`
+miało `decodeJwtSub`: brało `sub` z payloadu JWT **bez sprawdzenia podpisu** — czyli
+limit dzienny liczony po `athlete_id` dało się obejść dowolnym napisem, a cache-hit
+zwracał przepis przed jakimkolwiek sprawdzeniem. Kod wyglądał na autoryzację i przez
+to nikt nie szukał dziury dokładnie tam. To ta sama rodzina co #2 i #19: mechanizm,
+który formalnie istnieje, a niczego nie zatrzymuje.
+
+### Reguła
+
+**Każdy EF wołany z przeglądarki ma na wejściu `wymagajUsera(req)` z
+`supabase/functions/_shared/wymagaj-usera.mjs` — albo jest błędem.** Nie „ma jakąś
+bramkę": ma TĘ. Powody, dla których to ma być jeden moduł, a nie wzorzec do przepisania:
+
+1. Sześć kopii pięciu linii to ta sama choroba co `RUN_TYPES` (#14) — i ta sama
+   bramka-pułapka, bo siódma kopia dostanie „drobne uproszczenie" w stylu `decodeJwtSub`.
+2. Moduł pyta GoTrue (`getUser`), więc podpis sprawdza Supabase, nie my. Jedyna
+   akceptowana droga; dekodowanie payloadu po stronie EF jest zakazane.
+3. Klucz publikowalny jest w nim literałem z tego samego powodu co w `intervals-oauth`:
+   `SUPABASE_ANON_KEY` z env to legacy JWT, który zniknie przy „Disable legacy anon".
+
+**Wyjątki, nazwane wprost:** EF wołane przez cron/trigger (`miesiac-cron`,
+`morning-brief-cron`, `detect-moment`, `auto-reports-cron`) mają zamiast tego handshake
+`x-push-secret` z `PUSH_HOOK_SECRET`; EF wołane przez webhook obcej usługi
+(`intervals-webhook`) mają sekret w body. Trzeciej kategorii nie ma — EF, który „nie
+pasuje do żadnej", jest sygnałem do zatrzymania się, nie do pominięcia bramki.
+
+### Objaw ostrzegawczy
+
+Nowy katalog w `supabase/functions/` bez `wymagaj-usera` i bez `x-push-secret`.
+Oraz: komentarz w EF mówiący „verify_jwt = ON w Dashboardzie" jako JEDYNE
+uzasadnienie braku bramki — `verify_jwt` nie jest wersjonowane w repo (brak
+`config.toml`), więc to obietnica o stanie innego systemu, dokładnie #11.
+
+### Co z tego wyszło (paczka 1, commit `8189824`)
+
+Sześć EF-ów z bramką, `generate-recipe` bez `decodeJwtSub`, guard sekretu
+w `auto-reports-cron` (wdrożenie czeka na sprawdzenie, czy job cron wysyła nagłówek),
+siedem martwych EF-ów skasowanych z repo i z Supabase (`strava-callback`, `smooth-task`,
+`strava-sync`, `strava-webhook`, `send-welcome-email`, `backfill-thumbnails`,
+`parse-activity`). Zmierzone po wdrożeniu kluczem publikowalnym jako Bearer:
+6 × 401, 7 × 404 — czyli bramka ODMAWIA, a nie tylko istnieje (patrz #9: licznik,
+nie diff).
+
+⚠️ Przy okazji wyszło, że commit `a7adf7f` z 13.09 (klucz Resend z env, 71 linii
+w `bramka-commit.js`) **nigdy nie trafił na origin** — lokalne `main` rozjechało się
+z GitHubem o jeden bump. Pamięć mówiła „WYPCHNIĘTE". To #12 w czystej postaci:
+„wypchnięte" trzeba sprawdzać `git log origin/main..HEAD`, nie zapisem z sesji.
