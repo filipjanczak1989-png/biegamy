@@ -45,6 +45,44 @@ const ZAKAZANE_WZORY = [
    'suma km bez isRunType'],
 ];
 
+/* ── Część D — MAPA TYPÓW AKTYWNOŚCI intervals → BiegaMy (06.10.2026) ──────
+   Jedna kopia w _shared/typ-aktywnosci.mjs; intervals-sync i intervals-webhook
+   MUSZĄ ją importować i NIE MOGĄ mieć własnej. Historia: „świadomy duplikat"
+   rozjechał się 27.07 (sync dostał ACT_MAP, webhook nie) i przez 10 tygodni
+   każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. sb.js NIE ma kopii tej mapy,
+   więc nie ma czego porównywać z klientem — bramka pilnuje IMPORTU i braku
+   odtworzonej mapy w EF, plus twardego progu liczności (LEKCJE #2). */
+const MIN_EF_INTERVALS = 2;
+const MIN_ACT_MAP = 22;      // ZMIERZONE 06.10 przez tę bramkę: 22 klucze (raport mówił 23 — LEKCJE #13); mniej = ktoś wyciął pozycje
+const MIN_RUN_ACT = 4;
+const EF_OBJETE_INTERVALS = ['intervals-sync', 'intervals-webhook'];
+const ZAKAZANE_WZORY_INTERVALS = [
+  [/const\s+ACT_MAP\s*[:=]/, 'własna ACT_MAP'],
+  [/const\s+RUN_ACT\s*=/, 'własny RUN_ACT'],
+  [/const\s+RUN_PLAN\s*=/, 'własny RUN_PLAN (mirror RUN_TYPES)'],
+  [/function\s+typeForActivity\s*\(/, 'własna typeForActivity'],
+  [/function\s+typeFromPlan\s*\(/, 'własna typeFromPlan'],
+  [/\?\s*typeFromPlan\([^)]*\)\s*:\s*['"]Zastępczy['"]/, 'nie-bieg → Zastępczy bez mapy (stary webhook)'],
+];
+
+/* ── Część E — DOMYKANIE PLANU logiem (06.10.2026) ─────────────────────────
+   Oryginał: sb.js `window.wybierzPlanDoDomkniecia` (saveLog w zawodnik.html).
+   Druga kopia: _shared/domknij-plan.mjs (intervals-sync, intervals-webhook).
+   Porównujemy ZACHOWANIE na tych samych próbkach (jak progi TSB), nie tekst —
+   plus import w obu EF i brak lokalnej kopii. */
+const EF_OBJETE_DOMKNIECIE = ['intervals-sync', 'intervals-webhook'];
+const MIN_PROBEK_DOMKNIECIA = 6;
+const PROBKI_DOMKNIECIA = [
+  ['jeden kandydat → on',                 [{ id: 'a', type: 'Spokojny', status: 'planned' }], 'Interwały', 'a'],
+  ['missed nie jest kandydatem',          [{ id: 'a', type: 'Spokojny', status: 'missed' }], 'Spokojny', null],
+  ['dwa plany, log pasuje do jednego',    [{ id: 'a', type: 'Spokojny', status: 'planned' }, { id: 'b', type: 'Interwały', status: 'planned' }], 'Interwały', 'b'],
+  ['dwa plany, log do żadnego → nic',     [{ id: 'a', type: 'Spokojny', status: 'planned' }, { id: 'b', type: 'Interwały', status: 'planned' }], 'Rower', null],
+  ['dwa plany tego samego typu → nic',    [{ id: 'a', type: 'Spokojny', status: 'planned' }, { id: 'b', type: 'Spokojny', status: 'planned' }], 'Spokojny', null],
+  ['missed + planned → ten planned',      [{ id: 'a', type: 'Spokojny', status: 'missed' }, { id: 'b', type: 'Spokojny', status: 'planned' }], 'Rower', 'b'],
+  ['pusto → nic',                         [], 'Spokojny', null],
+  ['typ ze spacją → trim',                [{ id: 'a', type: 'Tempo', status: 'planned' }, { id: 'b', type: 'Długi', status: 'planned' }], ' Tempo ', 'a'],
+];
+
 /* ── Część C — PROGI KONTUZJI ─────────────────────────────────────────────
    Te same reguły istnieją w DWÓCH postaciach i nie da się ich scalić:
      · `supabase/functions/generate-training-plan/index.ts` — jako ZDANIA
@@ -201,7 +239,100 @@ async function main() {
     }
   }
 
+  /* ── CZĘŚĆ D: mapa typów aktywności — jedna kopia, oba EF intervals importują ── */
+  let mapa = null;
+  try {
+    mapa = await import('file://' + path.join(KORZEN, 'supabase/functions/_shared/typ-aktywnosci.mjs').replace(/\\/g, '/'));
+  } catch (e) {
+    bledy.push('część D: nie da się załadować _shared/typ-aktywnosci.mjs — ' + (e.message || e).split('\n')[0]);
+  }
+  if (mapa) {
+    const n = Object.keys(mapa.ACT_MAP || {}).length;
+    if (n < MIN_ACT_MAP) bledy.push(`część D: ACT_MAP ma ${n} pozycji, próg to ${MIN_ACT_MAP}. Lista się skurczyła — rozstrzygnij, nie obniżaj progu.`);
+    else uwagi.push(`część D: ACT_MAP ${n} pozycji (próg ${MIN_ACT_MAP})`);
+    const r = (mapa.RUN_ACT && mapa.RUN_ACT.size) || 0;
+    if (r < MIN_RUN_ACT) bledy.push(`część D: RUN_ACT ma ${r} pozycji, próg to ${MIN_RUN_ACT}.`);
+    /* zachowanie, nie tekst: Walk → Spacer to dokładnie przypadek Maćka z 14.08 */
+    const probki = [[{ type: 'Walk' }, 'Spacer'], [{ type: 'OpenWaterSwim' }, 'Pływanie'], [{ type: 'WeightTraining' }, 'Siłownia'],
+                    [{ type: 'CosNieznanego' }, 'Zastępczy'], [{ type: 'Run' }, 'Spokojny']];
+    for (const [a, oczekiwany] of probki) {
+      const w = mapa.typeForActivity(a, null);
+      if (w !== oczekiwany) bledy.push(`część D: typeForActivity(${a.type}) = ${w}, oczekiwane ${oczekiwany}`);
+    }
+    if (mapa.typeForActivity({ type: 'Run' }, 'Interwały') !== 'Interwały') bledy.push('część D: bieg nie dostaje typu z planu');
+  }
+  if (EF_OBJETE_INTERVALS.length < MIN_EF_INTERVALS) bledy.push(`część D: objęto ${EF_OBJETE_INTERVALS.length} EF, próg to ${MIN_EF_INTERVALS}.`);
+  for (const ef of EF_OBJETE_INTERVALS) {
+    const sciezka = path.join(KORZEN, 'supabase/functions', ef, 'index.ts');
+    let kod;
+    try { kod = fsB.readFileSync(sciezka, 'utf8'); }
+    catch (_) { bledy.push(`część D: nie ma pliku ${ef}/index.ts — lista EF_OBJETE_INTERVALS jest nieaktualna.`); continue; }
+    if (!/from\s+["']\.\.\/_shared\/typ-aktywnosci\.mjs["']/.test(kod)) bledy.push(`${ef}: NIE importuje ../_shared/typ-aktywnosci.mjs — mapuje po swojemu.`);
+    if (!/external_type\s*:/.test(kod)) bledy.push(`${ef}: nie zapisuje external_type — surowy typ znów nie do odtworzenia z bazy.`);
+    const trafienia = ZAKAZANE_WZORY_INTERVALS.filter(([rx]) => rx.test(kod)).map(([, opis]) => opis);
+    if (trafienia.length) bledy.push(`${ef}: wróciła własna kopia → ${trafienia.join('; ')}`);
+    else uwagi.push(`${ef}: importuje mapę typów, ${ZAKAZANE_WZORY_INTERVALS.length} wzorców sprawdzonych, zapisuje external_type`);
+  }
+
+  /* ── CZĘŚĆ E: domykanie planu — sb.js vs _shared/domknij-plan.mjs, to samo zachowanie ── */
+  let dp = null;
+  try {
+    dp = await import('file://' + path.join(KORZEN, 'supabase/functions/_shared/domknij-plan.mjs').replace(/\\/g, '/'));
+  } catch (e) {
+    bledy.push('część E: nie da się załadować _shared/domknij-plan.mjs — ' + (e.message || e).split('\n')[0]);
+  }
+  if (PROBKI_DOMKNIECIA.length < MIN_PROBEK_DOMKNIECIA) bledy.push(`część E: ${PROBKI_DOMKNIECIA.length} próbek, próg to ${MIN_PROBEK_DOMKNIECIA}.`);
+  if (typeof sb.wybierzPlanDoDomkniecia !== 'function') {
+    bledy.push('część E: sb.js nie wystawia `wybierzPlanDoDomkniecia` — bramka nie ma czego porównać.');
+  } else if (dp) {
+    let zgodne = 0;
+    for (const [nazwa, kandydaci, typ, oczekiwane] of PROBKI_DOMKNIECIA) {
+      const a = sb.wybierzPlanDoDomkniecia(kandydaci.map((k) => ({ ...k })), typ);
+      const b = dp.wybierzPlanDoDomkniecia(kandydaci.map((k) => ({ ...k })), typ);
+      const ia = a ? a.id : null, ib = b ? b.id : null;
+      if (ia !== ib) bledy.push(`część E: „${nazwa}": sb.js → ${ia}, _shared → ${ib} — kopie się rozjechały`);
+      else if (ia !== oczekiwane) bledy.push(`część E: „${nazwa}": obie kopie dają ${ia}, oczekiwane ${oczekiwane} — reguła zmieniła się W OBU naraz`);
+      else zgodne++;
+    }
+    if (zgodne === PROBKI_DOMKNIECIA.length) uwagi.push(`część E: domykanie planu — ${zgodne} próbek, obie kopie zgodne`);
+  }
+  for (const ef of EF_OBJETE_DOMKNIECIE) {
+    const sciezka = path.join(KORZEN, 'supabase/functions', ef, 'index.ts');
+    let kod;
+    try { kod = fsB.readFileSync(sciezka, 'utf8'); }
+    catch (_) { bledy.push(`część E: nie ma pliku ${ef}/index.ts.`); continue; }
+    if (!/from\s+["']\.\.\/_shared\/domknij-plan\.mjs["']/.test(kod)) bledy.push(`${ef}: NIE importuje ../_shared/domknij-plan.mjs — import nie domyka planu.`);
+    if (!/domknijPlanyPoImporcie\(/.test(kod)) bledy.push(`${ef}: importuje, ale nie woła domknijPlanyPoImporcie.`);
+    if (/function\s+wybierzPlanDoDomkniecia\s*\(|status\s*!==\s*['"]missed['"]/.test(kod)) bledy.push(`${ef}: własna kopia reguły domykania.`);
+  }
+
   if (samokontrola) {
+    /* Część E: podmieniona kopia MUSI być złapana (odwrotność: sb.js zostaje, moduł „zepsuty"). */
+    if (dp && typeof sb.wybierzPlanDoDomkniecia === 'function') {
+      const zepsuty = (k, t) => { const r = dp.wybierzPlanDoDomkniecia(k, t); return r || (k && k[0]) || null; };   // „zawsze coś wybierz"
+      let roznic = 0;
+      for (const [, kandydaci, typ] of PROBKI_DOMKNIECIA) {
+        const a = sb.wybierzPlanDoDomkniecia(kandydaci.map((k) => ({ ...k })), typ);
+        const b = zepsuty(kandydaci.map((k) => ({ ...k })), typ);
+        if ((a ? a.id : null) !== (b ? b.id : null)) roznic++;
+      }
+      console.log(roznic > 0 ? '  ✓ samokontrola: zepsuta kopia reguły domykania ZŁAPANA (' + roznic + ' próbek różni się)'
+                             : '  ✗ SAMOKONTROLA PADŁA: zepsuta kopia reguły domykania NIE została wykryta');
+      if (!roznic) bledy.push('SAMOKONTROLA części E padła');
+    }
+
+    /* Część D: stary webhook (nie-bieg → Zastępczy bez mapy) i lokalna ACT_MAP MUSZĄ być złapane. */
+    const staryWebhook = "function typeForActivity(a: any, planType: string | null): string {\n  return RUN_ACT.has(a.type) ? typeFromPlan(planType) : 'Zastępczy';\n}";
+    const lokalnaMapa = "const ACT_MAP: Record<string, string> = { 'Walk': 'Spacer' };";
+    const zlD1 = ZAKAZANE_WZORY_INTERVALS.some(([rx]) => rx.test(staryWebhook));
+    const zlD2 = ZAKAZANE_WZORY_INTERVALS.some(([rx]) => rx.test(lokalnaMapa));
+    const czysty = "import { RUN_ACT, typeForActivity, rawActivityType } from '../_shared/typ-aktywnosci.mjs';\nconst x = typeForActivity(a, p);";
+    const przepuszczaD = !ZAKAZANE_WZORY_INTERVALS.some(([rx]) => rx.test(czysty));
+    console.log(zlD1 ? '  ✓ samokontrola: stary webhook (nie-bieg → Zastępczy) ZŁAPANY' : '  ✗ SAMOKONTROLA PADŁA: stary webhook NIE został wykryty');
+    console.log(zlD2 ? '  ✓ samokontrola: lokalna ACT_MAP w EF ZŁAPANA' : '  ✗ SAMOKONTROLA PADŁA: lokalna ACT_MAP NIE została wykryta');
+    console.log(przepuszczaD ? '  ✓ samokontrola: EF z importem mapy PRZEPUSZCZONY' : '  ✗ SAMOKONTROLA PADŁA: czysty import zgłoszony jako kopia');
+    if (!zlD1 || !zlD2 || !przepuszczaD) bledy.push('SAMOKONTROLA części D padła');
+
     /* ⚠️ TEST NEGATYWNY: bramka, która nigdy nie świeci na czerwono, jest ozdobą.
        Psujemy kopię i sprawdzamy, że ROZJAZD zostaje zgłoszony. */
     const przed = bledy.length, przedU = uwagi.length;

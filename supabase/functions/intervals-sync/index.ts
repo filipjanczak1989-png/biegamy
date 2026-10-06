@@ -36,34 +36,11 @@ function gapToPace(v: number): string | null {
   const t = Math.round(1000 / v);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
-// B1: ŚWIADOMY DUPLIKAT w intervals-sync i intervals-webhook (jak dawny TYPE_MAP).
-//   Bieg -> typ z PLANU (trainings.type na dzień aktywności); nie-bieg -> 'Zastępczy'.
-//   Nowy biegowy typ planu -> aktualizuj RUN_PLAN TU **oraz** w intervals-webhook.
-const RUN_ACT = new Set(['Run', 'TrailRun', 'Treadmill', 'VirtualRun']);
-// RUN_PLAN = mirror RUN_TYPES (sb.js), lowercase — match case-insensitive (km liczą się dalej, isRunType case-fold).
-const RUN_PLAN = new Set(['spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo', 'progresja', 'interwały', 'start', 'wyścig', 'regeneracja']);
-function typeFromPlan(planType: string | null): string {
-  const t = String(planType || '').trim(); const lt = t.toLowerCase();
-  if (!t || lt === 'odpoczynek') return 'Spokojny';        // brak planu / dzień wolny
-  if (lt === 'bieg spokojny') return 'Spokojny';           // jedyny alias (Decyzja A) -> kanon ikon UI
-  return RUN_PLAN.has(lt) ? t : 'Spokojny';                // biegowy plan -> ORYGINAŁ; nie-biegowy plan -> Spokojny
-}
-// TYPY-CROSS: pelna mapa aktywnosci intervals/Strava -> polskie typy (kazda aktywnosc = wlasny typ + effort)
-// (bylo: wszystko nie-bieg -> 'Zastępczy' 1.5 — spacery Kasi pompowaly ATL do 153)
-const ACT_MAP: Record<string, string> = {
-  'Walk': 'Spacer', 'Hike': 'Spacer',
-  'Ride': 'Rower', 'VirtualRide': 'Rower', 'MountainBikeRide': 'Rower', 'GravelRide': 'Rower', 'EBikeRide': 'Rower',
-  'Swim': 'Pływanie', 'OpenWaterSwim': 'Pływanie',
-  'WeightTraining': 'Siłownia', 'Workout': 'Siłownia', 'Crossfit': 'Siłownia',
-  'Yoga': 'Joga', 'Pilates': 'Joga',
-  'NordicSki': 'Narty', 'AlpineSki': 'Narty', 'BackcountrySki': 'Narty', 'RollerSki': 'Narty',
-  'Rowing': 'Ergometr', 'VirtualRow': 'Ergometr',
-  'Elliptical': 'Orbitrek', 'StairStepper': 'Orbitrek',
-};
-function typeForActivity(a: any, planType: string | null): string {
-  if (RUN_ACT.has(a.type)) return typeFromPlan(planType);
-  return ACT_MAP[String(a.type || '')] || 'Zastępczy';   // znany typ -> wlasna kategoria; nieznany -> Zastępczy
-}
+// 06.10.2026: RUN_ACT / ACT_MAP / typeFromPlan / typeForActivity wyniesione do
+// ../_shared/typ-aktywnosci.mjs (do tego dnia „świadomy duplikat" z intervals-webhook,
+// rozjechany od 27.07 — webhook nie dostał ACT_MAP). Bramka: tools/bramka-reguly.js część D.
+import { RUN_ACT, typeForActivity, rawActivityType } from '../_shared/typ-aktywnosci.mjs';
+import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
 // dwutorowa notyfikacja (zawodnik + trener). Best-effort: blad tu NIE psuje odpowiedzi EF.
@@ -196,6 +173,8 @@ Deno.serve(async (req) => {
         return {
           athlete_id,
           training_type: typeForActivity(a, planByDate.get(dateKey) ?? null),
+          external_type: rawActivityType(a),   // 06.10: surowy typ z intervals — mapowanie odtwarzalne z bazy
+
           distance_km: distM ? Math.round(distM / 10) / 100 : null,
           duration: sec ? secToClock(sec) : null,
           pace: isRun ? paceStr(distM, sec) : null,
@@ -239,6 +218,7 @@ Deno.serve(async (req) => {
 
     let synced = 0, wzbogacone = 0;
     let pominiete: { external_id: string; data: string; powod: string; powodCzytelny: string }[] = [];
+    let domkniete = 0;   // plany domknięte logami z tej paczki (06.10)
     if (doWstawienia.length) {
       /* ⚠️ JEDEN ZLY WIERSZ ZABIJAL CALY IMPORT. Do 19.08.2026 bylo tu
          `if (error) return J(200,{ok:false})` — pojedyncza aktywnosc lamiaca
@@ -255,6 +235,23 @@ Deno.serve(async (req) => {
          Oddajemy PIERWOTNY blad batcha — inaczej „zsynchronizowano 0 z 452"
          wygladaloby na spokojny wynik. */
       if (!w.ok) return J(200, { ok: false, error: w.bladBatcha, pominietych: pominiete.length });
+      /* 06.10.2026 (paczka 2): import DOMYKA plan jak ręczny zapis logu. Do tego dnia sync
+         nie dotykał trainings — plan zostawał `planned` mimo wykonania (główne źródło 293
+         wiszących planów z logiem tego samego dnia). Reguła i pomiary: _shared/domknij-plan.mjs.
+         Potrzebujemy id wstawionych wierszy, a wstawZOdzyskiem ich nie zwraca — jedno
+         zapytanie po external_id tej paczki. Błąd tu NIE przerywa syncu. */
+      try {
+        const pominieteId = new Set(pominiete.map((p) => p.external_id));
+        const wstawioneExt = doWstawienia.map((r: any) => r.external_id).filter((x: string) => !pominieteId.has(x));
+        if (wstawioneExt.length) {
+          const { data: swieze } = await svc.from('training_logs')
+            .select('id,logged_at,training_type,distance_km')
+            .eq('athlete_id', athlete_id).eq('external_source', 'intervals')
+            .in('external_id', wstawioneExt);
+          const d = await domknijPlanyPoImporcie(svc, athlete_id, swieze || []);
+          domkniete = d.domkniete;
+        }
+      } catch (e) { console.error('intervals-sync domkniecie planow', (e as Error)?.message); }
     }
     for (const w of doWzbogacenia) {
       /* Blad wzbogacenia NIE przerywa syncu — gorszy skutek to brak telemetrii
@@ -308,6 +305,7 @@ Deno.serve(async (req) => {
        „zaimportowano 438 z 440, 2 pominiete". */
     return J(200, {
       ok: true, synced, wzbogacone, wellness: wellnessSynced,
+      domkniete,                           // 06.10: plany oznaczone done przez ten import
       pominietych: pominiete.length,
       pominiete: pominiete.slice(0, 20),   // cap na odpowiedz; licznik zostaje pelny
     });

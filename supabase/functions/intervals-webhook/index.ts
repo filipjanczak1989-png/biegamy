@@ -13,9 +13,11 @@ const J = (s: number, b: unknown) =>
   new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
 
 // ── mapowanie aktywność intervals → wiersz training_logs ──
-// ⚠️ B1: ŚWIADOMY DUPLIKAT logiki z intervals-sync (secToClock/paceStr/RUN_ACT+RUN_PLAN+typeForActivity/kształt wiersza).
-//    Nowy biegowy typ planu → aktualizuj RUN_PLAN TU **oraz** w intervals-sync.
-//    B2 (shared _shared/intervals-map.ts) = follow-up gdy oba EF stabilne (patrz nota w planie).
+// 06.10.2026: B2 wykonane — RUN_ACT/ACT_MAP/typeFromPlan/typeForActivity w ../_shared/typ-aktywnosci.mjs.
+//    „Świadomy duplikat" z B1 rozjechał się 27.07 (sync dostał ACT_MAP, webhook nie): przez 10 tygodni
+//    każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. secToClock/paceStr/kształt wiersza nadal lokalnie.
+import { RUN_ACT, typeForActivity, rawActivityType } from '../_shared/typ-aktywnosci.mjs';
+import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
 function secToClock(sec: number): string {
   sec = Math.round(sec);
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -35,19 +37,6 @@ function gapToPace(v: number): string | null {
   const t = Math.round(1000 / v);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
-// B1: patrz nota w intervals-sync — bieg -> typ z PLANU (trainings.type na dzień aktywności), nie-bieg -> 'Zastępczy'.
-const RUN_ACT = new Set(['Run', 'TrailRun', 'Treadmill', 'VirtualRun']);
-// RUN_PLAN = mirror RUN_TYPES (sb.js), lowercase — match case-insensitive (km liczą się dalej, isRunType case-fold).
-const RUN_PLAN = new Set(['spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo', 'progresja', 'interwały', 'start', 'wyścig', 'regeneracja']);
-function typeFromPlan(planType: string | null): string {
-  const t = String(planType || '').trim(); const lt = t.toLowerCase();
-  if (!t || lt === 'odpoczynek') return 'Spokojny';
-  if (lt === 'bieg spokojny') return 'Spokojny';           // jedyny alias (Decyzja A)
-  return RUN_PLAN.has(lt) ? t : 'Spokojny';
-}
-function typeForActivity(a: any, planType: string | null): string {
-  return RUN_ACT.has(a.type) ? typeFromPlan(planType) : 'Zastępczy';   // #7: nie-bieg -> Zastępczy
-}
 function mapActivity(a: any, athlete_id: string, planType: string | null) {
   const distM = a.distance || 0;
   const sec   = a.moving_time || a.elapsed_time || 0;
@@ -55,6 +44,7 @@ function mapActivity(a: any, athlete_id: string, planType: string | null) {
   return {
     athlete_id,
     training_type: typeForActivity(a, planType),
+    external_type: rawActivityType(a),   // 06.10: surowy typ z intervals — mapowanie odtwarzalne z bazy
     distance_km: distM ? Math.round(distM / 10) / 100 : null,       // metry → km, 2 miejsca
     duration: sec ? secToClock(sec) : null,                         // STRING "H:MM:SS" (NIE sekundy)
     pace: isRun ? paceStr(distM, sec) : null,                       // "M:SS"/km, tylko bieg
@@ -89,7 +79,7 @@ Deno.serve(async (req) => {
 
   const svc = createClient(SB_URL, SVCKEY);   // default OK dla legacy i sb_secret; NIE dodawać Authorization:'' — łamie legacy (42501)
   const events = Array.isArray(body.events) ? body.events : [];
-  let imported = 0, dup = 0, skipped = 0, unmatched = 0;
+  let imported = 0, dup = 0, skipped = 0, unmatched = 0, domkniete = 0;
 
   for (const ev of events) {
     // ── 2) FILTR TYPU — tylko ACTIVITY_UPLOADED. Reszta (ACTIVITY_ANALYZED/CALENDAR_*/SPORT_SETTINGS…) pomijana ──
@@ -135,15 +125,22 @@ Deno.serve(async (req) => {
     // ⚠️ NIE upsert onConflict: indeks jest PARTIAL (WHERE external_source/external_id NOT NULL),
     //    supabase-js nie dopisze predykatu → ON CONFLICT nie znajdzie arbitra. Catch 23505 jest odporny.
     //    Chroni przed: retry po nie-2xx, redelivery ORAZ UPLOADED+ANALYZED dla tego samego activity.
-    const { error } = await svc.from('training_logs').insert(row);
+    const { data: wstawiony, error } = await svc.from('training_logs').insert(row)
+      .select('id,logged_at,training_type,distance_km').single();
     if (error) {
       if (error.code === '23505') { dup++; continue; }           // już zaimportowany → idempotentny sukces
       console.error('intervals-webhook insert fail', rawId, error.message);   // błąd JEDNEGO eventu nie wywala batcha
       skipped++; continue;
     }
     imported++;
+    /* 06.10.2026 (paczka 2): import DOMYKA plan jak ręczny zapis logu — reguła w
+       _shared/domknij-plan.mjs (SSOT: sb.js wybierzPlanDoDomkniecia). Błąd nie psuje importu. */
+    try {
+      const d = await domknijPlanyPoImporcie(svc, ath.id, wstawiony ? [wstawiony] : []);
+      domkniete += d.domkniete;
+    } catch (e) { console.error('intervals-webhook domkniecie planu', rawId, (e as Error)?.message); }
   }
 
   // ── 6) ZAWSZE 200 przy poprawnym secret (miss/skip/dup też) — inaczej intervals retry-uje w kółko ──
-  return J(200, { ok: true, imported, dup, skipped, unmatched });
+  return J(200, { ok: true, imported, dup, skipped, unmatched, domkniete });
 });

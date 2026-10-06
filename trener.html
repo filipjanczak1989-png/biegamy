@@ -2320,13 +2320,21 @@ async function approveTrainingPlanFlow() {
   let resolution = 'skip';
   if (conflictsResp.has_conflicts) {
     const conflicts = conflictsResp.conflicts || [];
-    const conflictsList = conflicts.slice(0, 5).map(c => 
-      `• ${new Date(c.date).toLocaleDateString('pl', {day:'numeric', month:'short'})}: ${c.existing.map(e => `${e.type} ${e.distance_km || 0}km`).join(', ')}`
+    /* 06.10.2026: status KAŻDEGO istniejącego wiersza jest w prompcie — do tego dnia trener
+       wybierając „1 = Nadpisz" nie wiedział, że w zakresie są wykonane treningi. Dni z
+       done/missed EF pomija NIEZALEŻNIE od wyboru (decyzja Filipa), więc mówimy to wprost. */
+    const STATUS_PL = { planned: 'plan', done: 'WYKONANY', missed: 'opuszczony' };
+    const conflictsList = conflicts.slice(0, 5).map(c =>
+      `• ${new Date(c.date).toLocaleDateString('pl', {day:'numeric', month:'short'})}: ${c.existing.map(e => `${e.type} ${e.distance_km || 0}km [${STATUS_PL[e.status] || e.status || '?'}]`).join(', ')}`
     ).join('\n');
     const moreText = conflicts.length > 5 ? `\n... i ${conflicts.length - 5} kolejnych` : '';
+    const dniWykonane = Number(conflictsResp.dni_wykonane) || 0;
+    const wykonaneText = dniWykonane
+      ? `\n\n⛔ ${dniWykonane} ${dniWykonane === 1 ? 'dzień ma' : 'dni mają'} już WYKONANY lub opuszczony trening — plan je pominie, cokolwiek wybierzesz.`
+      : '';
 
     const choice = prompt(
-      `⚠️ Konflikty w ${conflicts.length} dniach (z ${conflictsResp.total_days}):\n\n${conflictsList}${moreText}\n\nWpisz:\n  1 = Nadpisz wszystkie (skasuj istniejące)\n  2 = Pomiń te dni (zachowaj istniejące)\n  3 = Wstaw obok (2 treningi/dzień)\n  ESC = Anuluj`,
+      `⚠️ Konflikty w ${conflicts.length} dniach (z ${conflictsResp.total_days}):\n\n${conflictsList}${moreText}${wykonaneText}\n\nWpisz:\n  1 = Nadpisz zaplanowane (skasuj istniejące PLANY; wykonane zostają)\n  2 = Pomiń te dni (zachowaj istniejące)\n  3 = Wstaw obok (2 treningi/dzień)\n  ESC = Anuluj`,
       '2'
     );
 
@@ -2355,6 +2363,7 @@ async function approveTrainingPlanFlow() {
     let msg = `✅ Plan zatwierdzony!\n\nWstawiono: ${data.inserted}`;
     if (data.skipped > 0) msg += `\nPominięto: ${data.skipped}`;
     if (data.overwritten > 0) msg += `\nNadpisano: ${data.overwritten}`;
+    if (data.pominiete_wykonane > 0) msg += `\nPominięto dni z wykonanym/opuszczonym treningiem: ${data.pominiete_wykonane}`;
     alert(msg);
 
     closeViewTrainingPlanModal();
@@ -2668,7 +2677,8 @@ async function doCopyToAthlete(targetAthleteId, targetName, workoutIds) {
       description: w.description || w.title || null,
       steps: w.steps || null,                 // ✨ steps: kopiuj structured workout (Interwały/Tempo)
       steps_version: w.steps ? 1 : null,      // ✨ steps
-      status: 'planned'
+      status: 'planned',
+      plan_source: 'coach'   // 06.10: kopia planu przez trenera = trener zaplanował
     };
   });
 
@@ -4569,6 +4579,7 @@ async function sendTemplate() {
       if (existing) { skipped++; continue; }
 
       const { error } = await sb.from('trainings').insert({
+        plan_source: 'coach',   // 06.10: szablon tygodnia wysłany przez trenera
         athlete_id: athleteId,
         coach_id: _coachId,
         date: day.dateStr,

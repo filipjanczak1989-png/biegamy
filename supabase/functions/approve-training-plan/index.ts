@@ -140,6 +140,8 @@ serve(async (req) => {
         ok: true,
         has_conflicts: hasConflicts,
         conflict_count: conflictDates.length,
+        // 06.10: dni z done/missed — approve je POMINIE bez względu na wybór trenera
+        dni_wykonane: conflictDates.filter(d => conflictsByDate[d].some((t: any) => t.status !== "planned")).length,
         total_days: planWorkouts.length,
         conflicts: conflictDates.map(date => ({
           date,
@@ -171,21 +173,41 @@ serve(async (req) => {
 
     // ─── Conflict resolution ─────
     if (conflict_resolution === "overwrite" && hasConflicts) {
-      // Skasuj istniejące treningi w datach planu
+      /* 06.10.2026 (paczka 2): kasujemy WYŁĄCZNIE `status='planned'`. Do tego dnia DELETE
+         szedł po samym zakresie dat i — przez service_role, czyli obok RLS — zabierał też
+         `done` i `missed`, tj. zapis WYKONANIA, nie zamiar. Generator w zawodnik.html:6135
+         od początku kasował tylko `planned`; ta EF była jedynym miejscem, które niszczyło
+         historię. Wiersze done/missed w zakresie zostają — nowy plan wstawia obok nich
+         (patrz niżej, `zachowaneWykonane`). */
       const { error: delErr } = await supabase
         .from("trainings")
         .delete()
         .eq("athlete_id", plan.athlete_id)
+        .eq("status", "planned")
         .gte("date", plan.start_date)
         .lte("date", plan.end_date);
       if (delErr) {
         throw new Error(`Delete existing trainings failed: ${delErr.message}`);
       }
-      overwritten = existingTrainings?.length || 0;
+      overwritten = (existingTrainings || []).filter((t: any) => t.status === "planned").length;
     }
+    // Dni, na których zostaje wykonany/opuszczony trening — raportowane trenerowi w odpowiedzi,
+    // żeby duplikat „plan obok wykonania" nie był cichy. Reguła, co z nimi robić, to decyzja
+    // produktowa (patrz komunikat paczki 2) — tu tylko liczymy i mówimy.
+    const zachowaneWykonane = (existingTrainings || [])
+      .filter((t: any) => t.status !== "planned")
+      .map((t: any) => ({ date: t.date, status: t.status, type: t.type }));
 
     // ─── Insert workouts do trainings ─────
+    let pominieteWykonane = 0;
     for (const w of planWorkouts) {
+      /* 06.10.2026 (decyzja Filipa): dzień z done/missed = POMIŃ, niezależnie od
+         conflict_resolution. Wykonanie jest faktem, plan na ten dzień byłby planem po fakcie
+         albo duplikatem obok wykonania (trainings nie ma unikatu na athlete_id+date). */
+      if ((conflictsByDate[w.date] || []).some((t: any) => t.status !== "planned")) {
+        pominieteWykonane++;
+        continue;
+      }
       // Skip dla 'skip' resolution
       if (conflict_resolution === "skip" && conflictsByDate[w.date]) {
         skipped++;
@@ -213,6 +235,7 @@ serve(async (req) => {
         steps: w.steps || null,                 // ✨ steps: zachowaj structured workout (Interwały/Tempo) przy zatwierdzeniu
         steps_version: w.steps ? 1 : null,      // ✨ steps
         status: "planned",
+        plan_source: "coach",   // 06.10: CHECK dopuszcza 'coach' | 'generator'; plan trenera = 'coach'
       };
 
       const { data: insertedRow, error: insErr } = await supabase
@@ -285,6 +308,8 @@ serve(async (req) => {
       inserted,
       skipped,
       overwritten,
+      pominiete_wykonane: pominieteWykonane,   // 06.10: jednostki planu NIE wstawione, bo dzień ma done/missed
+      zachowane_wykonane: zachowaneWykonane,   // 06.10: dni z done/missed, których overwrite NIE ruszył
       total_planned: planWorkouts.length,
       errors: insertErrors,
     }), {

@@ -1364,6 +1364,21 @@
     'spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo',
     'progresja', 'interwały', 'start', 'wyścig', 'regeneracja'
   ]);
+  /* Który plan domknąć logiem (saveLog w zawodnik.html i — przez DRUGĄ KOPIĘ w
+     _shared/domknij-plan.mjs — intervals-sync/webhook). Reguła: kandydaci = treningi
+     TEGO dnia ze statusem ≠ done, `missed` odpada; jeden → on; kilku → jedyny tego
+     samego typu co log; inaczej null (06.10.2026, paczka 2). Rozjazd kopii łapie
+     tools/bramka-reguly.js część E na tych samych próbkach. */
+  window.wybierzPlanDoDomkniecia = function(kandydaci, typLogu) {
+    const k = (kandydaci || []).filter(r => r && r.status !== 'missed');
+    if (k.length === 1) return k[0];
+    if (k.length > 1) {
+      const typ = String(typLogu || '').trim();
+      const tegoTypu = k.filter(r => String(r.type || '').trim() === typ);
+      if (tegoTypu.length === 1) return tegoTypu[0];
+    }
+    return null;
+  };
   window.isRunType = function(t) {
     return window.RUN_TYPES.has((t || '').toLowerCase().trim());
   };

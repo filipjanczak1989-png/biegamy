@@ -4109,6 +4109,7 @@ async function copyTraining() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
   const { error } = await sb.from('trainings').insert({
+    plan_source: 'coach',   // 06.10: kopia treningu przez trenera
     coach_id: session.user.id,
     athlete_id: athleteId,
     date,
@@ -4927,6 +4928,7 @@ async function confirmApplyWeekTemplate() {
     if (existing) { skipped++; continue; }
 
     const { error } = await sb.from('trainings').insert({
+      plan_source: 'coach',   // 06.10: szablon tygodnia zastosowany przez trenera
       athlete_id: athleteId,
       coach_id: session.user.id,
       date: targetDateStr,
@@ -5085,6 +5087,7 @@ async function sendWeekTemplate() {
     if (existing) { skipped++; continue; }
 
     const {error} = await sb.from('trainings').insert({
+      plan_source: 'coach',   // 06.10: tydzień wysłany przez trenera z formularza wtpl-*
       athlete_id: athleteId,
       coach_id: session.user.id,
       date: dateStr,

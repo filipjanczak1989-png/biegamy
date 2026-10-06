@@ -2182,31 +2182,16 @@ async function oznaczNieZrobione(btn) {
 }
 window.oznaczNieZrobione = oznaczNieZrobione;
 
-/* ⚠️ MARTWA OD ZAWSZE, ZOSTAWIONA ŚWIADOMIE DO OSOBNEJ DECYZJI: `markDone` nie
-   jest wołana z ŻADNEGO miejsca w repo (sprawdzone 21.08.2026 — jedyne
-   wystąpienie to ta definicja). Przycisku „oznacz jako wykonany" w karcie „Dziś"
-   nie ma; jedyna działająca ścieżka na `status='done'` to zapis logu
-   (ok. linii 8391), i to TYLKO gdy tego dnia jest DOKŁADNIE JEDEN zaplanowany
-   trening. Stąd 293 przeszłe `planned`, które mają log tego samego dnia.
-   Nie kasuję razem z tą zmianą, żeby nie mieszać dwóch spraw w jednym commicie. */
-async function markDone(btn){
-  if (!_athleteId || !window._todayTraining?.id) {
-    // Brak treningu z bazy — tylko lokalna zmiana
-    btn.textContent='✓ Gotowe!';
-    btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
-    toast('Trening oznaczony jako wykonany ✓');
-    return;
-  }
-  btn.textContent='...';btn.disabled=true;
-  const { error } = await sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining.id);
-  btn.disabled=false;
-  if (error) { toast('Błąd: ' + error.message); return; }
-  btn.textContent='✓ Gotowe!';
-  btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
-  window._todayTraining.status = 'done';
-  toast('Trening oznaczony jako wykonany ✓');
-  await updateWeekProgress();
-}
+/* NAGROBEK (06.10.2026): tu stała `markDone(btn)` — „✓ Wykonany" w karcie „Dziś".
+   Komentarz z 21.08 mówił „martwa od zawsze"; nieprawda — przycisk `#done-btn` istniał
+   do commita 3803ce8 (6.05.2026), który zastąpił siatkę trzech przycisków jednym
+   „Zaloguj wynik". Od tego dnia funkcja nie miała wołającego (LEKCJE #14: martwa gałąź
+   z pełną implementacją). Usunięta, NIE ożywiona, bo kłóciłaby się z decyzją z 21.08
+   („plan jest zobowiązaniem do północy" — przycisk „zrobiłem" o trwającym dniu to ta
+   sama klasa co odrzucone „nie zrobiłem dziś"). Domknięcie planu idzie przez zapis
+   logu (saveLog) — i to TAM naprawiono warunek „dokładnie jeden plan" (06.10).
+   Gdyby ktoś wracał do pomysłu: „Wczoraj zrobiłem (bez logu)" obok `#today-nie-zrobilem`,
+   z tą samą zasadą WCZORAJ, nie DZIŚ. */
 // Licznik generacji modala — rośnie przy KAŻDYM otwarciu (dodawanie i edycja).
 // Nie da się tu użyć _editingLogId: zmienia się natychmiast przy otwarciu, więc
 // porównanie po await mogłoby przypadkiem pasować mimo podmiany zawartości.
@@ -8548,12 +8533,19 @@ async function saveLog() {
      bo powiązanie ma znaczyć „to jest wykonanie TEGO planu", a nie „coś się
      tego dnia wydarzyło". NULL jest tu uczciwszy niż zgadnięty identyfikator. */
   const { data: plannedRows } = await sb.from('trainings')
-    .select('id,type,distance_km')
+    .select('id,type,distance_km,status')
     .eq('athlete_id', _athleteId)
     .eq('date', logDate)
     .neq('status', 'done')
-    .limit(2);
-  const planned = (plannedRows && plannedRows.length === 1) ? plannedRows[0] : null;
+    .limit(5);
+  /* 06.10.2026 (paczka 2): do tego dnia domknięcie działało TYLKO przy DOKŁADNIE JEDNYM
+     kandydacie (`length === 1`), a przy dwóch planach tego dnia (zmierzone 158 dni) log
+     wpadał, plan zostawał `planned` — to jedno ze źródeł 293 wiszących planów z logiem.
+     Teraz: jeden kandydat → on; kilku → ten o TYM SAMYM typie co log (jeśli dokładnie
+     jeden pasuje), inaczej nadal nic — zgadywanie między dwoma różnymi planami byłoby
+     gorsze niż pustka (LEKCJE: fałszywy `done` wygląda na fakt). `missed` nie jest
+     kandydatem: człowiek powiedział „nie zrobiłem", log tego nie unieważnia bez pytania. */
+  const planned = window.wybierzPlanDoDomkniecia(plannedRows, _logType);   // SSOT reguły w sb.js; kopia dla EF w _shared/domknij-plan.mjs
   if (planned) {
     const planKm = parseFloat(planned.distance_km) || 0;
     const stosunek = (planKm > 0 && dist > 0) ? (dist / planKm) : null;

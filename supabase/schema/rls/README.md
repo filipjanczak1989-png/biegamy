@@ -69,18 +69,41 @@ chroni, to brak polityk. To działa, ale opiera się na nieopisanym założeniu.
 Nie ruszać bez decyzji: **dodanie jakiejkolwiek polityki natychmiast otwiera
 tę tabelę** w zakresie, jaki dają granty.
 
-## ⚠️ OSTRZEŻENIE 3: widok omija RLS
+## ⚠️ OSTRZEŻENIE 3: widok potrafi omijać RLS
 
-Widok bez `security_invoker` czyta uprawnieniami **właściciela**, więc RLS tabel
-źródłowych go nie dotyczy. Trzy widoki są nadane roli `anon`:
+Widok bez `security_invoker` czyta uprawnieniami **właściciela** (`postgres`,
+a ten ma `BYPASSRLS`), więc RLS tabel źródłowych go **nie dotyczy**. Z widokiem
+`security_invoker=true` jest odwrotnie: RLS działa na pytającego.
 
-- `public_athletes` — **w porządku**: filtruje `is_public = true` i wystawia
-  9 wybranych kolumn;
-- `radio_top` — agregaty utworów, bez danych osobowych;
-- ⚠️ `radio_comments_view` — **nie filtruje niczego** i dociąga `full_name`
-  oraz `avatar_url` z `athletes`. Niezalogowany widzi treść wszystkich
-  komentarzy radiowych wraz z imieniem i awatarem autora. Może tak ma być —
-  ale to decyzja, której nikt nie zapisał.
+⚠️ Dlatego przy widoku trzeba czytać DWA pola naraz — flagę i granty. Sprawdzone
+na żywo 30.08.2026 (podszycie się rolą `anon`):
+
+| widok | omija RLS | anon | własny filtr | ocena |
+|---|---|---|---|---|
+| `public_athletes` | tak | SELECT | `is_public = true`, 9 kolumn | **zamierzone** — 34 wiersze dla anon |
+| `public_training_logs` | tak | — | `is_public = true` | w porządku, tylko `authenticated` |
+| `radio_top_weekly` | tak | — | agregaty | w porządku, tylko `authenticated` |
+| `radio_top` | **nie** (`security_invoker=true`) | SELECT | — | bezpieczne mimo grantu: anon widzi **0** |
+| `ai_usage_today` | nie | — | — | w porządku |
+| ⚠️ `radio_comments_view` | **tak** | **SELECT** | **żaden** | patrz niżej |
+
+⚠️ **`radio_comments_view` omija RLS, jest nadany `anon` i nie filtruje niczego** —
+dociąga `full_name` i `avatar_url` z `athletes`. Zmierzone: `anon` czyta ten
+widok bez odmowy, choć tabelę źródłową `radio_comments` ma zablokowaną.
+
+⚠️ **Przekierowanie w `radio.html` tego NIE chroni.** Strona wymaga sesji
+(`radioInit()` bez sesji przenosi na `index.html`), ale klucz `anon` jest jawny
+w źródle każdej strony — liczy się GRANT, nie JavaScript. Dziś widok zwraca
+**0 wierszy, bo komentarzy jest zero**; ekspozycja jest więc mechanicznie realna,
+a co do danych pusta — otworzyłaby się przy pierwszym komentarzu.
+
+Rozstrzygnięcie: radio jest wyłącznie dla zalogowanych (żadnego wejścia
+z landingu; widok wołany tylko z `radio.html`, czyli zawsze jako
+`authenticated`), więc grant dla `anon` jest **pozostałością**.
+✅ Cofnięcie WYKONANE na produkcji 6.10.2026
+(`migrations/20260830_radio_comments_view_bez_anon.sql`, zmierzone: anon dostaje
+`42501`). Wiersz w tabeli wyżej opisuje stan sprzed tej daty; aktualny stan widoku —
+`radio_comments_view.txt` (anon: brak, authenticated: własny grant SELECT).
 
 ---
 
