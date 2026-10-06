@@ -59,8 +59,8 @@ test('B2) biegus.html: MOST.odbierz woła RPC, nie PATCH-uje i nie wstawia znacz
 test('A1) is_run_type: IMMUTABLE STRICT, ta sama lista co sb.js, suma_biegowa i pomiar ją wołają', () => {
   const m = bezKomentarzySql(czytaj('supabase/migrations/20261007_is_run_type_jedna_lista_w_bazie.sql'));
   assert.match(m, /create or replace function public\.is_run_type\(p_typ text\)/);
-  assert.match(m, /\nimmutable\n/);
-  assert.match(m, /\nstrict\n/);
+  assert.match(m, /\r?\nimmutable\r?\n/);   // \r? — git autocrlf przepisuje migracje na CRLF po commicie
+  assert.match(m, /\r?\nstrict\r?\n/);
   const lista = m.match(/is_run_type[\s\S]*?ARRAY\s*\[\s*((?:'[^']+'\s*,\s*)+'[^']+')\s*\]/);
   assert.ok(lista, 'ciało is_run_type nie ma listy w ARRAY[...] — bramka pythonowa przestanie ją widzieć');
   const zSql = new Set(lista[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1)));
