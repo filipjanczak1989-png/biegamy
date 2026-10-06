@@ -16,9 +16,13 @@ const dMin = (d: any) => { const t=String(d||'').trim(); if(!t) return 0; const 
 serve(async (req) => {
   try {
     // GUARD: cron musi niesc x-push-secret (ten sam handshake co send-push) — EF jest verify_jwt=OFF
-    const wantSecret = Deno.env.get("PUSH_HOOK_SECRET") || "";
+    // 06.10.2026 (paczka 1b): guard BEZWARUNKOWY, 1:1 jak w miesiac-cron/index.ts:20-24.
+    // Do tego dnia byl `if (wantSecret && …)` — przy pustym PUSH_HOOK_SECRET w env EF
+    // przepuszczal KAZDEGO. Brak sekretu ma byc odmowa, nie furtka (LEKCJE #2: bramka,
+    // ktora swieci na zielono, nie sprawdzajac niczego).
+    const wantSecret = Deno.env.get("PUSH_HOOK_SECRET");
     const gotSecret = req.headers.get("x-push-secret") || "";
-    if (wantSecret && gotSecret !== wantSecret) {
+    if (!wantSecret || gotSecret !== wantSecret) {
       return json({ ok: false, error: "unauthorized" }, 401);
     }
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

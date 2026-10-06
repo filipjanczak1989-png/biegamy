@@ -95,8 +95,11 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               athlete_id: a.id,
-              report_type: "weekly",
-              auto_send: true,  // automatycznie wyśle do zawodnika (visible_to_athlete=true)
+              /* 06.10.2026: generate-athlete-report NIE czyta `report_type` z body (destrukturyzuje,
+                 nigdy nie używa) ani `auto_send` (0 wystąpień). Okres bierze z `period_days`,
+                 domyślnie 28 — więc „weekly" wysyłany bez tego pola generował raport 28-dniowy
+                 z etykietą `monthly`. Pole nazwane tak, jak EF je czyta. */
+              period_days: 7,
             }),
           });
           
@@ -157,8 +160,7 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 athlete_id: a.id,
-                report_type: "monthly",
-                auto_send: true,
+                period_days: 28,   // jak wyżej: EF czyta period_days, nie report_type
               }),
             });
             

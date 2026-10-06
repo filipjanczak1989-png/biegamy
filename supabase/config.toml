@@ -1,0 +1,112 @@
+# supabase/config.toml — JEDYNE wersjonowane źródło `verify_jwt` dla Edge Functions.
+#
+# Do 06.10.2026 ten plik nie istniał: `verify_jwt` żyło wyłącznie w Dashboardzie, a jedyny
+# zapis stanu to tabela z 13.07 w `.security-audit/2026-07-13/diagnoza-push.md:17-20`
+# (po której część EF-ów zmieniła wartość — np. detect-moment). Skutek 06.10: `auto-reports-cron`
+# miał na bramce ON, choć job cron woła go wyłącznie z `x-push-secret`, bez JWT — i odbijał się
+# o bramkę ZANIM doszedł do kodu (patrz LEKCJE #20, objaw ostrzegawczy).
+#
+# ⚠️ `supabase functions deploy <nazwa>` czyta ten plik i USTAWIA verify_jwt na prod.
+#    Wartość tutaj jest intencją; stan prod po deployu = ta wartość. Zmiana wiersza = zmiana bramki.
+#
+# REGUŁA DOBORU (6.10.2026):
+#   true  — EF wołany WYŁĄCZNIE z przeglądarki z JWT sesji (bramka na brzegu + własna
+#           `wymagajUsera`/getUser w kodzie: dwie warstwy).
+#   false — EF wołany bez JWT usera: pg_cron / trigger pg_net (nagłówek `x-push-secret`),
+#           webhook obcej usługi (sekret w ciele), albo inny EF z kluczem serwisowym.
+#           Wtedy JEDYNĄ bramką jest własny guard EF — musi być ścisły (odrzucać przy pustym env).
+#
+# Tabela uzasadnień (kto woła, plik:linia) — w `.ai/zwiad-2026-10-06.md` i w komunikacie
+# paczki 1b. Tu tylko decyzja per EF, żeby plik był czytelny.
+
+project_id = "afqojgkaveykxbltxzwm"
+
+# ── front z JWT sesji → true ──────────────────────────────────────────────────
+[functions.approve-training-plan]
+verify_jwt = true        # trener.html:2300-2309, Bearer sesji; guard getUser
+
+[functions.delete-account]
+verify_jwt = true        # profil.html:1991 functions.invoke; guard getUser
+
+[functions.food-image-fetch]
+verify_jwt = true        # kalendarz.html:1493, nutrition.html:4528; wymagajUsera
+
+[functions.food-micronutrients]
+verify_jwt = true        # nutrition.html:6446; wymagajUsera
+
+[functions.food-recognize]
+verify_jwt = true        # nutrition.html:7792 (fallback na SB_KEY i tak 401 z getUser)
+
+[functions.food-search-off]
+verify_jwt = true        # nutrition.html:6197, :7330; wymagajUsera
+
+[functions.food-search-usda]
+verify_jwt = true        # nutrition.html:7335; wymagajUsera
+
+[functions.generate-coach-brief]
+verify_jwt = true        # trener.html:8475; guard getUser
+
+[functions.generate-recipe]
+verify_jwt = true        # nutrition.html:5441; wymagajUsera
+
+[functions.generate-training-plan]
+verify_jwt = true        # trener.html:1850,1866; guard getUser
+
+[functions.get-weather]
+verify_jwt = true        # kalendarz.html:3038, zawodnik.html:4304, EF→EF z JWT usera (generate-training-plan:2123)
+
+[functions.gif-search]
+verify_jwt = true        # trener.html:3874,5575, zawodnik.html:10054,12021; od 1b wymagajUsera
+
+[functions.intervals-activity-detail]
+verify_jwt = true        # sb.js:2923, zawodnik.html:7817; guard getUser
+
+[functions.intervals-hr-aggregate]
+verify_jwt = true        # sb.js:4250; guard getUser
+
+[functions.intervals-oauth]
+verify_jwt = true        # intervals-callback.html:110; guard getUser
+
+[functions.intervals-push]
+verify_jwt = true        # kalendarz.html:1984,2018, trener.html:2262; guard getUser
+
+[functions.intervals-sync]
+verify_jwt = true        # profil.html:1885, sb.js:2122; guard getUser
+
+[functions.ocr-training-screen]
+verify_jwt = true        # kalendarz.html:3751, zawodnik.html:2568; wymagajUsera
+
+[functions.send-report-email]
+verify_jwt = true        # trener.html:6307; guard getUser (auto-reports-cron go NIE woła)
+
+[functions.share-card]
+verify_jwt = true        # sb.js:6683; guard getUser przez anon-client. ⚠️ komentarz w EF (:2) twierdzi false — nieaktualny
+
+# ── front + inny EF z kluczem serwisowym → true (legacy service_role to ważny JWT,
+#    więc przechodzi przez bramkę; o odmowie decyduje własny getUser EF — patrz zwiad crona) ──
+[functions.generate-athlete-report]
+verify_jwt = true        # trener.html:1033,5895 Bearer sesji; auto-reports-cron:90,152 Bearer service_role
+
+# ── cron / trigger / webhook bez JWT usera → false ────────────────────────────
+[functions.auto-reports-cron]
+verify_jwt = false       # job pg_cron `auto-reports-hourly` (jobid 3) z x-push-secret, bez Authorization; guard ścisły
+                         # ⚠️ 06.10: na prod nadal ON (zmierzone). Wartość tu = intencja DO POTWIERDZENIA po wyniku
+                         #   SQL „C" (ai_reports po 24.06): false + deploy, albo kasacja EF. Nie deployować przed decyzją.
+
+[functions.detect-moment]
+verify_jwt = false       # trigger pg_net (schema/funkcje/trigger_detect_moment.sql:20-22): apikey + x-push-secret, ZERO Authorization
+
+[functions.miesiac-cron]
+verify_jwt = false       # pg_cron 'miesiac-karta' (migrations/20260807190000_suma_biegowa.sql:77-81): x-push-secret z Vault
+
+[functions.morning-brief-cron]
+verify_jwt = false       # cron poza repo, x-push-secret. ⚠️ guard WARUNKOWY (index.ts:19-21): przy pustym env EF jest otwarty — do zaostrzenia
+
+[functions.send-push]
+verify_jwt = false       # trigger pg_net (schema/funkcje/trigger_send_push.sql:11-13): apikey + x-push-secret; EF→EF approve-training-plan:263 Bearer service_role
+
+[functions.intervals-webhook]
+verify_jwt = false       # serwer intervals.icu, sekret w ciele (index.ts:84-87)
+
+# Skasowane 06.10.2026 (paczka 1b), nie wracają: generate-image (0 wołających, 401 z `_debug`
+# o sekrecie), hyper-processor (fragment bez Deno.serve, identyczny na prod, bliźniak intervals-push).

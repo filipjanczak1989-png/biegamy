@@ -54,8 +54,12 @@ Dwa przypadki złapane w praktyce:
 `ledger.js --zapisz` odmawia nadpisania raportu, w którym ktoś coś dopisał;
 skasowanie dopisków wymaga jawnego `--nadpisz`.
 
-⚠️ **Raporty trafiają do publicznego repo.** `.ai/` jest śledzone, a Pages
-serwuje pliki z kropką (odnotowuje to sam `.gitignore`: `/.gitignore → 200`).
+⚠️ **Raporty trafiają do publicznego repo.** `.ai/` jest śledzone na GitHubie,
+więc każdy może je przeczytać w repozytorium — **ale NIE przez Pages**:
+`deploy.yml` wyklucza `/.ai` (razem z `/tests`, `/tools`, `/docs`, `/supabase`,
+`/journal.txt`) z artefaktu i sprawdza po rsyncu, że żaden z nich tam nie trafił.
+(Do 6.10.2026 stało tu zdanie, że Pages serwuje `.ai/` — było prawdziwe przed
+wykluczeniem w `deploy.yml`, a po nim zestarzało się w nieprawdę, [[LEKCJE]] #12.)
 Dlatego `ledger.js` ma barierę PII, która **wstrzymuje cały raport** przy
 trafieniu na e-mail, UUID albo pełny adres.
 

@@ -1,5 +1,11 @@
 // Supabase Edge Function: gif-search
 // Giphy proxy z autoryzacją JWT i CORS dla biegamy.run + GH Pages.
+//
+// 06.10.2026 (paczka 1b): bramka „startsWith('bearer ')" zastąpiona `wymagajUsera` — stara
+// sprawdzała tylko KSZTAŁT nagłówka, nie token (`Bearer cokolwiek` przechodziło), a jedyną
+// realną bramką był verify_jwt w Dashboardzie, którego repo nie wersjonuje. Front (4 miejsca
+// w trener.html/zawodnik.html) od zawsze śle JWT sesji, więc dla ludzi bez zmian.
+import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
 const ALLOWED_ORIGINS = new Set([
   "https://biegamy.run",
@@ -49,8 +55,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const auth = req.headers.get("authorization") ?? "";
-  if (!auth.toLowerCase().startsWith("bearer ")) {
+  const user = await wymagajUsera(req);
+  if (!user) {
     return json({ error: "Unauthorized" }, 401, cors);
   }
 
