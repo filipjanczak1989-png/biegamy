@@ -88,10 +88,9 @@ verify_jwt = true        # sb.js:6683; guard getUser przez anon-client. ⚠️ k
 verify_jwt = true        # trener.html:1033,5895 Bearer sesji; auto-reports-cron:90,152 Bearer service_role
 
 # ── cron / trigger / webhook bez JWT usera → false ────────────────────────────
-[functions.auto-reports-cron]
-verify_jwt = false       # job pg_cron `auto-reports-hourly` (jobid 3) z x-push-secret, bez Authorization; guard ścisły
-                         # ⚠️ 06.10: na prod nadal ON (zmierzone). Wartość tu = intencja DO POTWIERDZENIA po wyniku
-                         #   SQL „C" (ai_reports po 24.06): false + deploy, albo kasacja EF. Nie deployować przed decyzją.
+# Skasowane 06.10.2026 (decyzja C), nie wraca: auto-reports-cron — 0 włączonych u 59 kont,
+# last_auto_weekly_at/monthly_at NULL u wszystkich; cron→generate-athlete-report słał klucz
+# serwisowy w getUser(), więc funkcja nigdy nie wyprodukowała raportu. Job `auto-reports-hourly` zdjęty.
 
 [functions.detect-moment]
 verify_jwt = false       # trigger pg_net (schema/funkcje/trigger_detect_moment.sql:20-22): apikey + x-push-secret, ZERO Authorization
