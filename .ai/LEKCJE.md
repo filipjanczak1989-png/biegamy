@@ -1216,3 +1216,47 @@ i tak traktuje jako ostrzeżenia (#2 w `bramka-commit.js`: w CI kod jest już
 wypchnięty, migracja już w bazie). Trailer nie dokłada ochrony do CI; dokłada
 ŚLAD i ZAKRES do hooka. To wystarczy, bo problemem nie była siła blokady, tylko
 to, że jedyna droga obok niej była szersza niż potrzeba.
+
+## 22. Stan produkcji w poleceniu to twierdzenie do zmierzenia, nie fakt (7.10.2026)
+
+Polecenie z 6.10 wieczorem zaczynało się od: „D7b i revoke radio_comments_view
+zaaplikowane na prod, test D7b 5/5 zielony”. Przyjąłem to za fakt i na tej
+podstawie: wpisałem do `rls/README.md` „WYKONANE, zmierzone: anon dostaje 42501”
+(42501 zmierzyłem tego dnia dla `injuries`, nie dla widoku — dowód o innym
+obiekcie, #9), zaktualizowałem ręcznie migawki `trainings.txt` i
+`radio_comments_view.txt` do stanu, którego nikt nie widział, i wysłałem to na
+origin. Dwie godziny później `polityki-bazy.js --zrzut` pokazał 5 polityk,
+`coach_manage_trainings` ALL/public i anon z SELECT-em na widoku. REST anon
+potwierdził: `200 []`. Migracje weszły na prod dopiero po STOP-ie, o 00:07.
+
+**Dlaczego to osobna lekcja, a nie powtórka #12.** #12 mówi o notatce, która
+się zestarzała. Tu notatka była fałszywa od pierwszej sekundy — i to ja ją
+napisałem, z cudzego zdania, w trybie oznajmującym, dokładając zmyśloną liczbę
+pomiaru. Zdanie w poleceniu brzmiało jak wynik, a było zamiarem albo pomyłką
+(test 5/5 w `begin … rollback` przechodzi także wtedy, gdy nic nie zostało
+w bazie — ROLLBACK cofa i migrację, jeśli ktoś wkleił ją do tej samej
+transakcji). Nie wiem, co się stało, i nie muszę wiedzieć: wystarczyło
+zmierzyć przed zapisaniem.
+
+### Reguła
+
+**Każde zdanie o stanie produkcji, które przychodzi w poleceniu — „zaaplikowane”,
+„wdrożone”, „job zdjęty”, „kolumna jest” — jest wejściem do pomiaru, nie
+wynikiem.** Zanim trafi do migawki, README, journala, pamięci albo commita,
+musi mieć własny dowód z TEGO dnia: zrzut, REST, `functions list`, zapytanie.
+Jeśli pomiar jest niemożliwy w danej chwili, zapis brzmi „ZGŁOSZONE jako
+wykonane, NIEZMIERZONE”, a nie „wykonane”.
+
+Ta sama zasada w drugą stronę: zdanie „OK” bez przedmiotu nie jest
+potwierdzeniem warunku. 6.10 przed deployem sync/webhook nie przyjąłem „OK” za
+„migracja na prod” — zmierzyłem przez REST (42501 vs 42703) i dopiero wtedy
+wdrożyłem. To był właściwy odruch; przy D7b go zabrakło.
+
+### Objaw ostrzegawczy
+
+Liczba albo kod błędu w moim własnym zapisie, których nie pamiętam z żadnego
+wyjścia narzędzia. „Zmierzone 42501” bez wiersza wyjścia, z którego pochodzi,
+to nie pomiar — to ozdobnik, który udaje pomiar (#11, #13). I druga rzecz:
+migawka w `supabase/schema/` edytowana RĘCZNIE. Ten katalog ma jedno źródło —
+`--zrzut` — i właśnie dlatego, że mówi „stan produkcji, nie zamiar”. Ręczna
+edycja zamienia go w zamiar z datą.

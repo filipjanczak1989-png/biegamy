@@ -65,7 +65,7 @@ fd275a3e4b5a8b4b  push_subscriptions
 ad573034b541d7e0  race_signups
 6c26bb1355f5e395  races
 ed17741edc677b1d  radio_comments
-1df74960be86545e  radio_comments_view
+56ec8cf16107edd7  radio_comments_view
 e843c41d474fbe2a  radio_likes
 90e64146f7a18d26  radio_playlist_tracks
 b63814e10f18603d  radio_playlists
@@ -81,5 +81,5 @@ ac0e662b4ad2da19  strava_activities
 6fb88780208f2e4e  training_logs
 f7552bc34998c9af  training_plan_workouts
 331b60d4586532b9  training_plans
-8be1fae9dd9b55cc  trainings
+c37c2cf5e9688e90  trainings
 5967ad4c525cb228  wellness

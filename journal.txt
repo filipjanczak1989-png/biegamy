@@ -229,11 +229,12 @@ ZROBIONE
    hyper-processor, generate-image, auto-reports-cron (10 EF; zostało 26).
    D7b (trainings: relacja trener↔zawodnik w WITH CHECK, rola authenticated,
    INSERT zawodnika tylko z coach_id NULL, trigger pilnuje coach_id zawsze) +
-   revoke radio_comments_view od anon — PRZYGOTOWANE. ⚠️ Zgłoszone jako
-   „wykonane, test 5/5", ale zrzut z prod (polityki-bazy --zrzut, 23:43) i REST
-   anon (widok: 200 zamiast 42501) mówią: NIE NA PRODUKCJI. trainings ma nadal
-   coach_manage_trainings ALL/public, trigger w wersji z 06.09. Do ponownego
-   wykonania (SQL D7b + revoke wydrukowane w rozmowie 6.10), potem --zrzut.
+   revoke radio_comments_view od anon — NA PRODUKCJI, ZMIERZONE 7.10 00:07
+   (polityki-bazy --zrzut: 8 polityk bez coach_manage_trainings, athlete_insert
+   z coach_id IS NULL; funkcje-bazy --zrzut: trigger w wersji D7b; REST anon na
+   widok: 42501). ⚠️ Historia: polecenie 6.10 mówiło „zaaplikowane, test 5/5",
+   zrzut o 23:43 pokazał stary stan (5 polityk, anon SELECT) — migracje weszły
+   dopiero po STOP-ie. Lekcja #22: stan prod w poleceniu = do zmierzenia.
    Bramka: trailer `Bramka-zatwierdzona: <powód>` w commit-msg zamiast
    --no-verify (LEKCJE #21); pierwszy prawdziwy test: commit 279ffb6/146ca32.
 

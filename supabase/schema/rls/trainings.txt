@@ -14,30 +14,46 @@ UPRAWNIENIA (tabelowe)
 UPRAWNIENIA (kolumnowe, ponad tabelowymi)
   — brak
 
-POLITYKI (5)
+POLITYKI (8)
 
-  [1] coach_manage_trainings
-      polecenie : ALL   rodzaj: PERMISSIVE
-      role      : public
-      warunek   : (coach_id = auth.uid())
-
-  [2] trainings_athlete_delete
+  [1] trainings_athlete_delete
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) AND (status = 'planned'::text))
 
-  [3] trainings_athlete_insert
+  [2] trainings_athlete_insert
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : authenticated
-      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+      przy zapisie: ((athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.user_id = auth.uid()))) AND (coach_id IS NULL))
 
-  [4] trainings_athlete_select
+  [3] trainings_athlete_select
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [5] trainings_athlete_update
+  [4] trainings_athlete_update
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
       przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
+
+  [5] trainings_coach_delete
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (coach_id = auth.uid())
+
+  [6] trainings_coach_insert
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: ((coach_id = auth.uid()) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid()))))
+
+  [7] trainings_coach_select
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (coach_id = auth.uid())
+
+  [8] trainings_coach_update
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (coach_id = auth.uid())
+      przy zapisie: ((coach_id = auth.uid()) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid()))))
