@@ -73,16 +73,25 @@ test('3b) wstawZOdzyskiem: pusta paczka = 0 wstawionych bez żadnego zapytania (
   assert.equal(zapytan, 0, 'pusta paczka nie może dotykać bazy');
 });
 
-test('4) MOST w biegus.html: wypłata tylko za logged_at > ostatni_odbior i tylko po przesunięciu znacznika', () => {
+test('4) MOST: wypłata tylko za logged_at > ostatni_odbior i tylko po przesunięciu znacznika — od 7.10 w RPC, nie w kliencie', () => {
+  /* 06.10 ten test pilnował kształtu w biegus.html (filtr logged_at=gt. + PATCH przed wypłatą).
+     07.10 (paczka 3B) liczenie i przesunięcie znacznika przeszły do RPC biegus_most_odbierz()
+     security definer — klient nie ma już UPDATE na ostatni_odbior. Ta sama własność, inne miejsce. */
+  const m = czytaj('supabase/migrations/20261007_biegus_most_odbior_przez_rpc.sql')
+    .split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+  assert.match(m, /and l\.logged_at > v_od/, 'RPC nie filtruje logów po znaczniku');
+  assert.match(m, /v_piora := floor\(v_km \* 5\);/, 'stawka 5 🪶/km zmieniona — sprawdź, czy świadomie');
+  const iUpd = m.indexOf('set ostatni_odbior = greatest(ostatni_odbior, now())');
+  const iRet = m.indexOf("return jsonb_build_object('piora'");
+  assert.ok(iUpd > 0 && iRet > iUpd, 'znacznik ma być przesunięty w tej samej transakcji, przed zwróceniem wyniku');
+  assert.match(m, /for update;/, 'bez blokady wiersza dwa równoległe wywołania wypłacą dwa razy');
   const b = czytaj('biegus.html');
-  const i = b.indexOf("'&athlete_id=eq.'+aid+'&logged_at=gt.'");
-  assert.ok(i > 0, 'MOST nie filtruje po logged_at > ostatni_odbior');
-  const blok = b.slice(i, i + 1200);
-  assert.match(blok, /const piora=Math\.floor\(km\*5\);/, 'stawka 5 🪶/km zmieniona — sprawdź, czy świadomie');
-  const iPatch = blok.indexOf('ostatni_odbior:new Date().toISOString()');
-  const iWyplata = blok.indexOf('Biegus.portfelPior+=piora');
-  assert.ok(iPatch > 0 && iWyplata > iPatch, 'wypłata piór PRZED przesunięciem znacznika — dubel przy błędzie PATCH');
-  assert.match(blok, /if\(!up\.ok\)return;/, 'brak odmowy wypłaty, gdy PATCH znacznika padł');
+  const i = b.indexOf('async odbierz(){'), k = b.indexOf('async tydzien(){', i);
+  const blok = b.slice(i, k);
+  assert.match(blok, /this\.rpc\(s\.tok,'biegus_most_odbierz'\)/, 'klient nie woła RPC');
+  assert.doesNotMatch(blok, /ostatni_odbior:new Date\(\)/, 'klient znów przesuwa znacznik sam');
+  const iRpc = blok.indexOf("'biegus_most_odbierz'"), iWyplata = blok.indexOf('Biegus.portfelPior+=piora');
+  assert.ok(iRpc > 0 && iWyplata > iRpc, 'wypłata przed odpowiedzią RPC');
 });
 
 test('sb.js ładuje się w piaskownicy i WATCH istnieje (test nie jest martwy)', () => {

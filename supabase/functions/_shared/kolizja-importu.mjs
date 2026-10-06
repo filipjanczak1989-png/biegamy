@@ -34,17 +34,18 @@
    próbka rozkładu różnic; policzyć przed utrwaleniem progu. */
 export const TOLERANCJA_DYSTANSU = 0.05;
 
-/* Kopia RUN_TYPES z sb.js — pilnuje jej tools/sprawdz-run-types.py.
-   Potrzebna, żeby nie scalić roweru z biegiem: 15.08 Damian miał ręcznie
-   „Regeneracja 24,89 km" i z zegarka „Rower 24,89 km" — identyczny dystans,
-   zupełnie inny trening. Sam dystans by je scalił. */
-export const RUN_TYPES = new Set([
-  'spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo',
-  'progresja', 'interwały', 'start', 'wyścig', 'regeneracja'
-]);
+/* 07.10.2026: lista biegowa NIE jest już kopią — idzie z reguly-treningow.mjs (jedyna kopia
+   po stronie Deno, porównywana z sb.js przez tools/bramka-reguly.js). Do tego dnia była tu
+   TRZECIA kopia, a komentarz twierdził „pilnuje jej tools/sprawdz-run-types.py" — nieprawda:
+   bramka pythonowa nie ma wzorca dla .mjs; jedynym strażnikiem był tests/kolizja-importu.test.js.
+   Po co lista: żeby nie scalić roweru z biegiem — 15.08 Damian miał ręcznie „Regeneracja
+   24,89 km" i z zegarka „Rower 24,89 km" — identyczny dystans, zupełnie inny trening.
+   Re-eksport zostaje dla zgodności (test i ewentualni importerzy). */
+import { RUN_TYPES, isRunType } from './reguly-treningow.mjs';
+export { RUN_TYPES };
 
 export function jestBiegiem(typ) {
-  return RUN_TYPES.has(String(typ || '').toLowerCase().trim());
+  return isRunType(typ);
 }
 
 /**

@@ -1,14 +1,22 @@
 #!/usr/bin/env python
-# BRAMKA RUN_TYPES: lista typow biegowych zyje w TRZECH zrodlach i musi byc identyczna.
+# BRAMKA RUN_TYPES: lista typow biegowych zyje w KILKU zrodlach i musi byc identyczna.
 # Uruchom po KAZDEJ zmianie listy:  python tools/sprawdz-run-types.py
 #
-# Trzy zrodla (stan od 2026-08-07):
-#   1. sb.js                                        -> klient: sumy km, isRunType
-#   2. js/silnik-momentu.js                         -> silnik + inline w EF detect-moment
-#   3. supabase/migrations/*_suma_biegowa.sql       -> funkcja SQL zasilajaca karty
+# Zrodla ZYWE (stan od 2026-10-07):
+#   1. sb.js                                        -> klient: sumy km, isRunType (SSOT przegladarki)
+#   2. js/silnik-momentu.js                         -> silnik + inline w EF detect-moment (build-ef.js)
+#   3. supabase/migrations/20261007_is_run_type_*   -> CIALO public.is_run_type(text): JEDNA lista
+#                                                      po stronie bazy; suma_biegowa i pomiary ja wolaja
+#   (+ supabase/functions/_shared/reguly-treningow.mjs — strona Deno; pilnuje jej
+#      tools/bramka-reguly.js, NIE ten skrypt, bo .mjs nie ma tu wzorca)
+# Zrodla HISTORYCZNE, nadal liczone (bramka czyta repo po tresci, nie stan prod):
+#   suma_biegowa (0807, lista inline — na prod zastapiona przez is_run_type od 7.10),
+#   community_km x5 (0812-0814; funkcja po sezonie, nikt jej nie wola od 21.09),
+#   tools/pomiar-odznaka-wyzwania.sql (pomiar jednorazowy, okno minelo).
 #
-# Trzecim zrodlem BYLA kopia w EF share-card; zastapila ja funkcja SQL, z ktorej korzystaja
-# teraz share-card i miesiac-cron. Bilans kopii wyszedl na zero, nie na plus.
+# Trzecim zrodlem BYLA kopia w EF share-card; zastapila ja funkcja SQL (0807), a te z kolei
+# is_run_type (1007). Kazde wywolanie `is_run_type(...)` to ZERO kopii — bramka go nie liczy
+# i nie musi.
 #
 # Dlaczego skrypt, a nie grep: `grep -c` liczy LINIE zawierajace slowo, wiec daje rozne
 # liczby dla roznych plikow i nie mowi nic o zawartosci listy. Ta bramka porownuje ZBIORY.
@@ -40,9 +48,11 @@ ZRODLA = [
 #
 # !! Przy SWIADOMYM dodaniu lub usunieciu zrodla te stala podnosi/obniza sie
 #    RECZNIE, w tym samym commicie co zmiana. Nowe pliki tylko ja podnosza.
-MIN_ZRODEL = 10  # stan na 18.08.2026: sb.js, silnik-momentu, suma_biegowa,
-                 # community_km, community_km_okno, cap_licznika, licznik_bez_cache,
-                 # licznik_bez_przyszlosci + DWA pomiary w tools/ (patrz niżej)
+MIN_ZRODEL = 10  # stan na 07.10.2026 (zmierzone tym skryptem): sb.js, silnik-momentu,
+                 # suma_biegowa (0807, inline), community_km x5 (0812-0814),
+                 # is_run_type (1007, CIALO funkcji) + pomiar-odznaka-wyzwania w tools/.
+                 # pomiar-tygodni-reakcji przeszedl 7.10 na is_run_type() i NIE jest juz kopia.
+                 # Pliki *WYCOFANIE* sa pomijane (odtwarzaja stary stan, nie sa zrodlem).
 # ── WYKRYWANIE ZRODEL SQL PO TRESCI, NIE PO NAZWIE PLIKU ────────────────────
 # Enumerowanie wzorcow nazw (*_suma_biegowa, *community_km, ...) nie zlapie pliku
 # nazwanego inaczej za miesiac, a objawem bedzie CICHY rozjazd: kilometry z nowego
@@ -63,12 +73,29 @@ WZOR_SQL = r"(?:in|=\s*ANY)\s*\(\s*(?:ARRAY)?\s*\[?\s*((?:'[^']+'\s*,\s*)+'[^']+
 #    populacje niz regula, ktora ma mierzyc, i pokazywalby falszywe "BRAK
 #    ODZNAKI" albo falszywe zero. Pomiar, ktory myli sie inaczej niz kod,
 #    jest gorszy niz brak pomiaru, bo wyglada na dowod (LEKCJE #2 i #11).
+# 07.10.2026: DRUGI wzorzec — CIALO funkcji public.is_run_type(text). Jej lista stoi w
+# `= ANY (ARRAY[...])`, wiec WZOR_SQL i tak by ja zlapal; wzorzec jest osobny, zeby plik
+# z definicja funkcji byl rozpoznany PO NAZWIE FUNKCJI, a nie przez przypadek ksztaltu —
+# gdy ktos zmieni cialo na `in (select ...)` albo tablice w zmiennej, bramka ma zglosic
+# "nie znaleziono listy" zamiast cicho przestac liczyc to zrodlo. Wywolania
+# `is_run_type(x)` w innych plikach to zero kopii i nie sa zrodlem.
+WZOR_FUNKCJI = r"function\s+public\.is_run_type\s*\([^)]*\)[\s\S]*?ARRAY\s*\[\s*((?:'[^']+'\s*,\s*)+'[^']+')\s*\]"
+
 SQL = []
 for f in sorted(glob.glob('supabase/migrations/*.sql') + glob.glob('tools/*.sql')):
     try:
         tresc = io.open(f, encoding='utf-8').read()
     except OSError:
         continue
+    if 'WYCOFANIE' in f:
+        continue   # wycofania odtwarzaja STARY stan (lista inline) — to nie zrodlo, to kopia zapasowa
+    mf = re.search(WZOR_FUNKCJI, tresc, re.S | re.I)
+    if mf:
+        elementy = [x.lower() for x in re.findall(r"'([^']+)'", mf.group(1))]
+        if sum(1 for s_ in SYGNATURA if s_ in elementy) >= MIN_TRAFIEN:
+            SQL.append(f)
+            ZRODLA.append((f, WZOR_FUNKCJI))
+            continue
     for m in re.finditer(WZOR_SQL, tresc, re.S | re.I):
         elementy = [x.lower() for x in re.findall(r"'([^']+)'", m.group(1))]
         if sum(1 for s_ in SYGNATURA if s_ in elementy) >= MIN_TRAFIEN:

@@ -2401,25 +2401,16 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     const s=this.sesja();if(!s)return;
     const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
     if(!at.length)return;const aid=at[0].id;this.aid=aid;
-    const m=await this.czytaj(s.tok,'biegus_most?select=ostatni_odbior&athlete_id=eq.'+aid);
-    let od;
-    if(!m.length){                              // pierwszy raz: tydzien wstecz na dzien dobry
-      od=new Date(Date.now()-7*864e5).toISOString();
-      const ins=await fetch(this.URL+'/rest/v1/biegus_most',{method:'POST',
-        headers:this.naglowki(s.tok,true),
-        body:JSON.stringify({athlete_id:aid,ostatni_odbior:od})});
-      if(!ins.ok)return;}
-    else od=m[0].ostatni_odbior;
-    const logs=await this.czytaj(s.tok,'training_logs?select=distance_km,training_type,logged_at'+   /* M1 DARY */
-      '&athlete_id=eq.'+aid+'&logged_at=gt.'+encodeURIComponent(od)+
-      '&training_type=not.like.__badge__*');
-    const km=logs.reduce((a,l)=>a+(+l.distance_km||0),0);
-    const piora=Math.floor(km*5);
+    /* 07.10.2026: odbior przez RPC biegus_most_odbierz() (security definer) — serwer liczy pióra,
+       przesuwa znacznik TYLKO do przodu i oddaje logi do darów/pieczęci w JEDNEJ transakcji.
+       Do tego dnia klient sam czytał znacznik, liczył i PATCH-ował ostatni_odbior — a kolumna
+       miała GRANT UPDATE dla authenticated, więc cofnięcie znacznika przez REST = ponowna wypłata.
+       Semantyka bez zmian: piora<1 → znacznik nie rusza, nic nie wypłacamy; logi i tak wracają. */
+    const w=await this.rpc(s.tok,'biegus_most_odbierz');
+    const logs=(w&&Array.isArray(w.logi))?w.logi:[];
+    const km=+(w&&w.km)||0;
+    const piora=Math.floor(+(w&&w.piora)||0);
     if(piora<1)return;
-    const up=await fetch(this.URL+'/rest/v1/biegus_most?athlete_id=eq.'+aid,{method:'PATCH',
-      headers:this.naglowki(s.tok,true),
-      body:JSON.stringify({ostatni_odbior:new Date().toISOString()})});
-    if(!up.ok)return;                           // bez przesuniecia znacznika NIE wyplacamy (anty-dubel)
     Biegus.portfelPior+=piora;
     const naj=logs.reduce((a,l)=>(+(l&&l.distance_km)||0)>(+(a&&a.distance_km)||0)?l:a,null);   /* PRZEMIANA E4: swiadek */
     Biegus.trening(Math.min(km,20),naj);        // karmienie z capem zdrowia (najedzenie/wiez/bonus)

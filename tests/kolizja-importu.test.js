@@ -128,12 +128,20 @@ test('BARIERY, bez których reguła szkodzi', async (t) => {
   });
 });
 
-test('lista typów biegowych zgadza się z sb.js', async () => {
+test('lista typów biegowych zgadza się z sb.js (przez re-eksport z reguly-treningow.mjs, nie własną kopię)', async () => {
   const fs = require('fs');
-  const sb = fs.readFileSync(require('path').join(__dirname, '..', 'sb.js'), 'utf8');
+  const path = require('path');
+  const sb = fs.readFileSync(path.join(__dirname, '..', 'sb.js'), 'utf8');
   const m = sb.match(/window\.RUN_TYPES = new Set\(\[([\s\S]*?)\]\)/);
   assert.ok(m, 'nie znalazłem RUN_TYPES w sb.js');
   const zSb = new Set((m[1].match(/'([^']+)'/g) || []).map(x => x.slice(1, -1)));
   assert.deepStrictEqual([...M.RUN_TYPES].sort(), [...zSb].sort(),
-    'kopia RUN_TYPES w kolizja-importu.mjs rozjechała się z sb.js');
+    'RUN_TYPES widziane przez kolizja-importu.mjs rozjechało się z sb.js');
+  /* 07.10.2026: trzecia kopia listy w tym module USUNIĘTA — ma importować z reguly-treningow.mjs.
+     Test tekstowy, bo re-eksport nie odróżnia „importuje" od „ma własną identyczną kopię". */
+  const src = fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/_shared/kolizja-importu.mjs'), 'utf8');
+  assert.match(src, /import \{ RUN_TYPES, isRunType \} from '\.\/reguly-treningow\.mjs'/, 'kolizja-importu.mjs nie importuje listy');
+  assert.doesNotMatch(src, /export const RUN_TYPES\s*=\s*new Set/, 'własna kopia RUN_TYPES wróciła do kolizja-importu.mjs');
+  const R = await import('../supabase/functions/_shared/reguly-treningow.mjs');
+  assert.strictEqual(M.RUN_TYPES, R.RUN_TYPES, 're-eksport ma być TYM SAMYM obiektem, nie kopią');
 });

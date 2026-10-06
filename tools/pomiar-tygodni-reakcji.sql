@@ -11,9 +11,10 @@
 --    warunku serie sięgały w PRZYSZŁOŚĆ (zaplanowane tygodnie ze stosunkiem 0)
 --    i zaniżały wszystko.
 --
--- ⚠️ Lista typów to kopia RUN_TYPES z sb.js. Nowy pill biegowy → dopisać też
---    tutaj, inaczej jego kilometry znikną z wykonania i pomiar zacznie
---    pokazywać niedowykonanie, którego nie ma.
+-- 07.10.2026: lista typów NIE jest już kopią — pomiar woła public.is_run_type()
+--    (migracja 20261007_is_run_type_jedna_lista_w_bazie.sql), tę samą funkcję,
+--    którą czyta suma_biegowa. Pomiar liczy więc dokładnie tę populację, którą
+--    liczy produkcja. ⚠️ Wymaga wykonanej migracji na bazie, na której się odpala.
 
 with tyg as (
   select p.athlete_id,
@@ -30,9 +31,7 @@ zrob as (
          date_trunc('week', l.logged_at)::date as tydz,
          sum(l.distance_km) as km
     from public.training_logs l
-   where lower(trim(l.training_type)) in
-         ('spokojny','bieg spokojny','wybieganie','długi','tempo',
-          'progresja','interwały','start','wyścig','regeneracja')
+   where public.is_run_type(l.training_type)
      and l.distance_km > 0
    group by 1, 2
 )

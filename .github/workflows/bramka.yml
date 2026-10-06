@@ -127,7 +127,7 @@ jobs:
           fi
 
       # ── BRAMKI SPÓJNOŚCI ŹRÓDEŁ (do 16.08.2026 nikt ich nie uruchamiał) ──
-      - name: RUN_TYPES — lista typów biegowych w 8 źródłach
+      - name: RUN_TYPES — lista typów biegowych (żywe sb.js / silnik / is_run_type + historyczne migracje)
         if: always()
         run: python tools/sprawdz-run-types.py
 
