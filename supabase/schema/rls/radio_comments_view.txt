@@ -1,13 +1,18 @@
 MIGAWKA STANU DOSTĘPU — public.radio_comments_view  (WIDOK)
 ⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
    Patrz README.md w tym katalogu.
+⚠️ Zaktualizowane RĘCZNIE 06.10.2026 po wykonaniu na prod migracji
+   20260830_radio_comments_view_bez_anon.sql. SUMY.txt NIE przeliczone — następny
+   `node tools/polityki-bazy.js --zrzut` nadpisze ten plik stanem z bazy.
 
 RLS            : WIDOK NIE MA RLS
 security_invoker: NIE — czyta uprawnieniami WŁAŚCICIELA, RLS tabel źródłowych JEST OMIJANY
 
 UPRAWNIENIA (tabelowe)
-  anon           : REFERENCES, SELECT, TRIGGER, TRUNCATE
-  authenticated  : REFERENCES, SELECT, TRIGGER, TRUNCATE
+  anon           : — brak   (do 06.10.2026: REFERENCES, SELECT, TRIGGER, TRUNCATE)
+  authenticated  : REFERENCES, SELECT, TRIGGER, TRUNCATE   (grant WŁASNY, nie dziedziczony —
+                   dlatego revoke dla anon niczego nie zepsuł; jedyny czytelnik to
+                   radio.html:414 przez klienta sesji)
   postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
   service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
 
