@@ -34,7 +34,6 @@ biegamy.run/
 ├── odznaki.html
 ├── wyzwania.html
 ├── races.html
-├── strava-callback.html
 ├── o-nas.html
 ├── prs.html
 ├── terms.html
@@ -151,9 +150,6 @@ Jeśli nie chcesz tych skrótów, usuń sekcję `"shortcuts"` z manifest.json.
 
 ### "Auth nie działa offline"
 - To celowe — auth wymaga sieci. Bez tego SW chciałby cache'ować login token, co jest niebezpieczne.
-
-### "Strava callback nie działa po dodaniu PWA"
-- `start_url: /zawodnik.html` w manifest może niepoprawnie redirektować strava-callback. Jeśli zauważysz problem — zmień `start_url` na `/`.
 
 ## TODO opcjonalne (po wdrożeniu)
 

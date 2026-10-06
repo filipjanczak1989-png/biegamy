@@ -90,9 +90,10 @@ jobs:
             --exclude '/docs' \
             --exclude '/.ai' \
             --exclude '/supabase' \
+            --exclude '/journal.txt' \
             ./ /tmp/site/
           echo "Wdrazane: $(du -sh /tmp/site | cut -f1)"
-          for k in tests tools docs .ai supabase; do
+          for k in tests tools docs .ai supabase journal.txt; do
             test ! -e "/tmp/site/$k" || { echo "BLAD: $k trafil do artefaktu"; exit 1; }
           done
           test -f /tmp/site/CNAME || { echo "BLAD: brak CNAME — domena wlasna padnie"; exit 1; }

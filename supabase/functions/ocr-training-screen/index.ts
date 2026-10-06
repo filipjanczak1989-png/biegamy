@@ -3,6 +3,7 @@
 // Model: Haiku 4.5. v6: prose-tolerant JSON parse + graceful 200. v7: cross-training auto-tag.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const MODEL = "claude-haiku-4-5-20251001";
@@ -104,6 +105,15 @@ LUB: { "ok": false, "error": "no_training_data" }`;
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // BRAMKA (06.10.2026): do tego dnia EF nie sprawdzał nikogo — każdy z adresem
+  // wysyłał obrazy do Anthropic na nasz rachunek. Front (zawodnik/kalendarz) od zawsze
+  // śle JWT sesji, więc dla ludzi nic się nie zmienia.
+  const user = await wymagajUsera(req);
+  if (!user) {
+    return new Response(JSON.stringify({ ok: false, error: "unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {

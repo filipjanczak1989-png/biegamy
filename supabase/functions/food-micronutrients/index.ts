@@ -7,6 +7,7 @@
 // ════════════════════════════════════════════════════════════════════
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -62,6 +63,15 @@ Salmon raw → vitamins.D: 11, B12: 3.2, B3: 8; minerals.Se: 36, P: 240`;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // BRAMKA (06.10.2026): EF pisze do food_database przez service_role i woła Anthropic —
+  // do tego dnia bez sprawdzenia, kto woła. nutrition.html śle JWT sesji.
+  const user = await wymagajUsera(req);
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   try {

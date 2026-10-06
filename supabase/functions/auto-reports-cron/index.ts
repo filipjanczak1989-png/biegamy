@@ -20,9 +20,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const PUSH_HOOK_SECRET = Deno.env.get("PUSH_HOOK_SECRET");
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // GUARD (06.10.2026): cron musi nieść x-push-secret — ten sam handshake co miesiac-cron,
+  // morning-brief-cron i detect-moment (skopiowany 1:1 z miesiac-cron/index.ts:20-24).
+  // Do tego dnia EF nie miał ŻADNEJ bramki, a wg tabeli z 13.07 chodził z verify_jwt=OFF,
+  // czyli każdy z internetu mógł odpalić generowanie raportów AI dla wszystkich.
+  // ⚠️ Job, który go woła, musi od teraz wysyłać nagłówek — wzorzec w migracji
+  // 20260807190000_suma_biegowa.sql (cron.schedule 'miesiac-karta', nagłówek z vault).
+  const gotSecret = req.headers.get("x-push-secret") || "";
+  if (!PUSH_HOOK_SECRET || gotSecret !== PUSH_HOOK_SECRET) {
+    return new Response("forbidden", { status: 401 });
   }
 
   try {

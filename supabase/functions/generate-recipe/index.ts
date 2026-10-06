@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -44,16 +45,11 @@ function jsonResponse(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
-function decodeJwtSub(req: Request): string | null {
-  try {
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    let p = token.split(".")[1];
-    if (!p) return null;
-    p = p.replace(/-/g, "+").replace(/_/g, "/");
-    while (p.length % 4) p += "=";
-    return JSON.parse(atob(p)).sub || null;
-  } catch { return null; }
-}
+/* 06.10.2026: tu stała `decodeJwtSub` — brała `sub` z payloadu JWT BEZ sprawdzenia podpisu,
+   czyli każdy mógł podać dowolne `sub` i (a) obejść limit dzienny liczony po athlete_id,
+   (b) przypisać wpis w ai_usage_log komuś innemu. Do tego cache-hit zwracał przepis PRZED
+   jakimkolwiek sprawdzeniem usera. Zastąpione `wymagajUsera` (getUser przez GoTrue)
+   na samym wejściu — patrz ../_shared/wymagaj-usera.mjs. */
 
 const SYSTEM_PROMPT = `Jesteś dietetykiem sportowym tworzącym przepisy dla biegaczy. Na podstawie kontekstu wygeneruj JEDEN przepis.
 
@@ -96,6 +92,10 @@ Jeśli NIE: {"ok":false,"reason":"..."}`;
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // BRAMKA przed wszystkim — także przed cache-hitem, który do 06.10 szedł bez usera.
+  const user = await wymagajUsera(req);
+  if (!user) return jsonResponse({ ok: false, error: "unauthorized" }, 401);
+
   try {
     const body = await req.json().catch(() => ({}));
     const ctx = body.context || {};
@@ -113,7 +113,7 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const userId = decodeJwtSub(req);
+    const userId = user.id;   // zweryfikowany przez GoTrue, nie z payloadu
 
     // ── CACHE-FIRST (tylko GAP) ──
     if (!isIngredientsMode) {
@@ -137,8 +137,7 @@ serve(async (req) => {
       }
     }
 
-    // ── RATE LIMIT (oba tryby) ──
-    if (!userId) return jsonResponse({ ok: false, error: "no_user" }, 200);
+    // ── RATE LIMIT (oba tryby) ── (`no_user` nieosiągalne od bramki na wejściu — usunięte)
     try {
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { count } = await supabase
