@@ -1,11 +1,6 @@
 MIGAWKA STANU DOSTĘPU — public.trainings
 ⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
    Patrz README.md w tym katalogu.
-⚠️ Zaktualizowane RĘCZNIE 06.10.2026 po wykonaniu na prod migracji
-   20261006_d7b_trainings_coach_relacja_i_coach_id_zawodnika.sql (test
-   tools/test-trainings-coach-relacja.sql: 5/5 zielone). SUMY.txt NIE przeliczone —
-   następny `node tools/polityki-bazy.js --zrzut` nadpisze ten plik stanem z bazy
-   i to on jest rozstrzygający.
 
 RLS            : WŁĄCZONE
 FORCE RLS      : nie
@@ -19,60 +14,30 @@ UPRAWNIENIA (tabelowe)
 UPRAWNIENIA (kolumnowe, ponad tabelowymi)
   — brak
 
-POLITYKI (8)
+POLITYKI (5)
 
-  [1] trainings_coach_select
-      polecenie : SELECT   rodzaj: PERMISSIVE
-      role      : authenticated
+  [1] coach_manage_trainings
+      polecenie : ALL   rodzaj: PERMISSIVE
+      role      : public
       warunek   : (coach_id = auth.uid())
 
-  [2] trainings_coach_insert
-      polecenie : INSERT   rodzaj: PERMISSIVE
-      role      : authenticated
-      przy zapisie: ((coach_id = auth.uid()) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid()))))
-
-  [3] trainings_coach_update
-      polecenie : UPDATE   rodzaj: PERMISSIVE
-      role      : authenticated
-      warunek   : (coach_id = auth.uid())
-      przy zapisie: ((coach_id = auth.uid()) AND (athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.coach_id = auth.uid()))))
-
-  [4] trainings_coach_delete
-      polecenie : DELETE   rodzaj: PERMISSIVE
-      role      : authenticated
-      warunek   : (coach_id = auth.uid())
-
-  [5] trainings_athlete_delete
+  [2] trainings_athlete_delete
       polecenie : DELETE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : ((athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid()))) AND (status = 'planned'::text))
 
-  [6] trainings_athlete_insert
+  [3] trainings_athlete_insert
       polecenie : INSERT   rodzaj: PERMISSIVE
       role      : authenticated
-      przy zapisie: ((athlete_id IN ( SELECT a.id FROM athletes a WHERE (a.user_id = auth.uid()))) AND (coach_id IS NULL))
+      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [7] trainings_athlete_select
+  [4] trainings_athlete_select
       polecenie : SELECT   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
 
-  [8] trainings_athlete_update
+  [5] trainings_athlete_update
       polecenie : UPDATE   rodzaj: PERMISSIVE
       role      : authenticated
       warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
       przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.user_id = auth.uid())))
-
-TRIGGER (uzupełnia RLS, bo RLS nie widzi OLD)
-  trg_trainings_guard_coach_plan — BEFORE UPDATE, funkcja trainings_guard_coach_plan()
-  (definicja: supabase/schema/funkcje/trainings_guard_coach_plan.sql — do odświeżenia
-  zrzutem, bo 06.10 zmieniona: coach_id może zmienić WYŁĄCZNIE trener tego wiersza,
-  także gdy old.coach_id IS NULL; na wierszu trenera blokuje ponadto athlete_id, date,
-  type, description, steps, steps_version, exercise_ref).
-
-HISTORIA
-  do 06.10.2026 : coach_manage_trainings — ALL, rola public, warunek (coach_id = auth.uid()),
-                  bez WITH CHECK (Postgres brał USING jako warunek zapisu);
-                  trainings_athlete_insert bez warunku na coach_id.
-  06.10.2026    : D7b — relacja athletes.coach_id w zapisie trenera, rola authenticated,
-                  INSERT zawodnika tylko z coach_id NULL, trigger pilnuje coach_id zawsze.

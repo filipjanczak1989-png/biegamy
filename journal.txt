@@ -212,3 +212,72 @@ OTWARTE
   Jak dalej 401 → pull logów EF.
 - Stary komentarz w sync „NAZWY PÓL = ZAŁOŻENIA (klasa signed_at)" — pola
   activities potwierdzić realnym curlem przy pierwszym udanym syncu.
+
+
+================================================================================
+2026-10-06 — sesja (Filip + Claude)  [BEZPIECZEŃSTWO EF + NAPRAWA DANYCH + KASACJE]
+================================================================================
+
+ZROBIONE
+--------
+1) Paczka 1/1b (8189824, 955fdfa): _shared/wymagaj-usera.mjs jako JEDYNA bramka
+   usera dla EF z frontu (6 EF: ocr-training-screen, food-micronutrients,
+   generate-recipe, food-image-fetch, food-search-off, food-search-usda; gif-search
+   w 1b). config.toml = SSOT verify_jwt (26 EF, sonda 26/26 zgodnych z prod).
+   Skasowane z repo I Supabase: strava-callback, smooth-task, strava-sync,
+   strava-webhook, send-welcome-email, backfill-thumbnails, parse-activity,
+   hyper-processor, generate-image, auto-reports-cron (10 EF; zostało 26).
+   D7b (trainings: relacja trener↔zawodnik w WITH CHECK, rola authenticated,
+   INSERT zawodnika tylko z coach_id NULL, trigger pilnuje coach_id zawsze) +
+   revoke radio_comments_view od anon — PRZYGOTOWANE. ⚠️ Zgłoszone jako
+   „wykonane, test 5/5", ale zrzut z prod (polityki-bazy --zrzut, 23:43) i REST
+   anon (widok: 200 zamiast 42501) mówią: NIE NA PRODUKCJI. trainings ma nadal
+   coach_manage_trainings ALL/public, trigger w wersji z 06.09. Do ponownego
+   wykonania (SQL D7b + revoke wydrukowane w rozmowie 6.10), potem --zrzut.
+   Bramka: trailer `Bramka-zatwierdzona: <powód>` w commit-msg zamiast
+   --no-verify (LEKCJE #21); pierwszy prawdziwy test: commit 279ffb6/146ca32.
+
+2) Paczka 2 (146ca32): approve-training-plan overwrite kasuje TYLKO planned,
+   dzień z done/missed = skip (pominiete_wykonane, prompt trenera pokazuje
+   statusy); _shared/typ-aktywnosci.mjs = jedna mapa typów intervals (webhook od
+   27.07 nie miał ACT_MAP → każdy nie-bieg jako Zastępczy); training_logs.
+   external_type (migracja NA PROD); _shared/domknij-plan.mjs — import z
+   intervals domyka plan jak saveLog (dzień w Europe/Warsaw!, pierwsza wersja
+   liczyła w UTC — złapane przez bramkę Filipa); plan_source='coach' w 6
+   INSERT-ach; markDone usunięte (martwe od 3803ce8, 6.05). Deploy
+   approve-training-plan v41, intervals-webhook v23, intervals-sync v35 (razem ze
+   zmianą 19.08 wstawZOdzyskiem).
+
+NAPRAWA DANYCH 6.10 (SQL Editor, Filip)
+---------------------------------------
+- 376 przeszłych planów planned→done: pary jednoznaczne plan↔bieg tego samego
+  dnia (Europe/Warsaw), oba typy biegowe. 77 niejednoznacznych (2+ logi albo
+  2+ plany tego dnia) zostawionych ŚWIADOMIE — zgadywanie gorsze niż pustka.
+  Źródła par przed naprawą: intervals 478, manual 56, ocr 4 → potwierdza, że
+  główne źródło wiszących planów to IMPORT, nie ręczny zapis (stąd domknij-plan).
+- 158 testowych logów intervals usuniętych z konta biegamy.run@gmail.com
+  (smoke sync 6.10 po deployu intervals-sync v35).
+- Overwrite w approve-training-plan: 9 zatwierdzeń u 8 zawodników miało
+  wykonane dni w zakresie; training_logs NIETKNIĘTE (FK on delete set null),
+  część tych dni domknięta naprawą 376. Ile wierszy done przepadło przed 6.10 —
+  NIEZNANE (EF nie logował conflict_resolution).
+- auto-reports-cron skasowany (decyzja C: 0 włączonych u 59 kont,
+  last_auto_* NULL u wszystkich; łańcuch cron→generate-athlete-report martwy
+  od 24.06, bo getUser() nie przyjmuje klucza serwisowego). Job pg_cron
+  auto-reports-hourly zdjęty. Panel „Auto-raporty" w trener.html usunięty.
+  Kolumny athletes.auto_* ZOSTAJĄ (zero danych; drop = osobna decyzja).
+
+OTWARTE
+-------
+- Paczka 3: zawodnik c0486f28 ma 7.09 TRZY logi Zastępczy tego samego dnia —
+  sprawdzić, czy to duplikaty importu (external_id? created_at w paczce?).
+- Historyczne 'Zastępczy' z webhooka (przed external_type) — naprawa danych
+  tylko tam, gdzie `comment` z intervals rozstrzyga typ; reszta NIEODTWARZALNA.
+- Backlog paczki 2 w .ai/zwiad-2026-10-06.md (P2-2 plan_source zrobione,
+  P2-3/P2-4 skasowane, P2-5 rozstrzygnięte kasacją).
+
+NOTATKI DOSTĘPU
+---------------
+- verify_jwt: sonda „POST bez nagłówków" — UNAUTHORIZED_NO_AUTH_HEADER z bramki
+  = ON, odpowiedź z kodu EF = OFF. Deploy z config.toml USTAWIA wartość na prod.
+- Kolumna istnieje na prod? REST anon: 42501 = jest (brak grantu), 42703 = nie ma.

@@ -100,10 +100,13 @@ a co do danych pusta — otworzyłaby się przy pierwszym komentarzu.
 Rozstrzygnięcie: radio jest wyłącznie dla zalogowanych (żadnego wejścia
 z landingu; widok wołany tylko z `radio.html`, czyli zawsze jako
 `authenticated`), więc grant dla `anon` jest **pozostałością**.
-✅ Cofnięcie WYKONANE na produkcji 6.10.2026
-(`migrations/20260830_radio_comments_view_bez_anon.sql`, zmierzone: anon dostaje
-`42501`). Wiersz w tabeli wyżej opisuje stan sprzed tej daty; aktualny stan widoku —
-`radio_comments_view.txt` (anon: brak, authenticated: własny grant SELECT).
+⚠️ Cofnięcie PRZYGOTOWANE, a wg zrzutu z 6.10.2026 23:43 nadal NIEWYKONANE:
+`migrations/20260830_radio_comments_view_bez_anon.sql`. Zmierzone dwiema drogami tego
+wieczoru: `polityki-bazy.js --zrzut` (anon ma SELECT) i REST anon na widok (`200 []`,
+a nie `42501`). Wcześniejszy wpis „WYKONANE, zmierzone 42501" był BŁĘDEM pomiaru —
+42501 dotyczyło tabeli `injuries`, nie widoku (LEKCJE #9: dowód o innym obiekcie).
+Do czasu wykonania prawdą pozostaje wiersz w tabeli wyżej. `authenticated` ma własny
+grant SELECT, więc revoke dla anon nie zepsuje `radio.html`.
 
 ---
 
