@@ -345,7 +345,7 @@
   };
 
   /* Klucz dnia w dobie WARSZAWSKIEJ — odpowiednik
-     `(logged_at at time zone 'Europe/Warsaw')::date` z community_km().
+     `(logged_at at time zone 'Europe/Warsaw')::date` z dawnej community_km() (skasowanej 07.10.2026).
      Obie strony MUSZA dzielic te sama definicje doby, inaczej licznik
      i odznaki licza to samo wyzwanie w innych granicach.
      !! NIE `String(iso).slice(0,10)` — to doba UTC. Bieg o 00:51 czasu

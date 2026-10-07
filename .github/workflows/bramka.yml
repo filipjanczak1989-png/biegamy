@@ -131,6 +131,3 @@ jobs:
         if: always()
         run: python tools/sprawdz-run-types.py
 
-      - name: Stałe wyzwania #100kmDlaKasi w 3 źródłach
-        if: always()
-        run: python tools/sprawdz-spol-stale.py

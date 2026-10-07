@@ -48,11 +48,18 @@ ZRODLA = [
 #
 # !! Przy SWIADOMYM dodaniu lub usunieciu zrodla te stala podnosi/obniza sie
 #    RECZNIE, w tym samym commicie co zmiana. Nowe pliki tylko ja podnosza.
-MIN_ZRODEL = 10  # stan na 07.10.2026 (zmierzone tym skryptem): sb.js, silnik-momentu,
-                 # suma_biegowa (0807, inline), community_km x5 (0812-0814),
-                 # is_run_type (1007, CIALO funkcji) + pomiar-odznaka-wyzwania w tools/.
-                 # pomiar-tygodni-reakcji przeszedl 7.10 na is_run_type() i NIE jest juz kopia.
+MIN_ZRODEL = 5   # stan na 07.10.2026 wieczor (zmierzone tym skryptem): sb.js, silnik-momentu,
+                 # suma_biegowa (0807, inline), is_run_type (1007, CIALO funkcji)
+                 # + pomiar-odznaka-wyzwania w tools/.
+                 # SWIADOME OBNIZENIE 10 -> 5: piec migracji definiujacych community_km (0812-0814)
+                 # przestalo byc zrodlem — funkcja skasowana (20261007_kasacja_community_km.sql),
+                 # pliki zostaja w repo jako historia i sa POMIJANE po tresci (WZOR_MARTWEJ ponizej),
+                 # nie po nazwie. pomiar-tygodni-reakcji przeszedl 7.10 na is_run_type() i NIE jest kopia.
                  # Pliki *WYCOFANIE* sa pomijane (odtwarzaja stary stan, nie sa zrodlem).
+# Migracje DEFINIUJACE funkcje, ktora juz nie istnieje w bazie — historia, nie zrodlo.
+# Wykrywanie po TRESCI (definicja), zeby plik o innej nazwie tez wypadl; komentarze
+# wspominajace nazwe NIE pasuja (wzorzec wymaga `create [or replace] function`).
+WZOR_MARTWEJ = r"create\s+(?:or\s+replace\s+)?function\s+community_km"
 # ── WYKRYWANIE ZRODEL SQL PO TRESCI, NIE PO NAZWIE PLIKU ────────────────────
 # Enumerowanie wzorcow nazw (*_suma_biegowa, *community_km, ...) nie zlapie pliku
 # nazwanego inaczej za miesiac, a objawem bedzie CICHY rozjazd: kilometry z nowego
@@ -89,6 +96,8 @@ for f in sorted(glob.glob('supabase/migrations/*.sql') + glob.glob('tools/*.sql'
         continue
     if 'WYCOFANIE' in f:
         continue   # wycofania odtwarzaja STARY stan (lista inline) — to nie zrodlo, to kopia zapasowa
+    if re.search(WZOR_MARTWEJ, tresc, re.I):
+        continue   # definicja community_km — funkcja skasowana 07.10.2026, plik to historia
     mf = re.search(WZOR_FUNKCJI, tresc, re.S | re.I)
     if mf:
         elementy = [x.lower() for x in re.findall(r"'([^']+)'", mf.group(1))]

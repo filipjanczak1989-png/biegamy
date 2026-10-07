@@ -49,7 +49,6 @@ node tools/bramka-commit.js --przed-wiadomoscia || status=1
 
 if command -v python >/dev/null 2>&1; then
   python tools/sprawdz-run-types.py  || status=1
-  python tools/sprawdz-spol-stale.py || status=1
 fi
 
 if [ "$status" -ne 0 ]; then

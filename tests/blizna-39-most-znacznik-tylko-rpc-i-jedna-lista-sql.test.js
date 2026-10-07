@@ -59,7 +59,8 @@ test('A2) bramka pythonowa rozpoznaje ciało is_run_type po NAZWIE funkcji i pom
   const py = czytaj('tools/sprawdz-run-types.py');
   assert.match(py, /WZOR_FUNKCJI = r"function\\s\+public\\\.is_run_type/);
   assert.match(py, /if 'WYCOFANIE' in f:\s*\n\s*continue/);
-  assert.match(py, /MIN_ZRODEL = 10/, 'próg zmieniony — ma być świadomie, w tym samym commicie co zmiana źródeł');
+  // 07.10 wieczór: 10 → 5 świadomie — pięć migracji definiujących skasowaną community_km pomijane po treści (blizna-43)
+  assert.match(py, /MIN_ZRODEL = 5 /, 'próg zmieniony — ma być świadomie, w tym samym commicie co zmiana źródeł');
   // WYCOFANIE is_run_type zawiera listę inline (stary stan) — gdyby nie było pomijane, próg by się przesunął bez decyzji
   const w = czytaj('supabase/migrations/20261007_WYCOFANIE_is_run_type_jedna_lista_w_bazie.sql');
   assert.match(w, /= ANY \(ARRAY\[/);
