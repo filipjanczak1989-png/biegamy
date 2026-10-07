@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **BiegaMy** is a Progressive Web App (PWA) for professional running coaching, deployed on GitHub Pages with Supabase as the backend. It has two main surfaces:
 - A coaching platform (`zawodnik.html` as the main athlete hub, `trener.html` for coach)
-- An integrated narrative game called "Janusz Run" (`gra.html`)
+- A small arcade mini-game "BiegaMy: Wyzwanie" (`gra.html`, table `game_scores`)
 
 No build step exists — vanilla HTML/CSS/JS files deploy directly to GitHub Pages.
 
@@ -27,7 +27,7 @@ Assets (images, audio) live in a separate repo `biegamy-assets`, served via GitH
 
 ### Page Structure
 - `zawodnik.html` — main athlete dashboard (~3.8 MB, the largest/most complex page)
-- `gra.html` — Janusz Run game (~421 KB)
+- `gra.html` — "BiegaMy: Wyzwanie" arcade mini-game (~421 KB; linked from `zawodnik.html`)
 - Other pages (67–157 KB): training plans, community, profile, etc.
 - `offline.html` — shown by Service Worker when offline and no cache exists
 
@@ -37,17 +37,13 @@ Assets (images, audio) live in a separate repo `biegamy-assets`, served via GitH
 ### Service Worker (`sw.js`)
 Cache version is in the `CACHE_VERSION` constant at the top of `sw.js`. The GitHub Actions workflow updates this automatically — do not manually edit it unless intentionally overriding. SW communicates with pages via `postMessage` for push notification registration.
 
-### Janusz Run Game Engine (`js/janusz/`)
-A narrative RPG engine integrated with real training data. Key files:
-- `engine.js` — main game loop and state machine
-- `states.js` — 6 psychology states (Wypalony, Załamany, Odrodzony, W ogniu, Głodny zwycięstwa, Wątpliwości)
-- `actions.js` — life event system (run, work, eat, sleep, call Anna, go to bar, etc.)
-- `shop.js` — shoe marketplace with durability mechanics
-- `achievements.js` — 10+ milestones tied to real training data
-- `workouts.js` — integration between real training sessions and game attributes
-- `data/events.json` — 50+ narrative events
+### Removed games (tombstones)
 
-Game attributes: `energia`, `morale`, `determinacja`, `kapital` (currency), `kondycja`. All game logic and UI is in Polish.
+Two games were deleted on 07.10.2026 (nobody played): **Bieguś** (`biegus.html`, three.js) and **Janusz Run**
+(`janusz.html`, `js/janusz/`, `assets/janusz/`, tables and functions `jr_*`). Both HTML files remain as redirects
+to `zawodnik.html` (bookmarks, PWA icons). Database objects were dropped in separate migrations
+(`20261007_kasacja_biegus_baza.sql`, `20261007_kasacja_janusz_run_baza.sql`) with rollbacks and backups
+kept outside the repo. Tests `blizna-41` and `blizna-42` guard against either game creeping back.
 
 ### Security Notes — XSS Defense
 

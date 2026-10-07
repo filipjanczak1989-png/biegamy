@@ -80,6 +80,6 @@ test('pliki: silnik, backupy i assety gry są poza drzewem (operacja masowa, wyk
 test('pliki: to, co inne strony wciąż ładują z assets/, nie zniknęło razem z grą', () => {
   const musza = ['assets/modele/auto.glb', 'assets/ui/logo-bm-but.webp', 'assets/ui/logo-b-ring.webp',
     'assets/ui/pustki/pustka-offline.webp', 'assets/ui/pustki/pustka-404.webp', 'assets/ui/banery/baner-forma-bg.webp',
-    'assets/ui/naglowki/naglowek-kalendarz.webp', 'assets/janusz/logo.webp'].filter((f) => !istnieje(f));
+    'assets/ui/naglowki/naglowek-kalendarz.webp', 'assets/ui/onas/onas-1.webp'].filter((f) => !istnieje(f));   // assets/janusz zdjęte z listy 07.10 (Janusz Run skasowany, blizna-42)
   assert.deepEqual(musza, [], 'skasowane za dużo: ' + musza.join(', '));
 });
