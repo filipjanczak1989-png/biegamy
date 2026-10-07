@@ -82,7 +82,7 @@ self.addEventListener('install', (event) => {
         const cacheIfOk = (url, quiet) =>
           fetch(new Request(url, { cache: 'reload' }))
             .then((res) => {
-              if (res && res.ok && res.status === 200) return cache.put(url, res.clone());
+              if (res && res.ok && res.status === 200) return wlozDoCache(cache, url, res.clone());
               if (!quiet) console.warn(`[SW] Precache skip (status ${res && res.status}): ${url}`);
             })
             .catch((err) => { if (!quiet) console.warn(`[SW] Precache failed for ${url}:`, err.message); });
@@ -180,6 +180,39 @@ function isSupabaseAPI(url) {
 
 // ─── STRATEGIE ──────────────────────────────────────────────────────
 
+// ─── CACHE.PUT Z WERYFIKACJĄ DOKUMENTU HTML ──────────────────────────────
+// Zmierzone 7.10.2026 (client_errors, 60 dni): „Uncaught SyntaxError: Unexpected end of
+// input" w zawodnik.html:1 — 11 wierszy, 5 osób, WYŁĄCZNIE Android, nie skupione wokół
+// deployów (co najmniej 9 h od ostatniego bumpu, zwykle rano). To dokument urwany w
+// trakcie pobierania (912 927 B, gzip 255 822 B na Pages). fetch() rozwiązuje się po
+// NAGŁÓWKACH, więc `response.ok` nic nie mówi o ciele — dotychczasowe `cache.put` po
+// samym `ok` mogło wkładać do cache dokument bez końca i serwować go potem z cache
+// przy każdym wejściu (stale-while-revalidate). Dowodu, że tak się działo, NIE MA
+// (Cache API odrzuca put przy błędzie strumienia); jest za to pewność, że ta bramka
+// nic nie psuje: kompletny dokument wchodzi jak dotąd, urwany nie nadpisuje dobrej kopii.
+//
+// Kryterium kompletności: tekst po przycięciu białych znaków kończy się na `</html>`.
+// Każda nasza strona tak się kończy (pilnuje tests/blizna-44-sw-html-kompletny.test.js;
+// zawodnik.html 7.10 przeniósł </body></html> na koniec pliku — dotąd stały 1234 linie
+// przed końcem). Zasoby inne niż text/html wchodzą bez zmian.
+async function wlozDoCache(cache, klucz, response) {
+  const typ = (response.headers.get('content-type') || '').toLowerCase();
+  if (typ.indexOf('text/html') === -1) { await cache.put(klucz, response); return true; }
+  let tekst;
+  try { tekst = await response.text(); } catch (e) { return false; }   // strumień urwany z błędem — nic nie wkładamy
+  if (!czyKompletnyHtml(tekst)) return false;                            // urwany bez błędu — też nie
+  // Ciało jest już ZDEKODOWANE, a nagłówki z sieci mówią „gzip, 255 822 B". Chrome dekoduje także
+  // syntetyczne Response z Content-Encoding, więc bez zdjęcia tych dwóch nagłówków strona z cache
+  // kończyłaby się ERR_CONTENT_DECODING_FAILED. Reszta nagłówków (etag, content-type) zostaje.
+  const naglowki = new Headers(response.headers);
+  naglowki.delete('content-encoding'); naglowki.delete('content-length');
+  await cache.put(klucz, new Response(tekst, { status: response.status, statusText: response.statusText, headers: naglowki }));
+  return true;
+}
+function czyKompletnyHtml(tekst) {
+  return /<\/html>\s*$/i.test(tekst || '');
+}
+
 // Stale-while-revalidate: zwróć cache od razu, w tle update
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
@@ -188,7 +221,7 @@ async function staleWhileRevalidate(request, cacheName) {
   const networkPromise = fetch(request)
     .then((response) => {
       if (response && response.ok) {
-        cache.put(request, response.clone());
+        wlozDoCache(cache, request, response.clone()).catch(() => {});   // urwany dokument NIE nadpisuje dobrej kopii
       }
       return response;
     })
@@ -206,7 +239,7 @@ async function cacheFirst(request, cacheName) {
   try {
     const response = await fetch(request);
     if (response && response.ok) {
-      cache.put(request, response.clone());
+      wlozDoCache(cache, request, response.clone()).catch(() => {});
     }
     return response;
   } catch (err) {
@@ -220,7 +253,7 @@ async function networkFirst(request, cacheName) {
   try {
     const response = await fetch(request);
     if (response && response.ok) {
-      cache.put(request, response.clone());
+      wlozDoCache(cache, request, response.clone()).catch(() => {});
     }
     return response;
   } catch (err) {

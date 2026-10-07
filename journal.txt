@@ -526,3 +526,29 @@ i (d) ponownie (powód pierwszej porażki nieustalony — nie zakładamy). ZMIER
 Funkcje w migawce 58 → 44 (−13 jr_*, −are_friends). Commity: (c) 55b07f6 (zawiera też 11 migawek
 rls jr_* — jeden zrzut), (d) a5dd3d6, (a) osobno po nich.
 
+
+================================================================================
+2026-10-07 (noc, cd.) — [SW: UCIĘTY zawodnik.html NA ANDROIDZIE — obrona w cache]
+================================================================================
+
+OBJAW: client_errors „Uncaught SyntaxError: Unexpected end of input" w zawodnik.html:1:1 —
+11 wierszy 27.08–30.09, 5 osób (Damian B. 4, Szymon 2, Emilia 2, Natalia 2, Maciej 1),
+wszystkie Android 10 Chrome. Dokument (912 927 B, gzip 255 822 B) dociera do parsera
+niekompletny. Daty NIE skupiają się wokół bumpów SW (≥9 h odstępu, zwykle 5–7 UTC rano,
+część w dni bez deployu) → nie „pobieranie w trakcie podmiany". PRZYCZYNA URWAŃ: NIEZNANA
+(najpewniej łącze). Dowodu na zatrucie cache nie ma; był za to brak jakiejkolwiek obrony:
+cztery cache.put po samym `response.ok` (nagłówki, nie ciało), a zawodnik.html SAM nie
+kończył się na </html> (tagi w linii 13484 z 14719, za nimi 1234 linie odznak).
+ZWIAD ROUTINGU: isStaticAsset łapie .html PRZED gałęzią navigate (sw.js:146-157) → nawigacje
+HTML szły stale-while-revalidate, navigationHandler (network-first + offline.html) był MARTWY.
+OBRONA WDROŻONA (commit tej sesji): sw.js wlozDoCache — text/html wchodzi do cache TYLKO,
+gdy tekst kończy się na </html>; urwany strumień/dokument nie nadpisuje dobrej kopii;
+przy rekonstrukcji zdjęte content-encoding/content-length (Chrome dekoduje syntetyczne
+Response → ERR_CONTENT_DECODING_FAILED); inne typy bez zmian; 4 miejsca put przepięte.
+zawodnik.html: </body></html> na końcu pliku. blizna-44 (6 testów, w tym: każda strona
+kończy się </html>).
+DECYZJA FILIPA (osobny commit, po smoke na telefonie): nawigacje HTML network-first z limitem
+~3 s (AbortController) → cache → offline.html; udana odpowiedź → wlozDoCache.
+KONTROLA ZA TYDZIEŃ — 2026-10-14: policzyć w client_errors „Unexpected end of input" od
+2026-10-08 (SQL w raporcie 7.10). Oczekiwane: pojedyncze pierwsze pobrania na złym łączu
+mogą zostać, POWTÓRKI u tej samej osoby z cache — nie.
