@@ -1318,8 +1318,15 @@ nowej funkcji w `public` EXECUTE dla `anon`, `authenticated`, `service_role` i P
 Skutek zmierzony tego dnia: 26 funkcji z `anon=X`, z czego 11 triggerowych i `are_friends`
 nigdy nie miały powodu, a `is_run_type` dostała anona mimo migracji z `revoke … from public`
 (#23). Migracja `20261007_funkcje_bez_execute_dla_anon.sql` zdejmuje EXECUTE od PUBLIC i anon
-z istniejących funkcji ORAZ zmienia default privileges obu ról: `revoke execute on functions
+z istniejących funkcji ORAZ zmienia default privileges roli `postgres`: `revoke execute on functions
 from public, anon`. authenticated i service_role dostają EXECUTE nadal automatycznie.
+
+⚠️ Dla roli `supabase_admin` ta sama instrukcja dała `ERROR 42501 permission denied to change default
+privileges` — `postgres` w Supabase nie jest członkiem `supabase_admin`. Zmierzone po wykonaniu 7.10:
+`pg_default_acl` postgres = {postgres, authenticated, service_role}; supabase_admin = bez zmian, z anon
+i PUBLIC. Skutek praktyczny: nasze migracje (SQL Editor, CLI — rola postgres) tworzą funkcje BEZ anona;
+funkcja utworzona przez supabase_admin (narzędzia platformy, nie nasz proces) nadal by go dostała —
+po każdym zrzucie `funkcje-bazy` warto spojrzeć na proacl nowych obiektów.
 
 ### Reguła
 
