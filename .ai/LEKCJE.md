@@ -1310,3 +1310,30 @@ Komentarz w migracji tłumaczący, czego revoke NIE robi („`revoke update
 w pliku i brzmiało jak staranność, a opisywało dokładnie mechanizm, który
 zostawił dziurę. Jeśli muszę objaśniać zakres revoke, to znaczy, że nie
 sprawdziłem, czy ten zakres pokrywa istniejący grant.
+
+## 24. Nowa funkcja w public nie dostaje już EXECUTE dla anon — potrzeba anona to jawny grant i świadome przejście twardej blokady (7.10.2026)
+
+Do 7.10 `ALTER DEFAULT PRIVILEGES` Supabase (role `postgres` i `supabase_admin`) nadawał KAŻDEJ
+nowej funkcji w `public` EXECUTE dla `anon`, `authenticated`, `service_role` i PUBLIC (wpis `=X`).
+Skutek zmierzony tego dnia: 26 funkcji z `anon=X`, z czego 11 triggerowych i `are_friends`
+nigdy nie miały powodu, a `is_run_type` dostała anona mimo migracji z `revoke … from public`
+(#23). Migracja `20261007_funkcje_bez_execute_dla_anon.sql` zdejmuje EXECUTE od PUBLIC i anon
+z istniejących funkcji ORAZ zmienia default privileges obu ról: `revoke execute on functions
+from public, anon`. authenticated i service_role dostają EXECUTE nadal automatycznie.
+
+### Reguła
+
+**Od 7.10.2026 funkcja, którą ma wołać anon, musi dostać grant JAWNIE w migracji:**
+jawny GRANT EXECUTE na tej funkcji dla roli anon — a taki wiersz zatrzymuje bramkę commita
+twardo (GRANT dla roli anon). To celowe: przejście przez blokadę wymaga poprawki diffu, czyli
+świadomego zapisu w tym samym commicie, dlaczego niezalogowany ma to wołać (jak dawny licznik
+landingu). Nie ma już drogi „dostał przypadkiem". Tabele: default privileges dla tabel (anon
+`arwdDxtm`) NIE zostały zmienione — to osobna decyzja; przy `create table` nadal `revoke all …
+from anon` z nazwy (#23).
+
+### Objaw ostrzegawczy
+
+Funkcja wołana z frontu przez `sb.rpc(...)` daje `42501 permission denied for function` tylko
+niezalogowanym. To nie usterka bramki — to pytanie, czy anon ma ją wołać; jeśli tak, odpowiedź
+jest jednym wierszem grantu z uzasadnieniem, nie powrotem default privileges.
+

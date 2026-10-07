@@ -443,3 +443,44 @@ ZROBIONE (commit D):
   ⊆ reguły, bez_reguly naprawdę bez reguły (31), wspólne id identyczne, ASCII,
   pary po decyzji, lista id w SQL pomiaru = BADGES.
 - Oczekiwane na prod: 143 definicji, 31 bez_reguly, 112 widocznych.
+
+================================================================================
+2026-10-07 (noc, cd.) — [PAKA 4: PORZĄDKI — community_km, stare migracje, granty, anon]
+================================================================================
+
+A. community_km — faza 1 (front) commit tej sesji: licznik #100kmDlaKasi zdjęty z index.html
+   (hero-licznik, _licznikLandingu, SPOL_*) i zawodnik.html (spol-pasek, _odswiezLicznik-
+   Spolecznosci); SPOL_OKNO_OD/DO + SPOL_PROG_INDYW ZOSTAJĄ (WYZWANIA = reguły przyznanych
+   odznak 100km_wrzesien_2026 / razem_wrzesien_2026). tools/sprawdz-spol-stale.py skasowana
+   (jedna kopia stałych = nie ma czego porównywać), zdjęta z CI i hooka; sprawdz-run-types.py
+   MIN_ZRODEL 10→5 (migracje definiujące community_km pomijane po treści); blizna-43.
+   Faza 2 = 20261007_kasacja_community_km.sql (jedyna sygnatura; 0 wołających w pg) — po
+   deployu fazy 1.
+B. Migracje 0829/0830 (nieśledzone od sierpnia) z notami STATUS do repo jako historia:
+   0829 d7 NIEWYKONANA (zastąpiona przez 20261006_d7b), obie 0830 WYKONANE (zmierzone 7.10:
+   anon bez grantu na żadnej tabeli public i na radio_comments_view). W dwóch WYCOFANIACH 0830
+   linie GRANT dla anon ZAKOMENTOWANE (bramka twarda) — pliki są zapisem, nie skryptem.
+   .gitignore: /_* (surowe generacje _hero2-raw 26 MB, _icon_preview 144 MB, mockup).
+C. Granty tabelowe — pomiar 77 relacji: anon bez tabel; authenticated ALL z default privileges
+   na 56 tabelach. Migracja 20261007_porzadek_grantow_tabel.sql: TRUNCATE/TRIGGER/REFERENCES
+   od anon+authenticated wszędzie (50 linii), DELETE od authenticated na 17 tabelach bez
+   polityki DELETE/ALL, + osobno revoke SELECT on radio_top from anon (czytelnicy tylko po
+   sesji). BACKLOG (poza zakresem, 27 par): INSERT/UPDATE bez polityki —
+   achievements:UPDATE, ai_alerts:INSERT, ai_cache:INSERT, ai_cache:UPDATE, ai_reports:INSERT,
+   ai_usage_log:UPDATE, daily_briefs:INSERT, daily_briefs:UPDATE, follows:UPDATE,
+   food_cache:UPDATE, food_image_categories:INSERT, food_image_categories:UPDATE,
+   game_scores:UPDATE, intervals_activities:INSERT, intervals_activities:UPDATE,
+   log_comments:UPDATE, log_reactions:UPDATE, nutrition_quotes:INSERT, nutrition_quotes:UPDATE,
+   race_signups:UPDATE, radio_comments:UPDATE, radio_likes:UPDATE, recipe_favorites:UPDATE,
+   recipes:INSERT, recipes:UPDATE, wellness:INSERT, wellness:UPDATE.
+D. 26 funkcji z anon=X (13 jr_*, community_km, 11 triggerowych, are_friends nieużywana).
+   Migracja 20261007_funkcje_bez_execute_dla_anon.sql: drop are_friends, revoke od PUBLIC i anon
+   (samo `from anon` nic nie daje — wpis =X to PUBLIC), ALTER DEFAULT PRIVILEGES dla postgres
+   i supabase_admin. LEKCJE #24.
+E. Storage biegamy-assets: janusz/ = tylko .emptyFolderPlaceholder; 0 plików biegus; 187
+   luźnych plików w korzeniu bucketu (poza zakresem). Repo biegamy-assets: 7 plików biegus-*
+   + 1 wpis w manifest.md — komenda u Filipa.
+GitHub 7.10 ~15:15–15:45 UTC: incydent (Actions major outage, Git Operations) — push 9fff014
+   (Janusz faza 1) odrzucany ~10 min „Internal Server Error", workflowy startup_failure,
+   Deploy to Pages w kolejce; prod bez fazy 1 Janusza do czasu kolejnego deployu.
+
