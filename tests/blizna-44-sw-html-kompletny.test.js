@@ -77,7 +77,7 @@ test('urwany strumień z błędem (text() odrzuca) — nic nie wchodzi, brak wyj
 
 test('sw.js: każde wkładanie do cache idzie przez wlozDoCache (żaden goły cache.put poza pomocnikiem)', () => {
   const golych = (sw.match(/cache\.put\(/g) || []).length;
-  assert.equal(golych, 2, 'cache.put ma występować tylko 2× — oba wewnątrz wlozDoCache');
+  assert.equal(golych, 3, 'cache.put ma występować tylko 3× — dwa wewnątrz wlozDoCache, jeden w wlozObraz (obrazy, blizna-45)');
   for (const wz of [/return wlozDoCache\(cache, url, res\.clone\(\)\)/, /wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/]) {
     assert.match(sw, wz, 'brak wywołania pomocnika: ' + wz);
   }

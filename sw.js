@@ -17,6 +17,12 @@ const CACHE_VERSION = 'biegamy-2026-10-07-501bd7a';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
+// OBRAZY z biegamy-assets (GH Pages, ACAO: *) — cache NIEZALEŻNY od CACHE_VERSION (07.10.2026):
+// bump SW leci przy każdym deployu (12× 7.10), a grafiki „Dziś" ważą ~1 MB/dzień; wersjonowany
+// cache znikałby przy każdym deployu i offline nie miałoby czego pokazać. Limit niżej.
+const ASSETS_CACHE = 'biegamy-obrazy-v1';
+const LIMIT_OBRAZOW = 150;
+const LIMIT_OBRAZOW_B = 30 * 1024 * 1024;
 
 // Pliki które chcemy mieć offline od samego start (precache)
 /* Strony narzedzia.html i statystyki.html usuniete 24.08.2026 — zdjete stad
@@ -105,7 +111,7 @@ self.addEventListener('activate', (event) => {
         // Usuń stare cache (z poprzednich wersji)
         return Promise.all(
           names
-            .filter((name) => !name.startsWith(CACHE_VERSION))
+            .filter((name) => !name.startsWith(CACHE_VERSION) && name !== ASSETS_CACHE)   // obrazy przeżywają deploy
             .map((name) => {
               console.log(`[SW] Deleting old cache: ${name}`);
               return caches.delete(name);
@@ -154,6 +160,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(navigationHandler(request));
   } else if (isStaticAsset(request, url)) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+  } else if (isAssetsImage(url)) {
+    event.respondWith(obrazStaleWhileRevalidate(request));
   } else if (isStorageAsset(url)) {
     event.respondWith(cacheFirst(request, STORAGE_CACHE));
   } else if (isSupabaseAPI(url)) {
@@ -215,6 +223,55 @@ async function wlozDoCache(cache, klucz, response) {
 }
 function czyKompletnyHtml(tekst) {
   return /<\/html>\s*$/i.test(tekst || '');
+}
+
+// ─── OBRAZY Z biegamy-assets: CACHE-FIRST Z LIMITEM ───────────────────────────────
+// Tylko obrazy (rozszerzenie) z originu GH Pages biegamy-assets. Odpowiedź wchodzi
+// wyłącznie przy status 200 (nie opaque 0, nie 404) i Content-Type image/*.
+// Po każdym wstawieniu przycięcie do LIMIT_OBRAZOW wpisów / LIMIT_OBRAZOW_B bajtów:
+// Cache API trzyma klucze w kolejności wstawiania, więc kasujemy od najstarszych.
+function isAssetsImage(url) {
+  return url.hostname === 'filipjanczak1989-png.github.io'
+    && url.pathname.startsWith('/biegamy-assets/')
+    && /\.(webp|jpe?g|png|gif|svg|avif)$/i.test(url.pathname);
+}
+// Stale-while-revalidate (decyzja Filipa 7.10): kopia od razu, w tle świeża przez wlozObraz;
+// bez kopii → sieć; bez kopii i bez sieci → 504 (obraz się nie załaduje, bez unhandled rejection).
+async function obrazStaleWhileRevalidate(request) {
+  const cache = await caches.open(ASSETS_CACHE);
+  const cached = await cache.match(request);
+  const zSieci = fetch(request).then((response) => {
+    wlozObraz(cache, request, response.clone()).catch(() => {});
+    return response;
+  });
+  zSieci.catch(() => {});
+  if (cached) return cached;
+  try { return await zSieci; } catch (e) { return new Response('', { status: 504, statusText: 'Offline' }); }
+}
+async function wlozObraz(cache, klucz, response) {
+  if (!response || response.status !== 200) return false;
+  const typ = (response.headers.get('content-type') || '').toLowerCase();
+  if (typ.indexOf('image/') !== 0) return false;
+  await cache.put(klucz, response);
+  await przytnijCache(cache, LIMIT_OBRAZOW, LIMIT_OBRAZOW_B);
+  return true;
+}
+async function przytnijCache(cache, maxWpisow, maxBajtow) {
+  const klucze = await cache.keys();
+  if (!klucze.length) return 0;
+  let bajty = 0;
+  const rozmiary = [];
+  for (const k of klucze) {
+    const r = await cache.match(k);
+    const n = r ? Number(r.headers.get('content-length')) || 0 : 0;
+    rozmiary.push(n); bajty += n;
+  }
+  let usuniete = 0, i = 0;
+  while (i < klucze.length && (klucze.length - usuniete > maxWpisow || bajty > maxBajtow)) {
+    await cache.delete(klucze[i]);
+    bajty -= rozmiary[i]; usuniete++; i++;
+  }
+  return usuniete;
 }
 
 // Stale-while-revalidate: zwróć cache od razu, w tle update

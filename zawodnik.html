@@ -1796,6 +1796,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
+<script src="js/dzis-offline.js"></script>
 <script src="js/generator-planu.js"></script>
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
@@ -7408,12 +7409,20 @@ async function loadWeekPlan() {
   rangeEnd.setDate(now.getDate() + 13);
   const rangeEndStr = localDateStr(rangeEnd);
 
-  const { data, error } = await sb.from('trainings')
+  let { data, error } = await sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
     .gte('date', todayStr)
     .lte('date', rangeEndStr)
     .order('date');
+  /* DZIŚ OFFLINE: tydzień z migawki przy błędzie sieci; bez migawki — zdanie o braku połączenia
+     zamiast „Brak planu na ten tydzień" (to drugie byłoby zgadywaniem). */
+  { const _uidMig = await DzisOffline.userId(sb);
+    if (!error) { DzisOffline.zapisz(_uidMig, 'tydzien', data || []); }
+    else { const _aw = DzisOffline.awaryjnie(_uidMig, 'tydzien', error); if (_aw) { data = _aw.dane; error = null; }
+           else if (DzisOffline.czyBladSieci(error)) {
+             document.getElementById('week-strip').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak połączenia — plan tygodnia nieznany.</div>';
+             return; } } }
 
   if (error || !data || data.length === 0) {
     /* ⚠️ PUSTY TYDZIEŃ MÓWIŁ JEDNO ZDANIE DLA WSZYSTKICH: „Trener wkrótce wyśle Twój
@@ -7533,14 +7542,19 @@ async function loadLogs() {
     // Skeleton loader
     const logList = document.getElementById('log-list');
     if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-    const { data, error } = await sb
+    let { data, error } = await sb
       .from('training_logs')
       .select('*')
       .eq('athlete_id', _athleteId)
       .not('training_type', 'like', '__badge__%')
       .order('logged_at', { ascending: false })
       .limit(5);
-    
+    /* DZIŚ OFFLINE (07.10.2026, js/dzis-offline.js): udany odczyt → migawka; błąd SIECI → lista
+       z migawki + pasek „Offline · dane z HH:MM". Inne błędy (42501, PGRST…) idą starą drogą. */
+    const _uidMig = await DzisOffline.userId(sb);
+    if (!error) { DzisOffline.zapisz(_uidMig, 'logi', data || []); }
+    else { const _aw = DzisOffline.awaryjnie(_uidMig, 'logi', error); if (_aw) { data = _aw.dane; error = null; } }
+
     // ✨ Diagnostic - pokaż w konsoli co jest w bazie dla tego zawodnika
     console.log('[loadLogs] athlete_id:', _athleteId, '| pobrano logów:', data?.length || 0, '| error:', error?.message || 'none');
     if (data && data.length > 0) {
@@ -7646,15 +7660,23 @@ async function updateWeekProgress() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23,59,59,999);
 
-  const { data: trainingsThisWeek } = await sb.from('trainings')
+  let { data: trainingsThisWeek, error: e1 } = await sb.from('trainings')
     .select('*').eq('athlete_id', _athleteId)
     .gte('date', weekStart.toISOString().split('T')[0])
     .lte('date', weekEnd.toISOString().split('T')[0]);
 
-  const { data: logsThisWeek } = await sb.from('training_logs')
-    .select('distance_km').not('training_type','like','__badge__%').eq('athlete_id', _athleteId)
+  let { data: logsThisWeek, error: e2 } = await sb.from('training_logs')
+    .select('distance_km,training_type').not('training_type','like','__badge__%').eq('athlete_id', _athleteId)
     .gte('logged_at', weekStart.toISOString())
     .lte('logged_at', weekEnd.toISOString());
+
+  /* DZIŚ OFFLINE: pierścień tygodnia z migawki; bez sieci i bez migawki — UKRYTY, nigdy „0%". */
+  { const _uidMig = await DzisOffline.userId(sb);
+    const _ws = document.querySelector('.week-sum');
+    if (!e1 && !e2) { DzisOffline.zapisz(_uidMig, 'postep', { trainings: trainingsThisWeek || [], logs: logsThisWeek || [] }); if (_ws) _ws.style.display = ''; }
+    else { const _aw = DzisOffline.awaryjnie(_uidMig, 'postep', e1 || e2);
+           if (_aw) { trainingsThisWeek = _aw.dane.trainings; logsThisWeek = _aw.dane.logs; if (_ws) _ws.style.display = ''; }
+           else if (DzisOffline.czyBladSieci(e1 || e2)) { if (_ws) _ws.style.display = 'none'; return; } } }
 
   const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
   // Zawodnik zaliczył trening jeśli status=done LUB wpisał log
@@ -7788,14 +7810,20 @@ async function loadTodayTraining() {
      tekst wskazujący na przycisk, którego nie widzi.
      Helper `_dzienWaw` z sb.js jest SSOT dla klucza dnia. */
   const today = window._dzienWaw(new Date().toISOString());
-  const { data } = await sb
+  let { data, error } = await sb
     .from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
     .eq('date', today)
     .limit(1)
     .maybeSingle();
-  
+  /* DZIŚ OFFLINE: zapisany null znaczy „nie było treningu" (zdanie niżej jest wtedy prawdziwe);
+     przy błędzie sieci bez migawki NIE piszemy „Brak zaplanowanego treningu" — nie wiemy tego. */
+  { const _uidMig = await DzisOffline.userId(sb);
+    if (!error) { DzisOffline.zapisz(_uidMig, 'dzis', data || null); }
+    else { const _aw = DzisOffline.awaryjnie(_uidMig, 'dzis', error); if (_aw) { data = _aw.dane; error = null; }
+           else if (DzisOffline.czyBladSieci(error)) { document.getElementById('today-desc').textContent = 'Brak połączenia — plan na dziś nieznany.'; return; } } }
+
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
     // Ukryj pill gdy brak treningu
@@ -7900,12 +7928,19 @@ async function loadTodayTraining() {
 async function loadCoachMessage() {
   // Show coach section only if athlete has coach
   if (_athleteId) {
-    const { data: ath } = await sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
+    const { data: ath, error: athErr } = await sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
+    /* DZIŚ OFFLINE: flaga ma_trenera do migawki. Bez sieci i bez migawki `_brakTrenera` zostaje null
+       („nie wiadomo") — _odswiezCtaGeneratora() NIE pokazuje wtedy „Ułóż plan". Do 7.10 brak sieci
+       dawał ath=null → _brakTrenera=true → CTA generatora u człowieka Z trenerem. */
+    let _maTrenera = !!(ath && ath.coach_id), _trenerZnany = !athErr;
+    { const _uidMig = await DzisOffline.userId(sb);
+      if (!athErr) { DzisOffline.zapisz(_uidMig, 'trener', _maTrenera); }
+      else { const _aw = DzisOffline.awaryjnie(_uidMig, 'trener', athErr); if (_aw) { _maTrenera = !!_aw.dane; _trenerZnany = true; } } }
     const coachSection = document.getElementById('coach-msg-section');
-    if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
+    if (coachSection) coachSection.style.display = _trenerZnany && _maTrenera ? 'block' : 'none';
     // Generator jest wylacznie dla zawodnikow BEZ trenera. Korzystamy z tego samego
     // odczytu, zeby nie dokladac drugiego zapytania o te sama kolumne.
-    window._brakTrenera = !(ath && ath.coach_id);
+    window._brakTrenera = _trenerZnany ? !_maTrenera : null;
     _odswiezCtaGeneratora();
     /* Ocena planu — bez await, tym samym wzorcem co licznik wyżej.
        ⚠️ Świadomie BEZ bramki na `_brakTrenera`: zawodnik mógł ułożyć plan
@@ -8881,6 +8916,7 @@ window.dismissPushPrompt = dismissPushPrompt;
 
 async function logout() {
   try { await sb.auth.signOut(); } catch(e) {}
+  try { DzisOffline.wyczysc(); } catch(e) {}   // migawka „Dziś" — jawnie, nawet gdyby clear() niżej kiedyś zniknął
   localStorage.clear();
   sessionStorage.clear();
   window.location.href = 'index.html';

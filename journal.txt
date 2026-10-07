@@ -552,3 +552,40 @@ DECYZJA FILIPA (osobny commit, po smoke na telefonie): nawigacje HTML network-fi
 KONTROLA ZA TYDZIEŃ — 2026-10-14: policzyć w client_errors „Unexpected end of input" od
 2026-10-08 (SQL w raporcie 7.10). Oczekiwane: pojedyncze pierwsze pobrania na złym łączu
 mogą zostać, POWTÓRKI u tej samej osoby z cache — nie.
+
+================================================================================
+2026-10-07 (noc, cd.) — [„DZIŚ" OFFLINE — migawka + cache obrazów]
+================================================================================
+
+DECYZJA FILIPA: bez sieci zawodnik widzi na „Dziś" dzisiejszy trening, tydzień
+planu i ostatnie logi z ostatniej udanej synchronizacji, z grafikami. Tylko odczyt.
+PRZED: supabase-js bez sieci oddaje {data:null,error}, loadery patrzyły tylko na
+data → „Brak zaplanowanego treningu na dziś.", „Brak planu na ten tydzień.",
+pusta lista, pierścień 0%, CTA „Ułóż plan" u człowieka Z trenerem (_brakTrenera
+liczone z null). Zero zdania o braku sieci.
+ZROBIONE (commit tej sesji):
+- js/dzis-offline.js: migawka w localStorage, klucz bm_dzis_migawka_<user_id>,
+  części logi/dzis/tydzien/trener/postep, ts, limit 200 kB (pomiar prod 7.10,
+  86 zawodników, 30 logów + 2 tyg planu + athletes: mediana 5,8 kB, p90 33 kB,
+  max 37 kB → IndexedDB nieproporcjonalne). Zapis tylko przy !error, nigdy w
+  widoku trenera; odczyt awaryjny tylko przy błędzie SIECI (42501 i PGRST NIE);
+  cudze migawki kasowane przy odczycie; logout → wyczysc(). Pasek „Offline ·
+  dane z HH:MM", znika po pierwszym udanym odczycie.
+- zawodnik.html: loadLogs, loadTodayTraining, loadWeekPlan, loadCoachMessage
+  (flaga ma_trenera; bez wiedzy _brakTrenera=null → CTA ukryte), updateWeekProgress
+  (pierścień z migawki; bez migawki UKRYTY, nigdy 0%). Bez migawki offline:
+  „Brak połączenia — plan na dziś / tygodnia nieznany."
+  ⚠️ PRZY OKAZJI NAPRAWIONE: zapytanie logsThisWeek brało tylko distance_km, a
+  liczyło isRunType(l.training_type) → training_type zawsze undefined → km
+  biegowe tygodnia = 0, wszystko lądowało w „+X km zastępcze". Teraz select
+  bierze training_type. Etykieta km w pierścieniu ZMIENI się u wszystkich.
+- sw.js: obrazy z biegamy-assets (ACAO: *) → stale-while-revalidate do cache
+  biegamy-obrazy-v1 NIEZALEŻNEGO od CACHE_VERSION (activate go oszczędza), tylko
+  status 200 + image/*, limit 150 wpisów / 30 MB (najstarsze wylatują); bez kopii
+  i bez sieci → 504. Dzienny zestaw „Dziś" ≈ 0,8–1,5 MB (solo-NN 131 kB, bm-nav
+  72 kB, karty tygodnia 27–47 kB + run1..77, baner typu ~50 kB).
+- blizna-45: 13 testów. Razem 869/0.
+OGRANICZENIA: miniatury logów (Storage training-screenshots, signed URL) poza
+cache; kadr hero wybiera SOLO.dopasuj (trening+pogoda) — offline może wskazać
+kadr spoza cache; dane są z ostatniej synchronizacji (pasek z godziną).
+REVERT gotowy: git revert <sha> (na komendę „revert").
