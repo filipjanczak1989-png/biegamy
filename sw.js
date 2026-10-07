@@ -145,15 +145,19 @@ self.addEventListener('fetch', (event) => {
   if (/\.(mp4|m4a|mp3|webm|ogg|wav|aac|mov|m4v)$/i.test(url.pathname)) return;
 
   // Strategia per typ zasobu
-  if (isStaticAsset(request, url)) {
+  // !! NAWIGACJA PRZED isStaticAsset (od 07.10.2026). Do tego dnia gałąź `navigate` stała
+  //    OSTATNIA, a isStaticAsset łapie każdą ścieżkę z `.html` i `/` — więc nawigacje do
+  //    naszych stron szły stale-while-revalidate (stara kopia natychmiast, sieć w tle),
+  //    a navigationHandler z offline.html był MARTWY. Skutek: po deployu człowiek dostawał
+  //    poprzednią wersję HTML, a urwany dokument z cache wracał przy każdym wejściu.
+  if (request.mode === 'navigate') {
+    event.respondWith(navigationHandler(request));
+  } else if (isStaticAsset(request, url)) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
   } else if (isStorageAsset(url)) {
     event.respondWith(cacheFirst(request, STORAGE_CACHE));
   } else if (isSupabaseAPI(url)) {
     event.respondWith(networkFirst(request, RUNTIME_CACHE));
-  } else if (request.mode === 'navigate') {
-    // Nawigacja do strony HTML
-    event.respondWith(navigationHandler(request));
   }
   // Reszta — przeglądarka radzi sobie sama (network)
 });
@@ -263,18 +267,38 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-// Navigation: spróbuj sieć, fallback na cache, ostatecznie offline.html
-async function navigationHandler(request) {
-  try {
-    const response = await fetch(request);
+// Navigation (od 07.10.2026 NETWORK-FIRST Z LIMITEM): sieć ma LIMIT_NAWIGACJI_MS na odpowiedź;
+// po przekroczeniu albo błędzie → kopia z cache (ignoreSearch: ?tab=social dostaje /zawodnik.html),
+// potem offline.html, na końcu 503. Udana odpowiedź sieci → wlozDoCache (tylko kompletny HTML).
+//
+// !! LIMIT PRZEZ Promise.race, NIE AbortController: żądanie nawigacyjne ma mode 'navigate',
+//    a fetch(request, { signal }) z takim Request rzuca TypeError (RequestInit nie może być
+//    niepusty przy mode 'navigate'); fetch po URL-u z redirect:'follow' zwróciłby `redirected`
+//    Response, której nie wolno oddać nawigacji. Wyścig zostawia fetch w tle — gdy sieć
+//    jednak odpowie, odpowiedź trafia do cache (`.then` niżej), więc następne wejście jest
+//    świeże mimo że to oddało kopię. Koszt: żądanie żyje do końca zamiast zostać przerwane.
+const LIMIT_NAWIGACJI_MS = 3000;
+async function navigationHandler(request, limitMs) {
+  const limit = limitMs || LIMIT_NAWIGACJI_MS;
+  const cache = await caches.open(STATIC_CACHE);
+  const zSieci = fetch(request).then((response) => {
+    if (response && response.ok) wlozDoCache(cache, request, response.clone()).catch(() => {});
     return response;
+  });
+  zSieci.catch(() => {});                                   // odrzucenie po limicie nie może zostać unhandled
+  let zegar;
+  const poLimicie = new Promise((resolve) => { zegar = setTimeout(() => resolve('LIMIT'), limit); });
+  try {
+    const wynik = await Promise.race([zSieci, poLimicie]);
+    clearTimeout(zegar);
+    if (wynik !== 'LIMIT') return wynik;
   } catch (err) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    // Fallback na offline page
-    const offline = await caches.match('/offline.html');
-    return offline || new Response('Offline', { status: 503 });
+    clearTimeout(zegar);
   }
+  const cached = await cache.match(request, { ignoreSearch: true });
+  if (cached) return cached;
+  const offline = await caches.match('/offline.html');
+  return offline || new Response('Offline', { status: 503 });
 }
 
 // ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────

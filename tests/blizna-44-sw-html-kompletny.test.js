@@ -81,7 +81,68 @@ test('sw.js: każde wkładanie do cache idzie przez wlozDoCache (żaden goły ca
   for (const wz of [/return wlozDoCache\(cache, url, res\.clone\(\)\)/, /wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/]) {
     assert.match(sw, wz, 'brak wywołania pomocnika: ' + wz);
   }
-  assert.equal((sw.match(/wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/g) || []).length, 3, 'SWR, cacheFirst, networkFirst');
+  assert.equal((sw.match(/wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/g) || []).length, 4, 'SWR, cacheFirst, networkFirst, navigationHandler');
+});
+
+// ── NAWIGACJE: network-first z limitem (07.10.2026) ───────────────────────────────────────
+function wyciagnijNawigacje(fetchAtrapa, cacheAtrapa, offlineAtrapa) {
+  const h = sw.match(/const LIMIT_NAWIGACJI_MS = \d+;\nasync function navigationHandler\([\s\S]*?\n\}\n/);
+  const a = sw.match(/async function wlozDoCache\([\s\S]*?\n\}\n/);
+  const b = sw.match(/function czyKompletnyHtml\([\s\S]*?\n\}\n/);
+  assert.ok(h && a && b, 'brak navigationHandler/wlozDoCache w sw.js');
+  const caches = { open: async () => cacheAtrapa, match: async (k) => (String(k) === '/offline.html' ? offlineAtrapa : undefined) };
+  return new Function('Response', 'fetch', 'caches', 'STATIC_CACHE', a[0] + b[0] + h[0] + ' return navigationHandler;')(Response, fetchAtrapa, caches, 'static-test');
+}
+const kopia = () => '<html><body>z cache</body></html>';   // atrapa trzyma TEKST, match() opakowuje w Response
+function atrapaNawigacji(zCache) {
+  const mapa = new Map(); if (zCache) mapa.set('/zawodnik.html', zCache);
+  return { mapa, async put(k, r) { mapa.set(String(k), await r.text()); },
+           async match(k, o) { const u = String(k); const klucz = o && o.ignoreSearch ? u.replace(/\?.*$/, '') : u; const v = mapa.get(klucz); return typeof v === 'string' ? new Response(v, { headers: { 'content-type': 'text/html' } }) : v; } };
+}
+
+test('routing: nawigacja idzie do navigationHandler PRZED isStaticAsset (dotąd .html trafiał w stale-while-revalidate)', () => {
+  const iNav = sw.indexOf("if (request.mode === 'navigate')"), iStat = sw.indexOf('isStaticAsset(request, url))');
+  assert.ok(iNav > 0 && iStat > iNav, 'gałąź navigate ma stać przed isStaticAsset');
+  assert.match(sw, /const LIMIT_NAWIGACJI_MS = 3000;/);
+});
+
+test('nawigacja (a): sieć odpowiada w limicie → świeża treść wraca i trafia do cache', async () => {
+  const cache = atrapaNawigacji(kopia());
+  const fetchOk = async () => new Response('<html><body>świeże</body></html>', { status: 200, headers: { 'content-type': 'text/html' } });
+  const nav = wyciagnijNawigacje(fetchOk, cache, null);
+  const r = await nav('/zawodnik.html?tab=social', 200);
+  assert.match(await r.text(), /świeże/);
+  await new Promise((res) => setTimeout(res, 20));
+  assert.match(cache.mapa.get('/zawodnik.html?tab=social'), /świeże/, 'udana odpowiedź ma wejść do cache przez wlozDoCache');
+});
+
+test('nawigacja (b): sieć wolniejsza niż limit → kopia z cache (ignoreSearch), a spóźniona odpowiedź i tak odświeża cache', async () => {
+  const cache = atrapaNawigacji(kopia());
+  const fetchWolny = () => new Promise((res) => setTimeout(() => res(new Response('<html><body>spóźnione</body></html>', { status: 200, headers: { 'content-type': 'text/html' } })), 120));
+  const nav = wyciagnijNawigacje(fetchWolny, cache, null);
+  const t0 = Date.now();
+  const r = await nav('/zawodnik.html?tab=social', 40);
+  assert.ok(Date.now() - t0 < 110, 'odpowiedź ma wrócić po limicie, nie po sieci');
+  assert.match(await r.text(), /z cache/);
+  await new Promise((res) => setTimeout(res, 150));
+  assert.match(cache.mapa.get('/zawodnik.html?tab=social'), /spóźnione/, 'spóźniona odpowiedź sieci ma odświeżyć cache');
+});
+
+test('nawigacja (c): brak sieci i brak cache → offline.html; bez offline.html → 503', async () => {
+  const fetchPadl = async () => { throw new TypeError('Failed to fetch'); };
+  const nav1 = wyciagnijNawigacje(fetchPadl, atrapaNawigacji(null), new Response('<html>offline</html>', { status: 200 }));
+  assert.match(await (await nav1('/zawodnik.html', 50)).text(), /offline/);
+  const nav2 = wyciagnijNawigacje(fetchPadl, atrapaNawigacji(null), undefined);
+  assert.equal((await nav2('/zawodnik.html', 50)).status, 503);
+});
+
+test('nawigacja: urwany HTML z sieci wraca do przeglądarki (nie da się go cofnąć), ale NIE nadpisuje dobrej kopii w cache', async () => {
+  const cache = atrapaNawigacji(kopia());
+  const fetchUrwany = async () => new Response('<html><body><script>const x = {', { status: 200, headers: { 'content-type': 'text/html' } });
+  const nav = wyciagnijNawigacje(fetchUrwany, cache, null);
+  await nav('/zawodnik.html', 200);
+  await new Promise((res) => setTimeout(res, 20));
+  assert.match(cache.mapa.get('/zawodnik.html'), /z cache/, 'urwany dokument nadpisał dobrą kopię');
 });
 
 test('każda śledzona strona kończy się na </html> — inaczej bramka SW odrzuciłaby własny dokument', () => {
