@@ -21,31 +21,11 @@ const KORZEN = path.join(__dirname, '..');
 const czytaj = (f) => fs.readFileSync(path.join(KORZEN, f), 'utf8');
 const bezKomentarzySql = (s) => s.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
 
-test('B1) migracja RPC: security definer, znacznik tylko do przodu, blokada wiersza, insert on conflict', () => {
-  const m = bezKomentarzySql(czytaj('supabase/migrations/20261007_biegus_most_odbior_przez_rpc.sql'));
-  assert.match(m, /create or replace function public\.biegus_most_odbierz\(\)/);
-  assert.match(m, /security definer/);
-  assert.match(m, /set ostatni_odbior = greatest\(ostatni_odbior, now\(\)\)/, 'znacznik ma iść TYLKO do przodu i nie dalej niż now()');
-  assert.match(m, /for update;/, 'bez blokady wiersza dwie karty wypłacą dwa razy');
-  assert.match(m, /on conflict \(athlete_id\) do nothing/);
-  assert.match(m, /if v_piora >= 1 then/, 'piora<1 → znacznik nie rusza (semantyka klienta)');
-  assert.match(m, /not like '\\_\\_badge\\_\\_%'/, 'filtr __badge__ zniknął');
-  // LEKCJE #23: kolumnowy `revoke update (ostatni_odbior)` NIE zdejmuje grantu TABELOWEGO — pierwsza
-  // wersja migracji zostawiła ostatni_odbior z UPDATE (zmierzone na prod 7.10). Ma być: revoke
-  // UPDATE na poziomie TABELI, potem grant kolumnowy wyłącznie na zapis, zapis_ts.
-  assert.match(m, /\r?\nrevoke update on public\.biegus_most from authenticated;/, 'UPDATE ma zejść TABELOWO — kolumnowy revoke zostawia grant tabelowy');
-  assert.doesNotMatch(m, /revoke update \(ostatni_odbior\)/, 'kolumnowy revoke to ten błąd, który był na prod — nie wraca');
-  assert.match(m, /grant update \(zapis, zapis_ts\) on public\.biegus_most to authenticated;/, 'chmura gry (zapis, zapis_ts) ma dostać UPDATE kolumnowo');
-  assert.ok(!/grant update \([^)]*(ostatni_odbior|athlete_id)/.test(m), 'grant kolumnowy obejmuje znacznik albo athlete_id');
-  assert.match(m, /revoke insert on public\.biegus_most from authenticated/);
-  const iRevoke = m.indexOf('revoke update on public.biegus_most'), iGrantKol = m.indexOf('grant update (zapis, zapis_ts)');
-  assert.ok(iRevoke > 0 && iGrantKol > iRevoke, 'grant kolumnowy ma iść PO tabelowym revoke');
-  assert.match(m, /grant execute on function public\.biegus_most_odbierz\(\) to authenticated/);
-  assert.ok(!/\bto\s+anon\b/i.test(m), 'migracja nadaje coś anonowi');
-  const w = czytaj('supabase/migrations/20261007_WYCOFANIE_biegus_most_odbior_przez_rpc.sql');
-  const iGrant = w.indexOf('grant insert, update on public.biegus_most to authenticated'), iDrop = w.indexOf('drop function if exists public.biegus_most_odbierz');
-  assert.ok(iGrant > 0 && iDrop > iGrant, 'wycofanie: tabelowe granty (stan zmierzony PRZED 7.10) PRZED drop funkcji');
-});
+/* B1) [migracja RPC biegus_most_odbierz: security definer, znacznik tylko do przodu, granty] — USUNIĘTY
+   07.10.2026 (faza 2 kasacji gry): RPC, biegus_ranking, biegus_most i game_events SKASOWANE na prod
+   (zmierzone: pg_proc/to_regclass = brak, REST → 404 PGRST202/PGRST205). Migracja
+   20261007_biegus_most_odbior_przez_rpc.sql zostaje w repo jako historia (LEKCJE #23 ją cytuje),
+   kasację opisuje 20261007_kasacja_biegus_baza.sql; pilnuje tego tests/blizna-41-kasacja-biegusia.test.js. */
 
 /* B2) [biegus.html: MOST.odbierz woła RPC] — USUNIĘTY 07.10.2026: gra Bieguś skasowana, biegus.html to
    przekierowanie. B1 zostaje do fazy 2 (drop RPC i tabeli) — pilnuje, że plik migracji w repo nadal opisuje

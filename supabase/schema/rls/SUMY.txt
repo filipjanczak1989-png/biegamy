@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego wyjścia pg_policies.
 # Generowane: node tools/polityki-bazy.js --zrzut
 # Porównanie:  node tools/polityki-bazy.js
-# Relacji: 79
+# Relacji: 77
 
 a792e255c2e15564  account_deletions_audit
 e6203ecdf586cddd  achievements
@@ -15,7 +15,6 @@ b205ee53bce3ce9b  athlete_intake_forms
 e221f1e0147c7329  athletes
 1f807412e89f8ad0  athletes_pb_backup_20260814
 41b71b965e19b095  backup_krok_a_20260814
-13352d0af415575a  biegus_most
 f07ea8986b9ea6f7  client_errors
 4b4899e354ebdc2f  coach_athlete_notes
 6fe1063ecb403306  coach_week_template_workouts
@@ -31,7 +30,6 @@ fdfe5fbcddde46a0  delivered_moments
 9a6942126414aaf7  food_image_categories
 0a36be2ea8226ee6  food_images
 d8600e9c66fbae0b  friendships
-7b94c0b3a4d466e4  game_events
 3f0cecaa72922d8d  game_scores
 c3b4f2b4304bac53  generator_proby
 9b6a2dbefe06e15b  injuries

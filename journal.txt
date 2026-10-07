@@ -400,3 +400,22 @@ OTWARTE — faza 2 (baza), OSOBNY commit
 - Janusz Run (jr_* 11 tabel, 14 funkcji z EXECUTE dla anon z default
   privileges, janusz.html NIELINKOWANA, js/janusz/) = inna gra, nie ruszana.
 - biegamy-assets (osobne repo): 7 plików biegus-* — tylko zgłoszone.
+
+================================================================================
+2026-10-07 (noc, cd.) — [KASACJA GRY BIEGUŚ — FAZA 2 BAZA, WYKONANA I ZMIERZONA]
+================================================================================
+
+- Filip: backup obu tabel (tools/backup-biegus_most.sql, zapytania 1-4) zapisany
+  POZA repo; migracja 20261007_kasacja_biegus_baza.sql wykonana w SQL Editorze.
+- ZMIERZONE po wykonaniu:
+  · funkcje-bazy --zrzut: 61→59 obiektów (−biegus_most_odbierz, −biegus_ranking),
+    delete_my_account nowa suma 886cc82d6775b427, w ciele 0 wystąpień
+    biegus/game_events;
+  · polityki-bazy --zrzut: 79→77 relacji (−biegus_most, −game_events);
+  · pg: pg_proc bez obu funkcji, to_regclass obu tabel = NULL, pg_policies
+    dla obu tabel = brak;
+  · REST anon: rpc/biegus_most_odbierz → 404 PGRST202, rpc/biegus_ranking → 404
+    PGRST202, POST game_events → 404 PGRST205 (dawniej INSERT dla anon).
+- blizna-39 B1 (tekst migracji MOST) zdjęty z komentarzem; migracja MOST
+  z 7.10 zostaje w repo jako historia (cytuje ją LEKCJE #23).
+- Testy 837/0.
