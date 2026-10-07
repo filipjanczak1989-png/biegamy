@@ -26,8 +26,8 @@ const path = require('path');
 const KORZEN = path.join(__dirname, '..');
 const strony = () => fs.readdirSync(KORZEN)
   .filter(f => f.endsWith('.html'))
-  // pliki robocze i kopie zapasowe nie idą na produkcję
-  .filter(f => !f.startsWith('_') && !/backup|pre-miasto/.test(f));
+  // pliki robocze nie idą na produkcję
+  .filter(f => !f.startsWith('_'));
 
 test('safe-area — kto z niej korzysta, ma viewport-fit=cover', () => {
   const zle = [];

@@ -42,7 +42,8 @@ const PRECACHE_URLS = [
   '/privacy.html',
   '/privacy-en.html',
   '/sb.js',
-  '/vendor/three-r128.min.js',
+  /* '/vendor/three-r128.min.js' zdjęte 07.10.2026 razem z grą Bieguś (jedyny konsument).
+     Plik usunięty z repo — wpis tutaj wywracałby addAll() całej instalacji SW (patrz wyżej). */
   /* D4: supabase-js z WŁASNEGO originu. Do 28.08.2026 18 stron brało go
      z cdn.jsdelivr.net jako skrypt BLOKUJĄCY PARSER, poza tym cache —
      czyli aplikacja offline-first miała twardą zależność od obcego originu.

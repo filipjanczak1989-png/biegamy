@@ -8249,10 +8249,8 @@ async function endGame() {
   if (!game) return;
   if (_endGameCalled) return;
   _endGameCalled = true;
-  try{                                                        /* MOST-AUTOMAT: wynik do Biegusia (PO guardach — inaczej podwojne zetony) */
-    if(new URLSearchParams(location.search).get('tryb')==='automat'&&window.parent!==window)
-      parent.postMessage({typ:'wyzwanie-wynik',punkty:(game&&game.score)|0,score:(game&&game.score)|0},location.origin);
-  }catch(e){}
+  /* NAGROBEK (07.10.2026): tu stał MOST-AUTOMAT — postMessage z wynikiem do biegus.html, które osadzało
+     tę stronę w iframe jako „automat" (?tryb=automat). Gra Bieguś skasowana; nikt już nie nasłuchuje. */
   game.running = false;
   game.over = true;
   

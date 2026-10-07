@@ -9,7 +9,8 @@
 //     suma_biegowa i pomiar tygodni reakcji ją wołają; trzecia kopia w kolizja-importu.mjs
 //     zastąpiona importem. Bramka pythonowa dostała wzorzec na CIAŁO funkcji.
 //
-// Migracje i biegus.html nie wchodzą do node — testy tekstowe (konwencja tests/pb-daty.test.js).
+// Migracje nie wchodzą do node — testy tekstowe (konwencja tests/pb-daty.test.js).
+// 07.10.2026: część B dotyczyła klienta gry Bieguś — gra skasowana, test B2 zdjęty (patrz niżej).
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -46,22 +47,9 @@ test('B1) migracja RPC: security definer, znacznik tylko do przodu, blokada wier
   assert.ok(iGrant > 0 && iDrop > iGrant, 'wycofanie: tabelowe granty (stan zmierzony PRZED 7.10) PRZED drop funkcji');
 });
 
-test('B2) biegus.html: MOST.odbierz woła RPC, nie PATCH-uje i nie wstawia znacznika sam', () => {
-  const b = czytaj('biegus.html');
-  const i = b.indexOf('async odbierz(){');
-  assert.ok(i > 0, 'brak MOST.odbierz');
-  const koniec = b.indexOf('async tydzien(){', i);   // następna metoda MOST (własne 14-dniowe okno, poza zakresem)
-  assert.ok(koniec > i, 'brak MOST.tydzien za odbierz — granica ciała do poprawienia');
-  const cialo = b.slice(i, koniec);
-  assert.match(cialo, /this\.rpc\(s\.tok,'biegus_most_odbierz'\)/, 'odbierz nie woła RPC');
-  assert.doesNotMatch(cialo, /ostatni_odbior:new Date\(\)\.toISOString\(\)/, 'klient znów PATCH-uje znacznik');
-  assert.doesNotMatch(cialo, /rest\/v1\/biegus_most',\{method:'POST'/, 'klient znów wstawia wiersz znacznika');
-  assert.doesNotMatch(cialo, /logged_at=gt\./, 'klient znów sam filtruje logi po znaczniku — liczenie wróciło do przeglądarki');
-  assert.match(cialo, /if\(piora<1\)return;/, 'semantyka „bez wypłaty poniżej 1 pióra" zniknęła');
-  assert.match(cialo, /Biegus\.portfelPior\+=piora;/);
-  // chmura (zapis/zapis_ts) nadal PATCH-em — to ma zostać
-  assert.match(b, /body:JSON\.stringify\(\{zapis:JSON\.parse\(raw\),zapis_ts:new Date\(\)\.toISOString\(\)\}\)/);
-});
+/* B2) [biegus.html: MOST.odbierz woła RPC] — USUNIĘTY 07.10.2026: gra Bieguś skasowana, biegus.html to
+   przekierowanie. B1 zostaje do fazy 2 (drop RPC i tabeli) — pilnuje, że plik migracji w repo nadal opisuje
+   to, co JEST na prod, dopóki faza 2 tego nie zdejmie. Patrz tests/blizna-41-kasacja-biegusia.test.js. */
 
 test('A1) is_run_type: IMMUTABLE STRICT, ta sama lista co sb.js, suma_biegowa i pomiar ją wołają', () => {
   const m = bezKomentarzySql(czytaj('supabase/migrations/20261007_is_run_type_jedna_lista_w_bazie.sql'));

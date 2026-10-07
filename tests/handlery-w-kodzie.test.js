@@ -76,7 +76,7 @@ const DOZWOLONE = new Set([...JEZYK, ...WBUDOWANE, ...GLOBALNE_OKNA]);
 /** Wszystko, co dany tekst DEFINIUJE. Szerzej niż skaner atrybutów, bo w ciele
  *  `<script>` żyją konstrukcje, których w atrybucie nie ma: skróty metod
  *  w obiektach i wielodeklaratorowe `const a=…, b=…` (przez nie `easeOut`
- *  i `clamp` z biegus.html wyglądały na nieistniejące). */
+ *  i `clamp` z dawnego biegus.html wyglądały na nieistniejące). */
 function definicjeKodu(t, zbior) {
   const s = zbior || new Set();
   const d = (r) => { for (const m of t.matchAll(r)) if (m[1]) s.add(m[1]); };
@@ -142,9 +142,9 @@ function wolaneWKodzie(tekst) {
   return zn;
 }
 
-/** Strony ŚLEDZONE przez gita. Backupy (`biegus-v144-backup.html`) leżą obok
- *  w katalogu i nie są kodem projektu — bez tego filtra skaner zgłasza 200
- *  fałszywek z pliku, którego nikt nie wdraża. */
+/** Strony ŚLEDZONE przez gita. Kopie robocze (dawniej `biegus-v144-backup.html`)
+ *  leżą obok w katalogu i nie są kodem projektu — bez tego filtra skaner zgłaszał
+ *  200 fałszywek z pliku, którego nikt nie wdraża. */
 function stronySledzone() {
   return execSync('git ls-files "*.html"', { cwd: KORZEN }).toString()
     .split(NL).map((x) => x.trim()).filter((x) => x && !x.includes('/'));

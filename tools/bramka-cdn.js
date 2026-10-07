@@ -56,7 +56,7 @@ const uwagi = [];
 
 function strony() {
   return fs.readdirSync(KORZEN)
-    .filter((f) => f.endsWith('.html') && !f.startsWith('biegus-v14'))
+    .filter((f) => f.endsWith('.html'))
     .filter((f) => {
       const s = fs.readFileSync(path.join(KORZEN, f), 'utf8');
       return WZ_CDN.test(s) || WZ_VENDOR.test(s);
@@ -158,7 +158,7 @@ function main() {
   if (bledy.length) {
     console.log('\n  NARUSZENIE (' + bledy.length + '):');
     bledy.forEach((b) => console.log('  ⚠ ' + b));
-    console.log('\n  Wzorzec „WY3 SELF-HOST" (biegus.html): własny plik PIERWSZY, CDN tylko fallbackiem.\n');
+    console.log('\n  Wzorzec: własny plik z vendor/ PIERWSZY, CDN tylko fallbackiem (wzorzec „WY3 SELF-HOST" z gry Bieguś, skasowanej 07.10.2026).\n');
     process.exit(1);
   }
   console.log('\n  Zgodne.\n');

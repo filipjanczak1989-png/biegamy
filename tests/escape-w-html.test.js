@@ -25,7 +25,7 @@ const path = require('node:path');
 
 const KORZEN = path.join(__dirname, '..');
 const PLIKI = fs.readdirSync(KORZEN)
-  .filter((f) => f.endsWith('.html') && !/^biegus-v1|^_mockup/.test(f));
+  .filter((f) => f.endsWith('.html') && !/^_mockup/.test(f));
 
 const ESC = /\\u[0-9a-fA-F]{4}/g;
 
