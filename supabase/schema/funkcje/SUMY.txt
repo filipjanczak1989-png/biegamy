@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 59
+# Obiektow (funkcje + triggery): 61
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -12,6 +12,7 @@ d42dbc3a4ddc3885  athletes.trg_notify_filip_new_athlete
 d2a80b28c7ab2483  auth_is_coach
 5e333f97025b7cad  auth_my_athlete_id
 0e77f60f77d891b1  auto_resolve_past_event_notes
+b1ba069a5ec60766  biegus_most_odbierz
 af53be7038abac2f  biegus_ranking
 f7c505f0aebb99a8  bump_food_hit
 73702910edcaf470  calc_bmr_tdee
@@ -25,6 +26,7 @@ b8dbf9dd18ca3f54  community_km
 013b730325385fdf  handle_new_user
 911eb41b95030867  increment_play
 e824285492d2a019  intervals_connections.intervals_conn_update_ts
+11d14e46c3e8b8c7  is_run_type
 0ecfdd4248741177  jr_buy_item
 4ca6859250d079a1  jr_can_perform_actions
 988f3cb64ddb06b6  jr_check_day_reset
@@ -48,7 +50,7 @@ eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
 067fc22d9b769a04  race_signups.trg_race_signup_count
 00c6bf1a1b7ce0a2  review_moment
 25d900a25e2d2961  search_food_by_name
-159bb6e838f7e4d3  suma_biegowa
+32fd638f8a75ac97  suma_biegowa
 907edb50f1f9ae8c  training_logs_guard_coach_fields
 ef47ede286094827  training_logs.trg_detect_moment_ins
 5aa4b4c80949ac5e  training_logs.trg_detect_moment_upd

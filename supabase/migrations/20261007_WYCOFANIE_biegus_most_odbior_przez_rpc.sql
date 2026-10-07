@@ -1,6 +1,8 @@
 -- WYCOFANIE 20261007_biegus_most_odbior_przez_rpc.sql — przywraca stan sprzed 7.10.2026
--- (migawka rls/biegus_most.txt z 7.10 00:07: authenticated ma INSERT(athlete_id, ostatni_odbior)
--- i UPDATE(ostatni_odbior) kolumnowo; brak RPC).
+-- (migawka rls/biegus_most.txt z 7.10 00:07: authenticated ma INSERT i UPDATE TABELOWO,
+-- kolumnowych grantów brak; brak RPC). Grant tabelowy obejmuje zapis/zapis_ts, więc kolumnowy
+-- z migracji jest po nim zbędny — zdejmowany dla czystości migawki (LEKCJE #23: oba źródła
+-- są widoczne w column_privileges, zostawiony zaciemniałby odczyt).
 --
 -- ⚠️ Wycofanie wraca do stanu Z DZIURĄ: zawodnik znów może cofnąć własny znacznik przez REST
 -- i odebrać pióra ponownie. Uruchamiać tylko, gdy RPC coś zepsuło, i zapisać CO.
@@ -10,8 +12,8 @@
 
 begin;
 
-grant insert (athlete_id, ostatni_odbior) on public.biegus_most to authenticated;
-grant update (ostatni_odbior)             on public.biegus_most to authenticated;
+revoke update (zapis, zapis_ts) on public.biegus_most from authenticated;
+grant insert, update on public.biegus_most to authenticated;
 
 drop function if exists public.biegus_most_odbierz();
 

@@ -1260,3 +1260,53 @@ to nie pomiar — to ozdobnik, który udaje pomiar (#11, #13). I druga rzecz:
 migawka w `supabase/schema/` edytowana RĘCZNIE. Ten katalog ma jedno źródło —
 `--zrzut` — i właśnie dlatego, że mówi „stan produkcji, nie zamiar”. Ręczna
 edycja zamienia go w zamiar z datą.
+
+## 23. REVOKE zdejmuje tylko ten grant, który nazywa — kontrola patrzy na WYNIK, nie na treść revoke (7.10.2026)
+
+Dwa razy tego samego dnia, w dwóch migracjach paczki 3, revoke „przeszedł" i nic
+nie zdjął:
+
+1. **MOST, poziom kolumny vs tabeli.** `revoke update (ostatni_odbior) on
+   biegus_most from authenticated` — a `authenticated` miał UPDATE **tabelowy**
+   (migawka z 00:07: „DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE,
+   UPDATE", kolumnowych brak). Kolumnowy REVOKE zdejmuje wyłącznie kolumnowy
+   GRANT. Po migracji `information_schema.column_privileges` nadal pokazywało
+   UPDATE na `ostatni_odbior` i `athlete_id` — Filip to złapał kontrolą po
+   wykonaniu. Poprawka na prod: `revoke update on biegus_most from
+   authenticated; grant update (zapis, zapis_ts) … to authenticated`.
+2. **is_run_type, adresat PUBLIC vs jawny anon.** `revoke all on function
+   is_run_type from public; grant execute … to authenticated, service_role`.
+   W Supabase `create function` w `public` dostaje z `ALTER DEFAULT PRIVILEGES`
+   **jawne** granty EXECUTE dla `anon`, `authenticated`, `service_role` —
+   osobno, nie przez PUBLIC. Revoke od PUBLIC nie dotyka wpisu anona. Zmierzone
+   REST-em po wykonaniu: anon `POST /rpc/is_run_type` → `200 true`, podczas gdy
+   `biegus_most_odbierz` (z jawnym `revoke … from anon`) → `42501`. To ta sama
+   pułapka, którą 6.09 opisał rollback `community_stats` dla tabel (`create
+   table` sam nadaje anonowi ALL) — tylko na funkcjach.
+
+**Wspólny kształt.** GRANT-y w Postgresie to zbiór wpisów (grantee × obiekt ×
+poziom). REVOKE usuwa dokładnie jeden wpis, ten, który nazywa. Nie ma „revoke
+tego, co by pozwalało na X" — jeśli pozwolenie przychodzi z innego poziomu
+(tabela zamiast kolumny) albo od innego adresata (jawny `anon` zamiast
+`PUBLIC`), zostaje nietknięte, a revoke kończy się bez błędu i bez ostrzeżenia.
+Dlatego treść migracji nie jest dowodem: **dowodem jest odczyt uprawnień po
+wykonaniu** — `column_privileges` + `table_privileges` dla tabel (kolumny
+pokazują się tam z OBU źródeł, więc sama lista kolumnowa też nie wystarczy),
+`proacl` dla funkcji, i REST z kluczem roli, której dotyczy zmiana.
+
+### Reguła
+
+Każdy revoke w migracji ma obok KONTROLĘ PO WYKONANIU, która czyta stan
+uprawnień, nie powtarza treści revoke. Zanim napiszę revoke, pytam migawkę
+(`rls/<tabela>.txt`), **na jakim poziomie i dla kogo** grant istnieje — i
+zdejmuję ten wpis, nie wpis o podobnej nazwie. Przy nowej funkcji lub tabeli
+w `public` zakładam, że `anon` dostał jawny grant z default privileges, i
+zdejmuję go z nazwy (`revoke … from anon`), jak robi `suma_biegowa`.
+
+### Objaw ostrzegawczy
+
+Komentarz w migracji tłumaczący, czego revoke NIE robi („`revoke update
+(ostatni_odbior)` NIE zdejmuje update na innych kolumnach") — to zdanie było
+w pliku i brzmiało jak staranność, a opisywało dokładnie mechanizm, który
+zostawił dziurę. Jeśli muszę objaśniać zakres revoke, to znaczy, że nie
+sprawdziłem, czy ten zakres pokrywa istniejący grant.

@@ -282,3 +282,68 @@ NOTATKI DOSTĘPU
 - verify_jwt: sonda „POST bez nagłówków" — UNAUTHORIZED_NO_AUTH_HEADER z bramki
   = ON, odpowiedź z kodu EF = OFF. Deploy z config.toml USTAWIA wartość na prod.
 - Kolumna istnieje na prod? REST anon: 42501 = jest (brak grantu), 42703 = nie ma.
+
+================================================================================
+2026-10-07 — sesja (Filip + Claude)  [PACZKA 3: is_run_type + MOST RPC NA PROD]
+================================================================================
+
+ZROBIONE
+--------
+1) Paczka 3 A+B (06f1b88, fdf92dd): public.is_run_type(text) IMMUTABLE STRICT
+   jako jedyna lista typów biegowych w bazie (suma_biegowa i pomiar tygodni
+   reakcji ją wołają; kolizja-importu.mjs importuje RUN_TYPES zamiast trzeciej
+   kopii; sprawdz-run-types.py zna ciało funkcji, MIN_ZRODEL=10). MOST Biegusia:
+   biegus_most_odbierz() SECURITY DEFINER liczy pióra i przesuwa ostatni_odbior
+   tylko do przodu (greatest + FOR UPDATE); biegus.html MOST.odbierz = 1 RPC.
+   Saldo piór zostaje w JSON (decyzja: opcja 1, w komentarzu migracji).
+   community_km NIE skasowana: index.html:858 i zawodnik.html:5140 nadal wołają
+   RPC (za bramką dat SPOL_OKNO zamkniętą 20.09) — STOP wg reguły „coś woła".
+
+2) Migracje WYKONANE NA PROD przez Filipa (SQL Editor) i ZMIERZONE tego dnia:
+   - funkcje-bazy --zrzut: 59→61 obiektów (+is_run_type, +biegus_most_odbierz,
+     suma_biegowa nowa suma); is_run_type IMMUTABLE PARALLEL SAFE STRICT;
+     biegus_most_odbierz SECURITY DEFINER z greatest(ostatni_odbior, now()).
+   - polityki-bazy --zrzut rls/biegus_most.txt: authenticated TABELOWO
+     DELETE, REFERENCES, SELECT, TRIGGER, TRUNCATE (bez INSERT, bez UPDATE);
+     KOLUMNOWO UPDATE tylko zapis, zapis_ts. Zapytanie wprost (CLI):
+     column_privileges authenticated: athlete_id/ostatni_odbior = SELECT;
+     zapis/zapis_ts = SELECT, UPDATE. proacl biegus_most_odbierz =
+     {postgres, authenticated, service_role} — bez anon, prosecdef=true;
+     suma_biegowa = {postgres, service_role}.
+   - REST anon (klucz publishable): PATCH biegus_most.ostatni_odbior → 42501
+     „permission denied for table"; POST rpc/biegus_most_odbierz → 42501
+     „permission denied for function".
+   ⚠️ REST JAKO AUTHENTICATED NIEZMIERZONY — nie mam tokenu sesji żadnego
+   użytkownika i nie zakładam konta testowego na prod bez decyzji. Dowód dla
+   authenticated to odczyt grantów z pg (wyżej), nie odpowiedź PostgREST.
+
+BŁĘDY W MIGRACJACH — złapane DOPIERO po wykonaniu (LEKCJE #23)
+--------------------------------------------------------------
+- MOST: `revoke update (ostatni_odbior)` (kolumnowy) nie zdjął grantu
+  TABELOWEGO UPDATE — po migracji ostatni_odbior i athlete_id nadal miały UPDATE
+  dla authenticated. Złapał Filip kontrolą column_privileges. Poprawione na prod
+  ręcznie (revoke update tabelowy + grant update (zapis, zapis_ts)); plik
+  migracji i WYCOFANIE przepisane do stanu, który JEST na prod (wycofanie wraca
+  do zmierzonego stanu sprzed: tabelowy INSERT+UPDATE). blizna-39 B1 asertuje
+  revoke tabelowy + grant kolumnowy tylko na zapis, zapis_ts.
+- is_run_type: `revoke all … from public` nie zdjął JAWNEGO grantu EXECUTE dla
+  anon z default privileges Supabase. Zmierzone REST-em: anon POST
+  rpc/is_run_type {"p_typ":"Tempo"} → 200 true; proacl: anon=X. Funkcja jest
+  czysta (bez danych), więc to nie wyciek — ale stan prod ≠ intencja migracji.
+  Plik migracji dostał `revoke all … from anon`, blizna-39 A1 to asertuje.
+  ⚠️ NA PROD DO WYKONANIA (Filip):
+     revoke all on function public.is_run_type(text) from anon;
+  kontrola: proacl bez anon; REST anon → 42501. Do czasu wykonania:
+  ZGŁOSZONE, NIEZMIERZONE.
+
+OTWARTE
+-------
+- is_run_type: revoke od anon na prod (wyżej) + pomiar po.
+- D odznaki (diff w drzewie, bez commitu): 31 bez reguły ukryte, 33 tylko-silnik
+  w katalogu, maratończyk/gaduła → ASCII; czeka na wynik SQL D1
+  (tools/pomiar-odznaki-pary-i-bez-reguly.sql) — od niego zależą pary.
+- community_km: kasacja wymaga najpierw zdjęcia dwóch wywołań + stałych SPOL_*
+  + przepisania sprawdz-spol-stale.py. Osobna paczka.
+- biegus_most: authenticated ma zastane DELETE i TRUNCATE tabelowo (bez polityki
+  DELETE → 0 wierszy przez RLS; TRUNCATE omija RLS, ale PostgREST go nie
+  wystawia). Nie ruszane dziś — do przeglądu grantów zastanych.

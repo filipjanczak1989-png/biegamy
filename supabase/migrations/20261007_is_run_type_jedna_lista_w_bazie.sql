@@ -48,7 +48,15 @@ comment on function public.is_run_type(text) is
 -- EXECUTE bez anon: jedyny dziś konsument z anonem to community_km (SECURITY DEFINER, po sezonie),
 -- a jej ŚWIADOMIE nie przepisujemy. Gdyby kiedyś anon miał wołać funkcję z is_run_type w środku,
 -- SECURITY DEFINER i tak wykona ją uprawnieniami właściciela — grant dla anon nie jest potrzebny.
+--
+-- ⚠️ BŁĄD PIERWSZEJ WERSJI (zmierzony REST-em 7.10 po wykonaniu: anon → 200 true; LEKCJE #23):
+-- stało tu samo `revoke all … from public`. W Supabase `create function` w schemacie public
+-- dostaje z ALTER DEFAULT PRIVILEGES JAWNY grant EXECUTE dla anon, authenticated i service_role
+-- (osobno, nie przez PUBLIC) — revoke od PUBLIC nie dotyka grantu anona. Ten sam kształt co
+-- kolumnowy revoke w migracji MOST: revoke na jednym poziomie/adresacie nie zdejmuje grantu
+-- z drugiego. Kontrola = proacl / REST, nie treść revoke. Na prod wykonane osobno 7.10.
 revoke all on function public.is_run_type(text) from public;
+revoke all on function public.is_run_type(text) from anon;
 grant execute on function public.is_run_type(text) to authenticated, service_role;
 
 -- suma_biegowa: identyczna semantyka, lista przez is_run_type.
@@ -99,5 +107,7 @@ commit;
 --   select public.is_run_type('Interwały'), public.is_run_type(' tempo '), public.is_run_type('Rower'),
 --          public.is_run_type(NULL);                    -- t, t, f, NULL
 --   select provolatile, proisstrict from pg_proc where proname = 'is_run_type';   -- 'i', true
+--   select proacl from pg_proc where proname = 'is_run_type';   -- BEZ wpisu anon=X/…
+--   -- REST anon: POST /rest/v1/rpc/is_run_type {"p_typ":"Tempo"} → 42501 (nie 200 true)
 --   -- równość wyniku przed/po dla jednego zawodnika (porównaj z wartością sprzed migracji):
 --   select * from public.suma_biegowa('<athlete_id>', '2026-09-01', '2026-10-01');

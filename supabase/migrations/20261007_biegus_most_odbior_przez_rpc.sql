@@ -27,10 +27,17 @@
 --     wywołania (dwie karty) nie wypłacą dwa razy, bo UPDATE blokuje wiersz; drugi liczy
 --     po przesunięciu i dostaje 0.
 --
--- GRANTY (sprawdzone w migawce rls/biegus_most.txt 7.10: authenticated ma dziś UPDATE
--- tabelowo PRZEZ kolumny z 0715/0716): zdejmujemy insert i update(ostatni_odbior);
--- select zostaje (gra czyta znacznik do debugowania), update(zapis, zapis_ts) zostaje.
--- `revoke update (ostatni_odbior)` NIE zdejmuje update na innych kolumnach.
+-- GRANTY (migawka rls/biegus_most.txt 7.10 00:07: authenticated ma UPDATE i INSERT TABELOWO,
+-- kolumnowych brak): zdejmujemy insert i update NA POZIOMIE TABELI, a potem nadajemy UPDATE
+-- kolumnowo tylko na zapis, zapis_ts (chmura gry). select zostaje (gra czyta znacznik).
+--
+-- ⚠️ BŁĄD PIERWSZEJ WERSJI (wykryty na prod 7.10 przez Filipa, LEKCJE #23): stało tu
+-- `revoke update (ostatni_odbior) … from authenticated`. Kolumnowy REVOKE zdejmuje TYLKO
+-- kolumnowy grant — grant TABELOWY zostaje w całości, więc po migracji ostatni_odbior
+-- i athlete_id NADAL miały UPDATE dla authenticated (information_schema.column_privileges
+-- pokazuje kolumny z OBU źródeł). Kontrola po migracji musi patrzeć na WYNIK w
+-- column_privileges, nie na treść revoke. Na prod poprawione ręcznie 7.10 (revoke tabelowy
+-- + grant kolumnowy), ten plik opisuje stan, który tam JEST.
 --
 -- IDEMPOTENTNA. WYCOFANIE: 20261007_WYCOFANIE_biegus_most_odbior_przez_rpc.sql
 
@@ -96,9 +103,11 @@ revoke all on function public.biegus_most_odbierz() from public;
 revoke all on function public.biegus_most_odbierz() from anon;
 grant execute on function public.biegus_most_odbierz() to authenticated;
 
--- znacznik tylko przez RPC: klient traci INSERT i UPDATE na nim; SELECT i update(zapis, zapis_ts) zostają
+-- znacznik tylko przez RPC: klient traci INSERT i cały TABELOWY UPDATE; SELECT zostaje,
+-- UPDATE wraca wyłącznie kolumnowo na zapis, zapis_ts
 revoke insert on public.biegus_most from authenticated;
-revoke update (ostatni_odbior) on public.biegus_most from authenticated;
+revoke update on public.biegus_most from authenticated;
+grant update (zapis, zapis_ts) on public.biegus_most to authenticated;
 
 notify pgrst, 'reload schema';
 
@@ -108,5 +117,10 @@ commit;
 --   select column_name, privilege_type from information_schema.column_privileges
 --    where table_name = 'biegus_most' and grantee = 'authenticated' order by 1,2;
 --   -- oczekiwane: athlete_id SELECT; ostatni_odbior SELECT; zapis SELECT, UPDATE; zapis_ts SELECT, UPDATE
---   -- NIE MA: ostatni_odbior UPDATE, żadnego INSERT
+--   -- NIE MA: ostatni_odbior UPDATE, athlete_id UPDATE, żadnego INSERT
+--   -- (column_privileges pokazuje kolumny Z OBU źródeł: tabelowego i kolumnowego — dlatego to
+--   --  ta kontrola, a nie treść revoke, mówi czy dziura jest zamknięta; LEKCJE #23)
+--   select grantee, privilege_type from information_schema.table_privileges
+--    where table_name = 'biegus_most' and grantee = 'authenticated' order by 2;
+--   -- oczekiwane: BEZ INSERT i BEZ UPDATE (SELECT, DELETE, REFERENCES, TRIGGER, TRUNCATE zastane)
 --   select proname, prosecdef from pg_proc where proname = 'biegus_most_odbierz';   -- prosecdef = true

@@ -29,14 +29,21 @@ test('B1) migracja RPC: security definer, znacznik tylko do przodu, blokada wier
   assert.match(m, /on conflict \(athlete_id\) do nothing/);
   assert.match(m, /if v_piora >= 1 then/, 'piora<1 → znacznik nie rusza (semantyka klienta)');
   assert.match(m, /not like '\\_\\_badge\\_\\_%'/, 'filtr __badge__ zniknął');
-  assert.match(m, /revoke update \(ostatni_odbior\) on public\.biegus_most from authenticated/, 'kolumna nadal z UPDATE dla klienta — dziura zostaje');
+  // LEKCJE #23: kolumnowy `revoke update (ostatni_odbior)` NIE zdejmuje grantu TABELOWEGO — pierwsza
+  // wersja migracji zostawiła ostatni_odbior z UPDATE (zmierzone na prod 7.10). Ma być: revoke
+  // UPDATE na poziomie TABELI, potem grant kolumnowy wyłącznie na zapis, zapis_ts.
+  assert.match(m, /\r?\nrevoke update on public\.biegus_most from authenticated;/, 'UPDATE ma zejść TABELOWO — kolumnowy revoke zostawia grant tabelowy');
+  assert.doesNotMatch(m, /revoke update \(ostatni_odbior\)/, 'kolumnowy revoke to ten błąd, który był na prod — nie wraca');
+  assert.match(m, /grant update \(zapis, zapis_ts\) on public\.biegus_most to authenticated;/, 'chmura gry (zapis, zapis_ts) ma dostać UPDATE kolumnowo');
+  assert.ok(!/grant update \([^)]*(ostatni_odbior|athlete_id)/.test(m), 'grant kolumnowy obejmuje znacznik albo athlete_id');
   assert.match(m, /revoke insert on public\.biegus_most from authenticated/);
-  assert.doesNotMatch(m, /revoke update \(zapis/, 'zapis/zapis_ts (chmura gry) mają zostać z UPDATE — to osobna decyzja');
+  const iRevoke = m.indexOf('revoke update on public.biegus_most'), iGrantKol = m.indexOf('grant update (zapis, zapis_ts)');
+  assert.ok(iRevoke > 0 && iGrantKol > iRevoke, 'grant kolumnowy ma iść PO tabelowym revoke');
   assert.match(m, /grant execute on function public\.biegus_most_odbierz\(\) to authenticated/);
   assert.ok(!/\bto\s+anon\b/i.test(m), 'migracja nadaje coś anonowi');
   const w = czytaj('supabase/migrations/20261007_WYCOFANIE_biegus_most_odbior_przez_rpc.sql');
-  const iGrant = w.indexOf('grant update (ostatni_odbior)'), iDrop = w.indexOf('drop function if exists public.biegus_most_odbierz');
-  assert.ok(iGrant > 0 && iDrop > iGrant, 'wycofanie: granty PRZED drop funkcji');
+  const iGrant = w.indexOf('grant insert, update on public.biegus_most to authenticated'), iDrop = w.indexOf('drop function if exists public.biegus_most_odbierz');
+  assert.ok(iGrant > 0 && iDrop > iGrant, 'wycofanie: tabelowe granty (stan zmierzony PRZED 7.10) PRZED drop funkcji');
 });
 
 test('B2) biegus.html: MOST.odbierz woła RPC, nie PATCH-uje i nie wstawia znacznika sam', () => {
@@ -70,6 +77,10 @@ test('A1) is_run_type: IMMUTABLE STRICT, ta sama lista co sb.js, suma_biegowa i 
   assert.match(m, /and public\.is_run_type\(t\.training_type\);/, 'suma_biegowa nie woła is_run_type');
   assert.doesNotMatch(m.slice(m.indexOf('suma_biegowa')), /= ANY \(ARRAY\[/, 'suma_biegowa ma nadal listę inline obok funkcji');
   assert.match(m, /grant execute on function public\.is_run_type\(text\) to authenticated, service_role;/, 'EXECUTE na is_run_type zmienił adresatów');
+  // LEKCJE #23: default privileges Supabase dają anonowi JAWNY EXECUTE na nowej funkcji — `revoke … from public`
+  // go nie zdejmuje (zmierzone 7.10: anon → 200 true). Potrzebny osobny revoke od anon, jak w suma_biegowa.
+  assert.match(m, /revoke all on function public\.is_run_type\(text\) from anon;/, 'brak revoke od anon — default privileges zostawią anonowi EXECUTE');
+  assert.match(m, /revoke all on function public\.suma_biegowa\(uuid, timestamptz, timestamptz\) from anon, authenticated;/);
   assert.ok(!/\bto\s+anon\b/i.test(m), 'migracja nadaje coś anonowi (anon nie potrzebuje is_run_type — SECURITY DEFINER wykonuje ją jako właściciel)');
   const pomiar = bezKomentarzySql(czytaj('tools/pomiar-tygodni-reakcji.sql'));
   assert.match(pomiar, /public\.is_run_type\(l\.training_type\)/);
