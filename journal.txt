@@ -419,3 +419,27 @@ OTWARTE — faza 2 (baza), OSOBNY commit
 - blizna-39 B1 (tekst migracji MOST) zdjęty z komentarzem; migracja MOST
   z 7.10 zostaje w repo jako historia (cytuje ją LEKCJE #23).
 - Testy 837/0.
+
+================================================================================
+2026-10-07 (noc, cd.) — [ODZNAKI: KATALOG vs SILNIK — diff D wdrożony po pomiarze]
+================================================================================
+
+POMIAR achievements 7.10 (Filip, tools/pomiar-odznaki-pary-i-bez-reguly.sql):
+- pary duplikatów: 3_z_rzedu 31 / 3_dni_pod_rzad 27 i bez_dnia_przerwy 1 /
+  30_dni_challenge 1 — obie strony przyznawane → OBIE ZOSTAJĄ widoczne;
+  w pozostałych 6 parach strona bez reguły ma 0 przyznań (ukryta flagą);
+- 33 „tylko silnik": 26 przyznawanych, 7 nigdy — wszystkie do katalogu;
+- 31 „bez reguły" + stare id maratończyk/gaduła: 0 wierszy → migracja
+  przepinająca achievements NIEPOTRZEBNA, usunięta z drzewa; id ASCII tylko
+  w katalogu.
+
+ZROBIONE (commit D):
+- odznaki.html: katalog 110 → 143 definicji (33 tylko-silnik 1:1 z zawodnik.html,
+  kategorie Tempo/Specjalne/Sekretne, hidden = „?"), 31 z flagą bez_reguly
+  NIEWIDOCZNYCH w siatce (KATALOG()), szczegół zdobytej nadal czyta pełne BADGES;
+  maratończyk→maratonczyk, gaduła→gadula (id = nazwa .webp); wynik pomiaru
+  w komentarzu przy KATALOG().
+- tests/blizna-40-katalog-odznak-jedna-prawda.test.js: silnik ⊆ katalog, widoczne
+  ⊆ reguły, bez_reguly naprawdę bez reguły (31), wspólne id identyczne, ASCII,
+  pary po decyzji, lista id w SQL pomiaru = BADGES.
+- Oczekiwane na prod: 143 definicji, 31 bez_reguly, 112 widocznych.

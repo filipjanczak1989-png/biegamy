@@ -112,6 +112,21 @@ const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'
 const RARITY_BG = {common:'rgba(232,160,64,0.15)',rare:'rgba(170,200,255,0.15)',epic:'rgba(200,126,240,0.15)',legendary:'rgba(255,204,0,0.15)'};
 const BASE_URL = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/';
 const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
+/* 07.10.2026: pozycje z `bez_reguly:true` NIE są pokazywane — silnik nie ma dla nich reguły, więc
+   katalog obiecywałby cel, którego nie da się osiągnąć (spec odznaki-katalog-vs-silnik: „obietnica
+   bez pokrycia"). Definicje ZOSTAJĄ (ikony, nazwy, decyzja o dopisaniu reguł jest produktowa).
+   Gdy reguła powstanie w zawodnik.html — zdjąć flagę w TYM SAMYM commicie.
+
+   PARY DUPLIKATÓW — POMIAR achievements 7.10.2026 (tools/pomiar-odznaki-pary-i-bez-reguly.sql, Filip):
+   · 3_z_rzedu 31 przyznań / 3_dni_pod_rzad 27 — obie strony mają regułę i są przyznawane → OBIE ZOSTAJĄ widoczne;
+   · bez_dnia_przerwy 1 / 30_dni_challenge 1 — jw., obie zostają;
+   · dystans_2000/2000km_total, nocny_wojownik/sowa, early_bird/wczesny_ptak, nie_ma_wymowek/deszcz,
+     nowy_rekord/pb_run, negative_split/tempo_negatyw — strona bez reguły ma 0 przyznań (zapytanie 3 = 0 wierszy)
+     i jest ukryta flagą bez_reguly; nic ponad to nie ruszamy (decyzja Filipa 7.10).
+   · 31 „bez reguły" (w tym stare id maratończyk/gaduła): 0 przyznań → zmiana id na ASCII tylko tu w katalogu,
+     migracja przepinająca achievements NIEPOTRZEBNA (usunięta z drzewa 7.10).
+   · 33 tylko-silnik: 26 przyznawanych, 7 nigdy — wszystkie widoczne (definicje mają regułę w zawodnik.html). */
+const KATALOG = () => BADGES.filter(b => !b.bez_reguly);
 
 const BADGES = [
   // PODSTAWOWE
@@ -119,7 +134,7 @@ const BADGES = [
   {id:'wracam_do_gry',   name:'Wracam do gry',       desc:'Powrót po 7 dniach przerwy',      rarity:'common',   cat:'Podstawowe'},
   {id:'3_z_rzedu',       name:'3 z rzędu',           desc:'3 dni treningów z rzędu',         rarity:'common',   cat:'Podstawowe'},
   {id:'pierwsze_10km',   name:'Pierwsze 10 km',      desc:'10 km łącznie',                   rarity:'common',   cat:'Podstawowe'},
-  {id:'plan_ukonczony',  name:'Plan ukończony',      desc:'Ukończ swój pierwszy plan',       rarity:'common',   cat:'Podstawowe'},
+  {id:'plan_ukonczony',  name:'Plan ukończony',      desc:'Ukończ swój pierwszy plan',       rarity:'common',   cat:'Podstawowe', bez_reguly:true},
   // KONSYSTENCJA
   {id:'streak_7',        name:'Streak 7',            desc:'7 dni treningów z rzędu',         rarity:'rare',     cat:'Konsystencja'},
   {id:'streak_30',       name:'Streak 30',           desc:'30 dni treningów z rzędu',        rarity:'epic',     cat:'Konsystencja'},
@@ -137,15 +152,15 @@ const BADGES = [
   // PERFORMANCE
   {id:'tempo_killer',    name:'Tempo killer',        desc:'Ukończ trening tempowy',          rarity:'rare',     cat:'Performance'},
   {id:'interwalowiec',   name:'Interwałowiec',       desc:'5 treningów interwałowych',       rarity:'rare',     cat:'Performance'},
-  {id:'nowy_rekord',     name:'Nowy rekord',         desc:'Pobij rekord życiowy',            rarity:'epic',     cat:'Performance'},
-  {id:'negative_split',  name:'Negative split',      desc:'Druga połowa szybciej',           rarity:'epic',     cat:'Performance'},
+  {id:'nowy_rekord',     name:'Nowy rekord',         desc:'Pobij rekord życiowy',            rarity:'epic',     cat:'Performance', bez_reguly:true},
+  {id:'negative_split',  name:'Negative split',      desc:'Druga połowa szybciej',           rarity:'epic',     cat:'Performance', bez_reguly:true},
   // KLIMAT
   {id:'nocny_wojownik',  name:'Nocny wojownik',      desc:'Trening po 22:00',                rarity:'rare',     cat:'Klimat'},
   {id:'early_bird',      name:'Early bird',          desc:'Trening przed 6:00',              rarity:'rare',     cat:'Klimat'},
-  {id:'nie_ma_wymowek',  name:'Nie ma wymówek',      desc:'Trening w deszczu',               rarity:'rare',     cat:'Klimat'},
-  {id:'lodowy_biegacz',  name:'Lodowy biegacz',      desc:'Trening poniżej 0°C',             rarity:'epic',     cat:'Klimat'},
+  {id:'nie_ma_wymowek',  name:'Nie ma wymówek',      desc:'Trening w deszczu',               rarity:'rare',     cat:'Klimat', bez_reguly:true},
+  {id:'lodowy_biegacz',  name:'Lodowy biegacz',      desc:'Trening poniżej 0°C',             rarity:'epic',     cat:'Klimat', bez_reguly:true},
   // MENTAL
-  {id:'silna_glowa',     name:'Silna głowa',         desc:'Trening mimo zmęczenia',          rarity:'rare',     cat:'Mental'},
+  {id:'silna_glowa',     name:'Silna głowa',         desc:'Trening mimo zmęczenia',          rarity:'rare',     cat:'Mental', bez_reguly:true},
   {id:'bez_wymowek',     name:'Bez wymówek',         desc:'5 dni bez pominięcia',            rarity:'rare',     cat:'Mental'},
   {id:'powrot_silniejszy',name:'Powrót silniejszy',  desc:'Comeback po przerwie',            rarity:'rare',     cat:'Mental'},
   // TYGODNIOWE
@@ -174,12 +189,12 @@ const BADGES = [
   {id:'ultra_m',         name:'Ultra miesiąca',      desc:'100 km+ w miesiącu',              rarity:'epic',     cat:'Miesięczne'},
   // SPOŁECZNOŚĆ
   {id:'pierwszy_koment', name:'Pierwszy komentarz',  desc:'Napisz swój pierwszy komentarz',  rarity:'common',   cat:'Społeczność'},
-  {id:'motywator',       name:'Motywator',           desc:'10 reakcji od innych',            rarity:'rare',     cat:'Społeczność'},
-  {id:'lider',           name:'Lider',               desc:'Top tygodnia',                    rarity:'epic',     cat:'Społeczność'},
-  {id:'wsparcie',        name:'Wsparcie',            desc:'20 lajków od innych',             rarity:'rare',     cat:'Społeczność'},
+  {id:'motywator',       name:'Motywator',           desc:'10 reakcji od innych',            rarity:'rare',     cat:'Społeczność', bez_reguly:true},
+  {id:'lider',           name:'Lider',               desc:'Top tygodnia',                    rarity:'epic',     cat:'Społeczność', bez_reguly:true},
+  {id:'wsparcie',        name:'Wsparcie',            desc:'20 lajków od innych',             rarity:'rare',     cat:'Społeczność', bez_reguly:true},
   // HARDCORE
   {id:'bez_dnia_przerwy',name:'Bez dnia przerwy 30', desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Hardcore'},
-  {id:'ultra_mindset',   name:'Ultra mindset',       desc:'6h biegu / ultra',                rarity:'legendary',cat:'Hardcore'},
+  {id:'ultra_mindset',   name:'Ultra mindset',       desc:'6h biegu / ultra',                rarity:'legendary',cat:'Hardcore', bez_reguly:true},
   {id:'granice',         name:'Granice nie istnieją',desc:'100 km w miesiącu',               rarity:'legendary',cat:'Hardcore'},
   // SEZONOWE
   {id:'swiateczny',      name:'Świąteczny biegacz',  desc:'Trening w Święta',                rarity:'rare',     cat:'Sezonowe'},
@@ -194,41 +209,41 @@ const BADGES = [
   {id:'sub_5min_km',     name:'Sub 5:00/km',         desc:'Trening ze średnim tempem poniżej 5:00/km', rarity:'rare',     cat:'Performance'},
   {id:'sub_4min_km',     name:'Sub 4:00/km',         desc:'Trening ze średnim tempem poniżej 4:00/km', rarity:'epic',     cat:'Performance'},
   {id:'sub_3_30_km',     name:'Sub 3:30/km',         desc:'Trening ze średnim tempem poniżej 3:30/km', rarity:'legendary',cat:'Performance'},
-  {id:'tempo_negatyw',   name:'Negative split',      desc:'Druga połowa szybsza od pierwszej',         rarity:'rare',     cat:'Performance'},
+  {id:'tempo_negatyw',   name:'Negative split',      desc:'Druga połowa szybsza od pierwszej',         rarity:'rare',     cat:'Performance', bez_reguly:true},
   {id:'mistrz_tempa',    name:'Mistrz tempa',        desc:'5 treningów tempo w miesiącu',              rarity:'epic',     cat:'Performance'},
 
   // ── Nowe: Dystansowe ─────────────────────────────────
   {id:'pierwsza_5tka',   name:'Pierwsza piątka',     desc:'Pierwsze 5 km w jednym treningu',           rarity:'common',   cat:'Dystans'},
   {id:'dwucyfrowy',      name:'Dwucyfrowy',          desc:'Pierwszy bieg 10 km+',                      rarity:'common',   cat:'Dystans'},
   {id:'half_marathon',   name:'Półmaratończyk',      desc:'21 km w jednym treningu',                   rarity:'epic',     cat:'Dystans'},
-  {id:'maratończyk',     name:'Maratończyk',         desc:'42 km w jednym treningu',                   rarity:'legendary',cat:'Dystans'},
+  {id:'maratonczyk',     name:'Maratończyk',         desc:'42 km w jednym treningu',                   rarity:'legendary',cat:'Dystans', bez_reguly:true},
   {id:'ultra',           name:'Ultra',               desc:'50 km+ w jednym treningu',                  rarity:'legendary',cat:'Dystans'},
-  {id:'2000km_total',    name:'2000 km',             desc:'2000 km łącznie',                           rarity:'legendary',cat:'Dystans'},
+  {id:'2000km_total',    name:'2000 km',             desc:'2000 km łącznie',                           rarity:'legendary',cat:'Dystans', bez_reguly:true},
 
   // ── Nowe: Pora dnia ──────────────────────────────────
-  {id:'wczesny_ptak',    name:'Wczesny ptak',        desc:'Trening przed 6:00',                        rarity:'rare',     cat:'Klimat'},
-  {id:'sowa',            name:'Sowa',                desc:'Trening po 22:00',                          rarity:'rare',     cat:'Klimat'},
-  {id:'poranek_5',       name:'Poranek',             desc:'5 treningów przed 7:00',                    rarity:'epic',     cat:'Klimat'},
-  {id:'noc_marathon',    name:'Nocny maratończyk',   desc:'10 treningów po 22:00',                     rarity:'epic',     cat:'Klimat'},
+  {id:'wczesny_ptak',    name:'Wczesny ptak',        desc:'Trening przed 6:00',                        rarity:'rare',     cat:'Klimat', bez_reguly:true},
+  {id:'sowa',            name:'Sowa',                desc:'Trening po 22:00',                          rarity:'rare',     cat:'Klimat', bez_reguly:true},
+  {id:'poranek_5',       name:'Poranek',             desc:'5 treningów przed 7:00',                    rarity:'epic',     cat:'Klimat', bez_reguly:true},
+  {id:'noc_marathon',    name:'Nocny maratończyk',   desc:'10 treningów po 22:00',                     rarity:'epic',     cat:'Klimat', bez_reguly:true},
 
   // ── Nowe: Pogoda ─────────────────────────────────────
-  {id:'mroz',            name:'Lodowate stopy',      desc:'Trening w temp. poniżej 0°C',               rarity:'rare',     cat:'Klimat'},
-  {id:'upal',            name:'Wojownik upału',      desc:'Trening w temp. powyżej 30°C',              rarity:'rare',     cat:'Klimat'},
-  {id:'deszcz',          name:'Deszczowy bohater',   desc:'Trening w deszczu',                         rarity:'common',   cat:'Klimat'},
-  {id:'snieg',           name:'Śnieżny żołnierz',    desc:'Trening w śniegu',                          rarity:'rare',     cat:'Klimat'},
+  {id:'mroz',            name:'Lodowate stopy',      desc:'Trening w temp. poniżej 0°C',               rarity:'rare',     cat:'Klimat', bez_reguly:true},
+  {id:'upal',            name:'Wojownik upału',      desc:'Trening w temp. powyżej 30°C',              rarity:'rare',     cat:'Klimat', bez_reguly:true},
+  {id:'deszcz',          name:'Deszczowy bohater',   desc:'Trening w deszczu',                         rarity:'common',   cat:'Klimat', bez_reguly:true},
+  {id:'snieg',           name:'Śnieżny żołnierz',    desc:'Trening w śniegu',                          rarity:'rare',     cat:'Klimat', bez_reguly:true},
 
   // ── Nowe: Społeczność ────────────────────────────────
   {id:'pierwszy_kumpel', name:'Pierwszy kumpel',     desc:'Pierwsza zaakceptowana znajomość',          rarity:'common',   cat:'Społeczność'},
   {id:'krag_5',          name:'Krąg 5',              desc:'5 znajomych',                               rarity:'common',   cat:'Społeczność'},
   {id:'krag_25',         name:'Krąg 25',             desc:'25 znajomych',                              rarity:'rare',     cat:'Społeczność'},
   {id:'krag_50',         name:'Krąg 50',             desc:'50 znajomych',                              rarity:'epic',     cat:'Społeczność'},
-  {id:'pierwsza_wiad',   name:'Pierwsza wiadomość',  desc:'Pierwsza wiadomość do trenera',             rarity:'common',   cat:'Społeczność'},
-  {id:'gaduła',          name:'Gaduła',              desc:'100 wiadomości łącznie',                    rarity:'rare',     cat:'Społeczność'},
+  {id:'pierwsza_wiad',   name:'Pierwsza wiadomość',  desc:'Pierwsza wiadomość do trenera',             rarity:'common',   cat:'Społeczność', bez_reguly:true},
+  {id:'gadula',          name:'Gaduła',              desc:'100 wiadomości łącznie',                    rarity:'rare',     cat:'Społeczność', bez_reguly:true},
 
   // ── Nowe: Posty ───────────────────────────────────────
-  {id:'pierwszy_post',   name:'Pierwszy post',       desc:'Dodaj pierwszy post na profilu',            rarity:'common',   cat:'Społeczność'},
-  {id:'10_postow',       name:'10 postów',           desc:'10 postów na profilu',                      rarity:'rare',     cat:'Społeczność'},
-  {id:'cytat_dnia',      name:'Filozof',             desc:'Dodaj 5 cytatów',                           rarity:'rare',     cat:'Społeczność'},
+  {id:'pierwszy_post',   name:'Pierwszy post',       desc:'Dodaj pierwszy post na profilu',            rarity:'common',   cat:'Społeczność', bez_reguly:true},
+  {id:'10_postow',       name:'10 postów',           desc:'10 postów na profilu',                      rarity:'rare',     cat:'Społeczność', bez_reguly:true},
+  {id:'cytat_dnia',      name:'Filozof',             desc:'Dodaj 5 cytatów',                           rarity:'rare',     cat:'Społeczność', bez_reguly:true},
 
   // ── Nowe: Tygodniowe ─────────────────────────────────
   {id:'tydzien_50km',    name:'Tydzień 50 km',       desc:'50 km w jednym tygodniu',                   rarity:'rare',     cat:'Tygodniowe'},
@@ -247,9 +262,9 @@ const BADGES = [
   {id:'7_usmiechow',     name:'Optymista',           desc:'7 treningów z nastrojem "dobrze"',          rarity:'common',   cat:'Mental'},
 
   // ── Nowe: Wyzwania ──────────────────────────────────
-  {id:'pierwsze_wyzwanie',name:'Pierwsze wyzwanie',  desc:'Ukończ pierwsze wyzwanie',                  rarity:'common',   cat:'Wyzwania'},
-  {id:'5_wyzwan',        name:'Łowca wyzwań',        desc:'Ukończ 5 wyzwań',                           rarity:'rare',     cat:'Wyzwania'},
-  {id:'10_wyzwan',       name:'Mistrz wyzwań',       desc:'Ukończ 10 wyzwań',                          rarity:'epic',     cat:'Wyzwania'},
+  {id:'pierwsze_wyzwanie',name:'Pierwsze wyzwanie',  desc:'Ukończ pierwsze wyzwanie',                  rarity:'common',   cat:'Wyzwania', bez_reguly:true},
+  {id:'5_wyzwan',        name:'Łowca wyzwań',        desc:'Ukończ 5 wyzwań',                           rarity:'rare',     cat:'Wyzwania', bez_reguly:true},
+  {id:'10_wyzwan',       name:'Mistrz wyzwań',       desc:'Ukończ 10 wyzwań',                          rarity:'epic',     cat:'Wyzwania', bez_reguly:true},
   // #100kmDlaKasi — reguły przyznawania żyją w zawodnik.html (WYZWANIA).
   // Ten plik tylko WYŚWIETLA; wpis musi istnieć w obu, inaczej odznaka
   // będzie przyznawana i niewidoczna albo widoczna i nieprzyznawalna.
@@ -258,9 +273,47 @@ const BADGES = [
 
   // ── Nowe: Starty ─────────────────────────────────────
   {id:'pierwszy_start',  name:'Pierwszy start',      desc:'Zapisz się na pierwsze zawody',             rarity:'common',   cat:'Starty'},
-  {id:'5_startow',       name:'Bywalec startów',     desc:'Ukończ 5 zawodów',                          rarity:'rare',     cat:'Starty'},
-  {id:'pb_run',          name:'Nowy rekord',         desc:'Pobicie życiówki',                          rarity:'epic',     cat:'Starty'},
+  {id:'5_startow',       name:'Bywalec startów',     desc:'Ukończ 5 zawodów',                          rarity:'rare',     cat:'Starty', bez_reguly:true},
+  {id:'pb_run',          name:'Nowy rekord',         desc:'Pobicie życiówki',                          rarity:'epic',     cat:'Starty', bez_reguly:true},
 
+  /* ── 07.10.2026: 33 odznaki, które SILNIK (zawodnik.html _checkBadgeRules) przyznawał od miesięcy,
+     a katalog ich nie pokazywał — ludzie mieli je w achievements i nie widzieli w tym ekranie.
+     Treść 1:1 z zawodnik.html (opis = warunek z reguły). Kategorie Tempo / Specjalne / Sekretne
+     są nowe dla katalogu; `hidden:true` = w siatce niezdobytych pokazuje się „?".
+     ⚠️ KOPIA pod bramką: tests/blizna-40-katalog-odznak-jedna-prawda.test.js porównuje oba pliki. */
+  {id:'gorace_tempo',     name:'Gorące tempo',        desc:'Bieg 5+ km poniżej 5:00/km',         rarity:'rare',     cat:'Tempo'},
+  {id:'sub_25',           name:'Sub-25',              desc:'5 km poniżej 25 minut',              rarity:'rare',     cat:'Tempo'},
+  {id:'sub_50',           name:'Sub-50',              desc:'10 km poniżej 50 minut',             rarity:'epic',     cat:'Tempo'},
+  {id:'sub_2',            name:'Sub-2',               desc:'Półmaraton poniżej 2 godzin',        rarity:'epic',     cat:'Tempo'},
+  {id:'sub_4',            name:'Sub-4',               desc:'Maraton poniżej 4 godzin',           rarity:'epic',     cat:'Tempo'},
+  {id:'maszyna_biegania', name:'Maszyna do biegania', desc:'10 treningów < 5:00/km',             rarity:'epic',     cat:'Tempo'},
+  {id:'pierwszy_fan',         name:'Pierwszy fan',         desc:'Pierwszy follow',                       rarity:'common',   cat:'Społeczność'},
+  {id:'stary_druh',           name:'Stary druh',           desc:'1 rok obserwacji znajomego',            rarity:'rare',     cat:'Społeczność'},
+  {id:'coach_whisperer',      name:'Coach Whisperer',      desc:'50 wiadomości do trenera',              rarity:'rare',     cat:'Społeczność'},
+  {id:'spam_friend',          name:'Spam Friend',          desc:'100 wiadomości do znajomego',           rarity:'epic',     cat:'Społeczność'},
+  {id:'pliszka',              name:'Pliszka',              desc:'Pierwsza akceptacja zaproszenia',       rarity:'common',   cat:'Społeczność'},
+  {id:'pierwszy_pojedynek',   name:'Pierwszy pojedynek',   desc:'Wyzwij znajomego 1v1',                  rarity:'common',   cat:'Społeczność'},
+  {id:'zwyciezca_pojedynku',  name:'Zwycięzca pojedynku',  desc:'Wygraj 1v1',                            rarity:'rare',     cat:'Społeczność'},
+  {id:'mistrz_pojedynkow',    name:'Mistrz pojedynków',    desc:'Wygraj 10 razy 1v1',                    rarity:'epic',     cat:'Społeczność'},
+  {id:'maraton_dni',           name:'Maraton dni',           desc:'1 trening dziennie 26 dni',                  rarity:'epic',     cat:'Specjalne'},
+  {id:'mr_13',                 name:'Mr/Ms 13',              desc:'13 km w piątek 13.',                         rarity:'legendary',cat:'Specjalne', hidden:true},
+  {id:'pi_day',                name:'Pi day',                desc:'3.14 km dokładnie',                          rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'maraton_tygodnia',      name:'Maraton tygodnia',      desc:'42 km w tygodniu',                           rarity:'rare',     cat:'Specjalne'},
+  {id:'polmaraton_tydz',       name:'Półmaratoński tydzień', desc:'21 km w tygodniu',                           rarity:'common',   cat:'Specjalne'},
+  {id:'setka_dokladna',        name:'Setka',                 desc:'Dokładnie 100 km łącznie ±0.5',              rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'easy_rider',            name:'Easy Rider',            desc:'20 treningów typu "Spokojny"',               rarity:'rare',     cat:'Specjalne'},
+  {id:'rakieta',               name:'Rakieta',               desc:'Szybsze tempo niż w poprzednim tygodniu',    rarity:'common',   cat:'Specjalne'},
+  {id:'czterolistna_koniczyna',name:'Czterolistna koniczyna',desc:'4 treningi 4 dni z rzędu',                   rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'solo_artist',           name:'Solo Artist',           desc:'Trening dłuższy niż 2 godziny',              rarity:'rare',     cat:'Specjalne'},
+  {id:'tylko_jeden',           name:'Tylko jeden',           desc:'Trening dokładnie 1 km',                     rarity:'common',   cat:'Specjalne', hidden:true},
+  {id:'dzien_kobiet',          name:'Dzień Kobiet',          desc:'Bieg 8 marca',                               rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'walentynki_solo',       name:'Walentynki solo',       desc:'Bieg 14 lutego',                             rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'urodzinowy_run',        name:'Urodzinowy run',        desc:'Bieg w dniu urodzin',                        rarity:'epic',     cat:'Specjalne', hidden:true},
+  {id:'easter_egg',           name:'Easter Egg',           desc:'Kliknij logo BiegaMy 7 razy w 5 sekund', rarity:'legendary', cat:'Sekretne', hidden:true},
+  {id:'pierwsza_z_pierwszych',name:'Pierwsza z pierwszych',desc:'Jeden z pierwszych 50 użytkowników',     rarity:'legendary', cat:'Sekretne', hidden:true},
+  {id:'wieczny_optymista',    name:'Wieczny optymista',    desc:'10 treningów oznaczonych "good feel"',   rarity:'rare',      cat:'Sekretne', hidden:true},
+  {id:'swiety_mikolaj',       name:'Święty Mikołaj',       desc:'Bieg 6 grudnia',                         rarity:'rare',      cat:'Sekretne', hidden:true},
+  {id:'dzien_biegacza',       name:'Dzień Biegacza',       desc:'Bieg 1 czerwca',                         rarity:'rare',      cat:'Sekretne', hidden:true},
 ];
 
 
@@ -271,19 +324,19 @@ function renderBadgesSection() {
   if (!container) return;
 
   const earned = window._earnedBadges.size;
-  const cats = [...new Set(BADGES.map(b => b.cat))];
+  const cats = [...new Set(KATALOG().map(b => b.cat))];
 
   let html = `
     <div style="display:flex;align-items:center;gap:12px;padding:0 0 16px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;color:var(--accent);">${earned}</div>
       <div>
         <div style="font-size:13px;font-weight:600;">zdobyte odznaki</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} jeszcze do zdobycia</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${KATALOG().length - earned} jeszcze do zdobycia</div>
       </div>
     </div>`;
 
   for (const cat of cats) {
-    const catBadges = BADGES.filter(b => b.cat === cat);
+    const catBadges = KATALOG().filter(b => b.cat === cat);
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
     if (earnedInCat === 0) continue; // Pokaż kategorie tylko ze zdobytymi
 
@@ -312,7 +365,7 @@ function renderBadgesSection() {
   }
 
   // Niezdobyte — mała szara siatka na dole
-  const locked = BADGES.filter(b => !window._earnedBadges.has(b.id));
+  const locked = KATALOG().filter(b => !window._earnedBadges.has(b.id));
   if (locked.length > 0) {
     html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.2);margin-bottom:10px;">Do zdobycia (${locked.length})</div>`;
     html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">`;
