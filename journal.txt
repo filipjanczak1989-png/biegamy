@@ -347,3 +347,56 @@ OTWARTE
 - biegus_most: authenticated ma zastane DELETE i TRUNCATE tabelowo (bez polityki
   DELETE → 0 wierszy przez RLS; TRUNCATE omija RLS, ale PostgREST go nie
   wystawia). Nie ruszane dziś — do przeglądu grantów zastanych.
+
+================================================================================
+2026-10-07 (noc) — sesja (Filip + Claude)  [KASACJA GRY BIEGUŚ — FAZA 1 FRONT]
+================================================================================
+
+DECYZJA: nikt nie gra. Zmierzone PRZED kasacją (CLI read-only): biegus_most
+14 wierszy (13 z zapisem), ostatni zapis 28.09, 0 odbiorów piór w 7 dni;
+game_events 220 wierszy, ostatnie 21.09; brak triggerów/cron/widoków/FK do
+tabel gry; delete_my_account kasuje z OBU (biegus_most, game_events).
+
+ZROBIONE — faza 1 (62b55a9, wypchnięte, deploy ZMIERZONY)
+-----------------------------------------------------------
+- biegus.html = przekierowanie na zawodnik.html (meta refresh + location.replace,
+  nagrobek z liczbami) — zakładki i ikony PWA nie kończą na 404.
+- zawodnik.html: baner „Bieguś — Droga na Igrzyska" + 2 przełączniki → nagrobek.
+- gra.html: MOST-AUTOMAT (postMessage do iframe w grze) → nagrobek; gra.html
+  zostaje (linkowana z zawodnik.html:886, własna tabela game_scores).
+- sw.js: /vendor/three-r128.min.js poza PRECACHE_URLS (wpis bez pliku wywraca
+  addAll() całej instalacji SW); plik usunięty — nic poza grą nie używało THREE.
+- 355 plików usuniętych: backupy biegus-v144/145, three.js, assets/{biegus.glb,
+  postaci, przedmioty, sprites, swiat, radio, ui/atlas, ui/ikony}, assets/modele
+  poza auto.glb (sb.js/zawodnik/trener/profil), assets/ui pierwszy poziom poza
+  logo-b-ring (demo) i logo-bm-but (index). Zostają assets/ui/{banery, naglowki,
+  pustki, onas}, assets/janusz. Usuwanie wykonał Filip ręcznie (klasyfikator
+  odrzucił masowy rm); moja pierwsza komenda `grep -v "/"` była BŁĘDNA (ścieżki
+  mają slash) — poprawiona na `grep -v "^assets/ui/[^/]*/"`.
+- Testy: blizna-38 (2b, 4) i blizna-39 (B2) pilnowały klienta gry — zdjęte
+  z komentarzem; blizna-41 pilnuje, że gra nie wraca po kawałku i że assety
+  innych stron przeżyły. 837/0, bramki zielone.
+- POMIAR PO DEPLOYU (curl, 3. próba): biegus.html 200, 1355 B, meta refresh
+  na zawodnik.html + location.replace; zawodnik.html z prod: 0 wystąpień
+  biegus-home-banner, nagrobek jest; sw.js z prod: CACHE_VERSION
+  biegamy-2026-10-07-62b55a9, three-r128 tylko w komentarzu; vendor/three-r128
+  → 404; assets/ui/og-biegus.webp → 404.
+
+OTWARTE — faza 2 (baza), OSOBNY commit
+--------------------------------------
+- Pliki W DRZEWIE, NIEWYKONANE: supabase/migrations/20261007_kasacja_biegus_baza.sql
+  (JEDNA zmiana delete_my_account bez linii biegus_most i game_events; drop
+  biegus_most_odbierz, biegus_ranking, biegus_most, game_events) + WYCOFANIE
+  (DDL obu tabel ze zmierzonego stanu, funkcje z migawek, szablony danych)
+  + tools/backup-biegus_most.sql (zapytania 1-4; pliki JSON POZA repo —
+  imiona graczy, athlete_id). Kolejność: backup → migracja → kontrole →
+  zrzuty funkcje/polityki → REST (RPC → 404 PGRST202) → journal → commit.
+- ⚠️ delete_my_account PRZED drop: plpgsql rozwiązuje nazwy w runtime — drop
+  tabeli bez poprawki = 42P01 przy KAŻDYM usuwaniu konta.
+- game_events po kasacji gry = tabela z INSERT dla anon bez producenta —
+  dlatego w tej samej migracji (decyzja Filipa).
+- Po fazie 2: blizna-39 B1 (tekst migracji MOST) do zdjęcia — migracja z 7.10
+  zostaje w repo jako historia.
+- Janusz Run (jr_* 11 tabel, 14 funkcji z EXECUTE dla anon z default
+  privileges, janusz.html NIELINKOWANA, js/janusz/) = inna gra, nie ruszana.
+- biegamy-assets (osobne repo): 7 plików biegus-* — tylko zgłoszone.
