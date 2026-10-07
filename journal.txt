@@ -505,3 +505,24 @@ Polecenie mówiło „wykonane (a), (b), (c) + radio_top, (d)". ZMIERZONE (CLI +
 Wniosek jak LEKCJE #22: „wykonane" w poleceniu to wejście do pomiaru. Pliki (a)/(c)/(d)
 zostają NIEŚLEDZONE do czasu wykonania i pomiaru; prawdopodobna przyczyna — błąd w
 transakcji (begin/commit cofa całość), treść błędu do ustalenia u Filipa.
+
+================================================================================
+2026-10-07 (noc, cd.) — [PAKA 4: (a) (c) (d) NA PROD — ZMIERZONE po drugim „wykonane"]
+================================================================================
+
+Pierwsze „wykonane (a)(b)(c)(d)" pokryło się z pomiarem tylko dla (b). Filip wykonał (a), (c)
+i (d) ponownie (powód pierwszej porażki nieustalony — nie zakładamy). ZMIERZONE (CLI + REST + zrzuty):
+- (a) Janusz Run faza 2: pg_proc jr_* 0, pg_class jr_* 0 (tabele + indeksy), delete_my_account bez
+  jr_ (nowa suma 5cbeb0e44e904f97); REST anon rpc/jr_get_shop → 404 PGRST202, GET jr_players →
+  404 PGRST205. Zrzut: −13 funkcji, −11 migawek rls. Przed dropem sprawdzone zależności poza
+  grą: 0 widoków, 0 polityk na obcych tabelach, 0 FK z obcych tabel, 0 triggerów, 0 publikacji
+  realtime; jedyna obca referencja = delete_my_account (zmieniona w tej samej transakcji).
+- (c) granty: TRUNCATE/TRIGGER/REFERENCES dla anon+authenticated 181 → 0; DELETE bez polityki
+  19 → 0; radio_top anon = brak grantów (SELECT zdjęty osobno wcześniej). Zrzut: 52 migawki rls.
+- (d) funkcje: proacl z anon=X 26 → 0, z PUBLIC (=X) → 0, are_friends skasowana (REST → 404),
+  pg_default_acl postgres = {postgres, authenticated, service_role}. supabase_admin: ERROR 42501
+  permission denied to change default privileges — ZOSTAJE z anon/PUBLIC (postgres nie jest
+  członkiem supabase_admin); linia usunięta z migracji, powód w komentarzu i w LEKCJE #24.
+Funkcje w migawce 58 → 44 (−13 jr_*, −are_friends). Commity: (c) 55b07f6 (zawiera też 11 migawek
+rls jr_* — jeden zrzut), (d) a5dd3d6, (a) osobno po nich.
+
