@@ -7,7 +7,7 @@ security_invoker: TAK — czyta uprawnieniami PYTAJĄCEGO, RLS tabel źródłowy
 
 UPRAWNIENIA (tabelowe)
   anon           : — brak
-  authenticated  : REFERENCES, SELECT, TRIGGER, TRUNCATE
+  authenticated  : SELECT
   postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
   service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
 
