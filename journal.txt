@@ -589,3 +589,52 @@ OGRANICZENIA: miniatury logów (Storage training-screenshots, signed URL) poza
 cache; kadr hero wybiera SOLO.dopasuj (trening+pogoda) — offline może wskazać
 kadr spoza cache; dane są z ostatniej synchronizacji (pasek z godziną).
 REVERT gotowy: git revert <sha> (na komendę „revert").
+
+================================================================================
+2026-10-08 — [„DZIŚ"/PLAN OFFLINE PO SMOKE + SW BEZ CACHE SUPABASE REST]
+================================================================================
+
+SMOKE FILIPA (tryb samolotowy po c24a0e5): treningi z grafikami, wiadomość
+trenera, pogoda OK; hero = czarny prostokąt; BRAK paska „Offline · dane z";
+zakładka Plan pusta.
+
+DZIURA PRYWATNOŚCI — ZAMKNIĘTA (ten commit). sw.js trzymał odpowiedzi Supabase
+REST (networkFirst → RUNTIME_CACHE). Zmierzone 7.10: odpowiedź PostgREST 200 NIE
+MA nagłówka Vary → Cache API kluczuje po samym URL-u, BEZ Authorization.
+Skutki: (1) offline odpowiedź z cache wracała jako SUKCES → migawka i pasek
+offline nigdy się nie włączały (stąd brak paska w smoke); (2) zapytania bez
+tożsamości w URL-u — trener.html:4520 athletes?…&limit=10 (wynik zależy tylko
+od RLS), kalendarz.html:4469 coach_workout_templates — po wylogowaniu i
+zalogowaniu INNEGO konta na tym samym urządzeniu oddałyby offline dane
+poprzedniego. Wylogowanie nie czyściło cache SW (tylko kolejny deploy).
+Nie odtwarzane na urządzeniu — dowód z nagłówków i kodu.
+NAPRAWA: Supabase REST network-only (gałąź i networkFirst usunięte); deploy
+kasuje stary RUNTIME_CACHE (prefiks CACHE_VERSION) na wszystkich urządzeniach.
+Offline obsługuje wyłącznie migawka per user_id (js/dzis-offline.js).
+
+ZROBIONE PRZY OKAZJI (konieczne po zdjęciu cache):
+- initAuth: _athZMigawki — wiersz athletes z migawki; bez sieci i bez migawki
+  komunikat i STOP (dawniej ath=null → showOnboarding()).
+- wiadomość trenera: ostatnia w migawce (część 'wiadomosc').
+- hero: _heroZabezpiecz — sonda Image(), migawka 'hero' (nie przesuwa godziny
+  „dane z" i nie zdejmuje paska), fallback /assets/ui/banery/baner-index-01.webp
+  z własnego originu w precache. Nigdy pusty kafel.
+- Plan (kalendarz.html?role=athlete): _calPlanOffline z migawki 'tydzien'
+  (dzień zapisu..+13) + pasek; dzień poza zakresem „Brak połączenia — ten dzień
+  niedostępny offline" (mobile per dzień, kafelki: nota nad siatką); bez
+  migawki ten komunikat dla każdego dnia. Trener bez zmian.
+- pierścień tygodnia: planned = 0 → bez procentu, liczba treningów + „N treningów
+  w tym tygodniu"; procent tylko przy planie.
+blizna-45: 20 testów; blizna-44 licznik 3. Razem 876/0.
+
+KOSZT: strony bez migawki tracą odczyt offline z cache SW (liczba sb.from w
+kodzie): zawodnik 220, trener 122, profil 83, kalendarz 70, nutrition 31, races
+24, radio 24, wyzwania 12, compare 10, gra 9, raporty 7, ankieta 5, odznaki 5,
+index 1. EF i Storage nie szły tą gałęzią.
+
+BACKLOG — przegląd stanów pustych przy błędzie sieci na pozostałych stronach
+(nutrition, races, radio, profil, wyzwania, compare, raporty, odznaki, trener):
+ta sama klasa co „Brak zaplanowanego treningu na dziś." offline — loader patrzy
+tylko na data, null przy braku sieci renderuje się jako „nic nie ma". Każde
+takie miejsce ma mówić „Brak połączenia", nie „brak X". Narzędzie do zwiadu:
+grep `if (!data` / `data || []` / `if (error || !data)` per strona.

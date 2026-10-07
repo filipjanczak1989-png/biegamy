@@ -219,3 +219,100 @@ test('obrazy SWR: bez kopii → sieć (i zapis); bez kopii i bez sieci → 504, 
   assert.match(sw, /event\.respondWith\(obrazStaleWhileRevalidate\(request\)\)/);
   assert.doesNotMatch(sw, /obrazCacheFirst/);
 });
+
+// ── SMOKE FILIPA 7/8.10: hero, pasek offline, Plan, pierścień bez planu ────────────────────────────────
+test('SW nie cachuje Supabase REST (network-only): brak gałęzi i brak networkFirst — odpowiedź z cache nie udaje sukcesu offline', () => {
+  assert.doesNotMatch(sw, /isSupabaseAPI\(url\)/, 'gałąź Supabase REST wróciła do routera');
+  assert.doesNotMatch(sw, /async function networkFirst\(/);
+  assert.match(sw, /Supabase REST \(\/rest\/v1\/\) — NETWORK-ONLY od 07\.10\.2026/);
+  assert.match(sw, /nie ma nagłówka Vary/, 'powód (klucz cache bez Authorization) ma zostać przy kodzie');
+});
+
+test('initAuth offline: wiersz athletes z migawki; bez migawki komunikat i STOP — nigdy onboarding po braku sieci', () => {
+  swiezy();
+  const z = czytaj('zawodnik.html');
+  assert.match(z, /function _athZMigawki\(userId, ath, err\)/);
+  assert.equal((z.match(/= _athZMigawki\(/g) || []).length, 2, 'obie ścieżki initAuth przez _athZMigawki');
+  assert.equal((z.match(/if \(ath2? === undefined\) return;/g) || []).length, 2, 'undefined = przerwij przed onboardingiem');
+  assert.equal(D.zapisz(U, 'zawodnik', { id: 'a1', full_name: 'Filip' }), true);
+  assert.equal(D.awaryjnie(U, 'zawodnik', { message: 'Failed to fetch' }).dane.id, 'a1');
+});
+
+test('wiadomość trenera offline: ostatnia wiadomość w migawce, odczyt przy błędzie sieci', () => {
+  const z = czytaj('zawodnik.html');
+  const i = z.indexOf('async function loadCoachMessage()');
+  const c = z.slice(i, i + 4000);
+  assert.match(c, /if \(!msgsErr\) \{ DzisOffline\.zapisz\(_uidMig, 'wiadomosc'/);
+  assert.match(c, /DzisOffline\.awaryjnie\(_uidMig, 'wiadomosc', msgsErr\)/);
+});
+
+test('hero: zapis kadru NIE przesuwa znacznika „dane z" ani nie zdejmuje paska; awaryjny kadr z własnego originu w precache', () => {
+  swiezy();
+  D.zapisz(U, 'logi', [1]);
+  const ts0 = D.odczytaj(U).ts;
+  assert.ok(D.BEZ_CZASU.includes('hero'));
+  const teraz = Date.now; Date.now = () => ts0 + 3600000;
+  try { assert.equal(D.zapisz(U, 'hero', 'https://x/solo-07.webp'), true); } finally { Date.now = teraz; }
+  const m = D.odczytaj(U);
+  assert.equal(m.ts, ts0, 'kadr hero zapisany offline nie może udawać świeżej synchronizacji');
+  assert.equal(m.czesci.hero, 'https://x/solo-07.webp');
+  assert.equal(D.HERO_DOMYSLNY, '/assets/ui/banery/baner-index-01.webp');
+  assert.ok(fs.existsSync(path.join(KORZEN, 'assets/ui/banery/baner-index-01.webp')), 'brak pliku awaryjnego kadru — addAll() wywróciłby instalację SW');
+  assert.match(sw, /'\/assets\/ui\/banery\/baner-index-01\.webp'/, 'awaryjny kadr w PRECACHE_URLS');
+  const z = czytaj('zawodnik.html');
+  assert.match(z, /_heroZabezpiecz\(bg, _heroCards\[0\]\);/);
+  const h = z.slice(z.indexOf('function _heroZabezpiecz('), z.indexOf('function _heroInit()'));
+  assert.match(h, /im\.onerror/, 'background-image nie ma zdarzenia błędu — sonda przez Image()');
+  assert.match(h, /DzisOffline\.zapisz\(uid, 'hero', u\)/, 'zapis tylko po onload (kadr ostatnio WYŚWIETLONY)');
+  assert.match(h, /DzisOffline\.HERO_DOMYSLNY/);
+});
+
+test('Plan offline: zakres = dzień zapisu „tydzien" .. +13; dzień poza zakresem i brak migawki = nieznany', () => {
+  swiezy();
+  assert.equal(D.zakresTygodnia(D.odczytaj(U)), null, 'bez migawki brak zakresu');
+  const dzis = D.dataLokalna(Date.now());
+  D.zapisz(U, 'tydzien', [{ date: dzis, type: 'Tempo' }]);
+  const z = D.zakresTygodnia(D.odczytaj(U));
+  assert.equal(z.od, dzis);
+  const p = dzis.split('-').map(Number);
+  assert.equal(z.do, D.dataLokalna(new Date(p[0], p[1] - 1, p[2] + 13).getTime()));
+  assert.equal(D.dzienWZakresie(z, z.od), true);
+  assert.equal(D.dzienWZakresie(z, z.do), true);
+  assert.equal(D.dzienWZakresie(null, z.od), false);
+  assert.equal(D.dzienWZakresie(z, D.dataLokalna(new Date(p[0], p[1] - 1, p[2] - 1).getTime())), false, 'dzień przed zapisem = nieznany');
+  D.zapisz(U, 'logi', [1]);
+  assert.equal(D.odczytaj(U).tydzienOd, z.od, 'zapis innej części nie przestawia początku zakresu');
+});
+
+test('Plan offline w kalendarz.html: moduł, błąd sieci → _calPlanOffline, dzień nieznany → komunikat przed logiką pustego dnia', () => {
+  const k = czytaj('kalendarz.html');
+  assert.ok(k.indexOf('<script src="sb.js">') < k.indexOf('<script src="js/dzis-offline.js">'));
+  const f = k.slice(k.indexOf('async function loadTrainingsFromDB()'), k.indexOf('async function loadTrainingsFromDB()') + 1800);
+  assert.match(f, /if \(athErr && DzisOffline\.czyBladSieci\(athErr\)\) return _calPlanOffline\(session\.user\.id\);/);
+  assert.match(f, /if \(error && _urlRole === 'athlete' && DzisOffline\.czyBladSieci\(error\)\) return _calPlanOffline\(session\.user\.id\);/);
+  assert.match(f, /if \(window\._calOffline\) \{ window\._calOffline = null; DzisOffline\.ukryjPasek\(\); \}/, 'powrót sieci kończy tryb offline');
+  assert.match(k, /const _CAL_OFFLINE_TXT = 'Brak połączenia — ten dzień niedostępny offline';/);
+  const rm = k.slice(k.indexOf('function renderMobile()'), k.indexOf('function renderMobile()') + 3500);
+  const iGuard = rm.indexOf('if (_calDzienNieznany(ds))'), iItems = rm.indexOf('const items = trainings[ds] || [];');
+  assert.ok(iGuard > 0 && iItems > iGuard, 'dzień nieznany obsłużony ZANIM wiersz potraktuje go jak pusty');
+  const p = k.slice(k.indexOf('function _calPlanOffline('), k.indexOf('function _calDzienNieznany('));
+  assert.match(p, /if \(zakres\) DzisOffline\.pokazPasek\(m\.ts\);/, 'pasek „Offline · dane z" przy danych z migawki');
+});
+
+test('pierścień bez planu (planned = 0): bez procentu, w środku liczba treningów, „N treningów w tym tygodniu"; km biegowe zawsze', () => {
+  const z = czytaj('zawodnik.html');
+  const i = z.indexOf('async function updateWeekProgress()');
+  const c = z.slice(i, i + 6000);
+  const iIf = c.indexOf('if (planned > 0) {');
+  assert.ok(iIf > 0, 'procent tylko przy planned > 0');
+  const iElse = c.indexOf('} else {', iIf);
+  assert.match(c.slice(iIf, iElse), /Anim\.countUp\(pctEl, pct, 800, '%'\)/);
+  const galazBez = c.slice(iElse, iElse + 600);
+  assert.doesNotMatch(galazBez, /'%'/, 'bez planu żadnego procentu');
+  assert.match(galazBez, /pctEl\.textContent = String\(ileTr\)/);
+  assert.match(galazBez, /w tym tygodniu/);
+  assert.ok(c.indexOf('if (kmEl) { const safeKm') > iElse, 'km biegowe tygodnia renderowane w obu przypadkach');
+  const odm = (n) => n === 1 ? '1 trening w tym tygodniu' : n + ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? ' treningi' : ' treningów') + ' w tym tygodniu';
+  assert.deepEqual([0, 1, 2, 5, 12, 22].map(odm), ['0 treningów w tym tygodniu', '1 trening w tym tygodniu', '2 treningi w tym tygodniu', '5 treningów w tym tygodniu', '12 treningów w tym tygodniu', '22 treningi w tym tygodniu']);
+  assert.ok(galazBez.includes('(ileTr % 10 >= 2 && ileTr % 10 <= 4 && (ileTr % 100 < 12 || ileTr % 100 > 14))'), 'odmiana w kodzie = odmiana w teście');
+});

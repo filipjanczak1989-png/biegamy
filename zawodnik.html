@@ -6206,6 +6206,26 @@ async function _silnikDebug(autoAnim){
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────
+/* DZIŚ OFFLINE — wiersz athletes zalogowanego. Od 07.10.2026 SW nie cachuje Supabase REST, więc bez
+   sieci zapytanie kończy się błędem; dawniej `ath === null` prowadziło prosto do showOnboarding().
+   Zwraca: wiersz (z sieci albo z migawki), null (sieć odpowiedziała „brak wiersza" — stara ścieżka),
+   albo undefined (sieci brak i migawki brak — komunikat już pokazany, wołający ma przerwać). */
+function _athZMigawki(userId, ath, err) {
+  DzisOffline._userIdCache = userId || DzisOffline._userIdCache;
+  if (!err) { if (ath) DzisOffline.zapisz(userId, 'zawodnik', { id: ath.id, full_name: ath.full_name || null }); return ath; }
+  const _aw = DzisOffline.awaryjnie(userId, 'zawodnik', err);
+  if (_aw && _aw.dane && _aw.dane.id) return _aw.dane;
+  if (DzisOffline.czyBladSieci(err)) {
+    const d = document.getElementById('today-desc');
+    if (d) d.textContent = 'Brak połączenia. Otwórz aplikację raz z internetem, żeby „Dziś" działało też offline.';
+    const ws = document.querySelector('.week-sum'); if (ws) ws.style.display = 'none';
+    const st = document.getElementById('week-strip');
+    if (st) st.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak połączenia — plan tygodnia nieznany.</div>';
+    return undefined;
+  }
+  return ath;   // inny błąd serwera — zachowanie jak dotąd
+}
+
 async function initAuth() {
   try { _heroInit(); } catch(e) {}
 
@@ -6226,7 +6246,9 @@ async function initAuth() {
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = escapeHtml(name2.split(' ')[0]); tn2.style.opacity='1'; }
 
-    const { data: ath2 } = await sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
+    let { data: ath2, error: ath2Err } = await sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
+    ath2 = _athZMigawki(user2.id, ath2, ath2Err);
+    if (ath2 === undefined) return;   // offline bez migawki — komunikat pokazany, NIE onboarding
     if (ath2) {
       _athleteId = ath2.id;
       if (window._mountNav) window._mountNav();   // NAV re-mount z athletes.id (Profil→?id)
@@ -6254,11 +6276,13 @@ async function initAuth() {
   if(tnEl){ tnEl.innerHTML = escapeHtml(nameFromMeta.split(' ')[0]); tnEl.style.opacity='1'; }
 
   // Pobierz dane z athletes
-  const { data: ath } = await sb
+  let { data: ath, error: athErr } = await sb
     .from('athletes')
     .select('id, full_name')
     .eq('user_id', user.id)
     .maybeSingle();
+  ath = _athZMigawki(user.id, ath, athErr);
+  if (ath === undefined) return;   // offline bez migawki — komunikat pokazany, NIE onboarding
 
   if (ath) {
     _athleteId = ath.id;
@@ -7145,6 +7169,28 @@ function _heroStopRotation() {
   clearInterval(_heroTimer); _heroTimer = null;
 }
 // Inicjalizacja — pokaż pierwszą kartę
+/* HERO OFFLINE (07.10.2026, smoke Filipa: czarny prostokąt w trybie samolotowym). Kadr dnia wybiera
+   SOLO.dopasuj (trening + pogoda) — offline potrafi wskazać kadr, którego cache obrazów nie ma, a CSS
+   background-image nie ma zdarzenia błędu, więc kafel zostawał pusty po cichu. Teraz sondujemy kadr
+   przez Image(): załadował się → URL do migawki („ostatnio WYŚWIETLONY"); nie załadował się → kadr
+   z migawki, a gdy i ten zawiedzie → domyślny z własnego originu (w precache SW). Nigdy pusty kafel. */
+function _heroZabezpiecz(bg, url) {
+  if (!bg || !url || typeof Image === 'undefined') return;
+  const ustaw = (u) => { bg.style.backgroundImage = 'url(' + u + ')'; };
+  const sonda = (u, ok, zle) => { const im = new Image(); im.onload = () => ok(u); im.onerror = () => zle(u); im.src = u; };
+  DzisOffline.userId(sb).then((uid) => {
+    sonda(url,
+      (u) => { if (uid) DzisOffline.zapisz(uid, 'hero', u); },
+      () => {
+        const m = uid ? DzisOffline.odczytaj(uid) : null;
+        const zMig = m && m.czesci && m.czesci.hero;
+        const domyslny = () => { ustaw(DzisOffline.HERO_DOMYSLNY); bg.style.opacity = '0.72'; };
+        if (zMig && zMig !== url) sonda(zMig, (u) => { ustaw(u); bg.style.opacity = '0.72'; }, domyslny);
+        else domyslny();
+      });
+  }).catch(() => {});
+}
+
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) {
@@ -7153,6 +7199,7 @@ function _heroInit() {
   }
   bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
+  _heroZabezpiecz(bg, _heroCards[0]);
 
   // Warstwa tekstu — biały na ciemnych historiach, ciemny na jasnych (zima/upał)
   const txtEl0 = document.getElementById('hero-text');
@@ -7698,9 +7745,20 @@ async function updateWeekProgress() {
   const kmLblEl = document.getElementById('ws-km-lbl');
 
   // Animowane liczniki i ring
-  if (arc) Anim.ringArc(arc, offset);
-  if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
-  if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
+  /* BEZ PLANU (planned = 0) procent nie ma mianownika — dawniej stało „0%" i „0 z 0 zaplanowanych dni"
+     u każdego bez planu, także po bieganiu (decyzja Filipa 7.10). Teraz: pierścień pusty, w środku
+     liczba treningów tygodnia, opis „N treningów w tym tygodniu"; procent wyłącznie przy planned > 0. */
+  if (planned > 0) {
+    if (arc) Anim.ringArc(arc, offset);
+    if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
+    if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
+  } else {
+    const ileTr = logsCount;
+    if (arc) Anim.ringArc(arc, circumference);
+    if (pctEl) pctEl.textContent = String(ileTr);
+    if (daysEl) daysEl.textContent = ileTr === 1 ? '1 trening w tym tygodniu'
+      : ileTr + ((ileTr % 10 >= 2 && ileTr % 10 <= 4 && (ileTr % 100 < 12 || ileTr % 100 > 14)) ? ' treningi' : ' treningów') + ' w tym tygodniu';
+  }
   if (kmEl) { const safeKm = isNaN(totalKm) ? 0 : totalKm; Anim.countUp(kmEl, safeKm, 900); }
   if (kmLblEl) kmLblEl.textContent = (plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień') + (subKm > 0 ? ' · +' + subKm.toFixed(0) + ' zast.' : '');
   /* WEEK-KM-BAR: pasek km — z planem pokazuje %, bez planu same km (nie stoi na 0) */
@@ -7952,13 +8010,17 @@ async function loadCoachMessage() {
   
   if (!_athleteId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
-  const { data: msgs } = await sb
+  let { data: msgs, error: msgsErr } = await sb
     .from('messages')
     .select('body, sent_at')
     .eq('athlete_id', _athleteId)
     .eq('sender', 'coach')
     .order('sent_at', { ascending: false })
     .limit(20);
+  /* DZIŚ OFFLINE: tylko OSTATNIA wiadomość trenera trafia do migawki (tyle pokazuje karta). */
+  { const _uidMig = await DzisOffline.userId(sb);
+    if (!msgsErr) { DzisOffline.zapisz(_uidMig, 'wiadomosc', (msgs && msgs[0]) ? { body: msgs[0].body, sent_at: msgs[0].sent_at } : null); }
+    else { const _aw = DzisOffline.awaryjnie(_uidMig, 'wiadomosc', msgsErr); if (_aw) msgs = _aw.dane ? [_aw.dane] : []; } }
 
   if (!msgs || !msgs.length) return;
   const el = document.getElementById('coach-body');

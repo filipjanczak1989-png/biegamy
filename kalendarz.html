@@ -1314,6 +1314,7 @@ html { scroll-behavior: smooth; }
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
+<script src="js/dzis-offline.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
@@ -2883,6 +2884,37 @@ function onAthleteChange(athleteId) {
 
 
 // ── LOAD TRAININGS FROM DB ────────────────────────────────────────
+/* PLAN OFFLINE (07.10.2026, smoke Filipa: zakładka Plan pusta w trybie samolotowym). Od 7.10 SW nie
+   cachuje Supabase REST, więc bez sieci zapytania kończą się błędem. Zawodnik dostaje dni z migawki
+   „tydzien" zapisanej przez „Dziś" (zawodnik.html loadWeekPlan: dzień zapisu..+13) i pasek
+   „Offline · dane z HH:MM". Dzień POZA tym zakresem = nieznany: „Brak połączenia — ten dzień niedostępny
+   offline", nigdy „brak treningów". Bez migawki zakres jest pusty, więc każdy dzień dostaje ten komunikat.
+   Trener: bez zmian (migawka jest wyłącznie zawodnicza). */
+function _calPlanOffline(userId) {
+  const m = DzisOffline.odczytaj(userId);
+  const zakres = DzisOffline.zakresTygodnia(m);
+  window._calOffline = { zakres: zakres, ts: m ? m.ts : null };
+  trainings = {};
+  ((zakres && m.czesci.tydzien) || []).forEach(t => {
+    const ds = t.date;
+    if (!trainings[ds]) trainings[ds] = [];
+    trainings[ds].push({
+      _id: t.id, _coachId: t.coach_id || null, type: t.type || 'Spokojny', exercise_ref: t.exercise_ref || null,
+      dist: parseFloat(t.distance_km) || 0, time: t.duration_min || 0, pace: t.pace || '', hr: t.heart_rate || '',
+      desc: t.description || '', steps: t.steps || null, status: t.status || 'planned'
+    });
+  });
+  window._calLogs = {};
+  window._stravaActivities = {};
+  if (zakres) DzisOffline.pokazPasek(m.ts);
+  render();
+}
+/* Czy dzień ds jest w trybie offline NIEZNANY (poza zakresem migawki). Poza trybem offline — zawsze false. */
+function _calDzienNieznany(ds) {
+  return !!window._calOffline && !DzisOffline.dzienWZakresie(window._calOffline.zakres, ds);
+}
+const _CAL_OFFLINE_TXT = 'Brak połączenia — ten dzień niedostępny offline';
+
 async function loadTrainingsFromDB() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
@@ -2891,8 +2923,9 @@ async function loadTrainingsFromDB() {
 
   if (_urlRole === 'athlete') {
     // Zawodnik — tylko swoje treningi
-    const { data: ath } = await sb.from('athletes')
+    const { data: ath, error: athErr } = await sb.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
+    if (athErr && DzisOffline.czyBladSieci(athErr)) return _calPlanOffline(session.user.id);
     if (!ath) return;
     query = query.eq('athlete_id', ath.id);
   } else {
@@ -2905,7 +2938,9 @@ async function loadTrainingsFromDB() {
   }
 
   const { data, error } = await query.order('date');
+  if (error && _urlRole === 'athlete' && DzisOffline.czyBladSieci(error)) return _calPlanOffline(session.user.id);
   if (error || !data) return;
+  if (window._calOffline) { window._calOffline = null; DzisOffline.ukryjPasek(); }
 
   // Wyczyść stare dane i załaduj świeże z bazy
   trainings = {};
@@ -4374,6 +4409,13 @@ function renderMobile() {
   const defaultOpen = days.includes(today) ? today : days[0];
 
   container.innerHTML = days.map(function(ds) {
+    if (_calDzienNieznany(ds)) {
+      const dN = new Date(ds + 'T12:00:00');
+      return '<div class="mday" style="display:flex;align-items:center;gap:12px;padding:12px 14px;opacity:0.75;">'
+        + '<div style="min-width:44px;text-align:center;font-family:DM Mono,monospace;font-size:10px;color:var(--muted);">'
+        + dayAbbrPL[dN.getDay()] + '<br><span style="font-size:16px;color:var(--fg);">' + dN.getDate() + '</span></div>'
+        + '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">' + _CAL_OFFLINE_TXT + '</div></div>';
+    }
     const items = trainings[ds] || [];
     const wM = window._calWeatherMap && window._calWeatherMap[ds];
     const d = new Date(ds + 'T12:00:00');
@@ -5351,6 +5393,15 @@ function renderTiles() {
         <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);">${activeDays} / ${totalDays} dni aktywnych</div>
       </div>
       <div class="tiles-month-bar"><div class="tiles-month-bar-fill" style="width:${pct}%"></div></div>`;
+    /* PLAN OFFLINE: siatka miesiąca nie ma miejsca na zdanie w kafelku — nota nad siatką mówi, które dni
+       są znane; puste kafelki poza zakresem NIE znaczą „brak treningu". */
+    if (window._calOffline) {
+      const z = window._calOffline.zakres;
+      const fmt = (s) => s.slice(8, 10) + '.' + s.slice(5, 7);
+      progressEl.innerHTML += '<div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">'
+        + (z ? 'Offline — znane dni: ' + fmt(z.od) + '–' + fmt(z.do) + '. Pozostałe: ' + _CAL_OFFLINE_TXT.toLowerCase().replace('brak połączenia — ', '') + '.'
+             : _CAL_OFFLINE_TXT.replace('ten dzień niedostępny', 'plan niedostępny') + '.') + '</div>';
+    }
   }
 
   // Buduj kafelki

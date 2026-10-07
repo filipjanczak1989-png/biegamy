@@ -66,7 +66,10 @@ const PRECACHE_URLS = [
   '/theme.css',
   '/manifest.json',
   '/offline.html',
-  '/assets/ui/pustki/pustka-offline.webp'
+  '/assets/ui/pustki/pustka-offline.webp',
+  /* Awaryjny kadr hero „Dziś" offline (js/dzis-offline.js HERO_DOMYSLNY) — z WŁASNEGO originu,
+     żeby kafel nigdy nie był czarny, gdy kadru dnia z biegamy-assets nie ma w cache. */
+  '/assets/ui/banery/baner-index-01.webp'
 ];
 
 // Opcjonalne pliki — jeśli nie istnieją, NIE pokazuj ostrzeżenia
@@ -164,9 +167,17 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(obrazStaleWhileRevalidate(request));
   } else if (isStorageAsset(url)) {
     event.respondWith(cacheFirst(request, STORAGE_CACHE));
-  } else if (isSupabaseAPI(url)) {
-    event.respondWith(networkFirst(request, RUNTIME_CACHE));
   }
+  // !! Supabase REST (/rest/v1/) — NETWORK-ONLY od 07.10.2026 (SW nie przechwytuje).
+  //    Do tego dnia szło networkFirst do RUNTIME_CACHE. Zmierzone: odpowiedź PostgREST 200
+  //    nie ma nagłówka Vary, więc Cache API trzymało ją pod SAMYM URL-em, bez Authorization.
+  //    Dwa skutki: (1) offline odpowiedź z cache wracała jako SUKCES, więc loadery nie widziały
+  //    błędu sieci i migawka „Dziś" (js/dzis-offline.js) ani pasek offline się nie włączały
+  //    (smoke Filipa 7.10); (2) zapytania bez filtra tożsamości w URL-u, np. trener.html:4520
+  //    athletes?select=id,full_name,…&limit=10 albo kalendarz.html:4469 coach_workout_templates,
+  //    po wylogowaniu i zalogowaniu INNEGO konta oddawały offline dane poprzedniego.
+  //    Offline obsługuje wyłącznie migawka per user_id. Koszt: inne strony bez sieci nie mają
+  //    już odczytu z cache (lista w journalu 7.10).
   // Reszta — przeglądarka radzi sobie sama (network)
 });
 
@@ -185,10 +196,6 @@ function isStorageAsset(url) {
   return url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/');
 }
 
-function isSupabaseAPI(url) {
-  // Supabase REST API
-  return url.hostname.includes('supabase.co') && url.pathname.startsWith('/rest/v1/');
-}
 
 // ─── STRATEGIE ──────────────────────────────────────────────────────
 
@@ -308,21 +315,6 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-// Network-first: spróbuj sieć, fallback na cache
-async function networkFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  try {
-    const response = await fetch(request);
-    if (response && response.ok) {
-      wlozDoCache(cache, request, response.clone()).catch(() => {});
-    }
-    return response;
-  } catch (err) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    throw err;
-  }
-}
 
 // Navigation (od 07.10.2026 NETWORK-FIRST Z LIMITEM): sieć ma LIMIT_NAWIGACJI_MS na odpowiedź;
 // po przekroczeniu albo błędzie → kopia z cache (ignoreSearch: ?tab=social dostaje /zawodnik.html),

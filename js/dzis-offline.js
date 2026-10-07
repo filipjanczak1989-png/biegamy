@@ -33,12 +33,20 @@
   'use strict';
   var PREFIX = 'bm_dzis_migawka_';
   var LIMIT_B = 200 * 1024;          // 200 kB — 5× p90 z pomiaru; powyżej zapis odrzucony
-  var CZESCI = ['logi', 'dzis', 'tydzien', 'trener', 'postep'];   // trener = flaga ma_trenera; postep = {trainings, logs} tygodnia
+  var CZESCI = ['logi', 'dzis', 'tydzien', 'trener', 'postep', 'zawodnik', 'wiadomosc', 'hero'];
+  // trener = flaga ma_trenera; postep = {trainings, logs} tygodnia; zawodnik = {id, full_name} (initAuth offline);
+  // wiadomosc = ostatnia wiadomość trenera {body, sent_at}; hero = URL ostatnio WYŚWIETLONEGO kadru hero.
+  // Części BEZ_CZASU nie przesuwają znacznika „dane z HH:MM" ani nie zdejmują paska offline: kadr hero
+  // zapisuje się także offline (obraz z cache SW się załadował), a to nie jest świeża synchronizacja danych.
+  var BEZ_CZASU = ['hero'];
   var M = {};
 
   M.PREFIX = PREFIX;
   M.LIMIT_B = LIMIT_B;
   M.CZESCI = CZESCI;
+  M.BEZ_CZASU = BEZ_CZASU;
+  M.HERO_DOMYSLNY = '/assets/ui/banery/baner-index-01.webp';   // origin biegamy.run, w PRECACHE_URLS sw.js
+  M.DNI_TYGODNIA = 13;                                           // loadWeekPlan zapisuje dziś..+13
   M._storage = null;                 // test wstrzykuje atrapę; w przeglądarce = localStorage
   M._userIdCache = null;
 
@@ -110,14 +118,33 @@
     var s = storage(); if (!s) return false;
     var m = M.odczytaj(userId) || { userId: userId, ts: 0, czesci: {} };
     m.czesci[czesc] = (dane === undefined) ? null : dane;
-    m.ts = Date.now();
+    var zCzasem = BEZ_CZASU.indexOf(czesc) === -1;
+    if (zCzasem) {
+      m.ts = Date.now();
+      if (czesc === 'tydzien') m.tydzienOd = M.dataLokalna(m.ts);   // początek zakresu dni z migawki (Plan offline)
+    }
     var raw;
     try { raw = JSON.stringify(m); } catch (e) { return false; }
     if (raw.length > LIMIT_B) return false;
     try { s.setItem(M.klucz(userId), raw); } catch (e) { return false; }   // QuotaExceeded itp. = cicho
-    M.ukryjPasek();
+    if (zCzasem) M.ukryjPasek();
     return true;
   };
+
+  M.dataLokalna = function (ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  /* Zakres dni, które migawka „tydzien" naprawdę opisuje: od dnia zapisu do +13.
+     Dzień poza zakresem = NIEZNANY (nie „bez treningu"). Bez migawki → null. */
+  M.zakresTygodnia = function (m) {
+    if (!m || !m.czesci || !('tydzien' in m.czesci) || !m.tydzienOd) return null;
+    var p = m.tydzienOd.split('-').map(Number);
+    var k = new Date(p[0], p[1] - 1, p[2] + M.DNI_TYGODNIA);
+    return { od: m.tydzienOd, do: M.dataLokalna(k.getTime()) };
+  };
+  M.dzienWZakresie = function (zakres, ds) { return !!zakres && ds >= zakres.od && ds <= zakres.do; };
 
   /* Odczyt awaryjny: tylko przy błędzie sieci i tylko, gdy część JEST w migawce
      (`'dzis' in czesci` — zapisany null znaczy „nie było treningu", brak klucza znaczy

@@ -81,7 +81,8 @@ test('sw.js: każde wkładanie do cache idzie przez wlozDoCache (żaden goły ca
   for (const wz of [/return wlozDoCache\(cache, url, res\.clone\(\)\)/, /wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/]) {
     assert.match(sw, wz, 'brak wywołania pomocnika: ' + wz);
   }
-  assert.equal((sw.match(/wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/g) || []).length, 4, 'SWR, cacheFirst, networkFirst, navigationHandler');
+  // 08.10.2026: networkFirst usunięte razem z cachowaniem Supabase REST (blizna-45) — zostają SWR, cacheFirst, navigationHandler
+  assert.equal((sw.match(/wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/g) || []).length, 3, 'SWR, cacheFirst, navigationHandler');
 });
 
 // ── NAWIGACJE: network-first z limitem (07.10.2026) ───────────────────────────────────────
