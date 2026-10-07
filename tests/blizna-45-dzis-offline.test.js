@@ -316,3 +316,94 @@ test('pierścień bez planu (planned = 0): bez procentu, w środku liczba trenin
   assert.deepEqual([0, 1, 2, 5, 12, 22].map(odm), ['0 treningów w tym tygodniu', '1 trening w tym tygodniu', '2 treningi w tym tygodniu', '5 treningów w tym tygodniu', '12 treningów w tym tygodniu', '22 treningi w tym tygodniu']);
   assert.ok(galazBez.includes('(ileTr % 10 >= 2 && ileTr % 10 <= 4 && (ileTr % 100 < 12 || ileTr % 100 > 14))'), 'odmiana w kodzie = odmiana w teście');
 });
+
+// ── SMOKE 59ccb94 (8.10): ponowienia postgrest-js offline, tła kart, narzędzie smoke ────────────────────
+test('sb.js: offline (navigator.onLine === false) zapytanie NIE ponawia się — wywołanie po definicji, działa na łańcuchu prototypów', () => {
+  const sb = czytaj('sb.js');
+  const iDef = sb.indexOf('window._bmBezPonowienOffline = function (klient)');
+  const iWyw = sb.indexOf('if (window.sb) window._bmBezPonowienOffline(window.sb);');
+  assert.ok(iDef > 0 && iWyw > iDef, 'wywołanie musi stać PO definicji (inaczej TypeError przy ładowaniu każdej strony)');
+  assert.match(sb, /postgrest-js w vendor\/supabase-js-2\.112\.4 przy błędzie\s*\n?\s*\/?\*?\s*sieci PONAWIA|PONAWIA każde zapytanie GET trzy razy/);
+  // funkcjonalnie: wyciągnij funkcję i uruchom na atrapie klasy z metodą retry i then
+  const m = sb.match(/window\._bmBezPonowienOffline = function \(klient\) \{[\s\S]*?\n  \};/);
+  assert.ok(m, 'brak _bmBezPonowienOffline');
+  class Builder { constructor() { this.retryEnabled = true; } retry(e) { this.retryEnabled = e; return this; } then(a) { return Promise.resolve(this.retryEnabled).then(a); } }
+  class Filter extends Builder { eq() { return this; } }
+  const klient = { from: () => ({ select: () => new Filter() }) };
+  const nav = { onLine: false };
+  const okno = {};
+  new Function('window', 'navigator', m[0])(okno, nav);
+  assert.equal(okno._bmBezPonowienOffline(klient), true);
+  assert.equal(okno._bmBezPonowienOffline(klient), false, 'drugie założenie łatki nic nie robi');
+  return (async () => {
+    assert.equal(await new Filter(), false, 'offline: retryEnabled wyłączone przed wysłaniem');
+    nav.onLine = true;
+    assert.equal(await new Filter(), true, 'online: ponowienia zostają');
+    assert.equal(okno._bmBezPonowienOffline({ from: () => ({ select: () => ({}) }) }), false, 'obcy kształt = brak łatki, bez wyjątku');
+  })();
+});
+
+test('tła kart offline: data-bgsonda na kartach logów i tygodnia, sonda po wstawieniu do DOM, błąd → gradient', () => {
+  const z = czytaj('zawodnik.html');
+  assert.match(z, /return `<div onclick="editLog\(\$\{idx\}\)" data-bgsonda="\$\{bgImg\}"/);
+  assert.match(z, /<div data-bgsonda="\$\{_dayImgFor\(t\.type,i\)\.u\}"/);
+  assert.match(z, /\}\)\.join\(''\);\r?\n  _tlaZabezpiecz\(logListEl\);/);
+  assert.match(z, /\}\)\.join\(''\);\r?\n  _tlaZabezpiecz\(document\.getElementById\('week-strip'\)\);/);
+  const f = z.match(/const _TLO_ZAPASOWE = '[^']+';\r?\nfunction _tlaZabezpiecz\(root\) \{[\s\S]*?\r?\n\}\r?\n/);
+  assert.ok(f);
+  const obrazy = [];
+  class FakeImage { set src(u) { this._u = u; obrazy.push(this); } }
+  const el = (u) => ({ style: {}, _a: { 'data-bgsonda': u }, getAttribute(k) { return this._a[k]; }, removeAttribute(k) { delete this._a[k]; } });
+  const a = el('https://x/run7.webp'), b = el('https://x/run9.webp');
+  const root = { querySelectorAll: () => [a, b] };
+  const tz = new Function('Image', f[0] + ' return { _tlaZabezpiecz, _TLO_ZAPASOWE };')(FakeImage);
+  tz._tlaZabezpiecz(root);
+  assert.equal(obrazy.length, 2);
+  obrazy[0].onerror();                       // run7 nie ma w cache offline
+  assert.equal(a.style.backgroundImage, tz._TLO_ZAPASOWE, 'nieudany obraz → gradient');
+  assert.equal(b.style.backgroundImage, undefined, 'udany (brak błędu) → tło bez zmian');
+  assert.equal(a.getAttribute('data-bgsonda'), undefined, 'sonda raz — atrybut zdjęty');
+  assert.match(tz._TLO_ZAPASOWE, /^linear-gradient\(/);
+});
+
+test('tools/smoke-offline.js: istnieje, ręczny (nie w CI), sprawdza wszystkie punkty smoke Filipa', () => {
+  const t = czytaj('tools/smoke-offline.js');
+  for (const wz of ['Offline · dane z', 'Ten tydzień', 'Postęp tygodnia', 'wiadomości trenera', 'czarnego tła', 'Plan: tryb offline', "route.abort('internetdisconnected')", "serviceWorkers: 'block'"]) {
+    assert.ok(t.includes(wz), 'smoke nie sprawdza: ' + wz);
+  }
+  assert.match(t, /URUCHAMIANY RĘCZNIE, NIE W CI/);
+  const ci = fs.readdirSync(path.join(KORZEN, '.github/workflows')).map((f) => czytaj('.github/workflows/' + f)).join('\n');
+  assert.doesNotMatch(ci, /smoke-offline/, 'smoke wymaga Playwrighta i Chromium — nie do CI');
+});
+
+test('ikony skrótów obok hero offline: błąd ładowania <img data-ic> → emoji w <span>, nigdy „zepsuty obrazek”', () => {
+  const sb = czytaj('sb.js');
+  assert.match(sb, /el\.onerror = function\(\)\{ window\._icZapas\(el\); \}; el\.src = window\.assetUrl\(el\.dataset\.ic\);/, 'onerror ma być ustawiony PRZED src');
+  assert.equal((sb.match(/<img onerror="window\._icZapas&&window\._icZapas\(this\)"/g) || []).length, 2, 'icHtml i ikony typów treningu też z zapasem');
+  const z = czytaj('zawodnik.html');
+  const ikony = ['icon-ex-section.webp', 'icon-radio-trophy.webp', 'icon-nav-medal.webp', 'icon-nav-flag.webp', 'icon-nav-people.webp'];
+  for (const ic of ikony) assert.ok(z.includes('<img data-ic="' + ic + '"'), 'kafel skrótu bez data-ic: ' + ic);
+  const m = sb.match(/window\._IC_ZAPAS = \{[\s\S]*?\n  window\._icZapas = function \(img\) \{[\s\S]*?\n  \};/);
+  assert.ok(m, 'brak _IC_ZAPAS/_icZapas');
+  const okno = {};
+  const span = () => ({ style: {}, _a: {}, setAttribute(k, v) { this._a[k] = v; } });
+  const doc = { createElement: () => span() };
+  new Function('window', 'document', 'getComputedStyle', m[0])(okno, doc, () => ({ width: '28px', height: '28px' }));
+  okno.getComputedStyle = () => ({ width: '28px', height: '28px' });
+  for (const ic of ikony) assert.ok(okno._IC_ZAPAS[ic], 'brak emoji dla ' + ic);
+  const rodzic = { zamiana: null, replaceChild(n, o) { this.zamiana = { n, o }; } };
+  const img = { dataset: { ic: 'icon-nav-flag.webp' }, className: 'x', parentNode: rodzic, getAttribute: () => '', width: 0, height: 0 };
+  okno._icZapas(img);
+  assert.ok(rodzic.zamiana, 'img nie został zamieniony');
+  assert.equal(rodzic.zamiana.n.textContent, '🏁');
+  assert.equal(rodzic.zamiana.n._a['data-ic-zapas'], 'icon-nav-flag.webp');
+  assert.match(rodzic.zamiana.n.style.cssText, /width:28px;height:28px/, 'zapas w rozmiarze ikony');
+  rodzic.zamiana = null; okno._icZapas(img);
+  assert.equal(rodzic.zamiana, null, 'drugi błąd tego samego img nic nie robi');
+  const r2 = { zamiana: null, replaceChild(n) { this.zamiana = n; } };
+  okno._icZapas({ dataset: {}, className: '', parentNode: r2, getAttribute: (k) => (k === 'src' ? 'https://x/assets/icon-nieznana.webp?v=2' : ''), width: 16, height: 16 });
+  assert.equal(r2.zamiana.textContent, '◆', 'nieznana ikona → neutralny znak');
+  assert.doesNotThrow(() => okno._icZapas(null));
+  const smoke = czytaj('tools/smoke-offline.js');
+  assert.ok(smoke.includes('ikony skrótów obok hero'), 'smoke nie sprawdza ikon skrótów');
+});

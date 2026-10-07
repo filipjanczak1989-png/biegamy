@@ -7169,6 +7169,22 @@ function _heroStopRotation() {
   clearInterval(_heroTimer); _heroTimer = null;
 }
 // Inicjalizacja — pokaż pierwszą kartę
+/* TŁA KART OFFLINE (08.10.2026, smoke Filipa: część kart ostatnich treningów z czarnym tłem). Karty
+   biorą losowy kadr run1..77.webp z biegamy-assets; offline cache obrazów ma tylko te, które już
+   widziano, a CSS background-image nie zgłasza błędu. Element z data-bgsonda dostaje sondę Image():
+   błąd → stonowany gradient zamiast czarnej karty. Atrybut zdejmowany, żeby sonda szła raz. */
+const _TLO_ZAPASOWE = 'linear-gradient(135deg,#2a2233 0%,#16121c 55%,#0d0b11 100%)';
+function _tlaZabezpiecz(root) {
+  if (!root || typeof Image === 'undefined') return;
+  root.querySelectorAll('[data-bgsonda]').forEach((el) => {
+    const u = el.getAttribute('data-bgsonda'); el.removeAttribute('data-bgsonda');
+    if (!u) { el.style.backgroundImage = _TLO_ZAPASOWE; return; }
+    const im = new Image();
+    im.onerror = () => { el.style.backgroundImage = _TLO_ZAPASOWE; };
+    im.src = u;
+  });
+}
+
 /* HERO OFFLINE (07.10.2026, smoke Filipa: czarny prostokąt w trybie samolotowym). Kadr dnia wybiera
    SOLO.dopasuj (trening + pogoda) — offline potrafi wskazać kadr, którego cache obrazów nie ma, a CSS
    background-image nie ma zdarzenia błędu, więc kafel zostawał pusty po cichu. Teraz sondujemy kadr
@@ -7543,7 +7559,7 @@ async function loadWeekPlan() {
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
     return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;position:relative;min-height:90px;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
-      <div style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i).u});background-size:cover;background-position:${_dayImgFor(t.type,i).p};opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
+      <div data-bgsonda="${_dayImgFor(t.type,i).u}" style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i).u});background-size:cover;background-position:${_dayImgFor(t.type,i).p};opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
@@ -7578,6 +7594,7 @@ async function loadWeekPlan() {
       </div>
     </div></div>`;
   }).join('');
+  _tlaZabezpiecz(document.getElementById('week-strip'));
 }
 
 // ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
@@ -8145,7 +8162,7 @@ function renderLogsDb(data) {
     const screensHtml = l.attachment_url ? _makeScreensCarousel(l.attachment_url.split(',').filter(Boolean), 'log-'+l.id) : '';
     const _kadL = window.kadencjaSpm ? window.kadencjaSpm(l.cadence, l.training_type) : null;   /* zapis = RPM jednej nogi; przeliczenie i bramka na typ w sb.js */
     const detParts = [l.pace ? l.pace+'/km' : '', l.gap_pace ? 'GAP '+l.gap_pace : '', l.heart_rate ? '♥ '+l.heart_rate : '', _kadL ? '👣 '+_kadL : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : ''].filter(Boolean);
-    return `<div onclick="editLog(${idx})" style="position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:10px;background-image:url(${bgImg});background-size:cover;background-position:${bgPos};cursor:pointer;" onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    return `<div onclick="editLog(${idx})" data-bgsonda="${bgImg}" style="position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.09);border-radius:14px;margin-bottom:10px;background-image:url(${bgImg});background-size:cover;background-position:${bgPos};cursor:pointer;" onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.05) 0%,rgba(7,5,12,0.55) 40%,rgba(7,5,12,0.96) 100%);pointer-events:none;"></div>
       <div style="height:70px;"></div>
       <div style="position:relative;z-index:1;padding:8px 14px 12px;">
@@ -8169,6 +8186,7 @@ function renderLogsDb(data) {
       </div>
     </div>`;
   }).join('');
+  _tlaZabezpiecz(logListEl);   // tło karty spoza cache (offline) → gradient, nigdy czarna karta
 
   // Panel karty przy KAŻDYM logu z dystansem — komponent z sb.js, wariant kompaktowy
   // (inline, w rzędzie z linkiem Strava). mozeEdytowac: true, bo w zawodnik.html

@@ -1344,3 +1344,29 @@ Funkcja wołana z frontu przez `sb.rpc(...)` daje `42501 permission denied for f
 niezalogowanym. To nie usterka bramki — to pytanie, czy anon ma ją wołać; jeśli tak, odpowiedź
 jest jednym wierszem grantu z uzasadnieniem, nie powrotem default privileges.
 
+
+
+## 25. Hipoteza w poleceniu była błędna — odtworzenie PRZED naprawą ją obaliło (8.10.2026)
+
+Smoke Filipa po 59ccb94: offline „Ten tydzień" na szkielecie, „Postęp tygodnia" na „Ładowanie…".
+Polecenie wskazywało przyczynę: zawieszony getSession/userId albo resztki cache Service Workera.
+Zamiast naprawiać wskazane miejsce, objaw został najpierw odtworzony lokalnie (Playwright, sieć
+odcięta, SW zablokowany — tools/smoke-offline.js) z sondą czasów. Wynik: getSession wraca w
+milisekundach, cache SW nie bierze udziału, a zapytanie REST kończy się błędem dopiero po ~7 s —
+postgrest-js ponawia każdy GET 3× (1+2+4 s), a loadery czekają na siebie po kolei. Naprawa
+wskazanego miejsca nie zmieniłaby niczego na ekranie, a smoke „po naprawie" i tak by padł —
+tylko później i z fałszywym poczuciem, że przyczyna jest znana.
+
+### Reguła
+
+**Przyczyna podana w poleceniu to hipoteza, nie diagnoza (por. #uzasadnienie-blokady).** Przed
+naprawą: odtworzyć objaw narzędziem, które da się puścić ponownie, i zmierzyć, gdzie płynie czas.
+To samo narzędzie, puszczone na starej wersji, musi paść w tych samych punktach co urządzenie
+zgłaszającego — dopiero wtedy jego zielony kolor po naprawie coś znaczy (zobacz #19: zieleń
+samokontroli ≠ dobra reguła; pierwsza wersja punktu „karty bez czarnego tła" była zielona przy
+czarnych kartach).
+
+### Objaw ostrzegawczy
+
+Polecenie zawiera mechanizm („wisi na X", „to cache Y"), a objaw da się opisać tylko jako „widok
+nie dochodzi do stanu końcowego". Wtedy najpierw sonda czasów, potem kod.

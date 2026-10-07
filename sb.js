@@ -66,13 +66,37 @@
   // ─── IKONY 3D — helper + auto-resolver data-ic ──────────────────────
   // icHtml('act-save', 16, 'margin-right:6px;') → <img ...> (do JS-innerHTML)
   // Statyczny HTML: <img data-ic="icon-act-save.webp"> → resolver ustawia src na load.
+  /* IKONA OFFLINE (08.10.2026, smoke Filipa: kolumna skrótów obok hero = ikony „zepsutego obrazka").
+     Ikony 3D są z biegamy-assets; offline cache obrazów ma tylko widziane wcześniej. Przy błędzie
+     ładowania <img> zamienia się na <span> z emoji o tym samym rozmiarze — nigdy pusta ramka.
+     Mapa po nazwie pliku; nieznana ikona dostaje neutralny znak. */
+  window._IC_ZAPAS = {
+    'icon-ex-section.webp': '💪', 'icon-radio-trophy.webp': '🏆', 'icon-nav-medal.webp': '🏅',
+    'icon-nav-flag.webp': '🏁', 'icon-nav-people.webp': '💬'
+  };
+  window._icZapas = function (img) {
+    try {
+      if (!img || !img.parentNode || img.dataset.icZapas === '1') return;
+      var plik = (img.dataset.ic || String(img.getAttribute('src') || '').split('/').pop() || '').split('?')[0];
+      var cs = window.getComputedStyle ? getComputedStyle(img) : null;
+      var w = (cs && parseFloat(cs.width)) || img.width || 24, h = (cs && parseFloat(cs.height)) || img.height || w;
+      var s = document.createElement('span');
+      s.className = img.className;
+      s.setAttribute('data-ic-zapas', plik);
+      s.setAttribute('aria-hidden', 'true');
+      s.style.cssText = (img.getAttribute('style') || '') + ';display:inline-flex;align-items:center;justify-content:center;width:' + w + 'px;height:' + h + 'px;font-size:' + Math.round(Math.min(w, h) * 0.78) + 'px;line-height:1;';
+      s.textContent = window._IC_ZAPAS[plik] || '◆';
+      img.dataset.icZapas = '1';
+      img.parentNode.replaceChild(s, img);
+    } catch (e) {}
+  };
   window.icHtml = window.icHtml || function(slug, size, extra) {
     if (!window.assetUrl) return '';
     size = size || 16;
-    return '<img src="' + window.assetUrl('icon-' + slug + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;flex-shrink:0;' + (extra || '') + '" alt="">';
+    return '<img onerror="window._icZapas&&window._icZapas(this)" src="' + window.assetUrl('icon-' + slug + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;flex-shrink:0;' + (extra || '') + '" alt="">';
   };
   (function resolveDataIc(){
-    function run(){ try { document.querySelectorAll('img[data-ic]').forEach(function(el){ if(el.dataset.ic) el.src = window.assetUrl(el.dataset.ic); }); } catch(e){} }
+    function run(){ try { document.querySelectorAll('img[data-ic]').forEach(function(el){ if(el.dataset.ic) { el.onerror = function(){ window._icZapas(el); }; el.src = window.assetUrl(el.dataset.ic); } }); } catch(e){} }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
   })();
 
@@ -84,6 +108,34 @@
   if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
     window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY);
   }
+
+  /* OFFLINE = BEZ PONOWIEŃ (08.10.2026). postgrest-js w vendor/supabase-js-2.112.4 przy błędzie
+     sieci PONAWIA każde zapytanie GET trzy razy z odstępami 1, 2 i 4 s (u(e)=min(1e3·2^e,3e4),
+     catch → retryEnabled && e<3), zanim odda { error }. Zmierzone narzędziem tools/smoke-offline.js:
+     pojedyncze zapytanie offline wisiało >4 s, a „Dziś" woła kilkanaście takich po kolei z `await`
+     (initAuth → loadLogs → loadCoachMessage → loadTodayTraining → loadWeekPlan → updateWeekProgress),
+     więc w trybie samolotowym „Ten tydzień" stał na szkielecie, a „Postęp tygodnia" na „Ładowanie…"
+     (smoke Filipa na telefonie). Gdy przeglądarka WIE, że jest offline (navigator.onLine === false),
+     ponawianie nie ma czego naprawić — wyłączamy je dla tego jednego zapytania. Online (także przy
+     chwilowym zerwaniu) ponowienia działają jak dotąd. Błąd zostaje „TypeError: Failed to fetch",
+     więc DzisOffline.czyBladSieci go rozpoznaje. Prototyp buildera bierzemy z żywego obiektu, bo
+     supabase-js nie eksportuje klasy; jeśli kształt się zmieni (nowa wersja vendora), funkcja nic
+     nie robi i zwraca false — test blizna-45 i smoke to wychwycą. */
+  window._bmBezPonowienOffline = function (klient) {
+    try {
+      let p = Object.getPrototypeOf(klient.from('athletes').select('id'));
+      while (p && !Object.prototype.hasOwnProperty.call(p, 'retry')) p = Object.getPrototypeOf(p);
+      if (!p || typeof p.then !== 'function' || p.__bmBezPonowien) return false;
+      const zrodlowe = p.then;
+      p.then = function (a, b) {
+        try { if (typeof navigator !== 'undefined' && navigator.onLine === false) this.retryEnabled = false; } catch (e) {}
+        return zrodlowe.call(this, a, b);
+      };
+      p.__bmBezPonowien = true;
+      return true;
+    } catch (e) { return false; }
+  };
+  if (window.sb) window._bmBezPonowienOffline(window.sb);
 
   // ─── PUSH NOTIFICATIONS HELPERS ─────────────────────────────────────
 
@@ -4015,7 +4067,7 @@ window._icuRenderSplits = function (d, el) {
     const n = (window.TRAINING_TYPE_ICONS || {})[type];
     if (!n || !window.assetUrl) return '';
     size = size || 18;
-    return '<img src="' + window.assetUrl('icon-' + n + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;vertical-align:-3px;flex-shrink:0;" alt="">';
+    return '<img onerror="window._icZapas&&window._icZapas(this)" src="' + window.assetUrl('icon-' + n + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;vertical-align:-3px;flex-shrink:0;" alt="">';
   };
 
   // Mapa typ→banner (szerokie okładki). Klucze = te same nazwy typów co TRAINING_TYPE_ICONS.

@@ -638,3 +638,36 @@ ta sama klasa co „Brak zaplanowanego treningu na dziś." offline — loader pa
 tylko na data, null przy braku sieci renderuje się jako „nic nie ma". Każde
 takie miejsce ma mówić „Brak połączenia", nie „brak X". Narzędzie do zwiadu:
 grep `if (!data` / `data || []` / `if (error || !data)` per strona.
+
+================================================================================
+2026-10-08 (cd.) — [SMOKE 59ccb94: „TEN TYDZIEŃ"/„POSTĘP" OFFLINE = PONOWIENIA POSTGREST-JS]
+================================================================================
+OBJAW (smoke Filipa na telefonie po 59ccb94): offline „Ten tydzień" wisi na
+szkielecie, „Postęp tygodnia" na „Ładowanie…", wiadomość trenera pusta, karty
+logów czarne, ikony kolumny skrótów obok hero = „zepsuty obrazek".
+
+HIPOTEZA Z POLECENIA (zawieszony getSession/userId albo resztki cache SW) —
+OBALONA odtworzeniem PRZED naprawą (tools/smoke-offline.js + sonda SMOKE_GLOSNO):
+getSession wraca w ms, zapytanie REST KOŃCZY SIĘ błędem, ale po ~7 s.
+
+PRZYCZYNA: postgrest-js w vendor/supabase-js-2.112.4 przy błędzie sieci ponawia
+każdy GET 3× z odstępami 1+2+4 s. Loadery „Dziś" czekają na siebie po kolei
+(await), więc kolejka kilku zapytań × 7 s przekracza czas, w którym człowiek
+patrzy na ekran — migawka dochodzi do głosu za późno albo wcale.
+
+NAPRAWA (sb.js): _bmBezPonowienOffline — łatka prototypu buildera: przy
+navigator.onLine === false retryEnabled = false przed wysłaniem. Online
+ponowienia bez zmian. Tła kart: sonda Image() (data-bgsonda), błąd → gradient
+_TLO_ZAPASOWE. Ikony data-ic (wszystkie strony, też icHtml i ikony typów
+treningu): onerror ustawiany PRZED src → _icZapas zamienia <img> na <span>
+z emoji w tym samym rozmiarze (Ciało 💪, Wyzwania 🏆, Odznaki 🏅, Starty 🏁,
+Czat 💬, nieznana ◆).
+
+NARZĘDZIE: tools/smoke-offline.js — Playwright/Chromium, ręcznie (NIE w CI),
+SW zablokowany, sieć poza localhost odcięta, sesja i migawka wstrzyknięte.
+13 punktów: pasek, _athleteId, hero, lista, „Ten tydzień", „Postęp",
+wiadomość trenera, karty bez czarnego tła, ikony skrótów, zero odrzuceń,
+Plan ×3. Przebieg na HEAD 59ccb94 pada w tych samych punktach co telefon;
+na drzewie z poprawką 13/13. Uruchomienie:
+  NODE_PATH=<katalog z playwright>/node_modules node tools/smoke-offline.js
+blizna-45: 24 testy. Razem 880/0.
