@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 59
+# Obiektow (funkcje + triggery): 58
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -16,7 +16,6 @@ f7c505f0aebb99a8  bump_food_hit
 73702910edcaf470  calc_bmr_tdee
 f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
 4e2b79fe1e3b47f3  coaches.coaches_ensure_athlete_row
-b8dbf9dd18ca3f54  community_km
 6d0d28b7664a3e4e  count_pending_intakes
 886cc82d6775b427  delete_my_account
 0723ea23ebfdad19  ensure_coach_athlete_row

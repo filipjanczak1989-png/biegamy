@@ -484,3 +484,24 @@ GitHub 7.10 ~15:15–15:45 UTC: incydent (Actions major outage, Git Operations) 
    (Janusz faza 1) odrzucany ~10 min „Internal Server Error", workflowy startup_failure,
    Deploy to Pages w kolejce; prod bez fazy 1 Janusza do czasu kolejnego deployu.
 
+
+================================================================================
+2026-10-07 (noc, cd.) — [PAKA 4: POMIAR PO „WYKONANE (a)(b)(c)(d)" — na prod weszło (b) + radio_top]
+================================================================================
+
+Polecenie mówiło „wykonane (a), (b), (c) + radio_top, (d)". ZMIERZONE (CLI + REST, zrzuty):
+- (b) community_km: pg_proc 0, REST anon rpc/community_km → 404 PGRST202, migawka funkcje
+  59→58 (−community_km). NA PROD. Commit plików (b) w tej sesji.
+- radio_top: anon bez SELECT (zostały TRUNCATE, REFERENCES, TRIGGER — to zdejmuje (c)),
+  REST anon GET radio_top → 42501. NA PROD. Migawka rls/radio_top.txt zaktualizowana.
+- is_run_type: proacl BEZ anon (otwarte od rana 7.10, teraz zmierzone), REST anon → 42501.
+  ZAMKNIĘTE.
+- (a) Janusz faza 2: NIE NA PROD — 13 funkcji jr_*, 26 relacji jr_* (tabele+indeksy),
+  delete_my_account nadal z jr_players; REST anon rpc/jr_get_shop → 42501 (funkcja istnieje).
+- (c) granty: NIE NA PROD — 181 grantów TRUNCATE/TRIGGER/REFERENCES dla anon+authenticated,
+  19 DELETE bez polityki (17 z pomiaru + 2 jr_*).
+- (d) funkcje: NIE NA PROD — are_friends istnieje, 12 funkcji nadal z anon=X i =X,
+  pg_default_acl postgres i supabase_admin bez zmian.
+Wniosek jak LEKCJE #22: „wykonane" w poleceniu to wejście do pomiaru. Pliki (a)/(c)/(d)
+zostają NIEŚLEDZONE do czasu wykonania i pomiaru; prawdopodobna przyczyna — błąd w
+transakcji (begin/commit cofa całość), treść błędu do ustalenia u Filipa.

@@ -1,3 +1,15 @@
+-- WYCOFANIE 20261007_kasacja_community_km.sql — odtwarza funkcję 1:1 z migawki prod 7.10
+-- (supabase/schema/funkcje/community_km.sql, suma b8dbf9dd18ca3f54 w SUMY.txt sprzed kasacji).
+--
+-- ⚠️ EXECUTE dla anon NIE JEST odtwarzany. Na prod funkcja miała anon=X, bo landing (wylogowany
+--    człowiek z Facebooka) pokazywał licznik; front po fazie 1 tego nie robi. Grant dla anon to
+--    decyzja o odsłonięciu agregatu niezalogowanym, nie rollback (bramka-commit: GRANT dla anon
+--    = blokada twarda). Jeśli licznik kiedyś wróci na landing — osobna migracja z własnym zwiadem.
+-- ⚠️ Default privileges: `create function` w public nadaje anon/authenticated/service_role EXECUTE
+--    JAWNIE (LEKCJE #23) — stąd revoke z nazwy po definicji.
+
+begin;
+
 CREATE OR REPLACE FUNCTION public.community_km()
  RETURNS TABLE(km numeric, wklad numeric)
  LANGUAGE plpgsql
@@ -30,20 +42,6 @@ begin
   -- !! WYLACZNIE po auth.uid(): funkcja jest wywolywalna przez anon, wiec nie
   --    moze przyjmowac athlete_id jako parametru — inaczej kazdy pytalby
   --    o cudzy wklad. Dla anon auth.uid() jest NULL -> wklad = 0.
-  --
-  -- !! ZALOZENIE: 1 user_id = 1 wiersz w athletes. Zmierzone 14.08.2026:
-  --    48 wierszy, 48 nie-NULL, 48 unikalnych, 0 duplikatow, 0 NULL-i.
-  --    UNIQUE na user_id wyklucza duplikaty WSROD WARTOSCI NIE-NULL; wielu
-  --    NULL-i by nie zablokowal, wiec wniosek opiera sie na STANIE DANYCH,
-  --    nie na samej definicji indeksu. Kont bez user_id dzis nie ma, bo
-  --    "Dodaj zawodnika" w trener.html nigdy nie zadzialal (brak polityki
-  --    INSERT dla trenera w RLS).
-  --    PRZY POJAWIENIU SIE KONT BEZ user_id: v_km je policzy (grupuje po
-  --    athlete_id), v_wklad nie (idzie przez user_id) — co jest spojne, bo
-  --    taki czlowiek nie ma konta, zeby sie zalogowac i zobaczyc pasek.
-  -- !! GORNA GRANICA "DO DZIS" MUSI BYC TU TAKZE. Gdyby stala tylko w v_km,
-  --    czlowiek widzialby wlasny pasek wyzszy niz wspolny — a wspolny zawiera
-  --    jego wklad. Rozjazd paskow byl juz raz powodem wyrzucenia cache.
   select coalesce(sum(least(dzien.km, 100)), 0) into v_wklad
     from (select (l.logged_at at time zone 'Europe/Warsaw')::date as d,
                  sum(l.distance_km) as km
@@ -61,4 +59,14 @@ begin
            group by 1) dzien;
 
   return query select v_km, v_wklad;
-end $function$
+end $function$;
+
+revoke all on function public.community_km() from public;
+revoke all on function public.community_km() from anon;
+grant execute on function public.community_km() to authenticated, service_role;
+
+notify pgrst, 'reload schema';
+
+commit;
+
+-- KONTROLA: select proacl from pg_proc where proname = 'community_km';  -- bez anon=X
