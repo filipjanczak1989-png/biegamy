@@ -16,3 +16,7 @@ vendor/** -text
 #  Chodzi wylacznie o czystosc diffu.)
 supabase/schema/funkcje/** -text
 supabase/schema/rls/** -text
+
+# Skrypty powłoki środowiska testowego (8.10.2026) uruchamia bash na LINUKSIE (Cloudflare Pages, CI).
+# CRLF z autocrlf na Windows dawałby „$'\r': command not found". Zawsze LF.
+*.sh text eol=lf

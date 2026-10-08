@@ -1,0 +1,35 @@
+# KEEPALIVE PROJEKTU TESTOWEGO SUPABASE (8.10.2026, docs/srodowisko-testowe.md)
+# Projekty Free są pauzowane po 7 dniach bezczynności. Raz w tygodniu jedno zapytanie REST do bazy
+# TESTOWEJ (kluczem anon — publiczny, jak w sb.js). Prod nie jest tu w ogóle znany.
+# ⚠️ Harmonogram (`schedule`) GitHub uruchamia TYLKO z gałęzi domyślnej (main) — plik musi leżeć na main.
+# Sekrety repo (Settings → Secrets → Actions): TEST_SB_URL, TEST_SB_ANON_KEY. Bez nich krok kończy się
+# ostrzeżeniem, nie błędem. Odmowa, gdyby URL wskazywał projekt prod.
+name: keepalive-test
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'     # poniedziałek 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Zapytanie do bazy testowej
+        env:
+          TEST_SB_URL: ${{ secrets.TEST_SB_URL }}
+          TEST_SB_ANON_KEY: ${{ secrets.TEST_SB_ANON_KEY }}
+        run: |
+          if [ -z "$TEST_SB_URL" ] || [ -z "$TEST_SB_ANON_KEY" ]; then
+            echo "::warning::Brak sekretów TEST_SB_URL / TEST_SB_ANON_KEY — keepalive pominięty"; exit 0
+          fi
+          case "$TEST_SB_URL" in *afqojgkaveykxbltxzwm*) echo "::error::TEST_SB_URL wskazuje PROD"; exit 1;; esac
+          kod=$(curl -s -o /dev/null -w '%{http_code}' "$TEST_SB_URL/rest/v1/races?select=id&limit=1" \
+            -H "apikey: $TEST_SB_ANON_KEY" -H "Authorization: Bearer $TEST_SB_ANON_KEY")
+          echo "HTTP $kod"
+          # 200 = baza odpowiada; 401/404 też znaczy, że projekt żyje (zapytanie dotarło do PostgREST)
+          case "$kod" in 200|401|404) exit 0;; *) echo "::error::Projekt testowy nie odpowiada (HTTP $kod) — może być już zapauzowany"; exit 1;; esac

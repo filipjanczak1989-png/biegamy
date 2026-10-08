@@ -32,9 +32,59 @@
 (function() {
   'use strict';
 
-  window.SB_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
-  window.SB_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+  /* ── ŚRODOWISKO: PROD / TEST (08.10.2026, docs/srodowisko-testowe.md) ─────────────────────────────────
+     TEST tylko wtedy, gdy location.hostname jest DOKŁADNIE na liście BM_HOSTY_TESTOWE (bez dopasowań
+     częściowych, bez subdomen, bez wielkości liter w liście — porównanie po toLowerCase). Wszystko inne —
+     biegamy.run, localhost, pusty host, dziwny host, wyjątek w samym przełączniku — = PROD, czyli dokładnie
+     to, co było przed tą zmianą. Lista pusta = zawsze PROD (stan do czasu podania adresu pages.dev).
+     ⚠️ Host testowy z NIEKOMPLETNĄ konfiguracją testową NIE spada na prod: front testowy pisałby do prawdziwej
+     bazy. Wtedy SB_URL/SB_KEY puste, klient się nie tworzy, pasek mówi „brak konfiguracji". */
+  var BM_PROD = { nazwa: 'prod', url: 'https://afqojgkaveykxbltxzwm.supabase.co', key: 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY' };
+  // Klucz: WYŁĄCZNIE publishable/anon (sb_publishable_… albo legacy anon JWT z "role":"anon"). NIGDY sb_secret_… —
+  // ten plik jest publiczny (repo + każda przeglądarka), a secret omija RLS. Test blizna-52 odrzuca sb_secret_.
+  var BM_TEST = { nazwa: 'test', url: 'https://hgqvhisbaveoawssehpp.supabase.co', key: 'sb_publishable_CC9t1OgL5M9Q8cxAn1BvcQ_mUTqmYS0' };   // ← klucz publishable projektu TESTOWEGO
+  var BM_HOSTY_TESTOWE = [];                                    // ← np. 'test.biegamy.run' (własna domena testu, opcjonalnie)
+  /* ARTEFAKT TESTOWY (9.10.2026): tools/test-env/cf-build.sh podmienia w dist/sb.js `false` → `true`. Artefakt
+     Cloudflare jest WYŁĄCZNIE testowy, więc łączy się z bazą testową na KAŻDYM swoim hoście (<projekt>.pages.dev,
+     podglądy <hash>.<projekt>.pages.dev) — bez tej flagi pierwszy deploy na nieznany jeszcze host trafiłby do PROD.
+     Artefakt prod (deploy.yml) nigdy nie przechodzi przez cf-build.sh: w repo i na biegamy.run zawsze `false`. */
+  var BM_ARTEFAKT_TESTOWY = false;
+  window._bmWybierzSrodowisko = function (host, hosty, test, artefaktTestowy) {
+    try {
+      var gotowy = !!(test && /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(test.url || '') && test.key);
+      if (artefaktTestowy === true) return gotowy ? 'test' : 'test-bez-konfiguracji';
+      var h = String(host == null ? '' : host).toLowerCase();
+      if (!h || !hosty || !hosty.length) return 'prod';
+      for (var i = 0; i < hosty.length; i++) {
+        if (typeof hosty[i] === 'string' && hosty[i].toLowerCase() === h) {
+          return gotowy ? 'test' : 'test-bez-konfiguracji';
+        }
+      }
+      return 'prod';
+    } catch (e) { return 'prod'; }
+  };
+  var _bmSrod = 'prod';
+  try { _bmSrod = window._bmWybierzSrodowisko(window.location && window.location.hostname, BM_HOSTY_TESTOWE, BM_TEST, BM_ARTEFAKT_TESTOWY); } catch (e) { _bmSrod = 'prod'; }
+  window.BM_SRODOWISKO = _bmSrod;
+  var _bmCfg = _bmSrod === 'test' ? BM_TEST : (_bmSrod === 'test-bez-konfiguracji' ? { url: '', key: '' } : BM_PROD);
+  window.SB_URL = _bmCfg.url;
+  window.SB_KEY = _bmCfg.key;
   window.SB_FN_URL = window.SB_URL + '/functions/v1';
+  if (_bmSrod !== 'prod') {
+    /* Pasek „ŚRODOWISKO TESTOWE" — zawsze widoczny, nie przechwytuje kliknięć, ponad wszystkim. */
+    var _bmPasekSrod = function () {
+      try {
+        if (document.getElementById('bm-pasek-srodowiska')) return;
+        var d = document.createElement('div');
+        d.id = 'bm-pasek-srodowiska';
+        d.textContent = _bmSrod === 'test' ? 'ŚRODOWISKO TESTOWE — dane nieprawdziwe' : 'ŚRODOWISKO TESTOWE — BRAK KONFIGURACJI (połączenie z bazą wyłączone)';
+        d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100000;pointer-events:none;text-align:center;' +
+          'font:700 10px/1.9 \'DM Mono\',monospace;letter-spacing:0.12em;color:#111;background:' + (_bmSrod === 'test' ? '#f2c94c' : '#eb5757') + ';';
+        (document.body || document.documentElement).appendChild(d);
+      } catch (e) {}
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _bmPasekSrod); else _bmPasekSrod();
+  }
 
   // ─── ASSET URL HELPER ───────────────────────────────────────────────
   // Buduje URL do repo GH Pages filipjanczak1989-png/biegamy-assets.
@@ -105,7 +155,7 @@
   window.VAPID_PUBLIC_KEY = 'BATC1Y7rglazNCcKQXV1bqaNA_SnxC3003c5_eSKDBaUykhbZSUevTQDL-KMyVDs55oNBJogJkx4g_5irwUObTk';
 
   // Klient Supabase (tylko jeśli SDK jest załadowane)
-  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+  if (typeof window.supabase !== 'undefined' && window.supabase.createClient && window.SB_URL) {   // test bez konfiguracji: bez klienta
     window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY);
   }
 
@@ -714,6 +764,7 @@
       return /^media\d*\.tenor\.com$/.test(h)
           || /^media\d*\.giphy\.com$/.test(h)
           || h === 'afqojgkaveykxbltxzwm.supabase.co'
+          || (window.BM_SRODOWISKO === 'test' && !!window.SB_URL && h === new URL(window.SB_URL).hostname)   // magazyn projektu testowego — tylko na teście
           || h === 'filipjanczak1989-png.github.io';
     } catch {
       return false;
@@ -2046,7 +2097,9 @@
         : (Date.now() + '.' + Math.random().toString(36).slice(2));
       sessionStorage.setItem('icu_oauth_state', nonce);            // CSRF — sprawdzany w intervals-callback.html
       if (returnTo) sessionStorage.setItem('icu_oauth_return', returnTo);  // powrót do onboardingu (dopięcie callbacku osobno)
-      const redirect = 'https://biegamy.run/intervals-callback.html';     // = redirect_uri client_id 533
+      // location.origin (8.10.2026): na prod = 'https://biegamy.run' jak dotąd; na teście wraca na host testowy
+      // (adres testowy trzeba DOPISAĆ w ustawieniach aplikacji intervals.icu client_id 533 → Manage App → redirect URIs).
+      const redirect = location.origin + '/intervals-callback.html';     // = redirect_uri client_id 533
       location.href = 'https://intervals.icu/oauth/authorize'
         + '?client_id=533'
         + '&redirect_uri=' + encodeURIComponent(redirect)

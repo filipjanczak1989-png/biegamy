@@ -1,0 +1,83 @@
+# Środowisko testowe (staging) — Cloudflare Pages + osobny projekt Supabase Free
+
+Stan: **projekt i diff z 8.10.2026, nic nie założone.** Prod (GitHub Pages + projekt `afqojgkaveykxbltxzwm`)
+zostaje bez zmian. Cel: smoke na telefonie **przed** pushem na `main`.
+
+## Jak to działa
+
+| Element | Prod | Test |
+|---|---|---|
+| Front | GitHub Pages, `main`, `biegamy.run` | Cloudflare Pages, gałąź `test`, `<projekt>.pages.dev` |
+| Build | `deploy.yml` (bump `CACHE_VERSION`, `?v=`) | `tools/test-env/cf-build.sh` (to samo, wersja `biegamy-test-…`) |
+| Baza + Auth + Storage + EF | projekt prod | osobny projekt Supabase Free |
+| Wybór backendu | `sb.js`: każdy host spoza listy | `sb.js`: host DOKŁADNIE na `BM_HOSTY_TESTOWE` |
+| SW, cache, localStorage | origin `biegamy.run` | inny origin — nic się nie miesza |
+
+Przełącznik (`sb.js`, `window._bmWybierzSrodowisko`): **artefakt z `cf-build.sh` ma flagę `BM_ARTEFAKT_TESTOWY = true`
+→ baza testowa na KAŻDYM swoim hoście** (pages.dev i podglądy). W repo i na prod flaga = `false`. Dodatkowo
+**TEST dla hosta z listy `BM_HOSTY_TESTOWE`** (np. przyszła własna domena); wszystko inne, także
+wyjątek w przełączniku, = **PROD jak dotąd**. Host z listy, ale bez kompletnej konfiguracji testowej = **brak
+połączenia z bazą** (nie prod) i czerwony pasek. Na teście zawsze żółty pasek „ŚRODOWISKO TESTOWE".
+
+## Zakładanie (raz)
+
+1. **Projekt Supabase Free** (drugi dozwolony aktywny projekt). Zapisz: `TEST_REF`, URL, klucz publishable/anon,
+   klucz secret, hasło bazy — **hasła i klucze secret tylko lokalnie** (menedżer haseł), nigdy w repo ani czacie.
+2. **Auth w panelu projektu testowego**: Site URL = adres pages.dev; Redirect URLs: `https://<host>/index.html`.
+   Logowanie hasłem działa od razu; Google wymaga osobnego klienta OAuth w Google Cloud (opcjonalne).
+3. **Schemat ze zrzutu PROD** (nie z migracji). Wymaga **Docker Desktop** (CLI uruchamia pg_dump w kontenerze);
+   **hasło bazy prod NIE jest potrzebne** — `db dump --linked` loguje się tokenem CLI (zmierzone 8.10, CLI 2.98.1):
+   `TEST_REF=… TEST_DB_URL='postgresql://…' TEST_ANON_KEY=… bash tools/test-env/zaloz-baze-testowa.sh`
+   — zrzut schematu, uzupełnienia (buckety, polityki storage, trigger rejestracji, publikacja realtime),
+   podmiana adresu prod → test z twardą kontrolą, sekrety vault, kontrola liczb.
+4. **Dane syntetyczne**: `TEST_SB_URL=… TEST_SERVICE_KEY=… node tools/test-env/seed.js` → 3 konta
+   (`trener@`, `ala@`, `bartek@biegamy-test.invalid`, hasło wypisane raz na ekran).
+5. **Edge Functions**: skopiuj `tools/test-env/sekrety-test.env.przyklad` POZA repo, uzupełnij,
+   `TEST_REF=… SEKRETY=… bash tools/test-env/deploy-ef.sh`.
+6. **Cloudflare Pages**: połącz repo; Production branch = `test`; Build command `bash tools/test-env/cf-build.sh`;
+   Output `dist`. Podglądy innych gałęzi: wyłącz (porządek, nie bezpieczeństwo — każdy artefakt z cf-build.sh
+   ma flagę testową, więc i tak łączy się z bazą TESTOWĄ).
+7. **`sb.js`**: `BM_TEST.url` i `BM_TEST.key` (publishable — publiczny, jak prod) — WPISANE 8.10. Host pages.dev
+   NIE musi trafić na listę (flaga artefaktu); lista tylko dla ewentualnej własnej domeny testu.
+8. **intervals.icu** (opcjonalne): w ustawieniach aplikacji client_id 533 dopisz redirect URI
+   `https://<host>/intervals-callback.html`.
+9. **Keepalive**: sekrety repo `TEST_SB_URL`, `TEST_SB_ANON_KEY`; workflow `keepalive-test.yml` musi być na `main`.
+
+## Smoke na telefonie (każda zmiana przed `main`)
+
+1. Wypchnij zmianę na gałąź `test` (nie na `main`). Cloudflare buduje sam (1–2 min).
+2. Na telefonie otwórz `https://<host>/` — **żółty pasek „ŚRODOWISKO TESTOWE"** musi być widoczny. Brak paska = STOP
+   (to prod albo stara wersja).
+3. Zaloguj się `ala@biegamy-test.invalid` (hasło z seed.js). „Dziś": plan, logi, wiadomość trenera, pierścień.
+4. Plan → tydzień z treningami syntetycznymi. Starty → „Bieg Testowy 10 km" z zapisem.
+5. Offline: tryb samolotowy po jednym udanym wejściu → „Dziś" i Plan z migawki, pasek „Offline · dane z HH:MM".
+6. Powrót z tła po > 10 min z siecią → dane odświeżone bez przeładowania; po nowym pushu na `test`
+   i > 30 min — jedno przeładowanie na nowy kod.
+7. Trener: wyloguj, zaloguj `trener@biegamy-test.invalid` → panel z dwoma zawodnikami.
+8. Dopiero po zielonym smoke: merge `test` → `main` (prod).
+
+Dodanie do ekranu głównego (PWA) na teście tworzy **osobną** aplikację (inny origin) — nie myli się z prod.
+
+## Czego NIE da się przełączyć (faza 1)
+
+| Co | Dlaczego | Skutek na teście |
+|---|---|---|
+| Push (VAPID) | publiczny klucz VAPID zaszyty w `sb.js` i `sw.js` (prod) | push nie działa |
+| Webhook intervals | aplikacja intervals ma JEDEN adres webhooka (prod) | brak automatycznego importu; ręczny sync działa |
+| Cron (raport miesiąca, poranny brief) | świadomie nie zakładamy | brak — wołałyby AI co godzinę |
+| Maile (Resend) | sekret pusty | nic nie wychodzi |
+| `index.html` `<link rel="preconnect">` | kosmetyka | łączy się wstępnie z prod — nic nie wysyła |
+| `food-image-fetch` zapasowy obrazek | publiczny plik z magazynu prod | tylko odczyt obrazka |
+| `window.SB_FN_URL \|\| '<prod>'` (kalendarz, nutrition, intervals-callback) | wartość awaryjna, gdy sb.js nie wstał | na teście sb.js ustawia SB_FN_URL — prod nieużywany |
+
+## Ryzyka dla prod
+
+- **Podgląd innej gałęzi w Cloudflare**: dzięki fladze artefaktu łączy się z bazą TESTOWĄ (nie prod). Ryzyko
+  odwrotne pilnuje build i test blizna-52: flaga `true` w repo = build STOP; deploy.yml nie używa cf-build.sh.
+- **Zrzut z prod** czyta schemat (bez danych) przez CLI podpięte do prod — skrypt odmawia, jeśli podpięty projekt
+  nie jest prod, i jeśli adres testu wskazuje prod; po podmianie STOP, gdy zostanie choć jeden adres prod.
+- **seed.js / deploy-ef.sh / keepalive** odmawiają pracy z adresem prod.
+- **Zmiana `sb.js` trafia na prod** (ten sam plik): na hoście prod zachowanie identyczne — test
+  `tests/blizna-52` sprawdza macierz hostów i niezmienione wartości prod.
+- Pauza projektu Free po 7 dniach: keepalive raz w tygodniu; czy zapytanie REST wystarcza jako „aktywność",
+  sprawdź po pierwszych 8 dniach w panelu (status projektu).

@@ -10101,7 +10101,7 @@ async function cmSearchGifs(q) {
     const { data: { session } } = await window.sb.auth.getSession();
     const token = session?.access_token;
     if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Musisz być zalogowany</div>'; return; }
-    const r = await fetch(`https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q=${encodeURIComponent(q||'running')}&limit=8`, {
+    const r = await fetch(`${window.SB_FN_URL}/gif-search?q=${encodeURIComponent(q||'running')}&limit=8`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const d = await r.json();
@@ -12068,7 +12068,7 @@ async function searchGifs(q, pickerId) {
     const { data: { session } } = await window.sb.auth.getSession();
     const token = session?.access_token;
     if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Musisz być zalogowany</div>'; return; }
-    const r = await fetch(`https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q=${encodeURIComponent(q||'running')}&limit=12`, {
+    const r = await fetch(`${window.SB_FN_URL}/gif-search?q=${encodeURIComponent(q||'running')}&limit=12`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const d = await r.json();

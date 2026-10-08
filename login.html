@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>BiegaMy — Logowanie</title>
-<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
+<script src="vendor/supabase-js-2.112.4.min.js"></script><script src="sb.js"></script><!-- 8.10.2026: SB_URL/SB_KEY z przełącznika środowiska w sb.js --><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
@@ -342,10 +342,11 @@ body::after{
 
 <script>
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+// Adres i klucz z sb.js (przełącznik PROD/TEST, 8.10.2026). Bez sb.js — prod jak dotąd.
+const SUPABASE_URL = window.SB_URL !== undefined ? window.SB_URL : 'https://afqojgkaveykxbltxzwm.supabase.co';
+const SUPABASE_KEY = window.SB_KEY !== undefined ? window.SB_KEY : 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
 const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.sb || createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const selectedRole = 'athlete';   // coach signup zamknięty — coach tylko przez verify-coach-code RPC (jak index.html)
 let currentTab = 'login';
