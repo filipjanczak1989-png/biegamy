@@ -5,10 +5,26 @@ Porównanie: `node tools/polityki-bazy.js`
 Sprawdzenie samego narzędzia: `node tools/polityki-bazy.js --samokontrola`
 
 To **nie są migracje**. To zapis tego, co **faktycznie stoi na produkcji**
-w dniu zrzutu: **80 relacji** (74 tabele + 6 widoków), **189 polityk RLS**.
+w dniu zrzutu. Pierwszy zrzut 29.08.2026: **80 relacji** (74 tabele + 6 widoków), **189 polityk RLS**.
+Stan po zrzucie **8.10.2026: 66 relacji, 173 polityki** (spadek = kasacje gier Bieguś/Janusz Run i community_*, paka 4).
 Migracje w `supabase/migrations/` opisują **17** z tych 189.
 
 ---
+
+## 8.10.2026: granty INSERT/UPDATE bez polityki — 26 par zdjętych, 1 zostaje
+
+Migracja `supabase/migrations/20261008_revoke_insert_update_bez_polityki.sql` (wykonana przez Filipa,
+zmierzona: kontrola `tools/kontrola-revoke-bez-polityki.sql` → **0 wierszy**). Zdjęte 26 par
+tabela:polecenie, gdzie `authenticated` miał INSERT/UPDATE, a RLS nie miał dla tego polecenia żadnej
+polityki — każdy taki zapis z sesji użytkownika i tak padał (INSERT → 42501, UPDATE → 0 wierszy).
+Zmiana w migawce: 19 plików tabel, wyłącznie linie `authenticated :` (np. achievements
+`INSERT, SELECT, UPDATE` → `INSERT, SELECT`).
+
+⚠️ **race_signups:UPDATE ZOSTAJE świadomie** — jedyna para bez polityki z grantem. Front robi
+`.upsert` bez `ignoreDuplicates` (ON CONFLICT DO UPDATE), a PostgreSQL wymaga UPDATE przy KAŻDYM
+takim wykonaniu, także bez konfliktu. Kontrola ma dla niej jawny wyjątek. Dowód zapisów:
+`tools/zwiad-zapisy-bez-polityki.js` (front + Edge Functions) i `.sql` (funkcje/triggery na prod);
+test `tests/blizna-50` pilnuje `ignoreDuplicates` w upsercie odznak i klienta service_role w EF.
 
 ## ⚠️⚠️ OSTRZEŻENIE 1: TO SIĘ JUŻ ROZJECHAŁO, A PRODUKCJA BYŁA NOWSZA
 

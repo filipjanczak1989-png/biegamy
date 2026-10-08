@@ -875,3 +875,30 @@ statyczne (+ w trener.html sonda 10 loaderów).
 
 WERYFIKACJA: SMOKE_PUSTE 39/39; ten sam smoke na kodzie z HEAD — 19 błędów na
 9 stronach; zwykły i SW smoke 21/21 (bez regresji). Testy 911/0, bramki zielone.
+
+================================================================================
+2026-10-08 (noc) — [27 PAR INSERT/UPDATE BEZ POLITYKI: 26 ZDJĘTYCH NA PROD, race_signups:UPDATE ZOSTAJE]
+================================================================================
+BACKLOG paki 4 (7.10). Pomiar 8.10 przed: te same 27 par, RLS ON wszędzie (każdy
+taki zapis z sesji usera i tak padał), grantor postgres, PUBLIC bez grantów,
+kolumnowego INSERT brak (ai_alerts/ai_reports: kolumnowe UPDATE, ale te pary mają
+polityki).
+
+DOWÓD ZAPISÓW (tools/zwiad-zapisy-bez-polityki.js + .sql, kontrola pozytywna):
+- front: jedyny zapis do 26 par = achievements .upsert(ignoreDuplicates) →
+  ON CONFLICT DO NOTHING → wymaga tylko INSERT (dokumentacja PostgreSQL);
+- Edge Functions: ai_cache, daily_briefs, intervals_activities, wellness,
+  ai_reports, recipes — wszystkie klientem service_role (omija granty i RLS);
+  UWAGA food-recognize ma też userClient = service key + Authorization usera
+  (działa jako authenticated) — dziś nie pisze nim do tych tabel;
+- funkcje SQL i triggery na prod: 0 zapisów do tych tabel.
+race_signups:UPDATE — ZAPIS ISTNIEJE: 5× .upsert bez ignoreDuplicates (ON CONFLICT
+DO UPDATE) → PostgreSQL wymaga UPDATE przy KAŻDYM wykonaniu. Zostaje; zwiad osobno.
+
+WYKONANE przez Filipa: 20261008_revoke_insert_update_bez_polityki.sql.
+ZMIERZONE po: tools/kontrola-revoke-bez-polityki.sql → 0 wierszy; zapytanie bez
+wyjątku → 1 wiersz (race_signups:UPDATE); relacl: z 19 tabel zniknęły dokładnie
+zdjęte a/w, race_signups arwdm. Migawka rls odświeżona (19 tabel + sumy, wyłącznie
+linie authenticated), porównanie z prod 0 różnic; README: sekcja 8.10, nagłówek
+66 relacji / 173 polityki. Test blizna-50 (kontrola negatywna: zapis przez
+userClient w EF → test pada). Wycofanie: 20261008_WYCOFANIE_…sql.
