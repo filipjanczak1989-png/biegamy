@@ -13172,12 +13172,15 @@ async function _dzisPoPowrocie(powod) {
   if (navigator.onLine === false) return 'offline';
   if (!_athleteId) return 'brak-zawodnika';
   if (window._dzisOdswiezanie || window._loadLogsRunning) return 'w-toku';
-  const z = window._dzisZaladowano;
-  const dzien = DzisOffline.dataLokalna(Date.now());
-  const zmianaDnia = !!z && z.dzien !== dzien;
-  if (z && !zmianaDnia && Date.now() - z.ts < DZIS_ODSWIEZ_PO_MS) return 'swieze';
   window._dzisOdswiezanie = true;
   try {
+    // Najpierw: czy ten dokument to STARY kod po deployu (> 30 min, nowszy SW) — wtedy jedno przeładowanie
+    // zamiast odświeżania danych starym kodem (sb.js bmPowrotSprawdzWersje, 08.10.2026).
+    if (window.bmPowrotSprawdzWersje && await window.bmPowrotSprawdzWersje()) return 'przeladowanie';
+    const z = window._dzisZaladowano;
+    const dzien = DzisOffline.dataLokalna(Date.now());
+    const zmianaDnia = !!z && z.dzien !== dzien;
+    if (z && !zmianaDnia && Date.now() - z.ts < DZIS_ODSWIEZ_PO_MS) return 'swieze';
     if (zmianaDnia || !z) _ustawDateNaglowka();
     await loadLogs();
     if (typeof window.loadWeather === 'function') window.loadWeather();
@@ -13185,6 +13188,7 @@ async function _dzisPoPowrocie(powod) {
   } catch (e) { console.error('[dziś] odświeżenie po powrocie:', e); return 'blad'; }
   finally { window._dzisOdswiezanie = false; }
 }
+window.bmPowrotWlasny = true;   // sb.js nie dubluje obsługi powrotu — wersję sprawdza _dzisPoPowrocie
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _dzisPoPowrocie('visibilitychange'); });
 window.addEventListener('pageshow', (e) => { if (e.persisted) _dzisPoPowrocie('pageshow'); });
 

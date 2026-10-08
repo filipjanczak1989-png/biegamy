@@ -803,3 +803,29 @@ sw.js: SWR po błędzie sieci bez dokładnej kopii → ta sama ścieżka z innym
 SMOKE: G z ?v= — 1. wejście JS N, zero błędów, offline po deployu Plan (nowy
 kod) i „Dziś" z precache; SMOKE_G_BEZ_WERSJI=1 (prod do dziś) pada na TypeError.
 SW 18/18, bez SW 21/21. blizna-47 (7 testów). Razem 899/0.
+
+================================================================================
+2026-10-08 (noc) — [POWRÓT Z TŁA DO STAREGO DOKUMENTU: JEDNO PRZEŁADOWANIE W CHWILI POWROTU]
+================================================================================
+PRZYCZYNA (smoke a3e546c, dzień Filipa): „wejścia" w ciągu dnia były wznowieniami
+dokumentu załadowanego w nocy. Dokument żył na kodzie sprzed deployu: odświeżanie
+danych (a3e546c) siedziało w nowym kodzie, którego ten dokument nie miał, a pasek
+„Nowa wersja" się nie pokazał — reg.update() chodzi co 60 s TYLKO przy widocznej
+stronie, w tle timery stoją. Kontrola negatywna (smoke SW H na kodzie z HEAD):
+dokument po deployu zostaje stary, bez paska.
+
+DECYZJA FILIPA: przy powrocie — jedno przeładowanie, nigdy w trakcie używania.
+sb.js bmPowrotSprawdzWersje (rozszerzenie paska, ten sam sygnał): sieć + dokument
+> 30 min + nowszy SW (reg.update() → installing/waiting, _bmNowaWersja z paska,
+albo CACHE_VERSION kontrolera ≠ wersja startowa — sw.js odpowiada na BM_WERSJA
+przez MessageChannel) → location.reload(). Widoczne pole z value ≠ defaultValue
+(otwarty modal logu przy przepisywaniu z innej aplikacji) → BEZ przeładowania,
+pasek. installing liczy się jako nowsza: od ce2faf1 (?v=) przeładowanie bierze
+z sieci spójną parę HTML+JS. Pętli brak: po przeładowaniu dokument < 30 min.
+zawodnik.html/kalendarz.html: sprawdzenie wersji PIERWSZE w _dzisPoPowrocie /
+_calPoPowrocie (w blokadzie, przed regułą 10 min), window.bmPowrotWlasny = true;
+pozostałe strony z bmRejestrujSW — ogólna obsługa w sb.js.
+
+SMOKE SW 21/21 (H1 > 30 min → przeładowanie, kod N; H2 < 30 min → nic;
+H3 wpisane pole → bez przeładowania, pasek); bez SW 21/21. blizna-48 (6). 905/0.
+LEKCJE #26. Obraz całości (hero czarny, „01:53" cały dzień) — po client_errors.

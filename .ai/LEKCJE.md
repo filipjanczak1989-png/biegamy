@@ -1370,3 +1370,28 @@ czarnych kartach).
 
 Polecenie zawiera mechanizm („wisi na X", „to cache Y"), a objaw da się opisać tylko jako „widok
 nie dochodzi do stanu końcowego". Wtedy najpierw sonda czasów, potem kod.
+
+
+## 26. Dokument wznowiony z tła żyje na kodzie sprzed deployu — odświeżanie danych nie wystarcza (8.10.2026)
+
+Trzy smoke z rzędu (59ccb94 → a3e546c) naprawiały „co pokazuje strona po powrocie": migawkę, odświeżenie
+danych przy visibilitychange, Plan. Każda poprawka była poprawna w smoke i żadna nie zadziałała na telefonie
+Filipa — bo jego „wejścia" w ciągu dnia były WZNOWIENIAMI dokumentu załadowanego w nocy. PWA na Androidzie
+przywraca z tła ten sam dokument: ten sam window, ten sam JS, ten sam zestaw handlerów. Kod, który miał
+odświeżać dane po powrocie, istniał na serwerze, ale nie w tym dokumencie. Pasek „Nowa wersja" też milczał:
+reg.update() chodzi z setInterval tylko przy widocznej stronie, a w tle timery stoją.
+
+### Reguła
+
+**Poprawka zachowania „po powrocie" działa dopiero w dokumencie, który ją ZAŁADOWAŁ.** Dokument sprzed deployu
+trzeba WYMIENIĆ (przeładować) w chwili powrotu — odświeżanie danych starym kodem tylko utrwala stary kod.
+Od 8.10: sb.js bmPowrotSprawdzWersje (> 30 min + nowszy SW + sieć + brak niezapisanej treści → jedno
+przeładowanie). Smoke każdej zmiany „po powrocie" musi mieć wariant: dokument WERSJI N-1 wznowiony po
+deployu N (tools/smoke-offline.js SMOKE_SW=1, scenariusze G i H) — test na świeżo załadowanej stronie
+sprawdza tylko ludzi, którzy i tak dostaliby nowy kod.
+
+### Objaw ostrzegawczy
+
+Poprawka zielona w smoke, a na telefonie „nic się nie zmieniło" — przy czym zgłaszający „wchodził kilka
+razy". Pierwsze pytanie: czy to były NOWE wejścia, czy wznowienia; drugie: z którą wersją kodu wstał
+dokument (window._bmWersjaStartu, app_version w client_errors).

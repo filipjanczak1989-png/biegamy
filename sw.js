@@ -521,6 +521,11 @@ self.addEventListener('notificationclick', (event) => {
 
 // ─── MESSAGE CHANNEL: pozwala apce kontrolować SW ────────────────────
 self.addEventListener('message', (event) => {
+  // Wersja tego SW dla strony (sb.js bmWersjaSW): przy wstaniu strony i przy powrocie z tła strona
+  // porównuje CACHE_VERSION kontrolera — inna = deploy przyszedł, gdy dokument żył (08.10.2026).
+  if (event.data && event.data.type === 'BM_WERSJA' && event.ports && event.ports[0]) {
+    event.ports[0].postMessage(CACHE_VERSION);
+  }
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

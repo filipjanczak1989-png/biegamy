@@ -5213,12 +5213,13 @@ async function _calPoPowrocie(powod) {
   if (document.visibilityState === 'hidden') return 'ukryta';
   if (navigator.onLine === false) return 'offline';
   if (window._calOdswiezanie) return 'w-toku';
-  const z = window._calZaladowano;
-  const dzien = dateStr(new Date());
-  const zmianaDnia = !!z && z.dzien !== dzien;
-  if (z && !zmianaDnia && Date.now() - z.ts < CAL_ODSWIEZ_PO_MS) return 'swieze';
   window._calOdswiezanie = true;
   try {
+    if (window.bmPowrotSprawdzWersje && await window.bmPowrotSprawdzWersje()) return 'przeladowanie';   // stary kod po deployu (sb.js)
+    const z = window._calZaladowano;
+    const dzien = dateStr(new Date());
+    const zmianaDnia = !!z && z.dzien !== dzien;
+    if (z && !zmianaDnia && Date.now() - z.ts < CAL_ODSWIEZ_PO_MS) return 'swieze';
     if (zmianaDnia && currentWeekStart === getWeekStart(new Date(z.dzien + 'T00:00:00'))) currentWeekStart = getWeekStart(new Date());
     await loadTrainingsFromDB();
     setView(_calView);
@@ -5226,6 +5227,7 @@ async function _calPoPowrocie(powod) {
   } catch (e) { console.error('[plan] odświeżenie po powrocie:', e); return 'blad'; }
   finally { window._calOdswiezanie = false; }
 }
+window.bmPowrotWlasny = true;   // sb.js nie dubluje obsługi powrotu — wersję sprawdza _calPoPowrocie
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _calPoPowrocie('visibilitychange'); });
 window.addEventListener('pageshow', (e) => { if (e.persisted) _calPoPowrocie('pageshow'); });
 

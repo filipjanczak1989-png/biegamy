@@ -1204,11 +1204,80 @@
     document.body.appendChild(p);
   };
 
+  /* ── POWRÓT Z TŁA DO STAREGO DOKUMENTU PO DEPLOYU (08.10.2026) ─────────────────────────────────
+     Smoke Filipa po a3e546c: przez cały dzień „wejścia" były wznowieniami dokumentu z nocy — kod sprzed
+     deployu żył dalej, a pasek „Nowa wersja" nie zdążył się pokazać (reg.update() chodzi co 60 s TYLKO
+     przy widocznej stronie; w tle timery stoją). ROZSZERZENIE paska, ten sam sygnał wykrycia:
+     przy powrocie (visibilitychange → visible / pageshow persisted), gdy
+       (a) jest NOWSZY SW — reg.update() znalazł installing/waiting, pasek już go zgłosił, albo kontroler
+           ma inną CACHE_VERSION niż ta, z którą strona wstała,
+       (b) dokument żyje > 30 min,
+       (c) jest sieć i (d) na stronie NIE MA niezapisanej treści w widocznym polu,
+     — JEDNO przeładowanie w chwili powrotu, nigdy w trakcie używania. Inaczej: zwykłe odświeżenie danych
+     (zawodnik/kalendarz) albo nic. Przy (d) zamiast przeładowania — pasek z przyciskiem, jak dotąd.
+     `installing` też liczy się jako nowsza: od wersjonowania zasobów (ce2faf1) przeładowanie bierze z sieci
+     spójną parę HTML+JS, nie musi czekać na koniec instalacji SW. Pętli nie ma: po przeładowaniu dokument
+     ma < 30 min. */
+  window._bmStartDokumentu = Date.now();
+  window.BM_POWROT_PRZELADUJ_PO_MS = 30 * 60 * 1000;
+  window.bmWersjaSW = function (sw) {
+    return new Promise(function (ok) {
+      try {
+        if (!sw || typeof MessageChannel === 'undefined') return ok(null);
+        var k = new MessageChannel();
+        var t = setTimeout(function () { ok(null); }, 1500);
+        k.port1.onmessage = function (e) { clearTimeout(t); ok(typeof e.data === 'string' ? e.data : null); };
+        sw.postMessage({ type: 'BM_WERSJA' }, [k.port2]);
+      } catch (e) { ok(null); }
+    });
+  };
+  /* Widoczne pole z treścią wpisaną przez człowieka (value ≠ defaultValue) — np. otwarty modal logu,
+     gdy ktoś przełączył się do innej aplikacji, żeby przepisać dane. Przeładowanie by to skasowało. */
+  window.bmNiezapisaneDane = function () {
+    try {
+      var pola = document.querySelectorAll('textarea, input:not([type]), input[type=text], input[type=number], input[type=search], input[type=email], input[type=tel], input[type=url], input[type=date], input[type=time]');
+      for (var i = 0; i < pola.length; i++) {
+        var el = pola[i];
+        if (el.value !== el.defaultValue && el.getClientRects().length > 0) return true;
+      }
+    } catch (e) {}
+    return false;
+  };
+  window.bmPowrotSprawdzWersje = async function () {
+    try {
+      if (!('serviceWorker' in navigator)) return false;
+      if (navigator.onLine === false) return false;
+      if (Date.now() - window._bmStartDokumentu < window.BM_POWROT_PRZELADUJ_PO_MS) return false;
+      if (window._bmPrzeladowuje) return true;
+      var reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) return false;
+      try { await Promise.race([reg.update(), new Promise(function (r) { setTimeout(r, 4000); })]); } catch (e) {}
+      var nowsza = !!(reg.waiting || reg.installing || window._bmNowaWersja);
+      if (!nowsza && window._bmWersjaStartu && navigator.serviceWorker.controller) {
+        var v = await window.bmWersjaSW(navigator.serviceWorker.controller);
+        nowsza = !!v && v !== window._bmWersjaStartu;
+      }
+      if (!nowsza) return false;
+      if (window.bmNiezapisaneDane()) { window.bmPasekNowejWersji(); return false; }
+      window._bmPrzeladowuje = true;
+      window.location.reload();
+      return true;
+    } catch (e) { return false; }
+  };
+
   window.bmRejestrujSW = function () {
+    // Strony z własną obsługą powrotu (zawodnik, kalendarz) wołają bmPowrotSprawdzWersje same,
+    // PRZED odświeżeniem danych — tu tylko pozostałe (index, profil, trener, wyzwania).
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && !window.bmPowrotWlasny) window.bmPowrotSprawdzWersje();
+    });
+    window.addEventListener('pageshow', function (e) { if (e.persisted && !window.bmPowrotWlasny) window.bmPowrotSprawdzWersje(); });
     if (!('serviceWorker' in navigator)) return;
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
         .then(function (reg) {
+          var kontroler = navigator.serviceWorker.controller;
+          if (kontroler) window.bmWersjaSW(kontroler).then(function (v) { if (!window._bmWersjaStartu) window._bmWersjaStartu = v; });
           reg.addEventListener('updatefound', function () {
             var nowy = reg.installing;
             if (!nowy) return;
@@ -1218,6 +1287,7 @@
               // controller jest null i pasek sie nie pokazuje — nowy uzytkownik
               // nie ma po co widziec "nowa wersja" przy pierwszym wejsciu.
               if (nowy.state === 'installed' && navigator.serviceWorker.controller) {
+                window._bmNowaWersja = true;          // sygnał dla bmPowrotSprawdzWersje (powrót z tła)
                 window.bmPasekNowejWersji();          // ZAMIAST location.reload()
               }
             });

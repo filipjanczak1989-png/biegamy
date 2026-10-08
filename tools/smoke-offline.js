@@ -422,6 +422,66 @@ async function trybSW() {
     fs.rmSync(katN, { recursive: true, force: true });
   }
 
+  // ── H: STARY DOKUMENT WZNOWIONY PO DEPLOYU (08.10.2026, sb.js bmPowrotSprawdzWersje) ──
+  //    Obie wersje = artefakt drzewa roboczego po tools/wersjonuj-zasoby.js; N różni się znacznikiem w sb.js
+  //    (window.__wersjaN) i CACHE_VERSION — jak prawdziwy deploy. Dokument wersji N-1 zostaje otwarty,
+  //    serwer przechodzi na N, potem „powrót z tła" (visibilitychange). Wiek dokumentu ustawiany przez
+  //    window._bmStartDokumentu (zamiast czekać 30 min).
+  {
+    const { execSync } = require('child_process');
+    const artefakt = (nazwa, dopisekSb) => {
+      const kat = path.join(require('os').tmpdir(), 'smoke-h-' + nazwa + '-' + process.pid);
+      fs.rmSync(kat, { recursive: true, force: true });
+      const pliki = execSync('git ls-files', { cwd: KORZEN }).toString().split(/\r?\n/).filter((f) => f && !/^(tests|tools|docs|\.ai|supabase|\.github)\//.test(f) && f !== 'journal.txt');
+      for (const f of pliki) { const z = path.join(KORZEN, f); if (!fs.existsSync(z)) continue; fs.mkdirSync(path.dirname(path.join(kat, f)), { recursive: true }); fs.copyFileSync(z, path.join(kat, f)); }
+      if (dopisekSb) fs.appendFileSync(path.join(kat, 'sb.js'), dopisekSb);
+      require('./wersjonuj-zasoby.js').wersjonuj(kat);
+      return kat;
+    };
+    const katA = artefakt('n1', ''), katB = artefakt('n', '\n;window.__wersjaN = true;\n');
+    const powrot = (p) => p.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { get: () => 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const przebieg = async (et, { wiekMin, brudnePole }) => {
+      STAN.korzen = katA; STAN.wersja = '-H1'; STAN.zrywaj.clear();
+      const { ctx } = await kontekstOnline(browser, true);
+      const p = await ctx.newPage();
+      await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+      await czekajNaKontrole(p);
+      // dokument, który WSTAŁ pod kontrolą SW (jak u ludzi) — tylko wtedy jest wersja startowa
+      await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3000);
+      await p.evaluate(([wiek, brudne]) => {
+        window.__dokumentH = 'stary';
+        window._bmStartDokumentu = Date.now() - wiek * 60000;
+        if (brudne) { const i = document.createElement('input'); i.id = 'h-pole'; i.type = 'text'; document.body.appendChild(i); i.value = 'wpisane 12,4 km'; }
+      }, [wiekMin, !!brudnePole]);
+      const start = await p.evaluate(() => ({ wersjaStartu: window._bmWersjaStartu, n: !!window.__wersjaN }));
+      STAN.korzen = katB; STAN.wersja = '-H2';                       // DEPLOY N
+      const nawigacja = p.waitForNavigation({ timeout: 15000 }).then(() => true).catch(() => false);
+      await powrot(p);
+      const przeladowano = await nawigacja;
+      await p.waitForTimeout(3000);
+      const po = await p.evaluate(() => ({ dokument: window.__dokumentH || 'NOWY', kodN: !!window.__wersjaN, pasek: !!document.getElementById('bm-nowa-wersja'),
+        pole: (document.getElementById('h-pole') || {}).value || null }));
+      console.log('   [H ' + et + '] start ' + JSON.stringify(start) + ' | przeładowanie ' + przeladowano + ' | po ' + JSON.stringify(po));
+      await ctx.close();
+      return { przeladowano, ...po, start };
+    };
+    const h1 = await przebieg('>30 min', { wiekMin: 31 });
+    sprawdz('SW H1: dokument N-1 (> 30 min) wznowiony po deployu N → jedno przeładowanie, po powrocie kod N', h1.przeladowano && h1.dokument === 'NOWY' && h1.kodN && !!h1.start.wersjaStartu,
+      'przeładowanie=' + h1.przeladowano + ', kod N=' + h1.kodN + ', wersja startu=' + h1.start.wersjaStartu);
+    const h2 = await przebieg('<30 min', { wiekMin: 5 });
+    sprawdz('SW H2: dokument < 30 min — bez przeładowania (ten sam dokument)', !h2.przeladowano && h2.dokument === 'stary', 'przeładowanie=' + h2.przeladowano + ', dokument ' + h2.dokument);
+    const h3 = await przebieg('>30 min + wpisane pole', { wiekMin: 31, brudnePole: true });
+    sprawdz('SW H3: > 30 min, ale niezapisana treść w polu — bez przeładowania, pasek „Nowa wersja"', !h3.przeladowano && h3.dokument === 'stary' && h3.pole === 'wpisane 12,4 km' && h3.pasek,
+      'przeładowanie=' + h3.przeladowano + ', pole=' + h3.pole + ', pasek=' + h3.pasek);
+    STAN.korzen = null; STAN.wersja = '';
+    fs.rmSync(katA, { recursive: true, force: true }); fs.rmSync(katB, { recursive: true, force: true });
+  }
+
   // ── E: niekrytyczna strona z poprzedniej wersji ──
   {
     STAN.wersja = ''; STAN.zrywaj.clear();
