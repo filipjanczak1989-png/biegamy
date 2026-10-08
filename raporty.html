@@ -257,7 +257,8 @@ if (window.NAV) window._mountNav();
 else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); });
 </script>
 
-<script src="sb.js"></script>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- PAKA 5: SDK PRZED sb.js jak na pozostałych stronach. Bez niego sb.js nie tworzył klienta, init czekał 10 s (waitForSb), a klient tworzony ręcznie nie miał łatki bez ponowień offline (3 zapytania × ~7 s) — offline „Ładowanie…” > 30 s -->
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -495,6 +496,7 @@ async function init() {
       window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       });
+      if (window._bmBezPonowienOffline) window._bmBezPonowienOffline(window.sb);   // PAKA 5: offline bez ponowień 1+2+4 s
       console.log('[raporty] ✅ sb client created manually');
     } catch (e) {
       console.error('[raporty] Failed to create sb manually:', e);
@@ -575,6 +577,8 @@ async function init() {
       .maybeSingle();
     if (athErr) {
       console.error('[raporty] błąd mapowania user_id→athletes.id:', athErr);
+      // PAKA 5: bez sieci nie wiadomo, czyje raporty pobrać — komunikat zamiast „Ładowanie…” / „Brak raportów”
+      if (window.bmOfflineGdy && window.bmOfflineGdy(athErr, 'rl-content', 'raportów')) return;
     }
     if (athRow?.id) {
       console.log('[raporty] ✅ Zmapowano auth.uid', authUid.substring(0,8) + '...', '→ athletes.id', athRow.id.substring(0,8) + '...');
@@ -638,6 +642,7 @@ async function loadReports() {
     error: error?.message
   });
   
+  if (error && window.bmOfflineGdy && window.bmOfflineGdy(error, target, 'raportów')) return;   // PAKA 5: błąd sieci ≠ „Błąd: Failed to fetch”
   if (error) {
     target.innerHTML = '<div class="empty"><div class="empty-msg" style="color:var(--red);">Błąd: ' + error.message + '</div></div>';
     return;

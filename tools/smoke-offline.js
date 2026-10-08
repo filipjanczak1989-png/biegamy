@@ -189,6 +189,84 @@ async function scenariuszOnline(ctx, baza, etykieta) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STANY PUSTE OFFLINE (SMOKE_PUSTE=1) — PAKA 5, 08.10.2026. Wejście OFFLINE (bez SW, sieć poza localhost
+// odcięta, navigator.onLine=false) na każdą stronę zawodnika i trenera. Zbiera WIDOCZNE zdania pustego
+// stanu (te same wzorce co tools/zwiad-stany-puste.js), komunikat „Brak połączenia", wyjątki, przekierowania.
+// Wymaganie: zero zdań „brak/nie masz…" udających dane, jest komunikat o braku połączenia, zero wyjątków.
+// SMOKE_PUSTE_RAPORT=1 — tylko wypisz (bez oceny), do zwiadu i kontroli negatywnej.
+// ─────────────────────────────────────────────────────────────────────────────
+// falsz: wzorce widocznego tekstu, które offline udają dane (zmierzone zrzutami 8.10 na HEAD 6fec59e).
+// Ogólne dla każdej strony: zdania pustego stanu (ZDANIE z narzędzia zwiadu), „ładowanie…" po 8 s,
+// widoczny szkielet (.skeleton / [class*=skel]), przekierowanie na inną stronę.
+const STRONY_PUSTE = [
+  { url: '/nutrition.html', falsz: [/Witaj w Nutrition/, /^0 kcal$/] },
+  { url: '/races.html', falsz: [] },
+  { url: '/radio.html', falsz: [] },
+  { url: '/profil.html', falsz: [/^Brak profilu$/] },
+  { url: '/wyzwania.html', falsz: [/^0(\.0)?$/], prawdziwe: [/żadnej przerwy/] },   // „4 dni, żadnej przerwy >2 dni" = opis wyzwania, nie pusty stan
+  { url: '/odznaki.html', falsz: [/^0$/, /jeszcze do zdobycia/] },
+  { url: '/compare.html?friend=' + 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', falsz: [] },
+  { url: '/raporty.html', falsz: [] },
+  { url: '/ankieta.html', falsz: [], bezDanych: true },     // ekran startowy ankiety nie czyta z bazy
+  { url: '/trener.html', falsz: [] },
+].filter((st) => !process.env.SMOKE_PUSTE_STRONY || process.env.SMOKE_PUSTE_STRONY.split(',').some((x) => st.url.includes(x)));
+async function trybPuste() {
+  const { ZDANIE } = require('./zwiad-stany-puste.js');
+  const srv = await serwer();
+  const baza = 'http://127.0.0.1:' + srv.address().port;
+  const browser = await chromium.launch();
+  const M = migawka(), S = sesja();
+  const wyniki = [];
+  const sprawdz = (nazwa, ok, szczegol) => { wyniki.push({ nazwa, ok: !!ok, szczegol }); };
+  const tylkoRaport = !!process.env.SMOKE_PUSTE_RAPORT;
+  const tabela = [];
+  for (const st of STRONY_PUSTE) {
+    const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 412, height: 915 }, deviceScaleFactor: 2,
+      userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36' });
+    await ctx.addInitScript(([m, s, uid]) => {
+      try { localStorage.setItem('sb-afqojgkaveykxbltxzwm-auth-token', JSON.stringify(s)); localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m)); } catch (e) {}
+      Object.defineProperty(Navigator.prototype, 'onLine', { get: () => false, configurable: true });
+      window.__odrzucenia = [];
+      window.addEventListener('unhandledrejection', (e) => { window.__odrzucenia.push(String((e.reason && (e.reason.message || e.reason)) || e.reason).slice(0, 160)); });
+    }, [M, S, UID]);
+    await ctx.route('**/*', (route) => { const u = new URL(route.request().url()); return (u.hostname === '127.0.0.1') ? route.continue() : route.abort('internetdisconnected'); });
+    const pg = await ctx.newPage();
+    const bledy = [];
+    pg.on('pageerror', (e) => bledy.push(String(e.message).slice(0, 160)));
+    await pg.goto(baza + st.url, { waitUntil: 'domcontentloaded' }).catch((e) => bledy.push('goto: ' + e.message));
+    await pg.waitForTimeout(8000);
+    const w = await pg.evaluate(([zrodlo, falsz, prawdziwe]) => {
+      const pr = (prawdziwe || []).map((x) => new RegExp(x));
+      const re = new RegExp(zrodlo);
+      const fz = falsz.map((x) => new RegExp(x));
+      const linie = (document.body ? document.body.innerText : '').split('\n').map((x) => x.trim()).filter(Boolean);
+      const widoczny = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+      const szkielety = [...document.querySelectorAll('.skeleton, [class*="skel"]')].filter(widoczny).length;
+      const puste = linie.filter((l) => !/Brak połączenia/.test(l) && !pr.some((r) => r.test(l)) && (re.test(' ' + l) || /^[łŁ]adowanie/.test(l) || fz.some((r) => r.test(l))));
+      return { url: location.pathname, puste: [...new Set(puste)].slice(0, 12), szkielety,
+               polaczenie: linie.filter((l) => /Brak połączenia/.test(l)).slice(0, 4), odrzucenia: window.__odrzucenia || [] };
+    }, [ZDANIE.source, (st.falsz || []).map((r) => r.source), (st.prawdziwe || []).map((r) => r.source)]).catch((e) => ({ url: '?', puste: [], szkielety: 0, polaczenie: [], odrzucenia: [], blad: e.message }));
+    const nazwa = st.url.split('?')[0].slice(1);
+    await pg.screenshot({ path: path.join(ZRZUTY, 'puste-' + nazwa.replace('.html', '') + '.png'), fullPage: true }).catch(() => {});
+    tabela.push({ strona: nazwa, ...w, bledy });
+    console.log('   [' + nazwa + '] url=' + w.url + ' | puste: ' + JSON.stringify(w.puste) + ' | szkielety: ' + w.szkielety + ' | połączenie: ' + JSON.stringify(w.polaczenie) + ' | wyjątki: ' + JSON.stringify(bledy.concat(w.odrzucenia).slice(0, 3)));
+    if (!tylkoRaport) {
+      sprawdz(nazwa + ': bez przekierowania na inną stronę', w.url === '/' + nazwa, 'url ' + w.url);
+      sprawdz(nazwa + ': zero fałszu offline (pusty stan, zero, „ładowanie", szkielet)', w.puste.length === 0 && w.szkielety === 0, w.puste.join(' | ') + (w.szkielety ? ' | szkieletów ' + w.szkielety : ''));
+      if (!st.bezDanych) sprawdz(nazwa + ': komunikat o braku połączenia', w.polaczenie.length > 0, w.polaczenie.join(' | ') || 'brak');
+      sprawdz(nazwa + ': zero nieobsłużonych wyjątków', bledy.length === 0 && w.odrzucenia.length === 0, bledy.concat(w.odrzucenia).slice(0, 2).join(' || '));
+    }
+    await ctx.close();
+  }
+  await browser.close(); srv.close();
+  if (process.env.SMOKE_PUSTE_JSON) fs.writeFileSync(process.env.SMOKE_PUSTE_JSON, JSON.stringify(tabela, null, 1));
+  console.log('\n  SMOKE OFFLINE — stany puste (' + STRONY_PUSTE.length + ' stron, bez SW)\n');
+  for (const r of wyniki) console.log('  ' + (r.ok ? 'OK  ' : 'BŁĄD') + '  ' + r.nazwa + (r.szczegol ? '  — ' + String(r.szczegol).replace(/\s+/g, ' ').slice(0, 180) : ''));
+  console.log('\n  Zrzuty: ' + ZRZUTY);
+  process.exit(wyniki.every((r) => r.ok) ? 0 : 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TRYB Z SERVICE WORKEREM (SMOKE_SW=1) — 08.10.2026, smoke Filipa po 830f760:
 // „Dziś" offline działa, Plan (kalendarz.html?role=athlete) daje ekran braku połączenia.
 // Tu SW jest PRAWDZIWY (sw.js z repo), sieć znika naprawdę: context.setOffline(true) + serwer
@@ -510,7 +588,8 @@ async function trybSW() {
   console.log('\n  Zrzuty: ' + ZRZUTY);
   process.exit(wyniki.every((w) => w.ok) ? 0 : 1);
 }
-if (process.env.SMOKE_SW) { trybSW().catch((e) => { console.error(e); process.exit(2); }); }
+if (process.env.SMOKE_PUSTE) { trybPuste().catch((e) => { console.error(e); process.exit(2); }); }
+else if (process.env.SMOKE_SW) { trybSW().catch((e) => { console.error(e); process.exit(2); }); }
 else
 (async () => {
   const srv = await serwer();

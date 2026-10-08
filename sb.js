@@ -293,6 +293,43 @@
   // ─── SECURITY: HTML escape (anti-XSS) ───────────────────────────────
   // Używaj WSZĘDZIE gdzie wstawiasz user-content do innerHTML
   // np. ${escapeHtml(m.body)}, ${escapeHtml(g.name)}
+  /* ── STAN OFFLINE ZAMIAST PUSTEGO STANU (PAKA 5, 08.10.2026) ─────────────────────────────────────────
+     Bez sieci supabase-js oddaje { data: null, error }, a loadery traktowały null jak „nie ma" — offline
+     strony mówiły „Brak znajomych", „0 zdobyte odznaki", „0.0 / 20 km", pokazywały ekran powitalny
+     albo szkielet bez końca (zmierzone: tools/smoke-offline.js SMOKE_PUSTE=1). Kryterium „to błąd sieci"
+     jest JEDNO: DzisOffline.czyBladSieci (js/dzis-offline.js — ładowany na każdej stronie z danymi).
+     Inne błędy (42501, PGRST…) NIE są tu łapane — idą dotychczasową drogą.
+       bmBladSieci(error)          → true/false
+       bmStanOffline(el, co)       → wstawia „Brak połączenia — nie można wczytać <co>." (el: element albo id)
+       bmOfflineGdy(error, el, co) → przy błędzie sieci bmStanOffline i true; inaczej false (loader idzie dalej) */
+  window.bmBladSieci = function (error) {
+    try { return !!(window.DzisOffline && window.DzisOffline.czyBladSieci(error)); } catch (e) { return false; }
+  };
+  window.bmStanOffline = function (el, co) {
+    try {
+      if (typeof el === 'string') el = document.getElementById(el);
+      if (!el) return false;
+      var d = document.createElement('div');
+      d.className = 'bm-stan-offline';
+      d.setAttribute('role', 'status');
+      d.style.cssText = 'padding:22px 12px;text-align:center;color:var(--muted,#8a8798);font-size:13px;line-height:1.6;font-family:\'DM Sans\',sans-serif;';
+      var t = document.createElement('div');
+      t.textContent = 'Brak połączenia — nie można wczytać ' + (co || 'danych') + '.';
+      var p = document.createElement('div');
+      p.style.cssText = 'font-size:11px;opacity:0.75;margin-top:4px;font-family:\'DM Mono\',monospace;';
+      p.textContent = 'Spróbuj ponownie, gdy wróci sieć.';
+      d.appendChild(t); d.appendChild(p);
+      el.innerHTML = '';
+      el.appendChild(d);
+      return true;
+    } catch (e) { return false; }
+  };
+  window.bmOfflineGdy = function (error, el, co) {
+    if (!error || !window.bmBladSieci(error)) return false;
+    window.bmStanOffline(el, co);
+    return true;
+  };
+
   window.escapeHtml = function(s) {
     if (s == null) return '';
     return String(s)

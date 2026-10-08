@@ -17,7 +17,7 @@
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <!-- ZXing for barcode scanning -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
 
@@ -4665,7 +4665,7 @@ function mountNav(id){ var m=document.getElementById('nav-mount'); if(m && windo
   // Pierwsze wejście — uruchom onboarding (ale NIE jeśli przyszli z ?date= param)
   const hasDateParam = new URLSearchParams(window.location.search).has('date');
   const onboarded = localStorage.getItem('nutrition_onboarded');
-  if (!onboarded && !_profile && !hasDateParam) {
+  if (!onboarded && !_profile && !hasDateParam && !window._nutProfilOffline) {   // PAKA 5: offline profil NIEZNANY ≠ brak
     setTimeout(() => openOnboarding(), 300);
   }
 })();
@@ -4817,7 +4817,11 @@ async function loadProfile() {
     .eq('athlete_id', _athleteId)
     .maybeSingle();
   if (error) console.warn('profile load:', error);
+  /* PAKA 5: bez sieci NIE WIEMY, czy profil jest — nie pokazujemy zachęty „uzupełnij profil" ani onboardingu
+     (offline nowy-użytkownik-ekran dostawał każdy, kto otworzył Jedzenie w trybie samolotowym). */
+  window._nutProfilOffline = !!(error && window.bmBladSieci && window.bmBladSieci(error));
   _profile = data;
+  if (window._nutProfilOffline) { document.getElementById('profile-prompt').style.display = 'none'; return; }
   // Toggle prompt
   document.getElementById('profile-prompt').style.display = _profile ? 'none' : 'block';
 }
@@ -4910,6 +4914,7 @@ async function loadTodayMeals() {
     .lte('eaten_at', endOfDay.toISOString())
     .order('eaten_at', { ascending: false });
   if (error) console.warn('meals:', error);
+  window._nutPosilkiOffline = !!(error && window.bmBladSieci && window.bmBladSieci(error));   // PAKA 5: refreshDashboard nie rysuje zer
   _todayMeals = data || [];
 
   // Update has-meals indicator dla bieżącego dnia w pasku
@@ -5017,7 +5022,25 @@ function startHeroAutoRotate() {
   }, 7000);  // co 7s
 }
 
+/* PAKA 5 (08.10.2026): widok bez danych przez brak sieci — dzieci widoku chowane (z zapamiętaniem
+   wcześniejszego display), na górze komunikat „Brak połączenia — nie można wczytać …". Po udanym odczycie
+   ten sam pomocnik z offline=false przywraca widok. Struktura DOM zostaje (inne funkcje piszą po id). */
+function _nutWidokOffline(id, co, offline) {
+  const v = document.getElementById(id); if (!v) return;
+  let o = document.getElementById(id + '-offline');
+  if (offline) {
+    [...v.children].forEach(c => { if (c === o || c.dataset.nutOffline === '1') return; c.dataset.nutOffline = '1'; c.dataset.nutPrzed = c.style.display; c.style.display = 'none'; });
+    if (!o) { o = document.createElement('div'); o.id = id + '-offline'; v.insertBefore(o, v.firstChild); }
+    window.bmStanOffline(o, co);
+  } else {
+    if (o) o.remove();
+    [...v.children].forEach(c => { if (c.dataset.nutOffline === '1') { c.style.display = c.dataset.nutPrzed || ''; delete c.dataset.nutOffline; delete c.dataset.nutPrzed; } });
+  }
+}
 function refreshDashboard() {
+  // PAKA 5: bez sieci posiłki dnia NIEZNANE — nie „0 kcal" w każdej porze
+  _nutWidokOffline('view-today', 'posiłków z tego dnia', !!window._nutPosilkiOffline);
+  if (window._nutPosilkiOffline) return;
   // Slider 4 grafik w hero (rotujące co 7s, deterministyczne z dnia — codziennie inne 4)
   setupHeroImageSlider();
 
@@ -5591,6 +5614,7 @@ async function loadRecipeLibrary() {
   } catch (e) {
     console.warn('[lib]', e);
     _libLoaded = false;   // pozwól ponowić przy następnym wejściu
+    if (window.bmOfflineGdy && window.bmOfflineGdy(e, el, 'biblioteki przepisów')) return;   // PAKA 5
     el.innerHTML = '<div class="lib-empty">Nie udało się wczytać biblioteki.</div>';
   }
 }
@@ -6646,10 +6670,14 @@ async function loadHistoryView() {
     });
   }
   const startISO = days[0].date.toISOString();
-  const { data } = await sb.from('nutrition_meals')
+  const { data, error } = await sb.from('nutrition_meals')
     .select('eaten_at, kcal, protein_g, carbs_g, fat_g')
     .eq('athlete_id', _athleteId)
     .gte('eaten_at', startISO);
+  // PAKA 5: bez sieci nie 30 dni po 0 kcal
+  const _off = !!(error && window.bmBladSieci && window.bmBladSieci(error));
+  _nutWidokOffline('view-history', 'historii posiłków', _off);
+  if (_off) return;
 
   (data || []).forEach(m => {
     const k = new Date(m.eaten_at).toISOString().slice(0, 10);
@@ -6776,7 +6804,7 @@ async function openDayDetails(dateKey) {
   const startOfDay = new Date(day.date);
   const endOfDay = new Date(day.date);
   endOfDay.setHours(23, 59, 59, 999);
-  const { data } = await sb.from('nutrition_meals')
+  const { data, error } = await sb.from('nutrition_meals')
     .select('*')
     .eq('athlete_id', _athleteId)
     .gte('eaten_at', startOfDay.toISOString())
@@ -6788,6 +6816,12 @@ async function openDayDetails(dateKey) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
   document.getElementById('day-title').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+  // PAKA 5: bez sieci nie „Brak wpisów / Tego dnia nic nie zjadłeś"
+  if (window.bmOfflineGdy && window.bmOfflineGdy(error, 'day-meals', 'posiłków z tego dnia')) {
+    document.getElementById('day-sub').textContent = 'Brak połączenia';
+    const m = document.getElementById('day-modal'); if (m) m.classList.remove('hidden');
+    return;
+  }
 
   if (meals.length === 0) {
     document.getElementById('day-sub').textContent = 'Brak wpisów';
@@ -6954,11 +6988,15 @@ async function loadWeekView() {
     });
   }
   const startISO = days[0].date.toISOString();
-  const { data } = await sb.from('nutrition_meals')
+  const { data, error } = await sb.from('nutrition_meals')
     .select('eaten_at, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g')
     .eq('athlete_id', _athleteId)
     .gte('eaten_at', startISO)
     .order('eaten_at', { ascending: true });
+  // PAKA 5: bez sieci nie tydzień zer
+  const _off = !!(error && window.bmBladSieci && window.bmBladSieci(error));
+  _nutWidokOffline('view-week', 'podsumowania tygodnia', _off);
+  if (_off) return;
 
   (data || []).forEach(m => {
     const k = new Date(m.eaten_at).toISOString().slice(0, 10);

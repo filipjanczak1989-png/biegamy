@@ -105,7 +105,7 @@ body{padding:0 0 200px;min-height:100vh;}
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <script>
 let _radioUid = null;
 let _radioTracks = [];
@@ -334,6 +334,7 @@ async function loadTop(){
     .order('play_count', { ascending: false })
     .order('like_count', { ascending: false })
     .order('title', { ascending: true });
+  if (error && window.bmOfflineGdy && window.bmOfflineGdy(error, el, 'przebojów')) return;   // PAKA 5
   if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania.</div>'; return; }
   _radioTopTracks = data || [];
   if (!_radioTopTracks.length){ el.innerHTML = PUSTKA.dekoruj('wyniki', '<div class="rad-empty">Brak danych.</div>'); return; }
@@ -412,6 +413,7 @@ async function loadTrackComments(trackId){
   const el = document.getElementById('rad-comments-list');
   if (!el) return;
   const { data, error } = await sb.from('radio_comments_view').select('*').eq('track_id', trackId).order('created_at', { ascending: true });
+  if (error && window.bmOfflineGdy && window.bmOfflineGdy(error, el, 'komentarzy')) return;   // PAKA 5
   if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania komentarzy.</div>'; return; }
   const rows = data || [];
   if (!rows.length){ el.innerHTML = PUSTKA.dekoruj('wiadomosci', '<div class="rad-empty" style="padding:18px;">Brak komentarzy. Bądź pierwszy!</div>'); return; }
@@ -464,6 +466,7 @@ async function loadCatalog(){
   const el = document.getElementById('radio-catalog');
   if (!window.RADIO) { el.innerHTML = '<div class="rad-empty">Moduł radia nie załadował się 🔄<br>Odśwież aplikację (zamknij i otwórz / przeciągnij w dół).</div>'; return; }
   const { data, error } = await sb.from('radio_top').select('*').order('created_at', { ascending: true });
+  if (error && window.bmOfflineGdy && window.bmOfflineGdy(error, el, 'katalogu')) return;   // PAKA 5
   if (error) { el.innerHTML = '<div class="rad-empty">Błąd ładowania katalogu.</div>'; return; }
   _radioTracks = data || [];
   if (!_radioTracks.length) { el.innerHTML = '<div class="rad-empty">Biblioteka jest pusta 🎵<br>Nic tu jeszcze nie ma.</div>'; return; }
@@ -476,6 +479,7 @@ async function loadPlaylists(){
   const el = document.getElementById('radio-playlists');
   const { data, error } = await sb.from('radio_playlists').select('*').eq('owner_id', _radioUid).order('created_at', { ascending: true });
   let html = '<button class="rad-newpl" onclick="radioNewPlaylist()"><img class="rad-ic-inline" src="' + window.assetUrl('icon-radio-add.webp') + '">Nowa playlista</button>';
+  if (error && window.bmOfflineGdy && window.bmOfflineGdy(error, el, 'playlist')) return;   // PAKA 5
   if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania playlist.</div>'; return; }
   const pls = data || [];
   if (!pls.length) { html += '<div class="rad-empty">Nie masz jeszcze playlist.<br>Stwórz pierwszą i dodawaj utwory z katalogu.</div>'; }
@@ -638,6 +642,7 @@ async function radioOpenPlaylist(playlistId){
   const el = document.getElementById('radio-playlists');
   let html = '<button class="rad-newpl" style="border-style:solid;" onclick="loadPlaylists()">‹ Wróć do playlist</button>'
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;margin:2px 0 12px;">' + escapeHtml(pl.name) + '</div>';
+  if (error && window.bmBladSieci && window.bmBladSieci(error)) { el.innerHTML = html + '<div id="rad-pl-offline"></div>'; window.bmStanOffline('rad-pl-offline', 'utworów playlisty'); return; }   // PAKA 5: przycisk „Wróć” zostaje
   if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania.</div>'; return; }
   const items = (rows || []).filter(function(r){ return r.track; });   // odfiltruj osierocone (track usunięty z katalogu)
   _radioPlaylistTracks = items.map(function(r){ return r.track; });

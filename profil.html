@@ -19,7 +19,7 @@
 <!-- build: 2026-05-18-coach-picker -->
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -615,6 +615,16 @@ let _postType = 'photo';
 let _postImgFile = null;
 let _profileData = null;
 
+/* PAKA 5 (08.10.2026): bez sieci profil pokazywał „Brak profilu", kreski i szkielety bez końca
+   (Życiówki, Cele, Aktywność). Błąd SIECI (sb.js bmBladSieci) = „nie wiem", nie „nie ma":
+   nagłówek i sekcje dostają komunikat o braku połączenia. Inne błędy — po staremu. */
+function _profilOffline() {
+  var n = document.getElementById('profile-name'); if (n) n.textContent = 'Brak połączenia';
+  window.bmStanOffline('pbs-grid', 'życiówek');
+  window.bmStanOffline('goals-list', 'celów i startów');
+  window.bmStanOffline('posts-container', 'aktywności');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
@@ -631,7 +641,8 @@ let _profileData = null;
   _isCoach = !!coachRow;
 
   // Mój athlete ID
-  const { data: me } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  const { data: me, error: meErr } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  if (window.bmBladSieci(meErr)) { _profilOffline(); return; }
   _myId = me?.id || null;
   _myUserId = session.user.id;   // auth.uid()
 
@@ -741,10 +752,11 @@ let _profileData = null;
 // Widok filtruje is_public=true, więc brak wiersza = prywatny ∨ nieistniejący → login, jak dotąd.
 // Kontrakt: _myId zostaje null, zero zapisów, zero handlerów wymagających sesji.
 async function initPublicView(id) {
-  const { data: a } = await sb.from('public_athletes')
+  const { data: a, error: aErr } = await sb.from('public_athletes')
     .select('id,full_name,avatar_url,goal,race_goals,pb_marathon,pb_half,pb_10k,pb_5k')
     .eq('id', id)
     .maybeSingle();
+  if (window.bmBladSieci(aErr)) { _profilOffline(); return; }
   if (!a) { location.href = 'index.html'; return; }
 
   _myId = null; _myUserId = null; _targetId = a.id; _isOwnProfile = false; _canSeeFull = false;
@@ -818,10 +830,11 @@ async function initPublicView(id) {
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath, error: athErr } = await sb.from('athletes')
     .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,hr_public,date_of_birth,coach_id,city,gender')
     .eq('id', _targetId)
     .maybeSingle();
+  if (window.bmBladSieci(athErr)) { _profilOffline(); return; }
   if (!ath) return;
   _profileData = ath;
 
@@ -1264,23 +1277,24 @@ async function loadBadges() {
 // ── STATS ─────────────────────────────────────────────────────────
 async function loadStats() {
   // Znajomi
-  const { data: fr } = await sb.from('friendships')
+  const { data: fr, error: frErr } = await sb.from('friendships')
     .select('id')
     .eq('status', 'accepted')
     .or(`requester_id.eq.${_targetId},addressee_id.eq.${_targetId}`);
-  document.getElementById('ps-friends').textContent = fr?.length || 0;
+  /* PAKA 5: błąd sieci → licznik zostaje „—" (nie wiadomo), nigdy 0. */
+  if (!window.bmBladSieci(frErr)) document.getElementById('ps-friends').textContent = fr?.length || 0;
 
   // Obserwujący (follows)
-  const { data: fol } = await sb.from('follows').select('id').eq('following_id', _targetId);
-  document.getElementById('ps-followers').textContent = fol?.length || 0;
+  const { data: fol, error: folErr } = await sb.from('follows').select('id').eq('following_id', _targetId);
+  if (!window.bmBladSieci(folErr)) document.getElementById('ps-followers').textContent = fol?.length || 0;
 
   // Treningi + km
-  const { data: logs } = await sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs')
+  const { data: logs, error: logsErr } = await sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs')
     .select('distance_km')
     .eq('athlete_id', _targetId)
     .not('training_type', 'like', '__badge__%');
   const totalKm = (logs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-  document.getElementById('ps-logs').textContent = logs?.length || 0;
+  if (!window.bmBladSieci(logsErr)) document.getElementById('ps-logs').textContent = logs?.length || 0;
   // ps-km zawiera ikonę statystyk — nie nadpisujemy wartością
 }
 
@@ -1591,6 +1605,7 @@ async function loadPosts() {
           .limit(50)   // obcy: publiczne treningi z widoku (jak społeczność); external_id/source → wykresy w _openTrainingDetail
   ]);
 
+  if (window.bmOfflineGdy(postsRes.error, el, 'aktywności') || window.bmOfflineGdy(logsRes.error, el, 'aktywności')) return;
   const posts = postsRes.data || [];
   // Tylko logi które mają zdjęcie LUB komentarz (ten warunek już jest w .or, ale dla pewności filtr)
   // Plus dodatkowy bezpiecznik: nigdy odznak (`__badge__...`)
@@ -2096,6 +2111,7 @@ async function loadProfileFriends() {
   // ZNAJOMI ZAAKCEPTOWANI
   var res = await sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.' + _targetId + ',addressee_id.eq.' + _targetId);
+  if (window.bmOfflineGdy(res.error, el, 'listy znajomych')) return;
   var rows = res.data || [];
 
   // ZAPROSZENIA - tylko jeśli to MÓJ profil
@@ -2355,6 +2371,7 @@ async function _doProfileSearch(q) {
   var el = document.getElementById('profile-search-results');
   var res = await sb.from('athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
     .eq('is_public', true).ilike('full_name', '%' + q + '%').limit(20);
+  if (window.bmOfflineGdy(res.error, el, 'wyników wyszukiwania')) return;
   var results = (res.data||[]).filter(function(a){ return a.id !== _myId; });
   el.innerHTML = '';
 
@@ -3032,6 +3049,7 @@ async function _pcLoad(t, silent){
     .or('and(from_id.eq.'+_myId+',to_id.eq.'+t+'),and(from_id.eq.'+t+',to_id.eq.'+_myId+')')
     .order('sent_at',{ascending:true})
     .limit(200);
+  if(r.error && window.bmBladSieci(r.error)){ if(!silent) window.bmStanOffline(el, 'wiadomości'); return; }
   var msgs=r.data||[];
 
   if(!msgs.length){
@@ -3131,6 +3149,7 @@ async function openFollowersList(){
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
 
   var r=await sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  if(window.bmOfflineGdy(r.error, li, 'listy obserwujących'))return;
   var ids=(r.data||[]).map(function(x){return x.follower_id;});
   li.innerHTML='';
   if(!ids.length){
@@ -3173,6 +3192,7 @@ async function openTrainingsList(){
   var r=_canSeeFull
     ? await sb.from('training_logs').select('id,training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url,calories').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300)
     : await sb.from('public_training_logs').select('id,training_type,distance_km,pace,duration,logged_at,elevation_gain').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  if(window.bmOfflineGdy(r.error, li, 'treningów'))return;
   _allTr=r.data||[];renderTr('');
 }
 function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(var(--accent-rgb),0.15)';btn.style.borderColor='rgba(var(--accent-rgb),0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}

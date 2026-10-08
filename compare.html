@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -236,17 +236,21 @@ async function init() {
   if (!session) { location.href = 'zawodnik.html'; return; }
 
   // Fetch my athlete ID
-  const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  /* PAKA 5 (08.10.2026): błąd SIECI to nie „brak profilu" — bez sieci strona przekierowywała na
+     zawodnik.html. Teraz komunikat o braku połączenia; inne błędy i brak wiersza — po staremu. */
+  const { data: me, error: meErr } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  if (window.bmOfflineGdy && window.bmOfflineGdy(meErr, document.querySelector('main'), 'porównania')) return;
   if (!me) { location.href = 'zawodnik.html'; return; }
   _myAthleteId = me.id;
 
   // Verify _friendId is a friend (defensive, prevent random ?friend=X exploits)
   if (_friendId) {
-    const { data: rel } = await _sb.from('friendships')
+    const { data: rel, error: relErr } = await _sb.from('friendships')
       .select('id')
       .or('and(requester_id.eq.' + _myAthleteId + ',addressee_id.eq.' + _friendId + '),and(requester_id.eq.' + _friendId + ',addressee_id.eq.' + _myAthleteId + ')')
       .eq('status', 'accepted')
       .maybeSingle();
+    if (window.bmOfflineGdy && window.bmOfflineGdy(relErr, document.querySelector('main'), 'porównania')) return;
     if (!rel) {
       // Not a friend → fallback to picker (zero info leak)
       _friendId = null;
@@ -262,22 +266,24 @@ async function init() {
 
 async function renderPicker() {
   document.getElementById('picker-fallback').style.display = 'block';
-  const { data: friendships } = await _sb.from('friendships')
+  const { data: friendships, error: frErr } = await _sb.from('friendships')
     .select('requester_id,addressee_id')
     .or('requester_id.eq.' + _myAthleteId + ',addressee_id.eq.' + _myAthleteId)
     .eq('status', 'accepted');
 
   const listEl = document.getElementById('picker-list');
+  if (window.bmOfflineGdy && window.bmOfflineGdy(frErr, listEl, 'listy znajomych')) return;
   if (!friendships || friendships.length === 0) {
     listEl.innerHTML = PUSTKA.dekoruj('znajomi', '<p style="color:var(--fg3);font-style:italic;padding:16px;font-family:DM Sans,sans-serif;">Brak znajomych. Dodaj kogoś w <a href="zawodnik.html?tab=social" style="color:var(--accent);">Społeczność</a>.</p>');
     return;
   }
 
   const friendIds = friendships.map(f => f.requester_id === _myAthleteId ? f.addressee_id : f.requester_id);
-  const { data: friends } = await _sb.from('athletes')
+  const { data: friends, error: fErr } = await _sb.from('athletes')
     .select('id, full_name, avatar_url')
     .in('id', friendIds)
     .order('full_name', { ascending: true });
+  if (window.bmOfflineGdy && window.bmOfflineGdy(fErr, listEl, 'listy znajomych')) return;
 
   const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
 
@@ -303,13 +309,14 @@ async function renderCompare() {
 
   const [meProf, friendProf, myLogs, friendLogs, myWeight, friendWeight] = await Promise.all([
     _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _myAthleteId).maybeSingle().then(r => r.data),
-    _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _friendId).maybeSingle().then(r => r.data),
+    _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _friendId).maybeSingle().then(r => { if (r.error && window.bmBladSieci && window.bmBladSieci(r.error)) return { __offline: true }; return r.data; }),
     _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _myAthleteId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
     _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _friendId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
     _sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _myAthleteId).maybeSingle().then(r => r.data?.weight_kg || 0).catch(() => 0),
     _sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _friendId).maybeSingle().then(r => r.data?.weight_kg || 0).catch(() => 0)
   ]);
 
+  if (friendProf && friendProf.__offline) { window.bmStanOffline(document.querySelector('main'), 'porównania'); return; }
   if (!friendProf) {
     document.querySelector('main').innerHTML = '<p style="color:var(--red);padding:20px;font-family:DM Sans,sans-serif;">Nie znaleziono zawodnika lub nie masz uprawnień.</p>';
     return;

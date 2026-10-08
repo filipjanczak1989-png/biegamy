@@ -7,7 +7,7 @@
 <title>BiegaMy — Odznaki</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -518,12 +518,17 @@ window.closeBadgeDetail = closeBadgeDetail;
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { history.back(); return; }
-  const { data: ath } = await _sb.from('athletes')
+  const { data: ath, error: athErr } = await _sb.from('athletes')
     .select('id').eq('user_id', session.user.id).single();
+  /* PAKA 5: bez sieci strona mówiła „0 zdobyte odznaki · 112 jeszcze do zdobycia", a każda zdobyta
+     odznaka wyglądała na zablokowaną. Katalog jest prawdziwy, stan zdobycia — nieznany: komunikat
+     zamiast całej sekcji (półprawda „katalog bez stanu" byłaby czytana jako „nic nie masz"). */
+  if (window.bmOfflineGdy(athErr, 'badges-section-content', 'Twoich odznak')) return;
   if (ath) {
     _athleteId = ath.id;
-    const { data } = await _sb.from('achievements')
+    const { data, error } = await _sb.from('achievements')
       .select('badge_id').eq('athlete_id', _athleteId);
+    if (window.bmOfflineGdy(error, 'badges-section-content', 'Twoich odznak')) return;
     if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
   }
   renderBadgesSection();

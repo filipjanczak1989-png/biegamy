@@ -798,7 +798,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
 
@@ -889,6 +889,7 @@ async function loadPanelAI() {
     .order('generated_at', { ascending: false })
     .limit(10);
 
+  if (_trOffline(error, target, 'raportów')) return;
   if (error) {
     target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--red);font-size:11px;">Błąd: ' + escapeHtml(error.message) + '</div>';
     return;
@@ -1244,6 +1245,7 @@ async function loadPanelTrainingPlans() {
     .order('created_at', { ascending: false })
     .limit(20);
 
+  if (_trOffline(error, target, 'planów treningowych')) return;
   if (error) {
     target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--accent);font-size:11px;">Błąd: ' + error.message + '</div>';
     return;
@@ -2466,9 +2468,10 @@ async function loadStravaPanel() {
   el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
 
   // Sprawdź czy zawodnik ma Stravę
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath, error: athErr } = await sb.from('athletes')
     .select('strava_athlete_id, strava_connected_at')
     .eq('id', id).maybeSingle();
+  if (_trOffline(athErr, el, 'aktywności Strava')) return;   // bez tego: „Zawodnik nie połączył Stravy."
 
   if (!ath?.strava_athlete_id) {
     el.innerHTML = `<div style="padding:24px 0;text-align:center;">
@@ -2479,13 +2482,14 @@ async function loadStravaPanel() {
   }
 
   // Pobierz aktywności
-  const { data: activities } = await sb
+  const { data: activities, error: actErr } = await sb
     .from('strava_activities')
     .select('*')
     .eq('athlete_id', id)
     .order('start_date', { ascending: false })
     .limit(20);
 
+  if (_trOffline(actErr, el, 'aktywności Strava')) return;
   if (!activities || activities.length === 0) {
     el.innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności Strava.</div>');
     return;
@@ -2625,11 +2629,12 @@ async function loadPanelStats() {
   const since30 = new Date(); since30.setDate(since30.getDate()-30);
   const since7  = new Date(); since7.setDate(since7.getDate()-7);
 
-  const { data: logs } = await sb.from('training_logs').select('*')
+  const { data: logs, error: statsErr } = await sb.from('training_logs').select('*')
     .eq('athlete_id', id)
     .not('training_type', 'like', '__badge__%')
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending:true});
+  if (_trOffline(statsErr, el, 'statystyk')) return;
 
   const all = logs || [];
   const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
@@ -2957,6 +2962,32 @@ let _coachId = null;
 let _dbAthletes = [];
 
 // ── AUTH ──────────────────────────────────────────────────────────
+/* OFFLINE PRZY SPRAWDZENIU ROLI (PAKA 5, 08.10.2026). Bez sieci zapytanie coaches kończyło się błędem,
+   coachCheck = null i kod uznawał trenera za zawodnika → przekierowanie na zawodnik.html (zmierzone:
+   smoke-offline SMOKE_PUSTE=1). Błąd SIECI (window.bmBladSieci) to „nie wiem", nie „nie jesteś trenerem":
+   zostajemy na stronie, nagłówek z lokalnej sesji, lista zawodników = komunikat o braku połączenia,
+   dalsze loadery NIE ruszają (każdy by kłamał pustym stanem). Brak wiersza coaches — bez zmian. */
+function _trenerOffline(sesja) {
+  try {
+    const name = (sesja && sesja.user && sesja.user.user_metadata && sesja.user.user_metadata.full_name) || 'Trener';
+    const av = document.getElementById('av-btn'); if (av) av.textContent = name.split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2);
+    const me = document.getElementById('menu-email'); if (me && sesja && sesja.user) me.textContent = sesja.user.email || '';
+    const tn = document.querySelector('.topbar-name'); if (tn) tn.textContent = 'Trener ' + name.split(' ')[0];
+  } catch (e) {}
+  window.bmStanOffline('ath-list', 'listy zawodników');
+}
+/* Błąd SIECI w loaderze (sb.js bmBladSieci): komunikat o braku połączenia zamiast pustego stanu („Brak …", „0").
+   Część loaderów chodzi cyklicznie (czat, lista rozmów) — przy chwilowym zerwaniu NIE kasujemy danych już
+   widocznych na ekranie: komunikat zastępuje tylko pusty element, „Ładowanie…" albo poprzedni komunikat offline.
+   Zwraca true przy błędzie sieci (loader ma przerwać), false — inne błędy idą dotychczasową drogą. */
+function _trOffline(error, el, co) {
+  if (!error || !window.bmBladSieci || !window.bmBladSieci(error)) return false;
+  if (typeof el === 'string') el = document.getElementById(el);
+  if (!el) return true;
+  const t = (el.textContent || '').trim();
+  if (!t || /^(Ładowanie|Wczytuję|Brak połączenia)/.test(t) || el.querySelector('.bm-stan-offline')) window.bmStanOffline(el, co);
+  return true;
+}
 async function initAuth() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
@@ -2967,7 +2998,8 @@ async function initAuth() {
     // Sprawdź rolę — tylko trener może tu wejść
     const role2 = s2.user.user_metadata?.role;
     if (role2 === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-    const { data: coachCheck2 } = await sb.from('coaches').select('id').eq('id', s2.user.id).maybeSingle();
+    const { data: coachCheck2, error: coachErr2 } = await sb.from('coaches').select('id').eq('id', s2.user.id).maybeSingle();
+    if (coachErr2 && window.bmBladSieci && window.bmBladSieci(coachErr2)) { _trenerOffline(s2); return; }
     if (!coachCheck2) { window.location.href = 'zawodnik.html'; return; }
     const name2 = s2.user.user_metadata?.full_name || 'Trener';
     const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -2982,7 +3014,8 @@ async function initAuth() {
   // Sprawdź rolę — tylko trener może tu wejść
   const role = session.user.user_metadata?.role;
   if (role === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-  const { data: coachCheck } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+  const { data: coachCheck, error: coachErr } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+  if (coachErr && window.bmBladSieci && window.bmBladSieci(coachErr)) { _trenerOffline(session); return; }
   if (!coachCheck) { window.location.href = 'zawodnik.html'; return; }
   const name = session.user.user_metadata?.full_name || 'Trener';
   const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -3015,6 +3048,7 @@ async function loadAthletes() {
     .eq('coach_id', _coachId)
     .order('created_at');
 
+  if (_trOffline(error, 'ath-list', 'listy zawodników')) return;
   if (error) { console.error(error); return; }
   
   _dbAthletes = data || [];
@@ -3222,6 +3256,7 @@ async function renderDbAthletes(list) {
      Dodatkowo liczy sygnaly na karte: ostatni trening + niebieski log. */
   const _allIds = list.map(a => a.id);
   let _unreadByAth = {}, _lastLogByAth = {}, _plannedByAth = {};
+  let _ostatniNieznany = false;   // błąd SIECI przy „ostatnim treningu" → nie piszemy „brak treningów"
   if (_allIds.length) {
     const sedmDni = new Date(now.getTime() - 7 * 86400000).toISOString();
     /* 1) nieodczytane logi (count per zawodnik) */
@@ -3230,10 +3265,11 @@ async function renderDbAthletes(list) {
       .not('training_type', 'like', '__badge__%').is('read_by_coach', null);
     (unreadRows || []).forEach(r => { _unreadByAth[r.athlete_id] = (_unreadByAth[r.athlete_id] || 0) + 1; });
     /* 2) ostatni trening per zawodnik (7 dni, do sygnalu aktywnosci) */
-    const { data: recentRows } = await sb.from('training_logs')
+    const { data: recentRows, error: recentErr } = await sb.from('training_logs')
       .select('athlete_id,logged_at').in('athlete_id', _allIds)
       .not('training_type', 'like', '__badge__%').gte('logged_at', sedmDni)
       .order('logged_at', { ascending: false });
+    _ostatniNieznany = !!(recentErr && window.bmBladSieci && window.bmBladSieci(recentErr));
     (recentRows || []).forEach(r => { if (!_lastLogByAth[r.athlete_id]) _lastLogByAth[r.athlete_id] = r.logged_at; });
     /* 3) zaplanowane treningi niewykonane (do badge missed) */
     const { data: plannedRows } = await sb.from('trainings')
@@ -3279,6 +3315,7 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${escapeHtml(nextRace(a.race_goals)?.name||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
         ${(() => {
           /* PERF-STADO: sygnal ostatniej aktywnosci na karcie */
+          if (!a.lastLogAt && _ostatniNieznany) return '';
           if (!a.lastLogAt) return '<div class="ath-last" style="font-size:10px;color:rgba(255,255,255,0.35);font-family:\'DM Mono\',monospace;margin-top:2px;">brak treningów w tym tygodniu</div>';
           const dni = Math.floor((Date.now() - new Date(a.lastLogAt)) / 86400000);
           const txt = dni <= 0 ? 'trenował dziś' : dni === 1 ? 'trenował wczoraj' : 'ostatnio ' + dni + ' dni temu';
@@ -3499,7 +3536,7 @@ function renderWM_db(trainings) {
 
 // ── LOAD LOGS ─────────────────────────────────────────────────────
 async function loadAthleteLogs(athleteId) {
-  const { data } = await sb
+  const { data, error } = await sb
     .from('training_logs')
     .select('*')
     .eq('athlete_id', athleteId)
@@ -3507,6 +3544,7 @@ async function loadAthleteLogs(athleteId) {
     .order('logged_at', { ascending: false })
     .limit(20);
   
+  if (_trOffline(error, 'lcon', 'treningów zawodnika')) return;
   window._athLogsCache = data || [];   // cache dla modalu wykresów ⌚
   if (data) renderLogs_db(data);
 }
@@ -4517,10 +4555,11 @@ async function _renderNotifPanel(panel) {
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
 
-  const { data: recent } = await sb.from('athletes')
+  const { data: recent, error: recentErr } = await sb.from('athletes')
     .select('id,full_name,created_at,goal')
     .order('created_at', { ascending: false })
     .limit(10);
+  if (window.bmOfflineGdy(recentErr, panel, 'powiadomień')) return;
 
   const todayCount = (recent||[]).filter(a => new Date(a.created_at) >= todayStart).length;
   const weekCount = (recent||[]).filter(a => new Date(a.created_at) >= weekStart).length;
@@ -4650,9 +4689,10 @@ async function loadCoachSocialFeed() {
   const feedEl = document.getElementById('coach-feed-content');
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
-  const { data: logs } = await sb.from('training_logs')
+  const { data: logs, error: feedErr } = await sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)').not('training_type','like','__badge__%')
     .order('logged_at', { ascending: false }).limit(60);
+  if (_trOffline(feedErr, feedEl, 'aktywności')) return;
   if (!logs || !logs.length) {
     feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
@@ -4765,7 +4805,8 @@ async function openCoachComments(logId) {
 async function _loadCComments(logId) {
   const el=document.getElementById('cc-list');if(!el)return;
   try {
-    const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data,error}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    if(_trOffline(error,el,'komentarzy'))return;
     if(!data||!data.length){el.innerHTML= PUSTKA.dekoruj('wiadomosci', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>');return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
@@ -4799,7 +4840,8 @@ function coachSocialSearch(q) {
 async function _coachDoSearch(q) {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz is_public + coach_id, filtruj client-side: publiczni LUB swoi
-  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
+  const {data,error}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
+  if(window.bmOfflineGdy(error,el,'wyników wyszukiwania'))return;
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,15);
@@ -4814,7 +4856,8 @@ async function _coachDoSearch(q) {
 async function loadCoachSuggestedProfiles() {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz więcej, filtruj client-side: publiczni LUB swoi
-  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
+  const {data,error}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
+  if(window.bmOfflineGdy(error,el,'profili'))return;
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,10);
@@ -4831,7 +4874,8 @@ async function loadCoachRanking() {
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
   // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
-  const {data:logs}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').not('training_type','like','__badge__%').gte('logged_at',wS.toISOString());
+  const {data:logs,error:rankErr}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').not('training_type','like','__badge__%').gte('logged_at',wS.toISOString());
+  if(_trOffline(rankErr,el,'rankingu'))return;
   const km={};const elev={};const nm={};
   (logs||[]).forEach(function(l){
     if(!l.athletes) return;
@@ -4866,7 +4910,8 @@ async function loadCoachMsgsList() {
   const tListEl = document.getElementById('t-chat-list'); if(tListEl){tListEl.style.display='flex';tListEl.style.flexDirection='column';}
   document.getElementById('msgs-chat')?.style?.setProperty('display','none');
 
-  const { data: athletes } = await sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
+  const { data: athletes, error: msgsAthErr } = await sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
+  if (_trOffline(msgsAthErr, list, 'listy rozmów')) return;
   if (!athletes || athletes.length === 0) {
     list.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników.</div>');
     return;
@@ -5215,8 +5260,9 @@ window.openAthleteProfile = openAthleteProfile;
 
 async function loadCoachChat() {
   if (!_currentChatAthleteId) return;
-  const { data } = await sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:false}).limit(200);
+  const { data, error } = await sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:false}).limit(200);
   const thread = document.getElementById('chat-thread');
+  if (_trOffline(error, thread, 'wiadomości')) return;
   if (data) data.reverse();   // render od najstarszej do najnowszej (najnowsze nie wypadają poza limit)
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
@@ -5465,7 +5511,8 @@ async function loadAnalytics() {
   const appEl = document.getElementById('analytics-app-stats');
   if (appEl) {
     // total + newWeek z RPC (zagregowane, nie ujawnia rekordów), myCount z bezpośredniego count
-    const { data: appStats } = await sb.rpc('get_app_stats').single();
+    const { data: appStats, error: appErr } = await sb.rpc('get_app_stats').single();
+    if (_trOffline(appErr, appEl, 'statystyk aplikacji')) { const _ac = document.getElementById('analytics-content'); if (_ac) window.bmStanOffline(_ac, 'analityki zawodników'); return; }
     const total = appStats?.total_count || 0;
     const newWeek = appStats?.week_count || 0;
     const { count: myCount } = await sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
@@ -5488,9 +5535,10 @@ async function loadAnalytics() {
   const el = document.getElementById('analytics-content');
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
 
-  const { data: athletes } = await sb.from('athletes')
+  const { data: athletes, error: anAthErr } = await sb.from('athletes')
     .select('id,full_name,goal,target_date,pb_marathon,pb_half,pb_10k,pb_5k,race_goals')
     .eq('coach_id', _coachId);
+  if (_trOffline(anAthErr, el, 'analityki zawodników')) return;
   if (!athletes || athletes.length === 0) {
     el.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>');
     return;
@@ -5617,6 +5665,7 @@ async function loadAthleteAIReports(athleteId) {
     .order('generated_at', { ascending: false })
     .limit(5);
 
+  if (_trOffline(error, target, 'raportów')) return;
   if (error) {
     target.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0;">Błąd: ' + error.message + '</div>';
     return;
@@ -6400,6 +6449,7 @@ async function searchAthleteByEmail() {
     .ilike('email', email)
     .maybeSingle();
 
+  if (window.bmOfflineGdy(error, res, 'wyszukiwania zawodnika')) return;   // bez tego: „Nie znaleziono zawodnika"
   if (!data) {
     // email może nie być w athletes — szukaj przez dedicated view lub kolumnę
     res.innerHTML = `<div style="background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e05050;font-family:'DM Mono',monospace;">
@@ -7658,6 +7708,7 @@ async function loadCoachNotesForAthlete(athleteId, containerId) {
       .order('is_resolved', { ascending: true }) // nieresolved na górze
       .order('created_at', { ascending: false })
       .limit(20);
+    if (_trOffline(error, container, 'notatek')) return;
     if (error) throw error;
     
     if (!data || data.length === 0) {
@@ -7728,7 +7779,7 @@ async function loadPanelDiet() {
   
   try {
     // Pobierz profil nutrition (cele kcal/makro)
-    const { data: nProfile } = await sb.from('nutrition_profiles')
+    const { data: nProfile, error: dietProfErr } = await sb.from('nutrition_profiles')
       .select('tdee, bmr, goal, weight_kg, height_cm, age, activity_level')
       .eq('athlete_id', nutriUid)
       .maybeSingle();
@@ -7736,11 +7787,12 @@ async function loadPanelDiet() {
     // Pobierz posiłki z ostatnich 30 dni
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data: meals } = await sb.from('nutrition_meals')
+    const { data: meals, error: dietMealsErr } = await sb.from('nutrition_meals')
       .select('id, eaten_at, name, kcal, protein_g, carbs_g, fat_g, fiber_g, weight_g, source, meal_type')
       .eq('athlete_id', nutriUid)
       .gte('eaten_at', thirtyDaysAgo.toISOString())
       .order('eaten_at', { ascending: false });
+    if (_trOffline(dietProfErr || dietMealsErr, container, 'danych odżywiania')) return;
     
     const todayStr = new Date().toISOString().slice(0, 10);
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
@@ -8013,7 +8065,8 @@ document.addEventListener('keydown', (e) => {
     if (dateEl) dateEl.textContent = kbFormatDate();
     try {
       const today = new Date().toISOString().slice(0,10);
-      const { data: { user } } = await sb.auth.getUser();
+      const { data: { user }, error: kbUserErr } = await sb.auth.getUser();
+      if (_trOffline(kbUserErr, 'kbWrap', 'briefu na dziś')) return;   // bez tego: „Zaloguj się żeby zobaczyć brief."
       if (!user) { kbRenderEmpty('Zaloguj się żeby zobaczyć brief.', false); return; }
 
       const { data, error } = await sb
@@ -8023,6 +8076,7 @@ document.addEventListener('keydown', (e) => {
         .eq('brief_date', today)
         .maybeSingle();
 
+      if (_trOffline(error, 'kbWrap', 'briefu na dziś')) return;
       if (error) {
         console.error('[Klaudiusz] DB error:', error);
         kbRenderError(error.message);
@@ -8347,14 +8401,16 @@ document.addEventListener('keydown', (e) => {
       </div>`;
     document.body.appendChild(modal);
     try {
-      const { data: { user } } = await sb.auth.getUser();
+      const { data: { user }, error: kbArchUserErr } = await sb.auth.getUser();
+      if (window.bmOfflineGdy(kbArchUserErr, 'kb-archive-list', 'archiwum briefów')) return;   // bez tego: „Wczytuję..." bez końca
       if (!user) return;
-      const { data } = await sb.from('daily_briefs')
+      const { data, error: kbArchErr } = await sb.from('daily_briefs')
         .select('brief_date, generated_at, content_json')
         .eq('coach_id', user.id)
         .order('brief_date', { ascending: false })
         .limit(30);
       const listEl = document.getElementById('kb-archive-list');
+      if (window.bmOfflineGdy(kbArchErr, listEl, 'archiwum briefów')) return;
       if (!data || data.length === 0) {
         listEl.innerHTML = PUSTKA.dekoruj('raporty', '<div style="text-align:center;color:var(--muted);padding:24px;">Brak briefów w archiwum.</div>');
         return;

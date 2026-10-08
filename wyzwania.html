@@ -18,7 +18,7 @@
 <title>BiegaMy — Wyzwania</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -64,7 +64,10 @@ let _athleteId = null;
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { history.back(); return; }
-  const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).single();
+  const { data: ath, error: athErr } = await sb.from('athletes').select('id').eq('user_id', session.user.id).single();
+  // PAKA 5: bez sieci _athleteId zostawał pusty, a karty rysowały się z ZERAMI („0.0 / 20 km") — to nie
+  // „brak postępu", tylko „nie wiemy". Komunikat zamiast kart; pojedynki też nie są znane.
+  if (window.bmOfflineGdy(athErr, 'challenges-content', 'wyzwań')) { const d = document.getElementById('duels-section'); if (d) d.innerHTML = ''; return; }
   if (ath) _athleteId = ath.id;
   loadDuels();
   loadChallenges();
@@ -304,6 +307,7 @@ function loadChallenges() {
        .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
     sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
   ]).then(([logsRes, achRes]) => {
+    if (window.bmOfflineGdy(logsRes.error || achRes.error, el, 'postępu wyzwań')) return;   // PAKA 5: nie „0 km"
     const all = logsRes.data || [];
     const wl = all.filter(l => new Date(l.logged_at) >= wS);
     const earnedSet = new Set((achRes.data||[]).map(r => r.badge_id));

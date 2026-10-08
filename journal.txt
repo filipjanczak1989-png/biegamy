@@ -829,3 +829,49 @@ pozostałe strony z bmRejestrujSW — ogólna obsługa w sb.js.
 SMOKE SW 21/21 (H1 > 30 min → przeładowanie, kod N; H2 < 30 min → nic;
 H3 wpisane pole → bez przeładowania, pasek); bez SW 21/21. blizna-48 (6). 905/0.
 LEKCJE #26. Obraz całości (hero czarny, „01:53" cały dzień) — po client_errors.
+
+================================================================================
+2026-10-08 (noc) — [PAKA 5: UCZCIWE STANY OFFLINE NA 10 STRONACH]
+================================================================================
+CEL: bez sieci żadna strona nie mówi „brak X", kiedy nie wie. Migawek offline
+na tych stronach NIE robimy — tylko uczciwość.
+
+ZWIAD (tools/smoke-offline.js SMOKE_PUSTE=1 na HEAD 6fec59e, zrzuty + tekst;
+tools/zwiad-stany-puste.js statycznie). Priorytet: zastępnik z client_errors,
+osoby per strona z 60 dni (tabeli odwiedzin nie ma) — dolna granica.
+
+strona     | osób | offline PRZED                                  | offline PO
+-----------|------|------------------------------------------------|-----------------------------
+profil     | 11   | „Brak profilu", kreski, szkielety bez końca    | „Brak połączenia" + sekcje
+nutrition  | 4    | EKRAN POWITALNY „Witaj w Nutrition", „0 kcal"  | komunikat o posiłkach dnia
+odznaki    | 2    | „0 zdobyte · 112 jeszcze do zdobycia"          | komunikat o odznakach
+races      | 2    | szkielet bez końca                             | komunikat o kalendarzu
+trener     | 1/16 | PRZEKIEROWANIE na zawodnik.html                | lista zawodników + brief: komunikat
+wyzwania   | 1    | „0.0 / 20 km", „0 / 15 treningów"              | komunikat o wyzwaniach
+compare    | 0    | PRZEKIEROWANIE na zawodnik.html                | komunikat o porównaniu
+raporty    | 0    | „Ładowanie..." bez końca                       | komunikat o raportach
+radio      | 0    | „Błąd ładowania katalogu."                     | komunikat o katalogu
+ankieta    | 0    | nic nie udaje (ekran startowy bez bazy)        | bez zmian
+Komunikatów o braku połączenia PRZED: ZERO na 10 stronach.
+
+MECHANIZM: sb.js bmBladSieci / bmStanOffline / bmOfflineGdy — jedyne kryterium
+DzisOffline.czyBladSieci (js/dzis-offline.js dołączony na 10 stronach). Inne
+błędy (42501, PGRST, brak wiersza) — dotychczasowa droga. ~50 loaderów; lokalne
+pomocniki: trener _trOffline/_trenerOffline (nie nadpisuje danych już widocznych
+przy cyklicznym odświeżaniu), profil _profilOffline, nutrition _nutWidokOffline.
+
+POPRAWKA RAPORTÓW ONLINE: raporty.html nie ładowała SDK w <head> → sb.js nie
+tworzył klienta, init czekał 10 s (także ONLINE), a klient tworzony ręcznie nie
+miał łatki bez ponowień. Teraz tag SDK przed sb.js jak na pozostałych stronach.
+
+21 ŚWIADOMIE POMINIĘTYCH — bramka w tests/blizna-49 (klucz strona|funkcja|zdanie,
+każde z powodem): komentarze w kodzie, komunikaty akcji („Brak sesji" przy
+zapisie, wgrywanie plików, stan przycisku zapisu, wysyłka opinii, szkic ankiety),
+dane lokalne/już wczytane (podgląd planu, pola otwartego raportu), zewnętrzne
+API Tenor (GIF), elementy nieosiągalne offline (szczegóły startów). Nowe zdanie
+pustego stanu w loaderze BEZ obsługi błędu sieci = czerwony test.
+Ograniczenie: smoke widzi domyślny widok strony; zakładki pokrywa narzędzie
+statyczne (+ w trener.html sonda 10 loaderów).
+
+WERYFIKACJA: SMOKE_PUSTE 39/39; ten sam smoke na kodzie z HEAD — 19 błędów na
+9 stronach; zwykły i SW smoke 21/21 (bez regresji). Testy 911/0, bramki zielone.

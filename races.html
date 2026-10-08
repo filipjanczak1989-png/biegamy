@@ -7,7 +7,7 @@
 <title>Kalendarz Startów · BiegaMy</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -578,6 +578,8 @@ async function loadRaces() {
 
   const { data, error } = await query;
 
+  // PAKA 5: bez sieci szkielet listy zostawał na zawsze (toast znikał po 2,5 s) — komunikat zamiast szkieletu
+  if (window.bmOfflineGdy(error, 'races-list', 'kalendarza startów')) return;
   if (error) { showToast('Błąd ładowania: ' + error.message); return; }
   _allRaces = data || [];
 
