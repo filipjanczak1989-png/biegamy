@@ -132,3 +132,14 @@ test('artefakt testowy (cf-build.sh): flaga true w dist/sb.js → baza testowa n
   assert.match(cf, /flaga testowa w sb\.js w REPO/, 'build odmawia, gdy flaga true w repo');
   assert.doesNotMatch(czytaj('.github/workflows/deploy.yml'), /cf-build|BM_ARTEFAKT/, 'artefakt prod nigdy nie przechodzi przez cf-build');
 });
+
+test('front testowy na Workers: html_handling "none" (bez przekierowań .html jak GitHub Pages), worker przepisuje tylko „/"', () => {
+  const w = czytaj('tools/test-env/wrangler.jsonc');
+  assert.match(w, /"html_handling": "none"/, 'inne wartości przekierowują /x.html → /x (Pages: 308) — precache SW nie obsłuży nawigacji offline');
+  assert.match(w, /"not_found_handling": "404-page"/);
+  assert.match(w, /"directory": "\.\.\/\.\.\/dist"/);
+  const k = czytaj('tools/test-env/worker.js');
+  assert.match(k, /if \(url\.pathname === '\/'\) \{\n\s+url\.pathname = '\/index\.html';/);
+  assert.equal((k.match(/env\.ASSETS\.fetch/g) || []).length, 2, 'worker nie robi nic poza „/" → index i przekazaniem do plików');
+  assert.match(czytaj('.gitignore'), /^\.wrangler\/$/m);
+});

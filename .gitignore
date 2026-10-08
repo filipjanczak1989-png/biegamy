@@ -21,3 +21,4 @@ android.keystore
 # Środowisko testowe (8.10.2026): artefakt Cloudflare i lokalne pliki sekretów — nigdy w repo
 /dist/
 tools/test-env/*.env
+.wrangler/

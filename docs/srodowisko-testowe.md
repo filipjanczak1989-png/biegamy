@@ -1,6 +1,8 @@
 # Środowisko testowe (staging) — Cloudflare Pages + osobny projekt Supabase Free
 
-Stan: **projekt i diff z 8.10.2026, nic nie założone.** Prod (GitHub Pages + projekt `afqojgkaveykxbltxzwm`)
+Stan 9.10.2026: gałąź `test` na GitHubie; front testowy **https://biegamy-test.pages.dev** (Cloudflare Pages,
+production branch `test`, podglądy wyłączone); projekt Supabase testu `hgqvhisbaveoawssehpp` (pusty — czeka na
+krok 3 po instalacji Dockera). Prod (GitHub Pages + projekt `afqojgkaveykxbltxzwm`)
 zostaje bez zmian. Cel: smoke na telefonie **przed** pushem na `main`.
 
 ## Jak to działa
@@ -18,6 +20,35 @@ Przełącznik (`sb.js`, `window._bmWybierzSrodowisko`): **artefakt z `cf-build.s
 **TEST dla hosta z listy `BM_HOSTY_TESTOWE`** (np. przyszła własna domena); wszystko inne, także
 wyjątek w przełączniku, = **PROD jak dotąd**. Host z listy, ale bez kompletnej konfiguracji testowej = **brak
 połączenia z bazą** (nie prod) i czerwony pasek. Na teście zawsze żółty pasek „ŚRODOWISKO TESTOWE".
+
+## ⚠️ Pages przekierowuje .html → przejście na Workers (zmierzone 9.10)
+
+Na https://biegamy-test.pages.dev każda strona `.html` odpowiada **308** na adres bez rozszerzenia
+(`/zawodnik.html → /zawodnik`, `/kalendarz.html?role=athlete → /kalendarz?role=athlete`). Cloudflare Pages nie
+ma opcji, żeby to wyłączyć. Skutek dla SW: precache trzyma pod `/zawodnik.html` odpowiedź PO przekierowaniu, a Chrome
+nie poda takiej odpowiedzi nawigacji (tryb przekierowań „manual") — **offline linki aplikacji skończyłyby się
+błędem sieci**, czego na prod (GitHub Pages, 200 bez przekierowań) nie ma. Test różniłby się od prod dokładnie
+w tym, co ma sprawdzać.
+
+**Rozwiązanie: Cloudflare Workers + static assets** z `html_handling: "none"` (`tools/test-env/wrangler.jsonc`)
+i mały `tools/test-env/worker.js` (tylko `/` → `/index.html`). Sprawdzone lokalnie (`wrangler dev`):
+`/zawodnik.html`, `/kalendarz.html?role=athlete`, `/offline.html`, `/` → 200 bez przekierowań; brak pliku → `404.html` z 404
+(jak GitHub Pages). W panelu Cloudflare: Workers & Pages → Create → **Workers** → Import a repository → repo
+`biegamy`, gałąź `test`; Build command `bash tools/test-env/cf-build.sh`; Deploy command
+`npx wrangler deploy --config tools/test-env/wrangler.jsonc`. Adres: `biegamy-test.<konto>.workers.dev`.
+Projekt Pages można potem usunąć. Flaga artefaktu testowego działa tak samo (to ten sam `cf-build.sh`).
+
+## Keepalive (sekrety repo)
+
+GitHub → repo → Settings → Secrets and variables → Actions → New repository secret:
+
+| Nazwa | Wartość |
+|---|---|
+| `TEST_SB_URL` | `https://hgqvhisbaveoawssehpp.supabase.co` |
+| `TEST_SB_ANON_KEY` | klucz **publishable** testu (ten sam co `BM_TEST.key` w sb.js) — NIGDY secret |
+
+⚠️ Harmonogram GitHub działa tylko z gałęzi domyślnej: `keepalive-test.yml` musi trafić na `main` (plik nie
+dotyka prod — pyta wyłącznie bazę testową). Do tego czasu pauzę odsuwa każde użycie projektu (skrypty, seed).
 
 ## Zakładanie (raz)
 

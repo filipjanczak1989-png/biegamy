@@ -1,0 +1,18 @@
+// Cloudflare Workers (static assets) dla frontu TESTOWEGO — 9.10.2026, docs/srodowisko-testowe.md.
+// Workers Builds (połączone z repo, gałąź `test`):
+//   Build command:  bash tools/test-env/cf-build.sh
+//   Deploy command: npx wrangler deploy --config tools/test-env/wrangler.jsonc
+// Ścieżki są względem TEGO pliku.
+{
+  "name": "biegamy-test",
+  "main": "./worker.js",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "../../dist",
+    "binding": "ASSETS",
+    // "none": /zawodnik.html → 200 z pliku, BEZ przekierowania na /zawodnik (tak jak GitHub Pages / prod)
+    "html_handling": "none",
+    // brak pliku → 404.html z kodem 404 (jak GitHub Pages)
+    "not_found_handling": "404-page"
+  }
+}
