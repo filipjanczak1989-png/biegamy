@@ -49,15 +49,16 @@ const TYPY = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascri
 // Stan serwera sterowany przez tryb SW: `martwy` = każde połączenie zrywane (telefon w trybie
 // samolotowym — SW nie dostaje NIC z sieci), `wersja` = dopisek do CACHE_VERSION w sw.js (symulacja
 // deployu), `zrywaj` = ścieżki zrywane mimo żywego serwera (nieudany precache jednego pliku).
-const STAN = { martwy: false, wersja: '', zrywaj: new Set(), log: [] };
+const STAN = { martwy: false, wersja: '', zrywaj: new Set(), log: [], korzen: null };
 function serwer() {
   return new Promise((ok) => {
     const s = http.createServer((req, res) => {
       const p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
       STAN.log.push((STAN.martwy ? 'ZERWANE ' : '') + p);
       if (STAN.martwy || STAN.zrywaj.has(p)) { req.socket.destroy(); return; }
-      const plik = path.join(KORZEN, p === '/' ? 'index.html' : p);
-      if (!plik.startsWith(KORZEN) || !fs.existsSync(plik) || fs.statSync(plik).isDirectory()) { res.writeHead(404); return res.end(); }
+      const K = STAN.korzen || KORZEN;
+      const plik = path.join(K, p === '/' ? 'index.html' : p);
+      if (!plik.startsWith(K) || !fs.existsSync(plik) || fs.statSync(plik).isDirectory()) { res.writeHead(404); return res.end(); }
       res.writeHead(200, { 'content-type': TYPY[path.extname(plik).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-cache' });
       if (p === '/sw.js' && STAN.wersja) {
         return res.end(fs.readFileSync(plik, 'utf8').replace(/const CACHE_VERSION = '([^']+)';/, (m, v) => "const CACHE_VERSION = '" + v + STAN.wersja + "';"));
@@ -333,6 +334,92 @@ async function trybSW() {
     sprawdz('SW F2: strona kontrolowana przez SW', st2.kontrolowana, String(st2.kontrolowana));
     sprawdzOnline(sprawdz, 'SW F2', st2, tsStary);
     await ctx.close();
+  }
+
+  // ── G: DEPLOY z nowym HTML i JS (08.10.2026, smoke Filipa po a3e546c: „dane z 01:53" mimo wejść
+  //    online, hero czarny, Plan bez nowego kodu). Wersja N-1 = drzewo sprzed ostatniego commitu, który
+  //    zmienił zawodnik.html (git archive), wersja N = drzewo robocze. Po przełączeniu serwera: trzy
+  //    kolejne wejścia online na „Dziś" + Plan; przy każdym — którą wersję JS ma strona, błędy, migawka.
+  {
+    const { execSync } = require('child_process');
+    const ost = execSync('git log -n 1 --format=%H -- zawodnik.html', { cwd: KORZEN }).toString().trim();
+    const n1 = process.env.SMOKE_N1 || execSync('git rev-parse ' + ost + '~1', { cwd: KORZEN }).toString().trim();
+    const katN1 = path.join(require('os').tmpdir(), 'smoke-n1-' + n1.slice(0, 7));
+    if (!fs.existsSync(path.join(katN1, 'zawodnik.html'))) {
+      fs.mkdirSync(katN1, { recursive: true });
+      execSync('git archive ' + n1 + ' | tar -x -C "' + katN1.replace(/\\/g, '/') + '"', { cwd: KORZEN, shell: 'bash' });
+    }
+    STAN.korzen = katN1; STAN.wersja = ''; STAN.zrywaj.clear();
+    const { ctx, tsStary } = await kontekstOnline(browser, true);
+    const p = await ctx.newPage();
+    const bledyG = [];
+    p.on('pageerror', (e) => bledyG.push('[' + (p.url().split('/').pop() || '') + '] ' + String(e.message).slice(0, 140)));
+    // TypeError z mieszanki wersji jest POŁYKANY przez try/catch loaderów (console.error, nie pageerror)
+    p.on('console', (m) => { if (m.type() === 'error' && /TypeError|is not a function|undefined/.test(m.text())) bledyG.push('[console] ' + m.text().slice(0, 140)); });
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+    await czekajNaKontrole(p); await p.waitForTimeout(3000);
+    const wersjaJS = () => p.evaluate(() => ({
+      sbNowy: typeof window._tydzienWaw === 'function',
+      dzisOfflineNowy: !!(window.DzisOffline && typeof window.DzisOffline.zakresyPlanu === 'function'),
+      cacheSW: null,
+    }));
+    const stanMigawki = () => p.evaluate(([uid]) => { const r = localStorage.getItem('bm_dzis_migawka_' + uid); const m = r ? JSON.parse(r) : null; return m ? m.ts : null; }, [UID]);
+    const nazwyCache = () => p.evaluate(async () => (await caches.keys()).filter((n) => /static/.test(n)));
+    console.log('   [G] N-1 = ' + n1.slice(0, 7) + ', strona: ' + JSON.stringify(await wersjaJS()) + ', cache: ' + (await nazwyCache()).join(', '));
+    // DEPLOY N — artefakt jak w deploy.yml: kopia drzewa roboczego bez zaplecza, potem
+    // tools/wersjonuj-zasoby.js (adresy ?v=<hash>). SMOKE_G_BEZ_WERSJI=1 = artefakt BEZ ?v= (prod do 8.10).
+    const katN = path.join(require('os').tmpdir(), 'smoke-n-' + process.pid);
+    fs.rmSync(katN, { recursive: true, force: true });
+    const pliki = execSync('git ls-files', { cwd: KORZEN }).toString().split(/\r?\n/).filter((f) => f && !/^(tests|tools|docs|\.ai|supabase|\.github)\//.test(f) && f !== 'journal.txt');
+    for (const f of pliki) { const z = path.join(KORZEN, f); if (!fs.existsSync(z)) continue; fs.mkdirSync(path.dirname(path.join(katN, f)), { recursive: true }); fs.copyFileSync(z, path.join(katN, f)); }
+    const zWersja = !process.env.SMOKE_G_BEZ_WERSJI;
+    if (zWersja) require('./wersjonuj-zasoby.js').wersjonuj(katN);
+    console.log('   [G] wersja N: ' + (zWersja ? 'artefakt z ?v=<hash> (wersjonuj-zasoby)' : 'artefakt BEZ ?v= (SMOKE_G_BEZ_WERSJI)'));
+    STAN.korzen = katN; STAN.wersja = '-deployG';
+    let zmian = 0;
+    await p.exposeFunction('__zmianaKontrolera', () => { zmian++; }).catch(() => {});
+    const hm = (t) => (t ? new Date(t).toTimeString().slice(0, 8) : String(t));
+    const wejscia = [];
+    for (let i = 1; i <= 3; i++) {
+      const ts0 = await stanMigawki();
+      await p.evaluate(([uid, t]) => { const m = JSON.parse(localStorage.getItem('bm_dzis_migawka_' + uid)); m.ts = t; localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m)); }, [UID, tsStary]);
+      const bl0 = bledyG.length;
+      await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+      await p.evaluate(() => navigator.serviceWorker.addEventListener('controllerchange', () => window.__zmianaKontrolera && window.__zmianaKontrolera()));
+      await p.waitForTimeout(9000);
+      const w = await wersjaJS();
+      const ts = await stanMigawki();
+      const r = { i, ...w, migawkaOdswiezona: ts > tsStary + 60000, ts: hm(ts), bledy: bledyG.slice(bl0, bl0 + 3), cache: await nazwyCache(), zmianKontrolera: zmian };
+      wejscia.push(r);
+      console.log('   [G] wejście ' + i + ' po deployu: ' + JSON.stringify(r));
+    }
+    // Plan po trzecim wejściu
+    const bl1 = bledyG.length;
+    await p.goto(baza + '/kalendarz.html?role=athlete', { waitUntil: 'load' }); await p.waitForTimeout(5000);
+    const plan = await p.evaluate(() => ({ dzisOfflineNowy: !!(window.DzisOffline && typeof window.DzisOffline.zakresyPlanu === 'function'), calPoPowrocie: typeof window._calPoPowrocie }));
+    console.log('   [G] Plan po deployu: ' + JSON.stringify(plan) + ' błędy: ' + JSON.stringify(bledyG.slice(bl1, bl1 + 3)));
+    const w1 = wejscia[0];
+    sprawdz('SW G: pierwsze wejście po deployu — strona ma JS wersji N (sb.js i dzis-offline.js), bez błędów, migawka zapisana',
+      w1.sbNowy && w1.dzisOfflineNowy && w1.bledy.length === 0 && w1.migawkaOdswiezona, JSON.stringify(w1).slice(0, 220));
+    sprawdz('SW G: kolejne wejścia po deployu — JS wersji N, migawka zapisana', wejscia.slice(1).every((w) => w.sbNowy && w.dzisOfflineNowy && w.migawkaOdswiezona && w.bledy.length === 0),
+      wejscia.slice(1).map((w) => 'wejście ' + w.i + ': sb ' + (w.sbNowy ? 'N' : 'N-1') + ', dzis-offline ' + (w.dzisOfflineNowy ? 'N' : 'N-1') + ', migawka ' + (w.migawkaOdswiezona ? 'tak' : 'NIE') + ', błędów ' + w.bledy.length).join(' | '));
+    sprawdz('SW G: nowa wersja SW zainstalowana i aktywna (cache wersji N)', wejscia[2].cache.some((n) => /deployG/.test(n)) && !wejscia[2].cache.some((n) => !/deployG/.test(n)), wejscia[2].cache.join(', ') + ' | controllerchange ' + zmian);
+    // po deployu OFFLINE: Plan i „Dziś" z precache (adresy ?v= muszą trafić dokładnie).
+    // Atrapa Supabase (ctx.route) odpowiadałaby mimo setOffline — odpinamy ją; obce hosty i tak nierozwiązywalne.
+    await ctx.unrouteAll({ behavior: 'ignoreErrors' });
+    const rOff = await offlineNaPlan(ctx, p, 'G');
+    console.log('   [G] Plan offline po deployu: ' + opis(rOff));
+    sprawdz('SW G: po deployu Plan offline z precache (nowy kod Planu: bieżący tydzień bez dni „niedostępny")', toPlan(rOff) && !/niedostępny/.test(rOff.dni || ''), opis(rOff));
+    STAN.martwy = true; await ctx.setOffline(true);
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'domcontentloaded' }).catch(() => {});
+    await p.waitForTimeout(6000);
+    const dOff = await p.evaluate(() => ({ sbNowy: typeof window._tydzienWaw === 'function', modul: !!window.DzisOffline,
+      pasek: (document.getElementById('bm-offline-pasek') || {}).innerText || null, logi: ((document.getElementById('log-list') || {}).innerText || '').slice(0, 60) })).catch((e) => ({ blad: e.message }));
+    STAN.martwy = false; await ctx.setOffline(false);
+    sprawdz('SW G: po deployu „Dziś" offline — JS wersji N z precache, pasek, lista', dOff.sbNowy && dOff.modul && /Offline · dane z/.test(dOff.pasek || '') && /Log online/.test(dOff.logi || ''), JSON.stringify(dOff));
+    STAN.wersja = ''; STAN.korzen = null;
+    await ctx.close();
+    fs.rmSync(katN, { recursive: true, force: true });
   }
 
   // ── E: niekrytyczna strona z poprzedniej wersji ──

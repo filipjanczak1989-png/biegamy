@@ -99,6 +99,19 @@ jobs:
           test -f /tmp/site/CNAME || { echo "BLAD: brak CNAME — domena wlasna padnie"; exit 1; }
           test -f /tmp/site/zawodnik.html || { echo "BLAD: brak zawodnik.html"; exit 1; }
 
+      # WERSJONOWANIE ZASOBOW TRESCIA (08.10.2026, tools/wersjonuj-zasoby.js): sb.js, theme.css, js/*.js,
+      # vendor/*.js dostaja w HTML i w precache sw.js adres ?v=<hash tresci>. Nowy HTML wskazuje nowy
+      # adres, wiec Service Worker poprzedniej wersji nie poda do niego starego JS (zmierzone w smoke
+      # SMOKE_SW=1, scenariusz G: pierwsze wejscie po deployu = nowy HTML + stary sb.js).
+      # Dziala TYLKO na /tmp/site — repo zostaje bez ?v=. continue-on-error: awaria narzedzia zostawia
+      # artefakt bez ?v= (zachowanie sprzed 8.10) i NIE blokuje deployu ani rollbacku (rollback.yml
+      # wola ten workflow). Narzedzie liczy wszystko przed zapisem — bez polowicznie przepisanych plikow.
+      - name: Wersjonuj zasoby (artefakt)
+        continue-on-error: true
+        run: |
+          node tools/wersjonuj-zasoby.js /tmp/site
+          node tools/wersjonuj-zasoby.js /tmp/site --sprawdz
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

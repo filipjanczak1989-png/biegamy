@@ -768,3 +768,38 @@ Smoke bez SW 21/21 (nowe: wznowienie < 10 min bez pobierania, > 10 min
 odświeża ts w TYM SAMYM window, zmiana dnia + nagłówek, Plan po powrocie,
 pasek Planu z godziną odświeżonej migawki), SMOKE_SW 13/13 (F: online z SW).
 Na kodzie z HEAD nowe punkty padają, pasek pokazuje stary ts. Razem 892/0.
+
+================================================================================
+2026-10-08 (wieczór) — [WERSJONOWANIE ZASOBÓW TREŚCIĄ W ARTEFAKCIE: HTML i JS jednego deployu = para]
+================================================================================
+OBJAW (smoke Filipa po a3e546c, 20:09): „dane z 01:53" mimo wejść online w ciągu
+dnia, hero czarny, Plan offline bez nowego kodu (pn–śr „niedostępny").
+
+ODTWORZONE (tools/smoke-offline.js SMOKE_SW=1, scenariusz G, N-1 = 9831a5d → N):
+pierwsze wejście online po deployu = NOWY zawodnik.html (nawigacja network-first)
++ STARY sb.js i js/dzis-offline.js (stale-while-revalidate z cache SW wersji
+N-1) → „TypeError: window._tydzienWaw is not a function" w updateWeekProgress,
+POŁKNIĘTY przez try/catch loadLogs (console.error, nie pageerror). Wejścia 2 i 3
+już w wersji N; instalacja SW N udana (controllerchange) — PRECACHE_KRYTYCZNE
+w tym pomiarze nie blokował.
+
+NIE WYJAŚNIONE pomiarem (czekamy na client_errors z telefonu, app_version):
+utrzymywanie się „01:53" przez cały dzień i czarny hero. Kandydat: wszystkie
+„wejścia" to wznowienia dokumentu z nocy (stary kod bez obsługi powrotu) przy
+starym SW — do potwierdzenia. OBRAZ CAŁOŚCI DOPISZEMY PO client_errors.
+
+NAPRAWA KLASY (nie łatka): tools/wersjonuj-zasoby.js w deploy.yml na /tmp/site
+(continue-on-error — awaria = artefakt bez ?v=, deploy i rollback działają):
+każde odwołanie do własnego .js/.css w HTML i wpis precache w sw.js dostaje
+?v=<sha256 treści, 10 znaków>. Nowy HTML wskazuje nowy adres → żaden cache nie
+poda starej treści. Plik bez zmian = ten sam hash = dalej z cache. Repo bez ?v=.
+Narzędzie liczy wszystko przed zapisem, odmawia na katalogu z .git.
+Odrzucone: network-first z limitem dla .js (zawęża okno, nie zamyka: słaba sieć
+→ HTML w limicie, JS po limicie = mieszanka; i czekanie na ~1 MB JS przy każdym
+wejściu); ?v=CACHE_VERSION (każdy deploy unieważnia niezmienione pliki).
+sw.js: SWR po błędzie sieci bez dokładnej kopii → ta sama ścieżka z innym ?v=
+(ignoreSearch) — offline lepsza inna wersja niż brak skryptu.
+
+SMOKE: G z ?v= — 1. wejście JS N, zero błędów, offline po deployu Plan (nowy
+kod) i „Dziś" z precache; SMOKE_G_BEZ_WERSJI=1 (prod do dziś) pada na TypeError.
+SW 18/18, bez SW 21/21. blizna-47 (7 testów). Razem 899/0.

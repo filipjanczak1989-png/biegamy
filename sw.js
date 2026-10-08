@@ -341,7 +341,11 @@ async function staleWhileRevalidate(request, cacheName) {
       }
       return response;
     })
-    .catch(() => cached); // jeśli network fail i mamy cache, użyj cache
+    // Sieć padła: dokładna kopia, a bez niej — ta sama ścieżka z INNYM ?v= (08.10.2026). Od wersjonowania
+    // treścią (tools/wersjonuj-zasoby.js w deploy.yml) adres niesie hash, więc HTML z cache nawigacji
+    // może wskazywać ?v=, którego ten SW nie ma; inna wersja pliku jest wtedy lepsza niż brak skryptu.
+    // Dotyczy WYŁĄCZNIE braku sieci — online nowy adres zawsze idzie do sieci (brak dokładnej kopii).
+    .catch(() => cached || cache.match(request, { ignoreSearch: true }));
 
   return cached || networkPromise;
 }
