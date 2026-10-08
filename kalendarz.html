@@ -2889,13 +2889,15 @@ function onAthleteChange(athleteId) {
    „tydzien" zapisanej przez „Dziś" (zawodnik.html loadWeekPlan: dzień zapisu..+13) i pasek
    „Offline · dane z HH:MM". Dzień POZA tym zakresem = nieznany: „Brak połączenia — ten dzień niedostępny
    offline", nigdy „brak treningów". Bez migawki zakres jest pusty, więc każdy dzień dostaje ten komunikat.
+   Od 8.10.2026 znane są też dni BIEŻĄCEGO tygodnia sprzed dnia zapisu (pn–nd z części „postep",
+   updateWeekProgress) — zakresy to suma obu (DzisOffline.zakresyPlanu / treningiPlanu).
    Trener: bez zmian (migawka jest wyłącznie zawodnicza). */
 function _calPlanOffline(userId) {
   const m = DzisOffline.odczytaj(userId);
-  const zakres = DzisOffline.zakresTygodnia(m);
-  window._calOffline = { zakres: zakres, ts: m ? m.ts : null };
+  const zakresy = DzisOffline.zakresyPlanu(m);
+  window._calOffline = { zakresy: zakresy, ts: m ? m.ts : null };
   trainings = {};
-  ((zakres && m.czesci.tydzien) || []).forEach(t => {
+  (zakresy.length ? DzisOffline.treningiPlanu(m) : []).forEach(t => {
     const ds = t.date;
     if (!trainings[ds]) trainings[ds] = [];
     trainings[ds].push({
@@ -2906,12 +2908,12 @@ function _calPlanOffline(userId) {
   });
   window._calLogs = {};
   window._stravaActivities = {};
-  if (zakres) DzisOffline.pokazPasek(m.ts);
+  if (zakresy.length) DzisOffline.pokazPasek(m.ts);
   render();
 }
-/* Czy dzień ds jest w trybie offline NIEZNANY (poza zakresem migawki). Poza trybem offline — zawsze false. */
+/* Czy dzień ds jest w trybie offline NIEZNANY (poza wszystkimi zakresami migawki). Poza trybem offline — zawsze false. */
 function _calDzienNieznany(ds) {
-  return !!window._calOffline && !DzisOffline.dzienWZakresie(window._calOffline.zakres, ds);
+  return !!window._calOffline && !DzisOffline.dzienWZakresach(window._calOffline.zakresy, ds);
 }
 const _CAL_OFFLINE_TXT = 'Brak połączenia — ten dzień niedostępny offline';
 
@@ -3046,6 +3048,7 @@ async function loadTrainingsFromDB() {
   // Załaduj posiłki dla aktualnego tygodnia (nutrition)
   await loadMealsForWeek();
 
+  window._calZaladowano = { ts: Date.now(), dzien: dateStr(new Date()) };   // ładowanie Z SIECI (wznowienie z tła)
   render();
   if (!window._calWeatherLoaded) { window._calWeatherLoaded = true; loadCalendarWeather(); }
 }
@@ -5199,6 +5202,33 @@ loadAthletesSelect();
 loadGoals();
 loadTrainingsFromDB().then(() => setView(_calView));
 
+/* WZNOWIENIE Z TŁA — Plan zawodnika (08.10.2026, ta sama przyczyna co „Dziś" w zawodnik.html: przywrócona
+   z tła aplikacja to TEN SAM dokument, dane ładowały się tylko przy starcie strony). Powrót przy sieci:
+   ostatnie ładowanie Z SIECI > 10 min albo inny dzień → ponownie loadTrainingsFromDB, BEZ przeładowania
+   strony. Zmiana dnia: jeśli widok stał na tygodniu „starego dziś", przechodzi na tydzień nowego dnia.
+   Offline — nic (Plan offline z migawki już jest). Trener — bez zmian. Jedno odświeżanie naraz. */
+const CAL_ODSWIEZ_PO_MS = 10 * 60 * 1000;
+async function _calPoPowrocie(powod) {
+  if (_urlRole !== 'athlete') return 'trener';
+  if (document.visibilityState === 'hidden') return 'ukryta';
+  if (navigator.onLine === false) return 'offline';
+  if (window._calOdswiezanie) return 'w-toku';
+  const z = window._calZaladowano;
+  const dzien = dateStr(new Date());
+  const zmianaDnia = !!z && z.dzien !== dzien;
+  if (z && !zmianaDnia && Date.now() - z.ts < CAL_ODSWIEZ_PO_MS) return 'swieze';
+  window._calOdswiezanie = true;
+  try {
+    if (zmianaDnia && currentWeekStart === getWeekStart(new Date(z.dzien + 'T00:00:00'))) currentWeekStart = getWeekStart(new Date());
+    await loadTrainingsFromDB();
+    setView(_calView);
+    return 'odswiezone:' + powod;
+  } catch (e) { console.error('[plan] odświeżenie po powrocie:', e); return 'blad'; }
+  finally { window._calOdswiezanie = false; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _calPoPowrocie('visibilitychange'); });
+window.addEventListener('pageshow', (e) => { if (e.persisted) _calPoPowrocie('pageshow'); });
+
 // Zawodnik może edytować, usuwać i dodawać własne treningi
 // (card-delete i btn-new-training widoczne dla wszystkich ról)
 </script>
@@ -5396,10 +5426,15 @@ function renderTiles() {
     /* PLAN OFFLINE: siatka miesiąca nie ma miejsca na zdanie w kafelku — nota nad siatką mówi, które dni
        są znane; puste kafelki poza zakresem NIE znaczą „brak treningu". */
     if (window._calOffline) {
-      const z = window._calOffline.zakres;
+      const zs = (window._calOffline.zakresy || []).slice().sort((a, b) => (a.od < b.od ? -1 : 1));
       const fmt = (s) => s.slice(8, 10) + '.' + s.slice(5, 7);
+      // zakresy stykające się lub nachodzące → jeden przedział (zwykle pn tygodnia .. dziś+13)
+      const scal = [];
+      zs.forEach(z => { const o = scal[scal.length - 1];
+        const poO = o && DzisOffline.dataLokalna(new Date(+o.do.slice(0, 4), +o.do.slice(5, 7) - 1, +o.do.slice(8, 10) + 1).getTime());
+        if (o && z.od <= poO) { if (z.do > o.do) o.do = z.do; } else scal.push({ od: z.od, do: z.do }); });
       progressEl.innerHTML += '<div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">'
-        + (z ? 'Offline — znane dni: ' + fmt(z.od) + '–' + fmt(z.do) + '. Pozostałe: ' + _CAL_OFFLINE_TXT.toLowerCase().replace('brak połączenia — ', '') + '.'
+        + (scal.length ? 'Offline — znane dni: ' + scal.map(z => fmt(z.od) + '–' + fmt(z.do)).join(', ') + '. Pozostałe: ' + _CAL_OFFLINE_TXT.toLowerCase().replace('brak połączenia — ', '') + '.'
              : _CAL_OFFLINE_TXT.replace('ten dzień niedostępny', 'plan niedostępny') + '.') + '</div>';
     }
   }

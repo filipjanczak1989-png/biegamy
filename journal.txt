@@ -718,3 +718,53 @@ udanej aktywacji (ta sama nazwa, bez narastania).
 
 PRZY OKAZJI: CLAUDE.md i .ai/WARSTWA-1.md bez tools/sprawdz-spol-stale.py
 (skasowany w pace 4).
+
+================================================================================
+2026-10-08 (popołudnie) — [WZNOWIENIE Z TŁA BEZ RELOAD + PLAN OFFLINE Z „POSTEP" + TYDZIEŃ PO WARSZAWIE]
+================================================================================
+OBJAW (smoke Filipa po a6bfdfe, 15:09): Plan offline działa, ale pasek
+„Offline · dane z 01:53", choć o ~15:05 „Dziś" było otwarte Z SIECIĄ.
+
+PRZYCZYNA (odtworzona przed naprawą, LEKCJE #25): BRAK OBSŁUGI WZNOWIENIA.
+zawodnik.html nie miał ani jednego handlera visibilitychange / pageshow /
+focus / online — loadery „Dziś" ruszały tylko przy załadowaniu dokumentu.
+Aplikacja przywrócona z tła to TEN SAM dokument → zero zapytań → migawka
+zostaje z ostatniego pełnego załadowania (01:53). Dowód w smoke: wejście
+online, ts cofnięty, zdarzenia powrotu → ts BEZ ZMIAN, potem Plan offline →
+„dane z <stary ts>". Wykluczone pomiarem: limit 200 kB (prod: max ~14 kB na
+86 zawodników), userId online (zwraca uid), zapis loaderów (świeże ładowanie
+online odświeża ts/logi/wiadomość — bez SW i z SW, także strona kontrolowana
+przez SW), flaga widoku trenera, stary JS po aktualizacji SW.
+Niewiadoma: telefon nie jest mierzalny wprost — wyjaśnienie zakłada, że
+15:05 było wznowieniem z tła (typowe dla PWA na Androidzie).
+
+NAPRAWA BEZ RELOAD (reload przy powrocie = dawne „ekran miga i wraca do
+stanu początkowego", Maciek 14.08):
+- zawodnik.html _dzisPoPowrocie: visibilitychange→visible, pageshow(persisted)
+  → przy sieci, gdy ostatnie ładowanie Z SIECI > 10 min albo inny dzień
+  kalendarzowy → loadLogs() (cały łańcuch „Dziś": wiadomość, dziś, tydzień,
+  pierścień) + pogoda; zmiana dnia → _ustawDateNaglowka(). Offline → nic.
+  Blokada _dzisOdswiezanie + istniejąca _loadLogsRunning. Znacznik
+  _dzisZaladowano ustawia loadLogs tylko przy odczycie z sieci (_zSieci
+  liczone PRZED awaryjnie(), które zeruje error).
+- kalendarz.html _calPoPowrocie (tylko widok zawodnika): ten sam warunek →
+  loadTrainingsFromDB + setView; zmiana dnia przesuwa tydzień, jeśli widok
+  stał na tygodniu „starego dziś". Znacznik _calZaladowano po udanym odczycie.
+
+PLAN OFFLINE Z DNIAMI SPRZED DZIŚ: js/dzis-offline.js postepOd (pn tygodnia
+przy zapisie 'postep'), zakresyPlanu = 'tydzien' (dzień zapisu..+13) ∪
+tydzień pn–nd 'postep', treningiPlanu bez dubli ('tydzien' ma pierwszeństwo).
+Migawka bez postepOd (sprzed zmiany) — po staremu.
+
+PIERŚCIEŃ TYGODNIA PO WARSZAWIE: updateWeekProgress liczył kolumnę `date`
+z weekStart.toISOString() lokalnej północy → w PL zapytanie od NIEDZIELI
+poprzedniego tygodnia (jej plan wpadał do „N z M zaplanowanych"). Teraz
+sb.js _tydzienWaw (dzień z _dzienWaw, arytmetyka na dacie w UTC):
+pn 00:30 PL = nowy tydzień. Logi (timestamptz) bez zmian.
+
+TESTY/SMOKE: blizna-45 28 testów (wznowienie w obu plikach funkcjonalnie,
+zakresy 'postep', _tydzienWaw z datami granicznymi lato/zima/przełom roku).
+Smoke bez SW 21/21 (nowe: wznowienie < 10 min bez pobierania, > 10 min
+odświeża ts w TYM SAMYM window, zmiana dnia + nagłówek, Plan po powrocie,
+pasek Planu z godziną odświeżonej migawki), SMOKE_SW 13/13 (F: online z SW).
+Na kodzie z HEAD nowe punkty padają, pasek pokazuje stary ts. Razem 892/0.

@@ -23,6 +23,10 @@
 //   bez szkieletu (dni z migawki), „Postęp tygodnia" bez „Ładowanie…", treść wiadomości trenera,
 //   karty treningów bez czarnego tła, ikony skrótów obok hero bez „zepsutego obrazka”, zero nieobsłużonych wyjątków.
 //   Plan: dni z migawki + „Brak połączenia — ten dzień niedostępny offline" dla dni spoza zakresu.
+//   Plan: dni bieżącego tygodnia sprzed dziś z części „postep" (08.10.2026).
+//   ONLINE (atrapa Supabase REST, nic do produkcji): udane ładowanie „Dziś" odświeża migawkę; wznowienie
+//   z tła (visibilitychange) po > 10 min / po zmianie dnia odświeża „Dziś" i Plan BEZ przeładowania.
+// SMOKE_SW=1: prawdziwy sw.js — scenariusze A–F (precache, aktualizacja z nieudanym precache, online z SW).
 // ─────────────────────────────────────────────────────────────────────────────
 'use strict';
 const http = require('http');
@@ -69,6 +73,7 @@ function plusDni(n) { const d = new Date(); d.setDate(d.getDate() + n); return d
 function migawka() {
   const ts = Date.now() - 10 * 60 * 1000;
   const dzis = dataLokalna(new Date());
+  const pon = (() => { const d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return dataLokalna(d); })();
   const tydzien = [0, 1, 3, 5, 8, 12].map((n, i) => ({ id: 'tr' + i, athlete_id: AID, date: plusDni(n), type: ['Tempo', 'Spokojny', 'Interwały', 'Wybieganie', 'Regeneracja', 'Spokojny'][i],
     distance_km: [8, 10, 7, 18, 6, 9][i], pace: '5:10', heart_rate: null, description: 'Opis ' + i, status: 'planned', coach_id: 'c0ac0000-0000-0000-0000-000000000000' }));
   const logi = [1, 2, 3, 4, 5].map((n) => ({ id: 'lg' + n, athlete_id: AID, logged_at: new Date(Date.now() - n * 86400000).toISOString(), training_type: n % 2 ? 'Spokojny' : 'Tempo',
@@ -76,11 +81,13 @@ function migawka() {
   const czesci = {
     zawodnik: { id: AID, full_name: 'Test Offline' },
     logi, dzis: tydzien[0], tydzien, trener: true,
-    postep: { trainings: tydzien.slice(0, 3), logs: logi.slice(0, 2).map((l) => ({ distance_km: l.distance_km, training_type: l.training_type })) },
+    // 'postep' = plan BIEŻĄCEGO tygodnia pn–nd (updateWeekProgress). Poniedziałek: Wybieganie 21 km — dzień
+    // sprzed dnia zapisu, który Plan offline ma pokazać z tej części (08.10.2026).
+    postep: { trainings: (pon < dzis ? [{ id: 'trpon', athlete_id: AID, date: pon, type: 'Wybieganie', distance_km: 21, pace: '5:30', description: 'Poniedziałek', status: 'done', coach_id: 'c0ac0000-0000-0000-0000-000000000000' }] : []).concat(tydzien.slice(0, 3)), logs: logi.slice(0, 2).map((l) => ({ distance_km: l.distance_km, training_type: l.training_type })) },
     wiadomosc: { body: 'Dzień dobry — offline test wiadomości trenera.', sent_at: new Date(ts).toISOString() },
     hero: 'https://filipjanczak1989-png.github.io/biegamy-assets/solo-01.webp',
   };
-  return { userId: UID, ts, tydzienOd: dzis, czesci };
+  return { userId: UID, ts, tydzienOd: dzis, postepOd: pon, czesci };
 }
 
 function sesja() {
@@ -89,6 +96,95 @@ function sesja() {
   const jwt = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: UID, exp, role: 'authenticated', aud: 'authenticated' }) + '.podpis';
   return { access_token: jwt, refresh_token: 'r', token_type: 'bearer', expires_in: 604800, expires_at: exp,
     user: { id: UID, aud: 'authenticated', role: 'authenticated', email: 'offline@test.local', user_metadata: { full_name: 'Test Offline' }, app_metadata: {} } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ONLINE: czy udane ładowanie „Dziś" ODŚWIEŻA migawkę (08.10.2026, smoke Filipa po a6bfdfe:
+// pasek „Offline · dane z 01:53", choć o ~15:05 „Dziś" było otwarte z siecią).
+// Supabase REST odpowiada atrapą (route.fulfill — nic nie idzie do produkcji). Migawka startowa
+// ma ts sprzed 5 h i wstawiana jest TYLKO, gdy w localStorage nie ma żadnej (inaczej init script
+// nadpisywałby zapis strony przy każdej nawigacji i test niczego by nie mierzył).
+// ─────────────────────────────────────────────────────────────────────────────
+const COACH = 'c0ac0000-0000-0000-0000-000000000000';
+const LICZNIK_REST = {};   // tabela → liczba GET-ów do atrapy (punkty wznowienia: czy cokolwiek pobrano)
+function atrapaRest(url, accept) {
+  const u = new URL(url);
+  const tabela = u.pathname.replace(/^\/rest\/v1\//, '');
+  const q = u.searchParams;
+  const dzis = dataLokalna(new Date());
+  let rows = [];
+  if (tabela === 'athletes') rows = [{ id: AID, user_id: UID, full_name: 'Test Online', coach_id: COACH, terms_accepted_at: new Date().toISOString() }];
+  else if (tabela === 'trainings') {
+    rows = [-2, -1, 0, 1, 2, 4, 6, 9].map((n, i) => ({ id: 'on' + i, athlete_id: AID, date: plusDni(n), type: ['Spokojny', 'Tempo', 'Interwały', 'Spokojny', 'Wybieganie', 'Regeneracja', 'Tempo', 'Spokojny'][i],
+      distance_km: 6 + i, pace: '5:00', description: 'Online ' + i, status: n < 0 ? 'done' : 'planned', coach_id: COACH, plan_source: 'coach' }));
+    for (const v of q.getAll('date')) {
+      const [op, d] = [v.slice(0, v.indexOf('.')), v.slice(v.indexOf('.') + 1)];
+      rows = rows.filter((r) => (op === 'gte' ? r.date >= d : op === 'lte' ? r.date <= d : op === 'eq' ? r.date === d : true));
+    }
+  } else if (tabela === 'training_logs') {
+    rows = [1, 2, 3].map((n) => ({ id: 'onl' + n, athlete_id: AID, logged_at: new Date(Date.now() - n * 3600000).toISOString(), training_type: 'Spokojny', distance_km: 7 + n,
+      pace: '5:20', duration: '0:40:00', feel: 'dobrze', comment: 'Log online ' + n, source: 'manual' }));
+  } else if (tabela === 'messages') rows = [{ id: 'm1', body: 'Wiadomość ONLINE od trenera.', sent_at: new Date().toISOString(), sender_id: COACH }];
+  if (/vnd\.pgrst\.object/.test(accept || '')) {
+    if (rows.length === 1) return { status: 200, body: rows[0] };
+    return { status: 406, body: { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned', details: 'The result contains ' + rows.length + ' rows' } };
+  }
+  return { status: 200, body: rows };
+}
+async function podepnijAtrape(ctx) {
+  await ctx.route(/supabase\.co\//, async (route) => {
+    const r = route.request();
+    const u = new URL(r.url());
+    if (u.pathname.startsWith('/rest/v1/rpc/')) return route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
+    if (u.pathname.startsWith('/rest/v1/')) {
+      if (r.method() !== 'GET' && r.method() !== 'HEAD') return route.fulfill({ status: 201, contentType: 'application/json', body: '[]' });
+      const a = atrapaRest(r.url(), r.headers()['accept']);
+      const tab = u.pathname.replace(/^\/rest\/v1\//, ''); LICZNIK_REST[tab] = (LICZNIK_REST[tab] || 0) + 1;
+      return route.fulfill({ status: a.status, contentType: 'application/json', headers: { 'content-range': '0-0/*', 'access-control-allow-origin': '*' }, body: JSON.stringify(a.body) });
+    }
+    if (u.pathname === '/auth/v1/user') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sesja().user) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+}
+const STARA_MIGAWKA_MS = 5 * 3600 * 1000;
+async function kontekstOnline(browser, zSW) {
+  const ctx = await browser.newContext({ serviceWorkers: zSW ? 'allow' : 'block', viewport: { width: 412, height: 915 }, deviceScaleFactor: 2,
+    userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36' });
+  const M = migawka(); M.ts = Date.now() - STARA_MIGAWKA_MS;
+  await ctx.addInitScript(([m, s, uid]) => {
+    try {
+      if (!localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token')) localStorage.setItem('sb-afqojgkaveykxbltxzwm-auth-token', JSON.stringify(s));
+      if (!localStorage.getItem('bm_dzis_migawka_' + uid)) localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m));
+    } catch (e) {}
+  }, [M, sesja(), UID]);
+  await podepnijAtrape(ctx);
+  if (!zSW) await ctx.route((u) => !/supabase\.co|127\.0\.0\.1|localhost/.test(String(u)), (route) => route.abort('internetdisconnected'));
+  return { ctx, tsStary: M.ts };
+}
+function sprawdzOnline(sprawdz, et, st, tsStary) {
+  sprawdz(et + ': udane ładowanie ONLINE odświeża migawkę (ts, logi, wiadomość)', st.ts > tsStary + 60000 && st.logiKom === 'Log online 1' && /ONLINE/.test(st.wiad || ''),
+    'ts ' + (st.ts ? new Date(st.ts).toTimeString().slice(0, 8) : null) + ' (stary ' + new Date(tsStary).toTimeString().slice(0, 8) + '), logi[0]=' + st.logiKom + ', uid=' + st.uidStrony + ', widokTrenera=' + st.widokTrenera + ', ' + st.bajty + ' B');
+  sprawdz(et + ': online bez paska offline', !st.pasek, st.pasek);
+}
+async function scenariuszOnline(ctx, baza, etykieta) {
+  const p = await ctx.newPage();
+  const bledy = [];
+  p.on('pageerror', (e) => bledy.push(String(e.message).slice(0, 160)));
+  const tsStary = await p.evaluate(() => 0).catch(() => 0);
+  await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+  await p.waitForTimeout(9000);
+  const st = await p.evaluate(async ([uid]) => {
+    const raw = localStorage.getItem('bm_dzis_migawka_' + uid);
+    const m = raw ? JSON.parse(raw) : null;
+    let uidStrony = null; try { uidStrony = await DzisOffline.userId(sb); } catch (e) { uidStrony = 'BŁĄD ' + e.message; }
+    return { ts: m && m.ts, bajty: raw ? raw.length : 0, czesci: m ? Object.keys(m.czesci) : [], logiKom: m && m.czesci.logi && m.czesci.logi[0] && m.czesci.logi[0].comment,
+             wiad: m && m.czesci.wiadomosc && m.czesci.wiadomosc.body, uidStrony, widokTrenera: DzisOffline.widokTrenera(), onLine: navigator.onLine,
+             pasek: (document.getElementById('bm-offline-pasek') || {}).innerText || null, athleteId: typeof _athleteId !== 'undefined' ? _athleteId : null,
+             kontrolowana: !!(navigator.serviceWorker && navigator.serviceWorker.controller) };
+  }, [UID]);
+  st.bledy = bledy.slice(0, 3);
+  console.log('   [' + etykieta + '] online: ' + JSON.stringify(st));
+  return { p, st };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -223,6 +319,20 @@ async function trybSW() {
      '/races.html', '/gra.html', '/o-nas.html', '/terms.html', '/privacy.html', '/privacy-en.html', '/sb.js', '/vendor/supabase-js-2.112.4.min.js',
      '/theme.css', '/manifest.json', '/offline.html', '/js/dzis-offline.js', '/js/generator-planu.js', '/js/silnik-anim.js', '/js/silnik-momentu.js',
      '/assets/ui/pustki/pustka-offline.webp', '/assets/ui/banery/baner-index-01.webp'].forEach((x) => STAN.zrywaj.add(x));
+  }
+
+  // ── F: online z SW — pierwsze wejście (instalacja) i drugie (strona kontrolowana przez SW) ──
+  {
+    STAN.wersja = ''; STAN.zrywaj.clear();
+    const { ctx, tsStary } = await kontekstOnline(browser, true);
+    const { p, st: st1 } = await scenariuszOnline(ctx, baza, 'F1 z SW, 1. wejście');
+    sprawdzOnline(sprawdz, 'SW F1', st1, tsStary);
+    await p.evaluate(([uid, t]) => { const m = JSON.parse(localStorage.getItem('bm_dzis_migawka_' + uid)); m.ts = t; localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m)); }, [UID, tsStary]);
+    await p.close();
+    const { st: st2 } = await scenariuszOnline(ctx, baza, 'F2 z SW, strona kontrolowana');
+    sprawdz('SW F2: strona kontrolowana przez SW', st2.kontrolowana, String(st2.kontrolowana));
+    sprawdzOnline(sprawdz, 'SW F2', st2, tsStary);
+    await ctx.close();
   }
 
   // ── E: niekrytyczna strona z poprzedniej wersji ──
@@ -368,6 +478,75 @@ else
   sprawdz('Plan: tryb offline aktywny', pl.offline, JSON.stringify(pl).slice(0, 160));
   sprawdz('Plan: dni z migawki widoczne (Tempo/Spokojny)', /Tempo|Spokojny|Interwały/.test(pl.tekst || ''), (pl.tekst || '').slice(0, 120));
   sprawdz('Plan: pasek offline', /Offline · dane z/.test(pl.pasek || ''), pl.pasek);
+  {
+    const poniedzialekDzis = new Date().getDay() === 1;
+    sprawdz('Plan: dni bieżącego tygodnia sprzed dziś z „postep" (pn: Wybieganie 21 km), zero „niedostępny" w tym tygodniu',
+      pl.niedostepnych === 0 && (poniedzialekDzis || /21 km/.test(pl.tekst || '')), 'niedostępnych ' + pl.niedostepnych + ' | ' + (pl.tekst || '').replace(/\s+/g, ' ').slice(0, 90));
+  }
+
+  // ── ONLINE: odświeżenie migawki ──
+  {
+    const { ctx: c2, tsStary } = await kontekstOnline(browser, false);
+    const { p: pOn, st } = await scenariuszOnline(c2, baza, 'bez SW');
+    sprawdzOnline(sprawdz, 'Online', st, tsStary);
+    // WZNOWIENIE Z TŁA (08.10.2026, przyczyna „dane z 01:53"): aplikacja przywrócona z tła to TEN SAM
+    // dokument. Powrót przy sieci po > 10 min (albo po zmianie dnia) ma odświeżyć dane i migawkę BEZ
+    // przeładowania — znacznik na window musi przetrwać. Powrót po < 10 min — nic nie pobiera.
+    const powrot = () => pOn.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { get: () => 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const hm = (t) => (t ? new Date(t).toTimeString().slice(0, 5) : String(t));
+    const migTs = () => pOn.evaluate(([uid]) => JSON.parse(localStorage.getItem('bm_dzis_migawka_' + uid)).ts, [UID]);
+    await pOn.evaluate(() => { window.__znacznikDokumentu = 'ten-sam-' + Math.random(); });
+    const znacznik = await pOn.evaluate(() => window.__znacznikDokumentu);
+    // (a) < 10 min od ostatniego ładowania — bez odświeżenia
+    const logiPrzedA = LICZNIK_REST.training_logs || 0;
+    await powrot(); await pOn.waitForTimeout(2500);
+    sprawdz('Wznowienie < 10 min: bez pobierania (dane świeże)', (LICZNIK_REST.training_logs || 0) === logiPrzedA, 'GET training_logs +' + ((LICZNIK_REST.training_logs || 0) - logiPrzedA));
+    // (b) > 10 min: ts migawki i _dzisZaladowano cofnięte o 11 min / 5 h
+    await pOn.evaluate(([uid, t]) => {
+      const m = JSON.parse(localStorage.getItem('bm_dzis_migawka_' + uid)); m.ts = t; localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m));
+      if (window._dzisZaladowano) window._dzisZaladowano.ts = Date.now() - 11 * 60 * 1000;
+    }, [UID, tsStary]);
+    const logiPrzedB = LICZNIK_REST.training_logs || 0;
+    await powrot(); await pOn.waitForTimeout(6000);
+    const tsPo = await migTs();
+    const poB = await pOn.evaluate(() => ({ z: window.__znacznikDokumentu, pasek: (document.getElementById('bm-offline-pasek') || {}).innerText || null }));
+    sprawdz('Wznowienie > 10 min: migawka i ts odświeżone bez przeładowania (ten sam window)', tsPo > tsStary + 60000 && poB.z === znacznik && (LICZNIK_REST.training_logs || 0) > logiPrzedB,
+      'ts ' + hm(tsStary) + ' → ' + hm(tsPo) + ', window ' + (poB.z === znacznik ? 'ten sam' : 'NOWY') + ', GET training_logs +' + ((LICZNIK_REST.training_logs || 0) - logiPrzedB));
+    // (c) zmiana dnia przy < 10 min: odświeżenie + data w nagłówku
+    await pOn.evaluate(() => {
+      if (window._dzisZaladowano) window._dzisZaladowano.dzien = '2000-01-01';
+      const el = document.getElementById('today-date'); if (el) el.textContent = 'WCZORAJ';
+    });
+    const logiPrzedC = LICZNIK_REST.training_logs || 0;
+    await powrot(); await pOn.waitForTimeout(6000);
+    const poC = await pOn.evaluate(() => ({ data: (document.getElementById('today-date') || {}).textContent, z: window.__znacznikDokumentu }));
+    sprawdz('Wznowienie po zmianie dnia: odświeżenie i data w nagłówku', poC.data !== 'WCZORAJ' && /\d{4}/.test(poC.data || '') && (LICZNIK_REST.training_logs || 0) > logiPrzedC && poC.z === znacznik,
+      'nagłówek „' + poC.data + '", GET training_logs +' + ((LICZNIK_REST.training_logs || 0) - logiPrzedC));
+    // (d) Plan (kalendarz.html, zawodnik): powrót po > 10 min → ponowne pobranie treningów, ten sam window
+    await pOn.goto(baza + '/kalendarz.html?role=athlete', { waitUntil: 'load' });
+    await pOn.waitForTimeout(5000);
+    await pOn.evaluate(() => { window.__znacznikPlanu = 'plan-' + Math.random(); if (window._calZaladowano) window._calZaladowano.ts = Date.now() - 11 * 60 * 1000; });
+    const zPlan = await pOn.evaluate(() => [window.__znacznikPlanu, !!window._calZaladowano]);
+    const trPrzed = LICZNIK_REST.trainings || 0;
+    await powrot(); await pOn.waitForTimeout(5000);
+    const poD = await pOn.evaluate(() => window.__znacznikPlanu);
+    sprawdz('Plan: wznowienie > 10 min pobiera treningi ponownie, bez przeładowania', zPlan[1] && poD === zPlan[0] && (LICZNIK_REST.trainings || 0) > trPrzed,
+      '_calZaladowano=' + zPlan[1] + ', GET trainings +' + ((LICZNIK_REST.trainings || 0) - trPrzed) + ', window ' + (poD === zPlan[0] ? 'ten sam' : 'NOWY'));
+    // (e) potem tryb samolotowy → Plan: pasek z godziną ODŚWIEŻONEJ migawki (dawniej „dane z 01:53")
+    await c2.unrouteAll({ behavior: 'ignoreErrors' });
+    await c2.route((u) => !/127\.0\.0\.1|localhost/.test(String(u)), (route) => route.abort('internetdisconnected'));
+    await pOn.goto(baza + '/kalendarz.html?role=athlete', { waitUntil: 'domcontentloaded' });
+    await pOn.waitForTimeout(12000);   // navigator.onLine = true → postgrest-js ponawia 1+2+4 s przed błędem
+    const pasekPlanu = await pOn.evaluate(() => (document.getElementById('bm-offline-pasek') || {}).innerText || null);
+    const tsKoniec = await migTs();
+    sprawdz('Po wznowieniu i odcięciu sieci Plan pokazuje godzinę odświeżonej migawki', pasekPlanu === 'Offline · dane z ' + hm(tsKoniec) && tsKoniec > tsStary + 60000, pasekPlanu + ' (migawka ' + hm(tsKoniec) + ')');
+    await c2.close();
+  }
 
   await browser.close(); srv.close();
   console.log('\n  SMOKE OFFLINE — „Dziś" i Plan (Chromium, Android UA, bez SW)\n');

@@ -296,7 +296,7 @@ test('Plan offline w kalendarz.html: moduł, błąd sieci → _calPlanOffline, d
   const iGuard = rm.indexOf('if (_calDzienNieznany(ds))'), iItems = rm.indexOf('const items = trainings[ds] || [];');
   assert.ok(iGuard > 0 && iItems > iGuard, 'dzień nieznany obsłużony ZANIM wiersz potraktuje go jak pusty');
   const p = k.slice(k.indexOf('function _calPlanOffline('), k.indexOf('function _calDzienNieznany('));
-  assert.match(p, /if \(zakres\) DzisOffline\.pokazPasek\(m\.ts\);/, 'pasek „Offline · dane z" przy danych z migawki');
+  assert.match(p, /if \(zakresy\.length\) DzisOffline\.pokazPasek\(m\.ts\);/,'pasek „Offline · dane z" przy danych z migawki');
 });
 
 test('pierścień bez planu (planned = 0): bez procentu, w środku liczba treningów, „N treningów w tym tygodniu"; km biegowe zawsze', () => {
@@ -406,4 +406,158 @@ test('ikony skrótów obok hero offline: błąd ładowania <img data-ic> → emo
   assert.doesNotThrow(() => okno._icZapas(null));
   const smoke = czytaj('tools/smoke-offline.js');
   assert.ok(smoke.includes('ikony skrótów obok hero'), 'smoke nie sprawdza ikon skrótów');
+});
+
+test('Plan offline: dni bieżącego tygodnia sprzed dziś z części „postep" — znane dni = „tydzien" (dzień zapisu..+13) ∪ tydzień pn–nd „postep"', () => {
+  swiezy();
+  assert.deepEqual(D.zakresyPlanu(D.odczytaj(U)), [], 'bez migawki brak zakresów');
+  // poniedziałek: dowolny dzień tygodnia → pn tego tygodnia (lokalnie)
+  assert.equal(D.poniedzialek(new Date(2026, 9, 8, 15).getTime()), '2026-10-05', 'czwartek 8.10 → pn 5.10');
+  assert.equal(D.poniedzialek(new Date(2026, 9, 5, 0, 5).getTime()), '2026-10-05', 'poniedziałek → ten sam dzień');
+  assert.equal(D.poniedzialek(new Date(2026, 9, 11, 23, 59).getTime()), '2026-10-05', 'niedziela → pn TEGO tygodnia, nie następnego');
+  const dzis = D.dataLokalna(Date.now());
+  const pon = D.poniedzialek(Date.now());
+  const p = pon.split('-').map(Number);
+  const nd = D.dataLokalna(new Date(p[0], p[1] - 1, p[2] + 6).getTime());
+  D.zapisz(U, 'tydzien', [{ id: 't1', date: dzis, type: 'Tempo' }]);
+  D.zapisz(U, 'postep', { trainings: [{ id: 'p0', date: pon, type: 'Wybieganie' }, { id: 't1', date: dzis, type: 'Tempo (stara kopia)' }], logs: [] });
+  const m = D.odczytaj(U);
+  assert.equal(m.postepOd, pon, 'zapis „postep" zapamiętuje pn tygodnia');
+  const zs = D.zakresyPlanu(m);
+  assert.deepEqual(zs.map((z) => z.czesc), ['tydzien', 'postep']);
+  assert.deepEqual(zs[1], { od: pon, do: nd, czesc: 'postep' });
+  assert.equal(D.dzienWZakresach(zs, pon), true, 'pn bieżącego tygodnia znany');
+  assert.equal(D.dzienWZakresach(zs, nd), true);
+  assert.equal(D.dzienWZakresach(zs, D.dataLokalna(new Date(p[0], p[1] - 1, p[2] - 1).getTime())), false, 'nd POPRZEDNIEGO tygodnia = nieznany');
+  assert.equal(D.dzienWZakresach([], dzis), false);
+  const tr = D.treningiPlanu(m);
+  if (pon < dzis) assert.ok(tr.some((t) => t.id === 'p0'), 'trening z pn z „postep"');
+  assert.equal(tr.filter((t) => t.id === 't1').length, 1, 'dzień w zakresie „tydzien" bierze dane z „tydzien" — bez dubla');
+  assert.equal(tr.find((t) => t.id === 't1').type, 'Tempo', '„tydzien" ma pierwszeństwo');
+  // migawka sprzed 8.10 (bez postepOd): 'postep' nie poszerza zakresu — nie wiemy, którego tygodnia dotyczy
+  const stara = JSON.parse(JSON.stringify(m)); delete stara.postepOd;
+  assert.deepEqual(D.zakresyPlanu(stara).map((z) => z.czesc), ['tydzien']);
+  assert.equal(D.treningiPlanu(stara).some((t) => t.id === 'p0'), false);
+  // sam „postep" bez „tydzien" też daje znane dni (pn–nd)
+  swiezy();
+  D.zapisz(U, 'postep', { trainings: [{ id: 'p0', date: pon }], logs: [] });
+  assert.deepEqual(D.zakresyPlanu(D.odczytaj(U)).map((z) => z.czesc), ['postep']);
+  // kalendarz.html korzysta z sumy zakresów
+  const k = czytaj('kalendarz.html');
+  const f = k.slice(k.indexOf('function _calPlanOffline('), k.indexOf('const _CAL_OFFLINE_TXT'));
+  assert.match(f, /const zakresy = DzisOffline\.zakresyPlanu\(m\);/);
+  assert.match(f, /DzisOffline\.treningiPlanu\(m\)/);
+  assert.match(f, /!DzisOffline\.dzienWZakresach\(window\._calOffline\.zakresy, ds\)/);
+  assert.doesNotMatch(k, /window\._calOffline\.zakres[^y]/, 'stare pole zakres nie może zostać w użyciu');
+  assert.ok(czytaj('tools/smoke-offline.js').includes('Plan: dni bieżącego tygodnia sprzed dziś'), 'punkt w smoke');
+});
+
+// ── WZNOWIENIE Z TŁA (8.10, „dane z 01:53") i tydzień pierścienia po Warszawie ─────────────────────────
+function wyciagnijFunkcje(zrodlo, naglowek) {
+  const i = zrodlo.indexOf(naglowek);
+  assert.ok(i >= 0, 'brak: ' + naglowek);
+  const j = zrodlo.indexOf('\n}\n', i);
+  return zrodlo.slice(i, j + 3);
+}
+
+test('„Dziś": powrót z tła odświeża dane BEZ przeładowania — > 10 min albo zmiana dnia, offline nic, jedno naraz', async () => {
+  const z = czytaj('zawodnik.html').replace(/\r/g, '');
+  const f = wyciagnijFunkcje(z, 'async function _dzisPoPowrocie(powod) {');
+  assert.doesNotMatch(f, /location\.reload|location\.href\s*=/, 'bez przeładowania (dawne miganie, Maciek 14.08)');
+  assert.match(z, /const DZIS_ODSWIEZ_PO_MS = 10 \* 60 \* 1000;/);
+  assert.match(z, /document\.addEventListener\('visibilitychange', \(\) => \{ if \(document\.visibilityState === 'visible'\) _dzisPoPowrocie\('visibilitychange'\); \}\);/);
+  assert.match(z, /window\.addEventListener\('pageshow', \(e\) => \{ if \(e\.persisted\) _dzisPoPowrocie\('pageshow'\); \}\);/);
+  // znacznik ładowania tylko z SIECI (przed awaryjnie(), które zeruje error)
+  const ll = z.slice(z.indexOf('async function loadLogs()'), z.indexOf('async function loadLogs()') + 9000);
+  const iZ = ll.indexOf('const _zSieci = !error;'), iAw = ll.indexOf("DzisOffline.awaryjnie(_uidMig, 'logi', error)");
+  assert.ok(iZ > 0 && iAw > iZ, '_zSieci liczone przed odczytem awaryjnym');
+  assert.match(ll, /if \(_zSieci\) window\._dzisZaladowano = \{ ts: Date\.now\(\), dzien: DzisOffline\.dataLokalna\(Date\.now\(\)\) \};/);
+
+  const zbuduj = (stan) => {
+    const okno = { _dzisZaladowano: stan.z, loadWeather: () => { stan.pogoda++; } };
+    const doc = { visibilityState: stan.widocznosc || 'visible' };
+    const nav = { onLine: stan.onLine !== false };
+    const loadLogs = async () => { stan.ladowan++; await new Promise((r) => setTimeout(r, 20)); okno._dzisZaladowano = { ts: Date.now(), dzien: D.dataLokalna(Date.now()) }; };
+    const fn = new Function('window', 'document', 'navigator', '_athleteId', 'DzisOffline', 'loadLogs', '_ustawDateNaglowka', 'console',
+      'const DZIS_ODSWIEZ_PO_MS = 10 * 60 * 1000;\n' + f + '\nreturn _dzisPoPowrocie;')(okno, doc, nav, stan.aid === undefined ? 'A1' : stan.aid, D, loadLogs, () => { stan.naglowek++; }, { error() {} });
+    return { fn, okno };
+  };
+  const nowy = (o) => Object.assign({ ladowan: 0, naglowek: 0, pogoda: 0 }, o);
+  const dzis = D.dataLokalna(Date.now());
+  let st = nowy({ z: { ts: Date.now() - 11 * 60000, dzien: dzis }, onLine: false });
+  assert.equal(await zbuduj(st).fn('t'), 'offline'); assert.equal(st.ladowan, 0, 'offline przy powrocie — nic (migawka już jest)');
+  st = nowy({ z: { ts: Date.now() - 9 * 60000, dzien: dzis } });
+  assert.equal(await zbuduj(st).fn('t'), 'swieze'); assert.equal(st.ladowan, 0);
+  st = nowy({ z: { ts: Date.now() - 11 * 60000, dzien: dzis } });
+  assert.match(await zbuduj(st).fn('t'), /^odswiezone/); assert.equal(st.ladowan, 1); assert.equal(st.naglowek, 0, 'ten sam dzień — nagłówek bez zmian'); assert.equal(st.pogoda, 1);
+  st = nowy({ z: { ts: Date.now() - 60000, dzien: '2000-01-01' } });
+  assert.match(await zbuduj(st).fn('t'), /^odswiezone/); assert.equal(st.naglowek, 1, 'zmiana dnia przelicza datę w nagłówku');
+  st = nowy({ z: undefined });
+  assert.match(await zbuduj(st).fn('t'), /^odswiezone/, 'start offline (brak ładowania z sieci) → powrót z siecią ładuje');
+  st = nowy({ z: { ts: 0, dzien: dzis }, widocznosc: 'hidden' });
+  assert.equal(await zbuduj(st).fn('t'), 'ukryta'); assert.equal(st.ladowan, 0);
+  st = nowy({ z: { ts: 0, dzien: dzis }, aid: null });
+  assert.equal(await zbuduj(st).fn('t'), 'brak-zawodnika');
+  // dwa zdarzenia naraz (visibilitychange + pageshow) → jedno ładowanie
+  st = nowy({ z: { ts: 0, dzien: dzis } });
+  const { fn } = zbuduj(st);
+  const [a, b] = await Promise.all([fn('visibilitychange'), fn('pageshow')]);
+  assert.equal(st.ladowan, 1, 'blokada przed równoległym podwójnym odświeżeniem');
+  assert.deepEqual([a.split(':')[0], b], ['odswiezone', 'w-toku']);
+});
+
+test('Plan (kalendarz.html): powrót z tła odświeża treningi zawodnika bez przeładowania; zmiana dnia przesuwa tydzień „starego dziś"', async () => {
+  const k = czytaj('kalendarz.html').replace(/\r/g, '');
+  const f = wyciagnijFunkcje(k, 'async function _calPoPowrocie(powod) {');
+  assert.doesNotMatch(f, /location\.reload|location\.href\s*=/);
+  assert.match(k, /window\._calZaladowano = \{ ts: Date\.now\(\), dzien: dateStr\(new Date\(\)\) \};/);
+  assert.match(k, /document\.addEventListener\('visibilitychange', \(\) => \{ if \(document\.visibilityState === 'visible'\) _calPoPowrocie\('visibilitychange'\); \}\);/);
+  const iZal = k.indexOf('window._calZaladowano = {'), iOff = k.indexOf("if (error && _urlRole === 'athlete' && DzisOffline.czyBladSieci(error)) return _calPlanOffline");
+  assert.ok(iOff > 0 && iZal > iOff, 'znacznik ustawiany dopiero po udanym odczycie z sieci (nie w trybie offline)');
+  const zbuduj = (stan) => new Function('window', 'document', 'navigator', '_urlRole', 'dateStr', 'getWeekStart', 'loadTrainingsFromDB', 'setView', '_calView', 'console', 'stan',
+    'let currentWeekStart = stan.cws;\nconst CAL_ODSWIEZ_PO_MS = 10 * 60 * 1000;\n' + f + '\nreturn { f: _calPoPowrocie, cws: () => currentWeekStart };')(
+    stan.okno, { visibilityState: 'visible' }, { onLine: stan.onLine !== false }, stan.rola || 'athlete',
+    (d) => D.dataLokalna(d.getTime()), (d) => D.poniedzialek(d.getTime()), async () => { stan.ladowan++; }, () => { stan.widok++; }, 'mobile', { error() {} }, stan);
+  const dzis = D.dataLokalna(Date.now());
+  let st = { okno: { _calZaladowano: { ts: Date.now() - 11 * 60000, dzien: dzis } }, ladowan: 0, widok: 0, cws: D.poniedzialek(Date.now()) };
+  assert.match(await zbuduj(st).f('t'), /^odswiezone/); assert.equal(st.ladowan, 1); assert.equal(st.widok, 1);
+  st = { okno: { _calZaladowano: { ts: Date.now() - 60000, dzien: dzis } }, ladowan: 0, widok: 0 };
+  assert.equal(await zbuduj(st).f('t'), 'swieze');
+  st = { okno: { _calZaladowano: { ts: 0, dzien: dzis } }, ladowan: 0, widok: 0, onLine: false };
+  assert.equal(await zbuduj(st).f('t'), 'offline'); assert.equal(st.ladowan, 0);
+  st = { okno: { _calZaladowano: { ts: 0, dzien: dzis } }, ladowan: 0, widok: 0, rola: 'coach' };
+  assert.equal(await zbuduj(st).f('t'), 'trener');
+  // zmiana dnia: widok stał na tygodniu „starego dziś" (sprzed 8 dni) → tydzień nowego dnia
+  const stary = D.dataLokalna(Date.now() - 8 * 86400000);
+  st = { okno: { _calZaladowano: { ts: Date.now(), dzien: stary } }, ladowan: 0, widok: 0, cws: D.poniedzialek(new Date(stary + 'T00:00:00').getTime()) };
+  const b = zbuduj(st); await b.f('t');
+  assert.equal(b.cws(), D.poniedzialek(Date.now()), 'przejście na bieżący tydzień');
+  // zmiana dnia, ale człowiek przeglądał INNY tydzień — zostaje
+  st = { okno: { _calZaladowano: { ts: Date.now(), dzien: stary } }, ladowan: 0, widok: 0, cws: '2020-01-06' };
+  const c = zbuduj(st); await c.f('t');
+  assert.equal(c.cws(), '2020-01-06');
+});
+
+test('pierścień tygodnia: pn–nd po kalendarzu Europe/Warsaw — poniedziałek 00:30 PL to już NOWY tydzień (bez niedzieli poprzedniego)', () => {
+  const sb = czytaj('sb.js').replace(/\r/g, '');
+  const okno = {};
+  const dw = sb.match(/window\._dzienWaw = function \(iso\) \{[\s\S]*?\n  \};/);
+  const tw = sb.match(/window\._tydzienWaw = function \(ts\) \{[\s\S]*?\n  \};/);
+  assert.ok(dw && tw, 'brak _dzienWaw/_tydzienWaw w sb.js');
+  new Function('window', dw[0] + '\n' + tw[0])(okno);
+  const T = (iso) => okno._tydzienWaw(Date.parse(iso));
+  // lato (CEST, UTC+2): pn 5.10.2026 00:30 PL = nd 4.10 22:30 UTC
+  assert.deepEqual(T('2026-10-04T22:30:00Z'), { od: '2026-10-05', do: '2026-10-11' }, 'pn 00:30 PL → tydzień 5–11.10');
+  assert.deepEqual(T('2026-10-04T21:30:00Z'), { od: '2026-09-28', do: '2026-10-04' }, 'nd 23:30 PL → jeszcze poprzedni tydzień');
+  // zima (CET, UTC+1): pn 2.11.2026 00:30 PL = nd 1.11 23:30 UTC
+  assert.deepEqual(T('2026-11-01T23:30:00Z'), { od: '2026-11-02', do: '2026-11-08' });
+  assert.deepEqual(T('2026-10-08T13:00:00Z'), { od: '2026-10-05', do: '2026-10-11' });
+  assert.deepEqual(T('2026-10-11T10:00:00Z'), { od: '2026-10-05', do: '2026-10-11' });
+  assert.deepEqual(T('2027-01-01T12:00:00Z'), { od: '2026-12-28', do: '2027-01-03' }, 'przełom roku');
+  // updateWeekProgress: kolumna `date` z _tydzienWaw, nie z toISOString lokalnej północy
+  const z = czytaj('zawodnik.html').replace(/\r/g, '');
+  const u = z.slice(z.indexOf('async function updateWeekProgress()'), z.indexOf('async function updateWeekProgress()') + 3500);
+  assert.match(u, /const _tw = window\._tydzienWaw\(Date\.now\(\)\);/);
+  assert.match(u, /\.gte\('date', _tw\.od\)\s*\n\s*\.lte\('date', _tw\.do\);/);
+  assert.doesNotMatch(u, /\.gte\('date', weekStart\.toISOString\(\)/, 'stary błąd UTC wrócił');
 });

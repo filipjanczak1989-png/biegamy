@@ -1869,16 +1869,19 @@ const weekPlan=[
 ];
 const logs=[]; // dane z bazy — ładowane przez loadLogs()
 let feel='';
-function init(){
-  const h=new Date().getHours();
-  document.getElementById('greeting').textContent=h<12?'Dzień dobry,':h<18?'Cześć,':'Dobry wieczór,';
-  
-  // Dynamiczna data dzisiejsza
+/* Data i powitanie w nagłówku „Dziś" — z init() i przy powrocie z tła po zmianie dnia (_dzisPoPowrocie). */
+function _ustawDateNaglowka(){
   const now = new Date();
+  const h = now.getHours();
+  const g = document.getElementById('greeting');
+  if (g) g.textContent = h<12?'Dzień dobry,':h<18?'Cześć,':'Dobry wieczór,';
   const days = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
   const months = ['Stycznia','Lutego','Marca','Kwietnia','Maja','Czerwca','Lipca','Sierpnia','Września','Października','Listopada','Grudnia'];
   const dateEl = document.getElementById('today-date');
   if(dateEl) dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+}
+function init(){
+  _ustawDateNaglowka();
 
   // Pokaż przycisk powrotu jeśli wejście z panelu trenera
   // Zachowaj w sessionStorage żeby przeżył replaceState
@@ -7616,6 +7619,7 @@ async function loadLogs() {
     /* DZIŚ OFFLINE (07.10.2026, js/dzis-offline.js): udany odczyt → migawka; błąd SIECI → lista
        z migawki + pasek „Offline · dane z HH:MM". Inne błędy (42501, PGRST…) idą starą drogą. */
     const _uidMig = await DzisOffline.userId(sb);
+    const _zSieci = !error;   // przed awaryjnie(): migawka zeruje error, a to NIE jest świeże ładowanie
     if (!error) { DzisOffline.zapisz(_uidMig, 'logi', data || []); }
     else { const _aw = DzisOffline.awaryjnie(_uidMig, 'logi', error); if (_aw) { data = _aw.dane; error = null; } }
 
@@ -7684,6 +7688,7 @@ async function loadLogs() {
       document.getElementById('icu-home-banner')?.style.setProperty('display','none');
     }
     await updateWeekProgress();
+    if (_zSieci) window._dzisZaladowano = { ts: Date.now(), dzien: DzisOffline.dataLokalna(Date.now()) };   // wznowienie z tła
     await checkNewMessages();
     checkNotifications();
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); loadPendingDuelsBanner(); }, 30000);
@@ -7724,10 +7729,16 @@ async function updateWeekProgress() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23,59,59,999);
 
+  /* Tydzień pn–nd po kalendarzu Europe/Warsaw (08.10.2026, sb.js _tydzienWaw). Do tego dnia
+     `weekStart.toISOString().split('T')[0]`: lokalna północ poniedziałku w Polsce to niedziela
+     22:00/23:00 UTC, więc zapytanie zaczynało się od NIEDZIELI poprzedniego tygodnia, a jej plan wpadał
+     do „N z M zaplanowanych". Kolumna `date` to dzień kalendarzowy (bez strefy). Logi (`logged_at`,
+     timestamptz) zostają z toISOString: to chwila w czasie, a weekStart to lokalna północ — poprawnie. */
+  const _tw = window._tydzienWaw(Date.now());
   let { data: trainingsThisWeek, error: e1 } = await sb.from('trainings')
     .select('*').eq('athlete_id', _athleteId)
-    .gte('date', weekStart.toISOString().split('T')[0])
-    .lte('date', weekEnd.toISOString().split('T')[0]);
+    .gte('date', _tw.od)
+    .lte('date', _tw.do);
 
   let { data: logsThisWeek, error: e2 } = await sb.from('training_logs')
     .select('distance_km,training_type').not('training_type','like','__badge__%').eq('athlete_id', _athleteId)
@@ -13148,6 +13159,35 @@ window.sendDuelChallenge = sendDuelChallenge;
    identycznych kopii, kazda z `controllerchange -> location.reload()` bez
    warunku: po kazdym deployu otwarta karta przeladowywala sie sama w ciagu
    <= 60 s. 14.08.2026 = 11 auto-bumpow = do 11 resetow u uzytkownika. */
+/* WZNOWIENIE Z TŁA (08.10.2026, smoke Filipa po a6bfdfe: pasek „Offline · dane z 01:53", choć o 15:05
+   „Dziś" było otwarte z siecią). Aplikacja przywrócona z tła to TEN SAM dokument — loadery „Dziś" ruszały
+   tylko przy załadowaniu strony, więc dane i migawka zostawały z nocy (odtworzone w tools/smoke-offline.js).
+   Powrót (visibilitychange → visible, pageshow z bfcache) przy sieci odświeża DANE bez przeładowania
+   strony — reload przy powrocie to dawne „ekran miga i wraca do stanu początkowego" (Maciek, 14.08).
+   Warunek: ostatnie ładowanie Z SIECI starsze niż 10 min ALBO inny dzień kalendarzowy (wtedy też data
+   w nagłówku). Offline — nic: migawka już jest. Blokada: jedno odświeżanie naraz (plus _loadLogsRunning). */
+const DZIS_ODSWIEZ_PO_MS = 10 * 60 * 1000;
+async function _dzisPoPowrocie(powod) {
+  if (document.visibilityState === 'hidden') return 'ukryta';
+  if (navigator.onLine === false) return 'offline';
+  if (!_athleteId) return 'brak-zawodnika';
+  if (window._dzisOdswiezanie || window._loadLogsRunning) return 'w-toku';
+  const z = window._dzisZaladowano;
+  const dzien = DzisOffline.dataLokalna(Date.now());
+  const zmianaDnia = !!z && z.dzien !== dzien;
+  if (z && !zmianaDnia && Date.now() - z.ts < DZIS_ODSWIEZ_PO_MS) return 'swieze';
+  window._dzisOdswiezanie = true;
+  try {
+    if (zmianaDnia || !z) _ustawDateNaglowka();
+    await loadLogs();
+    if (typeof window.loadWeather === 'function') window.loadWeather();
+    return 'odswiezone:' + powod;
+  } catch (e) { console.error('[dziś] odświeżenie po powrocie:', e); return 'blad'; }
+  finally { window._dzisOdswiezanie = false; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _dzisPoPowrocie('visibilitychange'); });
+window.addEventListener('pageshow', (e) => { if (e.persisted) _dzisPoPowrocie('pageshow'); });
+
 if (window.bmRejestrujSW) window.bmRejestrujSW();
 </script>
 

@@ -122,6 +122,7 @@
     if (zCzasem) {
       m.ts = Date.now();
       if (czesc === 'tydzien') m.tydzienOd = M.dataLokalna(m.ts);   // początek zakresu dni z migawki (Plan offline)
+      if (czesc === 'postep') m.postepOd = M.poniedzialek(m.ts);     // tydzień pon–nd, którego dotyczy 'postep'
     }
     var raw;
     try { raw = JSON.stringify(m); } catch (e) { return false; }
@@ -145,6 +146,45 @@
     return { od: m.tydzienOd, do: M.dataLokalna(k.getTime()) };
   };
   M.dzienWZakresie = function (zakres, ds) { return !!zakres && ds >= zakres.od && ds <= zakres.do; };
+
+  /* Poniedziałek (lokalnie) tygodnia, w którym leży ts — początek tygodnia części 'postep'. */
+  M.poniedzialek = function (ts) {
+    var d = new Date(ts);
+    var przesuniecie = (d.getDay() + 6) % 7;                 // pn=0 … nd=6
+    return M.dataLokalna(new Date(d.getFullYear(), d.getMonth(), d.getDate() - przesuniecie).getTime());
+  };
+
+  /* Tydzień pon–nd części 'postep' (zapis updateWeekProgress: plan bieżącego tygodnia). Migawka sprzed
+     8.10.2026 nie ma postepOd — wtedy null: nie wiemy, którego tygodnia dotyczą dane. */
+  M.zakresPostepu = function (m) {
+    if (!m || !m.czesci || !m.czesci.postep || !m.postepOd) return null;
+    var p = m.postepOd.split('-').map(Number);
+    return { od: m.postepOd, do: M.dataLokalna(new Date(p[0], p[1] - 1, p[2] + 6).getTime()) };
+  };
+
+  /* Plan offline (08.10.2026): znane dni = zakres 'tydzien' (dzień zapisu..+13) ∪ tydzień 'postep' (pon–nd).
+     Zwraca listę zakresów z nazwą części — dzień w którymkolwiek jest znany; poza wszystkimi = nieznany. */
+  M.zakresyPlanu = function (m) {
+    var out = [];
+    var t = M.zakresTygodnia(m); if (t) { t.czesc = 'tydzien'; out.push(t); }
+    var p = M.zakresPostepu(m); if (p) { p.czesc = 'postep'; out.push(p); }
+    return out;
+  };
+  M.dzienWZakresach = function (zakresy, ds) {
+    return !!zakresy && zakresy.some(function (z) { return M.dzienWZakresie(z, ds); });
+  };
+
+  /* Treningi Planu offline per dzień: z 'tydzien' w jego zakresie, z 'postep' tylko dla dni, których
+     'tydzien' nie obejmuje (dni bieżącego tygodnia sprzed dnia zapisu). Bez dubli. */
+  M.treningiPlanu = function (m) {
+    var zt = M.zakresTygodnia(m), zp = M.zakresPostepu(m);
+    var out = [];
+    if (zt) (m.czesci.tydzien || []).forEach(function (t) { if (t && M.dzienWZakresie(zt, t.date)) out.push(t); });
+    if (zp) ((m.czesci.postep && m.czesci.postep.trainings) || []).forEach(function (t) {
+      if (t && M.dzienWZakresie(zp, t.date) && !M.dzienWZakresie(zt, t.date)) out.push(t);
+    });
+    return out;
+  };
 
   /* Odczyt awaryjny: tylko przy błędzie sieci i tylko, gdy część JEST w migawce
      (`'dzis' in czesci` — zapisany null znaczy „nie było treningu", brak klucza znaczy

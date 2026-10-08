@@ -419,6 +419,19 @@
     catch (_) { return String(iso).slice(0, 10); }
   };
 
+  /* Tydzień pn–nd zawierający chwilę `ts`, po kalendarzu Europe/Warsaw (08.10.2026) — { od, do } jako
+     YYYY-MM-DD dla kolumn typu `date`. Dzień z _dzienWaw, potem arytmetyka na samej dacie w UTC
+     (bez strefy przeglądarki i bez zmian czasu). Poniedziałek 00:30 w Polsce = niedziela 22:30 UTC →
+     już NOWY tydzień; z `toISOString()` lokalnej północy wychodziła niedziela poprzedniego. */
+  window._tydzienWaw = function (ts) {
+    const dzien = window._dzienWaw(new Date(ts == null ? Date.now() : ts).toISOString());
+    const p = dzien.split('-').map(Number);
+    const u = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+    const doPon = (u.getUTCDay() + 6) % 7;
+    const f = (n) => new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)).toISOString().slice(0, 10);
+    return { od: f(-doPon), do: f(6 - doPon) };
+  };
+
   // ── WALIDACJA PB (SSOT dla 5 sciezek zapisu athletes.pb_*) ─────────────────
   // !! MASKA NIE JEST KONTROLA. autoColonTime("99999") sklada "9:99:99",
   //    autoColonResult("56") zostawia "56" bez dwukropka — obie te wartosci
