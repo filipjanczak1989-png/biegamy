@@ -1222,18 +1222,24 @@ async function doSignup(raceId) {
   const race = _allRaces.find(r => r.id === raceId);
   if (!race) return;
 
-  const { error } = await _sb.from('race_signups').upsert({
+  /* ignoreDuplicates = ON CONFLICT DO NOTHING (8.10.2026). race_signups ma tylko klucz (race_id, athlete_id) — upsert
+     bez tej opcji robił DO UPDATE tych samych wartości, a bez polityki UPDATE ścieżka konfliktu RZUCA błąd
+     (dokumentacja PostgreSQL: „the UPDATE path will never be silently avoided"). Intencja: zapisz, jeśli nie ma. */
+  // .select('id') oddaje TYLKO wstawione wiersze: pusto = zgłoszenie już było (nieaktualny stan strony) —
+  // wtedy bez lokalnego +1, bo trigger trg_race_signup_count też nie ruszył (nie było INSERT).
+  const { data: wstawione, error } = await _sb.from('race_signups').upsert({
     race_id: raceId,
     athlete_id: _athleteId
-  }, { onConflict: 'race_id,athlete_id' });
+  }, { onConflict: 'race_id,athlete_id', ignoreDuplicates: true }).select('id');
 
-  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (error) { window.zglosNieudanyZapis('upsert', 'race_signups', error); showToast('Błąd: ' + error.message); return; }
 
   _mySignups.add(raceId);
 
-  // Aktualizuj licznik lokalnie
+  // Aktualizuj licznik lokalnie — tylko gdy wiersz naprawdę powstał
+  const nowyWiersz = !!(wstawione && wstawione.length);
   const r = _allRaces.find(r => r.id === raceId);
-  if (r) r.signup_count = (r.signup_count || 0) + 1;
+  if (r && nowyWiersz) r.signup_count = (r.signup_count || 0) + 1;
 
   /* ⚠️ DWA ZAPISY, JEDEN SKUTEK — albo oba, albo żaden.
      PostgREST nie da transakcji między tabelami z klienta, więc domykamy to
@@ -1245,11 +1251,18 @@ async function doSignup(raceId) {
      (`signups_insert`). Gdyby najpierw szedł cel, odrzucenie zapisu zostawiałoby
      cel bez zapisu — ten sam rozjazd, tylko w drugą stronę. */
   if (!await addToGoals(race)) {
-    await _sb.from('race_signups').delete().eq('race_id', raceId).eq('athlete_id', _athleteId);
-    _mySignups.delete(raceId);
-    if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
-    showToast('Nie udało się dopisać celu — zapis cofnięty. Spróbuj jeszcze raz.');
-    updateModalSignupBtn(false);
+    /* Cofamy TYLKO to, co ta próba wstawiła. Przy DO NOTHING zgłoszenie mogło istnieć wcześniej
+       (nieaktualny stan strony) — skasowanie go usunęłoby zapis sprzed próby (8.10.2026). */
+    if (nowyWiersz) {
+      await _sb.from('race_signups').delete().eq('race_id', raceId).eq('athlete_id', _athleteId);
+      _mySignups.delete(raceId);
+      if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
+      showToast('Nie udało się dopisać celu — zapis cofnięty. Spróbuj jeszcze raz.');
+      updateModalSignupBtn(false);
+    } else {
+      showToast('Nie udało się dopisać celu. Zapis na bieg był już wcześniej — bez zmian.');
+      updateModalSignupBtn(true);
+    }
     renderRaces();
     return;
   }
@@ -1524,7 +1537,8 @@ async function submitRace() {
     if (pc && pc.checked) {
       const { error: sErr } = await _sb.from('race_signups').upsert(
         { race_id: result.data.id, athlete_id: _athleteId },
-        { onConflict: 'race_id,athlete_id' });
+        { onConflict: 'race_id,athlete_id', ignoreDuplicates: true });   // DO NOTHING — patrz doSignup
+      if (sErr) window.zglosNieudanyZapis('upsert', 'race_signups', sErr);
       if (!sErr) {
         await _sb.from('races').update({ signup_count: 1 }).eq('id', result.data.id);
         _mySignups.add(result.data.id);

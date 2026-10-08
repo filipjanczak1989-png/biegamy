@@ -39,7 +39,8 @@ test('migracja zdejmuje 26 par, NIE race_signups:UPDATE; wycofanie jest lustrem;
 test('front: jedyny zapis do zdejmowanych par to upsert odznak z ignoreDuplicates (ON CONFLICT DO NOTHING)', () => {
   const { zwiad } = require('../tools/zwiad-zapisy-bez-polityki.js');
   const front = zwiad(ZDJETE).flatMap((x) => x.trafienia.filter((t) => t.rodzaj === 'front').map((t) => ({ ...t, para: x.para })));
-  assert.deepEqual(front.map((t) => t.para + ' ' + t.plik + ' .' + t.metoda), ['achievements:UPDATE zawodnik.html .upsert'],
+  // upsert odznak z ignoreDuplicates narzędzie liczy jako INSERT (DO NOTHING) — do zdjętych par front nie pisze nic
+  assert.deepEqual(front.map((t) => t.para + ' ' + t.plik + ' .' + t.metoda), [],
     'nowy zapis z frontu do pary bez polityki — po revoke dostanie 42501');
   const z = czytaj('zawodnik.html');
   const ogon = z.slice(z.indexOf("sb.from('achievements')", z.indexOf('const { data: wstawione, error }')), z.indexOf("sb.from('achievements')", z.indexOf('const { data: wstawione, error }')) + 300);

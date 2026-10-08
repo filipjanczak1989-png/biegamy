@@ -9,7 +9,7 @@
 //   · Edge Functions (supabase/functions/**) — z rozpoznaniem klienta w pliku:
 //       service_role  → omija granty i RLS: revoke authenticated NIE dotyczy,
 //       JWT usera     → działa jako authenticated: revoke DOTYCZY.
-// .upsert( liczy się jako INSERT i UPDATE. Funkcje SQL i triggery sprawdza osobno
+// .upsert( liczy się jako INSERT i UPDATE — chyba że ma ignoreDuplicates: true (DO NOTHING = tylko INSERT). Funkcje SQL i triggery sprawdza osobno
 // tools/zwiad-zapisy-bez-polityki.sql (prosrc + prosecdef na PRODUKCJI).
 //
 // Użycie: node tools/zwiad-zapisy-bez-polityki.js tabela:POLECENIE [...]   (albo --json)
@@ -55,6 +55,8 @@ function zwiad(pary) {
           const ogon = t.slice(m.index, m.index + 600).split(/;\s*\n/)[0];
           const met = metody.find((x) => new RegExp('\\.' + x + '\\s*\\(').test(ogon));
           if (!met) continue;
+          // .upsert(..., { ignoreDuplicates: true }) = ON CONFLICT DO NOTHING → tylko INSERT (UPDATE niepotrzebny)
+          if (met === 'upsert' && polecenie === 'UPDATE' && /ignoreDuplicates\s*:\s*true/.test(ogon)) continue;
           const linia = t.slice(0, m.index).split('\n').length;
           trafienia.push({ rodzaj, plik: f, linia, metoda: met, klient: rodzaj === 'ef' ? klientEF(t) : 'authenticated' });
         }

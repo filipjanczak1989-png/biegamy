@@ -2690,11 +2690,15 @@ async function saveGoalFromModal() {
     if (error) { showToast('Błąd: ' + error.message); return; }
     if (_profileData) _profileData.race_goals = window.serializeRaceGoals(goals);
     // Auto-signup
-    await sb.from('race_signups').upsert({
+    /* ignoreDuplicates = ON CONFLICT DO NOTHING (8.10.2026). race_signups ma tylko klucz (race_id, athlete_id) — upsert
+       bez tej opcji robił DO UPDATE tych samych wartości, a bez polityki UPDATE ścieżka konfliktu RZUCA błąd
+       (dokumentacja PostgreSQL: „the UPDATE path will never be silently avoided"). Intencja: zapisz, jeśli nie ma. */
+    const { error: sErr } = await sb.from('race_signups').upsert({
       race_id: _goalSelectedRace.id,
       athlete_id: _myId
-    }, { onConflict: 'race_id,athlete_id' });
-    showToast('Cel powiązany i zapisany ✓');
+    }, { onConflict: 'race_id,athlete_id', ignoreDuplicates: true });
+    if (sErr) window.zglosNieudanyZapis('upsert', 'race_signups', sErr);   // dotąd wynik ignorowany — błąd niewidoczny
+    showToast(sErr ? 'Cel powiązany ✓ (zapis na start nieudany)' : 'Cel powiązany i zapisany ✓');
     _linkingGoalIdx = -1;
     closeGoalModal();
     renderGoals(_profileData);
@@ -2732,10 +2736,11 @@ async function saveGoalFromModal() {
     const sup = await sb.from('race_signups').upsert({
       race_id: _goalSelectedRace.id,
       athlete_id: _myId
-    }, { onConflict: 'race_id,athlete_id' });
+    }, { onConflict: 'race_id,athlete_id', ignoreDuplicates: true });   // DO NOTHING — patrz komentarz wyżej
     if (!sup.error) {
       showToast('Cel dodany i zapisany na wyścig ✓');
     } else {
+      window.zglosNieudanyZapis('upsert', 'race_signups', sup.error);
       showToast('Cel dodany ✓');
     }
   } else {

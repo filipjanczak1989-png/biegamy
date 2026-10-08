@@ -902,3 +902,30 @@ zdjęte a/w, race_signups arwdm. Migawka rls odświeżona (19 tabel + sumy, wył
 linie authenticated), porównanie z prod 0 różnic; README: sekcja 8.10, nagłówek
 66 relacji / 173 polityki. Test blizna-50 (kontrola negatywna: zapis przez
 userClient w EF → test pada). Wycofanie: 20261008_WYCOFANIE_…sql.
+
+================================================================================
+2026-10-08 (noc) — [race_signups: 5 UPSERTÓW → ignoreDuplicates; START OKRESU PRZEJŚCIOWEGO]
+================================================================================
+ZWIAD: race_signups = (id, race_id, athlete_id, created_at); 5 upsertów ustawiało
+wyłącznie klucz (race_id, athlete_id) → DO UPDATE wpisywał te same wartości; nikt
+nie ZMIENIA istniejącego zgłoszenia. Bez polityki UPDATE ścieżka konfliktu RZUCA
+błąd (PostgreSQL: „the UPDATE path will never be silently avoided"): profil —
+sukces mimo błędu / cichy błąd, races „Zapisz się" — „Błąd: …", zawodnik —
+fałszywy wpis w client_errors. client_errors: 0 śladów race_signups, ale zgłaszało
+1 z 5 miejsc (brak śladów ≠ brak konfliktów). Prod: 144 zgłoszenia, 33 osoby.
+
+ZMIANA (front): 5× ignoreDuplicates (ON CONFLICT DO NOTHING — tylko INSERT, wymaga
+przejścia polityki SELECT: signups_read przepuszcza własne), zglosNieudanyZapis we
+wszystkich 5 miejscach, races doSignup: .select('id') → licznik +1 i WYCOFANIE
+(delete zgłoszenia przy padzie celu) TYLKO dla wiersza wstawionego w tej próbie —
+blizna-30 złapała, że DO NOTHING + stare wycofanie skasowałoby zgłoszenie sprzed
+próby. Narzędzie zwiad-zapisy: upsert z ignoreDuplicates = tylko INSERT →
+race_signups:UPDATE „brak zapisu". Testy 30/50/51, razem 919/0.
+
+⏳ OKRES PRZEJŚCIOWY: start = deploy tego commitu 8.10.2026. Migracja
+20261009_revoke_update_race_signups.sql jest PLIKIEM, NIEWYKONANA. Najwcześniej
+REVOKE 12.10.2026 — dokumenty sprzed deployu robią jeszcze DO UPDATE (wymaga UPDATE
+przy KAŻDYM wykonaniu); wymianę przyspieszają przeładowanie przy powrocie (6fec59e)
+i ?v= (ce2faf1). Przed wykonaniem: sprawdzić client_errors source=race_signups
+(kind=zapis) od deployu; w tym samym commicie usunąć wyjątek z
+tools/kontrola-revoke-bez-polityki.sql.

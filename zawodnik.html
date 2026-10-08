@@ -3708,10 +3708,12 @@ async function saveGoal() {
   if (raceId) {
     try {
       // 8/8: zapis na zawody — jednorazowa akcja, latwa do przegapienia
+      // ignoreDuplicates = ON CONFLICT DO NOTHING (8.10.2026): bez niego DO UPDATE tych samych wartości, a bez
+      // polityki UPDATE ponowny zapis na ten sam start RZUCAŁ błąd (i fałszywie lądował w client_errors).
       const { error: sErr } = await sb.from('race_signups').upsert({
         race_id: raceId,
         athlete_id: _athleteId
-      }, { onConflict: 'race_id,athlete_id' });
+      }, { onConflict: 'race_id,athlete_id', ignoreDuplicates: true });
       // signup_count utrzymuje trigger trg_race_signup_count (AFTER INSERT) — bez klienckiego update
       if (sErr) { window.zglosNieudanyZapis('upsert', 'race_signups', sErr); console.warn('Auto-signup failed:', sErr); }
     } catch(e) { console.warn('Auto-signup failed:', e); }

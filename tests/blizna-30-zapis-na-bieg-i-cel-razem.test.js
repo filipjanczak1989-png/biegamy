@@ -53,7 +53,8 @@ function atrapaSb(dziennik, sterownik) {
     dziennik.push(tabela + ':' + op);
     const err = (sterownik.padnij === tabela && op === 'update')
       ? { message: 'symulowany pad zapisu' } : null;
-    const p = Promise.resolve({ data: [], error: err });
+    // upsert z ignoreDuplicates + .select('id') oddaje WSTAWIONE wiersze: [] = zgłoszenie już było (8.10.2026)
+    const p = Promise.resolve({ data: (op === 'upsert' && !sterownik.juzBylo) ? [{ id: 'nowy' }] : [], error: err });
     const chain = {
       eq: () => chain, in: () => chain, select: () => chain, limit: () => chain,
       order: () => chain, maybeSingle: () => p, single: () => p,
@@ -117,6 +118,7 @@ function przygotuj(padnij) {
     get zapisy() { return vm.runInContext('_mySignups', ctx); },
     get licznik() { return vm.runInContext('_allRaces[0].signup_count', ctx); },
     ustawPad(tabela) { sterownik.padnij = tabela; },
+    ustawJuzBylo() { sterownik.juzBylo = true; },
   };
   return { ctx, dziennik, stan };
 }
@@ -185,5 +187,24 @@ describe('zapis na bieg i cel — albo oba, albo żaden', () => {
     stan.ustawPad('athletes');
     const zle = await ctx.addToGoals({ id: 'bieg-3', name: 'Trzeci', date: '2027-07-01' });
     assert.equal(zle, false, 'nieudany zapis zgłoszony jako sukces');
+  });
+});
+
+describe('zgłoszenie, które JUŻ BYŁO (DO NOTHING, nieaktualny stan strony) — 8.10.2026', () => {
+  test('pad celu NIE kasuje zgłoszenia sprzed próby i nie rusza licznika; komunikat mówi, że zapis był już wcześniej', async () => {
+    const { ctx, dziennik, stan } = przygotuj('athletes');
+    stan.ustawJuzBylo();
+    const przed = stan.licznik;
+    await ctx.doSignup('bieg-1');
+    assert.equal(dziennik.includes('race_signups:delete'), false, 'skasowano zgłoszenie, które istniało przed próbą');
+    assert.equal(stan.licznik, przed, 'licznik zmieniony, choć nic nie wstawiono');
+    assert.ok(dziennik.some((x) => x.indexOf('był już wcześniej') > -1), JSON.stringify(dziennik));
+  });
+  test('ścieżka zdrowa przy istniejącym zgłoszeniu: licznik bez +1 (trigger też nie ruszył)', async () => {
+    const { ctx, stan } = przygotuj(null);
+    stan.ustawJuzBylo();
+    const przed = stan.licznik;
+    await ctx.doSignup('bieg-1');
+    assert.equal(stan.licznik, przed);
   });
 });
