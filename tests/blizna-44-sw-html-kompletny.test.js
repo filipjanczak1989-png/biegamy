@@ -77,8 +77,9 @@ test('urwany strumień z błędem (text() odrzuca) — nic nie wchodzi, brak wyj
 
 test('sw.js: każde wkładanie do cache idzie przez wlozDoCache (żaden goły cache.put poza pomocnikiem)', () => {
   const golych = (sw.match(/cache\.put\(/g) || []).length;
-  assert.equal(golych, 3, 'cache.put ma występować tylko 3× — dwa wewnątrz wlozDoCache, jeden w wlozObraz (obrazy, blizna-45)');
-  for (const wz of [/return wlozDoCache\(cache, url, res\.clone\(\)\)/, /wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/]) {
+  assert.equal(golych, 4, 'cache.put ma występować tylko 4× — dwa wewnątrz wlozDoCache, jeden w wlozObraz (obrazy, blizna-45), jeden w install: kopia z poprzedniej wersji, która przeszła wlozDoCache przy wejściu do starego cache (blizna-46)');
+  assert.match(sw, /await cache\.put\(url, stara\)/, 'czwarty cache.put to wyłącznie kopia z poprzedniej wersji');
+  for (const wz of [/\? wlozDoCache\(cache, url, res\.clone\(\)\) : false/,/wlozDoCache\(cache, request, response\.clone\(\)\)\.catch/]) {
     assert.match(sw, wz, 'brak wywołania pomocnika: ' + wz);
   }
   // 08.10.2026: networkFirst usunięte razem z cachowaniem Supabase REST (blizna-45) — zostają SWR, cacheFirst, navigationHandler

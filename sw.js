@@ -69,7 +69,38 @@ const PRECACHE_URLS = [
   '/assets/ui/pustki/pustka-offline.webp',
   /* Awaryjny kadr hero „Dziś" offline (js/dzis-offline.js HERO_DOMYSLNY) — z WŁASNEGO originu,
      żeby kafel nigdy nie był czarny, gdy kadru dnia z biegamy-assets nie ma w cache. */
-  '/assets/ui/banery/baner-index-01.webp'
+  '/assets/ui/banery/baner-index-01.webp',
+  /* Skrypty stron „Dziś" i Plan z własnego originu (08.10.2026). Do tego dnia trafiały do cache
+     tylko przez stale-while-revalidate, czyli dopiero przy wejściu ONLINE na stronę kontrolowaną
+     przez SW — a STATIC_CACHE znika przy każdym deployu. Zmierzone (smoke-offline SMOKE_SW=1,
+     scenariusz A): po instalacji SW i wejściu na „Dziś" Plan offline wstawał BEZ js/dzis-offline.js,
+     więc bez trybu offline — puste dni z „+ Zaloguj bieg". */
+  '/js/dzis-offline.js',
+  '/js/generator-planu.js',
+  '/js/silnik-anim.js',
+  '/js/silnik-momentu.js'
+];
+
+/* KRYTYCZNE (08.10.2026) — bez nich „Dziś" i Plan offline nie istnieją. Instalacja nowej wersji SW
+   NIE PRZECHODZI, jeśli którykolwiek z nich nie przyjdzie z sieci w całości (HTML do </html>).
+   Wtedy przeglądarka zostawia STARĄ wersję SW z jej pełnym cache i ponawia aktualizację później
+   (każda nawigacja + reg.update() co jakiś czas w sb.js).
+   PO CO: do 8.10 precache tolerował każdy błąd (allSettled), a activate kasował stary cache —
+   jedno zerwane pobranie kalendarz.html w trakcie aktualizacji (sieć komórkowa, tryb samolotowy
+   włączony za wcześnie, urwany HTML odrzucony przez wlozDoCache) zostawiało nową wersję BEZ Planu,
+   a starej kopii już nie było → offline.html. Zmierzone: smoke-offline SMOKE_SW=1 scenariusz C
+   (offline.html), D (503 — nawet offline.html przepadł). Smoke Filipa po 830f760.
+   Pozostałe strony z PRECACHE_URLS: sieć, a gdy się nie uda — kopia z poprzedniej wersji (stary
+   cache jeszcze istnieje w trakcie install, kasuje go dopiero activate). Krytycznych NIE kopiujemy
+   ze starej wersji: stary zawodnik.html z nowym sb.js to mieszanka, której nikt nie testował. */
+const PRECACHE_KRYTYCZNE = [
+  '/zawodnik.html',
+  '/kalendarz.html',
+  '/offline.html',
+  '/sb.js',
+  '/vendor/supabase-js-2.112.4.min.js',
+  '/theme.css',
+  '/js/dzis-offline.js'
 ];
 
 // Opcjonalne pliki — jeśli nie istnieją, NIE pokazuj ostrzeżenia
@@ -85,25 +116,42 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        // Precache resilience: cache'uj TYLKO świeżą odpowiedź 200 OK.
-        // Chroni przed zatruciem cache błędną/pustą theme.css przy wyścigu z propagacją deployu
-        // (cache.add nie odrzuca 200-empty/opaque). cache:'reload' = pomiń HTTP-cache, weź z sieci.
-        const cacheIfOk = (url, quiet) =>
+        // Tylko świeża odpowiedź 200 OK (chroni przed zatruciem cache pustą theme.css przy wyścigu
+        // z propagacją deployu); cache:'reload' = pomiń HTTP-cache. HTML tylko kompletny (wlozDoCache).
+        const zSieci = (url) =>
           fetch(new Request(url, { cache: 'reload' }))
-            .then((res) => {
-              if (res && res.ok && res.status === 200) return wlozDoCache(cache, url, res.clone());
-              if (!quiet) console.warn(`[SW] Precache skip (status ${res && res.status}): ${url}`);
-            })
-            .catch((err) => { if (!quiet) console.warn(`[SW] Precache failed for ${url}:`, err.message); });
-        // Wymagane - tolerujemy częściowe niepowodzenie (plik dociągnie się runtime)
-        const requiredPromise = Promise.allSettled(PRECACHE_URLS.map((url) => cacheIfOk(url, false)));
+            .then((res) => (res && res.ok && res.status === 200 ? wlozDoCache(cache, url, res.clone()) : false))
+            .catch(() => false);
+        // Wymagane: sieć (2 próby) → kopia z poprzedniej wersji (poza krytycznymi) → krytyczny = instalacja odrzucona.
+        const wymagany = async (url) => {
+          if (await zSieci(url) || await zSieci(url)) return 'sieć';
+          const krytyczny = PRECACHE_KRYTYCZNE.includes(url);
+          if (!krytyczny) {
+            const stara = await kopiaZPoprzedniejWersji(url);
+            if (stara) { await cache.put(url, stara); console.warn(`[SW] Precache: ${url} z poprzedniej wersji`); return 'stara'; }
+            console.warn(`[SW] Precache skip: ${url}`);
+            return 'brak';
+          }
+          throw new Error(`[SW] Precache krytyczny nieudany: ${url} — instalacja przerwana, zostaje poprzednia wersja`);
+        };
+        const requiredPromise = Promise.all(PRECACHE_URLS.map(wymagany));
         // Opcjonalne - cisza jeśli plik nie istnieje (PWA ikony jeszcze nie wgrane)
-        const optionalPromise = Promise.allSettled(OPTIONAL_PRECACHE_URLS.map((url) => cacheIfOk(url, true)));
+        const optionalPromise = Promise.allSettled(OPTIONAL_PRECACHE_URLS.map((url) => zSieci(url)));
         return Promise.all([requiredPromise, optionalPromise]);
       })
       .then(() => self.skipWaiting())
   );
 });
+
+// Kopia pliku z WCZEŚNIEJSZEJ wersji STATIC_CACHE (w trakcie install stare cache jeszcze żyją).
+async function kopiaZPoprzedniejWersji(url) {
+  const nazwy = (await caches.keys()).filter((n) => n !== STATIC_CACHE && /-static$/.test(n)).reverse();
+  for (const n of nazwy) {
+    const r = await (await caches.open(n)).match(url);
+    if (r) return r;
+  }
+  return null;
+}
 
 // ─── ACTIVATE ────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {

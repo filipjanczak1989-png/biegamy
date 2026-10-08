@@ -671,3 +671,50 @@ Plan ×3. Przebieg na HEAD 59ccb94 pada w tych samych punktach co telefon;
 na drzewie z poprawką 13/13. Uruchomienie:
   NODE_PATH=<katalog z playwright>/node_modules node tools/smoke-offline.js
 blizna-45: 24 testy. Razem 880/0.
+
+================================================================================
+2026-10-08 (noc) — [PLAN OFFLINE PO DEPLOYU: PRECACHE_KRYTYCZNE W sw.js]
+================================================================================
+OBJAW (smoke Filipa po 830f760): „Dziś" offline OK, Plan
+(kalendarz.html?role=athlete) — ekran braku połączenia.
+
+DWIE HIPOTEZY OBALONE ODTWORZENIEM PRZED NAPRAWĄ (LEKCJE #25 działa):
+1. (wcześniej tego dnia) „Ten tydzień"/„Postęp" offline = zawieszony
+   getSession/userId albo resztki cache SW — faktycznie ponowienia
+   postgrest-js 1+2+4 s × kolejka await (830f760).
+2. „kalendarz.html nie był w STATIC_CACHE" — po czystej instalacji SW JEST
+   (24 wpisy, w tym /kalendarz.html). Zmierzone trybem SMOKE_SW=1.
+
+ZMIERZONY MECHANIZM (tools/smoke-offline.js, SMOKE_SW=1, prawdziwy sw.js,
+sieć zrywana przez serwer + context.setOffline, obce hosty nierozwiązywalne):
+  A  z siecią tylko „Dziś" → Plan z cache, ALE bez js/dzis-offline.js
+     (poza precache) → bez trybu offline, puste dni „+ Zaloguj bieg"
+  B  z siecią „Dziś" i Plan → działa
+  C  deploy, precache kalendarz.html zerwany → offline.html (ekran Filipa)
+  D  deploy, sieć znika w trakcie instalacji → 503 (offline.html też przepadł)
+Przyczyna C/D: install tolerował każdy błąd (allSettled), activate kasował
+stary cache → nowa wersja bez Planu i bez starej kopii.
+
+NAPRAWA (sw.js): PRECACHE_KRYTYCZNE = zawodnik.html, kalendarz.html,
+offline.html, sb.js, vendor supabase-js, theme.css, js/dzis-offline.js —
+muszą przyjść z sieci w całości (2 próby, HTML do </html>), inaczej install
+ODRZUCONY i zostaje stara wersja SW z pełnym cache. Strony niekrytyczne:
+sieć, a przy błędzie kopia z poprzedniej wersji (stary cache żyje do
+activate). Krytycznych nie kopiujemy (stary HTML + nowy sb.js = mieszanka).
+Precache +4 skrypty: js/dzis-offline.js, generator-planu.js, silnik-anim.js,
+silnik-momentu.js (~450 kB). Smoke: bez SW 13/13, SMOKE_SW 8/8 (E: kopia
+profil.html z poprzedniej wersji); na starym sw.js pada A, C, D, E.
+blizna-46 (vm z prawdziwym sw.js, 8 testów), blizna-44 cache.put 4×. 888/0.
+
+⚠️ ZMIANA ZACHOWANIA AKTUALIZACJI PRZY SŁABEJ SIECI: urządzenie, które nie
+pobierze w całości któregoś pliku krytycznego, NIE dostaje nowej wersji SW —
+zostaje na poprzedniej (spójnej, z pełnym cache) i ponawia przy następnej
+nawigacji / reg.update(). Online nawigacja i tak bierze świeży HTML z sieci
+(network-first), więc „stara wersja" dotyczy kodu SW i kopii offline.
+Ryzyko: plik krytyczny trwale nieistniejący blokowałby aktualizacje SW
+wszystkim — pilnuje blizna-46 (każdy wpis precache istnieje w repo).
+Nieudana instalacja zostawia częściowy cache nowej wersji do następnej
+udanej aktywacji (ta sama nazwa, bez narastania).
+
+PRZY OKAZJI: CLAUDE.md i .ai/WARSTWA-1.md bez tools/sprawdz-spol-stale.py
+(skasowany w pace 4).

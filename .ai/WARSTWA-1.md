@@ -18,7 +18,7 @@ pytania**, nie sześć plików. Kilka z nich mieszka w więcej niż jednym miejs
 
 ## Co NIE jest elementem warstwy 1
 
-`tools/sprawdz-run-types.py`, `tools/sprawdz-spol-stale.py`,
+`tools/sprawdz-run-types.py`,
 `tools/pomiar-odznaka-wyzwania.sql`, `tools/sprawdz-pb-walidacja.js`,
 `tools/bramka-karta.js`, `tools/build-ef.js`.
 

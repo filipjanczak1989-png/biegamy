@@ -76,8 +76,7 @@ Two gate tools guard invariants that live in more than one file:
   module and contain no reconstructed formulas of their own.
 - `tools/bramka-commit.js` — flags commits touching migrations, DB privileges
   or secrets. Reads only ADDED lines of the diff.
-- `tools/sprawdz-run-types.py`, `tools/sprawdz-spol-stale.py` — constants that
-  must match across HTML, JS and SQL.
+- `tools/sprawdz-run-types.py` — `RUN_TYPES` must match across HTML, JS and SQL.
 
 Both JS gates support `--samokontrola`: they break a rule on purpose and assert
 it gets caught. ⚠️ A gate that goes green because it crashed mid-run is worse

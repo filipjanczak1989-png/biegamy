@@ -42,13 +42,22 @@ const AID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const TYPY = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json',
   '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.mjs': 'application/javascript' };
 
+// Stan serwera sterowany przez tryb SW: `martwy` = każde połączenie zrywane (telefon w trybie
+// samolotowym — SW nie dostaje NIC z sieci), `wersja` = dopisek do CACHE_VERSION w sw.js (symulacja
+// deployu), `zrywaj` = ścieżki zrywane mimo żywego serwera (nieudany precache jednego pliku).
+const STAN = { martwy: false, wersja: '', zrywaj: new Set(), log: [] };
 function serwer() {
   return new Promise((ok) => {
     const s = http.createServer((req, res) => {
       const p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      STAN.log.push((STAN.martwy ? 'ZERWANE ' : '') + p);
+      if (STAN.martwy || STAN.zrywaj.has(p)) { req.socket.destroy(); return; }
       const plik = path.join(KORZEN, p === '/' ? 'index.html' : p);
       if (!plik.startsWith(KORZEN) || !fs.existsSync(plik) || fs.statSync(plik).isDirectory()) { res.writeHead(404); return res.end(); }
-      res.writeHead(200, { 'content-type': TYPY[path.extname(plik).toLowerCase()] || 'application/octet-stream' });
+      res.writeHead(200, { 'content-type': TYPY[path.extname(plik).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-cache' });
+      if (p === '/sw.js' && STAN.wersja) {
+        return res.end(fs.readFileSync(plik, 'utf8').replace(/const CACHE_VERSION = '([^']+)';/, (m, v) => "const CACHE_VERSION = '" + v + STAN.wersja + "';"));
+      }
       fs.createReadStream(plik).pipe(res);
     }).listen(0, '127.0.0.1', () => ok(s));
   });
@@ -82,6 +91,170 @@ function sesja() {
     user: { id: UID, aud: 'authenticated', role: 'authenticated', email: 'offline@test.local', user_metadata: { full_name: 'Test Offline' }, app_metadata: {} } };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TRYB Z SERVICE WORKEREM (SMOKE_SW=1) — 08.10.2026, smoke Filipa po 830f760:
+// „Dziś" offline działa, Plan (kalendarz.html?role=athlete) daje ekran braku połączenia.
+// Tu SW jest PRAWDZIWY (sw.js z repo), sieć znika naprawdę: context.setOffline(true) + serwer
+// zrywa każde połączenie. Obce hosty są nierozwiązywalne od początku (--host-resolver-rules),
+// więc nic nie idzie do produkcji. Scenariusze:
+//   A  online tylko zawodnik.html → offline → nawigacja na Plan (przebieg Filipa)
+//   B  online zawodnik.html i Plan → offline → nawigacja na Plan
+//   C  SW zainstalowany w całości → DEPLOY (nowa CACHE_VERSION), a precache kalendarz.html
+//      w nowej instalacji się nie udaje (zerwane połączenie) → offline → nawigacja na Plan
+//   D  jak C, ale sieć znika W TRAKCIE instalacji nowej wersji — zerwane wszystkie pliki precache
+//   E  deploy z nieudanym precache strony NIEKRYTYCZNEJ (profil.html) — nowa wersja instaluje się,
+//      a profil.html ma wejść do nowego cache jako kopia z poprzedniej wersji
+// Od 08.10 (sw.js PRECACHE_KRYTYCZNE): w C i D instalacja nowej wersji ma się NIE udać, a stara wersja
+// z pełnym cache — zostać. Przed poprawką C dawało offline.html, D 503 (zmierzone).
+// Mierzy: co oddaje nawigacja (offline.html / kopia / nic), zawartość STATIC_CACHE, stan Planu.
+// ─────────────────────────────────────────────────────────────────────────────
+async function trybSW() {
+  const srv = await serwer();
+  const baza = 'http://127.0.0.1:' + srv.address().port;
+  const browser = await chromium.launch({ args: ['--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE 127.0.0.1'] });
+  const M = migawka(), S = sesja();
+  const wyniki = [];
+  const sprawdz = (nazwa, ok, szczegol) => { wyniki.push({ nazwa, ok: !!ok, szczegol }); };
+
+  async function nowyKontekst() {
+    const ctx = await browser.newContext({ serviceWorkers: 'allow', viewport: { width: 412, height: 915 }, deviceScaleFactor: 2,
+      userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36' });
+    await ctx.addInitScript(([m, s, uid]) => {
+      try {
+        if (!localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token')) localStorage.setItem('sb-afqojgkaveykxbltxzwm-auth-token', JSON.stringify(s));
+        localStorage.setItem('bm_dzis_migawka_' + uid, JSON.stringify(m));
+      } catch (e) {}
+    }, [M, S, UID]);
+    return ctx;
+  }
+  async function czekajNaKontrole(p) {
+    await p.evaluate(() => navigator.serviceWorker.ready);
+    await p.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 20000 });
+  }
+  async function zawartoscStatic(p) {
+    return p.evaluate(async () => {
+      const nazwy = await caches.keys();
+      const st = nazwy.filter((n) => /-static$/.test(n));
+      const out = {};
+      for (const n of st) out[n] = (await (await caches.open(n)).keys()).map((r) => new URL(r.url).pathname + new URL(r.url).search);
+      return { nazwy, statyczne: out };
+    });
+  }
+  async function offlineNaPlan(ctx, p, etykieta) {
+    STAN.martwy = true;
+    await ctx.setOffline(true);
+    let odp = null, blad = null;
+    try { odp = await p.goto(baza + '/kalendarz.html?role=athlete', { waitUntil: 'domcontentloaded', timeout: 15000 }); }
+    catch (e) { blad = String(e.message).split('\n')[0]; }
+    await p.waitForTimeout(6000);
+    const st = await p.evaluate(() => {
+      const c = document.getElementById('mobile-days-container');
+      return { tytul: document.title, url: location.pathname + location.search, calOffline: !!window._calOffline,
+               dni: c ? c.innerText.replace(/\s+/g, ' ').slice(0, 1200) : null,
+               pasek: (document.getElementById('bm-offline-pasek') || {}).innerText || null };
+    }).catch((e) => ({ blad: String(e.message).split('\n')[0] }));
+    await p.screenshot({ path: path.join(ZRZUTY, 'sw-' + etykieta + '.png'), fullPage: false }).catch(() => {});
+    STAN.martwy = false;
+    await ctx.setOffline(false);
+    return { status: odp ? odp.status() : null, zSW: odp ? odp.fromServiceWorker() : null, blad, ...st };
+  }
+  const opis = (r) => JSON.stringify({ status: r.status, zSW: r.zSW, tytul: r.tytul, calOffline: r.calOffline, dni: r.dni && r.dni.replace(/(Brak połączenia — ten dzień niedostępny offline ?)+/g, '[niedostępny] ').slice(0, 90), pasek: r.pasek, blad: r.blad });
+  const toPlan = (r) => r.tytul === 'BiegaMy — Kalendarz' && r.calOffline && /Tempo|Spokojny|Interwały/.test(r.dni || '');
+
+  // ── A ──
+  {
+    STAN.wersja = ''; STAN.zrywaj.clear();
+    const ctx = await nowyKontekst(); const p = await ctx.newPage();
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+    await czekajNaKontrole(p); await p.waitForTimeout(1500);
+    const c = await zawartoscStatic(p);
+    const klucze = Object.values(c.statyczne)[0] || [];
+    console.log('   [A] cache: ' + c.nazwy.join(', ') + ' | STATIC ' + klucze.length + ' wpisów: ' + klucze.join(' '));
+    const r = await offlineNaPlan(ctx, p, 'A');
+    console.log('   [A] Plan offline: ' + opis(r));
+    sprawdz('SW A: kalendarz.html w STATIC_CACHE po wejściu TYLKO na „Dziś"', klucze.includes('/kalendarz.html'), klucze.length + ' wpisów');
+    sprawdz('SW A: Plan offline po wejściu tylko na „Dziś" (kopia z cache, dni z migawki)', toPlan(r), opis(r));
+    await ctx.close();
+  }
+  // ── B ──
+  {
+    STAN.wersja = ''; STAN.zrywaj.clear();
+    const ctx = await nowyKontekst(); const p = await ctx.newPage();
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+    await czekajNaKontrole(p);
+    await p.goto(baza + '/kalendarz.html?role=athlete', { waitUntil: 'load' }); await p.waitForTimeout(1500);
+    const r = await offlineNaPlan(ctx, p, 'B');
+    console.log('   [B] Plan offline: ' + opis(r));
+    sprawdz('SW B: Plan offline po wejściu na Plan z siecią', toPlan(r), opis(r));
+    await ctx.close();
+  }
+  // ── C i D: aktualizacja SW (deploy) z nieudanym precache ──
+  for (const [et, zrywane] of [['C', ['/kalendarz.html']], ['D', null]]) {
+    STAN.wersja = ''; STAN.zrywaj.clear();
+    const ctx = await nowyKontekst(); const p = await ctx.newPage();
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+    await czekajNaKontrole(p); await p.waitForTimeout(1000);
+    const przed = await zawartoscStatic(p);
+    STAN.wersja = '-deploy' + et;
+    if (zrywane) zrywane.forEach((x) => STAN.zrywaj.add(x));
+    else PRECACHE_ZRYWAJ_WSZYSTKO();
+    const zmiana = p.evaluate(() => new Promise((ok) => {
+      navigator.serviceWorker.addEventListener('controllerchange', () => ok('controllerchange'), { once: true });
+      setTimeout(() => ok('brak controllerchange w 15 s'), 15000);
+    }));
+    await p.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r && r.update())).catch(() => {});
+    const zm = await zmiana;
+    await p.waitForTimeout(1500);
+    STAN.zrywaj.clear();
+    const po = await zawartoscStatic(p);
+    const kluczePo = Object.entries(po.statyczne).map(([n, k]) => n + ': ' + k.length + (k.includes('/kalendarz.html') ? ' (z kalendarz)' : ' (BEZ kalendarz)'));
+    console.log('   [' + et + '] przed: ' + Object.keys(przed.statyczne).join(', ') + ' | ' + zm + ' | po: ' + kluczePo.join(' ; '));
+    const r = await offlineNaPlan(ctx, p, et);
+    console.log('   [' + et + '] Plan offline: ' + opis(r));
+    const stare = Object.keys(przed.statyczne)[0];
+    sprawdz('SW ' + et + ': nieudana instalacja nowej wersji zostawia starą z kompletnym cache', zm !== 'controllerchange' && (po.statyczne[stare] || []).includes('/kalendarz.html'),
+      zm + ' | ' + kluczePo.join(' ; '));
+    sprawdz('SW ' + et + ': Plan offline po deployu z nieudanym precache ' + (zrywane ? 'kalendarz.html' : '(sieć znika w trakcie instalacji)'), toPlan(r), opis(r));
+    await ctx.close();
+  }
+  function PRECACHE_ZRYWAJ_WSZYSTKO() {
+    // D: zrywane są wszystkie pliki precache oprócz samego sw.js (aktualizacja dochodzi, instalacja już nie)
+    ['/', '/index.html', '/zawodnik.html', '/trener.html', '/profil.html', '/odznaki.html', '/wyzwania.html', '/kalendarz.html', '/compare.html',
+     '/races.html', '/gra.html', '/o-nas.html', '/terms.html', '/privacy.html', '/privacy-en.html', '/sb.js', '/vendor/supabase-js-2.112.4.min.js',
+     '/theme.css', '/manifest.json', '/offline.html', '/js/dzis-offline.js', '/js/generator-planu.js', '/js/silnik-anim.js', '/js/silnik-momentu.js',
+     '/assets/ui/pustki/pustka-offline.webp', '/assets/ui/banery/baner-index-01.webp'].forEach((x) => STAN.zrywaj.add(x));
+  }
+
+  // ── E: niekrytyczna strona z poprzedniej wersji ──
+  {
+    STAN.wersja = ''; STAN.zrywaj.clear();
+    const ctx = await nowyKontekst(); const p = await ctx.newPage();
+    await p.goto(baza + '/zawodnik.html', { waitUntil: 'load' });
+    await czekajNaKontrole(p); await p.waitForTimeout(1000);
+    STAN.wersja = '-deployE'; STAN.zrywaj.add('/profil.html');
+    const zmiana = p.evaluate(() => new Promise((ok) => {
+      navigator.serviceWorker.addEventListener('controllerchange', () => ok('controllerchange'), { once: true });
+      setTimeout(() => ok('brak controllerchange w 15 s'), 15000);
+    }));
+    await p.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r && r.update())).catch(() => {});
+    const zm = await zmiana; await p.waitForTimeout(1500); STAN.zrywaj.clear();
+    const po = await zawartoscStatic(p);
+    const nowa = Object.keys(po.statyczne).find((n) => /deployE/.test(n));
+    const k = (nowa && po.statyczne[nowa]) || [];
+    console.log('   [E] ' + zm + ' | nowa: ' + nowa + ' ' + k.length + ' wpisów, profil=' + k.includes('/profil.html') + ' | wszystkie: ' + Object.keys(po.statyczne).join(', '));
+    sprawdz('SW E: deploy z nieudaną stroną niekrytyczną instaluje się, strona z poprzedniej wersji', zm === 'controllerchange' && k.includes('/profil.html') && k.includes('/kalendarz.html'),
+      zm + ' | ' + k.length + ' wpisów, profil=' + k.includes('/profil.html'));
+    await ctx.close();
+  }
+
+  await browser.close(); srv.close();
+  console.log('\n  SMOKE OFFLINE — tryb z Service Workerem (Chromium, prawdziwy sw.js)\n');
+  for (const w of wyniki) console.log('  ' + (w.ok ? 'OK  ' : 'BŁĄD') + '  ' + w.nazwa + (w.szczegol ? '  — ' + String(w.szczegol).replace(/\s+/g, ' ').slice(0, 220) : ''));
+  console.log('\n  Zrzuty: ' + ZRZUTY);
+  process.exit(wyniki.every((w) => w.ok) ? 0 : 1);
+}
+if (process.env.SMOKE_SW) { trybSW().catch((e) => { console.error(e); process.exit(2); }); }
+else
 (async () => {
   const srv = await serwer();
   const baza = 'http://127.0.0.1:' + srv.address().port;
