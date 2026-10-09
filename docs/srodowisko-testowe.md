@@ -1,8 +1,10 @@
 # Środowisko testowe (staging) — Cloudflare Pages + osobny projekt Supabase Free
 
 Stan 9.10.2026: gałąź `test` na GitHubie; front testowy **https://biegamy-test.pages.dev** (Cloudflare Pages,
-production branch `test`, podglądy wyłączone); projekt Supabase testu `hgqvhisbaveoawssehpp` (pusty — czeka na
-krok 3 po instalacji Dockera). Prod (GitHub Pages + projekt `afqojgkaveykxbltxzwm`)
+production branch `test`, podglądy wyłączone); projekt Supabase testu `hgqvhisbaveoawssehpp` (Frankfurt) —
+**schemat ZAŁOŻONY 9.10** ze zrzutu prod: 60 tabel, 173 polityki public + 19 storage, 8 bucketów, 32 funkcje
+(prod 31 — różnica niżej, „Różnice baza test vs prod"). Jeszcze bez: seed.js, ustawień Auth, Edge Functions.
+Prod (GitHub Pages + projekt `afqojgkaveykxbltxzwm`)
 zostaje bez zmian. Cel: smoke na telefonie **przed** pushem na `main`.
 
 ## Jak to działa
@@ -61,6 +63,19 @@ dotyka prod — pyta wyłącznie bazę testową). Do tego czasu pauzę odsuwa ka
    `TEST_REF=… TEST_DB_URL='postgresql://…' TEST_ANON_KEY=… bash tools/test-env/zaloz-baze-testowa.sh`
    — zrzut schematu, uzupełnienia (buckety, polityki storage, trigger rejestracji, publikacja realtime),
    podmiana adresu prod → test z twardą kontrolą, sekrety vault, kontrola liczb.
+   - `TEST_DB_URL` = **Session pooler** testu (`postgres.<ref>@aws-1-eu-central-1.pooler.supabase.com:5432`), NIE
+     `db.<ref>.supabase.co` — ten host ma tylko IPv6, a psql w kontenerze Docker Desktop IPv6 nie ma.
+   - SQL wykonuje psql z obrazu `public.ecr.aws/supabase/postgres:17.6.1.104`, każdy plik w jednej transakcji
+     (`supabase db query` wysyła plik jako jedno prepared statement → 42601 przy wielu instrukcjach).
+   - Wznowienie bez ponownego zrzutu: `WZNOW=ostatni …`; odświeżenie samych uzupełnień z prod (tylko odczyt
+     generatora): `ODSWIEZ_UZUPELNIENIA=1 WZNOW=ostatni …`. Znaczniki `<plik>.ok` w `~/.cache/biegamy-test/<data>/`.
+   - Uzupełnienia są warunkowe (zrzut SAM ma publikację `athletes`) i deparsowane przy pustym `search_path`
+     (inaczej `uid()` / `FROM athletes` bez schematu padają na bazie z innym search_path).
+   - ⚠️ `EAUTHQUERY unsupported or invalid secret format` przy zrzucie (pooler prod, tymczasowa rola CLI) był
+     CHWILOWY — dwa kolejne `db dump` przeszły bez zmian (9.10). Skrypt jeszcze nie ponawia sam; ponów ręcznie.
+   - Zapytania do testu przez CLI bez hasła: `supabase link --project-ref hgqvhisbaveoawssehpp --workdir <katalog
+     poza repo>` (zapisuje pooler; samo `project-ref` w workdir nie wystarcza — CLI idzie na host IPv6), potem
+     `supabase db query --linked --workdir <katalog> "…"`. Podpięcie repo do prod zostaje nietknięte.
 4. **Dane syntetyczne**: `TEST_SB_URL=… TEST_SERVICE_KEY=… node tools/test-env/seed.js` → 3 konta
    (`trener@`, `ala@`, `bartek@biegamy-test.invalid`, hasło wypisane raz na ekran).
 5. **Edge Functions**: skopiuj `tools/test-env/sekrety-test.env.przyklad` POZA repo, uzupełnij,
@@ -73,6 +88,22 @@ dotyka prod — pyta wyłącznie bazę testową). Do tego czasu pauzę odsuwa ka
 8. **intervals.icu** (opcjonalne): w ustawieniach aplikacji client_id 533 dopisz redirect URI
    `https://<host>/intervals-callback.html`.
 9. **Keepalive**: sekrety repo `TEST_SB_URL`, `TEST_SB_ANON_KEY`; workflow `keepalive-test.yml` musi być na `main`.
+
+## Różnice baza test vs prod (zmierzone 9.10, porównanie nazw `pg_proc` i `pg_event_trigger`)
+
+| Co | Prod | Test | Skąd |
+|---|---|---|---|
+| `public.rls_auto_enable()` + event trigger **`ensure_rls`** (`ddl_command_end`: CREATE TABLE / CREATE TABLE AS / SELECT INTO) | BRAK | JEST (właściciel `postgres`, SECURITY DEFINER) | Supabase zakłada to w NOWYCH projektach; nie pochodzi ze zrzutu |
+| event trigger `issue_pg_graphql_access` — tagi | `CREATE FUNCTION` | `CREATE EXTENSION` | wersja platformy przy zakładaniu projektu |
+
+Pozostałe 31 funkcji `public`: identyczne nazwy i sygnatury, żadna nie należy do rozszerzenia.
+
+⚠️ **`ensure_rls` sprawia, że test jest BEZPIECZNIEJSZY niż prod dokładnie w tym, co test ma sprawdzać.** Każda
+nowa tabela w `public` dostaje na teście RLS automatycznie; na prod migracja bez `enable row level security`
+zostawi tabelę bez RLS (o dostępie decydują wtedy same granty). Migracja „zielona na teście" może otworzyć tabelę
+na prod. Do decyzji (osobny zwiad): zdjąć `ensure_rls` z testu (wierność prod) albo dodać go na prod (zmiana
+zachowania prod). Dopóki nierozstrzygnięte: nowa tabela = `enable row level security` jawnie w migracji,
+niezależnie od wyniku na teście.
 
 ## Smoke na telefonie (każda zmiana przed `main`)
 
