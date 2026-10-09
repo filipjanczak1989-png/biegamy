@@ -929,3 +929,49 @@ przy KAŻDYM wykonaniu); wymianę przyspieszają przeładowanie przy powrocie (6
 i ?v= (ce2faf1). Przed wykonaniem: sprawdzić client_errors source=race_signups
 (kind=zapis) od deployu; w tym samym commicie usunąć wyjątek z
 tools/kontrola-revoke-bez-polityki.sql.
+
+================================================================================
+2026-10-09 (noc) — [ŚRODOWISKO TESTOWE: BAZA ZAŁOŻONA ZE ZRZUTU PROD]
+================================================================================
+STAN: gałąź `test` na origin (2a5c101, b4a42d5, c16efd0, aa5292f; docs a978094
+lokalnie, do wypchnięcia). main BEZ zmian test-env — sb.js z przełącznikiem,
+tools/test-env/ i docs/srodowisko-testowe.md są TYLKO na test.
+Projekt Supabase testu hgqvhisbaveoawssehpp (Frankfurt, pooler
+aws-1-eu-central-1): schemat ZAŁOŻONY — 60 tabel, 173 polityki public + 19 storage,
+8 bucketów, 32 funkcje; vault: push_hook_secret + publishable_key (sekret push
+w ~/.cache/biegamy-test/20261009-020057/sekret-push-hook.env, POZA repo).
+Front: https://biegamy-test.pages.dev (Pages, 308 .html → /x — patrz niżej).
+
+ZMIERZONE po drodze (szczegóły: docs/srodowisko-testowe.md na test):
+- EAUTHQUERY „unsupported or invalid secret format" przy db dump (pooler prod,
+  tymczasowa rola CLI) był CHWILOWY: dwa kolejne dumpy przeszły na tym samym CLI
+  2.98.1. Aktualizacja CLI tego nie naprawia (brak poprawki w 2.120).
+- `supabase db query` wysyła plik jako JEDNO prepared statement (42601) → zrzut
+  wykonuje psql z obrazu supabase/postgres:17.6.1.104, plik = jedna transakcja.
+- db.<ref>.supabase.co ma tylko IPv6; kontener Docker Desktop IPv6 nie ma → test
+  przez Session pooler.
+- Zrzut SAM zawiera publikację athletes → uzupełnienia warunkowe.
+- Uzupełnienia deparsowane przy niepustym search_path miały uid()/FROM athletes
+  bez schematu → generator deparsuje przy pustym (set_config w CASE WHEN).
+- RÓŻNICA test vs prod: na teście public.rls_auto_enable() + event trigger
+  ensure_rls (Supabase zakłada w NOWYCH projektach) — nowa tabela public dostaje
+  RLS automatycznie. Na prod tego nie ma → migracja bez `enable row level
+  security` jest zielona na teście i OTWARTA na prod. DO DECYZJI: zdjąć z testu
+  albo dodać na prod. Do tego czasu: enable RLS jawnie w każdej migracji z tabelą.
+
+NASTĘPNA SESJA (kolejność sugerowana):
+1. seed.js na teście: TEST_SB_URL=… TEST_SERVICE_KEY=… node tools/test-env/seed.js
+   (3 konta @biegamy-test.invalid, hasło wypisane raz).
+2. Auth testu w panelu: Site URL + Redirect URLs (adres frontu testu — po
+   decyzji z p. 4 będzie to workers.dev, nie pages.dev).
+3. Deploy EF na test: sekrety-test.env.przyklad → plik POZA repo (+ PUSH_HOOK_SECRET
+   z ~/.cache), TEST_REF=… SEKRETY=… bash tools/test-env/deploy-ef.sh.
+4. Pages → Workers (308): c299aa2 gotowe (wrangler.jsonc html_handling none,
+   worker.js); założyć Workera w panelu Cloudflare z gałęzi test, sprawdzić 200
+   bez przekierowań na /zawodnik.html, potem usunąć projekt Pages.
+5. keepalive-test.yml na main (harmonogram GitHub działa tylko z gałęzi
+   domyślnej) + sekrety repo TEST_SB_URL / TEST_SB_ANON_KEY. Plik nie dotyka prod.
+6. zaloz-baze-testowa.sh: ponowienie db dump 2–3× z przerwą ~10 s, gdy w
+   komunikacie jest EAUTHQUERY (dziś STOP, ponawia się ręcznie).
+7. (decyzja) ensure_rls: wierność testu vs dodanie na prod — osobny zwiad.
+⚠️ Wcześniejsze: klucz sb_secret_ testu podany w czacie 8.10 — do ROTACJI w panelu.
