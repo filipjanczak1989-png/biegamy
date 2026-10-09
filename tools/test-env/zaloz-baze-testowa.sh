@@ -42,6 +42,8 @@
 # Wznowienie na ISTNIEJĄCYM zrzucie (bez ponownego dump — prod nietknięty):
 #   WZNOW=ostatni TEST_REF=… TEST_DB_URL='…' bash tools/test-env/zaloz-baze-testowa.sh
 #   (WZNOW=<katalog> dla konkretnego przebiegu; TEST_ANON_KEY niepotrzebny — vault-test.sql już jest)
+# Odświeżenie SAMYCH uzupełnień z prod (generator = odczyt przez db query --linked, BEZ dump) + wznowienie:
+#   ODSWIEZ_UZUPELNIENIA=1 WZNOW=ostatni TEST_REF=… TEST_DB_URL='…' bash tools/test-env/zaloz-baze-testowa.sh
 # Pliki pośrednie: ~/.cache/biegamy-test/<data>/ (POZA repo).
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -67,6 +69,23 @@ if ! docker image inspect "$OBRAZ_PSQL" >/dev/null 2>&1; then stop "brak obrazu 
                decodeURIComponent(u.pathname.slice(1)) || "postgres"].join("\n"));')
 export PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE
 if [ -z "$PGPASSWORD" ]; then stop "TEST_DB_URL bez hasła"; fi
+if [ -n "${ODSWIEZ_UZUPELNIENIA:-}" ] && [ -z "${WZNOW:-}" ]; then stop "ODSWIEZ_UZUPELNIENIA działa tylko z WZNOW (pełny przebieg i tak czyta uzupełnienia)"; fi
+
+prod_podpiety() {
+  if [ "$(cat supabase/.temp/project-ref 2>/dev/null)" != "$PROD_REF" ]; then stop "podpięty projekt (supabase link) nie jest prod — odczyt miałby złe źródło"; fi
+}
+uzupelnienia_z_prod() {
+  KROK="uzupełnienia z PROD (odczyt)"
+  supabase db query --linked -f tools/test-env/uzupelnienia-z-prod.sql --agent=no --output json > "$KAT/uzupelnienia.json"
+  node -e '
+    const fs = require("fs"); const t = fs.readFileSync(process.argv[1], "utf8");
+    const a = JSON.parse(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1));   // CLI dopisuje podpowiedzi poza JSON-em
+    if (a.length < 20) { console.error("STOP: uzupełnień tylko " + a.length + " (oczekiwane ~29)"); process.exit(1); }
+    fs.writeFileSync(process.argv[2], a.map((r) => r.ddl).join("\n") + "\n");
+    console.log("uzupełnień DDL: " + a.length);' "$KAT/uzupelnienia.json" "$KAT/uzupelnienia-prod.sql"
+  sed "s/$PROD_REF/$TEST_REF/g" "$KAT/uzupelnienia-prod.sql" > "$KAT/uzupelnienia-test.sql"
+  rm -f "$KAT/uzupelnienia-test.ok"
+}
 
 if [ -n "${WZNOW:-}" ]; then
   if [ "$WZNOW" = "ostatni" ]; then
@@ -77,25 +96,23 @@ if [ -n "${WZNOW:-}" ]; then
   for f in schemat-test uzupelnienia-test vault-test; do
     if [ ! -s "$KAT/$f.sql" ]; then stop "wznowienie — brak $KAT/$f.sql"; fi
   done
-  echo "→ WZNOWIENIE na zrzucie $KAT (bez dump, prod nietknięty)"
+  echo "→ WZNOWIENIE na zrzucie $KAT (bez dump)"
+  if [ -n "${ODSWIEZ_UZUPELNIENIA:-}" ]; then
+    prod_podpiety
+    for f in uzupelnienia.json uzupelnienia-prod.sql uzupelnienia-test.sql; do if [ -e "$KAT/$f" ]; then cp "$KAT/$f" "$KAT/$f.przed-$(date +%H%M%S)"; fi; done
+    echo "→ odświeżenie uzupełnień z PROD (tylko generator, odczyt)"; uzupelnienia_z_prod
+  fi
 else
-  if [ "$(cat supabase/.temp/project-ref 2>/dev/null)" != "$PROD_REF" ]; then stop "podpięty projekt (supabase link) nie jest prod — zrzut miałby złe źródło"; fi
+  prod_podpiety
   KAT="$HOME/.cache/biegamy-test/$(date +%Y%m%d-%H%M%S)"; mkdir -p "$KAT"; chmod 700 "$KAT"
   KROK="zrzut schematu PROD"; echo "→ zrzut schematu PROD do $KAT"
   supabase db dump --linked -f "$KAT/schemat-prod.sql"
   if [ ! -s "$KAT/schemat-prod.sql" ]; then stop "zrzut schematu pusty"; fi
   if ! grep -q "CREATE TABLE IF NOT EXISTS \"public\".\"athletes\"" "$KAT/schemat-prod.sql"; then stop "w zrzucie brak public.athletes — to nie jest schemat prod"; fi
-  KROK="uzupełnienia z PROD"
-  supabase db query --linked -f tools/test-env/uzupelnienia-z-prod.sql --agent=no --output json > "$KAT/uzupelnienia.json"
-  node -e '
-    const fs = require("fs"); const t = fs.readFileSync(process.argv[1], "utf8");
-    const a = JSON.parse(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1));   // CLI dopisuje podpowiedzi poza JSON-em
-    if (a.length < 20) { console.error("STOP: uzupełnień tylko " + a.length + " (oczekiwane ~29)"); process.exit(1); }
-    fs.writeFileSync(process.argv[2], a.map((r) => r.ddl).join("\n") + "\n");
-    console.log("uzupełnień DDL: " + a.length);' "$KAT/uzupelnienia.json" "$KAT/uzupelnienia-prod.sql"
+  uzupelnienia_z_prod
 
   echo "→ podmiana adresu projektu prod → test"
-  for f in schemat uzupelnienia; do sed "s/$PROD_REF/$TEST_REF/g" "$KAT/$f-prod.sql" > "$KAT/$f-test.sql"; done
+  sed "s/$PROD_REF/$TEST_REF/g" "$KAT/schemat-prod.sql" > "$KAT/schemat-test.sql"
 
   PUSH_HOOK_SECRET="$(node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))')"
   printf "PUSH_HOOK_SECRET=%s\n" "$PUSH_HOOK_SECRET" > "$KAT/sekret-push-hook.env"; chmod 600 "$KAT/sekret-push-hook.env"
@@ -108,7 +125,12 @@ if grep -l "$PROD_REF" "$KAT"/*-test.sql; then stop "adres PROD w plikach do wyk
 echo "   funkcje z net.http_post wskazują: $(grep -o "https://[a-z0-9]*\.supabase\.co" "$KAT/schemat-test.sql" | sort -u | tr '\n' ' ')"
 KROK="kontrola formatu uzupełnień"
 if grep -qE '^(create policy|alter publication|CREATE TRIGGER)' "$KAT/uzupelnienia-test.sql"; then
-  stop "uzupelnienia-test.sql w starym, niewarunkowym formacie (sprzed 9.10) — zrób nowy przebieg bez WZNOW albo przerób plik"
+  stop "uzupelnienia-test.sql w starym, niewarunkowym formacie (sprzed 9.10) — ODSWIEZ_UZUPELNIENIA=1 WZNOW=…"
+fi
+NIEKWAL="$(grep -noE '(^|[^.a-z_])(uid|role|jwt|email|foldername|filename|extension|auth_is_coach)\(|(FROM|JOIN) +[a-z_]+([^.a-z_(]|$)' "$KAT/uzupelnienia-test.sql" || true)"
+if [ -n "$NIEKWAL" ]; then
+  echo "$NIEKWAL" | head -5
+  stop "uzupelnienia-test.sql ma nazwy BEZ schematu (deparsowane przy niepustym search_path) — padną na bazie z innym search_path; ODSWIEZ_UZUPELNIENIA=1 WZNOW=…"
 fi
 
 KAT_WIN="$(cygpath -w "$KAT" 2>/dev/null || echo "$KAT")"
