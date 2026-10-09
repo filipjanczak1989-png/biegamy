@@ -7,7 +7,7 @@
 <title>Kalendarz Startów · BiegaMy</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -371,6 +371,8 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 <!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
 <div id="banery-top"></div>
 <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','races');});</script>
+<!-- WYNIKI ZAWODNIKÓW: wyszukiwarka (js/wyszukiwarka-wynikow.js); start dopiero po sesji i przy pierwszym rozwinięciu -->
+<details class="st-card" id="wyniki-szukaj-sekcja" style="margin:0 16px 12px;"><summary style="cursor:pointer;font-weight:600;">Wyniki zawodników</summary><div id="wyniki-szukaj" style="margin-top:10px;"></div></details>
 <div class="races-list" id="races-list">
   <!-- skeleton loader -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;">
@@ -535,6 +537,9 @@ let _currentRace = null;
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
   _user = session.user;
+  document.getElementById('wyniki-szukaj-sekcja').addEventListener('toggle', function () {
+    if (this.open && !this._wyszukiwarka) this._wyszukiwarka = window.initResultsSearch({ client: _sb, root: document.getElementById('wyniki-szukaj') });
+  });
 
   // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")
   _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';
