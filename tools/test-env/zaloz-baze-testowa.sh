@@ -10,13 +10,13 @@
 #      `--schema-only` NIE MA, „unknown flag", zmierzone 8.10)
 #   2. tools/test-env/uzupelnienia-z-prod.sql   → to, czego dump NIE zabiera: 8 bucketów, 19 polityk
 #      storage.objects, trigger auth.users → handle_new_user (zmierzone 8.10). Publikację realtime zrzut
-#      JUŻ MA (ALTER PUBLICATION … ADD TABLE athletes, zmierzone 9.10) — dodanie robimy warunkowo
-#   Każde wyjście kończy się komunikatem STOP z krokiem (trap EXIT/INT) — cisza = błąd skryptu.
+#      JUŻ MA (zmierzone 9.10) — dlatego generator daje KAŻDĄ instrukcję warunkową (idempotentną wobec zrzutu)
 #   3. PODMIANA adresu projektu prod → test we wszystkim (3 funkcje triggerów wołają EF przez net.http_post
 #      z ADRESEM PROD w treści — bez podmiany baza testowa przy każdym logu wołałaby funkcje PRODUKCJI)
 #      i TWARDA KONTROLA: jeśli po podmianie zostanie choć jedno wystąpienie adresu prod — STOP.
 #   4. sekrety vault w bazie testowej: push_hook_secret (losowy) i publishable_key (klucz anon TESTU)
 #   5. wykonanie na bazie TESTOWEJ psql-em z kontenera, potem kontrola liczby tabel/polityk
+#   Każde wyjście kończy się komunikatem STOP z krokiem (trap EXIT/INT) — cisza = błąd skryptu.
 #
 # Czego NIE robi (świadomie): zadania cron (miesiac-karta, morning-brief-hourly wołałyby AI co godzinę),
 # pliki w bucketach, użytkownicy (robi to seed.js), ustawienia Auth w panelu (Site URL, redirect URLs, Google).
@@ -106,9 +106,10 @@ EOF
 fi
 if grep -l "$PROD_REF" "$KAT"/*-test.sql; then stop "adres PROD w plikach do wykonania"; fi
 echo "   funkcje z net.http_post wskazują: $(grep -o "https://[a-z0-9]*\.supabase\.co" "$KAT/schemat-test.sql" | sort -u | tr '\n' ' ')"
-KROK="publikacja realtime idempotentnie"
-sed -i -E "s/^alter publication supabase_realtime add table ([a-z0-9_]+)\.([a-z0-9_]+);$/do \$\$ begin if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = '\1' and tablename = '\2') then alter publication supabase_realtime add table \1.\2; end if; end \$\$;/" "$KAT/uzupelnienia-test.sql"
-if grep -q "^alter publication" "$KAT/uzupelnienia-test.sql"; then stop "w uzupelnienia-test.sql zostało alter publication nieprzerobione na warunkowe (nazwa w cudzysłowie?)"; fi
+KROK="kontrola formatu uzupełnień"
+if grep -qE '^(create policy|alter publication|CREATE TRIGGER)' "$KAT/uzupelnienia-test.sql"; then
+  stop "uzupelnienia-test.sql w starym, niewarunkowym formacie (sprzed 9.10) — zrób nowy przebieg bez WZNOW albo przerób plik"
+fi
 
 KAT_WIN="$(cygpath -w "$KAT" 2>/dev/null || echo "$KAT")"
 psql_test() {
