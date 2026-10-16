@@ -17,3 +17,7 @@ android.keystore
 # Pliki robocze w korzeniu (surowe generacje, podglądy, mockupy) — nigdy do repo (publiczny GH Pages).
 # Zmierzone 07.10.2026: żaden śledzony plik w korzeniu nie zaczyna się od podkreślnika.
 /_*
+
+# rozpoznania i suche przebiegi (dane osobowe, nie commitować)
+recon-*/
+out-*/
