@@ -53,3 +53,23 @@ test('widżet: bez adresu API i bez własnego fetch — wszystko przez przekazan
   const w = bezKomentarzy(czytaj('js/wyszukiwarka-wynikow.js'));
   assert.ok(!/api\.biegamy\.run|fetch\(|localStorage|sessionStorage/.test(w));
 });
+
+test('usun-dane.html: skrypty po sb.js, API tylko przy wynikiApiDostepne(), noindex, bez danych w adresach', () => {
+  const html = czytaj('usun-dane.html');
+  assert.match(html, /<script src="sb\.js"><\/script><script src="js\/dzis-offline\.js"><\/script><script src="js\/wyniki-api\.js"><\/script><script src="js\/usun-dane\.js"><\/script>/);
+  assert.match(html, /var dostepne = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\) && !!window\.sb;/);
+  assert.match(html, /api: dostepne \? window\.wynikiApi\(window\.sb\) : null/);
+  assert.match(html, /<meta name="robots" content="noindex">/);
+  assert.ok(!/api\.biegamy\.run\/|innerHTML|localStorage\.setItem|sessionStorage/.test(html.replace(/<!--[\s\S]*?-->/g, '')));
+});
+
+test('js/usun-dane.js: powrót z maila tylko na https://biegamy.run/usun-dane.html, bez zakładania kont, bez magazynów i konsoli', () => {
+  const src = czytaj('js/usun-dane.js');
+  const kod = bezKomentarzy(src);
+  assert.match(kod, /var ADRES_POWROTU = 'https:\/\/biegamy\.run\/usun-dane\.html';/);
+  assert.match(kod, /shouldCreateUser: false, emailRedirectTo: ADRES_POWROTU/);
+  assert.ok(!/innerHTML|insertAdjacentHTML|document\.write|localStorage|sessionStorage|indexedDB|document\.cookie|console\.|api\.biegamy\.run|fetch\(/.test(kod));
+  assert.ok(!/location\.(href|search|hash)\s*=|location\.assign|location\.replace|pushState/.test(kod), 'żadnych danych w adresie');
+  assert.match(kod, /hist\.replaceState\(null, '', lok\.pathname\)/, 'czyszczenie URL po błędzie linku: tylko ścieżka');
+  assert.match(kod, /if \(!opts\.dostepne \|\| !api\) \{/);
+});

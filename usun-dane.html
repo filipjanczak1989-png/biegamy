@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- „Usuń moje dane" (F6, wyniki zawodów na serwerze api.biegamy.run). Logika: js/usun-dane.js; klient: js/wyniki-api.js.
+     Adres na liście przekierowań Auth PROD: https://biegamy.run/usun-dane.html (link z maila wraca tutaj).
+     Przy WYNIKI_API_WLACZONE = false strona pokazuje tylko „usługa niedostępna" i nie woła ani API, ani logowania. -->
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Usuń moje dane · BiegaMy</title>
+<script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu -->
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyniki-api.js"></script><script src="js/usun-dane.js"></script>
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+.ud{max-width:720px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+.ud a{color:var(--accent)}
+.ud-powrot{display:inline-block;margin-bottom:12px}
+.ud-karta{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.ud-karta input[type=search],.ud-karta input[type=text]{width:100%;box-sizing:border-box;padding:.6rem;margin:.4rem 0;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--fg);font:inherit}
+.ud-karta button{margin:.4rem .4rem .4rem 0;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--fg);font:inherit;cursor:pointer}
+.ud-karta button:not([disabled]):hover{border-color:var(--accent)}
+.ud-karta button[disabled]{opacity:.6;cursor:default}
+.ud-muted{color:var(--muted);font-size:.9em}
+.ud-info{color:var(--fg)}
+.ud-uwaga{color:var(--accent)}
+.ud-lista{list-style:none;margin:.5rem 0;padding:0}
+.ud-lista li{margin:.3rem 0}
+.ud-tabela{width:100%;border-collapse:collapse;font-size:.9em;display:block;overflow-x:auto}
+.ud-tabela td,.ud-tabela th{padding:.35rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+</style>
+</head>
+<body>
+<main class="ud">
+  <a class="ud-powrot" href="races.html">← Kalendarz startów</a>
+  <div class="ud-karta" id="usun-dane"></div>
+  <p class="ud-muted">Jak przetwarzamy wyniki zawodów i jakie masz prawa: <a href="privacy.html#wyniki-usun">polityka prywatności, sekcja 12</a>.</p>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var root = document.getElementById('usun-dane');
+  var dostepne = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne() && !!window.sb;
+  window.initUsunDane({ sb: window.sb, api: dostepne ? window.wynikiApi(window.sb) : null, root: root, dostepne: dostepne });
+});
+</script>
+</body>
+</html>
