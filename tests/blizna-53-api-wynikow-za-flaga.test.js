@@ -14,7 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const KORZEN = path.join(__dirname, '..');
-const czytaj = (f) => fs.readFileSync(path.join(KORZEN, f), 'utf8');
+const czytaj = (f) => fs.readFileSync(path.join(KORZEN, f), 'utf8').replace(/\r/g, ''); // CRLF z autocrlf na Windows
 const bezKomentarzy = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const KLIENT = czytaj('js/wyniki-api.js');
@@ -46,8 +46,8 @@ test('races.html: na prod sekcja wyników ukryta (hidden) bez dostępnego API; n
   assert.match(html, /<script src="js\/wyszukiwarka-wynikow\.js"><\/script><script src="js\/wyniki-api\.js"><\/script>/);
   assert.match(html, /<details class="st-card" id="wyniki-szukaj-sekcja" hidden /, 'domyślnie ukryta – bez JS i przed sprawdzeniem flagi');
   assert.match(html, /var apiWynikow = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\);/);
-  assert.match(html, /if \(sekcjaWynikow && \(window\.BM_SRODOWISKO !== 'prod' \|\| apiWynikow\)\) \{\n\s*sekcjaWynikow\.hidden = false;\n\s*sekcjaWynikow\.addEventListener\('toggle'/,
-    'odkrycie i start wyszukiwarki tylko na TEST albo przy dostępnym API');
+  assert.match(html, /if \(sekcjaWynikow && \(window\.BM_SRODOWISKO === 'test' \|\| apiWynikow\)\) \{\n\s*sekcjaWynikow\.hidden = false;\n\s*sekcjaWynikow\.addEventListener\('toggle'/,
+    'odkrycie i start wyszukiwarki tylko przy jawnym TEST albo przy dostępnym API');
   assert.equal((html.match(/initResultsSearch\(/g) || []).length, 1, 'wyszukiwarka startuje tylko w tym jednym miejscu');
   assert.match(html, /client: apiWynikow \? window\.wynikiApi\(_sb\) : _sb/);
   assert.match(html, /usunDaneHref: apiWynikow \? 'usun-dane\.html' : null/);
