@@ -7,7 +7,7 @@
 <title>Kalendarz Startów · BiegaMy</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><script src="js/wyniki-api.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -538,7 +538,11 @@ let _currentRace = null;
   if (!session) { location.href = 'index.html'; return; }
   _user = session.user;
   document.getElementById('wyniki-szukaj-sekcja').addEventListener('toggle', function () {
-    if (this.open && !this._wyszukiwarka) this._wyszukiwarka = window.initResultsSearch({ client: _sb, root: document.getElementById('wyniki-szukaj') });
+    if (this.open && !this._wyszukiwarka) {
+      // F6/U1: serwer wyników (js/wyniki-api.js) tylko przy WYNIKI_API_WLACZONE i na prod; inaczej bez zmian (_sb)
+      var api = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne();
+      this._wyszukiwarka = window.initResultsSearch({ client: api ? window.wynikiApi(_sb) : _sb, root: document.getElementById('wyniki-szukaj'), usunDaneHref: api ? 'usun-dane.html' : null });
+    }
   });
 
   // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")

@@ -39,3 +39,17 @@ test('klient: token tylko w nagłówku — bez magazynów, konsoli, innerHTML; c
   assert.match(kod, /window\.BM_SRODOWISKO !== 'prod'/);
   assert.match(kod, /if \(!WYNIKI_API_WLACZONE\) return blad\(0, 'wylaczone'\);/);
 });
+
+test('races.html: klient api tylko przy wynikiApiDostepne() (flaga + prod), inaczej _sb; link usuwania tylko wtedy', () => {
+  const html = czytaj('races.html');
+  assert.match(html, /<script src="js\/wyszukiwarka-wynikow\.js"><\/script><script src="js\/wyniki-api\.js"><\/script>/);
+  assert.match(html, /var api = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\);/);
+  assert.match(html, /client: api \? window\.wynikiApi\(_sb\) : _sb/);
+  assert.match(html, /usunDaneHref: api \? 'usun-dane\.html' : null/);
+  assert.ok(!/api\.biegamy\.run/.test(html), 'adres API tylko w js/wyniki-api.js');
+});
+
+test('widżet: bez adresu API i bez własnego fetch — wszystko przez przekazany klient', () => {
+  const w = bezKomentarzy(czytaj('js/wyszukiwarka-wynikow.js'));
+  assert.ok(!/api\.biegamy\.run|fetch\(|localStorage|sessionStorage/.test(w));
+});

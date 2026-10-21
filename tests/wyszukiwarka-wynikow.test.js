@@ -140,3 +140,47 @@ test('races.html: skrypt klasyczny zaraz po sb.js, start dopiero po sprawdzeniu 
   const init = html.indexOf('window.initResultsSearch(');
   assert.ok(sesja > 0 && init > sesja, 'initResultsSearch dopiero po sprawdzeniu sesji');
 });
+
+// ── U1 (21.10.2026): stany błędów z klienta api.biegamy.run (js/wyniki-api.js) i link „Usuń moje dane" ──
+function klientBledu(error) { return { rpc: async () => ({ data: null, error }) }; }
+
+test('stany: brak sesji, 429 (minuta / godzina z Retry-After), brak sieci, inny błąd = dotychczasowy tekst', async () => {
+  const ctx = zaladujWidzet();
+  // races.html ładuje js/dzis-offline.js przed widżetem: jedno kryterium błędu sieci (DzisOffline.czyBladSieci)
+  vm.runInContext(fs.readFileSync(path.join(KORZEN, 'js', 'dzis-offline.js'), 'utf8'), ctx, { filename: 'js/dzis-offline.js' });
+  const przypadki = [
+    [{ status: 401, kod: 'brak_sesji' }, /Sesja wygasła – zaloguj się ponownie/],
+    [{ status: 401, kod: 'nieautoryzowany' }, /Sesja wygasła/],
+    [{ status: 429, kod: 'limit', retryAfter: 60 }, /odczekaj minutę/],
+    [{ status: 429, kod: 'limit', retryAfter: 3600 }, /spróbuj za godzinę/],
+    [{ status: 0, kod: 'offline' }, /Brak połączenia z internetem/],
+    [{ status: 0, kod: 'timeout' }, /Brak połączenia z internetem/],
+    [{ message: 'TypeError: Failed to fetch' }, /Brak połączenia z internetem/],
+    [{ status: 502, kod: 'serwer' }, /^Błąd wyszukiwania\. Spróbuj ponownie\.$/],
+    [{ code: '42883', message: 'function search_runners does not exist' }, /^Błąd wyszukiwania\. Spróbuj ponownie\.$/],
+  ];
+  for (const [err, oczek] of przypadki) {
+    const { root } = miniDom();
+    const w = ctx.initResultsSearch({ client: klientBledu(err), root, debounceMs: 0 });
+    await w.search('Jan Testowy');
+    const status = root.wszystkie('P')[0];
+    assert.match(status.textContent, oczek, JSON.stringify(err));
+  }
+  const { komunikatBledu } = ctx._wyszukiwarkaWynikow;
+  assert.equal(komunikatBledu({ status: 404, kod: 'brak' }, 'Nie udało się pobrać wyników.'), 'Nie udało się pobrać wyników.');
+});
+
+test('link „Usuń moje dane": tylko gdy usunDaneHref = usun-dane.html (bez danych w adresie); bez niego — brak linku', async () => {
+  const ctx = zaladujWidzet();
+  const z = miniDom();
+  ctx.initResultsSearch({ client: klient([]), root: z.root, debounceMs: 0, usunDaneHref: 'usun-dane.html' });
+  const linki = z.root.wszystkie('A');
+  assert.equal(linki.length, 1);
+  assert.equal(linki[0].getAttribute('href'), 'usun-dane.html');
+  assert.match(linki[0].textContent, /Usuń moje dane/);
+  for (const inny of [undefined, null, 'https://zly.example/usun-dane.html', 'usun-dane.html?q=Jan', 'javascript:alert(1)']) {
+    const x = miniDom();
+    ctx.initResultsSearch({ client: klient([]), root: x.root, debounceMs: 0, usunDaneHref: inny });
+    assert.equal(x.root.wszystkie('A').length, 0, String(inny));
+  }
+});
