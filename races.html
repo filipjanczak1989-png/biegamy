@@ -372,7 +372,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 <div id="banery-top"></div>
 <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','races');});</script>
 <!-- WYNIKI ZAWODNIKÓW: wyszukiwarka (js/wyszukiwarka-wynikow.js); start dopiero po sesji i przy pierwszym rozwinięciu -->
-<details class="st-card" id="wyniki-szukaj-sekcja" style="margin:0 16px 12px;"><summary style="cursor:pointer;font-weight:600;">Wyniki zawodników</summary><div id="wyniki-szukaj" style="margin-top:10px;"></div></details>
+<details class="st-card" id="wyniki-szukaj-sekcja" hidden style="margin:0 16px 12px;"><summary style="cursor:pointer;font-weight:600;">Wyniki zawodników</summary><div id="wyniki-szukaj" style="margin-top:10px;"></div></details>
 <div class="races-list" id="races-list">
   <!-- skeleton loader -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;">
@@ -537,13 +537,18 @@ let _currentRace = null;
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
   _user = session.user;
-  document.getElementById('wyniki-szukaj-sekcja').addEventListener('toggle', function () {
-    if (this.open && !this._wyszukiwarka) {
-      // F6/U1: serwer wyników (js/wyniki-api.js) tylko przy WYNIKI_API_WLACZONE i na prod; inaczej bez zmian (_sb)
-      var api = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne();
-      this._wyszukiwarka = window.initResultsSearch({ client: api ? window.wynikiApi(_sb) : _sb, root: document.getElementById('wyniki-szukaj'), usunDaneHref: api ? 'usun-dane.html' : null });
-    }
-  });
+  // F6/U1: na prod sekcja (domyślnie hidden) tylko przy dostępnym serwerze wyników – flaga WYNIKI_API_WLACZONE albo
+  // tryb podglądu (js/wyniki-api.js); wtedy dane z api.biegamy.run. Na TEST bez zmian: sekcja widoczna, dane z _sb.
+  var apiWynikow = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne();
+  var sekcjaWynikow = document.getElementById('wyniki-szukaj-sekcja');
+  if (sekcjaWynikow && (window.BM_SRODOWISKO !== 'prod' || apiWynikow)) {
+    sekcjaWynikow.hidden = false;
+    sekcjaWynikow.addEventListener('toggle', function () {
+      if (this.open && !this._wyszukiwarka) this._wyszukiwarka = window.initResultsSearch({ client: apiWynikow ? window.wynikiApi(_sb) : _sb,
+        root: document.getElementById('wyniki-szukaj'), usunDaneHref: apiWynikow ? 'usun-dane.html' : null,
+        podglad: typeof window.wynikiApiPodglad === 'function' && window.wynikiApiPodglad() });
+    });
+  }
 
   // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")
   _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';

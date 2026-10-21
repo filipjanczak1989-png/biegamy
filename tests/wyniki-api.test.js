@@ -21,9 +21,9 @@ function odp(status, body, naglowki = {}) {
   return { status, ok: status >= 200 && status < 300, headers: { get: (k) => naglowki[k] ?? null }, json: async () => { if (body === undefined) throw new SyntaxError('x'); return body; } };
 }
 
-function srodowisko({ wlaczone = true, srod = 'prod', sesja = true, online = true, odpowiedzi = [], fetchImpl = null } = {}) {
+function srodowisko({ wlaczone = true, srod = 'prod', sesja = true, online = true, odpowiedzi = [], fetchImpl = null, klucz = null, rzuca = false } = {}) {
   const zapisy = [];
-  const magazyn = { setItem: (k, v) => zapisy.push([k, v]), getItem: () => null, removeItem() {} };
+  const magazyn = { setItem: (k, v) => zapisy.push([k, v]), getItem: (k) => { if (rzuca) throw new Error('SecurityError'); return k === 'wyniki_api_podglad' ? klucz : null; }, removeItem() {} };
   const logi = [];
   const konsola = { log: (...a) => logi.push(a.join(' ')), warn: (...a) => logi.push(a.join(' ')), error: (...a) => logi.push(a.join(' ')), info() {}, debug() {} };
   const wolania = [];
@@ -130,5 +130,41 @@ test('token: nie trafia do magazynów, logów ani do obiektu błędu', async () 
   assert.deepEqual(s.zapisy, []);
   assert.deepEqual(s.logi, []);
   assert.ok(!JSON.stringify(r).includes('TOKEN'));
-  assert.ok(!/localStorage|sessionStorage|console\./.test(ZRODLO.replace(/\/\*[\s\S]*?\*\//g, '')), 'klient nie dotyka magazynów ani konsoli');
+  const kod = ZRODLO.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/sessionStorage|console\.|setItem|removeItem/.test(kod), 'klient nie zapisuje do magazynów i nie loguje');
+  assert.deepEqual(kod.match(/localStorage\.[a-zA-Z]+\([^)]*\)/g), ['localStorage.getItem(KLUCZ_PODGLADU)'], 'z localStorage tylko odczyt klucza podglądu');
+});
+
+// ── przełącznik podglądu (decyzja Filipa 21.10.2026): localStorage wyniki_api_podglad === '1', tylko prod ──
+test('podgląd: bez klucza przy fladze false nic nie woła api.biegamy.run', async () => {
+  const s = srodowisko({ wlaczone: false, odpowiedzi: [odp(200, [])] });
+  assert.equal((await s.api.rpc('search_runners', { q: 'abc' })).error.kod, 'wylaczone');
+  assert.deepEqual([s.wolania.length, s.okno.wynikiApiDostepne(), s.okno.wynikiApiPodglad()], [0, false, false]);
+});
+
+test('podgląd: z kluczem "1" na prod — woła API mimo flagi false, dostępne i podgląd = true', async () => {
+  const s = srodowisko({ wlaczone: false, klucz: '1', odpowiedzi: [odp(200, [{ runner_key: 'k' }])] });
+  const r = await s.api.rpc('search_runners', { q: 'abc' });
+  assert.equal(r.error, null);
+  assert.equal(s.wolania.length, 1);
+  assert.equal(s.wolania[0].url, 'https://api.biegamy.run/rpc/search_runners');
+  assert.deepEqual([s.okno.wynikiApiDostepne(), s.okno.wynikiApiPodglad()], [true, true]);
+});
+
+test('podgląd: z kluczem na TEST nie woła nigdy; inne wartości klucza i wyjątek localStorage = wyłączony', async () => {
+  for (const srod of ['test', 'test-bez-konfiguracji', null]) {
+    const s = srodowisko({ wlaczone: false, klucz: '1', srod, odpowiedzi: [odp(200, [])] });
+    assert.equal((await s.api.rpc('search_runners', { q: 'abc' })).error.kod, 'srodowisko', String(srod));
+    assert.deepEqual([s.wolania.length, s.okno.wynikiApiDostepne(), s.okno.wynikiApiPodglad()], [0, false, false]);
+  }
+  for (const klucz of ['0', 'true', ' 1', 'tak', '']) {
+    const s = srodowisko({ wlaczone: false, klucz, odpowiedzi: [odp(200, [])] });
+    assert.equal((await s.api.rpc('search_runners', {})).error.kod, 'wylaczone', JSON.stringify(klucz));
+    assert.equal(s.wolania.length, 0);
+  }
+  const r = srodowisko({ wlaczone: false, rzuca: true, odpowiedzi: [odp(200, [])] });
+  assert.equal((await r.api.rpc('search_runners', {})).error.kod, 'wylaczone');
+  assert.deepEqual([r.wolania.length, r.okno.wynikiApiDostepne()], [0, false]);
+  const wl = srodowisko({ wlaczone: true, klucz: '1' });
+  assert.deepEqual([wl.okno.wynikiApiDostepne(), wl.okno.wynikiApiPodglad()], [true, false], 'po U3 pasek podglądu znika');
 });

@@ -4,6 +4,9 @@
 
    Zasady:
    - WYNIKI_API_WLACZONE = false → żadnego zapytania do api.biegamy.run (error.kod 'wylaczone'). Zmiana na true to U3 (B8).
+   - Przełącznik podglądu (decyzja Filipa 21.10.2026): na prod, gdy localStorage['wyniki_api_podglad'] === '1' (ustawiane
+     ręcznie w konsoli przeglądarki, docs/wyniki-api-podglad.md), API działa mimo flagi false, a strony pokazują pasek
+     „tryb podglądu API”. Tylko odczyt klucza, w try/catch; na TEST nigdy. Bez list kont, UUID ani e-maili w kodzie.
    - Tylko środowisko 'prod' (BM_SRODOWISKO z sb.js): serwer przyjmuje wyłącznie tokeny Supabase PROD, więc tokenu
      TEST nie wysyłamy wcale (error.kod 'srodowisko').
    - Token: przy każdym wywołaniu z sb.auth.getSession(), tylko w nagłówku Authorization. Nie zapisujemy go nigdzie
@@ -22,6 +25,14 @@
   var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status',
     'erasure_preview', 'erasure_request', 'erasure_confirm', 'erasure_cancel', 'erasure_status'];
   var KODY = { 400: 'zle_dane', 401: 'nieautoryzowany', 403: 'odmowa', 404: 'brak', 413: 'za_duze', 429: 'limit' };
+  var KLUCZ_PODGLADU = 'wyniki_api_podglad';
+
+  function kluczPodgladu() {
+    try { return !!(window.localStorage && window.localStorage.getItem(KLUCZ_PODGLADU) === '1'); } catch (e) { return false; }
+  }
+  // Tryb podglądu: tylko prod, tylko przy fladze false i ręcznie ustawionym kluczu
+  function podglad() { return window.BM_SRODOWISKO === 'prod' && !WYNIKI_API_WLACZONE && kluczPodgladu(); }
+  function wlaczone() { return WYNIKI_API_WLACZONE === true || podglad(); }
 
   function blad(status, kod, extra) {
     var e = { status: status, kod: kod, retryAfter: null, komunikat: null };
@@ -66,8 +77,8 @@
     }
 
     async function rpc(nazwa, args) {
-      if (!WYNIKI_API_WLACZONE) return blad(0, 'wylaczone');
       if (window.BM_SRODOWISKO !== 'prod') return blad(0, 'srodowisko');
+      if (!wlaczone()) return blad(0, 'wylaczone');
       if (RPC_DOZWOLONE.indexOf(nazwa) < 0) return blad(0, 'nieznane_rpc');
       if (!fetchImpl) return blad(0, 'siec');
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return blad(0, 'offline');
@@ -97,11 +108,12 @@
     return { rpc: rpc };
   }
 
-  // Czy wywołanie ma sens na tej stronie: flaga + środowisko prod. Widżet i usun-dane.html pytają o to przed użyciem.
-  function dostepne() { return WYNIKI_API_WLACZONE === true && window.BM_SRODOWISKO === 'prod'; }
+  // Czy wywołanie ma sens na tej stronie: (flaga albo tryb podglądu) + środowisko prod. Widżet i usun-dane.html pytają przed użyciem.
+  function dostepne() { return window.BM_SRODOWISKO === 'prod' && wlaczone(); }
 
   window.wynikiApi = wynikiApi;
   window.wynikiApiDostepne = dostepne;
+  window.wynikiApiPodglad = podglad;
   if (!('WYNIKI_API_WLACZONE' in window)) Object.defineProperty(window, 'WYNIKI_API_WLACZONE', { value: WYNIKI_API_WLACZONE, writable: false, configurable: false });
   window._wynikiApi = { RPC_DOZWOLONE: RPC_DOZWOLONE.slice(), API_URL: API_URL, TIMEOUT_MS: TIMEOUT_MS };
 })();

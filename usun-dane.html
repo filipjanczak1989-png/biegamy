@@ -43,7 +43,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 document.addEventListener('DOMContentLoaded', function () {
   var root = document.getElementById('usun-dane');
   var dostepne = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne() && !!window.sb;
-  window.initUsunDane({ sb: window.sb, api: dostepne ? window.wynikiApi(window.sb) : null, root: root, dostepne: dostepne });
+  var podglad = dostepne && typeof window.wynikiApiPodglad === 'function' && window.wynikiApiPodglad();
+  window.initUsunDane({ sb: window.sb, api: dostepne ? window.wynikiApi(window.sb) : null, root: root, dostepne: dostepne, podglad: podglad });
 });
 </script>
 </body>

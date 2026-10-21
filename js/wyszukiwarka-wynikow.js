@@ -10,7 +10,8 @@
    Klient: sb (TEST Supabase) albo window.wynikiApi(sb) (api.biegamy.run, js/wyniki-api.js) — wybiera races.html,
    tylko gdy window.wynikiApiDostepne() (flaga WYNIKI_API_WLACZONE + prod). Oba zwracają { data, error }.
    Stany błędów (komunikatBledu): brak sesji / 401, limit 429 (czas z Retry-After), brak sieci, reszta — jak dotąd.
-   opts.usunDaneHref = 'usun-dane.html' → link „Usuń moje dane" pod wynikami (tylko ten adres, ta sama domena). */
+   opts.usunDaneHref = 'usun-dane.html' → link „Usuń moje dane" pod wynikami (tylko ten adres, ta sama domena).
+   opts.podglad = true → pasek „Tryb podglądu API” (przełącznik localStorage z js/wyniki-api.js, tylko prod). */
 (function () {
   'use strict';
 
@@ -86,6 +87,9 @@
   function initResultsSearch(opts) {
     var client = opts.client, root = opts.root, debounceMs = opts.debounceMs == null ? 350 : opts.debounceMs;
     var usunDaneHref = opts.usunDaneHref === 'usun-dane.html' ? opts.usunDaneHref : null;
+    var pasekPodgladu = opts.podglad === true
+      ? el(root.ownerDocument, 'p', { class: 'priv', role: 'note', text: 'Tryb podglądu API: dane z serwera wyników. Inni użytkownicy tej sekcji nie widzą.' })
+      : null;
     var doc = root.ownerDocument;
     root.textContent = '';
     var style = el(doc, 'style', { text: CSS });
@@ -97,7 +101,7 @@
       ? el(doc, 'p', { class: 'muted' }, doc.createTextNode('Znalazłeś swoje wyniki i nie chcesz, żeby tu były? '),
         el(doc, 'a', { href: usunDaneHref, text: 'Usuń moje dane' }))
       : null;
-    root.append(el(doc, 'div', { class: 'rs' }, style, input, status, list, detail, stopka));
+    root.append(el(doc, 'div', { class: 'rs' }, style, pasekPodgladu, input, status, list, detail, stopka));
 
     var timer = null, seq = 0;
 

@@ -44,7 +44,7 @@ const T0 = Date.parse('2026-10-21T12:00:00Z');
 const swieza = (ms = T0 - 60000) => ({ access_token: jwt({ amr: [{ method: 'password', timestamp: Math.floor((T0 - 86400000) / 1000) }, { method: 'otp', timestamp: Math.floor(ms / 1000) }] }), user: { email: 'jan.testowy@example.org' } });
 const zHasla = () => ({ access_token: jwt({ amr: [{ method: 'password', timestamp: Math.floor((T0 - 60000) / 1000) }] }), user: { email: 'jan.testowy@example.org' } });
 
-function scena({ session = swieza(), dostepne = true, odpowiedzi = {}, hash = '', verify = null } = {}) {
+function scena({ session = swieza(), dostepne = true, odpowiedzi = {}, hash = '', verify = null, podglad = false } = {}) {
   const ctx = zaladujSb();
   if (typeof ctx.atob !== 'function') ctx.atob = (s) => Buffer.from(s, 'base64').toString('binary');
   if (typeof ctx.TextDecoder !== 'function') ctx.TextDecoder = TextDecoder;
@@ -61,7 +61,7 @@ function scena({ session = swieza(), dostepne = true, odpowiedzi = {}, hash = ''
   const wolania = [];
   const api = { rpc: async (n, a) => { wolania.push([n, a]); const o = odpowiedzi[n]; return typeof o === 'function' ? o(a) : (o || { data: [], error: null }); } };
   const historia = [];
-  const w = ctx.initUsunDane({ sb, api, root, dostepne, teraz: () => teraz, setInterval: (f) => { interwaly.push(f); return interwaly.length; }, clearInterval() {},
+  const w = ctx.initUsunDane({ sb, api, root, dostepne, podglad, teraz: () => teraz, setInterval: (f) => { interwaly.push(f); return interwaly.length; }, clearInterval() {},
     location: { hash, search: '', pathname: '/usun-dane.html' }, history: { replaceState: (...a) => historia.push(a) } });
   const tekst = () => root.textContent;
   const przycisk = (re) => root.wszystkie('BUTTON').find((b) => re.test(b.textContent));
@@ -229,4 +229,49 @@ test('okno logowania z tokenu: otp i magiclink liczą się, hasło nie; koniec =
   assert.equal(oknoLogowania(zHasla(), T0).swieze, false);
   assert.equal(oknoLogowania({ access_token: 'zepsuty' }, T0).swieze, false);
   assert.equal(oknoLogowania(null, T0).swieze, false);
+});
+
+test('„Potwierdź" przy wniosku czekającym na potwierdzenie: opis skutku i terminu 30 min, erasure_confirm po kliknięciu', async () => {
+  const s = scena({ odpowiedzi: {
+    erasure_status: { data: [{ id: 'w-5', stan: 'czeka_na_potwierdzenie', utworzono: new Date(T0 - 5 * 60000).toISOString(), wierszy: 2 }], error: null },
+    erasure_confirm: { data: 'ukryte', error: null },
+  } });
+  await czekaj(); await czekaj();
+  assert.match(s.tekst(), /czeka na Twoje potwierdzenie/);
+  assert.match(s.tekst(), /jest ważny do \d{2}:\d{2} \(30 minut od złożenia\)/);
+  assert.match(s.tekst(), /wyniki od razu znikną z wyszukiwarki, a po 30 dniach usuniemy je z bazy/);
+  assert.match(s.tekst(), /Bez potwierdzenia wniosek wygaśnie i nic się nie stanie/);
+  assert.ok(s.przycisk(/^Cofnij wniosek$/), 'obok jest Cofnij');
+  await s.klik(/^Potwierdź$/);
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.find((x) => x[0] === 'erasure_confirm')[1])), { p_id: 'w-5' });
+  assert.match(s.tekst(), /Gotowe – wyniki są ukryte/);
+});
+
+test('„Potwierdź": wniosek starszy niż 30 min — bez przycisku, z wyjaśnieniem; po końcu okna logowania — ponowne logowanie', async () => {
+  const stary = scena({ odpowiedzi: { erasure_status: { data: [{ id: 'w-6', stan: 'czeka_na_potwierdzenie', utworzono: new Date(T0 - 31 * 60000).toISOString(), wierszy: 1 }], error: null } } });
+  await czekaj(); await czekaj();
+  assert.equal(stary.przycisk(/^Potwierdź$/), undefined);
+  assert.match(stary.tekst(), /Minęło 30 minut od złożenia – tego wniosku nie da się już potwierdzić/);
+  assert.ok(stary.przycisk(/^Cofnij wniosek$/));
+  const s = scena({ session: swieza(T0 - 14.5 * 60000), odpowiedzi: { erasure_status: { data: [{ id: 'w-7', stan: 'czeka_na_potwierdzenie', utworzono: new Date(T0 - 60000).toISOString(), wierszy: 1 }], error: null } } });
+  await czekaj(); await czekaj();
+  s.uplyw(60000);
+  await s.klik(/^Potwierdź$/);
+  assert.match(s.tekst(), /Minęło 15 minut od zalogowania kodem/);
+  assert.ok(!s.wolania.some((x) => x[0] === 'erasure_confirm'));
+});
+
+test('pasek „Tryb podglądu API" na każdym ekranie przy podglądzie; nigdy przy usłudze niedostępnej', async () => {
+  const s = scena({ podglad: true, session: zHasla() });
+  await czekaj();
+  assert.match(s.tekst(), /Tryb podglądu API \(przełącznik lokalny\)/);
+  await s.klik(/Wyślij kod na mój e-mail/);
+  assert.match(s.tekst(), /Tryb podglądu API/);
+  const bez = scena({ podglad: false });
+  await czekaj();
+  assert.doesNotMatch(bez.tekst(), /Tryb podglądu/);
+  const niedostepna = scena({ podglad: true, dostepne: false });
+  await czekaj();
+  assert.doesNotMatch(niedostepna.tekst(), /Tryb podglądu/);
+  assert.match(niedostepna.tekst(), /chwilowo niedostępna/);
 });

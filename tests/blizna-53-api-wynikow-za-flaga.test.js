@@ -34,19 +34,41 @@ test('klient: tylko https://api.biegamy.run i tylko 9 RPC z listy Caddy/f6.bramk
 
 test('klient: token tylko w nagłówku — bez magazynów, konsoli, innerHTML; credentials omit; tylko środowisko prod', () => {
   const kod = bezKomentarzy(KLIENT);
-  assert.ok(!/localStorage|sessionStorage|indexedDB|document\.cookie|console\.|innerHTML|eval\(|document\.write/.test(kod));
+  assert.ok(!/sessionStorage|indexedDB|document\.cookie|console\.|innerHTML|eval\(|document\.write|setItem|removeItem/.test(kod));
+  assert.deepEqual(kod.match(/localStorage\.[a-zA-Z]+/g), ['localStorage.getItem'], 'z localStorage tylko getItem (klucz podglądu)');
   assert.match(kod, /credentials: 'omit'/);
   assert.match(kod, /window\.BM_SRODOWISKO !== 'prod'/);
-  assert.match(kod, /if \(!WYNIKI_API_WLACZONE\) return blad\(0, 'wylaczone'\);/);
+  assert.match(kod, /if \(window\.BM_SRODOWISKO !== 'prod'\) return blad\(0, 'srodowisko'\);\n\s*if \(!wlaczone\(\)\) return blad\(0, 'wylaczone'\);/, 'najpierw środowisko, potem flaga albo podgląd');
 });
 
-test('races.html: klient api tylko przy wynikiApiDostepne() (flaga + prod), inaczej _sb; link usuwania tylko wtedy', () => {
+test('races.html: na prod sekcja wyników ukryta (hidden) bez dostępnego API; na TEST widoczna z _sb; klient api tylko przy wynikiApiDostepne()', () => {
   const html = czytaj('races.html');
   assert.match(html, /<script src="js\/wyszukiwarka-wynikow\.js"><\/script><script src="js\/wyniki-api\.js"><\/script>/);
-  assert.match(html, /var api = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\);/);
-  assert.match(html, /client: api \? window\.wynikiApi\(_sb\) : _sb/);
-  assert.match(html, /usunDaneHref: api \? 'usun-dane\.html' : null/);
-  assert.ok(!/api\.biegamy\.run/.test(html), 'adres API tylko w js/wyniki-api.js');
+  assert.match(html, /<details class="st-card" id="wyniki-szukaj-sekcja" hidden /, 'domyślnie ukryta – bez JS i przed sprawdzeniem flagi');
+  assert.match(html, /var apiWynikow = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\);/);
+  assert.match(html, /if \(sekcjaWynikow && \(window\.BM_SRODOWISKO !== 'prod' \|\| apiWynikow\)\) \{\n\s*sekcjaWynikow\.hidden = false;\n\s*sekcjaWynikow\.addEventListener\('toggle'/,
+    'odkrycie i start wyszukiwarki tylko na TEST albo przy dostępnym API');
+  assert.equal((html.match(/initResultsSearch\(/g) || []).length, 1, 'wyszukiwarka startuje tylko w tym jednym miejscu');
+  assert.match(html, /client: apiWynikow \? window\.wynikiApi\(_sb\) : _sb/);
+  assert.match(html, /usunDaneHref: apiWynikow \? 'usun-dane\.html' : null/);
+  assert.match(html, /podglad: typeof window\.wynikiApiPodglad === 'function' && window\.wynikiApiPodglad\(\)/);
+  assert.ok(!/api\.biegamy\.run\//.test(html), 'adres API tylko w js/wyniki-api.js');
+});
+
+test('przełącznik podglądu: jeden klucz w localStorage, tylko odczyt w try/catch, tylko prod; bez kont, UUID i e-maili w kodzie', () => {
+  const kod = bezKomentarzy(KLIENT);
+  assert.match(kod, /var KLUCZ_PODGLADU = 'wyniki_api_podglad';/);
+  assert.match(kod, /try \{ return !!\(window\.localStorage && window\.localStorage\.getItem\(KLUCZ_PODGLADU\) === '1'\); \} catch \(e\) \{ return false; \}/);
+  assert.match(kod, /function podglad\(\) \{ return window\.BM_SRODOWISKO === 'prod' && !WYNIKI_API_WLACZONE && kluczPodgladu\(\); \}/);
+  assert.match(kod, /function dostepne\(\) \{ return window\.BM_SRODOWISKO === 'prod' && wlaczone\(\); \}/);
+  for (const f of ['js/wyniki-api.js', 'js/usun-dane.js', 'js/wyszukiwarka-wynikow.js', 'races.html', 'usun-dane.html']) {
+    const t = bezKomentarzy(czytaj(f));
+    assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(t), f + ': UUID w kodzie');
+    assert.ok(!/[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(t.replace(/biegamy\.run@gmail\.com/g, '')), f + ': adres e-mail w kodzie');
+  }
+  const doc = czytaj('docs/wyniki-api-podglad.md');
+  assert.match(doc, /localStorage\.setItem\('wyniki_api_podglad', '1'\); location\.reload\(\)/);
+  assert.match(doc, /localStorage\.removeItem\('wyniki_api_podglad'\); location\.reload\(\)/);
 });
 
 test('widżet: bez adresu API i bez własnego fetch — wszystko przez przekazany klient', () => {
@@ -59,6 +81,7 @@ test('usun-dane.html: skrypty po sb.js, API tylko przy wynikiApiDostepne(), noin
   assert.match(html, /<script src="sb\.js"><\/script><script src="js\/dzis-offline\.js"><\/script><script src="js\/wyniki-api\.js"><\/script><script src="js\/usun-dane\.js"><\/script>/);
   assert.match(html, /var dostepne = typeof window\.wynikiApiDostepne === 'function' && window\.wynikiApiDostepne\(\) && !!window\.sb;/);
   assert.match(html, /api: dostepne \? window\.wynikiApi\(window\.sb\) : null/);
+  assert.match(html, /var podglad = dostepne && typeof window\.wynikiApiPodglad === 'function' && window\.wynikiApiPodglad\(\);/);
   assert.match(html, /<meta name="robots" content="noindex">/);
   assert.ok(!/api\.biegamy\.run\/|innerHTML|localStorage\.setItem|sessionStorage/.test(html.replace(/<!--[\s\S]*?-->/g, '')));
 });

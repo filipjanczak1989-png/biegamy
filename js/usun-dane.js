@@ -14,6 +14,7 @@
   var OKNO_MIN = 15;
   var PONOWNA_WYSYLKA_S = 60;
   var MAX_WIERSZY = 200;
+  var WAZNOSC_WNIOSKU_MIN = 30;
   var ADRES_POWROTU = 'https://biegamy.run/usun-dane.html';
   var KONTAKT = 'biegamy.run@gmail.com';
   var STANY = {
@@ -70,6 +71,11 @@
     return isNaN(t) ? '' : t.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
+  function godzina(ms) {
+    var t = new Date(ms);
+    return isNaN(t) ? '' : t.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  }
+
   function liczba(n, jeden, kilka, wiele) {
     var d = n % 10, s = n % 100;
     return n + ' ' + (n === 1 ? jeden : d >= 2 && d <= 4 && (s < 12 || s > 14) ? kilka : wiele);
@@ -118,6 +124,7 @@
     function ekran() {
       if (stan.licznik) { stopZegar(stan.licznik); stan.licznik = null; }
       root.textContent = '';
+      if (opts.podglad === true && opts.dostepne) root.append(el('p', { class: 'ud-uwaga', role: 'note', text: 'Tryb podglądu API (przełącznik lokalny). Inni użytkownicy widzą „usługa niedostępna”.' }));
       for (var i = 0; i < arguments.length; i++) if (arguments[i]) root.append(arguments[i]);
     }
     function p(text, cls) { return el('p', { class: cls || null, text: text }); }
@@ -268,6 +275,24 @@
         var opis = 'Wniosek z ' + data(w.utworzono) + ': ' + liczba(Number(w.wierszy) || 0, 'wynik', 'wyniki', 'wyników') + ', ' + (STANY[w.stan] || 'stan nieznany');
         if (w.stan === 'ukryte' && w.kasowanie_od) opis += '. Usuniemy je z bazy ' + data(w.kasowanie_od) + ' – do tego dnia możesz cofnąć wniosek';
         var li = el('li', {}, p(opis + '.'));
+        if (w.stan === 'czeka_na_potwierdzenie') {
+          var waznyDo = w.utworzono ? new Date(w.utworzono).getTime() + WAZNOSC_WNIOSKU_MIN * 60000 : 0;
+          if (waznyDo > teraz()) {
+            var kp = info('');
+            li.append(p('Ten wniosek czeka na potwierdzenie i jest ważny do ' + godzina(waznyDo) + ' (30 minut od złożenia). Po potwierdzeniu wyniki od razu znikną z wyszukiwarki, a po 30 dniach usuniemy je z bazy; do tego czasu możesz cofnąć wniosek. Bez potwierdzenia wniosek wygaśnie i nic się nie stanie.', 'ud-muted'));
+            var bp = przycisk('Potwierdź', async function () {
+              if (czasMinal()) return poOknie();
+              bp.disabled = true;
+              kp.textContent = 'Potwierdzam…';
+              var c = await api.rpc('erasure_confirm', { p_id: w.id });
+              if (c.error) { bp.disabled = false; return obsluzBlad(c.error, kp); }
+              wynik(c.data);
+            });
+            li.append(bp, kp);
+          } else {
+            li.append(p('Minęło 30 minut od złożenia – tego wniosku nie da się już potwierdzić. Złóż nowy wniosek albo cofnij ten.', 'ud-muted'));
+          }
+        }
         if (DO_COFNIECIA.indexOf(w.stan) >= 0) {
           var k = info('');
           var b = przycisk('Cofnij wniosek', null);

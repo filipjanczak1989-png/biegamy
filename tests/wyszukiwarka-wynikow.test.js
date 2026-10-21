@@ -184,3 +184,15 @@ test('link „Usuń moje dane": tylko gdy usunDaneHref = usun-dane.html (bez dan
     assert.equal(x.root.wszystkie('A').length, 0, String(inny));
   }
 });
+
+test('pasek „Tryb podglądu API": tylko przy podglad === true', async () => {
+  const ctx = zaladujWidzet();
+  const z = miniDom();
+  ctx.initResultsSearch({ client: klient([]), root: z.root, debounceMs: 0, podglad: true });
+  assert.match(z.root.textContent, /Tryb podglądu API/);
+  for (const v of [false, undefined, 'true', 1]) {
+    const x = miniDom();
+    ctx.initResultsSearch({ client: klient([]), root: x.root, debounceMs: 0, podglad: v });
+    assert.doesNotMatch(x.root.textContent, /Tryb podglądu/, String(v));
+  }
+});
