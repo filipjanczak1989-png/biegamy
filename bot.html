@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Strona bota zaciągu archiwum wyników (biegamy-collector, tools/archiwum). Adres stały: jest w User-Agencie
+     BiegaMyBot/1.0 (+https://biegamy.run/bot.html), a kolektor przed pierwszym pobraniem sprawdza HEAD na tę stronę
+     (bez 200 nic nie pobiera). Treść ma zgadzać się z tools/archiwum/zasady.js; zmiana zasad = zmiana tej strony. -->
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BiegaMyBot · BiegaMy</title>
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+.bot{max-width:720px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+.bot a{color:var(--accent)}
+.bot h1{font-size:1.5rem;margin:.5rem 0 1rem}
+.bot h2{font-size:1.1rem;margin:1.5rem 0 .5rem}
+.bot ul{padding-left:1.2rem}
+.bot li{margin:.3rem 0}
+.bot code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:.05rem .35rem;overflow-wrap:anywhere}
+.bot pre{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;overflow-x:auto}
+</style>
+</head>
+<body>
+<main class="bot">
+  <h1>BiegaMyBot</h1>
+
+  <h2>Kim jesteśmy</h2>
+  <p>BiegaMy (<a href="/">biegamy.run</a>) to aplikacja do treningu biegowego z trenerem. BiegaMyBot to nasz program,
+    który pobiera opublikowane już publicznie wyniki zawodów biegowych.</p>
+
+  <h2>Po co pobieramy wyniki</h2>
+  <p>Przygotowujemy wyszukiwarkę wyników: biegacz znajduje swój wynik i może dołączyć go do historii startów. Przy każdym
+    wyniku podajemy odnośnik do strony źródłowej – nie udajemy, że to nasze pomiary.</p>
+
+  <h2>Jak się zachowujemy</h2>
+  <ul>
+    <li>Przedstawiamy się zawsze tak samo: <code>User-Agent: BiegaMyBot/1.0 (+https://biegamy.run/bot.html)</code>.</li>
+    <li>Niskie tempo: około 1 zapytanie na 2 sekundy i nie więcej niż 3000 zapytań na dobę do jednego serwisu.</li>
+    <li>Pracujemy wieczorem i w nocy (18:00–03:00 UTC), poza godzinami największego ruchu.</li>
+    <li>Przestrzegamy pliku <code>robots.txt</code>, także <code>Crawl-delay</code>.</li>
+    <li>Przy odpowiedzi 403, 429 albo błędzie serwera 5xx (po jednej ponownej próbie) zatrzymujemy się i wracamy dopiero
+      po ręcznym sprawdzeniu przyczyny.</li>
+    <li>Nie pobieramy wyników dzieci i młodzieży: pomijamy biegi dziecięce, młodzieżowe i szkolne, osoby niepełnoletnie,
+      a także wyniki, przy których wieku nie da się ustalić.</li>
+    <li>Nie obchodzimy blokad: nie zmieniamy adresu, nie podszywamy się pod przeglądarkę, nie logujemy się i nie rozwiązujemy
+      zabezpieczeń.</li>
+  </ul>
+
+  <h2>Jak nas zatrzymać</h2>
+  <p>Jeśli prowadzisz serwis z wynikami i nie chcesz, żebyśmy go odwiedzali, wystarczy wpis w <code>robots.txt</code>:</p>
+  <pre>User-agent: BiegaMyBot
+Disallow: /</pre>
+  <p>Możesz też napisać na <a href="mailto:biegamy.run+bot@gmail.com">biegamy.run+bot@gmail.com</a> – wyłączymy dany serwis
+    jako źródło. Prośba właściciela serwisu oznacza dla nas zatrzymanie, bez dyskusji.</p>
+
+  <h2>Jak usunąć swój wynik</h2>
+  <p>Jeśli Twój wynik jest u nas i chcesz go usunąć, napisz na
+    <a href="mailto:biegamy.run+bot@gmail.com">biegamy.run+bot@gmail.com</a>. Gdy wyszukiwarka wyników zostanie uruchomiona,
+    zrobisz to także samodzielnie na stronie <a href="usun-dane.html">Usuń moje dane</a>.</p>
+</main>
+</body>
+</html>
