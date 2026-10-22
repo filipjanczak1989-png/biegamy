@@ -108,9 +108,15 @@ test('logowanie hasłem nie wystarcza: kod z maila (shouldCreateUser false, powr
   s.uplyw(61000); s.tik();
   assert.equal(s.przycisk(/Wyślij kod ponownie/).disabled, false);
   const pole = s.root.wszystkie('INPUT')[0];
-  pole.value = '12'; await s.klik(/Potwierdź kod/);
-  assert.match(s.tekst(), /Kod ma 6 cyfr/);
-  pole.value = '123 456'; await s.klik(/Potwierdź kod/);
+  assert.equal(s.przycisk(/Potwierdź kod/).disabled, true, 'bez kodu przycisk nieaktywny');
+  pole.value = '12'; await pole.wyzwol('input');
+  assert.equal(s.przycisk(/Potwierdź kod/).disabled, true);
+  await s.klik(/Potwierdź kod/);
+  assert.match(s.tekst(), /Wpisz kod z maila \(same cyfry\)\./);
+  assert.ok(!s.auth.wolania.some((x) => x[0] === 'verifyOtp'), 'zły kod nie idzie do Supabase');
+  pole.value = '123 456'; await pole.wyzwol('input');
+  assert.equal(s.przycisk(/Potwierdź kod/).disabled, false);
+  await s.klik(/Potwierdź kod/);
   assert.deepEqual(JSON.parse(JSON.stringify(s.auth.wolania.find((x) => x[0] === 'verifyOtp')[1])), { email: 'jan.testowy@example.org', token: '123456', type: 'email' });
   await czekaj();
   assert.match(s.tekst(), /Twoje wnioski/);
@@ -274,4 +280,49 @@ test('pasek „Tryb podglądu API" na każdym ekranie przy podglądzie; nigdy pr
   await czekaj();
   assert.doesNotMatch(niedostepna.tekst(), /Tryb podglądu/);
   assert.match(niedostepna.tekst(), /chwilowo niedostępna/);
+});
+
+// ── długość kodu z maila (22.10.2026): Supabase PROD wysyła 8 cyfr; front przyjmuje 6–10, bez zmian w Auth ──
+async function ekranKodu() {
+  const s = scena({ session: zHasla() });
+  await czekaj();
+  await s.klik(/Wyślij kod na mój e-mail/);
+  return { s, pole: s.root.wszystkie('INPUT')[0] };
+}
+
+test('kod z maila: 8 i 6 cyfr przechodzą (spacje w środku usuwane), do verifyOtp idą same cyfry', async () => {
+  for (const [wpis, token] of [['12345678', '12345678'], ['1234 5678', '12345678'], ['123456', '123456'], [' 12 34 56 78 90 ', '1234567890']]) {
+    const { s, pole } = await ekranKodu();
+    pole.value = wpis; await pole.wyzwol('input');
+    assert.equal(s.przycisk(/Potwierdź kod/).disabled, false, JSON.stringify(wpis));
+    await s.klik(/Potwierdź kod/);
+    assert.equal(s.auth.wolania.find((x) => x[0] === 'verifyOtp')[1].token, token, JSON.stringify(wpis));
+    await czekaj();
+    assert.match(s.tekst(), /Twoje wnioski/);
+  }
+});
+
+test('kod z maila: 5 i 11 cyfr, litery i znaki odrzucone – przycisk nieaktywny, komunikat bez liczby cyfr, bez verifyOtp', async () => {
+  for (const wpis of ['12345', '12345678901', '1234abcd', 'abcdefgh', '1234-5678', '', '   ']) {
+    const { s, pole } = await ekranKodu();
+    pole.value = wpis; await pole.wyzwol('input');
+    assert.equal(s.przycisk(/Potwierdź kod/).disabled, true, JSON.stringify(wpis));
+    await s.klik(/Potwierdź kod/);
+    assert.match(s.tekst(), /Wpisz kod z maila \(same cyfry\)\./, JSON.stringify(wpis));
+    assert.ok(!s.auth.wolania.some((x) => x[0] === 'verifyOtp'), JSON.stringify(wpis));
+  }
+});
+
+test('pole kodu: maxlength 10, inputmode numeric, autocomplete one-time-code; teksty bez konkretnej liczby cyfr', async () => {
+  const { s, pole } = await ekranKodu();
+  assert.equal(pole.getAttribute('maxlength'), '10');
+  assert.equal(pole.getAttribute('inputmode'), 'numeric');
+  assert.equal(pole.getAttribute('autocomplete'), 'one-time-code');
+  assert.doesNotMatch(s.tekst() + (pole.getAttribute('aria-label') || '') + (pole.getAttribute('placeholder') || ''), /\d+ cyfr|123456/);
+  const { poprawnyKod, KOD_MIN, KOD_MAX } = s.ctx._usunDane;
+  assert.deepEqual([KOD_MIN, KOD_MAX], [6, 10]);
+  assert.deepEqual(['123456', '1234567', '12345678', '1234567890', '12345', '12345678901', '12a456', null].map((x) => poprawnyKod(x)),
+    ['123456', '1234567', '12345678', '1234567890', null, null, null, null]);
+  const kod = fs.readFileSync(path.join(KORZEN, 'js', 'usun-dane.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.doesNotMatch(kod, /\\d\{6\}|6 cyfr|maxlength: '6'/, 'nigdzie na sztywno 6 cyfr');
 });

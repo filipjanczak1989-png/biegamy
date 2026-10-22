@@ -13,6 +13,9 @@
 
   var OKNO_MIN = 15;
   var PONOWNA_WYSYLKA_S = 60;
+  // Długość kodu z maila ustawia Supabase (Auth → Email OTP length; PROD 22.10.2026: 8 cyfr) – front przyjmuje 6–10 cyfr.
+  var KOD_MIN = 6;
+  var KOD_MAX = 10;
   var MAX_WIERSZY = 200;
   var WAZNOSC_WNIOSKU_MIN = 30;
   var ADRES_POWROTU = 'https://biegamy.run/usun-dane.html';
@@ -58,6 +61,12 @@
     var zrodla = [];
     wiersze.forEach(function (w) { if (w.source && zrodla.indexOf(w.source) < 0) zrodla.push(w.source); });
     return { wierszy: wiersze.length, zrodla: zrodla.sort(), profil: wiersze.some(function (w) { return w.ma_id_zrodla; }) };
+  }
+
+  // Kod z maila: spacje usunięte, same cyfry, długość KOD_MIN–KOD_MAX; inaczej null
+  function poprawnyKod(wpis) {
+    var k = String(wpis == null ? '' : wpis).replace(/\s+/g, '');
+    return new RegExp('^\\d{' + KOD_MIN + ',' + KOD_MAX + '}$').test(k) ? k : null;
   }
 
   function maskujEmail(e) {
@@ -163,7 +172,7 @@
     function ekranPotwierdz(uwaga) {
       ekran(el('h2', { text: 'Potwierdź, że to Ty' }),
         uwaga ? info(uwaga, 'ud-uwaga') : null,
-        p('Wyślemy jednorazowy kod (6 cyfr) i link na adres Twojego konta: ' + maskujEmail(stan.email) + '.'),
+        p('Wyślemy jednorazowy kod (same cyfry) i link na adres Twojego konta: ' + maskujEmail(stan.email) + '.'),
         p('Po zalogowaniu kodem albo linkiem masz ' + OKNO_MIN + ' minut na wybranie wyników i potwierdzenie wniosku. Samo hasło nie wystarcza.', 'ud-muted'),
         przycisk('Wyślij kod na mój e-mail', function () { wyslijKod(); }));
     }
@@ -182,8 +191,10 @@
     }
 
     function ekranKodu(uwaga) {
-      var pole = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', 'aria-label': 'Kod z maila (6 cyfr)', placeholder: '123456' });
+      var pole = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: String(KOD_MAX), 'aria-label': 'Kod z maila (same cyfry)', placeholder: 'kod z maila' });
       var komunikat = info('');
+      // „Potwierdź kod” aktywny dopiero przy poprawnym kodzie (6–10 cyfr); sprawdz() i tak waliduje ponownie
+      var potwierdzKod = przycisk('Potwierdź kod', function () { sprawdz(); }, { disabled: true });
       var ponow = przycisk('Wyślij kod ponownie', function () { wyslijKod(); });
       function odswiezPonow() {
         var s = stan.odliczanie ? Math.ceil((stan.odliczanie - teraz()) / 1000) : 0;
@@ -191,8 +202,8 @@
         ponow.textContent = s > 0 ? 'Wyślij kod ponownie (za ' + s + ' s)' : 'Wyślij kod ponownie';
       }
       async function sprawdz() {
-        var kod = String(pole.value || '').replace(/\s/g, '');
-        if (!/^\d{6}$/.test(kod)) { komunikat.textContent = 'Kod ma 6 cyfr.'; return; }
+        var kod = poprawnyKod(pole.value);
+        if (!kod) { komunikat.textContent = 'Wpisz kod z maila (same cyfry).'; return; }
         komunikat.textContent = 'Sprawdzam kod…';
         var r;
         try { r = await sb.auth.verifyOtp({ email: stan.email, token: kod, type: 'email' }); } catch (e) { r = { error: { message: 'Failed to fetch' } }; }
@@ -211,7 +222,8 @@
       ekran(el('h2', { text: 'Wpisz kod z maila' }),
         uwaga ? info(uwaga, 'ud-uwaga') : null,
         p('Sprawdź skrzynkę ' + maskujEmail(stan.email) + '. Możesz wpisać kod albo kliknąć link w mailu (wrócisz na tę stronę).'),
-        pole, przycisk('Potwierdź kod', function () { sprawdz(); }), komunikat, ponow);
+        pole, potwierdzKod, komunikat, ponow);
+      pole.addEventListener('input', function () { potwierdzKod.disabled = !poprawnyKod(pole.value); });
       odswiezPonow();
       stan.licznik = zegar(odswiezPonow, 1000);
     }
@@ -403,5 +415,5 @@
 
   window.initUsunDane = initUsunDane;
   window._usunDane = { oknoLogowania: oknoLogowania, bladZLinku: bladZLinku, podsumowanie: podsumowanie, tekstBledu: tekstBledu,
-    maskujEmail: maskujEmail, wymagaKodu: wymagaKodu, STANY: STANY, OKNO_MIN: OKNO_MIN, PONOWNA_WYSYLKA_S: PONOWNA_WYSYLKA_S, ADRES_POWROTU: ADRES_POWROTU };
+    maskujEmail: maskujEmail, wymagaKodu: wymagaKodu, poprawnyKod: poprawnyKod, KOD_MIN: KOD_MIN, KOD_MAX: KOD_MAX, STANY: STANY, OKNO_MIN: OKNO_MIN, PONOWNA_WYSYLKA_S: PONOWNA_WYSYLKA_S, ADRES_POWROTU: ADRES_POWROTU };
 })();
