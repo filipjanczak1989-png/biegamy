@@ -22,3 +22,7 @@ android.keystore
 /dist/
 tools/test-env/*.env
 .wrangler/
+
+# rozpoznania i suche przebiegi (dane osobowe, nie commitować)
+recon-*/
+out-*/

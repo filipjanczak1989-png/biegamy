@@ -6,7 +6,12 @@
    RPC (migracje 20261010_wyniki_*): search_runners(q) → grupy po runner_key, runner_results(p_runner_key);
    obie SECURITY INVOKER i tylko dla authenticated. probable=true → część wyników dopięta po nazwisku i roczniku
    (reguła name_yob_unique), stąd oznaczenie „prawdopodobnie".
-   Importu profilu Enduhub NIE MA (decyzja 9.10: regulamin Enduhub V.5.c, SOURCES.md w paczce). */
+   Importu profilu Enduhub NIE MA (decyzja 9.10: regulamin Enduhub V.5.c, SOURCES.md w paczce).
+   Klient: sb (TEST Supabase) albo window.wynikiApi(sb) (api.biegamy.run, js/wyniki-api.js) — wybiera races.html,
+   tylko gdy window.wynikiApiDostepne() (flaga WYNIKI_API_WLACZONE + prod). Oba zwracają { data, error }.
+   Stany błędów (komunikatBledu): brak sesji / 401, limit 429 (czas z Retry-After), brak sieci, reszta — jak dotąd.
+   opts.usunDaneHref = 'usun-dane.html' → link „Usuń moje dane" pod wynikami (tylko ten adres, ta sama domena).
+   opts.podglad = true → pasek „Tryb podglądu API” (przełącznik localStorage z js/wyniki-api.js, tylko prod). */
 (function () {
   'use strict';
 
@@ -62,8 +67,29 @@
     '.rs a{color:var(--accent)}' +
     '.rs .priv{color:var(--accent);font-size:.8em}';
 
+  function bladSieci(err) {
+    if (!err) return false;
+    if (err.kod === 'siec' || err.kod === 'offline' || err.kod === 'timeout') return true;
+    return !!(window.DzisOffline && typeof window.DzisOffline.czyBladSieci === 'function' && window.DzisOffline.czyBladSieci(err));
+  }
+
+  /* Tekst dla użytkownika; domyslny = dotychczasowy komunikat danego miejsca. Żadnej treści z odpowiedzi serwera. */
+  function komunikatBledu(err, domyslny) {
+    if (!err) return domyslny;
+    if (err.kod === 'brak_sesji' || err.kod === 'nieautoryzowany' || err.status === 401) return 'Sesja wygasła – zaloguj się ponownie, aby wyszukiwać.';
+    if (err.kod === 'limit' || err.status === 429) {
+      return err.retryAfter != null && err.retryAfter >= 3600 ? 'Za dużo zapytań – spróbuj za godzinę.' : 'Za dużo wyszukiwań – odczekaj minutę i spróbuj ponownie.';
+    }
+    if (bladSieci(err)) return 'Brak połączenia z internetem – spróbuj ponownie, gdy wrócisz online.';
+    return domyslny;
+  }
+
   function initResultsSearch(opts) {
     var client = opts.client, root = opts.root, debounceMs = opts.debounceMs == null ? 350 : opts.debounceMs;
+    var usunDaneHref = opts.usunDaneHref === 'usun-dane.html' ? opts.usunDaneHref : null;
+    var pasekPodgladu = opts.podglad === true
+      ? el(root.ownerDocument, 'p', { class: 'priv', role: 'note', text: 'Tryb podglądu API: dane z serwera wyników. Inni użytkownicy tej sekcji nie widzą.' })
+      : null;
     var doc = root.ownerDocument;
     root.textContent = '';
     var style = el(doc, 'style', { text: CSS });
@@ -71,7 +97,11 @@
     var status = el(doc, 'p', { class: 'muted', role: 'status' });
     var list = el(doc, 'ul');
     var detail = el(doc, 'div');
-    root.append(el(doc, 'div', { class: 'rs' }, style, input, status, list, detail));
+    var stopka = usunDaneHref
+      ? el(doc, 'p', { class: 'muted' }, doc.createTextNode('Znalazłeś swoje wyniki i nie chcesz, żeby tu były? '),
+        el(doc, 'a', { href: usunDaneHref, text: 'Usuń moje dane' }))
+      : null;
+    root.append(el(doc, 'div', { class: 'rs' }, style, pasekPodgladu, input, status, list, detail, stopka));
 
     var timer = null, seq = 0;
 
@@ -82,7 +112,7 @@
       status.textContent = 'Szukam…';
       var res = await client.rpc('search_runners', { q: q.trim() });
       if (my !== seq) return;
-      if (res.error) { status.textContent = 'Błąd wyszukiwania. Spróbuj ponownie.'; return; }
+      if (res.error) { status.textContent = komunikatBledu(res.error, 'Błąd wyszukiwania. Spróbuj ponownie.'); return; }
       var data = res.data || [];
       if (!data.length) { status.textContent = 'Brak wyników.'; return; }
       status.textContent = data.length > 1 ? 'Znaleziono ' + data.length + ' osób – wybierz właściwą:' : '';
@@ -99,7 +129,7 @@
     async function open(c) {
       detail.textContent = 'Ładuję…';
       var res = await client.rpc('runner_results', { p_runner_key: c.runner_key });
-      if (res.error) { detail.textContent = 'Nie udało się pobrać wyników.'; return; }
+      if (res.error) { detail.textContent = komunikatBledu(res.error, 'Nie udało się pobrać wyników.'); return; }
       detail.textContent = '';
       detail.append(el(doc, 'h3', { text: c.display_name }));
       if (c.probable) detail.append(el(doc, 'p', { class: 'prawd', text: 'Prawdopodobnie — część wyników dopasowana po nazwisku i roczniku, nie po identyfikatorze ze źródła.' }));
@@ -130,5 +160,5 @@
   }
 
   window.initResultsSearch = initResultsSearch;
-  window._wyszukiwarkaWynikow = { fmtTime: fmtTime, fmtPace: fmtPace, liczbaWynikow: liczbaWynikow };
+  window._wyszukiwarkaWynikow = { fmtTime: fmtTime, fmtPace: fmtPace, liczbaWynikow: liczbaWynikow, komunikatBledu: komunikatBledu };
 })();
