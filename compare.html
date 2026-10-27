@@ -124,7 +124,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sa
           <canvas id="cmp-me-trimp-bars" style="max-height:50px;"></canvas>
           <!-- Ta sama sierota co w zawodnik.html: compare pokazuje TRIMP piętnaście
                razy i nie miało ani jednej ikony wyjaśniającej. -->
-          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:0.1em;margin-top:2px;">TY · TRIMP<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
+          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:0.1em;margin-top:2px;">TY · TRIMP<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
         </div>
         <div style="height:50px;position:relative;">
           <canvas id="cmp-friend-trimp-bars" style="max-height:50px;"></canvas>
@@ -452,7 +452,7 @@ async function renderCompare() {
     } else {
       const diff = Math.round(((friendAvgTRIMP - myAvgTRIMP) / myAvgTRIMP) * 100);
       const winner = diff > 0 ? _fnEsc : 'TY';
-      const winnerColor = diff > 0 ? '#a78bfa' : '#e8561e';
+      const winnerColor = diff > 0 ? '#a78bfa' : 'var(--accent)';
       const absDiff = Math.abs(diff);
       wkDeltaEl.innerHTML = '<b style="color:' + winnerColor + ';">' + winner + '</b> · max tydzień ' + absDiff + '% wyżej · TY ' + myAvgTRIMP + ' TRIMP vs ' + _fnEsc + ' ' + friendAvgTRIMP + ' TRIMP';
     }
@@ -470,7 +470,7 @@ async function renderCompare() {
     } else {
       const diff = Math.round(((friendMaxKcal - myMaxKcal) / myMaxKcal) * 100);
       const winner = diff > 0 ? _fnEsc : 'TY';
-      const winnerColor = diff > 0 ? '#a78bfa' : '#e8561e';
+      const winnerColor = diff > 0 ? '#a78bfa' : 'var(--accent)';
       const absDiff = Math.abs(diff);
       kcalDeltaEl.innerHTML = '<b style="color:' + winnerColor + ';">' + winner + '</b> · max kcal/tydz ' + absDiff + '% wyżej · TY ' + myMaxKcal + ' kcal vs ' + _fnEsc + ' ' + friendMaxKcal + ' kcal';
     }
