@@ -10916,7 +10916,7 @@ async function openNotifications() {
         badge: 'badge', ai_report: 'ai_report'
       };
       // Fallback gdyby plik nie istniał — emoji
-      var emojiFallback = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋' };
+      var emojiFallback = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋', intervals_dead: '⌚' };
       
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
@@ -10941,6 +10941,8 @@ async function openNotifications() {
           notifClick = "document.getElementById('notif-panel')?.remove();showSection('forma');";
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
+        } else if (n.type==='intervals_dead') {   /* martwy token intervals.icu: powiadomienie prowadzi do „Połącz ponownie” */
+          notifClick = "location.href='profil.html?open=icu';";
         } else if (n.type==='ai_report') {
           var rid = n.related_id || n.report_id || n.entity_id || null;
           if (rid) {
