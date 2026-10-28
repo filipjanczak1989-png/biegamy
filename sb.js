@@ -731,7 +731,7 @@
         ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(139,92,246,0.15);color:#a78bfa;letter-spacing:0.06em;">📤 WYSŁANY</span>'
         : '';
       feedbackBadge = (r.athlete_feedback || r.athlete_reaction)
-        ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(232,86,30,0.15);color:#e8561e;letter-spacing:0.06em;font-weight:600;">💬 OPINIA</span>'
+        ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(232,86,30,0.15);color:var(--accent);letter-spacing:0.06em;font-weight:600;">💬 OPINIA</span>'
         : '';
     }
 
@@ -3323,7 +3323,7 @@ window._icuRenderSplits = function (d, el) {
         + '<div style="font-family:\'Inter\',sans-serif;font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:18px;">' + detail + ' — to tempo jest niemożliwe dla biegu. Zapisać jako trening zastępczy?</div>'
         + '<div style="display:flex;gap:10px;">'
         + '<button id="_baRun" style="flex:1;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;">To bieg</button>'
-        + '<button id="_baBike" style="flex:1;background:linear-gradient(135deg,#e8561e,#ff8a4c);color:#fff;border:none;border-radius:10px;padding:12px;font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;cursor:pointer;">To rower 🚴</button>'
+        + '<button id="_baBike" style="flex:1;background:linear-gradient(135deg,var(--accent),#ff8a4c);color:#fff;border:none;border-radius:10px;padding:12px;font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;cursor:pointer;">To rower 🚴</button>'
         + '</div></div>';
       m.addEventListener('click', (e) => { if (e.target === m) done('run'); });  // klik w tło = soft "zostaw bieg"
       document.body.appendChild(m);
@@ -3590,7 +3590,7 @@ window._icuRenderSplits = function (d, el) {
         + '<div style="display:flex;gap:10px;">'
         + '<button id="_dupNie" style="flex:1;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);'
         + 'border-radius:12px;padding:12px;font-size:13px;cursor:pointer;">Anuluj</button>'
-        + '<button id="_dupTak" style="flex:1;background:linear-gradient(135deg,#e8561e,#ff8a4c);color:#fff;border:none;'
+        + '<button id="_dupTak" style="flex:1;background:linear-gradient(135deg,var(--accent),#ff8a4c);color:#fff;border:none;'
         + 'border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;">Dodaj drugi</button>'
         + '</div></div>';
       m.addEventListener('click', function (e) { if (e.target === m) done(false); });
@@ -4185,7 +4185,7 @@ window._icuRenderSplits = function (d, el) {
 
     const sectionsHtml = data.sections.map(s =>
       '<div style="margin-bottom:16px;">' +
-        '<div style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;font-weight:700;margin-bottom:6px;">' + s.heading + '</div>' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px;">' + s.heading + '</div>' +
         '<div style="font-family:\'Inter\',sans-serif;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.88);">' + s.body + '</div>' +
       '</div>'
     ).join('');
@@ -4213,7 +4213,7 @@ window._icuRenderSplits = function (d, el) {
   // Helper do generowania (i) icon HTML — używany inline w templates
   window.tooltipIconHtml = function(key, style) {
     style = style || '';
-    return '<button onclick="event.stopPropagation();window.showMetricTooltip(\'' + key + '\')" title="Co to znaczy?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;' + style + '">i</button>';
+    return '<button onclick="event.stopPropagation();window.showMetricTooltip(\'' + key + '\')" title="Co to znaczy?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;' + style + '">i</button>';
   };
 
   // Inject CSS animacja fadeIn raz (jeśli sb.js loaded multiple times — guard)
@@ -5068,9 +5068,9 @@ window._icuRenderSplits = function (d, el) {
         if (story.recommendation) {
           recEl.textContent = story.recommendation;
           recWrapEl.style.display = 'block';
-          recWrapEl.style.borderLeftColor = story.color || '#e8561e';
+          recWrapEl.style.borderLeftColor = story.color || 'var(--accent)';
           const recLabel = recWrapEl.querySelector('div:first-child');
-          if (recLabel) recLabel.style.color = story.color || '#e8561e';
+          if (recLabel) recLabel.style.color = story.color || 'var(--accent)';
         } else {
           recWrapEl.style.display = 'none';
         }
@@ -5184,7 +5184,7 @@ window._icuRenderSplits = function (d, el) {
               const daysLabel = m.daysFromNow >= 0 ? ('za ' + m.daysFromNow + ' dni') : (Math.abs(m.daysFromNow) + ' dni temu');
               return '<div style="position:absolute;left:' + m.pctX.toFixed(2) + '%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">' +
                 '<div style="font-size:14px;line-height:1;">🏁</div>' +
-                '<div title="' + safeName + ' (' + daysLabel + ')" style="font-size:8px;font-family:DM Mono,monospace;color:#e8561e;letter-spacing:0.05em;white-space:nowrap;background:rgba(232,86,30,0.12);padding:1px 5px;border-radius:3px;border:1px solid rgba(232,86,30,0.3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">' + safeName + '</div>' +
+                '<div title="' + safeName + ' (' + daysLabel + ')" style="font-size:8px;font-family:DM Mono,monospace;color:var(--accent);letter-spacing:0.05em;white-space:nowrap;background:rgba(232,86,30,0.12);padding:1px 5px;border-radius:3px;border:1px solid rgba(232,86,30,0.3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">' + safeName + '</div>' +
               '</div>';
             }).join('') +
           '</div>';
@@ -5441,7 +5441,7 @@ window._icuRenderSplits = function (d, el) {
       const h = Math.max((b.trimp / max) * 100, 2);
       const isPeak = b.trimp > 0 && i === peakIdx;
       const isCur = i === curIdx;
-      const grad = isPeak ? 'linear-gradient(180deg,#ff7a3d,#ffb27a)' : 'linear-gradient(180deg,#e8561e,#ff7a3d)';
+      const grad = isPeak ? 'linear-gradient(180deg,#ff7a3d,#ffb27a)' : 'linear-gradient(180deg,var(--accent),#ff7a3d)';
       const glow = isPeak ? 'box-shadow:0 0 10px rgba(255,122,61,0.45);' : '';
       const barTrans = doAnim ? 'transition:height 0.55s cubic-bezier(0.215,0.61,0.355,1);transition-delay:' + (i * 45) + 'ms;' : '';
       const valTrans = doAnim ? 'transition:opacity 0.3s ease;transition-delay:' + (i * 45 + 480) + 'ms;' : '';

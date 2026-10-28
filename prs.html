@@ -75,7 +75,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;}
 </div>
 <script>
 const BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/prs/';
-const COLORS = {'dystans':'#e8561e','tempo':'#5b8cff','czas':'#3db870','final':'#e8561e'};
+const COLORS = {'dystans':'var(--accent)','tempo':'#5b8cff','czas':'#3db870','final':'var(--accent)'};
 
 const params = new URLSearchParams(location.search);
 const dist = parseFloat(params.get('dist')) || 0;

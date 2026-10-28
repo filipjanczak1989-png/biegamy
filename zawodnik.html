@@ -1101,7 +1101,7 @@ body > *{position:relative;z-index:1;}
     <span id="week-km-bar-txt" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);"></span>
   </div>
   <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;">
-    <div id="week-km-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#e8561e,#fb923c);border-radius:4px;transition:width 0.9s var(--ease-out);"></div>
+    <div id="week-km-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#fb923c);border-radius:4px;transition:width 0.9s var(--ease-out);"></div>
   </div>
 </div>
 
@@ -4863,7 +4863,7 @@ async function _renderPredykcje() {
       const gorny = daleko ? baza.s * Math.pow(stosunek, K_GORNA) : null;
       const wartosc = maRekord ? fmt(p.s) : (sprzecznosc ? '—' : fmt(dzis));
       const etykieta = maRekord ? 'Twój rekord' : (sprzecznosc ? 'PB się nie zgadzają' : 'szacunek');
-      const kolor = maRekord ? '#3db870' : (sprzecznosc ? 'rgba(255,255,255,0.35)' : '#e8561e');
+      const kolor = maRekord ? '#3db870' : (sprzecznosc ? 'rgba(255,255,255,0.35)' : 'var(--accent)');
       /* Drugi wiersz zamiast dluzszej liczby: „4:39:23-4:57:22" to 15 znakow
          w kolumnie, ktora dzis ma 7. Kolumna zostaje 7-znakowa. */
       /* ⚠️ WIEK REKORDU. Do dzis karta mowila „Twoj rekord" i milczala o tym,
@@ -6203,7 +6203,7 @@ async function _silnikDebug(autoAnim){
     // surowy debug-div (gated, pointer-events:none, nie dotyka UI zawodnika)
     let el=document.getElementById('silnik-debug');
     if(!el){ el=document.createElement('div'); el.id='silnik-debug';
-      el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid #e8561e;color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
+      el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid var(--accent);color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
       document.body.appendChild(el); }
     el.textContent = moment ? `silnik → ${moment.type} ${JSON.stringify(moment.evidence)}` : 'silnik → CISZA (null)';
     if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5'||moment.type==='najdluzszy'||moment.type==='najmocniejsza')) window._silnikPokazAnimacje(moment, snap.imie);
@@ -9893,13 +9893,13 @@ async function loadSocialFeed(compact) {
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
       +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;">'+(ath.avatar_url?('<img src="'+escapeHtml(ath.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+escapeHtml(ini)+'\'">'):escapeHtml(ini))+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':escapeHtml(name))+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +'<span style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 7px;border-radius:6px;border:1px solid '+col+'55;flex-shrink:0;">'+escapeHtml(type)+'</span>'
       +editBtns+'</div>'
       +(dist
         ?'<div style="display:flex;gap:10px;align-items:center;margin-bottom:3px;">'
         +'<span style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+dist+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">KM</span></span>'
-        +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+l.pace+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
+        +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+escapeHtml(l.pace)+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
         +(feelEmoji?'<div style="margin-left:auto;">'+feelEmoji+'</div>':'')+'</div>':'')
       +(l.comment?'<div style="font-size:11px;color:rgba(255,255,255,0.75);font-family:DM Sans,sans-serif;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"'+escapeHtml(l.comment)+'"</div>':'')
       +(screensHtml?'<div style="margin-top:6px;">'+screensHtml+'</div>':'')
@@ -10916,7 +10916,7 @@ async function openNotifications() {
         badge: 'badge', ai_report: 'ai_report'
       };
       // Fallback gdyby plik nie istniał — emoji
-      var emojiFallback = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋' };
+      var emojiFallback = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋', intervals_dead: '⌚' };
       
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
@@ -10941,6 +10941,8 @@ async function openNotifications() {
           notifClick = "document.getElementById('notif-panel')?.remove();showSection('forma');";
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
+        } else if (n.type==='intervals_dead') {   /* martwy token intervals.icu: powiadomienie prowadzi do „Połącz ponownie” */
+          notifClick = "location.href='profil.html?open=icu';";
         } else if (n.type==='ai_report') {
           var rid = n.related_id || n.report_id || n.entity_id || null;
           if (rid) {
@@ -13345,7 +13347,7 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
     <!-- FORMA tytul + data na dole -->
     <div style="position:absolute;left:18px;right:18px;bottom:16px;z-index:2;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:0.8;color:#fff;letter-spacing:0.01em;margin-top:2px;text-shadow:0 6px 30px rgba(0,0,0,0.55),0 2px 10px rgba(0,0,0,0.7);">FORMA</div>
-      <div style="width:44px;height:3px;border-radius:3px;margin-top:8px;background:linear-gradient(90deg,#e8561e,#ff7a45);box-shadow:0 0 12px rgba(232,86,30,0.7);"></div>
+      <div style="width:44px;height:3px;border-radius:3px;margin-top:8px;background:linear-gradient(90deg,var(--accent),#ff7a45);box-shadow:0 0 12px rgba(232,86,30,0.7);"></div>
     </div>
     <!-- FORMA-BANER-LIVE: zywy wynik gotowosci w pierscieniu grafiki (76.5% x, 48% y) -->
     <div id="forma-baner-wynik" style="position:absolute;left:76.5%;top:51%;transform:translate(-50%,-50%);z-index:3;text-align:center;line-height:0.78;text-shadow:0 2px 14px rgba(0,0,0,0.65);">
@@ -13503,7 +13505,7 @@ if (window.bmRejestrujSW) window.bmRejestrujSW();
          METRIC_TOOLTIPS bez ani jednego wywołania — pełne wyjaśnienie istniało
          w sb.js i nie dało się do niego dojść z żadnego ekranu. Pytanie Maćka
          („nie ma co to trimp") miało odpowiedź napisaną, tylko schowaną. -->
-    <div style="text-align:center;margin-top:2px;font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.4);letter-spacing:0.1em;">TRIMP DZIENNY<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
+    <div style="text-align:center;margin-top:2px;font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.4);letter-spacing:0.1em;">TRIMP DZIENNY<button onclick="event.stopPropagation();window.showMetricTooltip('trimp')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;margin-left:6px;">i</button></div>
   </div>
 
 
@@ -14859,9 +14861,9 @@ function _renderBadgeEvent(l, ath) {
   return `<div style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
     <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${col},${col}44);"></div>
     <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${escapeHtml(ini)}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;">${name}</div>
+        <div style="font-size:12px;font-weight:600;">${escapeHtml(name)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">zdobył odznakę · ${date}</div>
       </div>
       <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
