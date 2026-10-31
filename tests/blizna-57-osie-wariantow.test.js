@@ -161,3 +161,96 @@ test('strefa tekstu: pejzaż (.bm-hero) = lewa dolna ćwiartka; „Dziś" (9:16)
     assert.match(zdaniaOsi(osie(n, { pula: 'dzis', sezon: 'lato' }), null).kompozycja, /dolna część spokojna/);
   }
 });
+
+/* ── RÓŻNORODNOŚĆ Z PROMPTU (31.10.2026, po siatce pejzaży) ──────────────────────────────────────────────────
+   LEKCJA: oś „(n·k) % 4" z nieparzystym k to n % 4 w przebraniu. Pejzaż bez tagów ma porę roku n % 4, więc pogoda,
+   pora dnia i kompozycja były STAŁE w obrębie pory (lato = zawsze „po deszczu", jesień = zawsze mgła), a test
+   sprawdzający LISTĘ wartości był zielony. Dlatego te testy czytają WARTOŚCI Z PROMPTU — wyjście generatora
+   (--pokaz-prompty), z tagami, nocami, wyjątkami i regułami — nie tablice w osie.mjs. */
+const { execFileSync } = require('node:child_process');
+const KORZEN = path.join(__dirname, '..');
+function zPromptu(argi) {
+  const out = execFileSync(process.execPath, ['tools/kadry/generuj-kadry.mjs', '--out', 'x', ...argi, '--pokaz-prompty'], { cwd: KORZEN, encoding: 'utf8' });
+  const rek = []; let biezacy = null;
+  for (const l of out.split(/\r?\n/)) {
+    const h = l.match(/^--- \w+ (\d+) .*pora roku: (\w+)/);
+    if (h) { biezacy = { n: +h[1], sezon: h[2] }; continue; }
+    const o = l.match(/^\s+osie: kompozycja \d+ „([^"]+)" · .* · pora dnia „([^"]+)" · pogoda „([^"]+)"/);
+    if (o && biezacy) { rek.push({ ...biezacy, komp: o[1], pora: o[2], pogoda: o[3] }); biezacy = null; }
+  }
+  return rek;
+}
+const OSI = ['pogoda', 'pora', 'komp'];
+const SLONCE = /słońc|czyste/;
+/** Zwraca listę naruszeń (a)–(e) dla rekordów { n, sezon, komp, pora, pogoda }. */
+function naruszenia(rek, { coCztery = false, kategoria = (r) => r.pogoda } = {}) {
+  const zle = [], poN = new Map(rek.map((r) => [r.n, r])), rozne = (lista, k) => new Set(lista.map((r) => r[k])).size;
+  const okna = [];
+  for (let i = 0; i + 6 <= rek.length; i++) okna.push(['(a) kolejne', rek.slice(i, i + 6)]);
+  if (coCztery) for (const r of rek) { const c = [0, 4, 8, 12, 16, 20].map((d) => poN.get(r.n + d)); if (c.every(Boolean)) okna.push(['(b) co 4', c]); }
+  for (const [rodzaj, okno] of okna) {
+    for (const k of OSI) if (rozne(okno, k) < 3) zle.push(`${rodzaj} od ${okno[0].n}: ${k} ma ${rozne(okno, k)} wartości`);
+    for (const [x, y] of [['pogoda', 'pora'], ['pogoda', 'komp'], ['pora', 'komp']]) {
+      const wart = (r, k) => (k === 'pogoda' ? kategoria(r) : r[k]);
+      const pary = new Set(okno.map((r) => wart(r, x) + '|' + wart(r, y))).size;
+      if (pary < 3) zle.push(`(e) ${rodzaj} od ${okno[0].n}: para ${x}×${y} ma ${pary} kombinacji`);
+    }
+  }
+  const pory = {};
+  for (const r of rek) (pory[r.sezon] ||= []).push(r);
+  for (const [s, lista] of Object.entries(pory)) {
+    /* (e) w obrębie pory roku, na kategoriach: oś nie może być przesuniętą kopią innej (pora = pogoda + stała daje
+       tyle par, ile wartości, i w oknach przechodziło „≥ 3 pary"). Liczone na całej porze, nie w oknie 6 — przy 5–6
+       różnych wartościach w oknie przyporządkowanie wygląda na funkcję przypadkiem. */
+    if (lista.length >= 12) for (const [x, y] of [['pogoda', 'pora'], ['pogoda', 'komp'], ['pora', 'komp']]) {
+      const w = (r, k) => (k === 'pogoda' ? kategoria(r) : r[k]);
+      const pary = new Set(lista.map((r) => w(r, x) + '|' + w(r, y))).size;
+      const ix = new Set(lista.map((r) => w(r, x))).size, iy = new Set(lista.map((r) => w(r, y))).size;
+      if (pary <= Math.max(ix, iy)) zle.push(`(e) ${s}: ${y} to przesunięta kopia ${x} (${pary} par przy ${ix}/${iy} wartościach)`);
+    }
+    for (const k of OSI) if (rozne(lista, k) < 3) zle.push(`(c) ${s}: ${k} ma ${rozne(lista, k)} wartości (${[...new Set(lista.map((r) => r[k]))].join(' / ')})`);
+    if (s === 'wiosna' || s === 'lato') {
+      const z = lista.filter((r) => !r.pogoda.startsWith('('));
+      const jasne = z.filter((r) => SLONCE.test(r.pogoda)).length;
+      if (z.length && jasne / z.length < 0.6) zle.push(`(d) ${s}: słońce/czyste niebo w ${jasne}/${z.length} pogód`);
+    }
+    if (s === 'lato') for (const r of lista) if (/mgł/.test(r.pogoda)) zle.push(`(d) lato ${r.n}: mgła z osi`);
+  }
+  return zle;
+}
+
+test('różnorodność z PROMPTU: pejzaż 1–120 — okna 6 kolejnych, ciągi co 4, pory roku, słońce wiosną i latem, pary osi', async () => {
+  const { POGODA_PORY } = await wczytaj();
+  const rek = zPromptu(['--pula', 'pejzaz', '--od', '1', '--do', '120']);
+  assert.equal(rek.length, 120);
+  /* (e) na KATEGORII pogody: tekst z promptu → pozycja na liście swojej pory („czyste niebo" wiosną i „czyste mroźne
+     niebo" zimą to ta sama kategoria); noc / tag zostają osobnymi wartościami. */
+  const kategoria = (r) => { const i = (POGODA_PORY[r.sezon] || []).indexOf(r.pogoda); return i >= 0 ? 'k' + i : r.pogoda; };
+  const zle = naruszenia(rek, { coCztery: true, kategoria });
+  assert.deepEqual(zle, [], zle.slice(0, 12).join('\n'));
+  const pejzaz40 = naruszenia(rek.filter((r) => r.n <= 40));
+  assert.deepEqual(pejzaz40.filter((z) => z.startsWith('(c)') || z.startsWith('(d)')), [], 'pejzaż 1–40 per pora roku');
+});
+
+test('różnorodność z PROMPTU: „Dziś" 66–89 per pora roku (tagi, noce i wyjątki sceny włącznie)', () => {
+  const rek = zPromptu(['--od', '66', '--do', '89']);
+  assert.equal(rek.length, 24);
+  const zle = naruszenia(rek).filter((z) => z.startsWith('(c)') || z.startsWith('(d)'));
+  assert.deepEqual(zle, [], zle.join('\n'));
+});
+
+test('MUTACJA: stary wzór (n·11)%4, (n·5)%4, (n·7)%4 musi oblać (a) albo (c) — inaczej test niczego nie odróżnia', () => {
+  const POG = ['czyste niebo', 'zachmurzenie', 'mgła', 'po deszczu'], PORY = ['świt', 'rano', 'południe', 'zmierzch'], SEZ = ['wiosna', 'lato', 'jesien', 'zima'];
+  const rek = [];
+  for (let n = 1; n <= 40; n++) rek.push({ n, sezon: SEZ[n % 4], pogoda: POG[(n * 11) % 4], pora: PORY[(n * 5) % 4], komp: String((n * 7) % 4) });
+  const zle = naruszenia(rek, { coCztery: true });
+  assert.ok(zle.some((z) => z.startsWith('(a)') || z.startsWith('(c)')), 'stary wzór przeszedł test różnorodności');
+});
+
+test('MUTACJA 2: pora dnia jako przesunięta kopia pogody — (m + 2) % 4 — musi oblać (e) w obrębie pory roku', () => {
+  const POG = ['czyste niebo', 'zachmurzenie', 'mgła', 'po deszczu'], PORY = ['świt', 'rano', 'południe', 'zmierzch'], SEZ = ['wiosna', 'lato', 'jesien', 'zima'];
+  const rek = [];
+  for (let n = 1; n <= 120; n++) { const m = n + Math.floor(n / 4); rek.push({ n, sezon: SEZ[n % 4], pogoda: POG[m % 4], pora: PORY[(m + 2) % 4], komp: String((2 * m + Math.floor(m / 4)) % 4) }); }
+  assert.ok(naruszenia(rek, { coCztery: true }).some((z) => z.startsWith('(e)') && z.includes('przesunięta kopia')), 'kopia pogody przeszła (e)');
+});
+

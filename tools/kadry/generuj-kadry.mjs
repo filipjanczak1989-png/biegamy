@@ -56,9 +56,9 @@ const mTagi = sb.match(/var TAGI = (\{[\s\S]*?\});/);
 if (!mTagi) { console.error("nie znalazłem `var TAGI = {...};` w sb.js"); process.exit(2); }
 const TAGI = new Function("return " + mTagi[1])();
 /* Pora roku kadru (tag s:) — ta sama funkcja co SOLO.sezonKadru w sb.js, wycięta z pliku, nie przepisana. */
-const mSezon = sb.match(/var PORY = (\[[^\]]*\]);\s*function sezonKadru\(n\)\{([^\r\n]*)\}/);
+const mSezon = sb.match(/var PORY = (\[[^\]]*\]);\s*function sezonKadru\(n(?:, ?tagi)?\)\{([^\r\n]*)\}/);
 if (!mSezon) { console.error("nie znalazłem `var PORY` + `function sezonKadru` w sb.js"); process.exit(2); }
-const zbudujSezon = new Function("TAGI", "var PORY = " + mSezon[1] + "; return function(n){" + mSezon[2] + "};");
+const zbudujSezon = new Function("TAGI", "var PORY = " + mSezon[1] + "; return function(n, tagi){" + mSezon[2] + "};");
 const sezonKadru = zbudujSezon(TAGI);
 /* Pejzaż ma własną numerację — tagi kadrów Dziś go nie dotyczą: ta sama reguła (noce n % 12, reszta n % 4) bez TAGI. */
 const sezonPejzazu = zbudujSezon({});
@@ -122,12 +122,14 @@ const SCENA_Z_PODPISU = {
   75: { scena: "bidon i zegarek sportowy na murku, ostre światło", poraDnia: "południe", ogniskowa: 2,
         kadr: "Kadr: zbliżenie — bidon i zegarek sportowy na murku, bez człowieka: żadnej twarzy, żadnych dłoni ani części ciała w kadrze.",
         kompozycja: "Kompozycja: przedmioty w środkowej części kadru, tło miękko rozmyte, dolna część spokojna, bez ważnych szczegółów." },
-  83: { scena: "mokry park, pusta alejka", poraDnia: "świt", naw: "alejka",
+  /* 83 (decyzja Filipa po siódemce 31.10): mgła o świcie z osi dawała drugi szary kadr wiosny → własne światło */
+  83: { scena: "park o świcie, niskie słońce między drzewami, mokra alejka błyszczy, świeża zieleń", poraDnia: "świt", naw: "alejka",
+        pogoda: "czyste niebo, niskie słońce",
         kadr: "Kadr: bez człowieka — pusta mokra alejka w parku. Żadnych ludzi.",
         kompozycja: "Kompozycja: alejka prowadzi wzrok w głąb, dolna część spokojna — mokra nawierzchnia, bez ważnych szczegółów." },
   /* 88 bez numeru startowego (decyzja Filipa po siatce G2): podpis o starcie czytelny bez cyfr na kadrze */
   88: { scena: "buty startowe i agrafki na stole, obok zegarek sportowy, poranek", poraDnia: "rano", ogniskowa: 2,
-        kadr: "Kadr: zbliżenie — buty startowe i agrafki na stole, obok zegarek sportowy, bez człowieka: żadnej twarzy, żadnych dłoni ani części ciała w kadrze.",
+        kadr: "Kadr: zbliżenie — buty startowe i agrafki na stole, obok zegarek sportowy; buty jednolite, bez pasków i oznaczeń. Bez człowieka: żadnej twarzy, żadnych dłoni ani części ciała w kadrze.",
         kompozycja: "Kompozycja: przedmioty w środkowej części kadru, tło miękko rozmyte, dolna część spokojna, bez ważnych szczegółów." },
 };
 

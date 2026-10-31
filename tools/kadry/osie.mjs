@@ -55,14 +55,33 @@ export function detalNumeru(n, sezon) {
   return lista[Math.floor(n / 5) % lista.length];
 }
 export const PORY_DNIA = ["świt", "rano", "południe", "zmierzch"];
-export const POGODA = ["czyste niebo", "zachmurzenie", "mgła", "po deszczu, mokra nawierzchnia"];
+/* Pogoda wg pory roku (decyzja Filipa po siatce pejzaży, 31.10.2026): stara wspólna lista miała 3 szare wartości na 4,
+   a przy indeksie zależnym od n % 4 każda pora dostawała JEDNĄ (lato = zawsze „po deszczu"). Wiosna i lato jasne,
+   jesień i zima jak były; „odwilż — mokry śnieg" zastępuje dawną regułę zima + po deszczu. Mgła: patrz mglaWPogodzie. */
+export const POGODA_PORY = {
+  wiosna: ["czyste niebo", "czyste niebo i świeża zieleń", "po deszczu i słońce wraca", "mgła o świcie"],
+  lato: ["czyste niebo", "ostre słońce i cienie", "lekkie chmury i słońce przebija", "po letniej burzy — mokra droga paruje w słońcu"],
+  jesien: ["czyste niebo i złote światło", "zachmurzenie", "mgła", "po deszczu"],
+  zima: ["czyste mroźne niebo", "zachmurzenie", "mgła szronowa", "odwilż — mokry śnieg"],
+};
+export const POGODA = POGODA_PORY.jesien;   // zgodność wstecz (nazwy wartości jesieni = dawna lista bez „mokrej nawierzchni")
+const mglaWPogodzie = (p) => /mgł/.test(p || "");
 export const OGNISKOWE = [
   "obiektyw 24 mm, szeroki plan, dużo tła",
   "obiektyw 50 mm, naturalna perspektywa",
   "obiektyw 85 mm, kompresja planów, płytka głębia ostrości",
 ];
 
-export const indeksy = (n) => ({ kompozycja: (n * 7) % 4, podmiot: (n * 3) % 5, poraDnia: (n * 5) % 4, pogoda: (n * 11) % 4, ogniskowa: (n * 13) % 3 });
+/* LEKCJA (31.10.2026): oś „(n·k) % 4" z nieparzystym k to n % 4 w przebraniu — a pora roku pejzażu (i kadrów bez tagu)
+   to też n % 4, więc pogoda, pora dnia i kompozycja były STAŁE w obrębie pory. Teraz osie mod 4 liczone od
+   m = n + floor(n/4): przesunięcie co cztery numery rozbija zależność od n % 4 (blizna-57 czyta wartości z promptu).
+   Wzór wybrany WYSZUKIWANIEM pod test, nie zgadnięty: propozycja „pora (3m+1)%4, kompozycja (m+floor(m/4))%4" obalona —
+   (3m+1)%4 to przesunięta kopia pogody (4/16 par), a reguła „mgła tylko o świcie" zlewała dwie z trzech pór w oknie.
+   Z 1024 + 528 kandydatów 283 przeszło (a)–(e) z regułami generatora; ten jest najprostszy przy pogodzie m % 4. */
+export const indeksy = (n) => {
+  const m = n + Math.floor(n / 4);
+  return { kompozycja: (2 * m + Math.floor(m / 4)) % 4, podmiot: (n * 3) % 5, poraDnia: (Math.floor(n / 2) + Math.floor(m / 16)) % 4, pogoda: m % 4, ogniskowa: (n * 13) % 3 };
+};
 
 /** Osie numeru n po regułach nadrzędnych.
  *  opts: { pula: "dzis"|"pejzaz", sezon, tagP, tagT, wyjatek, nawierzchnia (klucz NAWIERZCHNIE sceny) } */
@@ -78,12 +97,13 @@ export function osie(n, opts = {}) {
   const silownia = opts.tagT === "silownia";
   const wyj = opts.wyjatek || null;
 
-  let pogoda = POGODA[i.pogoda];
+  if (!POGODA_PORY[opts.sezon]) throw new Error(`osie kadru ${n}: nieznana pora roku „${opts.sezon}"`);
+  let pogoda = POGODA_PORY[opts.sezon][i.pogoda];
   if (opts.tagP || silownia || nocPejzaz) pogoda = null;              // pogodę niesie scena tagu / wnętrze / linia nocy
-  else if (opts.sezon === "zima" && i.pogoda === 3) pogoda = "po odwilży, mokry śnieg i błoto pośniegowe";
+  if (wyj && wyj.pogoda && !opts.tagP && !noc) pogoda = wyj.pogoda;    // wyjątek sceny z własnym światłem (83: słońce zamiast mgły z osi)
 
   let poraDnia = nocPejzaz ? "noc, latarnie, mokra nawierzchnia odbija światło" : noc ? "noc, czołówka, latarnie" : PORY_DNIA[i.poraDnia];
-  const mgla = opts.tagP === "mgla" || (!opts.tagP && !silownia && i.pogoda === 2);
+  const mgla = opts.tagP === "mgla" || (!opts.tagP && !silownia && mglaWPogodzie(pogoda));
   if (mgla && !noc && (poraDnia === "południe" || poraDnia === "zmierzch")) poraDnia = "świt";
   if (opts.tagP === "upal" && !noc) poraDnia = "południe";             // scena upału mówi „ostre południowe światło"
   if (wyj && wyj.poraDnia && !noc) poraDnia = wyj.poraDnia;

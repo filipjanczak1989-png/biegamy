@@ -6360,25 +6360,42 @@ window.BANERY = (function(){
     compare:'assets/ui/naglowki/naglowek-compare.webp'
   };
   var POZYCJA = { kalendarz:'center 45%', raporty:'center 30%', nutrition:'center 30%', ankieta:'center 30%', compare:'center 40%' };
+  /* PEJZAŻE (31.10.2026, Grafiki v4 / G3): 10 widoków z .bm-hero bierze pejzaż dnia 21:9 z biegamy-assets
+     (pejzaz-NN.jpg, SOLO.pejzazDnia — pora roku dnia, własna historia). Indeks w STRONY = przesunięcie strony.
+     Stary obraz (FLOTA/STALE) zostaje jako zapas: PEJZAZE_N = 0 albo brak SOLO → stary URL od razu;
+     błąd ładowania pejzażu → img.onerror podmienia na stary URL, dopiero jego błąd zostawia gradient. */
+  var PEJZAZE_N = 40;
+  var STRONY = ['races','kalendarz','raporty','nutrition','odznaki','wyzwania','radio','compare','trener','ankieta'];
+  var POZ_PEJZAZ = 'center 55%';
   var d = new Date();
   var dayNum = Math.floor((d.getTime() - d.getTimezoneOffset()*60000)/86400000);
-  function src(page){
+  function pejzaz(page){
+    var k = STRONY.indexOf(page); if (k < 0 || !(PEJZAZE_N > 0) || !window.SOLO || !window.SOLO.pejzazDnia || !window.assetUrl) return null;
+    var n = window.SOLO.pejzazDnia(PEJZAZE_N, dayNum, k); if (!n) return null;
+    return window.assetUrl('pejzaz-' + String(n).padStart(2,'0') + '.jpg');
+  }
+  function stary(page){
     if (STALE[page]) return STALE[page];
     var n = FLOTA[page]; if(!n) return null;
     var idx = (n==='tydzien') ? ((d.getDay()+6)%7 + 1) : (dayNum % n + 1);
     return 'assets/ui/banery/baner-' + page + '-' + String(idx).padStart(2,'0') + '.webp';
   }
+  function src(page){ return pejzaz(page) || stary(page); }
   function dolozObraz(sekcja){
     if (sekcja.querySelector('.bm-hero-img')) return;
-    var s = src(sekcja.getAttribute('data-bm-hero')); if(!s) return;
+    var page = sekcja.getAttribute('data-bm-hero');
+    var pz = pejzaz(page), zapas = stary(page), s = pz || zapas; if(!s) return;
     var img = document.createElement('img');
     img.className = 'bm-hero-img'; img.alt = ''; img.decoding = 'async';
-    img.style.setProperty('--bm-hero-poz', POZYCJA[sekcja.getAttribute('data-bm-hero')] || 'center 38%');
+    var poz = function(){ img.style.setProperty('--bm-hero-poz', (pz && img.src.indexOf('pejzaz-') >= 0) ? POZ_PEJZAZ : (POZYCJA[page] || 'center 38%')); };
     img.onload = function(){ img.classList.add('on'); };
-    img.onerror = function(){ img.remove(); sekcja.classList.remove('z-obrazem'); };
+    img.onerror = function(){
+      if (pz && zapas && img.getAttribute('data-zapas') !== '1') { img.setAttribute('data-zapas','1'); pz = null; poz(); img.src = zapas; return; }
+      img.remove(); sekcja.classList.remove('z-obrazem');
+    };
     sekcja.classList.add('z-obrazem');
     sekcja.insertBefore(img, sekcja.firstChild);
-    img.src = s;
+    img.src = s; poz();
   }
   function ozyw(root){
     (root || document).querySelectorAll('[data-bm-hero]').forEach(dolozObraz);
@@ -6396,9 +6413,11 @@ window.BANERY = (function(){
     var host = document.querySelector(sel); if(!host) return;
     host.appendChild(hero(page, tytul, opis));
   }
+  /* else: mikrozadanie, nie od razu — SOLO (pejzazDnia) jest definiowane NIŻEJ w tym pliku; wywołanie wprost przy
+     sb.js ładowanym po parsowaniu dokumentu dawałoby zawsze stary obraz. */
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ ozyw(); });
-  else ozyw();
-  return { src:src, hero:hero, mount:mount, ozyw:ozyw, _dayNum:dayNum };
+  else Promise.resolve().then(function(){ ozyw(); });
+  return { src:src, stary:stary, pejzaz:pejzaz, hero:hero, mount:mount, ozyw:ozyw, STRONY:STRONY, _dayNum:dayNum };
 })();
 
 /* ===== PUSTKA v1 (WIZUAL E4-P2): ilustrowane puste stany ===== */
@@ -6521,7 +6540,7 @@ window.SOLO = (function(){
      Jawne s: w TAGI (od 66) wygrywa z wzorem — pula nowych numerów jest rozkładana ręcznie, 6 na porę.
      Ta sama funkcja wyznacza porę w prompcie generatora (tools/kadry/generuj-kadry.mjs czyta ją z tego pliku). */
   var PORY = ['wiosna','lato','jesien','zima'];
-  function sezonKadru(n){ var tg=TAGI[n]||{}; return tg.s?tg.s:tg.p==='snieg'?'zima':tg.p==='upal'?'lato':n%12===0?PORY[(n/12-1)%4]:PORY[n%4]; }
+  function sezonKadru(n, tagi){ var tg=(tagi||TAGI)[n]||{}; return tg.s?tg.s:tg.p==='snieg'?'zima':tg.p==='upal'?'lato':n%12===0?PORY[(n/12-1)%4]:PORY[n%4]; }
   function sezonDnia(teraz){
     var m=0; try{ m=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Warsaw',month:'numeric'}).format(teraz||new Date()); }catch(e){ m=(teraz||new Date()).getMonth()+1; }
     return (m>=3&&m<=5)?'wiosna':(m>=6&&m<=8)?'lato':(m>=9&&m<=11)?'jesien':'zima';
@@ -6532,21 +6551,26 @@ window.SOLO = (function(){
      Anty-powtórka = min(30, floor(pula pory / 2)) ostatnich kadrów — pula jednej pory to ~16, więc stałe 30
      wyczerpałoby ją w 5 dni. Pula NIGDY pusta: gdy anty-powtórka zjada wszystko, odpada anty-powtórka; gdy
      pogoda — odpada pogoda; gdy pora — cała pula. `teraz` (Date) tylko dla testów. */
-  function dopasujN(N, dayNum, ile, teraz){
+  /* PULE (31.10.2026, Grafiki v4 / G3): każda pula ma WŁASNY wynik dnia i WŁASNĄ historię — pejzaże wołane przez
+     te same klucze nadpisałyby kadry „Dziś" (solo_dzien) i zjadały ich anty-powtórkę. Pejzaż nie ma tagów: pora roku
+     z samego wzoru (sezonKadru bez TAGI), bez wykluczeń pogody i bez preferencji typu treningu. */
+  var PULE = { dzis:{ dzien:'solo_dzien', hist:'solo_hist', tagi:null }, pejzaz:{ dzien:'solo_dzien_pejzaz', hist:'solo_hist_pejzaz', tagi:{} } };
+  function dopasujN(N, dayNum, ile, teraz, pulaId){
     ile = Math.max(1, (ile|0) || 1);
-    try{ var c=JSON.parse(localStorage.getItem('solo_dzien')||'null');
+    var P=PULE[pulaId]||PULE.dzis, TG=P.tagi||TAGI;
+    try{ var c=JSON.parse(localStorage.getItem(P.dzien)||'null');
       if(c&&c.d===dayNum&&c.N===N&&c.ile===ile&&Array.isArray(c.nr)&&c.nr.length) return c.nr.slice(); }catch(e){}
     var salt=0; try{ salt=+localStorage.getItem('solo_salt')||0;
       if(!salt){ salt=1+Math.floor(Math.random()*999983); localStorage.setItem('solo_salt',String(salt)); } }catch(e){}
-    var hist=[]; try{ hist=JSON.parse(localStorage.getItem('solo_hist')||'[]'); }catch(e){}
-    var pog=pogoda(), tt=typ(), sez=sezonDnia(teraz);
+    var hist=[]; try{ hist=JSON.parse(localStorage.getItem(P.hist)||'[]'); }catch(e){}
+    var pog=P.tagi?null:pogoda(), tt=P.tagi?null:typ(), sez=sezonDnia(teraz);
     var wszystkie=[], sezonu=[];
-    for(var n=1;n<=N;n++){ wszystkie.push(n); if(sezonKadru(n)===sez) sezonu.push(n); }
+    for(var n=1;n<=N;n++){ wszystkie.push(n); if(sezonKadru(n,TG)===sez) sezonu.push(n); }
     var limit=Math.min(30, Math.floor(sezonu.length/2));
     var ostatnie=hist.slice(-limit);
     function filtr(zbior, zPogoda, zHist){
       return zbior.filter(function(n){
-        var tg=TAGI[n]||{};
+        var tg=TG[n]||{};
         if(zPogoda&&pog&&WYKL[pog]&&tg.p&&WYKL[pog].indexOf(tg.p)>=0) return false;   /* twarde wykluczenie pogody */
         if(zHist&&limit>0&&ostatnie.indexOf(n)>=0) return false;                     /* anty-powtórka */
         return true;
@@ -6556,7 +6580,7 @@ window.SOLO = (function(){
     if(pula.length<ile) pula=filtr(sezonu,true,false);
     if(!pula.length) pula=sezonu.slice();
     if(!pula.length) pula=wszystkie;
-    var pref=pula.filter(function(n){ var tg=TAGI[n]||{}; return (tt&&tg.t===tt)||(pog&&tg.p===pog); });
+    var pref=pula.filter(function(n){ var tg=TG[n]||{}; return (tt&&tg.t===tt)||(pog&&tg.p===pog); });
     var wynik=[];
     for(var k=0;k<ile&&pula.length;k++){
       var r1=rnd(dayNum*2654435761+salt+k*7919), r2=rnd(dayNum*40503+salt*7+k*104729);
@@ -6566,12 +6590,22 @@ window.SOLO = (function(){
       pula=pula.filter(function(x){ return x!==nn; }); pref=pref.filter(function(x){ return x!==nn; });
     }
     try{ hist=hist.concat(wynik); while(hist.length>30) hist.shift();
-      localStorage.setItem('solo_hist',JSON.stringify(hist));
-      localStorage.setItem('solo_dzien',JSON.stringify({ d:dayNum, N:N, ile:ile, nr:wynik })); }catch(e){}
+      localStorage.setItem(P.hist,JSON.stringify(hist));
+      localStorage.setItem(P.dzien,JSON.stringify({ d:dayNum, N:N, ile:ile, nr:wynik })); }catch(e){}
     return wynik;
   }
   function dopasuj(N, dayNum){ return dopasujN(N, dayNum, 1)[0]; }
-  return { dopasuj:dopasuj, dopasujN:dopasujN, sezonKadru:sezonKadru, sezonDnia:sezonDnia, _pogoda:pogoda, _typ:typ };
+  /* pejzazDnia (G3): JEDEN pejzaż dnia z puli (własna historia), a strona `przes` dostaje pejzaż o `przes` dalej
+     na liście pejzaży tej pory roku — 10 stron tego samego dnia widzi różne kadry, a wszystkie są z dzisiejszej pory.
+     Pora ma ≥ 8 pejzaży przy N = 40, więc przy 10 stronach powtarzają się najwyżej dwie (wiosna). N = 0 → null. */
+  function pejzazDnia(N, dayNum, przes, teraz){
+    if(!(N>0)) return null;
+    var baza=dopasujN(N, dayNum, 1, teraz, 'pejzaz')[0], sez=sezonKadru(baza,{}), lista=[];
+    for(var n=1;n<=N;n++) if(sezonKadru(n,{})===sez) lista.push(n);
+    var i=lista.indexOf(baza); if(i<0) return baza;
+    return lista[(i+((przes|0)%lista.length)+lista.length)%lista.length];
+  }
+  return { dopasuj:dopasuj, dopasujN:dopasujN, pejzazDnia:pejzazDnia, sezonKadru:sezonKadru, sezonDnia:sezonDnia, _pogoda:pogoda, _typ:typ };
 })();
 
 // ════════════════════════════════════════════════════════════════════

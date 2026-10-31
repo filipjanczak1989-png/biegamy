@@ -160,3 +160,58 @@ Generator: `--pula dzis|pejzaz|typ|strona`, `--format 9x16|21x9`; kadry 1–65 p
 | Zastępczy | rower oparty o płot o świcie |
 
 **Koszt 2K:** do sprawdzenia w rozliczeniu AI Studio po G2 (stawka $0,034 dotyczy 1K).
+
+## LEKCJA (31.10.2026): oś „mod 4" z nieparzystym mnożnikiem to n % 4 w przebraniu
+
+Osie G1 liczyły pogodę `(n·11)%4`, porę dnia `(n·5)%4` i kompozycję `(n·7)%4`. Każdy nieparzysty mnożnik jest
+względnie pierwszy z 4, więc każda z tych osi to bijekcja `n % 4` — a pora roku pejzażu (i kadrów bez tagu) to też
+`n % 4`. Skutek: w obrębie pory roku pogoda, pora dnia i kompozycja były **stałe** (lato = zawsze „po deszczu",
+jesień = zawsze mgła, zima = zawsze zachmurzenie). Filip zobaczył to na siatce jako „głównie jesienno-zimowo".
+`blizna-57` była zielona, bo sprawdzała **listy** wartości, nie to, co trafia do promptu.
+
+**Reguła:** test różnorodności czyta **prompt** (wyjście generatora `--pokaz-prompty`, z tagami, nocami, wyjątkami
+i regułami), nie tablice w kodzie. Wzór wybiera się **wyszukiwaniem pod test**, nie zgaduje.
+
+### Stan po poprawce
+
+- Osie mod 4 od `m = n + floor(n/4)`: **pogoda `m % 4`**, **pora dnia `(floor(n/2) + floor(m/16)) % 4`**,
+  **kompozycja `(2m + floor(m/4)) % 4`**; podmiot `(n·3)%5`, ogniskowa `(n·13)%3` bez zmian.
+  Propozycja „pora `(3m+1)%4`, kompozycja `(m+floor(m/4))%4`" obalona testem: `(3m+1)%4` to przesunięta kopia pogody
+  (4 z 16 par), a reguła „mgła tylko o świcie" zlewała dwie z trzech pór w oknie. Z 1024 + 528 kandydatów 283 przeszło;
+  wybrany najprostszy przy pogodzie `m % 4`.
+- **Pogoda wg pory roku** (`POGODA_PORY`): wiosna i lato jasne (czyste niebo, świeża zieleń / ostre słońce, lekkie
+  chmury, po burzy w słońcu), jesień i zima jak były; „odwilż — mokry śnieg" zastąpiła regułę zima + po deszczu.
+  Tag `p:` wygrywa, mgła tylko o świcie/rano.
+- `blizna-57`: (a) okna 6 kolejnych, (b) ciągi 6 co 4, (c) pejzaż 1–40 i Dziś 66–89 per pora roku — ≥ 3 wartości
+  każdej osi; (d) wiosna i lato ≥ 60 % pogód ze słońcem/czystym niebem, latem bez mgły; (e) ≥ 3 pary w oknie oraz —
+  w obrębie pory, na kategoriach pogody — żadna oś nie jest przesuniętą kopią innej. Mutacje: stary wzór oblewa (a)/(c),
+  kopia pogody `(m+2)%4` oblewa (e).
+
+### Prompty 66–89 w repo ≠ obrazy na prod (notatka, jak przy nawierzchni)
+
+Kadry 66–89 (biegamy-assets `430523b`, 88: `bd842cc`) powstały na osiach G1. Po tej zmianie `--pokaz-prompty` dla
+66–89 pokazuje inne pogody, pory dnia i kompozycje niż te, z których powstały obrazy. Obrazy zostają; ponowne
+wygenerowanie numeru da obraz wg nowych osi. Wyjątki: 73, 74, 77, 78, 79, 81, 83 — regenerowane na nowych osiach
+(decyzja po siatce, podmiana po OK Filipa).
+
+## G3 W KODZIE (31.10.2026): pejzaże 21:9 w `.bm-hero` na 10 widokach
+
+- `SOLO.dopasujN(N, dzień, ile, teraz, pula)` — pula `dzis` (domyślna, klucze `solo_dzien`/`solo_hist`, `TAGI`)
+  albo `pejzaz` (klucze `solo_dzien_pejzaz`/`solo_hist_pejzaz`, bez tagów: pora roku z wzoru, bez wykluczeń pogody
+  i preferencji typu). `sezonKadru(n, tagi)` — drugi argument `{}` = pora pejzażu; generator wycina tę samą funkcję.
+- `SOLO.pejzazDnia(N, dzień, przes)` — jeden pejzaż bazowy dnia (z anty-powtórką), strona `przes` bierze pejzaż
+  o `przes` dalej na liście pejzaży tej pory. Przy N = 40: wiosna 8, lato 11, jesień 11, zima 10 → 10 stron widzi
+  10 różnych pejzaży (wiosną dwa się powtarzają).
+- `BANERY`: `STRONY` = races, kalendarz, raporty, nutrition, odznaki, wyzwania, radio, compare, trener, ankieta
+  (indeks = przesunięcie), `PEJZAZE_N = 40` (= N puli w generatorze, pilnuje test). Zapas: brak SOLO / N = 0 →
+  stary obraz z FLOTA/STALE; błąd pliku pejzażu → stary URL; błąd starego → gradient. Pejzaż: `center 55%`.
+- `ozyw()` przy dokumencie już sparsowanym idzie mikrozadaniem — SOLO jest definiowane w sb.js PO BANERY.
+- `blizna-58`: osobne klucze (mutacja „wspólny klucz" oblewa), 366 dni × 10 stron = pora dnia, różne strony
+  (mutacja „bez przesunięcia" oblewa), anty-powtórka bazy, zapas URL i łańcuch `onerror`.
+
+### Siódemka na nowych osiach (31.10.2026, decyzja Filipa)
+- Podmienione w biegamy-assets: 73, 74, 77, 78, 79, 81 (jaśniejsze, słońce latem i wiosną).
+- 83: na nowych osiach dalej szary („mgła o świcie" z osi) → wyjątek sceny „park o świcie, niskie słońce między
+  drzewami, mokra alejka błyszczy, świeża zieleń" i nowe pole wyjątku **`pogoda`** (nadpisuje oś pogody, jak
+  `poraDnia`/`ogniskowa`; nie działa przy tagu `p:` ani w nocy). Reguła „mgła tylko świt/rano" liczy się teraz od
+  pogody PO wyjątku.
