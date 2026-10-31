@@ -91,7 +91,10 @@ function zbudujPrompt(race: { name: string; city: string | null; distance_km: nu
     /nocn|night/.test(String(race.name || "").toLowerCase())
       ? "Realistyczna fotografia reportażowa nocą: ciemne niebo, światło latarni i czołówek biegaczy."
       : "Realistyczna fotografia reportażowa, naturalne światło dzienne.",
-    "Biegacze w ruchu, bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
+    "Kadr: jeden albo dwóch biegaczy, widzianych z dystansu i od tyłu, daleko od siebie, na pustym odcinku trasy.",
+    "Żadnego tłumu, żadnej grupy biegaczy, żadnego peletonu ani startu masowego.",
+    "Styl dokumentalny: obiektyw 35 mm, lekkie poruszenie sylwetek w ruchu, zróżnicowane zwykłe stroje biegowe, niedoskonałe, nieustawiane światło.",
+    "Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
   ].filter(Boolean).join(" ");
 }
 
