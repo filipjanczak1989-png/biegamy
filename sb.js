@@ -6508,28 +6508,48 @@ window.SOLO = (function(){
   }
   function rnd(seed){ seed=(seed^61)^(seed>>>16); seed=(seed+(seed<<3))|0; seed^=seed>>>4;
     seed=(seed*0x27d4eb2d)|0; seed^=seed>>>15; return ((seed>>>0)%10000)/10000; }
-  /* dopasujN (31.10.2026, „Dziś v2"): `ile` kadrów dnia z tej samej puli, tych samych wykluczeń i tej samej
-     anty-powtórki co dawne dopasuj. Wynik dnia jest ZAPAMIĘTANY (solo_dzien) — do 31.10 każde wejście dopisywało
-     wylosowany kadr do solo_hist, a historia wykluczała go przy następnym, więc przeładowanie tego samego dnia
-     dawało INNY kadr. Teraz: pierwsze wejście dnia losuje i raz dopisuje do historii, kolejne zwracają to samo.
-     Historia = 10 dni (10 × ile), nie 10 kadrów. k=0 liczy r1/r2 tak samo jak dawne dopasuj. */
-  function dopasujN(N, dayNum, ile){
+  /* PORA ROKU (31.10.2026, „Dziś v2" B): każdy kadr ma porę roku (tag s:), dzień ma porę roku z daty w Warszawie,
+     a kadr innej pory jest TWARDO wykluczony — jak pogoda. Do 31.10 SOLO znało tylko pogodę, więc kadr zimowy bez
+     tagu p: mógł wypaść w lipcu. s: = p:snieg → zima, p:upal → lato, kadry nocne (n % 12 = 0) rotują po porach
+     (12 wiosna, 24 lato, 36 jesień, 48 zima, 60 wiosna — inaczej wszystkie pięć byłyby wiosenne), reszta n % 4.
+     Ta sama funkcja wyznacza porę w prompcie generatora (tools/kadry/generuj-kadry.mjs czyta ją z tego pliku). */
+  var PORY = ['wiosna','lato','jesien','zima'];
+  function sezonKadru(n){ var tg=TAGI[n]||{}; return tg.p==='snieg'?'zima':tg.p==='upal'?'lato':n%12===0?PORY[(n/12-1)%4]:PORY[n%4]; }
+  function sezonDnia(teraz){
+    var m=0; try{ m=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Warsaw',month:'numeric'}).format(teraz||new Date()); }catch(e){ m=(teraz||new Date()).getMonth()+1; }
+    return (m>=3&&m<=5)?'wiosna':(m>=6&&m<=8)?'lato':(m>=9&&m<=11)?'jesien':'zima';
+  }
+  /* dopasujN (31.10.2026, „Dziś v2"): `ile` kadrów dnia. Wynik dnia jest ZAPAMIĘTANY (solo_dzien) — do 31.10 każde
+     wejście dopisywało wylosowany kadr do solo_hist, a historia wykluczała go przy następnym, więc przeładowanie
+     tego samego dnia dawało INNY kadr. Kolejność filtrów: pora roku (twardo) → pogoda (twardo) → anty-powtórka.
+     Anty-powtórka = min(30, floor(pula pory / 2)) ostatnich kadrów — pula jednej pory to ~16, więc stałe 30
+     wyczerpałoby ją w 5 dni. Pula NIGDY pusta: gdy anty-powtórka zjada wszystko, odpada anty-powtórka; gdy
+     pogoda — odpada pogoda; gdy pora — cała pula. `teraz` (Date) tylko dla testów. */
+  function dopasujN(N, dayNum, ile, teraz){
     ile = Math.max(1, (ile|0) || 1);
     try{ var c=JSON.parse(localStorage.getItem('solo_dzien')||'null');
       if(c&&c.d===dayNum&&c.N===N&&c.ile===ile&&Array.isArray(c.nr)&&c.nr.length) return c.nr.slice(); }catch(e){}
     var salt=0; try{ salt=+localStorage.getItem('solo_salt')||0;
       if(!salt){ salt=1+Math.floor(Math.random()*999983); localStorage.setItem('solo_salt',String(salt)); } }catch(e){}
     var hist=[]; try{ hist=JSON.parse(localStorage.getItem('solo_hist')||'[]'); }catch(e){}
-    var pog=pogoda(), tt=typ();
-    var pula=[], pref=[];
-    for(var n=1;n<=N;n++){
-      var tg=TAGI[n]||{};
-      if(pog&&WYKL[pog]&&tg.p&&WYKL[pog].indexOf(tg.p)>=0) continue;   /* twarde wykluczenie */
-      if(hist.indexOf(n)>=0) continue;                                  /* anty-powtorka */
-      pula.push(n);
-      if((tt&&tg.t===tt)||(pog&&tg.p===pog)) pref.push(n);
+    var pog=pogoda(), tt=typ(), sez=sezonDnia(teraz);
+    var wszystkie=[], sezonu=[];
+    for(var n=1;n<=N;n++){ wszystkie.push(n); if(sezonKadru(n)===sez) sezonu.push(n); }
+    var limit=Math.min(30, Math.floor(sezonu.length/2));
+    var ostatnie=hist.slice(-limit);
+    function filtr(zbior, zPogoda, zHist){
+      return zbior.filter(function(n){
+        var tg=TAGI[n]||{};
+        if(zPogoda&&pog&&WYKL[pog]&&tg.p&&WYKL[pog].indexOf(tg.p)>=0) return false;   /* twarde wykluczenie pogody */
+        if(zHist&&limit>0&&ostatnie.indexOf(n)>=0) return false;                     /* anty-powtórka */
+        return true;
+      });
     }
-    if(!pula.length) pula=[dayNum%N+1];
+    var pula=filtr(sezonu,true,true);
+    if(pula.length<ile) pula=filtr(sezonu,true,false);
+    if(!pula.length) pula=sezonu.slice();
+    if(!pula.length) pula=wszystkie;
+    var pref=pula.filter(function(n){ var tg=TAGI[n]||{}; return (tt&&tg.t===tt)||(pog&&tg.p===pog); });
     var wynik=[];
     for(var k=0;k<ile&&pula.length;k++){
       var r1=rnd(dayNum*2654435761+salt+k*7919), r2=rnd(dayNum*40503+salt*7+k*104729);
@@ -6538,13 +6558,13 @@ window.SOLO = (function(){
       wynik.push(nn);
       pula=pula.filter(function(x){ return x!==nn; }); pref=pref.filter(function(x){ return x!==nn; });
     }
-    try{ hist=hist.concat(wynik); while(hist.length>10*ile) hist.shift();
+    try{ hist=hist.concat(wynik); while(hist.length>30) hist.shift();
       localStorage.setItem('solo_hist',JSON.stringify(hist));
       localStorage.setItem('solo_dzien',JSON.stringify({ d:dayNum, N:N, ile:ile, nr:wynik })); }catch(e){}
     return wynik;
   }
   function dopasuj(N, dayNum){ return dopasujN(N, dayNum, 1)[0]; }
-  return { dopasuj:dopasuj, dopasujN:dopasujN, _pogoda:pogoda, _typ:typ };
+  return { dopasuj:dopasuj, dopasujN:dopasujN, sezonKadru:sezonKadru, sezonDnia:sezonDnia, _pogoda:pogoda, _typ:typ };
 })();
 
 // ════════════════════════════════════════════════════════════════════

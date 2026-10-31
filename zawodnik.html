@@ -7056,11 +7056,11 @@ const _SOLO_PODPISY = [
   'Trasy się zmieniają. *Nawyk zostaje*.',
   'Jutro pobiegniesz *z nami*?'
 ]   /* SOLO-2: 31-65 */;
-/* KADRY DNIA v2 (31.10.2026): 3 kadry dnia z SOLO.dopasujN (trening + pogoda, wynik stały w ciągu dnia),
+/* KADRY DNIA v2 (31.10.2026): 3 kadry dnia z SOLO.dopasujN (pora roku + pogoda + trening, wynik stały w ciągu dnia),
    każdy z własnym podpisem — podpisy wracają (D1, uchyla PODPISY-OFF z 23.07). Kadr zmienia się na tap (D4).
-   Pula = _SOLO_PODPISY.length = 65 (solo-01..65); commit B przełącza prefiks/rozszerzenie na kadry v2. */
-const SOLO_PREFIX = 'solo-';           // B: 'kadr-' po wgraniu puli v2
-const SOLO_EXT    = '.webp';           // B: '.jpg'
+   Pula = _SOLO_PODPISY.length = 65 (kadr-01..65.jpg, docs/kadry-dnia-spec.md); pora roku kadru = SOLO.sezonKadru. */
+const SOLO_PREFIX = 'kadr-';           // kadry v2 (biegamy-assets 9e008fa); stare solo-NN.webp zostają w assets
+const SOLO_EXT    = '.jpg';
 const SOLO_ILE    = 3;
 let _SOLO_NR = [ (_dayNum % _SOLO_PODPISY.length) + 1 ];
 try { if (window.SOLO && SOLO.dopasujN) _SOLO_NR = SOLO.dopasujN(_SOLO_PODPISY.length, _dayNum, SOLO_ILE); } catch(e){}
