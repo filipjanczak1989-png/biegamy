@@ -392,7 +392,12 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
   <div class="modal-sheet" id="modal-sheet">
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div id="m-cover" style="display:none;width:100%;aspect-ratio:21/9;border-radius:14px;border:1px solid var(--border);background-size:cover;background-position:center;margin-bottom:14px;"></div>
+    <!-- Pasek 21:9 + miniatura 9:16 (tylko trener — to, co zawodnik zobaczy na „Dziś”). Flex 336:81 daje obu tę samą
+         wysokość: 21:9 i 9:16 przy równej wysokości mają szerokości w stosunku 336:81 (zmierzone w Chrome). -->
+    <div id="m-covers" style="display:none;gap:8px;margin-bottom:14px;">
+      <div id="m-cover" style="display:none;flex:336 1 0;min-width:0;aspect-ratio:21/9;border-radius:14px;border:1px solid var(--border);background-size:cover;background-position:center;"></div>
+      <div id="m-cover-9x16" title="Tak zobaczy to zawodnik na „Dziś” w dniu startu" style="display:none;flex:81 1 0;min-width:0;aspect-ratio:9/16;border-radius:10px;border:1px solid var(--border);background-size:cover;background-position:center;"></div>
+    </div>
     <div class="modal-head">
       <div class="modal-dist" id="m-dist"></div>
       <div class="modal-name" id="m-name"></div>
@@ -1176,55 +1181,74 @@ function renderTegoDnia(race, wszystkie) {
     + wiersze.join('');
 }
 
+const KOLUMNA_OKLADKI = { '21x9': 'cover_url', '9x16': 'cover_9x16_url' };
+
 function pokazOkladke(race) {
-  const el = document.getElementById('m-cover');
-  if (!el) return;
+  const wrap = document.getElementById('m-covers');
+  const pas = document.getElementById('m-cover');
+  const pion = document.getElementById('m-cover-9x16');
+  if (!wrap || !pas || !pion) return;
   const s = window.safeCssUrl ? window.safeCssUrl(race.cover_url) : '';
-  el.style.backgroundImage = s ? "url('" + s + "')" : '';
-  el.style.display = s ? 'block' : 'none';
+  const s9 = _isCoach && window.safeCssUrl ? window.safeCssUrl(race.cover_9x16_url) : '';
+  pas.style.backgroundImage = s ? "url('" + s + "')" : '';
+  pas.style.display = s ? 'block' : 'none';
+  pion.style.backgroundImage = s9 ? "url('" + s9 + "')" : '';
+  pion.style.display = s9 ? 'block' : 'none';
+  wrap.style.display = (s || s9) ? 'flex' : 'none';
 }
 
-/* Okładka z EF race-image. Bez force EF oddaje istniejący cover_url bez generowania, więc
-   approveRace i insert trenera wołają to fire-and-forget — zatwierdzenie nie czeka na obraz
-   i nie zależy od niego. Edycja zawodów okładki NIE odświeża (decyzja 31.10): od tego jest
-   „Nowa okładka” (force:true). */
-async function zlecOkladke(raceId, force) {
+/* Okładka z EF race-image, wariant '21x9' (lista, arkusz) albo '9x16' (hero „Dziś” w dniu startu).
+   Bez force EF oddaje istniejący URL wariantu bez generowania, więc approveRace i insert trenera
+   wołają to fire-and-forget — zatwierdzenie nie czeka na obraz i nie zależy od niego. Edycja zawodów
+   okładek NIE odświeża (decyzja 31.10): od tego jest „Nowa okładka” (force:true). */
+async function zlecOkladke(raceId, force, wariant) {
+  wariant = wariant || '21x9';
   try {
     const { data: { session } } = await _sb.auth.getSession();
     if (!session) return null;
     const res = await fetch((window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/race-image', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ race_id: raceId, force: !!force })
+      body: JSON.stringify({ race_id: raceId, force: !!force, wariant })
     });
     const d = await res.json().catch(() => null);
-    if (!res.ok || !d || !d.cover_url) return null;
+    if (!res.ok || !d || !d.url) return null;
+    const kol = KOLUMNA_OKLADKI[wariant];
     const r = _allRaces.find(x => x.id === raceId);
-    if (r) r.cover_url = d.cover_url;
+    if (r) r[kol] = d.url;
     if (_currentRace && _currentRace.id === raceId) {
-      _currentRace.cover_url = d.cover_url;
+      _currentRace[kol] = d.url;
       pokazOkladke(_currentRace);
     }
-    return d.cover_url;
+    return d.url;
   } catch (_) {
     return null;
   }
 }
 
+/* Dwa kadry PO KOLEI, nie równolegle: drugi startuje dopiero po pierwszym (limit Gemini, jeden obraz naraz). */
+async function zlecOkladki(raceId, force) {
+  const pas = await zlecOkladke(raceId, force, '21x9');
+  const pion = await zlecOkladke(raceId, force, '9x16');
+  return { pas, pion };
+}
+
 async function nowaOkladka() {
   if (!_currentRace) return;
   const btn = document.getElementById('m-cover-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję okładkę…'; }
-  const url = await zlecOkladke(_currentRace.id, true);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję 2 kadry…'; }
+  const { pas, pion } = await zlecOkladki(_currentRace.id, true);
   if (btn) { btn.disabled = false; btn.textContent = '🖼 Nowa okładka'; }
-  showToast(url ? 'Nowa okładka gotowa ✓' : 'Nie udało się wygenerować okładki');
+  showToast(pas && pion ? 'Nowe okładki gotowe ✓'
+    : (pas || pion) ? 'Gotowa tylko ' + (pas ? 'szeroka' : 'pionowa') + ' — spróbuj ponownie'
+    : 'Nie udało się wygenerować okładek');
 }
 
 async function approveRace() {
   if (!_currentRace) return;
   const { error } = await _sb.from('races').update({ status: 'approved' }).eq('id', _currentRace.id);
   if (error) { showToast('Błąd: ' + error.message); return; }
-  zlecOkladke(_currentRace.id, false);
+  zlecOkladki(_currentRace.id, false);
   _currentRace.status = 'approved';
   // Aktualizuj lokalnie
   const r = _allRaces.find(r => r.id === _currentRace.id);
@@ -1595,7 +1619,7 @@ async function submitRace() {
   if (result.error) { showToast('Błąd: ' + result.error.message); return; }
 
   // Po OBU ścieżkach insertu (także po ponowieniu z region) — tu `result` jest już ostateczny.
-  if (!_editingRaceId && _isCoach && result.data && result.data.id) zlecOkladke(result.data.id, false);
+  if (!_editingRaceId && _isCoach && result.data && result.data.id) zlecOkladki(result.data.id, false);
 
   if (_editingRaceId) {
     showToast('Zmiany zapisane ✓');

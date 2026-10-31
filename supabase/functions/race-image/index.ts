@@ -1,25 +1,29 @@
-// race-image — okładka zawodów 21:9 z Gemini (Interactions API) do bucketa race-covers.
+// race-image — okładka zawodów z Gemini (Interactions API) do bucketa race-covers, w dwóch wariantach:
+//   21x9 → races.cover_url,      obiekt race-<id>        (lista startów, #race-modal)
+//   9x16 → races.cover_9x16_url, obiekt race-<id>-9x16   (hero „Dziś” w dniu startu; kafel ma aspect-ratio 9/16)
 //
-// Wejście: POST { race_id, force? } z JWT trenera.
-//   - bez force: gdy races.cover_url już jest, zwraca go bez generowania (approveRace i insert trenera
-//     wołają fire-and-forget — drugie wywołanie nie może kosztować drugiego obrazu);
+// Wejście: POST { race_id, force?, wariant? = "21x9" } z JWT trenera.
+//   - bez force: gdy kolumna WARIANTU już ma URL, zwraca go bez generowania (approveRace i insert trenera
+//     wołają fire-and-forget — drugie wywołanie nie może kosztować drugiego obrazu); idempotencja per wariant;
 //   - force:true: przycisk „Nowa okładka” w #race-modal — ten sam prompt, nowe losowanie.
-// Wyjście: { cover_url, wygenerowano }.
+// Wyjście: { wariant, url, wygenerowano } + cover_url przy 21x9 (front sprzed wariantów czyta tylko cover_url).
 //
 // ⚠️ cover_url ZAWSZE z ?v=: sw.js trzyma /storage/v1/object/public/ cache-first po pełnym URL-u,
 //    więc nadpisany plik pod tą samą ścieżką bez nowego ?v= nie dotarłby do nikogo.
 // ⚠️ Wejście NIE niesie niczego do promptu: sceneria wynika z distance_km i słów w name (SCENERIE).
 //    Pola zawodów (nazwa, miasto) idą do promptu przycięte — wpisał je trener albo zawodnik w propozycji.
-// ⚠️ Jeden obiekt na bieg: race-<id> BEZ rozszerzenia, contentType z odpowiedzi Gemini. Zmiana formatu
+// ⚠️ Jeden obiekt na bieg i wariant: race-<id>[-9x16] BEZ rozszerzenia, contentType z odpowiedzi Gemini. Zmiana formatu
 //    (png→jpg) nadpisuje ten sam obiekt zamiast zostawiać sierotę.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
-// Przeskalowanie do SZEROKOSC_DOCELOWA px i JPEG q80 — ten sam wąski import co share-card (tylko
-// jpeg.wasm 90 KB, nie mod.ts z 1,7 MB wasm-ów); jeden moduł dekoduje i koduje.
-// Pomiar 31.10.2026 na okładce z Gemini 1584×672: 1186 KB → 230 KB (−81%), dekod ~140 ms +
-// bilinear ~75 ms + enkod ~90 ms ≈ 0,3 s przy generowaniu trwającym kilkanaście sekund.
+// Skalowanie i JPEG q80 — ten sam wąski import co share-card (tylko jpeg.wasm 90 KB, nie mod.ts
+// z 1,7 MB wasm-ów); jeden moduł dekoduje i koduje. Limit zależy od wariantu (WARIANTY.docelowe):
+//   21x9: szerokość > 1200 → 1200. Pomiar 31.10.2026 na 1584×672: 1186 KB → 230 KB (−81%), dekod ~140 ms +
+//         bilinear ~75 ms + enkod ~90 ms ≈ 0,3 s przy generowaniu trwającym kilkanaście sekund.
+//   9x16: dłuższy bok > 1600 → 1600 (kafel 300×532 CSS px przy DPR 3 to ~900×1600).
+// Bez zmniejszania, ale plik > PROG_PRZEKODOWANIA → przekodowanie q80 w tym samym wymiarze.
 // Skalowanie dekodera (DCT 1/2, 1/4, 1/8) NIE wystarcza: połowa z 1584 to 792 < 1200 — stąd bilinear w JS.
 // PNG/WebP i JPEG inny niż 1 lub 3 kanały (CMYK) → oryginał bez skalowania: obsługa wymagałaby drugiego wasm-a.
 import * as jpegWasm from "https://deno.land/x/imagescript@1.2.15/utils/wasm/jpeg.js";
@@ -27,8 +31,29 @@ const jpeg = jpegWasm as unknown as {
   encode(rgba: Uint8Array, w: number, h: number, q: number): Uint8Array;
   decode(buf: Uint8Array, w: number, h: number): { width: number; height: number; buffer: Uint8Array };
 };
-const SZEROKOSC_DOCELOWA = 1200;
 const JPEG_Q = 80;
+const PROG_PRZEKODOWANIA = 400 * 1024;
+
+type Wymiar = [number, number];
+const WARIANTY: Record<string, {
+  aspect: string; rozmiar: string; forma: string; kolumna: "cover_url" | "cover_9x16_url"; plik: (id: string) => string;
+  kompozycja: string; docelowe: (w: number, h: number) => Wymiar | null;
+}> = {
+  "21x9": {
+    aspect: "21:9", rozmiar: "1K", forma: "Szeroka", kolumna: "cover_url", plik: (id) => `race-${id}`, kompozycja: "",
+    docelowe: (w, h) => w > 1200 ? [1200, Math.round(h * 1200 / w)] : null,
+  },
+  // 9x16 w 2K, nie 1K: 1K w 9:16 ma 768 px szerokości (zmierzone 31.10: 768×1376), a kafel hero przy
+  // ekranie 430 px ma 300 CSS px, czyli ~900 px przy DPR 3 — 1K byłby powiększany. 2K skalujemy do 1600.
+  "9x16": {
+    aspect: "9:16", rozmiar: "2K", forma: "Pionowa", kolumna: "cover_9x16_url", plik: (id) => `race-${id}-9x16`,
+    kompozycja: "Kompozycja pionowa: biegacz w górnej lub środkowej części kadru, dolna jedna trzecia spokojna — pusta nawierzchnia, cień, bez ważnych szczegółów.",
+    docelowe: (w, h) => {
+      const bok = Math.max(w, h);
+      return bok > 1600 ? [Math.round(w * 1600 / bok), Math.round(h * 1600 / bok)] : null;
+    },
+  },
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -80,11 +105,11 @@ function sceneria(race: { name: string; distance_km: number | null }) {
   return "miasto";
 }
 
-function zbudujPrompt(race: { name: string; city: string | null; distance_km: number | null; date: string }) {
+function zbudujPrompt(race: { name: string; city: string | null; distance_km: number | null; date: string }, forma = "Szeroka", kompozycja = "") {
   const miesiac = Number(String(race.date).slice(5, 7));
   const pora = miesiac <= 2 || miesiac === 12 ? "zima" : miesiac <= 5 ? "wiosna" : miesiac <= 8 ? "lato" : "jesień";
   return [
-    `Szeroka okładka wydarzenia biegowego: ${dystansOpis(race.distance_km)}`,
+    `${forma} okładka wydarzenia biegowego: ${dystansOpis(race.distance_km)}`,
     race.city ? `w miejscowości ${przytnij(race.city, 60)}` : "",
     `(${przytnij(race.name, 80)}), pora roku: ${pora}.`,
     `Sceneria: ${SCENERIE[sceneria(race)]}.`,
@@ -94,6 +119,7 @@ function zbudujPrompt(race: { name: string; city: string | null; distance_km: nu
     "Kadr: jeden albo dwóch biegaczy, widzianych z dystansu i od tyłu, daleko od siebie, na pustym odcinku trasy.",
     "Żadnego tłumu, żadnej grupy biegaczy, żadnego peletonu ani startu masowego.",
     "Styl dokumentalny: obiektyw 35 mm, lekkie poruszenie sylwetek w ruchu, zróżnicowane zwykłe stroje biegowe, niedoskonałe, nieustawiane światło.",
+    kompozycja,
     "Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
   ].filter(Boolean).join(" ");
 }
@@ -121,12 +147,14 @@ function wyciagnijObraz(json: unknown): { bajty: Uint8Array; mime: string } | nu
   return null;
 }
 
-function przeskaluj(obraz: { bajty: Uint8Array; mime: string }) {
+function przeskaluj(obraz: { bajty: Uint8Array; mime: string }, docelowe: (w: number, h: number) => Wymiar | null) {
   if (obraz.mime !== "image/jpeg") return obraz;
   const { width: W, height: H, buffer: piks } = jpeg.decode(obraz.bajty, 0, 0);
   const kan = piks.length / (W * H);
-  if (W <= SZEROKOSC_DOCELOWA || (kan !== 1 && kan !== 3)) return obraz;
-  const DW = SZEROKOSC_DOCELOWA, DH = Math.round(H * DW / W);
+  if (kan !== 1 && kan !== 3) return obraz;
+  const cel = docelowe(W, H);
+  if (!cel && obraz.bajty.length <= PROG_PRZEKODOWANIA) return obraz;
+  const [DW, DH] = cel || [W, H];
   const sx = W / DW, sy = H / DH;
   const rgba = new Uint8Array(DW * DH * 4);
   for (let y = 0; y < DH; y++) {
@@ -148,7 +176,7 @@ function przeskaluj(obraz: { bajty: Uint8Array; mime: string }) {
   return { bajty: jpeg.encode(rgba, DW, DH, JPEG_Q), mime: "image/jpeg" };
 }
 
-async function generuj(prompt: string) {
+async function generuj(prompt: string, aspect: string, rozmiar: string) {
   const r = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
@@ -156,7 +184,7 @@ async function generuj(prompt: string) {
       model: MODEL,
       input: prompt,
       response_modalities: ["image"],
-      generation_config: { image_config: { aspect_ratio: "21:9", image_size: "1K" } },
+      generation_config: { image_config: { aspect_ratio: aspect, image_size: rozmiar } },
     }),
   });
   const tekst = await r.text();
@@ -174,39 +202,44 @@ Deno.serve(async (req) => {
   const { data: trener } = await sb.from("coaches").select("id").eq("id", user.id).maybeSingle();
   if (!trener) return odpowiedz(403, { error: "tylko trener" });
 
-  let wejscie: { race_id?: unknown; force?: unknown };
+  let wejscie: { race_id?: unknown; force?: unknown; wariant?: unknown };
   try { wejscie = await req.json(); } catch { return odpowiedz(400, { error: "zły JSON" }); }
   const raceId = typeof wejscie.race_id === "string" ? wejscie.race_id : "";
   if (!/^[A-Za-z0-9-]{1,64}$/.test(raceId)) return odpowiedz(400, { error: "race_id" });
   const force = wejscie.force === true;
+  const wariant = wejscie.wariant == null ? "21x9" : String(wejscie.wariant);
+  if (!Object.hasOwn(WARIANTY, wariant)) return odpowiedz(400, { error: "wariant", dozwolone: Object.keys(WARIANTY) });
+  const wd = WARIANTY[wariant];
+  const wynik = (url: string, wygenerowano: boolean) =>
+    odpowiedz(200, { wariant, url, wygenerowano, ...(wariant === "21x9" ? { cover_url: url } : {}) });
 
   const { data: race, error: raceErr } = await sb
     .from("races")
-    .select("id, name, city, distance_km, date, status, cover_url")
+    .select("id, name, city, distance_km, date, status, cover_url, cover_9x16_url")
     .eq("id", raceId)
     .maybeSingle();
   if (raceErr) return odpowiedz(500, { error: "odczyt races" });
   if (!race) return odpowiedz(404, { error: "brak zawodów" });
   if (race.status !== "approved") return odpowiedz(409, { error: "zawody niezatwierdzone" });
-  if (race.cover_url && !force) return odpowiedz(200, { cover_url: race.cover_url, wygenerowano: false });
+  if (race[wd.kolumna] && !force) return wynik(race[wd.kolumna], false);
   if (!GEMINI_API_KEY) return odpowiedz(503, { error: "brak klucza Gemini" });
 
   let obraz;
   try {
-    obraz = await generuj(zbudujPrompt(race));
+    obraz = await generuj(zbudujPrompt(race, wd.forma, wd.kompozycja), wd.aspect, wd.rozmiar);
   } catch (e) {
     console.error("race-image gemini:", raceId, String(e));
     return odpowiedz(502, { error: "generowanie nieudane" });
   }
   if (!obraz) return odpowiedz(502, { error: "odpowiedź bez obrazu" });
   try {
-    obraz = przeskaluj(obraz);
+    obraz = przeskaluj(obraz, wd.docelowe);
   } catch (e) {
     console.error("race-image skalowanie (zapisuję oryginał):", raceId, String(e));
   }
   if (!DOZWOLONE_MIME.has(obraz.mime)) return odpowiedz(502, { error: "nieobsługiwany typ obrazu" });
 
-  const plik = `race-${raceId}`;
+  const plik = wd.plik(raceId);
   const { error: upErr } = await sb.storage.from(BUCKET)
     .upload(plik, obraz.bajty, { contentType: obraz.mime, cacheControl: "31536000", upsert: true });
   if (upErr) {
@@ -216,10 +249,10 @@ Deno.serve(async (req) => {
 
   const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(plik);
   const coverUrl = `${pub.publicUrl}?v=${Date.now()}`;
-  const { error: updErr } = await sb.from("races").update({ cover_url: coverUrl }).eq("id", raceId);
+  const { error: updErr } = await sb.from("races").update({ [wd.kolumna]: coverUrl }).eq("id", raceId);
   if (updErr) {
     console.error("race-image update:", raceId, updErr);
-    return odpowiedz(500, { error: "zapis cover_url" });
+    return odpowiedz(500, { error: `zapis ${wd.kolumna}` });
   }
-  return odpowiedz(200, { cover_url: coverUrl, wygenerowano: true });
+  return wynik(coverUrl, true);
 });

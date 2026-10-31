@@ -7197,7 +7197,7 @@ function _tlaZabezpiecz(root) {
    z migawki, a gdy i ten zawiedzie → domyślny z własnego originu (w precache SW). Nigdy pusty kafel. */
 function _heroZabezpiecz(bg, url) {
   if (!bg || !url || typeof Image === 'undefined') return;
-  const ustaw = (u) => { bg.style.backgroundImage = 'url(' + u + ')'; };
+  const ustaw = (u) => { if (_heroOkladkaDzis()) return; bg.style.backgroundImage = 'url(' + u + ')'; };
   const sonda = (u, ok, zle) => { const im = new Image(); im.onload = () => ok(u); im.onerror = () => zle(u); im.src = u; };
   DzisOffline.userId(sb).then((uid) => {
     sonda(url,
@@ -7205,11 +7205,46 @@ function _heroZabezpiecz(bg, url) {
       () => {
         const m = uid ? DzisOffline.odczytaj(uid) : null;
         const zMig = m && m.czesci && m.czesci.hero;
-        const domyslny = () => { ustaw(DzisOffline.HERO_DOMYSLNY); bg.style.opacity = '0.72'; };
+        const domyslny = () => { if (_heroOkladkaDzis()) return; ustaw(DzisOffline.HERO_DOMYSLNY); bg.style.opacity = '0.72'; };
         if (zMig && zMig !== url) sonda(zMig, (u) => { ustaw(u); bg.style.opacity = '0.72'; }, domyslny);
         else domyslny();
       });
   }).catch(() => {});
+}
+
+/* OKŁADKA STARTU NA HERO (31.10.2026). W dniu treningu typu 'Start' z dokładnie jednym celem
+   race_goals (ta sama data + race_id) hero pokazuje races.cover_9x16_url zamiast kadru SOLO.
+   Tło hero ustawiają też _heroInit (DWA razy: initAuth i zapas po DOMContentLoaded+500 ms, bo przy
+   jednym kadrze _heroTimer zostaje null) oraz asynchroniczna ścieżka „nie wczytał się” w _heroZabezpiecz.
+   Kolejność względem loadTodayTraining NIE jest gwarantowana, więc okładka żyje we fladze, którą obie
+   funkcje respektują — zamiast liczyć na to, że przyjdzie ostatnia.
+   ⚠️ Migawka offline ('hero') NIE dostaje okładki: trzyma kadr SOLO, okładka jest tylko na żywo. */
+window._heroOkladka = null;   // { dzien, url } — url już po safeCssUrl
+function _heroOkladkaDzis() {
+  const o = window._heroOkladka;
+  return !!(o && o.url && window._dzienWaw && o.dzien === window._dzienWaw(new Date().toISOString()));
+}
+
+async function _okladkaStartu(dzien) {
+  if (!_athleteId || !dzien) return;
+  try {
+    const { data: ath, error } = await sb.from('athletes').select('race_goals').eq('id', _athleteId).maybeSingle();
+    if (error || !ath) return;
+    const cele = window.czytajRaceGoals(ath.race_goals, 'zawodnik.html:_okladkaStartu').cele
+      .filter(g => g.race_id && String(g.date || '').slice(0, 10) === dzien);
+    if (cele.length !== 1) return;
+    const { data: race } = await sb.from('races').select('cover_9x16_url').eq('id', cele[0].race_id).maybeSingle();
+    const s = window.safeCssUrl ? window.safeCssUrl(race && race.cover_9x16_url) : '';
+    if (!s) return;
+    const probny = new Image();
+    probny.onload = () => {
+      if (dzien !== window._dzienWaw(new Date().toISOString())) return;
+      window._heroOkladka = { dzien, url: s };
+      const bg = document.getElementById('today-hero-bg');
+      if (bg) { bg.style.backgroundImage = "url('" + s + "')"; bg.style.backgroundPosition = 'center center'; }
+    };
+    probny.src = race.cover_9x16_url;
+  } catch (_) {}
 }
 
 function _heroInit() {
@@ -7218,9 +7253,11 @@ function _heroInit() {
     console.warn('[hero] _heroInit skipped - no bg or cards');
     return;
   }
-  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
+  const _okl = _heroOkladkaDzis();
+  bg.style.backgroundImage = _okl ? "url('" + window._heroOkladka.url + "')" : 'url(' + _heroCards[0] + ')';
+  bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
-  _heroZabezpiecz(bg, _heroCards[0]);
+  if (!_okl) _heroZabezpiecz(bg, _heroCards[0]);
 
   // Warstwa tekstu — biały na ciemnych historiach, ciemny na jasnych (zima/upał)
   const txtEl0 = document.getElementById('hero-text');
@@ -7971,7 +8008,8 @@ async function loadTodayTraining() {
   } else if (tBan) {
     tBan.style.display = 'none';
   }
-  
+  if (data.type === 'Start') _okladkaStartu(data.date);
+
   const metaItems = [
     `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
     `<div class="today-meta-item"><div class="today-meta-lbl">Tętno</div><div class="today-meta-val">${data.heart_rate || '—'}</div></div>`,
