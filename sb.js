@@ -859,6 +859,19 @@
     return window.escapeHtml(url);
   };
 
+  // ─── SAFE CSS URL (anti-XSS dla background-image:url('…')) ──
+  // Wzorzec z nutrition.html (new URL + percent-encode znaków łamiących url()/style) plus
+  // whitelist hostów jak safeUrlAttr, bo tło to zasób ładowany automatycznie. Tylko https.
+  // Wynik do el.style.backgroundImage = "url('" + s + "')" albo do atrybutu style w szablonie.
+  // Niezaufany/malformed → '' (wołający bierze zapasowy obraz).
+  window.safeCssUrl = function(url) {
+    if (!url || typeof url !== 'string') return '';
+    let u;
+    try { u = new URL(url); } catch (_) { return ''; }
+    if (u.protocol !== 'https:' || !_isSafeMediaUrl(u.href)) return '';
+    return u.href.replace(/['"()\\<>]/g, encodeURIComponent);
+  };
+
   // ─── SAFE EXTERNAL HREF (anti-XSS dla <a href> do linków zewnętrznych) ──
   // Zwraca URL gotowy do wstawienia jako wartość atrybutu href w <a>.
   // - Inny threat model niż safeUrlAttr: <a href> nie ładuje zasobu automatycznie,

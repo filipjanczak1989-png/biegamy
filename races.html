@@ -392,6 +392,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
   <div class="modal-sheet" id="modal-sheet">
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="m-cover" style="display:none;width:100%;aspect-ratio:21/9;border-radius:14px;border:1px solid var(--border);background-size:cover;background-position:center;margin-bottom:14px;"></div>
     <div class="modal-head">
       <div class="modal-dist" id="m-dist"></div>
       <div class="modal-name" id="m-name"></div>
@@ -431,6 +432,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
       </div>
       <div id="m-coach-approved" style="display:none;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
         <button onclick="openEditRace()" style="width:100%;background:rgba(78,140,214,0.12);border:1px solid rgba(78,140,214,0.35);color:var(--blue);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-nut-edit.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Edytuj zawody</button>
+        <button id="m-cover-btn" onclick="nowaOkladka()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">🖼 Nowa okładka</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń zawody z kalendarza</button>
       </div>
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
@@ -1041,6 +1043,7 @@ function openRace(id) {
   document.getElementById('m-city').textContent = race.city || '—';
   document.getElementById('m-dist2').textContent = formatDistFull(race.distance_km);
   document.getElementById('m-count').textContent = race.signup_count > 0 ? `${race.signup_count} os.` : '0 os.';
+  pokazOkladke(race);
   /* Przycisk „uczestnicy" w modalu ZDJĘTY 6.09.2026 razem z showParticipants().
      Pokazywał się WYŁĄCZNIE zawodnikowi (`if (!_isCoach)`) — czyli dokładnie
      temu, komu RLS i tak nie oddawał żadnych nazwisk. */
@@ -1167,10 +1170,55 @@ function renderTegoDnia(race, wszystkie) {
     + wiersze.join('');
 }
 
+function pokazOkladke(race) {
+  const el = document.getElementById('m-cover');
+  if (!el) return;
+  const s = window.safeCssUrl ? window.safeCssUrl(race.cover_url) : '';
+  el.style.backgroundImage = s ? "url('" + s + "')" : '';
+  el.style.display = s ? 'block' : 'none';
+}
+
+/* Okładka z EF race-image. Bez force EF oddaje istniejący cover_url bez generowania, więc
+   approveRace i insert trenera wołają to fire-and-forget — zatwierdzenie nie czeka na obraz
+   i nie zależy od niego. Edycja zawodów okładki NIE odświeża (decyzja 31.10): od tego jest
+   „Nowa okładka” (force:true). */
+async function zlecOkladke(raceId, force) {
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) return null;
+    const res = await fetch((window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/race-image', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ race_id: raceId, force: !!force })
+    });
+    const d = await res.json().catch(() => null);
+    if (!res.ok || !d || !d.cover_url) return null;
+    const r = _allRaces.find(x => x.id === raceId);
+    if (r) r.cover_url = d.cover_url;
+    if (_currentRace && _currentRace.id === raceId) {
+      _currentRace.cover_url = d.cover_url;
+      pokazOkladke(_currentRace);
+    }
+    return d.cover_url;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function nowaOkladka() {
+  if (!_currentRace) return;
+  const btn = document.getElementById('m-cover-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję okładkę…'; }
+  const url = await zlecOkladke(_currentRace.id, true);
+  if (btn) { btn.disabled = false; btn.textContent = '🖼 Nowa okładka'; }
+  showToast(url ? 'Nowa okładka gotowa ✓' : 'Nie udało się wygenerować okładki');
+}
+
 async function approveRace() {
   if (!_currentRace) return;
   const { error } = await _sb.from('races').update({ status: 'approved' }).eq('id', _currentRace.id);
   if (error) { showToast('Błąd: ' + error.message); return; }
+  zlecOkladke(_currentRace.id, false);
   _currentRace.status = 'approved';
   // Aktualizuj lokalnie
   const r = _allRaces.find(r => r.id === _currentRace.id);
@@ -1539,6 +1587,9 @@ async function submitRace() {
     }
   }
   if (result.error) { showToast('Błąd: ' + result.error.message); return; }
+
+  // Po OBU ścieżkach insertu (także po ponowieniu z region) — tu `result` jest już ostateczny.
+  if (!_editingRaceId && _isCoach && result.data && result.data.id) zlecOkladke(result.data.id, false);
 
   if (_editingRaceId) {
     showToast('Zmiany zapisane ✓');
