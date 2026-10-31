@@ -808,7 +808,13 @@ function renderRaceCard(race) {
     ? `<div style="font-size:10px;color:var(--blue);font-family:'DM Mono',monospace;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">Zgłosił(a): ${escHtml(submitter)}</div>`
     : '';
 
+  const okladka = race.cover_url ? safeUrlAttr(race.cover_url) : '';
+  const okladkaHtml = okladka
+    ? `<img src="${okladka}" loading="lazy" decoding="async" alt="" style="display:block;width:100%;aspect-ratio:21/9;object-fit:cover;">`
+    : '';
+
   return `<div class="race-card" onclick="openRace('${race.id}')">
+    ${okladkaHtml}
     <div class="race-card-inner">
       <div class="race-top">
         <div class="race-dist-badge">

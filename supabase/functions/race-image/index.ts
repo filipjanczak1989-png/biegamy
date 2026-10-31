@@ -16,6 +16,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 
+// Przeskalowanie do SZEROKOSC_DOCELOWA px i JPEG q80 — ten sam wąski import co share-card (tylko
+// jpeg.wasm 90 KB, nie mod.ts z 1,7 MB wasm-ów); jeden moduł dekoduje i koduje.
+// Pomiar 31.10.2026 na okładce z Gemini 1584×672: 1186 KB → 230 KB (−81%), dekod ~140 ms +
+// bilinear ~75 ms + enkod ~90 ms ≈ 0,3 s przy generowaniu trwającym kilkanaście sekund.
+// Skalowanie dekodera (DCT 1/2, 1/4, 1/8) NIE wystarcza: połowa z 1584 to 792 < 1200 — stąd bilinear w JS.
+// PNG/WebP i JPEG inny niż 1 lub 3 kanały (CMYK) → oryginał bez skalowania: obsługa wymagałaby drugiego wasm-a.
+import * as jpegWasm from "https://deno.land/x/imagescript@1.2.15/utils/wasm/jpeg.js";
+const jpeg = jpegWasm as unknown as {
+  encode(rgba: Uint8Array, w: number, h: number, q: number): Uint8Array;
+  decode(buf: Uint8Array, w: number, h: number): { width: number; height: number; buffer: Uint8Array };
+};
+const SZEROKOSC_DOCELOWA = 1200;
+const JPEG_Q = 80;
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "";
@@ -98,6 +112,33 @@ function wyciagnijObraz(json: unknown): { bajty: Uint8Array; mime: string } | nu
   return null;
 }
 
+function przeskaluj(obraz: { bajty: Uint8Array; mime: string }) {
+  if (obraz.mime !== "image/jpeg") return obraz;
+  const { width: W, height: H, buffer: piks } = jpeg.decode(obraz.bajty, 0, 0);
+  const kan = piks.length / (W * H);
+  if (W <= SZEROKOSC_DOCELOWA || (kan !== 1 && kan !== 3)) return obraz;
+  const DW = SZEROKOSC_DOCELOWA, DH = Math.round(H * DW / W);
+  const sx = W / DW, sy = H / DH;
+  const rgba = new Uint8Array(DW * DH * 4);
+  for (let y = 0; y < DH; y++) {
+    const fy = Math.min(Math.max((y + 0.5) * sy - 0.5, 0), H - 1);
+    const y0 = Math.floor(fy), y1 = Math.min(H - 1, y0 + 1), wy = fy - y0;
+    for (let x = 0; x < DW; x++) {
+      const fx = Math.min(Math.max((x + 0.5) * sx - 0.5, 0), W - 1);
+      const x0 = Math.floor(fx), x1 = Math.min(W - 1, x0 + 1), wx = fx - x0;
+      const o = (y * DW + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const cc = kan === 1 ? 0 : c;
+        const a = piks[(y0 * W + x0) * kan + cc], b = piks[(y0 * W + x1) * kan + cc];
+        const d = piks[(y1 * W + x0) * kan + cc], e = piks[(y1 * W + x1) * kan + cc];
+        rgba[o + c] = Math.round((a * (1 - wx) + b * wx) * (1 - wy) + (d * (1 - wx) + e * wx) * wy);
+      }
+      rgba[o + 3] = 255;
+    }
+  }
+  return { bajty: jpeg.encode(rgba, DW, DH, JPEG_Q), mime: "image/jpeg" };
+}
+
 async function generuj(prompt: string) {
   const r = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
@@ -149,6 +190,11 @@ Deno.serve(async (req) => {
     return odpowiedz(502, { error: "generowanie nieudane" });
   }
   if (!obraz) return odpowiedz(502, { error: "odpowiedź bez obrazu" });
+  try {
+    obraz = przeskaluj(obraz);
+  } catch (e) {
+    console.error("race-image skalowanie (zapisuję oryginał):", raceId, String(e));
+  }
   if (!DOZWOLONE_MIME.has(obraz.mime)) return odpowiedz(502, { error: "nieobsługiwany typ obrazu" });
 
   const plik = `race-${raceId}`;
