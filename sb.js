@@ -6418,6 +6418,51 @@ window.PUSTKA = (function(){
   return { dekoruj:dekoruj };
 })();
 
+/* ===== CYTAT (31.10.2026, „Dziś v2"): jedno ujawnienie słów ===== */
+/* animuj(el, tekst, opts) — *słowo* → akcent (.cw.ak, CSS w theme.css). Zwraca Promise końca ujawnienia.     */
+/* opts.krok (s/słowo, domyślnie .045), opts.odKiedy (ms zwłoki), opts.gdyWidoczny (start dopiero, gdy el      */
+/* wjedzie w ekran — Motywacja dnia, Cytat dnia). Tekst jest escape'owany; reduced motion = krok 0, CSS        */
+/* pokazuje wszystko od razu. Jedyne miejsce z tą animacją — hero „Dziś", Motywacja dnia, Cytat dnia.           */
+window.CYTAT = (function(){
+  function html(tekst){
+    var esc = String(tekst == null ? '' : tekst).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var i = 0, out = '';
+    esc.split(/(\*[^*]+\*)/g).forEach(function(seg){
+      if (!seg) return;
+      var ak = seg.length > 1 && seg.charAt(0) === '*' && seg.charAt(seg.length - 1) === '*';
+      var t = ak ? seg.slice(1, -1) : seg;
+      t.split(/(\s+)/).forEach(function(tok){
+        if (tok.trim() === '') { out += tok; return; }
+        out += '<span class="cw' + (ak ? ' ak' : '') + '" style="--i:' + (i++) + '">' + tok + '</span>';
+      });
+    });
+    return { html: out, slow: i };
+  }
+  function redukcja(){ try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+  function animuj(el, tekst, opts){
+    opts = opts || {};
+    if (!el) return Promise.resolve();
+    var r = html(tekst), krok = redukcja() ? 0 : (opts.krok || .045);
+    el.classList.remove('in'); el.classList.add('cyt');
+    if (opts.krok) el.style.setProperty('--cyt-krok', opts.krok + 's');
+    el.innerHTML = r.html;
+    return new Promise(function(res){
+      function odpal(){
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('in'); }); });
+        setTimeout(res, r.slow * krok * 1000 + 450);
+      }
+      function start(){ setTimeout(odpal, opts.odKiedy || 0); }
+      if (opts.gdyWidoczny && 'IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(ent){
+          if (ent.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+        }, { threshold: .35 });
+        io.observe(el);
+      } else start();
+    });
+  }
+  return { animuj: animuj, html: html };
+})();
+
 /* ===== SOLO v1 (DOPASOWANIE): wybor kadru dnia wg treningu i pogody ===== */
 /* Wymog Filipa: wszystkie kadry uzyte, ale zero konfliktow (upal->deszcz). */
 /* 55% preferencji kontekstu / 45% wolny los; anty-powtorka 10; fallback = rotacja. */
@@ -6463,7 +6508,15 @@ window.SOLO = (function(){
   }
   function rnd(seed){ seed=(seed^61)^(seed>>>16); seed=(seed+(seed<<3))|0; seed^=seed>>>4;
     seed=(seed*0x27d4eb2d)|0; seed^=seed>>>15; return ((seed>>>0)%10000)/10000; }
-  function dopasuj(N, dayNum){
+  /* dopasujN (31.10.2026, „Dziś v2"): `ile` kadrów dnia z tej samej puli, tych samych wykluczeń i tej samej
+     anty-powtórki co dawne dopasuj. Wynik dnia jest ZAPAMIĘTANY (solo_dzien) — do 31.10 każde wejście dopisywało
+     wylosowany kadr do solo_hist, a historia wykluczała go przy następnym, więc przeładowanie tego samego dnia
+     dawało INNY kadr. Teraz: pierwsze wejście dnia losuje i raz dopisuje do historii, kolejne zwracają to samo.
+     Historia = 10 dni (10 × ile), nie 10 kadrów. k=0 liczy r1/r2 tak samo jak dawne dopasuj. */
+  function dopasujN(N, dayNum, ile){
+    ile = Math.max(1, (ile|0) || 1);
+    try{ var c=JSON.parse(localStorage.getItem('solo_dzien')||'null');
+      if(c&&c.d===dayNum&&c.N===N&&c.ile===ile&&Array.isArray(c.nr)&&c.nr.length) return c.nr.slice(); }catch(e){}
     var salt=0; try{ salt=+localStorage.getItem('solo_salt')||0;
       if(!salt){ salt=1+Math.floor(Math.random()*999983); localStorage.setItem('solo_salt',String(salt)); } }catch(e){}
     var hist=[]; try{ hist=JSON.parse(localStorage.getItem('solo_hist')||'[]'); }catch(e){}
@@ -6477,14 +6530,21 @@ window.SOLO = (function(){
       if((tt&&tg.t===tt)||(pog&&tg.p===pog)) pref.push(n);
     }
     if(!pula.length) pula=[dayNum%N+1];
-    var r1=rnd(dayNum*2654435761+salt), r2=rnd(dayNum*40503+salt*7);
-    var zbior=(pref.length&&r1<0.55)?pref:pula;
-    var nn=zbior[Math.floor(r2*zbior.length)%zbior.length];
-    try{ hist.push(nn); while(hist.length>10) hist.shift();
-      localStorage.setItem('solo_hist',JSON.stringify(hist)); }catch(e){}
-    return nn;
+    var wynik=[];
+    for(var k=0;k<ile&&pula.length;k++){
+      var r1=rnd(dayNum*2654435761+salt+k*7919), r2=rnd(dayNum*40503+salt*7+k*104729);
+      var zbior=(pref.length&&r1<0.55)?pref:pula;
+      var nn=zbior[Math.floor(r2*zbior.length)%zbior.length];
+      wynik.push(nn);
+      pula=pula.filter(function(x){ return x!==nn; }); pref=pref.filter(function(x){ return x!==nn; });
+    }
+    try{ hist=hist.concat(wynik); while(hist.length>10*ile) hist.shift();
+      localStorage.setItem('solo_hist',JSON.stringify(hist));
+      localStorage.setItem('solo_dzien',JSON.stringify({ d:dayNum, N:N, ile:ile, nr:wynik })); }catch(e){}
+    return wynik;
   }
-  return { dopasuj:dopasuj, _pogoda:pogoda, _typ:typ };
+  function dopasuj(N, dayNum){ return dopasujN(N, dayNum, 1)[0]; }
+  return { dopasuj:dopasuj, dopasujN:dopasujN, _pogoda:pogoda, _typ:typ };
 })();
 
 // ════════════════════════════════════════════════════════════════════

@@ -299,3 +299,67 @@ html[data-vt-dir="back"]::view-transition-new(root) { animation-name: bm-vt-new-
   .bm-hero-tresc{animation:none;}
   .bm-hero-img{transition:none;}
 }
+
+/* ── SYSTEM: odstępy, promienie, elewacje, pismo (31.10.2026, „Dziś v2" commit A) ─────────────
+   Siatka 4 px i skala pisma z propozycji Gemini (A/B projektowe 31.10); promienie i dwie wyższe
+   elewacje to ALIASY istniejących tokenów, żeby nie było dwóch prawd (.bm-hero i .today-hero stoją
+   na --tile-radius*). Na razie używa ich tylko NOWY CSS (cytat, hero „Dziś"); przepisanie reszty
+   sekcji „Dziś" na zmienne = osobny sweep. --el-1 jest nowy: sam pierścień 1 px (element płaski). */
+:root{
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px;
+  --r-sm:10px; --r-md:var(--tile-radius); --r-lg:var(--tile-radius-lg);
+  --el-1:0 0 0 1px var(--border); --el-2:var(--tile-shadow); --el-3:var(--tile-shadow-lg);
+  --t-xs:10px; --t-sm:12px; --t-base:14px; --t-lg:18px; --t-xl:24px; --t-2xl:32px; --t-3xl:48px;
+}
+
+/* ── FOCUS (kanon): klawiatura i czytniki widzą, gdzie są. :where = zerowa specyficzność, więc każda
+   strona może nadpisać lokalnie. --accent3, bo trzyma kontrast na wszystkich pięciu akcentach. */
+:where(a,button,input,select,textarea,summary,[role="button"],[tabindex]):focus-visible{
+  outline:2px solid var(--accent3); outline-offset:2px;
+}
+
+/* ── CYTAT: jedno ujawnienie słów — hero „Dziś", Motywacja dnia, Cytat dnia (kalendarz).
+   HTML buduje window.CYTAT (sb.js): każde słowo w <span class="cw" style="--i:n">, *słowo* → .ak.
+   Akcent = --accent3 (≥ 4,59:1 na pięciu akcentach; --accent spada do 2,45:1 przy grape) + cienka
+   kreska rysowana od lewej. Bez glow i bez text-stroke. Ruch: opacity + transform. */
+.cyt{ --cyt-krok:.045s; }
+.cyt .cw{ display:inline-block; opacity:0; transform:translateY(.32em);
+  transition:opacity var(--dur-normal) ease, transform var(--dur-slow) var(--ease-out);
+  transition-delay:calc(var(--i,0) * var(--cyt-krok)); }
+.cyt.in .cw{ opacity:1; transform:none; }
+.cyt .cw.ak{ color:var(--accent3); }
+.cyt .cw.ak::after{ content:""; display:block; height:2px; margin-top:.05em; border-radius:1px;
+  background:currentColor; opacity:.9; transform:scaleX(0); transform-origin:left;
+  transition:transform var(--dur-slow) var(--ease-out);
+  transition-delay:calc(var(--i,0) * var(--cyt-krok) + .18s); }
+.cyt.in .cw.ak::after{ transform:scaleX(1); }
+
+/* ── HERO „DZIŚ": dwie warstwy tła (crossfade bez pustego kafla) + Ken Burns.
+   Ken Burns i parallax to OSOBNE właściwości `scale` (animacja 1 → 1,05 w 14 s, zostaje — forwards)
+   i `translate` (JS ustawia przy scrollu) — przeglądarka składa je sama, obie idą przez kompozytor.
+   Świadomie BEZ @property i animowanej zmiennej CSS: to liczyłoby styl w głównym wątku co klatkę. */
+.hero-warstwa{ position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none;
+  background-size:cover; background-position:center 40%;
+  opacity:0; transition:opacity .6s ease; }
+.hero-warstwa.on{ opacity:.72; }
+.hero-warstwa.kb{ animation:hero-kb 14s linear forwards; }
+@keyframes hero-kb{ from{ scale:1; } to{ scale:1.05; } }
+
+/* Scrim: niebo czyste, dół ciemny. 0,85 przy 70 % wysokości — górna linia podpisu (dolna trzecia)
+   leży już na ≥ 0,8 (korekta propozycji Gemini, która dawała 0,85 dopiero przy 80 %). */
+.hero-scrim{ position:absolute; inset:0; z-index:1; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(180deg, rgba(7,7,10,0) 0%, rgba(7,7,10,.2) 40%, rgba(7,7,10,.85) 70%, rgba(7,7,10,.95) 100%); }
+
+/* Podpis na dole kafla (D2): lewy dolny róg, nad spokojną dolną trzecią kadru. */
+.hero-podpis{ position:absolute; left:0; right:0; bottom:0; z-index:2; pointer-events:none;
+  padding:0 var(--s-4) var(--s-4); font-family:'Bebas Neue',sans-serif; font-size:var(--t-xl);
+  line-height:1.04; letter-spacing:.01em; color:var(--fg);
+  text-shadow:0 1px 2px rgba(0,0,0,.55), 0 4px 18px rgba(0,0,0,.45); }
+
+@media (prefers-reduced-motion:reduce){
+  .cyt .cw, .cyt .cw.ak::after{ transition:none; }
+  .cyt .cw{ opacity:1; transform:none; }
+  .cyt .cw.ak::after{ transform:scaleX(1); }
+  .hero-warstwa{ transition:none; }
+  .hero-warstwa.kb{ animation:none; }
+}

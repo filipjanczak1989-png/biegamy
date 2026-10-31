@@ -920,17 +920,14 @@ body > *{position:relative;z-index:1;}
 .ht-lbl{font-size:10px;letter-spacing:0;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.1;}
 </style>
 <div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
-<div class="today-hero fade-in" style="flex:1;margin:0;">
-  <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
-  <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
-  <!-- Hasło historii — górna martwa przestrzeń; kolor ustawia _heroInit wg _heroLight -->
-  <style id="hero-word-anim">
-    #hero-text .hw{display:inline-block;opacity:0;transform:translateY(9px);transition:opacity .4s ease,transform .45s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0)*0.045s);}
-    #hero-text.in .hw{opacity:1;transform:none;}
-    @media (prefers-reduced-motion: reduce){#hero-text .hw{transition:none;transform:none;}#hero-text .hw{opacity:1;}}
-  </style>
-  <div id="hero-text" style="position:absolute;top:0;left:0;right:0;padding:24px 22px 0;z-index:2;pointer-events:none;font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1.06;letter-spacing:0.01em;text-align:center;opacity:0;transition:opacity 0.25s ease;"></div>
+<!-- HERO „DZIŚ" v2 (31.10.2026): dwie warstwy tła (crossfade bez pustego kafla) + Ken Burns, scrim, podpis na DOLE
+     (D2) ujawniany przez CYTAT. Tap / Enter / spacja = następny z 3 kadrów dnia (D4, bez auto-rotacji). CSS w theme.css.
+     #hero-brand i #hero-confetti zostają ukryte do commitu C (D3: nagrobek martwego hero), żeby _heroShow nie trafił na null. -->
+<div class="today-hero fade-in" style="flex:1;margin:0;" id="today-hero" role="button" tabindex="0" aria-label="Kadr dnia — dotknij, żeby zobaczyć następny">
+  <div id="today-hero-bg" class="hero-warstwa"></div>
+  <div id="today-hero-bg2" class="hero-warstwa"></div>
+  <div class="hero-scrim"></div>
+  <div id="hero-text" class="hero-podpis"></div>
   <!-- Kadr 6: brand-klamra (wordmark + final); confetti na własnym canvasie -->
   <div id="hero-brand" style="display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.6s ease;pointer-events:none;">
     <svg width="189" height="66" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="var(--accent)">My</tspan></text></svg>
@@ -3044,7 +3041,8 @@ function showSection(name) {
       }
     }
     requestAnimationFrame(() => {
-      document.querySelectorAll('.today-hero,.week-sum,.nut-widget,.coach-box').forEach((el,i) => {
+      /* .today-hero poza listą (31.10.2026): hero ma jeden własny moment (Ken Burns + podpis), bez wjazdu kart. */
+      document.querySelectorAll('.week-sum,.nut-widget,.coach-box').forEach((el,i) => {
         el.style.opacity = '0'; el.style.transform = 'translateY(14px)';
         setTimeout(() => {
           el.style.transition = `opacity 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms, transform 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms`;
@@ -4228,8 +4226,12 @@ async function loadDailyMotivation() {
   }
   
   // Logo — nie nadpisuj
-  document.getElementById('motiv-text').textContent = socialText || q.text;
+  /* D6 (31.10.2026): ujawnienie słów dopiero, gdy karta wjedzie w ekran — nie razem z hero. Gwiazdki z socialText
+     wycięte (zawiera cel wpisany przez człowieka, a w CYTAT „*…*" znaczy akcent). */
+  const _mTxt = document.getElementById('motiv-text');
   document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
+  const _mTresc = socialText ? socialText.replace(/\*/g, '') : q.text;
+  if (window.CYTAT) CYTAT.animuj(_mTxt, _mTresc, { gdyWidoczny: true, krok: .035 }); else _mTxt.textContent = _mTresc;
 }
 
 window.loadWeather = async function() {
@@ -7054,15 +7056,22 @@ const _SOLO_PODPISY = [
   'Trasy się zmieniają. *Nawyk zostaje*.',
   'Jutro pobiegniesz *z nami*?'
 ]   /* SOLO-2: 31-65 */;
-let _SOLO_I = _dayNum % _SOLO_PODPISY.length;
-try { if (window.SOLO) _SOLO_I = SOLO.dopasuj(_SOLO_PODPISY.length, _dayNum) - 1; } catch(e){}   /* DOPASOWANIE: trening+pogoda; fallback = rotacja */
-_heroCards.length = 0;
-_heroCards.push(BASE_ASSETS + 'solo-' + String(_SOLO_I + 1).padStart(2,'0') + '.webp');
-_heroQuotes.length = 0;   /* podpis idzie POD kadr, nie na kadr */
+/* KADRY DNIA v2 (31.10.2026): 3 kadry dnia z SOLO.dopasujN (trening + pogoda, wynik stały w ciągu dnia),
+   każdy z własnym podpisem — podpisy wracają (D1, uchyla PODPISY-OFF z 23.07). Kadr zmienia się na tap (D4).
+   Pula = _SOLO_PODPISY.length = 65 (solo-01..65); commit B przełącza prefiks/rozszerzenie na kadry v2. */
+const SOLO_PREFIX = 'solo-';           // B: 'kadr-' po wgraniu puli v2
+const SOLO_EXT    = '.webp';           // B: '.jpg'
+const SOLO_ILE    = 3;
+let _SOLO_NR = [ (_dayNum % _SOLO_PODPISY.length) + 1 ];
+try { if (window.SOLO && SOLO.dopasujN) _SOLO_NR = SOLO.dopasujN(_SOLO_PODPISY.length, _dayNum, SOLO_ILE); } catch(e){}
+_heroCards.length = 0; _heroQuotes.length = 0;
+_SOLO_NR.forEach(function(nr){
+  _heroCards.push(BASE_ASSETS + SOLO_PREFIX + String(nr).padStart(2,'0') + SOLO_EXT);
+  _heroQuotes.push(_SOLO_PODPISY[nr - 1] || '');
+});
 (function(){
   function _soloInit(){
     var d = document.getElementById('hero-dots'); if (d) d.style.display = 'none';
-    /* PODPISY-OFF (decyzja Filipa 23.07): render wylaczony, tablica zostaje uspiona — powrot = 2 linie */
   }
   if (document.readyState !== 'loading') _soloInit();
   else document.addEventListener('DOMContentLoaded', _soloInit);
@@ -7099,38 +7108,32 @@ function _heroPrev() {
   _heroShow(_heroIdx);
 }
 window._heroPrev = _heroPrev;
-function _heroShow(i) {
-  const bg = document.getElementById('today-hero-bg');
-  if (!bg) return;
-  bg.style.opacity = '0';
-  const txtEl = document.getElementById('hero-text');
-  if (txtEl) { txtEl.classList.remove('in'); txtEl.style.opacity = '0'; }
-
-  setTimeout(() => {
-    const brandEl = document.getElementById('hero-brand');
-    if (_heroCards[i] === '__BRAND__') {
-      bg.style.backgroundImage = 'none'; bg.style.background = '#0a0a0c';
-      bg.style.opacity = '1';
-      const finalEl = document.getElementById('hero-brand-final');
-      if (finalEl && _heroQuotes[5]) finalEl.innerHTML = _heroQuoteHtml(_heroQuotes[5]);   // E5: zdanie domknięcia z akcentem
-      if (brandEl) { brandEl.style.display = 'flex'; requestAnimationFrame(() => { brandEl.style.opacity = '1'; }); _heroConfettiBurst(); }
-      if (txtEl) txtEl.style.opacity = '0';
-    } else {
-      if (brandEl) { brandEl.style.opacity = '0'; brandEl.style.display = 'none'; }
-      bg.style.background = '';
-      bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
-      bg.style.opacity = '1';
-      if (txtEl && _heroQuotes[i]) {
-        txtEl.innerHTML = _heroQuoteHtml(_heroQuotes[i]);
-        txtEl.style.opacity = '1';
-        requestAnimationFrame(() => requestAnimationFrame(() => txtEl.classList.add('in')));
-      }
-    }
-  }, 220);
-  // Zaktualizuj paginację
-  document.querySelectorAll('.hero-dot').forEach((d, idx) => {
-    d.classList.toggle('active', idx === i);
-  });
+/* _heroShow v2 (31.10.2026): crossfade między dwiema warstwami (.hero-warstwa), obraz podmieniany dopiero po
+   onload — nigdy pusty kafel. PIERWSZY kadr zawsze trafia na #today-hero-bg (na nim stoi _heroZabezpiecz
+   i smoke offline), kolejne naprzemiennie. Ken Burns startuje od 1,0 przy każdej podmianie. Podpis: CYTAT.
+   W dniu startu z okładką (_heroOkladkaDzis) spóźniony kadr SOLO NIE nadpisuje okładki. */
+let _heroAktywna = null;
+function _heroShow(i, opts) {
+  opts = opts || {};
+  const b1 = document.getElementById('today-hero-bg'), b2 = document.getElementById('today-hero-bg2');
+  if (!b1 || !b2) return;
+  const url = opts.url || _heroCards[i];
+  const podpis = opts.podpis != null ? opts.podpis : (_heroQuotes[i] || '');
+  if (!url) return;
+  const img = new Image();
+  img.onload = () => {
+    if (_heroOkladkaDzis() && url !== window._heroOkladka.url) return;
+    const stara = _heroAktywna ? document.getElementById(_heroAktywna) : null;
+    const nowa = !stara ? b1 : (stara === b1 ? b2 : b1);
+    nowa.style.backgroundImage = "url('" + url + "')";
+    nowa.classList.remove('kb'); void nowa.offsetWidth;
+    nowa.classList.add('on', 'kb');
+    if (stara && stara !== nowa) stara.classList.remove('on', 'kb');
+    _heroAktywna = nowa.id;
+    const t = document.getElementById('hero-text');
+    if (t && window.CYTAT) CYTAT.animuj(t, podpis, { odKiedy: 180 });
+  };
+  img.src = url;
 }
 
 // Confetti kadru 6 — wzorzec z function confetti() (#prs-confetti), ale: canvas karty, ~60 cząstek,
@@ -7166,9 +7169,8 @@ function _heroConfettiBurst(){
   setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 1800);
 }
 function _heroStartRotation() {
-  if (_heroCards.length < 2) return;   /* HERO-SOLO: jeden kadr, zero rotacji */
-  if (_heroTimer) return;
-  _heroTimer = setInterval(_heroNext, 5000);
+  /* D4 (31.10.2026): bez auto-rotacji — kadr zmienia się WYŁĄCZNIE na tap. Do 31.10 wyłączał ją tylko jeden
+     kadr (_heroCards.length < 2); przy 3 kadrach dnia ruszyłaby co 5 s. Funkcja zostaje do commitu C. */
 }
 function _heroStopRotation() {
   clearInterval(_heroTimer); _heroTimer = null;
@@ -7197,7 +7199,7 @@ function _tlaZabezpiecz(root) {
    z migawki, a gdy i ten zawiedzie → domyślny z własnego originu (w precache SW). Nigdy pusty kafel. */
 function _heroZabezpiecz(bg, url) {
   if (!bg || !url || typeof Image === 'undefined') return;
-  const ustaw = (u) => { if (_heroOkladkaDzis()) return; bg.style.backgroundImage = 'url(' + u + ')'; };
+  const ustaw = (u) => { if (_heroOkladkaDzis()) return; bg.style.backgroundImage = 'url(' + u + ')'; bg.classList.add('on'); _heroAktywna = bg.id; };
   const sonda = (u, ok, zle) => { const im = new Image(); im.onload = () => ok(u); im.onerror = () => zle(u); im.src = u; };
   DzisOffline.userId(sb).then((uid) => {
     sonda(url,
@@ -7205,8 +7207,8 @@ function _heroZabezpiecz(bg, url) {
       () => {
         const m = uid ? DzisOffline.odczytaj(uid) : null;
         const zMig = m && m.czesci && m.czesci.hero;
-        const domyslny = () => { if (_heroOkladkaDzis()) return; ustaw(DzisOffline.HERO_DOMYSLNY); bg.style.opacity = '0.72'; };
-        if (zMig && zMig !== url) sonda(zMig, (u) => { ustaw(u); bg.style.opacity = '0.72'; }, domyslny);
+        const domyslny = () => { if (_heroOkladkaDzis()) return; ustaw(DzisOffline.HERO_DOMYSLNY); };
+        if (zMig && zMig !== url) sonda(zMig, (u) => { ustaw(u); }, domyslny);
         else domyslny();
       });
   }).catch(() => {});
@@ -7215,11 +7217,11 @@ function _heroZabezpiecz(bg, url) {
 /* OKŁADKA STARTU NA HERO (31.10.2026). W dniu treningu typu 'Start' z dokładnie jednym celem
    race_goals (ta sama data + race_id) hero pokazuje races.cover_9x16_url zamiast kadru SOLO.
    Tło hero ustawiają też _heroInit (DWA razy: initAuth i zapas po DOMContentLoaded+500 ms, bo przy
-   jednym kadrze _heroTimer zostaje null) oraz asynchroniczna ścieżka „nie wczytał się” w _heroZabezpiecz.
+   jednym kadrze _heroTimer zostawał null; od 31.10 strażnik _heroWystartowal) oraz ścieżka „nie wczytał się” w _heroZabezpiecz.
    Kolejność względem loadTodayTraining NIE jest gwarantowana, więc okładka żyje we fladze, którą obie
    funkcje respektują — zamiast liczyć na to, że przyjdzie ostatnia.
    ⚠️ Migawka offline ('hero') NIE dostaje okładki: trzyma kadr SOLO, okładka jest tylko na żywo. */
-window._heroOkladka = null;   // { dzien, url } — url już po safeCssUrl
+window._heroOkladka = null;   // { dzien, url, podpis } — url już po safeCssUrl
 function _heroOkladkaDzis() {
   const o = window._heroOkladka;
   return !!(o && o.url && window._dzienWaw && o.dzien === window._dzienWaw(new Date().toISOString()));
@@ -7233,63 +7235,31 @@ async function _okladkaStartu(dzien) {
     const cele = window.czytajRaceGoals(ath.race_goals, 'zawodnik.html:_okladkaStartu').cele
       .filter(g => g.race_id && String(g.date || '').slice(0, 10) === dzien);
     if (cele.length !== 1) return;
-    const { data: race } = await sb.from('races').select('cover_9x16_url').eq('id', cele[0].race_id).maybeSingle();
+    const { data: race } = await sb.from('races').select('name, cover_9x16_url').eq('id', cele[0].race_id).maybeSingle();
     const s = window.safeCssUrl ? window.safeCssUrl(race && race.cover_9x16_url) : '';
-    if (!s) return;
-    const probny = new Image();
-    probny.onload = () => {
-      if (dzien !== window._dzienWaw(new Date().toISOString())) return;
-      window._heroOkladka = { dzien, url: s };
-      const bg = document.getElementById('today-hero-bg');
-      if (bg) { bg.style.backgroundImage = "url('" + s + "')"; bg.style.backgroundPosition = 'center center'; }
-    };
-    probny.src = race.cover_9x16_url;
+    if (!s || dzien !== window._dzienWaw(new Date().toISOString())) return;
+    /* Gwiazdki z nazwy biegu wycięte — w CYTAT znaczą akcent; nazwa ma być akcentem w całości. */
+    const nazwa = String(race.name || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    const podpis = nazwa ? 'Dziś biegniesz *' + nazwa + '*' : 'Dziś *startujesz*';
+    window._heroOkladka = { dzien, url: s, podpis };
+    /* W dniu startu jeden kadr — tap nic nie zmienia (tak ma być). Obraz ładuje i podmienia _heroShow. */
+    _heroCards.length = 0; _heroCards.push(s); _heroQuotes.length = 0; _heroQuotes.push(podpis); _heroIdx = 0;
+    _heroShow(0, { url: s, podpis });
   } catch (_) {}
 }
 
+let _heroWystartowal = false;
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) {
     console.warn('[hero] _heroInit skipped - no bg or cards');
     return;
   }
-  const _okl = _heroOkladkaDzis();
-  bg.style.backgroundImage = _okl ? "url('" + window._heroOkladka.url + "')" : 'url(' + _heroCards[0] + ')';
-  bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
-  bg.style.opacity = '0';
-  if (!_okl) _heroZabezpiecz(bg, _heroCards[0]);
-
-  // Warstwa tekstu — biały na ciemnych historiach, ciemny na jasnych (zima/upał)
-  const txtEl0 = document.getElementById('hero-text');
-  if (txtEl0) {
-    if (_heroLight) {
-      txtEl0.style.color = '#141414';
-      txtEl0.style.textShadow = '0 2px 14px rgba(255,255,255,0.6), 0 1px 3px rgba(255,255,255,0.75)';
-    } else {
-      txtEl0.style.color = '#ffffff';
-      txtEl0.style.textShadow = '0 2px 14px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9)';
-    }
-    if (_heroQuotes[0]) {
-      txtEl0.innerHTML = _heroQuoteHtml(_heroQuotes[0]);
-      requestAnimationFrame(() => setTimeout(() => { txtEl0.style.opacity = '1'; txtEl0.classList.add('in'); }, 90));
-    }
-  }
-
-  console.log('[hero] _heroInit', { story: _heroKey, cards: _heroCards.length, light: _heroLight });
-  
-  // Buduj paginację
-  const dotsEl = document.getElementById('hero-dots');
-  if (dotsEl) {
-    dotsEl.innerHTML = _heroCards.map((_, i) =>
-      `<span class="hero-dot${i===0?' active':''}" onclick="_heroShow(${i});_heroIdx=${i};"></span>`
-    ).join('');
-  }
-  // Fade-in tła
-  requestAnimationFrame(() => setTimeout(() => { 
-    bg.style.opacity = '0.72';
-  }, 60));
-  // Auto-rotate
-  _heroStartRotation();
+  _heroWystartowal = true;
+  if (_heroOkladkaDzis()) { _heroShow(0, { url: window._heroOkladka.url, podpis: window._heroOkladka.podpis }); return; }
+  _heroIdx = 0;
+  _heroShow(0);
+  _heroZabezpiecz(bg, _heroCards[0]);
 }
 window._heroInit = _heroInit;
 
@@ -7297,7 +7267,7 @@ window._heroInit = _heroInit;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      if (!_heroTimer) {
+      if (!_heroWystartowal) {
         console.log('[hero] DOM ready fallback init');
         try { _heroInit(); } catch(e) { console.warn('[hero] fallback init failed', e); }
       }
@@ -7306,7 +7276,7 @@ if (document.readyState === 'loading') {
 } else {
   // DOM już załadowany
   setTimeout(() => {
-    if (!_heroTimer) {
+    if (!_heroWystartowal) {
       console.log('[hero] late fallback init');
       try { _heroInit(); } catch(e) { console.warn('[hero] late init failed', e); }
     }
@@ -7314,6 +7284,32 @@ if (document.readyState === 'loading') {
 }
 
 
+/* GESTY HERO (D4): tap / Enter / spacja = następny kadr dnia (w dniu startu jeden kadr — nic się nie dzieje).
+   Parallax: 8 % scrolla, max 22 px, przez właściwość `translate` warstw (osobno od `scale` Ken Burnsa —
+   przeglądarka składa je sama); rAF, passive; przy ograniczeniu ruchu wyłączony. */
+(function(){
+  function podepnij(){
+    const h = document.getElementById('today-hero'); if (!h) return;
+    function dalej(){
+      if (_heroCards.length < 2) return;
+      _heroIdx = (_heroIdx + 1) % _heroCards.length; _heroShow(_heroIdx);
+      try { navigator.vibrate && navigator.vibrate(6); } catch (e) {}
+    }
+    h.addEventListener('click', dalej);
+    h.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dalej(); } });
+    try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+    let tick = false;
+    addEventListener('scroll', () => {
+      if (tick) return; tick = true;
+      requestAnimationFrame(() => {
+        const y = Math.min(22, Math.max(0, window.scrollY * 0.08));
+        document.querySelectorAll('#today-hero .hero-warstwa').forEach((w) => { w.style.translate = '0 ' + y + 'px'; });
+        tick = false;
+      });
+    }, { passive: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
+})();
 // ── PROFILE BANNER SLIDES ────────────────────────────────────────────────
 const _PROFILE_BANNER_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 const _PROFILE_BANNER_SETS = ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag'];

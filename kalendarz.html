@@ -5375,9 +5375,12 @@ function _showDailyQuote() {
   const authorEl = document.getElementById('daily-quote-author');
   if (!wrap || !textEl) return;
   const q = window.getDailyQuote();
-  textEl.textContent = '„' + q.text + '”';
   authorEl.textContent = '— ' + q.author;
   wrap.style.display = 'block';
+  /* CYTAT (31.10.2026, „Dziś v2"): to samo ujawnienie słów co hero „Dziś" i Motywacja dnia, start dopiero
+     po wjeździe w ekran. Bez sb.js (CYTAT niedostępny) — tekst od razu, jak dotąd. */
+  if (window.CYTAT) CYTAT.animuj(textEl, '„' + q.text + '”', { gdyWidoczny: true, krok: .035 });
+  else textEl.textContent = '„' + q.text + '”';
 }
 
 function renderTiles() {
