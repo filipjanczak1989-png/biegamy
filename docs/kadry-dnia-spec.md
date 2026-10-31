@@ -215,3 +215,39 @@ wygenerowanie numeru da obraz wg nowych osi. Wyjątki: 73, 74, 77, 78, 79, 81, 8
   drzewami, mokra alejka błyszczy, świeża zieleń" i nowe pole wyjątku **`pogoda`** (nadpisuje oś pogody, jak
   `poraDnia`/`ogniskowa`; nie działa przy tagu `p:` ani w nocy). Reguła „mgła tylko świt/rano" liczy się teraz od
   pogody PO wyjątku.
+
+## G4 W KODZIE (31.10.2026): banery typów `typ-<slug>.jpg` (21:9, 1K → 1200×509)
+
+- 9 typów: spokojny, interwaly, tempo, wybieganie, regeneracja, wzmacniajacy, start, zastepczy, **odpoczynek**
+  („buty odstawione pod ścianę i kubek na parapecie, popołudniowe światło", decyzja Filipa). Pula `typ` w
+  generatorze: jeden obraz na typ, cały rok, bez osi; kompozycja pod PAS 21:9 z A2 (przedmiot w środkowej tercji,
+  lewa tercja spokojna na liczbę km) — miniatura 96×76 ma być tylko czytelna.
+- Prompt typu: „zdjęcie na cały kadr, bez ramki" — pierwszy zastepczy wyszedł z białą ramką skanu.
+  Start: „linia startu" model rysował jako linię środkową pasa (2 razy) — trafiła dopiero geometria
+  „w poprzek jezdni, POZIOMO od lewej do prawej krawędzi kadru". Razem 12 generacji (~0,40 $ przy 0,0336 $/1K).
+- `sb.js`: TRAINING_TYPE_BANNERS = typ → slug (z Odpoczynkiem), `trainingTypeBannerUrl` → typ-<slug>.jpg,
+  `trainingTypeBannerZapas` → banner-<slug>.webp, `obrazTypu(type)` (nieznany typ → Odpoczynek),
+  `ustawTloTypu(el, type, naKoniec)` — sonda Image(): błąd → zapas → tło końcowe.
+- `zawodnik.html`: miniatura „Dzisiejszy trening" przez `ustawTloTypu`; pasek planu tygodnia przez `obrazTypu`
+  (typeBgMap z card-*.jpg / ob-s*.jpg usunięta — Interwały ≠ Tempo, Spokojny ≠ Wybieganie), `data-bgzapas` w sondzie tła.
+- `blizna-59`: slugi mapy = pula generatora (9), różne obrazy typów, zapas URL (mutacja „bez zapasu" oblewa),
+  pasek i miniatura przez to samo źródło.
+
+## STAN po G1–G4 (31.10.2026, koniec dnia) i co dalej
+
+| etap | biegamy | biegamy-assets | co jest na prod |
+|---|---|---|---|
+| G1 osie wariantów | `f929758` | — | osie.mjs, --pula/--format, blizna-57 |
+| G2 kadry 66–89 | `edbbcdf` | `430523b`, 88: `bd842cc` | pula „Dziś" 89, detale wg pory roku |
+| G3 pejzaże | `0dc15f2` | `b3c111f` | 40 pejzaży 21:9 w .bm-hero na 10 stronach, osobna pula SOLO; kadry 73,74,77,78,79,81,83 podmienione |
+| G4 banery typów | (ten commit) | `e379d39` | typ-<slug>.jpg × 9 w miniaturze „Dzisiejszy trening" i pasku tygodnia, zapas banner-*.webp |
+
+Lekcje dnia: oś „mod 4" z nieparzystym mnożnikiem = n % 4 (test czyta prompt, nie listę); model nie umie
+„linii startu" bez opisu geometrii; „bez ramki" w każdym prompcie 21:9; Gemini 504 co ~10–20 obrazów —
+skrypt staje, wznowienie tym samym poleceniem pomija gotowe.
+
+**Następne (w tej kolejności):**
+1. **G5 — 7 ikon kafli** (siatka skrótów pod hero „Dziś"): tematy i styl do ustalenia na starcie G5.
+2. **A2 — „Dziś v2" karta treningu** (plik `Dzis-v2-projekt.md` od Filipa na starcie A2): kafle z sygnałami,
+   **pas 21:9 z liczbą km** (obraz = `obrazTypu(type)` z G4; liczba w LEWEJ TERCJI U DOŁU, ten sam róg co tekst
+   .bm-hero — banery G4 są pod to skomponowane, miniatura 96×76 znika), zegarek, pogoda.

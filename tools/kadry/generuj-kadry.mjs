@@ -37,7 +37,7 @@ const KOLUMNY = Number(arg("kolumny", 6));
 const PULE = {
   dzis:   { prefiks: "kadr-",   format: "9x16", N: null, gotowa: true },
   pejzaz: { prefiks: "pejzaz-", format: "21x9", N: 40,   gotowa: true },
-  typ:    { prefiks: "typ-",    format: "21x9", N: null, gotowa: false, kiedy: "G4 (zwiad typów z TRAINING_TYPE_BANNERS)" },
+  typ:    { prefiks: "typ-",    format: "21x9", N: 9,    gotowa: true },
   strona: { prefiks: "strona-", format: "21x9", N: null, gotowa: false, kiedy: "G3 (tematy stron wewnętrznych)" },
 };
 const FORMATY = {
@@ -99,6 +99,31 @@ const PEJZAZE = [
   { opis: "bieżnia stadionu z pustą trybuną", naw: "tor" }, { opis: "most nad rzeką", naw: "kladka" },
   { opis: "nabrzeże rzeki", naw: "bulwar" }, { opis: "park miejski z alejką", naw: "alejka" },
 ];
+/* G4 (31.10.2026): banery typów treningu — JEDEN obraz na typ, cały rok (bez osi, bez pory roku z wzoru).
+   Kolejność = numer w puli; plik typ-<slug>.jpg, slug = klucz TRAINING_TYPE_BANNERS w sb.js (test blizna-59).
+   Kompozycja pod pas 21:9 karty „Dzisiejszy trening" (A2: liczba km po lewej) — miniatura 96×76 ma być tylko czytelna. */
+const TYPY = [
+  { slug: "spokojny", scena: "alejka w parku miejskim", pora: "rano, miękkie światło", mm: 50 },
+  { slug: "interwaly", scena: "linie torów na bieżni stadionu, czerwona nawierzchnia i białe linie z bliska", pora: "popołudnie", mm: 85 },
+  { slug: "tempo", scena: "mokra asfaltowa prosta, długa prosta znikająca w głębi", pora: "zmierzch, mokry asfalt odbija światło", mm: 50 },
+  { slug: "wybieganie", scena: "pusta droga przez pola aż po horyzont", pora: "rano", mm: 24 },
+  { slug: "regeneracja", scena: "ławka w parku przy alejce", pora: "poranek, miękkie światło", mm: 50 },
+  { slug: "wzmacniajacy", scena: "hantle na drewnianej podłodze przy oknie, obok zwinięta mata", pora: "dzienne światło z okna", mm: 50, wnetrze: true },
+  { slug: "start", scena: "pusta linia startu biegu ulicznego: gruba biała linia namalowana w poprzek jezdni, biegnie POZIOMO od lewej do prawej krawędzi kadru w dolnej części zdjęcia, za nią pusta ulica z barierkami po obu stronach; aparat nisko, na wprost linii", pora: "świt", mm: 35 },
+  { slug: "zastepczy", scena: "rower oparty o drewniany płot przy wiejskiej drodze", pora: "świt", mm: 50 },
+  { slug: "odpoczynek", scena: "buty do biegania odstawione pod ścianę i kubek na parapecie", pora: "popołudniowe światło", mm: 50, wnetrze: true },
+];
+function promptTypu(n) {
+  const t = TYPY[n - 1];
+  return [
+    `Poziomy, szeroki kadr (21:9) dla aplikacji biegowej, Polska. ${t.scena[0].toUpperCase() + t.scena.slice(1)}. ${t.pora[0].toUpperCase() + t.pora.slice(1)}.`,
+    t.wnetrze ? "Wnętrze mieszkania, spokojne i jasne." : "Pora roku neutralna: zieleń, bez śniegu i bez jesiennych liści.",
+    "Kadr: bez człowieka — żadnych ludzi, twarzy, dłoni ani części ciała.",
+    `Styl dokumentalny: obiektyw ${t.mm} mm, niedoskonałe, nieustawiane światło.`,
+    "Kompozycja: główny przedmiot lub punkt sceny w środkowej tercji kadru w poziomie, czytelny także po wycięciu samego środka; lewa tercja spokojna i ciemniejsza — miejsce na dużą liczbę, bez ważnych szczegółów; prawa tercja spokojna.",
+    "Zdjęcie na cały kadr, bez ramki, bez białej obwódki i bez marginesów. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
+  ].join(" ");
+}
 function scenaNumeru(n) {
   const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null, tag = tagKadru(n);
   if (wyj) return { opis: wyj.scena, naw: wyj.naw || "droga" };
@@ -140,6 +165,7 @@ function osieNumeru(n) {
   return osie(n, { pula: PULA, sezon: sezon(n), tagP: t.p, tagT: t.t, wyjatek: PULA === "dzis" ? SCENA_Z_PODPISU[n] : null, nawierzchnia: scenaNumeru(n).naw });
 }
 function prompt(n) {
+  if (PULA === "typ") return promptTypu(n);
   const tag = tagKadru(n);
   const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null;
   const o = osieNumeru(n);
@@ -224,7 +250,7 @@ async function generuj(n) {
 }
 const log = (s) => { const l = `${new Date().toISOString()} ${s}`; console.log(l); appendFileSync(LOG, l + "\n"); };
 const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
-const plik = (n) => join(OUT, `${PULE[PULA].prefiks}${String(n).padStart(2, "0")}.jpg`);
+const plik = (n) => join(OUT, `${PULE[PULA].prefiks}${PULA === "typ" ? TYPY[n - 1].slug : String(n).padStart(2, "0")}.jpg`);
 
 function podglad() {
   if (!PODGLAD) return;
@@ -233,8 +259,8 @@ function podglad() {
   const doPodgladu = arg("nr") || arg("od") ? numery : Array.from({ length: N }, (_, i) => i + 1);
   for (const n of doPodgladu) {
     const p = plik(n); if (!existsSync(p)) continue;
-    const o = osieNumeru(n);
-    const osieTxt = `${sezon(n)} · ${o.kompozycja.nazwa} · ${o.podmiot}${o.detal ? ": " + o.detal : ""} · ${o.poraDnia} · ${o.pogoda || "pogoda z tagu"} · ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK" : ""}`;
+    const o = PULA === "typ" ? null : osieNumeru(n);
+    const osieTxt = PULA === "typ" ? `typ-${TYPY[n - 1].slug} · ${TYPY[n - 1].mm} mm` : `${sezon(n)} · ${o.kompozycja.nazwa} · ${o.podmiot}${o.detal ? ": " + o.detal : ""} · ${o.poraDnia} · ${o.pogoda || "pogoda z tagu"} · ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK" : ""}`;
     const url = "file:///" + resolve(p).replace(/\\/g, "/");
     kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><span class="osie">${esc(osieTxt)}</span><br><i>${esc((PODPISY[n - 1] || "").replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
   }
@@ -262,6 +288,7 @@ if (arg("dociagnij-rozmiar", false) === true) {
 }
 if (POKAZ) {
   for (const n of numery) {
+    if (PULA === "typ") { console.log(`--- typ ${n} typ-${TYPY[n - 1].slug}.jpg`); console.log(prompt(n)); continue; }
     const o = osieNumeru(n), i = o.indeksy;
     console.log(`--- ${PULA} ${n} [${tagKadru(n) || "bez tagu"}] pora roku: ${sezon(n)}${PULA === "dzis" ? " · podpis: " + (PODPISY[n - 1] || "(brak — G2)") : ""}`);
     console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || (o.scenaNocna ? "(z linii nocy)" : "(z tagu/wnętrza)")}" · ogniskowa ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);

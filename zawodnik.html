@@ -7210,9 +7210,14 @@ function _tlaZabezpiecz(root) {
   if (!root || typeof Image === 'undefined') return;
   root.querySelectorAll('[data-bgsonda]').forEach((el) => {
     const u = el.getAttribute('data-bgsonda'); el.removeAttribute('data-bgsonda');
+    const zapas = el.getAttribute('data-bgzapas'); el.removeAttribute('data-bgzapas');
     if (!u) { el.style.backgroundImage = _TLO_ZAPASOWE; return; }
     const im = new Image();
-    im.onerror = () => { el.style.backgroundImage = _TLO_ZAPASOWE; };
+    im.onerror = () => {
+      if (!zapas) { el.style.backgroundImage = _TLO_ZAPASOWE; return; }   // G4: baner typu → stary banner-*.webp → gradient
+      el.style.backgroundImage = 'url("' + zapas + '")';
+      const im2 = new Image(); im2.onerror = () => { el.style.backgroundImage = _TLO_ZAPASOWE; }; im2.src = zapas;
+    };
     im.src = u;
   });
 }
@@ -7576,20 +7581,11 @@ async function loadWeekPlan() {
   }
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
-  const typeBgMap={
-    'Tempo':        {u:assetUrl('card-tempo.jpg'),      p:'center 30%'},
-    'Interwały':    {u:assetUrl('card-tempo.jpg'),      p:'center 30%'},
-    'Spokojny':     {u:assetUrl('card-wybieganie.jpg'), p:'center 15%'},
-    'Bieg spokojny':{u:assetUrl('card-wybieganie.jpg'), p:'center 15%'},
-    'Wybieganie':   {u:assetUrl('ob-s3.jpg'),           p:'center 15%'},
-    'Regeneracja':  {u:assetUrl('card-regeneracja.jpg'),p:'center 20%'},
-    'Odpoczynek':   {u:assetUrl('card-regeneracja.jpg'),p:'center 20%'},
-    'Start':        {u:assetUrl('card-wyscig.jpg'),     p:'center 30%'},
-    'Wzmacniający': {u:assetUrl('ob-s1.jpg'),           p:'center 35%'},
-    'Zastępczy':    {u:assetUrl('ob-s4.jpg'),           p:'center 15%'},
-  };
+  /* G4 (31.10.2026): tła dni = banery typów z sb.js (obrazTypu) — ten sam obraz co miniatura „Dzisiejszy trening".
+     Do G4 Interwały miały zdjęcie Tempa, a Spokojny Wybiegania (card-*.jpg / ob-s*.jpg). Typ spoza mapy → kadr run*. */
   function _dayImgFor(type,i){
-    if(typeBgMap[type]) return typeBgMap[type];
+    const o=(type&&window.TRAINING_TYPE_BANNERS&&window.TRAINING_TYPE_BANNERS[type]&&window.obrazTypu)?window.obrazTypu(type):null;
+    if(o) return {u:o.u,p:'center 50%',zapas:o.zapas};
     return _runImgs[i%_runImgs.length];
   }  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
@@ -7622,7 +7618,7 @@ async function loadWeekPlan() {
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
     return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;position:relative;min-height:90px;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
-      <div data-bgsonda="${_dayImgFor(t.type,i).u}" style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i).u});background-size:cover;background-position:${_dayImgFor(t.type,i).p};opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
+      <div data-bgsonda="${_dayImgFor(t.type,i).u}" data-bgzapas="${_dayImgFor(t.type,i).zapas||''}" style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i).u});background-size:cover;background-position:${_dayImgFor(t.type,i).p};opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
@@ -8021,10 +8017,8 @@ async function loadTodayTraining() {
   // ── Baner typu treningu (cover mapowany po typie) ──
   const tBan = document.getElementById('today-type-banner');
   const tBanImg = document.getElementById('today-type-banner-img');
-  const _banUrl = (window.trainingTypeBannerUrl ? window.trainingTypeBannerUrl(data.type) : '')
-                  || (window.assetUrl ? window.assetUrl('banner-odpoczynek.webp') : '');
-  if (tBan && tBanImg && _banUrl) {
-    tBanImg.style.backgroundImage = 'url(' + _banUrl + ')';
+  // G4: obrazTypu (sb.js) — ten sam obraz co pasek planu tygodnia; nieznany typ → Odpoczynek; błąd → banner-*.webp
+  if (tBan && tBanImg && window.ustawTloTypu && window.ustawTloTypu(tBanImg, data.type)) {
     tBan.style.display = 'block';
   } else if (tBan) {
     tBan.style.display = 'none';

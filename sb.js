@@ -4256,17 +4256,43 @@ window._icuRenderSplits = function (d, el) {
     return '<img onerror="window._icZapas&&window._icZapas(this)" src="' + window.assetUrl('icon-' + n + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;vertical-align:-3px;flex-shrink:0;" alt="">';
   };
 
-  // Mapa typ→banner (szerokie okładki). Klucze = te same nazwy typów co TRAINING_TYPE_ICONS.
-  // Odpoczynek świadomie pominięty — brak banner-odpoczynek.webp (dzień wolny bez okładki).
+  // BANERY TYPÓW (31.10.2026, Grafiki v4 / G4): typ → slug; obraz = typ-<slug>.jpg (21:9) z biegamy-assets,
+  // zapas = stary banner-<slug>.webp (3:1) przy błędzie ładowania. Klucze = nazwy typów z TRAINING_TYPE_ICONS.
+  // Slugi = pula `typ` w tools/kadry/generuj-kadry.mjs (blizna-59). Odpoczynek ma od G4 własny obraz.
+  // JEDNO źródło dla miniatury karty „Dzisiejszy trening" i paska planu tygodnia — obrazTypu(type).
   window.TRAINING_TYPE_BANNERS = {
-    'Spokojny':'banner-spokojny', 'Bieg spokojny':'banner-spokojny', 'Interwały':'banner-interwaly',
-    'Tempo':'banner-tempo', 'Wybieganie':'banner-wybieganie', 'Regeneracja':'banner-regeneracja',
-    'Wzmacniający':'banner-wzmacniajacy', 'Start':'banner-start', 'Zastępczy':'banner-zastepczy'
+    'Spokojny':'spokojny', 'Bieg spokojny':'spokojny', 'Interwały':'interwaly',
+    'Tempo':'tempo', 'Wybieganie':'wybieganie', 'Regeneracja':'regeneracja',
+    'Wzmacniający':'wzmacniajacy', 'Start':'start', 'Zastępczy':'zastepczy', 'Odpoczynek':'odpoczynek'
   };
   // Zwraca URL bannera typu (lub '' gdy brak mapowania/assetUrl).
   window.trainingTypeBannerUrl = function(type) {
     const f = (window.TRAINING_TYPE_BANNERS || {})[type];
-    return (f && window.assetUrl) ? window.assetUrl(f + '.webp') : '';
+    return (f && window.assetUrl) ? window.assetUrl('typ-' + f + '.jpg') : '';
+  };
+  window.trainingTypeBannerZapas = function(type) {
+    const f = (window.TRAINING_TYPE_BANNERS || {})[type];
+    return (f && window.assetUrl) ? window.assetUrl('banner-' + f + '.webp') : '';
+  };
+  // {u, zapas} dla typu; nieznany typ → obraz Odpoczynku (jak dotąd banner-odpoczynek). null bez assetUrl.
+  window.obrazTypu = function(type) {
+    const t = (window.TRAINING_TYPE_BANNERS || {})[type] ? type : 'Odpoczynek';
+    const u = window.trainingTypeBannerUrl(t); if (!u) return null;
+    return { u: u, zapas: window.trainingTypeBannerZapas(t) };
+  };
+  // Tło elementu z typu: nowy obraz, przy błędzie sondy Image() → zapas, przy jego błędzie → `naKoniec` (albo nic).
+  window.ustawTloTypu = function(el, type, naKoniec) {
+    const o = window.obrazTypu(type); if (!el || !o) return false;
+    el.style.backgroundImage = 'url("' + o.u + '")';
+    if (typeof Image === 'undefined') return true;
+    const sonda = new Image();
+    sonda.onerror = function() {
+      if (!o.zapas) { if (naKoniec) el.style.backgroundImage = naKoniec; return; }
+      el.style.backgroundImage = 'url("' + o.zapas + '")';
+      const s2 = new Image(); s2.onerror = function() { if (naKoniec) el.style.backgroundImage = naKoniec; }; s2.src = o.zapas;
+    };
+    sonda.src = o.u;
+    return true;
   };
 
   // Intensity helpers — używane przez heatmap aktywności (GitHub-style)
