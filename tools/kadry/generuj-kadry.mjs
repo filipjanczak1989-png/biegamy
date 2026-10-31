@@ -11,6 +11,7 @@
 //   node tools/kadry/generuj-kadry.mjs --out <katalog> [--nr 46,31,7 | --od 1 --do 65] [--odstep 10] [--force]
 //                                      [--log <plik>] [--podglad tools/kadry/podglad.html] [--tylko-podglad] [--pokaz-prompty]
 //                                      [--dociagnij-rozmiar]  ← istniejące pliki > 300 KB → q75, bez wywołania API
+//                                      [--kolumny 6]          ← liczba kolumn siatki podglądu (pora roku i osie przy każdym kafelku)
 //   Domyślnie pomija istniejące kadr-NN.jpg (--force nadpisuje). 401/403/429/5xx przerywa pętlę; brak obrazu → dalej.
 //   --out bez wartości = ODMOWA: katalog wyjściowy podaje się jawnie (biegamy-assets dopiero po akceptacji).
 //   --pula dzis (kadr-NN, 9:16, podpisy + TAGI) | pejzaz (pejzaz-NN, 21:9, bez tagów) | typ | strona (tematy: G3/G4)
@@ -32,6 +33,7 @@ const OUT = arg("out"); if (!OUT || OUT === true) { console.error("podaj --out <
 const FORCE = arg("force", false) === true, ODSTEP = Number(arg("odstep", 10));
 const LOG = arg("log", join(OUT, `kadry-${new Date().toISOString().slice(0, 10)}.log`));
 const PODGLAD = arg("podglad", null);
+const KOLUMNY = Number(arg("kolumny", 6));
 const PULE = {
   dzis:   { prefiks: "kadr-",   format: "9x16", N: null, gotowa: true },
   pejzaz: { prefiks: "pejzaz-", format: "21x9", N: 40,   gotowa: true },
@@ -85,8 +87,25 @@ const SCENA = {
   "t:dlugie": "długa droga przez las lub pola, zakręt znikający w głębi",
   "t:silownia": "siłownia: hantle, mata, okno",
 };
-const BEZ_TAGU = ["zwykła trasa treningowa: osiedle", "zwykła trasa treningowa: park", "zwykła trasa treningowa: droga polna", "zwykła trasa treningowa: nabrzeże"];
-const PEJZAZE = ["droga polna między polami", "szlak w lesie", "bieżnia stadionu z pustą trybuną", "most nad rzeką", "nabrzeże rzeki", "park miejski z alejką"];
+/* Nawierzchnia sceny (klucz NAWIERZCHNIE w osie.mjs) — kompozycja odmienia ją zamiast pisać „drogę" na sztywno. */
+const NAW_TAGU = { "p:deszcz": "ulica", "p:snieg": "droga", "p:upal": "droga", "p:wiatr": "droga", "p:mgla": "droga",
+  "t:interwaly": "tor", "t:tempo": "droga", "t:regeneracja": "sciezka", "t:dlugie": "droga", "t:silownia": "droga" };
+const BEZ_TAGU = [
+  { opis: "zwykła trasa treningowa: osiedle", naw: "ulica" }, { opis: "zwykła trasa treningowa: park", naw: "alejka" },
+  { opis: "zwykła trasa treningowa: droga polna", naw: "droga" }, { opis: "zwykła trasa treningowa: nabrzeże", naw: "bulwar" },
+];
+const PEJZAZE = [
+  { opis: "droga polna między polami", naw: "droga" }, { opis: "szlak w lesie", naw: "szlak" },
+  { opis: "bieżnia stadionu z pustą trybuną", naw: "tor" }, { opis: "most nad rzeką", naw: "kladka" },
+  { opis: "nabrzeże rzeki", naw: "bulwar" }, { opis: "park miejski z alejką", naw: "alejka" },
+];
+function scenaNumeru(n) {
+  const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null, tag = tagKadru(n);
+  if (wyj) return { opis: wyj.scena, naw: wyj.naw || "droga" };
+  if (PULA === "pejzaz") return PEJZAZE[n % PEJZAZE.length];
+  if (tag) return { opis: SCENA[tag], naw: NAW_TAGU[tag] || "droga" };
+  return BEZ_TAGU[n % 4];
+}
 /* Scena z podpisu — WYJĄTKI zatwierdzone przez Filipa 31.10; podpis opisuje konkretny obraz, którego tagi nie niosą.
    Nowy wyjątek = decyzja, nie dopisek. */
 const SCENA_Z_PODPISU = {
@@ -96,19 +115,33 @@ const SCENA_Z_PODPISU = {
        styl: "Styl dokumentalny: obiektyw 35 mm, niedoskonałe, nieustawiane poranne światło." },
   14: { scena: "droga polna w złotych i czerwonych liściach, liście na nawierzchni, ciepłe niskie słońce" },
   22: { scena: "pusta linia startu namalowana na asfalcie, jeden biegacz w rozgrzewce przy linii", poraDnia: "świt" },
+  /* G2 (31.10.2026) — sceny z projektu „Grafiki v4", pkt 1 */
+  71: { scena: "pusta zaśnieżona droga, ślady butów na śniegu", poraDnia: "świt",
+        kadr: "Kadr: bez człowieka — tylko pusta zaśnieżona droga i ślady butów. Żadnych ludzi.",
+        kompozycja: "Kompozycja: ślady prowadzą wzrok w głąb drogi, dolna część spokojna — gładki śnieg, bez ważnych szczegółów." },
+  75: { scena: "bidon i zegarek sportowy na murku, ostre światło", poraDnia: "południe", ogniskowa: 2,
+        kadr: "Kadr: zbliżenie — bidon i zegarek sportowy na murku, bez człowieka: żadnej twarzy, żadnych dłoni ani części ciała w kadrze.",
+        kompozycja: "Kompozycja: przedmioty w środkowej części kadru, tło miękko rozmyte, dolna część spokojna, bez ważnych szczegółów." },
+  83: { scena: "mokry park, pusta alejka", poraDnia: "świt", naw: "alejka",
+        kadr: "Kadr: bez człowieka — pusta mokra alejka w parku. Żadnych ludzi.",
+        kompozycja: "Kompozycja: alejka prowadzi wzrok w głąb, dolna część spokojna — mokra nawierzchnia, bez ważnych szczegółów." },
+  /* 88 bez numeru startowego (decyzja Filipa po siatce G2): podpis o starcie czytelny bez cyfr na kadrze */
+  88: { scena: "buty startowe i agrafki na stole, obok zegarek sportowy, poranek", poraDnia: "rano", ogniskowa: 2,
+        kadr: "Kadr: zbliżenie — buty startowe i agrafki na stole, obok zegarek sportowy, bez człowieka: żadnej twarzy, żadnych dłoni ani części ciała w kadrze.",
+        kompozycja: "Kompozycja: przedmioty w środkowej części kadru, tło miękko rozmyte, dolna część spokojna, bez ważnych szczegółów." },
 };
 
 function tagKadru(n) { if (PULA !== "dzis") return null; const t = TAGI[n] || {}; return t.p ? "p:" + t.p : t.t ? "t:" + t.t : null; }
 function sezon(n) { return PULA === "dzis" ? sezonKadru(n) : sezonPejzazu(n); }
 function osieNumeru(n) {
   const t = PULA === "dzis" ? (TAGI[n] || {}) : {};
-  return osie(n, { pula: PULA, sezon: sezon(n), tagP: t.p, tagT: t.t, wyjatek: PULA === "dzis" ? SCENA_Z_PODPISU[n] : null });
+  return osie(n, { pula: PULA, sezon: sezon(n), tagP: t.p, tagT: t.t, wyjatek: PULA === "dzis" ? SCENA_Z_PODPISU[n] : null, nawierzchnia: scenaNumeru(n).naw });
 }
 function prompt(n) {
   const tag = tagKadru(n);
   const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null;
   const o = osieNumeru(n);
-  const scena = wyj ? wyj.scena : PULA === "pejzaz" ? PEJZAZE[n % PEJZAZE.length] : tag ? SCENA[tag] : BEZ_TAGU[n % 4];
+  const scena = o.scenaNocna || scenaNumeru(n).opis;
   const z = zdaniaOsi(o, wyj);
   const naglowek = FORMAT === "21x9" ? "Poziomy, szeroki kadr (21:9) dla aplikacji biegowej, Polska." : "Pionowy kadr dnia dla biegacza, Polska.";
   return [
@@ -195,14 +228,17 @@ function podglad() {
   if (!PODGLAD) return;
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const kafle = [];
-  for (let n = 1; n <= N; n++) {
+  const doPodgladu = arg("nr") || arg("od") ? numery : Array.from({ length: N }, (_, i) => i + 1);
+  for (const n of doPodgladu) {
     const p = plik(n); if (!existsSync(p)) continue;
+    const o = osieNumeru(n);
+    const osieTxt = `${sezon(n)} · ${o.kompozycja.nazwa} · ${o.podmiot}${o.detal ? ": " + o.detal : ""} · ${o.poraDnia} · ${o.pogoda || "pogoda z tagu"} · ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK" : ""}`;
     const url = "file:///" + resolve(p).replace(/\\/g, "/");
-    kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><i>${esc((PODPISY[n - 1] || "").replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
+    kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><span class="osie">${esc(osieTxt)}</span><br><i>${esc((PODPISY[n - 1] || "").replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
   }
   writeFileSync(PODGLAD, `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Kadry dnia v2 — podgląd</title><style>
 body{margin:0;padding:16px;background:#07070a;color:#f0ede8;font:13px/1.4 system-ui,sans-serif}h1{font-size:18px;margin:0 0 12px}
-.siatka{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}figure{margin:0;background:#0f0f14;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
+.siatka{display:grid;grid-template-columns:repeat(${KOLUMNY},1fr);gap:12px}.osie{color:#ff9060}figure{margin:0;background:#0f0f14;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
 img{display:block;width:100%;aspect-ratio:${FORMAT === "21x9" ? "21/9" : "9/16"};object-fit:cover}figcaption{padding:8px;font-size:11px}i{color:rgba(240,237,232,.65)}details{margin-top:4px;color:#8a8798}
 @media(max-width:900px){.siatka{grid-template-columns:repeat(3,1fr)}}</style></head><body>
 <h1>Kadry dnia v2 — ${kafle.length} z ${N} (${esc(resolve(OUT))})</h1><div class="siatka">${kafle.join("\n")}</div></body></html>`);
@@ -226,7 +262,7 @@ if (POKAZ) {
   for (const n of numery) {
     const o = osieNumeru(n), i = o.indeksy;
     console.log(`--- ${PULA} ${n} [${tagKadru(n) || "bez tagu"}] pora roku: ${sezon(n)}${PULA === "dzis" ? " · podpis: " + (PODPISY[n - 1] || "(brak — G2)") : ""}`);
-    console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || "(z tagu/wnętrza)"}" · ogniskowa ${i.ogniskowa}${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);
+    console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || (o.scenaNocna ? "(z linii nocy)" : "(z tagu/wnętrza)")}" · ogniskowa ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);
     console.log(prompt(n));
   }
   process.exit(0);

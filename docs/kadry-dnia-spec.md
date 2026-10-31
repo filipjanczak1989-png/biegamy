@@ -120,6 +120,22 @@ Reguły nadrzędne: wyjątek sceny wygrywa; noc tylko `n % 12 = 0`; tag `p:` i s
 biegacza z bliska (0/1 → 3/4); **mgła tylko o świcie/rano** (mgła z osi albo `p:mgla` + południe/zmierzch → świt).
 Generator: `--pula dzis|pejzaz|typ|strona`, `--format 9x16|21x9`; kadry 1–65 powstały promptem v3 (bez osi) i zostają.
 
+### G2 — kadry 66–89 (31.10.2026, NA PROD)
+
+24 nowe numery z podpisami SOLO-3 i JAWNĄ porą `s:` w `TAGI` (6 na porę: 66–71 zima, 72–77 lato, 78–83 wiosna,
+84–89 jesień; noce 72 i 84 w swojej porze). Pliki `kadr-66…89.jpg` w `biegamy-assets` (`430523b`), pula „Dziś" = 89.
+- **Osie a poprawka nawierzchni:** 66–83 wygenerowane na osiach SPRZED poprawki nawierzchni (kompozycja mówiła „droga"
+  na sztywno); 84–89 oraz powtórki 69, 74, 88 — PO niej (kompozycja odmienia nawierzchnię sceny).
+- **Detale wg pory roku (decyzja Filipa po siatce G2):** „numer startowy z agrafkami" wypadł z detali NA STAŁE (model
+  rysował cyfry albo pustą kartkę). Listy: zima {rękawiczki, czołówka, buty}, jesień {rękawiczki, czołówka, buty, zegarek},
+  wiosna {buty, zegarek, bidon, czołówka}, lato {buty, zegarek, bidon, czapka z daszkiem}; indeks `floor(n/5) % długość
+  listy pory`. `blizna-57`: rękawiczki nigdy latem, bidon nigdy zimą, każdy przedmiot swojej pory występuje w 1..200.
+- **Wyjątek sceny 88:** „buty startowe i agrafki na stole, obok zegarek, poranek" — podpis o starcie czytelny bez numeru.
+- **Powtórzone 69, 74, 88** (wszystkie trzy lepsze, wzięte): 69 czołówka na ośnieżonej ławce (było: pusta kartka),
+  74 bidon na polnej drodze we mgle (było: rękawiczki latem), 88 buty + agrafki + zegarek (było: pusta kartka).
+- **Nie powtórzone, choć prompt się zmienił** (obraz zgodny z porą, zostaje): 79 obraz buty / prompt czołówka,
+  84 obraz zegarek / prompt rękawiczki, 89 obraz bidon / prompt czołówka. Ponowne wygenerowanie da inny przedmiot.
+
 ### Na później (decyzje Filipa 31.10, NIE zrobione)
 
 **G3 — pula pejzażowa 21:9 dla `.bm-hero`:**

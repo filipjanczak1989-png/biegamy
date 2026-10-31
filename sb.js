@@ -6474,7 +6474,13 @@ window.SOLO = (function(){
     41:{t:'dlugie'},42:{t:'dlugie'},43:{t:'dlugie'},44:{t:'silownia'},45:{t:'silownia'},
     46:{p:'deszcz'},47:{p:'deszcz'},48:{p:'deszcz'},49:{p:'snieg'},50:{p:'snieg'},51:{p:'snieg'},
     52:{p:'upal'},53:{p:'upal'},54:{p:'upal'},55:{p:'wiatr'},56:{p:'wiatr'},57:{p:'mgla'},58:{p:'mgla'},
-    59:{t:'tempo'},60:{t:'interwaly'} };
+    59:{t:'tempo'},60:{t:'interwaly'},
+    /* Grafiki v4 / G2 (31.10.2026): 66–89 z JAWNĄ porą s: — wzór dałby 4/7/7/6, a pula ma być 6 na porę.
+       66–71 zima, 72–77 lato, 78–83 wiosna, 84–89 jesień; 72 i 84 to noce (n % 12) — podpisy nocne. */
+    66:{s:'zima'},67:{s:'zima',p:'snieg'},68:{s:'zima'},69:{s:'zima'},70:{s:'zima',p:'snieg'},71:{s:'zima'},
+    72:{s:'lato'},73:{s:'lato'},74:{s:'lato'},75:{s:'lato'},76:{s:'lato',p:'upal'},77:{s:'lato'},
+    78:{s:'wiosna'},79:{s:'wiosna'},80:{s:'wiosna'},81:{s:'wiosna'},82:{s:'wiosna',p:'deszcz'},83:{s:'wiosna'},
+    84:{s:'jesien'},85:{s:'jesien'},86:{s:'jesien',p:'mgla'},87:{s:'jesien'},88:{s:'jesien'},89:{s:'jesien'} };
   var WYKL = { upal:['deszcz','snieg'], deszcz:['upal','snieg'], snieg:['upal','deszcz'], mgla:['upal'] };
   function pogoda(){
     try{
@@ -6512,9 +6518,10 @@ window.SOLO = (function(){
      a kadr innej pory jest TWARDO wykluczony — jak pogoda. Do 31.10 SOLO znało tylko pogodę, więc kadr zimowy bez
      tagu p: mógł wypaść w lipcu. s: = p:snieg → zima, p:upal → lato, kadry nocne (n % 12 = 0) rotują po porach
      (12 wiosna, 24 lato, 36 jesień, 48 zima, 60 wiosna — inaczej wszystkie pięć byłyby wiosenne), reszta n % 4.
+     Jawne s: w TAGI (od 66) wygrywa z wzorem — pula nowych numerów jest rozkładana ręcznie, 6 na porę.
      Ta sama funkcja wyznacza porę w prompcie generatora (tools/kadry/generuj-kadry.mjs czyta ją z tego pliku). */
   var PORY = ['wiosna','lato','jesien','zima'];
-  function sezonKadru(n){ var tg=TAGI[n]||{}; return tg.p==='snieg'?'zima':tg.p==='upal'?'lato':n%12===0?PORY[(n/12-1)%4]:PORY[n%4]; }
+  function sezonKadru(n){ var tg=TAGI[n]||{}; return tg.s?tg.s:tg.p==='snieg'?'zima':tg.p==='upal'?'lato':n%12===0?PORY[(n/12-1)%4]:PORY[n%4]; }
   function sezonDnia(teraz){
     var m=0; try{ m=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Warsaw',month:'numeric'}).format(teraz||new Date()); }catch(e){ m=(teraz||new Date()).getMonth()+1; }
     return (m>=3&&m<=5)?'wiosna':(m>=6&&m<=8)?'lato':(m>=9&&m<=11)?'jesien':'zima';

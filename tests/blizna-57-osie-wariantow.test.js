@@ -90,3 +90,74 @@ test('mgła tylko o świcie/rano: mgła (oś albo tag p:mgla) + południe/zmierz
   }
   assert.ok(przestawione > 0, 'reguła nie miała czego przestawić — test niczego nie sprawdził');
 });
+
+test('detal wg pory roku: każdy przedmiot swojej pory występuje w 1..200; rękawiczki nigdy latem, bidon nigdy zimą; bez numeru startowego', async () => {
+  const { osie, DETALE_PORY, DETALE } = await wczytaj();
+  for (const [s, lista] of Object.entries(DETALE_PORY)) {
+    const widziane = new Set();
+    for (let n = 1; n <= 200; n++) {
+      const o = osie(n, { sezon: s });
+      if (!o.detal) continue;
+      widziane.add(o.detal);
+      assert.ok(lista.includes(o.detal), `kadr ${n} (${s}): „${o.detal}" spoza listy pory`);
+      if (s === 'lato') assert.doesNotMatch(o.detal, /rękawicz/, `kadr ${n}: rękawiczki latem`);
+      if (s === 'zima') assert.doesNotMatch(o.detal, /bidon/, `kadr ${n}: bidon zimą`);
+    }
+    assert.deepEqual([...widziane].sort(), [...lista].sort(), `${s}: tylko ${[...widziane].join(', ')}`);
+  }
+  // ta sama relacja na porze, którą naprawdę dostaje generator (SOLO.sezonKadru, z jawnym s: od 66)
+  for (let n = 1; n <= 200; n++) {
+    const s = sezonKadru(n), o = osie(n, { sezon: s });
+    if (!o.detal) continue;
+    assert.ok(!(s === 'lato' && /rękawicz/.test(o.detal)) && !(s === 'zima' && /bidon/.test(o.detal)), `kadr ${n} (${s}): „${o.detal}"`);
+  }
+  assert.ok(!DETALE.some((d) => /numer startowy/.test(d)), 'numer startowy wypadł z detali na stałe');
+  assert.equal(osie(69, { sezon: 'zima' }).detal, 'czołówka');
+  assert.equal(osie(74, { sezon: 'lato' }).detal, 'bidon');
+  assert.throws(() => osie(69, {}), /nieznana pora roku/, 'detal bez pory roku = błąd, nie domysł');
+});
+
+test('upał (p:upal) zawsze w południe, poza nocą', async () => {
+  const { osie } = await wczytaj();
+  for (let n = 1; n <= 200; n++) {
+    const o = osie(n, { sezon: 'lato', tagP: 'upal' });
+    if (n % 12 === 0) assert.match(o.poraDnia, /noc/); else assert.equal(o.poraDnia, 'południe', `kadr ${n}`);
+  }
+});
+
+
+test('noc w pejzażu: tylko sceny miejskie, bez człowieka i bez czołówki; „Dziś" zostaje z czołówką', async () => {
+  const { osie, zdaniaOsi, NOCNE_PEJZAZ } = await wczytaj();
+  const miejskie = NOCNE_PEJZAZ.map((s) => s.opis);
+  for (let n = 12; n <= 200; n += 12) {
+    const o = osie(n, { pula: 'pejzaz', sezon: 'jesien', nawierzchnia: 'szlak' }), z = zdaniaOsi(o, null);
+    assert.ok(miejskie.includes(o.scenaNocna), `pejzaż ${n}: scena „${o.scenaNocna}"`);
+    assert.equal(o.podmiotNr, 3, `pejzaż ${n}: noc z człowiekiem`);
+    assert.doesNotMatch(o.poraDnia, /czołówk/, `pejzaż ${n}`);
+    assert.match(o.poraDnia, /latarnie, mokra nawierzchnia odbija światło/);
+    assert.match(z.kadr, /Żadnych ludzi/);
+    assert.match(osie(n, { pula: 'dzis', sezon: 'jesien' }).poraDnia, /czołówka/, `dzis ${n}`);
+  }
+});
+
+test('kompozycja mówi nawierzchnią sceny, nie „drogą" na sztywno; bieżnia = łuk toru i pusta trybuna', async () => {
+  const { osie, zdaniaOsi } = await wczytaj();
+  for (let n = 1; n <= 200; n++) {
+    if (n % 12 === 0) continue;
+    const tor = zdaniaOsi(osie(n, { pula: 'pejzaz', sezon: 'lato', nawierzchnia: 'tor' }), null);
+    const t = tor.kadr + ' ' + tor.kompozycja;
+    assert.doesNotMatch(t, /drog/, `pejzaż ${n} (tor): ${t}`);
+    const o = osie(n, { pula: 'pejzaz', sezon: 'lato', nawierzchnia: 'tor' });
+    if ([0, 1, 2].includes(o.indeksy.kompozycja) && o.podmiotNr !== 2) assert.match(t, /łuk toru, pusta trybuna w tle/, `pejzaż ${n}`);   // detal nie ma kompozycji trasy
+    const al = zdaniaOsi(osie(n, { pula: 'dzis', sezon: 'lato', nawierzchnia: 'alejka' }), null);
+    assert.doesNotMatch(al.kadr + al.kompozycja, /drog/, `dzis ${n} (alejka)`);
+  }
+});
+
+test('strefa tekstu: pejzaż (.bm-hero) = lewa dolna ćwiartka; „Dziś" (9:16) = dolna część', async () => {
+  const { osie, zdaniaOsi } = await wczytaj();
+  for (let n = 1; n <= 60; n++) {
+    assert.match(zdaniaOsi(osie(n, { pula: 'pejzaz', sezon: 'lato' }), null).kompozycja, /lewa dolna ćwiartka bez ważnych szczegółów/);
+    assert.match(zdaniaOsi(osie(n, { pula: 'dzis', sezon: 'lato' }), null).kompozycja, /dolna część spokojna/);
+  }
+});

@@ -119,3 +119,24 @@ test('dopasuj (1 kadr) = pierwszy z dopasujN — zgodność wstecz', () => {
   const b = solo(null).S.dopasujN(N, 70000, 1)[0];
   assert.equal(a, b);
 });
+
+test('jawne s: w TAGI (66–89) wygrywa z wzorem: po 6 kadrów na porę, noce 72 i 84 w swojej porze', () => {
+  const { S } = solo(null);
+  const pory = { zima: [66, 71], lato: [72, 77], wiosna: [78, 83], jesien: [84, 89] };
+  for (const [pora, [od, d]] of Object.entries(pory)) for (let n = od; n <= d; n++) assert.equal(S.sezonKadru(n), pora, `kadr ${n}`);
+  assert.equal(S.sezonKadru(72), 'lato', 'noc 72: s: wygrywa z regułą nocy');
+  assert.equal(S.sezonKadru(84), 'jesien', 'noc 84: s: wygrywa z regułą nocy');
+});
+
+test('⚠️ PULA 89: lipiec bez zimy, styczeń bez lata, zawsze 3 różne kadry z 1..89', () => {
+  for (const pog of [null, 'snieg', 'upal', 'mgla']) {
+    const { S } = solo(pog);
+    for (let i = 0; i < 200; i++) {
+      const lipiec = S.dopasujN(89, 80000 + i, 3, new Date(Date.UTC(2026, 6, 1 + (i % 31), 12)));
+      const styczen = S.dopasujN(89, 90000 + i, 3, new Date(Date.UTC(2027, 0, 1 + (i % 31), 12)));
+      for (const n of lipiec) assert.notEqual(S.sezonKadru(n), 'zima', `lipiec, pogoda ${pog}: kadr ${n}`);
+      for (const n of styczen) assert.notEqual(S.sezonKadru(n), 'lato', `styczeń, pogoda ${pog}: kadr ${n}`);
+      for (const nr of [lipiec, styczen]) { assert.equal(nr.length, 3); assert.equal(new Set(nr).size, 3); nr.forEach((n) => assert.ok(n >= 1 && n <= 89)); }
+    }
+  }
+});
