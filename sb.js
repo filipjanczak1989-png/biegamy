@@ -6343,43 +6343,62 @@ window._icuRenderSplits = function (d, el) {
   })();
 })();
 
-/* ===== BANERY (WIZUAL E3): rotacja tygodniowa hero-banerow ===== */
-/* LUK-TYGODNIA: strony 'tydzien' = 7 scen wg dnia (pn=01..nd=07, 08rez poza rotacja). */
-/* trener = rolujaca %6. img.onerror -> hero znika (deploy odporny na brak pliku).      */
-/* Flota w MAIN repo assets/ui/banery (sciezka wzgledna, NIE assetUrl/biegamy-assets).  */
+/* ===== BANERY: wspólny komponent hero widoków (E3 → 31.10.2026) ===== */
+/* Znacznik <section class="bm-hero" data-bm-hero="<widok>"> stoi STATYCZNIE w HTML strony, CSS w theme.css —   */
+/* wysokość jest znana od pierwszego malowania, więc dołożenie obrazu nie przesuwa układu. ozyw() dokłada obraz   */
+/* WYŁĄCZNIE widokom z FLOTA/STALE: lista w kodzie zamiast sprawdzania w przeglądarce, bo każde sprawdzenie        */
+/* (HEAD, Image(), image-set) i tak wysyła żądanie, a Chrome loguje 404 brakującego pliku na czerwono.            */
+/* Nowy obraz = plik w repo + JEDNA pozycja tutaj. Brak pozycji = gradient z akcentu, zero żądań.                 */
+/* LUK-TYGODNIA: FLOTA 'tydzien' = 7 scen wg dnia (pn=01..nd=07, 08rez poza rotacją); trener = rolująca %6.       */
+/* img.onerror → obraz znika, zostaje gradient (bez przesunięcia — sekcja ma stałą wysokość).                     */
+/* Flota w MAIN repo assets/ui/banery i assets/ui/naglowki (ścieżka względna, NIE assetUrl/biegamy-assets).       */
 window.BANERY = (function(){
   var FLOTA = { login:'tydzien', index:'tydzien', races:'tydzien', wyzwania:'tydzien', statystyki:'tydzien', odznaki:'tydzien', radio:'tydzien', trener:6 };
+  var STALE = {
+    kalendarz:'assets/ui/naglowki/naglowek-kalendarz.webp', raporty:'assets/ui/naglowki/naglowek-raporty.webp',
+    nutrition:'assets/ui/naglowki/naglowek-nutrition.webp', ankieta:'assets/ui/naglowki/naglowek-ankieta.webp',
+    compare:'assets/ui/naglowki/naglowek-compare.webp'
+  };
+  var POZYCJA = { kalendarz:'center 45%', raporty:'center 30%', nutrition:'center 30%', ankieta:'center 30%', compare:'center 40%' };
   var d = new Date();
   var dayNum = Math.floor((d.getTime() - d.getTimezoneOffset()*60000)/86400000);
   function src(page){
+    if (STALE[page]) return STALE[page];
     var n = FLOTA[page]; if(!n) return null;
     var idx = (n==='tydzien') ? ((d.getDay()+6)%7 + 1) : (dayNum % n + 1);
     return 'assets/ui/banery/baner-' + page + '-' + String(idx).padStart(2,'0') + '.webp';
   }
-  function hero(page, tytul, podtytul){
-    var s = src(page); if(!s) return null;
-    if(!document.getElementById('banery-css')){
-      var st = document.createElement('style'); st.id='banery-css';
-      st.textContent = '.banery-hero{position:relative;height:172px;border-radius:16px;overflow:hidden;margin:8px 16px 16px;background:var(--bg2,#0d0b12)}'
-        + '.banery-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 38%}'
-        + '.banery-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,11,18,.18) 0%,rgba(13,11,18,0) 38%,rgba(13,11,18,.84) 100%)}'
-        + '.banery-tyt{position:absolute;left:16px;bottom:10px;z-index:2;font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:1.5px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.55)}'
-        + '.banery-pod{position:absolute;left:16px;bottom:44px;z-index:2;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.6px;color:rgba(255,255,255,.78);text-transform:uppercase}';
-      document.head.appendChild(st);
-    }
-    var el = document.createElement('div'); el.className='banery-hero';
-    var img = document.createElement('img'); img.src=s; img.alt='';
-    img.onerror = function(){ el.remove(); };
-    el.appendChild(img);
-    if(podtytul){ var p=document.createElement('div'); p.className='banery-pod'; p.textContent=podtytul; el.appendChild(p); }
-    var t = document.createElement('div'); t.className='banery-tyt'; t.textContent = tytul || ''; el.appendChild(t);
+  function dolozObraz(sekcja){
+    if (sekcja.querySelector('.bm-hero-img')) return;
+    var s = src(sekcja.getAttribute('data-bm-hero')); if(!s) return;
+    var img = document.createElement('img');
+    img.className = 'bm-hero-img'; img.alt = ''; img.decoding = 'async';
+    img.style.setProperty('--bm-hero-poz', POZYCJA[sekcja.getAttribute('data-bm-hero')] || 'center 38%');
+    img.onload = function(){ img.classList.add('on'); };
+    img.onerror = function(){ img.remove(); sekcja.classList.remove('z-obrazem'); };
+    sekcja.classList.add('z-obrazem');
+    sekcja.insertBefore(img, sekcja.firstChild);
+    img.src = s;
+  }
+  function ozyw(root){
+    (root || document).querySelectorAll('[data-bm-hero]').forEach(dolozObraz);
+  }
+  /* Wersja dynamiczna dla stron bez statycznego znacznika (dziś nikt jej nie woła — wszystkie widoki mają znacznik). */
+  function hero(page, tytul, opis){
+    var el = document.createElement('section'); el.className = 'bm-hero'; el.setAttribute('data-bm-hero', page);
+    var tr = document.createElement('div'); tr.className = 'bm-hero-tresc';
+    var h = document.createElement('h1'); h.className = 'bm-hero-tytul'; h.textContent = tytul || ''; tr.appendChild(h);
+    if (opis) { var p = document.createElement('p'); p.className = 'bm-hero-opis'; p.textContent = opis; tr.appendChild(p); }
+    el.appendChild(tr); dolozObraz(el);
     return el;
   }
-  function mount(sel, page, tytul, podtytul){
+  function mount(sel, page, tytul, opis){
     var host = document.querySelector(sel); if(!host) return;
-    var el = hero(page, tytul, podtytul); if(el) host.appendChild(el);
+    host.appendChild(hero(page, tytul, opis));
   }
-  return { src:src, hero:hero, mount:mount, _dayNum:dayNum };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ ozyw(); });
+  else ozyw();
+  return { src:src, hero:hero, mount:mount, ozyw:ozyw, _dayNum:dayNum };
 })();
 
 /* ===== PUSTKA v1 (WIZUAL E4-P2): ilustrowane puste stany ===== */

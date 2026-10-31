@@ -68,9 +68,13 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   <h1>Odznaki</h1>
 </div>
 <div id="content">
-  <!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
-  <div id="banery-top"></div>
-  <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','odznaki');});</script>
+  <!-- HERO WIDOKU (komponent bm-hero: CSS w theme.css, obraz z BANERY w sb.js) -->
+  <section class="bm-hero" data-bm-hero="odznaki">
+    <div class="bm-hero-tresc">
+      <h2 class="bm-hero-tytul">Kolekcja <span>odznak</span></h2>
+      <p class="bm-hero-opis">Za kilometry, regularność i starty.</p>
+    </div>
+  </section>
   <div id="badges-section-content">
     <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
   </div>

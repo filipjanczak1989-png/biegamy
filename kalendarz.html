@@ -910,8 +910,13 @@ html { scroll-behavior: smooth; }
     <button class="btn btn-ghost" id="btn-week-template" onclick="openWeekTemplateModal()" style="display:none;">Tydzień</button>
   </div>
 </nav>
-<!-- NAGLOWEK-T3: hero-pasek rodziny v4 (E4 assets, wpiecie 24.07) -->
-<div style="position:relative;height:120px;border-radius:16px;overflow:hidden;margin:10px 16px 4px;background:url('assets/ui/naglowki/naglowek-kalendarz.webp') center 45%/cover;"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0) 40%,rgba(7,5,12,0.55) 100%);"></div></div>
+<!-- HERO WIDOKU (komponent bm-hero: CSS w theme.css, obraz z BANERY w sb.js; zastępuje NAGLOWEK-T3) -->
+<section class="bm-hero" data-bm-hero="kalendarz">
+  <div class="bm-hero-tresc">
+    <h1 class="bm-hero-tytul">Plan <span>treningowy</span></h1>
+    <p class="bm-hero-opis">Tydzień po tygodniu, każdy trening w jednym miejscu.</p>
+  </div>
+</section>
 
 <!-- TOOLBAR -->
 <div class="cal-toolbar">

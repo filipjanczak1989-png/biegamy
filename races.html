@@ -368,9 +368,37 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 </div>
 
 <!-- RACES LIST -->
-<!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
-<div id="banery-top"></div>
-<script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','races');});</script>
+<!-- HERO WIDOKU (komponent bm-hero: CSS w theme.css, obraz z BANERY w sb.js — tygodniowa rotacja baner-races-0X) -->
+<section class="bm-hero bm-hero--slot" data-bm-hero="races">
+  <div class="bm-hero-tresc">
+    <h1 class="bm-hero-tytul">Najbliższe <span>starty</span></h1>
+    <p class="bm-hero-opis">Zawody, na które biegamy razem.</p>
+    <div class="bm-hero-slot"><span class="bm-hero-chip" id="races-hero-najblizsze"></span></div>
+  </div>
+</section>
+<script>
+/* Licznik w hero liczy z _allRaces, które strona i tak już ma — bez nowego zapytania i bez zmiany logiki listy:
+   obserwator #races-list przelicza po każdym renderze. Tylko zatwierdzone, od dziś do +30 dni. */
+(function(){
+  function startow(n){ var d = n % 10, s = n % 100; return n === 1 ? 'start' : (d >= 2 && d <= 4 && (s < 12 || s > 14)) ? 'starty' : 'startów'; }
+  function dzien(dt){ return new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  function przelicz(){
+    var el = document.getElementById('races-hero-najblizsze');
+    if (!el || typeof _allRaces === 'undefined' || !Array.isArray(_allRaces)) return;
+    var dzis = dzien(new Date()), za30 = dzien(new Date(Date.now() + 30 * 86400000));
+    var lista = _allRaces.filter(function(r){ return r && r.status === 'approved' && r.date >= dzis && r.date <= za30; });
+    if (!lista.length) { el.textContent = 'Brak startów w 30 dni'; return; }
+    var pierwszy = lista.reduce(function(a, b){ return a.date <= b.date ? a : b; });
+    var kiedy = new Date(pierwszy.date + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+    el.textContent = lista.length + ' ' + startow(lista.length) + ' w 30 dni · najbliższy ' + kiedy;
+  }
+  function start(){
+    var lista = document.getElementById('races-list');
+    if (lista && window.MutationObserver) new MutationObserver(przelicz).observe(lista, { childList: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
 <!-- WYNIKI ZAWODNIKÓW: wyszukiwarka (js/wyszukiwarka-wynikow.js); start dopiero po sesji i przy pierwszym rozwinięciu -->
 <details class="st-card" id="wyniki-szukaj-sekcja" hidden style="margin:0 16px 12px;"><summary style="cursor:pointer;font-weight:600;">Wyniki zawodników</summary><div id="wyniki-szukaj" style="margin-top:10px;"></div></details>
 <div class="races-list" id="races-list">

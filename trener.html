@@ -312,9 +312,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 </div>
 
-<!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
-<div id="banery-top"></div>
-<script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','trener');});</script>
+<!-- HERO WIDOKU (komponent bm-hero: CSS w theme.css, obraz z BANERY w sb.js) -->
+<section class="bm-hero" data-bm-hero="trener">
+  <div class="bm-hero-tresc">
+    <h1 class="bm-hero-tytul">Panel <span>trenera</span></h1>
+    <p class="bm-hero-opis">Zawodnicy, plany i wiadomości w jednym miejscu.</p>
+  </div>
+</section>
 
 <!-- ━━━━━━━━ KLAUDIUSZ BRIEF DNIA ━━━━━━━━ -->
 <div class="sec-hdr fi" style="margin-top:8px;">
