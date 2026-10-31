@@ -69,9 +69,13 @@ function dystansOpis(km: number | null) {
   return `bieg na ${Math.round(km * 10) / 10} km`;
 }
 
+// „las” jako SŁOWO, nie podciąg („klasyczny”, „wlasny”). Granica przez \p{L}, nie \b: w JS \b zna tylko
+// [A-Za-z0-9_], więc ł/ś/ą przed „las” liczyłoby się jako granica słowa.
+const LAS = /(?<!\p{L})las(u|ek|ku|ie)?(?!\p{L})/u;
+
 function sceneria(race: { name: string; distance_km: number | null }) {
   const n = String(race.name || "").toLowerCase();
-  if (/trail|ultra|górsk|gorsk/.test(n) || (race.distance_km ?? 0) > 42.5) return "trail";
+  if (/trail|ultra|górsk|gorsk|le[sś]n/.test(n) || LAS.test(n) || (race.distance_km ?? 0) > 42.5) return "trail";
   if (/park/.test(n)) return "park";
   return "miasto";
 }
@@ -84,7 +88,9 @@ function zbudujPrompt(race: { name: string; city: string | null; distance_km: nu
     race.city ? `w miejscowości ${przytnij(race.city, 60)}` : "",
     `(${przytnij(race.name, 80)}), pora roku: ${pora}.`,
     `Sceneria: ${SCENERIE[sceneria(race)]}.`,
-    "Realistyczna fotografia reportażowa, naturalne światło.",
+    /nocn|night/.test(String(race.name || "").toLowerCase())
+      ? "Realistyczna fotografia reportażowa nocą: ciemne niebo, światło latarni i czołówek biegaczy."
+      : "Realistyczna fotografia reportażowa, naturalne światło dzienne.",
     "Biegacze w ruchu, bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
   ].filter(Boolean).join(" ");
 }
