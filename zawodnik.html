@@ -913,7 +913,7 @@ body > *{position:relative;z-index:1;}
 .ht-tile{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:transform 0.18s,border-color 0.18s;-webkit-tap-highlight-color:transparent;}
 .ht-tile:active{transform:scale(0.96);}
 .ht-tile:hover{border-color:rgba(var(--accent-rgb),0.5);}
-.ht-tile img{width:32px;height:32px;object-fit:contain;}
+.ht-tile img{width:40px;height:40px;object-fit:contain;}   /* A2b: 40, nie 56 z projektu — kafel na Dziś ma ~75 px wysokości (5 w kolumnie obok hero 9:16) */
 /* 10px + ls:0 to maksimum, jakie mieści się w jednym wierszu. Kafel przy ekranie
    360px ma 57,6px, z tego na treść 49,6px; DM Mono liczy 0,6em na znak, więc
    limit to 8 znaków (48,0px). WYZWANIA siedzi na granicy z zapasem 1,6px. */
@@ -944,11 +944,11 @@ body > *{position:relative;z-index:1;}
        Obejmuje obie zakładki sekcji — Wzmacnianie i Oddech. SIŁA pomijałaby oddech
        i rozgrzewkę, ĆWICZ. z kropką wygląda na ucięte w rzędzie pełnych słów.
        Pozostałe podpisy też są rzeczownikami: ODZNAKI, STARTY, WYZWANIA, CZAT. -->
-  <button class="ht-tile" onclick="showSection('cwiczenia');return false;"><img data-ic="icon-ex-section.webp" alt=""><span class="ht-lbl">Ciało</span></button>
-  <button class="ht-tile" onclick="location.href='wyzwania.html'"><img data-ic="icon-radio-trophy.webp" alt=""><span class="ht-lbl">Wyzwania</span></button>
-  <button class="ht-tile" onclick="location.href='odznaki.html'"><img data-ic="icon-nav-medal.webp" alt=""><span class="ht-lbl">Odznaki</span></button>
-  <button class="ht-tile" id="ht-starty" style="position:relative;" onclick="location.href='races.html'"><span id="starty-dot" style="display:none;position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card),0 2px 8px var(--glow-o);"></span><img data-ic="icon-nav-flag.webp" alt=""><span class="ht-lbl">Starty</span></button>
-  <button class="ht-tile" onclick="showSection('msgs')"><img data-ic="icon-nav-people.webp" alt=""><span class="ht-lbl">Czat</span></button>
+  <button class="ht-tile" data-kafel="cialo" onclick="showSection('cwiczenia');return false;"><img data-ic="ikona-cialo.png" data-ic-stary="icon-ex-section.webp" alt=""><span class="ht-lbl">Ciało</span></button>
+  <button class="ht-tile" data-kafel="wyzwania" onclick="location.href='wyzwania.html'"><img data-ic="ikona-wyzwania.png" data-ic-stary="icon-radio-trophy.webp" alt=""><span class="ht-lbl">Wyzwania</span></button>
+  <button class="ht-tile" data-kafel="odznaki" onclick="location.href='odznaki.html'"><img data-ic="ikona-odznaki.png" data-ic-stary="icon-nav-medal.webp" alt=""><span class="ht-lbl">Odznaki</span></button>
+  <button class="ht-tile" id="ht-starty" data-kafel="starty" style="position:relative;" onclick="location.href='races.html'"><span id="starty-dot" style="display:none;position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card),0 2px 8px var(--glow-o);"></span><img data-ic="ikona-starty.png" data-ic-stary="icon-nav-flag.webp" alt=""><span class="ht-lbl">Starty</span></button>
+  <button class="ht-tile" data-kafel="czat" onclick="showSection('msgs')"><img data-ic="ikona-czat.png" data-ic-stary="icon-nav-people.webp" alt=""><span class="ht-lbl">Czat</span></button>
 </div>
 </div>
 
@@ -6323,6 +6323,7 @@ async function initAuth() {
     // Poniższe zostają schowane w trybie trenera: to narzędzia zawodnicze, nie momenty.
     if (new URLSearchParams(window.location.search).get('from') !== 'trener') {
       checkFriendsRacesDot();   // KROK 2: kropka "nowe od znajomych" na Startach
+      if (window.KAFLE) window.KAFLE.podepnij(document.getElementById('home-tiles-row-right'), function(){ return _athleteId; });   // A2b: sygnały kafli
       _syncFriendsActBtn();     // stan przełącznika aktywności znajomych
     }
 
@@ -10289,46 +10290,13 @@ async function deleteFeedLog(logId) {
 function loadChallenges() {
   const el = document.getElementById('challenges-content');
   if (!el) return;
+  /* A2b (31.10.2026): listy, rotacja i postęp wyzwań = WYZWANIA w sb.js (jedno źródło z wyzwania.html i kaflem). */
   const now = new Date();
-  const dow = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=pn
-  const wS = new Date(now); wS.setDate(now.getDate() - dow); wS.setHours(0,0,0,0);
-  const mS = new Date(now.getFullYear(), now.getMonth(), 1);
-  const weekNum = Math.floor((wS - new Date(wS.getFullYear(),0,1)) / 604800000);
-
+  const A = window.WYZWANIA.aktywne(now);
+  const mS = A.mS;
   const BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/badges/';
-
-  // Wyzwania tygodniowe — każde powiązane z odznakę
-  const WEEKLY = [
-    {id:'tydzien_mocy',   badge:'tydzien_mocy',   title:'Tydzień mocy',       desc:'3 treningi w tym tygodniu',   target:3,  unit:'treningi', kind:'sessions',color:'#e8a040'},
-    {id:'5_dni_ruchu',    badge:'5_dni_ruchu',     title:'5 dni ruchu',        desc:'5 treningów w tym tygodniu',  target:5,  unit:'treningi', kind:'sessions',color:'#5090e0'},
-    {id:'weekend_runner', badge:'weekend_runner',  title:'Weekend runner',     desc:'2 treningi w weekend',        target:2,  unit:'sesje',    kind:'weekend', color:'#9a6fe8'},
-    {id:'20km_tydzien',   badge:'20km_tydzien',    title:'20 km / tydzień',    desc:'20 km od poniedziałku',       target:20, unit:'km',       kind:'km',      color:'#3db870'},
-    {id:'40km_tydzien',   badge:'40km_tydzien',    title:'40 km / tydzień',    desc:'40 km od poniedziałku',       target:40, unit:'km',       kind:'km',      color:'#e8b840'},
-    {id:'60km_tydzien',   badge:'60km_tydzien',    title:'60 km / tydzień',    desc:'60 km od poniedziałku',       target:60, unit:'km',       kind:'km',      color:'#FC4C02'},
-    {id:'80km_tydzien',   badge:'80km_tydzien',    title:'80+ km / tydzień',   desc:'80 km od poniedziałku',       target:80, unit:'km',       kind:'km',      color:'#ff4444'},
-    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Dwa akcenty',       desc:'2× tempo lub interwały',      target:2,  unit:'akcenty',  kind:'jakosc',   color:'#FC4C02'},
-    {id:'3_dni_pod_rzad', badge:'3_dni_pod_rzad',  title:'3 dni pod rząd',     desc:'3 kolejne dni treningów',     target:3,  unit:'dni',      kind:'streak',  color:'#e8b840'},
-    {id:'forma_rosnie',   badge:'forma_rosnie',    title:'Forma rośnie',       desc:'4 treningi w tym tygodniu',   target:4,  unit:'treningi', kind:'sessions',color:'#3db870'},
-    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'4 dni, żadnej przerwy >2 dni', target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
-    {id:'mieszany_ogien', badge:'mieszany_ogien',  title:'Mieszany ogień',     desc:'Easy + Tempo + Interwały',    target:3,  unit:'typy',     kind:'mix',     color:'#FC4C02'},
-  ];
-
-  // Wyzwania miesięczne — powiązane z odznakami
-  const MONTHLY = [
-    {id:'50km_miesiaca',  badge:'50km_miesiaca',  title:'50 km miesiąca',    desc:'50 km w tym miesiącu',       target:50,  unit:'km',       kind:'mkm',     color:'#3db870'},
-    {id:'100km_miesiaca', badge:'100km_miesiaca', title:'100 km miesiąca',   desc:'100 km w tym miesiącu',      target:100, unit:'km',       kind:'mkm',     color:'#e8b840'},
-    {id:'200km_miesiaca', badge:'200km_miesiaca', title:'200 km miesiąca',   desc:'200 km w tym miesiącu',      target:200, unit:'km',       kind:'mkm',     color:'#FC4C02'},
-    {id:'15_treningow',   badge:'15_treningow',   title:'15 treningów',      desc:'15 treningów w miesiącu',    target:15,  unit:'treningi', kind:'msess',   color:'#5090e0'},
-    {id:'20_treningow',   badge:'20_treningow',   title:'20 treningów',      desc:'20 treningów w miesiącu',    target:20,  unit:'treningi', kind:'msess',   color:'#9a6fe8'},
-    {id:'maraton_m',      badge:'maraton_m',      title:'Maraton miesiąca',  desc:'42 km łącznie w miesiącu',   target:42,  unit:'km',       kind:'mkm',     color:'#e8a040'},
-  ];
-
-  // Wybierz 3 tygodniowe (rotacja) + 2 miesięczne (rotacja)
-  const w1 = WEEKLY[weekNum % WEEKLY.length];
-  const w2 = WEEKLY[(weekNum + 3) % WEEKLY.length];
-  const w3 = WEEKLY[(weekNum + 7) % WEEKLY.length];
-  const m1 = MONTHLY[Math.floor(weekNum/4) % MONTHLY.length];
-  const m2 = MONTHLY[(Math.floor(weekNum/4)+1) % MONTHLY.length];
+  const [w1, w2, w3] = A.tydzien;
+  const [m1, m2] = A.miesiac;
 
   function buildCard(ch, prog, earned, isMonthly) {
     const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
@@ -10397,59 +10365,8 @@ function loadChallenges() {
     sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
   ]).then(([logsRes, achRes]) => {
     const all = logsRes.data || [];
-    const wl = all.filter(l => new Date(l.logged_at) >= wS);
     const earnedSet = new Set((achRes.data||[]).map(r => r.badge_id));
-
-    // Oblicz postępy
-    const wkm = wl.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
-    const mkm = all.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
-    const wsess = wl.length;
-    const msess = all.length;
-    const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
-    /* „Dwa akcenty" liczy JEDNOSTKI JAKOSCIOWE, nie same tempowe: generator planu
-       daje JEDEN akcent na tydzien i na przemian Tempo/Interwaly, wiec wyzwanie
-       wymagajace dwoch TEMPOWYCH przeczylo planowi, ktory sam wystawia. */
-    const wJakosc = wl.filter(l => l.training_type==='Tempo' || l.training_type==='Interwały').length;
-    const wDays = [...new Set(wl.map(l=>l.logged_at.slice(0,10)))].sort();
-    /* Najwieksza przerwa miedzy dniami z treningiem — „bez_skipa" mierzy
-       REGULARNOSC, nie sume dni. Bez tego opis mowilby co innego niz warunek. */
-    let wLuka = 0;
-    for (let i = 1; i < wDays.length; i++) {
-      const l2 = Math.round((new Date(wDays[i]) - new Date(wDays[i-1])) / 86400000);
-      if (l2 > wLuka) wLuka = l2;
-    }
-
-    // streak
-    let streak = 0, prev = null;
-    wDays.forEach(d => {
-      if (!prev) { streak=1; } 
-      else { streak = Math.round((new Date(d)-new Date(prev))/86400000)===1 ? streak+1 : 1; }
-      prev = d;
-    });
-
-    // Dla każdego wyzwania tygodniowego oblicz progress
-    function wProg(ch) {
-      if (ch.kind==='km')      return wkm;
-      if (ch.kind==='sessions')return wsess;
-      if (ch.kind==='weekend') return wknd;
-      if (ch.kind==='streak')  return streak;
-      if (ch.kind==='jakosc')  return wJakosc;   /* tempo LUB interwaly */
-      /* ⚠️ POSTEP POKAZUJE DNI, ale prog zalicza sie TYLKO przy zachowanej
-         regularnosci — inaczej opis („zadnej przerwy >2 dni") mowilby co innego
-         niz pasek. Przerwa dluzsza niz 2 dni trzyma postep pod progiem. */
-      if (ch.kind==='altdays') return wLuka <= 2 ? wDays.length : Math.min(wDays.length, ch.target - 1);
-      if (ch.kind==='mix') {
-        const types = new Set(wl.map(l=>l.training_type));
-        return [types.has('Spokojny'),types.has('Tempo'),types.has('Interwały')].filter(Boolean).length;
-      }
-      return 0;
-    }
-
-    const progMap = {};
-    [w1,w2,w3].forEach(ch => { progMap[ch.id] = wProg(ch); });
-    [m1,m2].forEach(ch => {
-      progMap['m_'+ch.id] = ch.kind==='mkm' ? mkm : msess;
-    });
+    const progMap = window.WYZWANIA.postep(all, now);
 
     // Specjalna mapa dla render
     function renderWithData() {
@@ -10834,7 +10751,9 @@ async function checkFriendsRacesDot() {
         hasNew = !!(sg && sg.length);
       }
     }
-    dot.style.display = hasNew ? 'block' : 'none';
+    /* A2b: gdy kafel Starty ma liczbę dni do celu, kropka znajomych się nie pokazuje — liczba albo kropka, nigdy obie. */
+    const _maLiczbe = !!(document.getElementById('ht-starty') && document.getElementById('ht-starty').classList.contains('kafel-ma-liczbe'));
+    dot.style.display = (hasNew && !_maLiczbe) ? 'block' : 'none';
   } catch(e) { console.warn('[friends-dot]', e.message); }
 }
 function toggleFriendsActivity() {

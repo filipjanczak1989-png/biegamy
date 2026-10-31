@@ -251,3 +251,44 @@ skrypt staje, wznowienie tym samym poleceniem pomija gotowe.
 2. **A2 — „Dziś v2" karta treningu** (plik `Dzis-v2-projekt.md` od Filipa na starcie A2): kafle z sygnałami,
    **pas 21:9 z liczbą km** (obraz = `obrazTypu(type)` z G4; liczba w LEWEJ TERCJI U DOŁU, ten sam róg co tekst
    .bm-hero — banery G4 są pod to skomponowane, miniatura 96×76 znika), zegarek, pogoda.
+
+## A2b + G5 W KODZIE (31.10.2026, Dzis-v2-A2-G5-projekt.md + decyzje Filipa po ZWIADZIE)
+
+**Zasada kafla: LICZBA albo KROPKA, nigdy obie, i NIC przy braku danych** (błąd zapytania = brak sygnału, nie „0").
+`KAFLE` w sb.js: czyste reguły (`KAFLE.reguly`), zapytania (`policz`), rysowanie przez textContent (`pokaz`),
+liczenie przy wejściu i po `visibilitychange` (`podepnij`) — bez pollingu. CSS: blok „KAFLE z sygnałem" w theme.css.
+
+| kafel | Dziś | Profil | sygnał | źródło |
+|---|---|---|---|---|
+| Ciało | ✓ | ✓ | liczba sesji ćwiczeń od pn; 0 → nic | `training_logs` `source='circuit'` (oddech się nie zapisuje) |
+| Wyzwania | ✓ | ✓ | % najbliższego ukończenia (< 100) | `WYZWANIA.najblizsze` |
+| Odznaki | ✓ | ✓ | kropka „nowa" + obwódka/tło w akcencie | `achievements` vs localStorage `odznaki_widziane` (zapis na odznaki.html; 1. wizyta = punkt odniesienia) |
+| Starty | ✓ | ✓ (tylko własny) | dni do celu / „dziś"; bez celu → na Dziś kropka znajomych | `czytajRaceGoals` |
+| Czat | ✓ | ✓ | nieprzeczytane OD ZNAJOMYCH | `peer_messages` `read=false`; od trenera zostaje na dzwonku |
+| Ustawienia | — | ✓ (szósty, tylko własny) | brak | — |
+
+- Radio wypadło z kolumny (nie było go tam — kolumna ma Czat; dźwięk gra tylko na radio.html).
+- Sygnały TYLKO u siebie: Dziś w trybie zawodnika (nie `?from=trener`), Profil tylko własny.
+- **Ikona na Dziś 40 px, nie 56** z projektu: kafel ma tam ~75 px wysokości (5 kafli obok hero 9:16). Profil: 56 px.
+- Ikony `ikona-<slug>.png` (assets `05ab33e`): 3D matowe, **paleta bez pomarańczu** (grafit, kość słoniowa, piasek) —
+  akcent motywu tylko w sygnale. `--card` jest jednakowe w 5 motywach, więc tło ikon bez szwu. Zapas offline:
+  ikona-*.png → stary icon-*.webp (`data-ic-stary`) → emoji `_IC_ZAPAS`. `ikona-dzwonek.png` w assets, jeszcze NIE
+  podpięty (dzwonek w topbarze to SVG — do A2c). Konwerter `tools/kadry/ikony-png.py`: kadr 78 %, tło → #0f0f14, ≤ 40 KB.
+- Generacje G5: 9 (7 + druga próba Ciało i Ustawienia — odstawały stylem), ~0,30 $.
+
+**WYZWANIA — jedno źródło (sb.js).** Do 31.10 listy, rotacja i postęp żyły w DWÓCH kopiach (wyzwania.html,
+zawodnik.html) i liczyły km różnie; teraz obie strony i kafel biorą `WYZWANIA.aktywne/postep`. `buildCard`
+(rysowanie karty) nadal w każdym pliku osobno.
+
+| gdzie | km tygodnia | km miesiąca |
+|---|---|---|
+| zawodnik.html (stara kopia) | tylko biegi | tylko biegi |
+| wyzwania.html (stara kopia) | wszystko | wszystko |
+| `checkBadges` (przyznawanie) | tylko biegi | wszystko |
+| **WYZWANIA.postep (teraz)** | **tylko biegi** | **wszystko** — jak przyznawanie |
+
+**ZALEGŁOŚĆ (decyzja Filipa 31.10):** `checkBadges` — km MIESIĄCA tylko z biegów, jak tydzień; w tym samym commicie
+`WYZWANIA.postep`, żeby pasek dalej mówił to, co zrobi odznaka. Osobny commit PO A2, z blizną.
+
+**Karta treningu (A2a, następne):** główny przycisk „Zaloguj wynik" bez zmian; „Nie zrobiłem" tekstowy 44 px, a reguła
+z 21.08 bez zmian — dotyczy tylko WCZORAJSZEGO planu (dzisiejszy trwa do północy). Dolny nav i środkowe kółko bez zmian.

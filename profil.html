@@ -176,7 +176,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 .p-nav-tile{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--dur-fast,0.18s) var(--ease-out,ease),box-shadow var(--dur-fast,0.18s),border-color var(--dur-fast,0.18s);-webkit-tap-highlight-color:transparent;}
 .p-nav-tile:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),0.5);box-shadow:0 8px 22px rgba(0,0,0,0.4),0 0 16px var(--glow-o2,rgba(232,86,30,0.14));}
 .p-nav-tile:active{transform:scale(0.97);}
-.p-nav-tile img{width:46px;height:46px;object-fit:contain;}
+.p-nav-tile img{width:56px;height:56px;object-fit:contain;}
 .p-nav-tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.2;}
 .post-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:5;}
 .post-act-btn{background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;backdrop-filter:blur(8px);}
@@ -213,12 +213,12 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 
     <!-- Nawigacja — kafle 3D (wariant A2: ikona 3D + biały podpis) -->
     <div class="p-nav-grid">
-      <button class="p-nav-tile" onclick="_tileWyzwania()"><img data-ic="icon-radio-trophy.webp" alt=""><span class="lbl">Wyzwania</span></button>
-      <button class="p-nav-tile" onclick="_tileCzat()"><img data-ic="icon-nav-people.webp" alt=""><span class="lbl">Czat</span></button>
-      <button class="p-nav-tile" onclick="_tileOdznaki()"><img data-ic="icon-nav-medal.webp" alt=""><span class="lbl">Odznaki</span></button>
-      <button class="p-nav-tile" id="p-tile-races" onclick="_tileRaces()"><img data-ic="icon-nav-flag.webp" alt=""><span class="lbl">Starty</span></button>
-      <button class="p-nav-tile" onclick="location.href='zawodnik.html?tab=cwiczenia'"><img data-ic="icon-ex-section.webp" alt=""><span class="lbl">Ciało</span></button>
-      <button class="p-nav-tile" id="p-tile-settings" onclick="openSettings()" style="display:none;"><img data-ic="icon-nav-settings.webp" alt=""><span class="lbl">Ustawienia</span></button>
+      <button class="p-nav-tile" data-kafel="wyzwania" onclick="_tileWyzwania()"><img data-ic="ikona-wyzwania.png" data-ic-stary="icon-radio-trophy.webp" alt=""><span class="lbl">Wyzwania</span></button>
+      <button class="p-nav-tile" data-kafel="czat" onclick="_tileCzat()"><img data-ic="ikona-czat.png" data-ic-stary="icon-nav-people.webp" alt=""><span class="lbl">Czat</span></button>
+      <button class="p-nav-tile" data-kafel="odznaki" onclick="_tileOdznaki()"><img data-ic="ikona-odznaki.png" data-ic-stary="icon-nav-medal.webp" alt=""><span class="lbl">Odznaki</span></button>
+      <button class="p-nav-tile" id="p-tile-races" data-kafel="starty" onclick="_tileRaces()"><img data-ic="ikona-starty.png" data-ic-stary="icon-nav-flag.webp" alt=""><span class="lbl">Starty</span></button>
+      <button class="p-nav-tile" data-kafel="cialo" onclick="location.href='zawodnik.html?tab=cwiczenia'"><img data-ic="ikona-cialo.png" data-ic-stary="icon-ex-section.webp" alt=""><span class="lbl">Ciało</span></button>
+      <button class="p-nav-tile" id="p-tile-settings" data-kafel="ustawienia" onclick="openSettings()" style="display:none;"><img data-ic="ikona-ustawienia.png" data-ic-stary="icon-nav-settings.webp" alt=""><span class="lbl">Ustawienia</span></button>
     </div>
   </div>
 </div>
@@ -689,6 +689,8 @@ function _profilOffline() {
     var rs=document.getElementById('radio-section');if(rs)rs.style.display='block';
     var ws=document.getElementById('wyglad-section');if(ws){ws.style.display='block';try{markTheme(window.getTheme?window.getTheme():'default');}catch(e){}}
     var stTile=document.getElementById('p-tile-settings');if(stTile)stTile.style.display='flex';
+    /* A2b: sygnały kafli TYLKO na własnym profilu — to Twoje liczby, nie cudze. Ustawienia bez sygnału. */
+    if (window.KAFLE) window.KAFLE.podepnij(document.querySelector('.p-nav-grid'), function(){ return _myId; });
   }
 
   // Sprawdź prywatność cudzego profilu przed załadowaniem

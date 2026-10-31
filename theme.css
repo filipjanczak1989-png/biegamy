@@ -363,3 +363,24 @@ html[data-vt-dir="back"]::view-transition-new(root) { animation-name: bm-vt-new-
   .hero-warstwa{ transition:none; }
   .hero-warstwa.kb{ animation:none; }
 }
+
+/* ===== KAFLE z sygnałem (31.10.2026, Dziś v2 A2b) — Dziś (.ht-tile) i Profil (.p-nav-tile), JS: KAFLE w sb.js =====
+   Sygnał: LICZBA (Bebas, --t-sm, --accent3) albo KROPKA (8 px, --accent), prawy górny róg — nigdy obie (blizna-60).
+   „Nowe" (Odznaki): dodatkowo obwódka 1 px --accent i tło color-mix(--accent 8%, --card). Ikony G5 bez pomarańczu,
+   akcent motywu żyje tylko w sygnale. Focus: globalny :focus-visible wyżej. Nacisk: sprężyna 120 ms; reduced-motion → brak. */
+[data-kafel]{position:relative;}
+.kafel-syg--liczba{
+  position:absolute;top:5px;right:7px;z-index:1;pointer-events:none;
+  font-family:'Bebas Neue',sans-serif;font-size:var(--t-sm);line-height:1;letter-spacing:.02em;color:var(--accent3);
+}
+.kafel-syg--kropka{
+  position:absolute;top:7px;right:7px;z-index:1;pointer-events:none;
+  width:8px;height:8px;border-radius:50%;background:var(--accent);
+}
+[data-kafel].kafel-nowe{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card));}
+.ht-tile[data-kafel],.p-nav-tile[data-kafel]{transition:transform 120ms var(--ease-out),border-color .18s;}
+.ht-tile[data-kafel]:active,.p-nav-tile[data-kafel]:active{transform:scale(.94);}
+@media (prefers-reduced-motion: reduce){
+  .ht-tile[data-kafel],.p-nav-tile[data-kafel]{transition:none;}
+  .ht-tile[data-kafel]:active,.p-nav-tile[data-kafel]:active{transform:none;}
+}

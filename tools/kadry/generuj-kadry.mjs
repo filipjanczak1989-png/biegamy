@@ -38,11 +38,14 @@ const PULE = {
   dzis:   { prefiks: "kadr-",   format: "9x16", N: null, gotowa: true },
   pejzaz: { prefiks: "pejzaz-", format: "21x9", N: 40,   gotowa: true },
   typ:    { prefiks: "typ-",    format: "21x9", N: 9,    gotowa: true },
+  ikona:  { prefiks: "ikona-",  format: "1x1",  N: 7,    gotowa: true },
   strona: { prefiks: "strona-", format: "21x9", N: null, gotowa: false, kiedy: "G3 (tematy stron wewnętrznych)" },
 };
 const FORMATY = {
   "9x16": { aspect: "9:16", rozmiar: "2K", cel: (W, H) => { const b = Math.max(W, H); return b > 1600 ? [Math.round(W * 1600 / b), Math.round(H * 1600 / b)] : null; } },
   "21x9": { aspect: "21:9", rozmiar: "1K", cel: (W, H) => W > 1200 ? [1200, Math.round(H * 1200 / W)] : null },
+  /* 1x1 (G5, ikony): zapis surowego JPEG 1K; PNG 256×256 skwantowany robi tools/kadry/ikony-png.py (PIL). */
+  "1x1":  { aspect: "1:1",  rozmiar: "1K", cel: () => null },
 };
 const PULA = String(arg("pula", "dzis"));
 if (!PULE[PULA]) { console.error(`--pula: ${Object.keys(PULE).join(" | ")}`); process.exit(2); }
@@ -113,6 +116,31 @@ const TYPY = [
   { slug: "zastepczy", scena: "rower oparty o drewniany płot przy wiejskiej drodze", pora: "świt", mm: 50 },
   { slug: "odpoczynek", scena: "buty do biegania odstawione pod ścianę i kubek na parapecie", pora: "popołudniowe światło", mm: 50, wnetrze: true },
 ];
+/* G5 (31.10.2026, Dzis-v2-A2-G5-projekt.md pkt 1 + decyzja 8 Filipa): ikony kafli 3D, PALETA BEZ POMARAŃCZU —
+   grafit, kość słoniowa, ciepły piaskowy; akcent motywu pojawia się tylko w sygnale kafla. Tło = --card (#0f0f14),
+   takie samo we wszystkich 5 motywach (zmierzone w ZWIADZIE), więc brak przezroczystości nie robi szwu.
+   Kolejność = numer w puli; plik ikona-<slug>.png, slug = kafel w zawodnik.html / profil.html (blizna-60). */
+const IKONY = [
+  { slug: "cialo", przedmiot: "rolka do masażu (foam roller): gruby, gładki walec w jednym kolorze z drobnymi wypustkami na powierzchni, leżąca lekko po skosie" },
+  { slug: "wyzwania", przedmiot: "mała chorągiewka wbita na szczycie niewielkiego pagórka" },
+  { slug: "odznaki", przedmiot: "medal na krótkiej wstążce, awers gładki, bez napisów" },
+  { slug: "starty", przedmiot: "stoper z jedną wskazówką" },
+  { slug: "czat", przedmiot: "dwa nałożone na siebie dymki rozmowy" },
+  { slug: "dzwonek", przedmiot: "dzwonek z widocznym sercem" },
+  { slug: "ustawienia", przedmiot: "proste, gładkie koło zębate z ośmioma szerokimi zaokrąglonymi zębami i okrągłym otworem w środku, bez śrub i detali mechanicznych" },
+];
+const TLO_IKONY = "#0f0f14";
+function promptIkony(n) {
+  const t = IKONY[n - 1];
+  return [
+    `Kwadratowa ikona aplikacji (1:1): ${t.przedmiot}.`,
+    "Jeden przedmiot, wyśrodkowany, zajmuje około 70% kadru. Lekko trójwymiarowy, matowy materiał (ceramika albo guma soft-touch), bez połysku i bez szkła.",
+    "Światło z góry-lewej pod 45°, kamera lekko z góry (około 15°). Miękki cień kontaktowy pod przedmiotem, żadnego cienia rzucanego poza przedmiot.",
+    "Paleta wyłącznie: grafit, kość słoniowa i ciepły piaskowy neutral — maksymalnie trzy kolory, bez pomarańczu, bez czerwieni, bez innych barw.",
+    `Tło całkowicie jednolite, płaskie, w kolorze ${TLO_IKONY} (prawie czarny granat), bez gradientu, bez winiety, bez faktury.`,
+    "Bez tekstu, liter, cyfr, logotypów, bez ludzi. Bez ramki.",
+  ].join(" ");
+}
 function promptTypu(n) {
   const t = TYPY[n - 1];
   return [
@@ -166,6 +194,7 @@ function osieNumeru(n) {
 }
 function prompt(n) {
   if (PULA === "typ") return promptTypu(n);
+  if (PULA === "ikona") return promptIkony(n);
   const tag = tagKadru(n);
   const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null;
   const o = osieNumeru(n);
@@ -250,7 +279,7 @@ async function generuj(n) {
 }
 const log = (s) => { const l = `${new Date().toISOString()} ${s}`; console.log(l); appendFileSync(LOG, l + "\n"); };
 const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
-const plik = (n) => join(OUT, `${PULE[PULA].prefiks}${PULA === "typ" ? TYPY[n - 1].slug : String(n).padStart(2, "0")}.jpg`);
+const plik = (n) => join(OUT, `${PULE[PULA].prefiks}${PULA === "typ" ? TYPY[n - 1].slug : PULA === "ikona" ? IKONY[n - 1].slug : String(n).padStart(2, "0")}.jpg`);
 
 function podglad() {
   if (!PODGLAD) return;
@@ -259,8 +288,8 @@ function podglad() {
   const doPodgladu = arg("nr") || arg("od") ? numery : Array.from({ length: N }, (_, i) => i + 1);
   for (const n of doPodgladu) {
     const p = plik(n); if (!existsSync(p)) continue;
-    const o = PULA === "typ" ? null : osieNumeru(n);
-    const osieTxt = PULA === "typ" ? `typ-${TYPY[n - 1].slug} · ${TYPY[n - 1].mm} mm` : `${sezon(n)} · ${o.kompozycja.nazwa} · ${o.podmiot}${o.detal ? ": " + o.detal : ""} · ${o.poraDnia} · ${o.pogoda || "pogoda z tagu"} · ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK" : ""}`;
+    const o = PULA === "typ" || PULA === "ikona" ? null : osieNumeru(n);
+    const osieTxt = PULA === "ikona" ? `ikona-${IKONY[n - 1].slug}` : PULA === "typ" ? `typ-${TYPY[n - 1].slug} · ${TYPY[n - 1].mm} mm` : `${sezon(n)} · ${o.kompozycja.nazwa} · ${o.podmiot}${o.detal ? ": " + o.detal : ""} · ${o.poraDnia} · ${o.pogoda || "pogoda z tagu"} · ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK" : ""}`;
     const url = "file:///" + resolve(p).replace(/\\/g, "/");
     kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><span class="osie">${esc(osieTxt)}</span><br><i>${esc((PODPISY[n - 1] || "").replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
   }
@@ -289,6 +318,7 @@ if (arg("dociagnij-rozmiar", false) === true) {
 if (POKAZ) {
   for (const n of numery) {
     if (PULA === "typ") { console.log(`--- typ ${n} typ-${TYPY[n - 1].slug}.jpg`); console.log(prompt(n)); continue; }
+    if (PULA === "ikona") { console.log(`--- ikona ${n} ikona-${IKONY[n - 1].slug}`); console.log(prompt(n)); continue; }
     const o = osieNumeru(n), i = o.indeksy;
     console.log(`--- ${PULA} ${n} [${tagKadru(n) || "bez tagu"}] pora roku: ${sezon(n)}${PULA === "dzis" ? " · podpis: " + (PODPISY[n - 1] || "(brak — G2)") : ""}`);
     console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || (o.scenaNocna ? "(z linii nocy)" : "(z tagu/wnętrza)")}" · ogniskowa ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);

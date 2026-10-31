@@ -37,12 +37,9 @@ function wytnij(H, od, doZ) {
 
 function stanowisko(plik) {
   const H = fs.readFileSync(path.join(KORZEN, plik), 'utf8');
-  const czytajTablice = (nazwa) => {
-    const src = wytnij(H, 'const ' + nazwa + ' = [', '];');
-    return eval('(' + src.replace('const ' + nazwa + ' = ', '').replace(/;$/, '') + ')');
-  };
-  const WEEKLY = czytajTablice('WEEKLY');
-  const MONTHLY = czytajTablice('MONTHLY');
+  /* Od 31.10.2026 (A2b) listy wyzwań żyją RAZ, w sb.js (WYZWANIA) — oba pliki je stamtąd biorą (blizna-60).
+     buildCard (rysowanie karty) nadal jest w każdym pliku osobno, więc nadal wykonujemy obie kopie. */
+  const { WEEKLY, MONTHLY } = require('./_srodowisko.js').zaladujSb().WYZWANIA;
   /* buildCard sięga po globalne helpery z sb.js — podstawiamy minimum, żeby
      wykonać ORYGINALNY kod zamiast go przepisywać. */
   globalThis.escapeHtml = (x) => String(x == null ? '' : x);

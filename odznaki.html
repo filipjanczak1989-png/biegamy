@@ -534,6 +534,8 @@ async function init() {
       .select('badge_id').eq('athlete_id', _athleteId);
     if (window.bmOfflineGdy(error, 'badges-section-content', 'Twoich odznak')) return;
     if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
+    /* A2b: obejrzane — kropka „nowa" na kaflu Odznaki gaśnie (KAFLE.odznaki porównuje z tą liczbą). */
+    if (data && window.KAFLE) window.KAFLE.zapiszWidziane(data.length);
   }
   renderBadgesSection();
 }

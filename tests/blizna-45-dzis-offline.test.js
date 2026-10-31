@@ -382,7 +382,9 @@ test('ikony skrótów obok hero offline: błąd ładowania <img data-ic> → emo
   assert.equal((sb.match(/<img onerror="window\._icZapas&&window\._icZapas\(this\)"/g) || []).length, 2, 'icHtml i ikony typów treningu też z zapasem');
   const z = czytaj('zawodnik.html');
   const ikony = ['icon-ex-section.webp', 'icon-radio-trophy.webp', 'icon-nav-medal.webp', 'icon-nav-flag.webp', 'icon-nav-people.webp'];
-  for (const ic of ikony) assert.ok(z.includes('<img data-ic="' + ic + '"'), 'kafel skrótu bez data-ic: ' + ic);
+  /* A2b/G5 (31.10.2026): kafel ma nową ikonę ikona-<slug>.png, a stary plik jako data-ic-stary — łańcuch offline:
+     ikona-*.png → stary .webp → emoji z _IC_ZAPAS (sprawdzone niżej). */
+  for (const ic of ikony) assert.ok(z.includes('data-ic-stary="' + ic + '"'), 'kafel skrótu bez zapasu na stary plik: ' + ic);
   const m = sb.match(/window\._IC_ZAPAS = \{[\s\S]*?\n  window\._icZapas = function \(img\) \{[\s\S]*?\n  \};/);
   assert.ok(m, 'brak _IC_ZAPAS/_icZapas');
   const okno = {};
@@ -403,6 +405,15 @@ test('ikony skrótów obok hero offline: błąd ładowania <img data-ic> → emo
   const r2 = { zamiana: null, replaceChild(n) { this.zamiana = n; } };
   okno._icZapas({ dataset: {}, className: '', parentNode: r2, getAttribute: (k) => (k === 'src' ? 'https://x/assets/icon-nieznana.webp?v=2' : ''), width: 16, height: 16 });
   assert.equal(r2.zamiana.textContent, '◆', 'nieznana ikona → neutralny znak');
+  /* łańcuch G5: pierwszy błąd ikona-*.png → stary plik (bez zamiany na span), drugi → emoji STAREGO pliku */
+  okno.assetUrl = (f) => 'https://x/' + f;
+  const r3 = { zamiana: null, replaceChild(n) { this.zamiana = n; } };
+  const nowa = { dataset: { ic: 'ikona-starty.png', icStary: 'icon-nav-flag.webp' }, className: '', parentNode: r3, getAttribute: () => '', width: 0, height: 0, src: '' };
+  okno._icZapas(nowa);
+  assert.equal(r3.zamiana, null, 'pierwszy błąd nowej ikony nie może od razu dać emoji');
+  assert.equal(nowa.src, 'https://x/icon-nav-flag.webp');
+  okno._icZapas(nowa);
+  assert.equal(r3.zamiana && r3.zamiana.textContent, '🏁', 'po błędzie starego pliku: emoji starego pliku');
   assert.doesNotThrow(() => okno._icZapas(null));
   const smoke = czytaj('tools/smoke-offline.js');
   assert.ok(smoke.includes('ikony skrótów obok hero'), 'smoke nie sprawdza ikon skrótów');
