@@ -13,6 +13,10 @@
 //                                      [--dociagnij-rozmiar]  ← istniejące pliki > 300 KB → q75, bez wywołania API
 //   Domyślnie pomija istniejące kadr-NN.jpg (--force nadpisuje). 401/403/429/5xx przerywa pętlę; brak obrazu → dalej.
 //   --out bez wartości = ODMOWA: katalog wyjściowy podaje się jawnie (biegamy-assets dopiero po akceptacji).
+//   --pula dzis (kadr-NN, 9:16, podpisy + TAGI) | pejzaz (pejzaz-NN, 21:9, bez tagów) | typ | strona (tematy: G3/G4)
+//   --format 9x16 (2K → dłuższy bok 1600) | 21x9 (1K → szerokość 1200); domyślny wynika z puli.
+//   Osie wariantów (Grafiki v4): tools/kadry/osie.mjs — jedno źródło dla generatora i testu blizna-57.
+import { osie, zdaniaOsi } from "./osie.mjs";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, statSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +24,7 @@ import { fileURLToPath } from "node:url";
 const KORZEN = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const MODEL = "gemini-nano-banana-2.1";
 const JPEG_WASM = "https://deno.land/x/imagescript@1.2.15/utils/wasm/jpeg.wasm";
-const DLUZSZY_BOK = 1600, JPEG_Q = 80, JPEG_Q_CIEZKI = 75, PROG_PRZEKODOWANIA = 400 * 1024, PROG_CIEZKI = 300 * 1024;
+const JPEG_Q = 80, JPEG_Q_CIEZKI = 75, PROG_PRZEKODOWANIA = 400 * 1024, PROG_CIEZKI = 300 * 1024;
 
 // ── argumenty ─────────────────────────────────────────────────────────────
 const arg = (n, d) => { const i = process.argv.indexOf("--" + n); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : true); };
@@ -28,6 +32,21 @@ const OUT = arg("out"); if (!OUT || OUT === true) { console.error("podaj --out <
 const FORCE = arg("force", false) === true, ODSTEP = Number(arg("odstep", 10));
 const LOG = arg("log", join(OUT, `kadry-${new Date().toISOString().slice(0, 10)}.log`));
 const PODGLAD = arg("podglad", null);
+const PULE = {
+  dzis:   { prefiks: "kadr-",   format: "9x16", N: null, gotowa: true },
+  pejzaz: { prefiks: "pejzaz-", format: "21x9", N: 40,   gotowa: true },
+  typ:    { prefiks: "typ-",    format: "21x9", N: null, gotowa: false, kiedy: "G4 (zwiad typów z TRAINING_TYPE_BANNERS)" },
+  strona: { prefiks: "strona-", format: "21x9", N: null, gotowa: false, kiedy: "G3 (tematy stron wewnętrznych)" },
+};
+const FORMATY = {
+  "9x16": { aspect: "9:16", rozmiar: "2K", cel: (W, H) => { const b = Math.max(W, H); return b > 1600 ? [Math.round(W * 1600 / b), Math.round(H * 1600 / b)] : null; } },
+  "21x9": { aspect: "21:9", rozmiar: "1K", cel: (W, H) => W > 1200 ? [1200, Math.round(H * 1200 / W)] : null },
+};
+const PULA = String(arg("pula", "dzis"));
+if (!PULE[PULA]) { console.error(`--pula: ${Object.keys(PULE).join(" | ")}`); process.exit(2); }
+const FORMAT = String(arg("format", PULE[PULA].format));
+if (!FORMATY[FORMAT]) { console.error(`--format: ${Object.keys(FORMATY).join(" | ")}`); process.exit(2); }
+if (!PULE[PULA].gotowa) { console.error(`pula „${PULA}": tematy jeszcze nie zatwierdzone — ${PULE[PULA].kiedy}`); process.exit(2); }
 
 // ── źródła prawdy: TAGI z sb.js, podpisy z zawodnik.html ──────────────────
 const sb = readFileSync(join(KORZEN, "sb.js"), "utf8");
@@ -37,17 +56,21 @@ const TAGI = new Function("return " + mTagi[1])();
 /* Pora roku kadru (tag s:) — ta sama funkcja co SOLO.sezonKadru w sb.js, wycięta z pliku, nie przepisana. */
 const mSezon = sb.match(/var PORY = (\[[^\]]*\]);\s*function sezonKadru\(n\)\{([^\r\n]*)\}/);
 if (!mSezon) { console.error("nie znalazłem `var PORY` + `function sezonKadru` w sb.js"); process.exit(2); }
-const sezonKadru = new Function("TAGI", "var PORY = " + mSezon[1] + "; return function(n){" + mSezon[2] + "};")(TAGI);
+const zbudujSezon = new Function("TAGI", "var PORY = " + mSezon[1] + "; return function(n){" + mSezon[2] + "};");
+const sezonKadru = zbudujSezon(TAGI);
+/* Pejzaż ma własną numerację — tagi kadrów Dziś go nie dotyczą: ta sama reguła (noce n % 12, reszta n % 4) bez TAGI. */
+const sezonPejzazu = zbudujSezon({});
 const PORA_SLOWNIE = { wiosna: "Wiosna", lato: "Lato", jesien: "Jesień", zima: "Zima" };
 const zaw = readFileSync(join(KORZEN, "zawodnik.html"), "utf8");
 const a = zaw.indexOf("const _SOLO_PODPISY = ["), b = zaw.indexOf("]", zaw.indexOf("'Jutro pobiegniesz *z nami*?'", a));
 const PODPISY = new Function("return " + zaw.slice(a + "const _SOLO_PODPISY = ".length, b + 1))();
-const N = PODPISY.length;
+const N = PULA === "dzis" ? PODPISY.length : PULE[PULA].N;
+const POKAZ = arg("pokaz-prompty", false) === true;
 
 let numery;
 if (arg("nr")) numery = String(arg("nr")).split(",").map((x) => Number(x.trim())).filter(Boolean);
 else { const od = Number(arg("od", 1)), dO = Number(arg("do", N)); numery = []; for (let n = od; n <= dO; n++) numery.push(n); }
-if (numery.some((n) => n < 1 || n > N)) { console.error(`numery poza 1..${N}`); process.exit(2); }
+if (numery.some((n) => n < 1 || (!POKAZ && n > N))) { console.error(`numery poza 1..${N} (pula ${PULA}; podgląd promptów dopuszcza więcej)`); process.exit(2); }
 
 // ── prompt (Dzis-v2-projekt.md 5.3 — jedyna „kreatywna" tabela, bez własnych dopisków) ──
 const SCENA = {
@@ -63,15 +86,7 @@ const SCENA = {
   "t:silownia": "siłownia: hantle, mata, okno",
 };
 const BEZ_TAGU = ["zwykła trasa treningowa: osiedle", "zwykła trasa treningowa: park", "zwykła trasa treningowa: droga polna", "zwykła trasa treningowa: nabrzeże"];
-const PORY_DNIA = ["świt", "dzień", "zmierzch"];
-/* Kompozycja z (n*7) % 4 (decyzja 31.10, B v2): pula 65 kadrów w jednej kompozycji („biegacz od tyłu w osi drogi")
-   dawała codziennie niemal ten sam obraz. Wszystkie warianty: 1–2 biegaczy, bez twarzy, bez tłumu. */
-const KOMPOZYCJE = [
-  "jeden albo dwóch biegaczy widzianych od tyłu z dystansu, w osi drogi, droga zbiega się w głębi",
-  "jeden albo dwóch biegaczy widzianych z boku, z dystansu, przy lewej albo prawej krawędzi kadru, przed nimi dużo pustej przestrzeni",
-  "widok z góry (most, nasyp albo wzgórze): mała sylwetka jednego albo dwóch biegaczy na szerokim planie trasy",
-  "widok nisko przy ziemi: jeden albo dwóch biegaczy oddala się w głąb kadru, pierwszy plan nawierzchni rozmyty i spokojny",
-];
+const PEJZAZE = ["droga polna między polami", "szlak w lesie", "bieżnia stadionu z pustą trybuną", "most nad rzeką", "nabrzeże rzeki", "park miejski z alejką"];
 /* Scena z podpisu — WYJĄTKI zatwierdzone przez Filipa 31.10; podpis opisuje konkretny obraz, którego tagi nie niosą.
    Nowy wyjątek = decyzja, nie dopisek. */
 const SCENA_Z_PODPISU = {
@@ -83,24 +98,24 @@ const SCENA_Z_PODPISU = {
   22: { scena: "pusta linia startu namalowana na asfalcie, jeden biegacz w rozgrzewce przy linii", poraDnia: "świt" },
 };
 
-function tagKadru(n) { const t = TAGI[n] || {}; return t.p ? "p:" + t.p : t.t ? "t:" + t.t : null; }
+function tagKadru(n) { if (PULA !== "dzis") return null; const t = TAGI[n] || {}; return t.p ? "p:" + t.p : t.t ? "t:" + t.t : null; }
+function sezon(n) { return PULA === "dzis" ? sezonKadru(n) : sezonPejzazu(n); }
+function osieNumeru(n) {
+  const t = PULA === "dzis" ? (TAGI[n] || {}) : {};
+  return osie(n, { pula: PULA, sezon: sezon(n), tagP: t.p, tagT: t.t, wyjatek: PULA === "dzis" ? SCENA_Z_PODPISU[n] : null });
+}
 function prompt(n) {
   const tag = tagKadru(n);
-  const wyj = SCENA_Z_PODPISU[n];
-  const scena = wyj ? wyj.scena : tag ? SCENA[tag] : BEZ_TAGU[n % 4];
-  const poraRoku = PORA_SLOWNIE[sezonKadru(n)];
-  const noc = n % 12 === 0;
-  const poraDnia = noc ? "noc, czołówka, latarnie" : (wyj && wyj.poraDnia) || PORY_DNIA[n % 3];
-  const silownia = tag === "t:silownia";
+  const wyj = PULA === "dzis" ? SCENA_Z_PODPISU[n] : null;
+  const o = osieNumeru(n);
+  const scena = wyj ? wyj.scena : PULA === "pejzaz" ? PEJZAZE[n % PEJZAZE.length] : tag ? SCENA[tag] : BEZ_TAGU[n % 4];
+  const z = zdaniaOsi(o, wyj);
+  const naglowek = FORMAT === "21x9" ? "Poziomy, szeroki kadr (21:9) dla aplikacji biegowej, Polska." : "Pionowy kadr dnia dla biegacza, Polska.";
   return [
-    `Pionowy kadr dnia dla biegacza, Polska. ${scena[0].toUpperCase() + scena.slice(1)}. ${poraRoku}, ${poraDnia}.`,
-    (wyj && wyj.kadr) || (silownia
-      ? "Kadr: bez biegania — jedna osoba w rozciąganiu, widziana od tyłu, z dystansu. Żadnego tłumu, żadnej grupy."
-      : `Kadr: ${KOMPOZYCJE[(n * 7) % 4]}; daleko od siebie, na pustym odcinku trasy. Żadnego tłumu, żadnej grupy.`),
-    (wyj && wyj.styl) || "Styl dokumentalny: obiektyw 35 mm, lekkie poruszenie sylwetek w ruchu, zróżnicowane zwykłe stroje biegowe, niedoskonałe, nieustawiane światło.",
-    (wyj && wyj.kompozycja) || ("Kompozycja pionowa: " + (silownia ? "osoba" : "biegacz") + " w górnej lub środkowej części kadru, dolna jedna trzecia spokojna — pusta nawierzchnia, cień, bez ważnych szczegółów."),
+    `${naglowek} ${scena[0].toUpperCase() + scena.slice(1)}. ${PORA_SLOWNIE[sezon(n)]}, ${o.poraDnia}${o.pogoda ? ", " + o.pogoda : ""}.`,
+    z.kadr, z.styl, z.kompozycja,
     "Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 // ── jpeg.wasm (ten sam co EF) ─────────────────────────────────────────────
@@ -120,9 +135,9 @@ async function przeskaluj(bajty, mime) {
   await wasm();
   const { W, H, piks } = dekoduj(bajty), kan = piks.length / (W * H);
   if (kan !== 1 && kan !== 3) return { bajty, opis: `oryginał (${kan} kanały)` };
-  const bok = Math.max(W, H), skal = bok > DLUZSZY_BOK;
-  if (!skal && bajty.length <= PROG_PRZEKODOWANIA) return { bajty, opis: `oryginał ${W}×${H}` };
-  const DW = skal ? Math.round(W * DLUZSZY_BOK / bok) : W, DH = skal ? Math.round(H * DLUZSZY_BOK / bok) : H;
+  const cel = FORMATY[FORMAT].cel(W, H);
+  if (!cel && bajty.length <= PROG_PRZEKODOWANIA) return { bajty, opis: `oryginał ${W}×${H}` };
+  const [DW, DH] = cel || [W, H];
   const sx = W / DW, sy = H / DH, rgba = new Uint8Array(DW * DH * 4);
   for (let y = 0; y < DH; y++) {
     const fy = Math.min(Math.max((y + 0.5) * sy - 0.5, 0), H - 1), y0 = Math.floor(fy), y1 = Math.min(H - 1, y0 + 1), wy = fy - y0;
@@ -155,7 +170,7 @@ async function generujRaz(n) {
   const r = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({ model: MODEL, input: prompt(n), response_modalities: ["image"],
-      generation_config: { image_config: { aspect_ratio: "9:16", image_size: "2K" } } }),
+      generation_config: { image_config: { aspect_ratio: FORMATY[FORMAT].aspect, image_size: FORMATY[FORMAT].rozmiar } } }),
     signal: AbortSignal.timeout(LIMIT_MS),
   });
   const t = await r.text();
@@ -174,7 +189,7 @@ async function generuj(n) {
 }
 const log = (s) => { const l = `${new Date().toISOString()} ${s}`; console.log(l); appendFileSync(LOG, l + "\n"); };
 const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
-const plik = (n) => join(OUT, `kadr-${String(n).padStart(2, "0")}.jpg`);
+const plik = (n) => join(OUT, `${PULE[PULA].prefiks}${String(n).padStart(2, "0")}.jpg`);
 
 function podglad() {
   if (!PODGLAD) return;
@@ -183,12 +198,12 @@ function podglad() {
   for (let n = 1; n <= N; n++) {
     const p = plik(n); if (!existsSync(p)) continue;
     const url = "file:///" + resolve(p).replace(/\\/g, "/");
-    kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><i>${esc(PODPISY[n - 1].replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
+    kafle.push(`<figure><img src="${esc(url)}" alt="kadr ${n}" loading="lazy"><figcaption><b>${String(n).padStart(2, "0")}</b> ${esc(tagKadru(n) || "bez tagu")} · ${Math.round(statSync(p).size / 1024)} KB<br><i>${esc((PODPISY[n - 1] || "").replace(/\*/g, ""))}</i><details><summary>prompt</summary>${esc(prompt(n))}</details></figcaption></figure>`);
   }
   writeFileSync(PODGLAD, `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Kadry dnia v2 — podgląd</title><style>
 body{margin:0;padding:16px;background:#07070a;color:#f0ede8;font:13px/1.4 system-ui,sans-serif}h1{font-size:18px;margin:0 0 12px}
 .siatka{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}figure{margin:0;background:#0f0f14;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
-img{display:block;width:100%;aspect-ratio:9/16;object-fit:cover}figcaption{padding:8px;font-size:11px}i{color:rgba(240,237,232,.65)}details{margin-top:4px;color:#8a8798}
+img{display:block;width:100%;aspect-ratio:${FORMAT === "21x9" ? "21/9" : "9/16"};object-fit:cover}figcaption{padding:8px;font-size:11px}i{color:rgba(240,237,232,.65)}details{margin-top:4px;color:#8a8798}
 @media(max-width:900px){.siatka{grid-template-columns:repeat(3,1fr)}}</style></head><body>
 <h1>Kadry dnia v2 — ${kafle.length} z ${N} (${esc(resolve(OUT))})</h1><div class="siatka">${kafle.join("\n")}</div></body></html>`);
   console.log("podgląd: " + resolve(PODGLAD));
@@ -207,13 +222,18 @@ if (arg("dociagnij-rozmiar", false) === true) {
   }
   podglad(); process.exit(0);
 }
-if (arg("pokaz-prompty", false) === true) {
-  for (const n of numery) console.log(`--- kadr ${n} [${tagKadru(n) || "bez tagu"}] podpis: ${PODPISY[n - 1]}\n${prompt(n)}`);
+if (POKAZ) {
+  for (const n of numery) {
+    const o = osieNumeru(n), i = o.indeksy;
+    console.log(`--- ${PULA} ${n} [${tagKadru(n) || "bez tagu"}] pora roku: ${sezon(n)}${PULA === "dzis" ? " · podpis: " + (PODPISY[n - 1] || "(brak — G2)") : ""}`);
+    console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || "(z tagu/wnętrza)"}" · ogniskowa ${i.ogniskowa}${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);
+    console.log(prompt(n));
+  }
   process.exit(0);
 }
 if (!process.env.GEMINI_API_KEY) { console.error("brak GEMINI_API_KEY w środowisku"); process.exit(2); }
 mkdirSync(OUT, { recursive: true });
-log(`start: ${numery.length} kadrów (${numery.join(",")}), N=${N}, model ${MODEL}, out ${resolve(OUT)}`);
+log(`start: pula ${PULA}, format ${FORMAT}, ${numery.length} kadrów (${numery.join(",")}), N=${N}, model ${MODEL}, out ${resolve(OUT)}`);
 let zrobione = 0;
 for (let i = 0; i < numery.length; i++) {
   const n = numery[i];

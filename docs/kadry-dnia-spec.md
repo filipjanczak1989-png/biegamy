@@ -108,3 +108,39 @@ Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i lo
 | dystans | detal (buty, dłoń na zegarku, sznurówka) · plan średni · pejzaż | dziś niemal zawsze plan średni / daleki |
 
 Warunek: każda oś musi dać się wyprowadzić **z numeru** (jak `(n·7) % 4`), żeby numer pozostał jedynym kluczem, a ponowne wygenerowanie dawało ten sam opis.
+
+## Grafiki v4 — osie wariantów (G1, 31.10.2026)
+
+Odpowiedź na zaległość (c): `tools/kadry/osie.mjs` — jedno źródło dla generatora i testu `blizna-57`. Każdy numer dostaje
+deterministycznie: kompozycja `(n·7)%4`, podmiot `(n·3)%5` (1 biegacz od tyłu / dwójka / detal bez człowieka /
+pejzaż bez człowieka / biegacz mały w dużym pejzażu), pora dnia `(n·5)%4` (świt / rano / południe / zmierzch),
+pogoda `(n·11)%4` (czyste niebo / zachmurzenie / mgła / po deszczu), ogniskowa `(n·13)%3` (24 / 50 / 85 mm).
+Reguły nadrzędne: wyjątek sceny wygrywa; noc tylko `n % 12 = 0`; tag `p:` i siłownia znoszą oś pogody; zima + po deszczu
+= mokry śnieg; detal bez twarzy i dłoni, **detal + 24 mm → 85 mm**; dwójka obok siebie, nie grupa; pejzaż 21:9 bez
+biegacza z bliska (0/1 → 3/4); **mgła tylko o świcie/rano** (mgła z osi albo `p:mgla` + południe/zmierzch → świt).
+Generator: `--pula dzis|pejzaz|typ|strona`, `--format 9x16|21x9`; kadry 1–65 powstały promptem v3 (bez osi) i zostają.
+
+### Na później (decyzje Filipa 31.10, NIE zrobione)
+
+**G3 — pula pejzażowa 21:9 dla `.bm-hero`:**
+- `SOLO.dopasujN` ma JEDEN klucz `solo_dzien` i jedną `solo_hist`. Druga pula wołana tą samą funkcją nadpisałaby wynik
+  dnia „Dziś" i zepsuła anty-powtórkę → **osobny klucz i historia per pula** (`solo_dzien_pejzaz`, `solo_hist_pejzaz`),
+  tagi pejzażu bez `TAGI` kadrów Dziś.
+- Lista stron z `.bm-hero` **wg zwiadu, nie wg projektu**: races, kalendarz, raporty, nutrition, odznaki, wyzwania,
+  radio, compare, trener, ankieta. Bez Profilu (wyłączony z ujednolicenia hero), bez Społeczności, Logu i Formy
+  (to sekcje `zawodnik.html` bez `.bm-hero`).
+
+**G4 — banery typów 21:9 (`typ-<slug>.jpg`), 8 typów z `TRAINING_TYPE_BANNERS`:**
+
+| typ | temat |
+|---|---|
+| Spokojny | alejka w parku rano |
+| Interwały | linia bieżni, 85 mm |
+| Tempo | mokra asfaltowa prosta o zmierzchu |
+| Wybieganie | pusta droga przez pola, 24 mm |
+| Regeneracja | ławka w parku, poranek |
+| Wzmacniający | hantle na podłodze przy oknie |
+| Start | pusta linia startu o świcie |
+| Zastępczy | rower oparty o płot o świcie |
+
+**Koszt 2K:** do sprawdzenia w rozliczeniu AI Studio po G2 (stawka $0,034 dotyczy 1K).
