@@ -324,3 +324,14 @@ Zmienione 49 numerów; 39 oznaczonych „z" zostało z v2, w tym wszystkie z `SC
 **26:** v3 „Mokre pola, kręta droga. *We dwoje* do końca." wymieniało mokrą nawierzchnię, której opis obrazu nie zna
 (zmierzch, piaszczysta zakrzywiona droga, dwie osoby) → rozjazd „deszcz"; decyzja Filipa: „Zmierzch nad polami. *We dwoje*
 do końca drogi."
+
+## Podpisy v3.1 — bez poleceń (1.11.2026)
+
+Ton Filipa: podpis opisuje chwilę, nie wydaje polecenia. Pięć numerów, w których v3 instruowało („służy do rozciągania",
+„potem rolka", „regeneracja zaczyna się w domu", „cierpliwość to też trening", „odpoczynek należy do planu"):
+- **32** „Bieżnia, dwoje, przerwa. Następne *powtórzenie* za chwilę."
+- **37** „Słońce, ławka, ostatnie metry. *Dobrze* było wyjść."
+- **38** „Zmierzch w alejce, dwoje. *Dzień* kończy się dobrze."
+- **39** „Mróz, śnieg, pusta ławka. *Ty* nie usiadłeś."
+- **43** „Lód na zakrętach, las. Dziś *technika*, nie tempo."
+blizna-71 6/6, rozjazdy podpis↔opis obrazu 0 (każde wymienione pojęcie — dwójka, śnieg, las, zmierzch — jest w opisie).
