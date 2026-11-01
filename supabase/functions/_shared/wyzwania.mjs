@@ -70,13 +70,13 @@ import { isRunType } from "./reguly-treningow.mjs";
     all = all || [];
     var wS = okres(teraz).wS;
     var wl = all.filter(function(l){ return new Date(l.logged_at) >= wS; });
-    /* ⚠️ KM JAK W PRZYZNAWANIU (checkBadges, zawodnik.html): tydzień liczy TYLKO biegi (isRunType), miesiąc — wszystko.
+    /* ⚠️ KM JAK W PRZYZNAWANIU (checkBadges, zawodnik.html): tydzień i (od 1.11.2026) miesiąc liczą TYLKO biegi (isRunType).
        Do 31.10 dwie kopie liczyły inaczej: zawodnik.html obie sumy z biegów, wyzwania.html obie ze wszystkiego — pasek
        rozjeżdżał się z odznaką (rower dobijał tydzień do 100 %, a odznaka nie przychodziła). Asymetria tydzień/miesiąc
-       to stan PRZYZNAWANIA, zgłoszony Filipowi jako zaległość — pasek ma mówić to, co zrobi odznaka. */
+       to był stan PRZYZNAWANIA do 1.11 (zaległość z 31.10) — od 1.11 miesiąc też tylko z biegów, w obu miejscach naraz. */
     var bieg = function(l){ return isRunType(l.training_type); };
     var wkm = wl.reduce(function(s,l){ return s+(bieg(l) ? (parseFloat(l.distance_km)||0) : 0); }, 0);
-    var mkm = all.reduce(function(s,l){ return s+(parseFloat(l.distance_km)||0); }, 0);
+    var mkm = all.reduce(function(s,l){ return s+(bieg(l) ? (parseFloat(l.distance_km)||0) : 0); }, 0);   // 1.11: miesiąc też tylko biegi (blizna-90)
     var wsess = wl.length, msess = all.length;
     var wknd = wl.filter(function(l){ var d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
     /* „Dwa akcenty" liczy JEDNOSTKI JAKOSCIOWE, nie same tempowe: generator planu daje JEDEN akcent na tydzien

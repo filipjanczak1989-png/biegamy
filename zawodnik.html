@@ -14540,7 +14540,11 @@ async function _checkBadgeRules(logs, ctx) {
   // MIESIĘCZNE — bieżący miesiąc
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const mLogs = logs.filter(l => new Date(l.logged_at) >= monthStart);
-  const mKm = mLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  /* 1.11.2026 (zaległość z 31.10): km MIESIĄCA tylko z biegów — jak tydzień i dystanse całkowite. Do dziś rower
+     dobijał miesiąc (w październiku 19 z 32 osób miało inną sumę, 6 — inny próg odznaki). WYZWANIA.postep (sb.js
+     i _shared/wyzwania.mjs) liczy tak samo w tym samym commicie — pasek mówi to, co zrobi odznaka (blizna-90).
+     Odznak już przyznanych NIE odbieramy (achievements bez zmian), BADGE_BACKFILL_KEY bez zmian — reguła węższa. */
+  const mKm = mLogs.reduce((s, l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0), 0);
   if (mKm >= 42)   awardBadge('maraton_m');
   if (mKm >= 50)   awardBadge('50km_miesiaca');
   if (mKm >= 100)  { awardBadge('100km_miesiaca'); awardBadge('ultra_m'); awardBadge('granice'); }

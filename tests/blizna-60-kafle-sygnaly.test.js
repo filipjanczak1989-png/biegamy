@@ -83,7 +83,7 @@ test('WYZWANIA: jedno źródło — wyzwania.html i zawodnik.html bez własnych 
   const rower = [{ logged_at: '2026-10-27T08:00:00Z', distance_km: '60', training_type: 'Rower' }];
   const p = W.postep(rower, teraz);
   assert.equal(p['20km_tydzien'], 0, 'rower liczony do km tygodnia');
-  assert.equal(p['m_50km_miesiaca'], 60, 'km miesiąca: wszystko (jak checkBadges)');
+  assert.equal(p['m_50km_miesiaca'], 0, 'km miesiąca: od 1.11.2026 też tylko biegi (jak checkBadges, blizna-90)');
 });
 
 test('każdy kafel ma ikonę w puli G5 i odwrotnie (+ dzwonek z topbaru); nowa ikona ma zapas na stary plik', () => {
