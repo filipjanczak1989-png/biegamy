@@ -166,7 +166,7 @@ const SCENA_Z_PODPISU = {
        kadr: "Kadr: bez człowieka i bez dłoni — tylko para butów do biegania, widok nisko przy ziemi. Żadnych ludzi.",
        kompozycja: "Kompozycja pionowa: buty w środkowej części kadru, dolna jedna trzecia spokojna — pusta podłoga albo próg, cień, bez ważnych szczegółów.",
        styl: "Styl dokumentalny: obiektyw 35 mm, niedoskonałe, nieustawiane poranne światło." },
-  14: { scena: "droga polna w złotych i czerwonych liściach, liście na nawierzchni, ciepłe niskie słońce" },
+  14: { scena: "asfaltowa droga w liściach, obok las i łąka, dwoje biegaczy" },   // 1.11.2026: scena za obrazem (podpisy v2), bez regeneracji
   22: { scena: "pusta linia startu namalowana na asfalcie, jeden biegacz w rozgrzewce przy linii", poraDnia: "świt" },
   /* G2 (31.10.2026) — sceny z projektu „Grafiki v4", pkt 1 */
   71: { scena: "pusta zaśnieżona droga, ślady butów na śniegu", poraDnia: "świt",

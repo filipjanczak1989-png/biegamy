@@ -292,3 +292,23 @@ zawodnik.html) i liczyły km różnie; teraz obie strony i kafel biorą `WYZWANI
 
 **Karta treningu (A2a, następne):** główny przycisk „Zaloguj wynik" bez zmian; „Nie zrobiłem" tekstowy 44 px, a reguła
 z 21.08 bez zmian — dotyczy tylko WCZORAJSZEGO planu (dzisiejszy trwa do północy). Dolny nav i środkowe kółko bez zmian.
+
+## Podpisy v2 — z opisów obrazów (1.11.2026)
+
+Podpisy `_SOLO_PODPISY` (zawodnik.html) w wersji 2 pisane są z **opisu obrazu**, nie z zamówionej sceny: przegląd
+1.11 (gemini-3.5-flash-lite vision, prompt „co dokładnie widać…") pokazał podpisy mówiące o rzeczach nieobecnych na
+kadrze (13 „Miasto jeszcze śpi" pod parkiem, 81 „zasiałeś zimą" pod wiosennym lasem, 73/77 miasto i asfalt pod parkiem).
+Opisy wszystkich 89 kadrów: `tools/kadry/opisy-kadrow.json` — **podmiana kadru = nowy opis w tym samym commicie**,
+inaczej test rozjazdów porównuje podpis ze starym obrazem. Przegląd do oglądania: `tools/kadry/podpisy-przeglad.html`.
+
+Reguły (blizna-71): ≤ 8 słów, dokładnie jeden `*akcent*`, bez „wszyscy / każdy / zawsze / nigdy" i wykrzyknika,
+bez duplikatów, 89 pozycji, a podpis nie wymienia rzeczy (śnieg, deszcz, mgła, noc, buty, dwójka, las, miasto),
+której nie zna opis obrazu.
+
+Kadry 17, 32, 73, 77 wygenerowane od nowa 1.11 (biegamy-assets 65d5af4) — pora z obrazu zgadza się z `sezonKadru`.
+21 i 60 zostały stare (powtórki gorsze). 17: nowy kadr to kobieta i mężczyzna — podpis „Letnia alejka, *dwoje*, bez
+pośpiechu." (decyzja Filipa; v2 miało „*dwóch*"). 72: „Latarnie między blokami. *Wracamy* po zmroku." (stary miał 9 słów).
+
+`SCENA_Z_PODPISU` w generatorze: wyjątki 5, 22, 71, 75, 83, 88 zgadzają się z podpisami v2; **14** — scena
+zmieniona za obrazem („asfaltowa droga w liściach, obok las i łąka, dwoje biegaczy", decyzja Filipa 1.11), bez
+regeneracji kadru.
