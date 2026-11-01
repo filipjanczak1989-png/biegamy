@@ -1,7 +1,7 @@
 # Okienko „Zapytaj" — spec
 
 Stan na 1.11.2026. Pełny kontrakt (EF, narzędzia, router, strażniki, limity, koszty z logu po pierwszym dniu) dopisujemy
-razem z commitem zdejmującym włącznik `?zapytaj=1`. Ten plik zaczyna od kolejki, żeby ustalenia z testów nie ginęły.
+razem z kosztami z logu. Od 1.11.2026 13:33 pole „Zapytaj" widzi każdy zalogowany (podgląd zdjęty). Ten plik zaczyna od kolejki, żeby ustalenia z testów nie ginęły.
 
 ## Poprawki z testu Filipa 1.11 („jakie szanse na rekordy", konto testowe) — ZROBIONE
 

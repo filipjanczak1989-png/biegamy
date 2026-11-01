@@ -3050,7 +3050,7 @@ function showSection(name) {
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     const _htr2=document.getElementById('home-tiles-row');if(_htr2)_htr2.style.display='flex';
-    const _okp2=document.getElementById('okienko-pole');if(_okp2&&_okp2.dataset.wlaczone==='1')_okp2.style.display='';   /* tylko z flagą podglądu (js/okienko.js) */
+    const _okp2=document.getElementById('okienko-pole');if(_okp2&&_okp2.dataset.wlaczone==='1')_okp2.style.display='';   /* tylko pole podpięte przez js/okienko.js (trener: nie) */
     document.querySelectorAll('.fade-in').forEach(el => {
       el.style.display = '';
       // Reset animacji CSS żeby element był widoczny po powrocie

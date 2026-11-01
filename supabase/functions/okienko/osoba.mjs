@@ -56,7 +56,7 @@ export async function f6(fetchFn, token, rpc, args, teraz = Date.now()) {
 // ── rozpoznanie pytania o osobę ──────────────────────────────────────────────
 // Słowa, które nie są imieniem ani nazwiskiem — „kim jest mój trener" to pytanie o relację, nie o osobę do szukania
 // (detektor małych liter z M2d przepuściłby „mój trener" jako dwa słowa imienia).
-const NIE_IMIE = /^(m[oó]j|moja|moje|moi|tw[oó]j|twoja|twoje|nasz\w*|wasz\w*|ten|ta|to|ci|te|on|ona|oni|one|pan|pani|trener\w*|kolega|koleg\w*|kolezank\w*|koleżank\w*|znajom\w*|brat\w*|siostr\w*|mama|mamy|tata|taty|zona|żona|maz|mąż|syn|corka|córka|szef\w*|sasiad\w*|sąsiad\w*)$/i;
+const NIE_IMIE = /^(m[oó]j|moja|moje|moi|tw[oó]j|twoja|twoje|nasz\w*|wasz\w*|ten|ta|to|ci|te|on|ona|oni|one|pan|pani|trener\w*|kolega|koleg\w*|kolezank\w*|koleżank\w*|znajom\w*|brat\w*|siostr\w*|mama|mamy|tata|taty|zona|żona|maz|mąż|syn|corka|córka|szef\w*|sasiad\w*|sąsiad\w*|imi\w*|nazwisk\w*|i)$/i;   // „imię i nazwisko” = podpowiedź, nie osoba
 const toImie = (q) => wygladaNaOsobe(q) && !String(q).split(/\s+/).some((s) => NIE_IMIE.test(s));
 /** → {q, wprost} | null. „Katarzyna Chojnacka" → wprost false; „kim jest Katarzyna Chojnacka", „… w sieci",
     „google …" → wprost true (użytkownik sam prosi o sieć); „wyniki X", „jak pobiegł(a) X" → wprost false. */

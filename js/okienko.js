@@ -19,7 +19,8 @@
     czat: 'Czat', cialo: 'Ćwiczenia', statystyki: 'Statystyki', profil: 'Profil', jedzenie: 'Jedzenie', starty: 'Starty',
     wyzwania: 'Wyzwania', odznaki: 'Odznaki', radio: 'Radio'
   };
-  var PODPOWIEDZI = ['Kiedy mam start?', 'Ile przebiegłem w tym miesiącu?', 'Plan na jutro', 'Jakie mam odznaki?', 'Pokaż wyzwania'];
+  var PODPOWIEDZI = ['Kiedy mam start?', 'Ile przebiegłem w tym miesiącu?', 'Plan na jutro', 'Jakie mam odznaki?', 'Pokaż wyzwania',
+    'Kto wygrał maraton w Berlinie?', 'Wyniki: imię i nazwisko'];
   var TEKSTY = {
     pusto: 'Nie mam tego w Twoich danych.',
     dzien: 'Na dziś koniec pytań — od jutra znowu. Ekrany dalej znajdę:',
@@ -230,23 +231,12 @@
   }
   function zamknij() { var ov = el('okienko-arkusz'); if (ov) { ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true'); } }
 
-  /* PODGLĄD (decyzja Filipa 1.11, test na telefonie przed udostępnieniem): pole widać TYLKO z flagą
-     localStorage okienko_podglad=1, ustawianą wejściem na zawodnik.html?zapytaj=1 (?zapytaj=0 zdejmuje).
-     Po OK Filipa osobny commit usuwa tę bramkę (pole dla wszystkich). Brak dostępu do localStorage = brak pola. */
-  var KLUCZ_PODGLADU = 'okienko_podglad';
-  function podgladWlaczony() {
-    try {
-      var q = new URLSearchParams(location.search).get('zapytaj');
-      if (q === '1') localStorage.setItem(KLUCZ_PODGLADU, '1');
-      else if (q === '0') localStorage.removeItem(KLUCZ_PODGLADU);
-      return localStorage.getItem(KLUCZ_PODGLADU) === '1';
-    } catch (e) { return false; }
-  }
-
+  /* Pole „Zapytaj" dla KAŻDEGO zalogowanego na Dziś (decyzja Filipa 1.11 13:33 — koniec trybu podglądu z parametru
+     w adresie i klucza w pamięci przeglądarki). Wyjątek: podgląd trenera (?from=trener) — EF odpowiada danymi ZALOGOWANEGO, nie
+     oglądanego zawodnika. dataset.wlaczone = pole podpięte (showSection w zawodnik.html odsłania tylko podpięte). */
   function podepnij() {
     var pole = el('okienko-pole'); if (!pole) return;
     if (new URLSearchParams(location.search).get('from') === 'trener') { pole.style.display = 'none'; return; }   // podgląd trenera: EF odpowiada danymi zalogowanego
-    if (!podgladWlaczony()) { pole.style.display = 'none'; return; }
     pole.dataset.wlaczone = '1';
     pole.style.display = '';
     var p = podpowiedz();
