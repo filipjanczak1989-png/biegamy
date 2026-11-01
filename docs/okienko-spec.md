@@ -272,9 +272,9 @@ Jeden commit; zasada: 0 tokenów, liczby z danych, zdania ze słowników, które
 - (b) katalog „pojęcia": `_shared/pojecia.mjs` = KOPIA `window.METRIC_TOOLTIPS` z sb.js (tytuł + „Co to jest" bez HTML),
   generator `tools/kopie-okienka.js`, równość pilnuje blizna-84. Trafienie po słowie-kluczu (tsb, ctl, atl, trimp,
   heatmap / mapa cieplna, kilometraż, odliczanie) → karta pojęcia + „Otwórz Forma". Zwiad: strefy, interwały, rozbieganie
-  NIE MAJĄ opisu w aplikacji → brak hasła (nie piszemy własnych). Fakt o aplikacji (`O_APLIKACJI`): zmiany hasła NIE MA
-  (zero `updateUser` / `PASSWORD_RECOVERY`; login.html ma tylko „Zapomniałem hasła" → resetPasswordForEmail) — okienko
-  mówi to wprost zamiast kierować do Profilu; test pilnuje, że gdy zmiana hasła się pojawi, zdanie trzeba poprawić.
+  NIE MAJĄ opisu w aplikacji → brak hasła (nie piszemy własnych). Fakt o aplikacji (`O_APLIKACJI`): hasło — do v21 okienko
+  mówiło „w aplikacji nie ma zmiany hasła" (prawda do 1.11 wieczór); od v22 (commit `eaac0c6`, blizna-85) „Hasło zmienisz
+  w Profilu: Ustawienia → Hasło" + synonim haslo → Profil; blizna-84 pilnuje, że `profil.html` ma `auth.updateUser`.
 - (c) `SYNONIMY_EKRANOW` (narzedzia.mjs): tylko rzeczy, które NA TYM EKRANIE SĄ (zegarek/intervals, zdjęcie/awatar, miasto,
   prywatność, rocznik → Profil; zapisz trening → log; muzyka → Radio; znajomi → Społeczność…). Katalog bierze najlepsze
   z nazwy i synonimów; router „otwórz ustawienia / pokaż zegarek" → Profil.
