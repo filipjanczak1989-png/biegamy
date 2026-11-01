@@ -1,7 +1,7 @@
 // FILMY (1.11.2026) — przygotowanie filmu do kafla cytatu na Dziś (FILMY_PROMO w sb.js).
 //   node tools/filmy/przygotuj.mjs <wejście.mp4> <id> [katalog_wyjścia=../biegamy-assets/filmy]
 // Wynik: <id>.mp4 (h264 high, yuv420p, 960 px szer., crf 28, faststart, BEZ audio), <id>.webm (VP9, bez audio),
-// <id>-poster.jpg (klatka z 1. sekundy). Film NIE jest przycinany ani kadrowany — kadr ustawia CSS (object-position).
+// <id>-poster.jpg (klatka 0 — wejście filmu bez skoku, poprawka Filipa 1.11). Film NIE jest przycinany ani kadrowany — kadr ustawia CSS (object-position).
 // Cel rozmiaru: mp4 ≤ 1,2 MB; gdy większy, kolejne próby crf +2 (do 34). Wymaga ffmpeg/ffprobe w PATH (scoop install ffmpeg).
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -23,6 +23,6 @@ for (;;) {
   crf += 2;
 }
 ff(["-i", wej, "-an", "-vf", `scale=${SZER}:-2`, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "38", "-row-mt", "1", "-deadline", "good", webm]);
-ff(["-ss", "1", "-i", wej, "-frames:v", "1", "-vf", `scale=${SZER}:-2`, "-q:v", "3", poster]);
+ff(["-i", wej, "-frames:v", "1", "-vf", `scale=${SZER}:-2`, "-q:v", "3", poster]);
 const kb = (p) => Math.round(fs.statSync(p).size / 1024);
 console.log(JSON.stringify({ id, czas_s: Math.round(czas * 100) / 100, crf, mp4_kb: kb(mp4), webm_kb: kb(webm), poster_kb: kb(poster), cel_kb: Math.round(CEL_B / 1024) }));

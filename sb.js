@@ -547,13 +547,17 @@
      timeupdate z przejściem CSS — bez skoku. Film leży NA banerze (position:absolute; inset:0), więc wysokość się nie zmienia,
      a cytat czeka pod spodem i wraca po końcu. Tap pomija. Nie gra przy prefers-reduced-motion, Save-Data i offline.
      Raz dziennie: localStorage 'film_dzis' = data (try/catch — tryb prywatny nie może wywrócić Dziś). Pliki poza precache:
-     SW trzyma je w osobnym cache 'biegamy-filmy-v1' (max 3, blizna-88). Bez dźwięku (muted + brak ścieżki audio). */
+     SW trzyma je w osobnym cache 'biegamy-filmy-v1' (max 3, blizna-88). Bez dźwięku (muted + brak ścieżki audio).
+     Poprawka 1.11 wieczór (Filip, telefon: „przycina na starcie"): wideo wchodzi NIEWIDOCZNE (opacity 0) i bez autoplay,
+     preload='auto' dopiero po wyrenderowaniu banera (następna klatka), play() dopiero po 'canplaythrough', potem fade-in
+     0,3 s; plakat = klatka 0 (wejście bez skoku). Brak 'canplaythrough' w 4 s → film znika, cytat zostaje, dzień NIE
+     zużyty (znacznik 'film_dzis' tylko przy 'playing'). */
   window.FILMY_PROMO = [
     { id: 'film-01', mp4: 'filmy/film-01.mp4', webm: 'filmy/film-01.webm', poster: 'filmy/film-01-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
       pozycje: [{ od: 0, pos: '50% 30%' }, { od: 9, pos: '50% 50%' }] },
   ];
   window.FILM_DZIS = (function () {
-    var KLUCZ = 'film_dzis';
+    var KLUCZ = 'film_dzis', CZEKAJ_MS = 4000;
     function dzis(teraz) { var d = teraz || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
     function czytaj() { try { return window.localStorage.getItem(KLUCZ); } catch (e) { return null; } }
     function oznacz(teraz) { try { window.localStorage.setItem(KLUCZ, dzis(teraz)); } catch (e) {} }
@@ -575,12 +579,12 @@
       if (powod || !film) { baner.dataset.film = powod || 'brak'; return null; }
       var v = document.createElement('video');
       v.className = 'film-dzis';
-      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.autoplay = false; v.preload = 'none';   // preload 'auto' po wyrenderowaniu banera
       v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); v.setAttribute('poster', window.assetUrl(film.poster));
       v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
-        ';transition:object-position .6s ease,opacity .5s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;';
+        ';transition:object-position .6s ease,opacity .3s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;opacity:0;';
       [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { var z = document.createElement('source'); z.src = window.assetUrl(film[s[0]]); z.type = s[1]; v.appendChild(z); });
-      var koniec = false;
+      var koniec = false, gotowy = false;
       function zakoncz() {
         if (koniec) return; koniec = true;
         v.style.opacity = '0';
@@ -588,15 +592,22 @@
         baner.dataset.film = 'koniec';
       }
       v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
-      v.addEventListener('playing', function () { oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('canplaythrough', function () {
+        if (koniec || gotowy) return; gotowy = true;
+        try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
+      });
       v.addEventListener('ended', zakoncz);
       v.addEventListener('error', zakoncz, true);
       v.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });   // tap pomija
       baner.appendChild(v);
-      try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
+      baner.dataset.film = 'laduje';
+      var rAF = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
+      rAF(function () { if (!koniec) { v.preload = 'auto'; v.setAttribute('preload', 'auto'); try { v.load(); } catch (e) {} } });
+      setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
       return v;
     }
-    return { start: start, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, _dzis: dzis };
+    return { start: start, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
   })();
 
   window.escapeHtml = function(s) {

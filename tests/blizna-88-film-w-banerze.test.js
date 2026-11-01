@@ -7,7 +7,9 @@
    3) kadr: 50% 30% do 9. s, potem 50% 50% (cały napis końcowy) — zmiana przez timeupdate z przejściem CSS;
    4) duży kadr dnia 9:16 (#today-hero) nietknięty;
    5) SW: filmy poza precache, osobny cache max 3, przeżywa deploy; z cache oddaje poprawne 206 (Range); radio dalej
-      idzie prosto do sieci. */
+      idzie prosto do sieci;
+   6) (poprawka 1.11 wieczór, „przycina na starcie") wideo niewidoczne do 'canplaythrough', bez autoplay, preload 'auto'
+      dopiero po wyrenderowaniu banera, fade-in 0,3 s, plakat = klatka 0; brak gotowości w 4 s → cytat, dzień NIE zużyty. */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -34,9 +36,14 @@ function srodowisko({ ruch = false, saveData = false, online = true, zapis = nul
     : { getItem: (k) => (mag.has(k) ? mag.get(k) : null), setItem: (k, v) => mag.set(k, v) };
   ctx.matchMedia = (q) => ({ matches: ruch && /reduce/.test(q) });
   ctx.navigator = { onLine: online, connection: { saveData } };
-  ctx.document.createElement = (t) => { const e = el(t); if (t === 'video') { e.pause = () => { e.pauza = true; }; e.play = () => (play === 'ok' ? Promise.resolve() : Promise.reject(new Error('autoplay'))); } return e; };
-  ctx.setTimeout = (fn) => fn();
-  return { ctx, mag, baner: el('div') };
+  ctx.document.createElement = (t) => { const e = el(t); if (t === 'video') { e.pause = () => { e.pauza = true; }; e.load = () => { e.zaladowano = (e.zaladowano || 0) + 1; };
+    e.play = () => { e.grano = (e.grano || 0) + 1; return play === 'ok' ? Promise.resolve() : Promise.reject(new Error('autoplay')); }; } return e; };
+  // timery pod kontrolą testu: uplyw(ms) odpala zaplanowane do tej chwili (koniec filmu 520 ms, limit gotowości 4000 ms)
+  let zegar = 0; const timery = [];
+  ctx.setTimeout = (fn, ms) => { timery.push({ fn, t: zegar + (ms || 0) }); return timery.length; };
+  ctx.requestAnimationFrame = (fn) => fn();
+  const uplyw = (ms) => { zegar += ms; for (;;) { const i = timery.findIndex((x) => x.t <= zegar); if (i < 0) break; timery.splice(i, 1)[0].fn(); } };
+  return { ctx, mag, baner: el('div'), uplyw };
 }
 
 test('(1) warunki: reduced-motion, Save-Data, offline, już dziś → nie gra; localStorage rzucający → gra bez wyjątku', () => {
@@ -50,6 +57,37 @@ test('(1) warunki: reduced-motion, Save-Data, offline, już dziś → nie gra; l
   const p = srodowisko({ rzuca: true });
   assert.equal(p.ctx.FILM_DZIS.powodBlokady(TERAZ), null);
   assert.ok(p.ctx.FILM_DZIS.start(p.baner, TERAZ));
+});
+
+test('(6) start: niewidoczne, bez autoplay; preload auto po wyrenderowaniu; play dopiero po canplaythrough; fade-in 0,3 s przy playing', async () => {
+  const s = srodowisko();
+  const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
+  assert.equal(v.autoplay, false); assert.match(v.style.cssText, /opacity:0;/); assert.match(v.style.cssText, /opacity \.3s ease/);
+  assert.equal(v.preload, 'auto'); assert.equal(v.atrybuty.preload, 'auto'); assert.equal(v.zaladowano, 1, 'preload auto ustawione po klatce, potem load()');
+  assert.equal(v.grano, undefined, 'przed canplaythrough nic nie gra'); assert.equal(s.baner.dataset.film, 'laduje');
+  v.emit('canplaythrough'); v.emit('canplaythrough');
+  assert.equal(v.grano, 1, 'play raz, po canplaythrough');
+  assert.equal(v.style.opacity, undefined, 'nadal niewidoczne do „playing"');
+  v.emit('playing');
+  assert.equal(v.style.opacity, '1'); assert.equal(s.mag.get('film_dzis'), '2026-11-01');
+  s.uplyw(5000);
+  assert.equal(s.baner.dzieci.length, 1, 'limit 4 s nie dotyczy filmu, który już gra');
+  assert.match(czytaj('tools/filmy/przygotuj.mjs'), /ff\(\["-i", wej, "-frames:v", "1"/, 'plakat z klatki 0 (bez -ss)');
+});
+
+test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zużyty; jutro/później znowu można', () => {
+  const s = srodowisko();
+  const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
+  s.uplyw(3999);
+  assert.equal(s.baner.dzieci.length, 1);
+  s.uplyw(1);
+  assert.equal(s.baner.dataset.film, 'za-wolno'); assert.equal(v.grano, undefined);
+  s.uplyw(600);
+  assert.equal(s.baner.dzieci.length, 0, 'baner z cytatem jak zawsze');
+  assert.equal(s.mag.get('film_dzis'), undefined, 'dzień nie zużyty');
+  assert.equal(s.ctx.FILM_DZIS.powodBlokady(TERAZ), null);
+  v.emit('canplaythrough');
+  assert.equal(v.grano, undefined, 'spóźnione canplaythrough po rezygnacji nic nie odpala');
 });
 
 test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+webm z biegamy-assets, pozycja 30% → 50% od 9. s, raz dziennie', async () => {
@@ -67,7 +105,7 @@ test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+web
   assert.equal(s.mag.get('film_dzis'), '2026-11-01'); assert.equal(s.baner.dataset.film, 'gra');
   assert.equal(s.ctx.FILM_DZIS.start(s.baner, TERAZ), null, 'drugi film na tym samym banerze — nie');
   v.emit('ended');
-  assert.equal(v.style.opacity, '0'); assert.equal(s.baner.dzieci.length, 0, 'po końcu film znika — cytat pod spodem wraca'); assert.ok(v.pauza);
+  assert.equal(v.style.opacity, '0'); s.uplyw(520); assert.equal(s.baner.dzieci.length, 0, 'po końcu film znika — cytat pod spodem wraca'); assert.ok(v.pauza);
   assert.equal(srodowisko({ zapis: s.mag.get('film_dzis') }).ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
 });
 
@@ -76,14 +114,14 @@ test('(2) tap pomija (bez przeskoku kadru dnia), zablokowany autoplay i błąd p
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   let zatrzymane = false;
   v.emit('click', { stopPropagation() { zatrzymane = true; } });
-  assert.ok(zatrzymane); assert.equal(s.baner.dzieci.length, 0);
+  s.uplyw(520); assert.ok(zatrzymane); assert.equal(s.baner.dzieci.length, 0);
   const a = srodowisko({ play: 'blokada' });
-  a.ctx.FILM_DZIS.start(a.baner, TERAZ);
-  await new Promise((r) => setImmediate(r));
+  a.ctx.FILM_DZIS.start(a.baner, TERAZ).emit('canplaythrough');
+  await new Promise((r) => setImmediate(r)); a.uplyw(520);
   assert.equal(a.baner.dzieci.length, 0, 'autoplay odrzucony → cytat');
   assert.equal(a.mag.get('film_dzis'), undefined, 'nie zagrał → nie zużywa dnia');
   const b = srodowisko();
-  const vb = b.ctx.FILM_DZIS.start(b.baner, TERAZ); vb.emit('error');
+  const vb = b.ctx.FILM_DZIS.start(b.baner, TERAZ); vb.emit('error'); b.uplyw(520);
   assert.equal(b.baner.dzieci.length, 0);
 });
 
