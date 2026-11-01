@@ -85,7 +85,8 @@ const PRECACHE_URLS = [
   '/js/silnik-anim.js',
   '/js/silnik-momentu.js',
   '/js/okienko.js',         // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
-  '/js/wyniki-api.js',      // K5: zawodnik.html — podpowiedź imprez w modalu celu (bez sieci: brak podpowiedzi, cel działa)
+  '/js/wyniki-api.js',
+  '/js/akcja-cytaty.mjs',   // cytaty akcji w banerze cytatu na Dziś (2.11.2026)      // K5: zawodnik.html — podpowiedź imprez w modalu celu (bez sieci: brak podpowiedzi, cel działa)
   '/js/plan-pusty.mjs',     // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
   '/js/cwiczenia-nazwy.mjs', // M3c: nazwy ćwiczeń — zwykły <script src> w zawodnik.html (bez niego zakładka Ćwiczenia bez nazw)
   '/js/przepisy-szukaj.mjs', // M3c: pole „Szukaj przepisu" w Jedzeniu

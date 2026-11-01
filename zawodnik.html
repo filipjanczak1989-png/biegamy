@@ -1847,6 +1847,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
+<script src="js/akcja-cytaty.mjs"></script><!-- cytaty akcji (2.11.2026): baner cytatu na Dziś, pierwszeństwo przed zwykłym -->
 <script src="sb.js"></script>
 <script src="js/wyniki-api.js"></script><!-- K5: podpowiedź imprez z kalendarza maszyny w modalu celu (window.IMPREZY.podpowiedz) -->
 <script src="js/cwiczenia-nazwy.mjs"></script>
@@ -3023,6 +3024,7 @@ function goToMyProfile() {
 }
 
 function showSection(name) {
+  if (name === 'home' && typeof window.odswiezCytatAkcji === 'function') window.odswiezCytatAkcji();   // cytat akcji: wejście na Dziś
   if (name === 'social') _startSocialBannerRotation();
   else _stopSocialBannerRotation();
   // Podświetlenie nav — class-based przez window.NAV.setActive (kolory z theme.css; sekcje bez pozycji w nav → null)
@@ -4362,12 +4364,34 @@ async function loadDailyMotivation() {
   /* D6 (31.10.2026): ujawnienie słów dopiero, gdy karta wjedzie w ekran — nie razem z hero. Gwiazdki z socialText
      wycięte (zawiera cel wpisany przez człowieka, a w CYTAT „*…*" znaczy akcent). */
   const _mTxt = document.getElementById('motiv-text');
-  document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
-  const _mTresc = socialText ? socialText.replace(/\*/g, '') : q.text;
+  /* CYTATY AKCJI (2.11.2026, js/akcja-cytaty.mjs): w datach akcji pierwszeństwo przed zwykłym cytatem i przed „Twój plan";
+     poza nimi null → bez zmian. Dzień po Warszawie (blizna-92). */
+  const _akcja = window.BM_AKCJA_CYTATY ? window.BM_AKCJA_CYTATY.cytat(new Date()) : null;
+  document.getElementById('motiv-source').textContent = _akcja ? _akcja.zrodlo : socialText ? 'Twój plan' : q.source;
+  const _mTresc = _akcja ? '"' + _akcja.tekst + '"' : socialText ? socialText.replace(/\*/g, '') : q.text;
+  _mTxt.dataset.akcja = _akcja ? _akcja.tekst : '';
   if (window.CYTAT) CYTAT.animuj(_mTxt, _mTresc, { gdyWidoczny: true, krok: .035 }); else _mTxt.textContent = _mTresc;
   // FILM-01 (1.11.2026): film raz dziennie NA banerze (cytat czeka pod spodem i wraca po końcu) — sb.js FILM_DZIS
   if (window.FILM_DZIS) window.FILM_DZIS.start(el);
 }
+
+/* CYTAT AKCJI BEZ PRZEŁADOWANIA (2.11.2026): po starcie akcji (czyAkcjaRuszyla, stan z RPC — projekt F) cytat zmienia
+   się przy następnym renderze banera: przy wejściu na Dziś (showSection('home')) i przy powrocie do karty
+   (visibilitychange). Bez odpytywania co sekundę. Podmienia tylko, gdy cytat akcji jest INNY niż wyświetlony. */
+window.odswiezCytatAkcji = function () {
+  const txt = document.getElementById('motiv-text'), src = document.getElementById('motiv-source');
+  if (!txt || !src || !window.BM_AKCJA_CYTATY) return false;
+  const a = window.BM_AKCJA_CYTATY.cytat(new Date());
+  if (!a || txt.dataset.akcja === a.tekst) return false;
+  txt.dataset.akcja = a.tekst;
+  src.textContent = a.zrodlo;
+  const tresc = '"' + a.tekst + '"';
+  if (window.CYTAT) CYTAT.animuj(txt, tresc, { krok: .035 }); else txt.textContent = tresc;
+  return true;
+};
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && (window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
+});
 
 window.loadWeather = async function() {
   const wrap = document.getElementById('weather-widget');
