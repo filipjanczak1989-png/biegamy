@@ -111,3 +111,27 @@ describe('PARZYSTOSC — obsluga klawiatury jest w OBU kopiach', () => {
     });
   }
 });
+
+// 1.11.2026 — zgłoszenie Maćka: kompozytor czatu skakał na górę ekranu przy otwartej klawiaturze (Android).
+// Przyczyna: DRUGI, globalny handler visualViewport w zawodnik.html przesuwał #section-msgs o
+// translateY(-(innerHeight − visualViewport.height)) RÓWNOLEGLE do setupChatViewportFix, który już ustawia
+// height = visualViewport.height. Na Chrome ≥108 klawiatura zmniejsza tylko visual viewport, więc kompensacja
+// liczyła się dwa razy. Test pilnuje JEDNEJ obsługi i braku przesuwania w górę o wysokość klawiatury.
+describe('⚠️ JEDNA obsluga klawiatury w czacie zawodnika (1.11.2026)', () => {
+  const src = czytaj('zawodnik.html');
+  test('visualViewport „resize" rejestrowany tylko w setupChatViewportFix', () => {
+    const rej = [...src.matchAll(/visualViewport\.addEventListener\('resize',\s*([^)\s]+)/g)].map((m) => m[1]);
+    assert.deepEqual(rej, ['_chatVvpHandler'], 'drugi handler visualViewport: ' + rej.join(', '));
+  });
+  test('brak przesuwania czatu w górę o wysokość klawiatury', () => {
+    assert.ok(!/translateY\(-'\s*\+/.test(src), 'translateY(-…) wrócił — podwójna kompensacja klawiatury');
+    assert.ok(!/innerHeight\s*-\s*window\.visualViewport\.height/.test(src), 'innerHeight − visualViewport.height = wysokość klawiatury odejmowana drugi raz');
+  });
+  test('sekcja = widoczny obszar: height z visualViewport, góra z offsetTop, reset zachowuje translateX(-50%)', () => {
+    const f = src.slice(src.indexOf('function setupChatViewportFix()'), src.indexOf('async function openChatThread('));
+    assert.match(f, /section\.style\.height = vvh \+ 'px';/);
+    assert.match(f, /translateX\(-50%\) translateY\(' \+ Math\.max\(0, Math\.round\(vv\.offsetTop\)\) \+ 'px\)'/);
+    assert.ok(!/section\.style\.transform = ''/.test(src), "transform = '' kasuje translateX(-50%) ze stylu inline — sekcja zjeżdża w bok");
+    assert.match(src, /id="section-msgs" style="[^"]*transform:translateX\(-50%\)/, 'centrowanie sekcji zmienione — popraw resety transform');
+  });
+});

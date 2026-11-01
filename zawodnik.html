@@ -4126,16 +4126,11 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// Fix keyboard pushing chat off screen
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', function() {
-    var msgsEl = document.getElementById('section-msgs');
-    if (!msgsEl || msgsEl.style.display === 'none') return;
-    var offset = window.innerHeight - window.visualViewport.height;
-    msgsEl.style.transform = 'translateX(-50%) translateY(-' + offset + 'px)';
-    msgsEl.style.height = window.visualViewport.height + 'px';
-  });
-}
+/* Drugi, globalny handler visualViewport (translateY(-wysokość klawiatury) + height) USUNIĘTY 1.11.2026 — zgłoszenie
+   Maćka: kompozytor czatu skakał na górę ekranu przy otwartej klawiaturze (Android). Działał RÓWNOLEGLE do
+   setupChatViewportFix: tamten ustawia height = visualViewport.height, ten dodatkowo przesuwał sekcję w górę o całą
+   klawiaturę — na Chrome ≥108 (klawiatura zmniejsza tylko visual viewport) kompensacja liczyła się dwa razy.
+   Jedna obsługa: setupChatViewportFix (blizna-28). */
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); const m=document.getElementById('av-menu'); if(m) m.style.display='none'; } });
 
@@ -11228,11 +11223,17 @@ function setupChatViewportFix() {
     if (!threadView || threadView.style.display === 'none') {
       // Lista konwersacji - zostaw 100dvh
       section.style.height = '';
+      section.style.transform = 'translateX(-50%)';
       return;
     }
     
-    var vvh = window.visualViewport.height;
+    // Sekcja = dokładnie widoczny obszar: wysokość z visualViewport, góra przesunięta o offsetTop (iOS przewija visual
+    // viewport zamiast go zmniejszać; na Androidzie offsetTop = 0). Bez odejmowania wysokości klawiatury — to robi
+    // sama wysokość; odjęcie jej drugi raz wyrzucało pole na górę ekranu (1.11.2026).
+    var vv = window.visualViewport;
+    var vvh = vv.height;
     section.style.height = vvh + 'px';
+    section.style.transform = 'translateX(-50%) translateY(' + Math.max(0, Math.round(vv.offsetTop)) + 'px)';
     
     // Scroll thread do dołu (do najnowszych wiadomości) gdy klawiatura zmienia rozmiar
     var thread = document.getElementById('msgs-thread');
@@ -11344,7 +11345,7 @@ function closeChatThread() {
   if (bottomNav) bottomNav.style.display = 'flex';
   // Reset visualViewport height (gdyby keyboard fix był aktywny)
   var section = document.getElementById('section-msgs');
-  if (section) section.style.height = '';
+  if (section) { section.style.height = ''; section.style.transform = 'translateX(-50%)'; }
   // Wczytaj listę (tryf-catch żeby nic nie zatrzymało)
   try { loadChatConvList(); } catch(e) { console.warn('loadChatConvList error:', e); }
 }
