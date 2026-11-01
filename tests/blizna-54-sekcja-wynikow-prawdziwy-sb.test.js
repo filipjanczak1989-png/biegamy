@@ -37,7 +37,11 @@ function uruchomSekcje(ctx) {
   return { sekcja, inicjalizacje };
 }
 
-function zApi(ctx) { vm.runInContext(czytaj('js/wyniki-api.js'), ctx, { filename: 'js/wyniki-api.js' }); return ctx; }
+// Wariant flagi wymuszany w źródle: od 1.11.2026 repo ma true (M2b), a ścieżka „flaga false" ma dalej działać przy cofnięciu.
+function zApi(ctx, flaga = false) {
+  const src = czytaj('js/wyniki-api.js').replace(/var WYNIKI_API_WLACZONE = (true|false);/, 'var WYNIKI_API_WLACZONE = ' + flaga + ';');
+  vm.runInContext(src, ctx, { filename: 'js/wyniki-api.js' }); return ctx;
+}
 
 test('prawdziwy sb.js na biegamy.run: BM_SRODOWISKO = prod, SB_URL/SB_KEY/SB_FN_URL jak na main', () => {
   const ctx = zaladujSb();
@@ -80,4 +84,12 @@ test('jawne środowisko test: sekcja widoczna, klient = _sb (TEST Supabase), bez
   assert.equal(p.wynikiApiDostepne(), true, 'prawdziwy sb.js + klucz podglądu na biegamy.run');
   const b = uruchomSekcje(p);
   assert.equal(b.sekcja.hidden, false);
+});
+
+test('flaga true (stan repo od 1.11.2026): prawdziwy sb.js na biegamy.run — API dostępne bez klucza podglądu, sekcja widoczna, bez paska podglądu', () => {
+  const ctx = zApi(zaladujSb(), true);
+  assert.equal(ctx.WYNIKI_API_WLACZONE, true);
+  assert.equal(ctx.wynikiApiDostepne(), true);
+  assert.equal(ctx.wynikiApiPodglad(), false);
+  assert.equal(uruchomSekcje(ctx).sekcja.hidden, false);
 });

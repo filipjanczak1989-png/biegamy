@@ -22,10 +22,15 @@ export async function uzyteDzis(adm, athleteId, dzis) {
 }
 
 export async function uzyteSiecDzis(adm, athleteId, dzis) {
+  const od = poczatekDniaWaw(dzis);
   const { count, error } = await adm.from("okienko_log").select("id", { count: "exact", head: true })
-    .eq("athlete_id", athleteId).eq("tryb", "siec").gte("kiedy", poczatekDniaWaw(dzis));
+    .eq("athlete_id", athleteId).eq("tryb", "siec").gte("kiedy", od);
   if (error) throw new Error("okienko_log");
-  return count || 0;
+  // M2b: pytanie o osobę z wyszukaniem w sieci (tryb „osoba", zapytania_sieci ≥ 1) liczy się do tego samego limitu
+  const { count: osoby, error: e2 } = await adm.from("okienko_log").select("id", { count: "exact", head: true })
+    .eq("athlete_id", athleteId).eq("tryb", "osoba").gte("zapytania_sieci", 1).gte("kiedy", od);
+  if (e2) throw new Error("okienko_log");
+  return (count || 0) + (osoby || 0);
 }
 
 /* Koszt = tokeny × cena modelu + zapytania wyszukiwania × 0,014 USD (M2a — grounding liczy się do budżetu). */

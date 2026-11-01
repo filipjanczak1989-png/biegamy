@@ -89,7 +89,63 @@
         '<span class="okn-pasek"><span style="width:' + p + '%"></span></span></div>';
     }
     if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Odznaka') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
+    if (k.typ === 'osoba') return kartaOsoby(d);
+    if (k.typ === 'wyniki') return kartaWynikow(d);
     return '';
+  }
+
+  /* M2b: karta osoby z aplikacji (tylko profile publiczne — filtr w EF). Przyciski wywołują ISTNIEJĄCE funkcje
+     zawodnik.html po tapnięciu (openAthleteProfile, sendFriendFromSearch, openChatThread('peer')); id sprawdzone
+     wzorcem UUID, przekazywane przez data-*, nigdy przez JS w atrybucie. */
+  var RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function kartaOsoby(d) {
+    if (!RE_UUID.test(String(d.id || ''))) return '';
+    var id = esc(d.id), nazwa = esc(d.nazwa || 'Biegacz');
+    var znaj = d.znajomosc === 'znajomi' ? '<span class="okn-meta">✓ Znajomi</span>'
+      : d.znajomosc === 'wyslano' ? '<span class="okn-meta">Zaproszenie wysłane</span>'
+      : d.znajomosc === 'czeka' ? '<span class="okn-meta">Czeka na Twoją odpowiedź</span>'
+      : '<button type="button" class="okn-chip" data-osoba="znajomy" data-id="' + id + '">Dodaj do znajomych</button>';
+    return '<div class="okn-karta okn-karta--osoba"><b>' + nazwa + '</b><span class="okn-meta">profil w BiegaMy</span>' +
+      '<div class="okn-ekrany"><button type="button" class="okn-chip" data-osoba="profil" data-id="' + id + '">Zobacz profil</button>' + znaj +
+      '<button type="button" class="okn-chip" data-osoba="napisz" data-id="' + id + '" data-nazwa="' + nazwa + '">Napisz</button></div></div>';
+  }
+  function czasTxt(s) {
+    s = Math.round(Number(s) || 0); if (!(s > 0)) return '';
+    var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
+  }
+  function dataTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] + '.' + p[0] : ''; }
+  function startyTxt(n) {
+    var d = n % 10, s = n % 100;
+    return n + ' ' + (n === 1 ? 'start' : (d >= 2 && d <= 4 && (s < 12 || s > 14)) ? 'starty' : 'startów');
+  }
+  /* M2b: wyniki z maszyny wyników (F6) — „N startów · ostatni: … · najlepszy czas …" + 5 ostatnich + „Otwórz wyniki". */
+  function kartaWynikow(d) {
+    var glowa = [d.starty != null ? startyTxt(Number(d.starty)) : '',
+      d.ostatni && d.ostatni.bieg ? 'ostatni: ' + d.ostatni.bieg + (d.ostatni.data ? ' (' + dataTxt(d.ostatni.data) + ')' : '') : '',
+      d.najlepszy_czas && d.najlepszy_czas.czas_s ? 'najlepszy czas ' + czasTxt(d.najlepszy_czas.czas_s) + (d.najlepszy_czas.dystans_km ? ' na ' + kmTxt(d.najlepszy_czas.dystans_km) + ' km' : '') : ''].filter(Boolean);
+    var lista = (Array.isArray(d.ostatnie) ? d.ostatnie.slice(0, 5) : []).map(function (r) {
+      return '<li>' + esc([dataTxt(r.data), r.bieg, czasTxt(r.czas_s), r.miejsce ? 'miejsce ' + r.miejsce : ''].filter(Boolean).join(' · ')) + '</li>';
+    }).join('');
+    var inne = (Array.isArray(d.inne) ? d.inne : []).map(function (x) {
+      return esc((x.nazwa || '') + (x.rocznik ? ' (' + x.rocznik + ')' : '') + (x.starty != null ? ', ' + startyTxt(Number(x.starty)) : ''));
+    }).join(' · ');
+    return '<div class="okn-karta okn-karta--wyniki"><b>' + esc((d.nazwa || '') + (d.rocznik ? ' (' + d.rocznik + ')' : '')) + '</b>' +
+      '<span class="okn-meta">' + esc(glowa.join(' · ')) + '</span>' + (lista ? '<ul class="okn-wyniki">' + lista + '</ul>' : '') +
+      (inne ? '<span class="okn-meta">Też w wynikach: ' + inne + '</span>' : '') +
+      '<button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.starty) + '">Otwórz wyniki</button></div>';
+  }
+
+  /* M2b: tryb „osoba" — zdania z sieci (gdy były: etykieta i źródła), potem karty osób i wyników. */
+  function htmlOsoby(json) {
+    var zdania = (Array.isArray(json.zdania) ? json.zdania : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 4);
+    var zrodla = (Array.isArray(json.zrodla) ? json.zrodla : []).map(function (z) {
+      var h = (z && typeof window.safeExternalHref === 'function') ? window.safeExternalHref(z.url, { tylkoHttps: true }) : '';
+      return h ? '<li><a href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(z.tytul || 'źródło') + '</a></li>' : '';
+    }).filter(Boolean);
+    var html = (zrodla.length ? '<p class="okn-etykieta-siec">z sieci</p>' : '') + zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('');
+    if (zrodla.length) html += '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zrodla.join('') + '</ul>';
+    return html + (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
   }
 
   /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc. */
@@ -97,7 +153,8 @@
     if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
     if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
-    if (json.tryb === 'siec' || json.tryb === 'siec-cache') return htmlSieci(json);   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
+    if (json.tryb === 'siec' || json.tryb === 'siec-cache') return htmlSieci(json);
+    if (json.tryb === 'osoba') return htmlOsoby(json);   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
     if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];
@@ -199,8 +256,9 @@
     var ov = el('okienko-arkusz');
     if (ov) ov.addEventListener('click', function (e) {
       if (e.target === ov) return zamknij();
-      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel]') : null;
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba]') : null;
       if (!b) return;
+      if (b.hasAttribute('data-osoba')) return akcjaOsoby(b);
       if (b.hasAttribute('data-pytanie')) { var q = b.getAttribute('data-pytanie'); if (we) we.value = q; wyslij(q); }
       else { var c = bezpiecznyCel(b.getAttribute('data-cel')); if (c) location.href = c; }
     });
@@ -210,7 +268,21 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') zamknij(); });
   }
 
+  /* M2b: akcje karty osoby — istniejące funkcje zawodnik.html; brak funkcji = nic (np. na innej stronie). */
+  function akcjaOsoby(b) {
+    var id = b.getAttribute('data-id') || '', co = b.getAttribute('data-osoba');
+    if (!RE_UUID.test(id)) return;
+    if (co === 'znajomy') { if (typeof window.sendFriendFromSearch === 'function') window.sendFriendFromSearch(id, b); return; }
+    zamknij();
+    if (co === 'profil' && typeof window.openAthleteProfile === 'function') window.openAthleteProfile(id);
+    if (co === 'napisz' && typeof window.openChatThread === 'function') {
+      if (typeof window.showSection === 'function') window.showSection('msgs');
+      var nazwa = b.getAttribute('data-nazwa') || null;
+      setTimeout(function () { window.openChatThread('peer', id, nazwa); }, 400);
+    }
+  }
+
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY };
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

@@ -29,12 +29,14 @@ test('detektor osoby: imię i nazwisko (także małymi, jak w logu) → osoba; p
     assert.equal(P.wygladaNaOsobe(t), false, t);
 });
 
-test('EF: pytanie o osobę zatrzymane PRZED pamięcią, modelem i siecią (tryb osoba, 0 tokenów)', () => {
+test('EF: pytanie o osobę zatrzymane PRZED pamięcią i modelem; odpowiedź osobowa NIE idzie do pamięci sieci ani do znalezisk (M2b)', () => {
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
-  const iOsoba = ef.indexOf('if (wygladaNaOsobe(tekst))');
+  const iOsoba = ef.indexOf('const os = osobaZPytania(tekst);');
   assert.ok(iOsoba > ef.indexOf('dopasuj(tekst, dzis)'), 'router zostaje pierwszy');
-  for (const dalej of ['zPamieci(adm', 'sprawdzLimity(', 'zapytajModel({', 'zapytajSiec({']) assert.ok(iOsoba < ef.indexOf(dalej), `osoba po ${dalej}`);
-  assert.match(ef, /tryb: "osoba" \}\);\s*\n\s*return odp\(200, \{ \.\.\.pusto\("osoba"\), zdania: \[ODP_OSOBA\], akcja: \{ nawiguj: "races\.html" \} \}\);/);
+  for (const dalej of ['zPamieci(adm', 'sprawdzLimity(', 'zapytajModel({']) assert.ok(iOsoba < ef.indexOf(dalej), `osoba po ${dalej}`);
+  const blok = ef.slice(iOsoba, ef.indexOf('zPamieci(adm'));
+  assert.ok(!/doPamieci|zapiszZnaleziska/.test(blok), 'odpowiedź o osobie w pamięci sieci albo w znaleziskach');
+  assert.match(blok, /tryb: "osoba"/);
 });
 
 test('pamięć: trafienie ≤ 24 h zwraca zdania i źródła; wpis starszy niż 24 h nie wraca; bez źródeł nie zapisujemy', async () => {

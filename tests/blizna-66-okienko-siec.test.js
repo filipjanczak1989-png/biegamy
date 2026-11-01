@@ -143,11 +143,14 @@ test('brak groundingChunks → JEDNA ponowna próba; dalej brak → „Tego nie 
   assert.match(S.promptSieci('2026-11-01'), /Użyj Google Search przed odpowiedzią; nie odpowiadaj z pamięci\./);
 });
 
-test('M2d: „Jan Kowalski" nigdy nie trafia do googleSearch (detektor osoby przed modelem i siecią)', async () => {
+test('M2d→M2b: „Jan Kowalski" trafia do trybu osoby PRZED modelem; do googleSearch tylko osoba publiczna albo pytanie wprost (blizna-67)', async () => {
   const P = await zaladuj('supabase/functions/okienko/pamiec.mjs');
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
+  const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   assert.equal(R.dopasuj('Jan Kowalski', '2026-11-01'), null, 'router go nie zna — dochodzi do detektora');
   assert.equal(P.wygladaNaOsobe('Jan Kowalski'), true);
+  assert.deepEqual(O.osobaZPytania('Jan Kowalski'), { q: 'Jan Kowalski', wprost: false });
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
-  assert.ok(ef.indexOf('if (wygladaNaOsobe(tekst))') < ef.indexOf('zapytajSiec({'));
+  const iOs = ef.indexOf('const os = osobaZPytania(tekst);');
+  assert.ok(iOs > 0 && iOs < ef.indexOf('zapytajModel({') && iOs < ef.indexOf('czyDoSieci('), 'tryb osoby przed modelem i zwykłą ścieżką sieci');
 });

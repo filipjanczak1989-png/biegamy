@@ -46,3 +46,29 @@ dystansie: 1:45:10 (2024)." — rekord tylko gdy dystans startu pasuje do jedneg
 
 Testy: blizna-64 (narzędzie: filtr na wołającego, brak pól spoza listy; router: 5 fraz; „szanse" bez liczby spoza
 wyników), blizna-65 (karta rekordu bez `undefined`).
+
+## M2b — tryb „osoba": trzy fronty (1.11.2026) — WDROŻONE w v7
+
+Pytanie o człowieka (`osobaZPytania`: samo imię i nazwisko, „kim jest X", „X w sieci", „google X", „wyniki X",
+„jak pobiegł X"; słowa typu „mój trener", „koleżanka" nie są imieniem) idzie do `osoba.mjs`, bez modelu z narzędziami.
+Równolegle:
+- **(a) profile w aplikacji** — tylko `athletes.is_public = true`, bez własnego, do 3, klient z JWT (RLS); karta
+  „Zobacz profil" / „Dodaj do znajomych" / „Napisz" — akcje po tapnięciu istniejącymi funkcjami zawodnik.html
+  (`openAthleteProfile`, `sendFriendFromSearch`, `openChatThread('peer')`), status znajomości z `friendships`;
+- **(b) wyniki F6** (`api.biegamy.run`, token użytkownika w `Authorization`) — `search_runners` do 3, dla najlepszego
+  `runner_results`: N startów, ostatni start, najlepszy czas na dystansie ostatniego startu, 5 ostatnich; „Otwórz wyniki"
+  → races.html (wyszukiwarka, `WYNIKI_API_WLACZONE = true` dla wszystkich od 1.11.2026);
+- **(c) sieć** tylko gdy osoba publiczna sportowo: ≥ 30 startów, start w Mistrzostwach Polski albo podium OPEN
+  (1–3 w generalnej; podium w kategorii za szerokie — 9/12 startów jednej zawodniczki), albo pytanie wprost.
+  Wtedy `zapytajSiec` ze źródłami, licznik jak tryb `siec` (20/dobę, `uzyteSiecDzis` liczy też `osoba` z
+  `zapytania_sieci ≥ 1`). Inaczej nazwisko nie wychodzi do Google i braku sieci nie komunikujemy.
+
+Odpowiedź: zdania z sieci (jeśli są, z etykietą i źródłami) → karta osoby → karta wyników; nic →
+„Nie znalazłem tej osoby w aplikacji ani w wynikach."; 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za
+chwilę." (reszta zostaje). Pamięć F6 wspólna (dane publiczne): RPC + argumenty, 10 min, ≤ 500 wpisów, w izolacie.
+Odpowiedź osobowa nie trafia do `okienko_siec_cache` ani do znalezisk; log `okienko_log` tryb `osoba`
+(`ok=false` gdy F6 zawiodło, powód w `powod_odrzucenia`). Testy: blizna-67.
+
+⚠️ Niesprawdzone przed wdrożeniem: F6 z adresów funkcji Edge (limit 60/min na IP po stronie Caddy — wszyscy
+użytkownicy okienka dzielą jeden adres). Token przyjmowany — sprawdzone lokalnie 1.11 (200, 0,9 s).
+Odłożone: `biegi_nadchodzace` (upcoming_races) jako narzędzie modelu.

@@ -1,8 +1,10 @@
 // OKIENKO (M2d, 1.11.2026) — prywatność trybu sieci, pamięć odpowiedzi z sieci, znaleziska.
 //
 // PRYWATNOŚĆ (decyzja Filipa 1.11, po wpisach z imionami i nazwiskami w okienko_log):
-//   * wygladaNaOsobe(): pytanie, które jest samym imieniem i nazwiskiem, NIE idzie do sieci (nazwisko prywatnej osoby
-//     nie wychodzi do Google z naszej aplikacji) — odpowiedź „Wyniki osób znajdę w wyszukiwarce wyników.", tryb 'osoba';
+//   * wygladaNaOsobe(): pytanie, które jest samym imieniem i nazwiskiem, NIE idzie zwykłą ścieżką do sieci (nazwisko
+//     prywatnej osoby nie wychodzi do Google z naszej aplikacji). Od M2b (1.11.2026) obsługuje je osoba.mjs, tryb
+//     'osoba': profile publiczne + wyniki F6, sieć tylko dla osoby publicznej sportowo albo pytania wprost;
+//     ODP_OSOBA zostaje tylko jako stała (nieużywana w EF);
 //   * cache tylko dla pytań, przy których detektor nie zadziałał (odpowiedź o osobie nie trafia do wspólnej pamięci);
 //   * znaleziska BEZ tekstu pytania — tylko nazwa biegu i rok wyciągnięte z pytania; pytanie o osobę nie trafia wcale.
 // Zapisy: WYŁĄCZNIE okienko_siec_cache i okienko_znaleziska (klient service_role; przeglądarka nie ma do nich prawa

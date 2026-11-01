@@ -161,7 +161,8 @@ test('nawigacja z narzędzi (nie od modelu); każda deklaracja ma wykonanie i ek
 test('statycznie: w supabase/functions/okienko/ nic nie pisze do bazy', () => {
   const kat = path.join(KORZEN, 'supabase', 'functions', 'okienko');
   for (const plik of fs.readdirSync(kat)) {
-    const kod = fs.readFileSync(path.join(kat, plik), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    // M2b: PAMIEC.delete( w osoba.mjs to Map pamięci F6 w izolacie, nie baza
+    const kod = fs.readFileSync(path.join(kat, plik), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\bPAMIEC\.delete\(/g, '');
     const zapisy = kod.match(/\.(insert|update|delete|upsert|rpc)\s*\(/g) || [];
     /* zapis tylko: okienko_log (insert) + M2d okienko_siec_cache / okienko_znaleziska (upsert) — blizna-69 */
     const dozwolone = (kod.match(/from\(["']okienko_log["']\)\s*\.insert\(|from\(["']okienko_(siec_cache|znaleziska)["']\)\s*\.upsert\(/g) || []).length;

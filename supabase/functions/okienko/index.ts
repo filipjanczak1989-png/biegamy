@@ -16,7 +16,8 @@ import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
-import { wygladaNaOsobe, ODP_OSOBA, zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska } from "./pamiec.mjs";
+import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska } from "./pamiec.mjs";
+import { osobaZPytania, odpowiedzOsoba } from "./osoba.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -68,10 +69,22 @@ Deno.serve(async (req) => {
     return odp(200, { ...pusto("router"), zdania, karty, akcja: nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
   }
 
-  // ── M2d: pytanie o OSOBĘ (samo imię i nazwisko) — nie do modelu i nie do sieci; 0 tokenów ──
-  if (wygladaNaOsobe(tekst)) {
-    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba" });
-    return odp(200, { ...pusto("osoba"), zdania: [ODP_OSOBA], akcja: { nawiguj: "races.html" } });
+  // ── M2b: pytanie o OSOBĘ — trzy fronty równolegle (osoba.mjs): profile publiczne, wyniki F6, sieć tylko dla osoby
+  //    publicznej sportowo albo pytania wprost. Bez modelu z narzędziami; nie do pamięci sieci ani do znalezisk. ──
+  const os = osobaZPytania(tekst);
+  if (os) {
+    const httpsOk = (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
+    const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost,
+      sieciDozwolona: async () => { if (!GEMINI) return false; try { return (await uzyteSiecDzis(adm, ath.id, dzis)) < LIMIT_SIEC; } catch { return false; } },
+      siec: async (t: string) => {
+        const w = await zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst: t, dzis });
+        const z = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
+        const jest = z.zrodla.length > 0 && z.zdania[0] !== NIE_ZNALAZLEM;
+        return { zdania: jest ? z.zdania : [], zrodla: jest ? z.zrodla : [], tok: w.tok, zapytania: w.zapytania };
+      } });
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
+      ok: o.f6 === "ok", powod_odrzucenia: o.powod });
+    return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);

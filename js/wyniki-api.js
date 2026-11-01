@@ -3,7 +3,7 @@
    Zwraca { data, error } jak sb.rpc, więc widżet wyszukiwarki i usun-dane.html mają jeden kształt odpowiedzi.
 
    Zasady:
-   - WYNIKI_API_WLACZONE = false → żadnego zapytania do api.biegamy.run (error.kod 'wylaczone'). Zmiana na true to U3 (B8).
+   - WYNIKI_API_WLACZONE = false → żadnego zapytania do api.biegamy.run (error.kod 'wylaczone'). Od 1.11.2026 true (U3/B8).
    - Przełącznik podglądu (decyzja Filipa 21.10.2026): na prod, gdy localStorage['wyniki_api_podglad'] === '1' (ustawiane
      ręcznie w konsoli przeglądarki, docs/wyniki-api-podglad.md), API działa mimo flagi false, a strony pokazują pasek
      „tryb podglądu API”. Tylko odczyt klucza, w try/catch; na TEST nigdy. Bez list kont, UUID ani e-maili w kodzie.
@@ -19,7 +19,7 @@
 (function () {
   'use strict';
 
-  var WYNIKI_API_WLACZONE = false;
+  var WYNIKI_API_WLACZONE = true;   // U3/B8: włączone dla wszystkich 1.11.2026 (decyzja Filipa, M2b — okienko + wyszukiwarka w races.html)
   var API_URL = 'https://api.biegamy.run';
   var TIMEOUT_MS = 15000;
   var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status',

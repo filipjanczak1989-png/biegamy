@@ -36,7 +36,8 @@ function srodowisko({ wlaczone = true, srod = 'prod', sesja = true, online = tru
   const okno = { BM_SRODOWISKO: srod, localStorage: magazyn, sessionStorage: magazyn, console: konsola };
   const ctx = vm.createContext({ window: okno, navigator: { onLine: online }, console: konsola, setTimeout, clearTimeout, AbortController, JSON, Number, Object, Promise });
   const f = fetchImpl || (async (url, init) => { wolania.push({ url, init }); const o = odpowiedzi[Math.min(wolania.length - 1, odpowiedzi.length - 1)]; return typeof o === 'function' ? o(init) : o; });
-  vm.runInContext(wlaczone ? ZRODLO.replace('var WYNIKI_API_WLACZONE = false;', 'var WYNIKI_API_WLACZONE = true;') : ZRODLO, ctx);
+  // wariant flagi wymuszany w źródle (repo od 1.11.2026 ma true) — oba stany zostają przetestowane
+  vm.runInContext(ZRODLO.replace(/var WYNIKI_API_WLACZONE = (true|false);/, 'var WYNIKI_API_WLACZONE = ' + !!wlaczone + ';'), ctx);
   const api = okno.wynikiApi(sb, { fetchImpl: async (u, i) => { if (fetchImpl) wolania.push({ url: u, init: i }); return f(u, i); }, timeoutMs: 50 });
   return { api, okno, wolania, zapisy, logi, odswiezenia: () => odswiezenia };
 }

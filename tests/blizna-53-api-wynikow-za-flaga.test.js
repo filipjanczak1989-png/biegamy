@@ -19,8 +19,9 @@ const bezKomentarzy = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\
 
 const KLIENT = czytaj('js/wyniki-api.js');
 
-test('klient: flaga WYNIKI_API_WLACZONE = false w repo (U3/B8 zmienia ją świadomie)', () => {
-  assert.match(KLIENT, /^\s*var WYNIKI_API_WLACZONE = false;$/m);
+// 1.11.2026 (M2b, decyzja Filipa): flaga = true — wyszukiwarka wyników dla wszystkich. Cofnięcie = false + ten test.
+test('klient: flaga WYNIKI_API_WLACZONE = true w repo (U3/B8 włączone 1.11.2026 świadomie, z tym testem)', () => {
+  assert.match(KLIENT, /^\s*var WYNIKI_API_WLACZONE = true;/m);
   assert.equal((bezKomentarzy(KLIENT).match(/WYNIKI_API_WLACZONE = (true|false)/g) || []).length, 1, 'flaga ustawiana w jednym miejscu');
 });
 
