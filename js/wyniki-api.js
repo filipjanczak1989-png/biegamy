@@ -22,7 +22,7 @@
   var WYNIKI_API_WLACZONE = true;   // U3/B8: włączone dla wszystkich 1.11.2026 (decyzja Filipa, M2b — okienko + wyszukiwarka w races.html)
   var API_URL = 'https://api.biegamy.run';
   var TIMEOUT_MS = 15000;
-  var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status',
+  var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status', 'events_search',
     'erasure_preview', 'erasure_request', 'erasure_confirm', 'erasure_cancel', 'erasure_status'];
   var KODY = { 400: 'zle_dane', 401: 'nieautoryzowany', 403: 'odmowa', 404: 'brak', 413: 'za_duze', 429: 'limit' };
   var KLUCZ_PODGLADU = 'wyniki_api_podglad';

@@ -262,6 +262,9 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 }
 .top-back-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),0.1);}
 
+/* K4: przełącznik okresu „W Polsce" */
+.imprezy-okres{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;}
+.imprezy-okres.on{border-color:var(--accent);color:var(--fg);}
 </style>
 </head>
 <body>
@@ -415,6 +418,21 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
   </div>
 </div>
 
+<!-- K4 (1.11.2026): „W Polsce" — kalendarz maszyny wyników (window.IMPREZY w sb.js). Domyślnie hidden; odkrywana po sesji,
+     gdy serwer wyników dostępny. Okres + szukaj; dedup z naszymi startami; linki przez safeExternalHref (https). -->
+<section class="st-card" id="imprezy-sekcja" hidden style="margin:12px 16px;">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;">
+    <div style="font-weight:600;">W Polsce</div><div id="imprezy-licznik" class="imprezy-licznik" style="color:var(--muted);font-size:12px;"></div>
+  </div>
+  <div class="imprezy-okresy" style="display:flex;gap:6px;margin-bottom:10px;">
+    <button type="button" class="imprezy-okres on" data-okres="30">30 dni</button>
+    <button type="button" class="imprezy-okres" data-okres="90">3 mies.</button>
+    <button type="button" class="imprezy-okres" data-okres="365">rok</button>
+  </div>
+  <input id="imprezy-q" type="search" placeholder="Szukaj po nazwie lub mieście" autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:14px;">
+  <div id="imprezy-lista"></div>
+</section>
+
 <!-- RACE DETAIL MODAL -->
 <div class="modal-overlay" id="race-modal" onclick="handleModalOverlayClick(event)">
   <div class="modal-sheet" id="modal-sheet">
@@ -567,6 +585,58 @@ let _racesSeenBaseline = '';   // KROK 3: "ostatnia wizyta" sprzed tego wejścia
 let _activeDist = 'all', _searchVal = '';
 let _currentRace = null;
 
+// ── K4: „W POLSCE" (kalendarz maszyny wyników) ────────────────────
+var _imprezyOkres = '30', _imprezyQ = '', _imprezyTimer = null, _imprezyNr = 0;
+var IMPREZY_OKRES_TXT = { '30': 'w 30 dni', '90': 'w 3 miesiące', '365': 'w rok' };
+var IMPREZY_MIES = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+function imprezyStart() {
+  var s = document.getElementById('imprezy-sekcja');
+  if (!s) return;
+  s.hidden = false;
+  s.querySelectorAll('.imprezy-okres').forEach(function (b) {
+    b.addEventListener('click', function () {
+      s.querySelectorAll('.imprezy-okres').forEach(function (x) { x.classList.toggle('on', x === b); });
+      _imprezyOkres = b.getAttribute('data-okres'); imprezyLaduj();
+    });
+  });
+  var q = document.getElementById('imprezy-q');
+  if (q) q.addEventListener('input', function () { clearTimeout(_imprezyTimer); _imprezyQ = q.value; _imprezyTimer = setTimeout(imprezyLaduj, 350); });
+  imprezyLaduj();
+}
+function imprezyDystansTxt(d) { return (Array.isArray(d) ? d : []).map(function (x) { return Math.abs(x - 42.195) < 0.3 ? 'maraton' : Math.abs(x - 21.0975) < 0.3 ? 'półmaraton' : String(Math.round(x * 10) / 10).replace('.', ',') + ' km'; }).join(', '); }
+function imprezyDataTxt(i) {
+  var p = String(i.data || '').split('-');
+  if (p.length < 2) return '';
+  if (i.dokladnosc === 'miesiac') return IMPREZY_MIES[Number(p[1]) - 1] + ' ' + p[0];
+  return new Date(i.data + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+async function imprezyLaduj() {
+  var lista = document.getElementById('imprezy-lista'), licznik = document.getElementById('imprezy-licznik'), sekcja = document.getElementById('imprezy-sekcja');
+  if (!lista || !window.IMPREZY) return;
+  var nr = ++_imprezyNr;
+  lista.innerHTML = '<div style="color:var(--muted);font-size:12px;">Ładuję kalendarz…</div>';
+  var naszeStarty = (typeof _allRaces !== 'undefined' && Array.isArray(_allRaces)) ? _allRaces.filter(function (r) { return r && r.status === 'approved'; }) : [];
+  var w;
+  try { w = await window.IMPREZY.szukaj(_sb, { okres: _imprezyOkres, q: _imprezyQ, naszeStarty: naszeStarty }); } catch (e) { w = { blad: 'siec' }; }
+  if (nr !== _imprezyNr) return;   // nowsze zapytanie w drodze
+  if (w.blad) {
+    if (w.blad === 'offline' || w.blad === 'siec' || w.blad === 'timeout') { if (licznik) licznik.textContent = ''; window.bmStanOffline(lista, 'kalendarza'); }
+    else if (sekcja) sekcja.hidden = true;   // wyłączone / bez sesji / serwer — sekcja znika, bez zgadywania
+    return;
+  }
+  if (licznik) licznik.textContent = w.q ? (w.liczba + ' dla „' + w.q + '”') : ((w.uciete ? w.liczba + '+' : w.liczba) + ' ' + IMPREZY_OKRES_TXT[w.okres]);
+  if (!w.lista.length) { lista.innerHTML = '<div style="color:var(--muted);font-size:13px;">Kalendarz maszyny nie ma imprez w tym zakresie.</div>'; return; }
+  lista.innerHTML = w.lista.map(function (i) {
+    var href = window.safeExternalHref ? window.safeExternalHref(i.url, { tylkoHttps: true }) : '';
+    var meta = [imprezyDataTxt(i), i.miejscowosc || '', imprezyDystansTxt(i.dystanse)].filter(Boolean).join(' · ');
+    return '<div class="imprezy-wiersz" style="padding:10px 0;border-top:1px solid var(--border);">'
+      + '<div style="font-weight:600;font-size:14px;">' + escapeHtml(i.nazwa) + '</div>'
+      + '<div style="color:var(--muted);font-size:12px;margin-top:2px;">' + escapeHtml(meta) + '</div>'
+      + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
+      + '</div>';
+  }).join('');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await _sb.auth.getSession();
@@ -585,6 +655,9 @@ let _currentRace = null;
         podglad: typeof window.wynikiApiPodglad === 'function' && window.wynikiApiPodglad() });
     });
   }
+
+  // K4: „W Polsce" — tylko gdy serwer wyników dostępny (ta sama bramka co wyszukiwarka wyników)
+  if (apiWynikow && window.IMPREZY) imprezyStart();
 
   // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")
   _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';

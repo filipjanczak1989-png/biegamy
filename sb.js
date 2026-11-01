@@ -382,6 +382,66 @@
     return true;
   };
 
+  /* IMPREZY (K4, 1.11.2026) — kalendarz „W Polsce" w races.html z maszyny wyników (F6) przez window.wynikiApi.
+     Cienka warstwa (decyzja K2): własna flaga IMPREZY_WLACZONE, pamięć 1 h w sessionStorage (klucz = okres + szukaj),
+     dedup z naszymi startami (races) po dacie ±1 i nazwie bez cyfr i polskich znaków. Lista okresu (30 dni / 3 mies.
+     / rok) = upcoming_races (do 300; więcej → „uciete"); szukaj po nazwie i mieście (≥ 3 znaki) = events_search
+     (K-API 017, ≤ 20). Wynik: {lista, liczba, uciete} albo {blad: kod z wyniki-api} — strona decyduje, czy pokazać
+     zdanie o braku sieci (kody 'offline'/'siec'/'timeout'), czy schować sekcję (reszta). Bez danych osób. */
+  window.IMPREZY = (function () {
+    var IMPREZY_WLACZONE = true;
+    var TTL_MS = 3600 * 1000, PREF = 'imprezy:', LIMIT_OKRESU = 300;
+    var OKRESY = { '30': 30, '90': 91, '365': 365 };
+    function dzien(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+    function klucz(s) {
+      return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z]/g, '');
+    }
+    function dni(a, b) { return Math.abs(Math.round((Date.parse(a + 'T12:00:00Z') - Date.parse(b + 'T12:00:00Z')) / 86400000)); }
+    function czytaj(k) {
+      try { var v = JSON.parse(sessionStorage.getItem(PREF + k) || 'null'); if (v && Date.now() - v.t < TTL_MS) return v.d; } catch (e) {}
+      return null;
+    }
+    function zapisz(k, d) { try { sessionStorage.setItem(PREF + k, JSON.stringify({ t: Date.now(), d: d })); } catch (e) {} }
+    function dystanse(v) {
+      if (Array.isArray(v)) return v.map(Number).filter(function (x) { return x > 0; }).slice(0, 6);
+      return String(v || '').split(/[;,|]/).map(function (x) { return Number(String(x).replace(',', '.').replace(/[^\d.]/g, '')); })
+        .filter(function (x) { return x > 0; }).slice(0, 6);
+    }
+    function mapuj(r) {
+      var m = r.miejscowosc || r.city || null;
+      return { nazwa: String(r.nazwa || r.name || '').slice(0, 140), data: r.data || r.event_date || null,
+        dokladnosc: r.dokladnosc_daty === 'miesiac' ? 'miesiac' : 'dzien', miejscowosc: m && m !== 'Polska' ? String(m).slice(0, 60) : null,
+        dystanse: dystanse(r.dystanse != null ? r.dystanse : r.distances), url: r.url_organizer || r.url_zapisy || r.source_url || null };
+    }
+    async function szukaj(sb, opcje) {
+      opcje = opcje || {};
+      if (!IMPREZY_WLACZONE) return { blad: 'wylaczone' };
+      if (typeof window.wynikiApiDostepne !== 'function' || !window.wynikiApiDostepne()) return { blad: 'wylaczone' };
+      var okres = OKRESY[opcje.okres] ? String(opcje.okres) : '30';
+      var q = String(opcje.q || '').trim().slice(0, 80);
+      var teraz = opcje.teraz || new Date();
+      var od = dzien(teraz), doD = dzien(new Date(teraz.getTime() + OKRESY[okres] * 86400000));
+      var k = okres + '|' + (q.length >= 3 ? q.toLowerCase() : '');
+      var dane = czytaj(k);
+      if (!dane) {
+        var api = window.wynikiApi(sb);
+        var r = q.length >= 3
+          ? await api.rpc('events_search', { p_q: q, p_from: od, p_to: doD, p_limit: 20 })
+          : await api.rpc('upcoming_races', { p_from: od, p_to: doD, lim: LIMIT_OKRESU });
+        if (r.error) return { blad: r.error.kod || 'blad' };
+        var surowe = Array.isArray(r.data) ? r.data : [];
+        dane = { lista: surowe.map(mapuj).filter(function (x) { return x.nazwa && x.data; }), uciete: q.length < 3 && surowe.length >= LIMIT_OKRESU };
+        zapisz(k, dane);
+      }
+      var nasze = (opcje.naszeStarty || []).filter(function (n) { return n && n.date && n.name; });
+      var lista = dane.lista.filter(function (i) {
+        return !nasze.some(function (n) { return dni(n.date, i.data) <= 1 && klucz(n.name) === klucz(i.nazwa); });
+      });
+      return { lista: lista, liczba: lista.length, uciete: !!dane.uciete, okres: okres, q: q.length >= 3 ? q : '' };
+    }
+    return { szukaj: szukaj, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
+  })();
+
   window.escapeHtml = function(s) {
     if (s == null) return '';
     return String(s)
