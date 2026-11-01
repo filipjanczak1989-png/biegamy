@@ -22,16 +22,20 @@ const zaladuj = (p) => import(pathToFileURL(path.join(KORZEN, p)).href);
 const czytaj = (...p) => fs.readFileSync(path.join(KORZEN, ...p), 'utf8');
 const DZIS = '2026-11-01';
 
+// Kształt events_search (017): nadchodzące rosnąco, potem przeszłe malejąco; atrapa robi rdzenie jak baza (klucz_szukania).
 const KALENDARZ = [
-  { group_key: 'uk', name: 'Ultrakotlina 2027', event_date: '2027-06-12', city: 'Lądek-Zdrój', distances: [26, 52, 110], source_url: 'https://ultrakotlina.pl/x' },
-  { group_key: 'mw', name: '49. Maraton Warszawski', event_date: '2027-09-26', city: 'Warszawa', distances: [42.195], source_url: 'https://maratonwarszawski.com' },
+  { nazwa: 'Ultrakotlina 2027', data: '2027-06-12', dokladnosc_daty: null, miejscowosc: 'Lądek-Zdrój', dystanse: '26 km, 52 km, 110 km', zrodlo: 'kalendarz', url_organizer: 'https://ultrakotlina.pl/x', status: null, przeszla: false },
+  { nazwa: '49. Maraton Warszawski', data: '2027-09-26', dokladnosc_daty: null, miejscowosc: 'Warszawa', dystanse: '42.195', zrodlo: 'kalendarz', url_organizer: 'https://maratonwarszawski.com', status: null, przeszla: false },
+  { nazwa: 'UltraKotlina', data: '2026-10-09', dokladnosc_daty: null, miejscowosc: 'Szklarska Poręba', dystanse: null, zrodlo: 'kalendarz', url_organizer: null, status: null, przeszla: true },
 ];
+const klucz = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z0-9]/g, '');
+const rdzenie = (q) => String(q).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').split(/[^a-z0-9]+/).filter((w) => w.length >= 3).map((w) => (w.length > 4 ? w.slice(0, Math.max(4, w.length - 3)) : w));
 function f6Atrapa({ wiersze = KALENDARZ, status = 200 } = {}) {
   const wolania = [];
   return { wolania, fetchFn: async (url, init) => {
     const a = JSON.parse(init.body); wolania.push({ url, args: a, auth: init.headers.Authorization });
     if (status !== 200) return { ok: false, status, json: async () => ({}) };
-    return { ok: true, status: 200, json: async () => wiersze.filter((w) => !a.p_q || (w.name + ' ' + w.city).toLowerCase().includes(String(a.p_q).toLowerCase())) };
+    return { ok: true, status: 200, json: async () => wiersze.filter((w) => !a.p_q || rdzenie(a.p_q).every((r) => klucz(w.nazwa + ' ' + w.miejscowosc).includes(r))) };
   } };
 }
 async function odp(I, { q, jawne = true, f6 = f6Atrapa(), races = [], pam = null, dozwolona = true } = {}) {
@@ -55,14 +59,16 @@ test('detektor: słowo z listy + nazwa; wyniki/rekordy/moje — nie; samo „ult
     assert.equal(I.imprezaZPytania(t), null, t);
 });
 
-test('kalendarz przez adapter: rdzeń do F6, odmiana trafia („ultrakotliny" → Ultrakotlina), zakres dziś…+366, token użytkownika', async () => {
+test('kalendarz przez adapter → events_search (017): całe zapytanie, bez zakresu (przeszłe edycje), odmiana trafia, kolejność serwera', async () => {
   const I = await zaladuj('supabase/functions/okienko/impreza.mjs');
   const { o, f6 } = await odp(I, { q: 'ultrakotliny' });
   assert.equal(f6.wolania.length, 1);
-  assert.deepEqual(f6.wolania[0].args, { p_from: '2026-11-01', p_to: '2027-11-02', p_q: 'ultrakotl', lim: 20 });
-  assert.match(f6.wolania[0].url, /\/rpc\/upcoming_races$/); assert.equal(f6.wolania[0].auth, 'Bearer TOK');
+  assert.deepEqual(f6.wolania[0].args, { p_q: 'ultrakotliny', p_limit: 20 });
+  assert.match(f6.wolania[0].url, /\/rpc\/events_search$/); assert.equal(f6.wolania[0].auth, 'Bearer TOK');
   const k = o.karty.filter((x) => x.typ === 'impreza');
-  assert.deepEqual(k.map((x) => [x.dane.nazwa, x.dane.miejscowosc, x.dane.data]), [['Ultrakotlina 2027', 'Lądek-Zdrój', '2027-06-12']]);
+  assert.deepEqual(k.map((x) => [x.dane.nazwa, x.dane.miejscowosc, x.dane.data, x.dane.przeszla]),
+    [['Ultrakotlina 2027', 'Lądek-Zdrój', '2027-06-12', false], ['UltraKotlina', 'Szklarska Poręba', '2026-10-09', true]], 'nadchodząca, potem ostatnia edycja');
+  assert.deepEqual(k[0].dane.dystanse, [26, 52, 110], 'dystanse tekstowe → liczby');
   assert.ok(!('source_url' in k[0].dane) && !('url' in k[0].dane), 'karta bez linku');
   assert.equal(k[0].dane.zrodlo_domena, 'ultrakotlina.pl');
 });
@@ -75,7 +81,8 @@ test('sieć dozwolona dla imprezy: zdania ze źródłami → pamięć + znalezis
   assert.deepEqual(o.zdania, ['Bieg górski w Lądku.']); assert.equal(o.zrodla.length, 1);
   assert.equal(s.doPam.length, 1);
   assert.equal(s.znal.length, 1); assert.equal(s.znal[0].status, 'kalendarz'); assert.equal(s.znal[0].rok, 2027);
-  assert.deepEqual(o.karty.map((k) => k.typ), ['start_nasz'], 'dedup: nasz start (data ±1, ta sama nazwa bez numeru edycji) zastępuje kalendarzowy');
+  assert.deepEqual(o.karty.map((k) => k.typ), ['impreza', 'start_nasz'], 'dedup: nasz start (data ±1, nazwa bez numeru edycji) zastępuje kalendarzowy 2027; przeszła edycja zostaje');
+  assert.equal(o.karty[0].dane.przeszla, true);
 });
 
 test('pamięć 24 h trafiona → bez sieci; limit sieci → bez sieci, karty zostają', async () => {
@@ -83,7 +90,7 @@ test('pamięć 24 h trafiona → bez sieci; limit sieci → bez sieci, karty zos
   const z = await odp(I, { q: 'ultrakotlina', pam: { zdania: ['Z pamięci.'], zrodla: [{ tytul: 'a.pl', url: 'https://a.pl' }] } });
   assert.equal(z.s.siec.length, 0); assert.deepEqual(z.o.zdania, ['Z pamięci.']); assert.equal(z.o.z_pamieci, true);
   const l = await odp(I, { q: 'ultrakotlina', dozwolona: false });
-  assert.equal(l.s.siec.length, 0); assert.equal(l.o.karty.length, 1); assert.deepEqual(l.o.zdania, []);
+  assert.equal(l.s.siec.length, 0); assert.equal(l.o.karty.length, 2); assert.deepEqual(l.o.zdania, []);
 });
 
 test('imię i nazwisko bez trafienia w kalendarzu → bez sieci; bez słowa z listy i bez trafień → null (dalej)', async () => {
@@ -104,11 +111,13 @@ test('429 F6 → maszyna zajęta, nasze starty i sieć zostają', async () => {
   assert.deepEqual(o.karty.map((k) => k.typ), ['start_nasz']);
 });
 
-test('jeden adapter: upcoming_races wołane tylko w kalendarz.mjs i biegi.mjs (lista); EF: impreza przed pamięcią i modelem, log tryb impreza', () => {
+test('jeden adapter: events_search tylko w kalendarz.mjs, upcoming_races tylko w biegi.mjs; EF: impreza przed pamięcią i modelem, log tryb impreza', () => {
   const kat = path.join(KORZEN, 'supabase', 'functions', 'okienko');
-  const kto = fs.readdirSync(kat).filter((f) => /upcoming_races/.test(fs.readFileSync(path.join(kat, f), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')));
-  assert.deepEqual(kto.sort(), ['biegi.mjs', 'kalendarz.mjs']);
-  assert.match(czytaj('supabase', 'functions', 'okienko', 'kalendarz.mjs'), /export const RPC_KALENDARZA = "upcoming_races";/);
+  const kod = (f) => fs.readFileSync(path.join(kat, f), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const kto = (rpc) => fs.readdirSync(kat).filter((f) => new RegExp(rpc).test(kod(f))).sort();
+  assert.deepEqual(kto('upcoming_races'), ['biegi.mjs'], 'upcoming_races tylko w liście biegów (router „jakie biegi w X")');
+  assert.deepEqual(kto('events_search'), ['kalendarz.mjs'], 'kalendarz imprez tylko przez adapter');
+  assert.match(czytaj('supabase', 'functions', 'okienko', 'kalendarz.mjs'), /export const RPC_KALENDARZA = "events_search";/, 'przepięte na K-API 017');
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   const iImp = ef.indexOf('const imp = imprezaZPytania(tekst);');
   assert.ok(iImp > ef.indexOf('const os = osobaZPytania(tekst);'), 'osoba przed imprezą');

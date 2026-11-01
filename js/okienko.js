@@ -104,7 +104,7 @@
     var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
       var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
     }).join(', ');
-    var kiedy = d.dokladnosc_daty === 'miesiac' ? miesiacTxt(d.data) : dataTxt(d.data);
+    var kiedy = (d.przeszla ? 'była ' : '') + (d.dokladnosc_daty === 'miesiac' ? miesiacTxt(d.data) : dataTxt(d.data));
     var meta = [kiedy, d.miasto || d.miejscowosc || '', dyst].filter(Boolean).join(' · ');
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
       (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') + '</div>';

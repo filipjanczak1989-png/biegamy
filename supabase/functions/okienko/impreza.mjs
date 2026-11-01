@@ -53,7 +53,7 @@ export async function naszeStarty(sb, q, dzis) {
 export async function odpowiedzImpreza(deps) {
   const { sb, fetchFn, token, q, jawne, dzis } = deps;
   const [rK, rS] = await Promise.allSettled([
-    szukajImprez(fetchFn, token, { q, od: dzis, do: dodajDni(dzis, 366) }),
+    szukajImprez(fetchFn, token, { q }),   // bez zakresu: events_search zwraca też przeszłe edycje („ostatnia 9.10.2026")
     naszeStarty(sb, q, dzis),
   ]);
   const kalendarz = rK.status === "fulfilled" ? rK.value : [];
@@ -76,7 +76,7 @@ export async function odpowiedzImpreza(deps) {
         if (s.zrodla && s.zrodla.length) {
           zdania = s.zdania; zrodla = s.zrodla;
           await deps.doPamieci(zdania, zrodla);
-          const rok = (kalendarz[0] && kalendarz[0].data && Number(kalendarz[0].data.slice(0, 4))) || null;
+          const rok = (kalendarz[0] && kalendarz[0].data && Number(kalendarz[0].data.slice(0, 4))) || null;   // najbliższa albo ostatnia edycja
           await deps.znaleziska(zrodla.map((z) => ({ url: z.url, domena: String(z.tytul || "").toLowerCase().slice(0, 200),
             nazwa_biegu: nazwa.slice(0, 200), rok, pytanie: [nazwa, rok].filter(Boolean).join(" ").slice(0, 200), status: "kalendarz" })));
         }

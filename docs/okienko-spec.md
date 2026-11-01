@@ -105,3 +105,18 @@ wywołał `moje_starty` + `wyzwania_postep` — to nie był tryb osoby; „ultra
   „Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu."
 - Strażnik sieci w ścieżce ogólnej: stary, szeroki `wygladaNaOsobe` (także dwa małe słowa) blokuje Google
   (wyjątek dla nazwy imprezy — wejdzie z detektorem imprezy w M3a v2). Testy: blizna-72.
+
+## M3a v2 — tryb „impreza" (v11) i przepięcie kalendarza na `events_search` (v12, 1.11.2026)
+
+Tryb „impreza" (`impreza.mjs`): router → osoba → **impreza** → pamięć → model. Trzy fronty: kalendarz maszyny przez
+JEDEN adapter `kalendarz.mjs` · nasze starty (`races` approved, dedup data ±1 + nazwa bez cyfr) · sieć (dozwolona
+dla nazwy biegu, nie dla imienia i nazwiska bez trafienia; pamięć 24 h; limit 20/dobę wspólny z osobą; źródła →
+`okienko_znaleziska` ze statusem `kalendarz`). Migracja `20261101_okienko_impreza.sql` (CHECK tryb += impreza,
+status += kalendarz). Testy: blizna-74.
+
+K-API 017 na maszynie3 (repo kolektora `ops/vps/sql/017_events_search.sql`, 017b bramka, wdrożone 13:51–13:52 UTC):
+`events_search(p_q, p_from?, p_to?, p_limit ≤ 20)` — kalendarz_imprezy + calendar_races + race_events, przeszłe
+edycje, rdzenie i klucz bez diakrytyków po stronie bazy, `Cache-Control: private, max-age=3600`. Adapter:
+`RPC_KALENDARZA = "events_search"` (wycofanie: `"upcoming_races"` — argumenty mapuje ta sama funkcja). Tryb imprezy
+pyta bez zakresu dat → wraca też ostatnia edycja (karta „była 9.10.2026"). Lista „jakie biegi w X" (`biegi.mjs`)
+zostaje na `upcoming_races`. `dokladnosc_daty` i `status` z maszyny: null (brak kolumn w źródłach).

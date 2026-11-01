@@ -4,7 +4,7 @@
 // dostaje zawsze ten sam kształt imprezy (mapuj), więc nie ma drugiego kodu.
 import { f6 } from "./f6.mjs";
 
-export const RPC_KALENDARZA = "upcoming_races";   // → "events_search" po K-API
+export const RPC_KALENDARZA = "events_search";   // K-API 017 (1.11.2026); wycofanie = "upcoming_races"
 export const MAX_IMPREZ = 20;
 
 function domena(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } }
@@ -24,7 +24,18 @@ export function mapuj(r) {
     dystanse: dystanse(r.dystanse ?? r.distances),
     zrodlo_domena: domena(r.url_zrodlo_strony ?? r.source_url ?? r.url_organizer ?? ""),
     status: r.status ?? null,
+    przeszla: r.przeszla === true,
   };
+}
+/** Argumenty RPC — jedyne miejsce zależne od wybranego RPC (nazwy parametrów różnią się). */
+function argumenty(q, od, doD) {
+  if (RPC_KALENDARZA === "events_search") {
+    const a = { p_q: q, p_limit: MAX_IMPREZ };
+    if (od) a.p_from = od;
+    if (doD) a.p_to = doD;
+    return a;
+  }
+  return { p_from: od, p_to: doD, p_q: q, lim: MAX_IMPREZ };
 }
 
 const bezZnakow = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
@@ -36,10 +47,13 @@ export async function szukajImprez(fetchFn, token, { q, od, do: doD }, teraz = D
   const slowa = String(q).split(/\s+/).map((w) => w.replace(/[^\p{L}\d-]/gu, "")).filter((w) => w.length >= 3);
   if (!slowa.length) return [];
   const najdluzsze = slowa.reduce((a, b) => (b.length > a.length ? b : a));
-  const args = { p_from: od, p_to: doD, p_q: obetnij(najdluzsze).slice(0, 80), lim: MAX_IMPREZ };
-  const wiersze = await f6(fetchFn, token, RPC_KALENDARZA, args, teraz);
+  // events_search dostaje całe zapytanie (sam robi rdzenie po stronie bazy); upcoming_races — rdzeń najdłuższego słowa
+  const q2 = RPC_KALENDARZA === "events_search" ? slowa.join(" ").slice(0, 80) : obetnij(najdluzsze).slice(0, 80);
+  const wiersze = await f6(fetchFn, token, RPC_KALENDARZA, argumenty(q2, od, doD), teraz);
   const rdzenie = slowa.map((w) => obetnij(bezZnakow(w)));
-  return wiersze.map(mapuj).filter((i) => i.nazwa && i.data)
-    .filter((i) => { const t = bezZnakow(`${i.nazwa} ${i.miejscowosc || ""}`); return rdzenie.every((r) => t.includes(r)); })
-    .sort((a, b) => String(a.data).localeCompare(String(b.data))).slice(0, MAX_IMPREZ);
+  const lista = wiersze.map(mapuj).filter((i) => i.nazwa && i.data)
+    .filter((i) => { const t = bezZnakow(`${i.nazwa} ${i.miejscowosc || ""}`); return rdzenie.every((r) => t.includes(r)); });
+  // events_search: kolejność serwera (nadchodzące rosnąco, potem przeszłe malejąco); upcoming_races: po dacie
+  if (RPC_KALENDARZA !== "events_search") lista.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  return lista.slice(0, MAX_IMPREZ);
 }
