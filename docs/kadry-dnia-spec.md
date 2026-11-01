@@ -335,3 +335,15 @@ Ton Filipa: podpis opisuje chwilę, nie wydaje polecenia. Pięć numerów, w kt�
 - **39** „Mróz, śnieg, pusta ławka. *Ty* nie usiadłeś."
 - **43** „Lód na zakrętach, las. Dziś *technika*, nie tempo."
 blizna-71 6/6, rozjazdy podpis↔opis obrazu 0 (każde wymienione pojęcie — dwójka, śnieg, las, zmierzch — jest w opisie).
+
+## Podpisy „razem" — opis strukturalny i zapadka (1.11.2026 wieczór)
+
+Komenda Filipa 20:45. Kadr 02 → „Szary świt, kręta droga. *Każdy* swoim tempem." (wąski, opisany wyjątek od zakazu
+„każdy" w blizna-71 — tylko ten podpis). Ponowny opis 89 kadrów z obrazu, STRUKTURALNIE (gemini-3.5-flash-lite vision,
+responseSchema, temperature 0, miniatury z bieżących plików assets; koszt ~$0,06): `tools/kadry/opisy-kadrow.json →
+struktura` (liczba_osob, relacja, kierunek, pora, pogoda, nawierzchnia, otoczenie). Rozkład: 44 kadry z dwiema osobami,
+z czego 38 „daleko" (osobno) — sprawdzone na oko na 6 kadrach, vision trafia.
+Reguła w blizna-71: słowa wspólnoty (razem, we dwóch/dwoje/troje, ramię w ramię, dwoje, dwóch, troje, trzech, grupa,
+umówili, rozmowa) tylko przy relacji obok_siebie/blisko; liczebnik osób = liczba_osob („Za trzy, dwa, start" to
+odliczanie, nie liczba). Rozjazdy: 8, 9, 18, 20, 21, 26, 30, 38, 41, 46, 50 — ZAPADKA `ZNANE_ROZJAZDY_RAZEM`
+(podpisy pisze Filip; arkusze Downloads\podpisy-do-poprawy-1.png i -2.png). 38 to podpis z v3.1 („dwoje").
