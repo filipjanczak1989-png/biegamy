@@ -107,11 +107,12 @@ test('zawodnik.html: pole „Zapytaj" (44 px), arkusz .add-overlay/.add-sheet, s
   assert.ok(!/\bAI\b/.test(ui), 'słowo „AI" w interfejsie');
   assert.match(ZAW, /const _okp=document\.getElementById\('okienko-pole'\);if\(_okp\)_okp\.style\.display='none';/);
   assert.match(ZAW, /id="okienko-pole"[^>]*style="display:none;"/, 'pole domyślnie ukryte (bez mignięcia)');
-  assert.match(ZAW, /if\(_okp2&&_okp2\.dataset\.wlaczone==='1'\)_okp2\.style\.display='';/, 'powrót na Dziś odsłania tylko pole podpięte (nie w podglądzie trenera)');
+  assert.match(ZAW, /if\(_okp2&&_okp2\.dataset\.wlaczone==='1'\)_okp2\.style\.display='';/, 'powrót na Dziś odsłania tylko pole podpięte');
   assert.ok(!/okienko_podglad|\?zapytaj=/.test(ZAW), 'zawodnik.html bez śladu bramki podglądu');
 });
 
-/* Od 1.11 13:33 (decyzja Filipa): pole dla każdego zalogowanego, bez parametru i bez localStorage; trener — ukryte. */
+/* Od 1.11 13:33 (decyzja Filipa): pole dla każdego zalogowanego, bez parametru i bez localStorage. Od 1.11 16:2x także
+   z ?from=trener — parametr mówi, skąd przyszedłeś, nie czyje dane widzisz (zawodnik.html zawsze = zalogowany; LEKCJE #31). */
 function stronaZPolem(search, ls) {
   const ctx = zaladujSb();
   const pole = { style: { display: 'none' }, dataset: {}, addEventListener() {}, setAttribute() {} };
@@ -124,7 +125,7 @@ function stronaZPolem(search, ls) {
 }
 function magazyn() { const m = new Map(); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; }
 
-test('pole widoczne bez parametru i bez localStorage; stare ?zapytaj=0/1 nic nie zmienia; podgląd trenera — ukryte', () => {
+test('pole widoczne bez parametru i bez localStorage; stare ?zapytaj=0/1 nic nie zmienia; ?from=trener też widoczne', () => {
   const ls = magazyn();
   const p = stronaZPolem('', ls);
   assert.equal(p.style.display, ''); assert.equal(p.dataset.wlaczone, '1');
@@ -133,7 +134,10 @@ test('pole widoczne bez parametru i bez localStorage; stare ?zapytaj=0/1 nic nie
   assert.equal(ls.m.size, 0, 'nic nie zapisane w localStorage');
   const zly = { getItem() { throw new Error('zablokowane'); }, setItem() { throw new Error('zablokowane'); }, removeItem() {} };
   assert.equal(stronaZPolem('', zly).style.display, '', 'zablokowany localStorage nie ukrywa pola');
-  assert.equal(stronaZPolem('?from=trener', ls).style.display, 'none', 'podgląd trenera');
+  const tr = stronaZPolem('?from=trener', ls);
+  assert.equal(tr.style.display, '', 'wejście z panelu trenera (Widok zawodnika) — pole widoczne');
+  assert.equal(tr.dataset.wlaczone, '1', 'podpięte, więc powrót na Dziś też je odsłania');
+  assert.ok(!/get\('from'\)/.test(OKN), 'okienko nie wnioskuje o kontekście z parametru nawigacji');
 });
 
 test('limity w UI: 429 dzień / miesiąc / sieć mają własne teksty; podpowiedzi z sieci i wyników', () => {

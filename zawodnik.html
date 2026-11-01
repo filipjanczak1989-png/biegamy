@@ -920,7 +920,8 @@ body > *{position:relative;z-index:1;}
 .ht-lbl{font-size:10px;letter-spacing:0;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.1;}
 </style>
 <!-- „ZAPYTAJ" (M1 krok 4): pole pod topbarem → arkusz od dołu (.add-overlay/.add-sheet, theme.css). Logika: js/okienko.js.
-     Tekst z serwera zawsze przez escapeHtml, link tylko z listy ekranów; w podglądzie trenera (?from=trener) pole znika. -->
+     Tekst z serwera zawsze przez escapeHtml, link tylko z listy ekranów. Pole widzi każdy zalogowany, także po wejściu
+     z panelu trenera (?from=trener = skąd przyszedłeś, nie czyje dane — LEKCJE #31). -->
 <style>
 #okienko-pole{display:flex;align-items:center;gap:10px;width:calc(100% - 32px);min-height:44px;margin:8px 16px 8px;padding:0 14px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;text-align:left;cursor:pointer;}
@@ -3051,7 +3052,7 @@ function showSection(name) {
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     const _htr2=document.getElementById('home-tiles-row');if(_htr2)_htr2.style.display='flex';
-    const _okp2=document.getElementById('okienko-pole');if(_okp2&&_okp2.dataset.wlaczone==='1')_okp2.style.display='';   /* tylko pole podpięte przez js/okienko.js (trener: nie) */
+    const _okp2=document.getElementById('okienko-pole');if(_okp2&&_okp2.dataset.wlaczone==='1')_okp2.style.display='';   /* tylko pole podpięte przez js/okienko.js */
     document.querySelectorAll('.fade-in').forEach(el => {
       el.style.display = '';
       // Reset animacji CSS żeby element był widoczny po powrocie

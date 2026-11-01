@@ -263,11 +263,12 @@
   function zamknij() { var ov = el('okienko-arkusz'); if (ov) { ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true'); } }
 
   /* Pole „Zapytaj" dla KAŻDEGO zalogowanego na Dziś (decyzja Filipa 1.11 13:33 — koniec trybu podglądu z parametru
-     w adresie i klucza w pamięci przeglądarki). Wyjątek: podgląd trenera (?from=trener) — EF odpowiada danymi ZALOGOWANEGO, nie
-     oglądanego zawodnika. dataset.wlaczone = pole podpięte (showSection w zawodnik.html odsłania tylko podpięte). */
+     w adresie i klucza w pamięci przeglądarki). BEZ wyjątku dla ?from=trener (1.11 16:2x): ten parametr mówi tylko,
+     SKĄD przyszedłeś (link „Widok zawodnika" z panelu trenera; dolny pasek dokleja go do każdego ekranu), a nie CZYJE
+     dane widzisz — zawodnik.html zawsze pokazuje zalogowanego, więc EF odpowiada danymi właściwej osoby. Do 1.11 wyjątek
+     chował pole każdemu trenerowi-zawodnikowi (LEKCJE #31). dataset.wlaczone = pole podpięte (showSection odsłania tylko podpięte). */
   function podepnij() {
     var pole = el('okienko-pole'); if (!pole) return;
-    if (new URLSearchParams(location.search).get('from') === 'trener') { pole.style.display = 'none'; return; }   // podgląd trenera: EF odpowiada danymi zalogowanego
     pole.dataset.wlaczone = '1';
     pole.style.display = '';
     var p = podpowiedz();

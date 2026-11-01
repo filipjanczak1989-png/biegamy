@@ -1455,3 +1455,21 @@ bez spacji, kolejność zachowana) + indeks trigramowy.
 ### Reguła
 
 **Przed użyciem istniejącej funkcji normalizującej sprawdź jej wynik na 2–3 przykładach z danych, nie po nazwie.**
+
+## 31. Parametr „skąd" ≠ czyje dane — nie wnioskuj o kontekście z parametru nawigacji (1.11.2026)
+
+M1 okienka schował pole „Zapytaj" przy `?from=trener`, zakładając „trener ogląda cudzego zawodnika, EF odpowie danymi
+zalogowanego". Założenie fałszywe: link „Widok zawodnika" z panelu trenera prowadzi do WŁASNEGO widoku, dolny pasek
+(sb.js) dokleja `from=trener` do każdego ekranu, a zawodnik.html od 15.08 (zdjęty `_obcyProfil`) zawsze pokazuje
+zalogowanego — w kodzie stało zdanie „?from=trener zmienia WYŁĄCZNIE to, skąd przyszedłeś". Skutek: Filip (trener i
+zawodnik) nie widział pola nigdy; 0 wpisów w okienko_log z jego athlete_id. Testy były zielone, bo pilnowały ukrycia.
+
+### Reguła
+
+**Kontekst („czyje dane", „czyj widok") bierz z tego, co strona naprawdę ładuje (sesja, id w zapytaniu), nie z parametru
+nawigacji. Zanim zachowanie zależy od parametru, grep: kto go ustawia, kto go propaguje i co znaczy w komentarzach.**
+
+### Objaw ostrzegawczy
+
+Warunek `if (param === …) ukryj/wyłącz` dopisany „dla bezpieczeństwa" bez zapytania o dane; zgłoszenie „u mnie tego nie
+ma" od osoby z inną rolą; zero wpisów w logu od konkretnej osoby, która twierdzi, że próbowała.
