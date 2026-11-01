@@ -14,7 +14,8 @@
 // Pamięć F6: WSPÓLNA (dane publiczne, decyzja Filipa), klucz = RPC + argumenty, 10 min, do 500 wpisów, w pamięci
 // izolatu (znika przy zimnym starcie). 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę."
 // Moduł nie zapisuje nigdzie (blizna-67/69); odpowiedzi osobowej nie wkładamy do okienko_siec_cache ani do znalezisk.
-import { wygladaNaOsobeSlownik } from "./pamiec.mjs";
+import { wygladaNaOsobeSlownik, PYTAJNE } from "./pamiec.mjs";
+import { czyImie } from "../_shared/imiona.mjs";
 import { normalizuj } from "./router.mjs";
 
 import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
@@ -35,8 +36,45 @@ const MAX_DOPASOWAN = 3, MAX_WYNIKOW = 5, MAX_OSOB = 3;
 // (detektor małych liter z M2d przepuściłby „mój trener" jako dwa słowa imienia).
 const NIE_IMIE = /^(m[oó]j|moja|moje|moi|tw[oó]j|twoja|twoje|nasz\w*|wasz\w*|ten|ta|to|ci|te|on|ona|oni|one|pan|pani|trener\w*|kolega|koleg\w*|kolezank\w*|koleżank\w*|znajom\w*|brat\w*|siostr\w*|mama|mamy|tata|taty|zona|żona|maz|mąż|syn|corka|córka|szef\w*|sasiad\w*|sąsiad\w*|imi\w*|nazwisk\w*|i)$/i;   // „imię i nazwisko” = podpowiedź, nie osoba
 const toImie = (q) => wygladaNaOsobeSlownik(q) && !String(q).split(/\s+/).some((s) => NIE_IMIE.test(s));
-/** → {q, wprost} | null. „Katarzyna Chojnacka" → wprost false; „kim jest Katarzyna Chojnacka", „… w sieci",
-    „google …" → wprost true (użytkownik sam prosi o sieć); „wyniki X", „jak pobiegł(a) X" → wprost false. */
+/* M3-1 (1) PRYWATNOŚĆ (1.11.2026): imię i nazwisko WEWNĄTRZ zdania. Ławka 1.11: „jak pobiegl Jan Kowalski w Poznaniu"
+   i „czy Anna Kowalska jest w aplikacji" mijały detektor (2–3 słowa) i strażnik sieci (ten sam zakres) → nazwisko szło do
+   Google. Para sąsiednich słów: (A) pierwsze jest imieniem ze słownika (dowolna wielkość liter) ALBO (B) oba wielką
+   literą, pierwsze nie na początku zdania i nie po przyimku miejsca („w Warszawie Mokotów" to miejsce; „u Basi Kowalczyk" przechodzi). Odpadają słowa pytające,
+   biegowe/imprezowe, miesiące, przyimki, NIE_IMIE, cyfry. Reszta zdania = kontekst: „w/na <Miejsce>" → gdzie (filtr
+   wyników), „kim jest|w sieci|google" → wprost. Zdanie z wykrytą osobą NIGDY nie idzie do Google poza regułą publiczności. */
+const SLOWO_OSOBY = /^[\p{L}][\p{L}'-]+$/u;
+const DUZA = /^[\p{Lu}]/u;
+const PRZYIMKI = /^(w|we|na|pod|do|z|ze|od|u|o|przez|dla|kolo|koło|obok|przy|za|bez)$/i;
+const PRZYIMKI_MIEJSCA = /^(w|we|na|pod|kolo|koło|obok|przy|za)$/i;   // po nich wielka litera to zwykle miejsce („w Warszawie Mokotów"), nie osoba; „u Basi Kowalczyk" zostaje
+const SLOWA_IMPREZ_OS = /^(maraton\w*|polmaraton\w*|półmaraton\w*|bieg\w*|zawod\w*|ultra\w*|trail\w*|parkrun\w*|cross\w*|tras[aąyę]|zapis\w*|wynik\w*|rekord\w*|medal\w*|start\w*|kalendarz\w*|pogod\w*|km|dych\w*|piatk\w*|piątk\w*|sztafet\w*|aplikacj\w*|biegamy|radio|plan\w*|trening\w*|odznak\w*|wyzwan\w*|siec\w*|internec\w*|google|facebook\w*|instagram\w*|strav\w*)$/i;
+const MIESIAC_OS = /^(stycze[nń]|stycznia|styczniu|luty|lutego|lutym|marzec|marca|marcu|kwiecie[nń]|kwietnia|kwietniu|maj|maja|maju|czerwiec|czerwca|czerwcu|lipiec|lipca|lipcu|sierpie[nń]|sierpnia|sierpniu|wrzesie[nń]|wrze[sś]nia|wrze[sś]niu|pa[zź]dziernik\w*|listopad\w*|grudzie[nń]|grudnia|grudniu|weekend\w*|jutro|jutra|dzis|dziś|dzisiaj|wczoraj|tydz\w*|tygodni\w*|miesi[aą]c\w*)$/i;   // pełne formy, nie rdzenie („Marcin" ≠ marzec)
+const CZASOWNIK_OS = /^(jest|byl|była|byla|jestem|mam|ma|masz|biega\w*|pobieg\w*|przebieg\w*|zna\w*|lubi\w*|chce\w*|moze\w*|może\w*|dodaj|pokaz\w*|znajd\w*|szukaj|sprawd\w*)$/i;
+const zleSlowoOsoby = (s) => !SLOWO_OSOBY.test(s) || PYTAJNE.test(s) || NIE_IMIE.test(s) || PRZYIMKI.test(s) || SLOWA_IMPREZ_OS.test(s) || MIESIAC_OS.test(s) || CZASOWNIK_OS.test(s);
+/** → {q, gdzie, wprost} | null — tylko zdania ≥ 4 słów (krótsze obsługuje wygladaNaOsobeSlownik). */
+export function osobaWZdaniu(tekst) {
+  const t = String(tekst || "").replace(/[?!.]+$/g, "").trim();
+  const slowa = t.replace(/[\\"'„”(),;:]+/g, " ").split(/\s+/).filter(Boolean);
+  if (slowa.length < 4) return null;
+  for (let i = 0; i < slowa.length - 1; i++) {
+    const w1 = slowa[i], w2 = slowa[i + 1];
+    if (zleSlowoOsoby(w1) || zleSlowoOsoby(w2)) continue;
+    const poPrzyimku = i > 0 && PRZYIMKI_MIEJSCA.test(slowa[i - 1]);
+    const A = czyImie(w1);
+    const B = i > 0 && !poPrzyimku && DUZA.test(w1) && DUZA.test(w2);
+    if (!A && !B) continue;
+    const reszta = slowa.slice(i + 2);
+    let gdzie = null;
+    for (let j = 0; j < reszta.length - 1; j++) if (/^(w|we|na)$/i.test(reszta[j]) && /^[\p{L}][\p{L}.-]{2,39}$/u.test(reszta[j + 1]) && !MIESIAC_OS.test(reszta[j + 1]) && !zleSlowoOsoby(reszta[j + 1])) { gdzie = reszta[j + 1]; break; }
+    const n = normalizuj(t);
+    const wprost = /\bkim jest\b|\bkto to\b|\bw sieci\b|\bgoogle\b|\bw internecie\b/.test(n);
+    return { q: w1 + " " + w2, gdzie, wprost };
+  }
+  return null;
+}
+
+/** → {q, wprost, gdzie?} | null. „Katarzyna Chojnacka" → wprost false; „kim jest Katarzyna Chojnacka", „… w sieci",
+    „google …" → wprost true (użytkownik sam prosi o sieć); „wyniki X", „jak pobiegł(a) X" → wprost false;
+    imię i nazwisko wewnątrz dłuższego zdania → osobaWZdaniu (M3-1). */
 export function osobaZPytania(tekst) {
   const t = String(tekst || "").replace(/[?!.]+$/g, "").trim();
   const n = normalizuj(t);
@@ -47,7 +85,7 @@ export function osobaZPytania(tekst) {
   const wyniki = /^(wyniki|jak\s+pobiegl\w*|jak\s+biega\w*)\s/.test(n) ? reszta(/^(?:wyniki|jak\s+pobieg\S*|jak\s+biega\S*)\s+(.+)$/i) : null;
   if (wyniki && toImie(wyniki)) return { q: wyniki, wprost: false };
   if (toImie(t)) return { q: t.replace(/[\\"'„”()]+/g, " ").replace(/\s+/g, " ").trim(), wprost: false };
-  return null;
+  return osobaWZdaniu(t);
 }
 
 // ── (a) osoby w aplikacji ────────────────────────────────────────────────────
@@ -75,16 +113,25 @@ export async function osobyWAplikacji(sb, athleteId, q) {
 // ── (b) wyniki z F6 ──────────────────────────────────────────────────────────
 const RE_MP = /mistrzostw\w*\s+polski/i;
 /** → null (brak dopasowań) | {dopasowania[], najlepszy{...}, publiczna:boolean}. Rzuca BladF6. */
-export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now()) {
+export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now(), gdzie = null) {
   const s = await f6(fetchFn, token, "search_runners", { q, lim: MAX_DOPASOWAN }, teraz);
   if (!s.length) return null;
   const b = s[0];
   const w = await f6(fetchFn, token, "runner_results", { p_runner_key: b.runner_key }, teraz);
-  const { podsumowanie, publiczna } = podsumujWyniki(b, w);
+  // kontekst „w Poznaniu" (M3-1): starty w tym miejscu/biegu; reguła publiczności liczona z WSZYSTKICH startów
+  const { publiczna } = podsumujWyniki(b, w);
+  let wyb = w, gdzieBrak = false;
+  if (gdzie) {
+    const T = /** @type {any} */ (globalThis).BM_TEKST, r = T.rdzen(T.tylkoLitery(gdzie));
+    wyb = w.filter((x) => T.bezZnakow(`${x.event_name || ""} ${x.event_city || ""}`).split(/[^a-z0-9]+/).some((s2) => s2.startsWith(r)));
+    if (!wyb.length) { wyb = w; gdzieBrak = true; }
+  }
+  const { podsumowanie } = podsumujWyniki(gdzie && !gdzieBrak ? { ...b, results_count: wyb.length } : b, wyb);
   return {
     dopasowania: s.slice(0, MAX_DOPASOWAN).map((x) => ({ nazwa: String(x.display_name || "").slice(0, 80), rocznik: x.yob ?? null, starty: x.results_count ?? null })),
     najlepszy: podsumowanie,
     publiczna,
+    gdzie: gdzie || null, gdzie_brak: gdzieBrak,
   };
 }
 
@@ -115,8 +162,8 @@ export function podsumujWyniki(b, w) {
 /** deps: {sb, athleteId, fetchFn, token, q, wprost, sieciDozwolona: async () => boolean, siec: async (tekst) => {zdania, zrodla, tok, zapytania}}
     → {zdania, karty, zrodla, akcja, tok, zapytania_sieci, f6, sieci: boolean, powod} */
 export async function odpowiedzOsoba(deps) {
-  const { sb, athleteId, fetchFn, token, q, wprost } = deps;
-  const [rA, rB] = await Promise.allSettled([osobyWAplikacji(sb, athleteId, q), wynikiSzukaj(fetchFn, token, q)]);
+  const { sb, athleteId, fetchFn, token, q, wprost, gdzie = null } = deps;
+  const [rA, rB] = await Promise.allSettled([osobyWAplikacji(sb, athleteId, q), wynikiSzukaj(fetchFn, token, q, Date.now(), gdzie)]);
   const osoby = rA.status === "fulfilled" ? rA.value : [];
   const wyniki = rB.status === "fulfilled" ? rB.value : null;
   const f6Stan = rB.status === "fulfilled" ? "ok" : (rB.reason && rB.reason.kod) || "blad";
@@ -131,7 +178,8 @@ export async function odpowiedzOsoba(deps) {
   }
   const karty = [];
   for (const o of osoby) karty.push({ typ: "osoba", dane: o });
-  if (wyniki) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1) } });
+  if (wyniki && wyniki.gdzie_brak) zdania = [...zdania, `Maszyna wyników nie zna startu tej osoby: ${wyniki.gdzie}.`];
+  if (wyniki) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1), gdzie: wyniki.gdzie_brak ? null : wyniki.gdzie } });
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
   const nic = !karty.length && !zdania.length;
   if (nic) {   // M3-0b: odpowiedź informacyjna, każde zdanie tylko gdy źródło naprawdę odpowiedziało „nie ma"

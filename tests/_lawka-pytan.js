@@ -1,6 +1,7 @@
 // ŁAWKA PYTAŃ (1.11.2026) — zwiad luk okienka, NIE test blokujący (nazwa bez .test.js, uruchamiać ręcznie):
 //   node tests/_lawka-pytan.js            → tabela w konsoli + raport docs/lawka-pytan-<data>.md
 //   node tests/_lawka-pytan.js --md       → tylko plik .md
+//   node tests/_lawka-pytan.js --etap 1   → plik docs/lawka-pytan-<data>-<etap>.md (po każdym etapie M3-1)
 // 50 pytań, jakie realnie zadaje biegacz (po polsku, z literówkami, bez polskich znaków, w odmianie), po 10 na kategorię:
 // własne dane · osoby · imprezy · treści aplikacji · spoza aplikacji. Nazwiska tylko publicznych sportowców (albo zmyślone).
 // Każde pytanie przechodzi LOKALNIE tę samą ścieżkę co EF: router → osoba → impreza → katalog → (model/sieć SYMULOWANE:
@@ -40,14 +41,14 @@ const PYTANIA = [
   // ── osoby ──
   ['Robert Korzeniowski', 'osoby', 2, 'dobra', 'tryb osoby: F6 + (publiczny) sieć'],
   ['kim jest Marcin Lewandowski', 'osoby', 2, 'dobra', 'wprost → sieć'],
-  ['wyniki Katarzyny Chojnackiej', 'osoby', 3, 'zla', 'odmiana dopełniacza: „Katarzyny Chojnackiej” → search_runners nie trafi w „CHOJNACKA KATARZYNA”'],
-  ['jak pobiegl Jan Kowalski w Poznaniu', 'osoby', 3, 'zla', 'PRYWATNOŚĆ: 6 słów → nie osoba, „jak” wyklucza imprezę, strażnik widzi tylko 2–3 słowa → nazwisko IDZIE DO GOOGLE; detektor osoby musi łapać imię+nazwisko wewnątrz zdania'],
+  ['wyniki Katarzyny Chojnackiej', 'osoby', 3, 'zla', 'odmiana dopełniacza: „Katarzyny Chojnackiej” → search_runners nie trafi w „CHOJNACKA KATARZYNA” (M3-1 (2): rdzenie)'],
+  ['jak pobiegl Jan Kowalski w Poznaniu', 'osoby', 3, 'dobra', 'M3-1 (1): osoba w zdaniu, q „Jan Kowalski”, kontekst „Poznaniu” → filtr wyników; do 1.11 nazwisko szło do Google'],
   ['kasia nowak', 'osoby', 3, 'dobra', 'odpowiedź informacyjna gdy brak (M3-0b)'],
-  ['czy Anna Kowalska jest w aplikacji', 'osoby', 3, 'zla', 'PRYWATNOŚĆ: 6 słów → model → sieć — nazwisko do Google; to samo co #14'],
+  ['czy Anna Kowalska jest w aplikacji', 'osoby', 3, 'dobra', 'M3-1 (1): osoba w zdaniu → tryb osoby, nie model/sieć'],
   ['kto biega z mojego miasta', 'osoby', 3, 'za_droga', 'model bez narzędzia → pusto; brak narzędzia „znajomi/okolica”'],
   ['moi znajomi co biegali', 'osoby', 3, 'za_droga', 'model; M3e znajomi_tydzien'],
   ['kto jest moim trenerem', 'osoby', 4, 'za_droga', 'model bez narzędzia → „Nie mam tego…”; proste narzędzie moj_trener'],
-  ['dodaj Jana Kowalskiego do znajomych', 'osoby', 2, 'zla', 'polecenie → model; okienko nie wykonuje akcji, ale mogłoby pokazać kartę osoby'],
+  ['dodaj Jana Kowalskiego do znajomych', 'osoby', 2, 'dobra', 'M3-1 (1): osoba w zdaniu → karta osoby z „Dodaj do znajomych” (akcja po tapnięciu); odmiana → (2)'],
   // ── imprezy ──
   ['jakie biegi w listopadzie w poznaniu', 'imprezy', 5, 'dobra', ''],
   ['gdzie pobiec dyche w grudniu', 'imprezy', 4, 'dobra', ''],
@@ -180,7 +181,9 @@ function raport(w) {
 (async () => {
   const w = await przebieg();
   const md = raport(w);
-  const plik = path.join(KORZEN, 'docs', 'lawka-pytan-' + new Date().toISOString().slice(0, 10) + '.md');
+  const ie = process.argv.indexOf('--etap');
+  const etap = ie > 0 && process.argv[ie + 1] ? '-' + process.argv[ie + 1].replace(/[^a-z0-9-]/gi, '') : '';
+  const plik = path.join(KORZEN, 'docs', 'lawka-pytan-' + new Date().toISOString().slice(0, 10) + etap + '.md');
   fs.writeFileSync(plik, md, 'utf8');
   if (!process.argv.includes('--md')) console.log(md);
   console.error('zapisano', path.relative(KORZEN, plik));

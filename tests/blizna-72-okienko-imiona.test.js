@@ -45,7 +45,7 @@ test('EF: osoba bez trafień → odpowiedź informacyjna (M3-0b, bez modelu); st
   assert.equal(O.ODP_NIC, 'Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu.');
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   assert.ok(!/osobaBezTrafien/.test(ef), 'ścieżka „osoba bez trafień → model" (M3-0) zastąpiona odpowiedzią informacyjną');
-  assert.match(ef, /const blokadaSieci = wygladaNaOsobe\(tekst\);\s*\n\s*if \(!blokadaSieci && czyDoSieci\(/);
+  assert.match(ef, /const blokadaSieci = wygladaNaOsobe\(tekst\) \|\| !!osobaWZdaniu\(tekst\);[^\n]*\n\s*if \(!blokadaSieci && czyDoSieci\(/);
   assert.ok(ef.indexOf('const blokadaSieci') < ef.indexOf('zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst, dzis })'), 'strażnik przed siecią ogólną');
   assert.match(ef, /\(blokadaSieci && !karty\.length && \(s\.puste \|\| s\.zdania\[0\] === NIE_MAM \|\| m\.poza_danymi\)\) \? \[ODP_NIC\]/);
 });

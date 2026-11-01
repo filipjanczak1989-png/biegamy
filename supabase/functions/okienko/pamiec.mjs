@@ -13,7 +13,7 @@ import { czyImie } from "../_shared/imiona.mjs";
 
 export const TTL_GODZ = 24;
 
-const PYTAJNE = /^(kto|co|czy|gdzie|kiedy|jak|jaki|jaka|jakie|ile|ktory|ktora|ktore|który|która|które|dlaczego|po|pokaz|pokaż|otworz|otwórz)$/i;
+export const PYTAJNE = /^(kto|co|czy|gdzie|kiedy|jak|jaki|jaka|jakie|ile|ktory|ktora|ktore|który|która|które|dlaczego|po|pokaz|pokaż|otworz|otwórz)$/i;
 const BIEGOWE = /(maraton|bieg|trasa|zapis|wynik|parkrun|ultra|trail|run|km|zawod|start|medal|polmaraton|półmaraton|rekord|kalendarz|pogod)/i;
 const SLOWO_IMIENIA = /^[\p{Lu}][\p{Ll}]+(?:-[\p{Lu}][\p{Ll}]+)?$/u;
 const SLOWO_MALE = /^[\p{Ll}]+(?:-[\p{Ll}]+)?$/u;

@@ -217,3 +217,16 @@ Diagnoza wpisu 16:04:34 (bez danych osoby): brak konta w BiegaMy (nie `is_public
   na osobę spoza detektora zostaje.
 - Bez przycisku „Zaproś do BiegaMy": zwiad 1.11 — aplikacja nie ma mechanizmu zaproszeń do konta (`navigator.share`
   służy tylko kartom, „zaproszenia" to zaproszenia do znajomych). Testy: blizna-80.
+
+## M3-1 (1) PRYWATNOŚĆ — imię i nazwisko wewnątrz zdania (1.11.2026) — wdrożone w v18
+
+Ławka 1.11: „jak pobiegl Jan Kowalski w Poznaniu", „czy Anna Kowalska jest w aplikacji" mijały detektor osoby i strażnik
+sieci (oba widziały tylko 2–3 słowa) → model → Google z nazwiskiem. `osobaWZdaniu` (osoba.mjs): para sąsiednich słów —
+(A) pierwsze jest imieniem ze słownika (dowolna wielkość liter) ALBO (B) oba wielką literą, pierwsze nie na początku
+zdania i nie po przyimku miejsca (w/we/na/pod/koło/obok/przy/za — „w Warszawie Mokotów" to miejsce; „u Basi Kowalczyk"
+przechodzi). Odpadają: słowa pytające, NIE_IMIE, przyimki, słowa imprez/aplikacji (maraton, bieg, start, trasa, zapisy,
+wyniki, rekord, plan, trening, odznaki, sieć, google…), PEŁNE formy miesięcy i czasu („Marcin" ≠ marzec), czasowniki.
+Kontekst: „w/na <Miejsce>" → `gdzie` → filtr runner_results po rdzeniu (brak trafienia → zdanie „Maszyna wyników nie zna
+startu tej osoby: X." i pełna karta); „kim jest / w sieci / google" → wprost. Reguła publiczności bez zmian — zdanie
+z wykrytą osobą idzie do Google tylko dla osoby publicznej sportowo albo wprost. Strażnik ścieżki ogólnej zna też
+`osobaWZdaniu` (pas bezpieczeństwa). Testy: blizna-81 (15 zdań → 0 wyjść do sieci poza wprost).

@@ -20,7 +20,7 @@ import { sprawdz, powodPustych } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
 import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe } from "./pamiec.mjs";
-import { osobaZPytania, odpowiedzOsoba, ODP_NIC } from "./osoba.mjs";
+import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "./osoba.mjs";
 import { NIE_MAM } from "./straznik.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "./impreza.mjs";
 import { szukajWKatalogu } from "./katalog.mjs";
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
   };
   const os = osobaZPytania(tekst);
   if (os) {
-    const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost,
+    const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost, gdzie: (os as { gdzie?: string | null }).gdzie || null,
       sieciDozwolona, siec: siecZeZrodlami });
     // M3-0b: brak trafień = odpowiedź informacyjna z osoba.mjs (0 tokenów, bez modelu i bez sieci) — koniec pytania
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
   // ── M2a: sieć (osobne wywołanie z googleSearch — tylko tekst pytania i data, NIC z aplikacji) ──
   // Strażnik sieci (M3-0): pytanie wyglądające na imię i nazwisko (stary, szeroki detektor — także dwa małe słowa,
   // które nie przeszły detektora słownikowego) NIE idzie do Google ścieżką ogólną.
-  const blokadaSieci = wygladaNaOsobe(tekst);
+  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst);   // M3-1: także nazwisko wewnątrz zdania (pas bezpieczeństwa — tryb osoby i tak kończy wcześniej)
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
     let ileSiec;
     try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }
