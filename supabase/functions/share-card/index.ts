@@ -63,6 +63,7 @@ type Uklad = {
   statEtykietaPx4: number; statEtykietaPx3: number; statWartoscPx: number; statJednostkaPx: number;
   stopkaY: number; stopkaH: number; stopkaLogoY: number; stopkaHasloY: number; stopkaTagY: number; stopkaDomenaY: number;
   maxKolumn: number;
+  statIkonaPx?: number; podpisPx?: number;   // brak = 34 / 44 (układy sprzed 1.11.2026)
 };
 const UKLADY: Record<string, Uklad> = {
   standard: {
@@ -89,6 +90,24 @@ const UKLADY: Record<string, Uklad> = {
     statEtykietaPx4: 20, statEtykietaPx3: 20, statWartoscPx: 52, statJednostkaPx: 22,
     stopkaY: 1180, stopkaH: 170, stopkaLogoY: 1216, stopkaHasloY: 1265, stopkaTagY: 1222, stopkaDomenaY: 1265,
     maxKolumn: 3,
+  },
+  // Karta „podsumowanie miesiąca" (zgłoszenie Maćka 1.11.2026: dużo pustego miejsca, bohater i statystyki za małe).
+  // Ten sam szkielet co `standard` (scrim, stopka, siatka 4 kolumn), większe pismo — stopnie ze skali theme.css
+  // (--t-xl 24, --t-2xl 32, --t-3xl 48) i jej wielokrotności: bohater 5×48, jednostka bohatera 1,5×48, wartość 2×48.
+  // Zmierzone na podglądzie 1080×1350: przy ikonie 32 px „NAJDŁUŻSZY" w DM Sans 24 px kończy się ~15 px przed kreską;
+  // bohater 6×48 wchodził „KM" na sylwetki kadru, stąd 5×48.
+  // Tylko z tłem z biblioteki — własne tło zostaje przy `portret` (strefy pomiaru jasności w karta-uklad.json).
+  miesiac: {
+    scrim: "linear-gradient(to bottom, rgba(7,7,10,0.76) 0%, rgba(7,7,10,0.40) 51.85%, " +
+           "rgba(7,7,10,0.48) 66.67%, rgba(7,7,10,0.72) 100%)",
+    imie: 300, meta: 354,
+    bohaterY: 440, bohaterPx: 240, bohaterMalyPx: 192, jednostkaPx: 72, podpisY: 712,
+    dividerY: 862, dividerH: 230,
+    statIkonaY: 860, statWartoscY: 912, statJednostkaY: 1022,
+    statEtykietaPx4: 24, statEtykietaPx3: 24, statWartoscPx: 96, statJednostkaPx: 32,
+    stopkaY: 1145, stopkaH: 205, stopkaLogoY: 1188, stopkaHasloY: 1248, stopkaTagY: 1195, stopkaDomenaY: 1248,
+    maxKolumn: 4,
+    statIkonaPx: 32, podpisPx: 48,
   },
 };
 
@@ -511,7 +530,7 @@ function zbudujKarte(o: {
       : []),
   ]));
   dzieci.push(txt({
-    position: "absolute", left: 74, top: u.podpisY, fontFamily: "Bebas", fontSize: 44,
+    position: "absolute", left: 74, top: u.podpisY, fontFamily: "Bebas", fontSize: u.podpisPx ?? 44,
     color: COLS.wygaszony, letterSpacing: 4,
   }, o.podpis.toUpperCase()));
 
@@ -525,7 +544,7 @@ function zbudujKarte(o: {
   // Kolumny statystyk
   o.staty.forEach((s, i) => {
     const x = g.x[i];
-    const ik = h("img", { width: 34, height: 34 });
+    const ik = h("img", { width: u.statIkonaPx ?? 34, height: u.statIkonaPx ?? 34 });
     (ik.props as Record<string, unknown>).src = s.ikona;
     dzieci.push(h("div", {
       position: "absolute", left: x, top: u.statIkonaY, display: "flex", alignItems: "center",
@@ -832,7 +851,7 @@ async function kartaMomentu(
     // z założenia o człowieku, więc dostaje portret; biblioteka to kadry dobrane pod układ
     // standardowy. Dziś własne tło ma tylko kamień, reszta rodzajów ma `tloMomentu === null`.
     meta: metaTekst || fmtData(mom.created_at), bohater, jednostka, podpis, staty,
-    wlasneTlo: tloMomentu, uklad: tloMomentu ? "portret" : "standard",
+    wlasneTlo: tloMomentu, uklad: tloMomentu ? "portret" : mom.type === "miesiac" ? "miesiac" : "standard",
   });
 }
 
