@@ -3,15 +3,14 @@
 // znaków, bez interpunkcji; drobne literówki łapią krótkie rdzenie słów („tydz", „kilomet", „wyzwan").
 // Daty liczy router w Europe/Warsaw (argument `dzis`), nie model. Brak dopasowania → null (krok 3: model).
 import { EKRANY } from "./narzedzia.mjs";
+import "../../../js/tekst.mjs";
+const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 const MIESIACE = ["stycz", "lut", "mar", "kwie", "maj", "czerw", "lip", "sierp", "wrze", "pazdzi", "listopad", "grud"];
 // „maj" musi być słowem (nie „mają"); reszta to rdzenie odmian (październik/październiku, listopad/listopadzie…)
 const RE_MIESIAC = new RegExp("(?:^|\\s)(" + MIESIACE.map((m) => (m === "maj" ? "maj(?:u)?(?=\\s|$)" : m + "\\w*")).join("|") + ")");
 
-export function normalizuj(t) {
-  return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l")
-    .replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-}
+export function normalizuj(t) { return T.normalizuj(t); }
 function dodajDni(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 function poniedzialek(d) { const dow = new Date(d + "T12:00:00Z").getUTCDay(); return dodajDni(d, -((dow + 6) % 7)); }
 function ostatniDzien(r, m) { return new Date(Date.UTC(r, m, 0)).toISOString().slice(0, 10); }   // m: 1..12

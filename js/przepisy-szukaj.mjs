@@ -8,11 +8,10 @@
 // POCZĄTKIEM któregoś słowa. Przepis pasuje, gdy KAŻDY rdzeń trafia w tytuł, składniki albo tagi.
 (function (g) {
   "use strict";
-  function bezZnakow(s) {
-    return String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
-  }
+  // normalizacja i rdzeń: js/tekst.mjs (BM_TEKST) — wołane w chwili użycia, plik ładuje się przed tym
+  function bezZnakow(s) { return g.BM_TEKST.bezZnakow(s); }
   function slowa(s) { return bezZnakow(s).split(/[^a-z0-9]+/).filter(Boolean); }
-  function rdzen(w) { return w.length <= 4 ? w : w.slice(0, Math.max(4, w.length - 3)); }
+  function rdzen(w) { return g.BM_TEKST.rdzen(w); }
   var POMIN = { przepis: 1, przepisy: 1, przepisu: 1, przepisow: 1, na: 1, z: 1, ze: 1, i: 1, w: 1, do: 1, dla: 1, bez: 1, jak: 1, cos: 1 };
   /** Rdzenie zapytania (unikalne). Dodatkowe słowa do pominięcia (np. katalog: „zagraj", „utwór") w `dodatkowePomin`. */
   function rdzenieZapytania(q, dodatkowePomin) {

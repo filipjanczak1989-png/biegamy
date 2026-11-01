@@ -1,17 +1,15 @@
 // OKIENKO (M1 krok 2) — odpowiedź BEZ modelu: zdania z szablonów + karty z wyników narzędzi. Każda liczba w zdaniu
 // pochodzi z wyniku narzędzia (ta sama zasada co strażnik cyfr modelu w kroku 3). Pusto → „Nie mam tego w Twoich danych."
 export const NIE_MAM = "Nie mam tego w Twoich danych.";
-export const NIE_ZNAJDE = "Tego nie znajdę w aplikacji.";
 import { ODP_BIEGI_PUSTO } from "./biegi.mjs";
 import { ODP_F6_ZAJETA } from "./f6.mjs";
+import "../../../js/tekst.mjs";
+const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
-function odmiana(n, [jeden, kilka, wiele]) {
-  const d = n % 10, s = n % 100;
-  return n === 1 ? jeden : (d >= 2 && d <= 4 && (s < 12 || s > 14)) ? kilka : wiele;
-}
+function odmiana(n, formy) { return T.odmiana(n, formy); }
 const km = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 const DZIEN = (d) => { const [r, m, dd] = d.split("-"); return `${Number(dd)}.${m}`; };
-const MIES_MIEJSC = ["styczniu", "lutym", "marcu", "kwietniu", "maju", "czerwcu", "lipcu", "sierpniu", "wrześniu", "październiku", "listopadzie", "grudniu"];
+const MIES_MIEJSC = T.MIESIACE_MIEJSCOWNIK;
 const DYSTANS_NAZWA = { "5": "5 km", "10": "10 km", "21": "półmaratonie", "42": "maratonie" };
 function ostatniDzienMies(r, m) { return new Date(Date.UTC(r, m, 0)).toISOString().slice(0, 10); }
 /** „W listopadzie" gdy zakres mieści się w jednym miesiącu i sięga jego końca; inaczej „Od 1.11 do 30.01". */

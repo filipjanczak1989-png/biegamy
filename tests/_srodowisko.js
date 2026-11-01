@@ -123,8 +123,16 @@ function blokiSkryptow(plikHtml) {
 function zaladujSb() {
   const ctx = atrapaPrzegladarki();
   vm.createContext(ctx);
+  // porządek 1.11: strony ładują js/tekst.mjs PRZED sb.js (IMPREZY, okienko, races) — ta sama kolejność tutaj
+  cicho(ctx, fs.readFileSync(path.join(KORZEN, 'js', 'tekst.mjs'), 'utf8'), 'js/tekst.mjs');
   cicho(ctx, fs.readFileSync(path.join(KORZEN, 'sb.js'), 'utf8'), 'sb.js');
   return ctx;
+}
+/** BM_TEKST (js/tekst.mjs) dla testów, które budują własny `window` dla js/okienko.js. */
+function tekstDlaOkna() {
+  const c = vm.createContext({});
+  vm.runInContext(fs.readFileSync(path.join(KORZEN, 'js', 'tekst.mjs'), 'utf8'), c, { filename: 'js/tekst.mjs' });
+  return c.BM_TEKST;
 }
 
 /** Podmienia timery na zapisujące. Patrz nagłówek: preparat, nie aplikacja. */
@@ -168,4 +176,4 @@ function zaladujStrone(plikHtml) {
   return ctx;
 }
 
-module.exports = { zaladujSb, zaladujStrone, blokiSkryptow, atrapaElementu, atrapaPrzegladarki, zamrozTimery, stabilnyDom };
+module.exports = { zaladujSb, tekstDlaOkna, zaladujStrone, blokiSkryptow, atrapaElementu, atrapaPrzegladarki, zamrozTimery, stabilnyDom };

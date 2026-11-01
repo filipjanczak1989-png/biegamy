@@ -55,7 +55,7 @@ test('lista ekranów w UI = lista w EF (narzedzia.mjs) — jeden słownik, dwie 
   assert.equal(JSON.stringify(O.EKRANY), JSON.stringify(N.EKRANY));
 });
 
-test('stany: 429 dzień / miesiąc, 502, 503, offline, pusto, „nie pasuje"', () => {
+test('stany: 429 dzień / miesiąc, 502, 503, offline, pusto (gałąź „nie pasuje" usunięta 1.11 — EF nie wysyła `dopasowanie`)', () => {
   const { O } = swiat();
   const T = O.TEKSTY;
   const h429 = O.htmlOdpowiedzi(429, { limit: 'dzien' }, 'starty');
@@ -65,7 +65,10 @@ test('stany: 429 dzień / miesiąc, 502, 503, offline, pusto, „nie pasuje"', (
   const off = O.htmlOdpowiedzi('offline', null, '');
   assert.ok(off.includes(T.offline) && /okn-ekrany/.test(off));
   assert.ok(O.htmlOdpowiedzi(200, { zdania: [], karty: [], akcja: null }).includes(T.pusto));
-  assert.ok(O.htmlOdpowiedzi(200, { zdania: [], karty: [], akcja: null, dopasowanie: false }).includes(T.niePasuje));
+  assert.ok(O.htmlOdpowiedzi(200, { zdania: [], karty: [], akcja: null, dopasowanie: false }).includes(T.pusto), 'pole `dopasowanie` nic nie zmienia');
+  const kat = path.join(__dirname, '..', 'supabase', 'functions', 'okienko');
+  for (const f of fs.readdirSync(kat)) assert.ok(!/\bdopasowanie\s*:/.test(fs.readFileSync(path.join(kat, f), 'utf8')), `${f}: EF wysyła pole dopasowanie`);
+  assert.ok(!('niePasuje' in T) && !/dopasowanie/.test(OKN), 'martwa gałąź w js/okienko.js');
   assert.ok(!/okn-otworz/.test(O.htmlOdpowiedzi(200, { zdania: [], karty: [], akcja: { nawiguj: 'radio.html' } })) === false, 'sama nawigacja → przycisk');
 });
 

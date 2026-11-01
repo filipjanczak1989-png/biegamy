@@ -33,7 +33,7 @@ export function imprezaZPytania(tekst) {
   return { q: nazwa.join(" ").slice(0, 80), jawne };
 }
 
-const bezZnakow = (s) => normalizuj(s).replace(/\b(\d+|[ivxlc]+)\b/g, " ").replace(/\s+/g, " ").trim();   // bez numeru edycji
+const bezZnakow = (s) => normalizuj(s).replace(/\b(\d+|[ivxlc]+)\b/g, " ").replace(/\s+/g, " ").trim();   // bez numeru edycji (normalizuj = js/tekst.mjs przez router)
 function dniMiedzy(a, b) { return Math.abs(Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000)); }
 function dodajDni(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 

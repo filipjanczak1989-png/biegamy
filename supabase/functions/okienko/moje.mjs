@@ -8,6 +8,8 @@
 //   tapnięciu — JEDYNY zapis w tej ścieżce, w przeglądarce, nie w EF i nie z modelu); brak imienia → do Profilu.
 import { f6, BladF6 } from "./f6.mjs";
 import { podsumujWyniki } from "./osoba.mjs";
+import "../../../js/tekst.mjs";
+const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 export const DYSTANSE_PB = [["5k", "5 km", 5], ["10k", "10 km", 10], ["half", "półmaraton", 21.0975], ["marathon", "maraton", 42.195]];
 const MAX_WYBOR = 5;
@@ -25,8 +27,8 @@ export async function mojeRekordy(sb, athleteId) {
   }).filter((r) => r.czas) };
 }
 
-const bezZnakow = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
-const rdzen = (w) => (w.length <= 4 ? w : w.slice(0, Math.max(4, w.length - 3)));
+const bezZnakow = (s) => T.bezZnakow(s);
+const rdzen = (w) => T.rdzen(w);
 
 /** args: {gdzie?} ; f6ctx: {fetchFn, token}. → {brak_imienia} | {brak} | {wybor:[…]} | {wyniki, gdzie?} | {brak_gdzie, gdzie} | {blad_f6} */
 export async function mojeWyniki(sb, athleteId, args, f6ctx, teraz = Date.now()) {

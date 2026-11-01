@@ -3,6 +3,8 @@
 // zwraca null, bo źródła ich nie mają). Gałąź upcoming_races w argumenty()/szukajImprez zostaje ŚWIADOMIE jako droga
 // wycofania (RPC_KALENDARZA = "upcoming_races"), nie martwy kod. Reszta okienka dostaje zawsze ten sam kształt (mapuj).
 import { f6 } from "./f6.mjs";
+import "../../../js/tekst.mjs";
+const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 export const RPC_KALENDARZA = "events_search";   // K-API 017 (1.11.2026); wycofanie = "upcoming_races"
 export const MAX_IMPREZ = 20;
@@ -38,8 +40,8 @@ function argumenty(q, od, doD) {
   return { p_from: od, p_to: doD, p_q: q, lim: MAX_IMPREZ };
 }
 
-const bezZnakow = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
-const obetnij = (w) => (w.length <= 4 ? w : w.slice(0, Math.max(4, w.length - 3)));   // „ultrakotliny" → „ultrakotl"
+const bezZnakow = (s) => T.bezZnakow(s);
+const obetnij = (w) => T.rdzen(w);   // „ultrakotliny" → „ultrakotl"
 /** Imprezy pasujące do nazwy (q) w zakresie dat; ≤ 20, po dacie. Rzuca BladF6 (429 → 'limit').
     upcoming_races p_q szuka PODCIĄGU, a pytania są w odmianie („trasa ultrakotliny", „maratonu warszawskiego") — więc
     do F6 idzie rdzeń najdłuższego słowa (z polskimi znakami), a każde słowo q musi trafić rdzeniem w nazwę/miejscowość. */

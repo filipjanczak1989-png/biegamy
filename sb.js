@@ -393,9 +393,7 @@
     var TTL_MS = 3600 * 1000, PREF = 'imprezy:', LIMIT_OKRESU = 300;
     var OKRESY = { '30': 30, '90': 91, '365': 365 };
     function dzien(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
-    function klucz(s) {
-      return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z]/g, '');
-    }
+    function klucz(s) { return window.BM_TEKST.tylkoLitery(s); }   // js/tekst.mjs (ładowany przed sb.js tam, gdzie jest IMPREZY)
     function dni(a, b) { return Math.abs(Math.round((Date.parse(a + 'T12:00:00Z') - Date.parse(b + 'T12:00:00Z')) / 86400000)); }
     function czytaj(k) {
       try { var v = JSON.parse(sessionStorage.getItem(PREF + k) || 'null'); if (v && Date.now() - v.t < TTL_MS) return v.d; } catch (e) {}

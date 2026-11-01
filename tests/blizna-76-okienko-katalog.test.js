@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
+const { tekstDlaOkna } = require('./_srodowisko.js');   // porządek 1.11: js/tekst.mjs w window okienka
 const { atrapa } = require('./_okienko-atrapy.js');
 
 const KORZEN = path.join(__dirname, '..');
@@ -36,6 +37,7 @@ const baza = () => ({ radio_tracks: JSON.parse(JSON.stringify(RADIO)), recipes: 
 async function katalog(q) { const K = await zaladuj('supabase/functions/okienko/katalog.mjs'); const sb = atrapa(baza()); return { w: await K.szukajWKatalogu(sb, q), sb }; }
 
 test('„ciasto" w okienku = ten sam zbiór co w Jedzeniu (jedna funkcja, atrapa 16 przepisów)', async () => {
+  await zaladuj('js/tekst.mjs');   // nutrition.html ładuje go przed przepisy-szukaj.mjs
   await zaladuj('js/przepisy-szukaj.mjs');
   const jedzenie = globalThis.BM_SZUKAJ.szukajPrzepisow(PRZEPISY, 'ciasto').map((x) => x.p.id).sort();
   assert.deepEqual(jedzenie.length, 3, 'tytuł + tag + składnik');
@@ -103,7 +105,7 @@ test('ćwiczenia: nazwy tylko w js/cwiczenia-nazwy.mjs, zawodnik.html bez `name:
 });
 
 test('UI: karty katalogu przez data-*, bez onclick; akcje → radio.html?utwor=, nutrition.html?przepis=, deep linki ćwiczeń; nazwy ekranów = EF', async () => {
-  const okno = { escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+  const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     safeUrlAttr: (u) => u, RADIO: { coverUrl: (t) => 'https://x.supabase.co/storage/v1/object/public/radio-audio/' + t.cover_slug + '.webp' } };
   const loc = { search: '', href: '' };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null },

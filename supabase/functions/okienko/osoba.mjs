@@ -19,8 +19,7 @@ import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPa
 export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
 export const PROG_STARTOW_PUBLICZNY = 30;
 // M3-0: osoba bez trafień NIE kończy pytania (odpowiedzOsoba zwraca nic: true, EF idzie dalej ścieżką ogólną BEZ sieci);
-// gdy i tam pusto — ODP_NIC. ODP_BRAK zostaje jako stała dla zgodności (nieużywana w EF).
-export const ODP_BRAK = "Nie znalazłem tej osoby w aplikacji ani w wynikach.";
+// gdy i tam pusto — ODP_NIC.
 export const ODP_NIC = "Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu.";
 const MAX_DOPASOWAN = 3, MAX_WYNIKOW = 5, MAX_OSOB = 3;
 

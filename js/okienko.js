@@ -27,7 +27,6 @@
     miesiac: 'Na ten miesiąc koniec pytań. Ekrany dalej znajdę:',
     blad: 'Nie dam rady teraz odpowiedzieć. Spróbuj za chwilę.',
     offline: 'Bez sieci nie odpowiem, ale ekrany znajdę:',
-    niePasuje: 'Tego nie znajdę w aplikacji.',
     siecLimit: 'Na dziś koniec szukania w sieci — od jutra znowu. W aplikacji dalej znajdę:',
     siecPusto: 'Tego nie znalazłem w sieci.'
   };
@@ -144,13 +143,9 @@
     var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
   }
-  var MIESIACE_MIAN = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
-  function miesiacTxt(d) { var p = String(d || '').split('-'); return p.length >= 2 ? MIESIACE_MIAN[Number(p[1]) - 1] + ' ' + p[0] : ''; }
+  function miesiacTxt(d) { var p = String(d || '').split('-'); return p.length >= 2 ? window.BM_TEKST.MIESIACE_MIANOWNIK[Number(p[1]) - 1] + ' ' + p[0] : ''; }
   function dataTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] + '.' + p[0] : ''; }
-  function startyTxt(n) {
-    var d = n % 10, s = n % 100;
-    return n + ' ' + (n === 1 ? 'start' : (d >= 2 && d <= 4 && (s < 12 || s > 14)) ? 'starty' : 'startów');
-  }
+  function startyTxt(n) { return n + ' ' + window.BM_TEKST.startow(n); }   // js/tekst.mjs
   /* M2b: wyniki z maszyny wyników (F6) — „N startów · ostatni: … · najlepszy czas …" + 5 ostatnich + „Otwórz wyniki". */
   function kartaWynikow(d) {
     var glowa = [d.starty != null ? startyTxt(Number(d.starty)) : '',
@@ -189,7 +184,7 @@
     if (json.tryb === 'osoba' || json.tryb === 'impreza') return htmlOsoby(json);   // ten sam układ: sieć ze źródłami → karty   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
-    if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];
+    if (!zdania.length && !cel) zdania = [TEKSTY.pusto];
     var html = zdania.slice(0, 2).map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('');
     html += (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
     if (cel) html += '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button>';

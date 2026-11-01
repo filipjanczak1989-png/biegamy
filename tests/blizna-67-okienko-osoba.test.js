@@ -17,6 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
+const { tekstDlaOkna } = require('./_srodowisko.js');   // porządek 1.11: js/tekst.mjs w window okienka
 const { atrapa, JA } = require('./_okienko-atrapy.js');
 
 const KORZEN = path.join(__dirname, '..');
@@ -156,7 +157,7 @@ test('brak zapisu: osoba.mjs i zapytania trybu osoby tylko czytają; jedyny zapi
 });
 
 test('UI: karta osoby — data-*, bez onclick, id tylko UUID, nazwa escapowana; karta wyników z „Otwórz wyniki" do races.html', () => {
-  const okno = { escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+  const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     safeExternalHref: (u) => (/^https:\/\//.test(u) ? u : '') };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null }, sessionStorage: { getItem: () => null, setItem() {} },
     localStorage: { getItem: () => null }, location: { search: '' }, navigator: {}, setTimeout, console });

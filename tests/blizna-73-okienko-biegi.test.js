@@ -14,6 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
+const { tekstDlaOkna } = require('./_srodowisko.js');   // porządek 1.11: js/tekst.mjs w window okienka
 
 const KORZEN = path.join(__dirname, '..');
 const zaladuj = (p) => import(pathToFileURL(path.join(KORZEN, p)).href);
@@ -135,7 +136,7 @@ test('wykonaj: token użytkownika z EF (nie od modelu), 429 → blad_f6, brak to
 });
 
 test('UI: karta imprezy bez <a> i bez href, tekst escapowany, dystanse po polsku', () => {
-  const okno = { escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) };
+  const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null },
     sessionStorage: { getItem: () => null, setItem() {} }, location: { search: '' }, navigator: {}, setTimeout, console });
   vm.runInContext(czytaj('js', 'okienko.js'), ctx);

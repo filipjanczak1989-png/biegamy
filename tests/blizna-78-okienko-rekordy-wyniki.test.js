@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
+const { tekstDlaOkna } = require('./_srodowisko.js');   // porządek 1.11: js/tekst.mjs w window okienka
 const { atrapa, JA } = require('./_okienko-atrapy.js');
 
 const KORZEN = path.join(__dirname, '..');
@@ -109,7 +110,7 @@ test('migracja: kolumna z CHECK formatu, wyzwalacz blokuje zapis poza RPC, RPC z
 
 test('UI: „To ja" przez data-ktoty → RPC ustaw_f6_runner_key z kluczem z wzorca, potem ponowne pytanie; zły klucz → nic', async () => {
   const rpc = [];
-  const okno = { escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+  const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     sb: { rpc: async (n, a) => { rpc.push([n, a]); return { error: null }; }, auth: { getSession: async () => ({ data: { session: null } }) } } };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null },
     sessionStorage: { getItem: () => null, setItem() {} }, location: { search: '' }, navigator: {}, setTimeout, console, Promise });

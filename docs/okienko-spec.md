@@ -187,3 +187,18 @@ Podwójne implementacje tego samego (kandydaci do jednego pliku w js/, jak plan-
 
 Specy/LEKCJE dopisane w tym przeglądzie: nieaktualne zdania M2b (osoba bez trafień, F6 z EF potwierdzone, limit B2),
 M3a (blizna-73); nagłówki index.ts/impreza.mjs/kalendarz.mjs; LEKCJE #28–#30.
+
+## Porządek 1.11.2026 (po przeglądzie dnia) — wdrożone w v16, zero zmian zachowania
+
+- `js/tekst.mjs` (bez import/export, `globalThis.BM_TEKST`): `bezZnakow`, `tylkoLitery`, `normalizuj` (dawny
+  router.normalizuj), `rdzen`, `odmiana`/`startow`, miesiące w mianowniku, dopełniaczu i miejscowniku. Czytają go:
+  biegi, kalendarz, moje, router, odpowiedz (impreza przez router.normalizuj), js/przepisy-szukaj.mjs, js/okienko.js,
+  sb.js (`IMPREZY._klucz`), races.html (miesiące, odmiana w hero), `_shared/miesiace.mjs` (share-card — wersaliki
+  z mianownika). Strony ładują go przed sb.js (zawodnik, races, nutrition); SW precache.
+- SQL na maszynie3 (`klucz_szukania`, `rdzenie_zapytania`, K-API 017) zostaje osobno (inny runtime) i MUSI dawać to
+  samo co `tekst.mjs`: blizna-79 porównuje 5 przykładów z wynikami z bazy (1.11 — zgodne).
+- Usunięte: `ODP_OSOBA`, `ODP_BRAK`, `NIE_ZNAJDE`, gałąź `dopasowanie`/`TEKSTY.niePasuje` w js/okienko.js (EF nigdy
+  nie wysyłał `dopasowanie` — asercja w blizna-65).
+- Zostają poza tekst.mjs (świadomie, osobna decyzja): rdzenie miesięcy do dopasowań w router.mjs (`stycz`, `lut`…),
+  `MIESIACE_DOPELNIACZ` w js/generator-planu.js (silnik generatora z własnym self-testem), `EKRANY`/`NAZWY_EKRANOW`
+  (dwie kopie pod testem równości).

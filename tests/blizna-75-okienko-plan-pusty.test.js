@@ -14,6 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
+const { tekstDlaOkna } = require('./_srodowisko.js');   // porządek 1.11: js/tekst.mjs w window okienka
 const { atrapa, JA } = require('./_okienko-atrapy.js');
 
 const KORZEN = path.join(__dirname, '..');
@@ -96,7 +97,7 @@ test('zdania i karty: generator → „Ułóż plan"; trener → „Napisz do tr
 
 test('UI: przyciski karty plan_pusty przez data-plan, bez onclick; akcje wołają openGenModal / czat z trenerem', () => {
   const wywolane = [];
-  const okno = { escapeHtml: (s) => String(s), openGenModal: () => wywolane.push('gen'), showSection: (s) => wywolane.push('sekcja:' + s),
+  const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s), openGenModal: () => wywolane.push('gen'), showSection: (s) => wywolane.push('sekcja:' + s),
     openChatThread: (m) => wywolane.push('czat:' + m) };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null },
     sessionStorage: { getItem: () => null, setItem() {} }, location: { search: '' }, navigator: {}, setTimeout: (f) => f(), console });

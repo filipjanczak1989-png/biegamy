@@ -4,7 +4,6 @@
 //   * wygladaNaOsobe(): pytanie, które jest samym imieniem i nazwiskiem, NIE idzie zwykłą ścieżką do sieci (nazwisko
 //     prywatnej osoby nie wychodzi do Google z naszej aplikacji). Od M2b (1.11.2026) obsługuje je osoba.mjs, tryb
 //     'osoba': profile publiczne + wyniki F6, sieć tylko dla osoby publicznej sportowo albo pytania wprost;
-//     ODP_OSOBA zostaje tylko jako stała (nieużywana w EF);
 //   * cache tylko dla pytań, przy których detektor nie zadziałał (odpowiedź o osobie nie trafia do wspólnej pamięci);
 //   * znaleziska BEZ tekstu pytania — tylko nazwa biegu i rok wyciągnięte z pytania; pytanie o osobę nie trafia wcale.
 // Zapisy: WYŁĄCZNIE okienko_siec_cache i okienko_znaleziska (klient service_role; przeglądarka nie ma do nich prawa
@@ -13,7 +12,6 @@ import { czyDomenaWynikow } from "../_shared/zrodla-wynikow.mjs";
 import { czyImie } from "../_shared/imiona.mjs";
 
 export const TTL_GODZ = 24;
-export const ODP_OSOBA = "Wyniki osób znajdę w wyszukiwarce wyników.";
 
 const PYTAJNE = /^(kto|co|czy|gdzie|kiedy|jak|jaki|jaka|jakie|ile|ktory|ktora|ktore|który|która|które|dlaczego|po|pokaz|pokaż|otworz|otwórz)$/i;
 const BIEGOWE = /(maraton|bieg|trasa|zapis|wynik|parkrun|ultra|trail|run|km|zawod|start|medal|polmaraton|półmaraton|rekord|kalendarz|pogod)/i;

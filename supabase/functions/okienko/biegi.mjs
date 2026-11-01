@@ -8,20 +8,16 @@
 // ≥ 4 litery) i dopasowuje go do początków słów nazwy i miasta. Zakres dat idzie do F6 (p_from/p_to); gdy F6 odda
 // pełny limit (ucięty wynik), EF pyta drugi raz z p_q = rdzeń, żeby miasto spoza pierwszych 300 nie zginęło.
 import { f6 } from "./f6.mjs";
+import "../../../js/tekst.mjs";
+const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 export const MAX_DNI_BIEGOW = 366, DNI_DOMYSLNIE = 90, MAX_KART_BIEGOW = 10, LIMIT_F6 = 300;
 export const ODP_BIEGI_PUSTO = "Maszyna wyników nie ma biegów w tym zakresie.";
 export const DYSTANSE = { "5": 5, "10": 10, "21": 21.0975, "42": 42.195 };
 
-export function bezZnakow(s) {
-  return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
-}
-/** „Poznaniu" → „pozna", „Środą" → „srod", „Krakowie" → „krako", „Gdyni" → „gdyn". */
-export function rdzen(slowo) {
-  const s = bezZnakow(slowo).replace(/[^a-z]/g, "");
-  if (s.length <= 4) return s;
-  return s.slice(0, Math.max(4, s.length - 3));
-}
+export function bezZnakow(s) { return T.bezZnakow(s); }
+/** „Poznaniu" → „pozna", „Środą" → „srod", „Krakowie" → „krako", „Gdyni" → „gdyn" (tylko litery, potem rdzeń). */
+export function rdzen(slowo) { return T.rdzen(T.tylkoLitery(slowo)); }
 function dodajDni(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 export function dniMiedzy(a, b) { return Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000); }
 export const domyslnyZakres = (dzis) => ({ od: dzis, do: dodajDni(dzis, DNI_DOMYSLNIE) });

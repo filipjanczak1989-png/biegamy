@@ -7,6 +7,7 @@
 <title>Kalendarz Startów · BiegaMy</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
+<script src="js/tekst.mjs"></script>
 <script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><script src="js/wyniki-api.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
@@ -383,7 +384,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 /* Licznik w hero liczy z _allRaces, które strona i tak już ma — bez nowego zapytania i bez zmiany logiki listy:
    obserwator #races-list przelicza po każdym renderze. Tylko zatwierdzone, od dziś do +30 dni. */
 (function(){
-  function startow(n){ var d = n % 10, s = n % 100; return n === 1 ? 'start' : (d >= 2 && d <= 4 && (s < 12 || s > 14)) ? 'starty' : 'startów'; }
+  function startow(n){ return window.BM_TEKST.startow(n); }   // js/tekst.mjs
   function dzien(dt){ return new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   function przelicz(){
     var el = document.getElementById('races-hero-najblizsze');
@@ -588,7 +589,6 @@ let _currentRace = null;
 // ── K4: „W POLSCE" (kalendarz maszyny wyników) ────────────────────
 var _imprezyOkres = '30', _imprezyQ = '', _imprezyTimer = null, _imprezyNr = 0;
 var IMPREZY_OKRES_TXT = { '30': 'w 30 dni', '90': 'w 3 miesiące', '365': 'w rok' };
-var IMPREZY_MIES = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
 function imprezyStart() {
   var s = document.getElementById('imprezy-sekcja');
   if (!s) return;
@@ -607,7 +607,7 @@ function imprezyDystansTxt(d) { return (Array.isArray(d) ? d : []).map(function 
 function imprezyDataTxt(i) {
   var p = String(i.data || '').split('-');
   if (p.length < 2) return '';
-  if (i.dokladnosc === 'miesiac') return IMPREZY_MIES[Number(p[1]) - 1] + ' ' + p[0];
+  if (i.dokladnosc === 'miesiac') return window.BM_TEKST.MIESIACE_MIANOWNIK[Number(p[1]) - 1] + ' ' + p[0];
   return new Date(i.data + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 async function imprezyLaduj() {
