@@ -1395,3 +1395,26 @@ sprawdza tylko ludzi, którzy i tak dostaliby nowy kod.
 Poprawka zielona w smoke, a na telefonie „nic się nie zmieniło" — przy czym zgłaszający „wchodził kilka
 razy". Pierwsze pytanie: czy to były NOWE wejścia, czy wznowienia; drugie: z którą wersją kodu wstał
 dokument (window._bmWersjaStartu, app_version w client_errors).
+
+## 27. Nagłówek ustawiony PRZED proxy przegrywa z nagłówkiem upstreamu — `defer` albo `header_down -…` (1.11.2026)
+
+Zmiana CORS na api.biegamy.run (Caddy, dwa originy zamiast jednego): stary blok `header` ustawiał
+`Access-Control-Allow-Origin "https://biegamy.run"` i przy okazji usuwał `-Server`. Usunięcie pola sprawia, że
+Caddy wykonuje CAŁY blok po odpowiedzi upstreamu (defer automatyczny) — więc nadpisywał
+`Access-Control-Allow-Origin: *`, które PostgREST wysyła sam. Nikt o tym nie wiedział, bo działało. Nowe bloki
+z matcherem (`header @cors_ok …`) nie usuwały żadnego pola → szły PRZED proxy → odpowiedź POST miała DWA
+nagłówki: nasz origin i `*` od PostgREST, także dla obcego originu. Okno: 12:41:31–12:42:10 UTC (~40 s).
+Złapane tylko dlatego, że weryfikacja curlem obejmowała POST i trzeci, obcy origin — sam preflight (OPTIONS)
+był czysty, bo odpowiada na niego Caddy, nie upstream.
+
+### Reguła
+
+**Nagłówek odpowiedzi, który ma WYGRAĆ z upstreamem, ustawiaj z `defer` i zdejmuj upstreamowy
+`header_down -Nazwa` w reverse_proxy.** Nie polegaj na tym, że inny wpis w tym samym bloku (np. `-Server`)
+„przy okazji" włącza defer — rozdzielenie bloku zmienia kolejność bez śladu w diffie.
+
+### Objaw ostrzegawczy
+
+Diff konfiguracji proxy rozdziela albo przenosi blok `header` — a weryfikacja sprawdza tylko preflight albo
+tylko dozwolony origin. Test CORS po każdej zmianie: OPTIONS i POST, dla każdego dozwolonego originu ORAZ
+jednego obcego; licz wystąpienia `Access-Control-Allow-Origin` (ma być 1 albo 0, nigdy 2).
