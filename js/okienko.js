@@ -93,6 +93,9 @@
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
+    if (k.typ === 'start_nasz') return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' +
+      esc([dataTxt(d.data), d.miasto || '', 'w naszych startach'].filter(Boolean).join(' · ')) + '</span>' +
+      '<button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.starty) + '">Otwórz w Startach</button></div>';
     return '';
   }
 
@@ -101,7 +104,8 @@
     var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
       var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
     }).join(', ');
-    var meta = [dataTxt(d.data), d.miasto || '', dyst].filter(Boolean).join(' · ');
+    var kiedy = d.dokladnosc_daty === 'miesiac' ? miesiacTxt(d.data) : dataTxt(d.data);
+    var meta = [kiedy, d.miasto || d.miejscowosc || '', dyst].filter(Boolean).join(' · ');
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
       (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') + '</div>';
   }
@@ -126,6 +130,8 @@
     var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
     return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
   }
+  var MIESIACE_MIAN = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+  function miesiacTxt(d) { var p = String(d || '').split('-'); return p.length >= 2 ? MIESIACE_MIAN[Number(p[1]) - 1] + ' ' + p[0] : ''; }
   function dataTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] + '.' + p[0] : ''; }
   function startyTxt(n) {
     var d = n % 10, s = n % 100;
@@ -166,7 +172,7 @@
     if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
     if (json.tryb === 'siec' || json.tryb === 'siec-cache') return htmlSieci(json);
-    if (json.tryb === 'osoba') return htmlOsoby(json);   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
+    if (json.tryb === 'osoba' || json.tryb === 'impreza') return htmlOsoby(json);   // ten sam układ: sieć ze źródłami → karty   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
     if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];

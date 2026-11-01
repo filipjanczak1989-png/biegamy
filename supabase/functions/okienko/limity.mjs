@@ -26,9 +26,9 @@ export async function uzyteSiecDzis(adm, athleteId, dzis) {
   const { count, error } = await adm.from("okienko_log").select("id", { count: "exact", head: true })
     .eq("athlete_id", athleteId).eq("tryb", "siec").gte("kiedy", od);
   if (error) throw new Error("okienko_log");
-  // M2b: pytanie o osobę z wyszukaniem w sieci (tryb „osoba", zapytania_sieci ≥ 1) liczy się do tego samego limitu
+  // M2b/M3a: pytanie o osobę albo imprezę z wyszukaniem w sieci (zapytania_sieci ≥ 1) liczy się do tego samego limitu
   const { count: osoby, error: e2 } = await adm.from("okienko_log").select("id", { count: "exact", head: true })
-    .eq("athlete_id", athleteId).eq("tryb", "osoba").gte("zapytania_sieci", 1).gte("kiedy", od);
+    .eq("athlete_id", athleteId).in("tryb", ["osoba", "impreza"]).gte("zapytania_sieci", 1).gte("kiedy", od);
   if (e2) throw new Error("okienko_log");
   return (count || 0) + (osoby || 0);
 }

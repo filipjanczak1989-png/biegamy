@@ -19,6 +19,7 @@ import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec
 import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe } from "./pamiec.mjs";
 import { osobaZPytania, odpowiedzOsoba, ODP_NIC } from "./osoba.mjs";
 import { NIE_MAM } from "./straznik.mjs";
+import { imprezaZPytania, odpowiedzImpreza } from "./impreza.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -72,22 +73,39 @@ Deno.serve(async (req) => {
 
   // ── M2b: pytanie o OSOBĘ — trzy fronty równolegle (osoba.mjs): profile publiczne, wyniki F6, sieć tylko dla osoby
   //    publicznej sportowo albo pytania wprost. Bez modelu z narzędziami; nie do pamięci sieci ani do znalezisk. ──
+  // Sieć ze źródłami — JEDNA funkcja dla trybów osoby i imprezy (limit 20/dobę wspólny, uzyteSiecDzis).
+  const httpsOk = (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
+  const sieciDozwolona = async () => { if (!GEMINI) return false; try { return (await uzyteSiecDzis(adm, ath.id, dzis)) < LIMIT_SIEC; } catch { return false; } };
+  const siecZeZrodlami = async (t: string) => {
+    const w = await zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst: t, dzis });
+    const z = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
+    const jest = z.zrodla.length > 0 && z.zdania[0] !== NIE_ZNALAZLEM;
+    return { zdania: jest ? z.zdania : [], zrodla: jest ? z.zrodla : [], tok: w.tok, zapytania: w.zapytania };
+  };
   const os = osobaZPytania(tekst);
   let osobaBezTrafien = false;   // M3-0: tryb osoby nic nie znalazł → ścieżka ogólna, ale BEZ sieci i bez pamięci sieci
   if (os) {
-    const httpsOk = (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
     const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost,
-      sieciDozwolona: async () => { if (!GEMINI) return false; try { return (await uzyteSiecDzis(adm, ath.id, dzis)) < LIMIT_SIEC; } catch { return false; } },
-      siec: async (t: string) => {
-        const w = await zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst: t, dzis });
-        const z = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
-        const jest = z.zrodla.length > 0 && z.zdania[0] !== NIE_ZNALAZLEM;
-        return { zdania: jest ? z.zdania : [], zrodla: jest ? z.zrodla : [], tok: w.tok, zapytania: w.zapytania };
-      } });
+      sieciDozwolona, siec: siecZeZrodlami });
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
       ok: o.f6 === "ok" && !o.nic, powod_odrzucenia: o.nic ? ["osoba: brak trafień → ścieżka ogólna", o.powod].filter(Boolean).join(" | ") : o.powod });
     if (!o.nic) return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
     osobaBezTrafien = true;
+  }
+  // ── M3a v2: tryb „impreza" — kalendarz maszyny (adapter kalendarz.mjs) + nasze starty + sieć (dozwolona dla nazwy
+  //    biegu), pamięć 24 h, znaleziska ze statusem „kalendarz". null = nie impreza → dalej (pamięć sieci, model). ──
+  const imp = imprezaZPytania(tekst);
+  if (imp) {
+    const kluczImp = normalizuj(tekst);
+    const o = await odpowiedzImpreza({ sb, fetchFn: fetch, token: jwt, q: imp.q, jawne: imp.jawne, dzis, sieciDozwolona, siec: siecZeZrodlami,
+      zPamieci: () => zPamieci(adm, kluczImp, teraz),
+      doPamieci: (z: string[], zr: unknown[]) => doPamieci(adm, kluczImp, z, zr, "gemini-3.5-flash-lite", teraz),
+      znaleziska: (w: unknown[]) => zapiszZnaleziska(adm, ath.id, w) });
+    if (o) {
+      await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "impreza", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
+        ok: o.f6 === "ok", powod_odrzucenia: o.powod });
+      return odp(200, { ...pusto("impreza"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, koszt_tok: o.tok });
+    }
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);
