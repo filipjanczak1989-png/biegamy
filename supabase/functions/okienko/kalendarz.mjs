@@ -25,6 +25,7 @@ export function mapuj(r) {
     miejscowosc: miasto && miasto !== "Polska" ? String(miasto).slice(0, 60) : null,
     dystanse: dystanse(r.dystanse ?? r.distances),
     zrodlo_domena: domena(r.url_zrodlo_strony ?? r.source_url ?? r.url_organizer ?? ""),
+    url: [r.url_zapisy, r.url_organizer, r.url_regulamin].find((u) => typeof u === "string" && /^https:\/\/[^\s"'<>]{4,300}$/.test(u)) || null,   // etap 5: „Strona imprezy ›" (UI: safeExternalHref)
     status: r.status ?? null,
     przeszla: r.przeszla === true,
   };

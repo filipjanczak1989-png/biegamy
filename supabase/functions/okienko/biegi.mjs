@@ -11,7 +11,7 @@ import { f6 } from "./f6.mjs";
 import "../../../js/tekst.mjs";
 const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
-export const MAX_DNI_BIEGOW = 366, DNI_DOMYSLNIE = 90, MAX_KART_BIEGOW = 10, LIMIT_F6 = 300;
+export const MAX_DNI_BIEGOW = 366, DNI_DOMYSLNIE = 90, DNI_Z_MIEJSCEM = 365, MAX_KART_BIEGOW = 10, LIMIT_F6 = 300;
 export const ODP_BIEGI_PUSTO = "Maszyna wyników nie ma biegów w tym zakresie.";
 export const DYSTANSE = { "5": 5, "10": 10, "21": 21.0975, "42": 42.195 };
 
@@ -20,7 +20,9 @@ export function bezZnakow(s) { return T.bezZnakow(s); }
 export function rdzen(slowo) { return T.rdzen(T.tylkoLitery(slowo)); }
 function dodajDni(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 export function dniMiedzy(a, b) { return Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000); }
-export const domyslnyZakres = (dzis) => ({ od: dzis, do: dodajDni(dzis, DNI_DOMYSLNIE) });
+/* Etap 5 ławki (1.11): pytanie z miastem albo dystansem, bez miesiąca („półmaraton w krakowie") → rok do przodu, bo
+   wiosenne biegi leżą poza 90 dniami; bez miasta i dystansu zostaje 90 (lista „jakie biegi" ma być krótka). */
+export const domyslnyZakres = (dzis, args = {}) => ({ od: dzis, do: dodajDni(dzis, args.miejsce || args.dystans ? DNI_Z_MIEJSCEM : DNI_DOMYSLNIE) });
 
 function pasujeMiejsce(b, r) {
   if (!r) return true;

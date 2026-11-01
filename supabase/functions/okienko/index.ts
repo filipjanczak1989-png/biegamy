@@ -67,7 +67,13 @@ Deno.serve(async (req) => {
   }
   if (traf && "zdanie" in traf) {   // M3-1 (3): powitanie; M3-2: kalkulator tempa, biegi za granicą — jedno zdanie, 0 tokenów
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: [traf.log] });
-    return odp(200, { ...pusto("router"), zdania: [traf.zdanie] });
+    // etap 5 (c): przy bólu/kontuzji przycisk „Napisz do trenera" (ta sama karta co pusty plan) — tylko gdy jest trener
+    let kartyZd: unknown[] = [];
+    if ((traf as { trener?: boolean }).trener) {
+      const { data: a } = await sb.from("athletes").select("coach_id").eq("id", ath.id).maybeSingle();
+      if (a && a.coach_id) kartyZd = [{ typ: "plan_pusty", dane: { stan: "trener" } }];
+    }
+    return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd });
   }
   if (traf) {
     const w = waliduj(traf.narzedzie, traf.args);
@@ -104,7 +110,7 @@ Deno.serve(async (req) => {
   const imp = imprezaZPytania(tekst);
   if (imp) {
     const kluczImp = normalizuj(tekst);
-    const o = await odpowiedzImpreza({ sb, fetchFn: fetch, token: jwt, q: imp.q, jawne: imp.jawne, dzis, sieciDozwolona, siec: siecZeZrodlami,
+    const o = await odpowiedzImpreza({ sb, fetchFn: fetch, token: jwt, q: imp.q, jawne: imp.jawne, cena: !!(imp as { cena?: boolean }).cena, dzis, sieciDozwolona, siec: siecZeZrodlami,
       zPamieci: () => zPamieci(adm, kluczImp, teraz),
       doPamieci: (z: string[], zr: unknown[]) => doPamieci(adm, kluczImp, z, zr, "gemini-3.5-flash-lite", teraz),
       znaleziska: (w: unknown[]) => zapiszZnaleziska(adm, ath.id, w) });

@@ -244,7 +244,7 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6
   }
   if (nazwa === "biegi_nadchodzace") {
     if (!f6ctx || !f6ctx.token) throw new Error("brak tokenu F6");
-    const z = args.od ? { od: args.od, do: args.do } : domyslnyZakres(dzis);
+    const z = args.od ? { od: args.od, do: args.do } : domyslnyZakres(dzis, args);
     try {
       const w = await biegiNadchodzace(f6ctx.fetchFn, f6ctx.token, { ...z, miejsce: args.miejsce, dystans: args.dystans }, teraz.getTime());
       return { ...w, przy: args.przy || null };

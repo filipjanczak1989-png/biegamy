@@ -69,7 +69,10 @@ test('kalendarz przez adapter → events_search (017): całe zapytanie, bez zakr
   assert.deepEqual(k.map((x) => [x.dane.nazwa, x.dane.miejscowosc, x.dane.data, x.dane.przeszla]),
     [['Ultrakotlina 2027', 'Lądek-Zdrój', '2027-06-12', false], ['UltraKotlina', 'Szklarska Poręba', '2026-10-09', true]], 'nadchodząca, potem ostatnia edycja');
   assert.deepEqual(k[0].dane.dystanse, [26, 52, 110], 'dystanse tekstowe → liczby');
-  assert.ok(!('source_url' in k[0].dane) && !('url' in k[0].dane), 'karta bez linku');
+  // etap 5 ławki (1.11, decyzja Filipa): karta ma „Strona imprezy ›" — url TYLKO https z url_zapisy/url_organizer/url_regulamin,
+  // nigdy surowe source_url; w UI przez safeExternalHref (blizna-89)
+  assert.ok(!('source_url' in k[0].dane), 'bez surowego source_url');
+  assert.ok(k[0].dane.url === null || /^https:\/\/[^\s"'<>]+$/.test(k[0].dane.url), 'link tylko https');
   assert.equal(k[0].dane.zrodlo_domena, 'ultrakotlina.pl');
 });
 

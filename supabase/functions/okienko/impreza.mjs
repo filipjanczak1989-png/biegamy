@@ -20,11 +20,25 @@ const OGOLNE = /^(bieg|biegi|biegu|zawody|zawodach)$/;   // nie niosą nazwy —
 const PYTAJNE = /^(kiedy|gdzie|jaki|jaka|jakie|jakiego|jest|termin|terminy|data|daty|odbywa|sie|bedzie|byl|w|we|na|o|czy|ten|ta|to|tego|edycja|najblizszy|najblizsza|najblizsze|kolejny|kolejna|nastepny|nastepna|info|informacje|zapisy|start|trasa|trasy|trase|dystans\w*|mapa|mapka|opis)$/;
 const NIE_IMPREZA = /\b(kto|wygral\w*|wygrala\w*|wynik\w*|rekord\w*|zyciow\w*|moj\w*|moje|mam|mial\w*|ile|jak|plan\w*|odznak\w*|wyzwan\w*|trening\w*)\b/;
 const MAX_KART = 5;
+/* Etap 5 (1.11): „ile kosztuje wpisowe na X", „zapisy na X", „cena biegu X" — to pytanie o KONKRETNĄ imprezę. Słowa ceny
+   wypadają z q (nie są nazwą), „ile"/„jak" przestają wykluczać. Odpowiedź: karta z kalendarza + „Strona imprezy ›"
+   (url z maszyny, przez safeExternalHref w UI); sieć TYLKO, gdy karty brak. */
+const CENA = /\b(ile kosztuj\w*|kosztuj\w*|koszt\w*|wpisow\w*|oplat\w*|cen[aeyi]\b|cenn\w*|zapisy|zapisow|zapisac sie|zapisac na)\b/;
+const SLOWA_CENY = /^(ile|kosztuje|kosztuja|kosztowac|koszt|koszty|kosztow|wpisowe|wpisowego|wpisowym|oplata|oplaty|oplate|startowa|startowe|startowego|cena|ceny|cene|cennik|zapisy|zapisow|zapisac|zapis|zapisac sie|na|do|za|jak|mnie|sie|gdzie|mozna|moge)$/;
+export const ODP_CENA_LINK = "Wpisowe i zapisy podaje strona imprezy:";
+export const ODP_CENA_BEZ_LINKU = "Maszyna wyników nie zna strony tej imprezy — cenę i zapisy podaje organizator.";
 
 /** → {q, jawne} | null. jawne = jest słowo z listy (impreza nawet bez trafienia w kalendarzu). */
 export function imprezaZPytania(tekst) {
   const t = normalizuj(tekst);
-  if (!t || NIE_IMPREZA.test(t) || /^\d+$/.test(t)) return null;
+  if (!t || /^\d+$/.test(t)) return null;
+  if (CENA.test(t) && !/\b(kto|wynik\w*|rekord\w*|moj\w*|moje|mam)\b/.test(t)) {
+    const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean)
+      .filter((w) => { const n = normalizuj(w); return n && !SLOWA_CENY.test(n) && !PYTAJNE.test(n) && !OGOLNE.test(n); });
+    if (!slowa.length || slowa.length > 5) return null;
+    return { q: slowa.join(" ").slice(0, 80), jawne: SLOWA_IMPREZY.test(t), cena: true };   // bez słowa biegu („para butów") impreza tylko po trafieniu w kalendarz
+  }
+  if (NIE_IMPREZA.test(t)) return null;
   const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean);
   const nazwa = slowa.filter((w) => { const n = normalizuj(w); return n && !PYTAJNE.test(n) && !OGOLNE.test(n); });
   if (!nazwa.length || nazwa.length > 5) return null;
@@ -65,7 +79,7 @@ export async function odpowiedzImpreza(deps) {
   const kal = kalendarz.filter((k) => !nasze.some((n) => n.data && k.data && dniMiedzy(n.data, k.data) <= 1 && bezZnakow(n.nazwa) === bezZnakow(k.nazwa)));
   // sieć: dozwolona dla imprezy; NIE gdy pytanie wygląda na imię i nazwisko i kalendarz go nie zna
   let zdania = [], zrodla = [], tok = { we: 0, wy: 0 }, zapytania = 0, zPam = false;
-  const wolnoSiec = !(wygladaNaOsobe(q) && !kalendarz.length && !nasze.length);
+  const wolnoSiec = !(wygladaNaOsobe(q) && !kalendarz.length && !nasze.length) && !(deps.cena && (kal.length || nasze.length));   // cena: sieć tylko bez karty
   if (wolnoSiec) {
     const pam = await deps.zPamieci();
     if (pam && pam.zrodla && pam.zrodla.length) { zdania = pam.zdania; zrodla = pam.zrodla; zPam = true; }
@@ -85,6 +99,7 @@ export async function odpowiedzImpreza(deps) {
     }
   }
   const karty = [...kal.slice(0, MAX_KART).map((d) => ({ typ: "impreza", dane: d })), ...nasze.slice(0, MAX_KART).map((d) => ({ typ: "start_nasz", dane: d }))];
+  if (deps.cena && karty.length) zdania = [kal.some((k) => k.url) ? ODP_CENA_LINK : ODP_CENA_BEZ_LINKU];
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
   if (!karty.length && !zdania.length) zdania = [ODP_IMPREZA_PUSTO];
   return { zdania, karty, zrodla, tok, zapytania_sieci: zapytania, f6: f6Stan, z_pamieci: zPam,

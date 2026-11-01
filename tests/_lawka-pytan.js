@@ -37,7 +37,7 @@ const PYTANIA = [
   ['moje rekordy', 'wlasne', 4, 'dobra', 'M3-1 (3): puste pb_* → najlepsze czasy z WYNIKÓW ZAWODÓW (F6), z etykietą; bez treningów'],
   ['jaka mam forme', 'wlasne', 4, 'dobra', 'M3-2: moja_forma — TSB/CTL/ATL z formaSeria, zdanie ze słownika kafla Forma, 0 tokenów'],
   ['ile spalilem kalorii w tym tygodniu', 'wlasne', 2, 'za_droga', 'model, brak narzędzia; kcal są w nutrition — osobna decyzja (produkty poza katalogiem)'],
-  ['czy dzis moge biegac po kontuzji', 'wlasne', 3, 'za_droga', 'model bez narzędzia (kontuzje czyta tylko EF trenera) → pusto za ~$0,0008; zaległość „generator nie widzi kontuzji”'],
+  ['czy dzis moge biegac po kontuzji', 'wlasne', 3, 'dobra', 'etap 5 (c): stałe zdanie „Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.” + „Napisz do trenera” (gdy jest), 0 tokenów, bez porad'],
   // ── osoby ──
   ['Robert Korzeniowski', 'osoby', 2, 'dobra', 'tryb osoby: F6 + (publiczny) sieć'],
   ['kim jest Marcin Lewandowski', 'osoby', 2, 'dobra', 'wprost → sieć'],
@@ -54,12 +54,12 @@ const PYTANIA = [
   ['gdzie pobiec dyche w grudniu', 'imprezy', 4, 'dobra', ''],
   ['ultrakotlina', 'imprezy', 3, 'dobra', 'przez trafienie w kalendarzu'],
   ['kiedy jest maraton warszawski 2027', 'imprezy', 4, 'dobra', 'M3-1 (2): „maraton <nazwa>” → impreza (events_search), nie lista'],
-  ['polmaraton w krakowie', 'imprezy', 4, 'pusta', 'lista 90 dni bez kwietniowego biegu; od M3-1 (2) zdanie mówi, jaki to zakres („od 1.11 do 30.01 w Krakowie na półmaratonie”)'],
+  ['polmaraton w krakowie', 'imprezy', 4, 'dobra', 'etap 5 (a): miasto/dystans bez miesiąca → 365 dni — kwietniowy Półmaraton Krakowski w liście'],
   ['jakie biegi w weekend', 'imprezy', 4, 'dobra', 'M3-1 (2): weekend = najbliższe sb–nd'],
-  ['zapisy na bieg niepodleglosci', 'imprezy', 4, 'dobra', 'impreza: karta z kalendarza + sieć ze źródłami (~$0,02); link zapisów wejdzie z K4/K5'],
+  ['zapisy na bieg niepodleglosci', 'imprezy', 4, 'dobra', 'etap 5 (b): karta z kalendarza + „Strona imprezy ›” (url zapisów z maszyny), bez sieci — 0 zł zamiast ~$0,02'],
   ['trasa polmaratonu poznanskiego', 'imprezy', 3, 'dobra', 'impreza (słowo z listy) + sieć ze źródłami'],
   ['biegi za granica w styczniu', 'imprezy', 2, 'dobra', 'M3-2 (e): jedno zdanie z routera „Maszyna wyników zna tylko biegi w Polsce.”, 0 tokenów'],
-  ['ile kosztuje wpisowe na maraton w debnie', 'imprezy', 3, 'za_droga', '„ile” wyklucza imprezę i kalendarz → model → sieć ~$0,02; impreza + link do strony organizatora dałaby to za 0'],
+  ['ile kosztuje wpisowe na maraton w debnie', 'imprezy', 3, 'dobra', 'etap 5 (b): tryb impreza — karta „52. Maraton Dębno” + „Maszyna wyników nie zna strony tej imprezy — cenę i zapisy podaje organizator.” (prod: brak url), bez sieci'],
   // ── treści aplikacji ──
   ['czwarta godzina', 'tresci', 3, 'dobra', 'utwór z radia'],
   ['puść boso', 'tresci', 3, 'dobra', '„pusc” pominięte → utwór „Boso”'],
@@ -104,7 +104,8 @@ const F6 = {
     : [{ event_name: 'Mistrzostwa Polski w chodzie', event_date: '2026-06-01', distance_km: 20, time_seconds: 5000, position_total: 1 }]),
   events_search: (a) => (/kotlin/i.test(a.p_q) ? [{ nazwa: 'UltraKotlina', data: '2027-10-09', miejscowosc: 'Szklarska Poręba', dystanse: '100 km', zrodlo: 'kalendarz', przeszla: false }]
     : /warszaw/i.test(a.p_q) ? [{ nazwa: '49. Maraton Warszawski', data: '2027-09-26', miejscowosc: 'Warszawa', dystanse: '42.195', zrodlo: 'kalendarz' }]
-    : /niepodleg/i.test(a.p_q) ? [{ nazwa: 'Bieg Niepodległości', data: '2026-11-11', miejscowosc: 'Poznań', dystanse: '10', zrodlo: 'kalendarz' }]
+    : /niepodleg/i.test(a.p_q) ? [{ nazwa: 'Bieg Niepodległości', data: '2026-11-11', miejscowosc: 'Poznań', dystanse: '10', zrodlo: 'kalendarz', url_zapisy: 'https://dostartu.pl/bieg-niepodleglosci-poznan' }]
+    : /debn/i.test(a.p_q) ? [{ nazwa: '52. Maraton Dębno', data: '2026-10-18', miejscowosc: 'Dębno', dystanse: '42.195', zrodlo: 'kalendarz', przeszla: true }]   // jak prod 1.11: bez url
     : /poznan/i.test(a.p_q) ? [{ nazwa: 'Półmaraton Poznański', data: '2027-04-11', miejscowosc: 'Poznań', dystanse: '21.0975', zrodlo: 'kalendarz' }] : []),
   upcoming_races: (a) => [{ group_key: 'g1', name: 'Bieg Niepodległości', event_date: '2026-11-11', city: 'Poznań', distances: [10] }, { group_key: 'g2', name: 'Bieg Mikołajkowy', event_date: '2026-12-06', city: 'Poznań', distances: [5, 10] },
     { group_key: 'g3', name: 'Półmaraton Krakowski', event_date: '2027-04-18', city: 'Kraków', distances: [21.0975] }].filter((r) => !a.p_q || (r.name + ' ' + r.city).toLowerCase().includes(String(a.p_q).toLowerCase())),
@@ -158,7 +159,7 @@ async function przebieg() {
       } else {
         const imp = Im.imprezaZPytania(pyt);
         let o = null;
-        if (imp) o = await Im.odpowiedzImpreza({ sb, fetchFn: fetchF6, token: 'T', q: imp.q, jawne: imp.jawne, dzis: DZIS, sieciDozwolona: async () => true, siec: sieciSym,
+        if (imp) o = await Im.odpowiedzImpreza({ sb, fetchFn: fetchF6, token: 'T', q: imp.q, jawne: imp.jawne, cena: !!imp.cena, dzis: DZIS, sieciDozwolona: async () => true, siec: sieciSym,
           zPamieci: async () => null, doPamieci: async () => {}, znaleziska: async () => {} });
         if (o) { sciezka = 'impreza' + (siec ? '→sieć' : ''); koszt = siec ? kosztSiec - kosztModel : 0; typ = (o.karty.length ? `${o.karty.length} kart` : '') + ' „' + (o.zdania[0] || '').slice(0, 60) + '”'; }
         else {

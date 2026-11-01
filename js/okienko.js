@@ -124,6 +124,11 @@
   }
 
   /* M3a: impreza z kalendarza maszyny wyników — BEZ linków zewnętrznych (v1); domena źródła jako zwykły tekst. */
+  /* Etap 5: „Strona imprezy ›" — tylko https przez safeExternalHref (CLAUDE.md), nowa karta, noopener; inaczej nic. */
+  function linkImprezy(u) {
+    var h = (u && window.safeExternalHref) ? window.safeExternalHref(u, { tylkoHttps: true }) : '';
+    return h ? '<a class="okn-link" href="' + h + '" target="_blank" rel="noopener noreferrer">Strona imprezy ›</a>' : '';
+  }
   function kartaImprezy(d) {
     var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
       var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
@@ -132,7 +137,7 @@
     var meta = [kiedy, d.miasto || d.miejscowosc || '', dyst].filter(Boolean).join(' · ');
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
       (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') +
-      (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + '</div>';   // K5 (018)
+      (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + linkImprezy(d.url) + '</div>';   // K5 (018)
   }
 
   /* M2b: karta osoby z aplikacji (tylko profile publiczne — filtr w EF). Przyciski wywołują ISTNIEJĄCE funkcje

@@ -19,7 +19,7 @@
 <!-- build: 2026-05-18-coach-picker -->
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="js/tekst.mjs"></script><script src="sb.js"></script><script src="js/wyniki-api.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -2605,9 +2605,25 @@ if (document.readyState === 'loading') {
 // ── EDYCJA CELÓW ─────────────────────────────────────────────────
 let _goalSelectedRace = null;  // jeśli wybrany z autocomplete - cały obiekt race
 
+let _goalImpreza = null;   // etap 5 (d): impreza z kalendarza maszyny (tylko powiązanie celu, bez zgłoszenia)
+function _goalImprezyPodepnij() {
+  if (!window.IMPREZY || !window.IMPREZY.podepnijPodpowiedz) return;
+  window.IMPREZY.podepnijPodpowiedz(document.getElementById('goal-name-inp'), document.getElementById('goal-imprezy-list'), function (d) {
+    document.getElementById('goal-name-inp').value = d.nazwa;
+    document.getElementById('goal-date-inp').value = d.data;
+    document.getElementById('goal-autocomplete-list').style.display = 'none';
+    document.getElementById('goal-propose-section').style.display = 'none';
+    _goalSelectedRace = null;
+    _goalImpreza = d;
+    document.getElementById('goal-imprezy-info').style.display = 'block';
+  });
+}
 function addGoalPrompt() {
   // Reset
   _goalSelectedRace = null;
+  _goalImpreza = null;
+  _goalImprezyPodepnij();
+  var gi = document.getElementById('goal-imprezy-info'); if (gi) gi.style.display = 'none';
   _linkingGoalIdx = -1;
   document.getElementById('goal-name-inp').value = '';
   document.getElementById('goal-date-inp').value = '';
@@ -2621,6 +2637,7 @@ function addGoalPrompt() {
 function closeGoalModal() {
   document.getElementById('goal-modal').style.display = 'none';
   _goalSelectedRace = null;
+  _goalImpreza = null;
   _linkingGoalIdx = -1;
   // pola propozycji nie mogą przeżyć do następnego celu — miasto z poprzedniego biegu to gorszy placeholder niż pusty
   var pc = document.getElementById('goal-propose-city'); if (pc) pc.value = '';
@@ -2756,6 +2773,9 @@ async function saveGoalFromModal() {
   const newGoal = { name: name, date: date };
   if (_goalSelectedRace) {
     newGoal.race_id = _goalSelectedRace.id;
+  } else if (_goalImpreza && _goalImpreza.nazwa === name) {
+    newGoal.impreza_klucz = _goalImpreza.klucz;   // etap 5 (d): powiązanie z kalendarzem maszyny, BEZ zgłoszenia
+    if (_goalImpreza.miejscowosc) newGoal.miejscowosc = _goalImpreza.miejscowosc;
   }
 
   // Sprawdź czy taki cel już istnieje
@@ -3318,6 +3338,10 @@ function _tileRaces() { location.href = 'races.html'; }   // kafel widoczny tylk
                style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;">
         <div id="goal-autocomplete-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:#16121d;border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;box-shadow:0 8px 32px rgba(0,0,0,0.6);"></div>
       </div>
+
+      <!-- Etap 5 (d): kalendarz imprez w Polsce (sb.js IMPREZY.podepnijPodpowiedz) — tylko wybór, bez zgłaszania -->
+      <div id="goal-imprezy-list" style="display:none;margin:-8px 0 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;"></div>
+      <div id="goal-imprezy-info" style="display:none;margin:-6px 0 14px;font-size:11px;color:var(--green);">Z kalendarza imprez w Polsce — cel powiązany z imprezą</div>
 
       <!-- Linkowane do wyścigu (info) -->
       <div id="goal-linked-info" style="display:none;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#3db870;">

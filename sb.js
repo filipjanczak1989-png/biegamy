@@ -461,7 +461,42 @@
       });
       return { lista: lista, liczba: lista.length, uciete: !!dane.uciete, okres: okres, q: q.length >= 3 ? q : '' };
     }
-    return { szukaj: szukaj, podpowiedz: podpowiedz, toSamo: toSamo, wyczysc: wyczysc, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
+    /* Etap 5 (d): podpowiedź imprez pod polem nazwy w modalach celu, w których zawodnik NIE jest autorem zgłoszeń
+       (profil.html, kalendarz.html — trener ustawia cel zawodnikowi). Tylko wybór: nic nie zgłasza (K5: zgłasza wyłącznie
+       sam zawodnik w zawodnik.html). Wiersze przez data-*, jeden delegowany klik; onPick({klucz,nazwa,data,miejscowosc}). */
+    function podepnijPodpowiedz(pole, lista, onPick) {
+      if (!pole || !lista || pole._bmImprezy) return;
+      pole._bmImprezy = true;
+      var timer = null, nr = 0, e = window.escapeHtml;
+      lista.addEventListener('click', function (ev) {
+        var w = ev.target && ev.target.closest ? ev.target.closest('.imp-podp') : null;
+        if (!w) return;
+        var d = { klucz: w.getAttribute('data-klucz'), nazwa: w.getAttribute('data-nazwa'), data: w.getAttribute('data-data'), miejscowosc: w.getAttribute('data-miejsce') || null };
+        if (!RE_KLUCZ_IMPREZY.test(String(d.klucz || '')) || !/^\d{4}-\d{2}-\d{2}$/.test(String(d.data || ''))) return;
+        lista.innerHTML = ''; lista.style.display = 'none';
+        onPick(d);
+      });
+      pole.addEventListener('input', function () {
+        clearTimeout(timer);
+        var q = String(pole.value || '').trim();
+        if (q.length < 3) { lista.innerHTML = ''; lista.style.display = 'none'; return; }
+        var moj = ++nr;
+        timer = setTimeout(async function () {
+          var r = [];
+          try { r = await podpowiedz(window.sb, q); } catch (x) { r = []; }
+          if (moj !== nr) return;
+          if (!r.length) { lista.innerHTML = ''; lista.style.display = 'none'; return; }
+          lista.innerHTML = '<div style="padding:6px 12px;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Kalendarz imprez w Polsce</div>'
+            + r.map(function (i) {
+              var meta = [new Date(i.data + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }), i.miejscowosc || '', i.status === 'zgloszona' ? 'zgłoszona przez biegacza' : ''].filter(Boolean).join(' · ');
+              return '<div class="imp-podp" data-klucz="' + e(i.klucz) + '" data-nazwa="' + e(i.nazwa) + '" data-data="' + e(i.data) + '" data-miejsce="' + e(i.miejscowosc || '') + '" style="padding:9px 12px;border-top:1px solid var(--border);cursor:pointer;">'
+                + '<div style="font-size:13px;font-weight:600;">' + e(i.nazwa) + '</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + e(meta) + '</div></div>';
+            }).join('');
+          lista.style.display = 'block';
+        }, 250);
+      });
+    }
+    return { szukaj: szukaj, podpowiedz: podpowiedz, toSamo: toSamo, wyczysc: wyczysc, podepnijPodpowiedz: podepnijPodpowiedz, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
   })();
 
   /* K5 (1.11.2026): zgłoszenie imprezy, której kalendarz maszyny nie zna (cel startowy bez powiązania) → EF impreza-zglos →

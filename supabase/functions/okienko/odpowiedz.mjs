@@ -16,6 +16,8 @@ function ostatniDzienMies(r, m) { return new Date(Date.UTC(r, m, 0)).toISOString
 function opisZakresu(od, doD) {
   const [r, m] = od.split("-").map(Number);
   if (doD.slice(0, 7) === od.slice(0, 7) && doD === ostatniDzienMies(r, m)) return `W ${MIES_MIEJSC[m - 1]}`;
+  // etap 5: zakres roczny (miasto/dystans bez miesiąca) — „od 1.11 do 1.11" bez roku wyglądało jak jeden dzień
+  if (Math.round((Date.parse(doD + "T12:00:00Z") - Date.parse(od + "T12:00:00Z")) / 86400000) >= 364) return "W najbliższym roku";
   return `Od ${DZIEN(od)} do ${DZIEN(doD)}`;
 }
 

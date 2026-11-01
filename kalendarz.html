@@ -957,6 +957,7 @@ html { scroll-behavior: smooth; }
       <div style="margin-bottom:12px;">
         <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">Nazwa startu</label>
         <input id="goal-name" type="text" placeholder="np. Maraton Warszawski 2026" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
+        <div id="goal-imprezy-list" style="display:none;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;"></div><!-- etap 5 (d): tylko wybór, bez zgłaszania -->
       </div>
       <div style="margin-bottom:12px;">
         <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">Data startu</label>
@@ -1318,7 +1319,9 @@ html { scroll-behavior: smooth; }
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
+<script src="js/tekst.mjs"></script>
 <script src="sb.js"></script>
+<script src="js/wyniki-api.js"></script><!-- etap 5 (d): podpowiedź imprez w modalu celu (trener ustawia cel zawodnikowi) -->
 <script src="js/dzis-offline.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
@@ -3401,7 +3404,14 @@ function renderGoals() {
   }).join('');
 }
 
+let _goalImprezaK = null;   // etap 5 (d): impreza z kalendarza maszyny wybrana przez trenera (powiązanie, bez zgłoszenia)
 async function openGoalModal(athleteId, celDate) {
+  _goalImprezaK = null;
+  if (window.IMPREZY && window.IMPREZY.podepnijPodpowiedz) window.IMPREZY.podepnijPodpowiedz(document.getElementById('goal-name'), document.getElementById('goal-imprezy-list'), function (d) {
+    document.getElementById('goal-name').value = d.nazwa;
+    document.getElementById('goal-date').value = d.data;
+    _goalImprezaK = d;
+  });
   _editingGoalId = athleteId || null;
   _editingGoalAthleteId = null;
   _editingGoalCelId = null;
@@ -3515,14 +3525,16 @@ async function saveGoal() {
   if (odczyt.uszkodzone) { notify(window.RACE_GOALS_ODMOWA); return; }
   let goals = odczyt.cele;
 
+  // etap 5 (d): powiązanie z imprezą z kalendarza maszyny — tylko gdy nazwa się zgadza z wybraną; BEZ zgłaszania
+  const powiaz = (_goalImprezaK && _goalImprezaK.nazwa === name) ? { impreza_klucz: _goalImprezaK.klucz } : {};
   if (_editingGoalCelDate) {
     // Edycja KONKRETNEGO biegu (klucz = data) — update wpisu (może zmienić datę/nazwę), NIE push
     const gIdx = goals.findIndex(g => g.date === _editingGoalCelDate);
-    if (gIdx !== -1) { goals[gIdx] = { ...goals[gIdx], name, date }; }
-    else { goals.push({ name, date }); }
+    if (gIdx !== -1) { goals[gIdx] = { ...goals[gIdx], name, date, ...powiaz }; }
+    else { goals.push({ name, date, ...powiaz }); }
   } else {
     // Nowy cel
-    goals.push({ name, date });
+    goals.push({ name, date, ...powiaz });
   }
 
   // SELF-HEAL: dedup po dacie (keep-first, preferuj wpis z race_id) — duplikaty nigdy nie wrócą

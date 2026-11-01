@@ -23,6 +23,8 @@ function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego 
 
 export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utwór z radia albo przepis.";
 export const ODP_TYLKO_POLSKA = "Maszyna wyników zna tylko biegi w Polsce.";   // M3-2 (e)
+export const ODP_ZDROWIE = "Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.";   // etap 5 (c): bez porad medycznych
+const ZDROWIE = /\b(kontuzj\w*|boli|bola|bolal\w*|bol|bolu|bolem|uraz\w*|naciagn\w*|naderwan\w*|skrecon\w*|zwichn\w*|stluczon\w*|zapalen\w*|shin splint\w*|piszczel\w* boli)\b/;
 export const ODP_KALKULATOR_PUSTY = "Napisz tempo (np. 5:30/km), prędkość w km/h albo czas i dystans — przeliczę.";   // M3-2 (d)
 const EKRAN_SLOWO = [
   [/\b(log|dziennik)\b/, "log"], [/\bplan\b/, "plan"], [/\bform\w*/, "forma"], [/\bspolecznos\w*/, "spolecznosc"],
@@ -137,6 +139,8 @@ export function dopasuj(tekst, dzis) {
   // M3-1 (3): powitanie → jedno zdanie bez modelu; „kto jest moim trenerem" → moj_trener (0 tokenów)
   if (/^(dzien dobry|czesc|hej|siema|witaj|witam|halo|dobry wieczor|hello|hi|elo|no hej)\b/.test(t) && t.split(" ").length <= 3) return { zdanie: POWITANIE, log: "powitanie" };
   if (/\b(moj|mojego|moim|mojemu)\s+trener\w*|\bmoim trenerem\b|\bmam trenera\b|\bkto mnie trenuje\b/.test(t)) return { narzedzie: "moj_trener", args: {} };
+  // etap 5 (c): ból / kontuzja → stałe zdanie, 0 tokenów, bez porad; EF dokłada „Napisz do trenera", gdy jest trener
+  if (ZDROWIE.test(t) && !/\bodzna\w*|\bpowrot po kontuzji\b.*\bodzna/.test(t)) return { zdanie: ODP_ZDROWIE, log: "zdrowie", trener: true };
   // M3-2 (a): forma („jaka mam formę", „mój TSB"), znajomi („moi znajomi co biegali" — nie „dodaj X do znajomych", to osoba),
   // miasto („kto biega z mojego miasta") — 0 tokenów; „co to jest forma / jak działa TSB" zostaje dla katalogu pojęć
   if (/\bmoj\w* tsb\b|\bmam tsb\b|\b(jaka|jaką|moja|mam|sprawdz|ocen)\b[^.]*\bform[aey]\b|\bform[aey]\b[^.]*\b(mam|moja)\b/.test(t)) return { narzedzie: "moja_forma", args: {} };

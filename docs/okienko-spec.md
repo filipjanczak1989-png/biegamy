@@ -316,3 +316,21 @@ Decyzja Filipa: zgłoszenie widoczne OD RAZU (status `zgloszona`, etykieta „zg
   POZA listą (tylko przez EF). Testy: blizna-87; blizna-53 (11 RPC).
 - Poza zakresem: modal celu w profil.html i kalendarz.html (trener ustawia cel zawodnikowi) — bez podpowiedzi z maszyny
   i bez zgłoszeń; do decyzji, czy dołożyć.
+
+## Etap 5 ławki (1.11.2026) — wdrożone w v25
+
+- (a) lista biegów z miastem albo dystansem, bez miesiąca → 365 dni (`DNI_Z_MIEJSCEM`), bez nich 90; zdanie zakresu
+  rocznego „W najbliższym roku…" (wcześniej „od 1.11 do 1.11").
+- (b) „ile kosztuje / wpisowe / opłata / cena / zapisy na / zapisać się na X" → tryb impreza z flagą `cena`: karta
+  z kalendarza + „Strona imprezy ›" (url TYLKO https z url_zapisy/url_organizer/url_regulamin; UI przez safeExternalHref
+  {tylkoHttps}); sieć tylko, gdy karty brak; bez słowa biegu („para butów") — impreza tylko po trafieniu w kalendarz.
+  Zdania: „Wpisowe i zapisy podaje strona imprezy:" / „Maszyna wyników nie zna strony tej imprezy — cenę i zapisy podaje
+  organizator." (prod 1.11: „52. Maraton Dębno" bez url). Decyzja M3a v1 „karta bez linku" zastąpiona (blizna-74).
+- (c) ból / kontuzja / uraz / naciągnięcie → stałe zdanie „Przy bólu lub kontuzji decyzję podejmij z trenerem albo
+  fizjoterapeutą." (0 tokenów, log router/zdrowie) + „Napisz do trenera" (karta plan_pusty/trener) tylko z trenerem.
+  „Katar" i inne porady ogólne zostają w sieci (decyzja 1.11).
+- (d) profil.html i kalendarz.html (trener ustawia cel zawodnikowi): `IMPREZY.podepnijPodpowiedz` (sb.js, data-*,
+  delegowany klik) — wybór wiąże cel `impreza_klucz`, NIC nie zgłasza (zgłasza tylko zawodnik w zawodnik.html).
+- (e) kalorie produktów — nie (osobna decyzja).
+Ławka etap 5: docs/lawka-pytan-2026-11-01-5.md — dobra 44/50, zła 0, pusta 0, za droga 6 (porady i kalorie — poza
+zakresem), koszt symulacji $0,24. Testy: blizna-89; blizna-74 (link https).
