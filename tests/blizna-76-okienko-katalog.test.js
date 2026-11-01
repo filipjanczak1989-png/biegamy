@@ -62,7 +62,8 @@ test('katalog: „zelazna" → utwór, „omlet" → przepis, „core" → progr
   const r = (await katalog('radio')).w;
   assert.ok(r.karty.some((k) => k.typ === 'kat_ekran' && k.dane.ekran === 'radio'));
   assert.equal(r.karty[0].typ, 'utwor', 'remis: radio przed resztą');
-  assert.equal((await katalog('4-7-8 oddech')).w, null, 'słabe trafienie (1 z 2 słów < 0,6) → null');
+  assert.equal((await katalog('4-7-8 oddech')).w.karty[0].dane.klucz, '478', 'M3-1 (2): „oddech” = kategoria, cyfry = słowa → technika');
+  assert.equal((await katalog('zelazna kotlina gory')).w, null, 'słabe trafienie (1 z 3 słów < 0,6) → null');
   assert.equal((await katalog('xyz qwe')).w, null);
   assert.equal((await katalog('ab')).w, null, '< 3 znaki');
   assert.ok((await katalog('jajecznica')).w.karty.length <= 5);

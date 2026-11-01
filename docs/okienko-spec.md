@@ -230,3 +230,16 @@ Kontekst: „w/na <Miejsce>" → `gdzie` → filtr runner_results po rdzeniu (br
 startu tej osoby: X." i pełna karta); „kim jest / w sieci / google" → wprost. Reguła publiczności bez zmian — zdanie
 z wykrytą osobą idzie do Google tylko dla osoby publicznej sportowo albo wprost. Strażnik ścieżki ogólnej zna też
 `osobaWZdaniu` (pas bezpieczeństwa). Testy: blizna-81 (15 zdań → 0 wyjść do sieci poza wprost).
+
+## M3-1 (2) kolejność i detektory (1.11.2026) — wdrożone w v19
+
+Luki z ławki: (1) „maraton/bieg + nazwa" („maraton warszawski", „bieg niepodległości") → IMPREZA, nie lista; lista
+zostaje dla „jakie biegi/maratony w <miesiąc|miasto>" (`BIEG_NAZWANY` + `NIE_NAZWA_PO_BIEGU` w router.mjs); (2) lista
+wyklucza co jeść / jak / czy / ile kosztuje / cena / wpisowe; (3) pusta lista podaje zakres: „Maszyna wyników nie ma biegów
+od 1.11 do 30.01 w Krakowie na półmaratonie."; (4) „weekend" = najbliższe sb–nd (sb/nd dziś → ten weekend); (5) router
+rekordów wyklucza świata/polski/europy/olimpijski/trasy/kraju/mistrz; (6) „co to jest / co znaczy / za co odznaka X" omija
+router odznak → katalog (karta odznaki — bez opisu, tylko nazwa); (7) katalog pomija słowa kategorii (cwiczenia, program,
+trening, oddech, utwor, piosenka, odznaka, wyzwanie, jest, czym…) i liczy cyfry jako słowa („oddech 4-7-8" → technika;
+to samo w przepisy-szukaj.mjs — Jedzenie); (8) F6: imię i nazwisko najpierw jak wpisane, przy 0 trafień drugie wywołanie
+rdzeniami („katarz chojnack" — search_runners dopasowuje po tokenach; na prod 4 trafienia), maks. 2 wywołania.
+Testy: blizna-82; blizna-73/76 dostosowane.

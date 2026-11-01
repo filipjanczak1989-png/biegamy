@@ -84,9 +84,13 @@ export function zWyniku(nazwa, w, args = {}) {
   }
   if (nazwa === "biegi_nadchodzace") {
     if (w.blad_f6 === "limit") return { zdania: [ODP_F6_ZAJETA], karty: [] };
-    if (!w.liczba) return { zdania: [ODP_BIEGI_PUSTO], karty: [] };
     const kiedy = opisZakresu(w.od, w.do);
     const gdzie = w.miejsce ? (w.przy ? ` ${w.przy} ${w.miejsce.charAt(0).toUpperCase() + w.miejsce.slice(1)}` : ` (miejsce: ${w.miejsce})`) : "";
+    if (!w.liczba) {   // M3-1 (2): pusto z ZAKRESEM — „nie ma biegów od 1.11 do 30.01 w Krakowie", nie „w tym zakresie"
+      if (!w.od || !w.do) return { zdania: [ODP_BIEGI_PUSTO], karty: [] };
+      const dystP = w.dystans_km ? ` na ${DYSTANS_NAZWA[String(Math.round(w.dystans_km))] || km(w.dystans_km) + " km"}` : "";
+      return { zdania: [`Maszyna wyników nie ma biegów ${kiedy.charAt(0).toLowerCase() + kiedy.slice(1)}${gdzie}${dystP}.`], karty: [] };
+    }
     const ile = `${w.liczba} ${odmiana(w.liczba, ["bieg", "biegi", "biegów"])}`;
     const dyst = w.dystans_km ? ` na ${DYSTANS_NAZWA[String(Math.round(w.dystans_km))] || km(w.dystans_km) + " km"}` : "";
     return { zdania: [`${kiedy}${gdzie}${dyst} maszyna wyników zna ${ile}.`], karty: (w.biegi || []).map((b) => ({ typ: "impreza", dane: b })) };

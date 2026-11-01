@@ -114,7 +114,12 @@ export async function osobyWAplikacji(sb, athleteId, q) {
 const RE_MP = /mistrzostw\w*\s+polski/i;
 /** → null (brak dopasowań) | {dopasowania[], najlepszy{...}, publiczna:boolean}. Rzuca BladF6. */
 export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now(), gdzie = null) {
-  const s = await f6(fetchFn, token, "search_runners", { q, lim: MAX_DOPASOWAN }, teraz);
+  let s = await f6(fetchFn, token, "search_runners", { q, lim: MAX_DOPASOWAN }, teraz);
+  if (!s.length) {   // M3-1 (2): odmiana („Katarzyny Chojnackiej") → rdzenie („katarz chojnack"); search_runners dopasowuje po tokenach
+    const T = /** @type {any} */ (globalThis).BM_TEKST;
+    const q2 = String(q).split(/\s+/).map((w) => T.rdzen(T.tylkoLitery(w))).filter((w) => w.length >= 3).join(" ");
+    if (q2 && q2 !== T.bezZnakow(q)) s = await f6(fetchFn, token, "search_runners", { q: q2, lim: MAX_DOPASOWAN }, teraz);
+  }
   if (!s.length) return null;
   const b = s[0];
   const w = await f6(fetchFn, token, "runner_results", { p_runner_key: b.runner_key }, teraz);

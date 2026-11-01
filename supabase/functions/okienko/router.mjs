@@ -31,9 +31,19 @@ const EKRAN_SLOWO = [
    „gdzie pobiec"). NIE: pytania o zwycięzców, wyniki, trasy, zapisy, rekordy i własne starty („moje", „mam") —
    te idą do osoby/narzędzi/sieci jak dotąd („Kto wygrał maraton w Berlinie?" to wynik, nie termin). */
 const BIEG_SLOWO = /\b(bieg\w*|zawod\w*|maraton\w*|polmaraton\w*|dych\w*|piatk\w*|imprez\w*|pobiec|pobiegac|starty)\b/;
-const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|moj\w*|mam|mial\w*|pobieg\w*l\w*|ile|jak)\b/;
+const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|moj\w*|mam|mial\w*|pobieg\w*l\w*|ile|jak|czy|kosztuj\w*|wpisow\w*|cen[aęy]|co\s+je[sś][cć])\b/;   // M3-1 (2): co jeść/jak/czy/ile kosztuje → nie lista
+// M3-1 (2): po słowie „maraton/półmaraton/bieg" stoi NAZWA (przymiotnik, nazwa własna: „maraton warszawski", „bieg niepodleglosci")
+// → to konkretna impreza (impreza.mjs), nie lista; lista zostaje dla „jakie biegi/maratony w <miesiąc|miasto>".
+const BIEG_NAZWANY = /\b(maraton\w*|polmaraton\w*|bieg\w*|zawod\w*|ultra\w*|cross\w*|parkrun\w*)\s+([a-z][a-z-]{2,})/;
+const NIE_NAZWA_PO_BIEGU = /^(w|we|na|pod|kolo|obok|przy|i|oraz|lub|albo|dla|do|od|z|ze|jest|sa|beda|bedzie|byl|byly|tez|jeszcze|dzis|jutro|weekend\w*|tym|tego|ten|ta|to|ktory|ktora|ktore|jaki|jaka|jakie|gdzie|kiedy|nowe|wszystkie|blisko|niedaleko|kolo)$/;
 const PRZYIMKI = ["w", "we", "na", "pod", "kolo", "obok"];
 const NIE_MIEJSCE = /^(tym|tymze|przyszlym|najblizszym|najblizszy|weekend\w*|sobote|niedziele|okolic\w*|polsce|polska|kraju|lesie|gorach|terenie|miescie|ciagu|dzien|dni|tygodni\w*|miesiac\w*|roku|km|kilometr\w*)$/;
+function najblizszyWeekend(dzis) {   // sb–nd: dziś sb/nd → ten weekend, inaczej najbliższy
+  const dow = new Date(dzis + "T12:00:00Z").getUTCDay();   // 0 nd … 6 sb
+  const doSoboty = dow === 6 ? 0 : dow === 0 ? -1 : 6 - dow;
+  const sb = dodajDni(dzis, doSoboty), nd = dodajDni(sb, 1);
+  return { od: sb < dzis ? dzis : sb, do: nd };
+}
 function miesiacPrzyszly(nr, dzis) {   // nr 1..12; miesiąc wcześniejszy niż bieżący → przyszły rok; od = max(1. dzień, dziś)
   let r = Number(dzis.slice(0, 4));
   if (nr < Number(dzis.slice(5, 7))) r += 1;
@@ -50,6 +60,7 @@ export function dopasujBiegi(tekst, dzis) {
   else if (/\bpiatk\w*|\b5 ?km\b|\b5k\b/.test(t)) args.dystans = "5";
   const mies = t.replace(new RegExp(BIEG_SLOWO.source, "g"), " ").match(RE_MIESIAC);   // „maraton" ≠ marzec
   if (mies) Object.assign(args, miesiacPrzyszly(MIESIACE.findIndex((m) => mies[1].startsWith(m === "maj" ? "maj" : m)) + 1, dzis));
+  else if (/\bweekend\w*/.test(t)) Object.assign(args, najblizszyWeekend(dzis));   // M3-1 (2): weekend = najbliższe sb–nd, nie 90 dni
   const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean);
   for (let i = 0; i < slowa.length - 1; i++) {
     const p = normalizuj(slowa[i]);
@@ -61,6 +72,8 @@ export function dopasujBiegi(tekst, dzis) {
   }
   const ogolne = /\b(jakie|gdzie|kiedy)\b.*\b(bieg\w*|zawod\w*|pobiec|starty)\b|\bgdzie pobiec|\bbiegi\b/.test(t);
   if (!args.miejsce && !args.od && !args.dystans && !ogolne) return null;
+  const nazwany = t.match(BIEG_NAZWANY);
+  if (nazwany && !NIE_NAZWA_PO_BIEGU.test(nazwany[2]) && !RE_MIESIAC.test(" " + nazwany[2]) && !(ogolne && (args.od || args.miejsce))) return null;   // konkretny bieg → impreza
   return { narzedzie: "biegi_nadchodzace", args };
 }
 
@@ -75,8 +88,9 @@ export function dopasuj(tekst, dzis) {
   if (/\b(kiedy|jaki)\b.*\bstart|\bnajblizsz\w* start|\bmoje starty|\bmoj start/.test(t)) return { narzedzie: "moje_starty", args: {} };
   // M3d: rekordy i moje wyniki — przed kalendarzem („jak mi poszło w Dębnie" to wynik, nie termin)
   if (!/\bkto\b/.test(t)) {
-    if (/\bszans\w*\b.*\b(rekord\w*|pb|zyciow\w*)/.test(t)) return { narzedzie: "moje_rekordy", args: { szanse: true } };
-    if (/\b(rekord\w*|pb|zyciowk\w*|zyciowe|najlepsz\w* czas\w*)\b/.test(t)) return { narzedzie: "moje_rekordy", args: {} };
+    const cudzyRekord = /\b(swiata|polski|europy|olimpijsk\w*|trasy|kraju|mistrz\w*)\b/.test(t);   // M3-1 (2): rekord świata ≠ mój rekord
+    if (!cudzyRekord && /\bszans\w*\b.*\b(rekord\w*|pb|zyciow\w*)/.test(t)) return { narzedzie: "moje_rekordy", args: { szanse: true } };
+    if (!cudzyRekord && /\b(rekord\w*|pb|zyciowk\w*|zyciowe|najlepsz\w* czas\w*)\b/.test(t)) return { narzedzie: "moje_rekordy", args: {} };
     if (/\b(moje wyniki|moich wynikow|moj wynik|jak mi poszlo|jak pobieglem|jak pobieglam)\b/.test(t)) {
       const m = String(tekst).match(/\s(?:w|we|na)\s+([\p{L}][\p{L}.-]{2,39})/u);
       return { narzedzie: "moje_wyniki", args: m ? { gdzie: m[1] } : {} };
@@ -93,7 +107,7 @@ export function dopasuj(tekst, dzis) {
     if (/\broku\b|\brok\b|\bw tym roku/.test(t)) return { narzedzie: "moje_treningi", args: { od: dzis.slice(0, 5) + "01-01", do: dzis } };
   }
   if (/\bwyzwan\w*/.test(t)) return { narzedzie: "wyzwania_postep", args: {} };
-  if (/\bodzna\w*/.test(t)) return { narzedzie: "odznaki_moje", args: {} };
+  if (/\bodzna\w*/.test(t) && !/^(co to|co znaczy|co oznacza|czym jest|za co)\b/.test(t)) return { narzedzie: "odznaki_moje", args: {} };   // M3-1 (2): „co to jest odznaka X" → katalog
   // nawigacja wprost — OSTATNIA (pierwsza reguła wygrywa, jak w tabeli M1 pkt 5): „otwórz odznaki" trafia wyżej
   // w narzędzie, które i tak daje „Otwórz ›" na ten ekran; tu zostają ekrany bez narzędzia (log, jedzenie, radio…)
   const nav = t.match(/^(otworz|pokaz|idz do|przejdz do|wejdz w|wejdz do)\s+(.+)$/);

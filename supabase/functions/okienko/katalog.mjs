@@ -18,7 +18,10 @@ const C = /** @type {any} */ (globalThis).BM_CWICZENIA_NAZWY;
 export const PROG_MOCNY = 0.6, MAX_KART_KATALOGU = 5;
 export const ODP_KATALOG = "Znalazłem w aplikacji:";
 // słowa poleceń, które nie są tytułem („zagraj żelazna wola", „pokaż przepis na omlet")
-const KAT_POMIN = { zagraj: 1, odtworz: 1, pusc: 1, wlacz: 1, pokaz: 1, otworz: 1, znajdz: 1, piosenka: 1, piosenke: 1, utwor: 1, kawalek: 1, ten: 1, ta: 1, to: 1 };
+// M3-1 (2): także słowa KATEGORII (jak „przepis" w przepisy-szukaj) — „cwiczenia na core", „oddech 4-7-8", „co to jest odznaka X"
+const KAT_POMIN = { zagraj: 1, odtworz: 1, pusc: 1, wlacz: 1, pokaz: 1, otworz: 1, znajdz: 1, piosenka: 1, piosenke: 1, utwor: 1, kawalek: 1, ten: 1, ta: 1, to: 1,
+  cwiczenia: 1, cwiczenie: 1, cwiczen: 1, program: 1, programy: 1, trening: 1, treningi: 1, oddech: 1, oddechowe: 1, oddechu: 1, technika: 1,
+  odznaka: 1, odznaki: 1, odznake: 1, wyzwanie: 1, wyzwania: 1, ekran: 1, jest: 1, czym: 1, znaczy: 1, oznacza: 1, dostac: 1, zdobyc: 1 };
 const KOLEJNOSC = { utwor: 0, przepis: 1, cwiczenie: 2, kat_ekran: 3, kat_wyzwanie: 4, kat_odznaka: 5 };   // kat_*: nie mylić z kartami wyzwanie/odznaka narzędzi
 
 /** → null (brak mocnego trafienia) | {zdania, karty, liczba} */
@@ -27,7 +30,7 @@ export async function szukajWKatalogu(sb, tekst) {
   if (t.length < 3 || /^\d+$/.test(t)) return null;
   const rd = S.rdzenieZapytania(t, KAT_POMIN);
   if (!rd.length) return null;
-  if (!S.slowa(t).some((w) => w.length >= 4 && !KAT_POMIN[w])) return null;
+  if (!S.slowa(t).some((w) => (w.length >= 4 && !KAT_POMIN[w]) || /^\d+$/.test(w))) return null;   // cyfry liczą się jako słowa („4-7-8")
   const [rT, rP] = await Promise.all([
     sb.from("radio_tracks").select("id,title,artist,cover_slug").limit(500),
     sb.from("recipes").select("id,title,emoji,ingredients,tags").limit(500),

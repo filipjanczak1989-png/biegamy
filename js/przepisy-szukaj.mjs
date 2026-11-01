@@ -17,7 +17,7 @@
   function rdzenieZapytania(q, dodatkowePomin) {
     var p = dodatkowePomin || {}, wynik = [];
     slowa(q).forEach(function (w) {
-      if (w.length < 3 || POMIN[w] || p[w]) return;
+      if ((w.length < 3 && !/^\d+$/.test(w)) || POMIN[w] || p[w]) return;   // cyfra = słowo („4-7-8"), M3-1 (2)
       var r = rdzen(w);
       if (wynik.indexOf(r) < 0) wynik.push(r);
     });

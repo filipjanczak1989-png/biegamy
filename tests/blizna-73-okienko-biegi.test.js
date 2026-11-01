@@ -47,10 +47,11 @@ test('router: 10 zdań (bez polskich znaków, z literówkami) → biegi_nadchodz
     ['biegi pod Sroda', { miejsce: 'Sroda', przy: 'pod' }],
     ['jakie zawody we wroclawu?', { miejsce: 'wroclawu', przy: 'we' }],
     ['maraton w lutym', { dystans: '42', od: '2027-02-01', do: '2027-02-28' }],
+    ['jakie maratony w kwietniu', { dystans: '42', od: '2027-04-01', do: '2027-04-30' }],
     ['polmaraton w krakowie w marcu', { dystans: '21', od: '2027-03-01', do: '2027-03-31', miejsce: 'krakowie', przy: 'w' }],
     ['gdzie pobiec 5 km', { dystans: '5' }],
     ['biegi w okolicach gdanska', { miejsce: 'gdanska', przy: 'w okolicach' }],
-    ['jakie biegi w weekend', {}],
+    ['jakie biegi w weekend', { od: '2026-11-01', do: '2026-11-01' }],   // M3-1 (2): nd 1.11 → ten weekend
     ['zawody na slasku w styczniu', { od: '2027-01-01', do: '2027-01-31', miejsce: 'slasku', przy: 'na' }],
   ];
   for (const [t, args] of P) assert.deepEqual(R.dopasuj(t, DZIS), { narzedzie: 'biegi_nadchodzace', args }, t);
@@ -116,7 +117,9 @@ test('zdania: „W listopadzie w Poznaniu maszyna wyników zna N biegów."; pust
     'W listopadzie w Poznaniu maszyna wyników zna 4 biegi.');
   assert.equal(zWyniku('biegi_nadchodzace', { od: '2026-12-01', do: '2026-12-31', dystans_km: 10, liczba: 12, biegi: [] }).zdania[0], 'W grudniu na 10 km maszyna wyników zna 12 biegów.');
   assert.equal(zWyniku('biegi_nadchodzace', { od: '2026-11-01', do: '2027-01-30', liczba: 1, biegi: [jeden] }).zdania[0], 'Od 1.11 do 30.01 maszyna wyników zna 1 bieg.');
-  assert.deepEqual(zWyniku('biegi_nadchodzace', { od: '2026-11-01', do: '2026-11-30', liczba: 0, biegi: [] }).zdania, ['Maszyna wyników nie ma biegów w tym zakresie.']);
+  assert.deepEqual(zWyniku('biegi_nadchodzace', { od: '2026-11-01', do: '2026-11-30', liczba: 0, biegi: [] }).zdania, ['Maszyna wyników nie ma biegów w listopadzie.']);
+  assert.deepEqual(zWyniku('biegi_nadchodzace', { od: '2026-11-01', do: '2027-01-30', miejsce: 'Krakowie', przy: 'w', dystans_km: 21.0975, liczba: 0, biegi: [] }).zdania,
+    ['Maszyna wyników nie ma biegów od 1.11 do 30.01 w Krakowie na półmaratonie.'], 'M3-1 (2): pusto z zakresem');
   assert.deepEqual(zWyniku('biegi_nadchodzace', { blad_f6: 'limit', liczba: 0, biegi: [] }).zdania, ['Maszyna wyników jest teraz zajęta — spróbuj za chwilę.']);
   assert.equal(zWyniku('biegi_nadchodzace', { od: '2026-11-01', do: '2026-11-30', liczba: 1, biegi: [jeden] }).karty[0].typ, 'impreza');
 });
