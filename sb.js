@@ -586,7 +586,8 @@
     /* ▶ PONOWNE ODTWORZENIE (2.11.2026): po końcu / pominięciu filmu, a także gdy dziś już był albo przy reduced-motion
        (świadomy wybór — przycisk JEST, ale bez autostartu). Prawy dolny róg banera: 32 px wizualnie, pole dotyku 44 px,
        opacity .7 (hover/focus 1), aria-label „Odtwórz film"; cytat i autor dostają odstęp z prawej, żeby go nie zasłaniał.
-       Tap → ten sam film od początku, wyciszony (🔊 jak zwykle), BEZ zmiany znacznika „raz dziennie". Brak przycisku:
+       Tap → ten sam film od początku Z DŹWIĘKIEM (poprawka Filipa 2.11: tap to gest — muted=false i play() w tym samym
+       handlerze; odrzucone → wyciszony + „🔊"), BEZ zmiany znacznika „raz dziennie". Brak przycisku:
        brak filmu w FILMY_PROMO, offline, Save-Data. */
     function moznaPowtorzyc() {
       if (!(window.FILMY_PROMO || []).length) return false;
@@ -621,7 +622,8 @@
       return b;
     }
     /** Montuje film na banerze. Zwraca element <video> albo null (powód w baner.dataset.film).
-        opcje.recznie (▶): pomija „raz dziennie" i reduced-motion (wybór człowieka), NIE zapisuje znacznika dnia. */
+        opcje.recznie (▶): pomija „raz dziennie" i reduced-motion (wybór człowieka), NIE zapisuje znacznika dnia, gra OD RAZU
+        z dźwiękiem (play() synchronicznie w handlerze kliknięcia). Autostart: zawsze wyciszony, play() po canplaythrough. */
     function start(baner, teraz, opcje) {
       if (!baner || baner.querySelector('.film-dzis')) return null;
       var recznie = !!(opcje && opcje.recznie);
@@ -634,8 +636,9 @@
       zdejmijPowtorke(baner);
       var v = document.createElement('video');
       v.className = 'film-dzis';
-      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.autoplay = false; v.preload = 'none';   // preload 'auto' po wyrenderowaniu banera
-      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); v.setAttribute('poster', window.assetUrl(film.poster));
+      v.muted = !recznie; v.defaultMuted = !recznie; v.playsInline = true; v.autoplay = false; v.preload = 'none';   // preload 'auto' po wyrenderowaniu banera
+      if (!recznie) v.setAttribute('muted', '');   // autostart: wyciszony; ▶: z dźwiękiem (gest użytkownika)
+      v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); v.setAttribute('poster', window.assetUrl(film.poster));
       v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
         ';transition:object-position .6s ease,opacity .3s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;opacity:0;';
       [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { var z = document.createElement('source'); z.src = window.assetUrl(film[s[0]]); z.type = s[1]; v.appendChild(z); });
@@ -644,17 +647,21 @@
          Nigdy autoodtwarzanie z dźwiękiem — film zawsze startuje wyciszony, dźwięk wyłącznie po dotknięciu. Po końcu znika. */
       if (film.dzwiek) {
         glosnik = document.createElement('button');
-        glosnik.type = 'button'; glosnik.className = 'film-dzwiek'; glosnik.textContent = '🔊';
-        glosnik.setAttribute('aria-label', 'Włącz dźwięk');
+        glosnik.type = 'button'; glosnik.className = 'film-dzwiek';
         glosnik.style.cssText = 'position:absolute;top:6px;right:6px;z-index:4;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);' +
           'background:rgba(7,7,10,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease;';
         glosnik.addEventListener('click', function (e) {
           e.stopPropagation();
           v.muted = !v.muted;
-          glosnik.textContent = v.muted ? '🔊' : '🔇';
-          glosnik.setAttribute('aria-label', v.muted ? 'Włącz dźwięk' : 'Wycisz');
+          stanGlosnika();
         });
       }
+      function stanGlosnika() {   // 🔊 „Włącz dźwięk" gdy wyciszony, 🔇 „Wycisz" gdy gra z dźwiękiem
+        if (!glosnik) return;
+        glosnik.textContent = v.muted ? '🔊' : '🔇';
+        glosnik.setAttribute('aria-label', v.muted ? 'Włącz dźwięk' : 'Wycisz');
+      }
+      stanGlosnika();
       function zakoncz() {
         if (koniec) return; koniec = true;
         v.style.opacity = '0';
@@ -675,6 +682,19 @@
       baner.appendChild(v);
       if (glosnik) baner.appendChild(glosnik);
       baner.dataset.film = 'laduje';
+      if (recznie) {
+        /* ▶: play() TERAZ, w tym samym handlerze kliknięcia (gest) — z dźwiękiem. Odrzucone (polityka autoplay) → wyciszony
+           i „🔊"; odrzucone i wyciszone → koniec, cytat. canplaythrough już nie startuje drugi raz (gotowy). */
+        gotowy = true;
+        try {
+          var pr0 = v.play();
+          if (pr0 && typeof pr0.catch === 'function') pr0.catch(function () {
+            if (koniec) return;
+            v.muted = true; stanGlosnika();
+            try { var pr1 = v.play(); if (pr1 && typeof pr1.catch === 'function') pr1.catch(zakoncz); } catch (e) { zakoncz(); }
+          });
+        } catch (e) { zakoncz(); }
+      }
       var rAF = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
       rAF(function () { if (!koniec) { v.preload = 'auto'; v.setAttribute('preload', 'auto'); try { v.load(); } catch (e) {} } });
       setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
