@@ -240,6 +240,7 @@ test('EF okienko: wymagajUsera na wejściu, athlete_id z sesji, verify_jwt w con
   assert.match(ef, /const user = await wymagajUsera\(req\);\s*\n\s*if \(!user\) return odp\(401/);
   assert.match(ef, /\.from\("athletes"\)\.select\("id"\)\.eq\("user_id", user\.id\)/);
   assert.ok(!/body\.athlete|body\.athleteId|body\.dzis/.test(ef), 'athlete_id / dzis od klienta');
-  assert.ok(!/generativelanguage|GEMINI/.test(ef), 'krok 2 bez modelu');
+  /* krok 3: model jest, ale ZAWSZE po routerze i po limitach — router odpowiada bez tokenów i bez limitu */
+  assert.ok(ef.indexOf('dopasuj(tekst, dzis)') < ef.indexOf('sprawdzLimity(') && ef.indexOf('sprawdzLimity(') < ef.indexOf('zapytajModel({'), 'kolejność router → limity → model');
   assert.match(fs.readFileSync(path.join(KORZEN, 'supabase', 'config.toml'), 'utf8'), /\[functions\.okienko\]\s*\nverify_jwt = true/);
 });
