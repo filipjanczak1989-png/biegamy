@@ -88,7 +88,7 @@
       return '<div class="okn-karta okn-karta--wyz"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(p) + '%</span>' +
         '<span class="okn-pasek"><span style="width:' + p + '%"></span></span></div>';
     }
-    if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.id || '') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
+    if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Odznaka') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
     return '';
   }
 

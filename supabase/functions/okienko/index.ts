@@ -13,7 +13,7 @@ import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
 import { dopasuj, normalizuj } from "./router.mjs";
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
-import { sprawdz } from "./straznik.mjs";
+import { sprawdz, powodPustych } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
 import { wygladaNaOsobe, ODP_OSOBA, zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska } from "./pamiec.mjs";
@@ -122,10 +122,11 @@ Deno.serve(async (req) => {
     return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
   }
 
-  const karty = m.karty_z.flatMap((n: string) => { const u = m.uzyte.find((x: { nazwa: string }) => x.nazwa === n); return u ? zWyniku(n, u.wynik, u.args).karty : []; });
-  const s = sprawdz(m.zdania, karty.length, m.uzyte.map((u: { wynik: unknown }) => u.wynik));
+  const zKartami = m.karty_z.filter((n: string) => { const u = m.uzyte.find((x: { nazwa: string }) => x.nazwa === n); return u && zWyniku(n, u.wynik, u.args).karty.length > 0; });
+  const karty = zKartami.flatMap((n: string) => { const u = m.uzyte.find((x: { nazwa: string }) => x.nazwa === n); return u ? zWyniku(n, u.wynik, u.args).karty : []; });
+  const s = sprawdz(m.zdania, karty.length, m.uzyte.map((u: { wynik: unknown }) => u.wynik), zKartami);
   const nazwy: string[] = m.uzyte.map((u: { nazwa: string }) => u.nazwa);
   await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: nazwy, tryb: "flash", tok_we: m.tok.we, tok_wy: m.tok.wy,
-    ok: s.odrzucone.length === 0, powod_odrzucenia: s.odrzucone.length ? s.odrzucone.map((o: { liczba: string; zdanie: string }) => `liczba ${o.liczba}: ${o.zdanie}`).join(" | ").slice(0, 500) : null });
+    ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: powodPustych(s, m) });
   return odp(200, { zdania: s.zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
 });

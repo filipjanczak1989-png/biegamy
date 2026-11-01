@@ -72,7 +72,7 @@ function baza() {
     ],
     races: [{ id: 'r1', city: 'Warszawa' }],
     achievements: [
-      { athlete_id: JA, badge_id: 'pierwszy_bieg', earned_at: '2026-10-01T10:00:00Z' },
+      { athlete_id: JA, badge_id: 'pierwszy_krok', earned_at: '2026-10-01T10:00:00Z' },
       { athlete_id: OBCY, badge_id: 'maraton', earned_at: '2026-10-02T10:00:00Z' },
     ],
   };
@@ -132,7 +132,8 @@ test('wykonanie: każde narzędzie widzi WYŁĄCZNIE wiersze wołającego; kilom
   const st = await N.wykonaj(sb, JA, 'moje_starty', {}, TERAZ);
   assert.deepEqual(st.cele.map((c) => [c.nazwa, c.dni_do, c.miasto]), [['Bieg Niepodległości', 10, 'Warszawa']]);
   const od = await N.wykonaj(sb, JA, 'odznaki_moje', {}, TERAZ);
-  assert.equal(od.liczba, 1); assert.equal(od.ostatnie[0].id, 'pierwszy_bieg');
+  assert.equal(od.liczba, 1); assert.equal(od.ostatnie[0].id, 'pierwszy_krok');
+  assert.equal(od.ostatnie[0].nazwa, 'Pierwszy krok', 'nazwa z katalogu odznaki.html, slug tylko w id');
   const wy = await N.wykonaj(sb, JA, 'wyzwania_postep', {}, TERAZ);
   assert.equal(wy.aktywne.length, 5);
   for (const z of sb.zapytania) {
@@ -244,4 +245,27 @@ test('EF okienko: wymagajUsera na wejściu, athlete_id z sesji, verify_jwt w con
   /* krok 3: model jest, ale ZAWSZE po routerze i po limitach — router odpowiada bez tokenów i bez limitu */
   assert.ok(ef.indexOf('dopasuj(tekst, dzis)') < ef.indexOf('sprawdzLimity(') && ef.indexOf('sprawdzLimity(') < ef.indexOf('zapytajModel({'), 'kolejność router → limity → model');
   assert.match(fs.readFileSync(path.join(KORZEN, 'supabase', 'config.toml'), 'utf8'), /\[functions\.okienko\]\s*\nverify_jwt = true/);
+});
+
+test('nazwy odznak (_shared/odznaki-nazwy.mjs) = katalog BADGES z odznaki.html; karta odznaki bez podkreśleń (test Filipa 1.11: „pierwszy_start")', async () => {
+  const { NAZWY_ODZNAK, nazwaOdznaki } = await zaladuj('supabase/functions/_shared/odznaki-nazwy.mjs');
+  const h = fs.readFileSync(path.join(KORZEN, 'odznaki.html'), 'utf8');
+  const i = h.indexOf('const BADGES = ['), j = h.indexOf('\n];', i);
+  const B = new Function('return ' + h.slice(i + 15, j + 3))();
+  assert.ok(B.length > 100);
+  assert.equal(JSON.stringify(NAZWY_ODZNAK), JSON.stringify(Object.fromEntries(B.map((b) => [b.id, b.name]))), 'kopia rozjechana z odznaki.html — wygeneruj ponownie');
+  assert.equal(nazwaOdznaki('pierwszy_start'), 'Pierwszy start');
+  assert.equal(nazwaOdznaki('nie_ma_takiej'), 'Odznaka', 'id spoza katalogu nie wychodzi jako slug');
+  assert.equal(nazwaOdznaki('__proto__'), 'Odznaka');
+  const sb = { from: () => { const q = { select: () => q, eq: () => q, order: () => q,
+    limit: () => Promise.resolve({ data: [...B.map((b) => ({ badge_id: b.id, earned_at: '2026-10-01T10:00:00Z' })), { badge_id: 'stare_id_bez_katalogu', earned_at: null }], count: B.length + 1, error: null }) }; return q; } };
+  const N = await zaladuj('supabase/functions/okienko/narzedzia.mjs');
+  const { zWyniku } = await zaladuj('supabase/functions/okienko/odpowiedz.mjs');
+  const w = await N.wykonaj(sb, 'ath-ja', 'odznaki_moje', {}, TERAZ);
+  const karty = zWyniku('odznaki_moje', w).karty;
+  assert.equal(karty.length, B.length + 1);
+  for (const k of karty) assert.ok(k.dane.nazwa && !/_/.test(k.dane.nazwa), `nazwa karty z podkreśleniem: ${k.dane.nazwa}`);
+  const ui = fs.readFileSync(path.join(KORZEN, 'js', 'okienko.js'), 'utf8');
+  assert.match(ui, /k\.typ === 'odznaka'\) return [^\n]*esc\(d\.nazwa \|\| 'Odznaka'\)/, 'karta odznaki w UI czyta nazwę, nie id');
+  assert.ok(!/k\.typ === 'odznaka'\) return [^\n]*d\.id/.test(ui), 'karta odznaki w UI pokazuje id');
 });

@@ -25,6 +25,28 @@ test('strażnik (8.2): cyfra spoza wyników → zdanie odrzucone; nic nie zosta�
   assert.equal(S.sprawdz(['Start 12.11.'], 0, wyniki).zdania[0], S.NIE_MAM, 'data przesunięta o dzień = zmyślona');
 });
 
+test('zdanie zastępcze zależy od narzędzi kart; powód do logu mówi, co model próbował powiedzieć (test Filipa 1.11)', async () => {
+  const S = await zaladuj('supabase/functions/okienko/straznik.mjs');
+  const wyniki = [{ cele: [{ nazwa: 'Bieg Niepodległości', data: '2026-11-11', dni_do: 10 }] }];
+  const jeden = S.sprawdz(['Szansa na rekord to 80%.'], 1, wyniki, ['moje_starty']);
+  assert.equal(jeden.zdania[0], 'Oto Twoje starty.');
+  assert.equal(jeden.puste, true);
+  assert.equal(S.powodPustych(jeden, {}), 'wszystkie zdania odrzucone, zdanie zastępcze | liczba 80: Szansa na rekord to 80%.');
+  assert.equal(S.sprawdz([], 2, wyniki, ['odznaki_moje']).zdania[0], 'Oto Twoje odznaki.');
+  assert.equal(S.sprawdz([], 2, wyniki, ['moje_starty', 'odznaki_moje']).zdania[0], S.OTO, 'kilka narzędzi → ogólne');
+  assert.equal(S.sprawdz([], 2, wyniki, ['moje_starty', 'moje_starty']).zdania[0], 'Oto Twoje starty.', 'to samo narzędzie dwa razy = jedno');
+  assert.equal(S.sprawdz([], 2, wyniki).zdania[0], S.OTO, 'bez nazw → ogólne');
+  assert.equal(S.sprawdz([], 0, wyniki, ['moje_starty']).zdania[0], S.NIE_MAM, 'bez kart → „Nie mam…"');
+  assert.equal(S.powodPustych(S.sprawdz([], 1, wyniki, ['moje_starty']), {}), 'model: brak zdań, zdanie zastępcze');
+  assert.equal(S.powodPustych(S.sprawdz([], 1, wyniki, ['moje_starty']), { bez_json: true }), 'model: brak JSON-u, zdanie zastępcze');
+  const dobre = S.sprawdz(['Start za 10 dni.'], 1, wyniki, ['moje_starty']);
+  assert.equal(dobre.puste, false); assert.equal(S.powodPustych(dobre, {}), null);
+  for (const n of Object.keys(S.OTO_NARZEDZIA)) assert.ok(!/\d/.test(S.OTO_NARZEDZIA[n]), 'zdanie wstępne bez liczb');
+  const ef = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'functions', 'okienko', 'index.ts'), 'utf8');
+  assert.match(ef, /sprawdz\(m\.zdania, karty\.length, [^\n]*, zKartami\)/);
+  assert.match(ef, /ok: !s\.puste && s\.odrzucone\.length === 0, powod_odrzucenia: powodPustych\(s, m\)/);
+});
+
 test('model: narzędzie wykonuje EF (z walidacją), wynik jako functionResponse, JSON wg schematu, tokeny zsumowane', async () => {
   const M = await zaladuj('supabase/functions/okienko/model.mjs');
   const g = atrapaGemini([fc('moje_starty'), txt({ zdania: ['Najbliższy start: Bieg Niepodległości, za 10 dni.'], karty_z: ['moje_starty', 'odznaki_moje'] })]);

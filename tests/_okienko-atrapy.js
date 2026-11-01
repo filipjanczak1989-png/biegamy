@@ -60,7 +60,7 @@ function baza() {
       { id: OBCY, race_goals: JSON.stringify([{ name: 'OBCY START', date: '2026-11-05' }]) },
     ],
     races: [{ id: 'r1', city: 'Warszawa' }],
-    achievements: [{ athlete_id: JA, badge_id: 'pierwszy_bieg', earned_at: '2026-10-01T10:00:00Z' }],
+    achievements: [{ athlete_id: JA, badge_id: 'pierwszy_krok', earned_at: '2026-10-01T10:00:00Z' }],
   };
 }
 

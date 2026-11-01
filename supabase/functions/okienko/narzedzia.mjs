@@ -6,6 +6,7 @@
 // Moduł czysty (bez Deno.*, bez fetch) — ładuje go i EF (Deno), i testy (node --test).
 import { WYZWANIA } from "../_shared/wyzwania.mjs";
 import { isRunType } from "../_shared/reguly-treningow.mjs";
+import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
@@ -154,7 +155,7 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date()) {
       .eq("athlete_id", athleteId).order("earned_at", { ascending: false }).limit(5);
     if (error) throw new Error("achievements");
     return { liczba: count ?? (data || []).length,
-      ostatnie: (data || []).map((a) => ({ id: a.badge_id, data: a.earned_at ? dzisWaw(new Date(a.earned_at)) : null })) };
+      ostatnie: (data || []).map((a) => ({ id: a.badge_id, nazwa: nazwaOdznaki(a.badge_id), data: a.earned_at ? dzisWaw(new Date(a.earned_at)) : null })) };
   }
   throw new Error("nieznane narzędzie");
 }
