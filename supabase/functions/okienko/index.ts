@@ -6,7 +6,10 @@
 //   4) brak dopasowania → limity (60/dobę, budżet miesięczny) → model (2 kroki) → strażnik cyfr → log → odpowiedź;
 //   5) M2a: model bez narzędzia i pytanie nie „o mnie" (albo poza_danymi) → tryb „siec": limit 20/dobę, osobne
 //      wywołanie z googleSearch BEZ danych aplikacji, strażnik na groundingSupports, źródła tylko https.
-// „dzis" liczy EF w Europe/Warsaw — pole `dzis` z klienta ignorowane. Zapis WYŁĄCZNIE do okienko_log kluczem service_role.
+// Pełna kolejność od M3 (1.11.2026): router → osoba (M2b/M3-0) → impreza (M3a v2) → katalog (M3c) → pamięć sieci (M2d)
+// → limity → model → sieć (strażnik: imię i nazwisko / osoba bez trafień nie idą do Google). Spec: docs/okienko-spec.md.
+// „dzis" liczy EF w Europe/Warsaw — pole `dzis` z klienta ignorowane. Zapis kluczem service_role WYŁĄCZNIE do okienko_log,
+// okienko_siec_cache i okienko_znaleziska (blizna-69); jedyny zapis użytkownika w okienku (f6_runner_key) robi przeglądarka RPC.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";

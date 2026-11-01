@@ -63,14 +63,15 @@ Równolegle:
   Wtedy `zapytajSiec` ze źródłami, licznik jak tryb `siec` (20/dobę, `uzyteSiecDzis` liczy też `osoba` z
   `zapytania_sieci ≥ 1`). Inaczej nazwisko nie wychodzi do Google i braku sieci nie komunikujemy.
 
-Odpowiedź: zdania z sieci (jeśli są, z etykietą i źródłami) → karta osoby → karta wyników; nic →
-„Nie znalazłem tej osoby w aplikacji ani w wynikach."; 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za
+Odpowiedź: zdania z sieci (jeśli są, z etykietą i źródłami) → karta osoby → karta wyników; nic → (do M3-0)
+„Nie znalazłem tej osoby w aplikacji ani w wynikach." — od M3-0 osoba bez trafień idzie dalej ścieżką ogólną (bez
+sieci), a gdy i tam pusto: „Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu."; 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za
 chwilę." (reszta zostaje). Pamięć F6 wspólna (dane publiczne): RPC + argumenty, 10 min, ≤ 500 wpisów, w izolacie.
 Odpowiedź osobowa nie trafia do `okienko_siec_cache` ani do znalezisk; log `okienko_log` tryb `osoba`
 (`ok=false` gdy F6 zawiodło, powód w `powod_odrzucenia`). Testy: blizna-67.
 
-⚠️ Niesprawdzone przed wdrożeniem: F6 z adresów funkcji Edge (limit 60/min na IP po stronie Caddy — wszyscy
-użytkownicy okienka dzielą jeden adres). Token przyjmowany — sprawdzone lokalnie 1.11 (200, 0,9 s).
+F6 z adresów funkcji Edge POTWIERDZONE: pierwszy wpis `osoba` 1.11 12:47:15 UTC, `ok=true`, 2 zapytania sieci.
+Limit Caddy zmieniony 1.11 (decyzja B2): 300/min na IP + 60/min na nagłówek Authorization — wspólny adres EF ma zapas.
 Odłożone: `biegi_nadchodzace` (upcoming_races) jako narzędzie modelu.
 
 ## M3a — `biegi_nadchodzace` (1.11.2026) — wdrożone w v9
@@ -87,7 +88,7 @@ Gdy F6 odda pełne 300 wierszy (ucięte), EF pyta drugi raz z `p_q` = rdzeń. Do
 Zdanie: „W listopadzie w Poznaniu maszyna wyników zna 4 biegi." (liczba ze zliczenia EF); pusto: „Maszyna wyników
 nie ma biegów w tym zakresie."; 429 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę.". Karty `impreza`
 (≤ 10): nazwa, data, miasto, dystanse, domena źródła jako TEKST — bez linków zewnętrznych; bez „Otwórz ›" do czasu
-kalendarza startów w races.html (K4/K5). Testy: blizna-72.
+kalendarza startów w races.html (K4/K5). Testy: blizna-73 (do M3 v2 plik nazywał się blizna-72).
 
 ## M3 v2 / M3-0 — osoba ze słownikiem imion, bez ślepej uliczki (1.11.2026) — wdrożone w v10
 
@@ -165,3 +166,24 @@ Migracja `20261101_f6_runner_key.sql` (+ WYCOFANIE), przetestowana PRZED prod w 
 INSERT z null przechodzi, INSERT/UPDATE klucza wprost → 42501, UPDATE innych kolumn przechodzi, RPC zapisuje własny
 wiersz i nie rusza cudzego, zły klucz → 22023, cudzy wiersz wprost → 0 wierszy, anon → 42501 i bez EXECUTE).
 Wyzwalacz zamiast REVOKE kolumny: tabelowy UPDATE authenticated na athletes wygrywa z kolumnowym. Testy: blizna-78.
+
+## Przegląd dnia 1.11.2026 — do sprzątnięcia (bez zmian w kodzie, decyzja przed ruszeniem)
+
+Martwe / nieużywane:
+- `ODP_OSOBA` (pamiec.mjs) i `ODP_BRAK` (osoba.mjs) — po M2b/M3-0 nieużywane w EF ani testach poza komentarzem.
+- `NIE_ZNAJDE` (odpowiedz.mjs) — 0 użyć. `TEKSTY.niePasuje` + gałąź `json.dopasowanie === false` w js/okienko.js — EF nigdy
+  nie wysyła `dopasowanie`, więc gałąź nie zadziała.
+- Gałąź `upcoming_races` w kalendarz.mjs — NIE martwa: droga wycofania K-API (opisana w nagłówku pliku).
+
+Podwójne implementacje tego samego (kandydaci do jednego pliku w js/, jak plan-pusty/przepisy-szukaj):
+- normalizacja „bez polskich znaków" + rdzeń słowa: `biegi.mjs` (rdzen, bezZnakow), `kalendarz.mjs` (bezZnakow, obetnij),
+  `moje.mjs` (bezZnakow, rdzen), `impreza.mjs` (bezZnakow — inna: bez cyfr i rzymskich), `js/przepisy-szukaj.mjs`
+  (BM_SZUKAJ.bezZnakow/rdzen), `router.normalizuj`, `sb.js IMPREZY._klucz`, SQL `klucz_szukania`/`rdzenie_zapytania`
+  (maszyna3). Reguła rdzenia ta sama (≤ 4 znaki bez zmian, inaczej −3, min 4), ale w 5 kopiach JS.
+- nazwy miesięcy: `odpowiedz.mjs` (MIES_MIEJSC), `router.mjs` (MIESIACE rdzenie), `js/okienko.js` (MIESIACE_MIAN),
+  `races.html` (IMPREZY_MIES), `_shared/miesiace.mjs` (share-card), `js/generator-planu.js` (MIESIACE_DOPELNIACZ).
+- odmiana „start/starty/startów": `js/okienko.js` startyTxt, `odpowiedz.mjs` odmiana, `races.html` startow (hero).
+- `EKRANY` i `NAZWY_EKRANOW` w EF i w UI — dwie kopie pilnowane testem równości (blizna-65/76), świadomie.
+
+Specy/LEKCJE dopisane w tym przeglądzie: nieaktualne zdania M2b (osoba bez trafień, F6 z EF potwierdzone, limit B2),
+M3a (blizna-73); nagłówki index.ts/impreza.mjs/kalendarz.mjs; LEKCJE #28–#30.

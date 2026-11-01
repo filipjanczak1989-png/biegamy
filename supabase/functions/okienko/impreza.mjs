@@ -1,5 +1,6 @@
 // OKIENKO M3a v2 (1.11.2026, projekt M3 v2 pkt 3) — tryb „impreza": pytanie o konkretny bieg idzie RÓWNOLEGLE do:
-//   (a) kalendarza maszyny wyników — przez adapter kalendarz.mjs (dziś upcoming_races z p_q, po K-API events_search);
+//   (a) kalendarza maszyny wyników — przez adapter kalendarz.mjs (od 1.11 14:58 events_search, K-API 017; bez zakresu
+//       dat, więc wracają też przeszłe edycje);
 //   (b) naszych startów — tabela races (tylko approved, RLS), dedup z (a) po dacie ±1 i nazwie znormalizowanej;
 //   (c) sieci — DOZWOLONEJ dla imprezy (nazwa biegu to nie dane osobowe), ale nie gdy pytanie wygląda na imię
 //       i nazwisko (stary szeroki detektor) bez trafienia w kalendarzu; liczy się do limitu 20/dobę; pamięć 24 h;

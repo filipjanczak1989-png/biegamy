@@ -1418,3 +1418,40 @@ był czysty, bo odpowiada na niego Caddy, nie upstream.
 Diff konfiguracji proxy rozdziela albo przenosi blok `header` — a weryfikacja sprawdza tylko preflight albo
 tylko dozwolony origin. Test CORS po każdej zmianie: OPTIONS i POST, dla każdego dozwolonego originu ORAZ
 jednego obcego; licz wystąpienia `Access-Control-Allow-Origin` (ma być 1 albo 0, nigdy 2).
+
+## 28. Założenie projektu sprawdzaj w danych, zanim napiszesz kod pod nie (1.11.2026)
+
+Trzy razy jednego dnia projekt opisywał stan, którego nie było: „bieg ultrakotlina → tryb osoby" (log: tryb flash,
+model), „przepisy przez silnik z Jedzenia" (Jedzenie nie miało wyszukiwarki przepisów), „events_search do listy okresu"
+(bez słów zapytania zwraca pustkę), a przykład „zelazna → utwór" z projektu v1 nie istnieje w radio_tracks.
+
+### Reguła
+
+**Diagnozę i przykład z projektu potwierdź zapytaniem (log, tabela, grep) PRZED kodem; rozjazd → raport, nie dopasowanie
+kodu do założenia.** Testy na atrapach przejdą z fałszywym założeniem — atrapa jest napisana pod nie.
+
+### Objaw ostrzegawczy
+
+Polecenie zawiera „najpewniej", „jak dziś", „silnik z X" albo konkretny przykład danych — a ty jeszcze nie widziałeś tego w bazie.
+
+## 29. Wspólny kod przeglądarka ↔ funkcja Edge musi leżeć w js/, nie w supabase/ (1.11.2026)
+
+deploy.yml publikuje stronę rsync-iem z `--exclude /supabase` — moduł z `supabase/functions/_shared` daje w przeglądarce
+404. Plik w `js/` importuje EF ścieżką względną (`../../../js/x.mjs`; `supabase functions deploy --use-api` dołącza go
+do paczki — sprawdzone v13–v15). Plik bez import/export (przypisanie do globalThis) działa naraz jako `<script src>`
+(synchronicznie) i jako moduł.
+
+### Reguła
+
+**Jedna reguła dla strony i EF = plik w js/ (+ SW precache), nie kopia z testem równości — chyba że strona potrzebuje go
+synchronicznie przed własnym skryptem: wtedy wersja bez export i `<script src>` przed nim.**
+
+## 30. `name_key` sortuje słowa — nie nadaje się do wyszukiwania podciągu (1.11.2026)
+
+Na maszynie3 `public.name_key("Ultra Kotlina")` = „kotlina ultra" (słowa alfabetycznie, do porównań imion). Szukanie
+„ultrakotl…" po name_key nie trafia w nazwy pisane rozdzielnie. events_search dostał własny `klucz_szukania` (unaccent,
+bez spacji, kolejność zachowana) + indeks trigramowy.
+
+### Reguła
+
+**Przed użyciem istniejącej funkcji normalizującej sprawdź jej wynik na 2–3 przykładach z danych, nie po nazwie.**

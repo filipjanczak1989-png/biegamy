@@ -1,7 +1,7 @@
 // OKIENKO M3a v2 (1.11.2026) — ADAPTER kalendarza imprez z maszyny wyników. JEDYNE miejsce, które wie, z którego RPC
-// F6 pochodzą imprezy. Dziś: upcoming_races z p_q (tylko nadchodzące). Docelowo: events_search (K-API, projekt M3 v2
-// pkt 8 — także przeszłe edycje, dokladnosc_daty, status). Przepięcie = zmiana RPC i argumentów TU; reszta okienka
-// dostaje zawsze ten sam kształt imprezy (mapuj), więc nie ma drugiego kodu.
+// F6 pochodzą imprezy. Od 1.11.2026 14:58: events_search (K-API 017 — także przeszłe edycje; dokladnosc_daty i status
+// zwraca null, bo źródła ich nie mają). Gałąź upcoming_races w argumenty()/szukajImprez zostaje ŚWIADOMIE jako droga
+// wycofania (RPC_KALENDARZA = "upcoming_races"), nie martwy kod. Reszta okienka dostaje zawsze ten sam kształt (mapuj).
 import { f6 } from "./f6.mjs";
 
 export const RPC_KALENDARZA = "events_search";   // K-API 017 (1.11.2026); wycofanie = "upcoming_races"
