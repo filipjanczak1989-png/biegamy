@@ -347,3 +347,10 @@ Reguła w blizna-71: słowa wspólnoty (razem, we dwóch/dwoje/troje, ramię w r
 umówili, rozmowa) tylko przy relacji obok_siebie/blisko; liczebnik osób = liczba_osob („Za trzy, dwa, start" to
 odliczanie, nie liczba). Rozjazdy: 8, 9, 18, 20, 21, 26, 30, 38, 41, 46, 50 — ZAPADKA `ZNANE_ROZJAZDY_RAZEM`
 (podpisy pisze Filip; arkusze Downloads\podpisy-do-poprawy-1.png i -2.png). 38 to podpis z v3.1 („dwoje").
+
+## Podpisy „razem" — 11 tekstów Filipa (2.11.2026)
+
+8, 9, 18, 20, 21, 26, 30, 38, 41, 46, 50 — napisane z opisów strukturalnych, bez słów wspólnoty. `ZNANE_ROZJAZDY_RAZEM`
+w blizna-71 PUSTE; jedyny wyjątek reguł to kadr 02 („*Każdy* swoim tempem", zakaz „każdy"). Sprawdzenie z opisem
+strukturalnym (pora, pogoda, nawierzchnia, otoczenie): 10/11 zgodne; 41 „przez pola" — struktura ma otoczenie „las",
+opis obrazu „droga otoczona lasem i polami" (pola częściowo) — zgłoszone Filipowi, tekst bez zmian.

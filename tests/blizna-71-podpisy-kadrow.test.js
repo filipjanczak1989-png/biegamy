@@ -106,7 +106,7 @@ const STRUKTURA = JSON.parse(fs.readFileSync(path.join(KORZEN, 'tools', 'kadry',
 const WSPOLNOTA = w('razem|we dw(?:óch|oje|ie)|we troje|ramię w ramię|dwoje|dwóch|dwie|dwaj|troje|trzech|grup|umówi|rozmow');
 // bez „trzy": odliczanie „Za trzy, dwa, start" (22) to nie liczba osób
 const LICZEBNIK = [[w('we troje|troje|trzech'), 3], [w('we dw(?:óch|oje|ie)|dwoje|dwóch|dwie|dwaj'), 2]];
-const ZNANE_ROZJAZDY_RAZEM = [8, 9, 18, 20, 21, 26, 30, 38, 41, 46, 50];   // 1.11.2026 — czekają na podpisy Filipa
+const ZNANE_ROZJAZDY_RAZEM = [];   // 2.11.2026: 11 podpisów Filipa (z opisów strukturalnych, bez słów wspólnoty) — lista pusta
 function rozjazdyRazem(lista) {
   const out = [];
   lista.forEach((p, i) => {
