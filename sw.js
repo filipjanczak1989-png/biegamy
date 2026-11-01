@@ -23,6 +23,11 @@ const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
 const ASSETS_CACHE = 'biegamy-obrazy-v1';
 const LIMIT_OBRAZOW = 150;
 const LIMIT_OBRAZOW_B = 30 * 1024 * 1024;
+// FILMY promo (FILM-01, 1.11.2026): POZA precache, osobny cache niezależny od CACHE_VERSION, max 3 pliki / 10 MB.
+// Tylko biegamy-assets/filmy/film-NN(.mp4|.webm). Radio i reszta mediów dalej idą prosto do sieci (Range, tło iOS).
+const FILMY_CACHE = 'biegamy-filmy-v1';
+const LIMIT_FILMOW = 3;
+const LIMIT_FILMOW_B = 10 * 1024 * 1024;
 
 // Pliki które chcemy mieć offline od samego start (precache)
 /* Strony narzedzia.html i statystyki.html usuniete 24.08.2026 — zdjete stad
@@ -168,7 +173,7 @@ self.addEventListener('activate', (event) => {
         // Usuń stare cache (z poprzednich wersji)
         return Promise.all(
           names
-            .filter((name) => !name.startsWith(CACHE_VERSION) && name !== ASSETS_CACHE)   // obrazy przeżywają deploy
+            .filter((name) => !name.startsWith(CACHE_VERSION) && name !== ASSETS_CACHE && name !== FILMY_CACHE)   // obrazy i filmy przeżywają deploy
             .map((name) => {
               console.log(`[SW] Deleting old cache: ${name}`);
               return caches.delete(name);
@@ -205,6 +210,7 @@ self.addEventListener('fetch', (event) => {
   // SW nie obsługuje Range, a cacheFirst zwracałby pełne 200 / nie cache'uje 206
   // → odtwarzanie urywa się w tle / przy zgaszonym ekranie (iOS wymaga natywnego,
   // range-capable zasobu dla background audio). Radio (radio-audio/*.mp4) gra przez to.
+  if (isFilmPromo(url)) { event.respondWith(filmZCache(request)); return; }   // FILM-01: przed ogólnym pominięciem mediów
   if (/\.(mp4|m4a|mp3|webm|ogg|wav|aac|mov|m4v)$/i.test(url.pathname)) return;
 
   // Strategia per typ zasobu
@@ -284,6 +290,52 @@ async function wlozDoCache(cache, klucz, response) {
 }
 function czyKompletnyHtml(tekst) {
   return /<\/html>\s*$/i.test(tekst || '');
+}
+
+// ─── FILMY PROMO: cache z obsługą Range ──────────────────────────────────────────
+// <video> pyta zakresami (Range → 206). Z cache oddajemy WYCINEK pełnego pliku jako 206 (Content-Range,
+// Accept-Ranges); bez kopii — sieć (żądanie przeglądarki bez zmian), a w tle pobieramy CAŁY plik bez Range
+// i wkładamy go tylko, gdy jest kompletny (200, video/*, rozmiar = Content-Length).
+function isFilmPromo(url) {
+  return url.hostname === 'filipjanczak1989-png.github.io' && /^\/biegamy-assets\/filmy\/film-\d{2}\.(mp4|webm)$/.test(url.pathname);
+}
+function zakresBajtow(naglowek, rozmiar) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(naglowek || '').trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  let od, doB;
+  if (m[1] === '') { od = Math.max(0, rozmiar - Number(m[2])); doB = rozmiar - 1; }
+  else { od = Number(m[1]); doB = m[2] === '' ? rozmiar - 1 : Math.min(Number(m[2]), rozmiar - 1); }
+  if (od > doB || od >= rozmiar) return null;
+  return { od, doB };
+}
+async function filmZCache(request) {
+  const cache = await caches.open(FILMY_CACHE);
+  const klucz = request.url;
+  const kopia = await cache.match(klucz);
+  if (!kopia) {
+    pobierzFilm(cache, klucz).catch(() => {});
+    return fetch(request);
+  }
+  const blob = await kopia.blob();
+  const typ = kopia.headers.get('content-type') || 'video/mp4';
+  const z = zakresBajtow(request.headers.get('range'), blob.size);
+  if (!request.headers.get('range')) return new Response(blob, { status: 200, headers: { 'Content-Type': typ, 'Content-Length': String(blob.size), 'Accept-Ranges': 'bytes' } });
+  if (!z) return new Response('', { status: 416, headers: { 'Content-Range': `bytes */${blob.size}` } });
+  const kawalek = blob.slice(z.od, z.doB + 1);
+  return new Response(kawalek, { status: 206, headers: { 'Content-Type': typ, 'Content-Length': String(kawalek.size),
+    'Content-Range': `bytes ${z.od}-${z.doB}/${blob.size}`, 'Accept-Ranges': 'bytes' } });
+}
+async function pobierzFilm(cache, klucz) {
+  const res = await fetch(klucz, { mode: 'cors', credentials: 'omit' });
+  if (!res || res.status !== 200) return false;
+  const typ = (res.headers.get('content-type') || '').toLowerCase();
+  if (typ.indexOf('video/') !== 0) return false;
+  const blob = await res.blob();
+  const dl = Number(res.headers.get('content-length')) || 0;
+  if (dl && blob.size !== dl) return false;   // urwany plik nie wchodzi (lekcja z uciętego HTML, blizna-44)
+  await cache.put(klucz, new Response(blob, { status: 200, headers: { 'Content-Type': typ, 'Content-Length': String(blob.size) } }));
+  await przytnijCache(cache, LIMIT_FILMOW, LIMIT_FILMOW_B);
+  return true;
 }
 
 // ─── OBRAZY Z biegamy-assets: CACHE-FIRST Z LIMITEM ───────────────────────────────

@@ -4365,6 +4365,8 @@ async function loadDailyMotivation() {
   document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
   const _mTresc = socialText ? socialText.replace(/\*/g, '') : q.text;
   if (window.CYTAT) CYTAT.animuj(_mTxt, _mTresc, { gdyWidoczny: true, krok: .035 }); else _mTxt.textContent = _mTresc;
+  // FILM-01 (1.11.2026): film raz dziennie NA banerze (cytat czeka pod spodem i wraca po końcu) — sb.js FILM_DZIS
+  if (window.FILM_DZIS) window.FILM_DZIS.start(el);
 }
 
 window.loadWeather = async function() {

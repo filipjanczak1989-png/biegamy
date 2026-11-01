@@ -541,6 +541,64 @@
     return 'Nie udało się zmienić hasła. Spróbuj jeszcze raz.';
   };
 
+  /* FILMY PROMO (1.11.2026, FILM-01) — krótki film w GÓRNYM BANERZE z cytatem (#daily-motivation) na Dziś, raz dziennie.
+     Oryginał Filipa w całości (tools/filmy/przygotuj.mjs: h264 960 px + webm, bez audio, plakat z 1. s), pliki w biegamy-assets.
+     Baner ~3,6:1, film 16:9 → object-fit: cover przycina górę/dół; object-position wg `pozycje` (od sekundy), zmiana przez
+     timeupdate z przejściem CSS — bez skoku. Film leży NA banerze (position:absolute; inset:0), więc wysokość się nie zmienia,
+     a cytat czeka pod spodem i wraca po końcu. Tap pomija. Nie gra przy prefers-reduced-motion, Save-Data i offline.
+     Raz dziennie: localStorage 'film_dzis' = data (try/catch — tryb prywatny nie może wywrócić Dziś). Pliki poza precache:
+     SW trzyma je w osobnym cache 'biegamy-filmy-v1' (max 3, blizna-88). Bez dźwięku (muted + brak ścieżki audio). */
+  window.FILMY_PROMO = [
+    { id: 'film-01', mp4: 'filmy/film-01.mp4', webm: 'filmy/film-01.webm', poster: 'filmy/film-01-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
+      pozycje: [{ od: 0, pos: '50% 30%' }, { od: 9, pos: '50% 50%' }] },
+  ];
+  window.FILM_DZIS = (function () {
+    var KLUCZ = 'film_dzis';
+    function dzis(teraz) { var d = teraz || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+    function czytaj() { try { return window.localStorage.getItem(KLUCZ); } catch (e) { return null; } }
+    function oznacz(teraz) { try { window.localStorage.setItem(KLUCZ, dzis(teraz)); } catch (e) {} }
+    /** Powód, dla którego film NIE gra (albo null = grać). Kolejność: preferencje człowieka, potem sieć, potem „już był". */
+    function powodBlokady(teraz) {
+      try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'reduced-motion'; } catch (e) {}
+      var c = window.navigator && window.navigator.connection;
+      if (c && c.saveData) return 'save-data';
+      if (window.navigator && window.navigator.onLine === false) return 'offline';
+      if (czytaj() === dzis(teraz)) return 'juz-dzis';
+      return null;
+    }
+    function filmDnia(teraz) { var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
+    function pozycja(film, t) { var p = film.pozycje[0].pos; film.pozycje.forEach(function (x) { if (t >= x.od) p = x.pos; }); return p; }
+    /** Montuje film na banerze. Zwraca element <video> albo null (powód w baner.dataset.film). */
+    function start(baner, teraz) {
+      if (!baner || baner.querySelector('.film-dzis')) return null;
+      var powod = powodBlokady(teraz), film = filmDnia(teraz);
+      if (powod || !film) { baner.dataset.film = powod || 'brak'; return null; }
+      var v = document.createElement('video');
+      v.className = 'film-dzis';
+      v.muted = true; v.defaultMuted = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); v.setAttribute('poster', window.assetUrl(film.poster));
+      v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
+        ';transition:object-position .6s ease,opacity .5s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;';
+      [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { var z = document.createElement('source'); z.src = window.assetUrl(film[s[0]]); z.type = s[1]; v.appendChild(z); });
+      var koniec = false;
+      function zakoncz() {
+        if (koniec) return; koniec = true;
+        v.style.opacity = '0';
+        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); }, 520);
+        baner.dataset.film = 'koniec';
+      }
+      v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
+      v.addEventListener('playing', function () { oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('ended', zakoncz);
+      v.addEventListener('error', zakoncz, true);
+      v.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });   // tap pomija
+      baner.appendChild(v);
+      try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
+      return v;
+    }
+    return { start: start, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, _dzis: dzis };
+  })();
+
   window.escapeHtml = function(s) {
     if (s == null) return '';
     return String(s)
