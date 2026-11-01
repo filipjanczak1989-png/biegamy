@@ -4,7 +4,9 @@
    1) film gra mimo prefers-reduced-motion / Save-Data / offline albo drugi raz tego samego dnia; localStorage rzucający
       wyjątek (tryb prywatny) wywraca Dziś;
    2) film zmienia wysokość banera albo zasłania cytat na stałe (po końcu / tapnięciu cytat ma wrócić); dźwięk;
-   3) kadr: 50% 30% do 9. s, potem 50% 50% (cały napis końcowy) — zmiana przez timeupdate z przejściem CSS;
+   3) kadr (FILM-02): 50% 12% → od 6,88 s 50% 0% → od 8,3 s 50% 72% — zmiana przez timeupdate z przejściem CSS;
+   7) (FILM-02 z dźwiękiem) start ZAWSZE wyciszony; 🔊 44 px w rogu banera przełącza muted na tym samym <video>, pojawia
+      się z filmem, znika po końcu; ?film=1 pomija „raz dziennie" (test), ale nie reduced-motion / Save-Data / offline;
    4) duży kadr dnia 9:16 (#today-hero) nietknięty;
    5) SW: filmy poza precache, osobny cache max 3, przeżywa deploy; z cache oddaje poprawne 206 (Range); radio dalej
       idzie prosto do sieci;
@@ -71,7 +73,7 @@ test('(6) start: niewidoczne, bez autoplay; preload auto po wyrenderowaniu; play
   v.emit('playing');
   assert.equal(v.style.opacity, '1'); assert.equal(s.mag.get('film_dzis'), '2026-11-01');
   s.uplyw(5000);
-  assert.equal(s.baner.dzieci.length, 1, 'limit 4 s nie dotyczy filmu, który już gra');
+  assert.equal(s.baner.dzieci.length, 2, 'limit 4 s nie dotyczy filmu, który już gra (film + 🔊)');
   assert.match(czytaj('tools/filmy/przygotuj.mjs'), /ff\(\["-i", wej, "-frames:v", "1"/, 'plakat z klatki 0 (bez -ss)');
 });
 
@@ -79,7 +81,7 @@ test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zu
   const s = srodowisko();
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   s.uplyw(3999);
-  assert.equal(s.baner.dzieci.length, 1);
+  assert.equal(s.baner.dzieci.length, 2, 'film + 🔊 (niewidoczne) czekają');
   s.uplyw(1);
   assert.equal(s.baner.dataset.film, 'za-wolno'); assert.equal(v.grano, undefined);
   s.uplyw(600);
@@ -90,16 +92,16 @@ test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zu
   assert.equal(v.grano, undefined, 'spóźnione canplaythrough po rezygnacji nic nie odpala');
 });
 
-test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+webm z biegamy-assets, pozycja 30% → 50% od 9. s, raz dziennie', async () => {
+test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+webm film-02 z biegamy-assets, pozycje 12% → 0% (6,88 s) → 72% (8,3 s), raz dziennie', async () => {
   const s = srodowisko();
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   assert.equal(v.tag, 'video'); assert.equal(s.baner.dzieci[0], v);
   assert.ok(v.muted && v.defaultMuted && v.playsInline && 'muted' in v.atrybuty && 'playsinline' in v.atrybuty, 'bez dźwięku, inline');
-  assert.match(v.style.cssText, /position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;transition:object-position \.6s/);
-  assert.deepEqual(v.dzieci.map((z) => [z.src, z.type]), [['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-01.mp4', 'video/mp4'],
-    ['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-01.webm', 'video/webm']]);
-  assert.equal(v.atrybuty.poster, 'https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-01-poster.jpg');
-  for (const [t, p] of [[0, '50% 30%'], [8.9, '50% 30%'], [9, '50% 50%'], [9.8, '50% 50%']]) { v.currentTime = t; v.emit('timeupdate'); assert.equal(v.style.objectPosition, p, 't=' + t); }
+  assert.match(v.style.cssText, /position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;transition:object-position \.6s/);
+  assert.deepEqual(v.dzieci.map((z) => [z.src, z.type]), [['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02.mp4', 'video/mp4'],
+    ['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02.webm', 'video/webm']]);
+  assert.equal(v.atrybuty.poster, 'https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02-poster.jpg');
+  for (const [t, p] of [[0, '50% 12%'], [6.87, '50% 12%'], [6.88, '50% 0%'], [8.29, '50% 0%'], [8.3, '50% 72%'], [9.9, '50% 72%']]) { v.currentTime = t; v.emit('timeupdate'); assert.equal(v.style.objectPosition, p, 't=' + t); }
   assert.equal(s.mag.get('film_dzis'), undefined, 'znacznik dopiero, gdy film naprawdę gra');
   v.emit('playing');
   assert.equal(s.mag.get('film_dzis'), '2026-11-01'); assert.equal(s.baner.dataset.film, 'gra');
@@ -133,7 +135,9 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const hero = z.slice(z.indexOf('id="today-hero"'), z.indexOf('<!-- Kafelki po prawej -->'));
   assert.ok(!/video|FILM/i.test(hero), 'duży kadr bez zmian');
   const sb = czytaj('sb.js');
-  assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 30%' \}, \{ od: 9, pos: '50% 50%' \}\]/);
+  assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 12%' \}, \{ od: 6\.88, pos: '50% 0%' \}, \{ od: 8\.3, pos: '50% 72%' \}\] \}/);
+  const promo = sb.slice(sb.indexOf('window.FILMY_PROMO = ['), sb.indexOf('];', sb.indexOf('window.FILMY_PROMO = [')));
+  assert.equal((promo.match(/\{ id: 'film-/g) || []).length, 1, 'tylko jeden film'); assert.match(promo, /id: 'film-02'/);
   assert.ok(!/film-0\d/.test(czytaj('sw.js').slice(czytaj('sw.js').indexOf('const PRECACHE_URLS'), czytaj('sw.js').indexOf('const PRECACHE_KRYTYCZNE'))), 'filmy poza precache');
 });
 
@@ -173,4 +177,40 @@ test('(5) SW: osobny cache filmów (max 3, przeżywa deploy), zakresy 206/416, r
   assert.equal(await S2.pobierzFilm(cacheAtrapa, 'urwany'), false, 'urwany plik nie wchodzi');
   const S3 = f({ open: async () => cacheAtrapa }, async () => ({ status: 200, headers: new Headers({ 'content-type': 'text/html' }), blob: async () => new Blob(['<html>']) }), async () => 0, 3, 1e7, 'x');
   assert.equal(await S3.pobierzFilm(cacheAtrapa, 'html'), false, 'tylko video/*');
+});
+
+test('(7) 🔊: start wyciszony; przycisk 44 px z aria-label pojawia się przy „playing", przełącza muted na tym samym filmie, znika po końcu', () => {
+  const s = srodowisko();
+  const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
+  const g = s.baner.dzieci.find((d) => d.className === 'film-dzwiek');
+  assert.ok(g, 'przycisk na banerze (nie w wideo)'); assert.equal(g.tag, 'button');
+  assert.equal(g.atrybuty['aria-label'], 'Włącz dźwięk'); assert.equal(g.textContent, '🔊');
+  assert.match(g.style.cssText, /width:44px;height:44px;/); assert.match(g.style.cssText, /opacity:0;pointer-events:none;/);
+  assert.ok(v.muted && v.defaultMuted, 'start zawsze wyciszony');
+  v.emit('canplaythrough'); v.emit('playing');
+  assert.ok(v.muted, 'play nie odcisza'); assert.equal(g.style.opacity, '1'); assert.equal(g.style.pointerEvents, 'auto');
+  let zatrzymane = false;
+  g.emit('click', { stopPropagation() { zatrzymane = true; } });
+  assert.ok(zatrzymane, 'dotknięcie 🔊 nie pomija filmu'); assert.equal(v.muted, false, 'dźwięk z tego samego <video>');
+  assert.equal(g.atrybuty['aria-label'], 'Wycisz'); assert.equal(g.textContent, '🔇');
+  assert.equal(s.baner.dzieci.includes(v), true, 'film gra dalej');
+  g.emit('click', { stopPropagation() {} });
+  assert.equal(v.muted, true); assert.equal(g.atrybuty['aria-label'], 'Włącz dźwięk');
+  v.emit('ended'); assert.equal(g.style.opacity, '0'); s.uplyw(520);
+  assert.equal(s.baner.dzieci.length, 0, 'po końcu znika i film, i 🔊');
+  const src = czytaj('sb.js');
+  assert.ok(!/v\.muted = false/.test(src) && !/autoplay = true/.test(src), 'nigdzie odciszenia ani autoplay poza przyciskiem');
+});
+
+test('(7) ?film=1 pomija „raz dziennie" dla tej wizyty — ale nie reduced-motion, Save-Data ani offline', () => {
+  const z = srodowisko({ zapis: '2026-11-01' });
+  assert.equal(z.ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
+  z.ctx.location = { search: '?film=1' };
+  assert.equal(z.ctx.FILM_DZIS.powodBlokady(TERAZ), null, '?film=1 → gra mimo znacznika');
+  const r = srodowisko({ zapis: '2026-11-01', ruch: true }); r.ctx.location = { search: '?film=1' };
+  assert.equal(r.ctx.FILM_DZIS.powodBlokady(TERAZ), 'reduced-motion');
+  const o = srodowisko({ online: false }); o.ctx.location = { search: '?x=1&film=1' };
+  assert.equal(o.ctx.FILM_DZIS.powodBlokady(TERAZ), 'offline');
+  const inny = srodowisko({ zapis: '2026-11-01' }); inny.ctx.location = { search: '?film=0' };
+  assert.equal(inny.ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
 });

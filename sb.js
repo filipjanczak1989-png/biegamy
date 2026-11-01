@@ -561,21 +561,24 @@
      0,3 s; plakat = klatka 0 (wejście bez skoku). Brak 'canplaythrough' w 4 s → film znika, cytat zostaje, dzień NIE
      zużyty (znacznik 'film_dzis' tylko przy 'playing'). */
   window.FILMY_PROMO = [
-    { id: 'film-01', mp4: 'filmy/film-01.mp4', webm: 'filmy/film-01.webm', poster: 'filmy/film-01-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
-      pozycje: [{ od: 0, pos: '50% 30%' }, { od: 9, pos: '50% 50%' }] },
+    /* FILM-02 (1.11.2026 noc) zastępuje FILM-01: oryginał Filipa z DŹWIĘKIEM (mp4 1:1, webm VP9+Opus, plakat z klatki 0).
+       Startuje wyciszony; dźwięk tylko z przycisku 🔊 (ten sam <video>, bez osobnego pliku audio). Pliki film-01 zostają w assets. */
+    { id: 'film-02', mp4: 'filmy/film-02.mp4', webm: 'filmy/film-02.webm', poster: 'filmy/film-02-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 12%' }, { od: 6.88, pos: '50% 0%' }, { od: 8.3, pos: '50% 72%' }] },
   ];
   window.FILM_DZIS = (function () {
     var KLUCZ = 'film_dzis', CZEKAJ_MS = 4000;
     function dzis(teraz) { var d = teraz || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
     function czytaj() { try { return window.localStorage.getItem(KLUCZ); } catch (e) { return null; } }
     function oznacz(teraz) { try { window.localStorage.setItem(KLUCZ, dzis(teraz)); } catch (e) {} }
+    function wymuszony() { try { return new URLSearchParams(window.location.search || '').get('film') === '1'; } catch (e) { return false; } }
     /** Powód, dla którego film NIE gra (albo null = grać). Kolejność: preferencje człowieka, potem sieć, potem „już był". */
     function powodBlokady(teraz) {
       try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'reduced-motion'; } catch (e) {}
       var c = window.navigator && window.navigator.connection;
       if (c && c.saveData) return 'save-data';
       if (window.navigator && window.navigator.onLine === false) return 'offline';
-      if (czytaj() === dzis(teraz)) return 'juz-dzis';
+      if (czytaj() === dzis(teraz) && !wymuszony()) return 'juz-dzis';   // ?film=1 — test: pomija „raz dziennie" dla tej wizyty
       return null;
     }
     function filmDnia(teraz) { var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
@@ -592,15 +595,31 @@
       v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
         ';transition:object-position .6s ease,opacity .3s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;opacity:0;';
       [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { var z = document.createElement('source'); z.src = window.assetUrl(film[s[0]]); z.type = s[1]; v.appendChild(z); });
-      var koniec = false, gotowy = false;
+      var koniec = false, gotowy = false, glosnik = null;
+      /* 🔊 (FILM-02): 44 px w rogu banera, pojawia się razem z filmem (przy „playing"); przełącza muted NA TYM SAMYM filmie.
+         Nigdy autoodtwarzanie z dźwiękiem — film zawsze startuje wyciszony, dźwięk wyłącznie po dotknięciu. Po końcu znika. */
+      if (film.dzwiek) {
+        glosnik = document.createElement('button');
+        glosnik.type = 'button'; glosnik.className = 'film-dzwiek'; glosnik.textContent = '🔊';
+        glosnik.setAttribute('aria-label', 'Włącz dźwięk');
+        glosnik.style.cssText = 'position:absolute;top:6px;right:6px;z-index:4;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);' +
+          'background:rgba(7,7,10,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease;';
+        glosnik.addEventListener('click', function (e) {
+          e.stopPropagation();
+          v.muted = !v.muted;
+          glosnik.textContent = v.muted ? '🔊' : '🔇';
+          glosnik.setAttribute('aria-label', v.muted ? 'Włącz dźwięk' : 'Wycisz');
+        });
+      }
       function zakoncz() {
         if (koniec) return; koniec = true;
         v.style.opacity = '0';
-        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); }, 520);
+        if (glosnik) { glosnik.style.opacity = '0'; glosnik.style.pointerEvents = 'none'; }
+        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik); }, 520);
         baner.dataset.film = 'koniec';
       }
       v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
-      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
         try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
@@ -609,6 +628,7 @@
       v.addEventListener('error', zakoncz, true);
       v.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });   // tap pomija
       baner.appendChild(v);
+      if (glosnik) baner.appendChild(glosnik);
       baner.dataset.film = 'laduje';
       var rAF = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
       rAF(function () { if (!koniec) { v.preload = 'auto'; v.setAttribute('preload', 'auto'); try { v.load(); } catch (e) {} } });
