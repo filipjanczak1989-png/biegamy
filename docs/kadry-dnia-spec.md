@@ -312,3 +312,15 @@ pośpiechu." (decyzja Filipa; v2 miało „*dwóch*"). 72: „Latarnie między b
 `SCENA_Z_PODPISU` w generatorze: wyjątki 5, 22, 71, 75, 83, 88 zgadzają się z podpisami v2; **14** — scena
 zmieniona za obrazem („asfaltowa droga w liściach, obok las i łąka, dwoje biegaczy", decyzja Filipa 1.11), bez
 regeneracji kadru.
+
+## Podpisy v3 — motywujące (1.11.2026)
+
+Wg `podpisy-kadrow-v3.md` (Filip 14:09: „jeszcze lepsze, motywujące"). Ta sama metoda co v2 — podpis z OPISU OBRAZU
+(`tools/kadry/opisy-kadrow.json`), inny głos: trener widzi, co jest na zdjęciu, i mówi jedno zdanie, po którym się
+wychodzi. Reguły bez zmian (blizna-71: ≤ 8 słów, jeden `*akcent*`, bez wszyscy/każdy/zawsze/nigdy i „!", bez
+duplikatów, 89 pozycji, zero rozjazdów podpis↔opis obrazu).
+
+Zmienione 49 numerów; 39 oznaczonych „z" zostało z v2, w tym wszystkie z `SCENA_Z_PODPISU` (5, 14, 22, 71, 75, 83, 88).
+**26:** v3 „Mokre pola, kręta droga. *We dwoje* do końca." wymieniało mokrą nawierzchnię, której opis obrazu nie zna
+(zmierzch, piaszczysta zakrzywiona droga, dwie osoby) → rozjazd „deszcz"; decyzja Filipa: „Zmierzch nad polami. *We dwoje*
+do końca drogi."
