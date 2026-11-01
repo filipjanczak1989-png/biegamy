@@ -12,6 +12,9 @@
 //                                      [--log <plik>] [--podglad tools/kadry/podglad.html] [--tylko-podglad] [--pokaz-prompty]
 //                                      [--dociagnij-rozmiar]  ← istniejące pliki > 300 KB → q75, bez wywołania API
 //                                      [--kolumny 6]          ← liczba kolumn siatki podglądu (pora roku i osie przy każdym kafelku)
+//                                      [--struktura <plik.json>] ← (1.11.2026) prompt z OPISU STRUKTURALNEGO zamiast osi: {"21": {liczba_osob,
+//                                         relacja, kierunek, pora, pogoda, nawierzchnia, otoczenie, dodatek?}} — pola jak opisy-kadrow.json → struktura;
+//                                         pora roku nadal z tagu (SOLO.sezonKadru), bo SOLO wyklucza kadr innej pory niż dzień
 //   Domyślnie pomija istniejące kadr-NN.jpg (--force nadpisuje). 401/403/429/5xx przerywa pętlę; brak obrazu → dalej.
 //   --out bez wartości = ODMOWA: katalog wyjściowy podaje się jawnie (biegamy-assets dopiero po akceptacji).
 //   --pula dzis (kadr-NN, 9:16, podpisy + TAGI) | pejzaz (pejzaz-NN, 21:9, bez tagów) | typ | strona (tematy: G3/G4)
@@ -192,7 +195,26 @@ function osieNumeru(n) {
   const t = PULA === "dzis" ? (TAGI[n] || {}) : {};
   return osie(n, { pula: PULA, sezon: sezon(n), tagP: t.p, tagT: t.t, wyjatek: PULA === "dzis" ? SCENA_Z_PODPISU[n] : null, nawierzchnia: scenaNumeru(n).naw });
 }
+const STRUKTURA = (() => { const p = arg("struktura", null); return p && p !== true ? JSON.parse(readFileSync(p, "utf8")) : null; })();
+const LICZBA_SLOWNIE = { 0: "bez ludzi", 1: "jedna osoba", 2: "dwie osoby", 3: "trzy osoby" };
+const RELACJA_ZDANIE = { obok_siebie: "biegną ramię w ramię, w jednej linii, na wyciągnięcie ręki", blisko: "biegną razem, kilka metrów od siebie",
+  daleko: "każda osobno, z dużym odstępem między nimi", jeden_w_oddali: "postać w głębi kadru", brak: "pusta trasa, żadnych ludzi" };
+const KIERUNEK_ZDANIE = { od_aparatu: "widziane od tyłu, oddalają się od aparatu", do_aparatu: "biegną w stronę aparatu, twarze nierozpoznawalne",
+  w_bok: "widziane z boku", rozne: "", brak: "" };
+const PORA_DNIA_S = { swit: "świt", dzien: "dzień", zmierzch: "zmierzch", noc: "noc" };
+function promptStruktury(n, s) {
+  const ludzie = s.liczba_osob === 0 ? "Kadr: bez człowieka — " + RELACJA_ZDANIE.brak + "."
+    : `Kadr: ${LICZBA_SLOWNIE[s.liczba_osob] || s.liczba_osob + " osób"} — ${[RELACJA_ZDANIE[s.relacja], KIERUNEK_ZDANIE[s.kierunek]].filter(Boolean).join(", ")}.`;
+  return [
+    `Pionowy kadr dnia dla biegacza, Polska. ${s.otoczenie[0].toUpperCase() + s.otoczenie.slice(1)}, nawierzchnia: ${s.nawierzchnia}. ${PORA_SLOWNIE[sezon(n)]}, ${PORA_DNIA_S[s.pora] || s.pora}, ${s.pogoda}.`,
+    ludzie, s.dodatek || "",
+    "Styl dokumentalny: obiektyw 35 mm, niedoskonałe, nieustawiane światło.",
+    "Kompozycja pionowa: postacie w górnej lub środkowej części kadru, dolna jedna trzecia spokojna — pusta nawierzchnia, bez ważnych szczegółów.",
+    "Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
+  ].filter(Boolean).join(" ");
+}
 function prompt(n) {
+  if (STRUKTURA && STRUKTURA[n]) return promptStruktury(n, STRUKTURA[n]);
   if (PULA === "typ") return promptTypu(n);
   if (PULA === "ikona") return promptIkony(n);
   const tag = tagKadru(n);
