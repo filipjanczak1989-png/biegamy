@@ -9,7 +9,8 @@ import { isRunType } from "../_shared/reguly-treningow.mjs";
 import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
 import { biegiNadchodzace, domyslnyZakres, dniMiedzy as dniBiegow, MAX_DNI_BIEGOW } from "./biegi.mjs";
 import { BladF6 } from "./f6.mjs";
-import { stanPlanu } from "../../../js/plan-pusty.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
+import { stanPlanu } from "../../../js/plan-pusty.mjs";
+import { mojeRekordy, mojeWyniki } from "./moje.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
@@ -28,7 +29,8 @@ export const NAZWY_EKRANOW = {
   czat: "Czat", cialo: "Ćwiczenia", statystyki: "Statystyki", profil: "Profil", jedzenie: "Jedzenie", starty: "Starty",
   wyzwania: "Wyzwania", odznaki: "Odznaki", radio: "Radio",
 };
-const EKRAN_NARZEDZIA = { moj_plan: "plan", moje_treningi: "historia", moje_starty: "starty", wyzwania_postep: "wyzwania", odznaki_moje: "odznaki" };
+const EKRAN_NARZEDZIA = { moj_plan: "plan", moje_treningi: "historia", moje_starty: "starty", wyzwania_postep: "wyzwania", odznaki_moje: "odznaki",
+  moje_rekordy: "profil", moje_wyniki: "starty" };
 
 /* Deklaracje funkcji dla Gemini (tools[].functionDeclarations) — podzbiór OpenAPI. */
 export const DEKLARACJE = [
@@ -50,6 +52,10 @@ export const DEKLARACJE = [
     parameters: { type: "object", properties: {
       od: { type: "string", description: "YYYY-MM-DD, włącznie (domyślnie dziś)" }, do: { type: "string", description: "YYYY-MM-DD, włącznie (domyślnie +90 dni)" },
       miejsce: { type: "string", description: "miejscowość, np. Poznań" }, dystans: { type: "string", enum: ["5", "10", "21", "42"] } } } },
+  { name: "moje_rekordy", description: "Rekordy życiowe biegacza (5 km, 10 km, półmaraton, maraton) z rokiem; szanse=true dokłada najbliższy start (bez prognozy czasu).",
+    parameters: { type: "object", properties: { szanse: { type: "boolean" } } } },
+  { name: "moje_wyniki", description: "Wyniki zawodów biegacza z maszyny wyników (po imieniu, nazwisku i roczniku z profilu); gdzie = miejscowość albo nazwa biegu.",
+    parameters: { type: "object", properties: { gdzie: { type: "string", description: "np. Dębno" } } } },
 ];
 export const NAZWY = DEKLARACJE.map((d) => d.name);
 
@@ -95,6 +101,12 @@ export function waliduj(nazwa, args = {}) {
     if (a.typ != null && !TYPY_TRENINGU.includes(a.typ)) return { ok: false, blad: "zły typ" };
     return { ok: true, args: a.typ ? { od: a.od, do: a.do, typ: a.typ } : { od: a.od, do: a.do } };
   }
+  if (nazwa === "moje_rekordy") return { ok: true, args: a.szanse === true ? { szanse: true } : {} };
+  if (nazwa === "moje_wyniki") {
+    if (a.gdzie == null) return { ok: true, args: {} };
+    const g = String(a.gdzie).trim();
+    return /^[\p{L}][\p{L} .-]{1,39}$/u.test(g) ? { ok: true, args: { gdzie: g } } : { ok: false, blad: "złe miejsce" };
+  }
   if (nazwa === "biegi_nadchodzace") {
     const out = {};
     if (a.od != null || a.do != null) {
@@ -139,6 +151,16 @@ const zaokr = (x) => Math.round(x * 10) / 10;
     @param {{fetchFn: Function, token: string} | null} [f6ctx] */
 export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6ctx = null) {
   const dzis = dzisWaw(teraz);
+  if (nazwa === "moje_rekordy") {
+    const r = await mojeRekordy(sb, athleteId);
+    if (!args.szanse) return r;
+    const st = await wykonaj(sb, athleteId, "moje_starty", {}, teraz);
+    return { ...r, szanse: true, start: (st.cele || [])[0] || null };
+  }
+  if (nazwa === "moje_wyniki") {
+    if (!f6ctx || !f6ctx.token) throw new Error("brak tokenu F6");
+    return mojeWyniki(sb, athleteId, args, f6ctx, teraz.getTime());
+  }
   if (nazwa === "biegi_nadchodzace") {
     if (!f6ctx || !f6ctx.token) throw new Error("brak tokenu F6");
     const z = args.od ? { od: args.od, do: args.do } : domyslnyZakres(dzis);
@@ -191,7 +213,8 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6
       for (const x of r || []) miasta[x.id] = x.city || null;
     }
     return { cele: cele.map((g) => { const d = String(g.date).slice(0, 10);
-      return { nazwa: String(g.name || "").slice(0, 120), data: d, miasto: (g.race_id && miasta[g.race_id]) || null, race_id: g.race_id || null, dni_do: dniMiedzy(dzis, d) }; })
+      return { nazwa: String(g.name || "").slice(0, 120), data: d, miasto: (g.race_id && miasta[g.race_id]) || null, race_id: g.race_id || null, dni_do: dniMiedzy(dzis, d),
+        dystans_km: Number(g.distance_km) > 0 ? Number(g.distance_km) : null }; })
       .sort((a, b) => a.data.localeCompare(b.data)) };
   }
   if (nazwa === "wyzwania_postep") {

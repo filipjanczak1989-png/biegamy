@@ -150,3 +150,18 @@ bibliotekę, rozwiń, podświetl), ćwiczenie → `?tab=cwiczenia&prog=/&breath=
 EKRANY. Produkty z Jedzenia poza katalogiem (osobna decyzja). Testy: blizna-76.
 ZWIAD 1.11: Jedzenie nie miało wyszukiwarki przepisów („Szukaj" = produkty); nazwy ćwiczeń były wpisane w
 zawodnik.html; odtwarzacz radia żyje tylko w radio.html (`window.RADIO` w sb.js to same adresy plików).
+
+## M3d — moje_rekordy + moje_wyniki („Który to Ty?") (1.11.2026) — wdrożone w v15
+
+`moje.mjs`. **moje_rekordy**: `athletes.pb_*` + rok (wariant (a) z M2e — baza nie zna daty ani nazwy biegu);
+„szanse na rekordy" = rekordy + najbliższy start (`moje_starty`, teraz z `dystans_km` z race_goals) i rekord na tym
+dystansie (±3 %), BEZ prognozy czasu; pusto → „uzupełnisz je w Profilu". **moje_wyniki**: F6 — zapamiętany
+`athletes.f6_runner_key` (wtedy tylko `runner_results`) albo `search_runners` po imieniu i nazwisku z profilu,
+zawężone rocznikiem z `date_of_birth`; jeden → karta wyników (ta sama `podsumujWyniki` co tryb osoby); kilku →
+karta „Który to Ty?" (≤ 5, „To ja" → RPC `ustaw_f6_runner_key` w przeglądarce, potem to samo pytanie); bez imienia
+i nazwiska → Profil; „jak mi poszło w Dębnie" → filtr po rdzeniu miejsca/nazwy biegu. Router: rekord/pb/życiówk/
+najlepszy czas, szans… rekord, moje wyniki/jak mi poszło (przed kalendarzem); „kto …" nie.
+Migracja `20261101_f6_runner_key.sql` (+ WYCOFANIE), przetestowana PRZED prod w transakcji z rollbackiem (10/10:
+INSERT z null przechodzi, INSERT/UPDATE klucza wprost → 42501, UPDATE innych kolumn przechodzi, RPC zapisuje własny
+wiersz i nie rusza cudzego, zły klucz → 22023, cudzy wiersz wprost → 0 wierszy, anon → 42501 i bez EXECUTE).
+Wyzwalacz zamiast REVOKE kolumny: tabelowy UPDATE authenticated na athletes wygrywa z kolumnowym. Testy: blizna-78.

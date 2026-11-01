@@ -58,6 +58,32 @@ export function zWyniku(nazwa, w, args = {}) {
     if (!a.length) return { zdania: ["Nie masz teraz wyzwania w toku."], karty: (w.aktywne || []).map((x) => ({ typ: "wyzwanie", dane: x })) };
     return { zdania: [`Najbliżej ukończenia: ${a[0].nazwa}, ${a[0].procent}%.`], karty: (w.aktywne || []).map((x) => ({ typ: "wyzwanie", dane: x })) };
   }
+  if (nazwa === "moje_rekordy") {
+    const r = w.rekordy || [];
+    const zdania = [];
+    if (w.szanse) {
+      const s = w.start;
+      if (s) {
+        const kiedy = s.dni_do === 0 ? "dziś" : s.dni_do === 1 ? "jutro" : `za ${s.dni_do} dni`;
+        zdania.push(`Najbliższy start: ${s.nazwa}, ${kiedy} (${DZIEN(s.data)}).`);
+        const pb = s.dystans_km ? r.find((x) => Math.abs(x.km - s.dystans_km) <= x.km * 0.03) : null;
+        if (pb) zdania.push(`Twój rekord na tym dystansie: ${pb.czas}${pb.rok ? ` (${pb.rok})` : ""}.`);
+      } else zdania.push("Nie masz wpisanego najbliższego startu.");
+    }
+    if (!r.length) return { zdania: [...zdania, "Nie masz jeszcze wpisanych rekordów — uzupełnisz je w Profilu."].slice(0, 2), karty: [] };
+    if (!w.szanse) zdania.push("Twoje rekordy: " + r.map((x) => `${x.dystans} ${x.czas}${x.rok ? ` (${x.rok})` : ""}`).join(", ") + ".");
+    return { zdania: zdania.slice(0, 2), karty: r.map((x) => ({ typ: "rekord", dane: { dystans: x.dystans, czas: x.czas, rok: x.rok } })) };
+  }
+  if (nazwa === "moje_wyniki") {
+    if (w.blad_f6 === "limit") return { zdania: [ODP_F6_ZAJETA], karty: [] };
+    if (w.brak_imienia) return { zdania: ["Uzupełnij imię i nazwisko w Profilu, to znajdę Twoje wyniki."], karty: [], akcja: { nawiguj: "profil.html" } };
+    if (w.brak) return { zdania: ["Maszyna wyników nie zna jeszcze Twoich startów."], karty: [] };
+    if (w.brak_gdzie) return { zdania: [`Nie znalazłem Twojego startu: ${w.gdzie}.`], karty: [] };
+    if (w.wybor) return { zdania: ["Maszyna wyników zna kilka osób o Twoim imieniu i nazwisku. Który to Ty?"], karty: [{ typ: "ktory_to_ty", dane: { opcje: w.wybor } }], akcja: null };
+    const n = w.wyniki && w.wyniki.starty;
+    return { zdania: [w.gdzie ? `Twoje starty: ${w.gdzie}.` : `Maszyna wyników zna ${n} ${odmiana(n, ["Twój start", "Twoje starty", "Twoich startów"])}.`],
+      karty: [{ typ: "wyniki", dane: { ...w.wyniki, inne: [] } }] };
+  }
   if (nazwa === "biegi_nadchodzace") {
     if (w.blad_f6 === "limit") return { zdania: [ODP_F6_ZAJETA], karty: [] };
     if (!w.liczba) return { zdania: [ODP_BIEGI_PUSTO], karty: [] };

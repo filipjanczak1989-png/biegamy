@@ -73,6 +73,17 @@ export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now()) {
   if (!s.length) return null;
   const b = s[0];
   const w = await f6(fetchFn, token, "runner_results", { p_runner_key: b.runner_key }, teraz);
+  const { podsumowanie, publiczna } = podsumujWyniki(b, w);
+  return {
+    dopasowania: s.slice(0, MAX_DOPASOWAN).map((x) => ({ nazwa: String(x.display_name || "").slice(0, 80), rocznik: x.yob ?? null, starty: x.results_count ?? null })),
+    najlepszy: podsumowanie,
+    publiczna,
+  };
+}
+
+/** Karta wyników biegacza (wspólna dla trybu osoby i „moich wyników", M3d): b = wiersz search_runners (albo
+    {display_name, yob, results_count}), w = runner_results. → {podsumowanie, publiczna}. */
+export function podsumujWyniki(b, w) {
   const ostatnie = w.slice(0, MAX_WYNIKOW).map((r) => ({ bieg: String(r.event_name || "").slice(0, 120), data: r.event_date || null,
     miasto: r.event_city || null, dystans_km: r.distance_km != null ? Number(r.distance_km) : null, czas_s: r.time_seconds ?? null,
     miejsce: r.position_total ?? null, miejsce_kat: r.position_category ?? null, kategoria: r.category || null }));
@@ -87,8 +98,7 @@ export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now()) {
   const publiczna = liczba >= PROG_STARTOW_PUBLICZNY || w.some((r) => RE_MP.test(String(r.event_name || ""))) ||
     w.some((r) => r.position_total != null && Number(r.position_total) >= 1 && Number(r.position_total) <= 3);
   return {
-    dopasowania: s.slice(0, MAX_DOPASOWAN).map((x) => ({ nazwa: String(x.display_name || "").slice(0, 80), rocznik: x.yob ?? null, starty: x.results_count ?? null })),
-    najlepszy: { nazwa: String(b.display_name || "").slice(0, 80), rocznik: b.yob ?? null, starty: liczba,
+    podsumowanie: { nazwa: String(b.display_name || "").slice(0, 80), rocznik: b.yob ?? null, starty: liczba,
       ostatni: ostatnie[0] ? { bieg: ostatnie[0].bieg, data: ostatnie[0].data } : null, najlepszy_czas: najlepszy, ostatnie },
     publiczna,
   };

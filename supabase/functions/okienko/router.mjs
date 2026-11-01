@@ -74,6 +74,15 @@ export function dopasuj(tekst, dzis) {
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };
   if (/\bplan\w*\b.*\btydz\w*|\bplan tygodni/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "tydzien" } };
   if (/\b(kiedy|jaki)\b.*\bstart|\bnajblizsz\w* start|\bmoje starty|\bmoj start/.test(t)) return { narzedzie: "moje_starty", args: {} };
+  // M3d: rekordy i moje wyniki — przed kalendarzem („jak mi poszło w Dębnie" to wynik, nie termin)
+  if (!/\bkto\b/.test(t)) {
+    if (/\bszans\w*\b.*\b(rekord\w*|pb|zyciow\w*)/.test(t)) return { narzedzie: "moje_rekordy", args: { szanse: true } };
+    if (/\b(rekord\w*|pb|zyciowk\w*|zyciowe|najlepsz\w* czas\w*)\b/.test(t)) return { narzedzie: "moje_rekordy", args: {} };
+    if (/\b(moje wyniki|moich wynikow|moj wynik|jak mi poszlo|jak pobieglem|jak pobieglam)\b/.test(t)) {
+      const m = String(tekst).match(/\s(?:w|we|na)\s+([\p{L}][\p{L}.-]{2,39})/u);
+      return { narzedzie: "moje_wyniki", args: m ? { gdzie: m[1] } : {} };
+    }
+  }
   const biegi = dopasujBiegi(tekst, dzis);
   if (biegi) return biegi;
   const km = /\b(ile|suma)\b.*\b(km|kilomet\w*|przebieg\w*|nabiega\w*)|\bile przebieg\w*/.test(t);

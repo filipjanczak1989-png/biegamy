@@ -67,9 +67,9 @@ Deno.serve(async (req) => {
     if (!w.ok) return odp(400, { blad: w.blad });
     let wynik;
     try { wynik = await wykonaj(sb, ath.id, traf.narzedzie, w.args, teraz, { fetchFn: fetch, token: jwt }); } catch { return odp(503, { blad: "narzędzie" }); }
-    const { zdania, karty } = zWyniku(traf.narzedzie, wynik, w.args);
+    const zw = zWyniku(traf.narzedzie, wynik, w.args) as { zdania: string[]; karty: unknown[]; akcja?: unknown };
     await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: [traf.narzedzie], tryb: "router" });
-    return odp(200, { ...pusto("router"), zdania, karty, akcja: nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
+    return odp(200, { ...pusto("router"), zdania: zw.zdania, karty: zw.karty, akcja: zw.akcja !== undefined ? zw.akcja : nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
   }
 
   // ── M2b: pytanie o OSOBĘ — trzy fronty równolegle (osoba.mjs): profile publiczne, wyniki F6, sieć tylko dla osoby
