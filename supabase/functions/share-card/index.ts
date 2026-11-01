@@ -20,6 +20,7 @@ import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2";
 // przypiety do 1.2.15 (ta sama wersja co backfill-thumbnails) i bez build-stepu nie ruszy sie
 // sam. Gdyby kiedys znikl: `Image.encodeJPEG(92)` z mod.ts robi to samo, tylko drozej.
 import * as jpegWasm from "https://deno.land/x/imagescript@1.2.15/utils/wasm/jpeg.js";
+import { MIESIACE_MIANOWNIK, etykietaPorownania } from "../_shared/miesiace.mjs";
 const encodeJpeg = (jpegWasm as unknown as {
   encode(rgba: Uint8Array, w: number, h: number, q: number): Uint8Array;
 }).encode;
@@ -154,15 +155,9 @@ const PB_KM: Record<string, number> = { "5k": 5, "10k": 10, half: 21.0975, marat
 // Nazwy progów. Zmierzone w Bebasie 44 px z letterSpacing 4 przy polu 934 px:
 // najdłuższa („DWIEŚCIE PIĘĆDZIESIĄT GODZIN") ma 520 px, czyli 414 px zapasu.
 // Skracanie „na wszelki wypadek" byłoby zgadywaniem — nazwy zostają pełne.
-// Dwa przypadki, bo polska odmiana nie da się wyprowadzić regułą z jednego: podpis
-// potrzebuje mianownika („SIERPIEŃ 2026"), a kolumna porównawcza dopełniacza („vs LIPCA").
-// Zmierzone w Bebasie 44 px: najdłuższy podpis „PAŹDZIERNIK 2026" ma 315 px przy polu 934.
-// Etykieta „vs PAŹDZIERNIKA" w DM Sans 18 px ma 140 px przy budżecie 172 px (4 kolumny,
-// granicą jest divider, nie skok kolumny) — mieści się z zapasem 32 px.
-const MIESIACE_MIANOWNIK = ["STYCZEŃ","LUTY","MARZEC","KWIECIEŃ","MAJ","CZERWIEC",
-                            "LIPIEC","SIERPIEŃ","WRZESIEŃ","PAŹDZIERNIK","LISTOPAD","GRUDZIEŃ"];
-const MIESIACE_DOPELNIACZ = ["stycznia","lutego","marca","kwietnia","maja","czerwca",
-                             "lipca","sierpnia","września","października","listopada","grudnia"];
+// Miesiące: jedna tablica w mianowniku (_shared/miesiace.mjs) — podpis „PAŹDZIERNIK 2026" i etykieta „vs WRZESIEŃ"
+// (do 1.11.2026 etykieta szła z dopełniacza, „vs WRZEŚNIA"; zgłoszenie Maćka). Zmierzone w Bebasie 44 px: najdłuższy
+// podpis „PAŹDZIERNIK 2026" ma 315 px przy polu 934; „vs PAŹDZIERNIK" mieści się w układzie `miesiac` (podgląd 1.11).
 
 const KAMIEN_NAZWY: Record<string, Record<string, string>> = {
   km:       { "500": "PIERWSZE PIĘĆSET", "1000": "PIERWSZY TYSIĄC", "2000": "DWA TYSIĄCE", "5000": "PIĘĆ TYSIĘCY" },
@@ -830,7 +825,7 @@ async function kartaMomentu(
     // trzy kolumny — siatka jest warunkowa od początku, a „vs LIPCA +∞%" byłoby śmieciem.
     if (mcPoprz.suma > 0) {
       const proc = Math.round((mc.suma - mcPoprz.suma) / mcPoprz.suma * 100);
-      staty.push({ ikona: IKONY.kalendarz, etykieta: `vs ${MIESIACE_DOPELNIACZ[(mies + 11) % 12].toUpperCase()}`,
+      staty.push({ ikona: IKONY.kalendarz, etykieta: etykietaPorownania(mies),
                    wartosc: (proc >= 0 ? "+" : "") + proc, jednostka: "%" });
     }
 
