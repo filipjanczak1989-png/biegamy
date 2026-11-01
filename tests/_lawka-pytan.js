@@ -35,7 +35,7 @@ const PYTANIA = [
   ['kiedy mam nastepny start', 'wlasne', 4, 'dobra', ''],
   ['jakie mam odznaki', 'wlasne', 3, 'dobra', ''],
   ['moje rekordy', 'wlasne', 4, 'dobra', 'M3-1 (3): puste pb_* → najlepsze czasy z WYNIKÓW ZAWODÓW (F6), z etykietą; bez treningów'],
-  ['jaka mam forme', 'wlasne', 4, 'za_droga', 'idzie do modelu bez narzędzia → „Nie mam tego w Twoich danych.” za ~$0,0008; M3e moja_forma'],
+  ['jaka mam forme', 'wlasne', 4, 'dobra', 'M3-2: moja_forma — TSB/CTL/ATL z formaSeria, zdanie ze słownika kafla Forma, 0 tokenów'],
   ['ile spalilem kalorii w tym tygodniu', 'wlasne', 2, 'za_droga', 'model, brak narzędzia; kcal są w nutrition — osobna decyzja (produkty poza katalogiem)'],
   ['czy dzis moge biegac po kontuzji', 'wlasne', 3, 'za_droga', 'model bez narzędzia (kontuzje czyta tylko EF trenera) → pusto za ~$0,0008; zaległość „generator nie widzi kontuzji”'],
   // ── osoby ──
@@ -45,8 +45,8 @@ const PYTANIA = [
   ['jak pobiegl Jan Kowalski w Poznaniu', 'osoby', 3, 'dobra', 'M3-1 (1): osoba w zdaniu, q „Jan Kowalski”, kontekst „Poznaniu” → filtr wyników; do 1.11 nazwisko szło do Google'],
   ['kasia nowak', 'osoby', 3, 'dobra', 'odpowiedź informacyjna gdy brak (M3-0b)'],
   ['czy Anna Kowalska jest w aplikacji', 'osoby', 3, 'dobra', 'M3-1 (1): osoba w zdaniu → tryb osoby, nie model/sieć'],
-  ['kto biega z mojego miasta', 'osoby', 3, 'za_droga', 'model bez narzędzia → pusto; brak narzędzia „znajomi/okolica”'],
-  ['moi znajomi co biegali', 'osoby', 3, 'za_droga', 'model; M3e znajomi_tydzien'],
+  ['kto biega z mojego miasta', 'osoby', 3, 'dobra', 'M3-2: osoby_z_miasta — publiczni z miastem z profilu (RLS), ≤ 5 kart osoby; bez miasta → Profil'],
+  ['moi znajomi co biegali', 'osoby', 3, 'dobra', 'M3-2: znajomi_tydzien — friendships + public_training_logs, tylko profile publiczne, 0 tokenów'],
   ['kto jest moim trenerem', 'osoby', 4, 'dobra', 'M3-1 (3): moj_trener (0 tokenów) — karta trenera z „Napisz” albo „Trenujesz bez trenera w BiegaMy.”'],
   ['dodaj Jana Kowalskiego do znajomych', 'osoby', 2, 'dobra', 'M3-1 (1): osoba w zdaniu → karta osoby z „Dodaj do znajomych” (akcja po tapnięciu); odmiana → (2)'],
   // ── imprezy ──
@@ -58,7 +58,7 @@ const PYTANIA = [
   ['jakie biegi w weekend', 'imprezy', 4, 'dobra', 'M3-1 (2): weekend = najbliższe sb–nd'],
   ['zapisy na bieg niepodleglosci', 'imprezy', 4, 'dobra', 'impreza: karta z kalendarza + sieć ze źródłami (~$0,02); link zapisów wejdzie z K4/K5'],
   ['trasa polmaratonu poznanskiego', 'imprezy', 3, 'dobra', 'impreza (słowo z listy) + sieć ze źródłami'],
-  ['biegi za granica w styczniu', 'imprezy', 2, 'pusta', 'maszyna zna tylko Polskę → „nie ma biegów w tym zakresie” — prawda, ale bez wskazania'],
+  ['biegi za granica w styczniu', 'imprezy', 2, 'dobra', 'M3-2 (e): jedno zdanie z routera „Maszyna wyników zna tylko biegi w Polsce.”, 0 tokenów'],
   ['ile kosztuje wpisowe na maraton w debnie', 'imprezy', 3, 'za_droga', '„ile” wyklucza imprezę i kalendarz → model → sieć ~$0,02; impreza + link do strony organizatora dałaby to za 0'],
   // ── treści aplikacji ──
   ['czwarta godzina', 'tresci', 3, 'dobra', 'utwór z radia'],
@@ -66,16 +66,16 @@ const PYTANIA = [
   ['przepis na omlet', 'tresci', 3, 'dobra', ''],
   ['cwiczenia na core', 'tresci', 4, 'dobra', 'M3-1 (2): „cwiczenia” pominięte jak „przepis” → program Core'],
   ['oddech 4-7-8', 'tresci', 2, 'dobra', 'M3-1 (2): „oddech” = słowo kategorii, cyfry liczą się jako słowa → technika 4-7-8'],
-  ['jak dziala tsb', 'tresci', 3, 'za_droga', 'model → pusto; brak wpisu „pojęcia” w katalogu (TSB, CTL, strefy)'],
-  ['gdzie zmienic haslo', 'tresci', 3, 'pusta', 'katalog ekranów nie zna „hasło” → model → pusto; słowa-klucze ekranów do rozszerzenia'],
+  ['jak dziala tsb', 'tresci', 3, 'dobra', 'M3-2 (b): katalog pojęć z METRIC_TOOLTIPS (sb.js) — karta „Co to jest” + Otwórz Forma; strefy/interwały bez opisu w aplikacji = bez hasła'],
+  ['gdzie zmienic haslo', 'tresci', 3, 'dobra', 'M3-2: fakt o aplikacji — zmiany hasła NIE MA (zwiad: zero updateUser/PASSWORD_RECOVERY), tylko „Zapomniałem hasła” na logowaniu; 0 tokenów'],
   ['pokaz wyzwania', 'tresci', 3, 'dobra', ''],
-  ['co to jest odznaka wracam do gry', 'tresci', 2, 'pusta', 'M3-1 (2): „co to jest” omija router odznak → katalog daje kartę odznaki; opisu odznaki w karcie nadal nie ma'],
+  ['co to jest odznaka wracam do gry', 'tresci', 2, 'dobra', 'M3-2: karta odznaki z opisem z odznaki.html („Powrót po 7 dniach przerwy”)'],
   ['radio', 'tresci', 3, 'dobra', ''],
   // ── spoza aplikacji ──
   ['kto wygral maraton w berlinie', 'poza', 3, 'dobra', 'sieć ze źródłami (~$0,02)'],
   ['jaka pogoda jutro w poznaniu', 'poza', 4, 'dobra', 'M3-1 (3): po stronie klienta z kafla Dziś (sessionStorage), 0 tokenów, bez EF'],
   ['ile kalorii ma banan', 'poza', 2, 'za_droga', 'sieć; baza produktów w Jedzeniu ma to za 0 — osobna decyzja'],
-  ['jak przeliczyc tempo na predkosc', 'poza', 2, 'za_droga', 'model/sieć; kalkulator = 0 tokenów'],
+  ['jak przeliczyc tempo na predkosc', 'poza', 2, 'dobra', 'M3-2 (d): kalkulator w routerze — bez liczb prosi o tempo/prędkość/czas+dystans; z liczbami przelicza (tylko liczby z pytania)'],
   ['rekord swiata w maratonie', 'poza', 2, 'dobra', 'M3-1 (2): „świata” wyklucza moje_rekordy → sieć ze źródłami (~$0,02)'],
   ['co jesc przed polmaratonem', 'poza', 4, 'za_droga', 'M3-1 (2): „co jeść” omija listę → sieć ~$0,02 za poradę ogólną; brak własnej treści'],
   ['jak dobrac buty do biegania', 'poza', 3, 'za_droga', 'sieć'],
@@ -88,11 +88,12 @@ const PYTANIA = [
 const U1 = '11111111-1111-4111-8111-111111111111';
 function baza() {
   return {
-    athletes: [{ id: JA, user_id: 'u-ja', full_name: 'Testowa Osoba', is_public: false, coach_id: null, date_of_birth: '1990-05-05', race_goals: JSON.stringify([{ name: 'Bieg Niepodległości', date: '2026-11-11', distance_km: 10 }]) },
-      { id: U1, full_name: 'Robert Korzeniowski', is_public: true }],
+    athletes: [{ id: JA, user_id: 'u-ja', full_name: 'Testowa Osoba', is_public: false, coach_id: null, date_of_birth: '1990-05-05', city: 'Poznań', race_goals: JSON.stringify([{ name: 'Bieg Niepodległości', date: '2026-11-11', distance_km: 10 }]) },
+      { id: U1, full_name: 'Robert Korzeniowski', is_public: true, city: 'Poznań' }],   // etap 4: miasto i jeden znajomy publiczny (odstępstwo od konta testowego, żeby ścieżki M3-2 miały co pokazać)
     trainings: [], training_logs: [{ athlete_id: JA, logged_at: '2026-10-27T07:00:00Z', training_type: 'Spokojny', distance_km: '10.2', duration: '1:00:00' }],
     achievements: Array.from({ length: 44 }, (_, i) => ({ athlete_id: JA, badge_id: 'b' + i, earned_at: '2026-10-01T10:00:00Z' })),
-    races: [], friendships: [], radio_tracks: [{ id: '22222222-2222-4222-8222-222222222222', title: 'Czwarta Godzina', artist: 'X' }, { id: '33333333-3333-4333-8333-333333333333', title: 'Boso', artist: 'Y' }],
+    races: [], friendships: [{ requester_id: JA, addressee_id: U1, status: 'accepted' }],
+    public_training_logs: [{ athlete_id: U1, logged_at: '2026-10-28T07:00:00Z', training_type: 'Spokojny', distance_km: '12.5' }], radio_tracks: [{ id: '22222222-2222-4222-8222-222222222222', title: 'Czwarta Godzina', artist: 'X' }, { id: '33333333-3333-4333-8333-333333333333', title: 'Boso', artist: 'Y' }],
     recipes: [{ id: '44444444-4444-4444-8444-444444444444', title: 'Omlet z mozzarellą i pomidorem', tags: ['śniadanie'], ingredients: [] }],
   };
 }

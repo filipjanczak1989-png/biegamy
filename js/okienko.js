@@ -88,7 +88,16 @@
       return '<div class="okn-karta okn-karta--wyz"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(p) + '%</span>' +
         '<span class="okn-pasek"><span style="width:' + p + '%"></span></span></div>';
     }
-    if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Odznaka') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
+    if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Odznaka') + '</b><span class="okn-meta">' + esc([dzienTxt(d.data), d.opis].filter(Boolean).join(' · ')) + '</span></div>';
+    /* M3-2: forma (liczby z formaSeria + zdanie ze słownika kafla), znajomy (tylko profile publiczne, km z widoku publicznego) */
+    if (k.typ === 'forma') return '<div class="okn-karta okn-karta--forma"><b>TSB ' + esc((Number(d.tsb) >= 0 ? '+' : '') + d.tsb) + '</b><span class="okn-meta">' +
+      esc([d.etykieta, 'CTL ' + d.ctl, 'ATL ' + d.atl].filter(Boolean).join(' · ')) + '</span>' + (d.pod ? '<span class="okn-meta">' + esc(d.pod) + '</span>' : '') + '</div>';
+    if (k.typ === 'znajomy') {
+      if (!RE_UUID.test(String(d.id || ''))) return '';
+      var tr = Number(d.treningi) || 0;
+      return '<div class="okn-karta okn-karta--osoba"><b>' + esc(d.nazwa || 'Biegacz') + '</b><span class="okn-meta">' + esc(kmTxt(d.km) + ' km · ' + tr + ' ' + (window.BM_TEKST ? window.BM_TEKST.odmiana(tr, ['trening', 'treningi', 'treningów']) : 'treningów')) + '</span>' +
+        '<button type="button" class="okn-chip" data-osoba="profil" data-id="' + esc(d.id) + '">Zobacz profil</button></div>';
+    }
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
@@ -101,7 +110,7 @@
       return '<div class="okn-karta"><b>' + esc(o.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
         '<button type="button" class="okn-otworz" data-ktoty="' + esc(o.klucz) + '">To ja</button></div>';
     }).join('');
-    if (k.typ === 'utwor' || k.typ === 'przepis' || k.typ === 'cwiczenie' || k.typ === 'kat_ekran' || k.typ === 'kat_wyzwanie' || k.typ === 'kat_odznaka') return kartaKatalogu(k.typ, d);
+    if (k.typ === 'utwor' || k.typ === 'przepis' || k.typ === 'cwiczenie' || k.typ === 'kat_ekran' || k.typ === 'kat_wyzwanie' || k.typ === 'kat_odznaka' || k.typ === 'kat_pojecie') return kartaKatalogu(k.typ, d);
     /* M3b: plan pusty — przycisk wywołuje ISTNIEJĄCĄ funkcję zawodnik.html po tapnięciu (openGenModal / czat z trenerem). */
     if (k.typ === 'plan_pusty') {
       if (d.stan === 'generator') return '<div class="okn-karta"><button type="button" class="okn-otworz" data-plan="generator">Ułóż plan</button></div>';
@@ -357,10 +366,16 @@
       return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">ćwiczenia</span>' +
         '<button type="button" class="okn-otworz" data-katalog="cwiczenie" data-rodzaj="' + esc(d.rodzaj) + '" data-klucz="' + esc(d.klucz) + '">' + esc(RODZAJ_CW[d.rodzaj]) + '</button></div>';
     }
+    /* M3-2 (b): pojęcie z kafla Forma (tekst „Co to jest" z sb.js) albo fakt o aplikacji; przycisk tylko gdy jest ekran */
+    if (typ === 'kat_pojecie') {
+      var celP = bezpiecznyCel(d.cel);
+      return '<div class="okn-karta okn-karta--pojecie"><b>' + esc(d.tytul || '') + '</b><span class="okn-meta">' + esc(d.co_to || '') + '</span>' +
+        (celP ? '<button type="button" class="okn-otworz" data-cel="' + esc(celP) + '">Otwórz ' + esc(d.ekran_nazwa || '') + ' ›</button>' : '') + '</div>';
+    }
     var cel = typ === 'kat_ekran' ? bezpiecznyCel(d.cel) : typ === 'kat_wyzwanie' ? EKRANY.wyzwania : EKRANY.odznaki;
     if (!cel) return '';
     var co = typ === 'kat_ekran' ? 'ekran' : typ === 'kat_wyzwanie' ? 'wyzwanie' : 'odznaka';
-    return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + co + '</span>' +
+    return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(typ === 'kat_odznaka' && d.opis ? co + ' · ' + d.opis : co) + '</span>' +
       '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button></div>';
   }
   function akcjaKatalogu(b) {

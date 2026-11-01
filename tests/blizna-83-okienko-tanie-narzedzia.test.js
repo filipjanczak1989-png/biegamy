@@ -48,7 +48,8 @@ test('(3) powitanie → zdanie z routera; EF zwraca je bez modelu', async () => 
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   const i = ef.indexOf('if (traf && "zdanie" in traf)');
   assert.ok(i > 0 && i < ef.indexOf('zapytajModel({'));
-  assert.match(ef.slice(i, i + 400), /tryb: "router", narzedzia: \["powitanie"\]/);
+  assert.match(ef.slice(i, i + 400), /tryb: "router", narzedzia: \[traf\.log\]/);   // M3-2: zdania routera mają własny wpis (powitanie, kalkulator, biegi_zagranica)
+  assert.equal(R.dopasuj('czesc', DZIS).log, 'powitanie');
 });
 
 test('(4) moje rekordy przy pustych pb_* → z wyników zawodów (etykieta), nie z treningów; imiennicy → „Który to Ty?"', async () => {

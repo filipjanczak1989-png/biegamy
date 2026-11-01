@@ -74,6 +74,27 @@ export function zWyniku(nazwa, w, args = {}) {
     if (!w.szanse) zdania.push((zWynikow ? "Twoje najlepsze czasy z wyników zawodów: " : "Twoje rekordy: ") + r.map((x) => `${x.dystans} ${x.czas}${x.rok ? ` (${x.rok})` : ""}`).join(", ") + ".");
     return { zdania: zdania.slice(0, 2), karty: r.map((x) => ({ typ: "rekord", dane: { dystans: x.dystans, czas: x.czas, rok: x.rok, bieg: x.bieg || null, zrodlo: x.zrodlo || "profil" } })) };
   }
+  // ── M3-2 (a) ──
+  if (nazwa === "moja_forma") {
+    if (!w.logi) return { zdania: ["Za mało treningów z ostatnich 90 dni, żeby policzyć formę."], karty: [] };
+    const zdania = [`Forma: TSB ${w.tsb >= 0 ? "+" : ""}${w.tsb} (${w.etykieta}), CTL ${w.ctl}, ATL ${w.atl}.`];
+    if (w.tytul) zdania.push(w.tytul);   // zdanie ze słownika stanów (ten sam tekst co kafel Forma), nigdy porada spoza niego
+    return { zdania, karty: [{ typ: "forma", dane: { tsb: w.tsb, ctl: w.ctl, atl: w.atl, etykieta: w.etykieta, tytul: w.tytul, pod: w.pod } }] };
+  }
+  if (nazwa === "znajomi_tydzien") {
+    if (!w.znajomi) return { zdania: ["Nie masz jeszcze znajomych w BiegaMy."], karty: [] };
+    if (!w.publiczni) return { zdania: ["Twoi znajomi mają prywatne profile — ich treningów nie widzę."], karty: [] };
+    if (!w.biegali) return { zdania: [`Od ${DZIEN(w.od)} nikt ze znajomych z publicznym profilem nie zapisał treningu.`], karty: [] };
+    const kto = (w.osoby || []).slice(0, 3).map((o) => `${o.nazwa} ${km(o.km)} km`).join(", ");
+    return { zdania: [`Od ${DZIEN(w.od)} trenowało ${w.biegali} z ${w.znajomi} ${odmiana(w.znajomi, ["znajomego", "znajomych", "znajomych"])} (profile publiczne): ${kto}.`],
+      karty: (w.osoby || []).map((o) => ({ typ: "znajomy", dane: o })) };
+  }
+  if (nazwa === "osoby_z_miasta") {
+    if (!w.miasto) return { zdania: ["Ustaw miasto w Profilu, to pokażę, kto biega w Twojej okolicy."], karty: [], akcja: { nawiguj: "profil.html" } };
+    if (!w.liczba) return { zdania: [`W BiegaMy nikt inny z publicznym profilem nie podał miasta ${w.miasto}.`], karty: [] };
+    return { zdania: [`Z miasta ${w.miasto} biega w BiegaMy ${w.liczba} ${odmiana(w.liczba, ["osoba", "osoby", "osób"])} z publicznym profilem.`],
+      karty: (w.osoby || []).map((o) => ({ typ: "osoba", dane: o })) };
+  }
   if (nazwa === "moj_trener") {
     if (!w.trener) return { zdania: ["Trenujesz bez trenera w BiegaMy."], karty: [], akcja: null };
     return { zdania: [`Twój trener: ${w.trener.nazwa}.`], karty: [{ typ: "trener", dane: w.trener }] };

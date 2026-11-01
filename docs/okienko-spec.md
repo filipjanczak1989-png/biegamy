@@ -258,3 +258,34 @@ Testy: blizna-82; blizna-73/76 dostosowane.
   z treningów; imiennicy → „Który to Ty?"; 429 → zajęta. Testy: blizna-83; blizna-64 o 9 narzędziach.
 Ławka po (3): docs/lawka-pytan-2026-11-01-3.md. Cele „≥ 40 dobra, koszt < $0,15" NIE osiągnięte w tym zakresie —
 reszta to M3e (forma, znajomi), pojęcia (TSB), kalkulator tempa, słowa-klucze ekranów (hasło), porady ogólne (sieć).
+
+## M3-2 — luki ławki z danych i tekstów już obecnych w aplikacji (1.11.2026) — wdrożone w v21
+
+Jeden commit; zasada: 0 tokenów, liczby z danych, zdania ze słowników, które aplikacja już pokazuje.
+- (a) `moja_forma`: training_logs 120 dni → `formaSeria` (90 dni, _shared/reguly-treningow.mjs — te same progi, które pilnuje
+  bramka-reguly) → „Forma: TSB +7 (optimum), CTL 45, ATL 38." + jedno zdanie ze słownika stanów `js/forma-stany.mjs`
+  (= teksty tarczy formy w sb.js i `formaZoneLabel`; blizna-84 porównuje po zdjęciu polskich znaków). Żadnych porad poza
+  słownikiem. `znajomi_tydzien`: friendships accepted → profile przez RLS, treningi WYŁĄCZNIE z `public_training_logs`
+  (widok filtruje is_public) od poniedziałku; prywatne logi nigdy w sumie; „0 znajomych" / „znajomi mają prywatne
+  profile" / „nikt nie zapisał" jako osobne zdania. `osoby_z_miasta`: `athletes.city` z profilu → publiczni z tym samym
+  miastem (ilike, bez mnie), licznik + ≤ 5 kart osoby jak Społeczność; bez miasta → Profil.
+- (b) katalog „pojęcia": `_shared/pojecia.mjs` = KOPIA `window.METRIC_TOOLTIPS` z sb.js (tytuł + „Co to jest" bez HTML),
+  generator `tools/kopie-okienka.js`, równość pilnuje blizna-84. Trafienie po słowie-kluczu (tsb, ctl, atl, trimp,
+  heatmap / mapa cieplna, kilometraż, odliczanie) → karta pojęcia + „Otwórz Forma". Zwiad: strefy, interwały, rozbieganie
+  NIE MAJĄ opisu w aplikacji → brak hasła (nie piszemy własnych). Fakt o aplikacji (`O_APLIKACJI`): zmiany hasła NIE MA
+  (zero `updateUser` / `PASSWORD_RECOVERY`; login.html ma tylko „Zapomniałem hasła" → resetPasswordForEmail) — okienko
+  mówi to wprost zamiast kierować do Profilu; test pilnuje, że gdy zmiana hasła się pojawi, zdanie trzeba poprawić.
+- (c) `SYNONIMY_EKRANOW` (narzedzia.mjs): tylko rzeczy, które NA TYM EKRANIE SĄ (zegarek/intervals, zdjęcie/awatar, miasto,
+  prywatność, rocznik → Profil; zapisz trening → log; muzyka → Radio; znajomi → Społeczność…). Katalog bierze najlepsze
+  z nazwy i synonimów; router „otwórz ustawienia / pokaż zegarek" → Profil.
+- (d) kalkulator w routerze (`kalkulator()`): tempo ↔ km/h ↔ czas na dystans, liczby WYŁĄCZNIE z pytania (m:ss przy
+  „tempo"/„na km" albo < 10:00 = tempo; „w / za / poniżej" + dystans ≥ 15 km i krótkie „1:45" = godziny; półmaraton/maraton/
+  dycha/piątka = dystans). Bez liczb odpowiada tylko na jawne „przelicz … na prędkość/tempo"; „jakie tempo na półmaraton"
+  (porada) i „moje tempo" → nie kalkulator. Log: tryb router, narzędzia [kalkulator].
+- (e) `BIEG_SLOWO` + „za granicą / zagraniczne / poza Polską" → „Maszyna wyników zna tylko biegi w Polsce." (log
+  biegi_zagranica). Karty odznak (katalog i moje) z opisem z odznaki.html (`OPISY_ODZNAK`, kopia pilnowana).
+- Porady ogólne (co jeść, buty, katar, ile biegać) zostają w sieci — decyzja 1.11.
+- Testy: blizna-84; blizna-64 (12 narzędzi), blizna-83 (wpis logu zdań routera `[traf.log]`). Ławka etap 4:
+  docs/lawka-pytan-2026-11-01-4.md — dobra 41/50, zła 0, pusta 1 (półmaraton w Krakowie poza 90 dniami), za droga 8
+  (porady i produkty — poza zakresem), 0 wyjść nazwisk do sieci; koszt symulacji $0,28 (cel $0,15 wymaga decyzji o poradach).
+

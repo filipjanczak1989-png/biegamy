@@ -5,16 +5,20 @@
 //
 // Moduł czysty (bez Deno.*, bez fetch) — ładuje go i EF (Deno), i testy (node --test).
 import { WYZWANIA } from "../_shared/wyzwania.mjs";
-import { isRunType } from "../_shared/reguly-treningow.mjs";
-import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
+import { isRunType, formaSeria } from "../_shared/reguly-treningow.mjs";
+import { nazwaOdznaki, opisOdznaki } from "../_shared/odznaki-nazwy.mjs";
+import "../../../js/forma-stany.mjs";   // M3-2: zdania stanów formy = te same co kafel Forma (sb.js)
 import { biegiNadchodzace, domyslnyZakres, dniMiedzy as dniBiegow, MAX_DNI_BIEGOW } from "./biegi.mjs";
 import { BladF6 } from "./f6.mjs";
 import { stanPlanu } from "../../../js/plan-pusty.mjs";
 import { mojeRekordy, mojeWyniki, rekordyZWynikow } from "./moje.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
+const STANY_FORMY = /** @type {any} */ (globalThis).BM_FORMA_STANY;
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
 export const MAX_LISTA = 20;
+export const DNI_LOGOW_FORMY = 120;   // M3-2: formaSeria liczy 90 dni, seed bierze z początku bloku — czytamy z zapasem
+export const MAX_OSOB_MIASTA = 5;     // jak Społeczność: ≤ 5 kart
 
 /* Słownik ekranów (ZWIAD M0, 1.11.2026 — adresy, które aplikacja dziś przyjmuje; #plan w zawodnik.html NIE istnieje). */
 export const EKRANY = {
@@ -29,8 +33,19 @@ export const NAZWY_EKRANOW = {
   czat: "Czat", cialo: "Ćwiczenia", statystyki: "Statystyki", profil: "Profil", jedzenie: "Jedzenie", starty: "Starty",
   wyzwania: "Wyzwania", odznaki: "Odznaki", radio: "Radio",
 };
+/* M3-2 (c): słowa-klucze ekranów — czym ludzie nazywają to, co na ekranie jest („zegarek" → Profil, bo tam łączy się
+   intervals.icu; „zdjęcie" → Profil, bo tam jest awatar). Tylko rzeczy, które NA TYM EKRANIE SĄ (zwiad 1.11); hasła tu nie
+   ma — aplikacja nie ma zmiany hasła (katalog.mjs O_APLIKACJI mówi to wprost). Czyta katalog (kat_ekran) i router („otwórz
+   ustawienia"). */
+export const SYNONIMY_EKRANOW = {
+  profil: ["ustawienia", "zegarek", "garmin", "polar", "coros", "intervals", "zdjecie", "awatar", "avatar", "miasto", "prywatnosc", "rocznik", "konto", "imie", "nazwisko", "cele", "cel startowy"],
+  log: ["zapisz trening", "dodaj trening", "wpisz trening", "zapisac trening"], czat: ["wiadomosc", "wiadomosci", "napisz do trenera"],
+  jedzenie: ["przepisy", "dieta", "posilek", "posilki"], radio: ["muzyka", "utwory", "piosenki"], statystyki: ["wykresy", "statystyka"],
+  cialo: ["rozciaganie", "wzmacnianie", "oddech", "core", "mobilnosc"], spolecznosc: ["znajomi", "znajomych", "biegacze", "tablica"],
+  starty: ["zawody", "kalendarz startow"], historia: ["dziennik", "historia treningow"], forma: ["tsb", "ctl", "atl", "zmeczenie"],
+};
 const EKRAN_NARZEDZIA = { moj_plan: "plan", moje_treningi: "historia", moje_starty: "starty", wyzwania_postep: "wyzwania", odznaki_moje: "odznaki",
-  moje_rekordy: "profil", moje_wyniki: "starty", moj_trener: "czat" };
+  moje_rekordy: "profil", moje_wyniki: "starty", moj_trener: "czat", moja_forma: "forma", znajomi_tydzien: "spolecznosc", osoby_z_miasta: "spolecznosc" };
 
 /* Deklaracje funkcji dla Gemini (tools[].functionDeclarations) — podzbiór OpenAPI. */
 export const DEKLARACJE = [
@@ -57,6 +72,12 @@ export const DEKLARACJE = [
   { name: "moje_wyniki", description: "Wyniki zawodów biegacza z maszyny wyników (po imieniu, nazwisku i roczniku z profilu); gdzie = miejscowość albo nazwa biegu.",
     parameters: { type: "object", properties: { gdzie: { type: "string", description: "np. Dębno" } } } },
   { name: "moj_trener", description: "Kto jest trenerem biegacza w BiegaMy (imię i nazwisko trenera) albo informacja, że biegacz trenuje bez trenera.",
+    parameters: { type: "object", properties: {} } },
+  { name: "moja_forma", description: "Aktualna forma biegacza: TSB (świeżość), CTL (forma długa), ATL (zmęczenie) z ostatnich 90 dni treningów i nazwa stanu formy.",
+    parameters: { type: "object", properties: {} } },
+  { name: "znajomi_tydzien", description: "Treningi znajomych biegacza w tym tygodniu (tylko znajomi z publicznym profilem): kto biegał, ile km.",
+    parameters: { type: "object", properties: {} } },
+  { name: "osoby_z_miasta", description: "Biegacze z publicznym profilem z tego samego miasta co biegacz (miasto z profilu).",
     parameters: { type: "object", properties: {} } },
 ];
 export const NAZWY = DEKLARACJE.map((d) => d.name);
@@ -160,6 +181,51 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6
     const { data: c } = await sb.from("coaches").select("id,full_name,specialization").eq("id", a.coach_id).maybeSingle();
     return { trener: c ? { nazwa: String(c.full_name || "").slice(0, 80) || "Trener", specjalizacja: c.specialization ? String(c.specialization).slice(0, 80) : null } : { nazwa: "Trener", specjalizacja: null } };
   }
+  // ── M3-2 (a): forma, znajomi, miasto — tylko odczyt, liczby z danych, zdania ze słownika stanów ──
+  if (nazwa === "moja_forma") {
+    const { data, error } = await sb.from("training_logs").select("logged_at,training_type,duration,feel").eq("athlete_id", athleteId)
+      .not("training_type", "like", "__badge__%").gte("logged_at", poczatekDniaWaw(dodajDni(dzis, -DNI_LOGOW_FORMY))).lt("logged_at", poczatekDniaWaw(dodajDni(dzis, 1)));
+    if (error) throw new Error("training_logs");
+    const logi = data || [];
+    if (!logi.length) return { logi: 0 };
+    const f = formaSeria(logi, { koniec: teraz, dni: 90 });
+    const s = STANY_FORMY[f.forma] || null;
+    return { logi: logi.length, tsb: f.tsb, ctl: f.ctl, atl: f.atl, forma: f.forma, etykieta: s ? s.etykieta : f.forma, tytul: s ? s.tytul : null, pod: s ? s.pod : null };
+  }
+  if (nazwa === "znajomi_tydzien") {
+    const od = poniedzialek(dzis);
+    const { data: fr, error } = await sb.from("friendships").select("requester_id,addressee_id").or(`requester_id.eq.${athleteId},addressee_id.eq.${athleteId}`).eq("status", "accepted");
+    if (error) throw new Error("friendships");
+    const ids = [...new Set((fr || []).map((f) => (f.requester_id === athleteId ? f.addressee_id : f.requester_id)).filter((x) => x && x !== athleteId))];
+    if (!ids.length) return { od, do: dzis, znajomi: 0, publiczni: 0, biegali: 0, osoby: [] };
+    // profile znajomych przez RLS (publiczni + podopieczni trenera); treningi WYŁĄCZNIE z widoku publicznego — prywatne logi
+    // nigdy nie wchodzą do sumy, nawet gdy właściciel tabeli by je widział
+    const [{ data: ath }, { data: logi, error: eL }] = await Promise.all([
+      sb.from("athletes").select("id,full_name,is_public").in("id", ids),
+      sb.from("public_training_logs").select("athlete_id,training_type,distance_km,logged_at").in("athlete_id", ids).not("training_type", "like", "__badge__%")
+        .gte("logged_at", poczatekDniaWaw(od)).lt("logged_at", poczatekDniaWaw(dodajDni(dzis, 1))),
+    ]);
+    if (eL) throw new Error("public_training_logs");
+    const nazwy = {}; let publiczni = 0;
+    for (const a of ath || []) { nazwy[a.id] = String(a.full_name || "").slice(0, 80) || "Biegacz"; if (a.is_public === true) publiczni++; }
+    const suma = {};
+    for (const l of logi || []) {
+      const s = suma[l.athlete_id] || (suma[l.athlete_id] = { id: l.athlete_id, treningi: 0, km: 0 });
+      s.treningi++; if (isRunType(l.training_type)) s.km += parseFloat(l.distance_km) || 0;
+    }
+    const osoby = Object.values(suma).map((s) => ({ id: s.id, nazwa: nazwy[s.id] || "Biegacz", km: zaokr(s.km), treningi: s.treningi })).sort((a, b) => b.km - a.km);
+    return { od, do: dzis, znajomi: ids.length, publiczni, biegali: osoby.length, osoby: osoby.slice(0, MAX_OSOB_MIASTA) };
+  }
+  if (nazwa === "osoby_z_miasta") {
+    const { data: ja, error } = await sb.from("athletes").select("city").eq("id", athleteId).maybeSingle();
+    if (error) throw new Error("athletes");
+    const miasto = ja && ja.city ? String(ja.city).replace(/[%_\\]/g, "").trim().slice(0, 60) : "";
+    if (!miasto) return { miasto: null, liczba: 0, osoby: [] };
+    const { data, count, error: e2 } = await sb.from("athletes").select("id,full_name", { count: "exact" }).eq("is_public", true).neq("id", athleteId)
+      .ilike("city", miasto).order("full_name", { ascending: true }).limit(MAX_OSOB_MIASTA);
+    if (e2) throw new Error("athletes");
+    return { miasto, liczba: count ?? (data || []).length, osoby: (data || []).map((a) => ({ id: a.id, nazwa: String(a.full_name || "").slice(0, 80) || "Biegacz", prywatny: false })) };
+  }
   if (nazwa === "moje_rekordy") {
     let r = await mojeRekordy(sb, athleteId);
     if (!r.rekordy.length && f6ctx && f6ctx.token) {   // M3-1 (3): puste pb_* → najlepsze czasy z WYNIKÓW ZAWODÓW (F6), z etykietą
@@ -247,7 +313,7 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6
       .eq("athlete_id", athleteId).order("earned_at", { ascending: false }).limit(5);
     if (error) throw new Error("achievements");
     return { liczba: count ?? (data || []).length,
-      ostatnie: (data || []).map((a) => ({ id: a.badge_id, nazwa: nazwaOdznaki(a.badge_id), data: a.earned_at ? dzisWaw(new Date(a.earned_at)) : null })) };
+      ostatnie: (data || []).map((a) => ({ id: a.badge_id, nazwa: nazwaOdznaki(a.badge_id), opis: opisOdznaki(a.badge_id), data: a.earned_at ? dzisWaw(new Date(a.earned_at)) : null })) };
   }
   throw new Error("nieznane narzędzie");
 }

@@ -22,11 +22,58 @@ function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego 
 }
 
 export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utwór z radia albo przepis.";
+export const ODP_TYLKO_POLSKA = "Maszyna wyników zna tylko biegi w Polsce.";   // M3-2 (e)
+export const ODP_KALKULATOR_PUSTY = "Napisz tempo (np. 5:30/km), prędkość w km/h albo czas i dystans — przeliczę.";   // M3-2 (d)
 const EKRAN_SLOWO = [
   [/\b(log|dziennik)\b/, "log"], [/\bplan\b/, "plan"], [/\bform\w*/, "forma"], [/\bspolecznos\w*/, "spolecznosc"],
   [/\bprofil\w*/, "profil"], [/\bradi\w*/, "radio"], [/\bkalendarz\w*/, "plan"], [/\bstart\w*/, "starty"],
   [/\bwyzwan\w*/, "wyzwania"], [/\bodzna\w*/, "odznaki"], [/\bjedzeni\w*|\bdiet\w*/, "jedzenie"], [/\bczat\w*/, "czat"],
+  [/\bustawien\w*|\bzegar\w*|\bawatar\w*|\bzdjeci\w*|\bkonto\b/, "profil"], [/\bcwiczen\w*|\brozciag\w*/, "cialo"], [/\bstatysty\w*/, "statystyki"],   // M3-2 (c)
 ];
+
+/* M3-2 (d): kalkulator tempo ↔ prędkość ↔ czas na dystans — 0 tokenów, liczby WYŁĄCZNIE z pytania. m:ss to tempo, gdy stoi
+   przy słowie „tempo" / „na km" albo jest krótsze niż 10:00 bez kontekstu czasu; przy „w / za / poniżej" i dystansie ≥ 15 km
+   krótkie „1:45" to godziny. Bez liczb odpowiada tylko na jawne „przelicz … na prędkość/tempo"; „jakie tempo na półmaraton"
+   to porada, nie przeliczenie → null (dalej jak dotąd). */
+const RE_KALK_SLOWO = /\b(tempo|tempie|tempem|tempa|predkos\w*|km\s*\/\s*h|kmh|km na godzin\w*|min\s*\/\s*km|na km\b|na kilometr\w*)/;
+const fmtTempo = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60) % 60).padStart(2, "0")}`;
+const fmtCzas = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : String(m)) + ":" + String(x).padStart(2, "0"); };
+const fmtKmh = (v) => String(Math.round(v * 10) / 10).replace(".", ",");
+const fmtKm = (v) => (v === 21.0975 ? "Półmaraton" : v === 42.195 ? "Maraton" : String(Math.round(v * 100) / 100).replace(".", ",") + " km");
+export function kalkulator(tekst) {
+  const raw = T.bezZnakow(tekst).replace(/,/g, ".");
+  const t = normalizuj(tekst);
+  if (/\b(moj\w*|mam|mial\w*|plan\w*|rekord\w*|zyciow\w*|pb)\b/.test(t)) return null;
+  if (!RE_KALK_SLOWO.test(raw) && !/\bile czasu\b|\bjaki czas\b/.test(t)) return null;
+  let tempoS = null, czasS = null, kmh = null, km = null;
+  const mKmh = raw.match(/(\d+(?:\.\d+)?)\s*(?:km\s*\/\s*h|kmh|km na godz)/);
+  if (mKmh) kmh = parseFloat(mKmh[1]);
+  const bezKmh = mKmh ? raw.replace(mKmh[0], " ") : raw;
+  const mKm = bezKmh.match(/(\d+(?:\.\d+)?)\s*(?:km\b|kilometr)/);
+  if (mKm) km = parseFloat(mKm[1]);
+  else if (/polmaraton/.test(raw)) km = 21.0975; else if (/\bmaraton/.test(raw)) km = 42.195; else if (/\bdych\w*|\b10k\b/.test(raw)) km = 10; else if (/\bpiatk\w*|\b5k\b/.test(raw)) km = 5;
+  const czasH = raw.match(/(\d{1,2}):(\d{2}):(\d{2})/);
+  if (czasH) czasS = (+czasH[1]) * 3600 + (+czasH[2]) * 60 + (+czasH[3]);
+  const reszta = czasH ? raw.replace(czasH[0], " ") : raw;
+  for (const m of reszta.matchAll(/(?<![\d:])(\d{1,3}):(\d{2})(?![\d:])/g)) {
+    const s = (+m[1]) * 60 + (+m[2]);
+    const przed = reszta.slice(Math.max(0, m.index - 14), m.index), po = reszta.slice(m.index + m[0].length, m.index + m[0].length + 14);
+    const jestTempo = /temp\w*\s*$/.test(przed) || /^\s*(\/|min\s*\/?\s*|na )\s*(km|kilometr)/.test(po);
+    const kontekstCzasu = /\b(w|za|ponizej|pod|czas\w*)\s*$/.test(przed);
+    if (jestTempo) { if (tempoS == null) tempoS = s; }
+    else if (kontekstCzasu) { if (czasS == null) czasS = km && km >= 15 && s < 7 * 60 ? s * 60 : s; }
+    else if (s < 600) { if (tempoS == null) tempoS = s; }
+    else if (czasS == null) czasS = s;
+  }
+  if (tempoS == null && kmh != null && kmh > 0) tempoS = 3600 / kmh;
+  if (tempoS == null && czasS != null && km) tempoS = czasS / km;
+  if (tempoS == null || !(tempoS > 0)) return /\bprzelicz\w*|\bna predkosc\b|\bna tempo\b/.test(t) ? { zdanie: ODP_KALKULATOR_PUSTY, log: "kalkulator" } : null;
+  const predkosc = 3600 / tempoS;
+  if (czasS != null && km) return { zdanie: `${fmtKm(km)} w ${fmtCzas(czasS)} to tempo ${fmtTempo(tempoS)}/km (${fmtKmh(predkosc)} km/h).`, log: "kalkulator" };
+  if (km) return { zdanie: `${fmtKm(km)} w tempie ${fmtTempo(tempoS)}/km to ${fmtCzas(tempoS * km)} (${fmtKmh(predkosc)} km/h).`, log: "kalkulator" };
+  if (kmh != null) return { zdanie: `${fmtKmh(kmh)} km/h to tempo ${fmtTempo(tempoS)}/km.`, log: "kalkulator" };
+  return { zdanie: `Tempo ${fmtTempo(tempoS)}/km to ${fmtKmh(predkosc)} km/h.`, log: "kalkulator" };
+}
 
 /* M3a: kalendarz imprez z maszyny wyników. Słowo o biegu + (miejsce po przyimku | miesiąc | dystans | „jakie biegi" /
    „gdzie pobiec"). NIE: pytania o zwycięzców, wyniki, trasy, zapisy, rekordy i własne starty („moje", „mam") —
@@ -38,7 +85,7 @@ const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|
 const BIEG_NAZWANY = /\b(maraton\w*|polmaraton\w*|bieg\w*|zawod\w*|ultra\w*|cross\w*|parkrun\w*)\s+([a-z][a-z-]{2,})/;
 const NIE_NAZWA_PO_BIEGU = /^(w|we|na|pod|kolo|obok|przy|i|oraz|lub|albo|dla|do|od|z|ze|jest|sa|beda|bedzie|byl|byly|tez|jeszcze|dzis|jutro|weekend\w*|tym|tego|ten|ta|to|ktory|ktora|ktore|jaki|jaka|jakie|gdzie|kiedy|nowe|wszystkie|blisko|niedaleko|kolo)$/;
 const PRZYIMKI = ["w", "we", "na", "pod", "kolo", "obok"];
-const NIE_MIEJSCE = /^(tym|tymze|przyszlym|najblizszym|najblizszy|weekend\w*|sobote|niedziele|okolic\w*|polsce|polska|kraju|lesie|gorach|terenie|miescie|ciagu|dzien|dni|tygodni\w*|miesiac\w*|roku|km|kilometr\w*)$/;
+const NIE_MIEJSCE = /^(tym|tymze|moim|mojej|mojego|naszym|przyszlym|najblizszym|najblizszy|weekend\w*|sobote|niedziele|okolic\w*|polsce|polska|kraju|lesie|gorach|terenie|miescie|ciagu|dzien|dni|tygodni\w*|miesiac\w*|roku|km|kilometr\w*)$/;
 function najblizszyWeekend(dzis) {   // sb–nd: dziś sb/nd → ten weekend, inaczej najbliższy
   const dow = new Date(dzis + "T12:00:00Z").getUTCDay();   // 0 nd … 6 sb
   const doSoboty = dow === 6 ? 0 : dow === 0 ? -1 : 6 - dow;
@@ -88,8 +135,18 @@ export function dopasuj(tekst, dzis) {
   if (/\bplan\w*\b.*\btydz\w*|\bplan tygodni/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "tydzien" } };
   if (/\b(kiedy|jaki)\b.*\bstart|\bnajblizsz\w* start|\bmoje starty|\bmoj start/.test(t)) return { narzedzie: "moje_starty", args: {} };
   // M3-1 (3): powitanie → jedno zdanie bez modelu; „kto jest moim trenerem" → moj_trener (0 tokenów)
-  if (/^(dzien dobry|czesc|hej|siema|witaj|witam|halo|dobry wieczor|hello|hi|elo|no hej)\b/.test(t) && t.split(" ").length <= 3) return { zdanie: POWITANIE };
+  if (/^(dzien dobry|czesc|hej|siema|witaj|witam|halo|dobry wieczor|hello|hi|elo|no hej)\b/.test(t) && t.split(" ").length <= 3) return { zdanie: POWITANIE, log: "powitanie" };
   if (/\b(moj|mojego|moim|mojemu)\s+trener\w*|\bmoim trenerem\b|\bmam trenera\b|\bkto mnie trenuje\b/.test(t)) return { narzedzie: "moj_trener", args: {} };
+  // M3-2 (a): forma („jaka mam formę", „mój TSB"), znajomi („moi znajomi co biegali" — nie „dodaj X do znajomych", to osoba),
+  // miasto („kto biega z mojego miasta") — 0 tokenów; „co to jest forma / jak działa TSB" zostaje dla katalogu pojęć
+  if (/\bmoj\w* tsb\b|\bmam tsb\b|\b(jaka|jaką|moja|mam|sprawdz|ocen)\b[^.]*\bform[aey]\b|\bform[aey]\b[^.]*\b(mam|moja)\b/.test(t)) return { narzedzie: "moja_forma", args: {} };
+  if (/\bznajom\w*/.test(t) && !/\b(dodaj|dodac|dodawac|zapros\w*|zaprosic|usun\w*|przyjmij|odrzuc\w*|jak)\b/.test(t)) return { narzedzie: "znajomi_tydzien", args: {} };
+  if (/\b(kto|ktorzy|jacy|biegacz\w*|osob\w*|ludz\w*)\b/.test(t) && /\b(z|w) (mojego|moim|mojej) (miast\w*|miesci\w*|okolic\w*)\b|\bkto\b.*\b(w okolicy|z okolicy|blisko mnie|niedaleko mnie)\b/.test(t)) return { narzedzie: "osoby_z_miasta", args: {} };
+  // M3-2 (d) kalkulator — przed rekordami („jaki czas na 10 km w tempie 5:00" to przeliczenie, nie życiówka)
+  const kalk = kalkulator(tekst);
+  if (kalk) return kalk;
+  // M3-2 (e): biegi za granicą — maszyna wyników zna tylko Polskę; jedno zdanie zamiast pustej listy
+  if (BIEG_SLOWO.test(t) && /\bza granic\w*|\bzagranic\w*|\bpoza polsk\w*/.test(t)) return { zdanie: ODP_TYLKO_POLSKA, log: "biegi_zagranica" };
   // M3d: rekordy i moje wyniki — przed kalendarzem („jak mi poszło w Dębnie" to wynik, nie termin)
   if (!/\bkto\b/.test(t)) {
     const cudzyRekord = /\b(swiata|polski|europy|olimpijsk\w*|trasy|kraju|mistrz\w*)\b/.test(t);   // M3-1 (2): rekord świata ≠ mój rekord

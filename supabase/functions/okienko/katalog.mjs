@@ -10,8 +10,9 @@
 import "../../../js/przepisy-szukaj.mjs";
 import "../../../js/cwiczenia-nazwy.mjs";
 import { WYZWANIA } from "../_shared/wyzwania.mjs";
-import { NAZWY_ODZNAK } from "../_shared/odznaki-nazwy.mjs";
-import { EKRANY, NAZWY_EKRANOW } from "./narzedzia.mjs";
+import { NAZWY_ODZNAK, OPISY_ODZNAK } from "../_shared/odznaki-nazwy.mjs";
+import { POJECIA } from "../_shared/pojecia.mjs";   // M3-2 (b): kopia METRIC_TOOLTIPS z sb.js — tylko istniejące opisy
+import { EKRANY, NAZWY_EKRANOW, SYNONIMY_EKRANOW } from "./narzedzia.mjs";
 
 const S = /** @type {any} */ (globalThis).BM_SZUKAJ;
 const C = /** @type {any} */ (globalThis).BM_CWICZENIA_NAZWY;
@@ -21,8 +22,24 @@ export const ODP_KATALOG = "Znalazłem w aplikacji:";
 // M3-1 (2): także słowa KATEGORII (jak „przepis" w przepisy-szukaj) — „cwiczenia na core", „oddech 4-7-8", „co to jest odznaka X"
 const KAT_POMIN = { zagraj: 1, odtworz: 1, pusc: 1, wlacz: 1, pokaz: 1, otworz: 1, znajdz: 1, piosenka: 1, piosenke: 1, utwor: 1, kawalek: 1, ten: 1, ta: 1, to: 1,
   cwiczenia: 1, cwiczenie: 1, cwiczen: 1, program: 1, programy: 1, trening: 1, treningi: 1, oddech: 1, oddechowe: 1, oddechu: 1, technika: 1,
-  odznaka: 1, odznaki: 1, odznake: 1, wyzwanie: 1, wyzwania: 1, ekran: 1, jest: 1, czym: 1, znaczy: 1, oznacza: 1, dostac: 1, zdobyc: 1 };
-const KOLEJNOSC = { utwor: 0, przepis: 1, cwiczenie: 2, kat_ekran: 3, kat_wyzwanie: 4, kat_odznaka: 5 };   // kat_*: nie mylić z kartami wyzwanie/odznaka narzędzi
+  odznaka: 1, odznaki: 1, odznake: 1, wyzwanie: 1, wyzwania: 1, ekran: 1, jest: 1, czym: 1, znaczy: 1, oznacza: 1, dostac: 1, zdobyc: 1,
+  gdzie: 1, zmienic: 1, zmiana: 1, zmienie: 1, dziala: 1, znalezc: 1, ustawic: 1, ustawie: 1, moge: 1, mozna: 1, sie: 1, pojecie: 1,
+  podlaczyc: 1, polaczyc: 1, podpiac: 1, sparowac: 1, wgrac: 1, dodac: 1, wlaczyc: 1 };   // M3-2: „gdzie zmienić hasło", „jak działa tsb"
+const KOLEJNOSC = { utwor: 0, przepis: 1, cwiczenie: 2, kat_pojecie: 3, kat_ekran: 4, kat_wyzwanie: 5, kat_odznaka: 6 };   // kat_*: nie mylić z kartami wyzwanie/odznaka narzędzi
+/* M3-2: fakty o aplikacji, których nie ma na żadnym ekranie — tylko to, co zwiad 1.11 potwierdził w kodzie: zmiany hasła
+   w aplikacji NIE MA (zero updateUser / PASSWORD_RECOVERY; login.html ma tylko „Zapomniałem hasła" → resetPasswordForEmail). */
+export const O_APLIKACJI = [
+  { klucz: "haslo", klucze: ["haslo", "hasla", "haslem", "hasle"], tytul: "Hasło",
+    tekst: "W aplikacji nie ma dziś zmiany hasła — na ekranie logowania jest tylko „Zapomniałem hasła” (link na e-mail).", ekran: null },
+];
+/** Słowa zapytania (bez polskich znaków) zawierają klucz — także wielowyrazowy („mapa cieplna"). */
+function maKlucz(slowaZap, klucze) { const z = " " + slowaZap.join(" ") + " "; return (klucze || []).some((k) => z.includes(" " + k + " ")); }
+export function pojeciaZPytania(tekst) {
+  const sl = S.slowa(tekst), out = [];
+  for (const [k, p] of Object.entries(POJECIA)) if (maKlucz(sl, p.klucze)) out.push({ typ: "kat_pojecie", wynik: 1, nazwa: p.tytul, dane: { klucz: k, tytul: p.tytul, co_to: p.co_to, cel: EKRANY.forma, ekran_nazwa: NAZWY_EKRANOW.forma } });
+  for (const o of O_APLIKACJI) if (maKlucz(sl, o.klucze)) out.push({ typ: "kat_pojecie", wynik: 1, nazwa: o.tytul, dane: { klucz: o.klucz, tytul: o.tytul, co_to: o.tekst, cel: o.ekran ? EKRANY[o.ekran] : null, ekran_nazwa: o.ekran ? NAZWY_EKRANOW[o.ekran] : null } });
+  return out;
+}
 
 /** → null (brak mocnego trafienia) | {zdania, karty, liczba} */
 export async function szukajWKatalogu(sb, tekst) {
@@ -30,12 +47,13 @@ export async function szukajWKatalogu(sb, tekst) {
   if (t.length < 3 || /^\d+$/.test(t)) return null;
   const rd = S.rdzenieZapytania(t, KAT_POMIN);
   if (!rd.length) return null;
-  if (!S.slowa(t).some((w) => (w.length >= 4 && !KAT_POMIN[w]) || /^\d+$/.test(w))) return null;   // cyfry liczą się jako słowa („4-7-8")
+  const pojecia = pojeciaZPytania(t);   // „jak dziala tsb" — klucz krótszy niż 4 znaki też liczy się jako słowo
+  if (!pojecia.length && !S.slowa(t).some((w) => (w.length >= 4 && !KAT_POMIN[w]) || /^\d+$/.test(w))) return null;   // cyfry liczą się jako słowa („4-7-8")
   const [rT, rP] = await Promise.all([
     sb.from("radio_tracks").select("id,title,artist,cover_slug").limit(500),
     sb.from("recipes").select("id,title,emoji,ingredients,tags").limit(500),
   ]);
-  const kand = [];
+  const kand = [...pojecia];
   const dodaj = (typ, nazwa, wynik, dane) => { if (wynik >= PROG_MOCNY) kand.push({ typ, wynik, nazwa, dane }); };
   for (const r of (rT && rT.data) || []) dodaj("utwor", r.title, S.wynikTytulu(r.title, rd), { id: r.id, tytul: String(r.title || "").slice(0, 120), wykonawca: r.artist || null, cover_slug: r.cover_slug || null });
   // przepisy: TO SAMO wyszukiwanie co pole „Szukaj przepisu" w Jedzeniu — przepis z wyniku jest pełnym trafieniem
@@ -43,9 +61,10 @@ export async function szukajWKatalogu(sb, tekst) {
   for (const [k, n] of Object.entries(C.programy)) dodaj("cwiczenie", n, S.wynikTytulu(n, rd), { rodzaj: "prog", klucz: k, nazwa: n });
   for (const [k, n] of Object.entries(C.oddech)) dodaj("cwiczenie", n, S.wynikTytulu(n, rd), { rodzaj: "breath", klucz: k, nazwa: n });
   for (const [k, n] of Object.entries(C.cwiczenia)) dodaj("cwiczenie", n, S.wynikTytulu(n, rd), { rodzaj: "cw", klucz: k, nazwa: n });
-  for (const [k, n] of Object.entries(NAZWY_EKRANOW)) dodaj("kat_ekran", n, S.wynikTytulu(n, rd), { ekran: k, nazwa: n, cel: EKRANY[k] });
+  // ekran trafia nazwą ALBO słowem-kluczem (M3-2 (c): „zegarek" → Profil); najlepsze z dopasowań
+  for (const [k, n] of Object.entries(NAZWY_EKRANOW)) dodaj("kat_ekran", n, Math.max(S.wynikTytulu(n, rd), ...(SYNONIMY_EKRANOW[k] || []).map((s) => S.wynikTytulu(s, rd))), { ekran: k, nazwa: n, cel: EKRANY[k] });
   for (const ch of [...WYZWANIA.WEEKLY, ...WYZWANIA.MONTHLY]) dodaj("kat_wyzwanie", ch.title, S.wynikTytulu(ch.title, rd), { nazwa: ch.title });
-  for (const n of Object.values(NAZWY_ODZNAK)) dodaj("kat_odznaka", n, S.wynikTytulu(n, rd), { nazwa: n });
+  for (const [id, n] of Object.entries(NAZWY_ODZNAK)) dodaj("kat_odznaka", n, S.wynikTytulu(n, rd), { nazwa: n, opis: OPISY_ODZNAK[id] || null });   // M3-2: opis z odznaki.html
   if (!kand.length) return null;
   kand.sort((a, b) => (b.wynik - a.wynik) || (KOLEJNOSC[a.typ] - KOLEJNOSC[b.typ]) || String(a.nazwa).localeCompare(String(b.nazwa), "pl"));
   const unik = [], byly = new Set();
