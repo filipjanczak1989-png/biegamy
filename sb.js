@@ -261,14 +261,7 @@
         });
       }
 
-      const subJson = sub.toJSON();
-      const { error } = await window.sb.from('push_subscriptions').upsert({
-        athlete_id: athleteId,
-        endpoint: subJson.endpoint,
-        p256dh: subJson.keys.p256dh,
-        auth: subJson.keys.auth,
-        user_agent: navigator.userAgent.slice(0, 200),
-      }, { onConflict: 'endpoint' });
+      const { error } = await _zapiszSubskrypcje(reg, sub, athleteId);   // współdzielone urządzenie: 42501 → nowa subskrypcja
 
       if (error) {
         console.warn('[push] save failed:', error.message);
@@ -281,6 +274,27 @@
       return { ok: false, error: e.message || 'Błąd subskrypcji' };
     }
   };
+
+  /* WSPÓŁDZIELONE URZĄDZENIE (1.11.2026, zaległość „push_subscriptions 403"). `endpoint` identyfikuje PRZEGLĄDARKĘ
+     i jest UNIQUE. Gdy na tym samym urządzeniu loguje się druga osoba, upsert(onConflict endpoint) trafia w wiersz
+     pierwszej → gałąź UPDATE łamie politykę push_subs_update_own → 42501 (HTTP 403). Odtworzone w bazie 1.11 (transakcja
+     cofnięta). Do dziś błąd szedł tylko do console.warn, więc client_errors miało 0 wpisów — nikt go nie widział.
+     Najmniejsza poprawka, bez migracji: przy 42501 przeglądarka wypisuje starą subskrypcję, zakłada nową (nowy endpoint)
+     i zapisuje ją jako swoją; wiersz poprzedniej osoby sprząta send-push po 410 (jak każdą wygasłą). Urządzenie należy
+     do tego, kto jest teraz zalogowany. blizna-91. */
+  async function _zapiszSubskrypcje(reg, sub, athleteId, extra) {
+    const wiersz = (s) => { const j = s.toJSON(); return Object.assign({ athlete_id: athleteId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+      user_agent: navigator.userAgent.slice(0, 200) }, extra || {}); };
+    let { error } = await window.sb.from('push_subscriptions').upsert(wiersz(sub), { onConflict: 'endpoint' });
+    if (error && (error.code === '42501' || error.status === 403 || /row-level security/i.test(error.message || ''))) {
+      try { await sub.unsubscribe(); } catch (e) {}
+      const nowa = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY) });
+      ({ error } = await window.sb.from('push_subscriptions').upsert(wiersz(nowa), { onConflict: 'endpoint' }));
+      if (!error) return { error: null, przejete: true };
+    }
+    return { error: error || null, przejete: false };
+  }
+  window._zapiszSubskrypcje = _zapiszSubskrypcje;
 
   // UNSUBSCRIBE — usuwa subskrypcję z przeglądarki i bazy
   window.unsubscribeFromPush = async function() {
@@ -321,15 +335,9 @@
         await window.sb.from('push_subscriptions').update({ last_used_at: new Date().toISOString() }).eq('athlete_id', athleteId).eq('endpoint', subJson.endpoint);
         console.log('[push reconcile] match');
       } else {
-        const { error } = await window.sb.from('push_subscriptions').upsert({
-          athlete_id: athleteId,
-          endpoint: subJson.endpoint,
-          p256dh: subJson.keys.p256dh,
-          auth: subJson.keys.auth,
-          user_agent: navigator.userAgent.slice(0, 200),
-          last_used_at: new Date().toISOString(),
-        }, { onConflict: 'endpoint' });
-        if (error) console.warn('[push reconcile] upsert failed:', error.message);
+        const { error, przejete } = await _zapiszSubskrypcje(reg, sub, athleteId, { last_used_at: new Date().toISOString() });
+        if (przejete) console.log('[push reconcile] urządzenie przejęte od poprzedniego konta — nowa subskrypcja');
+        if (error) { console.warn('[push reconcile] upsert failed:', error.message); if (window.zglosNieudanyZapis) window.zglosNieudanyZapis('upsert', 'push_subscriptions', error); }
         else console.log(eps.length ? '[push reconcile] upserted (endpoint changed)' : '[push reconcile] upserted (new)');
       }
     } catch (e) { console.warn('[push reconcile] error', e); }

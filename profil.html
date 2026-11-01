@@ -1926,6 +1926,8 @@ async function changePassword() {
 }
 
 async function logout() {
+  // współdzielone urządzenie: powiadomienia tego konta nie mogą przychodzić do następnej osoby (blizna-91)
+  try { if (window.unsubscribeFromPush) await window.unsubscribeFromPush(); } catch(e) {}
   try { await sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();

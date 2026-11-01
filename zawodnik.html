@@ -9215,6 +9215,8 @@ window.acceptPushPrompt = acceptPushPrompt;
 window.dismissPushPrompt = dismissPushPrompt;
 
 async function logout() {
+  // współdzielone urządzenie: powiadomienia tego konta nie mogą przychodzić do następnej osoby (blizna-91)
+  try { if (window.unsubscribeFromPush) await window.unsubscribeFromPush(); } catch(e) {}
   try { await sb.auth.signOut(); } catch(e) {}
   try { DzisOffline.wyczysc(); } catch(e) {}   // migawka „Dziś" — jawnie, nawet gdyby clear() niżej kiedyś zniknął
   localStorage.clear();
