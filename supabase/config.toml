@@ -76,6 +76,9 @@ verify_jwt = true        # profil.html:1885, sb.js:2122; guard getUser
 [functions.ocr-training-screen]
 verify_jwt = true        # kalendarz.html:3751, zawodnik.html:2568; wymagajUsera
 
+[functions.okienko]
+verify_jwt = true        # zawodnik.html „Zapytaj" (M1); wymagajUsera, klient z JWT użytkownika (RLS)
+
 [functions.race-image]
 verify_jwt = true        # races.html zlecOkladke (approveRace, insert trenera, „Nowa okładka”); wymagajUsera + coaches
 

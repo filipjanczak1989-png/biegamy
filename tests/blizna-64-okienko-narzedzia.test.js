@@ -166,3 +166,80 @@ test('statycznie: w supabase/functions/okienko/ nic nie pisze do bazy', () => {
     assert.equal(zapisy.length, dozwolone, `${plik}: zapis do bazy poza okienko_log: ${zapisy}`);
   }
 });
+
+/* ── KROK 2: router bez modelu (M1 pkt 5) + odpowiedź z szablonów ─────────────────────────────────────────── */
+const DZIS = '2026-11-01';   // niedziela
+const ROUTER = [
+  ['Kiedy mam start?', 'moje_starty', {}],
+  ['kiedy mam najblizszy start', 'moje_starty', {}],
+  ['Jaki mam start', 'moje_starty', {}],
+  ['moje starty', 'moje_starty', {}],
+  ['Ile przebiegłem w tym miesiącu?', 'moje_treningi', { od: '2026-11-01', do: '2026-11-01' }],
+  ['ile km w tym miesiacu', 'moje_treningi', { od: '2026-11-01', do: '2026-11-01' }],
+  ['ile kilometrow w tym tygodniu', 'moje_treningi', { od: '2026-10-26', do: '2026-11-01' }],
+  ['Ile km w październiku?', 'moje_treningi', { od: '2026-10-01', do: '2026-10-31' }],
+  ['ile km w pazdzierniku', 'moje_treningi', { od: '2026-10-01', do: '2026-10-31' }],
+  ['ile kilometrów w grudniu', 'moje_treningi', { od: '2025-12-01', do: '2025-12-31' }],
+  ['ile km w maju', 'moje_treningi', { od: '2026-05-01', do: '2026-05-31' }],
+  ['Plan na jutro', 'moj_plan', { zakres: 'jutro' }],
+  ['co jutro', 'moj_plan', { zakres: 'jutro' }],
+  ['co mam dziś', 'moj_plan', { zakres: 'dzis' }],
+  ['plan na dzisiaj', 'moj_plan', { zakres: 'dzis' }],
+  ['plan na ten tydzień', 'moj_plan', { zakres: 'tydzien' }],
+  ['plan na nastepny tydzien', 'moj_plan', { zakres: 'nastepny_tydzien' }],
+  ['Jakie mam odznaki?', 'odznaki_moje', {}],
+  ['Pokaż wyzwania', 'wyzwania_postep', {}],
+  ['jak ide z wyzwaniami', 'wyzwania_postep', {}],
+];
+const NAWIGACJA = [['otwórz log', 'zawodnik.html?log=1'], ['idz do jedzenia', 'nutrition.html'], ['pokaż radio', 'radio.html'], ['otworz plan', 'kalendarz.html?role=athlete']];
+const NIE_PASUJE = ['Jaka jest pogoda?', 'Kto wygrał maraton w Berlinie?', 'jak poprawić tempo', 'opowiedz dowcip', 'ile mam lat'];
+
+test('router: 20 zdań (literówki, bez polskich znaków) → właściwe narzędzie i argumenty; argumenty przechodzą walidację', async () => {
+  const { dopasuj } = await zaladuj('supabase/functions/okienko/router.mjs');
+  const N = await zaladuj('supabase/functions/okienko/narzedzia.mjs');
+  assert.equal(ROUTER.length, 20);
+  for (const [q, narz, args] of ROUTER) {
+    const r = dopasuj(q, DZIS);
+    assert.ok(r && r.narzedzie, `${q}: brak dopasowania`);
+    assert.equal(r.narzedzie, narz, q);
+    assert.deepEqual(r.args, args, q);
+    assert.ok(N.waliduj(r.narzedzie, r.args).ok, `${q}: argumenty routera nie przechodzą walidacji`);
+  }
+  for (const [q, url] of NAWIGACJA) assert.equal((dopasuj(q, DZIS) || {}).nawiguj, url, q);
+});
+
+test('router: 5 zdań „nie pasuje" → null (krok 3: model)', async () => {
+  const { dopasuj } = await zaladuj('supabase/functions/okienko/router.mjs');
+  for (const q of NIE_PASUJE) assert.equal(dopasuj(q, DZIS), null, q);
+});
+
+test('odpowiedź z szablonów: każda liczba w zdaniu jest w wyniku narzędzia; pusto → „Nie mam tego w Twoich danych."', async () => {
+  const { zWyniku, NIE_MAM } = await zaladuj('supabase/functions/okienko/odpowiedz.mjs');
+  const N = await zaladuj('supabase/functions/okienko/narzedzia.mjs');
+  const sb = atrapa(baza());
+  for (const [narz, args] of [['moj_plan', { zakres: 'dzis' }], ['moje_treningi', { od: '2026-10-26', do: '2026-11-01' }], ['moje_starty', {}], ['wyzwania_postep', {}], ['odznaki_moje', {}]]) {
+    const w = await N.wykonaj(sb, JA, narz, args, TERAZ);
+    const { zdania } = zWyniku(narz, w, args);
+    const zrodlo = JSON.stringify(w).replace(/\./g, ',') + JSON.stringify(w);
+    const daty = (JSON.stringify(w).match(/\d{4}-\d{2}-\d{2}/g) || []).map((d) => `${Number(d.slice(8))}.${d.slice(5, 7)}`).join(' ');   // D.MM jak strażnik (M1 pkt 4)
+    for (const z of zdania) for (const c of z.match(/\d+(?:[.,]\d+)?/g) || []) {
+      const ok = zrodlo.includes(c) || daty.split(' ').includes(c);
+      assert.ok(ok, `${narz}: liczba ${c} spoza wyniku w „${z}"`);
+    }
+  }
+  assert.deepEqual(zWyniku('moje_starty', { cele: [] }).zdania, [NIE_MAM]);
+  assert.deepEqual(zWyniku('moje_treningi', { liczba: 0, suma_km: 0 }).zdania, [NIE_MAM]);
+  assert.deepEqual(zWyniku('moj_plan', null).zdania, [NIE_MAM]);
+  assert.match(zWyniku('moje_starty', { cele: [{ nazwa: 'X', data: '2026-11-11', dni_do: 10 }] }).zdania[0], /za 10 dni \(11\.11\)/);
+  assert.match(zWyniku('odznaki_moje', { liczba: 5, ostatnie: [] }).zdania[0], /5 odznak\b/);
+  assert.match(zWyniku('odznaki_moje', { liczba: 2, ostatnie: [] }).zdania[0], /2 odznaki\b/);
+});
+
+test('EF okienko: wymagajUsera na wejściu, athlete_id z sesji, verify_jwt w config.toml, tryb router bez modelu', () => {
+  const ef = fs.readFileSync(path.join(KORZEN, 'supabase', 'functions', 'okienko', 'index.ts'), 'utf8');
+  assert.match(ef, /const user = await wymagajUsera\(req\);\s*\n\s*if \(!user\) return odp\(401/);
+  assert.match(ef, /\.from\("athletes"\)\.select\("id"\)\.eq\("user_id", user\.id\)/);
+  assert.ok(!/body\.athlete|body\.athleteId|body\.dzis/.test(ef), 'athlete_id / dzis od klienta');
+  assert.ok(!/generativelanguage|GEMINI/.test(ef), 'krok 2 bez modelu');
+  assert.match(fs.readFileSync(path.join(KORZEN, 'supabase', 'config.toml'), 'utf8'), /\[functions\.okienko\]\s*\nverify_jwt = true/);
+});
