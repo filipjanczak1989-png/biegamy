@@ -408,7 +408,7 @@ test('ikony skrótów obok hero offline: błąd ładowania <img data-ic> → emo
   /* łańcuch G5: pierwszy błąd ikona-*.png → stary plik (bez zamiany na span), drugi → emoji STAREGO pliku */
   okno.assetUrl = (f) => 'https://x/' + f;
   const r3 = { zamiana: null, replaceChild(n) { this.zamiana = n; } };
-  const nowa = { dataset: { ic: 'ikona-starty.png', icStary: 'icon-nav-flag.webp' }, className: '', parentNode: r3, getAttribute: () => '', width: 0, height: 0, src: '' };
+  const nowa = { dataset: { ic: 'ikona-starty.png?v=3', icStary: 'icon-nav-flag.webp' }   /* ?v=N (G5 v3): _icZapas tnie po „?" */, className: '', parentNode: r3, getAttribute: () => '', width: 0, height: 0, src: '' };
   okno._icZapas(nowa);
   assert.equal(r3.zamiana, null, 'pierwszy błąd nowej ikony nie może od razu dać emoji');
   assert.equal(nowa.src, 'https://x/icon-nav-flag.webp');

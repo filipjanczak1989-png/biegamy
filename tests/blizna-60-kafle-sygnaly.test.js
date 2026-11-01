@@ -93,7 +93,7 @@ test('każdy kafel ma ikonę w puli G5 i odwrotnie (+ dzwonek z topbaru); nowa i
   for (const html of [zaw, prof]) {
     const img = [...html.matchAll(/data-kafel="[a-z]+"[^>]*>(?:<span[^>]*><\/span>)?<img ([^>]*)>/g)];
     assert.equal(img.length, [...html.matchAll(/data-kafel="/g)].length, 'kafel bez <img> tuż po znaczniku — test przeszedłby na pusto');
-    for (const m of img) { assert.match(m[1], /data-ic="ikona-[a-z]+\.png"/, m[1]); assert.match(m[1], /data-ic-stary="[^"]+\.webp"/, m[1]); }
+    for (const m of img) { assert.match(m[1], /data-ic="ikona-[a-z]+\.png(\?v=\d+)?"/, m[1]);   /* ?v=N — cache-bust po podmianie plików w assets (G5 v3) */ assert.match(m[1], /data-ic-stary="[^"]+\.webp"/, m[1]); }
   }
   assert.match(czytaj('sb.js'), /img\.dataset\.icStary/, '_icZapas bez kroku „stary plik"');
 });
