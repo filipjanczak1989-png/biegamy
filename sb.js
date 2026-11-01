@@ -583,11 +583,55 @@
     }
     function filmDnia(teraz) { var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
     function pozycja(film, t) { var p = film.pozycje[0].pos; film.pozycje.forEach(function (x) { if (t >= x.od) p = x.pos; }); return p; }
-    /** Montuje film na banerze. Zwraca element <video> albo null (powód w baner.dataset.film). */
-    function start(baner, teraz) {
+    /* ▶ PONOWNE ODTWORZENIE (2.11.2026): po końcu / pominięciu filmu, a także gdy dziś już był albo przy reduced-motion
+       (świadomy wybór — przycisk JEST, ale bez autostartu). Prawy dolny róg banera: 32 px wizualnie, pole dotyku 44 px,
+       opacity .7 (hover/focus 1), aria-label „Odtwórz film"; cytat i autor dostają odstęp z prawej, żeby go nie zasłaniał.
+       Tap → ten sam film od początku, wyciszony (🔊 jak zwykle), BEZ zmiany znacznika „raz dziennie". Brak przycisku:
+       brak filmu w FILMY_PROMO, offline, Save-Data. */
+    function moznaPowtorzyc() {
+      if (!(window.FILMY_PROMO || []).length) return false;
+      var c = window.navigator && window.navigator.connection;
+      if (c && c.saveData) return false;
+      if (window.navigator && window.navigator.onLine === false) return false;
+      return true;
+    }
+    function stylPowtorki() {
+      try {
+        if (!document.head || (document.getElementById && document.getElementById('film-powtorz-css'))) return;
+        var s = document.createElement('style'); s.id = 'film-powtorz-css';
+        s.textContent = '.film-powtorz{position:absolute;right:2px;bottom:2px;z-index:4;width:44px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;opacity:.7;transition:opacity .2s ease;display:flex;align-items:center;justify-content:center}'
+          + '.film-powtorz:hover,.film-powtorz:focus-visible{opacity:1}'
+          + '.film-powtorz span{width:32px;height:32px;border-radius:50%;background:rgba(7,7,10,.55);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:13px;line-height:30px;text-align:center;padding-left:2px;box-sizing:border-box}';
+        document.head.appendChild(s);
+      } catch (e) {}
+    }
+    function zdejmijPowtorke(baner) {
+      var b = baner.querySelector('.film-powtorz'); if (b && b.parentNode) b.parentNode.removeChild(b);
+      var t = baner.querySelector('#motiv-content'); if (t) t.style.paddingRight = '';
+    }
+    function pokazPowtorke(baner, teraz) {
+      if (!baner || !moznaPowtorzyc() || baner.querySelector('.film-powtorz') || baner.querySelector('.film-dzis')) return null;
+      stylPowtorki();
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'film-powtorz'; b.setAttribute('aria-label', 'Odtwórz film');
+      var ikona = document.createElement('span'); ikona.setAttribute('aria-hidden', 'true'); ikona.textContent = '▶'; b.appendChild(ikona);
+      b.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); zdejmijPowtorke(baner); start(baner, teraz, { recznie: true }); });
+      var t = baner.querySelector('#motiv-content'); if (t) t.style.paddingRight = '40px';   // cytat i autor nie wchodzą pod ▶
+      baner.appendChild(b);
+      return b;
+    }
+    /** Montuje film na banerze. Zwraca element <video> albo null (powód w baner.dataset.film).
+        opcje.recznie (▶): pomija „raz dziennie" i reduced-motion (wybór człowieka), NIE zapisuje znacznika dnia. */
+    function start(baner, teraz, opcje) {
       if (!baner || baner.querySelector('.film-dzis')) return null;
-      var powod = powodBlokady(teraz), film = filmDnia(teraz);
-      if (powod || !film) { baner.dataset.film = powod || 'brak'; return null; }
+      var recznie = !!(opcje && opcje.recznie);
+      var powod = recznie ? (moznaPowtorzyc() ? null : 'brak-powtorki') : powodBlokady(teraz), film = filmDnia(teraz);
+      if (powod || !film) {
+        baner.dataset.film = powod || 'brak';
+        if (film && (powod === 'juz-dzis' || powod === 'reduced-motion')) pokazPowtorke(baner, teraz);
+        return null;
+      }
+      zdejmijPowtorke(baner);
       var v = document.createElement('video');
       v.className = 'film-dzis';
       v.muted = true; v.defaultMuted = true; v.playsInline = true; v.autoplay = false; v.preload = 'none';   // preload 'auto' po wyrenderowaniu banera
@@ -615,11 +659,12 @@
         if (koniec) return; koniec = true;
         v.style.opacity = '0';
         if (glosnik) { glosnik.style.opacity = '0'; glosnik.style.pointerEvents = 'none'; }
-        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik); }, 520);
+        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik);
+          pokazPowtorke(baner, teraz); }, 520);   // po końcu / pominięciu — ▶ (ten sam film od początku)
         baner.dataset.film = 'koniec';
       }
       v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
-      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
         try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
@@ -635,7 +680,7 @@
       setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
       return v;
     }
-    return { start: start, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
+    return { start: start, pokazPowtorke: pokazPowtorke, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
   })();
 
   window.escapeHtml = function(s) {

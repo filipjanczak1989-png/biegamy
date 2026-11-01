@@ -5,6 +5,8 @@
       wyjątek (tryb prywatny) wywraca Dziś;
    2) film zmienia wysokość banera albo zasłania cytat na stałe (po końcu / tapnięciu cytat ma wrócić); dźwięk;
    3) kadr (FILM-02): 50% 12% → od 6,88 s 50% 0% → od 8,3 s 50% 72% — zmiana przez timeupdate z przejściem CSS;
+   8) ▶ (2.11): po końcu / pominięciu / „już dziś" / reduced-motion — ponowne odtworzenie tego samego filmu od początku,
+      wyciszone, BEZ zmiany znacznika dnia; brak ▶ bez filmu, offline, Save-Data;
    7) (FILM-02 z dźwiękiem) start ZAWSZE wyciszony; 🔊 44 px w rogu banera przełącza muted na tym samym <video>, pojawia
       się z filmem, znika po końcu; ?film=1 pomija „raz dziennie" (test), ale nie reduced-motion / Save-Data / offline;
    4) duży kadr dnia 9:16 (#today-hero) nietknięty;
@@ -28,7 +30,7 @@ function el(tag) {
     setAttribute(k, v) { this.atrybuty[k] = v; }, appendChild(c) { c.parentNode = this; this.dzieci.push(c); return c; },
     removeChild(c) { this.dzieci = this.dzieci.filter((x) => x !== c); c.parentNode = null; },
     addEventListener(ev, fn) { (this.h[ev] = this.h[ev] || []).push(fn); }, emit(ev, x) { (this.h[ev] || []).forEach((f) => f(x || {})); },
-    querySelector(s) { return s === '.film-dzis' ? this.dzieci.find((d) => d.className === 'film-dzis') || null : null; } };
+    querySelector(s) { return s[0] === '.' ? this.dzieci.find((d) => d.className === s.slice(1)) || null : null; } };
   return e;
 }
 function srodowisko({ ruch = false, saveData = false, online = true, zapis = null, rzuca = false, play = 'ok' } = {}) {
@@ -53,7 +55,7 @@ test('(1) warunki: reduced-motion, Save-Data, offline, już dziś → nie gra; l
     const s = srodowisko(opcje);
     assert.equal(s.ctx.FILM_DZIS.powodBlokady(TERAZ), powod);
     assert.equal(s.ctx.FILM_DZIS.start(s.baner, TERAZ), null);
-    assert.equal(s.baner.dataset.film, powod); assert.equal(s.baner.dzieci.length, 0, 'baner bez filmu — cytat jak zawsze');
+    assert.equal(s.baner.dataset.film, powod); assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'baner bez filmu — cytat jak zawsze');
   }
   assert.equal(srodowisko({ zapis: '2026-10-31' }).ctx.FILM_DZIS.powodBlokady(TERAZ), null, 'wczoraj → dziś znowu');
   const p = srodowisko({ rzuca: true });
@@ -85,7 +87,7 @@ test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zu
   s.uplyw(1);
   assert.equal(s.baner.dataset.film, 'za-wolno'); assert.equal(v.grano, undefined);
   s.uplyw(600);
-  assert.equal(s.baner.dzieci.length, 0, 'baner z cytatem jak zawsze');
+  assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'baner z cytatem jak zawsze');
   assert.equal(s.mag.get('film_dzis'), undefined, 'dzień nie zużyty');
   assert.equal(s.ctx.FILM_DZIS.powodBlokady(TERAZ), null);
   v.emit('canplaythrough');
@@ -107,7 +109,7 @@ test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+web
   assert.equal(s.mag.get('film_dzis'), '2026-11-01'); assert.equal(s.baner.dataset.film, 'gra');
   assert.equal(s.ctx.FILM_DZIS.start(s.baner, TERAZ), null, 'drugi film na tym samym banerze — nie');
   v.emit('ended');
-  assert.equal(v.style.opacity, '0'); s.uplyw(520); assert.equal(s.baner.dzieci.length, 0, 'po końcu film znika — cytat pod spodem wraca'); assert.ok(v.pauza);
+  assert.equal(v.style.opacity, '0'); s.uplyw(520); assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'po końcu film znika — cytat pod spodem wraca'); assert.ok(v.pauza);
   assert.equal(srodowisko({ zapis: s.mag.get('film_dzis') }).ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
 });
 
@@ -116,15 +118,15 @@ test('(2) tap pomija (bez przeskoku kadru dnia), zablokowany autoplay i błąd p
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   let zatrzymane = false;
   v.emit('click', { stopPropagation() { zatrzymane = true; } });
-  s.uplyw(520); assert.ok(zatrzymane); assert.equal(s.baner.dzieci.length, 0);
+  s.uplyw(520); assert.ok(zatrzymane); assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0);
   const a = srodowisko({ play: 'blokada' });
   a.ctx.FILM_DZIS.start(a.baner, TERAZ).emit('canplaythrough');
   await new Promise((r) => setImmediate(r)); a.uplyw(520);
-  assert.equal(a.baner.dzieci.length, 0, 'autoplay odrzucony → cytat');
+  assert.equal(a.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'autoplay odrzucony → cytat');
   assert.equal(a.mag.get('film_dzis'), undefined, 'nie zagrał → nie zużywa dnia');
   const b = srodowisko();
   const vb = b.ctx.FILM_DZIS.start(b.baner, TERAZ); vb.emit('error'); b.uplyw(520);
-  assert.equal(b.baner.dzieci.length, 0);
+  assert.equal(b.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0);
 });
 
 test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motivation; duży kadr #today-hero bez filmu', () => {
@@ -197,7 +199,7 @@ test('(7) 🔊: start wyciszony; przycisk 44 px z aria-label pojawia się przy �
   g.emit('click', { stopPropagation() {} });
   assert.equal(v.muted, true); assert.equal(g.atrybuty['aria-label'], 'Włącz dźwięk');
   v.emit('ended'); assert.equal(g.style.opacity, '0'); s.uplyw(520);
-  assert.equal(s.baner.dzieci.length, 0, 'po końcu znika i film, i 🔊');
+  assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'po końcu znika i film, i 🔊');
   const src = czytaj('sb.js');
   assert.ok(!/v\.muted = false/.test(src) && !/autoplay = true/.test(src), 'nigdzie odciszenia ani autoplay poza przyciskiem');
 });
@@ -213,4 +215,53 @@ test('(7) ?film=1 pomija „raz dziennie" dla tej wizyty — ale nie reduced-mot
   assert.equal(o.ctx.FILM_DZIS.powodBlokady(TERAZ), 'offline');
   const inny = srodowisko({ zapis: '2026-11-01' }); inny.ctx.location = { search: '?film=0' };
   assert.equal(inny.ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
+});
+
+const powtorka = (b) => b.dzieci.find((d) => d.className === 'film-powtorz');
+
+test('(8) ▶: po końcu filmu wraca cytat i ▶ (32 px w polu 44 px, opacity .7, aria-label); tap → ten sam film od początku, wyciszony, bez znacznika dnia', () => {
+  const s = srodowisko();
+  s.ctx.document.head = el('head'); s.ctx.document.getElementById = () => null;
+  const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
+  v.emit('canplaythrough'); v.emit('playing'); v.emit('ended'); s.uplyw(520);
+  const b = powtorka(s.baner);
+  assert.ok(b, '▶ po końcu'); assert.equal(b.tag, 'button'); assert.equal(b.atrybuty['aria-label'], 'Odtwórz film');
+  assert.equal(b.dzieci[0].textContent, '▶');
+  const css = s.ctx.document.head.dzieci.find((x) => x.id === 'film-powtorz-css').textContent;
+  assert.match(css, /\.film-powtorz\{position:absolute;right:2px;bottom:2px;z-index:4;width:44px;height:44px;/);
+  assert.match(css, /opacity:\.7/); assert.match(css, /\.film-powtorz:hover,\.film-powtorz:focus-visible\{opacity:1\}/);
+  assert.match(css, /\.film-powtorz span\{width:32px;height:32px;/);
+  s.mag.delete('film_dzis');
+  let zatrz = false;
+  b.emit('click', { stopPropagation() { zatrz = true; } });
+  assert.ok(zatrz, 'tap ▶ nie przełącza kadru/banera pod spodem');
+  const v2 = s.baner.dzieci.find((d) => d.className === 'film-dzis');
+  assert.ok(v2 && v2 !== v, 'nowy <video> tego samego filmu'); assert.ok(!powtorka(s.baner), '▶ znika na czas filmu');
+  assert.ok(v2.muted, 'wyciszony'); assert.ok(s.baner.dzieci.some((d) => d.className === 'film-dzwiek'), '🔊 jak przy pierwszym');
+  assert.match(v2.dzieci[0].src, /film-02\.mp4$/);
+  v2.emit('canplaythrough'); v2.emit('playing');
+  assert.equal(s.mag.get('film_dzis'), undefined, 'odtworzenie z ▶ NIE zapisuje znacznika dnia');
+  v2.emit('click', { stopPropagation() {} }); s.uplyw(520);
+  assert.ok(powtorka(s.baner), 'po pominięciu znowu ▶');
+});
+
+test('(8) ▶ bez autostartu: „już dziś" i reduced-motion → od razu ▶; offline / Save-Data / brak filmu → bez ▶; ręczne gra mimo reduced-motion', () => {
+  const j = srodowisko({ zapis: '2026-11-01' });
+  assert.equal(j.ctx.FILM_DZIS.start(j.baner, TERAZ), null);
+  assert.ok(powtorka(j.baner), 'już dziś → ▶'); assert.ok(!j.baner.dzieci.some((d) => d.className === 'film-dzis'), 'bez autostartu');
+  const r = srodowisko({ ruch: true });
+  assert.equal(r.ctx.FILM_DZIS.start(r.baner, TERAZ), null); const br = powtorka(r.baner);
+  assert.ok(br, 'reduced-motion → ▶ jest');
+  br.emit('click', { stopPropagation() {} });
+  assert.ok(r.baner.dzieci.some((d) => d.className === 'film-dzis'), 'świadomy wybór — gra mimo reduced-motion');
+  for (const o of [{ online: false }, { saveData: true }]) {
+    const x = srodowisko(o);
+    x.ctx.FILM_DZIS.start(x.baner, TERAZ);
+    assert.equal(x.baner.dzieci.length, 0, JSON.stringify(o) + ' → bez ▶');
+    assert.equal(x.ctx.FILM_DZIS.pokazPowtorke(x.baner, TERAZ), null);
+  }
+  const bez = srodowisko({ zapis: '2026-11-01' });
+  bez.ctx.FILMY_PROMO = [];
+  bez.ctx.FILM_DZIS.start(bez.baner, TERAZ);
+  assert.equal(bez.baner.dzieci.length, 0, 'brak filmu w FILMY_PROMO → bez ▶');
 });
