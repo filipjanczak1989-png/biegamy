@@ -84,7 +84,7 @@ test('offline: zapytanie nie idzie do sieci; token nigdzie nie zapisywany', asyn
   assert.equal(ctx.__fetch.length, 0);
   const zapisy = [...OKN.matchAll(/sessionStorage\.setItem\(([^,]+),/g)].map((m) => m[1].trim());
   assert.ok(zapisy.every((k) => k === 'k'), 'setItem tylko przez zapisz(k, v)');
-  assert.ok(!/localStorage/.test(OKN), 'localStorage w okienku');
+  assert.equal(JSON.stringify([...new Set([...OKN.matchAll(/localStorage\.(?:get|set|remove)Item\(([A-Z_]+)/g)].map((m) => m[1]))]), '["KLUCZ_PODGLADU"]', 'localStorage tylko na flagę podglądu');
   assert.ok(!/(setItem|zapisz)\([^)]*(access_token|sesja)/.test(OKN), 'token w pamięci przeglądarki');
 });
 
@@ -106,5 +106,31 @@ test('zawodnik.html: pole „Zapytaj" (44 px), arkusz .add-overlay/.add-sheet, s
     + JSON.stringify(Object.values(swiat().O.TEKSTY));
   assert.ok(!/\bAI\b/.test(ui), 'słowo „AI" w interfejsie');
   assert.match(ZAW, /const _okp=document\.getElementById\('okienko-pole'\);if\(_okp\)_okp\.style\.display='none';/);
-  assert.match(OKN, /get\('from'\) === 'trener'\) \{ pole\.dataset\.trener = '1'; pole\.style\.display = 'none'; return; \}/);
+  assert.match(ZAW, /id="okienko-pole"[^>]*style="display:none;"/, 'pole domyślnie ukryte (bez mignięcia)');
+  assert.match(ZAW, /if\(_okp2&&_okp2\.dataset\.wlaczone==='1'\)_okp2\.style\.display='';/, 'powrót na Dziś nie odsłania pola bez flagi');
+});
+
+/* Włącznik podglądu (decyzja Filipa 1.11): pole tylko z flagą localStorage okienko_podglad=1 z ?zapytaj=1. */
+function stronaZPolem(search, ls) {
+  const ctx = zaladujSb();
+  const pole = { style: { display: 'none' }, dataset: {}, addEventListener() {}, setAttribute() {} };
+  ctx.document.getElementById = (id) => (id === 'okienko-pole' ? pole : { style: {}, dataset: {}, addEventListener() {}, setAttribute() {}, textContent: '' });
+  ctx.location = Object.assign({}, ctx.location, { search });
+  ctx.localStorage = ls;
+  ctx.sessionStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+  vm.runInContext(OKN, ctx, { filename: 'js/okienko.js' });
+  return pole;
+}
+function magazyn() { const m = new Map(); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; }
+
+test('podgląd: bez flagi pole ukryte; ?zapytaj=1 włącza i zapamiętuje; ?zapytaj=0 zdejmuje; trener zawsze ukryte; brak localStorage = ukryte', () => {
+  const ls = magazyn();
+  assert.equal(stronaZPolem('', ls).style.display, 'none', 'bez flagi');
+  const p1 = stronaZPolem('?zapytaj=1', ls);
+  assert.equal(p1.style.display, ''); assert.equal(p1.dataset.wlaczone, '1'); assert.equal(ls.m.get('okienko_podglad'), '1');
+  assert.equal(stronaZPolem('', ls).style.display, '', 'flaga zapamiętana na kolejne wejścia');
+  assert.equal(stronaZPolem('?from=trener', ls).style.display, 'none', 'podgląd trenera nawet z flagą');
+  assert.equal(stronaZPolem('?zapytaj=0', ls).style.display, 'none'); assert.equal(ls.m.has('okienko_podglad'), false);
+  const zly = { getItem() { throw new Error('zablokowane'); }, setItem() { throw new Error('zablokowane'); }, removeItem() {} };
+  assert.equal(stronaZPolem('?zapytaj=1', zly).style.display, 'none', 'localStorage rzuca → pole ukryte, strona działa');
 });
