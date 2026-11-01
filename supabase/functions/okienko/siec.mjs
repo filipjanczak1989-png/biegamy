@@ -15,6 +15,7 @@ export function promptSieci(dzis) {
   return [
     `Odpowiadasz biegaczowi z Polski na pytanie o świat biegania na podstawie wyszukiwania w sieci. Dziś jest ${dzis}.`,
     "Piszesz po polsku, najwyżej 3 krótkie zdania, bez emoji, bez wykrzykników, bez formatowania (bez gwiazdek i list).",
+    "Użyj Google Search przed odpowiedzią; nie odpowiadaj z pamięci.",
     "Każdy fakt i każda liczba musi pochodzić z wyników wyszukiwania. Jeśli nic nie znalazłeś, nie odpowiadaj nic.",
     "Nie udzielasz porad medycznych ani planów treningowych.",
   ].join("\n");
@@ -29,6 +30,20 @@ export function naZdania(tekst) {
   return (czysty.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g) || []).map((z) => z.trim()).filter(Boolean);
 }
 
+/* Zdania SUROWEGO tekstu modelu z zakresem w BAJTACH UTF-8 — groundingSupports[].segment.startIndex/endIndex liczy
+   Gemini w bajtach (zmierzone 1.11 na odpowiedzi z polskimi znakami). Wyświetlamy wersję bez markdownu. */
+const ENK = new TextEncoder();
+export function zdaniaZZakresem(tekst) {
+  const surowy = String(tekst || ""), wynik = [];
+  for (const m of surowy.matchAll(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)) {
+    const pokaz = m[0].replace(/\*\*|__|`/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*[-*•]\s+/gm, "").replace(/\s+/g, " ").trim();
+    if (!pokaz) continue;
+    const od = ENK.encode(surowy.slice(0, m.index)).length;
+    wynik.push({ zdanie: pokaz, od, do: od + ENK.encode(m[0]).length });
+  }
+  return wynik;
+}
+
 /** → {zdania, zrodla, odrzucone} wg zasad M2a (strażnik supports, źródła https, pusto → NIE_ZNALAZLEM). */
 export function zOdpowiedziSieci(tekst, gm, czyHttps) {
   const ok = typeof czyHttps === "function" ? czyHttps : (u) => /^https:\/\//i.test(String(u || ""));
@@ -39,20 +54,32 @@ export function zOdpowiedziSieci(tekst, gm, czyHttps) {
     bylo.add(u); zrodla.push({ tytul: String(t || new URL(u).hostname).slice(0, 120), url: u });
     if (zrodla.length >= MAX_ZRODEL) break;
   }
-  const segmenty = ((gm && gm.groundingSupports) || []).map((s) => norm(s && s.segment && s.segment.text)).filter(Boolean);
+  /* Strażnik (poprawka 1.11, decyzja Filipa): zdanie z cyfrą zostaje, gdy JAKIKOLWIEK groundingSupport nakłada się na nie
+     zakresem bajtów (startIndex/endIndex), nie po identycznym tekście. Support bez indeksów → dopasowanie po tekście. */
+  const supports = ((gm && gm.groundingSupports) || []).map((s) => s && s.segment).filter(Boolean)
+    .map((g) => ({ od: Number.isFinite(g.startIndex) ? g.startIndex : (Number.isFinite(g.endIndex) ? 0 : null), do: Number.isFinite(g.endIndex) ? g.endIndex : null, tekst: norm(g.text) }));
   const zdania = [], odrzucone = [];
-  for (const z of naZdania(tekst)) {
-    if (!/\d/.test(z)) { zdania.push(z); continue; }
-    const n = norm(z).replace(/[.!?]+$/, "");
-    if (segmenty.some((s) => s.includes(n) || (n.length > 20 && s.length > 20 && n.includes(s)))) zdania.push(z);
-    else odrzucone.push({ zdanie: z.slice(0, 200), powod: "cyfra bez potwierdzenia w groundingSupports" });
+  for (const z of zdaniaZZakresem(tekst)) {
+    if (!/\d/.test(z.zdanie)) { zdania.push(z.zdanie); continue; }
+    const n = norm(z.zdanie).replace(/[.!?]+$/, "");
+    const pokryte = supports.some((g) => (g.do != null && g.od != null) ? (g.od < z.do && g.do > z.od)
+      : (g.tekst && (g.tekst.includes(n) || (n.length > 20 && g.tekst.length > 20 && n.includes(g.tekst)))));
+    if (pokryte) zdania.push(z.zdanie);
+    else odrzucone.push({ zdanie: z.zdanie.slice(0, 200), powod: "cyfra bez potwierdzenia w groundingSupports" });
   }
   if (!zrodla.length) return { zdania: [NIE_ZNALAZLEM], zrodla: [], odrzucone: odrzucone.concat(zdania.map((z) => ({ zdanie: z.slice(0, 200), powod: "brak źródeł" }))) };
   return { zdania: zdania.length ? zdania.slice(0, MAX_ZDAN) : [NIE_ZNALAZLEM], zrodla: zdania.length ? zrodla : [], odrzucone };
 }
 
-/** Wywołanie z googleSearch. Wejście CELOWO wąskie: tekst + data. → {tekst, gm, tok, zapytania} ; rzuca przy błędzie. */
+/** Wywołanie z googleSearch. Wejście CELOWO wąskie: tekst + data. Brak groundingChunks → JEDNA ponowna próba
+    (decyzja Filipa 1.11: nigdy zdań bez źródeł). → {tekst, gm, tok, zapytania, proby} ; rzuca przy błędzie HTTP. */
 export async function zapytajSiec({ fetchFn, klucz, tekst, dzis }) {
+  const a = await jednoWyszukanie(fetchFn, klucz, tekst, dzis);
+  if (((a.gm && a.gm.groundingChunks) || []).length) return { ...a, proby: 1 };
+  const b = await jednoWyszukanie(fetchFn, klucz, tekst, dzis);
+  return { ...b, tok: { we: a.tok.we + b.tok.we, wy: a.tok.wy + b.tok.wy }, zapytania: a.zapytania + b.zapytania, proby: 2 };
+}
+async function jednoWyszukanie(fetchFn, klucz, tekst, dzis) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: promptSieci(dzis) }] },

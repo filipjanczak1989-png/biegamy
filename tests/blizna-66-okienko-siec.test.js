@@ -114,3 +114,31 @@ test('migracja okienko_log_siec: tryb „siec" w checku, kolumna zapytania_sieci
   assert.match(w, /delete from public\.okienko_log where tryb = 'siec'/);
   assert.match(w, /drop column if exists zapytania_sieci/);
 });
+
+test('strażnik po zakresach bajtów (1.11): support nakładający się na zdanie wystarczy, tekst nie musi być identyczny; polskie znaki liczone w bajtach', async () => {
+  const S = await zaladuj('supabase/functions/okienko/siec.mjs');
+  const t = 'Żółta trasa ma 21 km. Start o 9:00 przy Targach. Rekord trasy to 1:01:05.';
+  const zz = S.zdaniaZZakresem(t);
+  assert.equal(zz[0].do, new TextEncoder().encode('Żółta trasa ma 21 km.').length, 'zakres w bajtach UTF-8');
+  const gm = { groundingChunks: [{ web: { uri: 'https://halfmarathon.poznan.pl/trasa', title: 'halfmarathon.poznan.pl' } }],
+    groundingSupports: [{ segment: { startIndex: zz[0].od + 3, endIndex: zz[0].do - 2, text: 'zupełnie inny tekst' } }, { segment: { startIndex: zz[1].od, endIndex: zz[1].od + 5, text: 'x' } }] };
+  const o = S.zOdpowiedziSieci(t, gm);
+  assert.equal(JSON.stringify(o.zdania), JSON.stringify(['Żółta trasa ma 21 km.', 'Start o 9:00 przy Targach.']));
+  assert.equal(o.odrzucone.length, 1); assert.match(o.odrzucone[0].zdanie, /1:01:05/);
+});
+
+test('brak groundingChunks → JEDNA ponowna próba; dalej brak → „Tego nie znalazłem w sieci."; prompt wymusza wyszukanie', async () => {
+  const S = await zaladuj('supabase/functions/okienko/siec.mjs');
+  const pusta = { candidates: [{ content: { parts: [{ text: 'Z pamięci: 42 km.' }] }, groundingMetadata: {} }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 } };
+  const pelna = { candidates: [{ content: { parts: [{ text: 'Trasa wiedzie przez Górczyn.' }] }, groundingMetadata: { groundingChunks: [{ web: { uri: 'https://a.example/t', title: 'a' } }], webSearchQueries: ['q'] } }], usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 6 } };
+  const g = atrapaGemini([pusta, pelna]);
+  const w = await S.zapytajSiec({ fetchFn: g.fetchFn, klucz: 'K', tekst: 'trasa', dzis: '2026-11-01' });
+  assert.equal(g.zadania.length, 2); assert.equal(w.proby, 2);
+  assert.equal(JSON.stringify(w.tok), '{"we":30,"wy":11}', 'tokeny obu prób w koszcie');
+  assert.equal(S.zOdpowiedziSieci(w.tekst, w.gm).zrodla.length, 1);
+  const g2 = atrapaGemini([pusta, pusta, pelna]);
+  const w2 = await S.zapytajSiec({ fetchFn: g2.fetchFn, klucz: 'K', tekst: 'trasa', dzis: '2026-11-01' });
+  assert.equal(g2.zadania.length, 2, 'trzeciej próby nie ma');
+  assert.equal(S.zOdpowiedziSieci(w2.tekst, w2.gm).zdania[0], S.NIE_ZNALAZLEM, 'nigdy zdań bez źródeł');
+  assert.match(S.promptSieci('2026-11-01'), /Użyj Google Search przed odpowiedzią; nie odpowiadaj z pamięci\./);
+});
