@@ -9,6 +9,7 @@ import { isRunType } from "../_shared/reguly-treningow.mjs";
 import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
 import { biegiNadchodzace, domyslnyZakres, dniMiedzy as dniBiegow, MAX_DNI_BIEGOW } from "./biegi.mjs";
 import { BladF6 } from "./f6.mjs";
+import { stanPlanu } from "../../../js/plan-pusty.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
@@ -148,8 +149,17 @@ export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6
     const { data, error } = await sb.from("trainings").select("date,type,description,distance_km,duration_min,pace,status")
       .eq("athlete_id", athleteId).gte("date", od).lte("date", doD).order("date", { ascending: true });
     if (error) throw new Error("trainings");
-    return { od, do: doD, treningi: (data || []).map((t) => ({ data: t.date, typ: t.type, opis: t.description || null,
-      dystans_km: t.distance_km != null ? Number(t.distance_km) : null, czas_min: t.duration_min ?? null, tempo: t.pace || null, status: t.status || null })) };
+    const treningi = (data || []).map((t) => ({ data: t.date, typ: t.type, opis: t.description || null,
+      dystans_km: t.distance_km != null ? Number(t.distance_km) : null, czas_min: t.duration_min ?? null, tempo: t.pace || null, status: t.status || null }));
+    if (treningi.length) return { od, do: doD, treningi };
+    // M3b: pusty zakres → stan z js/plan-pusty.mjs (trener / generator / wolne); błąd odczytu = „nie wiadomo" (null)
+    const { data: a, error: eA } = await sb.from("athletes").select("coach_id").eq("id", athleteId).maybeSingle();
+    let maPlanGeneratora = false;
+    if (!eA && a && !a.coach_id) {
+      const { data: g } = await sb.from("trainings").select("id").eq("athlete_id", athleteId).eq("plan_source", "generator").gte("date", dzis).limit(1);
+      maPlanGeneratora = !!(g && g.length);
+    }
+    return { od, do: doD, treningi, plan_pusty: { stan: stanPlanu({ maTrenera: eA || !a ? null : !!a.coach_id, maPlanGeneratora, brakPlanu: true }) } };
   }
   if (nazwa === "moje_treningi") {
     let q = sb.from("training_logs").select("logged_at,training_type,distance_km,duration,pace").eq("athlete_id", athleteId)

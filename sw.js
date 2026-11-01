@@ -79,7 +79,8 @@ const PRECACHE_URLS = [
   '/js/generator-planu.js',
   '/js/silnik-anim.js',
   '/js/silnik-momentu.js',
-  '/js/okienko.js'          // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
+  '/js/okienko.js',         // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
+  '/js/plan-pusty.mjs'      // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
 ];
 
 /* KRYTYCZNE (08.10.2026) — bez nich „Dziś" i Plan offline nie istnieją. Instalacja nowej wersji SW

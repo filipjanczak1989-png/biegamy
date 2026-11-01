@@ -120,3 +120,16 @@ edycje, rdzenie i klucz bez diakrytyków po stronie bazy, `Cache-Control: privat
 `RPC_KALENDARZA = "events_search"` (wycofanie: `"upcoming_races"` — argumenty mapuje ta sama funkcja). Tryb imprezy
 pyta bez zakresu dat → wraca też ostatnia edycja (karta „była 9.10.2026"). Lista „jakie biegi w X" (`biegi.mjs`)
 zostaje na `upcoming_races`. `dokladnosc_daty` i `status` z maszyny: null (brak kolumn w źródłach).
+
+## M3b — plan pusty → generator / „Napisz do trenera" (1.11.2026) — wdrożone w v13
+
+Reguła w JEDNYM pliku `js/plan-pusty.mjs` (`stanPlanu`, `pokazGenerator`): null (nie wiadomo) / plan / trener /
+wolne / generator. Woła ją CTA „Ułóż plan" na Dziś (`_odswiezCtaGeneratora`, dynamiczny `import()`; do załadowania
+CTA ukryte; plik w precache SW) i EF okienko (`moj_plan`, import `../../../js/plan-pusty.mjs` — `supabase/` nie
+jest publikowane na Pages, więc wspólny plik leży w `js/`). Dziś CTA dostaje dodatkowo `_maPlanGeneratora`
+(trening z `plan_source='generator'` od dziś, tylko u osób bez trenera): **zmiana zachowania** — u 2 osób z planem
+z generatora dzień wolny nie pokazuje już „Ułóż plan".
+Okienko, pusty zakres planu: generator → „Nie masz jeszcze planu na {zakres}. Mogę go ułożyć — trzy pytania." +
+„Ułóż plan" (`openGenModal`); trener → „Trener nie ułożył jeszcze planu na {zakres}." + „Napisz do trenera"
+(`openChatThread('coach')`); wolne → „Na {zakres} plan przewiduje wolne."; nie wiadomo → „Nie mam tego w Twoich
+danych.". Testy: blizna-75 (CTA i EF dają ten sam wynik dla 3 profili).

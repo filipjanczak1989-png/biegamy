@@ -164,8 +164,12 @@ test('trener offline: flaga ma_trenera w migawce; bez sieci i bez migawki _brakT
   const c = z.slice(i, i + 2500);
   assert.match(c, /if \(!athErr\) \{ DzisOffline\.zapisz\(_uidMig, 'trener', _maTrenera\); \}/);
   assert.match(c, /window\._brakTrenera = _trenerZnany \? !_maTrenera : null;/, 'bez wiedzy o trenerze flaga ma być null, nie true');
-  const cta = z.slice(z.indexOf('function _odswiezCtaGeneratora()'), z.indexOf('function _odswiezCtaGeneratora()') + 400);
-  assert.match(cta, /window\._brakTrenera != null && window\._brakTreninguDzis != null/, 'CTA wymaga ZNANEGO stanu trenera');
+  const cta = z.slice(z.indexOf('function _odswiezCtaGeneratora()'), z.indexOf('function _odswiezCtaGeneratora()') + 600);
+  /* M3b (1.11.2026): reguła przeniesiona do js/plan-pusty.mjs (jedna dla CTA i okienka). „Nie wiadomo" przechodzi
+     jako null, a stanPlanu(null) = null → CTA ukryte; sam moduł i wynik CTA sprawdza na żywo blizna-75. */
+  assert.match(cta, /maTrenera: window\._brakTrenera == null \? null : !window\._brakTrenera/, 'CTA wymaga ZNANEGO stanu trenera (null przechodzi jako null)');
+  assert.match(cta, /brakPlanu: window\._brakTreninguDzis == null \? null : window\._brakTreninguDzis/);
+  assert.match(cta, /const pokaz = !!R && R\.pokazGenerator\(/, 'bez modułu (offline, błąd importu) CTA ukryte');
 });
 
 test('pierścień tygodnia offline: zapis {trainings, logs} po udanym odczycie, z migawki przy błędzie sieci, UKRYTY bez migawki — nigdy 0%', () => {

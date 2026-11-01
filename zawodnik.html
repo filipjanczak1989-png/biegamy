@@ -5165,13 +5165,22 @@ function tekstWgTrenera(zTrenerem, bezTrenera, gdyNieWiadomo) {
 }
 window.tekstWgTrenera = tekstWgTrenera;
 
+/* M3b (1.11.2026): reguła „komu pokazać Ułóż plan" żyje w JEDNYM pliku js/plan-pusty.mjs — tym samym, który
+   importuje EF okienko (karta plan_pusty). Do załadowania modułu CTA zostaje ukryte (bezpieczny stan „nie wiadomo").
+   Wejście: _brakTrenera (true/false/null), _brakTreninguDzis, _maPlanGeneratora (loadCoachMessage). */
 function _odswiezCtaGeneratora() {
   const el = document.getElementById('gen-cta');
   if (!el) return;
-  const znane = window._brakTrenera != null && window._brakTreninguDzis != null;
-  el.style.display = (znane && window._brakTrenera && window._brakTreninguDzis) ? 'block' : 'none';
+  const R = window._planPusty;
+  const pokaz = !!R && R.pokazGenerator({
+    maTrenera: window._brakTrenera == null ? null : !window._brakTrenera,
+    maPlanGeneratora: window._maPlanGeneratora === true,
+    brakPlanu: window._brakTreninguDzis == null ? null : window._brakTreninguDzis,
+  });
+  el.style.display = pokaz ? 'block' : 'none';
 }
 window._odswiezCtaGeneratora = _odswiezCtaGeneratora;
+import('./js/plan-pusty.mjs').then(function (m) { window._planPusty = m; _odswiezCtaGeneratora(); }).catch(function () {});
 
 /* ── EKRAN „MÓJ PLAN” ───────────────────────────────────────────────────────
    Pokazuje werdykt `oceniAdaptacje` w miejscu, gdzie człowiek i tak patrzy.
@@ -8129,6 +8138,15 @@ async function loadCoachMessage() {
     // Generator jest wylacznie dla zawodnikow BEZ trenera. Korzystamy z tego samego
     // odczytu, zeby nie dokladac drugiego zapytania o te sama kolumne.
     window._brakTrenera = _trenerZnany ? !_maTrenera : null;
+    /* M3b: aktywny plan z generatora (plan_source='generator' od dziś) — wtedy pusty dzień to „wolne", nie „Ułóż plan".
+       Tylko dla osób bez trenera (u trenera generator nigdy). Błąd/offline → false = zachowanie sprzed 1.11. */
+    if (_trenerZnany && !_maTrenera) {
+      try {
+        const _dz = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        const { data: _gen } = await sb.from('trainings').select('id').eq('athlete_id', _athleteId).eq('plan_source', 'generator').gte('date', _dz).limit(1);
+        window._maPlanGeneratora = !!(_gen && _gen.length);
+      } catch (e) { window._maPlanGeneratora = false; }
+    }
     _odswiezCtaGeneratora();
     /* Ocena planu — bez await, tym samym wzorcem co licznik wyżej.
        ⚠️ Świadomie BEZ bramki na `_brakTrenera`: zawodnik mógł ułożyć plan

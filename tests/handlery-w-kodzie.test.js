@@ -55,7 +55,9 @@ const JEZYK = ['if', 'for', 'while', 'switch', 'return', 'typeof', 'instanceof',
   'in', 'of', 'case', 'default', 'break', 'continue', 'const', 'let', 'var', 'class', 'finally',
   // `async () => {}` wyglada jak wywolanie funkcji o nazwie `async`. W skanerze
   // atrybutow tej konstrukcji nie ma, wiec tamta lista jej nie potrzebuje.
-  'async'];
+  'async',
+  // `import('./js/plan-pusty.mjs')` (M3b, 1.11.2026) — dynamiczny import modułu, konstrukcja języka, nie nasza funkcja.
+  'import'];
 const WBUDOWANE = ['alert', 'confirm', 'prompt', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
   'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'encodeURIComponent',
   'decodeURIComponent', 'encodeURI', 'decodeURI', 'String', 'Number', 'Boolean', 'Array',

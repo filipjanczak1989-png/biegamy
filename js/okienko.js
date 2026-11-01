@@ -93,6 +93,12 @@
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
+    /* M3b: plan pusty — przycisk wywołuje ISTNIEJĄCĄ funkcję zawodnik.html po tapnięciu (openGenModal / czat z trenerem). */
+    if (k.typ === 'plan_pusty') {
+      if (d.stan === 'generator') return '<div class="okn-karta"><button type="button" class="okn-otworz" data-plan="generator">Ułóż plan</button></div>';
+      if (d.stan === 'trener') return '<div class="okn-karta"><button type="button" class="okn-otworz" data-plan="trener">Napisz do trenera</button></div>';
+      return '';
+    }
     if (k.typ === 'start_nasz') return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' +
       esc([dataTxt(d.data), d.miasto || '', 'w naszych startach'].filter(Boolean).join(' · ')) + '</span>' +
       '<button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.starty) + '">Otwórz w Startach</button></div>';
@@ -263,9 +269,10 @@
     var ov = el('okienko-arkusz');
     if (ov) ov.addEventListener('click', function (e) {
       if (e.target === ov) return zamknij();
-      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba]') : null;
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan]') : null;
       if (!b) return;
       if (b.hasAttribute('data-osoba')) return akcjaOsoby(b);
+      if (b.hasAttribute('data-plan')) return akcjaPlanu(b.getAttribute('data-plan'));
       if (b.hasAttribute('data-pytanie')) { var q = b.getAttribute('data-pytanie'); if (we) we.value = q; wyslij(q); }
       else { var c = bezpiecznyCel(b.getAttribute('data-cel')); if (c) location.href = c; }
     });
@@ -273,6 +280,16 @@
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); if (we && we.value.trim()) wyslij(we.value); });
     var x = el('okienko-zamknij'); if (x) x.addEventListener('click', zamknij);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') zamknij(); });
+  }
+
+  /* M3b: „Ułóż plan" → istniejący modal generatora; „Napisz do trenera" → czat z trenerem (jak powiadomienie). */
+  function akcjaPlanu(co) {
+    zamknij();
+    if (co === 'generator' && typeof window.openGenModal === 'function') window.openGenModal();
+    if (co === 'trener' && typeof window.openChatThread === 'function') {
+      if (typeof window.showSection === 'function') window.showSection('msgs');
+      setTimeout(function () { window.openChatThread('coach', null, null); }, 400);
+    }
   }
 
   /* M2b: akcje karty osoby — istniejące funkcje zawodnik.html; brak funkcji = nic (np. na innej stronie). */
@@ -290,6 +307,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby };
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

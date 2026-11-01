@@ -26,7 +26,15 @@ export function zWyniku(nazwa, w, args = {}) {
   if (!w) return { zdania: [NIE_MAM], karty: [] };
   if (nazwa === "moj_plan") {
     const t = w.treningi || [];
-    if (!t.length) return { zdania: [NIE_MAM], karty: [] };
+    if (!t.length) {
+      const stan = w.plan_pusty && w.plan_pusty.stan;
+      const zakres = args.zakres === "jutro" ? "jutro" : args.zakres === "tydzien" ? "ten tydzień" : args.zakres === "nastepny_tydzien" ? "przyszły tydzień"
+        : args.data ? DZIEN(w.od) : "dziś";
+      if (stan === "generator") return { zdania: [`Nie masz jeszcze planu na ${zakres}. Mogę go ułożyć — trzy pytania.`], karty: [{ typ: "plan_pusty", dane: { stan, zakres } }] };
+      if (stan === "trener") return { zdania: [`Trener nie ułożył jeszcze planu na ${zakres}.`], karty: [{ typ: "plan_pusty", dane: { stan, zakres } }] };
+      if (stan === "wolne") return { zdania: [`Na ${zakres} plan przewiduje wolne.`], karty: [] };
+      return { zdania: [NIE_MAM], karty: [] };
+    }
     const karty = t.map((x) => ({ typ: "trening", dane: x }));
     if (w.od === w.do) {
       const x = t[0], kiedy = args.zakres === "jutro" ? "Jutro" : args.data ? DZIEN(w.od) : "Dziś";
