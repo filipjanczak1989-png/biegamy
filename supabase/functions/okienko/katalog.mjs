@@ -26,11 +26,12 @@ const KAT_POMIN = { zagraj: 1, odtworz: 1, pusc: 1, wlacz: 1, pokaz: 1, otworz: 
   gdzie: 1, zmienic: 1, zmiana: 1, zmienie: 1, dziala: 1, znalezc: 1, ustawic: 1, ustawie: 1, moge: 1, mozna: 1, sie: 1, pojecie: 1,
   podlaczyc: 1, polaczyc: 1, podpiac: 1, sparowac: 1, wgrac: 1, dodac: 1, wlaczyc: 1 };   // M3-2: „gdzie zmienić hasło", „jak działa tsb"
 const KOLEJNOSC = { utwor: 0, przepis: 1, cwiczenie: 2, kat_pojecie: 3, kat_ekran: 4, kat_wyzwanie: 5, kat_odznaka: 6 };   // kat_*: nie mylić z kartami wyzwanie/odznaka narzędzi
-/* M3-2: fakty o aplikacji, których nie ma na żadnym ekranie — tylko to, co zwiad 1.11 potwierdził w kodzie: zmiany hasła
-   w aplikacji NIE MA (zero updateUser / PASSWORD_RECOVERY; login.html ma tylko „Zapomniałem hasła" → resetPasswordForEmail). */
+/* M3-2: fakty o aplikacji, których nie widać z nazwy ekranu. Hasło: od 1.11.2026 (wieczór) zmiana hasła jest w Profilu →
+   Ustawienia → Hasło (profil.html `changePassword`, supabase.auth.updateUser); wcześniej jej nie było — blizna-85 pilnuje,
+   że ta ścieżka istnieje, więc zdanie nie skłamie po cichu. */
 export const O_APLIKACJI = [
   { klucz: "haslo", klucze: ["haslo", "hasla", "haslem", "hasle"], tytul: "Hasło",
-    tekst: "W aplikacji nie ma dziś zmiany hasła — na ekranie logowania jest tylko „Zapomniałem hasła” (link na e-mail).", ekran: null },
+    tekst: "Hasło zmienisz w Profilu: Ustawienia → Hasło. Zapomniane hasło zresetujesz linkiem z ekranu logowania („Zapomniałem hasła”).", ekran: "profil" },
 ];
 /** Słowa zapytania (bez polskich znaków) zawierają klucz — także wielowyrazowy („mapa cieplna"). */
 function maKlucz(slowaZap, klucze) { const z = " " + slowaZap.join(" ") + " "; return (klucze || []).some((k) => z.includes(" " + k + " ")); }

@@ -350,6 +350,8 @@ body::after{
 .forgot{text-align:right;margin-top:6px;}
 .forgot a{font-size:11px;color:var(--muted);text-decoration:none;font-family:'DM Mono',monospace;letter-spacing:0.08em;transition:color 0.15s;}
 .forgot a:hover{color:var(--accent);}
+.pass-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 8px;}
+.pass-toggle:hover{color:var(--accent);}
 
 /* ── SUCCESS STATE ──────────────────────────────────────────────────── */
 .success-state{text-align:center;padding:24px 0;display:none;}
@@ -741,6 +743,29 @@ body.loading::after {
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
+    <!-- USTAW NOWE HASŁO (1.11.2026) — cel linku „Zapomniałem hasła" (?reset=1 / PASSWORD_RECOVERY). Do tej pory link
+         tylko logował, a hasło zostawało stare i nieznane (zwiad 1.11: 11 resetów, 0 zmian hasła). -->
+    <div id="form-reset" style="display:none;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:6px;">Ustaw nowe hasło</div>
+      <div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:16px;">Min. 8 znaków. Po zapisaniu zalogujemy Cię od razu.</div>
+      <div class="field">
+        <label>Nowe hasło</label>
+        <div style="position:relative;">
+          <input type="password" id="reset-pass1" placeholder="••••••••" autocomplete="new-password" style="padding-right:64px;">
+          <button type="button" class="pass-toggle" onclick="togglePass('reset-pass1', this)">Pokaż</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Powtórz nowe hasło</label>
+        <div style="position:relative;">
+          <input type="password" id="reset-pass2" placeholder="••••••••" autocomplete="new-password" style="padding-right:64px;">
+          <button type="button" class="pass-toggle" onclick="togglePass('reset-pass2', this)">Pokaż</button>
+        </div>
+      </div>
+      <button class="btn" id="btn-reset" onclick="setNewPassword()">Zapisz nowe hasło →</button>
+      <div class="forgot" style="text-align:center;margin-top:14px;"><a href="#" onclick="cancelReset();return false;">Wróć do logowania</a></div>
+    </div>
+
     <!-- SUCCESS STATE -->
     <div class="success-state" id="success-state">
       <div class="success-icon">
@@ -790,9 +815,66 @@ let currentTab = 'login';
 // selectRole(role) — placeholder dla kompatybilności wstecznej, no-op
 function selectRole() { /* no-op — rola na sztywno 'athlete' */ }
 
+// ── USTAW NOWE HASŁO (link z maila) ───────────────────────────────────────────
+// Dwa sygnały, że to powrót z linku resetu: ?reset=1 (redirectTo z forgotPassword — SDK czyści tylko hash, query zostaje)
+// i zdarzenie PASSWORD_RECOVERY z supabase-js (gdy Redirect URL nie jest na liście w Dashboardzie i Supabase wróciło na
+// goły Site URL). Każdy z nich zatrzymuje automatyczny redirect i pokazuje formularz. Hasło nie trafia do URL ani logów.
+let _recovery = new URLSearchParams(location.search).get('reset') === '1' || window._bmPasswordRecovery === true || /type=recovery/.test(location.hash || '');
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') { _recovery = true; showResetForm(); }
+});
+function showResetForm() {
+  try { localStorage.setItem('biegamy_seen_landing', 'true'); } catch(e) {}
+  document.body.classList.remove('loading');
+  document.body.classList.remove('show-hero');
+  const tabs = document.querySelector('.tabs'); if (tabs) tabs.style.display = 'none';
+  ['form-login', 'form-register', 'success-state'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.getElementById('form-reset').style.display = 'block';
+  const p1 = document.getElementById('reset-pass1'); if (p1) p1.focus();
+}
+function cancelReset() {
+  _recovery = false;
+  document.getElementById('form-reset').style.display = 'none';
+  const tabs = document.querySelector('.tabs'); if (tabs) tabs.style.display = '';
+  document.getElementById('form-login').style.display = 'block';
+  try { history.replaceState({}, '', 'index.html'); } catch(e) {}
+  hideAlert();
+}
+function togglePass(id, btn) {
+  const el = document.getElementById(id); if (!el) return;
+  const pokaz = el.type === 'password';
+  el.type = pokaz ? 'text' : 'password';
+  btn.textContent = pokaz ? 'Ukryj' : 'Pokaż';
+}
+let _settingPass = false;
+async function setNewPassword() {
+  if (_settingPass) return;
+  const p1 = document.getElementById('reset-pass1').value, p2 = document.getElementById('reset-pass2').value;
+  const blad = window.walidujNoweHaslo(p1, p2);
+  if (blad) { showAlert(blad); return; }
+  hideAlert();
+  _settingPass = true;
+  setLoading('btn-reset', true);
+  const { data, error } = await sb.auth.updateUser({ password: p1 });
+  setLoading('btn-reset', false);
+  _settingPass = false;
+  if (error) { showAlert(window.komunikatBleduHasla(error)); return; }
+  document.getElementById('reset-pass1').value = '';
+  document.getElementById('reset-pass2').value = '';
+  try { history.replaceState({}, '', 'index.html'); } catch(e) {}
+  showAlert('Hasło zapisane. Logujemy Cię…', 'success');
+  setTimeout(() => redirectUser(data && data.user ? data.user : {}), 900);
+}
+
 // ── CHECK IF ALREADY LOGGED IN ────────────────────────────────────────────────
 async function checkSession() {
   const { data: { session } } = await sb.auth.getSession();
+  if (_recovery) {
+    // powrót z linku resetu: NIE przekierowuj — najpierw nowe hasło; bez sesji link wygasł albo był już użyty
+    showResetForm();
+    if (!session) { cancelReset(); showAlert('Link do resetu wygasł albo został już użyty — kliknij „Zapomniałem hasła” jeszcze raz.'); }
+    return;
+  }
   if (session) {
     // Jest sesja - automatyczny redirect (skip hero, skip formularz)
     redirectUser(session.user);
@@ -1030,7 +1112,9 @@ async function forgotPassword() {
   const originalText = link ? link.textContent : null;
   if (link) link.textContent = 'Wysyłam...';
 
-  const { error } = await sb.auth.resetPasswordForEmail(email);
+  // redirectTo z origin: działa na biegamy.run i run.biegamy.app; ?reset=1 przeżywa przekierowanie (SDK czyści tylko hash).
+  // Adres MUSI być na liście Redirect URLs w Dashboardzie — inaczej Supabase wraca na Site URL i ratuje nas PASSWORD_RECOVERY.
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/index.html?reset=1' });
 
   if (link && originalText) link.textContent = originalText;
   _resetting = false;
@@ -1065,7 +1149,8 @@ async function loginGoogle() {
 // ── ENTER KEY ─────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
-    if (currentTab === 'login') login();
+    if (document.getElementById('form-reset').style.display === 'block') setNewPassword();
+    else if (currentTab === 'login') login();
     else register();
   }
 }, { passive: true });
@@ -1086,6 +1171,9 @@ window.selectRole = selectRole;
 window.login = login;
 window.register = register;
 window.forgotPassword = forgotPassword;
+window.setNewPassword = setNewPassword;
+window.cancelReset = cancelReset;
+window.togglePass = togglePass;
 window.loginGoogle = loginGoogle;
 window.continueSession = continueSession;
 window.logoutSession = logoutSession;

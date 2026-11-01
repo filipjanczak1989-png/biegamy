@@ -459,6 +459,21 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     </div>
     </div>
 
+    <!-- Hasło (1.11.2026) — pierwsza w aplikacji ścieżka zmiany hasła; tylko własny profil (openSettings). supabase.auth.updateUser. -->
+    <div class="st-group" id="haslo-section" style="display:none;scroll-margin-top:12px;">
+      <div class="st-label">Hasło</div>
+      <div style="position:relative;margin-bottom:8px;">
+        <input id="haslo-nowe" type="password" autocomplete="new-password" placeholder="Nowe hasło (min. 8 znaków)" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 64px 11px 13px;color:var(--fg);font-size:13px;">
+        <button type="button" onclick="togglePass('haslo-nowe', this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 8px;">Pokaż</button>
+      </div>
+      <div style="position:relative;margin-bottom:10px;">
+        <input id="haslo-powtorz" type="password" autocomplete="new-password" placeholder="Powtórz nowe hasło" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 64px 11px 13px;color:var(--fg);font-size:13px;">
+        <button type="button" onclick="togglePass('haslo-powtorz', this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 8px;">Pokaż</button>
+      </div>
+      <div id="haslo-blad" style="display:none;font-size:11px;color:#f08080;line-height:1.5;margin-bottom:8px;padding:0 3px;"></div>
+      <button id="haslo-btn" onclick="changePassword()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg2);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;">Zmień hasło</button>
+    </div>
+
     <!-- Wygląd / Motyw (przeniesione) -->
     <div class="st-group" id="wyglad-section" style="display:none;">
       <div class="st-label">Wygląd</div>
@@ -747,6 +762,8 @@ function _profilOffline() {
   if(_open==='usuwanie' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){
     var d=document.getElementById('danger-zone'); if(d) d.scrollIntoView({behavior:'smooth',block:'center'}); }); },300);
   if(_open==='icu' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }); }, 350);
+  // ?open=haslo — wejście z okienka „Zapytaj" („Hasło zmienisz w Profilu")
+  if(_open==='haslo' && _isOwnProfile) setTimeout(function(){ Promise.resolve(openSettings()).then(function(){ var s=document.getElementById('haslo-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }); }, 350);
 })();
 
 // ── PUBLIC VIEW (Faza 1) — wylogowany ogląda profil przez ?id= ────
@@ -1871,6 +1888,8 @@ function openSettings() {
   // "Usuń konto" tylko dla zawodnika na własnym profilu (coach → RPC i tak odrzuci backstopem)
   const _dz = document.getElementById('danger-zone');
   if (_dz) _dz.style.display = (!_isCoach && _isOwnProfile) ? 'block' : 'none';
+  const _hs = document.getElementById('haslo-section');
+  if (_hs) _hs.style.display = _isOwnProfile ? 'block' : 'none';
   return checkIntervalsStatus();   // intervals.icu — pokaż/odśwież stan połączenia (promise → scroll po finalnej wysokości)
 }
 function closeSettings() {
@@ -1880,6 +1899,32 @@ function closeSettings() {
 function handleSettingsClick(e) {
   if (e.target === document.getElementById('settings-overlay')) closeSettings();
 }
+// ── ZMIANA HASŁA (1.11.2026) — supabase.auth.updateUser; reguły z sb.js (walidujNoweHaslo, komunikatBleduHasla).
+//    Hasło nie trafia do URL, logów, client_errors ani żadnej tabeli — tylko do Auth (blizna-85).
+function togglePass(id, btn) {
+  const el = document.getElementById(id); if (!el) return;
+  const pokaz = el.type === 'password';
+  el.type = pokaz ? 'text' : 'password';
+  btn.textContent = pokaz ? 'Ukryj' : 'Pokaż';
+}
+let _changingPass = false;
+async function changePassword() {
+  if (_changingPass) return;
+  const p1 = document.getElementById('haslo-nowe').value, p2 = document.getElementById('haslo-powtorz').value;
+  const bladEl = document.getElementById('haslo-blad'), btn = document.getElementById('haslo-btn');
+  const pokazBlad = (t) => { bladEl.textContent = t; bladEl.style.display = t ? 'block' : 'none'; };
+  const blad = window.walidujNoweHaslo(p1, p2);
+  if (blad) { pokazBlad(blad); return; }
+  pokazBlad('');
+  _changingPass = true; btn.disabled = true; btn.textContent = 'Zapisuję…';
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  _changingPass = false; btn.disabled = false; btn.textContent = 'Zmień hasło';
+  if (error) { pokazBlad(window.komunikatBleduHasla(error)); return; }
+  document.getElementById('haslo-nowe').value = '';
+  document.getElementById('haslo-powtorz').value = '';
+  showToast('Hasło zmienione.');
+}
+
 async function logout() {
   try { await sb.auth.signOut(); } catch(e) {}
   localStorage.clear();

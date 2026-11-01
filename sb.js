@@ -159,6 +159,10 @@
   // Klient Supabase (tylko jeśli SDK jest załadowane)
   if (typeof window.supabase !== 'undefined' && window.supabase.createClient && window.SB_URL) {   // test bez konfiguracji: bez klienta
     window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY);
+    /* HASŁO (1.11.2026): PASSWORD_RECOVERY potrafi przyjść ZANIM strona zdąży się zapisać na nasłuch (SDK przetwarza
+       #access_token z linku resetu zaraz po utworzeniu klienta, po jednym żądaniu /auth/v1/user). Pierwszy nasłuch jest
+       więc tu, tuż po createClient; index.html czyta flagę w checkSession (blizna-85). */
+    try { window.sb.auth.onAuthStateChange(function (e) { if (e === 'PASSWORD_RECOVERY') window._bmPasswordRecovery = true; }); } catch (e) {}
   }
 
   /* OFFLINE = BEZ PONOWIEŃ (08.10.2026). postgrest-js w vendor/supabase-js-2.112.4 przy błędzie
@@ -439,6 +443,27 @@
     }
     return { szukaj: szukaj, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
   })();
+
+  /* HASŁO (1.11.2026) — jedna reguła dla „Ustaw nowe hasło" (index.html, link z maila) i „Zmień hasło" (profil.html):
+     min. 8 znaków jak przy rejestracji, dwa pola równe. Zwraca komunikat po polsku albo null. Hasło NIGDY nie jest tu
+     logowane ani zapisywane — funkcja czysta (blizna-85). */
+  window.walidujNoweHaslo = function(p1, p2) {
+    if (!p1 || !p2) return 'Wpisz nowe hasło w oba pola';
+    if (p1.length < 8) return 'Hasło musi mieć co najmniej 8 znaków';
+    if (p1 !== p2) return 'Hasła się różnią — wpisz to samo w oba pola';
+    return null;
+  };
+  /* Błąd supabase.auth.updateUser → zdanie po polsku. Reautoryzacja / brak sesji → jasne „zaloguj się ponownie". */
+  window.komunikatBleduHasla = function(error) {
+    var m = String((error && error.message) || '');
+    var status = error && error.status;
+    if (status === 401 || status === 403 || /reauthentic|session missing|not authenticated|invalid.*jwt|expired/i.test(m)) return 'Zaloguj się ponownie i spróbuj jeszcze raz.';
+    if (/different from the old/i.test(m)) return 'Nowe hasło musi różnić się od starego.';
+    if (/at least \d+ characters/i.test(m)) return 'Hasło musi mieć co najmniej 8 znaków.';
+    if (/weak|pwned|easy to guess|known/i.test(m)) return 'To hasło jest zbyt łatwe do odgadnięcia — wybierz inne.';
+    if (/rate limit|too many/i.test(m)) return 'Za dużo prób — odczekaj chwilę.';
+    return 'Nie udało się zmienić hasła. Spróbuj jeszcze raz.';
+  };
 
   window.escapeHtml = function(s) {
     if (s == null) return '';

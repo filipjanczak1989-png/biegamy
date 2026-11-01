@@ -28,7 +28,7 @@ const EKRAN_SLOWO = [
   [/\b(log|dziennik)\b/, "log"], [/\bplan\b/, "plan"], [/\bform\w*/, "forma"], [/\bspolecznos\w*/, "spolecznosc"],
   [/\bprofil\w*/, "profil"], [/\bradi\w*/, "radio"], [/\bkalendarz\w*/, "plan"], [/\bstart\w*/, "starty"],
   [/\bwyzwan\w*/, "wyzwania"], [/\bodzna\w*/, "odznaki"], [/\bjedzeni\w*|\bdiet\w*/, "jedzenie"], [/\bczat\w*/, "czat"],
-  [/\bustawien\w*|\bzegar\w*|\bawatar\w*|\bzdjeci\w*|\bkonto\b/, "profil"], [/\bcwiczen\w*|\brozciag\w*/, "cialo"], [/\bstatysty\w*/, "statystyki"],   // M3-2 (c)
+  [/\bustawien\w*|\bzegar\w*|\bawatar\w*|\bzdjeci\w*|\bkonto\b|\bhasl\w*/, "profil"], [/\bcwiczen\w*|\brozciag\w*/, "cialo"], [/\bstatysty\w*/, "statystyki"],   // M3-2 (c)
 ];
 
 /* M3-2 (d): kalkulator tempo ↔ prędkość ↔ czas na dystans — 0 tokenów, liczby WYŁĄCZNIE z pytania. m:ss to tempo, gdy stoi

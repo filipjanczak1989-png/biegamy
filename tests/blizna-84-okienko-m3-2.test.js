@@ -136,9 +136,10 @@ test('(b) pojęcia: kopia _shared/pojecia.mjs = METRIC_TOOLTIPS w sb.js; „jak 
     assert.ok(!o || !o.karty.some((k) => k.typ === 'kat_pojecie'), 'bez opisu w aplikacji = bez hasła: ' + q);
   }
   const h = await K.szukajWKatalogu(baza(), 'gdzie zmienic haslo');
-  assert.ok(h && h.karty[0].typ === 'kat_pojecie' && h.karty[0].dane.klucz === 'haslo' && h.karty[0].dane.cel === null, JSON.stringify(h));
-  assert.match(h.karty[0].dane.co_to, /nie ma dziś zmiany hasła/);
-  for (const plik of ['profil.html', 'zawodnik.html', 'sb.js']) assert.ok(!/updateUser\(|PASSWORD_RECOVERY/.test(czytaj(plik)), plik + ': pojawiła się zmiana hasła — popraw O_APLIKACJI w katalog.mjs');
+  // 1.11 wieczór: zmiana hasła WESZŁA do Profilu (blizna-85) — zdanie kieruje tam; gdyby ścieżka zniknęła, zdanie skłamie → asercja niżej
+  assert.ok(h && h.karty[0].typ === 'kat_pojecie' && h.karty[0].dane.klucz === 'haslo' && h.karty[0].dane.cel === 'profil.html', JSON.stringify(h));
+  assert.match(h.karty[0].dane.co_to, /Hasło zmienisz w Profilu/);
+  assert.ok(/auth\.updateUser\(\{ password/.test(czytaj('profil.html')), 'profil.html bez zmiany hasła — popraw O_APLIKACJI w katalog.mjs');
   assert.ok(!/\.(insert|upsert|update|delete|rpc)\(/.test(czytaj('supabase', 'functions', 'okienko', 'katalog.mjs')));
 });
 

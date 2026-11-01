@@ -525,9 +525,10 @@ async function forgotPassword() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) { showAlert('Wpisz e-mail żeby zresetować hasło'); return; }
 
-  const { error } = await sb.auth.resetPasswordForEmail(email);
+  // 1.11.2026: link z maila wraca na index.html?reset=1 — tam jest formularz „Ustaw nowe hasło" (tu go nie ma)
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/index.html?reset=1' });
   if (error) { showAlert(error.message); return; }
-  showAlert('Link do resetu hasła został wysłany na ' + email, 'success');
+  showAlert('Jeśli konto z adresem ' + email + ' istnieje, link do resetu został wysłany. Sprawdź skrzynkę (także SPAM).', 'success');
 }
 
 // ── GOOGLE LOGIN ──────────────────────────────────────────────────────────────

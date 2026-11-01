@@ -38,7 +38,7 @@ export const NAZWY_EKRANOW = {
    ma — aplikacja nie ma zmiany hasła (katalog.mjs O_APLIKACJI mówi to wprost). Czyta katalog (kat_ekran) i router („otwórz
    ustawienia"). */
 export const SYNONIMY_EKRANOW = {
-  profil: ["ustawienia", "zegarek", "garmin", "polar", "coros", "intervals", "zdjecie", "awatar", "avatar", "miasto", "prywatnosc", "rocznik", "konto", "imie", "nazwisko", "cele", "cel startowy"],
+  profil: ["haslo", "hasla", "haslem", "ustawienia", "zegarek", "garmin", "polar", "coros", "intervals", "zdjecie", "awatar", "avatar", "miasto", "prywatnosc", "rocznik", "konto", "imie", "nazwisko", "cele", "cel startowy"],
   log: ["zapisz trening", "dodaj trening", "wpisz trening", "zapisac trening"], czat: ["wiadomosc", "wiadomosci", "napisz do trenera"],
   jedzenie: ["przepisy", "dieta", "posilek", "posilki"], radio: ["muzyka", "utwory", "piosenki"], statystyki: ["wykresy", "statystyka"],
   cialo: ["rozciaganie", "wzmacnianie", "oddech", "core", "mobilnosc"], spolecznosc: ["znajomi", "znajomych", "biegacze", "tablica"],
