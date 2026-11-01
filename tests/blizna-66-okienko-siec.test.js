@@ -69,7 +69,8 @@ test('trasa: „Kto wygrał maraton w Berlinie?" → sieć; „ile km w paździe
   assert.ok(R.dopasuj('ile km w październiku', '2026-11-01'), 'router łapie przed modelem — do sieci nie dochodzi');
   for (const q of ['ile kilometrów przebiegłem w lutym 2024', 'czy mam jakieś zaległe treningi', 'jak mi idzie']) assert.equal(S.czyDoSieci(R.normalizuj(q), false, 0), false, q);
   assert.equal(S.czyDoSieci(R.normalizuj('jak poprawić moje tempo na 10 km'), true, 0), true, 'poza_danymi od modelu wygrywa z „moje"');
-  assert.equal(S.czyDoSieci(R.normalizuj('kto wygrał w Berlinie'), true, 1), false, 'użyte narzędzie = dane, nie sieć');
+  assert.equal(S.czyDoSieci(R.normalizuj('kto wygrał w Berlinie'), true, 1), true, 'poza_danymi wygrywa z narzędziem (żywe API 1.11: Berlin → moje_starty)');
+  assert.equal(S.czyDoSieci(R.normalizuj('kiedy start'), false, 1), false, 'narzędzie bez poza_danymi = dane, nie sieć');
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   assert.ok(ef.indexOf('dopasuj(tekst, dzis)') < ef.indexOf('czyDoSieci('), 'router przed siecią');
 });

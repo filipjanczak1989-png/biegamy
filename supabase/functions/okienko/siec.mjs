@@ -73,6 +73,9 @@ export async function zapytajSiec({ fetchFn, klucz, tekst, dzis }) {
 /** Czy pytanie idzie do sieci: model oznaczył poza_danymi ALBO nie wybrał narzędzia, a tekst nie pyta o „moje/mam/mój…". */
 export function czyDoSieci(tekstZnormalizowany, pozaDanymi, uzyteNarzedzia) {
   const oMnie = /\b(moj\w*|mam|mial\w*|mnie|mi|ja|zrobil\w*|przebieg\w*|pobieg\w*|bieglem|biegam|moim|mojej)\b/.test(tekstZnormalizowany);
+  /* poza_danymi od modelu WYGRYWA z użytym narzędziem (1.11, żywe API: „Kto wygrał maraton w Berlinie?" → model
+     wywołał moje_starty i dopiero potem uznał pytanie za spoza danych). Do sieci i tak nie trafia wynik narzędzia. */
+  if (pozaDanymi === true) return true;
   if (uzyteNarzedzia > 0) return false;
-  return pozaDanymi === true || !oMnie;
+  return !oMnie;
 }

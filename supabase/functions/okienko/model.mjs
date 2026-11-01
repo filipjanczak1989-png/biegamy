@@ -60,25 +60,40 @@ export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, histo
     tok.wy += (j.usageMetadata?.candidatesTokenCount || 0) + (j.usageMetadata?.thoughtsTokenCount || 0);
     return j.candidates?.[0]?.content?.parts || [];
   }
-  const czesci1 = await krok(contents);
-  const wywolania = czesci1.filter((p) => p.functionCall).map((p) => p.functionCall).slice(0, MAX_NARZEDZI);
+  /* PĘTLA NARZĘDZI (1.11.2026, 502 na prod o 03:59): gemini-3.5-flash-lite po odpowiedzi narzędzia potrafi ZAMIAST
+     JSON-u wywołać kolejne narzędzie (zmierzone na żywym API: Poznań → wyzwania_postep w kroku 2). v2 brała to za
+     „brak JSON" i rzucała BladModelu → 502. Teraz: do MAX_NARZEDZI wywołań ŁĄCZNIE, w kolejnych rundach; functionResponse
+     odsyła `id` wywołania (modele 3.x je nadają). Gdy narzędzia się wyczerpią, a JSON-u nadal brak — NIE 502: zdania
+     puste (strażnik da karty albo „Nie mam…"), a bez narzędzi pytanie traktujemy jako poza danymi (→ sieć w EF). */
   const uzyte = [];
-  let czesciKonc = czesci1;
-  if (wywolania.length) {
+  let rozmowa = contents.slice();
+  let czesciKonc = await krok(rozmowa);
+  let wykonane = 0;
+  for (let runda = 0; runda < MAX_NARZEDZI; runda++) {
+    const wywolania = czesciKonc.filter((p) => p.functionCall);
+    if (!wywolania.length || wykonane >= MAX_NARZEDZI) break;
     const odpowiedzi = [];
-    for (const fc of wywolania) {
-      const w = waliduj(fc.name, fc.args || {});
+    for (const czesc of wywolania) {
+      const fc = czesc.functionCall;
       let wynik;
-      if (!w.ok) wynik = { blad: w.blad };
-      else { wynik = await wykonaj(sb, athleteId, fc.name, w.args, teraz); uzyte.push({ nazwa: fc.name, args: w.args, wynik }); }
-      odpowiedzi.push({ functionResponse: { name: fc.name, response: { wynik } } });
+      if (wykonane >= MAX_NARZEDZI) wynik = { blad: "limit narzędzi" };
+      else {
+        wykonane++;
+        const w = waliduj(fc.name, fc.args || {});
+        if (!w.ok) wynik = { blad: w.blad };
+        else { wynik = await wykonaj(sb, athleteId, fc.name, w.args, teraz); uzyte.push({ nazwa: fc.name, args: w.args, wynik }); }
+      }
+      odpowiedzi.push({ functionResponse: fc.id ? { id: fc.id, name: fc.name, response: { wynik } } : { name: fc.name, response: { wynik } } });
     }
-    czesciKonc = await krok([...contents, { role: "model", parts: czesci1.filter((p) => p.functionCall) }, { role: "user", parts: odpowiedzi }]);
+    rozmowa = [...rozmowa, { role: "model", parts: wywolania }, { role: "user", parts: odpowiedzi }];
+    czesciKonc = await krok(rozmowa);
   }
   const txt = czesciKonc.map((p) => p.text || "").join("").trim();
   let json = null;
   try { json = JSON.parse(txt); } catch { json = null; }
-  if (!json || !Array.isArray(json.zdania)) throw new BladModelu("odpowiedź bez JSON wg schematu");
+  if (!json || !Array.isArray(json.zdania)) {
+    return { zdania: [], karty_z: uzyte.map((u) => u.nazwa), uzyte, tok, poza_danymi: uzyte.length === 0, bez_json: true };
+  }
   const karty_z = (Array.isArray(json.karty_z) ? json.karty_z : []).filter((n) => uzyte.some((u) => u.nazwa === n));
   return { zdania: json.zdania.filter((z) => typeof z === "string"), karty_z, uzyte, tok, poza_danymi: json.poza_danymi === true };
 }

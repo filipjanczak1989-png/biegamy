@@ -49,7 +49,9 @@ test('model: zły argument nie trafia do bazy; > 3 narzędzia → 3; brak JSON i
   const r2 = await M.zapytajModel({ fetchFn: b.fetchFn, klucz: 'K', sb, athleteId: JA, tekst: 'ile', dzis: '2026-11-01', teraz: TERAZ });
   assert.equal(r2.uzyte.length, 0, 'od > do nie trafia do bazy');
   assert.match(JSON.stringify(b.zadania[1].cialo.contents.at(-1)), /od po do/);
-  await assert.rejects(M.zapytajModel({ fetchFn: atrapaGemini([{ candidates: [{ content: { parts: [{ text: 'nie JSON' }] } }] }]).fetchFn, klucz: 'K', sb, athleteId: JA, tekst: 'a', dzis: '2026-11-01', teraz: TERAZ }), M.BladModelu);
+  /* 1.11 (502 na prod): brak JSON-u NIE jest już błędem — bez narzędzi = poza danymi (→ sieć), po narzędziach = puste zdania */
+  const bez = await M.zapytajModel({ fetchFn: atrapaGemini([{ candidates: [{ content: { parts: [{ text: 'nie JSON' }] } }] }]).fetchFn, klucz: 'K', sb, athleteId: JA, tekst: 'a', dzis: '2026-11-01', teraz: TERAZ });
+  assert.equal(bez.poza_danymi, true); assert.equal(bez.zdania.length, 0);
   await assert.rejects(M.zapytajModel({ fetchFn: atrapaGemini([{ status: 500 }]).fetchFn, klucz: 'K', sb, athleteId: JA, tekst: 'a', dzis: '2026-11-01', teraz: TERAZ }), M.BladModelu);
 });
 
@@ -102,4 +104,21 @@ test('migracja okienko_log: RLS, tylko SELECT właściciela, revoke anon/authent
   const wyc = czytaj('supabase', 'migrations', '20261101_WYCOFANIE_okienko_log.sql');
   assert.match(wyc, /cron\.unschedule\('okienko-log-30d'\)/);
   assert.match(wyc, /drop table if exists public\.okienko_log/);
+});
+
+test('prod 1.11 03:59: model w kroku 2 woła KOLEJNE narzędzie zamiast JSON-u → pętla (≤ 3), id wywołania odesłane, bez 502', async () => {
+  const M = await zaladuj('supabase/functions/okienko/model.mjs');
+  const zId = (name, id) => ({ candidates: [{ content: { parts: [{ functionCall: { name, args: {}, id }, thoughtSignature: 'sig' }] } }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 2 } });
+  const g = atrapaGemini([zId('moje_starty', 'call_1'), zId('wyzwania_postep', 'call_2'), txt({ zdania: ['Start za 10 dni.'], karty_z: ['moje_starty'] })]);
+  const r = await M.zapytajModel({ fetchFn: g.fetchFn, klucz: 'K', sb: atrapa(baza()), athleteId: JA, tekst: 'kiedy start i jak wyzwania', dzis: '2026-11-01', teraz: TERAZ });
+  assert.equal(g.zadania.length, 3);
+  assert.equal(JSON.stringify(r.uzyte.map((u) => u.nazwa)), '["moje_starty","wyzwania_postep"]');
+  assert.equal(g.zadania[1].cialo.contents.at(-1).parts[0].functionResponse.id, 'call_1');
+  assert.equal(g.zadania[2].cialo.contents.at(-1).parts[0].functionResponse.id, 'call_2');
+  assert.equal(g.zadania[2].cialo.contents.at(-2).parts[0].thoughtSignature, 'sig', 'część modelu odesłana w całości (thoughtSignature)');
+  assert.equal(JSON.stringify(r.zdania), '["Start za 10 dni."]');
+  /* model woła narzędzia w nieskończoność → najwyżej 3 wykonane, potem bez JSON-u: puste zdania, nie wyjątek */
+  const g2 = atrapaGemini([zId('moje_starty', 'a'), zId('odznaki_moje', 'b'), zId('moj_plan', 'c'), zId('wyzwania_postep', 'd'), zId('moje_starty', 'e')]);
+  const r2 = await M.zapytajModel({ fetchFn: g2.fetchFn, klucz: 'K', sb: atrapa(baza()), athleteId: JA, tekst: 'x', dzis: '2026-11-01', teraz: TERAZ });
+  assert.equal(r2.uzyte.length, 3); assert.equal(r2.zdania.length, 0); assert.equal(r2.poza_danymi, false);
 });
