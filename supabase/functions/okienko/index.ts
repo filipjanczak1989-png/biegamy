@@ -3,16 +3,19 @@
 //   1) wymagajUsera (JEDYNA bramka usera dla EF z frontu, LEKCJE #20) → 401;
 //   2) klient Supabase z JWT użytkownika (RLS); athlete_id z sesji (athletes.user_id), NIE od klienta/modelu;
 //   3) router bez modelu (0 tokenów, nie liczy się do limitu) → narzędzie / nawigacja;
-//   4) brak dopasowania → limity (60/dobę, budżet miesięczny) → model (2 kroki) → strażnik cyfr → log → odpowiedź.
+//   4) brak dopasowania → limity (60/dobę, budżet miesięczny) → model (2 kroki) → strażnik cyfr → log → odpowiedź;
+//   5) M2a: model bez narzędzia i pytanie nie „o mnie" (albo poza_danymi) → tryb „siec": limit 20/dobę, osobne
+//      wywołanie z googleSearch BEZ danych aplikacji, strażnik na groundingSupports, źródła tylko https.
 // „dzis" liczy EF w Europe/Warsaw — pole `dzis` z klienta ignorowane. Zapis WYŁĄCZNIE do okienko_log kluczem service_role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
-import { dopasuj } from "./router.mjs";
+import { dopasuj, normalizuj } from "./router.mjs";
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz } from "./straznik.mjs";
-import { sprawdzLimity, zapiszLog } from "./limity.mjs";
+import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
+import { zapytajSiec, zOdpowiedziSieci, czyDoSieci } from "./siec.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -80,6 +83,27 @@ Deno.serve(async (req) => {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "blad", ok: false, powod_odrzucenia: (modelu ? "model: " : "narzędzie: ") + String((e as Error).message).slice(0, 120) });
     return odp(modelu ? 502 : 503, { blad: modelu ? "model" : "narzędzie" });
   }
+  // ── M2a: sieć (osobne wywołanie z googleSearch — tylko tekst pytania i data, NIC z aplikacji) ──
+  if (czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
+    let ileSiec;
+    try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }
+    if (ileSiec >= LIMIT_SIEC) {
+      await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "limit", ok: false, powod_odrzucenia: "limit siec", tok_we: m.tok.we, tok_wy: m.tok.wy });
+      return odp(429, { limit: "siec" });
+    }
+    let w;
+    try { w = await zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst, dzis }); }
+    catch (e) {
+      await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "blad", ok: false, powod_odrzucenia: "siec: " + String((e as Error).message).slice(0, 120), tok_we: m.tok.we, tok_wy: m.tok.wy });
+      return odp(502, { blad: "model" });
+    }
+    const o = zOdpowiedziSieci(w.tekst, w.gm, (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } });
+    const tok = { we: m.tok.we + w.tok.we, wy: m.tok.wy + w.tok.wy };
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania,
+      ok: o.odrzucone.length === 0, powod_odrzucenia: o.odrzucone.length ? o.odrzucone.map((x: { powod: string; zdanie: string }) => `${x.powod}: ${x.zdanie}`).join(" | ").slice(0, 500) : null });
+    return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
+  }
+
   const karty = m.karty_z.flatMap((n: string) => { const u = m.uzyte.find((x: { nazwa: string }) => x.nazwa === n); return u ? zWyniku(n, u.wynik, u.args).karty : []; });
   const s = sprawdz(m.zdania, karty.length, m.uzyte.map((u: { wynik: unknown }) => u.wynik));
   const nazwy: string[] = m.uzyte.map((u: { nazwa: string }) => u.nazwa);

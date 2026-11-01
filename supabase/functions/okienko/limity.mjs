@@ -8,8 +8,10 @@
 //    na koniec takiego miesiąca. Świadome (log jest od kontroli kosztu, nie od rozliczenia); faktura jest w AI Studio.
 import { poczatekDniaWaw } from "./narzedzia.mjs";
 import { kosztUsd } from "./model.mjs";
+import { CENA_ZAPYTANIA_USD } from "./siec.mjs";
 
 export const LIMIT_DZIENNY = 60;
+export const LIMIT_SIEC = 20;   // M2a: osobny licznik pytań z sieci / osobę / dobę Warszawy
 export const PROG_OSTRZEZENIA = 0.8;
 
 export async function uzyteDzis(adm, athleteId, dzis) {
@@ -19,10 +21,19 @@ export async function uzyteDzis(adm, athleteId, dzis) {
   return count || 0;
 }
 
-export async function kosztMiesiaca(adm, dzis) {
-  const { data, error } = await adm.from("okienko_log").select("tok_we,tok_wy").gte("kiedy", poczatekDniaWaw(dzis.slice(0, 8) + "01"));
+export async function uzyteSiecDzis(adm, athleteId, dzis) {
+  const { count, error } = await adm.from("okienko_log").select("id", { count: "exact", head: true })
+    .eq("athlete_id", athleteId).eq("tryb", "siec").gte("kiedy", poczatekDniaWaw(dzis));
   if (error) throw new Error("okienko_log");
-  return kosztUsd((data || []).reduce((s, r) => ({ we: s.we + (r.tok_we || 0), wy: s.wy + (r.tok_wy || 0) }), { we: 0, wy: 0 }));
+  return count || 0;
+}
+
+/* Koszt = tokeny × cena modelu + zapytania wyszukiwania × 0,014 USD (M2a — grounding liczy się do budżetu). */
+export async function kosztMiesiaca(adm, dzis) {
+  const { data, error } = await adm.from("okienko_log").select("tok_we,tok_wy,zapytania_sieci").gte("kiedy", poczatekDniaWaw(dzis.slice(0, 8) + "01"));
+  if (error) throw new Error("okienko_log");
+  const s = (data || []).reduce((a, r) => ({ we: a.we + (r.tok_we || 0), wy: a.wy + (r.tok_wy || 0), z: a.z + (r.zapytania_sieci || 0) }), { we: 0, wy: 0, z: 0 });
+  return kosztUsd(s) + s.z * CENA_ZAPYTANIA_USD;
 }
 
 /** → null (można pytać) | 'dzien' | 'miesiac'. Przy ≥ 80 % budżetu dopisuje raz w miesiącu wpis 'budzet80'. */
@@ -43,6 +54,6 @@ export async function sprawdzLimity(adm, athleteId, dzis, budzetUsd) {
 export async function zapiszLog(adm, w) {
   const { error } = await adm.from("okienko_log").insert({
     athlete_id: w.athlete_id, tekst: String(w.tekst || "").slice(0, 300), narzedzia: w.narzedzia || [], tryb: w.tryb,
-    tok_we: w.tok_we || 0, tok_wy: w.tok_wy || 0, ok: w.ok !== false, powod_odrzucenia: w.powod_odrzucenia || null });
+    tok_we: w.tok_we || 0, tok_wy: w.tok_wy || 0, zapytania_sieci: w.zapytania_sieci || 0, ok: w.ok !== false, powod_odrzucenia: w.powod_odrzucenia || null });
   return !error;
 }

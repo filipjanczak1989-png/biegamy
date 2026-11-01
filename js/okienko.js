@@ -26,7 +26,9 @@
     miesiac: 'Na ten miesiąc koniec pytań. Ekrany dalej znajdę:',
     blad: 'Nie dam rady teraz odpowiedzieć. Spróbuj za chwilę.',
     offline: 'Bez sieci nie odpowiem, ale ekrany znajdę:',
-    niePasuje: 'Tego nie znajdę w aplikacji.'
+    niePasuje: 'Tego nie znajdę w aplikacji.',
+    siecLimit: 'Na dziś koniec szukania w sieci — od jutra znowu. W aplikacji dalej znajdę:',
+    siecPusto: 'Tego nie znalazłem w sieci.'
   };
   var KLUCZ_OSTATNIE = 'okienko_ostatnie', KLUCZ_PODPOWIEDZ = 'okienko_podpowiedz';
 
@@ -93,8 +95,9 @@
   /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc. */
   function htmlOdpowiedzi(status, json, tekst) {
     if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
-    if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
+    if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
+    if (json.tryb === 'siec') return htmlSieci(json);
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
     if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];
@@ -102,6 +105,19 @@
     html += (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
     if (cel) html += '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button>';
     return html;
+  }
+
+  /* M2a: odpowiedź z sieci — etykieta „z sieci", zdania (≤ 3), „Źródła:" jako linki (tylko https przez
+     safeExternalHref {tylkoHttps}, rel noopener, nowa karta). Bez kart i bez „Otwórz ›". Źródło bez https = pominięte. */
+  function htmlSieci(json) {
+    var zdania = (Array.isArray(json.zdania) ? json.zdania : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 3);
+    var zrodla = (Array.isArray(json.zrodla) ? json.zrodla : []).map(function (z) {
+      var h = (z && typeof window.safeExternalHref === 'function') ? window.safeExternalHref(z.url, { tylkoHttps: true }) : '';
+      return h ? '<li><a href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(z.tytul || 'źródło') + '</a></li>' : '';
+    }).filter(Boolean);
+    if (!zdania.length || !zrodla.length) return '<p class="okn-etykieta-siec">z sieci</p><p class="okn-zdanie">' + esc(TEKSTY.siecPusto) + '</p>';
+    return '<p class="okn-etykieta-siec">z sieci</p>' + zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('') +
+      '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zrodla.join('') + '</ul>';
   }
 
   var historia = [];

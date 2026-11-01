@@ -22,9 +22,25 @@ let zle = 0;
 const ok = (warunek: boolean, opis: string) => { console.log((warunek ? "OK   " : "BŁĄD ") + opis); if (!warunek) zle++; };
 
 // (a) RLS bez filtra: każdy widoczny wiersz należy do konta testowego
-for (const t of ["trainings", "training_logs", "achievements"]) {
+for (const t of ["trainings", "training_logs"]) {
   const { data, error } = await sb.from(t).select("athlete_id").limit(1000);
   ok(!error && (data || []).every((r) => r.athlete_id === ath.id), `${t}: bez filtra widać tylko własne (${(data || []).length} wierszy)`);
+}
+/* achievements: ZAMIERZENIE widać też odznaki osób z PUBLICZNYM profilem (polityka public_achievements_read —
+   odznaki na profilach). Pierwszy przebieg 1.11 liczył je jako błąd. Tu: każdy widoczny wiersz = własny albo publiczny. */
+{
+  const { data, error } = await sb.from("achievements").select("athlete_id").limit(1000);
+  const obce = [...new Set((data || []).map((r) => r.athlete_id).filter((id) => id !== ath.id))];
+  let prywatne = 0;
+  for (let i = 0; i < obce.length; i += 100) {
+    const { data: a } = await sb.from("athletes").select("id,is_public").in("id", obce.slice(i, i + 100));
+    const pub = new Set((a || []).filter((x) => x.is_public === true).map((x) => x.id));
+    prywatne += obce.slice(i, i + 100).filter((id) => !pub.has(id)).length;
+  }
+  ok(!error && prywatne === 0, `achievements: widać własne + ${obce.length} publicznych profili, prywatnych: ${prywatne}`);
+  const { count: wlasne } = await sb.from("achievements").select("athlete_id", { count: "exact", head: true }).eq("athlete_id", ath.id);
+  const w = await wykonaj(sb, ath.id, "odznaki_moje", {});
+  ok(w.liczba === (wlasne ?? -1), `odznaki_moje liczy tylko własne (${w.liczba} = ${wlasne})`);
 }
 for (const n of NAZWY) {
   const w = waliduj(n, n === "moje_treningi" ? { od: "2025-11-02", do: new Date().toISOString().slice(0, 10) } : {});
