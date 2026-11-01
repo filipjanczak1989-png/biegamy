@@ -202,3 +202,18 @@ M3a (blizna-73); nagłówki index.ts/impreza.mjs/kalendarz.mjs; LEKCJE #28–#30
 - Zostają poza tekst.mjs (świadomie, osobna decyzja): rdzenie miesięcy do dopasowań w router.mjs (`stycz`, `lut`…),
   `MIESIACE_DOPELNIACZ` w js/generator-planu.js (silnik generatora z własnym self-testem), `EKRANY`/`NAZWY_EKRANOW`
   (dwie kopie pod testem równości).
+
+## M3-0b — „puste znaczy coś": osoba bez trafień (1.11.2026) — wdrożone w v17
+
+Diagnoza wpisu 16:04:34 (bez danych osoby): brak konta w BiegaMy (nie `is_public=false`), F6 0 dla imienia i nazwiska
+(samo nazwisko: 1 osoba o innym imieniu), więc pytanie szło do modelu (flash) i kończyło się niczym.
+- Profile w okienku = zbiór jak w Społeczności: bez filtra `is_public`, decyduje RLS z JWT (`athletes_read_public`
+  + `athletes_read_by_coach` → zawodnik widzi publicznych, trener także swoich prywatnych); prywatny ze znacznikiem
+  „profil prywatny", karta tylko imię i nazwisko + „Dodaj do znajomych" / „Zobacz profil" / „Napisz".
+- Brak trafień → odpowiedź informacyjna (0 tokenów, bez modelu i sieci), każde zdanie tylko gdy dotyczy: „W BiegaMy nie
+  ma nikogo o tym imieniu i nazwisku." (odczyt profili się udał), „Maszyna wyników nie zna startów pod tym nazwiskiem —
+  sprawdź pisownię." (F6 odpowiedziało), zajęta maszyna (429); nic → ODP_NIC. Log tryb `osoba`, powód „brak trafień:
+  odpowiedź informacyjna". Ścieżka M3-0 „osoba bez trafień → model" usunięta; strażnik sieci dla pytań wyglądających
+  na osobę spoza detektora zostaje.
+- Bez przycisku „Zaproś do BiegaMy": zwiad 1.11 — aplikacja nie ma mechanizmu zaproszeń do konta (`navigator.share`
+  służy tylko kartom, „zaproszenia" to zaproszenia do znajomych). Testy: blizna-80.

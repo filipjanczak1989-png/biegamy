@@ -74,7 +74,7 @@ test('kolejność w EF: router → osoba → impreza → katalog → pamięć �
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   const i = (s) => { const k = ef.indexOf(s); assert.ok(k > 0, s); return k; };
   const kol = [i('const traf = dopasuj(tekst, dzis);'), i('const os = osobaZPytania(tekst);'), i('const imp = imprezaZPytania(tekst);'),
-    i('kat = await szukajWKatalogu(sb, tekst)'), i('const pam = osobaBezTrafien'), i('m = await zapytajModel({')];
+    i('kat = await szukajWKatalogu(sb, tekst)'), i('const pam = await zPamieci'), i('m = await zapytajModel({')];
   assert.deepEqual([...kol].sort((a, b) => a - b), kol);
 });
 

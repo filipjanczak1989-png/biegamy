@@ -121,7 +121,7 @@ test('jeden adapter: events_search tylko w kalendarz.mjs, upcoming_races tylko w
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   const iImp = ef.indexOf('const imp = imprezaZPytania(tekst);');
   assert.ok(iImp > ef.indexOf('const os = osobaZPytania(tekst);'), 'osoba przed imprezą');
-  assert.ok(iImp < ef.indexOf('const pam = osobaBezTrafien') && iImp < ef.indexOf('zapytajModel({'), 'impreza przed pamięcią i modelem');
+  assert.ok(iImp < ef.indexOf('const pam = await zPamieci') && iImp < ef.indexOf('zapytajModel({'), 'impreza przed pamięcią i modelem');
   assert.match(ef, /tryb: "impreza"/);
   assert.match(czytaj('supabase', 'functions', 'okienko', 'limity.mjs'), /\.in\("tryb", \["osoba", "impreza"\]\)\.gte\("zapytania_sieci", 1\)/, 'sieć imprezy w limicie 20/dobę');
   const m = czytaj('supabase', 'migrations', '20261101_okienko_impreza.sql');

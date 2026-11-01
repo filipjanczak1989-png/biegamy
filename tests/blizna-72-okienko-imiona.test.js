@@ -40,15 +40,12 @@ test('detektor osoby: słownik albo wielkie litery; „bieg ultrakotlina", „ma
   assert.ok(P.wygladaNaOsobe('warszawa praga'), 'stary detektor (strażnik sieci) dalej szeroki');
 });
 
-test('EF: osoba bez trafień → ścieżka ogólna; bez pamięci sieci i bez sieci; pusto → „Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu."', async () => {
+test('EF: osoba bez trafień → odpowiedź informacyjna (M3-0b, bez modelu); strażnik sieci w ścieżce ogólnej zostaje; ODP_NIC dla pytań spoza detektora', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   assert.equal(O.ODP_NIC, 'Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu.');
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
-  assert.match(ef, /if \(!o\.nic\) return odp\(200, \{ \.\.\.pusto\("osoba"\)/);
-  assert.match(ef, /osobaBezTrafien = true;/);
-  assert.match(ef, /const pam = osobaBezTrafien \? null : await zPamieci\(adm, klucz, teraz\);/);
-  assert.match(ef, /const blokadaSieci = osobaBezTrafien \|\| wygladaNaOsobe\(tekst\);\s*\n\s*if \(!blokadaSieci && czyDoSieci\(/);
+  assert.ok(!/osobaBezTrafien/.test(ef), 'ścieżka „osoba bez trafień → model" (M3-0) zastąpiona odpowiedzią informacyjną');
+  assert.match(ef, /const blokadaSieci = wygladaNaOsobe\(tekst\);\s*\n\s*if \(!blokadaSieci && czyDoSieci\(/);
   assert.ok(ef.indexOf('const blokadaSieci') < ef.indexOf('zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst, dzis })'), 'strażnik przed siecią ogólną');
   assert.match(ef, /\(blokadaSieci && !karty\.length && \(s\.puste \|\| s\.zdania\[0\] === NIE_MAM \|\| m\.poza_danymi\)\) \? \[ODP_NIC\]/);
-  assert.match(ef, /powod_odrzucenia: o\.nic \? \["osoba: brak trafień → ścieżka ogólna"/);
 });

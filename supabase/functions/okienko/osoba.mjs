@@ -1,6 +1,8 @@
 // OKIENKO M2b (1.11.2026) — tryb „osoba": pytanie o człowieka idzie RÓWNOLEGLE do trzech frontów zamiast komunikatu
 // „Wyniki osób znajdę w wyszukiwarce wyników." (decyzja Filipa):
-//   (a) osoby w aplikacji — WYŁĄCZNIE profile publiczne (athletes.is_public = true), klient z JWT użytkownika (RLS);
+//   (a) osoby w aplikacji — JAK SZUKANIE W SPOŁECZNOŚCI (M3-0b, 1.11): bez filtra is_public, decyduje RLS z JWT użytkownika
+//       (athletes_read_public + athletes_read_by_coach → zawodnik widzi publicznych, trener także swoich prywatnych);
+//       profil prywatny ma znacznik, karta nie niesie nic poza imieniem i nazwiskiem (tyle samo co Społeczność);
 //       karta z „Zobacz profil" / „Dodaj do znajomych" / „Napisz" — akcje wykonuje przeglądarka po tapnięciu
 //       istniejącymi funkcjami zawodnik.html, nie model i nie EF;
 //   (b) wyniki z maszyny wyników F6 (api.biegamy.run): search_runners → do 3 dopasowań, dla najlepszego runner_results
@@ -18,9 +20,14 @@ import { normalizuj } from "./router.mjs";
 import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
 export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
 export const PROG_STARTOW_PUBLICZNY = 30;
-// M3-0: osoba bez trafień NIE kończy pytania (odpowiedzOsoba zwraca nic: true, EF idzie dalej ścieżką ogólną BEZ sieci);
-// gdy i tam pusto — ODP_NIC.
+// M3-0b (1.11.2026, „puste znaczy coś"): osoba bez trafień dostaje ODPOWIEDŹ INFORMACYJNĄ (0 tokenów, bez modelu) —
+// każde zdanie tylko gdy dotyczy: brak konta w BiegaMy (gdy odczyt profili się udał), brak startów w maszynie (gdy F6
+// odpowiedziało), zajęta maszyna (429). Przycisku „Zaproś do BiegaMy" nie ma — zwiad 1.11: aplikacja nie ma mechanizmu
+// zaproszeń do konta (navigator.share służy tylko kartom), „zaproszenia" w kodzie to zaproszenia do znajomych.
+// ODP_NIC zostaje dla ścieżki ogólnej (pytanie wyglądające na osobę, które nie przeszło detektora słownikowego).
 export const ODP_NIC = "Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu.";
+export const ODP_BRAK_W_BIEGAMY = "W BiegaMy nie ma nikogo o tym imieniu i nazwisku.";
+export const ODP_BRAK_W_F6 = "Maszyna wyników nie zna startów pod tym nazwiskiem — sprawdź pisownię.";
 const MAX_DOPASOWAN = 3, MAX_WYNIKOW = 5, MAX_OSOB = 3;
 
 // ── rozpoznanie pytania o osobę ──────────────────────────────────────────────
@@ -44,15 +51,16 @@ export function osobaZPytania(tekst) {
 }
 
 // ── (a) osoby w aplikacji ────────────────────────────────────────────────────
-/** Publiczne profile pasujące do każdego słowa zapytania (kolejność dowolna). Status znajomości dla przycisku. */
+/** Profile pasujące do każdego słowa zapytania (kolejność dowolna) — zbiór TEN SAM co szukanie w Społeczności
+    (zawodnik.html _doSearch: ilike po full_name, bez filtra is_public, RLS decyduje). Status znajomości dla przycisku. */
 export async function osobyWAplikacji(sb, athleteId, q) {
   const slowa = String(q).split(/\s+/).map((s) => s.replace(/[%_,()*\\]/g, "")).filter((s) => s.length >= 2).slice(0, 3);
   if (!slowa.length) return [];
-  let zap = sb.from("athletes").select("id,full_name,is_public").eq("is_public", true).neq("id", athleteId);
+  let zap = sb.from("athletes").select("id,full_name,is_public").neq("id", athleteId);
   for (const s of slowa) zap = zap.ilike("full_name", `%${s}%`);
   const { data, error } = await zap.limit(MAX_OSOB);
   if (error) throw new Error("athletes");
-  const osoby = (data || []).filter((a) => a.is_public === true && a.id !== athleteId);
+  const osoby = (data || []).filter((a) => a.id !== athleteId);
   if (!osoby.length) return [];
   const status = {};
   const or = osoby.map((a) => `and(requester_id.eq.${athleteId},addressee_id.eq.${a.id}),and(requester_id.eq.${a.id},addressee_id.eq.${athleteId})`).join(",");
@@ -61,7 +69,7 @@ export async function osobyWAplikacji(sb, athleteId, q) {
     const inny = r.requester_id === athleteId ? r.addressee_id : r.requester_id;
     status[inny] = r.status === "accepted" ? "znajomi" : r.requester_id === athleteId ? "wyslano" : "czeka";
   }
-  return osoby.map((a) => ({ id: a.id, nazwa: String(a.full_name || "").slice(0, 80), znajomosc: status[a.id] || null }));
+  return osoby.map((a) => ({ id: a.id, nazwa: String(a.full_name || "").slice(0, 80), prywatny: a.is_public !== true, znajomosc: status[a.id] || null }));
 }
 
 // ── (b) wyniki z F6 ──────────────────────────────────────────────────────────
@@ -125,7 +133,12 @@ export async function odpowiedzOsoba(deps) {
   for (const o of osoby) karty.push({ typ: "osoba", dane: o });
   if (wyniki) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1) } });
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
-  const nic = !karty.length && !zdania.length;   // M3-0: bez ślepej uliczki — EF idzie dalej
+  const nic = !karty.length && !zdania.length;
+  if (nic) {   // M3-0b: odpowiedź informacyjna, każde zdanie tylko gdy źródło naprawdę odpowiedziało „nie ma"
+    if (rA.status === "fulfilled") zdania.push(ODP_BRAK_W_BIEGAMY);
+    if (f6Stan === "ok") zdania.push(ODP_BRAK_W_F6);
+    if (!zdania.length) zdania.push(ODP_NIC);
+  }
   return { nic, zdania, karty, zrodla, akcja: wyniki ? { nawiguj: "races.html" } : null, tok, zapytania_sieci: zapytania, f6: f6Stan, sieci,
     powod: [rA.status === "rejected" ? "profile: " + String(rA.reason && rA.reason.message) : null, f6Stan !== "ok" ? "f6: " + f6Stan : null].filter(Boolean).join(" | ") || null };
 }

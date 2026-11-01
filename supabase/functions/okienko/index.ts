@@ -87,14 +87,13 @@ Deno.serve(async (req) => {
     return { zdania: jest ? z.zdania : [], zrodla: jest ? z.zrodla : [], tok: w.tok, zapytania: w.zapytania };
   };
   const os = osobaZPytania(tekst);
-  let osobaBezTrafien = false;   // M3-0: tryb osoby nic nie znalazł → ścieżka ogólna, ale BEZ sieci i bez pamięci sieci
   if (os) {
     const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost,
       sieciDozwolona, siec: siecZeZrodlami });
+    // M3-0b: brak trafień = odpowiedź informacyjna z osoba.mjs (0 tokenów, bez modelu i bez sieci) — koniec pytania
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
-      ok: o.f6 === "ok" && !o.nic, powod_odrzucenia: o.nic ? ["osoba: brak trafień → ścieżka ogólna", o.powod].filter(Boolean).join(" | ") : o.powod });
-    if (!o.nic) return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
-    osobaBezTrafien = true;
+      ok: o.f6 === "ok", powod_odrzucenia: o.nic ? ["brak trafień: odpowiedź informacyjna", o.powod].filter(Boolean).join(" | ") : o.powod });
+    return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
   }
   // ── M3a v2: tryb „impreza" — kalendarz maszyny (adapter kalendarz.mjs) + nasze starty + sieć (dozwolona dla nazwy
   //    biegu), pamięć 24 h, znaleziska ze statusem „kalendarz". null = nie impreza → dalej (pamięć sieci, model). ──
@@ -121,7 +120,7 @@ Deno.serve(async (req) => {
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);
-  const pam = osobaBezTrafien ? null : await zPamieci(adm, klucz, teraz);
+  const pam = await zPamieci(adm, klucz, teraz);
   if (pam && pam.zrodla.length) {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec-cache" });
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
@@ -145,9 +144,9 @@ Deno.serve(async (req) => {
     return odp(modelu ? 502 : 503, { blad: modelu ? "model" : "narzędzie" });
   }
   // ── M2a: sieć (osobne wywołanie z googleSearch — tylko tekst pytania i data, NIC z aplikacji) ──
-  // Strażnik sieci (M3-0): pytanie wyglądające na imię i nazwisko (stary, szeroki detektor) albo osoba bez trafień
-  // NIE idzie do Google ścieżką ogólną — nazwisko wychodzi tylko wg reguły publiczności w trybie osoby.
-  const blokadaSieci = osobaBezTrafien || wygladaNaOsobe(tekst);
+  // Strażnik sieci (M3-0): pytanie wyglądające na imię i nazwisko (stary, szeroki detektor — także dwa małe słowa,
+  // które nie przeszły detektora słownikowego) NIE idzie do Google ścieżką ogólną.
+  const blokadaSieci = wygladaNaOsobe(tekst);
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
     let ileSiec;
     try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }

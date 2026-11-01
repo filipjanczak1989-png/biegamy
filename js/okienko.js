@@ -134,7 +134,7 @@
       : d.znajomosc === 'wyslano' ? '<span class="okn-meta">Zaproszenie wysłane</span>'
       : d.znajomosc === 'czeka' ? '<span class="okn-meta">Czeka na Twoją odpowiedź</span>'
       : '<button type="button" class="okn-chip" data-osoba="znajomy" data-id="' + id + '">Dodaj do znajomych</button>';
-    return '<div class="okn-karta okn-karta--osoba"><b>' + nazwa + '</b><span class="okn-meta">profil w BiegaMy</span>' +
+    return '<div class="okn-karta okn-karta--osoba"><b>' + nazwa + '</b><span class="okn-meta">' + (d.prywatny ? 'profil prywatny' : 'profil w BiegaMy') + '</span>' +
       '<div class="okn-ekrany"><button type="button" class="okn-chip" data-osoba="profil" data-id="' + id + '">Zobacz profil</button>' + znaj +
       '<button type="button" class="okn-chip" data-osoba="napisz" data-id="' + id + '" data-nazwa="' + nazwa + '">Napisz</button></div></div>';
   }

@@ -29,7 +29,7 @@ function baza() {
   return {
     athletes: [
       { id: U1, full_name: 'Katarzyna Chojnacka', is_public: true },
-      { id: U2, full_name: 'Katarzyna Chojnacka', is_public: false },   // prywatna — nigdy w karcie
+      { id: U2, full_name: 'Katarzyna Chojnacka', is_public: false },   // prywatna — atrapa nie ma RLS; w EF o widoczności decyduje RLS (jak Społeczność)
       { id: U3, full_name: 'Iwona Testowa', is_public: true },
       { id: JA, full_name: 'Ja Sam', is_public: true },
     ],
@@ -73,13 +73,13 @@ test('rozpoznanie: samo imię i nazwisko, „kim jest …", „… w sieci", „
     assert.equal(O.osobaZPytania(t), null, t);
 });
 
-test('nazwisko z 3 startami (bez MP i podium open) NIE trafia do sieci; karta osoby tylko z profilu publicznego + karta wyników', async () => {
+test('nazwisko z 3 startami (bez MP i podium open) NIE trafia do sieci; karty osób = zbiór jak w Społeczności (RLS, prywatny ze znacznikiem) + karta wyników', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   const { o, siec } = await odpowiedz(O);
   assert.equal(siec.length, 0, 'nazwisko poszło do googleSearch');
   assert.equal(o.sieci, false);
   const osoby = o.karty.filter((k) => k.typ === 'osoba');
-  assert.deepEqual(osoby.map((k) => k.dane.id), [U1], 'prywatny profil albo własny w karcie');
+  assert.deepEqual(osoby.map((k) => [k.dane.id, k.dane.prywatny]), [[U1, false], [U2, true]], 'własny profil w karcie / brak znacznika prywatności');
   const w = o.karty.find((k) => k.typ === 'wyniki').dane;
   assert.equal(w.starty, 3);
   assert.equal(w.najlepszy_czas.czas_s, 2650, 'najlepszy czas na dystansie ostatniego startu');
@@ -97,7 +97,7 @@ test('30+ startów, Mistrzostwa Polski albo podium OPEN → sieć; podium tylko 
   const z = await odpowiedz(O, { f6: f6Atrapa({ starty: 31 }) });
   assert.deepEqual(z.o.zdania, ['Zdanie z sieci.']);
   assert.equal(z.o.zrodla.length, 1);
-  assert.deepEqual(z.o.karty.map((k) => k.typ), ['osoba', 'wyniki'], 'kolejność: zdania z sieci → osoba → wyniki');
+  assert.deepEqual(z.o.karty.map((k) => k.typ), ['osoba', 'osoba', 'wyniki'], 'kolejność: zdania z sieci → osoby (atrapa bez RLS: obie) → wyniki');
 });
 
 test('„kim jest X" trafia do sieci nawet przy 3 startach; limit sieci wyczerpany → bez sieci', async () => {
@@ -106,15 +106,16 @@ test('„kim jest X" trafia do sieci nawet przy 3 startach; limit sieci wyczerpa
   assert.equal((await odpowiedz(O, { wprost: true, dozwolona: false })).siec.length, 0);
 });
 
-test('brak wszystkiego → nic: true (M3-0: EF idzie dalej, bez ślepej uliczki); 429 z F6 → maszyna zajęta, profil zostaje', async () => {
+test('brak wszystkiego → odpowiedź informacyjna (M3-0b, 0 tokenów); 429 z F6 → maszyna zajęta, profil zostaje', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   const brak = await odpowiedz(O, { q: 'Zenon Nieistniejący', f6: f6Atrapa({ pusto: true }) });
   assert.equal(brak.o.nic, true);
-  assert.deepEqual(brak.o.zdania, []);
+  assert.deepEqual(brak.o.zdania, [O.ODP_BRAK_W_BIEGAMY, O.ODP_BRAK_W_F6]);
   assert.equal(brak.o.karty.length, 0);
+  assert.deepEqual(brak.o.tok, { we: 0, wy: 0 });
   const zajeta = await odpowiedz(O, { f6: f6Atrapa({ status: 429 }) });
   assert.deepEqual(zajeta.o.zdania, [O.ODP_F6_ZAJETA]);
-  assert.deepEqual(zajeta.o.karty.map((k) => k.typ), ['osoba']);
+  assert.deepEqual(zajeta.o.karty.map((k) => k.typ), ['osoba', 'osoba']);
   assert.equal(zajeta.o.f6, 'limit');
   assert.equal(zajeta.siec.length, 0);
 });
@@ -150,7 +151,7 @@ test('brak zapisu: osoba.mjs i zapytania trybu osoby tylko czytają; jedyny zapi
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   const { sb } = await odpowiedz(O, { f6: f6Atrapa({ starty: 40 }) });
   assert.ok(sb.zapytania.every((z) => z.zapis === false), 'zapis do bazy w trybie osoby');
-  assert.ok(sb.zapytania.some((z) => z.nazwa === 'athletes' && z.is_public === true), 'zapytanie o profile bez filtra is_public');
+  assert.ok(sb.zapytania.some((z) => z.nazwa === 'athletes' && z.is_public === undefined && z.ilike), 'profile: bez filtra is_public — ten sam zbiór co Społeczność, decyduje RLS');
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   const blok = ef.slice(ef.indexOf('const os = osobaZPytania(tekst);'), ef.indexOf('zPamieci(adm'));
   assert.deepEqual([...blok.matchAll(/(zapiszLog|doPamieci|zapiszZnaleziska|\.insert\(|\.upsert\()/g)].map((m) => m[1]), ['zapiszLog']);
