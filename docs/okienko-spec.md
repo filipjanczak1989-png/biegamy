@@ -88,3 +88,20 @@ Zdanie: „W listopadzie w Poznaniu maszyna wyników zna 4 biegi." (liczba ze zl
 nie ma biegów w tym zakresie."; 429 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę.". Karty `impreza`
 (≤ 10): nazwa, data, miasto, dystanse, domena źródła jako TEKST — bez linków zewnętrznych; bez „Otwórz ›" do czasu
 kalendarza startów w races.html (K4/K5). Testy: blizna-72.
+
+## M3 v2 / M3-0 — osoba ze słownikiem imion, bez ślepej uliczki (1.11.2026) — wdrożone w v10
+
+Projekt: M3-okienko-wszystko-projekt-v2.md (Downloads, 14:10) — zastępuje v1; M3a z v1 (`biegi_nadchodzace`, router
+`upcoming_races`) zostaje jako część M3a v2 („kiedy / gdzie / jakie biegi w X"), testy przemianowane na blizna-73.
+Diagnoza „bieg ultrakotlina → nic" z v2 NIE potwierdzona w logu: wpis 13:56:20 (Warszawa) to tryb `flash`, model
+wywołał `moje_starty` + `wyzwania_postep` — to nie był tryb osoby; „ultrakotlina" naprawia dopiero tryb „impreza" (M3a v2).
+
+- Słownik `_shared/imiona.mjs` (generowany, nie ręczny): dane.gov.pl zbiór 1501, PESEL imię pierwsze, 20.01.2026,
+  ≥ 1000 nosicieli → 1064 formy + 36 zdrobnień (rejestr nie zna „kasia", „gosia", „tomek"); wykluczone słowa zwykłe
+  obecne w rejestrze („kim" 353, „wiosna", „park", …). Formy bez polskich znaków.
+- Tryb osoby (`wygladaNaOsobeSlownik`): 2–3 słowa, pierwsze jest imieniem ze słownika ALBO wszystkie wielką literą.
+- Osoba bez trafień (`odpowiedzOsoba` → `nic: true`) idzie ścieżką ogólną: bez pamięci sieci, bez sieci (strażnik);
+  wpis `okienko_log` tryb `osoba` z `ok=false`, powód „osoba: brak trafień → ścieżka ogólna". Gdy i tam pusto →
+  „Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu."
+- Strażnik sieci w ścieżce ogólnej: stary, szeroki `wygladaNaOsobe` (także dwa małe słowa) blokuje Google
+  (wyjątek dla nazwy imprezy — wejdzie z detektorem imprezy w M3a v2). Testy: blizna-72.

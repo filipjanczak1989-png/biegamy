@@ -1,0 +1,113 @@
+// Słownik imion dla detektora osoby w okienku (M3 v2, M3-0, 1.11.2026). Formy podstawowe, małe litery, BEZ polskich
+// znaków (dopasowanie po normalizacji jak w router.normalizuj).
+// ŹRÓDŁO 1: dane.gov.pl, zbiór 1501 „Lista imion występujących w rejestrze PESEL", stan na 20.01.2026 — zasoby 1159637
+//   (męskie, imię pierwsze) i 1159639 (żeńskie, imię pierwsze), z uwzględnieniem osób zmarłych; próg ≥ 1000 nosicieli
+//   → 1064 imion. Niższy próg wpuszcza słowa zwykłe („kim" 353, „wiosna" 11, „park" 4 — zmierzone).
+// ŹRÓDŁO 2: ręczna lista zdrobnień (36), których rejestr nie zna albo zna poniżej progu („kasia", „gosia", „tomek").
+// Wykluczone mimo obecności w rejestrze: forma, gora, kim, lato, maj, noc, park, plan, radio, start, tata, wiosna, zima.
+// Wygenerowane skryptem z plików CSV (nie ręcznie); zmiana = ponowne wygenerowanie, blizna-72 pilnuje kształtu.
+export const ZRODLO = "dane.gov.pl zbiór 1501 (PESEL, imię pierwsze, 20.01.2026, ≥ 1000) + zdrobnienia";
+export const IMIONA_PESEL = [
+  "aaron", "abigail", "ada", "adam", "adamina", "adela", "adelajda", "adelina", "adolf", "adolfina", "adrian", "adriana",
+  "adrianna", "agata", "agnieszka", "ahmed", "ahmet", "aksana", "ala", "alan", "albert", "albin", "albina", "aldona",
+  "aleh", "aleks", "aleksander", "aleksandr", "aleksandra", "aleksei", "aleksy", "alena", "alesia", "alessandro", "alex", "alexander",
+  "alexandr", "alexandra", "alexandru", "alfons", "alfred", "alfreda", "ali", "aliaksandr", "aliaksandra", "aliaksei", "alice", "alicia",
+  "alicja", "alina", "aliona", "alisa", "alla", "alojza", "alojzy", "alona", "amadeusz", "amalia", "amanda", "amelia",
+  "amina", "amir", "amit", "ana", "anastasia", "anastasiia", "anastasiya", "anastazja", "anatol", "anatoli", "anatolii", "anatoliy",
+  "andrea", "andreas", "andrei", "andres", "andrew", "andrey", "andriana", "andrii", "andriy", "andrzej", "andzelika", "aneta",
+  "anetta", "angela", "angelika", "angelina", "anhelina", "aniela", "anika", "anita", "anna", "anthony", "anton", "antoni",
+  "antonia", "antonina", "antonio", "anzhela", "anzhelika", "apolinary", "apolonia", "ariana", "ariel", "arina", "arkadiusz", "arleta",
+  "arletta", "arnold", "aron", "arsen", "arsenii", "artem", "arthur", "artsiom", "artur", "august", "augustyn", "augustyna",
+  "aurelia", "aurora", "balbina", "barbara", "bartlomiej", "bartosz", "bazyl", "bazyli", "beata", "benedykt", "benedykta", "beniamin",
+  "benigna", "benjamin", "benon", "berenika", "bernadeta", "bernadetta", "bernard", "bernarda", "bernardyna", "berta", "bianca", "bianka",
+  "blandyna", "blanka", "blazej", "bogdan", "bogdana", "bogna", "bogumil", "bogumila", "boguslaw", "boguslawa", "bohdan", "bohdana",
+  "boleslaw", "boleslawa", "bonifacy", "borys", "bozena", "bozenna", "brajan", "brayan", "brian", "bronislaw", "bronislawa", "bruno",
+  "brunon", "brygida", "carlos", "carmen", "carolina", "caroline", "cecylia", "celestyna", "celina", "cezary", "christian", "christopher",
+  "claudia", "constantin", "cristian", "cristina", "cyprian", "cyryl", "czeslaw", "czeslawa", "dagmara", "dajana", "dalia", "damian",
+  "damir", "dana", "daniel", "daniela", "daniil", "danil", "danuta", "danyil", "danylo", "daria", "dariia", "dariusz",
+  "darya", "daryna", "david", "davit", "davyd", "dawid", "demian", "denis", "dennis", "denys", "diana", "diego",
+  "dieter", "dina", "dionizy", "dmitrii", "dmytro", "dobroslawa", "domicela", "dominic", "dominik", "dominika", "donat", "donata",
+  "dorian", "dorota", "dumitru", "dymitr", "dzesika", "dzianis", "dzmitry", "edeltrauda", "edgar", "edmund", "eduard", "edward",
+  "edwarda", "edwin", "edyta", "ekaterina", "elena", "eleonora", "elfryda", "eliasz", "eligiusz", "elina", "eliza", "elizabeth",
+  "elizaveta", "ella", "elvira", "elwira", "elza", "elzbieta", "ema", "emanuel", "emanuela", "emil", "emilia", "emilian",
+  "emiliia", "emily", "emma", "engelbert", "eric", "erik", "erika", "erna", "ernest", "ernestyna", "erwin", "eryk",
+  "eryka", "estera", "eufemia", "eugenia", "eugeniusz", "eulalia", "euzebiusz", "eva", "evelina", "ewa", "ewald", "ewelina",
+  "fabian", "faustyna", "fedir", "felicja", "felicjan", "feliks", "feliksa", "felix", "ferdynand", "filip", "filomena", "florentyna",
+  "florian", "francesco", "franciszek", "franciszka", "frank", "fryderyk", "gabriel", "gabriela", "gabriella", "gabryela", "gaja", "galina",
+  "galyna", "ganna", "genowefa", "george", "gerard", "gerda", "gerhard", "gertruda", "gheorghe", "ginter", "giorgi", "gizela",
+  "gloria", "gracjan", "grazyna", "greta", "grzegorz", "gustaw", "halina", "halyna", "hana", "hanka", "hanna", "hannah",
+  "helena", "helga", "helmut", "henadzi", "hennadii", "henry", "henryk", "henryka", "heorhii", "herbert", "herman", "hermina",
+  "heronim", "hieronim", "hilary", "hildegarda", "hipolit", "hlib", "honorata", "horst", "hryhorii", "hubert", "hugo", "ian",
+  "ibrahim", "ida", "idalia", "idzi", "ievgen", "iga", "ignacy", "igor", "ihar", "ihor", "ilia", "illia",
+  "ilona", "ilya", "ina", "ines", "inez", "inga", "ingeborga", "ingrid", "inka", "inna", "ion", "irakli",
+  "irena", "ireneusz", "irina", "irma", "irmgarda", "irmina", "iryna", "isabella", "iuliia", "iurii", "ivan", "ivanna",
+  "iwo", "iwona", "iwonna", "iza", "izabela", "izabella", "izydor", "jacek", "jacenty", "jacob", "jadwiga", "jagna",
+  "jagoda", "jakub", "james", "jan", "jana", "janina", "janusz", "jaromir", "jaroslaw", "jaroslawa", "jasmina", "jedrzej",
+  "jennifer", "jeremi", "jeremiasz", "jerzy", "jessica", "joachim", "joanna", "john", "jolanta", "jonasz", "jonatan", "jonathan",
+  "jordan", "jorge", "jose", "joseph", "joshua", "jowita", "jozef", "jozefa", "jozefina", "juan", "judyta", "julia",
+  "julian", "julianna", "julita", "juliusz", "justyna", "kacper", "kai", "kaja", "kajetan", "kalina", "kamil", "kamila",
+  "kamilla", "kanstantsin", "karen", "karina", "karol", "karolina", "karyna", "kasjan", "kasper", "katarzyna", "katerina", "kateryna",
+  "katsiaryna", "kaya", "kazimiera", "kazimierz", "kevin", "kewin", "khrystyna", "kinga", "kira", "kiril", "kirill", "kiryl",
+  "klara", "klaudia", "klaudiusz", "klaudyna", "klaus", "klemens", "klementyna", "konrad", "konstancja", "konstantin", "konstanty", "kordian",
+  "kornel", "kornela", "kornelia", "korneliusz", "kosma", "kostiantyn", "kristina", "kryspin", "krystian", "krystsina", "krystyna", "krzysztof",
+  "krzysztofa", "ksawera", "ksawery", "ksawier", "ksenia", "kseniia", "kseniya", "kuba", "kunegunda", "kurt", "kyryl", "kyrylo",
+  "lara", "larisa", "larysa", "lasha", "laura", "lea", "lech", "lechoslaw", "leila", "lena", "leo", "leokadia",
+  "leon", "leonard", "leonarda", "leonardo", "leonia", "leonid", "leontyna", "leopold", "lesia", "leslaw", "leszek", "lev",
+  "levan", "liam", "liana", "lidia", "lidiia", "ligia", "lila", "lilia", "liliana", "lilianna", "liliia", "liliya",
+  "lilla", "lilly", "lily", "lina", "linda", "liubomyr", "liubov", "liudmila", "liudmyla", "livia", "liwia", "lizaveta",
+  "longin", "longina", "luba", "lubomir", "lubomira", "luca", "lucas", "lucja", "lucjan", "lucyna", "ludmila", "ludomira",
+  "ludwik", "ludwika", "ludwina", "luis", "luiza", "luka", "lukas", "lukasz", "lyubov", "lyudmyla", "maciej", "magda",
+  "magdalena", "maia", "maiia", "maja", "majka", "makar", "maks", "maksim", "maksym", "maksymilian", "malgorzata", "malina",
+  "malwina", "mamuka", "manfred", "manuel", "manuela", "marcel", "marcela", "marceli", "marcelina", "marcin", "marcjanna", "marco",
+  "marek", "margarita", "marharyta", "maria", "mariam", "marian", "mariana", "marianna", "marie", "marietta", "mariia", "marika",
+  "marina", "mario", "mariola", "marita", "mariusz", "mariya", "mark", "marko", "markus", "marlena", "marta", "martin",
+  "martina", "martyna", "maryia", "maryla", "maryna", "marzanna", "marzena", "marzenna", "mateusz", "matteo", "matthew", "matvii",
+  "matylda", "maurycy", "max", "maxim", "maximilian", "maya", "mehmet", "melania", "melaniia", "melisa", "melissa", "mia",
+  "michael", "michal", "michalina", "michelle", "mieczyslaw", "mieczyslawa", "mieszko", "miguel", "mihail", "mikalai", "mikhail", "mikita",
+  "mikolaj", "mila", "milan", "milana", "milena", "milosz", "mira", "mirela", "mirella", "miriam", "miron", "miroslaw",
+  "miroslawa", "mohamed", "mohammad", "mohammed", "monica", "monika", "muhammad", "mustafa", "mykhailo", "mykhaylo", "mykola", "mykyta",
+  "myron", "myroslav", "myroslava", "nadia", "nadiia", "nadiya", "nadzeya", "nadzieja", "naomi", "narcyz", "nastassia", "natalia",
+  "natalie", "nataliia", "nataliya", "natallia", "natan", "nataniel", "natasza", "nathan", "nathaniel", "nazar", "nazarii", "nel",
+  "nela", "nelia", "nelly", "nicholas", "nicol", "nicola", "nicolae", "nicolai", "nicolas", "nicole", "nika", "nikita",
+  "nikodem", "nikol", "nikola", "nikolas", "nikoletta", "nina", "nino", "noah", "noemi", "norbert", "oksana", "oktawia",
+  "oktawian", "ola", "olaf", "oleg", "oleh", "oleksandr", "oleksandra", "oleksii", "oleksiy", "olena", "olesia", "olga",
+  "olgierd", "olha", "olimpia", "oliver", "olivia", "olivier", "oliwer", "oliwia", "oliwier", "omar", "omer", "orest",
+  "oscar", "oskar", "ostap", "otolia", "otto", "otylia", "palina", "pamela", "pascal", "patricia", "patrick", "patrycja",
+  "patrycjusz", "patryk", "paul", "paula", "paulina", "pavel", "pavlo", "pawel", "pelagia", "peter", "petro", "petronela",
+  "philip", "piotr", "platon", "pola", "polina", "prakseda", "przemyslaw", "radomir", "radoslaw", "rafael", "rafal", "raisa",
+  "rajmund", "rajnold", "raman", "ramona", "regina", "reinhold", "remigiusz", "renata", "richard", "rita", "robert", "roberto",
+  "roch", "rodion", "roger", "roksana", "roksolana", "roland", "roma", "roman", "romana", "romuald", "romualda", "rostyslav",
+  "roza", "rozalia", "rudolf", "rufin", "ruslan", "ruslana", "rustam", "ruta", "ryan", "ryszard", "ryszarda", "sabina",
+  "sabrina", "salomea", "samanta", "samir", "samuel", "sandra", "sara", "sarah", "scholastyka", "sebastian", "semen", "serafina",
+  "sergei", "sergey", "serghei", "sergii", "sergiu", "sergiusz", "sergiy", "serhii", "serhiy", "seweryn", "seweryna", "siarhei",
+  "simon", "simona", "slawomir", "slawomira", "snizhana", "sofia", "sofiia", "sofiya", "solomiia", "sonia", "sophia", "sophie",
+  "stanislau", "stanislav", "stanislaw", "stanislawa", "stefan", "stefania", "stefaniia", "stella", "stepan", "svetlana", "sviatlana", "sviatoslav",
+  "svitlana", "swietlana", "sylwester", "sylwia", "szczepan", "szymon", "tadeusz", "taisa", "taisiia", "tamara", "tamila", "taras",
+  "tatiana", "tatsiana", "tekla", "telesfor", "teodor", "teodora", "teodozja", "teofil", "teofila", "teresa", "tetiana", "tetyana",
+  "thomas", "timur", "tobiasz", "tola", "tomas", "tomasz", "tymofii", "tymon", "tymoteusz", "tymur", "tytus", "uladzimir",
+  "uladzislau", "uliana", "ulyana", "urszula", "vadim", "vadym", "vadzim", "valentin", "valentina", "valentyn", "valentyna", "valeria",
+  "valerii", "valeriia", "valery", "valeryia", "vanessa", "varvara", "vasile", "vasili", "vasyl", "vasylyna", "vera", "veranika",
+  "veronica", "veronika", "viachaslau", "viacheslav", "victor", "victoria", "viktar", "viktor", "viktoria", "viktoriia", "viktoriya", "viktoryia",
+  "vincent", "violeta", "violetta", "vira", "vita", "vitali", "vitalii", "vitaliia", "vitalina", "vitaliy", "vlada", "vladimir",
+  "vladislav", "vladyslav", "vladyslava", "volha", "volodymyr", "waclaw", "waclawa", "waldemar", "walenty", "walentyna", "waleria", "walerian",
+  "walery", "waleska", "walter", "wanda", "wanesa", "wanessa", "wawrzyniec", "werner", "weronika", "wiera", "wieslaw", "wieslawa",
+  "wiktor", "wiktoria", "wilhelm", "wilhelmina", "william", "wincenty", "wincentyna", "wioleta", "wioletta", "wirginia", "wit", "witalis",
+  "witold", "wladyslaw", "wladyslawa", "wlodzimierz", "wojciech", "wolfgang", "xavier", "yahor", "yan", "yana", "yanina", "yaroslav",
+  "yaroslava", "yaryna", "yauhen", "yauheni", "yehor", "yelizaveta", "yelyzaveta", "yeva", "yevhen", "yevhenii", "yevheniia", "yuliana",
+  "yuliia", "yuliya", "yurii", "yuriy", "yury", "zakhar", "zaneta", "zaza", "zbigniew", "zbyslaw", "zbyszek", "zbyszko",
+  "zdzislaw", "zdzislawa", "zenobia", "zenobiusz", "zenon", "zenona", "zhanna", "ziemowit", "zinaida", "zlata", "zoe", "zofia",
+  "zoia", "zoja", "zoriana", "zurab", "zuzanna", "zygfryd", "zygmunt", "zyta",
+];
+export const ZDROBNIENIA = [
+  "ania", "antek", "arek", "asia", "bartek", "basia", "darek", "ela", "ewka", "franek", "gosia", "grzesiek",
+  "hania", "heniek", "irek", "janek", "jarek", "jola", "kasia", "kaska", "krzysiek", "maciek", "madzia", "mietek",
+  "mirek", "monia", "natka", "romek", "rysiek", "slawek", "staszek", "tomek", "ula", "wojtek", "zdzisiek", "zosia",
+];
+export const IMIONA = new Set([...IMIONA_PESEL, ...ZDROBNIENIA]);
+export const LICZBA_IMION = IMIONA.size;
+
+export function normalizujSlowo(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l").replace(/[^a-z]/g, "");
+}
+/** „Kasia", „KATARZYNA", „Łukasz" → true; „bieg", „kim", „warszawa" → false. */
+export function czyImie(slowo) { return IMIONA.has(normalizujSlowo(slowo)); }

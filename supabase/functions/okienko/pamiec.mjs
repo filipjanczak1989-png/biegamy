@@ -10,6 +10,7 @@
 // Zapisy: WYŁĄCZNIE okienko_siec_cache i okienko_znaleziska (klient service_role; przeglądarka nie ma do nich prawa
 // zapisu — migracja 20261101_okienko_pamiec.sql). blizna-69 pilnuje, że nigdzie indziej.
 import { czyDomenaWynikow } from "../_shared/zrodla-wynikow.mjs";
+import { czyImie } from "../_shared/imiona.mjs";
 
 export const TTL_GODZ = 24;
 export const ODP_OSOBA = "Wyniki osób znajdę w wyszukiwarce wyników.";
@@ -26,6 +27,18 @@ export function wygladaNaOsobe(tekst) {
   if (slowa.length < 2 || slowa.length > 3) return false;
   if (slowa.some((s) => PYTAJNE.test(s) || BIEGOWE.test(s) || /\d/.test(s))) return false;
   return slowa.every((s) => SLOWO_IMIENIA.test(s)) || slowa.every((s) => SLOWO_MALE.test(s));
+}
+
+/** M3-0 (1.11.2026): detektor TRYBU OSOBY — 2–3 słowa (bez słów pytających/biegowych/cyfr) i pierwsze słowo jest
+    imieniem ze słownika (_shared/imiona.mjs, PESEL + zdrobnienia) ALBO wszystkie słowa zaczynają się wielką literą.
+    „kasia nowak", „Jan Kowalski" → tak; „bieg ultrakotlina", „maraton warszawski", „warszawa praga" → nie.
+    Stary wygladaNaOsobe (wyżej, szerszy: także dwa dowolne małe słowa) zostaje STRAŻNIKIEM SIECI w ścieżce ogólnej. */
+export function wygladaNaOsobeSlownik(tekst) {
+  const slowa = String(tekst || "").replace(/[\\?!.,;:"'„”()]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (slowa.length < 2 || slowa.length > 3) return false;
+  if (slowa.some((s) => PYTAJNE.test(s) || BIEGOWE.test(s) || /\d/.test(s))) return false;
+  if (!slowa.every((s) => SLOWO_IMIENIA.test(s) || SLOWO_MALE.test(s))) return false;
+  return czyImie(slowa[0]) || slowa.every((s) => SLOWO_IMIENIA.test(s));
 }
 
 /** Odpowiedź z pamięci (≤ TTL) albo null. Klucz = pytanie znormalizowane (router.normalizuj). */

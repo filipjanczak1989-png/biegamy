@@ -12,20 +12,23 @@
 // Pamięć F6: WSPÓLNA (dane publiczne, decyzja Filipa), klucz = RPC + argumenty, 10 min, do 500 wpisów, w pamięci
 // izolatu (znika przy zimnym starcie). 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę."
 // Moduł nie zapisuje nigdzie (blizna-67/69); odpowiedzi osobowej nie wkładamy do okienko_siec_cache ani do znalezisk.
-import { wygladaNaOsobe } from "./pamiec.mjs";
+import { wygladaNaOsobeSlownik } from "./pamiec.mjs";
 import { normalizuj } from "./router.mjs";
 
 import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
 export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
 export const PROG_STARTOW_PUBLICZNY = 30;
+// M3-0: osoba bez trafień NIE kończy pytania (odpowiedzOsoba zwraca nic: true, EF idzie dalej ścieżką ogólną BEZ sieci);
+// gdy i tam pusto — ODP_NIC. ODP_BRAK zostaje jako stała dla zgodności (nieużywana w EF).
 export const ODP_BRAK = "Nie znalazłem tej osoby w aplikacji ani w wynikach.";
+export const ODP_NIC = "Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu.";
 const MAX_DOPASOWAN = 3, MAX_WYNIKOW = 5, MAX_OSOB = 3;
 
 // ── rozpoznanie pytania o osobę ──────────────────────────────────────────────
 // Słowa, które nie są imieniem ani nazwiskiem — „kim jest mój trener" to pytanie o relację, nie o osobę do szukania
 // (detektor małych liter z M2d przepuściłby „mój trener" jako dwa słowa imienia).
 const NIE_IMIE = /^(m[oó]j|moja|moje|moi|tw[oó]j|twoja|twoje|nasz\w*|wasz\w*|ten|ta|to|ci|te|on|ona|oni|one|pan|pani|trener\w*|kolega|koleg\w*|kolezank\w*|koleżank\w*|znajom\w*|brat\w*|siostr\w*|mama|mamy|tata|taty|zona|żona|maz|mąż|syn|corka|córka|szef\w*|sasiad\w*|sąsiad\w*|imi\w*|nazwisk\w*|i)$/i;   // „imię i nazwisko” = podpowiedź, nie osoba
-const toImie = (q) => wygladaNaOsobe(q) && !String(q).split(/\s+/).some((s) => NIE_IMIE.test(s));
+const toImie = (q) => wygladaNaOsobeSlownik(q) && !String(q).split(/\s+/).some((s) => NIE_IMIE.test(s));
 /** → {q, wprost} | null. „Katarzyna Chojnacka" → wprost false; „kim jest Katarzyna Chojnacka", „… w sieci",
     „google …" → wprost true (użytkownik sam prosi o sieć); „wyniki X", „jak pobiegł(a) X" → wprost false. */
 export function osobaZPytania(tekst) {
@@ -113,7 +116,7 @@ export async function odpowiedzOsoba(deps) {
   for (const o of osoby) karty.push({ typ: "osoba", dane: o });
   if (wyniki) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1) } });
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
-  if (!karty.length && !zdania.length) zdania = [ODP_BRAK];
-  return { zdania, karty, zrodla, akcja: wyniki ? { nawiguj: "races.html" } : null, tok, zapytania_sieci: zapytania, f6: f6Stan, sieci,
+  const nic = !karty.length && !zdania.length;   // M3-0: bez ślepej uliczki — EF idzie dalej
+  return { nic, zdania, karty, zrodla, akcja: wyniki ? { nawiguj: "races.html" } : null, tok, zapytania_sieci: zapytania, f6: f6Stan, sieci,
     powod: [rA.status === "rejected" ? "profile: " + String(rA.reason && rA.reason.message) : null, f6Stan !== "ok" ? "f6: " + f6Stan : null].filter(Boolean).join(" | ") || null };
 }

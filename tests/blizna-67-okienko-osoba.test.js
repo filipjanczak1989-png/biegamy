@@ -105,10 +105,11 @@ test('„kim jest X" trafia do sieci nawet przy 3 startach; limit sieci wyczerpa
   assert.equal((await odpowiedz(O, { wprost: true, dozwolona: false })).siec.length, 0);
 });
 
-test('brak wszystkiego → „Nie znalazłem tej osoby w aplikacji ani w wynikach."; 429 z F6 → maszyna zajęta, profil zostaje', async () => {
+test('brak wszystkiego → nic: true (M3-0: EF idzie dalej, bez ślepej uliczki); 429 z F6 → maszyna zajęta, profil zostaje', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   const brak = await odpowiedz(O, { q: 'Zenon Nieistniejący', f6: f6Atrapa({ pusto: true }) });
-  assert.deepEqual(brak.o.zdania, [O.ODP_BRAK]);
+  assert.equal(brak.o.nic, true);
+  assert.deepEqual(brak.o.zdania, []);
   assert.equal(brak.o.karty.length, 0);
   const zajeta = await odpowiedz(O, { f6: f6Atrapa({ status: 429 }) });
   assert.deepEqual(zajeta.o.zdania, [O.ODP_F6_ZAJETA]);

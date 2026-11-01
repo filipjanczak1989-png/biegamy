@@ -16,8 +16,9 @@ import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
-import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska } from "./pamiec.mjs";
-import { osobaZPytania, odpowiedzOsoba } from "./osoba.mjs";
+import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe } from "./pamiec.mjs";
+import { osobaZPytania, odpowiedzOsoba, ODP_NIC } from "./osoba.mjs";
+import { NIE_MAM } from "./straznik.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -72,6 +73,7 @@ Deno.serve(async (req) => {
   // ── M2b: pytanie o OSOBĘ — trzy fronty równolegle (osoba.mjs): profile publiczne, wyniki F6, sieć tylko dla osoby
   //    publicznej sportowo albo pytania wprost. Bez modelu z narzędziami; nie do pamięci sieci ani do znalezisk. ──
   const os = osobaZPytania(tekst);
+  let osobaBezTrafien = false;   // M3-0: tryb osoby nic nie znalazł → ścieżka ogólna, ale BEZ sieci i bez pamięci sieci
   if (os) {
     const httpsOk = (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
     const o = await odpowiedzOsoba({ sb, athleteId: ath.id, fetchFn: fetch, token: jwt, q: os.q, wprost: os.wprost,
@@ -83,12 +85,13 @@ Deno.serve(async (req) => {
         return { zdania: jest ? z.zdania : [], zrodla: jest ? z.zrodla : [], tok: w.tok, zapytania: w.zapytania };
       } });
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
-      ok: o.f6 === "ok", powod_odrzucenia: o.powod });
-    return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
+      ok: o.f6 === "ok" && !o.nic, powod_odrzucenia: o.nic ? ["osoba: brak trafień → ścieżka ogólna", o.powod].filter(Boolean).join(" | ") : o.powod });
+    if (!o.nic) return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
+    osobaBezTrafien = true;
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);
-  const pam = await zPamieci(adm, klucz, teraz);
+  const pam = osobaBezTrafien ? null : await zPamieci(adm, klucz, teraz);
   if (pam && pam.zrodla.length) {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec-cache" });
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
@@ -112,7 +115,10 @@ Deno.serve(async (req) => {
     return odp(modelu ? 502 : 503, { blad: modelu ? "model" : "narzędzie" });
   }
   // ── M2a: sieć (osobne wywołanie z googleSearch — tylko tekst pytania i data, NIC z aplikacji) ──
-  if (czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
+  // Strażnik sieci (M3-0): pytanie wyglądające na imię i nazwisko (stary, szeroki detektor) albo osoba bez trafień
+  // NIE idzie do Google ścieżką ogólną — nazwisko wychodzi tylko wg reguły publiczności w trybie osoby.
+  const blokadaSieci = osobaBezTrafien || wygladaNaOsobe(tekst);
+  if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
     let ileSiec;
     try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }
     if (ileSiec >= LIMIT_SIEC) {
@@ -142,5 +148,6 @@ Deno.serve(async (req) => {
   const nazwy: string[] = m.uzyte.map((u: { nazwa: string }) => u.nazwa);
   await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: nazwy, tryb: "flash", tok_we: m.tok.we, tok_wy: m.tok.wy,
     ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: powodPustych(s, m) });
-  return odp(200, { zdania: s.zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
+  const zdania = (blokadaSieci && !karty.length && (s.puste || s.zdania[0] === NIE_MAM || m.poza_danymi)) ? [ODP_NIC] : s.zdania;
+  return odp(200, { zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
 });

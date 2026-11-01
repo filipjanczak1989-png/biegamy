@@ -1,4 +1,4 @@
-/* BLIZNA 72 (1.11.2026, M3a): biegi_nadchodzace — kalendarz imprez z maszyny wyników F6 w okienku.
+/* BLIZNA 73 (1.11.2026, M3a — numer wg projektu M3 v2; do v2 plik nazywał się blizna-72): biegi_nadchodzace — kalendarz imprez z maszyny wyników F6 w okienku.
 
    Ryzyka:
    1) ZŁE PYTANIE W ZŁYM NARZĘDZIU. „Kto wygrał maraton w Berlinie?" to wynik, nie termin — nie może trafić do
