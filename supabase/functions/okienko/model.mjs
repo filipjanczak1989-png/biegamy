@@ -35,7 +35,9 @@ const SCHEMAT = { type: "object", properties: { zdania: { type: "array", items: 
 export class BladModelu extends Error {}
 
 /** → {zdania, karty_z, uzyte:[{nazwa,args,wynik}], tok:{we,wy}} ; rzuca BladModelu (502) albo Error („narzędzie" → 503). */
-export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, historia = [], ekran, dzis, teraz }) {
+/** @param {{fetchFn: Function, klucz: string, sb: any, athleteId: string, tekst: string, historia?: any[], ekran?: any, dzis: string, teraz: Date,
+    f6ctx?: {fetchFn: Function, token: string} | null}} o */
+export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, historia = [], ekran, dzis, teraz, f6ctx = null }) {
   const tok = { we: 0, wy: 0 };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const system = { parts: [{ text: promptSystemowy(dzis, ekran) }] };
@@ -81,7 +83,7 @@ export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, histo
         wykonane++;
         const w = waliduj(fc.name, fc.args || {});
         if (!w.ok) wynik = { blad: w.blad };
-        else { wynik = await wykonaj(sb, athleteId, fc.name, w.args, teraz); uzyte.push({ nazwa: fc.name, args: w.args, wynik }); }
+        else { wynik = await wykonaj(sb, athleteId, fc.name, w.args, teraz, f6ctx); uzyte.push({ nazwa: fc.name, args: w.args, wynik }); }
       }
       odpowiedzi.push({ functionResponse: fc.id ? { id: fc.id, name: fc.name, response: { wynik } } : { name: fc.name, response: { wynik } } });
     }

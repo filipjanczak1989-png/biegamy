@@ -28,6 +28,43 @@ const EKRAN_SLOWO = [
   [/\bwyzwan\w*/, "wyzwania"], [/\bodzna\w*/, "odznaki"], [/\bjedzeni\w*|\bdiet\w*/, "jedzenie"], [/\bczat\w*/, "czat"],
 ];
 
+/* M3a: kalendarz imprez z maszyny wyników. Słowo o biegu + (miejsce po przyimku | miesiąc | dystans | „jakie biegi" /
+   „gdzie pobiec"). NIE: pytania o zwycięzców, wyniki, trasy, zapisy, rekordy i własne starty („moje", „mam") —
+   te idą do osoby/narzędzi/sieci jak dotąd („Kto wygrał maraton w Berlinie?" to wynik, nie termin). */
+const BIEG_SLOWO = /\b(bieg\w*|zawod\w*|maraton\w*|polmaraton\w*|dych\w*|piatk\w*|imprez\w*|pobiec|pobiegac|starty)\b/;
+const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|moj\w*|mam|mial\w*|pobieg\w*l\w*|ile|jak)\b/;
+const PRZYIMKI = ["w", "we", "na", "pod", "kolo", "obok"];
+const NIE_MIEJSCE = /^(tym|tymze|przyszlym|najblizszym|najblizszy|weekend\w*|sobote|niedziele|okolic\w*|polsce|polska|kraju|lesie|gorach|terenie|miescie|ciagu|dzien|dni|tygodni\w*|miesiac\w*|roku|km|kilometr\w*)$/;
+function miesiacPrzyszly(nr, dzis) {   // nr 1..12; miesiąc wcześniejszy niż bieżący → przyszły rok; od = max(1. dzień, dziś)
+  let r = Number(dzis.slice(0, 4));
+  if (nr < Number(dzis.slice(5, 7))) r += 1;
+  const od = `${r}-${String(nr).padStart(2, "0")}-01`;
+  return { od: od < dzis ? dzis : od, do: ostatniDzien(r, nr) };
+}
+export function dopasujBiegi(tekst, dzis) {
+  const t = normalizuj(tekst);
+  if (!BIEG_SLOWO.test(t) || BIEG_NIE.test(t)) return null;
+  const args = {};
+  if (/\bpolmaraton\w*|\b21 ?km\b/.test(t)) args.dystans = "21";
+  else if (/\bmaraton\w*|\b42 ?km\b/.test(t)) args.dystans = "42";
+  else if (/\bdych\w*|\b10 ?km\b|\b10k\b/.test(t)) args.dystans = "10";
+  else if (/\bpiatk\w*|\b5 ?km\b|\b5k\b/.test(t)) args.dystans = "5";
+  const mies = t.replace(new RegExp(BIEG_SLOWO.source, "g"), " ").match(RE_MIESIAC);   // „maraton" ≠ marzec
+  if (mies) Object.assign(args, miesiacPrzyszly(MIESIACE.findIndex((m) => mies[1].startsWith(m === "maj" ? "maj" : m)) + 1, dzis));
+  const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean);
+  for (let i = 0; i < slowa.length - 1; i++) {
+    const p = normalizuj(slowa[i]);
+    let j = i + 1, okolice = false;
+    if (/^okolic\w*$/.test(normalizuj(slowa[j])) && j + 1 < slowa.length) { j++; okolice = true; }   // „w okolicach Poznania"
+    const w = slowa[j], wn = normalizuj(w);
+    if (!PRZYIMKI.includes(p) || !/^\p{L}{3,}$/u.test(w) || NIE_MIEJSCE.test(wn) || RE_MIESIAC.test(" " + wn) || BIEG_SLOWO.test(wn)) continue;
+    args.miejsce = w; args.przy = okolice ? "w okolicach" : p === "kolo" ? "koło" : p; break;
+  }
+  const ogolne = /\b(jakie|gdzie|kiedy)\b.*\b(bieg\w*|zawod\w*|pobiec|starty)\b|\bgdzie pobiec|\bbiegi\b/.test(t);
+  if (!args.miejsce && !args.od && !args.dystans && !ogolne) return null;
+  return { narzedzie: "biegi_nadchodzace", args };
+}
+
 /** → {narzedzie, args} | {nawiguj, ekran} | null */
 export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
@@ -37,6 +74,8 @@ export function dopasuj(tekst, dzis) {
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };
   if (/\bplan\w*\b.*\btydz\w*|\bplan tygodni/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "tydzien" } };
   if (/\b(kiedy|jaki)\b.*\bstart|\bnajblizsz\w* start|\bmoje starty|\bmoj start/.test(t)) return { narzedzie: "moje_starty", args: {} };
+  const biegi = dopasujBiegi(tekst, dzis);
+  if (biegi) return biegi;
   const km = /\b(ile|suma)\b.*\b(km|kilomet\w*|przebieg\w*|nabiega\w*)|\bile przebieg\w*/.test(t);
   if (km) {
     const mies = t.match(RE_MIESIAC);

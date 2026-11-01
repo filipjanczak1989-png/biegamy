@@ -15,43 +15,11 @@
 import { wygladaNaOsobe } from "./pamiec.mjs";
 import { normalizuj } from "./router.mjs";
 
-export const F6_URL = "https://api.biegamy.run";
-export const F6_TTL_MS = 10 * 60 * 1000, F6_MAX_WPISOW = 500, F6_TIMEOUT_MS = 8000;
+import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
+export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
 export const PROG_STARTOW_PUBLICZNY = 30;
 export const ODP_BRAK = "Nie znalazłem tej osoby w aplikacji ani w wynikach.";
-export const ODP_F6_ZAJETA = "Maszyna wyników jest teraz zajęta — spróbuj za chwilę.";
 const MAX_DOPASOWAN = 3, MAX_WYNIKOW = 5, MAX_OSOB = 3;
-
-export class BladF6 extends Error { constructor(kod) { super(kod); this.kod = kod; } }
-
-// ── pamięć F6 (wspólna) ──────────────────────────────────────────────────────
-const PAMIEC = new Map();
-export function _wyczyscPamiecF6() { PAMIEC.clear(); }
-export function _rozmiarPamieciF6() { return PAMIEC.size; }
-
-/** Jedno RPC F6 z pamięcią. Rzuca BladF6('limit') przy 429, BladF6('auth') przy 401/403, BladF6('siec'|'http NNN'). */
-export async function f6(fetchFn, token, rpc, args, teraz = Date.now()) {
-  const klucz = rpc + " " + JSON.stringify(args);
-  const traf = PAMIEC.get(klucz);
-  if (traf && teraz - traf.t < F6_TTL_MS) return traf.dane;
-  if (traf) PAMIEC.delete(klucz);
-  const ctrl = typeof AbortController === "function" ? new AbortController() : null;
-  const tm = ctrl ? setTimeout(() => ctrl.abort(), F6_TIMEOUT_MS) : null;
-  let r;
-  try {
-    r = await fetchFn(`${F6_URL}/rpc/${rpc}`, { method: "POST", redirect: "error", signal: ctrl ? ctrl.signal : undefined,
-      headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(args) });
-  } catch { throw new BladF6("siec"); } finally { if (tm) clearTimeout(tm); }
-  if (r.status === 429) throw new BladF6("limit");
-  if (r.status === 401 || r.status === 403) throw new BladF6("auth");
-  if (!r.ok) throw new BladF6("http " + r.status);
-  const dane = await r.json().catch(() => null);
-  if (!Array.isArray(dane)) throw new BladF6("ksztalt");
-  PAMIEC.set(klucz, { t: teraz, dane });
-  while (PAMIEC.size > F6_MAX_WPISOW) PAMIEC.delete(PAMIEC.keys().next().value);
-  return dane;
-}
 
 // ── rozpoznanie pytania o osobę ──────────────────────────────────────────────
 // Słowa, które nie są imieniem ani nazwiskiem — „kim jest mój trener" to pytanie o relację, nie o osobę do szukania

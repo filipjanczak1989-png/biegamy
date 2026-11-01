@@ -7,6 +7,8 @@
 import { WYZWANIA } from "../_shared/wyzwania.mjs";
 import { isRunType } from "../_shared/reguly-treningow.mjs";
 import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
+import { biegiNadchodzace, domyslnyZakres, dniMiedzy as dniBiegow, MAX_DNI_BIEGOW } from "./biegi.mjs";
+import { BladF6 } from "./f6.mjs";
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
@@ -37,6 +39,10 @@ export const DEKLARACJE = [
     parameters: { type: "object", properties: {} } },
   { name: "odznaki_moje", description: "Liczba zdobytych odznak i 5 ostatnio zdobytych.",
     parameters: { type: "object", properties: {} } },
+  { name: "biegi_nadchodzace", description: "Nadchodzące biegi i zawody w Polsce z maszyny wyników (kalendarz imprez): w przedziale dat, opcjonalnie w miejscowości i na dystansie.",
+    parameters: { type: "object", properties: {
+      od: { type: "string", description: "YYYY-MM-DD, włącznie (domyślnie dziś)" }, do: { type: "string", description: "YYYY-MM-DD, włącznie (domyślnie +90 dni)" },
+      miejsce: { type: "string", description: "miejscowość, np. Poznań" }, dystans: { type: "string", enum: ["5", "10", "21", "42"] } } } },
 ];
 export const NAZWY = DEKLARACJE.map((d) => d.name);
 
@@ -82,6 +88,24 @@ export function waliduj(nazwa, args = {}) {
     if (a.typ != null && !TYPY_TRENINGU.includes(a.typ)) return { ok: false, blad: "zły typ" };
     return { ok: true, args: a.typ ? { od: a.od, do: a.do, typ: a.typ } : { od: a.od, do: a.do } };
   }
+  if (nazwa === "biegi_nadchodzace") {
+    const out = {};
+    if (a.od != null || a.do != null) {
+      if (!poprawnaData(a.od) || !poprawnaData(a.do)) return { ok: false, blad: "zła data" };
+      const dni = dniBiegow(a.od, a.do);
+      if (dni < 0) return { ok: false, blad: "od po do" };
+      if (dni + 1 > MAX_DNI_BIEGOW) return { ok: false, blad: "zakres ponad " + MAX_DNI_BIEGOW + " dni" };
+      out.od = a.od; out.do = a.do;
+    }
+    if (a.miejsce != null) {
+      const m = String(a.miejsce).trim();
+      if (!/^[\p{L}][\p{L} .-]{1,39}$/u.test(m)) return { ok: false, blad: "złe miejsce" };
+      out.miejsce = m;
+      if (a.przy != null) { if (!["w", "we", "na", "pod", "koło", "kolo", "obok", "w okolicach"].includes(String(a.przy).toLowerCase())) return { ok: false, blad: "zły przyimek" }; out.przy = String(a.przy).toLowerCase(); }
+    }
+    if (a.dystans != null) { if (!["5", "10", "21", "42"].includes(String(a.dystans))) return { ok: false, blad: "zły dystans" }; out.dystans = String(a.dystans); }
+    return { ok: true, args: out };
+  }
   return { ok: true, args: {} };
 }
 
@@ -102,9 +126,23 @@ function celeZRaceGoals(raw) {   // ten sam kształt co czytajRaceGoals w sb.js:
 const zaokr = (x) => Math.round(x * 10) / 10;
 
 // ── wykonanie (TYLKO ODCZYT) ─────────────────────────────────────────────────
-/** sb = klient z JWT użytkownika; athleteId = athletes.id tego użytkownika (EF ustala go z sesji, NIE z modelu). */
-export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date()) {
+/** sb = klient z JWT użytkownika; athleteId = athletes.id tego użytkownika (EF ustala go z sesji, NIE z modelu).
+    f6ctx = {fetchFn, token} — tylko dla narzędzi z maszyny wyników (M3a); token użytkownika, nigdy od modelu. */
+/** @param {any} sb @param {string} athleteId @param {string} nazwa @param {any} args @param {Date} [teraz]
+    @param {{fetchFn: Function, token: string} | null} [f6ctx] */
+export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6ctx = null) {
   const dzis = dzisWaw(teraz);
+  if (nazwa === "biegi_nadchodzace") {
+    if (!f6ctx || !f6ctx.token) throw new Error("brak tokenu F6");
+    const z = args.od ? { od: args.od, do: args.do } : domyslnyZakres(dzis);
+    try {
+      const w = await biegiNadchodzace(f6ctx.fetchFn, f6ctx.token, { ...z, miejsce: args.miejsce, dystans: args.dystans }, teraz.getTime());
+      return { ...w, przy: args.przy || null };
+    } catch (e) {
+      if (e instanceof BladF6 && e.kod === "limit") return { ...z, blad_f6: "limit", biegi: [], liczba: 0 };
+      throw e;
+    }
+  }
   if (nazwa === "moj_plan") {
     const [od, doD] = zakresPlanu(args, dzis);
     const { data, error } = await sb.from("trainings").select("date,type,description,distance_km,duration_min,pace,status")

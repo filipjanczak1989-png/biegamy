@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     const w = waliduj(traf.narzedzie, traf.args);
     if (!w.ok) return odp(400, { blad: w.blad });
     let wynik;
-    try { wynik = await wykonaj(sb, ath.id, traf.narzedzie, w.args, teraz); } catch { return odp(503, { blad: "narzędzie" }); }
+    try { wynik = await wykonaj(sb, ath.id, traf.narzedzie, w.args, teraz, { fetchFn: fetch, token: jwt }); } catch { return odp(503, { blad: "narzędzie" }); }
     const { zdania, karty } = zWyniku(traf.narzedzie, wynik, w.args);
     await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: [traf.narzedzie], tryb: "router" });
     return odp(200, { ...pusto("router"), zdania, karty, akcja: nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
@@ -104,7 +104,8 @@ Deno.serve(async (req) => {
   }
   let m;
   try {
-    m = await zapytajModel({ fetchFn: fetch, klucz: GEMINI, sb, athleteId: ath.id, tekst, historia: body.historia as never, ekran: body.ekran, dzis, teraz });
+    m = await zapytajModel({ fetchFn: fetch, klucz: GEMINI, sb, athleteId: ath.id, tekst, historia: body.historia as never, ekran: body.ekran, dzis, teraz,
+      f6ctx: { fetchFn: fetch, token: jwt } });
   } catch (e) {
     const modelu = e instanceof BladModelu;
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "blad", ok: false, powod_odrzucenia: (modelu ? "model: " : "narzędzie: ") + String((e as Error).message).slice(0, 120) });

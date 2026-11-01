@@ -54,7 +54,7 @@ test('model: narzędzie wykonuje EF (z walidacją), wynik jako functionResponse,
   assert.equal(g.zadania.length, 2);
   assert.match(g.zadania[0].url, /gemini-3\.5-flash-lite:generateContent$/);
   assert.equal(g.zadania[0].cialo.generationConfig.responseMimeType, 'application/json');
-  assert.equal(g.zadania[0].cialo.tools[0].functionDeclarations.length, 5);
+  assert.equal(g.zadania[0].cialo.tools[0].functionDeclarations.length, 6, '5 z M1 + biegi_nadchodzace (M3a)');
   assert.equal(g.zadania[1].cialo.contents.at(-1).parts[0].functionResponse.name, 'moje_starty');
   assert.equal(JSON.stringify(r.karty_z), '["moje_starty"]', 'karta z narzędzia, którego nie użyto, odpada');
   assert.equal(JSON.stringify(r.tok), '{"we":2000,"wy":72}');

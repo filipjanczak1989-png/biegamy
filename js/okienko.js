@@ -92,7 +92,18 @@
     if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Odznaka') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
+    if (k.typ === 'impreza') return kartaImprezy(d);
     return '';
+  }
+
+  /* M3a: impreza z kalendarza maszyny wyników — BEZ linków zewnętrznych (v1); domena źródła jako zwykły tekst. */
+  function kartaImprezy(d) {
+    var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
+      var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
+    }).join(', ');
+    var meta = [dataTxt(d.data), d.miasto || '', dyst].filter(Boolean).join(' · ');
+    return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
+      (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') + '</div>';
   }
 
   /* M2b: karta osoby z aplikacji (tylko profile publiczne — filtr w EF). Przyciski wywołują ISTNIEJĄCE funkcje

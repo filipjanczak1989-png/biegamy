@@ -72,3 +72,19 @@ Odpowiedź osobowa nie trafia do `okienko_siec_cache` ani do znalezisk; log `oki
 ⚠️ Niesprawdzone przed wdrożeniem: F6 z adresów funkcji Edge (limit 60/min na IP po stronie Caddy — wszyscy
 użytkownicy okienka dzielą jeden adres). Token przyjmowany — sprawdzone lokalnie 1.11 (200, 0,9 s).
 Odłożone: `biegi_nadchodzace` (upcoming_races) jako narzędzie modelu.
+
+## M3a — `biegi_nadchodzace` (1.11.2026) — wdrożone w v9
+
+Kalendarz imprez z maszyny wyników F6 (`upcoming_races`, token użytkownika, wspólna pamięć F6 10 min — `f6.mjs`,
+wydzielony z `osoba.mjs`). Router (0 tokenów): słowo o biegu (`bieg`, `zawody`, `maraton`, `półmaraton`, `dycha`,
+`piątka`, `impreza`, `pobiec`, `starty`) + miejsce po przyimku (w/we/na/pod/koło/obok/„w okolicach") albo miesiąc
+(przyszły — miniony miesiąc = przyszły rok) albo dystans (5/10/21/42) albo „jakie biegi"/„gdzie pobiec". Wykluczone:
+kto/wygrał/wynik/trasa/zapis/rekord/moje/mam/ile/jak — „Kto wygrał maraton w Berlinie?" to wynik, nie termin.
+Narzędzie dostępne też dla modelu (deklaracja, walidacja: zakres ≤ 366 dni, dystans z listy, miejsce tylko litery).
+Miasto filtruje EF po RDZENIU słowa bez polskich znaków (≥ 4 litery, bez 3 ostatnich: „Poznaniu" → „pozna",
+„Środą" → „srod") względem początków słów nazwy i miasta — F6 `p_q` szuka podciągu i nie trafiłby w odmianę.
+Gdy F6 odda pełne 300 wierszy (ucięte), EF pyta drugi raz z `p_q` = rdzeń. Domyślnie dziś … +90 dni.
+Zdanie: „W listopadzie w Poznaniu maszyna wyników zna 4 biegi." (liczba ze zliczenia EF); pusto: „Maszyna wyników
+nie ma biegów w tym zakresie."; 429 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę.". Karty `impreza`
+(≤ 10): nazwa, data, miasto, dystanse, domena źródła jako TEKST — bez linków zewnętrznych; bez „Otwórz ›" do czasu
+kalendarza startów w races.html (K4/K5). Testy: blizna-72.

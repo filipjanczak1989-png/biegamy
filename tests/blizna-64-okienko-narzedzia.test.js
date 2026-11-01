@@ -149,11 +149,15 @@ test('nawigacja z narzędzi (nie od modelu); każda deklaracja ma wykonanie i ek
   assert.deepEqual(N.nawigacja(['moj_plan', 'moje_starty']), { nawiguj: 'kalendarz.html?role=athlete' });
   assert.equal(N.nawigacja([]), null);
   const sb = atrapa(baza());
+  // M3a: biegi_nadchodzace celowo BEZ ekranu do czasu kalendarza startów w races.html (K4/K5, projekt M3 pkt 1)
+  const BEZ_EKRANU = ['biegi_nadchodzace'];
+  const f6 = { token: 'T', fetchFn: async () => ({ ok: true, status: 200, json: async () => [] }) };
   for (const n of N.NAZWY) {
     const w = N.waliduj(n, n === 'moje_treningi' ? { od: '2026-10-01', do: '2026-10-31' } : {});
     assert.ok(w.ok, n);
-    await N.wykonaj(sb, JA, n, w.args, TERAZ);
-    assert.ok(N.nawigacja([n]), `${n}: brak ekranu`);
+    await N.wykonaj(sb, JA, n, w.args, TERAZ, f6);
+    if (BEZ_EKRANU.includes(n)) assert.equal(N.nawigacja([n]), null, `${n}: ekran przed K4/K5`);
+    else assert.ok(N.nawigacja([n]), `${n}: brak ekranu`);
   }
   for (const u of Object.values(N.EKRANY)) assert.ok(fs.existsSync(path.join(KORZEN, u.split(/[?#]/)[0])), u);
 });
