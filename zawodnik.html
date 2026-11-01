@@ -1841,6 +1841,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
+<script src="js/cwiczenia-nazwy.mjs"></script>
 <script src="js/okienko.js"></script><!-- M1 „Zapytaj" (po sb.js: escapeHtml, sb, SB_URL) -->
 <script src="js/dzis-offline.js"></script>
 <script src="js/generator-planu.js"></script>
@@ -9198,22 +9199,22 @@ const EX_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 // Każde ćwiczenie: {name, cat, img (static webp), desc, dose}. OPCJONALNIE anim:'exercise-X.webm'
 // (loop wideo demo) — gdy ustawione, obwód odtwarza wideo zamiast static img (CIRCUIT._showMedia, fallback do img).
 const EXERCISES = {
-  przysiad:       { name:'Przysiady',         cat:'nogi',        img:'exercise-przysiad.webp',        desc:'Stopy na szerokość bioder, biodra w tył jak na krzesło, kolana za palcami, plecy proste.', dose:'UDA · POŚLADKI · 3×12' },
-  wykrok:         { name:'Wykroki',           cat:'nogi',        img:'exercise-wykrok.webp',          desc:'Duży krok w przód, oba kolana zegnij do ~90°, tylne kolano tuż nad ziemią. Tułów pionowo.', dose:'UDA · POŚLADKI · 3×10 / NOGA' },
-  wykrokRotacja:  { name:'Wykrok z rotacją',  cat:'nogi',        img:'exercise-wykrok-rotacja.webp',  desc:'W wykroku oprzyj rękę przy stopie, drugą wyciągnij w górę skręcając tułów. Otwiera biodra i klatkę, wzmacnia stabilizację rotacyjną.', dose:'UDA · CORE · 3×8 / STRONA' },
-  mostek:         { name:'Glute bridge',      cat:'posladki',    img:'exercise-mostek.webp',          desc:'Na plecach, kolana ugięte. Unieś biodra do linii kolana–barki, ściśnij pośladki na górze, opuść powoli.', dose:'POŚLADKI · 3×15' },
-  mostekJednonoz: { name:'Mostek jednonóż',   cat:'posladki',    img:'exercise-mostek-jednonoz.webp', desc:'Mostek z jedną nogą wyprostowaną w górze. Unieś biodra siłą jednej nogi, miednica pozioma. Mocniejszy wariant.', dose:'POŚLADKI · 3×10 / NOGA' },
-  plank:          { name:'Plank (deska)',     cat:'core',        img:'exercise-plank.webp',           desc:'Przedramiona pod barkami, ciało w linii prostej. Napnij brzuch i pośladki, nie zapadaj w biodrach.', dose:'CORE · 3×30 SEK' },
-  plankBok:       { name:'Side plank',        cat:'core',        img:'exercise-plank-bok.webp',       desc:'Na boku, łokieć pod barkiem, biodra wysoko, ciało w linii. Górną rękę wyciągnij w górę. Powtórz na drugą stronę.', dose:'CORE · SKOŚNE · 3×20 SEK / STRONA' },
-  deadBug:        { name:'Dead bug',          cat:'core',        img:'exercise-dead-bug.webp',        desc:'Na plecach, ręce w górę, kolana 90°. Opuszczaj naprzemiennie przeciwną rękę i nogę, lędźwie przy podłodze.', dose:'CORE · 3×10' },
-  jaskolka:       { name:'Jaskółka',          cat:'stabilizacja',img:'exercise-jaskolka.webp',        desc:'Stań na jednej nodze, pochyl tułów w przód, drugą nogę wyprostuj w tył do linii pleców. Utrzymaj równowagę, wróć. Zmień nogę.', dose:'STABILIZACJA · RÓWNOWAGA · 3×8 / NOGA' },
-  wspiecia:       { name:'Wspięcia na palce', cat:'lydki',       img:'exercise-wspiecia.webp',        desc:'Stojąc (ręka o ścianę dla balansu), unieś pięty jak najwyżej, opuść powoli. Dla większego zakresu przód stopy na krawędzi schodka.', dose:'ŁYDKI · 3×15' },
-  pompki:         { name:'Pompki',             cat:'klatka',  frames:['exercise-pompki-1.webp','exercise-pompki-2.webp','exercise-pompki-3.webp'], desc:'Dłonie nieco szerzej niż barki, ciało w linii prostej (deska). Zegnij łokcie opuszczając klatkę nisko, wypchnij się w górę. Napięty brzuch i pośladki.', dose:'KLATKA · TRICEPS · 3×10' },
-  pompkiKolana:   { name:'Pompki na kolanach', cat:'klatka',  frames:['exercise-pompki-kolana-1.webp','exercise-pompki-kolana-2.webp','exercise-pompki-kolana-3.webp'], desc:'Łatwiejszy wariant — kolana oparte o podłoże. Ciało proste od głowy do kolan, opuść klatkę zginając łokcie, wypchnij w górę.', dose:'KLATKA · TRICEPS · 3×12' },
-  superman:       { name:'Superman',           cat:'plecy',   frames:['exercise-superman-1.webp','exercise-superman-2.webp','exercise-superman-3.webp'], desc:'Leżąc na brzuchu, ręce wyciągnięte w przód. Unieś jednocześnie ręce, klatkę i nogi nad podłoże, ściśnij plecy i pośladki, opuść powoli.', dose:'PLECY · POŚLADKI · 3×12' },
-  pompkiDiament:  { name:'Pompki diamentowe',  cat:'triceps', frames:['exercise-pompki-diament-1.webp','exercise-pompki-diament-2.webp','exercise-pompki-diament-3.webp'], desc:'Dłonie blisko siebie tworzące romb (diament) pod klatką, łokcie blisko tułowia. Opuść klatkę nisko, wypchnij — mocno angażuje triceps.', dose:'TRICEPS · KLATKA · 3×10' },
-  brzuszki:       { name:'Brzuszki',           cat:'core',    frames:['exercise-brzuszki-1.webp','exercise-brzuszki-2.webp','exercise-brzuszki-3.webp'], desc:'Na plecach, kolana ugięte, stopy płasko. Unieś tułów do pełnego siadu w stronę kolan (sit-up), opuść kontrolowanie. Brzuch napięty.', dose:'BRZUCH · 3×15' },
-  russianTwist:   { name:'Russian twist',      cat:'core',    frames:['exercise-russian-twist-1.webp','exercise-russian-twist-2.webp','exercise-russian-twist-3.webp'], desc:'Siad z tułowiem odchylonym ~45°, kolana ugięte, dłonie złączone. Skręcaj tułów naprzemiennie w lewo i prawo, prowadząc ręce w bok.', dose:'BRZUCH · SKOSY · 3×20' },
+  przysiad:       { cat:'nogi',        img:'exercise-przysiad.webp',        desc:'Stopy na szerokość bioder, biodra w tył jak na krzesło, kolana za palcami, plecy proste.', dose:'UDA · POŚLADKI · 3×12' },
+  wykrok:         { cat:'nogi',        img:'exercise-wykrok.webp',          desc:'Duży krok w przód, oba kolana zegnij do ~90°, tylne kolano tuż nad ziemią. Tułów pionowo.', dose:'UDA · POŚLADKI · 3×10 / NOGA' },
+  wykrokRotacja:  { cat:'nogi',        img:'exercise-wykrok-rotacja.webp',  desc:'W wykroku oprzyj rękę przy stopie, drugą wyciągnij w górę skręcając tułów. Otwiera biodra i klatkę, wzmacnia stabilizację rotacyjną.', dose:'UDA · CORE · 3×8 / STRONA' },
+  mostek:         { cat:'posladki',    img:'exercise-mostek.webp',          desc:'Na plecach, kolana ugięte. Unieś biodra do linii kolana–barki, ściśnij pośladki na górze, opuść powoli.', dose:'POŚLADKI · 3×15' },
+  mostekJednonoz: { cat:'posladki',    img:'exercise-mostek-jednonoz.webp', desc:'Mostek z jedną nogą wyprostowaną w górze. Unieś biodra siłą jednej nogi, miednica pozioma. Mocniejszy wariant.', dose:'POŚLADKI · 3×10 / NOGA' },
+  plank:          { cat:'core',        img:'exercise-plank.webp',           desc:'Przedramiona pod barkami, ciało w linii prostej. Napnij brzuch i pośladki, nie zapadaj w biodrach.', dose:'CORE · 3×30 SEK' },
+  plankBok:       { cat:'core',        img:'exercise-plank-bok.webp',       desc:'Na boku, łokieć pod barkiem, biodra wysoko, ciało w linii. Górną rękę wyciągnij w górę. Powtórz na drugą stronę.', dose:'CORE · SKOŚNE · 3×20 SEK / STRONA' },
+  deadBug:        { cat:'core',        img:'exercise-dead-bug.webp',        desc:'Na plecach, ręce w górę, kolana 90°. Opuszczaj naprzemiennie przeciwną rękę i nogę, lędźwie przy podłodze.', dose:'CORE · 3×10' },
+  jaskolka:       { cat:'stabilizacja',img:'exercise-jaskolka.webp',        desc:'Stań na jednej nodze, pochyl tułów w przód, drugą nogę wyprostuj w tył do linii pleców. Utrzymaj równowagę, wróć. Zmień nogę.', dose:'STABILIZACJA · RÓWNOWAGA · 3×8 / NOGA' },
+  wspiecia:       { cat:'lydki',       img:'exercise-wspiecia.webp',        desc:'Stojąc (ręka o ścianę dla balansu), unieś pięty jak najwyżej, opuść powoli. Dla większego zakresu przód stopy na krawędzi schodka.', dose:'ŁYDKI · 3×15' },
+  pompki:         { cat:'klatka',  frames:['exercise-pompki-1.webp','exercise-pompki-2.webp','exercise-pompki-3.webp'], desc:'Dłonie nieco szerzej niż barki, ciało w linii prostej (deska). Zegnij łokcie opuszczając klatkę nisko, wypchnij się w górę. Napięty brzuch i pośladki.', dose:'KLATKA · TRICEPS · 3×10' },
+  pompkiKolana:   { cat:'klatka',  frames:['exercise-pompki-kolana-1.webp','exercise-pompki-kolana-2.webp','exercise-pompki-kolana-3.webp'], desc:'Łatwiejszy wariant — kolana oparte o podłoże. Ciało proste od głowy do kolan, opuść klatkę zginając łokcie, wypchnij w górę.', dose:'KLATKA · TRICEPS · 3×12' },
+  superman:       { cat:'plecy',   frames:['exercise-superman-1.webp','exercise-superman-2.webp','exercise-superman-3.webp'], desc:'Leżąc na brzuchu, ręce wyciągnięte w przód. Unieś jednocześnie ręce, klatkę i nogi nad podłoże, ściśnij plecy i pośladki, opuść powoli.', dose:'PLECY · POŚLADKI · 3×12' },
+  pompkiDiament:  { cat:'triceps', frames:['exercise-pompki-diament-1.webp','exercise-pompki-diament-2.webp','exercise-pompki-diament-3.webp'], desc:'Dłonie blisko siebie tworzące romb (diament) pod klatką, łokcie blisko tułowia. Opuść klatkę nisko, wypchnij — mocno angażuje triceps.', dose:'TRICEPS · KLATKA · 3×10' },
+  brzuszki:       { cat:'core',    frames:['exercise-brzuszki-1.webp','exercise-brzuszki-2.webp','exercise-brzuszki-3.webp'], desc:'Na plecach, kolana ugięte, stopy płasko. Unieś tułów do pełnego siadu w stronę kolan (sit-up), opuść kontrolowanie. Brzuch napięty.', dose:'BRZUCH · 3×15' },
+  russianTwist:   { cat:'core',    frames:['exercise-russian-twist-1.webp','exercise-russian-twist-2.webp','exercise-russian-twist-3.webp'], desc:'Siad z tułowiem odchylonym ~45°, kolana ugięte, dłonie złączone. Skręcaj tułów naprzemiennie w lewo i prawo, prowadząc ręce w bok.', dose:'BRZUCH · SKOSY · 3×20' },
 };
 
 function renderExerciseCard(ex, isLast) {
@@ -9226,12 +9227,12 @@ function renderExerciseCard(ex, isLast) {
     + '</div></div>';
 }
 const PROGRAMS = [
-  { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  cover:'exercise-przysiad.webp', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
-  { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek','brzuszki','russianTwist'] },
-  { id:'nogi',         emoji:'🦵', icon:'ex-legs',    cover:'exercise-wykrok.webp',         name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
-  { id:'gora',         emoji:'🏋️', icon:'type-wzmacniajacy', cover:'exercise-pompki-1.webp', name:'Góra ciała',               desc:'Klatka, ramiona, plecy — siła górnej połowy.',      exerciseIds:['pompki','pompkiKolana','pompkiDiament','superman'] },
-  { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', cover:'exercise-jaskolka.webp',       name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
-  { id:'pelny',        emoji:'💪', icon:'ex-fullset', cover:'exercise-mostek-jednonoz.webp', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 16 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia','pompki','pompkiKolana','pompkiDiament','superman','brzuszki','russianTwist'] },
+  { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  cover:'exercise-przysiad.webp', desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
+  { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek','brzuszki','russianTwist'] },
+  { id:'nogi',         emoji:'🦵', icon:'ex-legs',    cover:'exercise-wykrok.webp',         desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
+  { id:'gora',         emoji:'🏋️', icon:'type-wzmacniajacy', cover:'exercise-pompki-1.webp', desc:'Klatka, ramiona, plecy — siła górnej połowy.',      exerciseIds:['pompki','pompkiKolana','pompkiDiament','superman'] },
+  { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', cover:'exercise-jaskolka.webp',       desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
+  { id:'pelny',        emoji:'💪', icon:'ex-fullset', cover:'exercise-mostek-jednonoz.webp', desc:'Kompletny trening — wszystkie 16 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia','pompki','pompkiKolana','pompkiDiament','superman','brzuszki','russianTwist'] },
 ];
 
 function _progCard(p) {
@@ -9588,18 +9589,28 @@ const CIRCUIT = {
 function startCircuit(id){ CIRCUIT.open(id); }
 
 const BREATH_TECHNIQUES = {
-  '478': { name: '4-7-8', cycles: 4, phases: [
+  '478': { cycles: 4, phases: [
     { label: 'Wdech', sec: 4, scale: 1.0, cue: 'in' },
     { label: 'Wstrzymaj', sec: 7, scale: 1.0, cue: 'hold' },
     { label: 'Wydech', sec: 8, scale: 0.55, cue: 'out' } ] },
-  box: { name: 'Box', cycles: 6, phases: [
+  box: { cycles: 6, phases: [
     { label: 'Wdech', sec: 4, scale: 1.0, cue: 'in' },
     { label: 'Wstrzymaj', sec: 4, scale: 1.0, cue: 'hold' },
     { label: 'Wydech', sec: 4, scale: 0.55, cue: 'out' },
     { label: 'Wstrzymaj', sec: 4, scale: 0.55, cue: 'hold' } ] }
 };
 
-const WIMHOF = { name: 'Wim Hof', rounds: 3, breaths: 30, recoveryHoldSec: 15 };
+const WIMHOF = { rounds: 3, breaths: 30, recoveryHoldSec: 15 };
+/* M3c (1.11.2026): NAZWY ćwiczeń, programów i technik oddechu żyją w JEDNYM pliku js/cwiczenia-nazwy.mjs (czyta je
+   też EF okienko — katalog). Tu tylko klucze, obrazki, opisy, dawki; nazwa doklejana z pliku. Brak nazwy = klucz
+   nie istnieje w pliku → test blizna-76 łapie rozjazd przed wdrożeniem. */
+(function () {
+  const N = window.BM_CWICZENIA_NAZWY || { cwiczenia: {}, programy: {}, oddech: {} };
+  Object.keys(EXERCISES).forEach(function (k) { EXERCISES[k].name = N.cwiczenia[k] || k; });
+  PROGRAMS.forEach(function (p) { p.name = N.programy[p.id] || p.id; });
+  Object.keys(BREATH_TECHNIQUES).forEach(function (k) { BREATH_TECHNIQUES[k].name = N.oddech[k] || k; });
+  WIMHOF.name = N.oddech.wim || 'Wim Hof';
+})();
 
 const BREATH = {
   st: null,

@@ -20,6 +20,7 @@ import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe } fr
 import { osobaZPytania, odpowiedzOsoba, ODP_NIC } from "./osoba.mjs";
 import { NIE_MAM } from "./straznik.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "./impreza.mjs";
+import { szukajWKatalogu } from "./katalog.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -106,6 +107,14 @@ Deno.serve(async (req) => {
         ok: o.f6 === "ok", powod_odrzucenia: o.powod });
       return odp(200, { ...pusto("impreza"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, koszt_tok: o.tok });
     }
+  }
+  // ── M3c: katalog treści aplikacji (radio, przepisy, ćwiczenia, ekrany, wyzwania, odznaki) — mocne trafienie = 0
+  //    tokenów, model nie startuje; log jak router (tryb „router", narzędzie „katalog"), bez nowej migracji. ──
+  let kat = null;
+  try { kat = await szukajWKatalogu(sb, tekst); } catch { kat = null; }
+  if (kat) {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: ["katalog"], tryb: "router" });
+    return odp(200, { ...pusto("router"), zdania: kat.zdania, karty: kat.karty, narzedzia: ["katalog"] });
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);

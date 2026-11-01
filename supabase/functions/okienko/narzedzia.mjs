@@ -22,6 +22,12 @@ export const EKRANY = {
   cialo: "zawodnik.html?tab=cwiczenia", statystyki: "zawodnik.html?tab=stats", profil: "profil.html", jedzenie: "nutrition.html",
   starty: "races.html", wyzwania: "wyzwania.html", odznaki: "odznaki.html", radio: "radio.html",
 };
+/* Nazwy ekranów — muszą być równe NAZWY_EKRANOW w js/okienko.js (blizna-76, jak EKRANY w blizna-65); katalog M3c. */
+export const NAZWY_EKRANOW = {
+  dzis: "Dziś", plan: "Plan", log: "Zapisz trening", historia: "Ostatnie treningi", forma: "Forma", spolecznosc: "Społeczność",
+  czat: "Czat", cialo: "Ćwiczenia", statystyki: "Statystyki", profil: "Profil", jedzenie: "Jedzenie", starty: "Starty",
+  wyzwania: "Wyzwania", odznaki: "Odznaki", radio: "Radio",
+};
 const EKRAN_NARZEDZIA = { moj_plan: "plan", moje_treningi: "historia", moje_starty: "starty", wyzwania_postep: "wyzwania", odznaki_moje: "odznaki" };
 
 /* Deklaracje funkcji dla Gemini (tools[].functionDeclarations) — podzbiór OpenAPI. */

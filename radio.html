@@ -52,6 +52,8 @@ body{padding:0 0 200px;min-height:100vh;}
 #rad-loop-one{position:absolute;top:1px;right:3px;font-size:8px;font-weight:700;color:var(--accent);line-height:1;}
 .rad-nav-btn{background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0;}
 #rad-audio{width:100%;}
+/* M3c: element otwarty z okienka (?przepis= / ?utwor=) */
+.rad-card.rad-podswietl{outline:2px solid var(--accent);outline-offset:-2px;}
 </style>
 </head>
 <body>
@@ -477,6 +479,26 @@ async function loadCatalog(){
   el.innerHTML = _radioTracks.map(function(t){
     return radioCardHtml(t, "radioPlay('" + t.id + "')");
   }).join('');
+  _radioZAdresu();
+}
+
+/* M3c (1.11.2026): radio.html?utwor=<uuid> (karta okienka „▶ Odtwórz") — przewiń do utworu, podświetl, spróbuj grać.
+   Przeglądarka zwykle blokuje autoodtwarzanie po nawigacji — wtedy utwór stoi podświetlony z przyciskiem play.
+   Tylko UUID; nieznany id → zwykły katalog, bez komunikatu. Raz na wejście. */
+let _radioZAdresuZrobione = false;
+function _radioZAdresu(){
+  if (_radioZAdresuZrobione) return;
+  _radioZAdresuZrobione = true;
+  let id = null;
+  try { id = new URLSearchParams(location.search).get('utwor'); } catch(e){}
+  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return;
+  const i = _radioTracks.findIndex(function(t){ return t.id === id; });
+  const el = document.getElementById('radio-catalog');
+  const karta = (i >= 0 && el) ? el.children[i] : null;
+  if (!karta) return;
+  karta.classList.add('rad-podswietl');
+  try { karta.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch(e){ karta.scrollIntoView(); }
+  try { radioPlay(id); } catch(e){}
 }
 
 async function loadPlaylists(){

@@ -17,7 +17,8 @@
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="sb.js"></script>
+<script src="js/przepisy-szukaj.mjs"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <!-- ZXing for barcode scanning -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
 
@@ -3327,6 +3328,8 @@ body {
   color: var(--fg2);
   margin-bottom: 12px;
 }
+/* M3c: element otwarty z okienka (?przepis= / ?utwor=) */
+.lib-row.lib-podswietl{outline:2px solid var(--accent);outline-offset:-2px;border-radius:10px;}
 </style>
 </head>
 <body>
@@ -4131,6 +4134,8 @@ body {
       <div class="recipe-lib-title"><img data-ic="icon-nut-library.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Biblioteka przepisów</div>
       <button class="recipe-lib-close" onclick="closeRecipeLibrary()" aria-label="Zamknij">✕</button>
     </div>
+    <!-- M3c (1.11.2026): wyszukiwanie przepisów — ta sama funkcja co katalog okienka (js/przepisy-szukaj.mjs). -->
+    <div class="search-wrap" style="margin:0 0 12px;"><input id="recipe-lib-q" type="search" placeholder="Szukaj przepisu" autocomplete="off" oninput="_libSzukaj(this.value)"></div>
     <div id="recipe-library"></div>
   </div>
 </div>
@@ -5616,6 +5621,7 @@ async function loadRecipeLibrary() {
     _libRecipes = data || [];
     await _loadFavs();
     _renderRecipeLibrary();
+    _libOtworzZAdresu();
   } catch (e) {
     console.warn('[lib]', e);
     _libLoaded = false;   // pozwól ponowić przy następnym wejściu
@@ -5639,11 +5645,19 @@ function _libRowHtml(r) {
     + '<div class="lib-expand" style="display:none;"></div>';
 }
 
+let _libQ = '';
+/* M3c: filtr w miejscu — BM_SZUKAJ.szukajPrzepisow (js/przepisy-szukaj.mjs), ta sama funkcja co katalog okienka. */
+function _libSzukaj(q) { _libQ = String(q || '').trim(); _renderRecipeLibrary(); }
 function _renderRecipeLibrary() {
   const el = document.getElementById('recipe-library');
   if (!el) return;
   const esc = window.escapeHtml || ((s) => String(s));
   if (!_libRecipes.length) { el.innerHTML = '<div class="lib-empty">Brak przepisów — wygeneruj pierwszy 🍳</div>'; return; }
+  if (_libQ && window.BM_SZUKAJ) {
+    const traf = window.BM_SZUKAJ.szukajPrzepisow(_libRecipes, _libQ).map(function (x) { return x.p; });
+    el.innerHTML = traf.length ? traf.map(_libRowHtml).join('') : '<div class="lib-empty">Brak przepisu z tym słowem.</div>';
+    return;
+  }
   let html = '';
   // ⭐ Ulubione na górze (tylko gdy są) — przepis pokazuje się TU i w swojej grupie pory
   const favs = _libRecipes.filter(r => _libFavs.has(r.id));
@@ -5666,6 +5680,25 @@ function _renderRecipeLibrary() {
   el.innerHTML = html;
 }
 
+/* M3c: nutrition.html?przepis=<uuid> (karta okienka) — otwórz bibliotekę, rozwiń przepis, przewiń, podświetl.
+   Tylko UUID; nieznany id → zwykła biblioteka, bez komunikatu. Raz na wejście. */
+let _libZAdresuZrobione = false;
+function _libOtworzZAdresu() {
+  if (_libZAdresuZrobione) return;
+  _libZAdresuZrobione = true;
+  let id = null;
+  try { id = new URLSearchParams(location.search).get('przepis'); } catch (e) {}
+  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return;
+  const row = Array.prototype.find.call(document.querySelectorAll('#recipe-library .lib-row'), function (r) { return r.dataset.id === id; });
+  if (!row) return;
+  toggleLibRow(row);
+  row.classList.add('lib-podswietl');
+  try { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { row.scrollIntoView(); }
+}
+function _przepisZAdresuNaStarcie() {
+  try { const id = new URLSearchParams(location.search).get('przepis'); if (id && /^[0-9a-f-]{36}$/i.test(id)) openRecipeLibrary(); } catch (e) {}
+}
+window.addEventListener('load', function () { setTimeout(_przepisZAdresuNaStarcie, 600); });
 function toggleLibRow(rowEl) {
   const exp = rowEl.nextElementSibling;
   if (!exp || !exp.classList.contains('lib-expand')) return;

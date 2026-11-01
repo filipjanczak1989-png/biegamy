@@ -93,6 +93,7 @@
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
+    if (k.typ === 'utwor' || k.typ === 'przepis' || k.typ === 'cwiczenie' || k.typ === 'kat_ekran' || k.typ === 'kat_wyzwanie' || k.typ === 'kat_odznaka') return kartaKatalogu(k.typ, d);
     /* M3b: plan pusty — przycisk wywołuje ISTNIEJĄCĄ funkcję zawodnik.html po tapnięciu (openGenModal / czat z trenerem). */
     if (k.typ === 'plan_pusty') {
       if (d.stan === 'generator') return '<div class="okn-karta"><button type="button" class="okn-otworz" data-plan="generator">Ułóż plan</button></div>';
@@ -269,8 +270,9 @@
     var ov = el('okienko-arkusz');
     if (ov) ov.addEventListener('click', function (e) {
       if (e.target === ov) return zamknij();
-      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan]') : null;
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan],[data-katalog]') : null;
       if (!b) return;
+      if (b.hasAttribute('data-katalog')) return akcjaKatalogu(b);
       if (b.hasAttribute('data-osoba')) return akcjaOsoby(b);
       if (b.hasAttribute('data-plan')) return akcjaPlanu(b.getAttribute('data-plan'));
       if (b.hasAttribute('data-pytanie')) { var q = b.getAttribute('data-pytanie'); if (we) we.value = q; wyslij(q); }
@@ -280,6 +282,46 @@
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); if (we && we.value.trim()) wyslij(we.value); });
     var x = el('okienko-zamknij'); if (x) x.addEventListener('click', zamknij);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') zamknij(); });
+  }
+
+  /* M3c: karty katalogu. Utwór → radio.html?utwor=<uuid> (odtwarzacz zostaje w radio.html), przepis →
+     nutrition.html?przepis=<uuid>, ćwiczenie → istniejące deep linki ?tab=cwiczenia&prog=/&breath=/&cw=wzmacnianie,
+     ekran/wyzwanie/odznaka → ekran z listy EKRANY. Id i klucze sprawdzane wzorcem, przekazywane przez data-*. */
+  var RE_KLUCZ = /^[A-Za-z0-9]{1,30}$/;
+  var RODZAJ_CW = { prog: 'Otwórz program', breath: 'Otwórz oddech', cw: 'Otwórz ćwiczenia' };
+  function kartaKatalogu(typ, d) {
+    if (typ === 'utwor') {
+      if (!RE_UUID.test(String(d.id || ''))) return '';
+      var okl = (window.RADIO && window.safeUrlAttr && d.cover_slug) ? window.safeUrlAttr(window.RADIO.coverUrl({ cover_slug: d.cover_slug })) : '';
+      return '<div class="okn-karta">' + (okl ? '<img src="' + okl + '" alt="" width="40" height="40" style="border-radius:8px;object-fit:cover;">' : '') +
+        '<b>' + esc(d.tytul || '') + '</b>' + (d.wykonawca ? '<span class="okn-meta">' + esc(d.wykonawca) + '</span>' : '') +
+        '<button type="button" class="okn-otworz" data-katalog="utwor" data-id="' + esc(d.id) + '">▶ Odtwórz</button></div>';
+    }
+    if (typ === 'przepis') {
+      if (!RE_UUID.test(String(d.id || ''))) return '';
+      return '<div class="okn-karta"><b>' + esc((d.emoji ? d.emoji + ' ' : '') + (d.tytul || '')) + '</b><span class="okn-meta">przepis</span>' +
+        '<button type="button" class="okn-otworz" data-katalog="przepis" data-id="' + esc(d.id) + '">Otwórz w Jedzeniu</button></div>';
+    }
+    if (typ === 'cwiczenie') {
+      if (!RODZAJ_CW[d.rodzaj] || !RE_KLUCZ.test(String(d.klucz || ''))) return '';
+      return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">ćwiczenia</span>' +
+        '<button type="button" class="okn-otworz" data-katalog="cwiczenie" data-rodzaj="' + esc(d.rodzaj) + '" data-klucz="' + esc(d.klucz) + '">' + esc(RODZAJ_CW[d.rodzaj]) + '</button></div>';
+    }
+    var cel = typ === 'kat_ekran' ? bezpiecznyCel(d.cel) : typ === 'kat_wyzwanie' ? EKRANY.wyzwania : EKRANY.odznaki;
+    if (!cel) return '';
+    var co = typ === 'kat_ekran' ? 'ekran' : typ === 'kat_wyzwanie' ? 'wyzwanie' : 'odznaka';
+    return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + co + '</span>' +
+      '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button></div>';
+  }
+  function akcjaKatalogu(b) {
+    var co = b.getAttribute('data-katalog'), id = b.getAttribute('data-id') || '';
+    if (co === 'utwor' && RE_UUID.test(id)) { location.href = 'radio.html?utwor=' + encodeURIComponent(id); return; }
+    if (co === 'przepis' && RE_UUID.test(id)) { location.href = 'nutrition.html?przepis=' + encodeURIComponent(id); return; }
+    if (co === 'cwiczenie') {
+      var r = b.getAttribute('data-rodzaj'), k = b.getAttribute('data-klucz') || '';
+      if (!RODZAJ_CW[r] || !RE_KLUCZ.test(k)) return;
+      location.href = 'zawodnik.html?tab=cwiczenia&' + (r === 'cw' ? 'cw=wzmacnianie' : r + '=' + encodeURIComponent(k));
+    }
   }
 
   /* M3b: „Ułóż plan" → istniejący modal generatora; „Napisz do trenera" → czat z trenerem (jak powiadomienie). */
@@ -307,6 +349,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu };
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

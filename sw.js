@@ -80,7 +80,9 @@ const PRECACHE_URLS = [
   '/js/silnik-anim.js',
   '/js/silnik-momentu.js',
   '/js/okienko.js',         // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
-  '/js/plan-pusty.mjs'      // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
+  '/js/plan-pusty.mjs',     // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
+  '/js/cwiczenia-nazwy.mjs', // M3c: nazwy ćwiczeń — zwykły <script src> w zawodnik.html (bez niego zakładka Ćwiczenia bez nazw)
+  '/js/przepisy-szukaj.mjs'  // M3c: pole „Szukaj przepisu" w Jedzeniu
 ];
 
 /* KRYTYCZNE (08.10.2026) — bez nich „Dziś" i Plan offline nie istnieją. Instalacja nowej wersji SW

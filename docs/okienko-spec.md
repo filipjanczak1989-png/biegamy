@@ -133,3 +133,20 @@ Okienko, pusty zakres planu: generator → „Nie masz jeszcze planu na {zakres}
 „Ułóż plan" (`openGenModal`); trener → „Trener nie ułożył jeszcze planu na {zakres}." + „Napisz do trenera"
 (`openChatThread('coach')`); wolne → „Na {zakres} plan przewiduje wolne."; nie wiadomo → „Nie mam tego w Twoich
 danych.". Testy: blizna-75 (CTA i EF dają ten sam wynik dla 3 profili).
+
+## M3c — katalog treści aplikacji (1.11.2026) — wdrożone w v14
+
+Kolejność w EF: router → osoba → impreza → **katalog** → pamięć → model. `katalog.mjs`: radio (`radio_tracks`, 90),
+przepisy (`recipes`, 16), ćwiczenia/programy/oddech, ekrany, wyzwania, odznaki. Mocne trafienie (odsetek słów
+zapytania trafionych w tytule ≥ 0,6 i choć jedno słowo ≥ 4 znaki) → „Znalazłem w aplikacji:" + ≤ 5 kart, 0 tokenów,
+log `router` z narzędziem `katalog` (bez migracji); słabe → null. Remis: radio przed resztą. Z bazy tylko
+`radio_tracks` i `recipes` (JWT, RLS), nic osobistego.
+Wspólne pliki (bez drugich kopii; bez import/export — działają jako `<script src>` i jako moduł przez globalThis):
+`js/przepisy-szukaj.mjs` (to samo wyszukiwanie w okienku i w nowym polu „Szukaj przepisu" nad biblioteką
+w Jedzeniu; pusto → „Brak przepisu z tym słowem.") i `js/cwiczenia-nazwy.mjs` (nazwy EXERCISES/PROGRAMS/
+BREATH_TECHNIQUES + Wim Hof; zawodnik.html czyta z pliku). Karty: utwór → `radio.html?utwor=<uuid>` (przewiń,
+podświetl, spróbuj grać; odtwarzacz zostaje w radio.html), przepis → `nutrition.html?przepis=<uuid>` (otwórz
+bibliotekę, rozwiń, podświetl), ćwiczenie → `?tab=cwiczenia&prog=/&breath=/&cw=wzmacnianie`, ekran/wyzwanie/odznaka →
+EKRANY. Produkty z Jedzenia poza katalogiem (osobna decyzja). Testy: blizna-76.
+ZWIAD 1.11: Jedzenie nie miało wyszukiwarki przepisów („Szukaj" = produkty); nazwy ćwiczeń były wpisane w
+zawodnik.html; odtwarzacz radia żyje tylko w radio.html (`window.RADIO` w sb.js to same adresy plików).
