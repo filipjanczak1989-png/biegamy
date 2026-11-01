@@ -1,0 +1,184 @@
+/* „Zapytaj" — UI okienka (M1 krok 4, M1-okienko-wykonanie.md pkt 6). Klasyczny skrypt po sb.js (bez modułów ES).
+   - Pole #okienko-pole pod topbarem na Dziś → arkusz od dołu (.add-overlay/.add-sheet z theme.css, SSOT bottom-sheet).
+   - Pytanie idzie do EF okienko (POST, token sesji tylko w nagłówku — nigdzie niezapisywany).
+   - CAŁY tekst z serwera przez escapeHtml; link wyłącznie z akcja.nawiguj i tylko z listy EKRANY (ta sama lista co EF
+     narzedzia.mjs — blizna-65 pilnuje zgodności); obcy adres = brak przycisku.
+   - Stany: ładowanie (szkielet), pusto, 429 dzień/miesiąc (+ wyszukiwarka ekranów), 502/503, offline (tylko ekrany).
+   - prefers-reduced-motion: arkusz bez animacji wjazdu (CSS niżej). Nazwa w UI: „Zapytaj" — bez słowa „AI" (v1). */
+(function () {
+  'use strict';
+
+  var EKRANY = {
+    dzis: 'zawodnik.html', plan: 'kalendarz.html?role=athlete', log: 'zawodnik.html?log=1', historia: 'zawodnik.html#log-list',
+    forma: 'zawodnik.html?tab=forma', spolecznosc: 'zawodnik.html?tab=social', czat: 'zawodnik.html?tab=msgs',
+    cialo: 'zawodnik.html?tab=cwiczenia', statystyki: 'zawodnik.html?tab=stats', profil: 'profil.html', jedzenie: 'nutrition.html',
+    starty: 'races.html', wyzwania: 'wyzwania.html', odznaki: 'odznaki.html', radio: 'radio.html'
+  };
+  var NAZWY_EKRANOW = {
+    dzis: 'Dziś', plan: 'Plan', log: 'Zapisz trening', historia: 'Ostatnie treningi', forma: 'Forma', spolecznosc: 'Społeczność',
+    czat: 'Czat', cialo: 'Ćwiczenia', statystyki: 'Statystyki', profil: 'Profil', jedzenie: 'Jedzenie', starty: 'Starty',
+    wyzwania: 'Wyzwania', odznaki: 'Odznaki', radio: 'Radio'
+  };
+  var PODPOWIEDZI = ['Kiedy mam start?', 'Ile przebiegłem w tym miesiącu?', 'Plan na jutro', 'Jakie mam odznaki?', 'Pokaż wyzwania'];
+  var TEKSTY = {
+    pusto: 'Nie mam tego w Twoich danych.',
+    dzien: 'Na dziś koniec pytań — od jutra znowu. Ekrany dalej znajdę:',
+    miesiac: 'Na ten miesiąc koniec pytań. Ekrany dalej znajdę:',
+    blad: 'Nie dam rady teraz odpowiedzieć. Spróbuj za chwilę.',
+    offline: 'Bez sieci nie odpowiem, ale ekrany znajdę:',
+    niePasuje: 'Tego nie znajdę w aplikacji.'
+  };
+  var KLUCZ_OSTATNIE = 'okienko_ostatnie', KLUCZ_PODPOWIEDZ = 'okienko_podpowiedz';
+
+  function esc(s) { return window.escapeHtml ? window.escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function bezpiecznyCel(url) {
+    if (typeof url !== 'string') return null;
+    for (var k in EKRANY) if (EKRANY[k] === url) return url;
+    return null;
+  }
+  function czytaj(k, d) { try { var v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function zapisz(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  /* Podpowiedź rotuje co OTWARCIE strony, nie w czasie (M1 pkt 6). */
+  function podpowiedz() {
+    var i = czytaj(KLUCZ_PODPOWIEDZ, -1);
+    i = (typeof i === 'number' ? i + 1 : 0) % PODPOWIEDZI.length;
+    zapisz(KLUCZ_PODPOWIEDZ, i);
+    return PODPOWIEDZI[i];
+  }
+
+  function wyszukajEkrany(tekst) {
+    var t = String(tekst || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
+    var wynik = [];
+    for (var k in NAZWY_EKRANOW) {
+      var n = NAZWY_EKRANOW[k].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
+      if (!t || n.indexOf(t) >= 0 || t.indexOf(n) >= 0) wynik.push(k);
+    }
+    return wynik.length ? wynik : Object.keys(NAZWY_EKRANOW);
+  }
+  function htmlEkranow(tekst) {
+    return '<div class="okn-ekrany">' + wyszukajEkrany(tekst).map(function (k) {
+      return '<button type="button" class="okn-chip" data-cel="' + esc(EKRANY[k]) + '">' + esc(NAZWY_EKRANOW[k]) + '</button>';
+    }).join('') + '</div>';
+  }
+
+  /* Karty: wiersze w stylu istniejących list (trening z pigułką typu przez renderTypePill, start, wyzwanie z paskiem,
+     odznaka) — tylko pola, które są; brak pola = brak elementu (LEKCJA „nie wiem ≠ nic"). */
+  function kmTxt(x) { return String(Math.round(Number(x) * 10) / 10).replace('.', ','); }
+  function dzienTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] : ''; }
+  function karta(k) {
+    var d = (k && k.dane) || {};
+    if (k.typ === 'trening') {
+      var pill = (d.typ && typeof window.renderTypePill === 'function') ? window.renderTypePill(d.typ) : '<span>' + esc(d.typ || '') + '</span>';
+      var bity = [];
+      if (d.data) bity.push(esc(dzienTxt(d.data)));
+      if (d.dystans_km != null || d.km != null) bity.push(esc(kmTxt(d.dystans_km != null ? d.dystans_km : d.km)) + ' km');
+      if (d.tempo) bity.push(esc(d.tempo) + ' /km');
+      if (d.czas_min) bity.push('~' + esc(d.czas_min) + ' min');
+      return '<div class="okn-karta">' + pill + '<span class="okn-meta">' + bity.join(' · ') + '</span></div>';
+    }
+    if (k.typ === 'start') {
+      var kiedy = d.dni_do === 0 ? 'dziś' : d.dni_do === 1 ? 'jutro' : (typeof d.dni_do === 'number' ? 'za ' + d.dni_do + ' dni' : '');
+      return '<div class="okn-karta"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc([dzienTxt(d.data), d.miasto, kiedy].filter(Boolean).join(' · ')) + '</span></div>';
+    }
+    if (k.typ === 'wyzwanie') {
+      var p = Math.max(0, Math.min(100, Number(d.procent) || 0));
+      return '<div class="okn-karta okn-karta--wyz"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(p) + '%</span>' +
+        '<span class="okn-pasek"><span style="width:' + p + '%"></span></span></div>';
+    }
+    if (k.typ === 'odznaka') return '<div class="okn-karta"><b>' + esc(d.id || '') + '</b><span class="okn-meta">' + esc(dzienTxt(d.data)) + '</span></div>';
+    return '';
+  }
+
+  /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc. */
+  function htmlOdpowiedzi(status, json, tekst) {
+    if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
+    if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
+    if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
+    var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
+    var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
+    if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];
+    var html = zdania.slice(0, 2).map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('');
+    html += (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
+    if (cel) html += '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button>';
+    return html;
+  }
+
+  var historia = [];
+  async function zapytaj(tekst) {
+    tekst = String(tekst || '').trim().slice(0, 300);
+    if (!tekst) return { status: 0, json: null };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return { status: 'offline', json: null };
+    var sesja = null;
+    try { sesja = (await window.sb.auth.getSession()).data.session; } catch (e) {}
+    if (!sesja) return { status: 401, json: null };
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var t = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
+    try {
+      var r = await fetch(window.SB_URL + '/functions/v1/okienko', {
+        method: 'POST', signal: ctrl ? ctrl.signal : undefined, credentials: 'omit', cache: 'no-store',
+        headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + sesja.access_token, 'apikey': window.SB_KEY },
+        body: JSON.stringify({ tekst: tekst, ekran: 'home', historia: historia.slice(-3) })
+      });
+      var j = await r.json().catch(function () { return null; });
+      if (r.status === 200 && j && Array.isArray(j.zdania) && j.zdania.length) historia.push({ q: tekst, a: j.zdania.join(' ').slice(0, 300) });
+      return { status: r.status, json: j };
+    } catch (e) {
+      return { status: (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 502, json: null };
+    } finally { if (t) clearTimeout(t); }
+  }
+
+  function chipy() {
+    var ostatnie = czytaj(KLUCZ_OSTATNIE, []);
+    var lista = PODPOWIEDZI.slice(0, 3).concat(Array.isArray(ostatnie) ? ostatnie.slice(0, 2) : []);
+    var bylo = {};
+    return lista.filter(function (q) { var k = String(q).toLowerCase(); if (bylo[k]) return false; bylo[k] = 1; return true; })
+      .map(function (q) { return '<button type="button" class="okn-chip" data-pytanie="' + esc(q) + '">' + esc(q) + '</button>'; }).join('');
+  }
+
+  function el(id) { return document.getElementById(id); }
+  async function wyslij(tekst) {
+    var wynik = el('okienko-wynik'); if (!wynik) return;
+    wynik.innerHTML = '<div class="okn-szkielet" aria-hidden="true"></div>';
+    wynik.setAttribute('aria-busy', 'true');
+    var o = await zapytaj(tekst);
+    wynik.removeAttribute('aria-busy');
+    wynik.innerHTML = htmlOdpowiedzi(o.status, o.json, tekst);
+    var ost = czytaj(KLUCZ_OSTATNIE, []);
+    if (!Array.isArray(ost)) ost = [];
+    zapisz(KLUCZ_OSTATNIE, [tekst].concat(ost.filter(function (q) { return q !== tekst; })).slice(0, 5));
+  }
+
+  function otworz() {
+    var ov = el('okienko-arkusz'); if (!ov) return;
+    var ch = el('okienko-chipy'); if (ch) ch.innerHTML = chipy();
+    ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false');
+    var we = el('okienko-tekst'); if (we) setTimeout(function () { try { we.focus(); } catch (e) {} }, 50);
+  }
+  function zamknij() { var ov = el('okienko-arkusz'); if (ov) { ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true'); } }
+
+  function podepnij() {
+    var pole = el('okienko-pole'); if (!pole) return;
+    if (new URLSearchParams(location.search).get('from') === 'trener') { pole.dataset.trener = '1'; pole.style.display = 'none'; return; }   // podgląd trenera: EF odpowiada danymi zalogowanego
+    var p = podpowiedz();
+    var etk = el('okienko-podpowiedz'); if (etk) etk.textContent = p;
+    var we = el('okienko-tekst'); if (we) we.setAttribute('placeholder', p);
+    pole.addEventListener('click', otworz);
+    var ov = el('okienko-arkusz');
+    if (ov) ov.addEventListener('click', function (e) {
+      if (e.target === ov) return zamknij();
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel]') : null;
+      if (!b) return;
+      if (b.hasAttribute('data-pytanie')) { var q = b.getAttribute('data-pytanie'); if (we) we.value = q; wyslij(q); }
+      else { var c = bezpiecznyCel(b.getAttribute('data-cel')); if (c) location.href = c; }
+    });
+    var f = el('okienko-form');
+    if (f) f.addEventListener('submit', function (e) { e.preventDefault(); if (we && we.value.trim()) wyslij(we.value); });
+    var x = el('okienko-zamknij'); if (x) x.addEventListener('click', zamknij);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') zamknij(); });
+  }
+
+  window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
+})();

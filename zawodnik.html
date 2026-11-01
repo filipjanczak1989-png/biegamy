@@ -919,6 +919,48 @@ body > *{position:relative;z-index:1;}
    limit to 8 znaków (48,0px). WYZWANIA siedzi na granicy z zapasem 1,6px. */
 .ht-lbl{font-size:10px;letter-spacing:0;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.1;}
 </style>
+<!-- „ZAPYTAJ" (M1 krok 4): pole pod topbarem → arkusz od dołu (.add-overlay/.add-sheet, theme.css). Logika: js/okienko.js.
+     Tekst z serwera zawsze przez escapeHtml, link tylko z listy ekranów; w podglądzie trenera (?from=trener) pole znika. -->
+<style>
+#okienko-pole{display:flex;align-items:center;gap:10px;width:calc(100% - 32px);min-height:44px;margin:8px 16px 8px;padding:0 14px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;text-align:left;cursor:pointer;}
+#okienko-pole svg{flex-shrink:0;stroke:var(--muted);}
+#okienko-pole .okn-etykieta{color:var(--fg);font-weight:600;}
+.okn-form{display:flex;gap:8px;margin:18px 0 10px;}
+.okn-form input{flex:1;min-height:44px;padding:0 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;}
+.okn-form button,.okn-otworz{min-height:44px;padding:0 16px;border:0;border-radius:var(--r-md);background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:var(--t-sm);letter-spacing:.06em;cursor:pointer;}
+.okn-chipy,.okn-ekrany{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+.okn-chip{min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:18px;background:transparent;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;}
+.okn-zdanie{margin:4px 0 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.5;}
+.okn-karta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin:0 0 8px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);}
+.okn-karta b{color:var(--fg);font-weight:600;font-size:14px;}
+.okn-meta{color:var(--muted);font-family:'DM Mono',monospace;font-size:var(--t-sm);}
+.okn-pasek{display:block;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;}
+.okn-pasek span{display:block;height:100%;background:var(--accent);}
+.okn-szkielet{height:56px;border-radius:var(--r-sm);background:linear-gradient(90deg,var(--card) 0%,var(--card3) 50%,var(--card) 100%);background-size:200% 100%;animation:okn-szkielet 1.2s linear infinite;}
+@keyframes okn-szkielet{from{background-position:200% 0}to{background-position:-200% 0}}
+.okn-otworz{margin-top:6px;}
+#okienko-wynik{min-height:24px;padding-bottom:16px;}
+@media (prefers-reduced-motion: reduce){
+  #okienko-arkusz,#okienko-arkusz .add-sheet{transition:none;}
+  .okn-szkielet{animation:none;}
+}
+</style>
+<button type="button" id="okienko-pole" aria-haspopup="dialog" aria-controls="okienko-arkusz">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+  <span class="okn-etykieta">Zapytaj</span><span id="okienko-podpowiedz"></span>
+</button>
+<div class="add-overlay" id="okienko-arkusz" role="dialog" aria-modal="true" aria-label="Zapytaj" aria-hidden="true">
+  <div class="add-sheet">
+    <form class="okn-form" id="okienko-form" autocomplete="off">
+      <input id="okienko-tekst" type="search" maxlength="300" enterkeyhint="search" aria-label="Zapytaj">
+      <button type="submit">Zapytaj</button>
+    </form>
+    <div class="okn-chipy" id="okienko-chipy"></div>
+    <div id="okienko-wynik" aria-live="polite"></div>
+    <button type="button" class="okn-chip" id="okienko-zamknij" style="margin:0 0 16px;">Zamknij</button>
+  </div>
+</div>
 <div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
 <!-- HERO „DZIŚ" v2 (31.10.2026): dwie warstwy tła (crossfade bez pustego kafla) + Ken Burns, scrim, podpis na DOLE
      (D2) ujawniany przez CYTAT. Tap / Enter / spacja = następny z 3 kadrów dnia (D4, bez auto-rotacji). CSS w theme.css.
@@ -1793,6 +1835,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
+<script src="js/okienko.js"></script><!-- M1 „Zapytaj" (po sb.js: escapeHtml, sb, SB_URL) -->
 <script src="js/dzis-offline.js"></script>
 <script src="js/generator-planu.js"></script>
 <script src="js/silnik-momentu.js"></script>
@@ -2985,6 +3028,7 @@ function showSection(name) {
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
     const _htr=document.getElementById('home-tiles-row');if(_htr)_htr.style.display='none';
+    const _okp=document.getElementById('okienko-pole');if(_okp)_okp.style.display='none';   /* M1 „Zapytaj" tylko na Dziś */
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('daily-motivation')?.style.setProperty('display','none');
     document.getElementById('week-strip')?.style.setProperty('display','none');
@@ -3000,6 +3044,7 @@ function showSection(name) {
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     const _htr2=document.getElementById('home-tiles-row');if(_htr2)_htr2.style.display='flex';
+    const _okp2=document.getElementById('okienko-pole');if(_okp2&&!_okp2.dataset.trener)_okp2.style.display='';
     document.querySelectorAll('.fade-in').forEach(el => {
       el.style.display = '';
       // Reset animacji CSS żeby element był widoczny po powrocie

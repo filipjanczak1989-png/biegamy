@@ -78,7 +78,8 @@ const PRECACHE_URLS = [
   '/js/dzis-offline.js',
   '/js/generator-planu.js',
   '/js/silnik-anim.js',
-  '/js/silnik-momentu.js'
+  '/js/silnik-momentu.js',
+  '/js/okienko.js'          // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
 ];
 
 /* KRYTYCZNE (08.10.2026) — bez nich „Dziś" i Plan offline nie istnieją. Instalacja nowej wersji SW
