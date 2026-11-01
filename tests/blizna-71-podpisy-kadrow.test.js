@@ -147,3 +147,47 @@ test('samokontrola reguły „razem": „ramię w ramię" na kadrze z dwiema oso
   assert.ok(r.some((x) => x.nr === Number(daleko) && /relacja/.test(x.co)), JSON.stringify(r));
   assert.ok(r.some((x) => x.nr === Number(blisko2) && /liczebnik 3/.test(x.co)), JSON.stringify(r));
 });
+
+/* NAWIERZCHNIE (2.11.2026, kadr 14 „Liście na asfalcie" pod piaszczystą leśną drogą). Słowo nawierzchni w podpisie
+   (asfalt, szuter/żwir, piasek, bieżnia/tartan, beton, śnieg, lód) wymaga potwierdzenia w opisie obrazu ALBO w strukturze
+   (nawierzchnia, otoczenie, pogoda). ⚠️ Reguła łapie rozjazd PODPIS↔OPIS; gdy myli się sam vision (14: zdanie i struktura
+   mówiły „asfalt"), nie złapie — dlatego struktura 14 ma ręczną korektę Filipa (pole `korekta`).
+   ZAPADKA: 70 „*Lód* uczy pokory" — opis: śnieg i mróz, bez lodu; czeka na decyzję Filipa (tylko raport). */
+const NAWIERZCHNIE = {
+  asfalt: [w('asfal'), w('asfal')],
+  szuter: [w('szuter|szutr|żwir'), w('szuter|szutr|żwir|ziemn|gruntow|kamien')],
+  piasek: [w('piasek|piask|piaszcz'), w('piasek|piask|piaszcz|ziemn|gruntow')],
+  'bieżnia': [w('bieżni|tartan'), w('bieżni|tartan|stadion')],
+  beton: [w('beton'), w('beton|płyt|chodnik')],
+  'śnieg': [w('śnieg|śnież'), w('śnieg|śnież|zaśnież')],
+  'lód': [w('lód|lod[uyz]|lodem|oblodz'), w('lód|lod[uyz]|lodem|oblodz|zamarz')],
+};
+const ZNANE_ROZJAZDY_NAWIERZCHNI = [70];   // 2.11.2026 — tylko raport, podpis pisze Filip
+function rozjazdyNawierzchni(lista) {
+  const out = [];
+  lista.forEach((p, i) => {
+    const n = i + 1, s = STRUKTURA[n], opis = [OPISY[n], s.nawierzchnia, s.otoczenie, s.pogoda].join(' · ');
+    for (const [k, [wP, wO]] of Object.entries(NAWIERZCHNIE)) if (wP.test(bezAkcentu(p)) && !wO.test(opis)) out.push({ nr: n, co: k });
+  });
+  return out;
+}
+
+test('nawierzchnia w podpisie ma potwierdzenie w opisie obrazu albo strukturze — rozjazdy = dokładnie lista czekająca na Filipa', () => {
+  const r = rozjazdyNawierzchni(P);
+  assert.deepEqual([...new Set(r.map((x) => x.nr))], ZNANE_ROZJAZDY_NAWIERZCHNI, r.map((x) => `${x.nr} ${x.co}: ${P[x.nr - 1]}`).join('\n'));
+});
+
+test('samokontrola nawierzchni: „bieżnia" w lesie i „asfalt" na piaszczystej drodze są łapane; kadr 14 po korekcie', () => {
+  const v = [...P];
+  const las = Object.keys(STRUKTURA).find((k) => /las/.test(STRUKTURA[k].otoczenie) && !/bieżni|tartan|stadion/i.test(OPISY[k]));
+  const piach = Object.keys(STRUKTURA).find((k) => /piaszcz/i.test(OPISY[k] + ' ' + STRUKTURA[k].nawierzchnia) && !/asfal/i.test(OPISY[k] + ' ' + STRUKTURA[k].nawierzchnia));
+  assert.ok(las && piach, 'samokontrola ma na czym działać');
+  v[las - 1] = 'Bieżnia o świcie. *Tempo* na prostej.';
+  v[piach - 1] = 'Liście na asfalcie. *Jesień* podaje tempo.';
+  const r = rozjazdyNawierzchni(v);
+  assert.ok(r.some((x) => x.nr === Number(las) && x.co === 'bieżnia'), JSON.stringify(r));
+  assert.ok(r.some((x) => x.nr === Number(piach) && x.co === 'asfalt'), JSON.stringify(r));
+  assert.equal(P[13], 'Leśna droga w liściach. *Jesień* podaje tempo.');
+  assert.equal(STRUKTURA[14].nawierzchnia, 'piaszczysta droga leśna'); assert.match(STRUKTURA[14].korekta, /Filip/);
+  assert.match(fs.readFileSync(path.join(KORZEN, 'tools', 'kadry', 'generuj-kadry.mjs'), 'utf8'), /14: \{ scena: "leśna droga w liściach/);
+});

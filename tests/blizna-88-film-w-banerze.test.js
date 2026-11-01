@@ -29,7 +29,8 @@ function el(tag) {
   const e = { tag, style: {}, dataset: {}, dzieci: [], atrybuty: {}, h: {}, parentNode: null,
     setAttribute(k, v) { this.atrybuty[k] = v; }, appendChild(c) { c.parentNode = this; this.dzieci.push(c); return c; },
     removeChild(c) { this.dzieci = this.dzieci.filter((x) => x !== c); c.parentNode = null; },
-    addEventListener(ev, fn) { (this.h[ev] = this.h[ev] || []).push(fn); }, emit(ev, x) { (this.h[ev] || []).forEach((f) => f(x || {})); },
+    addEventListener(ev, fn) { (this.h[ev] = this.h[ev] || []).push(fn); }, removeEventListener(ev, fn) { this.h[ev] = (this.h[ev] || []).filter((f) => f !== fn); },
+    emit(ev, x) { (this.h[ev] || []).slice().forEach((f) => f(x || {})); },
     querySelector(s) { return s[0] === '.' ? this.dzieci.find((d) => d.className === s.slice(1)) || null : null; } };
   return e;
 }
@@ -42,14 +43,19 @@ function srodowisko({ ruch = false, saveData = false, online = true, zapis = nul
   ctx.navigator = { onLine: online, connection: { saveData } };
   ctx.document.createElement = (t) => { const e = el(t); if (t === 'video') { e.pause = () => { e.pauza = true; }; e.load = () => { e.zaladowano = (e.zaladowano || 0) + 1; };
     e.play = () => { e.grano = (e.grano || 0) + 1; (e.playMuted = e.playMuted || []).push(!!e.muted);
+      const blad = (n) => { const x = new Error(n); x.name = n; return x; };
+      if (Array.isArray(play)) { const w = play.shift() || 'ok'; return w === 'ok' ? Promise.resolve() : Promise.reject(blad(w)); }
       const odrzuc = play === 'blokada' || (play === 'blokada-dzwieku' && !e.muted);
-      return odrzuc ? Promise.reject(new Error('autoplay')) : Promise.resolve(); }; } return e; };
+      return odrzuc ? Promise.reject(blad('NotAllowedError')) : Promise.resolve(); }; } return e; };
   // timery pod kontrolą testu: uplyw(ms) odpala zaplanowane do tej chwili (koniec filmu 520 ms, limit gotowości 4000 ms)
   let zegar = 0; const timery = [];
   ctx.setTimeout = (fn, ms) => { timery.push({ fn, t: zegar + (ms || 0) }); return timery.length; };
   ctx.requestAnimationFrame = (fn) => fn();
   const uplyw = (ms) => { zegar += ms; for (;;) { const i = timery.findIndex((x) => x.t <= zegar); if (i < 0) break; timery.splice(i, 1)[0].fn(); } };
-  return { ctx, mag, baner: el('div'), uplyw };
+  const zgloszenia = [];
+  Object.defineProperty(ctx, '_authUid', { get: () => 'u-test', set() {}, configurable: true });   // sb.js nadpisuje z getSession (atrapa: null)
+  ctx.sb = { from: (t) => ({ insert: (w) => { zgloszenia.push({ t, w }); return Promise.resolve({ error: null }); } }) };
+  return { ctx, mag, baner: el('div'), uplyw, zgloszenia };
 }
 
 test('(1) warunki: reduced-motion, Save-Data, offline, już dziś → nie gra; localStorage rzucający → gra bez wyjątku', () => {
@@ -294,4 +300,40 @@ test('(8) autostart zawsze muted=true; ▶ odrzucone z dźwiękiem → gra wycis
   await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r)); b.uplyw(520);
   assert.ok(!b.baner.dzieci.some((d) => d.className === 'film-dzis'), 'oba odrzucone → film znika');
   assert.ok(b.baner.dzieci.some((d) => d.className === 'film-powtorz'), 'cytat i ▶');
+});
+
+test('(8) ▶ AbortError (przerwane ładowaniem) → druga próba Z DŹWIĘKIEM po canplay; NotAllowedError → od razu wyciszony; każde odrzucenie → client_errors', async () => {
+  const klik = (s) => { s.ctx.FILM_DZIS.start(s.baner, TERAZ); s.baner.dzieci.find((d) => d.className === 'film-powtorz').emit('click', { stopPropagation() {} }); return s.baner.dzieci.find((d) => d.className === 'film-dzis'); };
+  const a = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'ok'] });
+  const v = klik(a);
+  assert.equal(v.preload, 'auto', 'preload auto PRZED play()'); assert.equal(v.zaladowano, undefined, 'przy ▶ bez load() (to on przerywał play)');
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(v.playMuted, [false], 'po AbortError jeszcze nie wyciszamy');
+  v.emit('canplay');
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(v.playMuted, [false, false], 'druga próba po canplay — Z DŹWIĘKIEM');
+  v.emit('playing'); a.uplyw(5000);
+  assert.equal(v.muted, false, 'gra z dźwiękiem'); assert.equal(a.baner.dzieci.find((d) => d.className === 'film-dzwiek').textContent, '🔇');
+  assert.equal(a.zgloszenia.length, 1); assert.equal(a.zgloszenia[0].t, 'client_errors');
+  const w = a.zgloszenia[0].w;
+  assert.equal(w.kind, 'media'); assert.equal(w.source, 'FILM_DZIS.play'); assert.match(w.message, /^▶ pierwsza · AbortError/);
+  assert.equal(typeof w.user_agent, 'string'); assert.deepEqual(Object.keys(w).sort(), ['app_version', 'created_at', 'kind', 'message', 'source', 'url', 'user_agent', 'user_id'].sort());
+
+  const n = srodowisko({ zapis: '2026-11-01', play: ['NotAllowedError', 'ok'] });
+  const vn = klik(n);
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(vn.playMuted, [false, true], 'NotAllowedError → od razu wyciszony');
+  assert.equal(n.baner.dzieci.find((d) => d.className === 'film-dzwiek').textContent, '🔊');
+  assert.match(n.zgloszenia[0].w.message, /NotAllowedError/);
+
+  const dwa = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'AbortError', 'ok'] });
+  const vd = klik(dwa);
+  await new Promise((r) => setImmediate(r)); vd.emit('canplay'); await new Promise((r) => setImmediate(r));
+  assert.deepEqual(vd.playMuted, [false, false, true], 'druga porażka → wyciszony (tylko JEDNA ponowna próba)');
+  assert.equal(dwa.zgloszenia.length, 2);
+
+  const brak = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'ok'] });
+  const vb = klik(brak);
+  await new Promise((r) => setImmediate(r)); brak.uplyw(4000);
+  assert.deepEqual(vb.playMuted, [false, true], 'canplay nie przyszło w 4 s → wyciszony');
 });

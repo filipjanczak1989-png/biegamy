@@ -354,3 +354,12 @@ odliczanie, nie liczba). Rozjazdy: 8, 9, 18, 20, 21, 26, 30, 38, 41, 46, 50 — 
 w blizna-71 PUSTE; jedyny wyjątek reguł to kadr 02 („*Każdy* swoim tempem", zakaz „każdy"). Sprawdzenie z opisem
 strukturalnym (pora, pogoda, nawierzchnia, otoczenie): 10/11 zgodne; 41 „przez pola" — struktura ma otoczenie „las",
 opis obrazu „droga otoczona lasem i polami" (pola częściowo) — zgłoszone Filipowi, tekst bez zmian.
+
+## Kadr 14 i reguła nawierzchni (2.11.2026)
+
+14: „Liście na asfalcie" → „Leśna droga w liściach. *Jesień* podaje tempo." (Filip: na obrazie piaszczysta leśna droga,
+dwie osoby daleko). Vision mylił się DWA RAZY (zdanie z 1.11 i struktura: „asfalt"), więc blizna-71 nie mogła tego
+złapać — reguła porównuje podpis z opisem, a oba mówiły to samo. Struktura 14: nawierzchnia „piaszczysta droga leśna"
+z polem `korekta` (ręcznie, Filip); SCENA_Z_PODPISU[14] „leśna droga w liściach". Nowa reguła nawierzchni (asfalt,
+szuter/żwir, piasek, bieżnia/tartan, beton, śnieg, lód) na 89 kadrach: 1 rozjazd — 70 „*Lód* uczy pokory" (opis: śnieg,
+mróz, bez lodu) — zapadka ZNANE_ROZJAZDY_NAWIERZCHNI = [70], tylko raport.

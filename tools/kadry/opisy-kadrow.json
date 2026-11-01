@@ -215,8 +215,9 @@
       "kierunek": "od_aparatu",
       "pora": "dzien",
       "pogoda": "słonecznie",
-      "nawierzchnia": "asfalt",
-      "otoczenie": "las"
+      "nawierzchnia": "piaszczysta droga leśna",
+      "otoczenie": "las",
+      "korekta": "2.11.2026 Filip: vision (zdanie i struktura) podało „asfalt\"; na obrazie piaszczysta leśna droga"
     },
     "15": {
       "liczba_osob": 1,

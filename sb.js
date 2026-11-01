@@ -596,6 +596,16 @@
       if (window.navigator && window.navigator.onLine === false) return false;
       return true;
     }
+    /* Odrzucone odtwarzanie filmu → client_errors (kind 'media'): nazwa błędu, etap, user agent. Bez danych osoby. */
+    function zglosMedia(e, etap) {
+      try {
+        if (!window.sb || !window._authUid) return;
+        window.sb.from('client_errors').insert({ user_id: window._authUid, url: (location.pathname + location.search).slice(0, 990), kind: 'media',
+          source: 'FILM_DZIS.play', message: ('▶ ' + String(etap || '?') + ' · ' + String((e && e.name) || 'Error') + ' · ' + String((e && e.message) || '')).slice(0, 300),
+          user_agent: String(navigator.userAgent || '').slice(0, 500), app_version: window._appVersion || null, created_at: new Date().toISOString() })
+          .then(function () {}, function () {});
+      } catch (x) {}
+    }
     function stylPowtorki() {
       try {
         if (!document.head || (document.getElementById && document.getElementById('film-powtorz-css'))) return;
@@ -683,20 +693,40 @@
       if (glosnik) baner.appendChild(glosnik);
       baner.dataset.film = 'laduje';
       if (recznie) {
-        /* ▶: play() TERAZ, w tym samym handlerze kliknięcia (gest) — z dźwiękiem. Odrzucone (polityka autoplay) → wyciszony
-           i „🔊"; odrzucone i wyciszone → koniec, cytat. canplaythrough już nie startuje drugi raz (gotowy). */
+        /* ▶: play() TERAZ, w tym samym handlerze kliknięcia (gest) — z dźwiękiem, preload 'auto' PRZED play().
+           Poprawka 2.11 00:47 (Filip, Samsung: po ▶ „🔊" = ścieżka awaryjna): ścieżka autostartu robiła w następnej klatce
+           v.load(), co PRZERYWA trwające play() (AbortError), a każde odrzucenie było traktowane jak odmowa dźwięku.
+           Teraz: bez load() przy ▶; NotAllowedError (odmowa dźwięku) → wyciszony + „🔊"; AbortError / inny → JEDNA ponowna
+           próba z dźwiękiem po 'canplay' (≤ 4 s od tapnięcia, okno aktywacji gestu), dopiero potem wyciszony.
+           Każde odrzucenie → client_errors (kind 'media': nazwa błędu, etap, przeglądarka — bez danych osoby). */
         gotowy = true;
-        try {
-          var pr0 = v.play();
-          if (pr0 && typeof pr0.catch === 'function') pr0.catch(function () {
-            if (koniec) return;
-            v.muted = true; stanGlosnika();
-            try { var pr1 = v.play(); if (pr1 && typeof pr1.catch === 'function') pr1.catch(zakoncz); } catch (e) { zakoncz(); }
-          });
-        } catch (e) { zakoncz(); }
+        var tap = Date.now(), ponowiono = false;
+        v.preload = 'auto'; v.setAttribute('preload', 'auto');
+        var wyciszonyAwaryjnie = function () {
+          if (koniec) return;
+          v.muted = true; stanGlosnika();
+          try { var p = v.play(); if (p && typeof p.catch === 'function') p.catch(function (e2) { zglosMedia(e2, 'wyciszony'); zakoncz(); }); } catch (e3) { zglosMedia(e3, 'wyciszony'); zakoncz(); }
+        };
+        var zDzwiekiem = function (etap) {
+          try {
+            var p = v.play();
+            if (p && typeof p.catch === 'function') p.catch(function (e) {
+              if (koniec) return;
+              zglosMedia(e, etap);
+              if (e && e.name === 'NotAllowedError') return wyciszonyAwaryjnie();
+              if (ponowiono) return wyciszonyAwaryjnie();
+              ponowiono = true;
+              var poCanplay = function () { v.removeEventListener('canplay', poCanplay); if (koniec) return; if (Date.now() - tap <= CZEKAJ_MS) zDzwiekiem('ponowna'); else wyciszonyAwaryjnie(); };
+              v.addEventListener('canplay', poCanplay);
+              setTimeout(function () { v.removeEventListener('canplay', poCanplay); if (!koniec && baner.dataset.film !== 'gra') wyciszonyAwaryjnie(); }, Math.max(0, CZEKAJ_MS - (Date.now() - tap)));
+            });
+          } catch (e) { zglosMedia(e, etap); wyciszonyAwaryjnie(); }
+        };
+        zDzwiekiem('pierwsza');
+      } else {
+        var rAF = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
+        rAF(function () { if (!koniec) { v.preload = 'auto'; v.setAttribute('preload', 'auto'); try { v.load(); } catch (e) {} } });
       }
-      var rAF = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
-      rAF(function () { if (!koniec) { v.preload = 'auto'; v.setAttribute('preload', 'auto'); try { v.load(); } catch (e) {} } });
       setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
       return v;
     }
