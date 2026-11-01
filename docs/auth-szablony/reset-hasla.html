@@ -1,0 +1,32 @@
+<!-- BiegaMy · szablon Supabase Auth: reset hasła. Wklej CAŁOŚĆ w Dashboard → Authentication → Emails → Reset Password (pole „Message body").
+     Temat (pole „Subject"): Ustaw nowe hasło w BiegaMy
+     Zmienne Supabase: {{ .ConfirmationURL }} = link akcji (z redirectTo z aplikacji), {{ .Email }}. Style inline — klienci poczty wycinają <style>. -->
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>BiegaMy</title></head>
+<body style="margin:0;padding:0;background:#f4f2ef;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2ef;padding:32px 12px;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1d1b20;">
+      <tr><td style="background:#07070a;padding:22px 28px;">
+        <span style="font-size:22px;font-weight:800;letter-spacing:0.04em;color:#ffffff;">BIEGA<span style="color:#e8561e;">MY</span></span>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <h1 style="margin:0 0 14px;font-size:22px;line-height:1.3;font-weight:700;color:#1d1b20;">Ustaw nowe hasło</h1>
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#3a3640;">Ktoś — pewnie Ty — kliknął „Zapomniałem hasła”. Wejdź w link, wpisz nowe hasło dwa razy i od razu jesteś z powrotem w aplikacji.</p>
+      </td></tr>
+      <tr><td style="padding:12px 28px 8px;" align="left">
+        <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#e8561e;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:12px;">Ustaw nowe hasło</a>
+      </td></tr>
+      <tr><td style="padding:16px 28px 26px;">
+        <p style="margin:0 0 10px;font-size:13px;line-height:1.6;color:#5d5866;">Link działa jeden raz. Jeśli to nie Ty, zignoruj ten mail — Twoje hasło się nie zmieni.</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;color:#8a8798;">Przycisk nie działa? Skopiuj ten adres do przeglądarki:<br><a href="{{ .ConfirmationURL }}" style="color:#e8561e;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+      </td></tr>
+      <tr><td style="border-top:1px solid #ece9e4;padding:16px 28px;font-size:11px;line-height:1.6;color:#8a8798;">
+        BiegaMy · biegamy.run<br>Ten mail wysłaliśmy na {{ .Email }}, bo ktoś użył tego adresu w BiegaMy.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
