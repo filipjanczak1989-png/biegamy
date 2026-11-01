@@ -49,5 +49,5 @@ export async function biegiNadchodzace(fetchFn, token, args, teraz = Date.now())
     biegi: trafione.slice(0, MAX_KART_BIEGOW).map((b) => ({ nazwa: String(b.name || "").slice(0, 120), data: b.event_date || null,
       miasto: b.city && b.city !== "Polska" ? String(b.city).slice(0, 60) : null,
       dystanse: (Array.isArray(b.distances) ? b.distances : []).map(Number).filter((x) => x > 0).slice(0, 6),
-      zrodlo_domena: domena(b.source_url) })) };
+      zrodlo_domena: domena(b.source_url), status: b.status === "zgloszona" || b.status === "potwierdzona" ? b.status : null })) };   // 018
 }

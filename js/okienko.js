@@ -131,7 +131,8 @@
     var kiedy = (d.przeszla ? 'była ' : '') + (d.dokladnosc_daty === 'miesiac' ? miesiacTxt(d.data) : dataTxt(d.data));
     var meta = [kiedy, d.miasto || d.miejscowosc || '', dyst].filter(Boolean).join(' · ');
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
-      (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') + '</div>';
+      (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') +
+      (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + '</div>';   // K5 (018)
   }
 
   /* M2b: karta osoby z aplikacji (tylko profile publiczne — filtr w EF). Przyciski wywołują ISTNIEJĄCE funkcje

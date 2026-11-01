@@ -589,10 +589,25 @@ let _currentRace = null;
 // ── K4: „W POLSCE" (kalendarz maszyny wyników) ────────────────────
 var _imprezyOkres = '30', _imprezyQ = '', _imprezyTimer = null, _imprezyNr = 0;
 var IMPREZY_OKRES_TXT = { '30': 'w 30 dni', '90': 'w 3 miesiące', '365': 'w rok' };
+/* K5 (018): trener ukrywa zgłoszenie biegacza — klucz z data-* (wzorzec CLAUDE.md), tylko klucze zgloszenie:<uuid>. */
+async function imprezyUkryj(e) {
+  var b = e.target && e.target.closest ? e.target.closest('.imprezy-ukryj') : null;
+  if (!b) return;
+  var k = b.getAttribute('data-klucz') || '';
+  if (!/^zgloszenie:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(k)) return;
+  b.disabled = true;
+  var r = await window.wynikiApi(_sb).rpc('event_hide', { p_klucz: k });
+  if (r.error) { b.disabled = false; showToast(r.error.status === 403 ? 'Zgłoszenie może ukryć tylko trener.' : 'Nie udało się ukryć — spróbuj za chwilę.'); return; }
+  window.IMPREZY.wyczysc();
+  var w = b.closest('.imprezy-wiersz'); if (w) w.remove();
+  showToast('Zgłoszenie ukryte.');
+}
 function imprezyStart() {
   var s = document.getElementById('imprezy-sekcja');
   if (!s) return;
   s.hidden = false;
+  var listaEl = document.getElementById('imprezy-lista');
+  if (listaEl && !listaEl._bmUkryj) { listaEl._bmUkryj = true; listaEl.addEventListener('click', imprezyUkryj); }
   s.querySelectorAll('.imprezy-okres').forEach(function (b) {
     b.addEventListener('click', function () {
       s.querySelectorAll('.imprezy-okres').forEach(function (x) { x.classList.toggle('on', x === b); });
@@ -632,7 +647,9 @@ async function imprezyLaduj() {
     return '<div class="imprezy-wiersz" style="padding:10px 0;border-top:1px solid var(--border);">'
       + '<div style="font-weight:600;font-size:14px;">' + escapeHtml(i.nazwa) + '</div>'
       + '<div style="color:var(--muted);font-size:12px;margin-top:2px;">' + escapeHtml(meta) + '</div>'
+      + (i.status === 'zgloszona' ? '<div class="imprezy-zgloszona" style="color:var(--muted);font-size:11px;margin-top:2px;font-style:italic;">zgłoszona przez biegacza</div>' : '')
       + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
+      + (_isCoach && i.status && /^zgloszenie:/.test(i.klucz || '') ? ' <button type="button" class="imprezy-ukryj" data-klucz="' + escapeHtml(i.klucz) + '" style="margin-left:8px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;">Ukryj</button>' : '')
       + '</div>';
   }).join('');
 }
@@ -656,8 +673,6 @@ async function imprezyLaduj() {
     });
   }
 
-  // K4: „W Polsce" — tylko gdy serwer wyników dostępny (ta sama bramka co wyszukiwarka wyników)
-  if (apiWynikow && window.IMPREZY) imprezyStart();
 
   // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")
   _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';
@@ -681,6 +696,10 @@ async function imprezyLaduj() {
   const { data: coachRow } = await _sb.from('coaches').select('id').eq('id', _user.id).maybeSingle();
   _isCoach = !!coachRow;
   updateAddRaceUI();
+
+  // K4: „W Polsce" — tylko gdy serwer wyników dostępny (ta sama bramka co wyszukiwarka wyników). K5: PO rozpoznaniu
+  // trenera, bo trener widzi przy zgłoszeniach „Ukryj" (F6 i tak sprawdza go po swojej liście — to tylko widok).
+  if (apiWynikow && window.IMPREZY) imprezyStart();
 
   await loadRaces();
   await loadMySignups();

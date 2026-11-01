@@ -23,7 +23,8 @@
   var API_URL = 'https://api.biegamy.run';
   var TIMEOUT_MS = 15000;
   var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status', 'events_search',
-    'erasure_preview', 'erasure_request', 'erasure_confirm', 'erasure_cancel', 'erasure_status'];
+    'erasure_preview', 'erasure_request', 'erasure_confirm', 'erasure_cancel', 'erasure_status',
+    'event_hide'];   // K5 (018): trener ukrywa zgłoszenie; event_propose świadomie POZA listą — wyłącznie przez EF impreza-zglos
   var KODY = { 400: 'zle_dane', 401: 'nieautoryzowany', 403: 'odmowa', 404: 'brak', 413: 'za_duze', 429: 'limit' };
   var KLUCZ_PODGLADU = 'wyniki_api_podglad';
 

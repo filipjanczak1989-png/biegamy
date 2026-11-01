@@ -289,3 +289,30 @@ Jeden commit; zasada: 0 tokenów, liczby z danych, zdania ze słowników, które
   docs/lawka-pytan-2026-11-01-4.md — dobra 41/50, zła 0, pusta 1 (półmaraton w Krakowie poza 90 dniami), za droga 8
   (porady i produkty — poza zakresem), 0 wyjść nazwisk do sieci; koszt symulacji $0,28 (cel $0,15 wymaga decyzji o poradach).
 
+
+## K5 — cel startowy ↔ kalendarz imprez (1.11.2026) — wdrożone (F6 018/018b, EF impreza-zglos, okienko v23)
+
+Decyzja Filipa: zgłoszenie widoczne OD RAZU (status `zgloszona`, etykieta „zgłoszona przez biegacza"), trener ukrywa
+(`ukryta`), kolektor potwierdza (`potwierdzona` — etykieta znika).
+- Maszyna3 (repo biegamy-collector, `ops/vps/sql/018_event_propose.sql`, `018b_bramka_event_propose.sql`, wycofania
+  `018_rollback.sql` ze STANU BAZY, `018b_rollback.sql` = 017b): tabela `imprezy_zgloszenia` (nazwa, data, miejscowość,
+  status, hash zgłaszającego `prywatne.konto()`), `event_propose` (5/dobę/konto; dedup data ±1 + nazwa bez cyfr względem
+  kalendarza, calendar_races, race_events i zgłoszeń — przed limitem, więc nie zużywa limitu), `event_hide` (tylko konto
+  z `prywatne.trenerzy`), `events_search` i `upcoming_races` z kolumnami `klucz` i `status` (upcoming_races też
+  `dokladnosc_daty`, null). Caddy: dwie ścieżki w `@dozwolone`, strefa `na_zapis` 10/min na token, no-store. Testy S-
+  `tools/test-018/` 12/12 (próba w transakcji przed wdrożeniem i po).
+- Trener w F6 — ZWIAD: JWT ma trenera tylko w `user_metadata.role` (użytkownik zmienia sam → nie dowód; S10), app_metadata
+  pusty, hooka brak → lista hashy `prywatne.trenerzy` po stronie F6 (2 wpisy), opis w `ops/vps/F6-K5-TRENERZY.md`.
+- BiegaMy: modal celu (zawodnik.html) podpowiada nasze starty + ≤ 5 imprez z `events_search` (od 3 znaków, bez dubli
+  z naszymi startami — `IMPREZY.toSamo`); wybór wiąże cel kluczem `race_goals[].impreza_klucz` (bez zgłoszenia); brak
+  w kalendarzu → `window.zglosImpreze` → EF `impreza-zglos` (biała lista: nazwa, data, miejscowość; token użytkownika)
+  → `event_propose`, PRZED zapisem celu, klucz od razu w celu; 429/sieć/błąd → cel zapisany bez klucza. Nowe pole
+  „Miejscowość (opcjonalnie)" w modalu. Podpowiedzi przez `data-*` + delegowany klik z białą listą funkcji (stary
+  `onclick="goalPickRace('…')"` z `escAttrJS` usunięty — zakazany wzorzec z CLAUDE.md).
+- `race_goals` to kolumna TEKSTOWA z JSON-em (bez CHECK i triggera kształtu) — `impreza_klucz` jest polem obiektu celu,
+  migracja DDL w BiegaMy nie była potrzebna (świadomie bez pustej migracji).
+- Etykieta „zgłoszona przez biegacza": races.html „W Polsce" (+ „Ukryj" dla trenera → `event_hide`, start sekcji po
+  rozpoznaniu trenera) i karty imprez okienka. `event_hide` w `RPC_DOZWOLONE` js/wyniki-api.js; `event_propose` świadomie
+  POZA listą (tylko przez EF). Testy: blizna-87; blizna-53 (11 RPC).
+- Poza zakresem: modal celu w profil.html i kalendarz.html (trener ustawia cel zawodnikowi) — bez podpowiedzi z maszyny
+  i bez zgłoszeń; do decyzji, czy dołożyć.

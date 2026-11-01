@@ -409,11 +409,31 @@
       return String(v || '').split(/[;,|]/).map(function (x) { return Number(String(x).replace(',', '.').replace(/[^\d.]/g, '')); })
         .filter(function (x) { return x > 0; }).slice(0, 6);
     }
+    var RE_KLUCZ_IMPREZY = /^(kalendarz|biegamy|wyniki|zgloszenie):[A-Za-z0-9:._-]{1,120}$/;
     function mapuj(r) {
       var m = r.miejscowosc || r.city || null;
+      var k = String(r.klucz || r.group_key || '');
+      /* K5 (018): status 'zgloszona' = impreza zgłoszona przez biegacza (etykieta), 'potwierdzona' = kolektor potwierdził
+         (bez etykiety); klucz = stały identyfikator imprezy w maszynie (do celu startowego i ukrywania przez trenera) */
       return { nazwa: String(r.nazwa || r.name || '').slice(0, 140), data: r.data || r.event_date || null,
         dokladnosc: r.dokladnosc_daty === 'miesiac' ? 'miesiac' : 'dzien', miejscowosc: m && m !== 'Polska' ? String(m).slice(0, 60) : null,
-        dystanse: dystanse(r.dystanse != null ? r.dystanse : r.distances), url: r.url_organizer || r.url_zapisy || r.source_url || null };
+        dystanse: dystanse(r.dystanse != null ? r.dystanse : r.distances), url: r.url_organizer || r.url_zapisy || r.source_url || null,
+        status: r.status === 'zgloszona' || r.status === 'potwierdzona' ? r.status : null, klucz: RE_KLUCZ_IMPREZY.test(k) ? k : null };
+    }
+    function bezCyfr(s) { return klucz(String(s || '').replace(/[0-9]/g, '')); }
+    /** Ten sam bieg? Nasz start {name,date} vs impreza {nazwa,data}: data ±1 i nazwa bez cyfr i polskich znaków (jak dedup F6). */
+    function toSamo(nasz, imp) { return !!(nasz && imp && nasz.date && imp.data && dni(nasz.date, imp.data) <= 1 && bezCyfr(nasz.name) === bezCyfr(imp.nazwa)); }
+    function wyczysc() {
+      try { for (var i = sessionStorage.length - 1; i >= 0; i--) { var kk = sessionStorage.key(i); if (kk && kk.indexOf(PREF) === 0) sessionStorage.removeItem(kk); } } catch (e) {}
+    }
+    /** K5: podpowiedź w modalu celu — events_search od dziś, ≤ 5, tylko z kluczem. Błąd/wyłączone → []. */
+    async function podpowiedz(sb, q, teraz) {
+      q = String(q || '').trim().slice(0, 80);
+      if (!IMPREZY_WLACZONE || q.length < 3) return [];
+      if (typeof window.wynikiApiDostepne !== 'function' || !window.wynikiApiDostepne()) return [];
+      var r = await window.wynikiApi(sb).rpc('events_search', { p_q: q, p_from: dzien(teraz || new Date()), p_limit: 5 });
+      if (r.error || !Array.isArray(r.data)) return [];
+      return r.data.map(mapuj).filter(function (x) { return x.nazwa && x.data && x.klucz; }).slice(0, 5);
     }
     async function szukaj(sb, opcje) {
       opcje = opcje || {};
@@ -441,8 +461,29 @@
       });
       return { lista: lista, liczba: lista.length, uciete: !!dane.uciete, okres: okres, q: q.length >= 3 ? q : '' };
     }
-    return { szukaj: szukaj, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
+    return { szukaj: szukaj, podpowiedz: podpowiedz, toSamo: toSamo, wyczysc: wyczysc, OKRESY: OKRESY, WLACZONE: IMPREZY_WLACZONE, _klucz: klucz, _mapuj: mapuj };
   })();
+
+  /* K5 (1.11.2026): zgłoszenie imprezy, której kalendarz maszyny nie zna (cel startowy bez powiązania) → EF impreza-zglos →
+     F6 event_propose. Do EF idą WYŁĄCZNIE nazwa, data i miejscowość (EF i tak przepuszcza tylko te trzy). Wynik:
+     {klucz, istniala, status} albo {blad: 'limit' (6. w dobie) | 'dane' | 'siec' | 'blad'} — nigdy wyjątek, bo cel
+     zapisujemy niezależnie od zgłoszenia (blizna-87). */
+  window.zglosImpreze = async function (cel) {
+    var body = { nazwa: String((cel && cel.nazwa) || '').slice(0, 200), data: String((cel && cel.data) || '').slice(0, 10),
+      miejscowosc: cel && cel.miejscowosc ? String(cel.miejscowosc).slice(0, 80) : null };
+    if (!window.sb || !window.sb.functions || typeof window.sb.functions.invoke !== 'function') return { blad: 'blad' };
+    try {
+      var r = await window.sb.functions.invoke('impreza-zglos', { body: body });
+      if (r.error) {
+        var st = r.error.context && r.error.context.status;
+        return { blad: st === 429 ? 'limit' : st === 400 ? 'dane' : 'blad' };
+      }
+      var d = r.data || {};
+      if (typeof d.klucz !== 'string') return { blad: 'blad' };
+      if (window.IMPREZY && window.IMPREZY.wyczysc) window.IMPREZY.wyczysc();
+      return { klucz: d.klucz, istniala: d.istniala === true, status: typeof d.status === 'string' ? d.status : null };
+    } catch (e) { return { blad: 'siec' }; }
+  };
 
   /* HASŁO (1.11.2026) — jedna reguła dla „Ustaw nowe hasło" (index.html, link z maila) i „Zmień hasło" (profil.html):
      min. 8 znaków jak przy rejestracji, dwa pola równe. Zwraca komunikat po polsku albo null. Hasło NIGDY nie jest tu

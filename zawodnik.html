@@ -1569,9 +1569,14 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
     <div id="goal-linked-info" style="display:none;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--green);">
       <div style="display:flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-        <span>Powiązano z kalendarzem startów — zostaniesz auto-zapisany</span>
+        <span id="goal-linked-txt">Powiązano z kalendarzem startów — zostaniesz auto-zapisany</span>
         <button onclick="goalUnlinkRace()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">×</button>
       </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Miejscowość (opcjonalnie)</label>
+      <input id="goal-city-input" type="text" placeholder="np. Poznań" autocomplete="off" maxlength="80"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
     </div>
     <div style="margin-bottom:20px;">
       <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Data startu</label>
@@ -1843,6 +1848,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
 <script src="sb.js"></script>
+<script src="js/wyniki-api.js"></script><!-- K5: podpowiedź imprez z kalendarza maszyny w modalu celu (window.IMPREZY.podpowiedz) -->
 <script src="js/cwiczenia-nazwy.mjs"></script>
 <script src="js/okienko.js"></script><!-- M1 „Zapytaj" (po sb.js: escapeHtml, sb, SB_URL) -->
 <script src="js/dzis-offline.js"></script>
@@ -3631,6 +3637,8 @@ async function savePBs() {
 function openAddGoal() {
   document.getElementById('goal-name-input').value = '';
   document.getElementById('goal-date-input').value = '';
+  var gc = document.getElementById('goal-city-input'); if (gc) gc.value = '';
+  window._goalLinkedImpreza = null;
   var sg = document.getElementById('goal-suggest'); if (sg) { sg.style.display='none'; sg.innerHTML=''; }
   var li = document.getElementById('goal-linked-info'); if (li) li.style.display='none';
   window._goalLinkedRace = null;
@@ -3640,6 +3648,7 @@ function openAddGoal() {
 function closeAddGoal() {
   document.getElementById('goal-modal').style.display = 'none';
   window._goalLinkedRace = null;
+  window._goalLinkedImpreza = null;
   window._goalLinkingIdx = null;
 }
 
@@ -3647,52 +3656,89 @@ function closeAddGoal() {
 // opts (opcjonalne) pozwalają wpiąć tę samą wyszukiwarkę w inny formularz —
 // generator planów używa jej przez { sugId, pick }. Wywołanie bez opts zachowuje
 // się dokładnie jak dotąd (modal celu startowego).
-let _goalSuggestTimer = null;
+let _goalSuggestTimer = null, _goalSuggestNr = 0;
+/* K5 (1.11.2026): wiersze podpowiedzi niosą dane w data-*, klik obsługuje JEDEN delegowany nasłuch z białą listą funkcji.
+   Do 1.11 nazwa biegu szła do onclick="goalPickRace('…')" przez escAttrJS — wzorzec zakazany w CLAUDE.md (encje HTML
+   dekodują się przed parserem JS); z nazwami z maszyny wyników (dane zewnętrzne) byłby to otwarty XSS. */
+var _GOAL_PICK = { goalPickRace: 1, genPickRace: 1, goalPickImpreza: 1 };
+function _goalPodepnijKlik(sg) {
+  if (sg._bmKlik) return;
+  sg._bmKlik = true;
+  sg.addEventListener('click', function (e) {
+    var w = e.target && e.target.closest ? e.target.closest('.gs-wiersz') : null;
+    if (!w) return;
+    var f = w.getAttribute('data-pick');
+    if (!_GOAL_PICK[f] || typeof window[f] !== 'function') return;
+    if (f === 'goalPickImpreza') window.goalPickImpreza({ klucz: w.getAttribute('data-klucz'), nazwa: w.getAttribute('data-nazwa'),
+      data: w.getAttribute('data-data'), miejscowosc: w.getAttribute('data-miejsce') || null });
+    else window[f](w.getAttribute('data-race-id'), w.getAttribute('data-nazwa'), w.getAttribute('data-data'));
+  });
+}
+function _goalWiersz(attrs, dStr, nazwa, meta) {
+  var e = window.escapeHtml;
+  return '<div class="gs-wiersz" ' + attrs + ' style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" '
+    + 'onmouseover="this.style.background=\'rgba(var(--accent-rgb),0.08)\'" onmouseout="this.style.background=\'transparent\'">'
+    + '<div style="background:var(--accent);color:#fff;border-radius:8px;padding:4px 8px;font-family:Bebas Neue,sans-serif;font-size:13px;flex-shrink:0;">' + e(dStr) + '</div>'
+    + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + e(nazwa) + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + e(meta) + '</div></div></div>';
+}
 async function goalSuggest(q, opts) {
   const sugId = (opts && opts.sugId) || 'goal-suggest';
   const pickFn = (opts && opts.pick) || 'goalPickRace';
   // Reset linkowania jeśli użytkownik zmienia tekst (tylko modal celu)
-  if (!opts && window._goalLinkedRace && window._goalLinkedRace.name !== q) {
+  if (!opts && ((window._goalLinkedRace && window._goalLinkedRace.name !== q) || (window._goalLinkedImpreza && window._goalLinkedImpreza.nazwa !== q))) {
     goalUnlinkRace();
   }
   clearTimeout(_goalSuggestTimer);
   const sg = document.getElementById(sugId);
   if (!sg) return;
+  _goalPodepnijKlik(sg);
   if (!q || q.trim().length < 2) {
     sg.style.display = 'none'; sg.innerHTML = '';
     return;
   }
+  const nr = ++_goalSuggestNr;
   _goalSuggestTimer = setTimeout(async function() {
     const today = new Date().toISOString().slice(0,10);
-    const { data } = await sb.from('races')
-      .select('id,name,date,city,distance_km')
-      .eq('status','approved')
-      .gte('date', today)
-      .or('name.ilike.%' + q + '%,city.ilike.%' + q + '%')
-      .order('date', { ascending: true })
-      .limit(8);
-    if (!data || !data.length) {
+    const qq = q.trim();
+    const [rRaces, zMaszyny] = await Promise.all([
+      sb.from('races')
+        .select('id,name,date,city,distance_km')
+        .eq('status','approved')
+        .gte('date', today)
+        .or('name.ilike.%' + q + '%,city.ilike.%' + q + '%')
+        .order('date', { ascending: true })
+        .limit(8),
+      // K5: kalendarz maszyny wyników — tylko modal celu (generator ma własną drogę), od 3 znaków, ≤ 5
+      (!opts && qq.length >= 3 && window.IMPREZY && window.IMPREZY.podpowiedz) ? window.IMPREZY.podpowiedz(sb, qq).catch(function () { return []; }) : Promise.resolve([])
+    ]);
+    if (nr !== _goalSuggestNr) return;   // nowsze wpisanie w drodze
+    const data = (rRaces && rRaces.data) || [];
+    const imprezy = (zMaszyny || []).filter(function (i) { return !data.some(function (r) { return window.IMPREZY.toSamo(r, i); }); }).slice(0, 5);
+    if (!data.length && !imprezy.length) {
       // Generator NIE „zapisze jako tekst" — bez daty startu nie ma czego liczyć,
-      // więc dostaje własne zdanie z drogą wyjścia. Modal celu zostaje jak był.
+      // więc dostaje własne zdanie z drogą wyjścia. Modal celu: cel jak dotąd + zgłoszenie imprezy (K5).
       const brak = opts
         ? 'Brak w kalendarzu — wpisz datę startu w polu niżej'
-        : 'Brak w kalendarzu — zapiszemy jako tekst';
+        : 'Brak w kalendarzu — zapiszemy cel i zgłosimy imprezę do kalendarza';
       sg.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">' + brak + '</div>';
       sg.style.display = 'block';
       return;
     }
-    sg.innerHTML = data.map(function(r) {
+    const e = window.escapeHtml;
+    const wiersze = data.map(function(r) {
       const d = new Date(r.date + 'T00:00:00');
       const dStr = d.toLocaleDateString('pl-PL', { day:'numeric', month:'short' });
       const dist = r.distance_km ? Math.round(r.distance_km*10)/10 + ' km' : '';
-      return '<div onclick="' + pickFn + '(\'' + r.id + '\',\'' + escAttrJS(r.name) + '\',\'' + r.date + '\')" '
-        + 'style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" '
-        + 'onmouseover="this.style.background=\'rgba(var(--accent-rgb),0.08)\'" onmouseout="this.style.background=\'transparent\'">'
-        + '<div style="background:var(--accent);color:#fff;border-radius:8px;padding:4px 8px;font-family:Bebas Neue,sans-serif;font-size:13px;flex-shrink:0;">'+dStr+'</div>'
-        + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escHt(r.name)+'</div>'
-        + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+(r.city||'—')+(dist?' · '+dist:'')+'</div></div>'
-        + '</div>';
-    }).join('');
+      return _goalWiersz('data-pick="' + e(pickFn) + '" data-race-id="' + e(r.id) + '" data-nazwa="' + e(r.name) + '" data-data="' + e(r.date) + '"',
+        dStr, r.name, (r.city || '—') + (dist ? ' · ' + dist : ''));
+    }).concat(imprezy.map(function (i) {
+      const dStr = new Date(i.data + 'T00:00:00').toLocaleDateString('pl-PL', { day:'numeric', month:'short' });
+      const meta = [i.miejscowosc || '', i.status === 'zgloszona' ? 'zgłoszona przez biegacza' : 'kalendarz imprez w Polsce'].filter(Boolean).join(' · ');
+      return _goalWiersz('data-pick="goalPickImpreza" data-klucz="' + e(i.klucz) + '" data-nazwa="' + e(i.nazwa) + '" data-data="' + e(i.data) + '" data-miejsce="' + e(i.miejscowosc || '') + '"',
+        dStr, i.nazwa, meta);
+    }));
+    sg.innerHTML = wiersze.join('');
     sg.style.display = 'block';
   }, 200);
 }
@@ -3706,11 +3752,28 @@ window.goalPickRace = function(raceId, raceName, raceDate) {
   document.getElementById('goal-date-input').value = raceDate;
   var sg = document.getElementById('goal-suggest'); if (sg) { sg.style.display='none'; sg.innerHTML=''; }
   var li = document.getElementById('goal-linked-info'); if (li) li.style.display='block';
+  var lt = document.getElementById('goal-linked-txt'); if (lt) lt.textContent = 'Powiązano z kalendarzem startów — zostaniesz auto-zapisany';
+  window._goalLinkedImpreza = null;
   window._goalLinkedRace = { id: raceId, name: raceName, date: raceDate };
+};
+
+/* K5: wybór imprezy z kalendarza maszyny — wypełnia nazwę, datę i miejscowość i wiąże cel (race_goals[].impreza_klucz).
+   Wybór NIE wysyła zgłoszenia (impreza już jest w kalendarzu). */
+window.goalPickImpreza = function(d) {
+  if (!d || !/^(kalendarz|biegamy|wyniki|zgloszenie):[A-Za-z0-9:._-]{1,120}$/.test(String(d.klucz || '')) || !/^\d{4}-\d{2}-\d{2}$/.test(String(d.data || ''))) return;
+  document.getElementById('goal-name-input').value = d.nazwa || '';
+  document.getElementById('goal-date-input').value = d.data;
+  var gc = document.getElementById('goal-city-input'); if (gc && d.miejscowosc) gc.value = d.miejscowosc;
+  var sg = document.getElementById('goal-suggest'); if (sg) { sg.style.display='none'; sg.innerHTML=''; }
+  var li = document.getElementById('goal-linked-info'); if (li) li.style.display='block';
+  var lt = document.getElementById('goal-linked-txt'); if (lt) lt.textContent = 'Z kalendarza imprez w Polsce — cel powiązany z imprezą';
+  window._goalLinkedRace = null;
+  window._goalLinkedImpreza = { klucz: d.klucz, nazwa: d.nazwa || '', data: d.data, miejscowosc: d.miejscowosc || null };
 };
 
 window.goalUnlinkRace = function() {
   window._goalLinkedRace = null;
+  window._goalLinkedImpreza = null;
   var li = document.getElementById('goal-linked-info'); if (li) li.style.display='none';
 };
 
@@ -3742,11 +3805,28 @@ async function saveGoal() {
     goals = odczyt.cele;
   }
 
+  /* K5: powiązanie z imprezą z kalendarza maszyny (wybór z podpowiedzi) albo — gdy celu nie wiąże nic — zgłoszenie
+     imprezy (EF impreza-zglos → F6 event_propose) PRZED zapisem, żeby zapisać klucz od razu jednym zapisem. Zgłoszenie
+     nigdy nie blokuje celu: limit (6. w dobie), brak sieci czy błąd → cel zapisany bez klucza (blizna-87). */
+  const miejscowosc = ((document.getElementById('goal-city-input') || {}).value || '').trim().slice(0, 80);
+  const imp = window._goalLinkedImpreza;
+  let imprezaKlucz = (!raceId && imp && imp.nazwa === name) ? imp.klucz : null;
+  const poprzedni = (linkingIdx !== null && goals[linkingIdx]) ? goals[linkingIdx] : null;
+  if (!raceId && !imprezaKlucz && poprzedni && poprzedni.impreza_klucz && poprzedni.name === name) imprezaKlucz = poprzedni.impreza_klucz;   // edycja: już zgłoszone/powiązane
+  let zgloszenie = null;
+  if (!raceId && !imprezaKlucz && date && typeof window.zglosImpreze === 'function') {
+    zgloszenie = await window.zglosImpreze({ nazwa: name, data: date, miejscowosc: miejscowosc || null });
+    if (zgloszenie && zgloszenie.klucz) imprezaKlucz = zgloszenie.klucz;
+  }
+  const cel = { name, date, race_id: raceId || null };
+  if (imprezaKlucz) cel.impreza_klucz = imprezaKlucz;
+  if (miejscowosc) cel.miejscowosc = miejscowosc;
+
   if (linkingIdx !== null && goals[linkingIdx]) {
     // Aktualizuj istniejący
-    goals[linkingIdx] = { name, date, race_id: raceId || null };
+    goals[linkingIdx] = cel;
   } else {
-    goals.push({ name, date, race_id: raceId || null });
+    goals.push(cel);
   }
 
   const { error } = await sb.from('athletes').update({
@@ -3771,7 +3851,11 @@ async function saveGoal() {
     } catch(e) { console.warn('Auto-signup failed:', e); }
   }
 
-  toast(raceId ? 'Cel zapisany na zawody ✓' : 'Cel dodany ✓');
+  toast(raceId ? 'Cel zapisany na zawody ✓'
+    : zgloszenie && zgloszenie.klucz && !zgloszenie.istniala ? 'Cel dodany ✓ · impreza zgłoszona do kalendarza'
+    : zgloszenie && zgloszenie.klucz ? 'Cel dodany ✓ · impreza jest już w kalendarzu'
+    : zgloszenie && zgloszenie.blad === 'limit' ? 'Cel dodany ✓ · zgłoszenia imprez na dziś wyczerpane'
+    : 'Cel dodany ✓');
   closeAddGoal();
   window._goalLinkingIdx = null;
   window._profileGoals = goals;

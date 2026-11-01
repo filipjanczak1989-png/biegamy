@@ -18,7 +18,7 @@ function dystanse(v) {
 export function mapuj(r) {
   const miasto = r.miejscowosc ?? r.city ?? null;
   return {
-    klucz: String(r.group_key ?? r.id ?? "").slice(0, 80) || null,
+    klucz: String(r.klucz ?? r.group_key ?? r.id ?? "").slice(0, 80) || null,   // 018: events_search ma własne `klucz`
     nazwa: String(r.nazwa ?? r.name ?? "").slice(0, 120),
     data: r.data ?? r.event_date ?? null,
     dokladnosc_daty: r.dokladnosc_daty === "miesiac" ? "miesiac" : "dzien",
