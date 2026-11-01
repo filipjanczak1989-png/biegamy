@@ -65,6 +65,10 @@ Deno.serve(async (req) => {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router" });
     return odp(200, { ...pusto("router"), akcja: { nawiguj: traf.nawiguj } });
   }
+  if (traf && "zdanie" in traf) {   // M3-1 (3): powitanie — jedno zdanie, 0 tokenów
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: ["powitanie"] });
+    return odp(200, { ...pusto("router"), zdania: [traf.zdanie] });
+  }
   if (traf) {
     const w = waliduj(traf.narzedzie, traf.args);
     if (!w.ok) return odp(400, { blad: w.blad });

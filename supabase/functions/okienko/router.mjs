@@ -21,6 +21,7 @@ function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego 
   return { od, do: koniec < dzis ? koniec : dzis };
 }
 
+export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utwór z radia albo przepis.";
 const EKRAN_SLOWO = [
   [/\b(log|dziennik)\b/, "log"], [/\bplan\b/, "plan"], [/\bform\w*/, "forma"], [/\bspolecznos\w*/, "spolecznosc"],
   [/\bprofil\w*/, "profil"], [/\bradi\w*/, "radio"], [/\bkalendarz\w*/, "plan"], [/\bstart\w*/, "starty"],
@@ -86,6 +87,9 @@ export function dopasuj(tekst, dzis) {
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };
   if (/\bplan\w*\b.*\btydz\w*|\bplan tygodni/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "tydzien" } };
   if (/\b(kiedy|jaki)\b.*\bstart|\bnajblizsz\w* start|\bmoje starty|\bmoj start/.test(t)) return { narzedzie: "moje_starty", args: {} };
+  // M3-1 (3): powitanie → jedno zdanie bez modelu; „kto jest moim trenerem" → moj_trener (0 tokenów)
+  if (/^(dzien dobry|czesc|hej|siema|witaj|witam|halo|dobry wieczor|hello|hi|elo|no hej)\b/.test(t) && t.split(" ").length <= 3) return { zdanie: POWITANIE };
+  if (/\b(moj|mojego|moim|mojemu)\s+trener\w*|\bmoim trenerem\b|\bmam trenera\b|\bkto mnie trenuje\b/.test(t)) return { narzedzie: "moj_trener", args: {} };
   // M3d: rekordy i moje wyniki — przed kalendarzem („jak mi poszło w Dębnie" to wynik, nie termin)
   if (!/\bkto\b/.test(t)) {
     const cudzyRekord = /\b(swiata|polski|europy|olimpijsk\w*|trasy|kraju|mistrz\w*)\b/.test(t);   // M3-1 (2): rekord świata ≠ mój rekord

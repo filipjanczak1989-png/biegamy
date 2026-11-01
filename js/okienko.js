@@ -93,7 +93,9 @@
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
     /* M3d: rekord (z profilu) i „Który to Ty?" (imiennicy w maszynie wyników; wybór zapisuje RPC po tapnięciu). */
-    if (k.typ === 'rekord') return '<div class="okn-karta"><b>' + esc(d.dystans || '') + '</b><span class="okn-meta">' + esc([d.czas, d.rok].filter(Boolean).join(' · ')) + '</span></div>';
+    if (k.typ === 'rekord') return '<div class="okn-karta"><b>' + esc(d.dystans || '') + '</b><span class="okn-meta">' + esc([d.czas, d.rok, d.zrodlo === 'wyniki' ? 'z wyników zawodów' + (d.bieg ? ': ' + d.bieg : '') : ''].filter(Boolean).join(' · ')) + '</span></div>';
+    if (k.typ === 'trener') return '<div class="okn-karta okn-karta--osoba"><b>' + esc(d.nazwa || 'Trener') + '</b><span class="okn-meta">' + esc(d.specjalizacja ? 'Twój trener · ' + d.specjalizacja : 'Twój trener') + '</span>' +
+      '<button type="button" class="okn-otworz" data-plan="trener">Napisz</button></div>';
     if (k.typ === 'ktory_to_ty') return (Array.isArray(d.opcje) ? d.opcje : []).filter(function (o) { return RE_KLUCZ_F6.test(String(o.klucz || '')); }).slice(0, 5).map(function (o) {
       var meta = [o.rocznik ? 'rocznik ' + o.rocznik : '', o.starty != null ? startyTxt(Number(o.starty)) : '', o.ostatni ? 'ostatni: ' + o.ostatni : ''].filter(Boolean).join(' · ');
       return '<div class="okn-karta"><b>' + esc(o.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
@@ -237,13 +239,46 @@
   }
 
   function el(id) { return document.getElementById(id); }
+
+  /* M3-1 (3): POGODA po stronie klienta — to samo źródło co kafel na Dziś (sessionStorage weather:<miasto>, EF get-weather,
+     30 min), 0 tokenów, bez wywołania EF (więc bez wpisu w okienko_log). Dziś / jutro / pojutrze; inne miasto w pytaniu
+     niż w kaflu → mówimy, dla którego miasta mamy pogodę. Brak kafla (miasto nieustawione) → odsyłamy do Profilu. */
+  function opisPogody(c) {
+    c = Number(c);
+    if (c >= 95) return 'burza';
+    if ([71, 73, 75, 77, 85, 86].indexOf(c) >= 0) return 'śnieg';
+    if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return 'deszcz';
+    if (c === 45 || c === 48) return 'mgła';
+    return { 0: 'słonecznie', 1: 'przeważnie słonecznie', 2: 'częściowe zachmurzenie', 3: 'pochmurno' }[c] || 'zmienne zachmurzenie';
+  }
+  function pogodaLokalnie(tekst) {
+    var n = window.BM_TEKST ? window.BM_TEKST.normalizuj(tekst) : String(tekst || '').toLowerCase();
+    if (!/\bpogod/.test(n)) return null;
+    var dane = null;
+    try { for (var i = 0; i < sessionStorage.length; i++) { var k = sessionStorage.key(i); if (k && k.indexOf('weather:') === 0) { var c = JSON.parse(sessionStorage.getItem(k) || 'null'); if (c && c.data && c.data.days && c.data.days.length) { dane = c.data; break; } } } } catch (e) {}
+    if (!dane) return '<p class="okn-zdanie">' + esc('Pogodę biorę z kafla na Dziś — ustaw miasto w Profilu, a powiem, co jutro.') + '</p><button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.profil) + '">Otwórz Profil ›</button>';
+    var idx = /pojutrz/.test(n) ? 2 : /jutr/.test(n) ? 1 : 0;
+    var d = dane.days[idx] || dane.days[0];
+    var kiedy = idx === 2 && dane.days[2] ? 'Pojutrze' : idx >= 1 && dane.days[1] ? 'Jutro' : 'Dziś';
+    var m = n.match(/\b(w|we)\s+([a-z]{3,})\s*$/), miasto = dane.city || '';
+    var ra = m && window.BM_TEKST ? window.BM_TEKST.rdzen(m[2]) : '', rb = window.BM_TEKST ? window.BM_TEKST.rdzen(window.BM_TEKST.tylkoLitery(miasto)) : '';
+    var inne = m && ra && rb && !(ra.indexOf(rb) === 0 || rb.indexOf(ra) === 0) ? ' Mam pogodę tylko dla miasta ' + miasto + ' (z kafla na Dziś).' : '';
+    var zd = kiedy + (miasto ? ' (' + miasto + ')' : '') + ': ' + opisPogody(d.weather_code) + (d.temp_max != null ? ', do ' + Math.round(Number(d.temp_max)) + '°C' : '') + (d.precip_pct != null ? ', opady ' + Math.round(Number(d.precip_pct)) + '%' : '') + '.' + inne;
+    return '<p class="okn-zdanie">' + esc(zd) + '</p>';
+  }
+
   async function wyslij(tekst) {
     var wynik = el('okienko-wynik'); if (!wynik) return;
+    var lokalnie = pogodaLokalnie(tekst);
+    if (lokalnie) { wynik.innerHTML = lokalnie; zapamietajPytanie(tekst); return; }
     wynik.innerHTML = '<div class="okn-szkielet" aria-hidden="true"></div>';
     wynik.setAttribute('aria-busy', 'true');
     var o = await zapytaj(tekst);
     wynik.removeAttribute('aria-busy');
     wynik.innerHTML = htmlOdpowiedzi(o.status, o.json, tekst);
+    zapamietajPytanie(tekst);
+  }
+  function zapamietajPytanie(tekst) {
     var ost = czytaj(KLUCZ_OSTATNIE, []);
     if (!Array.isArray(ost)) ost = [];
     zapisz(KLUCZ_OSTATNIE, [tekst].concat(ost.filter(function (q) { return q !== tekst; })).slice(0, 5));
@@ -364,6 +399,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy };
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, pogodaLokalnie: pogodaLokalnie };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

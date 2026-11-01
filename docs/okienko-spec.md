@@ -243,3 +243,18 @@ trening, oddech, utwor, piosenka, odznaka, wyzwanie, jest, czym…) i liczy cyfr
 to samo w przepisy-szukaj.mjs — Jedzenie); (8) F6: imię i nazwisko najpierw jak wpisane, przy 0 trafień drugie wywołanie
 rdzeniami („katarz chojnack" — search_runners dopasowuje po tokenach; na prod 4 trafienia), maks. 2 wywołania.
 Testy: blizna-82; blizna-73/76 dostosowane.
+
+## M3-1 (3) tanie narzędzia (1.11.2026) — wdrożone w v20
+
+- `moj_trener` (router „kto jest moim trenerem / mój trener / mam trenera", 0 tokenów; także dla modelu): coach_id →
+  `coaches.full_name` (SELECT publiczny), karta trenera z „Napisz" (data-plan=trener → czat); bez trenera → „Trenujesz
+  bez trenera w BiegaMy.".
+- Pogoda PO STRONIE KLIENTA (js/okienko.js `pogodaLokalnie`): to samo źródło co kafel Dziś (`sessionStorage weather:<miasto>`,
+  EF get-weather, 30 min), dziś / jutro / pojutrze, opis z weather_code, temp_max, opady; inne miasto w pytaniu → dopisek,
+  jakie miasto mamy; brak kafla → do Profilu. 0 tokenów, bez EF → BEZ wpisu w okienko_log (świadomie).
+- Powitanie („dzień dobry", „cześć", „hej"… ≤ 3 słowa) → jedno zdanie z routera (`POWITANIE`), log router/powitanie.
+- „moje rekordy" przy pustych `pb_*` → najlepsze czasy Z WYNIKÓW ZAWODÓW przez `moje_wyniki` (F6) na 5/10/21,1/42,2 km
+  (±3 %), zdanie „Twoje najlepsze czasy z wyników zawodów: …", karty z etykietą „z wyników zawodów: <bieg>" — nigdy
+  z treningów; imiennicy → „Który to Ty?"; 429 → zajęta. Testy: blizna-83; blizna-64 o 9 narzędziach.
+Ławka po (3): docs/lawka-pytan-2026-11-01-3.md. Cele „≥ 40 dobra, koszt < $0,15" NIE osiągnięte w tym zakresie —
+reszta to M3e (forma, znajomi), pojęcia (TSB), kalkulator tempa, słowa-klucze ekranów (hasło), porady ogólne (sieć).

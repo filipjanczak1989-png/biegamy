@@ -68,9 +68,15 @@ export function zWyniku(nazwa, w, args = {}) {
         if (pb) zdania.push(`Twój rekord na tym dystansie: ${pb.czas}${pb.rok ? ` (${pb.rok})` : ""}.`);
       } else zdania.push("Nie masz wpisanego najbliższego startu.");
     }
-    if (!r.length) return { zdania: [...zdania, "Nie masz jeszcze wpisanych rekordów — uzupełnisz je w Profilu."].slice(0, 2), karty: [] };
-    if (!w.szanse) zdania.push("Twoje rekordy: " + r.map((x) => `${x.dystans} ${x.czas}${x.rok ? ` (${x.rok})` : ""}`).join(", ") + ".");
-    return { zdania: zdania.slice(0, 2), karty: r.map((x) => ({ typ: "rekord", dane: { dystans: x.dystans, czas: x.czas, rok: x.rok } })) };
+    if (w.wybor) return { zdania: ["Nie masz wpisanych rekordów. Maszyna wyników zna kilka osób o Twoim imieniu i nazwisku — który to Ty?"], karty: [{ typ: "ktory_to_ty", dane: { opcje: w.wybor } }], akcja: null };
+    if (!r.length) return { zdania: [...zdania, w.blad_f6 === "limit" ? ODP_F6_ZAJETA : "Nie masz jeszcze wpisanych rekordów — uzupełnisz je w Profilu."].slice(0, 2), karty: [] };
+    const zWynikow = w.zrodlo === "wyniki";
+    if (!w.szanse) zdania.push((zWynikow ? "Twoje najlepsze czasy z wyników zawodów: " : "Twoje rekordy: ") + r.map((x) => `${x.dystans} ${x.czas}${x.rok ? ` (${x.rok})` : ""}`).join(", ") + ".");
+    return { zdania: zdania.slice(0, 2), karty: r.map((x) => ({ typ: "rekord", dane: { dystans: x.dystans, czas: x.czas, rok: x.rok, bieg: x.bieg || null, zrodlo: x.zrodlo || "profil" } })) };
+  }
+  if (nazwa === "moj_trener") {
+    if (!w.trener) return { zdania: ["Trenujesz bez trenera w BiegaMy."], karty: [], akcja: null };
+    return { zdania: [`Twój trener: ${w.trener.nazwa}.`], karty: [{ typ: "trener", dane: w.trener }] };
   }
   if (nazwa === "moje_wyniki") {
     if (w.blad_f6 === "limit") return { zdania: [ODP_F6_ZAJETA], karty: [] };

@@ -28,6 +28,16 @@ export async function mojeRekordy(sb, athleteId) {
 }
 
 const bezZnakow = (s) => T.bezZnakow(s);
+/** M3-1 (3): rekordy Z WYNIKÓW ZAWODÓW (F6), gdy athletes.pb_* puste — najlepszy czas na 5/10/21,1/42,2 km (±3 %). */
+export function rekordyZWynikow(surowe) {
+  const fmt = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? `${h}:${String(m).padStart(2, "0")}` : String(m)) + ":" + String(x).padStart(2, "0"); };
+  return DYSTANSE_PB.map(([, dystans, km]) => {
+    const naDystansie = (surowe || []).filter((r) => r.dystans_km != null && Math.abs(r.dystans_km - km) <= km * 0.03 && r.czas_s > 0);
+    if (!naDystansie.length) return null;
+    const best = naDystansie.reduce((a, b) => (b.czas_s < a.czas_s ? b : a));
+    return { dystans, km, czas: fmt(best.czas_s), rok: best.data ? Number(String(best.data).slice(0, 4)) || null : null, bieg: best.bieg, zrodlo: "wyniki" };
+  }).filter(Boolean);
+}
 const rdzen = (w) => T.rdzen(w);
 
 /** args: {gdzie?} ; f6ctx: {fetchFn, token}. → {brak_imienia} | {brak} | {wybor:[…]} | {wyniki, gdzie?} | {brak_gdzie, gdzie} | {blad_f6} */
@@ -52,13 +62,15 @@ export async function mojeWyniki(sb, athleteId, args, f6ctx, teraz = Date.now())
       b = s[0];
       w = await f6(f6ctx.fetchFn, f6ctx.token, "runner_results", { p_runner_key: b.runner_key }, teraz);
     }
+    const surowe = w.slice(0, 300).map((x) => ({ bieg: String(x.event_name || "").slice(0, 120), data: x.event_date || null,
+      dystans_km: x.distance_km != null ? Number(x.distance_km) : null, czas_s: x.time_seconds ?? null }));   // M3-1 (3): do rekordów z wyników
     if (args.gdzie) {
       const r = rdzen(bezZnakow(args.gdzie).replace(/[^a-z]/g, ""));
       const pasuje = w.filter((x) => bezZnakow(`${x.event_name || ""} ${x.event_city || ""}`).split(/[^a-z0-9]+/).some((s) => s.startsWith(r)));
       if (!pasuje.length) return { brak_gdzie: true, gdzie: args.gdzie };
-      return { wyniki: podsumujWyniki({ ...b, results_count: pasuje.length }, pasuje).podsumowanie, gdzie: args.gdzie };
+      return { wyniki: podsumujWyniki({ ...b, results_count: pasuje.length }, pasuje).podsumowanie, gdzie: args.gdzie, surowe };
     }
-    return { wyniki: podsumujWyniki(b, w).podsumowanie };
+    return { wyniki: podsumujWyniki(b, w).podsumowanie, surowe };
   } catch (e) {
     if (e instanceof BladF6 && e.kod === "limit") return { blad_f6: "limit" };
     throw e;

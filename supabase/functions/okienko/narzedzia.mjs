@@ -10,7 +10,7 @@ import { nazwaOdznaki } from "../_shared/odznaki-nazwy.mjs";
 import { biegiNadchodzace, domyslnyZakres, dniMiedzy as dniBiegow, MAX_DNI_BIEGOW } from "./biegi.mjs";
 import { BladF6 } from "./f6.mjs";
 import { stanPlanu } from "../../../js/plan-pusty.mjs";
-import { mojeRekordy, mojeWyniki } from "./moje.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
+import { mojeRekordy, mojeWyniki, rekordyZWynikow } from "./moje.mjs";   // M3b: ta sama reguła co CTA „Ułóż plan" na Dziś
 
 export const TYPY_TRENINGU = ["Spokojny", "Interwały", "Tempo", "Wybieganie", "Regeneracja", "Wzmacniający", "Start", "Zastępczy", "Odpoczynek"];
 export const MAX_DNI = 366;
@@ -30,7 +30,7 @@ export const NAZWY_EKRANOW = {
   wyzwania: "Wyzwania", odznaki: "Odznaki", radio: "Radio",
 };
 const EKRAN_NARZEDZIA = { moj_plan: "plan", moje_treningi: "historia", moje_starty: "starty", wyzwania_postep: "wyzwania", odznaki_moje: "odznaki",
-  moje_rekordy: "profil", moje_wyniki: "starty" };
+  moje_rekordy: "profil", moje_wyniki: "starty", moj_trener: "czat" };
 
 /* Deklaracje funkcji dla Gemini (tools[].functionDeclarations) — podzbiór OpenAPI. */
 export const DEKLARACJE = [
@@ -56,6 +56,8 @@ export const DEKLARACJE = [
     parameters: { type: "object", properties: { szanse: { type: "boolean" } } } },
   { name: "moje_wyniki", description: "Wyniki zawodów biegacza z maszyny wyników (po imieniu, nazwisku i roczniku z profilu); gdzie = miejscowość albo nazwa biegu.",
     parameters: { type: "object", properties: { gdzie: { type: "string", description: "np. Dębno" } } } },
+  { name: "moj_trener", description: "Kto jest trenerem biegacza w BiegaMy (imię i nazwisko trenera) albo informacja, że biegacz trenuje bez trenera.",
+    parameters: { type: "object", properties: {} } },
 ];
 export const NAZWY = DEKLARACJE.map((d) => d.name);
 
@@ -151,8 +153,21 @@ const zaokr = (x) => Math.round(x * 10) / 10;
     @param {{fetchFn: Function, token: string} | null} [f6ctx] */
 export async function wykonaj(sb, athleteId, nazwa, args, teraz = new Date(), f6ctx = null) {
   const dzis = dzisWaw(teraz);
+  if (nazwa === "moj_trener") {
+    const { data: a, error } = await sb.from("athletes").select("coach_id").eq("id", athleteId).maybeSingle();
+    if (error) throw new Error("athletes");
+    if (!a || !a.coach_id) return { trener: null };
+    const { data: c } = await sb.from("coaches").select("id,full_name,specialization").eq("id", a.coach_id).maybeSingle();
+    return { trener: c ? { nazwa: String(c.full_name || "").slice(0, 80) || "Trener", specjalizacja: c.specialization ? String(c.specialization).slice(0, 80) : null } : { nazwa: "Trener", specjalizacja: null } };
+  }
   if (nazwa === "moje_rekordy") {
-    const r = await mojeRekordy(sb, athleteId);
+    let r = await mojeRekordy(sb, athleteId);
+    if (!r.rekordy.length && f6ctx && f6ctx.token) {   // M3-1 (3): puste pb_* → najlepsze czasy z WYNIKÓW ZAWODÓW (F6), z etykietą
+      const w = await mojeWyniki(sb, athleteId, {}, f6ctx, teraz.getTime());
+      if (w.wyniki && w.surowe) r = { rekordy: rekordyZWynikow(w.surowe), zrodlo: "wyniki" };
+      else if (w.wybor) r = { rekordy: [], wybor: w.wybor };
+      else if (w.blad_f6) r = { rekordy: [], blad_f6: w.blad_f6 };
+    }
     if (!args.szanse) return r;
     const st = await wykonaj(sb, athleteId, "moje_starty", {}, teraz);
     return { ...r, szanse: true, start: (st.cele || [])[0] || null };

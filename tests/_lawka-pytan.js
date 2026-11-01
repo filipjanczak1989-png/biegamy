@@ -34,7 +34,7 @@ const PYTANIA = [
   ['ile km w tym tygodniu', 'wlasne', 5, 'dobra', ''],
   ['kiedy mam nastepny start', 'wlasne', 4, 'dobra', ''],
   ['jakie mam odznaki', 'wlasne', 3, 'dobra', ''],
-  ['moje rekordy', 'wlasne', 4, 'pusta', 'konto bez pb_* → „uzupełnisz w Profilu” — prawda, ale rekordy można by policzyć z logów (M2e wariant b)'],
+  ['moje rekordy', 'wlasne', 4, 'dobra', 'M3-1 (3): puste pb_* → najlepsze czasy z WYNIKÓW ZAWODÓW (F6), z etykietą; bez treningów'],
   ['jaka mam forme', 'wlasne', 4, 'za_droga', 'idzie do modelu bez narzędzia → „Nie mam tego w Twoich danych.” za ~$0,0008; M3e moja_forma'],
   ['ile spalilem kalorii w tym tygodniu', 'wlasne', 2, 'za_droga', 'model, brak narzędzia; kcal są w nutrition — osobna decyzja (produkty poza katalogiem)'],
   ['czy dzis moge biegac po kontuzji', 'wlasne', 3, 'za_droga', 'model bez narzędzia (kontuzje czyta tylko EF trenera) → pusto za ~$0,0008; zaległość „generator nie widzi kontuzji”'],
@@ -47,7 +47,7 @@ const PYTANIA = [
   ['czy Anna Kowalska jest w aplikacji', 'osoby', 3, 'dobra', 'M3-1 (1): osoba w zdaniu → tryb osoby, nie model/sieć'],
   ['kto biega z mojego miasta', 'osoby', 3, 'za_droga', 'model bez narzędzia → pusto; brak narzędzia „znajomi/okolica”'],
   ['moi znajomi co biegali', 'osoby', 3, 'za_droga', 'model; M3e znajomi_tydzien'],
-  ['kto jest moim trenerem', 'osoby', 4, 'za_droga', 'model bez narzędzia → „Nie mam tego…”; proste narzędzie moj_trener'],
+  ['kto jest moim trenerem', 'osoby', 4, 'dobra', 'M3-1 (3): moj_trener (0 tokenów) — karta trenera z „Napisz” albo „Trenujesz bez trenera w BiegaMy.”'],
   ['dodaj Jana Kowalskiego do znajomych', 'osoby', 2, 'dobra', 'M3-1 (1): osoba w zdaniu → karta osoby z „Dodaj do znajomych” (akcja po tapnięciu); odmiana → (2)'],
   // ── imprezy ──
   ['jakie biegi w listopadzie w poznaniu', 'imprezy', 5, 'dobra', ''],
@@ -73,7 +73,7 @@ const PYTANIA = [
   ['radio', 'tresci', 3, 'dobra', ''],
   // ── spoza aplikacji ──
   ['kto wygral maraton w berlinie', 'poza', 3, 'dobra', 'sieć ze źródłami (~$0,02)'],
-  ['jaka pogoda jutro w poznaniu', 'poza', 4, 'za_droga', 'sieć ~$0,02, a pogodę aplikacja MA (weather w sessionStorage) — narzędzie pogoda za 0'],
+  ['jaka pogoda jutro w poznaniu', 'poza', 4, 'dobra', 'M3-1 (3): po stronie klienta z kafla Dziś (sessionStorage), 0 tokenów, bez EF'],
   ['ile kalorii ma banan', 'poza', 2, 'za_droga', 'sieć; baza produktów w Jedzeniu ma to za 0 — osobna decyzja'],
   ['jak przeliczyc tempo na predkosc', 'poza', 2, 'za_droga', 'model/sieć; kalkulator = 0 tokenów'],
   ['rekord swiata w maratonie', 'poza', 2, 'dobra', 'M3-1 (2): „świata” wyklucza moje_rekordy → sieć ze źródłami (~$0,02)'],
@@ -81,14 +81,14 @@ const PYTANIA = [
   ['jak dobrac buty do biegania', 'poza', 3, 'za_droga', 'sieć'],
   ['czy biegac z katarem', 'poza', 3, 'za_droga', 'sieć — porada zdrowotna bez zastrzeżenia'],
   ['ile powinienem biegac tygodniowo', 'poza', 4, 'za_droga', 'model/sieć — a plan generatora to liczy; odpowiedź z planu/bazy'],
-  ['dzien dobry', 'poza', 3, 'za_droga', 'small talk → model → „Nie mam tego w Twoich danych.” za ~$0,0008'],
+  ['dzien dobry', 'poza', 3, 'dobra', 'M3-1 (3): powitanie → jedno zdanie z routera, 0 tokenów'],
 ];
 
 /* kształt konta testowego + F6 z atrapy */
 const U1 = '11111111-1111-4111-8111-111111111111';
 function baza() {
   return {
-    athletes: [{ id: JA, user_id: 'u-ja', full_name: 'Testowa Osoba', is_public: false, coach_id: null, race_goals: JSON.stringify([{ name: 'Bieg Niepodległości', date: '2026-11-11', distance_km: 10 }]) },
+    athletes: [{ id: JA, user_id: 'u-ja', full_name: 'Testowa Osoba', is_public: false, coach_id: null, date_of_birth: '1990-05-05', race_goals: JSON.stringify([{ name: 'Bieg Niepodległości', date: '2026-11-11', distance_km: 10 }]) },
       { id: U1, full_name: 'Robert Korzeniowski', is_public: true }],
     trainings: [], training_logs: [{ athlete_id: JA, logged_at: '2026-10-27T07:00:00Z', training_type: 'Spokojny', distance_km: '10.2', duration: '1:00:00' }],
     achievements: Array.from({ length: 44 }, (_, i) => ({ athlete_id: JA, badge_id: 'b' + i, earned_at: '2026-10-01T10:00:00Z' })),
@@ -97,8 +97,10 @@ function baza() {
   };
 }
 const F6 = {
-  search_runners: (a) => (/korzeniowsk|lewandowsk/i.test(a.q) ? [{ runner_key: 'datasport:1', display_name: 'KORZENIOWSKI ROBERT', yob: 1968, results_count: 40 }] : []),
-  runner_results: () => [{ event_name: 'Mistrzostwa Polski w chodzie', event_date: '2026-06-01', distance_km: 20, time_seconds: 5000, position_total: 1 }],
+  search_runners: (a) => (/korzeniowsk|lewandowsk/i.test(a.q) ? [{ runner_key: 'datasport:1', display_name: 'KORZENIOWSKI ROBERT', yob: 1968, results_count: 40 }]
+    : /testowa osoba/i.test(a.q) ? [{ runner_key: 'datasport:9', display_name: 'TESTOWA OSOBA', yob: 1990, results_count: 2 }] : []),
+  runner_results: (a) => (a.p_runner_key === 'datasport:9' ? [{ event_name: 'Bieg Testowy 10 km', event_date: '2026-09-10', distance_km: 10, time_seconds: 2890, position_total: 80 }, { event_name: 'Półmaraton Testowy', event_date: '2026-04-10', distance_km: 21.0975, time_seconds: 6400, position_total: 120 }]
+    : [{ event_name: 'Mistrzostwa Polski w chodzie', event_date: '2026-06-01', distance_km: 20, time_seconds: 5000, position_total: 1 }]),
   events_search: (a) => (/kotlin/i.test(a.p_q) ? [{ nazwa: 'UltraKotlina', data: '2027-10-09', miejscowosc: 'Szklarska Poręba', dystanse: '100 km', zrodlo: 'kalendarz', przeszla: false }]
     : /warszaw/i.test(a.p_q) ? [{ nazwa: '49. Maraton Warszawski', data: '2027-09-26', miejscowosc: 'Warszawa', dystanse: '42.195', zrodlo: 'kalendarz' }]
     : /niepodleg/i.test(a.p_q) ? [{ nazwa: 'Bieg Niepodległości', data: '2026-11-11', miejscowosc: 'Poznań', dystanse: '10', zrodlo: 'kalendarz' }]
@@ -108,7 +110,19 @@ const F6 = {
 };
 const fetchF6 = async (url, init) => { const rpc = url.split('/rpc/')[1]; const a = JSON.parse(init.body); return { ok: true, status: 200, json: async () => (F6[rpc] ? F6[rpc](a) : []) }; };
 
+/* M3-1 (3): pogoda odpowiada po stronie klienta (js/okienko.js, kafel Dziś w sessionStorage) — przed EF; tu ta sama funkcja w vm. */
+function okienkoKlienta() {
+  const vm = require('node:vm');
+  const mag = new Map([['weather:poznań', JSON.stringify({ ts: Date.now(), data: { city: 'Poznań', days: [{ date: DZIS, temp_max: 9, weather_code: 3, precip_pct: 20 }, { date: '2026-11-02', temp_max: 11, weather_code: 61, precip_pct: 70 }] } })]]);
+  const okno = { escapeHtml: (s) => String(s), BM_TEKST: require('./_srodowisko.js').tekstDlaOkna() };
+  const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null },
+    sessionStorage: { get length() { return mag.size; }, key: (i) => [...mag.keys()][i], getItem: (k) => (mag.has(k) ? mag.get(k) : null), setItem() {} },
+    location: { search: '' }, navigator: {}, setTimeout, console });
+  vm.runInContext(fs.readFileSync(path.join(KORZEN, 'js', 'okienko.js'), 'utf8'), ctx);
+  return okno.OKIENKO;
+}
 async function przebieg() {
+  const KLIENT = okienkoKlienta();
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
   const N = await zaladuj('supabase/functions/okienko/narzedzia.mjs');
   const Odp = await zaladuj('supabase/functions/okienko/odpowiedz.mjs');
@@ -122,8 +136,11 @@ async function przebieg() {
     (await zaladuj('supabase/functions/okienko/f6.mjs'))._wyczyscPamiecF6();
     const sb = atrapa(baza());
     let sciezka = '', typ = '', koszt = 0, siec = false;
-    const traf = R.dopasuj(pyt, DZIS);
-    if (traf && 'nawiguj' in traf) { sciezka = 'router→nawigacja'; typ = 'ekran ' + traf.nawiguj; }
+    const lok = KLIENT.pogodaLokalnie(pyt);
+    const traf = lok ? null : R.dopasuj(pyt, DZIS);
+    if (lok) { sciezka = 'KLIENT (bez EF)'; typ = 'zdanie: „' + lok.replace(/<[^>]+>/g, '').slice(0, 70) + '”'; }
+    else if (traf && 'zdanie' in traf) { sciezka = 'router→zdanie'; typ = 'zdanie: „' + traf.zdanie.slice(0, 60) + '”'; }
+    else if (traf && 'nawiguj' in traf) { sciezka = 'router→nawigacja'; typ = 'ekran ' + traf.nawiguj; }
     else if (traf) {
       sciezka = 'router→' + traf.narzedzie;
       const w = N.waliduj(traf.narzedzie, traf.args);
