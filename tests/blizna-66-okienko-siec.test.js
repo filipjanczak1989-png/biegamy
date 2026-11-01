@@ -142,3 +142,12 @@ test('brak groundingChunks → JEDNA ponowna próba; dalej brak → „Tego nie 
   assert.equal(S.zOdpowiedziSieci(w2.tekst, w2.gm).zdania[0], S.NIE_ZNALAZLEM, 'nigdy zdań bez źródeł');
   assert.match(S.promptSieci('2026-11-01'), /Użyj Google Search przed odpowiedzią; nie odpowiadaj z pamięci\./);
 });
+
+test('M2d: „Jan Kowalski" nigdy nie trafia do googleSearch (detektor osoby przed modelem i siecią)', async () => {
+  const P = await zaladuj('supabase/functions/okienko/pamiec.mjs');
+  const R = await zaladuj('supabase/functions/okienko/router.mjs');
+  assert.equal(R.dopasuj('Jan Kowalski', '2026-11-01'), null, 'router go nie zna — dochodzi do detektora');
+  assert.equal(P.wygladaNaOsobe('Jan Kowalski'), true);
+  const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
+  assert.ok(ef.indexOf('if (wygladaNaOsobe(tekst))') < ef.indexOf('zapytajSiec({'));
+});

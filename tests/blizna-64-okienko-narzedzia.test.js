@@ -162,7 +162,8 @@ test('statycznie: w supabase/functions/okienko/ nic nie pisze do bazy', () => {
   for (const plik of fs.readdirSync(kat)) {
     const kod = fs.readFileSync(path.join(kat, plik), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
     const zapisy = kod.match(/\.(insert|update|delete|upsert|rpc)\s*\(/g) || [];
-    const dozwolone = (kod.match(/from\(["']okienko_log["']\)\s*\.insert\(/g) || []).length;
+    /* zapis tylko: okienko_log (insert) + M2d okienko_siec_cache / okienko_znaleziska (upsert) — blizna-69 */
+    const dozwolone = (kod.match(/from\(["']okienko_log["']\)\s*\.insert\(|from\(["']okienko_(siec_cache|znaleziska)["']\)\s*\.upsert\(/g) || []).length;
     assert.equal(zapisy.length, dozwolone, `${plik}: zapis do bazy poza okienko_log: ${zapisy}`);
   }
 });

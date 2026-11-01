@@ -19,6 +19,15 @@ function atrapa(tabele) {
       order(k, o) { porz = [k, o && o.ascending === false ? -1 : 1]; return q; },
       limit(n) { lim = n; return q; },
       insert(w) { st.zapis = true; (tabele[nazwa] = tabele[nazwa] || []).push(Object.assign({ kiedy: new Date().toISOString() }, w)); return Promise.resolve({ error: null }); },
+      upsert(w, o) {   // jak PostgREST: onConflict = kolumna unikalna; ignoreDuplicates → istniejący zostaje
+        st.zapis = true;
+        const t = (tabele[nazwa] = tabele[nazwa] || []), k = o && o.onConflict;
+        for (const r of Array.isArray(w) ? w : [w]) {
+          const i = k ? t.findIndex((x) => x[k] === r[k]) : -1;
+          if (i < 0) t.push(Object.assign({}, r)); else if (!(o && o.ignoreDuplicates)) t[i] = Object.assign({}, r);
+        }
+        return Promise.resolve({ error: null });
+      },
       maybeSingle() { const w = wynik(); return Promise.resolve({ data: w.data[0] || null, error: null }); },
       then(res, rej) { return Promise.resolve(wynik()).then(res, rej); },
     };

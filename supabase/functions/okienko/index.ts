@@ -15,7 +15,8 @@ import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
-import { zapytajSiec, zOdpowiedziSieci, czyDoSieci } from "./siec.mjs";
+import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
+import { wygladaNaOsobe, ODP_OSOBA, zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska } from "./pamiec.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -67,6 +68,19 @@ Deno.serve(async (req) => {
     return odp(200, { ...pusto("router"), zdania, karty, akcja: nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
   }
 
+  // ── M2d: pytanie o OSOBĘ (samo imię i nazwisko) — nie do modelu i nie do sieci; 0 tokenów ──
+  if (wygladaNaOsobe(tekst)) {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "osoba" });
+    return odp(200, { ...pusto("osoba"), zdania: [ODP_OSOBA], akcja: { nawiguj: "races.html" } });
+  }
+  // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
+  const klucz = normalizuj(tekst);
+  const pam = await zPamieci(adm, klucz, teraz);
+  if (pam && pam.zrodla.length) {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec-cache" });
+    return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
+  }
+
   // ── model ──
   if (!GEMINI) return odp(502, { blad: "model niedostępny" });
   let limit;
@@ -99,6 +113,10 @@ Deno.serve(async (req) => {
     }
     const o = zOdpowiedziSieci(w.tekst, w.gm, (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } });
     const tok = { we: m.tok.we + w.tok.we, wy: m.tok.wy + w.tok.wy };
+    if (o.zrodla.length && o.zdania[0] !== NIE_ZNALAZLEM) {   // pamięć i znaleziska tylko z odpowiedzią ze źródłami
+      await doPamieci(adm, klucz, o.zdania, o.zrodla, "gemini-3.5-flash-lite", teraz);
+      await zapiszZnaleziska(adm, ath.id, znaleziskaZ(tekst, o.zrodla));
+    }
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania,
       ok: o.odrzucone.length === 0, powod_odrzucenia: o.odrzucone.length ? o.odrzucone.map((x: { powod: string; zdanie: string }) => `${x.powod}: ${x.zdanie}`).join(" | ").slice(0, 500) : null });
     return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });

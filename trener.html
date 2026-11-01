@@ -4661,6 +4661,7 @@ function showCoachSection(name) {
     document.getElementById('msgs-panel-section').style.display = 'none';
     document.getElementById('analytics-section').style.display = 'block';
     loadAnalytics();
+    loadZnaleziskaOkienka();   // M2d
   } else if (name === 'social') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
@@ -5506,6 +5507,43 @@ async function sendCoachMessage() {
   if (error) { showToast('Błąd: '+error.message); return; }
   _notifyCoachMessage(_currentChatAthleteId, body);
   await loadCoachChat();
+}
+
+async function loadZnaleziskaOkienka() {
+  const box = document.getElementById('okienko-znaleziska');
+  if (!box) return;
+  box.textContent = '';
+  const h = document.createElement('div');
+  h.style.cssText = "font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;";
+  h.textContent = 'Znaleziska z okienka';
+  box.appendChild(h);
+  const { data, error } = await sb.from('okienko_znaleziska').select('id,pytanie,nazwa_biegu,rok,url,domena,status,utworzono')
+    .order('utworzono', { ascending: false }).limit(50);
+  const info = (t) => { const p = document.createElement('div'); p.style.cssText = 'color:var(--muted);font-size:12px;'; p.textContent = t; box.appendChild(p); };
+  if (window.bmOfflineGdy && window.bmOfflineGdy(error, 'okienko-znaleziska', 'znalezisk z okienka')) return;
+  if (error) return info('Nie udało się wczytać znalezisk.');
+  if (!data || !data.length) return info('Na razie brak znalezisk.');
+  for (const z of data) {
+    const w = document.createElement('div');
+    w.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);';
+    const opis = document.createElement('div');
+    opis.style.cssText = 'flex:1;min-width:0;';
+    const t1 = document.createElement('div'); t1.style.cssText = 'color:var(--fg);font-size:14px;font-weight:600;';
+    t1.textContent = [z.nazwa_biegu, z.rok].filter((x) => x != null && x !== '').join(' ') || z.pytanie || '';
+    const t2 = document.createElement('div'); t2.style.cssText = "color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;";
+    t2.textContent = [z.domena, z.utworzono ? String(z.utworzono).slice(0, 10) : '', z.status].filter(Boolean).join(' · ');
+    opis.append(t1, t2);
+    w.appendChild(opis);
+    const href = window.safeExternalHref ? window.safeExternalHref(z.url, { tylkoHttps: true }) : '';
+    if (href) {
+      const a = document.createElement('a');
+      a.textContent = 'Otwórz źródło ›';
+      a.href = z.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.style.cssText = "flex-shrink:0;color:var(--accent3);font-family:'DM Mono',monospace;font-size:11px;";
+      w.appendChild(a);
+    }
+    box.appendChild(w);
+  }
 }
 
 async function loadAnalytics() {
@@ -6635,6 +6673,10 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
   <!-- Statystyki aplikacji -->
   <div id="analytics-app-stats" style="margin-bottom:20px;"></div>
   <div id="analytics-content"></div>
+  <!-- M2d (1.11.2026): „Znaleziska z okienka" — źródła z odpowiedzi „Zapytaj" z sieci, które wyglądają na wyniki/imprezy
+       (lead dla K-źródła). Odczyt: RLS okienko_znaleziska_trener_czyta; tekst przez textContent, link przez
+       safeExternalHref {tylkoHttps}. Status tylko do odczytu — zmiana statusu = osobny krok (zapis ma tylko EF). -->
+  <div id="okienko-znaleziska" style="margin-top:24px;"></div>
 </div>
 
 <!-- MODAL STATYSTYK ZAWODNIKA -->

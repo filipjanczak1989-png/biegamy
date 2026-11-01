@@ -97,7 +97,7 @@
     if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
     if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
-    if (json.tryb === 'siec') return htmlSieci(json);
+    if (json.tryb === 'siec' || json.tryb === 'siec-cache') return htmlSieci(json);   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
     if (!zdania.length && !cel) zdania = [json.dopasowanie === false ? TEKSTY.niePasuje : TEKSTY.pusto];
