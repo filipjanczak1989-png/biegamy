@@ -1101,15 +1101,21 @@ function openRace(id) {
   // Linki
   const linksEl = document.getElementById('m-links');
   let linksHtml = '';
-  if (race.url_regulamin) {
-    linksHtml += `<a href="${escAttr(race.url_regulamin)}" target="_blank" rel="noopener" class="modal-link-btn">
+  /* XSS (1.11.2026): link z danych innej osoby (zgłoszenie zawodnika widzi trener) — tylko https:, inaczej pomijamy.
+     Do 1.11 szedł przez escAttr (sam cudzysłów), więc javascript: przechodził. */
+  const _href_reg = window.safeExternalHref ? window.safeExternalHref(race.url_regulamin, { tylkoHttps: true }) : '';
+  if (_href_reg) {
+    linksHtml += `<a href="${_href_reg}" target="_blank" rel="noopener" class="modal-link-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span>Regulamin zawodów</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
     </a>`;
   }
-  if (race.url_organizer) {
-    linksHtml += `<a href="${escAttr(race.url_organizer)}" target="_blank" rel="noopener" class="modal-link-btn">
+  /* XSS (1.11.2026): link z danych innej osoby (zgłoszenie zawodnika widzi trener) — tylko https:, inaczej pomijamy.
+     Do 1.11 szedł przez escAttr (sam cudzysłów), więc javascript: przechodził. */
+  const _href_org = window.safeExternalHref ? window.safeExternalHref(race.url_organizer, { tylkoHttps: true }) : '';
+  if (_href_org) {
+    linksHtml += `<a href="${_href_org}" target="_blank" rel="noopener" class="modal-link-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       <span>Strona organizatora</span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>

@@ -884,7 +884,9 @@
   //
   // Użycie:
   //   <a href="${safeExternalHref(l.strava_link)}" target="_blank" rel="noopener">↗ Strava</a>
-  window.safeExternalHref = function(url) {
+  // opts.tylkoHttps (1.11.2026, XSS races.html): link z danych innych osób (zgłoszenia wyścigów, API imprez) — http: też
+  // odpada, zostaje wyłącznie https:. Bez opts zachowanie jak dotąd (https i http).
+  window.safeExternalHref = function(url, opts) {
     if (!url || typeof url !== 'string') return '';
     let s = url.trim();
     // Zawodnicy wklejają cały tekst "udostępnij" (np. z Garmina: "Sprawdź moją aktywność... https://connect.garmin.com/...").
@@ -897,7 +899,7 @@
     }
     try {
       const u = new URL(s);
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+      if (u.protocol !== 'https:' && (u.protocol !== 'http:' || (opts && opts.tylkoHttps))) return '';
       return window.escapeHtml(s);
     } catch { return ''; }
   };
