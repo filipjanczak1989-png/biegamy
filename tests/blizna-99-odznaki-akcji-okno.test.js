@@ -40,7 +40,7 @@ test('zestaw: 6 slugów w kolejności Filipa, bez imienia, plik assets/odznaki/<
   const py = czytaj('tools/odznaki-akcji-grafiki.py');
   assert.match(py, new RegExp('SLUGI = \\[' + SLUGI.map((s) => '"' + s + '"').join(', ') + '\\]'));
   assert.doesNotMatch(py.match(/ALIASY = \{[\s\S]*?\}/)[0], /guzik/, 'guzik.png = usunięta odznaka dnia startu — bez mapowania');
-  for (const s of SLUGI.slice(0, 5)) for (const suf of ['.webp', '-512.webp']) {
+  for (const s of SLUGI) for (const suf of ['.webp', '-512.webp']) {
     const f = 'assets/odznaki/' + s + suf;
     assert.ok(fs.existsSync(path.join(KORZEN, f)), 'brak grafiki ' + f);
   }
