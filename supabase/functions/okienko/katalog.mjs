@@ -13,6 +13,7 @@ import { WYZWANIA } from "../_shared/wyzwania.mjs";
 import { NAZWY_ODZNAK, OPISY_ODZNAK } from "../_shared/odznaki-nazwy.mjs";
 import { POJECIA } from "../_shared/pojecia.mjs";   // M3-2 (b): kopia METRIC_TOOLTIPS z sb.js — tylko istniejące opisy
 import { EKRANY, NAZWY_EKRANOW, SYNONIMY_EKRANOW } from "./narzedzia.mjs";
+import { ODP_REJESTRACJA } from "./router.mjs";
 
 const S = /** @type {any} */ (globalThis).BM_SZUKAJ;
 const C = /** @type {any} */ (globalThis).BM_CWICZENIA_NAZWY;
@@ -31,14 +32,15 @@ const KOLEJNOSC = { utwor: 0, przepis: 1, cwiczenie: 2, kat_pojecie: 3, kat_ekra
    że ta ścieżka istnieje, więc zdanie nie skłamie po cichu. */
 export const O_APLIKACJI = [
   { klucz: "haslo", klucze: ["haslo", "hasla", "haslem", "hasle"], tytul: "Hasło",
-    tekst: "Hasło zmienisz w Profilu: Ustawienia → Hasło. Zapomniane hasło zresetujesz linkiem z ekranu logowania („Zapomniałem hasła”).", ekran: "profil" },
+    tekst: "Hasło zmienisz w Profilu: Ustawienia → Hasło. Zapomniane hasło zresetujesz linkiem z ekranu logowania („Zapomniałem hasła”).", ekran: "profil" },  { klucz: ODP_REJESTRACJA.klucz, klucze: ["rejestracja", "rejestracji", "zarejestrowac", "zalozyc konto", "zalozenie konta"], tytul: ODP_REJESTRACJA.tytul,
+    tekst: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa },   // Filip 2.11: to samo co router (PYT_DOLACZ)
 ];
 /** Słowa zapytania (bez polskich znaków) zawierają klucz — także wielowyrazowy („mapa cieplna"). */
 function maKlucz(slowaZap, klucze) { const z = " " + slowaZap.join(" ") + " "; return (klucze || []).some((k) => z.includes(" " + k + " ")); }
 export function pojeciaZPytania(tekst) {
   const sl = S.slowa(tekst), out = [];
   for (const [k, p] of Object.entries(POJECIA)) if (maKlucz(sl, p.klucze)) out.push({ typ: "kat_pojecie", wynik: 1, nazwa: p.tytul, dane: { klucz: k, tytul: p.tytul, co_to: p.co_to, cel: EKRANY.forma, ekran_nazwa: NAZWY_EKRANOW.forma } });
-  for (const o of O_APLIKACJI) if (maKlucz(sl, o.klucze)) out.push({ typ: "kat_pojecie", wynik: 1, nazwa: o.tytul, dane: { klucz: o.klucz, tytul: o.tytul, co_to: o.tekst, cel: o.ekran ? EKRANY[o.ekran] : null, ekran_nazwa: o.ekran ? NAZWY_EKRANOW[o.ekran] : null } });
+  for (const o of O_APLIKACJI) if (maKlucz(sl, o.klucze)) out.push({ typ: "kat_pojecie", wynik: 1, nazwa: o.tytul, dane: { klucz: o.klucz, tytul: o.tytul, co_to: o.tekst, cel: o.cel || (o.ekran ? EKRANY[o.ekran] : null), ekran_nazwa: o.ekran_nazwa || (o.ekran ? NAZWY_EKRANOW[o.ekran] : null) } });
   return out;
 }
 

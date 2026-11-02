@@ -141,6 +141,13 @@ const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
    pytania o aplikację albo o własne kilometry). */
 const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*)\b/;
 const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
+/* „JAK DOŁĄCZYĆ" (Filip 2.11 18:30): przed startem → rejestracja w aplikacji (odpowiedź z katalogu, bez słowa o akcji),
+   po starcie → zagadka + karta akcji. NIGDY do sieci (blizna-104) — zwiad 2.11: „jak dołączyć" szło do internetu (kluby). */
+const PYT_DOLACZ = /^(jak (sie )?(dolacz\w*|zapisa\w*|zarejestr\w*|wziac udzial|zalozyc konto)|jak (moge|mozna) (sie )?(dolacz\w*|zapisa\w*|zarejestr\w*))( (do|w) (biegamy|aplikacji|apki|apce|was|wami))?$/;
+export const ODP_REJESTRACJA = { klucz: "rejestracja", tytul: "Konto w BiegaMy",
+  tekst: "Konto zakładasz na stronie głównej BiegaMy: Rejestracja → imię, e-mail i hasło. Potem zapisujesz treningi ręcznie albo łączysz zegarek w Profilu.",
+  cel: "index.html#dolacz", ekran_nazwa: "rejestrację" };
+export const ZDANIE_REJESTRACJA = "Dołączasz, zakładając konto w BiegaMy:";
 const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
@@ -148,12 +155,13 @@ export function czyZagadka(tekst) {
   if (!t) return false;
   if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) return true;   // 7.11 (start) i 8.11 (stary termin)
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
+  if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
 /** Czy pytanie MOŻE być o akcję (niezależnie od stanu) — EF okienko pobiera stan akcji tylko dla takich (bez RPC dla reszty). */
 export function zagadkaKandydat(tekst) {
   const t = normalizuj(tekst);
-  return !!t && (czyZagadka(tekst) || ZAGADKA_PO_STARCIE.test(t));
+  return !!t && (czyZagadka(tekst) || ZAGADKA_PO_STARCIE.test(t) || PYT_DOLACZ.test(t));
 }
 
 /** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */
@@ -161,6 +169,8 @@ export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!t) return null;
   if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); return { zdanie: z.zdanie, log: "zagadka" }; }
+  if (PYT_DOLACZ.test(t)) return { zdanie: ZDANIE_REJESTRACJA, log: "rejestracja",
+    karty: [{ typ: "kat_pojecie", dane: { klucz: ODP_REJESTRACJA.klucz, tytul: ODP_REJESTRACJA.tytul, co_to: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa } }] };
   if (/\bplan\w*\b.*\b(dzis|dzisiaj)\b|\bco (mam )?(dzis|dzisiaj)\b|\b(dzis|dzisiaj)\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "dzis" } };
   if (/\bplan\w*\b.*\bjutr\w*|\bco (mam )?jutr\w*|\bjutr\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "jutro" } };
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };

@@ -36,6 +36,7 @@
   function bezpiecznyCel(url) {
     if (typeof url !== 'string') return null;
     for (var k in EKRANY) if (EKRANY[k] === url) return url;
+    if (url === 'index.html#dolacz') return url;   // karta „Konto w BiegaMy" (okienko: „jak dołączyć" przed startem akcji)
     return null;
   }
   function czytaj(k, d) { try { var v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }

@@ -46,3 +46,21 @@ test('zapis nowego treningu czyści pamięć sumy akcji', () => {
   const i = z.indexOf('async function saveLog()'), f = z.slice(i, z.indexOf('\n}\n', i));
   assert.match(f, /sessionStorage\.removeItem\('bm_akcja_stan_' \+ window\.BM_AKCJA_CYTATY\.slugDla\(_athleteId\)\)/);
 });
+
+/* Przejście dnia 6 na żywej stronie (2.11 18:40): licznik/teaser akcji na landingu NIGDY nie ruszał przy wejściu —
+   kod siedzi w obsłudze DOMContentLoaded, a drugi listener DOMContentLoaded dodany w trakcie zdarzenia nie odpala. */
+test('landing: _odswiezAkcjeLanding zdefiniowana i wołana przy pierwszym wejściu (bez zagnieżdżonego DOMContentLoaded)', () => {
+  const ix = czytaj('index.html');
+  const i = ix.indexOf('async function _odswiezAkcjeLanding()');
+  assert.ok(i > 0, 'funkcja landingu istnieje');
+  const start = ix.lastIndexOf('<script>', i), koniec = ix.indexOf('</script>', i), skrypt = ix.slice(start, koniec);
+  assert.equal((skrypt.match(/addEventListener\('DOMContentLoaded'/g) || []).length, 1, 'jeden DOMContentLoaded w skrypcie — drugi (zagnieżdżony) nie odpala');
+  assert.match(skrypt, /\n_odswiezAkcjeLanding\(\);\n/, 'wołanie wprost przy wejściu');
+  assert.match(skrypt, /window\._odswiezAkcjeLanding = _odswiezAkcjeLanding;/);
+  const f = ix.slice(i, ix.indexOf('\n}\n', i));
+  assert.match(f, /'Zapamiętaj tę datę\.'/, 'przed startem: data + „Zapamiętaj tę datę."');
+  assert.match(f, /pasekHtml\(d\)/, 'po starcie: pasek');
+  assert.match(f, /onclick="doRejestracji\(\);return false;">Dołącz i biegnij<\/a>/, 'po starcie: „Dołącz i biegnij" → Rejestracja');
+  assert.match(ix, /function doRejestracji\(\) \{\s*skipToLogin\(\);\s*const zakladka = document\.querySelector\('\.tab\[onclick\*="register"\]'\);/);
+  assert.match(ix, /<div id="akcja-licznik" hidden/);
+});

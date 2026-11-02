@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
     }
     // po starcie akcji: zagadka → zdanie + karta akcji (nazwa, licznik, oficjalna zbiórka) — dane jak w publicznym liczniku
     if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
+    if (Array.isArray((traf as { karty?: unknown[] }).karty)) kartyZd = (traf as { karty: unknown[] }).karty;   // „jak dołączyć" przed startem → karta rejestracji
     return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd });
   }
   if (traf) {

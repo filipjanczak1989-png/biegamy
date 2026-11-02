@@ -647,7 +647,7 @@ body.loading::after {
       <button class="hero-skip" onclick="window.location.href='demo.html'" style="border:1px solid rgba(232,86,30,0.45);border-radius:12px;padding:12px 18px;color:#e8561e;background:rgba(232,86,30,0.07);font-weight:700;">Zobacz demo — bez konta</button>
       <button class="hero-skip" onclick="dismissHero()">O nas</button>
     </div>
-    <!-- AKCJA (projekt F dzień 3): przed startem teaser „8.11" bez nazwy; po starcie pasek z EF akcja-licznik (rola anonimowa
+    <!-- AKCJA (projekt F dzień 3): przed startem teaser z datą (akcje.start) bez nazwy; po starcie pasek z EF akcja-licznik (rola anonimowa
          nie ma uprawnień do bazy — wariant b). Dane i teksty: js/akcja.mjs. -->
     <div id="akcja-licznik" hidden style="width:100%;max-width:360px;margin-top:18px;"></div>
     <!-- NAGROBEK (07.10.2026): tu stał licznik #100kmDlaKasi (div#hero-licznik, RPC community_km z EXECUTE dla anon).
@@ -897,15 +897,16 @@ async function _odswiezAkcjeLanding() {
   }
   el.innerHTML = '<div class="akcja-karta"><div class="akcja-nazwa">' + window.escapeHtml(d.nazwa || '') + '</div>' + window.BM_AKCJA.pasekHtml(d) +
     '<div class="akcja-filip">' + window.escapeHtml(window.BM_AKCJA.tekstFilipa(d)) + '</div>' +
-    '<div class="akcja-przyciski">' + (d.zamknieta ? '' : '<a class="akcja-wiecej" href="#dolacz" onclick="skipToLogin();return false;">Dołącz i biegnij</a>') +
+    '<div class="akcja-przyciski">' + (d.zamknieta ? '' : '<a class="akcja-wiecej" href="#dolacz" onclick="doRejestracji();return false;">Dołącz i biegnij</a>') +
     '<a class="akcja-link" href="dla-fabianka.html">Szczegóły ›</a></div></div>';
   el.hidden = false;
 }
+/* Ten kod JUŻ siedzi w obsłudze DOMContentLoaded (linia ~778) — drugi listener DOMContentLoaded dodany w trakcie tego
+   zdarzenia nigdy nie odpala (do 2.11 18:40 licznik/teaser na landingu nie pokazywał się przy wejściu). Wołanie wprost. */
+window._odswiezAkcjeLanding = _odswiezAkcjeLanding;
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') _odswiezAkcjeLanding(); });
-document.addEventListener('DOMContentLoaded', function () {
-  _odswiezAkcjeLanding();
-  if (location.hash === '#dolacz') skipToLogin();   // „Dołącz i biegnij" → bez hero; zakładkę Rejestracja włącza init (po sesji)
-});
+_odswiezAkcjeLanding();
+if (location.hash === '#dolacz') skipToLogin();   // „Dołącz i biegnij" → bez hero; zakładkę Rejestracja włącza init (po sesji)
 
 // Dismiss hero - pierwszy raz idzie na o-nas, oznacz że user widział landing
 function dismissHero() {
@@ -917,6 +918,12 @@ function dismissHero() {
 function skipToLogin() {
   localStorage.setItem('biegamy_seen_landing', 'true');
   document.body.classList.remove('show-hero');
+}
+/* „Dołącz i biegnij" z karty akcji na landingu → formularz bez hero, zakładka Rejestracja (jak index.html#dolacz). */
+function doRejestracji() {
+  skipToLogin();
+  const zakladka = document.querySelector('.tab[onclick*="register"]');
+  if (zakladka) zakladka.click();
 }
 
 function continueSession() {
@@ -1178,6 +1185,7 @@ window.continueSession = continueSession;
 window.logoutSession = logoutSession;
 window.dismissHero = dismissHero;
 window.skipToLogin = skipToLogin;
+window.doRejestracji = doRejestracji;
 
 }); // end DOMContentLoaded
 </script>
