@@ -163,8 +163,8 @@ test('(6) podpowiedzi: nasze starty + ≤ 5 z maszyny (bez dubli), wszystko w da
 
 test('(7) „W Polsce": etykieta zgłoszenia; „Ukryj" tylko u trenera przez event_hide (data-klucz, wzorzec zgloszenie:<uuid>); start po rozpoznaniu trenera', () => {
   const r = czytaj('races.html');
-  assert.match(r, /i\.status === 'zgloszona' \? '<div class="imprezy-zgloszona"[^']*>zgłoszona przez biegacza<\/div>'/);
-  assert.match(r, /_isCoach && i\.status && \/\^zgloszenie:\/\.test\(i\.klucz \|\| ''\) \? ' <button type="button" class="imprezy-ukryj" data-klucz="' \+ escapeHtml\(i\.klucz\) \+ '"/);
+  assert.match(r, /x\.status === 'zgloszona' \? '<div class="imprezy-zgloszona"[^']*>zgłoszona przez biegacza<\/div>'/);
+  assert.match(r, /_isCoach && x\.status && \/\^zgloszenie:\/\.test\(x\.klucz \|\| ''\) \? '<button type="button" class="imprezy-ukryj" data-klucz="' \+ escAttr\(x\.klucz\) \+ '"/);
   assert.match(r, /window\.wynikiApi\(_sb\)\.rpc\('event_hide', \{ p_klucz: k \}\)/);
   assert.ok(r.indexOf('_isCoach = !!coachRow;') < r.indexOf('if (apiWynikow && window.IMPREZY) imprezyStart();'), 'imprezyStart po rozpoznaniu trenera');
   const ctx = zaladujSb();

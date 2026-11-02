@@ -76,22 +76,23 @@ test('błędy: brak API → wylaczone bez zapytania; kod z wyniki-api przechodzi
   assert.equal(o.mag.size, 0, 'błąd nie trafia do pamięci');
 });
 
-test('races.html: sekcja hidden, start tylko przy dostępnym API; offline → bmStanOffline(„kalendarza"), inne błędy → sekcja znika', () => {
-  assert.match(RACES, /<section class="st-card" id="imprezy-sekcja" hidden/);
+test('races.html (L2, 2.11): chipy okresu w panelu filtrów (hidden do API), start tylko przy dostępnym API; błąd sieci → zdanie w stopce, inne błędy → bez imprez', () => {
+  assert.match(RACES, /<div style="margin-bottom:10px;" id="imprezy-okresy-wrap" hidden>/);
   assert.match(RACES, /if \(apiWynikow && window\.IMPREZY\) imprezyStart\(\);/);
-  assert.match(RACES, /if \(w\.blad === 'offline' \|\| w\.blad === 'siec' \|\| w\.blad === 'timeout'\) \{[^}]*window\.bmStanOffline\(lista, 'kalendarza'\); \}\s*\n\s*else if \(sekcja\) sekcja\.hidden = true;/);
+  assert.match(RACES, /if \(w\.blad\) \{ _imprezy = \[\]; _imprezyStan = \{ blad: w\.blad \}; \}/);
+  assert.match(RACES, /if \(_imprezyStan\.blad === 'offline' \|\| _imprezyStan\.blad === 'siec' \|\| _imprezyStan\.blad === 'timeout'\) linie\.push\('Kalendarz biegów w Polsce chwilowo niedostępny/);
   assert.match(RACES, /data-okres="30">30 dni</); assert.match(RACES, /data-okres="90">3 mies\.</); assert.match(RACES, /data-okres="365">rok</);
-  assert.match(RACES, /placeholder="Szukaj po nazwie lub mieście"/);
+  assert.match(RACES, /class="imprezy-okres on" data-okres="90"/, 'domyślnie 3 mies. (limit 300 wierszy maszyny)');
   const sb = fs.readFileSync(path.join(__dirname, '..', 'sb.js'), 'utf8');
   assert.match(sb, /t\.textContent = 'Brak połączenia — nie można wczytać ' \+ \(co \|\| 'danych'\) \+ '\.';/, 'zdanie z listy blizna-49');
 });
 
-test('races.html: linki tylko safeExternalHref {tylkoHttps} + rel noopener; tekst przez escapeHtml; licznik z prawdziwej liczby', () => {
+test('races.html: karta imprezy — linki tylko safeExternalHref {tylkoHttps} + rel noopener; tekst przez escHtml; „pokazano pierwsze 300" z uciete', () => {
   const f = RACES.slice(RACES.indexOf('async function imprezyLaduj()'), RACES.indexOf('// ── INIT'));
-  assert.match(f, /window\.safeExternalHref\(i\.url, \{ tylkoHttps: true \}\)/);
+  assert.match(f, /window\.safeExternalHref\(x\.url, \{ tylkoHttps: true \}\)/);
   assert.match(f, /rel="noopener noreferrer"/);
-  assert.match(f, /escapeHtml\(i\.nazwa\)/); assert.match(f, /escapeHtml\(meta\)/);
-  assert.match(f, /\(w\.uciete \? w\.liczba \+ '\+' : w\.liczba\)/);
+  assert.match(f, /escHtml\(x\.nazwa\)/); assert.match(f, /escHtml\(x\.miasto \|\| '—'\)/);
+  assert.match(f, /if \(_imprezyStan\.uciete\) linie\.push\('Pokazano pierwsze 300 imprez/);
   assert.match(f, /if \(nr !== _imprezyNr\) return;/, 'starsza odpowiedź nie nadpisuje nowszej');
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'wyniki-api.js'), 'utf8'), /'event_course_status', 'events_search',/);
 });

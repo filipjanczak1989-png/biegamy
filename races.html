@@ -8,6 +8,7 @@
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
+<script src="js/kalendarz-lista.mjs"></script><!-- L1 (2.11.2026): jedna lista z obu źródeł — model, dedup, sort, typ, województwo, filtry -->
 <script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><script src="js/wyniki-api.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
@@ -346,6 +347,17 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
       </div>
     </div>
 
+    <!-- L2 (2.11.2026): kalendarz biegów w Polsce (maszyna wyników) jest W TEJ SAMEJ liście co nasze zawody; okres decyduje,
+         ile przodu pobieramy z maszyny (limit 300 wierszy — domyślnie 3 mies.). Szukajka i filtry wyżej działają na obu źródłach. -->
+    <div style="margin-bottom:10px;" id="imprezy-okresy-wrap" hidden>
+      <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:6px;">Kalendarz biegów w Polsce</label>
+      <div class="imprezy-okresy" style="display:flex;gap:6px;">
+        <button type="button" class="imprezy-okres" data-okres="30">30 dni</button>
+        <button type="button" class="imprezy-okres on" data-okres="90">3 mies.</button>
+        <button type="button" class="imprezy-okres" data-okres="365">rok</button>
+      </div>
+    </div>
+
     <!-- Zakres dat -->
     <div style="margin-bottom:10px;">
       <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:5px;">Zakres dat (precyzyjny)</label>
@@ -419,20 +431,9 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
   </div>
 </div>
 
-<!-- K4 (1.11.2026): „W Polsce" — kalendarz maszyny wyników (window.IMPREZY w sb.js). Domyślnie hidden; odkrywana po sesji,
-     gdy serwer wyników dostępny. Okres + szukaj; dedup z naszymi startami; linki przez safeExternalHref (https). -->
-<section class="st-card" id="imprezy-sekcja" hidden style="margin:12px 16px;">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;">
-    <div style="font-weight:600;">W Polsce</div><div id="imprezy-licznik" class="imprezy-licznik" style="color:var(--muted);font-size:12px;"></div>
-  </div>
-  <div class="imprezy-okresy" style="display:flex;gap:6px;margin-bottom:10px;">
-    <button type="button" class="imprezy-okres on" data-okres="30">30 dni</button>
-    <button type="button" class="imprezy-okres" data-okres="90">3 mies.</button>
-    <button type="button" class="imprezy-okres" data-okres="365">rok</button>
-  </div>
-  <input id="imprezy-q" type="search" placeholder="Szukaj po nazwie lub mieście" autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:14px;">
-  <div id="imprezy-lista"></div>
-</section>
+<!-- L2 (2.11.2026): imprezy z maszyny są w #races-list razem z naszymi (jedna lista chronologiczna). Tu tylko stopka:
+     „N bez dystansu / bez województwa" (klik odsłania), „pokazano pierwsze 300", brak sieci. -->
+<div id="imprezy-stopka" hidden style="margin:4px 16px 16px;color:var(--muted);font-size:12px;line-height:1.6;"></div>
 
 <!-- RACE DETAIL MODAL -->
 <div class="modal-overlay" id="race-modal" onclick="handleModalOverlayClick(event)">
@@ -587,8 +588,7 @@ let _activeDist = 'all', _searchVal = '';
 let _currentRace = null;
 
 // ── K4: „W POLSCE" (kalendarz maszyny wyników) ────────────────────
-var _imprezyOkres = '30', _imprezyQ = '', _imprezyTimer = null, _imprezyNr = 0;
-var IMPREZY_OKRES_TXT = { '30': 'w 30 dni', '90': 'w 3 miesiące', '365': 'w rok' };
+var _imprezyOkres = '90', _imprezy = [], _imprezyStan = null, _imprezyNr = 0, _imprezyDostepne = false, _pokazBezDystansu = false, _pokazBezWojewodztwa = false;
 /* K5 (018): trener ukrywa zgłoszenie biegacza — klucz z data-* (wzorzec CLAUDE.md), tylko klucze zgloszenie:<uuid>. */
 async function imprezyUkryj(e) {
   var b = e.target && e.target.closest ? e.target.closest('.imprezy-ukryj') : null;
@@ -599,24 +599,21 @@ async function imprezyUkryj(e) {
   var r = await window.wynikiApi(_sb).rpc('event_hide', { p_klucz: k });
   if (r.error) { b.disabled = false; showToast(r.error.status === 403 ? 'Zgłoszenie może ukryć tylko trener.' : 'Nie udało się ukryć — spróbuj za chwilę.'); return; }
   window.IMPREZY.wyczysc();
-  var w = b.closest('.imprezy-wiersz'); if (w) w.remove();
+  var w = b.closest('.race-card'); if (w) w.remove();
   showToast('Zgłoszenie ukryte.');
 }
 function imprezyStart() {
-  var s = document.getElementById('imprezy-sekcja');
-  if (!s) return;
-  s.hidden = false;
-  var listaEl = document.getElementById('imprezy-lista');
+  _imprezyDostepne = true;
+  var wrap = document.getElementById('imprezy-okresy-wrap');
+  if (wrap) wrap.hidden = false;
+  var listaEl = document.getElementById('races-list');
   if (listaEl && !listaEl._bmUkryj) { listaEl._bmUkryj = true; listaEl.addEventListener('click', imprezyUkryj); }
-  s.querySelectorAll('.imprezy-okres').forEach(function (b) {
+  document.querySelectorAll('.imprezy-okres').forEach(function (b) {
     b.addEventListener('click', function () {
-      s.querySelectorAll('.imprezy-okres').forEach(function (x) { x.classList.toggle('on', x === b); });
+      document.querySelectorAll('.imprezy-okres').forEach(function (x) { x.classList.toggle('on', x === b); });
       _imprezyOkres = b.getAttribute('data-okres'); imprezyLaduj();
     });
   });
-  var q = document.getElementById('imprezy-q');
-  if (q) q.addEventListener('input', function () { clearTimeout(_imprezyTimer); _imprezyQ = q.value; _imprezyTimer = setTimeout(imprezyLaduj, 350); });
-  imprezyLaduj();
 }
 function imprezyDystansTxt(d) { return (Array.isArray(d) ? d : []).map(function (x) { return Math.abs(x - 42.195) < 0.3 ? 'maraton' : Math.abs(x - 21.0975) < 0.3 ? 'półmaraton' : String(Math.round(x * 10) / 10).replace('.', ',') + ' km'; }).join(', '); }
 function imprezyDataTxt(i) {
@@ -625,33 +622,65 @@ function imprezyDataTxt(i) {
   if (i.dokladnosc === 'miesiac') return window.BM_TEKST.MIESIACE_MIANOWNIK[Number(p[1]) - 1] + ' ' + p[0];
   return new Date(i.data + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+/* L2: pobranie listy maszyny do STANU (_imprezy) i render scalonej listy. Bez dedupu po stronie IMPREZY (naszeStarty: []) —
+   scala BM_KALENDARZ.scal przy renderze, więc kolejność loadRaces/imprezyLaduj nie ma znaczenia (naprawa wyścigu z przeglądu B). */
 async function imprezyLaduj() {
-  var lista = document.getElementById('imprezy-lista'), licznik = document.getElementById('imprezy-licznik'), sekcja = document.getElementById('imprezy-sekcja');
-  if (!lista || !window.IMPREZY) return;
+  if (!_imprezyDostepne || !window.IMPREZY) return;
   var nr = ++_imprezyNr;
-  lista.innerHTML = '<div style="color:var(--muted);font-size:12px;">Ładuję kalendarz…</div>';
-  var naszeStarty = (typeof _allRaces !== 'undefined' && Array.isArray(_allRaces)) ? _allRaces.filter(function (r) { return r && r.status === 'approved'; }) : [];
   var w;
-  try { w = await window.IMPREZY.szukaj(_sb, { okres: _imprezyOkres, q: _imprezyQ, naszeStarty: naszeStarty }); } catch (e) { w = { blad: 'siec' }; }
+  try { w = await window.IMPREZY.szukaj(_sb, { okres: _imprezyOkres, q: '', naszeStarty: [] }); } catch (e) { w = { blad: 'siec' }; }
   if (nr !== _imprezyNr) return;   // nowsze zapytanie w drodze
-  if (w.blad) {
-    if (w.blad === 'offline' || w.blad === 'siec' || w.blad === 'timeout') { if (licznik) licznik.textContent = ''; window.bmStanOffline(lista, 'kalendarza'); }
-    else if (sekcja) sekcja.hidden = true;   // wyłączone / bez sesji / serwer — sekcja znika, bez zgadywania
-    return;
+  if (w.blad) { _imprezy = []; _imprezyStan = { blad: w.blad }; }
+  else { _imprezy = w.lista; _imprezyStan = { uciete: !!w.uciete, okres: w.okres, liczba: w.liczba }; }
+  renderRaces();
+}
+/* Karta imprezy z maszyny — ta sama .race-card co nasze (bez okładki do L3: zaślepka wg typu z biegamy-assets), bez tapnięcia
+   w modal (to nie nasz start); „Strona imprezy ›" tylko https; trener: „Ukryj" przy zgłoszeniach biegaczy (K5). */
+function renderImprezaCard(x) {
+  var href = window.safeExternalHref ? window.safeExternalHref(x.url, { tylkoHttps: true }) : '';
+  var d0 = x.dystanse[0];
+  var distNum = d0 ? (Math.abs(d0 - 42.195) < 0.3 ? '42' : Math.abs(d0 - 21.0975) < 0.3 ? '21' : String(Math.round(d0 * 10) / 10).replace('.', ',')) : '—';
+  var distUnit = d0 ? (x.dystanse.length > 1 ? '+' + (x.dystanse.length - 1) : 'KM') : '';
+  var okladka = x.okladka ? safeUrlAttr(x.okladka) : '';
+  return '<div class="race-card impreza-karta" data-klucz="' + escAttr(x.klucz || '') + '" data-typ="' + escAttr(x.typ) + '">'
+    + (okladka ? '<img src="' + okladka + '" loading="lazy" decoding="async" alt="" style="display:block;width:100%;aspect-ratio:21/9;object-fit:cover;">' : '')
+    + '<div class="race-card-inner"><div class="race-top">'
+    + '<div class="race-dist-badge"><div class="dist-num">' + distNum + '</div><div class="dist-unit">' + distUnit + '</div></div>'
+    + '<div class="race-info"><div class="race-name">' + escHtml(x.nazwa) + '</div>'
+    + '<div class="race-meta"><div class="race-meta-item">' + escHtml(imprezyDataTxt(x)) + '</div>'
+    + '<div class="race-meta-item">' + escHtml(x.miasto || '—') + (x.wojewodztwo ? ' · ' + escHtml(x.wojewodztwo) : '') + '</div></div>'
+    + (x.dystanse.length > 1 ? '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escHtml(imprezyDystansTxt(x.dystanse)) + '</div>' : '')
+    + (x.status === 'zgloszona' ? '<div class="imprezy-zgloszona" style="color:var(--muted);font-size:11px;margin-top:4px;font-style:italic;">zgłoszona przez biegacza</div>' : '')
+    + '</div></div></div>'
+    + '<div class="race-footer"><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;">kalendarz biegów w Polsce</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;">'
+    + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
+    + (_isCoach && x.status && /^zgloszenie:/.test(x.klucz || '') ? '<button type="button" class="imprezy-ukryj" data-klucz="' + escAttr(x.klucz) + '" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 8px;font-size:11px;">Ukryj</button>' : '')
+    + '</div></div></div>';
+}
+function imprezyStopka(wynik) {
+  var el = document.getElementById('imprezy-stopka');
+  if (!el) return;
+  var linie = [];
+  if (_imprezyStan && _imprezyStan.blad) {
+    if (_imprezyStan.blad === 'offline' || _imprezyStan.blad === 'siec' || _imprezyStan.blad === 'timeout') linie.push('Kalendarz biegów w Polsce chwilowo niedostępny — pokazuję tylko nasze zawody.');
+  } else if (_imprezyStan) {
+    if (_imprezyStan.uciete) linie.push('Pokazano pierwsze 300 imprez z kalendarza w Polsce — zawęź daty albo szukaj po nazwie.');
   }
-  if (licznik) licznik.textContent = w.q ? (w.liczba + ' dla „' + w.q + '”') : ((w.uciete ? w.liczba + '+' : w.liczba) + ' ' + IMPREZY_OKRES_TXT[w.okres]);
-  if (!w.lista.length) { lista.innerHTML = '<div style="color:var(--muted);font-size:13px;">Kalendarz maszyny nie ma imprez w tym zakresie.</div>'; return; }
-  lista.innerHTML = w.lista.map(function (i) {
-    var href = window.safeExternalHref ? window.safeExternalHref(i.url, { tylkoHttps: true }) : '';
-    var meta = [imprezyDataTxt(i), i.miejscowosc || '', imprezyDystansTxt(i.dystanse)].filter(Boolean).join(' · ');
-    return '<div class="imprezy-wiersz" style="padding:10px 0;border-top:1px solid var(--border);">'
-      + '<div style="font-weight:600;font-size:14px;">' + escapeHtml(i.nazwa) + '</div>'
-      + '<div style="color:var(--muted);font-size:12px;margin-top:2px;">' + escapeHtml(meta) + '</div>'
-      + (i.status === 'zgloszona' ? '<div class="imprezy-zgloszona" style="color:var(--muted);font-size:11px;margin-top:2px;font-style:italic;">zgłoszona przez biegacza</div>' : '')
-      + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
-      + (_isCoach && i.status && /^zgloszenie:/.test(i.klucz || '') ? ' <button type="button" class="imprezy-ukryj" data-klucz="' + escapeHtml(i.klucz) + '" style="margin-left:8px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;">Ukryj</button>' : '')
-      + '</div>';
-  }).join('');
+  if (wynik.bezDystansu) linie.push('<a href="#" data-pokaz="dystans" style="color:var(--accent);">' + wynik.bezDystansu + ' ' + window.BM_TEKST.odmiana(wynik.bezDystansu, ['impreza', 'imprezy', 'imprez']) + ' bez podanego dystansu — pokaż</a>');
+  if (wynik.bezWojewodztwa) linie.push('<a href="#" data-pokaz="wojewodztwo" style="color:var(--accent);">' + wynik.bezWojewodztwa + ' ' + window.BM_TEKST.odmiana(wynik.bezWojewodztwa, ['impreza', 'imprezy', 'imprez']) + ' z kalendarza bez województwa — pokaż</a>');
+  el.innerHTML = linie.join('<br>');
+  el.hidden = !linie.length;
+  if (!el._bmPokaz) {
+    el._bmPokaz = true;
+    el.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('[data-pokaz]') : null;
+      if (!a) return;
+      e.preventDefault();
+      if (a.getAttribute('data-pokaz') === 'dystans') _pokazBezDystansu = true; else _pokazBezWojewodztwa = true;
+      renderRaces();
+    });
+  }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
@@ -703,6 +732,7 @@ async function imprezyLaduj() {
 
   await loadRaces();
   await loadMySignups();
+  imprezyLaduj();   // L2: imprezy do stanu, render scalonej listy (loadRaces już wyrenderował nasze)
 
   // KROK 2: oznacz "widziałem biegi teraz" → kropka "nowe od znajomych" na home zniknie
   try { localStorage.setItem('bm_races_friends_seen', new Date().toISOString()); } catch(e){}
@@ -837,9 +867,19 @@ async function loadMyFriends() {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────
+/* L2 (2.11.2026): JEDNA lista chronologiczna — nasze zawody (approved) + imprezy z maszyny (stan _imprezy), scalone
+   (BM_KALENDARZ.scal: nasza wygrywa, maszyna oddaje klucz/link/dystanse) i filtrowane jednym zestawem filtrów. */
+function filtryZPanelu() {
+  return { voi: document.getElementById('f-voi')?.value || '', month: document.getElementById('f-month')?.value || '',
+    od: document.getElementById('adv-date-from')?.value || '', do: document.getElementById('adv-date-to')?.value || '',
+    dist: _activeDist, q: _searchVal, pokazBezDystansu: _pokazBezDystansu, pokazBezWojewodztwa: _pokazBezWojewodztwa };
+}
 function renderRaces() {
   const list = document.getElementById('races-list');
-  const filtered = getFiltered();
+  const K = window.BM_KALENDARZ;
+  const nasze = _allRaces.filter(r => r.status === 'approved');
+  const scalone = K.scal(nasze, _imprezyDostepne ? _imprezy : []);
+  const wynik = K.filtruj(scalone, filtryZPanelu());
 
   // Dla trenera: pending na górze osobno
   let html = '';
@@ -852,27 +892,28 @@ function renderRaces() {
     }
   }
 
-  const approved = filtered.filter(r => r.status === 'approved');
-  if (approved.length === 0 && !html) {
+  if (wynik.lista.length === 0 && !html) {
     list.innerHTML = `<div class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       <p>Brak zawodów w tym filtrze.<br>Możesz zaproponować nowe!</p>
     </div>`;
+    imprezyStopka(wynik);
     return;
   }
 
-  // Grupuj po miesiącu
+  // Grupuj po miesiącu (imprezy z dokładnością miesiąca sortują się na jego koniec — BM_KALENDARZ.sortuj)
   let currentMonth = '';
-  for (const race of approved) {
-    const month = formatMonth(race.date);
+  for (const x of wynik.lista) {
+    const month = formatMonth(x.data);
     if (month !== currentMonth) {
       currentMonth = month;
       if (!_isCoach) html += `<div class="month-divider">${month}</div>`;
       else html += `<div class="month-divider" style="font-size:8px;">${month}</div>`;
     }
-    html += renderRaceCard(race);
+    html += x.zrodlo === 'nasze' ? renderRaceCard(x.race) : renderImprezaCard(x);
   }
   list.innerHTML = html;
+  imprezyStopka(wynik);
 }
 
 function renderRaceCard(race) {
@@ -984,40 +1025,7 @@ function _normalize(s) {
     .replace(/ń/g,'n').replace(/ó/g,'o').replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z');
 }
 
-function getFiltered() {
-  var voi = document.getElementById('f-voi')?.value || '';
-  var month = document.getElementById('f-month')?.value || '';  // YYYY-MM
-  var dateFrom = document.getElementById('adv-date-from')?.value || '';
-  var dateTo   = document.getElementById('adv-date-to')?.value || '';
-
-  return _allRaces.filter(r => {
-    // Zawodnik widzi tylko approved; trener widzi wszystkie
-    if (!_isCoach && r.status !== 'approved') return false;
-    // Województwo (dropdown)
-    if (voi) {
-      var locN = _normalize((r.voivodeship||'') + ' ' + (r.region||'') + ' ' + (r.city||''));
-      if (!locN.includes(_normalize(voi))) return false;
-    }
-    // Miesiąc YYYY-MM
-    if (month && r.date) {
-      if (!r.date.startsWith(month)) return false;
-    }
-    // Zakres dat (precyzyjny)
-    if (dateFrom && r.date && r.date < dateFrom) return false;
-    if (dateTo   && r.date && r.date > dateTo)   return false;
-    // Dystans
-    const matchDist = matchesDistFilter(r.distance_km, _activeDist);
-    if (!matchDist) return false;
-    // Search - fuzzy bez polskich znaków
-    const qN = _normalize(_searchVal);
-    if (qN) {
-      const hay = _normalize((r.name||'') + ' ' + (r.city||''));
-      if (!hay.includes(qN)) return false;
-    }
-    return true;
-  });
-}
-
+/* getFiltered() usunięte w L2 — filtry obu źródeł w js/kalendarz-lista.mjs (BM_KALENDARZ.filtruj) */
 function matchesDistFilter(km, filter) {
   if (filter === 'all') return true;
   if (filter === 'ultra') return km > 42.195;
@@ -1040,6 +1048,8 @@ function filterRaces() {
 }
 
 function onFilterChange() {
+  var okres = window.BM_KALENDARZ.okresZFiltra(filtryZPanelu(), window.BM_KALENDARZ.dzien());
+  if (_imprezyDostepne && Number(okres) > Number(_imprezyOkres)) { _imprezyOkres = okres; document.querySelectorAll('.imprezy-okres').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-okres') === okres); }); imprezyLaduj(); }
   renderRaces();
   updateActiveFiltersBar();
   updateFilterBadge();
