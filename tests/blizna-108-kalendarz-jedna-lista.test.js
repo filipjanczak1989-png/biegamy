@@ -83,7 +83,7 @@ test('7) races.html — jedna lista, moduł, wyścig, karta maszyny', () => {
   const r = czytaj('races.html');
   assert.ok(r.indexOf('<script src="js/tekst.mjs"></script>') < r.indexOf('<script src="js/kalendarz-lista.mjs"></script>'), 'moduł po tekst.mjs');
   assert.doesNotMatch(r, /id="imprezy-sekcja"|id="imprezy-lista"|id="imprezy-q"/, 'bez osobnej sekcji „W Polsce"');
-  assert.match(r, /await loadRaces\(\);\n\s*await loadMySignups\(\);\n\s*imprezyLaduj\(\);/, 'imprezy po naszych');
+  assert.match(r, /await loadRaces\(\);\n\s*await loadMySignups\(\);\n\s*await okladkiLaduj\(\);[^\n]*\n\s*imprezyLaduj\(\);/, 'imprezy po naszych (i po mapie okładek)');
   assert.match(r, /const scalone = K\.scal\(nasze, _imprezyDostepne \? _imprezy : \[\]\);\n\s*const wynik = K\.filtruj\(scalone, filtryZPanelu\(\)\);/);
   assert.match(r, /html \+= x\.zrodlo === 'nasze' \? renderRaceCard\(x\.race\) : renderImprezaCard\(x\);/);
   const k = r.slice(r.indexOf('function renderImprezaCard'), r.indexOf('function imprezyStopka'));

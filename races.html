@@ -589,6 +589,7 @@ let _currentRace = null;
 
 // ── K4: „W POLSCE" (kalendarz maszyny wyników) ────────────────────
 var _imprezyOkres = '90', _imprezy = [], _imprezyStan = null, _imprezyNr = 0, _imprezyDostepne = false, _pokazBezDystansu = false, _pokazBezWojewodztwa = false;
+var _okladkiImprez = {};   // L4: klucz bez roku → url (public.imprezy_okladki, tylko odczyt; pisze narzędzie lokalne tools/kalendarz/generuj-okladki.mjs)
 /* K5 (018): trener ukrywa zgłoszenie biegacza — klucz z data-* (wzorzec CLAUDE.md), tylko klucze zgloszenie:<uuid>. */
 async function imprezyUkryj(e) {
   var b = e.target && e.target.closest ? e.target.closest('.imprezy-ukryj') : null;
@@ -624,6 +625,13 @@ function imprezyDataTxt(i) {
 }
 /* L2: pobranie listy maszyny do STANU (_imprezy) i render scalonej listy. Bez dedupu po stronie IMPREZY (naszeStarty: []) —
    scala BM_KALENDARZ.scal przy renderze, więc kolejność loadRaces/imprezyLaduj nie ma znaczenia (naprawa wyścigu z przeglądu B). */
+/* L4: okładki imprez z maszyny — jedna tabela, ≤ kilkaset wierszy, jeden select na wejście (bez `in(...)` z setkami kluczy w URL). */
+async function okladkiLaduj() {
+  try {
+    var r = await _sb.from('imprezy_okladki').select('klucz,url');
+    if (!r.error && Array.isArray(r.data)) { _okladkiImprez = {}; r.data.forEach(function (x) { if (x && x.klucz && x.url) _okladkiImprez[x.klucz] = x.url; }); }
+  } catch (e) {}
+}
 async function imprezyLaduj() {
   if (!_imprezyDostepne || !window.IMPREZY) return;
   var nr = ++_imprezyNr;
@@ -643,7 +651,8 @@ function renderImprezaCard(x) {
   var distUnit = d0 ? (x.dystanse.length > 1 ? '+' + (x.dystanse.length - 1) : 'KM') : '';
   /* L3 (2.11): bez okładki — zaślepka wg typu z biegamy-assets (assetUrl: biała lista safeUrlAttr i cache SW obrazów assets;
      własny origin nie przeszedłby safeUrlAttr, a SW nie zna .webp — przegląd B pkt 12). Pliki: kalendarz/typ-<typ>.webp (6 typów). */
-  var okladka = x.okladka ? safeUrlAttr(x.okladka) : (window.assetUrl && window.BM_KALENDARZ.TYPY.indexOf(x.typ) >= 0 ? safeUrlAttr(window.assetUrl('kalendarz/typ-' + x.typ + '.webp')) : '');
+  var zBazy = _okladkiImprez[window.BM_KALENDARZ.kluczBezRoku(x.nazwa, x.miasto)] || null;   // L4: ta sama impreza w kolejnych latach = ta sama okładka
+  var okladka = x.okladka ? safeUrlAttr(x.okladka) : zBazy ? safeUrlAttr(zBazy) : (window.assetUrl && window.BM_KALENDARZ.TYPY.indexOf(x.typ) >= 0 ? safeUrlAttr(window.assetUrl('kalendarz/typ-' + x.typ + '.webp')) : '');
   return '<div class="race-card impreza-karta" data-klucz="' + escAttr(x.klucz || '') + '" data-typ="' + escAttr(x.typ) + '">'
     + (okladka ? '<img src="' + okladka + '" loading="lazy" decoding="async" alt="" style="display:block;width:100%;aspect-ratio:21/9;object-fit:cover;">' : '')
     + '<div class="race-card-inner"><div class="race-top">'
@@ -734,6 +743,7 @@ function imprezyStopka(wynik) {
 
   await loadRaces();
   await loadMySignups();
+  await okladkiLaduj();   // L4: mapa okładek przed renderem imprez
   imprezyLaduj();   // L2: imprezy do stanu, render scalonej listy (loadRaces już wyrenderował nasze)
 
   // KROK 2: oznacz "widziałem biegi teraz" → kropka "nowe od znajomych" na home zniknie
