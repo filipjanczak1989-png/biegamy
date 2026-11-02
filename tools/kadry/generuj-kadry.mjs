@@ -338,6 +338,11 @@ if (arg("dociagnij-rozmiar", false) === true) {
   podglad(); process.exit(0);
 }
 if (POKAZ) {
+  /* ⚠️ JEDEN zapis i wyjście PO jego opróżnieniu (3.11.2026): na Linuksie stdout do potoku jest ASYNCHRONICZNY,
+     więc console.log × 120 (~93 KB) + process.exit(0) ucinało wyjście — CI blizna-57 dostał 91 rekordów zamiast 120
+     (na Windows potok jest synchroniczny, lokalnie zawsze 120). */
+  const wyjscie = [];
+  const console = { log: (s) => wyjscie.push(s) };
   for (const n of numery) {
     if (PULA === "typ") { console.log(`--- typ ${n} typ-${TYPY[n - 1].slug}.jpg`); console.log(prompt(n)); continue; }
     if (PULA === "ikona") { console.log(`--- ikona ${n} ikona-${IKONY[n - 1].slug}`); console.log(prompt(n)); continue; }
@@ -346,6 +351,7 @@ if (POKAZ) {
     console.log(`    osie: kompozycja ${i.kompozycja} „${o.kompozycja.nazwa}" · podmiot ${o.podmiotNr ?? "—"} „${o.podmiot}${o.detal ? ": " + o.detal : ""}" · pora dnia „${o.poraDnia}" · pogoda „${o.pogoda || (o.scenaNocna ? "(z linii nocy)" : "(z tagu/wnętrza)")}" · ogniskowa ${["24", "50", "85"][o.ogniskowaNr]} mm${o.wyjatek ? " · WYJĄTEK SCENY" : ""}`);
     console.log(prompt(n));
   }
+  await new Promise((gotowe) => process.stdout.write(wyjscie.join("\n") + "\n", gotowe));
   process.exit(0);
 }
 if (!process.env.GEMINI_API_KEY) { console.error("brak GEMINI_API_KEY w środowisku"); process.exit(2); }
