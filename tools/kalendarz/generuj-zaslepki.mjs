@@ -2,7 +2,7 @@
 // robisz Gemini"). Ten sam mechanizm co EF race-image: model gemini-nano-banana-2.1, Interactions API, 21:9 w 1K, ta sama
 // konwencja promptu (reportaż, 1–2 biegaczy od tyłu, bez tłumu, bez tekstu) — tylko BEZ nazwy i miasta (zaślepka jest wspólna
 // dla typu). Lokalnie, nie front: node tools/kalendarz/generuj-zaslepki.mjs <katalog_wyjścia> [typ…]   (GEMINI_API_KEY w env)
-// Koszt: ~$0,034 za kadr 1K (docs/okladki-zawodow-spec.md) → 5 kadrów ≈ $0,17.
+// Koszt: ~$0,034 za kadr 1K (docs/okladki-zawodow-spec.md) → 6 kadrów ≈ $0,20 (nordic dołożony 2.11).
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -14,6 +14,7 @@ const TYPY = {
   trail: { sceneria: "górska ścieżka, skały i trawa, szczyty w tle", swiatlo: "naturalne światło dzienne, lekka mgła w dolinach", pora: "lato" },
   ultra: { sceneria: "bardzo długa droga przez rozległy krajobraz, wzgórza aż po horyzont", swiatlo: "niskie światło wczesnego poranka", pora: "wiosna" },
   przelaj: { sceneria: "leśna ścieżka przełajowa, korzenie i liście, drzewa", swiatlo: "naturalne światło dzienne przesiane przez korony drzew", pora: "jesień" },
+  nordic: { sceneria: "szeroka żwirowa aleja wzdłuż jeziora, dwie osoby idące z kijkami nordic walking", swiatlo: "miękkie światło późnego popołudnia", pora: "jesień" },   // decyzja Filipa 2.11: nordic/marsz pokazujemy
 };
 
 function prompt(t) {

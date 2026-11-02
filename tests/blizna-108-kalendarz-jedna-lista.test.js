@@ -90,6 +90,9 @@ test('7) races.html — jedna lista, moduł, wyścig, karta maszyny', () => {
   assert.doesNotMatch(k, /onclick="openRace/, 'karta maszyny nie otwiera modalu naszego startu');
   assert.match(k, /safeExternalHref\(x\.url, \{ tylkoHttps: true \}\)/); assert.match(k, /rel="noopener noreferrer"/); assert.match(k, /escHtml\(x\.nazwa\)/);
   assert.match(k, /kalendarz biegów w Polsce/, 'dyskretna etykieta źródła');
+  // L3: zaślepka wg typu z biegamy-assets przez assetUrl + safeUrlAttr (nie z własnego originu — safeUrlAttr i SW .webp)
+  assert.match(k, /safeUrlAttr\(window\.assetUrl\('kalendarz\/typ-' \+ x\.typ \+ '\.webp'\)\)/);
+  assert.doesNotMatch(k, /assets\/kalendarz/, 'nie z własnego originu');
   assert.match(r, /naszeStarty: \[\] \}\)/, 'dedup w module, nie w IMPREZY');
   assert.doesNotMatch(r, /function getFiltered\(\)/);
 });

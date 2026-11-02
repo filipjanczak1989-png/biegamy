@@ -634,14 +634,16 @@ async function imprezyLaduj() {
   else { _imprezy = w.lista; _imprezyStan = { uciete: !!w.uciete, okres: w.okres, liczba: w.liczba }; }
   renderRaces();
 }
-/* Karta imprezy z maszyny — ta sama .race-card co nasze (bez okładki do L3: zaślepka wg typu z biegamy-assets), bez tapnięcia
+/* Karta imprezy z maszyny — ta sama .race-card co nasze (okładka: L4 z imprezy_okladki, inaczej zaślepka wg typu), bez tapnięcia
    w modal (to nie nasz start); „Strona imprezy ›" tylko https; trener: „Ukryj" przy zgłoszeniach biegaczy (K5). */
 function renderImprezaCard(x) {
   var href = window.safeExternalHref ? window.safeExternalHref(x.url, { tylkoHttps: true }) : '';
   var d0 = x.dystanse[0];
   var distNum = d0 ? (Math.abs(d0 - 42.195) < 0.3 ? '42' : Math.abs(d0 - 21.0975) < 0.3 ? '21' : String(Math.round(d0 * 10) / 10).replace('.', ',')) : '—';
   var distUnit = d0 ? (x.dystanse.length > 1 ? '+' + (x.dystanse.length - 1) : 'KM') : '';
-  var okladka = x.okladka ? safeUrlAttr(x.okladka) : '';
+  /* L3 (2.11): bez okładki — zaślepka wg typu z biegamy-assets (assetUrl: biała lista safeUrlAttr i cache SW obrazów assets;
+     własny origin nie przeszedłby safeUrlAttr, a SW nie zna .webp — przegląd B pkt 12). Pliki: kalendarz/typ-<typ>.webp (6 typów). */
+  var okladka = x.okladka ? safeUrlAttr(x.okladka) : (window.assetUrl && window.BM_KALENDARZ.TYPY.indexOf(x.typ) >= 0 ? safeUrlAttr(window.assetUrl('kalendarz/typ-' + x.typ + '.webp')) : '');
   return '<div class="race-card impreza-karta" data-klucz="' + escAttr(x.klucz || '') + '" data-typ="' + escAttr(x.typ) + '">'
     + (okladka ? '<img src="' + okladka + '" loading="lazy" decoding="async" alt="" style="display:block;width:100%;aspect-ratio:21/9;object-fit:cover;">' : '')
     + '<div class="race-card-inner"><div class="race-top">'
