@@ -1,0 +1,30 @@
+{
+  "opis": "Zrzut z produkcji (tools/akcje-migawka.js --zrzut). NIE migracja. Bez e-maili.",
+  "zrzut_at": "2026-11-02T10:51:32.007Z",
+  "wiersze": [
+    {
+      "slug": "dla-fabianka",
+      "rola": "startujacy",
+      "athlete_id": "56092926-2cf1-44b6-952f-38614497fdc2",
+      "w_coaches": true,
+      "zawodnikow": 21,
+      "last_sign_in_at": "2026-11-02 08:43:53.219192+00"
+    },
+    {
+      "slug": "proba",
+      "rola": "konto_testowe",
+      "athlete_id": "9c2df65c-6a46-410e-ad5f-474e5d973ec9",
+      "w_coaches": false,
+      "zawodnikow": 0,
+      "last_sign_in_at": "2026-11-01 22:48:25.744708+00"
+    },
+    {
+      "slug": "proba",
+      "rola": "startujacy",
+      "athlete_id": "56092926-2cf1-44b6-952f-38614497fdc2",
+      "w_coaches": true,
+      "zawodnikow": 21,
+      "last_sign_in_at": "2026-11-02 08:43:53.219192+00"
+    }
+  ]
+}

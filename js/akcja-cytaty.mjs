@@ -38,8 +38,8 @@
      (zalogowani; authenticated ma EXECUTE). Cache 60 s w sessionStorage (try/catch — prywatne okno, Deno w okienku).
      Brak sieci → ostatni stan z tej sesji, a bez niego „nie ruszyła" (zostaje teaser).
      PRÓBA (v3 pkt 4): konto testowe czyta akcję 'proba' zamiast 'dla-fabianka' — guzik próby zmienia cytat TYLKO jemu.
-     PROBA_KONTA = akcje.konta_testowe wiersza 'proba' (migracja 20261102_akcje; równość pilnuje blizna-96). */
-  var PROBA_KONTA = ["56092926-2cf1-44b6-952f-38614497fdc2"];
+     PROBA_KONTA = akcje.konta_testowe wiersza 'proba' (migracja 20261102_akcje_startujacy_poprawka; blizna-96 + migawka blizna-97). */
+  var PROBA_KONTA = ["9c2df65c-6a46-410e-ad5f-474e5d973ec9"];   // konto testowe (poprawka 2.11 — NIE główne konto Filipa)
   var CACHE_MS = 60000;
   function slugDla(athleteId) { return PROBA_KONTA.indexOf(String(athleteId || "")) >= 0 ? "proba" : "dla-fabianka"; }
   function _schowek() { try { return g.sessionStorage || null; } catch (e) { return null; } }

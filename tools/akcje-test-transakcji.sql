@@ -3,8 +3,9 @@
 -- więc nic nie zostaje w bazie — także przy zielonym wyniku. Komunikat wyjątku = wynik.
 do $T$
 declare
-  F_UID  constant uuid := '1dfb3b79-771e-46d7-8ac0-ff52df3cadd0';   -- konto trenera Filipa (startujący)
-  F_ATH  constant uuid := '9c2df65c-6a46-410e-ad5f-474e5d973ec9';
+  F_UID  constant uuid := 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5';   -- GŁÓWNE konto Filipa (startujący; poprawka 2.11)
+  F_ATH  constant uuid := '56092926-2cf1-44b6-952f-38614497fdc2';
+  T_ATH  constant uuid := '9c2df65c-6a46-410e-ad5f-474e5d973ec9';   -- konto testowe (konta_testowe próby)
   r_uid uuid; r_ath uuid; j jsonb; n int := 0; t_suma uuid;
 begin
   select id, user_id into r_ath, r_uid from public.athletes
@@ -131,7 +132,7 @@ begin
   if not (j->>'wystartowala')::boolean or (j->>'start')::date <> (now() at time zone 'Europe/Warsaw')::date
      then raise exception 'FAIL 8a: próba %', j; end if;
   if (j->>'suma_km')::numeric <> public.akcja_km_okna((select id from public.akcje where slug = 'proba'),
-        (now() at time zone 'Europe/Warsaw')::date, (now() at time zone 'Europe/Warsaw')::date, array['56092926-2cf1-44b6-952f-38614497fdc2'::uuid])
+        (now() at time zone 'Europe/Warsaw')::date, (now() at time zone 'Europe/Warsaw')::date, array[T_ATH])
     then raise exception 'FAIL 8a2: próba liczy coś poza kontem testowym %', j; end if;
   insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, source, external_source, external_id)
   values (r_ath, 7, now() - interval '1 minute', 'Spokojny', 'intervals', 'test-akcja', 't11');

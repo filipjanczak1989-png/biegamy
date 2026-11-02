@@ -111,7 +111,7 @@ test('guzik: okno, tolerancja 2 min, idempotencja; rozliczenie teleskopowe', () 
   assert.match(t, /isodow from p_poniedzialek\) <> 1/);
 });
 
-test('wiersze: dla-fabianka bez wymyślonego linku i formy imienia; proba = persona zawodnika Filipa; startujący = konto trenera', () => {
+test('wiersze (stan PIERWOTNEJ migracji — konta zamienione, poprawione w 20261102_akcje_startujacy_poprawka, blizna-97): dla-fabianka bez wymyślonego linku i formy imienia', () => {
   const fab = bezKomentarzy.match(/values \('dla-fabianka', ([^,]+), ([^,]+), ([^,]+),/);
   assert.ok(fab);
   assert.deepEqual([fab[1], fab[2], fab[3]].map((x) => x.trim()), ['null', 'null', 'null']);

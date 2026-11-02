@@ -18,7 +18,8 @@ const { pathToFileURL } = require('node:url');
 
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
-const PERSONA = '56092926-2cf1-44b6-952f-38614497fdc2';
+const GLOWNE = '56092926-2cf1-44b6-952f-38614497fdc2';   // główne konto Filipa (startujący)
+const TESTOWE = '9c2df65c-6a46-410e-ad5f-474e5d973ec9';  // konto testowe próby (poprawka 2.11)
 let A;
 test.before(async () => {
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja-cytaty.mjs')).href);
@@ -27,14 +28,14 @@ test.before(async () => {
 const sbFake = (odp) => { const s = { wolania: [], rpc: async (fn, a) => { s.wolania.push([fn, a]); if (odp instanceof Error) throw odp; return odp; } }; return s; };
 const pamiec = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), m }; };
 
-test('slugDla: persona testowa → proba, reszta → dla-fabianka; PROBA_KONTA = konta_testowe z migracji', () => {
-  assert.equal(A.slugDla(PERSONA), 'proba');
-  assert.equal(A.slugDla('9c2df65c-6a46-410e-ad5f-474e5d973ec9'), 'dla-fabianka');
+test('slugDla: konto testowe → proba, reszta (także główne konto Filipa) → dla-fabianka; PROBA_KONTA = poprawka', () => {
+  assert.equal(A.slugDla(TESTOWE), 'proba');
+  assert.equal(A.slugDla(GLOWNE), 'dla-fabianka', 'główne konto Filipa nie może czytać próby (błąd z 2.11)');
   assert.equal(A.slugDla(null), 'dla-fabianka');
-  const m = czytaj('supabase/migrations/20261102_akcje.sql').match(/values \('proba',[^;]*array\[([^\]]*)\]/);
-  assert.ok(m, 'brak konta_testowe w migracji');
-  const zMigracji = [...m[1].matchAll(/'([0-9a-f-]{36})'/g)].map((x) => x[1]);
-  assert.deepEqual(A.PROBA_KONTA, zMigracji);
+  const m = czytaj('supabase/migrations/20261102_akcje_startujacy_poprawka.sql').match(/set konta_testowe = array\[([^\]]*)\]/);
+  assert.ok(m, 'brak konta_testowe w poprawce');
+  const zPoprawki = [...m[1].matchAll(/'([0-9a-f-]{36})'/g)].map((x) => x[1]);
+  assert.deepEqual(A.PROBA_KONTA, zPoprawki);
 });
 
 test('odswiezStan: RPC akcja_licznik, cache 60 s, wymus, brak sieci → stan sesji albo false', async () => {
@@ -72,7 +73,7 @@ test('odswiezStan: RPC akcja_licznik, cache 60 s, wymus, brak sieci → stan ses
 test('próba: konto testowe po starcie próby widzi cytat dnia startu w dowolny dzień; inni nadal teaser', async () => {
   const d3 = new Date('2026-11-03T10:00:00Z');
   try {
-    await A.odswiezStan(sbFake({ data: { wystartowala: true, koniec: null }, error: null }), PERSONA, { teraz: 1 });
+    await A.odswiezStan(sbFake({ data: { wystartowala: true, koniec: null }, error: null }), TESTOWE, { teraz: 1 });
     assert.equal(A.cytat(d3).tekst, A.W_DNIU_STARTU);
     A.ustawStan({ ruszyla: false, proba: true });
     assert.equal(A.cytat(d3).tekst, A.TEASER['2026-11-03'], 'próba przed naciśnięciem = teaser');
