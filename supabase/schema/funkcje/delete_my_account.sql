@@ -35,6 +35,7 @@ BEGIN
   DELETE FROM public.trainings           WHERE athlete_id = v_athlete_id;
   DELETE FROM public.training_plans      WHERE athlete_id = v_athlete_id;
   DELETE FROM public.race_signups        WHERE athlete_id = v_athlete_id;
+  DELETE FROM public.wyniki_zgloszone    WHERE athlete_id = v_athlete_id;   -- B (2.11): athletes nie jest kasowane, tylko anonimizowane
   DELETE FROM public.coach_athlete_notes WHERE athlete_id = v_athlete_id;
   DELETE FROM public.profile_posts       WHERE athlete_id = v_athlete_id;
   DELETE FROM public.notifications       WHERE athlete_id = v_athlete_id;

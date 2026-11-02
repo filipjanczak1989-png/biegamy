@@ -1,0 +1,64 @@
+MIGAWKA STANU DOSTĘPU — public.wyniki_zgloszone
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, INSERT, SELECT, UPDATE
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  — brak
+
+POLITYKI (9)
+
+  [1] wz_delete_coach
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+
+  [2] wz_delete_own
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id = auth_my_athlete_id())
+
+  [3] wz_insert_coach
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: ((zrodlo = 'trener'::text) AND (wpisal_user_id = auth.uid()) AND (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid()))))
+
+  [4] wz_insert_own
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: ((athlete_id = auth_my_athlete_id()) AND (zrodlo = 'zawodnik'::text) AND (wpisal_user_id = auth.uid()))
+
+  [5] wz_read_by_coach
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+
+  [6] wz_read_own
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id = auth_my_athlete_id())
+
+  [7] wz_read_public
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (EXISTS ( SELECT 1 FROM athletes a WHERE ((a.id = wyniki_zgloszone.athlete_id) AND (a.is_public = true))))
+
+  [8] wz_update_coach
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+      przy zapisie: (athlete_id IN ( SELECT athletes.id FROM athletes WHERE (athletes.coach_id = auth.uid())))
+
+  [9] wz_update_own
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : (athlete_id = auth_my_athlete_id())
+      przy zapisie: (athlete_id = auth_my_athlete_id())

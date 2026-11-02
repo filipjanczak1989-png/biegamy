@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 64
+# Obiektow (funkcje + triggery): 69
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -35,7 +35,7 @@ f7c505f0aebb99a8  bump_food_hit
 f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
 4e2b79fe1e3b47f3  coaches.coaches_ensure_athlete_row
 6d0d28b7664a3e4e  count_pending_intakes
-5cbeb0e44e904f97  delete_my_account
+480bd0b0906d192f  delete_my_account
 0723ea23ebfdad19  ensure_coach_athlete_row
 40ec3907096b11eb  get_app_stats
 013b730325385fdf  handle_new_user
@@ -67,4 +67,9 @@ b3462703215e5e9d  trigger_detect_moment_row
 5b65af34591cec1c  update_intervals_conn_timestamp
 77b36f066a8617d3  update_race_signup_count
 71819c8eb342a0e4  user_has_msg_access
-234c15b6f8b5a55b  ustaw_f6_runner_key
+74ecdbd73d225f65  ustaw_f6_runner_key
+60392a04e7f159e9  wynik_zgloszony_dopasuj
+672d38959a501af6  wyniki_zgloszone.wz_data_nie_z_przyszlosci
+120727de95c8f648  wyniki_zgloszone.wz_guard_systemowe
+34f71e8df08ef140  wz_data_nie_z_przyszlosci
+6a75dd088aff6d2f  wz_guard_systemowe
