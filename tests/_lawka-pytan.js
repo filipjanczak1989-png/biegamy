@@ -86,6 +86,28 @@ const PYTANIA = [
   ['co sie dzieje 8 listopada', 'akcja', 4, 'dobra', 'zagadka akcji: router, 0 tokenów, losowa z ZAGADKI (js/akcja-cytaty.mjs)'],
   ['kim jest Fabianek', 'akcja', 4, 'dobra', 'zagadka akcji — NIE tryb osoby, NIE sieć (przed i po starcie)'],
   ['jaka akcja sie szykuje', 'akcja', 3, 'dobra', 'zagadka akcji; po starcie „Akcja trwa — szczegóły na Dziś.”'],
+  // ── przegląd „świeże oko” 2.11.2026 (docs/przeglad-fable-2026-11-02-A-okienko.md) — 20 trudnych: mieszane intencje,
+  //    pułapki prywatności, pułapka daty akcji, puste/emoji. Ławka liczy stan PRZED startem (czyAkcjaRuszyla = false). ──
+  ['ile km przebieglem w akcji dla fabianka', 'akcja', 4, 'dobra', 'fabian* → zagadka (0 tokenów); po starcie zdanie + karta akcji z SUMĄ wszystkich — bez „Twój wkład” (akcja_moj_wklad), luka PO'],
+  ['co to za akcja z tymi kilometrami', 'akcja', 4, 'dobra', 'ZAGADKA_AKCJA „co to za akcj”'],
+  ['ile km zebralismy razem', 'akcja', 3, 'dobra', 'ZAGADKA_AKCJA „ile km … razem/zebraliśmy”'],
+  ['wygoogluj Fabianka', 'akcja', 4, 'dobra', 'fabian* przed detektorem „wygoogluj X” — nie tryb osoby, nie sieć'],
+  ['plan na 7.11', 'wlasne', 3, 'zla', 'PUŁAPKA DATY: wzorzec 7.11/8.11 w ZAGADKA_ZAWSZE bez bramki ZAGADKA_NIE → zagadka zamiast planu (także „co mam 8.11”, „trening 8.11”)'],
+  ['kim jest Kipchoge', 'poza', 3, 'dobra', 'jedno słowo omija tryb osoby (2–3 słowa) → ścieżka ogólna → sieć; publiczny sportowo, OK; bez F6'],
+  ['kim jest Marek Nowak z naszego klubu', 'osoby', 3, 'zla', 'osobaWZdaniu → q „Marek Nowak”, wprost=true → „Kim jest Marek Nowak?” DO GOOGLE (spec: pytanie wprost = sieć bez reguły publiczności) — decyzja do potwierdzenia'],
+  ['Anna Nowak maraton', 'osoby', 2, 'zla', 'router bierze za LISTĘ maratonów (dystans 42) — nazwisko ginie, bez wycieku; „Jan Kowalski parkrun/trail/ultra” → tryb imprezy → NAZWISKO DO GOOGLE (strażnik wygladaNaOsobe wyłącza się przy słowie biegowym)'],
+  ['jak pobiegl Kowalski w Debnie', 'osoby', 3, 'zla', 'samo nazwisko (bez imienia ze słownika) mija detektor osoby i osobaWZdaniu → model → „jak pobiegl Kowalski w Debnie” DO GOOGLE'],
+  ['znajdz w sieci mojego trenera', 'osoby', 3, 'dobra', 'router moj_trener (0 tokenów) — do sieci nic nie idzie'],
+  ['wyniki Nowaka', 'osoby', 3, 'zla', 'samo nazwisko → model → „wyniki Nowaka” DO GOOGLE; „wyniki X” to z definicji pytanie o osobę'],
+  ['gdzie zmienic zegarek', 'tresci', 4, 'dobra', 'katalog: synonim ekranu „zegarek” → Profil'],
+  ['jak podlaczyc garmina', 'tresci', 3, 'dobra', 'katalog: „podlaczyc” pominięte, rdzeń „garm” → synonim „garmin” → Profil'],
+  ['jaki czas na polmaraton w tempie 5:30', 'poza', 3, 'dobra', 'kalkulator: „Półmaraton w tempie 5:30/km to 1:56:02 (10,9 km/h).”'],
+  ['maraton w poznaniu kiedy', 'imprezy', 4, 'dobra', 'lista 365 dni (miejsce + dystans); „maraton poznanski kiedy” → tryb imprezy'],
+  ['polmaraton warszawski ile kosztuje', 'imprezy', 3, 'za_droga', 'cena → impreza; na prod karta z url (0 zł); BEZ karty sieć pyta „termin, dystanse, miejsce” — intencja wpisowego ginie w zapytaniu'],
+  ['boli mnie kolano czy moge biegac', 'wlasne', 4, 'dobra', 'ZDROWIE → stałe zdanie, 0 tokenów'],
+  ['mam katar czy moge biegac', 'poza', 3, 'za_droga', 'sieć (decyzja 1.11); prompt sieci zakazuje porad medycznych → możliwe 2 próby (retry bez groundingChunks) i „Tego nie znalazłem w sieci.”'],
+  ['🏃‍♂️', 'poza', 2, 'za_droga', 'sam emoji: brak bramki „bez liter” → model (+ narzędzia) + sieć ~$0,02 za nic; to samo „12”, „???”'],
+  ['ile juz km', 'wlasne', 3, 'zla', 'PRZED startem: „ile km” bez zakresu wypada z routera (tylko tydzień/miesiąc/rok) → model → sieć „ile juz km”; po starcie ZAGADKA_PO_STARCIE → karta akcji'],
 ];
 
 /* kształt konta testowego + F6 z atrapy */
