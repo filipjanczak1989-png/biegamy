@@ -2,11 +2,19 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 44
+# Obiektow (funkcje + triggery): 53
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
+648b3dd1444a6855  akcja_km_okna
+03fc60ff8a1447ea  akcja_licznik
+dababab37ec22ea4  akcja_moj_wklad
+f28346ed137999d7  akcja_proba_reset
+479b1d22c9b9340b  akcja_start
+f7adf5324cca271b  akcja_tydzien
 4925396f4b6308fb  athlete_intake_forms.trg_intake_updated_at
+561f35f2d936db3b  athletes_f6_klucz_tylko_rpc
+09bf0b48f31799b3  athletes.athletes_f6_klucz_tylko_rpc
 d42dbc3a4ddc3885  athletes.trg_notify_filip_new_athlete
 d2a80b28c7ab2483  auth_is_coach
 5e333f97025b7cad  auth_my_athlete_id
@@ -48,3 +56,4 @@ b3462703215e5e9d  trigger_detect_moment_row
 5b65af34591cec1c  update_intervals_conn_timestamp
 77b36f066a8617d3  update_race_signup_count
 71819c8eb342a0e4  user_has_msg_access
+234c15b6f8b5a55b  ustaw_f6_runner_key

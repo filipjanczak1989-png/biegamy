@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego wyjścia pg_policies.
 # Generowane: node tools/polityki-bazy.js --zrzut
 # Porównanie:  node tools/polityki-bazy.js
-# Relacji: 69
+# Relacji: 72
 
 a792e255c2e15564  account_deletions_audit
 50a5ed748f55e614  achievements
@@ -11,6 +11,9 @@ a1d7edd80bb1e569  ai_cache
 e3f7ccefa905354f  ai_reports
 05e73a311c6a8e54  ai_usage_log
 0c0022b63f26a7bb  ai_usage_today
+51a8914cfb7c49bd  akcja_sponsorzy
+05398202f4a91f4f  akcja_startujacy
+cdd735f2e7bc52de  akcje
 873db500d0e18c10  athlete_intake_forms
 10cd8e0df711f107  athletes
 1f807412e89f8ad0  athletes_pb_backup_20260814
