@@ -47,6 +47,23 @@
     "Dziś biegniesz dla kogoś. To lekki bieg.",
   ];
   var PO_ZAMKNIECIU = "Daliśmy radę. Razem. Dla Fabianka.", DNI_PO_ZAMKNIECIU = 7;
+  /* ZAGADKI (okienko „Zapytaj", decyzja Filipa 2.11): pytania o akcję PRZED startem → losowo jedna z nich, 0 tokenów,
+     bez kart, bez sieci, bez modelu. Po starcie (czyAkcjaRuszyla) → PO_STARCIE, do czasu karty akcji z projektu F. */
+  var ZAGADKI = [
+    "Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: 8.11.",
+    "Będą znaki. Patrz pod nogi i licz kilometry.",
+    "Coś się zaczyna. Twoje buty mogą się przydać.",
+    "Odpowiedź przyjdzie jednym kliknięciem. Jeszcze nie dziś.",
+    "Na razie tylko tyle: nie biegniesz sam.",
+    "Daleka droga, dużo ludzi, jeden powód. Więcej 8.11.",
+  ];
+  var PO_STARCIE = "Akcja trwa — szczegóły na Dziś.";
+  /** Odpowiedź okienka na pytanie o akcję: przed startem losowa zagadka, po starcie zdanie (miejsce na kartę akcji, projekt F). */
+  function odpowiedzZagadki(los) {
+    if (czyAkcjaRuszyla()) return { zdanie: PO_STARCIE, karta: null };   // PROJEKT F: tu karta akcji (licznik, link)
+    var r = typeof los === "function" ? los() : Math.random();
+    return { zdanie: ZAGADKI[Math.min(ZAGADKI.length - 1, Math.floor(r * ZAGADKI.length))], karta: null };
+  }
 
   /** Klucz dnia w Europe/Warsaw: Date → 'YYYY-MM-DD'. */
   function dzienWaw(teraz) {
@@ -74,6 +91,7 @@
   }
 
   g.BM_AKCJA_CYTATY = { cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
+    ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,
     START_ROTACJI: START_ROTACJI, DNI_PO_ZAMKNIECIU: DNI_PO_ZAMKNIECIU, ZAMKNIETA: ZAMKNIETA };
 })(globalThis);

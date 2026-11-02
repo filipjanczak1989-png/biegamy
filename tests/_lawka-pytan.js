@@ -82,6 +82,10 @@ const PYTANIA = [
   ['czy biegac z katarem', 'poza', 3, 'za_droga', 'sieć — porada zdrowotna bez zastrzeżenia'],
   ['ile powinienem biegac tygodniowo', 'poza', 4, 'za_droga', 'model/sieć — a plan generatora to liczy; odpowiedź z planu/bazy'],
   ['dzien dobry', 'poza', 3, 'dobra', 'M3-1 (3): powitanie → jedno zdanie z routera, 0 tokenów'],
+  // ── zagadka akcji (2.11.2026) ──
+  ['co sie dzieje 8 listopada', 'akcja', 4, 'dobra', 'zagadka akcji: router, 0 tokenów, losowa z ZAGADKI (js/akcja-cytaty.mjs)'],
+  ['kim jest Fabianek', 'akcja', 4, 'dobra', 'zagadka akcji — NIE tryb osoby, NIE sieć (przed i po starcie)'],
+  ['jaka akcja sie szykuje', 'akcja', 3, 'dobra', 'zagadka akcji; po starcie „Akcja trwa — szczegóły na Dziś.”'],
 ];
 
 /* kształt konta testowego + F6 z atrapy */

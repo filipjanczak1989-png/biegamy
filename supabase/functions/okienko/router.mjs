@@ -4,7 +4,9 @@
 // Daty liczy router w Europe/Warsaw (argument `dzis`), nie model. Brak dopasowania → null (krok 3: model).
 import { EKRANY } from "./narzedzia.mjs";
 import "../../../js/tekst.mjs";
-const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
+import "../../../js/akcja-cytaty.mjs";   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
+const T = /** @type {any} */ (globalThis).BM_TEKST;
+const AKCJA = /** @type {any} */ (globalThis).BM_AKCJA_CYTATY;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 const MIESIACE = ["stycz", "lut", "mar", "kwie", "maj", "czerw", "lip", "sierp", "wrze", "pazdzi", "listopad", "grud"];
 // „maj" musi być słowem (nie „mają"); reszta to rdzenie odmian (październik/październiku, listopad/listopadzie…)
@@ -127,10 +129,27 @@ export function dopasujBiegi(tekst, dzis) {
   return { narzedzie: "biegi_nadchodzace", args };
 }
 
-/** → {narzedzie, args} | {nawiguj, ekran} | null */
+/* ZAGADKA AKCJI (decyzja Filipa 2.11.2026): pytania o akcję → zdanie z js/akcja-cytaty.mjs, 0 tokenów, PIERWSZA reguła
+   routera (przed planem, osobą, imprezą, katalogiem, siecią). „Fabianek" nigdy do sieci ani trybu osoby. Wzorce
+   charakterystyczne (fabian, 12 500, 8.11, peleryny, Jasna Góra, tajemnica, niespodzianka, akcja, challenge…) działają
+   zawsze; OGÓLNE („co się dzieje", „co się szykuje", „o co chodzi z…") tylko bez słów o własnych danych i pojęciach
+   aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
+const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|co bedzie 8|8 listopad\w*|osm\w* listopad\w*|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
+const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
+const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
+export function czyZagadka(tekst) {
+  const surowy = String(tekst || "").toLowerCase();
+  const t = normalizuj(tekst);
+  if (!t) return false;
+  if (ZAGADKA_ZAWSZE.test(t) || /(^|[^0-9])0?8[ .]11([^0-9]|$)/.test(surowy)) return true;
+  return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
+}
+
+/** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */
 export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!t) return null;
+  if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); return { zdanie: z.zdanie, log: "zagadka" }; }
   if (/\bplan\w*\b.*\b(dzis|dzisiaj)\b|\bco (mam )?(dzis|dzisiaj)\b|\b(dzis|dzisiaj)\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "dzis" } };
   if (/\bplan\w*\b.*\bjutr\w*|\bco (mam )?jutr\w*|\bjutr\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "jutro" } };
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };
