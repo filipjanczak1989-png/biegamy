@@ -52,7 +52,7 @@ const PRECACHE_URLS = [
   '/start-akcji.html',
   '/dla-fabianka.html',
   '/manifest-start-akcji.json',
-  '/assets/ui/logo-b-ring-alfa.webp',
+  '/assets/ui/logo-b-biale-alfa.webp',
   '/o-nas.html',
   '/terms.html',
   '/privacy.html',

@@ -120,7 +120,7 @@ test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie,
 
 test('instalacja: strona i logo w precache SW; osobny manifest strony; główny manifest bez skrótu „Start akcji"', () => {
   const sw = czytaj('sw.js');
-  for (const u of ['/start-akcji.html', '/manifest-start-akcji.json', '/assets/ui/logo-b-ring-alfa.webp']) {
+  for (const u of ['/start-akcji.html', '/manifest-start-akcji.json', '/assets/ui/logo-b-biale-alfa.webp']) {
     assert.ok(sw.includes(`'${u}',`), 'precache bez ' + u);
     assert.ok(fs.existsSync(path.join(KORZEN, u.slice(1))), 'brak pliku ' + u + ' (addAll wywróci instalację SW)');
   }
@@ -130,7 +130,12 @@ test('instalacja: strona i logo w precache SW; osobny manifest strony; główny 
   assert.ok(m.start_url.startsWith(m.scope));
   assert.doesNotMatch(czytaj('manifest.json'), /start-akcji/);
   assert.match(czytaj('start-akcji.html'), /<link rel="manifest" href="manifest-start-akcji\.json">/);
-  // logo z alfą wtopione w koło (2.11): bez filtrów i bez ciemnego krążka pod spodem
-  assert.match(czytaj('start-akcji.html'), /<img src="assets\/ui\/logo-b-ring-alfa\.webp" alt="">/);
-  assert.doesNotMatch(czytaj('start-akcji.html'), /mix-blend-mode|#krag::before|invert\(/);
+  // logo (Filip 2.11 18:08): B białe z cieniem, pierścień biały 40% — z pliku z alfą, bez filtrów i bez ciemnego krążka
+  const html = czytaj('start-akcji.html');
+  assert.equal((html.match(/<img /g) || []).length, 1, 'jeden plik logo we wszystkich stanach i w próbie');
+  assert.match(html, /<img src="assets\/ui\/logo-b-biale-alfa\.webp" alt="">/);
+  assert.doesNotMatch(html + czytaj('sw.js'), /logo-b-ring-alfa\.webp/, 'wróciło stare logo (zlewało się z kołem, Filip 2.11 17:43)');
+  const webp = fs.readFileSync(path.join(KORZEN, 'assets/ui/logo-b-biale-alfa.webp'));
+  assert.ok(webp.toString('latin1', 12, 16) === 'VP8X' && (webp[20] & 0x10), 'logo bez kanału alfa = biały kwadrat na guziku');
+  assert.doesNotMatch(html, /mix-blend-mode|#krag::before|invert\(|filter:/);
 });

@@ -36,7 +36,7 @@
   #krag { position: relative; width: min(70vw, 70vh, 420px); aspect-ratio: 1; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; background: var(--szary);
     transition: background .4s ease, transform .2s ease, box-shadow .4s ease; }
-  /* logo z przezroczystym tłem (assets/ui/logo-b-ring-alfa.webp, 2.11): dawny biały kwadrat = pomarańcz guzika, bez krążka i filtrów */
+  /* logo assets/ui/logo-b-biale-alfa.webp (Filip 2.11 18:08, z tools/logo-guzika.py): B całe białe z cieniem, pierścień biały 40% — biel i cień w pliku, bez filtrów */
   #krag img { width: 56%; opacity: .3; transition: opacity .4s ease; pointer-events: none; }
   #pierscien { position: absolute; inset: -14px; width: calc(100% + 28px); height: calc(100% + 28px); transform: rotate(-90deg); pointer-events: none; }
   #pierscien circle { fill: none; stroke-width: 3; }
@@ -68,7 +68,7 @@
   <div id="proba-znak" hidden>PRÓBA</div>
   <div id="krag" aria-label="Start akcji — przytrzymaj">
     <svg id="pierscien" viewBox="0 0 104 104" aria-hidden="true"><circle class="tlo-p" cx="52" cy="52" r="50"/><circle id="postep" cx="52" cy="52" r="50"/></svg>
-    <img src="assets/ui/logo-b-ring-alfa.webp" alt="">
+    <img src="assets/ui/logo-b-biale-alfa.webp" alt="">
   </div>
   <div id="slowo"></div>
   <div id="napis"></div>

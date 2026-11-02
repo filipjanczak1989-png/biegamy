@@ -133,7 +133,7 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 **Konta:** startujący obu akcji = główne konto Filipa (w coaches, z zawodnikami); `konta_testowe` próby = konto testowe
 (testy okienka). Rozpoznawane po faktach w bazie, nie po e-mailu — migawka `supabase/schema/akcje/startujacy.json`, blizna-97.
 
-**Guzik:** logo z przezroczystym tłem (`assets/ui/logo-b-ring-alfa.webp`) wtopione w pomarańczowe koło.
+**Guzik:** logo z przezroczystym tłem wtopione w pomarańczowe koło; od 2.11 18:08 (Filip, wariant B — stare zlewało się z kołem) `assets/ui/logo-b-biale-alfa.webp`: B całe białe z delikatnym cieniem, pierścień biały 40%, generowane `tools/logo-guzika.py` z `logo-b-ring-alfa.png`.
 
 
 **Odznaki akcji — finał zasad (Filip 2.11 15:16; zastępuje v2 pkt 4).** 6 odznak, kolejność w katalogu:
