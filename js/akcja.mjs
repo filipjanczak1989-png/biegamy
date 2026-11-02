@@ -80,7 +80,7 @@
     ".akcja-pasek{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}" +
     ".akcja-pasek-wypelnienie{height:100%;border-radius:6px;background:linear-gradient(90deg,#e8561e,#ff8a3d);transition:width .9s ease}" +
     ".akcja-liczby{margin-top:8px;font-size:13px;color:var(--fg2,rgba(240,237,232,.75))}.akcja-liczby b{color:var(--fg,#f0ede8);font-size:15px}" +
-    ".akcja-ja{margin-top:10px;font-size:13px}.akcja-filip,.akcja-sponsorzy{margin-top:6px;font-size:12px;color:var(--fg2,rgba(240,237,232,.7));line-height:1.45}" +
+    ".akcja-ja{margin-top:10px;font-size:13px}.akcja-filip,.akcja-sponsorzy,.akcja-typy{margin-top:6px;font-size:12px;color:var(--fg2,rgba(240,237,232,.7));line-height:1.45}" +
     ".akcja-zrobione{font-size:15px;margin:4px 0 10px}" +
     ".akcja-przyciski{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}" +
     ".akcja-wiecej,.akcja-link{display:inline-block;padding:9px 14px;border-radius:12px;font-size:12px;font-weight:600;letter-spacing:.04em;text-decoration:none}" +
@@ -107,6 +107,8 @@
   }
 
   /** Karta na Dziś (zalogowani). wklad = akcja_moj_wklad. */
+  /* Filip 2.11 18:35: do akcji liczą się TYLKO bieg i chód — lista typów w bazie (public.akcja_typ_liczy), tu tylko zdanie. */
+  var TEKST_TYPOW = "Liczy się bieg i spacer. Rower nie.";
   function kartaDzisHtml(d, wklad, teraz) {
     var s = stanKarty(d, teraz);
     if (s === "brak") return "";
@@ -119,6 +121,7 @@
     }
     return '<div class="akcja-karta"><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' + pasekHtml(d) +
       '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
+      '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
       '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
       (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
       (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +

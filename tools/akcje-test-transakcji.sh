@@ -9,6 +9,8 @@ TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
   # 20261102_akcje.sql jest NA PROD od 2.11 — testujemy żywe funkcje; bazę przed migracją: AKCJE_Z_MIGRACJA=1
   if [ "${AKCJE_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261102_akcje.sql; fi
   sed -e '/^begin;$/d' -e '/^commit;$/d' supabase/migrations/20261102_akcje_startujacy_poprawka.sql
+  # 20261102_akcja_typy.sql (tylko bieg i chód) — przed wdrożeniem na prod: AKCJE_TYPY_Z_MIGRACJA=1
+  if [ "${AKCJE_TYPY_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261102_akcja_typy.sql; fi
   cat tools/akcje-test-transakcji.sql
   echo 'rollback;'; } > "$TMP"
 WD="${BM_SB_WORKDIR:-$HOME/.cache/sb-audit}"

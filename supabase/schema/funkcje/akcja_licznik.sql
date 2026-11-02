@@ -20,10 +20,11 @@ begin
 
   v_suma := public.akcja_km_okna(a.id, a.start, v_dzis);
   if a.wyprawa_athlete_ids is not null then
-    -- wyprawa: km kont wyprawy OD NACIŚNIĘCIA guzika DO „Dotarliśmy" (decyzja Filipa 2.11), wszystkie typy, bez __badge__
+    -- wyprawa: km kont wyprawy OD NACIŚNIĘCIA guzika DO „Dotarliśmy" (decyzja Filipa 2.11), tylko bieg i chód (akcja_typ_liczy, Filip 2.11 18:35), bez __badge__
     select coalesce(sum(l.distance_km), 0) into v_wyprawa from public.training_logs l
      where l.athlete_id = any(a.wyprawa_athlete_ids) and l.distance_km > 0
        and coalesce(l.training_type, '') not like '\_\_badge\_\_%'
+       and public.akcja_typ_liczy(l.training_type, l.external_type)
        and l.logged_at >= a.wystartowala_at and (a.wyprawa_dotarla_at is null or l.logged_at <= a.wyprawa_dotarla_at)
        and l.logged_at <= now();
   end if;

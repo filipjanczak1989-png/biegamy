@@ -1706,13 +1706,13 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         <label>Typ treningu</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;" id="type-pills">
           <button class="type-pill on" onclick="selType(this,'Spokojny')">🏃 Spokojny</button>
+          <button class="type-pill" onclick="selType(this,'Spacer')">🚶 Spacer</button>
           <button class="type-pill" onclick="selType(this,'Interwały')">⚡ Interwały</button>
           <button class="type-pill" onclick="selType(this,'Tempo')">🔥 Tempo</button>
           <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Wzmacniający')">💪 Wzmacniający</button>
           <button class="type-pill" onclick="selType(this,'Start')">🏁 Start</button>
-          <button class="type-pill" onclick="selType(this,'Spacer')">🚶 Spacer</button>
           <button class="type-pill" onclick="selType(this,'Rower')">🚴 Rower</button>
           <button class="type-pill" onclick="selType(this,'Pływanie')">🏊 Pływanie</button>
           <button class="type-pill" onclick="selType(this,'Siłownia')">🏋️ Siłownia</button>
@@ -4482,18 +4482,17 @@ window._udostepnijKarteAkcji = async function (btn, slug) {
 };
 
 /* ODZNAKI AKCJI (projekt F dzień 4, finał zasad 2.11): reguły w js/odznaki-akcji.mjs (doPrzyznania — poza oknem pusta lista).
-   Km z akcja_moj_wklad (jak licznik: cap/doba, doba warszawska). Dni aktywne (każdy typ, bez __badge__) od startu — dla serii
-   „7 dni z rzędu"; pobierane tylko, dopóki tej odznaki nie ma. Sponsor: przyznaje RPC deklaracji (tu tylko zapas). */
+   Km z akcja_moj_wklad (jak licznik: cap/doba, doba warszawska). Dni aktywne od startu — dla serii „7 dni z rzędu" — z RPC
+   akcja_moje_dni: TYLKO bieg i chód (akcja_typ_liczy, Filip 2.11 18:35; dotąd każdy typ, liczone tutaj); pobierane tylko,
+   dopóki tej odznaki nie ma. Sponsor: przyznaje RPC deklaracji (tu tylko zapas). */
 window._sprawdzOdznakiAkcji = async function (d, wklad) {
   const O = window.BM_ODZNAKI_AKCJI;
   if (!O || !_athleteId || !O.oknoOtwarte(d)) return;
   const dni = new Set();
   if (!window._earnedBadges.has('akcja-co-tydzien')) {
     try {
-      const od = new Date(Date.parse(d.start + 'T00:00:00Z') - 86400000).toISOString();
-      const { data } = await sb.from('training_logs').select('logged_at, distance_km, training_type')
-        .eq('athlete_id', _athleteId).gte('logged_at', od).gt('distance_km', 0);
-      (data || []).forEach(l => { if (!String(l.training_type || '').startsWith('__badge__')) dni.add(window._dzienWaw(l.logged_at)); });
+      const { data } = await sb.rpc('akcja_moje_dni', { p_slug: window.BM_AKCJA_CYTATY.slugDla(_athleteId) });
+      (data || []).forEach(x => dni.add(String(x).slice(0, 10)));
     } catch (e) {}
   }
   for (const id of O.doPrzyznania(d, wklad, dni)) await awardBadge(id);

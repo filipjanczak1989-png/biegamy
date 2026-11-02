@@ -133,6 +133,8 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 **Konta:** startujący obu akcji = główne konto Filipa (w coaches, z zawodnikami); `konta_testowe` próby = konto testowe
 (testy okienka). Rozpoznawane po faktach w bazie, nie po e-mailu — migawka `supabase/schema/akcje/startujacy.json`, blizna-97.
 
+**Co się liczy (Filip 2.11 18:35):** tylko bieg i chód — jedna lista w bazie, `public.akcja_typ_liczy` (migracja `20261102_akcja_typy.sql`), używana przez licznik, wkład, wyprawę, push niedzielny, share-card i odznaki; rower, pływanie, siła i każdy nieznany typ — nie. Zwiad typów: `docs/akcja-f-typy-2026-11-02.md`. UI: „Liczy się bieg i spacer. Rower nie.”
+
 **Guzik:** logo z przezroczystym tłem wtopione w pomarańczowe koło; od 2.11 18:08 (Filip, wariant B — stare zlewało się z kołem) `assets/ui/logo-b-biale-alfa.webp`: B całe białe z delikatnym cieniem, pierścień biały 40%, generowane `tools/logo-guzika.py` z `logo-b-ring-alfa.png`.
 
 
@@ -142,7 +144,7 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 `akcja-dzien-startu` (bez grafiki, reguły i zaślepki).
 - **Okno** przyznawania: dzień startu → dzień zamknięcia włącznie; poza oknem nigdy, przyznane zostają na zawsze. Katalog akcji
   widoczny dopiero po starcie. #100kmDlaKasi (15.08–20.09.2026): ta sama reguła — naprawiony błąd przyznawania za wpis wsteczny.
-- **„7 dni z rzędu"**: 7 kolejnych dni kalendarzowych (Europe/Warsaw) z ≥ 1 aktywnością (każdy typ, bez `__badge__%`), wszystkie
+- **„7 dni z rzędu"**: 7 kolejnych dni kalendarzowych (Europe/Warsaw) z ≥ 1 biegiem albo chodem (`akcja_moje_dni`, lista `akcja_typ_liczy`; do 2.11 18:35 każdy typ), wszystkie
   w oknie (pierwszy możliwy dzień 8.11); raz, od razu po 7. dniu; przerwa zeruje serię, nowa seria może dać odznakę później.
   Grafika: płomień.
 - **Sponsor**: przyznawana przy zapisie deklaracji w oknie (RPC `akcja_deklaruj`, ta sama transakcja); zostaje także po wycofaniu

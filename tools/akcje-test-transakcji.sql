@@ -58,20 +58,22 @@ begin
   if (select wystartowala_at from public.akcje where slug = 'dla-fabianka') is not null then raise exception 'FAIL 4b'; end if;
   n := n + 2;
 
-  -- ── 5. suma: doba warszawska, cap, __badge__, przyszłość, wszystkie typy, progi (cel 125 = skala 1:100 dla 12 500) ──
+  -- ── 5. suma: doba warszawska, cap, __badge__, przyszłość, TYLKO bieg i chód (2.11 18:35), progi (cel 125 = skala 1:100) ──
   insert into public.akcje (slug, nazwa, start, cel_km, stawka_gr_filip, testowa, konta_testowe, wystartowala_at)
   values ('test-suma', 'Test', date '2020-01-01', 125, 10, true, array[r_ath], now()) returning id into t_suma;
   insert into public.akcja_startujacy values (t_suma, F_ATH);
   if (public.akcja_licznik('test-suma')->>'suma_km')::numeric <> 0 then raise exception 'FAIL 5a: baza niezerowa % / logi: %', public.akcja_licznik('test-suma'), (select count(*) from public.training_logs where athlete_id = r_ath); end if;
   insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, source, external_source, external_id) values
     (r_ath, 10,   timestamp '2019-12-31 23:30' at time zone 'Europe/Warsaw', 'Spokojny',  'intervals', 'test-akcja', 't1'),
-    (r_ath, 20,   timestamp '2020-01-01 00:30' at time zone 'Europe/Warsaw', 'Rower',     'intervals', 'test-akcja', 't2'),
+    (r_ath, 20,   timestamp '2020-01-01 00:30' at time zone 'Europe/Warsaw', 'Spacer',    'intervals', 'test-akcja', 't2'),
     (r_ath, 60,   timestamp '2020-01-02 08:00' at time zone 'Europe/Warsaw', 'Spokojny',  'intervals', 'test-akcja', 't3'),
     (r_ath, 60,   timestamp '2020-01-02 18:00' at time zone 'Europe/Warsaw', 'Spacer',    'intervals', 'test-akcja', 't4'),
     (r_ath, 50,   timestamp '2020-01-03 08:00' at time zone 'Europe/Warsaw', '__badge__x','intervals', 'test-akcja', 't5'),
     (r_ath, 30,   now() + interval '2 days',                                 'Spokojny',  'intervals', 'test-akcja', 't6'),
     (F_ATH, 40,   timestamp '2020-01-02 09:00' at time zone 'Europe/Warsaw', 'Spokojny',  'intervals', 'test-akcja', 't7'),
-    (r_ath, 4.99, timestamp '2020-01-06 08:00' at time zone 'Europe/Warsaw', 'Zastępczy', 'intervals', 'test-akcja', 't8');
+    (r_ath, 4.99, timestamp '2020-01-06 08:00' at time zone 'Europe/Warsaw', 'Regeneracja', 'intervals', 'test-akcja', 't8'),
+    (r_ath, 50,   timestamp '2020-01-04 08:00' at time zone 'Europe/Warsaw', 'Rower',     'intervals', 'test-akcja', 't8r'),
+    (r_ath, 7,    timestamp '2020-01-05 08:00' at time zone 'Europe/Warsaw', 'Zastępczy', 'intervals', 'test-akcja', 't8z');
   j := public.akcja_licznik('test-suma');
   if (j->>'suma_km')::numeric <> 124.99 then raise exception 'FAIL 5b: suma % (oczekiwane 124.99: 20 + cap 100 + 4.99)', j->>'suma_km'; end if;
   if (j->>'pct')::numeric <> 99.99 or (j->>'zamknieta')::boolean then raise exception 'FAIL 5c: 124.99 → %', j; end if;
@@ -80,7 +82,7 @@ begin
   j := public.akcja_licznik('test-suma');
   if (j->>'pct')::numeric <> 100 or not (j->>'zamknieta')::boolean or (j->>'filip_gr')::bigint <> 1250 then raise exception 'FAIL 5d: 125 → %', j; end if;
   insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, source, external_source, external_id)
-  values (r_ath, 2.31, timestamp '2020-01-08 08:00' at time zone 'Europe/Warsaw', 'Pływanie', 'intervals', 'test-akcja', 't10');
+  values (r_ath, 2.31, timestamp '2020-01-08 08:00' at time zone 'Europe/Warsaw', 'Wybieganie', 'intervals', 'test-akcja', 't10');
   j := public.akcja_licznik('test-suma');
   if (j->>'suma_km')::numeric <> 127.31 or (j->>'pct')::numeric <> 100 or (j->>'filip_gr')::bigint <> 1250
      or (j->>'filip_max_gr')::bigint <> 1250 then raise exception 'FAIL 5e: 127.31 → %', j; end if;
@@ -151,6 +153,50 @@ begin
   update public.akcje set wizerunek_zgoda = false, wizerunek_url = null where id = t_suma;
   if public.akcja_licznik('test-suma')->'wizerunek' <> 'null'::jsonb then raise exception 'FAIL 9c'; end if;
   n := n + 3;
+
+  -- ── 10. TYLKO bieg i chód (Filip 2.11 18:35): rower 50 km = 0, spacer 5 km = 5, nieznany typ = 0; wyprawa i dni odznaki też ──
+  declare t_typy uuid; v_d date := (now() at time zone 'Europe/Warsaw')::date - 2; km numeric; km0 numeric; w0 numeric; d0 date[];
+  begin
+    insert into public.akcje (slug, nazwa, start, cel_km, stawka_gr_filip, testowa, konta_testowe, wystartowala_at, wyprawa_athlete_ids)
+    values ('test-typy', 'Test typów', v_d, 12500, 10, true, array[r_ath], now() - interval '3 days', array[r_ath]) returning id into t_typy;
+    -- baza: wcześniejsze części testu zostawiają r_ath wpisy z ostatnich dni — liczymy PRZYROST od moich wpisów
+    km0 := public.akcja_km_okna(t_typy, v_d, v_d + 10, array[r_ath]); w0 := (public.akcja_licznik('test-typy')->>'wyprawa_km')::numeric;
+    perform set_config('request.jwt.claims', json_build_object('sub', r_uid, 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated'; d0 := public.akcja_moje_dni('test-typy'); reset role;
+    insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, external_type, source, external_source, external_id) values
+      (r_ath, 50, (v_d::timestamp + time '08:00') at time zone 'Europe/Warsaw', 'Rower',      'Ride',        'intervals', 'test-akcja', 'ty1'),
+      (r_ath, 30, (v_d::timestamp + time '09:00') at time zone 'Europe/Warsaw', 'Rower',      'EBikeRide',   'intervals', 'test-akcja', 'ty2'),
+      (r_ath, 20, (v_d::timestamp + time '10:00') at time zone 'Europe/Warsaw', 'Rower',      'VirtualRide', 'intervals', 'test-akcja', 'ty3'),
+      (r_ath, 2,  (v_d::timestamp + time '11:00') at time zone 'Europe/Warsaw', 'Pływanie',   'Swim',        'intervals', 'test-akcja', 'ty4'),
+      (r_ath, 9,  (v_d::timestamp + time '12:00') at time zone 'Europe/Warsaw', 'Kajak',      null,          'intervals', 'test-akcja', 'ty5'),
+      (r_ath, 11, (v_d::timestamp + time '13:00') at time zone 'Europe/Warsaw', 'Spokojny',   'Ride',        'intervals', 'test-akcja', 'ty6'),
+      (r_ath, 6,  (v_d::timestamp + time '14:00') at time zone 'Europe/Warsaw', 'Zastępczy',  null,          'intervals', 'test-akcja', 'ty7');
+    km := public.akcja_km_okna(t_typy, v_d, v_d + 10, array[r_ath]);
+    if km - km0 <> 0 then raise exception 'FAIL 10a: rower/pływanie/nieznany/Zastępczy/rower jako „Spokojny" dały % km (oczekiwane 0)', km - km0; end if;
+    insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, external_type, source, external_source, external_id) values
+      (r_ath, 5, ((v_d + 1)::timestamp + time '08:00') at time zone 'Europe/Warsaw', 'Spacer', null, 'manual', 'test-akcja', 'ty8');
+    km := public.akcja_km_okna(t_typy, v_d, v_d + 10, array[r_ath]);
+    if km - km0 <> 5 then raise exception 'FAIL 10b: spacer 5 km = % (oczekiwane 5)', km - km0; end if;
+    insert into public.training_logs (athlete_id, distance_km, logged_at, training_type, external_type, source, external_source, external_id) values
+      (r_ath, 4,   ((v_d + 1)::timestamp + time '09:00') at time zone 'Europe/Warsaw', 'Spacer',         'Hike',      'intervals', 'test-akcja', 'ty9'),
+      (r_ath, 3,   ((v_d + 1)::timestamp + time '10:00') at time zone 'Europe/Warsaw', 'Spokojny',       'Treadmill', 'intervals', 'test-akcja', 'ty10'),
+      (r_ath, 2,   ((v_d + 1)::timestamp + time '11:00') at time zone 'Europe/Warsaw', 'Nordic walking', null,        'manual',    'test-akcja', 'ty11'),
+      (r_ath, 1.5, ((v_d + 1)::timestamp + time '12:00') at time zone 'Europe/Warsaw', 'Wybieganie',     'TrailRun',  'intervals', 'test-akcja', 'ty12');
+    km := public.akcja_km_okna(t_typy, v_d, v_d + 10, array[r_ath]);
+    if km - km0 <> 15.5 then raise exception 'FAIL 10c: bieg i chód = % (oczekiwane 15.5)', km - km0; end if;
+    j := public.akcja_licznik('test-typy');
+    if (j->>'suma_km')::numeric <> round(km, 2) then raise exception 'FAIL 10d: licznik % (oczekiwane = akcja_km_okna %)', j->>'suma_km', km; end if;
+    if (j->>'wyprawa_km')::numeric - w0 <> 15.5 then raise exception 'FAIL 10e: wyprawa % (oczekiwane 15.5 — rower jej nie wiezie)', j->>'wyprawa_km'; end if;
+    perform set_config('request.jwt.claims', json_build_object('sub', r_uid, 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
+    if not ((v_d + 1) = any (public.akcja_moje_dni('test-typy'))) or ((v_d = any (public.akcja_moje_dni('test-typy'))) and not (v_d = any (d0))) then
+      raise exception 'FAIL 10f: dni odznaki % (oczekiwany tylko dzień spaceru — dzień roweru się nie liczy)', public.akcja_moje_dni('test-typy'); end if;
+    if (public.akcja_moj_wklad('test-typy')->>'km')::numeric <> round(km, 2) then raise exception 'FAIL 10g: wkład %', public.akcja_moj_wklad('test-typy'); end if;
+    reset role;
+    begin execute 'set local role anon'; perform public.akcja_moje_dni('test-typy'); raise exception 'FAIL 10h: anon czyta dni'; exception when insufficient_privilege then null; end;
+    reset role;
+  end;
+  n := n + 8;
 
   raise exception 'TESTY AKCJI ZIELONE: % asercji (transakcja wycofana)', n;
 end $T$;

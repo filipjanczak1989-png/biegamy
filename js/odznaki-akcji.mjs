@@ -4,7 +4,7 @@
 //    Nazwa akcji w UI przychodzi z bazy (akcja_licznik.nazwa) i tylko po starcie. Katalog odznak akcji widać dopiero po starcie.
 // FINAŁ ZASAD (Filip 2.11 15:16): 6 odznak w tej kolejności — progi 1 · 100 · 200 · 500 km akcji (km jak w liczniku:
 // akcja_moj_wklad, cap/doba, doba warszawska), „7 dni z rzędu" (akcja-co-tydzien: 7 KOLEJNYCH dni kalendarzowych Europe/Warsaw
-// z >= 1 aktywnością, każdy typ, bez __badge__%, wszystkie dni w oknie akcji; przyznawana raz, od razu po 7. dniu; przerwa
+// z >= 1 biegiem albo chodem — RPC akcja_moje_dni, lista typów akcja_typ_liczy (Filip 2.11 18:35; było: każdy typ), wszystkie dni w oknie akcji; przyznawana raz, od razu po 7. dniu; przerwa
 // zeruje serię, nowa seria może dać odznakę później), „Sponsor kilometrów" (przy zapisie deklaracji w oknie akcji; zostaje
 // także po wycofaniu deklaracji). Usunięte: akcja-1000, akcja-razem, akcja-dzien-startu.
 // OKNO: od dnia startu do dnia zamknięcia WŁĄCZNIE; przed startem i po zamknięciu nigdy. Przyznane zostają na zawsze.
@@ -73,7 +73,7 @@
     return false;
   }
   /** → lista slugów do przyznania DZIŚ. d = akcja_licznik, wklad = akcja_moj_wklad, dniAktywne = Set('YYYY-MM-DD' Warszawa)
-   *  dni z aktywnością (każdy typ, bez __badge__) od startu. Poza oknem — pusta lista, zawsze (wpis wsteczny po zamknięciu nic nie daje). */
+   *  dni z biegiem albo chodem (RPC akcja_moje_dni) od startu. Poza oknem — pusta lista, zawsze (wpis wsteczny po zamknięciu nic nie daje). */
   function doPrzyznania(d, wklad, dniAktywne, teraz) {
     if (!oknoOtwarte(d, teraz)) return [];
     var out = [], km = Number(wklad && wklad.km) || 0;

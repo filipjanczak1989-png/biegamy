@@ -13,6 +13,7 @@ AS $function$
     from public.training_logs l
     where l.distance_km > 0
       and coalesce(l.training_type, '') not like '\_\_badge\_\_%'
+      and public.akcja_typ_liczy(l.training_type, l.external_type)   -- tylko bieg i chód (Filip 2.11 18:35)
       and (l.logged_at at time zone 'Europe/Warsaw')::date >= greatest(a.start, p_od)
       and (l.logged_at at time zone 'Europe/Warsaw')::date <= least(p_do, coalesce(a.koniec, p_do),
                                                                   (now() at time zone 'Europe/Warsaw')::date)
