@@ -135,3 +135,20 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 
 **Guzik:** logo z przezroczystym tłem (`assets/ui/logo-b-ring-alfa.webp`) wtopione w pomarańczowe koło.
 
+
+**Odznaki akcji — finał zasad (Filip 2.11 15:16; zastępuje v2 pkt 4).** 6 odznak, kolejność w katalogu:
+`akcja-1km` (Pierwszy kilometr) · `akcja-100` · `akcja-200` · `akcja-500` (km akcji jak w liczniku: cap/doba, doba warszawska) ·
+`akcja-co-tydzien` („7 dni z rzędu") · `akcja-sponsor` (Sponsor kilometrów). **Usunięte:** `akcja-1000`, `akcja-razem`,
+`akcja-dzien-startu` (bez grafiki, reguły i zaślepki).
+- **Okno** przyznawania: dzień startu → dzień zamknięcia włącznie; poza oknem nigdy, przyznane zostają na zawsze. Katalog akcji
+  widoczny dopiero po starcie. #100kmDlaKasi (15.08–20.09.2026): ta sama reguła — naprawiony błąd przyznawania za wpis wsteczny.
+- **„7 dni z rzędu"**: 7 kolejnych dni kalendarzowych (Europe/Warsaw) z ≥ 1 aktywnością (każdy typ, bez `__badge__%`), wszystkie
+  w oknie (pierwszy możliwy dzień 8.11); raz, od razu po 7. dniu; przerwa zeruje serię, nowa seria może dać odznakę później.
+  Grafika: płomień.
+- **Sponsor**: przyznawana przy zapisie deklaracji w oknie (RPC `akcja_deklaruj`, ta sama transakcja); zostaje także po wycofaniu
+  deklaracji. Formularz bez zmian: „Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy."
+- **Grafiki**: `assets/odznaki/<slug>.webp` (256) i `<slug>-512.webp`, robione z PNG Filipa (GPT) narzędziem
+  `tools/odznaki-akcji-grafiki.py` — namalowana szachownica wycinana do koła (tło = jasny, bezbarwny i gładki piksel), krawędź
+  wsuwana adaptacyjnie bez ścinania metalowych pierścieni. Brak pliku = zaślepka SVG w tym samym `<img>`; „nie mam" = filtr.
+  Nazwy plików i slugi bez imienia dziecka (repo publiczne).
+- **Twarda kontrola w bazie**: wyzwalacz `achievements_okno` (migracja `20261102_odznaki_okna`) — wdrażany po OK Filipa.

@@ -7,7 +7,11 @@
   "use strict";
   var EF = "/functions/v1/akcja-licznik";
   var CACHE_MS = 60000;
-  var DNI_KARTY_PO_ZAMKNIECIU = 7;   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
+  var DNI_KARTY_PO_ZAMKNIECIU = 7;
+  /* Formularz sponsora kilometrów (RPC akcja_deklaruj / akcja_wycofaj_deklaracje, migracja 20261102_akcja_deklaracje).
+     Włączany RAZEM z migracją na prod — bez niej „Zapisz" dostałby błąd. */
+  var DEKLARACJE_GOTOWE = false;
+  var TEKST_DEKLARACJI = "Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy.";   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
 
   /* Własne formatowanie zamiast toLocaleString: polski format w przeglądarce NIE grupuje liczb 4-cyfrowych („1250"),
      a teksty akcji mówią „1 250 zł". Grupowanie zawsze, twarda spacja (liczba się nie łamie), przecinek dziesiętny. */
@@ -80,7 +84,11 @@
     ".akcja-zrobione{font-size:15px;margin:4px 0 10px}" +
     ".akcja-przyciski{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}" +
     ".akcja-wiecej,.akcja-link{display:inline-block;padding:9px 14px;border-radius:12px;font-size:12px;font-weight:600;letter-spacing:.04em;text-decoration:none}" +
-    ".akcja-wiecej{background:#e8561e;color:#fff}.akcja-link{border:1px solid rgba(232,86,30,.5);color:#ff8a3d}";
+    ".akcja-wiecej{background:#e8561e;color:#fff}.akcja-link{border:1px solid rgba(232,86,30,.5);color:#ff8a3d}" +
+    ".akcja-wiecej,.akcja-link{cursor:pointer;font-family:inherit}button.akcja-link{background:transparent}" +
+    ".akcja-sponsor{margin-top:10px;font-size:13px}.akcja-tekstowy{background:none;border:0;color:#ff8a3d;font:inherit;text-decoration:underline;cursor:pointer;padding:0}" +
+    ".akcja-form{margin-top:10px}.akcja-form label{font-size:13px}.akcja-stawka{width:72px;margin:0 6px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font:inherit}" +
+    ".akcja-uwaga{font-size:12px;color:var(--fg2,rgba(240,237,232,.7));margin:8px 0 10px;line-height:1.45}";
   function wstrzyknijCss() {
     try {
       if (!g.document || g.document.getElementById("bm-akcja-css")) return;
@@ -112,8 +120,24 @@
       '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
       '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
       (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
+      sponsorHtml(wklad) +
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="dla-fabianka.html">Szczegóły ›</a>' +
       (link ? '<a class="akcja-link" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + "</div></div>";
+  }
+
+  /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj" albo „Zostań sponsorem" z formularzem.
+   *  Przyciski przez data-akcja (handler w zawodnik.html), bez danych użytkownika w atrybutach JS. */
+  function sponsorHtml(wklad) {
+    if (!DEKLARACJE_GOTOWE) return "";
+    var st = wklad && wklad.stawka_gr != null ? Number(wklad.stawka_gr) : null;
+    if (st) {
+      return '<div class="akcja-sponsor">Twoja stawka: <b>' + liczba(st) + ' gr</b> za każdy kilometr · ' +
+        '<button type="button" class="akcja-tekstowy" data-akcja="wycofaj">Wycofaj</button></div>';
+    }
+    return '<div class="akcja-sponsor"><button type="button" class="akcja-link" data-akcja="sponsor">Zostań sponsorem kilometrów</button>' +
+      '<div class="akcja-form" hidden><label>Twoja stawka: <input type="number" inputmode="numeric" min="1" max="10000" step="1" value="10" class="akcja-stawka"> gr za każdy kilometr</label>' +
+      '<p class="akcja-uwaga">' + esc(TEKST_DEKLARACJI) + '</p>' +
+      '<button type="button" class="akcja-wiecej" data-akcja="zapisz">Zapisz</button></div></div>';
   }
 
   /** Dane karty okienka (EF): tylko to, co licznik i tak oddaje publicznie po starcie. */
@@ -124,6 +148,7 @@
   }
 
   g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
-    pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka,
+    pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
+    DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI,
     CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -2,9 +2,11 @@
 // jak js/akcja.mjs: <script src> w zawodnik.html i odznaki.html, import w testach i w EF (nazwy dla okienka).
 // ⚠️ Repo jest publiczne, a przed 8.11 nic nie może zdradzać akcji: w nazwach plików, slugach i tekstach NIE MA imienia dziecka.
 //    Nazwa akcji w UI przychodzi z bazy (akcja_licznik.nazwa) i tylko po starcie. Katalog odznak akcji widać dopiero po starcie.
-// Spec v2 pkt 4: progi 1 · 100 · 200 · 500 · 1000 km akcji (km jak w liczniku: akcja_moj_wklad, cap/doba, doba warszawska),
-// „Co tydzień" (aktywność w każdym pełnym tygodniu pn–nd od startu do zamknięcia, bez przerwy), „Razem" (aktywność w dniu,
-// w którym społeczność domknęła cel), „Sponsor kilometrów" (deklaracja stawki w oknie akcji).
+// FINAŁ ZASAD (Filip 2.11 15:16): 6 odznak w tej kolejności — progi 1 · 100 · 200 · 500 km akcji (km jak w liczniku:
+// akcja_moj_wklad, cap/doba, doba warszawska), „7 dni z rzędu" (akcja-co-tydzien: 7 KOLEJNYCH dni kalendarzowych Europe/Warsaw
+// z >= 1 aktywnością, każdy typ, bez __badge__%, wszystkie dni w oknie akcji; przyznawana raz, od razu po 7. dniu; przerwa
+// zeruje serię, nowa seria może dać odznakę później), „Sponsor kilometrów" (przy zapisie deklaracji w oknie akcji; zostaje
+// także po wycofaniu deklaracji). Usunięte: akcja-1000, akcja-razem, akcja-dzien-startu.
 // OKNO: od dnia startu do dnia zamknięcia WŁĄCZNIE; przed startem i po zamknięciu nigdy. Przyznane zostają na zawsze.
 // Grafiki: assets/odznaki/<slug>.webp (256 px) i <slug>-512.webp — od Filipa (GPT). Do czasu plików zaślepka SVG w tym samym
 // <img> (ten sam rozmiar): podmiana pliku nie rusza kodu ani układu. „Nie mam" = ta sama grafika z filtrem, bez osobnych plików.
@@ -15,9 +17,7 @@
     { id: "akcja-100",        name: "100 km akcji",       desc: "100 km w akcji",                                                 rarity: "common",    km: 100,  znak: "100" },
     { id: "akcja-200",        name: "200 km akcji",       desc: "200 km w akcji",                                                 rarity: "rare",      km: 200,  znak: "200" },
     { id: "akcja-500",        name: "500 km akcji",       desc: "500 km w akcji",                                                 rarity: "epic",      km: 500,  znak: "500" },
-    { id: "akcja-1000",       name: "1000 km akcji",      desc: "1000 km w akcji",                                                rarity: "legendary", km: 1000, znak: "1000" },
-    { id: "akcja-co-tydzien", name: "Co tydzień",         desc: "Aktywność w każdym pełnym tygodniu akcji, bez przerwy",          rarity: "epic",      znak: "7/7" },
-    { id: "akcja-razem",      name: "Razem do celu",      desc: "Aktywność w dniu, w którym razem dobiliśmy do celu",            rarity: "rare",      znak: "✓" },
+    { id: "akcja-co-tydzien", name: "7 dni z rzędu",      desc: "Aktywność przez 7 kolejnych dni w czasie akcji",                 rarity: "epic",      znak: "7" },
     { id: "akcja-sponsor",    name: "Sponsor kilometrów", desc: "Deklaracja stawki za kilometr w czasie akcji",                   rarity: "rare",      znak: "gr" },
   ].map(function (b) { b.cat = "Akcja"; return b; });
   var KATALOG_PLIKOW = "assets/odznaki/";
@@ -58,40 +58,32 @@
   }
   /** Katalog odznak akcji widoczny dopiero po starcie (i zostaje po zamknięciu — przyznane są na zawsze). */
   function katalogWidoczny(d) { return !!(d && d.wystartowala); }
-  /** Dzień zamknięcia: koniec wpisany = dziś, albo (przed nocnym cronem) suma dobiła do celu dziś. */
-  function dzienZamkniecia(d, teraz) {
-    if (!oknoOtwarte(d, teraz)) return false;
-    var dzis = dzienWaw(teraz);
-    return d.koniec ? String(d.koniec) === dzis : Number(d.suma_km) >= Number(d.cel_km);
-  }
-  /** Czy w każdym PEŁNYM tygodniu pn–nd między startem a dziś jest dzień aktywny. Brak pełnego tygodnia → true. */
-  function coTydzien(start, dzis, dniAktywne) {
-    var x = String(start);
-    var dow = new Date(x + "T12:00:00Z").getUTCDay();          // 0 = nd
-    var pon = dow === 1 ? x : dodajDni(x, dow === 0 ? 1 : 8 - dow);
-    for (; dodajDni(pon, 6) <= dzis; pon = dodajDni(pon, 7)) {
-      var jest = false;
-      for (var i = 0; i < 7 && !jest; i++) jest = dniAktywne.has(dodajDni(pon, i));
-      if (!jest) return false;
+  /** Seria 7 dni: czy w dniAktywne jest 7 KOLEJNYCH dni, wszystkie w oknie [start, min(koniec, dziś)].
+   *  Dzień sprzed startu nie należy do serii (7.11–13.11 → 8.11 jest dopiero 2. dniem → za mało). */
+  function seria7(d, dniAktywne, teraz) {
+    if (!d || !d.start) return false;
+    var od = String(d.start), dzis = dzienWaw(teraz), doDnia = d.koniec && String(d.koniec) < dzis ? String(d.koniec) : dzis;
+    var dni = Array.from(dniAktywne || []).filter(function (x) { return x >= od && x <= doDnia; }).sort();
+    var ciag = 0, poprz = null;
+    for (var i = 0; i < dni.length; i++) {
+      ciag = poprz && dodajDni(poprz, 1) === dni[i] ? ciag + 1 : (poprz === dni[i] ? ciag : 1);
+      poprz = dni[i];
+      if (ciag >= 7) return true;
     }
-    return true;
+    return false;
   }
   /** → lista slugów do przyznania DZIŚ. d = akcja_licznik, wklad = akcja_moj_wklad, dniAktywne = Set('YYYY-MM-DD' Warszawa)
-   *  z dniami z aktywnością od startu (potrzebne tylko w dniu zamknięcia). Poza oknem — pusta lista, zawsze. */
+   *  dni z aktywnością (każdy typ, bez __badge__) od startu. Poza oknem — pusta lista, zawsze (wpis wsteczny po zamknięciu nic nie daje). */
   function doPrzyznania(d, wklad, dniAktywne, teraz) {
     if (!oknoOtwarte(d, teraz)) return [];
     var out = [], km = Number(wklad && wklad.km) || 0;
     LISTA.forEach(function (b) { if (b.km && km >= b.km) out.push(b.id); });
+    if (seria7(d, dniAktywne, teraz)) out.push("akcja-co-tydzien");
     if (wklad && wklad.stawka_gr != null && Number(wklad.stawka_gr) > 0) out.push("akcja-sponsor");
-    if (dzienZamkniecia(d, teraz)) {
-      var dzis = dzienWaw(teraz), dni = dniAktywne || new Set();
-      if (dni.has(dzis)) out.push("akcja-razem");
-      if (km > 0 && coTydzien(d.start, dzis, dni)) out.push("akcja-co-tydzien");
-    }
     return out;
   }
 
   g.BM_ODZNAKI_AKCJI = { LISTA: LISTA, czyAkcyjna: czyAkcyjna, znajdz: znajdz, nazwa: nazwa, src: src, zaslepka: zaslepka, onerrorAttr: onerrorAttr,
-    ustawObraz: ustawObraz, oknoOtwarte: oknoOtwarte, katalogWidoczny: katalogWidoczny, dzienZamkniecia: dzienZamkniecia, coTydzien: coTydzien,
+    ustawObraz: ustawObraz, oknoOtwarte: oknoOtwarte, katalogWidoczny: katalogWidoczny, seria7: seria7,
     doPrzyznania: doPrzyznania, dzienWaw: dzienWaw, KATALOG_PLIKOW: KATALOG_PLIKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

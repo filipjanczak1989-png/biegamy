@@ -4422,13 +4422,44 @@ window._renderKartyAkcji = async function (d) {
   el.style.display = el.innerHTML ? '' : 'none';
   window._sprawdzOdznakiAkcji(d, wklad);
 };
-/* ODZNAKI AKCJI (projekt F dzień 4): reguły w js/odznaki-akcji.mjs (doPrzyznania — poza oknem pusta lista). Km z akcja_moj_wklad
-   (te same co w liczniku: cap/doba, doba warszawska). Dni aktywne pobierane TYLKO w dniu zamknięcia („Razem", „Co tydzień"). */
+/* SPONSOR KILOMETRÓW (projekt F, finał zasad 2.11): formularz w karcie akcji (js/akcja.mjs sponsorHtml, za DEKLARACJE_GOTOWE).
+   Zapis/wycofanie przez RPC (akcja_deklaruj przyznaje odznakę akcja-sponsor w tej samej transakcji; po wycofaniu zostaje). */
+document.addEventListener('click', async function (e) {
+  const b = e.target && e.target.closest ? e.target.closest('#akcja-karta [data-akcja]') : null;
+  if (!b || !window.BM_AKCJA_CYTATY) return;
+  const karta = document.getElementById('akcja-karta'), slug = window.BM_AKCJA_CYTATY.slugDla(_athleteId), co = b.dataset.akcja;
+  if (co === 'sponsor') { const f = karta.querySelector('.akcja-form'); if (f) f.hidden = !f.hidden; return; }
+  b.disabled = true;
+  try {
+    let r;
+    if (co === 'zapisz') {
+      const st = parseInt((karta.querySelector('.akcja-stawka') || {}).value, 10);
+      if (!(st >= 1 && st <= 10000)) { b.disabled = false; return; }
+      r = await sb.rpc('akcja_deklaruj', { p_slug: slug, p_stawka_gr: st });
+    } else if (co === 'wycofaj') {
+      r = await sb.rpc('akcja_wycofaj_deklaracje', { p_slug: slug });
+    }
+    if (r && r.error) throw r.error;
+    if (co === 'zapisz' && window._earnedBadges && !window._earnedBadges.has('akcja-sponsor')) {
+      window._earnedBadges.add('akcja-sponsor');   // przyznana w RPC — tylko pop-up
+      const def = window._odznakaDef('akcja-sponsor'); if (def && typeof showBadgePopup === 'function') setTimeout(() => showBadgePopup(def), 300);
+    }
+    try { sessionStorage.removeItem('bm_akcja_stan_' + slug); } catch (x) {}
+    window._odswiezStanAkcji();
+  } catch (err) {
+    b.disabled = false;
+    if (window.showToast) window.showToast('Nie udało się zapisać — spróbuj za chwilę.');
+  }
+});
+
+/* ODZNAKI AKCJI (projekt F dzień 4, finał zasad 2.11): reguły w js/odznaki-akcji.mjs (doPrzyznania — poza oknem pusta lista).
+   Km z akcja_moj_wklad (jak licznik: cap/doba, doba warszawska). Dni aktywne (każdy typ, bez __badge__) od startu — dla serii
+   „7 dni z rzędu"; pobierane tylko, dopóki tej odznaki nie ma. Sponsor: przyznaje RPC deklaracji (tu tylko zapas). */
 window._sprawdzOdznakiAkcji = async function (d, wklad) {
   const O = window.BM_ODZNAKI_AKCJI;
   if (!O || !_athleteId || !O.oknoOtwarte(d)) return;
   const dni = new Set();
-  if (O.dzienZamkniecia(d)) {
+  if (!window._earnedBadges.has('akcja-co-tydzien')) {
     try {
       const od = new Date(Date.parse(d.start + 'T00:00:00Z') - 86400000).toISOString();
       const { data } = await sb.from('training_logs').select('logged_at, distance_km, training_type')
