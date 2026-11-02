@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<title>BiegaMy · 8.11</title>
+<meta name="description" content="Wspólne kilometry społeczności BiegaMy.">
+<meta property="og:title" content="BiegaMy · wspólne kilometry">
+<meta property="og:description" content="Biegniemy razem. Każdy kilometr się liczy.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/supabase-js-2.112.4.min.js"></script>
+<script src="sb.js"></script>
+<script src="js/akcja.mjs"></script>
+<!--
+  STRONA AKCJI (projekt F, spec v3 pkt 2, v2 pkt 3.2) — publiczna, bez logowania; link do grup biegowych.
+  Dane WYŁĄCZNIE z akcja_licznik przez EF akcja-licznik (rola anonimowa nie ma uprawnień do bazy).
+  PRZED STARTEM licznik nie zwraca nazwy ani imienia, a ta strona nie ma ich w kodzie — teaser „8.11".
+  PO STARCIE: nazwa z bazy, pasek celu, „Filip dokłada 10 gr za każdy kilometr · dotąd X zł z 1 250 zł" (rozliczenie
+  jednorazowe po akcji), sponsorzy (suma, bez nazwisk), jak to działa, oficjalna zbiórka, „Dołącz".
+  PO ZAMKNIĘCIU: liczby końcowe + link do zbiórki (zbiórka trwa dalej, akcja nie).
+  Nazwisko dziecka nigdy w tekście — tylko w linku zbiórki z bazy.
+-->
+<style>
+  :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent2: #ff8a3d; --ramka: rgba(255,255,255,.1); }
+  html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 28px) 16px calc(env(safe-area-inset-bottom) + 40px); box-sizing: border-box; }
+  .marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
+  h1 { font: 400 clamp(40px, 12vw, 64px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 14px 0 18px; }
+  .wielka-data { font: 400 clamp(96px, 34vw, 180px)/.9 'Bebas Neue', Inter, sans-serif; color: var(--akcent); margin: 28px 0 10px; }
+  .lead { font-size: 17px; line-height: 1.5; color: var(--fg2); margin: 0 0 22px; }
+  section { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 16px; margin: 14px 0; }
+  section h2 { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); margin: 0 0 12px; }
+  ol { margin: 0; padding-left: 20px; line-height: 1.6; font-size: 15px; } li + li { margin-top: 6px; }
+  .duze-liczby { font: 400 44px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin-bottom: 10px; }
+  .duze-liczby span { font-size: 22px; color: var(--fg2); }
+  .przyciski { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .przycisk { display: block; text-align: center; padding: 15px; border-radius: 14px; font-weight: 600; font-size: 15px; text-decoration: none; }
+  .przycisk--glowny { background: var(--akcent); color: #fff; } .przycisk--zbiorka { border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
+  .drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin-top: 18px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="marka">BiegaMy</div>
+
+  <div id="teaser">
+    <div class="wielka-data">8.11</div>
+    <p class="lead" id="teaser-tekst">Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.</p>
+  </div>
+
+  <div id="pelna" hidden>
+    <h1 id="nazwa"></h1>
+    <section aria-label="Licznik">
+      <div class="duze-liczby" id="duze"></div>
+      <div id="pasek"></div>
+      <p class="drobne" id="filip"></p>
+      <p class="drobne" id="sponsorzy" hidden></p>
+    </section>
+    <section id="jak">
+      <h2>Jak to działa</h2>
+      <ol>
+        <li>Biegasz, idziesz albo jedziesz — każdy kilometr zapisany w BiegaMy liczy się do wspólnej puli.</li>
+        <li>Cel to 12 500 km. Akcja kończy się w dniu, w którym razem go osiągniemy.</li>
+        <li>Aplikacja tylko liczy. Pieniądze wpłacasz bezpośrednio na oficjalną zbiórkę.</li>
+      </ol>
+    </section>
+    <div class="przyciski">
+      <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
+      <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
+    </div>
+    <p class="drobne">Bez rankingu. Twój wkład widzisz tylko Ty, publiczna jest suma.</p>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var A = window.BM_AKCJA, $ = function (id) { return document.getElementById(id); };
+  function dzisWaw() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
+
+  function pokaz(d) {
+    if (!d || !d.wystartowala) {
+      $('pelna').hidden = true; $('teaser').hidden = false;
+      $('teaser-tekst').textContent = dzisWaw() >= '2026-11-08' ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
+      return;
+    }
+    $('teaser').hidden = true; $('pelna').hidden = false;
+    var zamknieta = !!d.zamknieta;
+    $('nazwa').textContent = zamknieta ? 'Zrobiliśmy to' : (d.nazwa || 'BiegaMy');
+    document.title = (d.nazwa || 'BiegaMy') + ' · BiegaMy';
+    $('duze').innerHTML = '<b>' + A.km(d.suma_km) + '</b> <span>/ ' + A.km(d.cel_km) + ' km</span>';
+    $('pasek').innerHTML = A.pasekHtml(d);
+    $('filip').textContent = A.tekstFilipa(d);
+    var sp = A.tekstSponsorow(d); $('sponsorzy').hidden = !sp; $('sponsorzy').textContent = sp;
+    $('jak').hidden = zamknieta;
+    $('dolacz').hidden = zamknieta;
+    var link = A.linkZbiorki(d);
+    $('zbiorka').hidden = !link;
+    if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }
+  }
+  async function odswiez() { try { pokaz(await A.pobierzPubliczny('dla-fabianka')); } catch (e) { pokaz(null); } }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
+  odswiez();
+})();
+</script>
+</body>
+</html>

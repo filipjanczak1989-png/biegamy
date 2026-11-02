@@ -13,7 +13,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
-import { dopasuj, normalizuj } from "./router.mjs";
+import { dopasuj, normalizuj, czyZagadka } from "./router.mjs";
+import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
@@ -59,6 +60,14 @@ Deno.serve(async (req) => {
   const teraz = new Date();
   const dzis = dzisWaw(teraz);
 
+  /* ── AKCJA (projekt F dzień 3): stan z bazy TYLKO dla pytań o akcję (inne pytania bez dodatkowego RPC). RPC akcja_licznik
+     z JWT pytającego (konto testowe czyta 'proba'). ⚠️ Stan modułu jest WSPÓLNY dla wszystkich zapytań w izolacie —
+     ustawStan synchronicznie tuż przed dopasuj(), bez await pomiędzy, inaczej równoległe zapytanie przestawiłoby stan. ── */
+  const AK = (globalThis as any).BM_AKCJA_CYTATY, AKK = (globalThis as any).BM_AKCJA;
+  let akcjaDane: any = null;
+  if (AK && czyZagadka(tekst)) { try { akcjaDane = await AK.odswiezStan(sb, ath.id); } catch { akcjaDane = null; } }
+  if (AK) AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(ath.id) === "proba" });
+
   // ── router (0 tokenów, bez limitu) ──
   const traf = dopasuj(tekst, dzis);
   if (traf && "nawiguj" in traf) {
@@ -73,6 +82,8 @@ Deno.serve(async (req) => {
       const { data: a } = await sb.from("athletes").select("coach_id").eq("id", ath.id).maybeSingle();
       if (a && a.coach_id) kartyZd = [{ typ: "plan_pusty", dane: { stan: "trener" } }];
     }
+    // po starcie akcji: zagadka → zdanie + karta akcji (nazwa, licznik, oficjalna zbiórka) — dane jak w publicznym liczniku
+    if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
     return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd });
   }
   if (traf) {

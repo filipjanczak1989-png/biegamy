@@ -117,6 +117,13 @@
       if (d.stan === 'trener') return '<div class="okn-karta"><button type="button" class="okn-otworz" data-plan="trener">Napisz do trenera</button></div>';
       return '';
     }
+    /* Projekt F dzień 3: karta akcji po starcie — nazwa z bazy, pasek, link zbiórki tylko https (safeExternalHref). */
+    if (k.typ === 'akcja') {
+      var p = Math.max(0, Math.min(100, Number(d.pct) || 0)), zb = d.url_zbiorki && window.safeExternalHref ? window.safeExternalHref(d.url_zbiorki, { tylkoHttps: true }) : '';
+      return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Akcja') + '</b><span class="okn-meta">' + esc(kmTxt(d.suma_km) + ' z ' + kmTxt(d.cel_km) + ' km · ' + Math.round(p) + '%' + (d.zamknieta ? ' · zrobione' : '')) + '</span>' +
+        '<a class="okn-link" href="dla-fabianka.html">Szczegóły ›</a>' +
+        (zb ? '<a class="okn-link" href="' + zb + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : '') + '</div>';
+    }
     if (k.typ === 'start_nasz') return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' +
       esc([dataTxt(d.data), d.miasto || '', 'w naszych startach'].filter(Boolean).join(' · ')) + '</span>' +
       '<button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.starty) + '">Otwórz w Startach</button></div>';

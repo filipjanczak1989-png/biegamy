@@ -1,0 +1,129 @@
+// AKCJA — wspólne liczby i teksty karty akcji (projekt F, dzień 3). Plik BEZ import/export (globalThis.BM_AKCJA),
+// jak js/akcja-cytaty.mjs: <script src> w zawodnik.html / index.html / dla-fabianka.html, import w testach i w EF okienko.
+// Jedno źródło liczb = akcja_licznik (spec v2 pkt 5). Nazwa, imię i link przychodzą z bazy — w kodzie ich nie ma.
+// Rozliczenie jednorazowe po akcji (decyzja Filipa 2.11): „Filip dokłada 10 gr za każdy kilometr · dotąd X zł z 1 250 zł",
+// bez kwot tygodniowych w UI. Przed startem licznik nie zwraca nazwy ani imienia — teaser nie zna dziecka.
+(function (g) {
+  "use strict";
+  var EF = "/functions/v1/akcja-licznik";
+  var CACHE_MS = 60000;
+  var DNI_KARTY_PO_ZAMKNIECIU = 7;   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
+
+  /* Własne formatowanie zamiast toLocaleString: polski format w przeglądarce NIE grupuje liczb 4-cyfrowych („1250"),
+     a teksty akcji mówią „1 250 zł". Grupowanie zawsze, twarda spacja (liczba się nie łamie), przecinek dziesiętny. */
+  function liczba(x, miejsc, stale) {
+    var n = Number(x);
+    if (!isFinite(n)) n = 0;
+    var m = miejsc == null ? 0 : miejsc, t = (Math.round(Math.abs(n) * Math.pow(10, m)) / Math.pow(10, m)).toFixed(m);
+    var cz = t.split("."), cal = cz[0].replace(/\B(?=(\d{3})+(?!\d))/g, " "), ul = cz[1] || "";
+    if (!stale) ul = ul.replace(/0+$/, "");
+    return (n < 0 ? "-" : "") + cal + (ul ? "," + ul : "");
+  }
+  /** km do paska i tekstów: całe km (12 500), poniżej 10 km z jednym miejscem (3,4). */
+  function km(x) { var n = Number(x) || 0; return liczba(n, n > 0 && n < 10 ? 1 : 0); }
+  /** grosze → „41,20 zł" / „1 250 zł". */
+  function zl(gr) {
+    var z = (Number(gr) || 0) / 100;
+    return (Math.round(z) === z ? liczba(z, 0) : liczba(z, 2, true)) + " zł";
+  }
+  function pct(d) { var p = Number(d && d.pct); return isFinite(p) ? Math.max(0, Math.min(100, p)) : 0; }
+  function tekstFilipa(d) {
+    if (!d || !d.wystartowala) return "";
+    return "Filip dokłada " + (Number(d.stawka_filip_gr) || 10) + " gr za każdy kilometr · dotąd " + zl(d.filip_gr) + " z " + zl(d.filip_max_gr);
+  }
+  function tekstSponsorow(d) {
+    var n = Number(d && d.sponsorzy_n) || 0;
+    if (!n) return "";
+    var os = n === 1 ? "osoba dokłada" : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? "osoby dokładają" : "osób dokłada";
+    return n + " " + os + " razem " + liczba(d.stawka_sponsorow_gr) + " gr za każdy kilometr";
+  }
+  function dzienWaw(t) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(t || new Date());
+  }
+  /** Stan karty na Dziś: 'brak' (przed startem albo > 7 dni po zamknięciu) | 'trwa' | 'zamknieta'. */
+  function stanKarty(d, teraz) {
+    if (!d || !d.wystartowala) return "brak";
+    if (!d.koniec) return "trwa";
+    var po = Math.round((Date.parse(dzienWaw(teraz) + "T12:00:00Z") - Date.parse(String(d.koniec) + "T12:00:00Z")) / 86400000);
+    return po >= 0 && po < DNI_KARTY_PO_ZAMKNIECIU ? "zamknieta" : "brak";
+  }
+  /** Link zbiórki: tylko https przez safeExternalHref z sb.js (CLAUDE.md). Bez helpera — nic. */
+  function linkZbiorki(d) {
+    var u = d && d.url_zbiorki;
+    return u && g.safeExternalHref ? g.safeExternalHref(u, { tylkoHttps: true }) : "";
+  }
+  function esc(s) { return g.escapeHtml ? g.escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
+
+  /** Publiczny odczyt (niezalogowani): EF akcja-licznik, cache 60 s w sessionStorage (try/catch). → licznik | null. */
+  async function pobierzPubliczny(slug, opcje) {
+    var o = opcje || {}, klucz = "bm_akcja_pub_" + slug, teraz = Date.now(), ss = null, stary = null;
+    try { ss = g.sessionStorage; stary = JSON.parse(ss.getItem(klucz) || "null"); } catch (e) { stary = null; }
+    if (stary && !o.wymus && teraz - stary.t < CACHE_MS) return stary.d;
+    try {
+      var baza = o.baza || g.SB_URL || "";
+      var r = await fetch(baza + EF + "?slug=" + encodeURIComponent(slug), { headers: { Accept: "application/json" } });
+      if (!r.ok) throw new Error("http " + r.status);
+      var d = await r.json();
+      try { if (ss) ss.setItem(klucz, JSON.stringify({ t: teraz, d: d })); } catch (e) {}
+      return d;
+    } catch (e) { return stary ? stary.d : null; }
+  }
+
+  /* Style kart — wstrzykiwane raz (jak WATCH._injectCss w sb.js), żeby trzy strony nie trzymały kopii. Kolory z tokenów theme.css
+     z wartościami awaryjnymi (index.html i dla-fabianka.html mogą nie ładować theme.css). */
+  var CSS = ".akcja-karta{background:var(--card,#0f0f14);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:16px;padding:14px;color:var(--fg,#f0ede8);font-family:Inter,system-ui,sans-serif}" +
+    ".akcja-nazwa{font:400 22px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.04em;margin-bottom:10px}" +
+    ".akcja-pasek{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}" +
+    ".akcja-pasek-wypelnienie{height:100%;border-radius:6px;background:linear-gradient(90deg,#e8561e,#ff8a3d);transition:width .9s ease}" +
+    ".akcja-liczby{margin-top:8px;font-size:13px;color:var(--fg2,rgba(240,237,232,.75))}.akcja-liczby b{color:var(--fg,#f0ede8);font-size:15px}" +
+    ".akcja-ja{margin-top:10px;font-size:13px}.akcja-filip,.akcja-sponsorzy{margin-top:6px;font-size:12px;color:var(--fg2,rgba(240,237,232,.7));line-height:1.45}" +
+    ".akcja-zrobione{font-size:15px;margin:4px 0 10px}" +
+    ".akcja-przyciski{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}" +
+    ".akcja-wiecej,.akcja-link{display:inline-block;padding:9px 14px;border-radius:12px;font-size:12px;font-weight:600;letter-spacing:.04em;text-decoration:none}" +
+    ".akcja-wiecej{background:#e8561e;color:#fff}.akcja-link{border:1px solid rgba(232,86,30,.5);color:#ff8a3d}";
+  function wstrzyknijCss() {
+    try {
+      if (!g.document || g.document.getElementById("bm-akcja-css")) return;
+      var st = g.document.createElement("style"); st.id = "bm-akcja-css"; st.textContent = CSS; g.document.head.appendChild(st);
+    } catch (e) {}
+  }
+
+  /** Pasek celu (HTML) — wspólny dla Dziś, index i dla-fabianka. */
+  function pasekHtml(d) {
+    wstrzyknijCss();
+    var p = pct(d);
+    return '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '">' +
+      '<div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
+      '<div class="akcja-liczby"><b>' + km(d.suma_km) + '</b> z ' + km(d.cel_km) + ' km · ' + liczba(p, p < 10 ? 1 : 0) + '%</div>';
+  }
+
+  /** Karta na Dziś (zalogowani). wklad = akcja_moj_wklad. */
+  function kartaDzisHtml(d, wklad, teraz) {
+    var s = stanKarty(d, teraz);
+    if (s === "brak") return "";
+    wstrzyknijCss();
+    var link = linkZbiorki(d), mojeKm = wklad && wklad.km != null ? km(wklad.km) : "0";
+    if (s === "zamknieta") {
+      return '<div class="akcja-karta akcja-karta--koniec"><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' +
+        '<div class="akcja-zrobione">Zrobiliśmy to: ' + km(d.suma_km) + ' km · Ty: ' + mojeKm + ' km</div>' +
+        (link ? '<a class="akcja-link" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + "</div>";
+    }
+    return '<div class="akcja-karta"><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' + pasekHtml(d) +
+      '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
+      '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
+      (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
+      '<div class="akcja-przyciski"><a class="akcja-wiecej" href="dla-fabianka.html">Szczegóły ›</a>' +
+      (link ? '<a class="akcja-link" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + "</div></div>";
+  }
+
+  /** Dane karty okienka (EF): tylko to, co licznik i tak oddaje publicznie po starcie. */
+  function kartaOkienka(d) {
+    if (!d || !d.wystartowala) return null;
+    return { typ: "akcja", dane: { nazwa: d.nazwa || null, suma_km: Number(d.suma_km) || 0, cel_km: Number(d.cel_km) || 0, pct: pct(d),
+      zamknieta: !!d.zamknieta, url_zbiorki: d.url_zbiorki || null } };
+  }
+
+  g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+    pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka,
+    CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
+})(typeof globalThis !== "undefined" ? globalThis : this);

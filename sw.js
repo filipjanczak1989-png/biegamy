@@ -50,6 +50,7 @@ const PRECACHE_URLS = [
   '/gra.html',
   /* projekt F (3.11.2026): guzik startu akcji — otwierany przed wyjściem, pod domem może nie być zasięgu */
   '/start-akcji.html',
+  '/dla-fabianka.html',
   '/manifest-start-akcji.json',
   '/assets/ui/logo-b-ring-alfa.webp',
   '/o-nas.html',
@@ -90,6 +91,7 @@ const PRECACHE_URLS = [
   '/js/silnik-momentu.js',
   '/js/okienko.js',         // M1 „Zapytaj" na Dziś — offline pokazuje wyszukiwarkę ekranów, więc skrypt musi być w cache
   '/js/wyniki-api.js',
+  '/js/akcja.mjs',   // karta akcji (Dziś, index, dla-fabianka) — projekt F dzień 3
   '/js/akcja-cytaty.mjs',   // cytaty akcji w banerze cytatu na Dziś (2.11.2026)      // K5: zawodnik.html — podpowiedź imprez w modalu celu (bez sieci: brak podpowiedzi, cel działa)
   '/js/plan-pusty.mjs',     // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
   '/js/cwiczenia-nazwy.mjs', // M3c: nazwy ćwiczeń — zwykły <script src> w zawodnik.html (bez niego zakładka Ćwiczenia bez nazw)

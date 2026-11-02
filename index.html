@@ -116,6 +116,7 @@
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script>
+<script src="js/akcja.mjs"></script>
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -646,6 +647,9 @@ body.loading::after {
       <button class="hero-skip" onclick="window.location.href='demo.html'" style="border:1px solid rgba(232,86,30,0.45);border-radius:12px;padding:12px 18px;color:#e8561e;background:rgba(232,86,30,0.07);font-weight:700;">Zobacz demo — bez konta</button>
       <button class="hero-skip" onclick="dismissHero()">O nas</button>
     </div>
+    <!-- AKCJA (projekt F dzień 3): przed startem teaser „8.11" bez nazwy; po starcie pasek z EF akcja-licznik (rola anonimowa
+         nie ma uprawnień do bazy — wariant b). Dane i teksty: js/akcja.mjs. -->
+    <div id="akcja-licznik" hidden style="width:100%;max-width:360px;margin-top:18px;"></div>
     <!-- NAGROBEK (07.10.2026): tu stał licznik #100kmDlaKasi (div#hero-licznik, RPC community_km z EXECUTE dla anon).
          Okno 15.08–20.09.2026 zamknięte; licznik, stałe SPOL_* i funkcja community_km skasowane (faza 2: migracja). -->
   </div>
@@ -869,6 +873,32 @@ async function checkSession() {
 /* NAGROBEK (07.10.2026): tu stały SPOL_OKNO_OD/DO, SPOL_CEL_KM, SPOL_DATA_AMES i _licznikLandingu() —
    jedyne wywołanie RPC community_km z anonem. Wyzwanie #100kmDlaKasi skończyło się 20.09.2026;
    stałe okna żyją dalej TYLKO w zawodnik.html (WYZWANIA → odznaki). */
+
+/* AKCJA NA LANDINGU (projekt F dzień 3): odczyt przy wejściu i przy powrocie karty (cache 60 s w js/akcja.mjs). */
+async function _odswiezAkcjeLanding() {
+  const el = document.getElementById('akcja-licznik');
+  if (!el || !window.BM_AKCJA) return;
+  let d = null;
+  try { d = await window.BM_AKCJA.pobierzPubliczny('dla-fabianka'); } catch (e) {}
+  const dzis = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  if (!d || !d.wystartowala) {
+    if (dzis < '2026-11-02' || (d && d.zamknieta)) { el.hidden = true; return; }
+    el.innerHTML = '<div style="text-align:center;font-family:&quot;Bebas Neue&quot;,Inter,sans-serif;font-size:30px;letter-spacing:.06em;color:#e8561e;">8.11</div>' +
+      '<div style="text-align:center;font-size:13px;color:rgba(240,237,232,.7);margin-top:2px;">' + (dzis >= '2026-11-08' ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Zapamiętaj tę datę.') + '</div>';
+    el.hidden = false;
+    return;
+  }
+  el.innerHTML = '<div class="akcja-karta"><div class="akcja-nazwa">' + window.escapeHtml(d.nazwa || '') + '</div>' + window.BM_AKCJA.pasekHtml(d) +
+    '<div class="akcja-filip">' + window.escapeHtml(window.BM_AKCJA.tekstFilipa(d)) + '</div>' +
+    '<div class="akcja-przyciski">' + (d.zamknieta ? '' : '<a class="akcja-wiecej" href="#dolacz" onclick="skipToLogin();return false;">Dołącz i biegnij</a>') +
+    '<a class="akcja-link" href="dla-fabianka.html">Szczegóły ›</a></div></div>';
+  el.hidden = false;
+}
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') _odswiezAkcjeLanding(); });
+document.addEventListener('DOMContentLoaded', function () {
+  _odswiezAkcjeLanding();
+  if (location.hash === '#dolacz') skipToLogin();   // z dla-fabianka.html „Dołącz i biegnij" → od razu logowanie/rejestracja
+});
 
 // Dismiss hero - pierwszy raz idzie na o-nas, oznacz że user widział landing
 function dismissHero() {

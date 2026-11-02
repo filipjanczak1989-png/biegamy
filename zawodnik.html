@@ -1067,6 +1067,8 @@ body > *{position:relative;z-index:1;}
 <!-- NAGROBEK (07.10.2026): tu stał pasek #100kmDlaKasi (div#spol-pasek: wkład własny + suma wspólna z RPC
      community_km). Okno 15.08–20.09.2026 zamknięte; pasek i funkcja skasowane. Odznaki wyzwania
      (WYZWANIA, stałe SPOL_OKNO_OD/DO i SPOL_PROG_INDYW) ZOSTAJĄ — przyznane odznaki muszą mieć regułę. -->
+<!-- KARTA AKCJI (projekt F, dzień 3): od startu do 7 dni po zamknięciu; render w _odswiezStanAkcji (js/akcja.mjs). -->
+<div id="akcja-karta" class="fade-in" style="display:none;margin:8px 16px 6px;"></div>
 </div>
 
 <!-- ───── WIDGET POGODY (3 dni) — przeniesiony pod „Dzisiejszy trening" ───── -->
@@ -1847,6 +1849,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
+<script src="js/akcja.mjs"></script><!-- karta akcji na Dziś (projekt F dzień 3): liczby i teksty z akcja_licznik -->
 <script src="js/akcja-cytaty.mjs"></script><!-- cytaty akcji (2.11.2026): baner cytatu na Dziś, pierwszeństwo przed zwykłym -->
 <script src="sb.js"></script>
 <script src="js/wyniki-api.js"></script><!-- K5: podpowiedź imprez z kalendarza maszyny w modalu celu (window.IMPREZY.podpowiedz) -->
@@ -4396,12 +4399,27 @@ window._odswiezStanAkcji = function () {
   if (!window.BM_AKCJA_CYTATY || !window.sb || !_athleteId) return Promise.resolve(null);
   return window.BM_AKCJA_CYTATY.odswiezStan(window.sb, _athleteId).then(function (d) {
     if ((window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
+    window._renderKartyAkcji(d);
     return d;
   });
 };
 document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible') window._odswiezStanAkcji();
 });
+/* KARTA AKCJI NA DZIŚ (projekt F dzień 3): licznik z odswiezStan + własny wkład (RPC akcja_moj_wklad, po auth.uid()).
+   Przed startem i > 7 dni po zamknięciu — ukryta. Konto testowe widzi kartę próby (slugDla). */
+window._renderKartyAkcji = async function (d) {
+  const el = document.getElementById('akcja-karta');
+  if (!el || !window.BM_AKCJA) return;
+  if (window.BM_AKCJA.stanKarty(d) === 'brak') { el.style.display = 'none'; el.innerHTML = ''; return; }
+  let wklad = null;
+  try {
+    const r = await window.sb.rpc('akcja_moj_wklad', { p_slug: window.BM_AKCJA_CYTATY.slugDla(_athleteId) });
+    if (!r.error) wklad = r.data;
+  } catch (e) {}
+  el.innerHTML = window.BM_AKCJA.kartaDzisHtml(d, wklad);
+  el.style.display = el.innerHTML ? '' : 'none';
+};
 
 window.loadWeather = async function() {
   const wrap = document.getElementById('weather-widget');
