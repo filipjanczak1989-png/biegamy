@@ -110,9 +110,9 @@ test('Dziś i index: miejsce, źródło danych, bez zakazanych nazw #100kmDlaKas
 
 test('okienko: stan tylko dla pytań o akcję, ustawStan synchronicznie tuż przed dopasuj, karta z kartaOkienka', () => {
   const ef = czytaj('supabase/functions/okienko/index.ts');
-  assert.match(ef, /import \{ dopasuj, normalizuj, czyZagadka \} from "\.\/router\.mjs";/);
+  assert.match(ef, /import \{ dopasuj, normalizuj, zagadkaKandydat \} from "\.\/router\.mjs";/);
   assert.match(ef, /import "\.\.\/\.\.\/\.\.\/js\/akcja\.mjs";/);
-  assert.match(ef, /if \(AK && czyZagadka\(tekst\)\) \{ try \{ akcjaDane = await AK\.odswiezStan\(sb, ath\.id\); \}/);
+  assert.match(ef, /if \(AK && zagadkaKandydat\(tekst\)\) \{ try \{ akcjaDane = await AK\.odswiezStan\(sb, ath\.id\); \}/);
   const u = ef.indexOf('AK.ustawStan('), d = ef.indexOf('const traf = dopasuj(tekst, dzis);');
   assert.ok(u > 0 && d > u, 'ustawStan przed dopasuj');
   assert.doesNotMatch(ef.slice(u, d), /await/, 'await między ustawStan a dopasuj — wyścig zapytań w izolacie');

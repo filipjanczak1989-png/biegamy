@@ -859,7 +859,8 @@ async function checkSession() {
     return;
   }
   // Brak sesji - sprawdź czy to pierwszy raz
-  const seenHero = localStorage.getItem('biegamy_seen_landing');
+  // „Dołącz i biegnij” z dla-fabianka.html (index.html#dolacz) → od razu formularz, bez hero (projekt F dzień 6)
+  const seenHero = localStorage.getItem('biegamy_seen_landing') || location.hash === '#dolacz';
   if (!seenHero) {
     // Pierwszy raz - pokaż hero
     document.body.classList.remove('loading');
@@ -867,6 +868,10 @@ async function checkSession() {
   } else {
     // Wraca - od razu formularz
     document.body.classList.remove('loading');
+    if (location.hash === '#dolacz') {   // nowa osoba z dla-fabianka.html → zakładka Rejestracja (switchTab czyta event.target — klik)
+      const zakladka = document.querySelector('.tab[onclick*="register"]');
+      if (zakladka) zakladka.click();
+    }
   }
 }
 
@@ -899,7 +904,7 @@ async function _odswiezAkcjeLanding() {
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') _odswiezAkcjeLanding(); });
 document.addEventListener('DOMContentLoaded', function () {
   _odswiezAkcjeLanding();
-  if (location.hash === '#dolacz') skipToLogin();   // z dla-fabianka.html „Dołącz i biegnij" → od razu logowanie/rejestracja
+  if (location.hash === '#dolacz') skipToLogin();   // „Dołącz i biegnij" → bez hero; zakładkę Rejestracja włącza init (po sesji)
 });
 
 // Dismiss hero - pierwszy raz idzie na o-nas, oznacz że user widział landing

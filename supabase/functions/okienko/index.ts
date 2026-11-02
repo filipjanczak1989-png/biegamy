@@ -13,7 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
-import { dopasuj, normalizuj, czyZagadka } from "./router.mjs";
+import { dopasuj, normalizuj, zagadkaKandydat } from "./router.mjs";
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
      ustawStan synchronicznie tuż przed dopasuj(), bez await pomiędzy, inaczej równoległe zapytanie przestawiłoby stan. ── */
   const AK = (globalThis as any).BM_AKCJA_CYTATY, AKK = (globalThis as any).BM_AKCJA;
   let akcjaDane: any = null;
-  if (AK && czyZagadka(tekst)) { try { akcjaDane = await AK.odswiezStan(sb, ath.id); } catch { akcjaDane = null; } }
+  if (AK && zagadkaKandydat(tekst)) { try { akcjaDane = await AK.odswiezStan(sb, ath.id); } catch { akcjaDane = null; } }
   if (AK) AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(ath.id) === "proba" });
 
   // ── router (0 tokenów, bez limitu) ──

@@ -136,13 +136,24 @@ export function dopasujBiegi(tekst, dzis) {
    aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
 const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|co bedzie [78]|[78] listopad\w*|siodm\w* listopad\w*|osm\w* listopad\w*|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
 const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
+/* Projekt F dzień 6 (zwiad okienka po starcie): jednoznaczne pytania o akcję łapane ZAWSZE (przed startem → zagadka,
+   po starcie → zdanie + karta akcji); krótkie „jak dołączyć" / „ile już km" — WYŁĄCZNIE po starcie (przed startem to
+   pytania o aplikację albo o własne kilometry). */
+const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*)\b/;
+const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
 const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) return true;   // 7.11 (start) i 8.11 (stary termin)
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) return true;   // 7.11 (start) i 8.11 (stary termin)
+  if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
+}
+/** Czy pytanie MOŻE być o akcję (niezależnie od stanu) — EF okienko pobiera stan akcji tylko dla takich (bez RPC dla reszty). */
+export function zagadkaKandydat(tekst) {
+  const t = normalizuj(tekst);
+  return !!t && (czyZagadka(tekst) || ZAGADKA_PO_STARCIE.test(t));
 }
 
 /** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */

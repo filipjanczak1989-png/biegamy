@@ -105,7 +105,7 @@
     "Na razie tylko tyle: nie biegniesz sam.",
     "Daleka droga, dużo ludzi, jeden powód. Więcej " + DATA_KROTKA + ".",
   ];
-  var PO_STARCIE = "Akcja trwa — szczegóły na Dziś.";
+  var PO_STARCIE = "Akcja trwa — każdy Twój kilometr w BiegaMy liczy się sam, nic nie trzeba włączać. Szczegóły na Dziś.";
   /** Odpowiedź okienka na pytanie o akcję: przed startem losowa zagadka, po starcie zdanie (miejsce na kartę akcji, projekt F). */
   function odpowiedzZagadki(los) {
     if (czyAkcjaRuszyla()) return { zdanie: PO_STARCIE, karta: null };   // PROJEKT F: tu karta akcji (licznik, link)

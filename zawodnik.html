@@ -8971,6 +8971,9 @@ async function saveLog() {
      walidowane (kalendarz.html:2765 → 1761), nic tam nie dokładamy. */
   const _isNewLog = !_editingLogId;
   closeModal();
+  // projekt F dzień 6: nowy wpis zmienia sumę akcji — bez tego po powrocie na Dziś „Twój wkład" (świeży) i suma
+  // (pamięć sesji 60 s) mogłyby się rozjechać
+  try { if (window.BM_AKCJA_CYTATY) sessionStorage.removeItem('bm_akcja_stan_' + window.BM_AKCJA_CYTATY.slugDla(_athleteId)); } catch (e) {}
   toast(tekstWgTrenera('Log zapisany! Trener widzi Twój wynik ✓',
                        'Log zapisany! Forma przeliczona ✓'));
   if (_isNewLog) {
