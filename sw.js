@@ -48,6 +48,10 @@ const PRECACHE_URLS = [
   '/compare.html',
   '/races.html',
   '/gra.html',
+  /* projekt F (3.11.2026): guzik startu akcji — otwierany przed wyjściem, pod domem może nie być zasięgu */
+  '/start-akcji.html',
+  '/manifest-start-akcji.json',
+  '/assets/ui/logo-b-ring.webp',
   '/o-nas.html',
   '/terms.html',
   '/privacy.html',

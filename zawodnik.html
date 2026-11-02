@@ -4389,8 +4389,18 @@ window.odswiezCytatAkcji = function () {
   if (window.CYTAT) CYTAT.animuj(txt, tresc, { krok: .035 }); else txt.textContent = tresc;
   return true;
 };
+/* STAN AKCJI Z BAZY (projekt F dzień 2, 3.11.2026): akcje.wystartowala_at przez RPC akcja_licznik (js/akcja-cytaty.mjs
+   odswiezStan, cache 60 s). Przy wejściu (po initAuth) i przy powrocie karty — bez odpytywania co sekundę.
+   Konto testowe czyta akcję 'proba' (slugDla) — guzik próby zmienia cytat tylko jemu. */
+window._odswiezStanAkcji = function () {
+  if (!window.BM_AKCJA_CYTATY || !window.sb || !_athleteId) return Promise.resolve(null);
+  return window.BM_AKCJA_CYTATY.odswiezStan(window.sb, _athleteId).then(function (d) {
+    if ((window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
+    return d;
+  });
+};
 document.addEventListener('visibilitychange', function () {
-  if (document.visibilityState === 'visible' && (window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
+  if (document.visibilityState === 'visible') window._odswiezStanAkcji();
 });
 
 window.loadWeather = async function() {
@@ -12078,7 +12088,7 @@ init();
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
-    initAuth().then(() => { checkIntervalsHomeBanner(); mountWatchBadge(); setTimeout(() => { if (_athleteId) checkFriendRequests(); }, 1500); });
+    initAuth().then(() => { checkIntervalsHomeBanner(); mountWatchBadge(); window._odswiezStanAkcji(); setTimeout(() => { if (_athleteId) checkFriendRequests(); }, 1500); });
   }
 });
 
@@ -12086,7 +12096,7 @@ sb.auth.onAuthStateChange((event, session) => {
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
-    initAuth().then(() => { checkIntervalsHomeBanner(); mountWatchBadge(); });
+    initAuth().then(() => { checkIntervalsHomeBanner(); mountWatchBadge(); window._odswiezStanAkcji(); });
   }
 }, 300);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)

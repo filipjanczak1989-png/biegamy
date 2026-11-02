@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b0a0f">
+<title>Start akcji</title>
+<link rel="manifest" href="manifest-start-akcji.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="vendor/supabase-js-2.112.4.min.js"></script>
+<script src="sb.js"></script>
+<!--
+  START AKCJI (projekt F, spec v3 pkt 1) — guzik, który 8.11 naciska Fabianek na telefonie Filipa.
+  Jeden ekran, bez nawigacji, bez niczego do przypadkowego tapnięcia. Działa wyłącznie dla konta z listy
+  akcja_startujacy — sprawdza to RPC (auth.uid()), ta strona tylko nie pokazuje guzika komuś innemu.
+  Stany: ladowanie → rozbrojony (przed 8.11 06:00) / uzbrojony → nacisniety (iskry) → zapisane (· wysyłam… / · zapisane ✓).
+  Przytrzymanie 1 s z pierścieniem (dziecko widzi, że „ładuje"), bez „Czy na pewno?".
+  BRAK ZASIĘGU POD DOMEM: czas naciśnięcia zapisany lokalnie (localStorage + IndexedDB, try/catch), wysyłka co 5 s
+  i przy zdarzeniu `online`; serwer przyjmuje czas klienta tylko w oknie i ≤ teraz + 2 min (akcja_start).
+  PRÓBA: ?proba=1 → akcja 'proba' (guzik zawsze uzbrojony, liczy tylko konto testowe) + „Resetuj próbę".
+-->
+<style>
+  :root { --tlo: #0b0a0f; --fg: #f0ede8; --muted: #8a8798; --akcent: #e8561e; --akcent2: #ff8a3d; --szary: #2a2832; }
+  html, body { margin: 0; height: 100%; background: var(--tlo); color: var(--fg); overflow: hidden;
+    font-family: Inter, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+  main { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); box-sizing: border-box; }
+  #proba-znak { position: absolute; top: calc(env(safe-area-inset-top) + 14px); left: 50%; transform: translateX(-50%);
+    font: 600 11px/1 Inter, sans-serif; letter-spacing: .2em; color: var(--akcent2); border: 1px solid var(--akcent2);
+    border-radius: 999px; padding: 6px 12px; }
+  #krag { position: relative; width: min(70vw, 70vh, 420px); aspect-ratio: 1; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--szary);
+    transition: background .4s ease, transform .2s ease, box-shadow .4s ease; }
+  #krag img { width: 46%; opacity: .25; transition: opacity .4s ease; pointer-events: none; }
+  #pierscien { position: absolute; inset: -14px; width: calc(100% + 28px); height: calc(100% + 28px); transform: rotate(-90deg); pointer-events: none; }
+  #pierscien circle { fill: none; stroke-width: 3; }
+  #pierscien .tlo-p { stroke: transparent; }
+  #pierscien #postep { stroke: var(--fg); stroke-linecap: round; stroke-dasharray: 314.16; stroke-dashoffset: 314.16; }
+  #slowo { font: 400 clamp(40px, 13vw, 76px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .06em; text-align: center; min-height: 1em; }
+  #napis { font-size: 17px; line-height: 1.4; text-align: center; max-width: 32ch; min-height: 1.4em; }
+  #licznik { font: 400 26px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .05em; color: var(--muted); min-height: 1em; }
+  #status { font-size: 13px; color: var(--muted); min-height: 1.2em; text-align: center; }
+  #iskry { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #reset { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 18px); background: transparent; color: var(--muted);
+    border: 1px solid var(--szary); border-radius: 12px; padding: 10px 16px; font: 500 12px Inter, sans-serif; letter-spacing: .06em; }
+  [hidden] { display: none !important; }
+
+  main[data-stan="uzbrojony"] #krag { background: radial-gradient(circle at 50% 40%, var(--akcent2), var(--akcent) 70%);
+    box-shadow: 0 0 60px rgba(232, 86, 30, .45); animation: puls 2.4s ease-in-out infinite; }
+  main[data-stan="uzbrojony"] #krag img { opacity: 1; }
+  main[data-stan="uzbrojony"] #krag.trzymam { transform: scale(.96); animation: none; }
+  main[data-stan="nacisniety"] #krag, main[data-stan="zapisane"] #krag { background: transparent; box-shadow: none; transform: scale(.5); opacity: 0;
+    transition: transform .5s ease, opacity .5s ease; }
+  main[data-stan="zapisane"] #krag { display: none; }
+  main[data-stan="zapisane"] #slowo { font-size: clamp(30px, 9vw, 52px); }
+  @keyframes puls { 0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(232,86,30,.35); } 50% { transform: scale(1.025); box-shadow: 0 0 80px rgba(232,86,30,.55); } }
+  @media (prefers-reduced-motion: reduce) { main[data-stan="uzbrojony"] #krag { animation: none; } }
+</style>
+</head>
+<body>
+<main id="ekran" data-stan="ladowanie">
+  <div id="proba-znak" hidden>PRÓBA</div>
+  <div id="krag" aria-label="Start akcji — przytrzymaj">
+    <svg id="pierscien" viewBox="0 0 104 104" aria-hidden="true"><circle class="tlo-p" cx="52" cy="52" r="50"/><circle id="postep" cx="52" cy="52" r="50"/></svg>
+    <img src="assets/ui/logo-b-ring.webp" alt="">
+  </div>
+  <div id="slowo"></div>
+  <div id="napis"></div>
+  <div id="licznik"></div>
+  <div id="status"></div>
+  <button id="reset" hidden>Resetuj próbę</button>
+</main>
+<canvas id="iskry" aria-hidden="true"></canvas>
+<script>
+(function () {
+  'use strict';
+  /* Okno guzika = akcje.okno_startu_od/do wiersza 'dla-fabianka' (8.11 06:00–23:59:59 Europe/Warsaw = UTC+1).
+     Serwer i tak pilnuje okna — tu tylko, żeby przed czasem nie świecić guzikiem (blizna-96 pilnuje równości). */
+  var OKNO_OD = Date.parse('2026-11-08T05:00:00Z');
+  var OKNO_DO = Date.parse('2026-11-08T22:59:59Z');
+  var PROBA = new URLSearchParams(location.search).get('proba') === '1';
+  var SLUG = PROBA ? 'proba' : 'dla-fabianka';
+  var KLUCZ = 'bm_akcja_nacisk_' + SLUG, KLUCZ_MOZE = 'bm_akcja_moze_' + SLUG;
+  var PRZYTRZYMAJ_MS = 1000, PONOW_MS = 5000, OBWOD = 314.16;
+  var $ = function (id) { return document.getElementById(id); };
+  var ekran = $('ekran'), krag = $('krag'), postep = $('postep');
+  var stan = 'ladowanie', nacisnietoO = 0, trzymanieOd = 0, rafId = 0, wysylam = false, ponowTimer = 0, uzbrojTimer = 0, blokada = null;
+
+  var godzina = function (iso) {
+    try { return new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)); }
+    catch (e) { return ''; }
+  };
+  var km = function (x) { return Number(x || 0).toLocaleString('pl-PL', { maximumFractionDigits: 0 }); };
+
+  function ustaw(nowy, o) {
+    o = o || {};
+    stan = nowy; ekran.dataset.stan = nowy;
+    $('slowo').textContent = o.slowo || '';
+    $('napis').textContent = o.napis || '';
+    $('licznik').textContent = o.licznik || '';
+    $('status').textContent = o.status || '';
+    $('reset').hidden = !(PROBA && nowy === 'zapisane');
+    if (nowy === 'uzbrojony') wakeLock();
+  }
+
+  /* ── pamięć naciśnięcia: localStorage + IndexedDB, każde w try/catch (prywatne okno, zablokowane dane) ── */
+  function idb(tryb, fn) {
+    return new Promise(function (ok) {
+      try {
+        var r = indexedDB.open('bm-akcja', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('nacisk'); };
+        r.onerror = function () { ok(null); };
+        r.onsuccess = function () {
+          try {
+            var tx = r.result.transaction('nacisk', tryb), st = tx.objectStore('nacisk'), q = fn(st);
+            tx.oncomplete = function () { ok(q && 'result' in q ? q.result : true); };
+            tx.onerror = function () { ok(null); };
+          } catch (e) { ok(null); }
+        };
+      } catch (e) { ok(null); }
+    });
+  }
+  function zapiszLokalnie(t) {
+    var w = JSON.stringify({ slug: SLUG, t: t });
+    try { localStorage.setItem(KLUCZ, w); } catch (e) {}
+    return idb('readwrite', function (st) { return st.put(w, SLUG); });
+  }
+  async function odczytajLokalnie() {
+    var w = null;
+    try { w = localStorage.getItem(KLUCZ); } catch (e) {}
+    if (!w) w = await idb('readonly', function (st) { return st.get(SLUG); });
+    try { var o = JSON.parse(w || 'null'); return o && o.slug === SLUG && o.t ? o.t : null; } catch (e) { return null; }
+  }
+  function wyczyscLokalnie() {
+    try { localStorage.removeItem(KLUCZ); } catch (e) {}
+    return idb('readwrite', function (st) { return st.delete(SLUG); });
+  }
+
+  /* ── wysyłka: co 5 s i przy powrocie sieci, aż serwer potwierdzi; błąd uprawnień/okna kończy próby ── */
+  async function wyslij() {
+    if (wysylam) return;
+    var t = await odczytajLokalnie();
+    if (!t) return;
+    wysylam = true; clearTimeout(ponowTimer);
+    try {
+      var r = await window.sb.rpc('akcja_start', { p_slug: SLUG, p_nacisnieto_at: t });
+      if (r.error) {
+        var kod = r.error.code || '';
+        if (kod === '42501') { await wyczyscLokalnie(); ustaw('brak', { napis: 'To konto nie uruchamia akcji.' }); return; }
+        if (kod === '22023') { await wyczyscLokalnie(); ustaw('poza', { slowo: '8 listopada', napis: 'Poza oknem startu (8.11, 6:00–24:00).' }); return; }
+        throw r.error;
+      }
+      await wyczyscLokalnie();
+      pokazZapisane(r.data, true);
+    } catch (e) {
+      $('status').textContent = 'wysyłam… (brak sieci — spróbuję za chwilę)';
+      ponowTimer = setTimeout(wyslij, PONOW_MS);
+    } finally { wysylam = false; }
+  }
+  window.addEventListener('online', wyslij);
+
+  function pokazZapisane(d, potwierdzone) {
+    var zostalo = stan === 'nacisniety' ? 1800 - (performance.now() - nacisnietoO) : 0;   // iskry i napis zostają min. 1,8 s
+    if (zostalo > 0) { setTimeout(function () { pokazZapisane(d, potwierdzone); }, zostalo); return; }
+    var t = d && d.wystartowala_at;
+    ustaw('zapisane', {
+      slowo: 'Akcja ruszyła' + (t ? ' · ' + godzina(t) : ''),
+      licznik: km(d && d.suma_km) + ' / ' + km((d && d.cel_km) || 12500) + ' km',
+      status: potwierdzone ? 'zapisane ✓' : 'wysyłam…',
+    });
+  }
+
+  /* ── przytrzymanie 1 s z pierścieniem ── */
+  function rysujPierscien(f) { postep.style.strokeDashoffset = String(OBWOD * (1 - Math.max(0, Math.min(1, f)))); }
+  function przerwij() {
+    cancelAnimationFrame(rafId); trzymanieOd = 0; krag.classList.remove('trzymam'); rysujPierscien(0);
+  }
+  function klatka() {
+    if (!trzymanieOd) return;
+    var f = (performance.now() - trzymanieOd) / PRZYTRZYMAJ_MS;
+    rysujPierscien(f);
+    if (f >= 1) { trzymanieOd = 0; krag.classList.remove('trzymam'); nacisnij(); return; }
+    rafId = requestAnimationFrame(klatka);
+  }
+  krag.addEventListener('pointerdown', function (e) {
+    if (stan !== 'uzbrojony') return;
+    e.preventDefault();
+    try { krag.setPointerCapture(e.pointerId); } catch (x) {}
+    trzymanieOd = performance.now(); krag.classList.add('trzymam'); rafId = requestAnimationFrame(klatka);
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (n) {
+    krag.addEventListener(n, function () { if (trzymanieOd) przerwij(); });
+  });
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  async function nacisnij() {
+    if (stan !== 'uzbrojony') return;
+    var t = new Date().toISOString();
+    await zapiszLokalnie(t);
+    nacisnietoO = performance.now();
+    ustaw('nacisniety', { napis: 'Ruszamy. 12 500 km dla Fabianka.' });
+    try { navigator.vibrate && navigator.vibrate([60, 40, 120]); } catch (e) {}
+    iskry();
+    wyslij();
+    setTimeout(function () {
+      if (stan === 'nacisniety') ustaw('zapisane', { slowo: 'Akcja ruszyła · ' + godzina(t), licznik: '0 / 12 500 km', status: 'wysyłam…' });
+    }, 1800);
+  }
+
+  /* ── iskry (te same pomarańcze co w filmie); bez ruchu przy prefers-reduced-motion ── */
+  function iskry() {
+    var c = $('iskry'), g = c.getContext && c.getContext('2d');
+    if (!g || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var dpr = window.devicePixelRatio || 1, W = c.width = innerWidth * dpr, H = c.height = innerHeight * dpr;
+    var r = krag.getBoundingClientRect(), cx = (r.left + r.width / 2) * dpr, cy = (r.top + r.height / 2) * dpr;
+    var kolory = ['#ff8a3d', '#e8561e', '#ffb347', '#fff1e0'], cz = [];
+    for (var i = 0; i < 180; i++) {
+      var a = Math.random() * Math.PI * 2, v = (2 + Math.random() * 9) * dpr;
+      cz.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, z: 1, k: kolory[i % kolory.length], s: (1 + Math.random() * 2.5) * dpr });
+    }
+    var start = performance.now();
+    (function krok(now) {
+      var dt = Math.min(2, (now - start) / 700);
+      g.clearRect(0, 0, W, H);
+      cz.forEach(function (p) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.12 * dpr; p.vx *= 0.985; p.z = Math.max(0, 1 - dt / 2);
+        g.globalAlpha = p.z; g.fillStyle = p.k; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 6.283); g.fill();
+      });
+      if (dt < 2) requestAnimationFrame(krok); else g.clearRect(0, 0, W, H);
+    })(start);
+  }
+
+  /* ── ekran zawsze włączony, gdy guzik czeka (nagranie, kieszeń) ── */
+  async function wakeLock() {
+    try { if (navigator.wakeLock && !blokada) { blokada = await navigator.wakeLock.request('screen'); blokada.addEventListener('release', function () { blokada = null; }); } } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    if (stan === 'uzbrojony') wakeLock();
+    wyslij();
+    if (stan === 'rozbrojony') uzbrojGdyCzas();
+  });
+
+  function uzbrojGdyCzas() {
+    clearTimeout(uzbrojTimer);
+    var teraz = Date.now();
+    if (PROBA || (teraz >= OKNO_OD && teraz <= OKNO_DO)) { ustaw('uzbrojony', { slowo: 'START' }); return; }
+    if (teraz > OKNO_DO) { ustaw('poza', { slowo: '8 listopada', napis: 'Okno startu minęło.' }); return; }
+    ustaw('rozbrojony', { slowo: '8 listopada' });
+    uzbrojTimer = setTimeout(uzbrojGdyCzas, Math.min(30000, OKNO_OD - teraz + 50));
+  }
+
+  $('reset').addEventListener('click', async function () {
+    if (!PROBA) return;
+    this.disabled = true;
+    try {
+      var r = await window.sb.rpc('akcja_proba_reset');
+      if (r.error) throw r.error;
+      await wyczyscLokalnie();
+      uzbrojGdyCzas();
+    } catch (e) { $('status').textContent = 'Reset się nie udał — sprawdź sieć.'; }
+    this.disabled = false;
+  });
+
+  /* ── start strony ── */
+  async function init() {
+    $('proba-znak').hidden = !PROBA;
+    if (!window.sb) { ustaw('blad', { napis: 'Nie udało się wczytać aplikacji. Odśwież stronę.' }); return; }
+    var sesja = null;
+    try { sesja = (await window.sb.auth.getSession()).data.session; } catch (e) {}
+    if (!sesja) { ustaw('brak', { napis: 'Zaloguj się na konto trenera i otwórz tę stronę ponownie.' }); return; }
+
+    var czekajace = await odczytajLokalnie();
+    if (czekajace) { ustaw('zapisane', { slowo: 'Akcja ruszyła · ' + godzina(czekajace), licznik: '0 / 12 500 km', status: 'wysyłam…' }); wyslij(); return; }
+
+    /* Czy to konto może nacisnąć: akcja_tydzien odpowiada wyłącznie startującym (dla innych 42501). Tylko po to, żeby nie
+       pokazywać guzika komuś innemu — prawdziwa kontrola jest w akcja_start. Bez sieci: ostatnia znana odpowiedź. */
+    var moze = null;
+    try {
+      var p = await window.sb.rpc('akcja_tydzien', { p_slug: SLUG, p_poniedzialek: '2026-11-09' });
+      if (p.error && p.error.code === '42501') moze = false; else if (!p.error) moze = true;
+      if (moze != null) try { localStorage.setItem(KLUCZ_MOZE, moze ? '1' : '0'); } catch (e) {}
+    } catch (e) {}
+    if (moze == null) { try { moze = localStorage.getItem(KLUCZ_MOZE) !== '0'; } catch (e) { moze = true; } }
+    if (!moze) { ustaw('brak', { napis: 'Ta strona jest tylko dla osoby, która uruchamia akcję.' }); return; }
+
+    try {
+      var l = await window.sb.rpc('akcja_licznik', { p_slug: SLUG });
+      if (!l.error && l.data && l.data.wystartowala) { pokazZapisane(l.data, true); return; }
+    } catch (e) {}
+    uzbrojGdyCzas();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
