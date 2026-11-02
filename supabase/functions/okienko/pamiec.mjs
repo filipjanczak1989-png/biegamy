@@ -27,6 +27,21 @@ export function wygladaNaOsobe(tekst) {
   return slowa.every((s) => SLOWO_IMIENIA.test(s)) || slowa.every((s) => SLOWO_MALE.test(s));
 }
 
+/** PRZED 8.11 (Filip 2.11, przegląd A pkt 4): SAMO NAZWISKO — jedno słowo z dużej litery (≥ 3 litery, nie miesiąc, nie słowo
+    biegowe) w kontekście wyników/biegu („wyniki Nowaka”, „jak pobiegł Kowalski w Dębnie”, „kim jest Kowalski”, „Kowalski
+    startował”) → strażnik sieci jak dla pary: ścieżka ogólna NIE idzie do Google. Słowo z dużej litery na POCZĄTKU zdania
+    liczy się tylko w krótkim pytaniu (≤ 4 słowa). */
+const KONTEKST_OSOBY = /\b(wynik\w*|pobieg\w*|biega\w*|startowa\w*|startuje|zawodni\w*|biegacz\w*|kim jest|kto to|czas\w* ma|rekord\w*)\b/;
+const MIESIAC_N = /^(stycze[nń]|stycznia|luty|lutego|marzec|marca|kwiecie[nń]|kwietnia|maj|maja|czerwiec|czerwca|lipiec|lipca|sierpie[nń]|sierpnia|wrzesie[nń]|wrze[sś]nia|pa[zź]dziernik|pa[zź]dziernika|listopad|listopada|grudzie[nń]|grudnia)$/i;
+export function wygladaNaNazwisko(tekst) {
+  const surowe = String(tekst || "").replace(/[\\?!.,;:"'„”()]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  const n = surowe.map((s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L").toLowerCase()).join(" ");
+  if (!KONTEKST_OSOBY.test(n)) return false;
+  const PO_MIEJSCU = /^(w|we|na|do|z|ze|od|kolo|koło|pod)$/i, NAZWA_IMPREZY = /^(bieg\w*|maraton\w*|polmaraton\w*|półmaraton\w*|cross\w*|ultra\w*|trail\w*|parkrun\w*|run|zawod\w*|puchar\w*|memoria\w*|mistrzostw\w*|festiwal\w*)$/i;
+  return surowe.some((w, i) => /^[\p{Lu}][\p{Ll}'-]{2,}$/u.test(w) && !MIESIAC_N.test(w) && !BIEGOWE.test(w) && !PYTAJNE.test(w)
+    && (i > 0 || surowe.length <= 4) && !(i > 0 && (PO_MIEJSCU.test(surowe[i - 1]) || NAZWA_IMPREZY.test(surowe[i - 1]))));   // „w Berlinie” to miejsce, „Bieg Niepodległości” to impreza
+}
+
 /** M3-0 (1.11.2026): detektor TRYBU OSOBY — 2–3 słowa (bez słów pytających/biegowych/cyfr) i pierwsze słowo jest
     imieniem ze słownika (_shared/imiona.mjs, PESEL + zdrobnienia) ALBO wszystkie słowa zaczynają się wielką literą.
     „kasia nowak", „Jan Kowalski" → tak; „bieg ultrakotlina", „maraton warszawski", „warszawa praga" → nie.

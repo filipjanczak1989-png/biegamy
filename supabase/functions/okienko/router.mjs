@@ -4,7 +4,8 @@
 // Daty liczy router w Europe/Warsaw (argument `dzis`), nie model. Brak dopasowania → null (krok 3: model).
 import { EKRANY } from "./narzedzia.mjs";
 import "../../../js/tekst.mjs";
-import "../../../js/akcja-cytaty.mjs";   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
+import "../../../js/akcja-cytaty.mjs";
+import { czyImie } from "../_shared/imiona.mjs";   // przed 8.11 (3): „Anna Nowak maraton” to osoba, nie lista maratonów   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
 const T = /** @type {any} */ (globalThis).BM_TEKST;
 const AKCJA = /** @type {any} */ (globalThis).BM_AKCJA_CYTATY;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
@@ -102,9 +103,21 @@ function miesiacPrzyszly(nr, dzis) {   // nr 1..12; miesiąc wcześniejszy niż 
   const od = `${r}-${String(nr).padStart(2, "0")}-01`;
   return { od: od < dzis ? dzis : od, do: ostatniDzien(r, nr) };
 }
+/** Przed 8.11 (3): para „Imię Nazwisko” (imię ze słownika + słowo z liter) w pytaniu o biegi → to pytanie o OSOBĘ (tryb osoby
+ *  decyduje o sieci po regule publiczności), nie lista maratonów — „Anna Nowak maraton”, „Jan Kowalski parkrun”. */
+export function maPareOsoby(tekst) {
+  const s = String(tekst || "").replace(/[?!.,;:"'„”()]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  for (let i = 0; i < s.length - 1; i++) {
+    if (!czyImie(s[i])) continue;
+    const n2 = normalizuj(s[i + 1]);
+    if (/^[\p{L}][\p{L}'-]{2,}$/u.test(s[i + 1]) && !BIEG_SLOWO.test(n2) && !/^(w|we|na|do|z|ze|od|u|o|i|a|czy|jak|ile|kto|co|gdzie|kiedy)$/.test(n2)) return true;
+  }
+  return false;
+}
 export function dopasujBiegi(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!BIEG_SLOWO.test(t) || BIEG_NIE.test(t)) return null;
+  if (maPareOsoby(tekst)) return null;   // przed 8.11 (3): osoba przed listą biegów
   const args = {};
   if (/\bpolmaraton\w*|\b21 ?km\b/.test(t)) args.dystans = "21";
   else if (/\bmaraton\w*|\b42 ?km\b/.test(t)) args.dystans = "42";
@@ -134,12 +147,15 @@ export function dopasujBiegi(tekst, dzis) {
    charakterystyczne (fabian, 12 500, 8.11, peleryny, Jasna Góra, tajemnica, niespodzianka, akcja, challenge…) działają
    zawsze; OGÓLNE („co się dzieje", „co się szykuje", „o co chodzi z…") tylko bez słów o własnych danych i pojęciach
    aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
-const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|co bedzie [78]|[78] listopad\w*|siodm\w* listopad\w*|osm\w* listopad\w*|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
+const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
+/* PRZED 8.11 (Filip 2.11, przegląd A pkt 1): DATA startu łapie zagadkę tylko BEZ słów o własnych danych — „plan na 7.11”,
+   „co mam 8.11”, „trening 8.11” to pytania o plan/treningi, nie o akcję (ławka: pułapka daty). */
+const ZAGADKA_DATA = /\b(co bedzie [78]|[78] listopad\w*|siodm\w* listopad\w*|osm\w* listopad\w*)\b/;
 const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
 /* Projekt F dzień 6 (zwiad okienka po starcie): jednoznaczne pytania o akcję łapane ZAWSZE (przed startem → zagadka,
    po starcie → zdanie + karta akcji); krótkie „jak dołączyć" / „ile już km" — WYŁĄCZNIE po starcie (przed startem to
    pytania o aplikację albo o własne kilometry). */
-const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*)\b/;
+const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*|kiedy (rusza|ruszy|startuje|wystartuje|zaczyna sie|zacznie sie|start|poczatek) akcj\w*|kiedy akcj\w* (rusza|ruszy|startuje|wystartuje|sie zaczyna|sie zacznie)|(jaki( jest)? )?cel akcj\w*|na co( jest)?( ta| to| sie)? (zbiera\w*|zbiork\w*)|ile km ma akcj\w*|link (do )?zbiork\w*|zbiork\w* (dla )?fabian\w*|akcj\w* charytatywn\w*|o co chodzi w akcji)\b/;   // przed 8.11 (2): słowa akcji/zbiórki → zagadka / karta
 const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
 /* „JAK DOŁĄCZYĆ" (Filip 2.11 18:30): przed startem → rejestracja w aplikacji (odpowiedź z katalogu, bez słowa o akcji),
    po starcie → zagadka + karta akcji. NIGDY do sieci (blizna-104) — zwiad 2.11: „jak dołączyć" szło do internetu (kluby). */
@@ -153,7 +169,8 @@ export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) return true;   // 7.11 (start) i 8.11 (stary termin)
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t)) return true;
+  if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);

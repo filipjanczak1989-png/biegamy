@@ -100,9 +100,9 @@ test('30+ startów, Mistrzostwa Polski albo podium OPEN → sieć; podium tylko 
   assert.deepEqual(z.o.karty.map((k) => k.typ), ['osoba', 'osoba', 'wyniki'], 'kolejność: zdania z sieci → osoby (atrapa bez RLS: obie) → wyniki');
 });
 
-test('„kim jest X" trafia do sieci nawet przy 3 startach; limit sieci wyczerpany → bez sieci', async () => {
+test('„kim jest X" przy 3 startach NIE trafia do sieci (przed 8.11, Filip 2.11: „wprost" zamknięte — blizna-107); limit sieci wyczerpany → bez sieci', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
-  assert.equal((await odpowiedz(O, { wprost: true })).siec.length, 1);
+  assert.equal((await odpowiedz(O, { wprost: true })).siec.length, 0, 'prywatna osoba nigdy do Google, także wprost');
   assert.equal((await odpowiedz(O, { wprost: true, dozwolona: false })).siec.length, 0);
 });
 

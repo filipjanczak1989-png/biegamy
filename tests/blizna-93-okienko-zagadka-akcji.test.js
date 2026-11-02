@@ -36,7 +36,8 @@ test('przed startem: każde pytanie → zdanie z ZAGADEK, log „zagadka", bez n
 test('bez fałszywych trafień: pytania o własne dane i pojęcia aplikacji idą jak dotąd', async () => {
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
   for (const [q, oczek] of [['o co chodzi z tsb', null], ['co sie dzieje z moim planem', null], ['plan na jutro', 'moj_plan'], ['jakie biegi w listopadzie', 'biegi_nadchodzace'],
-    ['jaka mam forme', 'moja_forma'], ['co sie dzieje z moja forma', 'moja_forma']]) {
+    ['jaka mam forme', 'moja_forma'], ['co sie dzieje z moja forma', 'moja_forma'],
+    ['plan na 7.11', null], ['co mam 8.11', null], ['trening 8.11', null]]) {   // przed 8.11 (1): data bez słów o własnych danych
     const r = R.dopasuj(q, DZIS);
     assert.ok(!r || r.log !== 'zagadka', q);
     if (oczek) assert.equal(r && r.narzedzie, oczek, q);
@@ -46,7 +47,7 @@ test('bez fałszywych trafień: pytania o własne dane i pojęcia aplikacji idą
 test('„Fabianek" nigdy do trybu osoby ani sieci — router zatrzymuje pytanie PRZED osobą (EF: router pierwszy), przed i po starcie', async () => {
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
   const A = globalThis.BM_AKCJA_CYTATY;
-  for (const q of ['Kim jest Fabianek?', 'fabianek', 'Fabianek Nowak', 'szukaj Fabianka w sieci']) assert.equal(R.dopasuj(q, DZIS).log, 'zagadka', q);
+  for (const q of ['Kim jest Fabianek?', 'fabianek', 'Fabianek Nowak', 'szukaj Fabianka w sieci', 'kiedy rusza akcja', 'na co zbieramy', 'link do zbiórki']) assert.equal(R.dopasuj(q, DZIS).log, 'zagadka', q);
   const ef = czytaj('supabase/functions/okienko/index.ts');
   const iRouter = ef.indexOf('const traf = dopasuj(tekst, dzis);'), iZdanie = ef.indexOf('if (traf && "zdanie" in traf)');
   assert.ok(iRouter > 0 && iZdanie > iRouter, 'zdanie routera obsłużone');

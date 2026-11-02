@@ -73,7 +73,7 @@ test('0 wyjść do sieci: nazwisko bez publiczności nigdy w zapytajSiec; public
       sieciDozwolona: async () => true, siec: async () => { siec++; return { zdania: ['x'], zrodla: [{ tytul: 'a', url: 'https://a' }], tok: { we: 1, wy: 1 }, zapytania: 1 }; } });
     assert.ok(o);
   }
-  assert.equal(siec, 1, 'tylko „kim jest … w sieci" (wprost) — reszta prywatnych nazwisk 0 wyjść');
+  assert.equal(siec, 0, 'przed 8.11 (Filip 2.11): także „kim jest … w sieci" (wprost) NIE idzie do sieci — prywatna osoba nigdy do Google (blizna-107)');
   F._wyczyscPamiecF6();
   const r = O.osobaZPytania('jak pobiegl Jan Kowalski w Poznaniu');
   const o = await O.odpowiedzOsoba({ sb: atrapa({ athletes: [], friendships: [] }), athleteId: JA, fetchFn: prywatne.fetchFn, token: 'T', q: r.q, wprost: false, gdzie: r.gdzie,
@@ -91,6 +91,6 @@ test('0 wyjść do sieci: nazwisko bez publiczności nigdy w zapytajSiec; public
 test('EF: tryb osoby przed modelem przekazuje gdzie; strażnik ścieżki ogólnej zna osobaWZdaniu', () => {
   const ef = czytaj('supabase', 'functions', 'okienko', 'index.ts');
   assert.match(ef, /gdzie: \(os as \{ gdzie\?: string \| null \}\)\.gdzie \|\| null/);
-  assert.match(ef, /const blokadaSieci = wygladaNaOsobe\(tekst\) \|\| !!osobaWZdaniu\(tekst\);/);
+  assert.match(ef, /const blokadaSieci = wygladaNaOsobe\(tekst\) \|\| !!osobaWZdaniu\(tekst\) \|\| wygladaNaNazwisko\(tekst\);/);
   assert.ok(ef.indexOf('const os = osobaZPytania(tekst);') < ef.indexOf('zapytajModel({'));
 });

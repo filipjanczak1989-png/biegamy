@@ -59,7 +59,9 @@ Równolegle:
   `runner_results`: N startów, ostatni start, najlepszy czas na dystansie ostatniego startu, 5 ostatnich; „Otwórz wyniki"
   → races.html (wyszukiwarka, `WYNIKI_API_WLACZONE = true` dla wszystkich od 1.11.2026);
 - **(c) sieć** tylko gdy osoba publiczna sportowo: ≥ 30 startów, start w Mistrzostwach Polski albo podium OPEN
-  (1–3 w generalnej; podium w kategorii za szerokie — 9/12 startów jednej zawodniczki), albo pytanie wprost.
+  (1–3 w generalnej; podium w kategorii za szerokie — 9/12 startów jednej zawodniczki). ~~albo pytanie wprost~~ — **od 2.11
+  wieczorem wyjątek „pytanie wprost” zamknięty** (decyzja Filipa po przeglądzie A): prywatna osoba NIGDY do Google, także
+  przy „kim jest X w sieci”; `wprost` zostaje tylko w logu. Sekcja „Przed 8.11” niżej.
   Wtedy `zapytajSiec` ze źródłami, licznik jak tryb `siec` (20/dobę, `uzyteSiecDzis` liczy też `osoba` z
   `zapytania_sieci ≥ 1`). Inaczej nazwisko nie wychodzi do Google i braku sieci nie komunikujemy.
 
@@ -345,3 +347,23 @@ o własnych danych i pojęciach aplikacji. Testy: blizna-93.
 ⚠️ `fabian*` CELOWO szeroko (decyzja Filipa 2.11.2026: ochrona dziecka > wyniki dorosłych Fabianów) — „Fabian Kowalski
 wyniki" dostaje zagadkę zamiast trybu osoby. **PRZEGLĄD: w dniu zamknięcia akcji** (`ZAMKNIETA = true`, `ZAMKNIETA_OD`
 w js/akcja-cytaty.mjs) — zawęzić do „Fabianek/Fabianka/Fabiankowi/Fabiankiem" albo zdjąć regułę razem z zagadką.
+
+## Przed 8.11 — po przeglądzie A (2.11.2026 wieczór, OK Filipa) — wdrożone w v28
+
+Pięć reguł, jeden commit, blizna-107; ławka po zmianie: patrz `docs/lawka-pytan-2026-11-02.md` (uruchomić ponownie po wdrożeniu).
+1. **Pułapka daty zdjęta** — `7.11`/`8.11`/„siódmego listopada” dają zagadkę tylko BEZ słów o własnych danych (`ZAGADKA_NIE`);
+   „plan na 7.11”, „co mam 8.11”, „trening 8.11” idą normalnie (plan/treningi).
+2. **Słowa akcji/zbiórki** — „kiedy rusza akcja”, „jaki jest cel akcji”, „na co zbieramy”, „kiedy start akcji”, „link do zbiórki”,
+   „ile km ma akcja” → zagadka przed startem, `PO_STARCIE` + karta akcji po starcie (karta niesie `url_zbiorki` z bazy → klient
+   rysuje „Oficjalna zbiórka ›”). Własne km („ile km mam w akcji”) nadal nieprzechwytywane.
+3. **Nazwisko + słowo biegowe → tryb osoby** — „Jan Kowalski parkrun”, „kasia nowak ultra”, „Anna Nowak maraton”: router nie robi
+   z tego listy biegów (`maPareOsoby`, imię ze słownika), `osobaZPytania` zdejmuje słowa biegowe (`osobaObokSlowBiegowych`) → F6 +
+   profile, sieć tylko po regule publiczności. Tryb imprezy: bez trafienia w kalendarzu nie pyta sieci, gdy pytanie wygląda na osobę
+   (para, nazwisko w kontekście, „Nazwisko + słowo biegowe”).
+4. **Samo nazwisko** — „wyniki Nowaka”, „jak pobiegł Kowalski w Dębnie”, „kim jest Kowalski” → tryb osoby (`samoNazwisko`: jedno słowo
+   z dużej litery, reszta co najwyżej „w/na Miejsce” → `gdzie`); strażnik ścieżki ogólnej (`wygladaNaNazwisko`: duża litera w kontekście
+   wyników/biegu, nie po przyimku miejsca, nie po słowie „Bieg/Maraton…”) blokuje sieć jak dla pary. Świadoma luka: nazwisko pisane
+   małą literą („wyniki nowaka”) nie jest rozpoznawane — bez słownika nazwisk nie da się go odróżnić od słowa.
+5. **„Wprost” zamknięte** — `doSieci = publiczna` (≥ 30 startów / MP / podium open); prompt sieci jeden („…biegacz(ka) startujący
+   w zawodach?”).
+Koszt: zero nowych wywołań modelu — wszystkie reguły to router/detektory (0 tokenów); mniej wyjść do sieci.

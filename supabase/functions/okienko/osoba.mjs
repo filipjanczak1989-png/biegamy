@@ -14,7 +14,7 @@
 // Pamięć F6: WSPÓLNA (dane publiczne, decyzja Filipa), klucz = RPC + argumenty, 10 min, do 500 wpisów, w pamięci
 // izolatu (znika przy zimnym starcie). 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za chwilę."
 // Moduł nie zapisuje nigdzie (blizna-67/69); odpowiedzi osobowej nie wkładamy do okienko_siec_cache ani do znalezisk.
-import { wygladaNaOsobeSlownik, PYTAJNE } from "./pamiec.mjs";
+import { wygladaNaOsobeSlownik, PYTAJNE, wygladaNaNazwisko } from "./pamiec.mjs";
 import { czyImie } from "../_shared/imiona.mjs";
 import { normalizuj } from "./router.mjs";
 
@@ -84,8 +84,34 @@ export function osobaZPytania(tekst) {
   if (wprost && toImie(wprost)) return { q: wprost, wprost: true };
   const wyniki = /^(wyniki|jak\s+pobiegl\w*|jak\s+biega\w*)\s/.test(n) ? reszta(/^(?:wyniki|jak\s+pobieg\S*|jak\s+biega\S*)\s+(.+)$/i) : null;
   if (wyniki && toImie(wyniki)) return { q: wyniki, wprost: false };
+  /* PRZED 8.11 (4): SAMO NAZWISKO w „wyniki X”, „jak pobiegł X [w Mieście]”, „kim jest X” → tryb osoby (F6 po nazwisku), nigdy sieć
+     (reguła publiczności liczy się z wyników). Jedno słowo z dużej litery; reszta to co najwyżej „w/na <Miejsce>”. */
+  const samo = samoNazwisko(wprost || wyniki);
+  if (samo) return { q: samo.q, wprost: !!wprost, gdzie: samo.gdzie };
   if (toImie(t)) return { q: t.replace(/[\\"'„”()]+/g, " ").replace(/\s+/g, " ").trim(), wprost: false };
+  /* PRZED 8.11 (3): „Jan Kowalski parkrun”, „kasia nowak ultra”, „Anna Nowak maraton” — para Imię Nazwisko obok słowa biegowego
+     → tryb OSOBY (dotąd tryb imprezy, gdzie strażnik osoby wyłączał się przy słowie biegowym → nazwisko szło do Google). */
+  const obok = osobaObokSlowBiegowych(t);
+  if (obok) return obok;
   return osobaWZdaniu(t);
+}
+
+const NAZWISKO_SAMO = /^[\p{Lu}][\p{Ll}'-]{2,}$/u;
+function samoNazwisko(reszta) {
+  if (!reszta) return null;
+  const s = String(reszta).replace(/[\\"'„”()]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (!s.length || !NAZWISKO_SAMO.test(s[0]) || zleSlowoOsoby(s[0]) || /^[\p{Lu}]/u.test(s[1] || "")) return null;   // „Jan Kowalski” to para, nie samo
+  if (s.length === 1) return { q: s[0], gdzie: null };
+  if (s.length === 3 && /^(w|we|na)$/i.test(s[1]) && /^[\p{L}][\p{L}.-]{2,39}$/u.test(s[2]) && !MIESIAC_OS.test(s[2])) return { q: s[0], gdzie: s[2] };
+  return null;
+}
+function osobaObokSlowBiegowych(t) {
+  const s = String(t).replace(/[\\"'„”(),;:]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (s.length < 3 || s.length > 5) return null;
+  const bezBiegu = s.filter((w) => !SLOWA_IMPREZ_OS.test(normalizuj(w)) && !PYTAJNE.test(w));
+  if (bezBiegu.length === s.length || bezBiegu.length < 2 || bezBiegu.length > 3) return null;
+  const q = bezBiegu.join(" ");
+  return toImie(q) && czyImie(bezBiegu[0]) ? { q, wprost: false, obokBiegu: true } : null;   // imię ze słownika — „Bieg Niepodległości Poznań” to nie osoba
 }
 
 // ── (a) osoby w aplikacji ────────────────────────────────────────────────────
@@ -172,11 +198,13 @@ export async function odpowiedzOsoba(deps) {
   const osoby = rA.status === "fulfilled" ? rA.value : [];
   const wyniki = rB.status === "fulfilled" ? rB.value : null;
   const f6Stan = rB.status === "fulfilled" ? "ok" : (rB.reason && rB.reason.kod) || "blad";
-  const doSieci = wprost || !!(wyniki && wyniki.publiczna);
+  /* PRZED 8.11 (5, decyzja Filipa 2.11): wyjątek „pytania wprost” ZAMKNIĘTY — do sieci WYŁĄCZNIE osoba publiczna sportowo
+     (≥ 30 startów / MP / podium open). `wprost` zostaje tylko w logu; prywatna osoba NIGDY do Google. */
+  const doSieci = !!(wyniki && wyniki.publiczna);
   let zdania = [], zrodla = [], tok = { we: 0, wy: 0 }, zapytania = 0, sieci = false;
   if (doSieci && await deps.sieciDozwolona()) {
     try {
-      const s = await deps.siec(wprost ? `Kim jest ${q}?` : `Kim jest ${q}, biegacz(ka) startujący w zawodach?`);
+      const s = await deps.siec(`Kim jest ${q}, biegacz(ka) startujący w zawodach?`);
       tok = s.tok || tok; zapytania = s.zapytania || 0; sieci = true;
       if (s.zrodla && s.zrodla.length) { zdania = s.zdania; zrodla = s.zrodla; }
     } catch { /* sieć padła — reszta odpowiedzi zostaje */ }

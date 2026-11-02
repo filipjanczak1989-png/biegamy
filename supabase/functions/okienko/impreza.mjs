@@ -10,7 +10,7 @@
 // Wynik („kto wygrał…", „wyniki…", „rekord…", „moje…") NIE jest imprezą. Odpowiedź: zdania z sieci (etykieta,
 // źródła) → karty z kalendarza → karty z naszych startów; pusto → „Nie znalazłem tego biegu w kalendarzu ani w sieci."
 import { normalizuj } from "./router.mjs";
-import { wygladaNaOsobe } from "./pamiec.mjs";
+import { wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { szukajImprez } from "./kalendarz.mjs";
 import { BladF6, ODP_F6_ZAJETA } from "./f6.mjs";
 
@@ -79,7 +79,12 @@ export async function odpowiedzImpreza(deps) {
   const kal = kalendarz.filter((k) => !nasze.some((n) => n.data && k.data && dniMiedzy(n.data, k.data) <= 1 && bezZnakow(n.nazwa) === bezZnakow(k.nazwa)));
   // sieć: dozwolona dla imprezy; NIE gdy pytanie wygląda na imię i nazwisko i kalendarz go nie zna
   let zdania = [], zrodla = [], tok = { we: 0, wy: 0 }, zapytania = 0, zPam = false;
-  const wolnoSiec = !(wygladaNaOsobe(q) && !kalendarz.length && !nasze.length) && !(deps.cena && (kal.length || nasze.length));   // cena: sieć tylko bez karty
+  /* PRZED 8.11 (3/4): bez trafienia w kalendarzu ani u nas — do sieci nie idzie pytanie, które wygląda na osobę: para (wygladaNaOsobe),
+     nazwisko w kontekście (wygladaNaNazwisko) ani „Nazwisko + słowo biegowe” (po odjęciu słów biegowych zostaje jedno słowo z dużej litery). */
+  const slowaQ = String(q).split(/\s+/).filter(Boolean), bezBiegowych = slowaQ.filter((w) => !SLOWA_IMPREZY.test(normalizuj(w)));
+  const samoNazwisko = bezBiegowych.length === 1 && bezBiegowych.length < slowaQ.length && /^[\p{Lu}][\p{Ll}'-]{2,}$/u.test(bezBiegowych[0]);
+  const naOsobe = wygladaNaOsobe(q) || wygladaNaNazwisko(q + " wyniki") || samoNazwisko;
+  const wolnoSiec = !(naOsobe && !kalendarz.length && !nasze.length) && !(deps.cena && (kal.length || nasze.length));   // cena: sieć tylko bez karty
   if (wolnoSiec) {
     const pam = await deps.zPamieci();
     if (pam && pam.zrodla && pam.zrodla.length) { zdania = pam.zdania; zrodla = pam.zrodla; zPam = true; }

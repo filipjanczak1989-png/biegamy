@@ -20,7 +20,7 @@ import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
 import { sprawdzLimity, zapiszLog, uzyteSiecDzis, LIMIT_SIEC } from "./limity.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "./siec.mjs";
-import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe } from "./pamiec.mjs";
+import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "./osoba.mjs";
 import { NIE_MAM } from "./straznik.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "./impreza.mjs";
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
   // ── M2a: sieć (osobne wywołanie z googleSearch — tylko tekst pytania i data, NIC z aplikacji) ──
   // Strażnik sieci (M3-0): pytanie wyglądające na imię i nazwisko (stary, szeroki detektor — także dwa małe słowa,
   // które nie przeszły detektora słownikowego) NIE idzie do Google ścieżką ogólną.
-  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst);   // M3-1: także nazwisko wewnątrz zdania (pas bezpieczeństwa — tryb osoby i tak kończy wcześniej)
+  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);   // M3-1: nazwisko wewnątrz zdania; przed 8.11 (4): także SAMO nazwisko w kontekście wyników
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
     let ileSiec;
     try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }

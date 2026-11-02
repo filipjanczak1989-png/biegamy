@@ -54,41 +54,44 @@
 | 48 | czy biegac z katarem | poza | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZA DROGA | sieć — porada zdrowotna bez zastrzeżenia |
 | 49 | ile powinienem biegac tygodniowo | poza | MODEL (sym.) | poza danymi / „Nie mam tego w Twoich danych.” | $0.0008 | ZA DROGA | model/sieć — a plan generatora to liczy; odpowiedź z planu/bazy |
 | 50 | dzien dobry | poza | router→zdanie | zdanie: „Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utw” | 0 | dobra | M3-1 (3): powitanie → jedno zdanie z routera, 0 tokenów |
-| 51 | co sie dzieje 8 listopada | akcja | router→zdanie | zdanie: „Na razie tylko tyle: nie biegniesz sam.” | 0 | dobra | zagadka akcji: router, 0 tokenów, losowa z ZAGADKI (js/akcja-cytaty.mjs) |
-| 52 | kim jest Fabianek | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | zagadka akcji — NIE tryb osoby, NIE sieć (przed i po starcie) |
-| 53 | jaka akcja sie szykuje | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | zagadka akcji; po starcie „Akcja trwa — szczegóły na Dziś.” |
-| 54 | ile km przebieglem w akcji dla fabianka | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | fabian* → zagadka (0 tokenów); po starcie zdanie + karta akcji z SUMĄ wszystkich — bez „Twój wkład” (akcja_moj_wklad), luka PO |
-| 55 | co to za akcja z tymi kilometrami | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | ZAGADKA_AKCJA „co to za akcj” |
-| 56 | ile km zebralismy razem | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | ZAGADKA_AKCJA „ile km … razem/zebraliśmy” |
-| 57 | wygoogluj Fabianka | akcja | router→zdanie | zdanie: „Daleka droga, dużo ludzi, jeden powód. Więcej 7.11.” | 0 | dobra | fabian* przed detektorem „wygoogluj X” — nie tryb osoby, nie sieć |
-| 58 | plan na 7.11 | wlasne | router→zdanie | zdanie: „Daleka droga, dużo ludzi, jeden powód. Więcej 7.11.” | 0 | ZŁA | PUŁAPKA DATY: wzorzec 7.11/8.11 w ZAGADKA_ZAWSZE bez bramki ZAGADKA_NIE → zagadka zamiast planu (także „co mam 8.11”, „trening 8.11”) |
-| 59 | kim jest Kipchoge | poza | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | dobra | jedno słowo omija tryb osoby (2–3 słowa) → ścieżka ogólna → sieć; publiczny sportowo, OK; bez F6 |
-| 60 | kim jest Marek Nowak z naszego klubu | osoby | osoba→sieć |  zdania: „(sieć)” | $0.0211 | ZŁA | osobaWZdaniu → q „Marek Nowak”, wprost=true → „Kim jest Marek Nowak?” DO GOOGLE (spec: pytanie wprost = sieć bez reguły publiczności) — decyzja do potwierdzenia |
-| 61 | Anna Nowak maraton | osoby | router→biegi_nadchodzace | zdanie: „Maszyna wyników nie ma biegów w najbliższym roku na maratonie.” | 0 | ZŁA | router bierze za LISTĘ maratonów (dystans 42) — nazwisko ginie, bez wycieku; „Jan Kowalski parkrun/trail/ultra” → tryb imprezy → NAZWISKO DO GOOGLE (strażnik wygladaNaOsobe wyłącza się przy słowie biegowym) |
-| 62 | jak pobiegl Kowalski w Debnie | osoby | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZŁA | samo nazwisko (bez imienia ze słownika) mija detektor osoby i osobaWZdaniu → model → „jak pobiegl Kowalski w Debnie” DO GOOGLE |
-| 63 | znajdz w sieci mojego trenera | osoby | router→moj_trener | zdanie: „Trenujesz bez trenera w BiegaMy.” | 0 | dobra | router moj_trener (0 tokenów) — do sieci nic nie idzie |
-| 64 | wyniki Nowaka | osoby | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZŁA | samo nazwisko → model → „wyniki Nowaka” DO GOOGLE; „wyniki X” to z definicji pytanie o osobę |
-| 65 | gdzie zmienic zegarek | tresci | katalog | 1 kart: kat_ekran | 0 | dobra | katalog: synonim ekranu „zegarek” → Profil |
-| 66 | jak podlaczyc garmina | tresci | katalog | 1 kart: kat_ekran | 0 | dobra | katalog: „podlaczyc” pominięte, rdzeń „garm” → synonim „garmin” → Profil |
-| 67 | jaki czas na polmaraton w tempie 5:30 | poza | router→zdanie | zdanie: „Półmaraton w tempie 5:30/km to 1:56:02 (10,9 km/h).” | 0 | dobra | kalkulator: „Półmaraton w tempie 5:30/km to 1:56:02 (10,9 km/h).” |
-| 68 | maraton w poznaniu kiedy | imprezy | router→biegi_nadchodzace | zdanie: „Maszyna wyników nie ma biegów w najbliższym roku w Poznaniu na maraton” | 0 | dobra | lista 365 dni (miejsce + dystans); „maraton poznanski kiedy” → tryb imprezy |
-| 69 | polmaraton warszawski ile kosztuje | imprezy | impreza→sieć |  „(sieć)” | $0.0211 | ZA DROGA | cena → impreza; na prod karta z url (0 zł); BEZ karty sieć pyta „termin, dystanse, miejsce” — intencja wpisowego ginie w zapytaniu |
-| 70 | boli mnie kolano czy moge biegac | wlasne | router→zdanie | zdanie: „Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizj” | 0 | dobra | ZDROWIE → stałe zdanie, 0 tokenów |
-| 71 | mam katar czy moge biegac | poza | MODEL (sym.) | poza danymi / „Nie mam tego w Twoich danych.” | $0.0008 | ZA DROGA | sieć (decyzja 1.11); prompt sieci zakazuje porad medycznych → możliwe 2 próby (retry bez groundingChunks) i „Tego nie znalazłem w sieci.” |
-| 72 | 🏃‍♂️ | poza | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZA DROGA | sam emoji: brak bramki „bez liter” → model (+ narzędzia) + sieć ~$0,02 za nic; to samo „12”, „???” |
-| 73 | ile juz km | wlasne | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZŁA | PRZED startem: „ile km” bez zakresu wypada z routera (tylko tydzień/miesiąc/rok) → model → sieć „ile juz km”; po starcie ZAGADKA_PO_STARCIE → karta akcji |
+| 51 | co sie dzieje 8 listopada | akcja | router→zdanie | zdanie: „Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: 7.11.” | 0 | dobra | zagadka akcji: router, 0 tokenów, losowa z ZAGADKI (js/akcja-cytaty.mjs) |
+| 52 | kim jest Fabianek | akcja | router→zdanie | zdanie: „Daleka droga, dużo ludzi, jeden powód. Więcej 7.11.” | 0 | dobra | zagadka akcji — NIE tryb osoby, NIE sieć (przed i po starcie) |
+| 53 | jaka akcja sie szykuje | akcja | router→zdanie | zdanie: „Na razie tylko tyle: nie biegniesz sam.” | 0 | dobra | zagadka akcji; po starcie „Akcja trwa — szczegóły na Dziś.” |
+| 54 | ile km przebieglem w akcji dla fabianka | akcja | router→zdanie | zdanie: „Odpowiedź przyjdzie jednym kliknięciem. Jeszcze nie dziś.” | 0 | dobra | fabian* → zagadka (0 tokenów); po starcie zdanie + karta akcji z SUMĄ wszystkich — bez „Twój wkład” (akcja_moj_wklad), luka PO |
+| 55 | co to za akcja z tymi kilometrami | akcja | router→zdanie | zdanie: „Odpowiedź przyjdzie jednym kliknięciem. Jeszcze nie dziś.” | 0 | dobra | ZAGADKA_AKCJA „co to za akcj” |
+| 56 | ile km zebralismy razem | akcja | router→zdanie | zdanie: „Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: 7.11.” | 0 | dobra | ZAGADKA_AKCJA „ile km … razem/zebraliśmy” |
+| 57 | wygoogluj Fabianka | akcja | router→zdanie | zdanie: „Coś się zaczyna. Twoje buty mogą się przydać.” | 0 | dobra | fabian* przed detektorem „wygoogluj X” — nie tryb osoby, nie sieć |
+| 58 | plan na 7.11 | wlasne | MODEL (sym.) | poza danymi / „Nie mam tego w Twoich danych.” | $0.0008 | dobra | przed 8.11 (1): data z bramką ZAGADKA_NIE → plan (model/narzędzie), nie zagadka |
+| 59 | kiedy rusza akcja | akcja | router→zdanie | zdanie: „Będą znaki. Patrz pod nogi i licz kilometry.” | 0 | dobra | przed 8.11 (2): słowa akcji → zagadka / po starcie karta |
+| 60 | link do zbiorki | akcja | router→zdanie | zdanie: „Na razie tylko tyle: nie biegniesz sam.” | 0 | dobra | przed 8.11 (2): po starcie karta akcji z „Oficjalna zbiórka ›” (url_zbiorki z bazy) |
+| 61 | kim jest Kipchoge | poza | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | jedno słowo omija tryb osoby (2–3 słowa) → ścieżka ogólna → sieć; publiczny sportowo, OK; bez F6 |
+| 62 | kim jest Marek Nowak z naszego klubu | osoby | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | przed 8.11 (5): „wprost” zamknięte — prywatna osoba nigdy do Google; F6 + profile |
+| 63 | Anna Nowak maraton | osoby | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | przed 8.11 (3): para Imię Nazwisko obok słowa biegowego → tryb osoby (router nie robi listy maratonów, impreza nie pyta sieci) |
+| 64 | Jan Kowalski parkrun | osoby | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | przed 8.11 (3): tryb osoby, sieć tylko gdy publiczny sportowo |
+| 65 | jak pobiegl Kowalski w Debnie | osoby | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | przed 8.11 (4): samo nazwisko → tryb osoby (q Kowalski, gdzie Dębnie); strażnik ścieżki ogólnej zna samo nazwisko |
+| 66 | znajdz w sieci mojego trenera | osoby | router→moj_trener | zdanie: „Trenujesz bez trenera w BiegaMy.” | 0 | dobra | router moj_trener (0 tokenów) — do sieci nic nie idzie |
+| 67 | wyniki Nowaka | osoby | osoba |  zdania: „W BiegaMy nie ma nikogo o tym imieniu i nazwisku.” | 0 | dobra | przed 8.11 (4): tryb osoby po nazwisku (F6 szuka „Nowaka” — odmiana może nie trafić, ale nic nie idzie do sieci) |
+| 68 | gdzie zmienic zegarek | tresci | katalog | 1 kart: kat_ekran | 0 | dobra | katalog: synonim ekranu „zegarek” → Profil |
+| 69 | jak podlaczyc garmina | tresci | katalog | 1 kart: kat_ekran | 0 | dobra | katalog: „podlaczyc” pominięte, rdzeń „garm” → synonim „garmin” → Profil |
+| 70 | jaki czas na polmaraton w tempie 5:30 | poza | router→zdanie | zdanie: „Półmaraton w tempie 5:30/km to 1:56:02 (10,9 km/h).” | 0 | dobra | kalkulator: „Półmaraton w tempie 5:30/km to 1:56:02 (10,9 km/h).” |
+| 71 | maraton w poznaniu kiedy | imprezy | router→biegi_nadchodzace | zdanie: „Maszyna wyników nie ma biegów w najbliższym roku w Poznaniu na maraton” | 0 | dobra | lista 365 dni (miejsce + dystans); „maraton poznanski kiedy” → tryb imprezy |
+| 72 | polmaraton warszawski ile kosztuje | imprezy | impreza→sieć |  „(sieć)” | $0.0211 | ZA DROGA | cena → impreza; na prod karta z url (0 zł); BEZ karty sieć pyta „termin, dystanse, miejsce” — intencja wpisowego ginie w zapytaniu |
+| 73 | boli mnie kolano czy moge biegac | wlasne | router→zdanie | zdanie: „Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizj” | 0 | dobra | ZDROWIE → stałe zdanie, 0 tokenów |
+| 74 | mam katar czy moge biegac | poza | MODEL (sym.) | poza danymi / „Nie mam tego w Twoich danych.” | $0.0008 | ZA DROGA | sieć (decyzja 1.11); prompt sieci zakazuje porad medycznych → możliwe 2 próby (retry bez groundingChunks) i „Tego nie znalazłem w sieci.” |
+| 75 | 🏃‍♂️ | poza | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZA DROGA | sam emoji: brak bramki „bez liter” → model (+ narzędzia) + sieć ~$0,02 za nic; to samo „12”, „???” |
+| 76 | ile juz km | wlasne | MODEL→SIEĆ (sym.) | zdania z sieci ze źródłami (jeśli znajdzie) | $0.0219 | ZŁA | PRZED startem: „ile km” bez zakresu wypada z routera (tylko tydzień/miesiąc/rok) → model → sieć „ile juz km”; po starcie ZAGADKA_PO_STARCIE → karta akcji |
 
 ## 10 najważniejszych luk (waga „ile osób zapyta” 1–5 × kara: pusta 2, za droga 2, zła 3)
 
-1. **plan na 7.11** (3×3=9) — ZŁA: PUŁAPKA DATY: wzorzec 7.11/8.11 w ZAGADKA_ZAWSZE bez bramki ZAGADKA_NIE → zagadka zamiast planu (także „co mam 8.11”, „trening 8.11”)
-2. **kim jest Marek Nowak z naszego klubu** (3×3=9) — ZŁA: osobaWZdaniu → q „Marek Nowak”, wprost=true → „Kim jest Marek Nowak?” DO GOOGLE (spec: pytanie wprost = sieć bez reguły publiczności) — decyzja do potwierdzenia
-3. **jak pobiegl Kowalski w Debnie** (3×3=9) — ZŁA: samo nazwisko (bez imienia ze słownika) mija detektor osoby i osobaWZdaniu → model → „jak pobiegl Kowalski w Debnie” DO GOOGLE
-4. **wyniki Nowaka** (3×3=9) — ZŁA: samo nazwisko → model → „wyniki Nowaka” DO GOOGLE; „wyniki X” to z definicji pytanie o osobę
-5. **ile juz km** (3×3=9) — ZŁA: PRZED startem: „ile km” bez zakresu wypada z routera (tylko tydzień/miesiąc/rok) → model → sieć „ile juz km”; po starcie ZAGADKA_PO_STARCIE → karta akcji
-6. **co jesc przed polmaratonem** (4×2=8) — ZA DROGA: M3-1 (2): „co jeść” omija listę → sieć ~$0,02 za poradę ogólną; brak własnej treści
-7. **ile powinienem biegac tygodniowo** (4×2=8) — ZA DROGA: model/sieć — a plan generatora to liczy; odpowiedź z planu/bazy
-8. **jak dobrac buty do biegania** (3×2=6) — ZA DROGA: sieć
-9. **czy biegac z katarem** (3×2=6) — ZA DROGA: sieć — porada zdrowotna bez zastrzeżenia
-10. **Anna Nowak maraton** (2×3=6) — ZŁA: router bierze za LISTĘ maratonów (dystans 42) — nazwisko ginie, bez wycieku; „Jan Kowalski parkrun/trail/ultra” → tryb imprezy → NAZWISKO DO GOOGLE (strażnik wygladaNaOsobe wyłącza się przy słowie biegowym)
+1. **ile juz km** (3×3=9) — ZŁA: PRZED startem: „ile km” bez zakresu wypada z routera (tylko tydzień/miesiąc/rok) → model → sieć „ile juz km”; po starcie ZAGADKA_PO_STARCIE → karta akcji
+2. **co jesc przed polmaratonem** (4×2=8) — ZA DROGA: M3-1 (2): „co jeść” omija listę → sieć ~$0,02 za poradę ogólną; brak własnej treści
+3. **ile powinienem biegac tygodniowo** (4×2=8) — ZA DROGA: model/sieć — a plan generatora to liczy; odpowiedź z planu/bazy
+4. **jak dobrac buty do biegania** (3×2=6) — ZA DROGA: sieć
+5. **czy biegac z katarem** (3×2=6) — ZA DROGA: sieć — porada zdrowotna bez zastrzeżenia
+6. **polmaraton warszawski ile kosztuje** (3×2=6) — ZA DROGA: cena → impreza; na prod karta z url (0 zł); BEZ karty sieć pyta „termin, dystanse, miejsce” — intencja wpisowego ginie w zapytaniu
+7. **mam katar czy moge biegac** (3×2=6) — ZA DROGA: sieć (decyzja 1.11); prompt sieci zakazuje porad medycznych → możliwe 2 próby (retry bez groundingChunks) i „Tego nie znalazłem w sieci.”
+8. **ile spalilem kalorii w tym tygodniu** (2×2=4) — ZA DROGA: model, brak narzędzia; kcal są w nutrition — osobna decyzja (produkty poza katalogiem)
+9. **ile kalorii ma banan** (2×2=4) — ZA DROGA: sieć; baza produktów w Jedzeniu ma to za 0 — osobna decyzja
+10. **🏃‍♂️** (2×2=4) — ZA DROGA: sam emoji: brak bramki „bez liter” → model (+ narzędzia) + sieć ~$0,02 za nic; to samo „12”, „???”
 
-Podsumowanie: dobra 58, ZA DROGA 9, ZŁA 6 z 73; koszt sumy 50 pytań (symulacja): $0.3903.
+Podsumowanie: dobra 66, ZA DROGA 9, ZŁA 1 z 76; koszt sumy 50 pytań (symulacja): $0.3043.
