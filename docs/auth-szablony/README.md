@@ -29,3 +29,15 @@ Trzy pliki do wklejenia w **Dashboard → Authentication → Emails → Template
 3. Tamże: Sender email `noreply@biegamy.run`, Sender name `BiegaMy`; zapisz. Potem Rate Limits → „emails per hour" podnieś z 2 (np. 30).
 4. Templates: wklej trzy pliki z tej teczki + tematy z tabeli wyżej.
 5. Test: index.html → „Zapomniałem hasła" na koncie testowym → mail po polsku od BiegaMy → link → „Ustaw nowe hasło".
+
+## Stan 2.11.2026 (zwiad dnia 6 projektu F) i weryfikacja
+- **„Confirm email" jest WYŁĄCZONE** (`/auth/v1/settings`: `mailer_autoconfirm: true`) → **rejestracja nie wysyła maila**
+  i nie zatrzymuje się na limicie maili: 50 rejestracji w 2 h po poście przejdzie (limit rejestracji jest liczony od IP,
+  a każdy rejestruje się ze swojego telefonu). Logowanie Google też jest włączone.
+- Mail idzie przy **resecie hasła** (i ewentualnie linku magicznym). Na wbudowanym SMTP Supabase to **2 maile na godzinę
+  dla całego projektu** — 7.11 kilka osób z „Zapomniałem hasła" utknie. Dlatego SMTP Resend (instrukcja wyżej) przed 7.11.
+- Czy SMTP jest już ustawione i jakie są limity — z tej sesji niewidoczne (Dashboard → Authentication → Emails / Rate Limits).
+- **Dodatkowo do instrukcji:** 6. Resend → API Keys → **usuń stary klucz** (ten z historii repo, 13.09) — „Revoke".
+  7. DNS: TXT `_dmarc.biegamy.run` = `v=DMARC1; p=none; rua=mailto:biegamy.run@gmail.com`.
+- **Weryfikacja (cc, po słowie Filipa „SMTP gotowe"):** jeden reset hasła na konto testowe (`biegamy.run@gmail.com`) przez
+  publiczne API → Filip potwierdza: mail po polsku od „BiegaMy <noreply@biegamy.run>", link prowadzi do „Ustaw nowe hasło".
