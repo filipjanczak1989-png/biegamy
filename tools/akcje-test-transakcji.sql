@@ -6,7 +6,7 @@ declare
   F_UID  constant uuid := 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5';   -- GŁÓWNE konto Filipa (startujący; poprawka 2.11)
   F_ATH  constant uuid := '56092926-2cf1-44b6-952f-38614497fdc2';
   T_ATH  constant uuid := '9c2df65c-6a46-410e-ad5f-474e5d973ec9';   -- konto testowe (konta_testowe próby)
-  r_uid uuid; r_ath uuid; j jsonb; n int := 0; t_suma uuid;
+  r_uid uuid; r_ath uuid; j jsonb; n int := 0; t_suma uuid; c0 int; c1 int;
 begin
   select id, user_id into r_ath, r_uid from public.athletes
    where user_id is not null and id <> F_ATH and coach_id is not null
@@ -221,6 +221,25 @@ begin
   if j->>'url_zbiorki' <> 'https://www.siepomaga.pl/fabianek-2026' or (select url_zbiorki from public.akcje where slug = 'proba') <> 'https://www.siepomaga.pl/fabianek-2026' then
     raise exception 'FAIL 11h: link nie zapisany: %', j->>'url_zbiorki'; end if;
   n := n + 9;
+
+  -- ── 12. push nie blokuje startu (audyt 2.11 pkt 4) + service_role liczy km (pkt 7) ──
+  -- ⚠️ Błędu w net.http_post NIE DA SIĘ wstrzyknąć z roli postgres (net.* i vault.* należą do supabase_admin: rename/revoke → 42501),
+  --    więc osłonę sprawdzamy po KSZTAŁCIE definicji; zachowanie bez błędu (start + 1 żądanie w kolejce) jak w testach dnia 5.
+  if position('exception when others' in pg_get_functiondef('public.akcje_push_start()'::regprocedure)) = 0
+     or position('raise warning' in pg_get_functiondef('public.akcje_push_start()'::regprocedure)) = 0 then raise exception 'FAIL 12a: wyzwalacz pushu bez osłony — błąd pushu cofnąłby start'; end if;
+  update public.akcje set wystartowala_at = null, push_start_at = null where slug = 'proba';
+  select count(*) into c0 from net.http_request_queue;
+  update public.akcje set wystartowala_at = now() where slug = 'proba';
+  select count(*) into c1 from net.http_request_queue;
+  if (select wystartowala_at from public.akcje where slug = 'proba') is null or c1 - c0 <> 1 then raise exception 'FAIL 12b: start % / żądań %', (select wystartowala_at from public.akcje where slug = 'proba'), c1 - c0; end if;
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  execute 'set local role service_role';
+  if public.akcja_km_okna((select id from public.akcje where slug = 'proba'), date '2020-01-01', date '2020-01-02') is null then raise exception 'FAIL 12c'; end if;
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub', r_uid, 'role', 'authenticated')::text, true);
+  begin execute 'set local role authenticated'; perform public.akcja_km_okna((select id from public.akcje where slug = 'proba'), date '2020-01-01', date '2020-01-02'); raise exception 'FAIL 12d: authenticated liczy km_okna'; exception when insufficient_privilege then null; end;
+  reset role;
+  n := n + 4;
 
   raise exception 'TESTY AKCJI ZIELONE: % asercji (transakcja wycofana)', n;
 end $T$;

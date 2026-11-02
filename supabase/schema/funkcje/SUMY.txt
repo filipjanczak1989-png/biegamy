@@ -21,7 +21,7 @@ f7adf5324cca271b  akcja_tydzien
 ac4c2c62f806d416  akcja_url_zbiorki
 8707907cefd6e1ca  akcja_wycofaj_deklaracje
 f2be9be93e61f556  akcja_zamknij_dobe
-eaf5a71cb9535673  akcje_push_start
+a50338c07fd4faae  akcje_push_start
 bb218f62504e3556  akcje.akcje_push_start
 4925396f4b6308fb  athlete_intake_forms.trg_intake_updated_at
 561f35f2d936db3b  athletes_f6_klucz_tylko_rpc

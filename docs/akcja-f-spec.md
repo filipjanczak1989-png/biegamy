@@ -141,7 +141,7 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 
 **Link zbiórki bez wdrożenia (zbiórka kończy się 27.11):** RPC `akcja_url_zbiorki(slug, url)` — tylko startujący, tylko `https://www.siepomaga.pl/…`; w `start-akcji.html` po starcie przycisk „⋯" → pole + „Zapisz link zbiórki". Tekst formularza sponsora: „Po zakończeniu akcji wpłacasz sam na zbiórkę <imię z bazy w dopełniaczu> — aktualny link będzie zawsze tutaj. Aplikacja tylko liczy."
 
-**Audyt 2.11 wieczorem:** `docs/akcja-f-audyt-2026-11-02.md` — 6 poprawek bez migracji wdrożonych, 2 propozycje z migracją czekają na OK.
+**Audyt 2.11 wieczorem:** `docs/akcja-f-audyt-2026-11-02.md` — 6 poprawek bez migracji + migracja `akcja_push_nie_blokuje_startu` (push nie cofa startu; grant service_role na `akcja_km_okna`) NA PROD. Decyzje Filipa: repo publiczne = świadoma akceptacja (imię/nazwisko), plakat zostaje z napisem o każdym kilometrze, dedup zegarek+ręczny = backlog po starcie.
 
 **Guzik:** logo z przezroczystym tłem wtopione w pomarańczowe koło; od 2.11 18:08 (Filip, wariant B — stare zlewało się z kołem) `assets/ui/logo-b-biale-alfa.webp`: B całe białe z delikatnym cieniem, pierścień biały 40%, generowane `tools/logo-guzika.py` z `logo-b-ring-alfa.png`.
 
