@@ -7,7 +7,7 @@
 <title>BiegaMy · wspólne kilometry</title>
 <meta name="description" content="Wspólne kilometry społeczności BiegaMy.">
 <meta property="og:title" content="BiegaMy · wspólne kilometry">
-<meta property="og:description" content="Biegniemy razem. Każdy kilometr się liczy.">
+<meta property="og:description" content="Biegniemy i idziemy razem. Każdy krok się liczy.">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,6 +55,7 @@
 
   <div id="pelna" hidden>
     <h1 id="nazwa"></h1>
+    <div id="plakat"></div>
     <section aria-label="Licznik">
       <div class="duze-liczby" id="duze"></div>
       <div id="pasek"></div>
@@ -72,6 +73,9 @@
     </section>
     <div class="przyciski">
       <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
+      <!-- Sponsor z zewnątrz (Filip 2.11 19:00): niezalogowany → logowanie/rejestracja → prosto do formularza sponsora na Dziś;
+           zalogowany → index.html ma sesję → od razu zawodnik.html#sponsor (blizna-106). -->
+      <a class="przycisk przycisk--zbiorka" id="sponsor" href="index.html#sponsor">Zostań sponsorem kilometrów</a>
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
     </div>
     <p class="drobne">Bez rankingu. Twój wkład widzisz tylko Ty, publiczna jest suma.</p>
@@ -93,8 +97,9 @@
       return;
     }
     $('teaser').hidden = true; $('pelna').hidden = false;
-    var zamknieta = !!d.zamknieta;
+    var zamknieta = !!d.koniec;   // audyt 2.11: `zamknieta` świeci w chwili dobicia sumy, `koniec` dopiero po zamknięciu doby — jak karta Dziś
     $('nazwa').textContent = zamknieta ? 'Zrobiliśmy to' : (d.nazwa || 'BiegaMy');
+    $('plakat').innerHTML = A.plakatHtml(d);   // plakat na całą szerokość + „Wpłać na zbiórkę"; bez plakatu pusty (bez dziury)
     document.title = (d.nazwa || 'BiegaMy') + ' · BiegaMy';
     $('duze').innerHTML = '<b>' + A.km(d.suma_km) + '</b> <span>/ ' + A.km(d.cel_km) + ' km</span>';
     $('pasek').innerHTML = A.pasekHtml(d);
@@ -103,6 +108,7 @@
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
     $('jak').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
+    $('sponsor').hidden = zamknieta;
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;
     if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }

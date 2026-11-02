@@ -11,6 +11,9 @@ TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
   sed -e '/^begin;$/d' -e '/^commit;$/d' supabase/migrations/20261102_akcje_startujacy_poprawka.sql
   # 20261102_akcja_typy.sql (tylko bieg i chód) — przed wdrożeniem na prod: AKCJE_TYPY_Z_MIGRACJA=1
   if [ "${AKCJE_TYPY_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261102_akcja_typy.sql; fi
+  # 20261102_akcja_plakat_url.sql (plakat + podmiana linku) — przed wdrożeniem: AKCJE_PLAKAT_Z_MIGRACJA=1
+  if [ "${AKCJE_PLAKAT_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261102_akcja_plakat_url.sql; fi
+  if [ "${AKCJE_ZGODA_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261102_akcja_plakat_zgoda.sql; fi
   cat tools/akcje-test-transakcji.sql
   echo 'rollback;'; } > "$TMP"
 WD="${BM_SB_WORKDIR:-$HOME/.cache/sb-audit}"

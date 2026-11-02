@@ -80,7 +80,7 @@
   var ROTACJA = [
     "Twój kilometr to jego krok.",
     "Nie musisz biec szybko. Wystarczy, że biegniesz z nami.",
-    "Każdy trening się liczy. Dziś liczy się podwójnie.",
+    "Każdy krok się liczy. Dziś liczy się podwójnie.",
     "Jesteśmy obok. Kilometr po kilometrze.",
     "Ty biegniesz. Licznik rośnie. Fabianek czuje drużynę.",
     "Sami pobiegniemy szybko. Razem dobiegniemy do końca.",

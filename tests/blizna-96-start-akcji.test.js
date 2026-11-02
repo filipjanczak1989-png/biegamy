@@ -112,10 +112,25 @@ test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie,
   assert.match(s, /if \(stan !== 'uzbrojony'\) return;/);
   assert.doesNotMatch(s, /confirm\(|alert\(/, 'pytanie „Czy na pewno?" psuje moment');
   assert.doesNotMatch(h, /<a\s/i, 'link na ekranie guzika');
-  assert.equal((h.match(/<button/g) || []).length, 1, 'jedyny przycisk to reset próby');
+  // Filip 2.11 19:00: „⋯" z panelem linku zbiórki — wszystkie przyciski w HTML ukryte; „⋯" odsłania się dopiero PO starcie (panelLinku)
+  const przyciski = [...h.matchAll(/<button([^>]*)>/g)].map((m) => m[1]);
+  assert.equal(przyciski.length, 3, 'reset próby, „⋯" i zapis linku — nic więcej do tapnięcia');
+  assert.ok(przyciski.filter((a) => /\bhidden\b/.test(a)).length === 2 && /id="zapisz-url"/.test(przyciski[2]), 'reset i „⋯" ukryte; zapis w ukrytym panelu');
+  assert.match(h, /<div id="panel" hidden>/);
+  assert.match(s, /\$\('wiecej'\)\.hidden = !\(d && d\.wystartowala\);/, '„⋯" tylko po starcie');
+  assert.match(s, /rpc\('akcja_url_zbiorki', \{ p_slug: SLUG, p_url: url \}\)/);
   // błąd uprawnień i okna kończą ponawianie (bez pętli wysyłek bez końca)
   assert.match(s, /kod === '42501'\) \{ await wyczyscLokalnie\(\);/);
-  assert.match(s, /kod === '22023'\) \{ await wyczyscLokalnie\(\);/);
+  // audyt 2.11: 22023 (serwer: przed 06:00) NIE kasuje naciśnięcia, póki okno trwa — ponawia co 30 s; po oknie czyści
+  assert.match(s, /kod === '22023'\) \{[\s\S]{0,400}?if \(Date\.now\(\) <= OKNO_DO\) \{[^\n]*setTimeout\(wyslij, 30000\); return; \}[\s\S]{0,80}?await wyczyscLokalnie\(\);/);
+  // audyt 2.11: wygasły token bez sieci → guzik zostaje (sesja w pamięci telefonu); brak sesji w pamięci → „Zaloguj się"
+  assert.match(s, /if \(!sesja && !sesjaWPamieci\(\)\) \{ ustaw\('brak'/);
+  assert.match(s, /function sesjaWPamieci\(\) \{[\s\S]*?\/\^sb-\.\*-auth-token\$\//);
+  // audyt 2.11: ?proba=1 w oknie startu odmawia (zakładka po próbie generalnej nie wystartuje próby zamiast akcji); bez modułu — błąd, nie pętla
+  assert.match(s, /if \(PROBA && teraz >= OKNO_OD && teraz <= OKNO_DO\) \{ ustaw\('poza'/);
+  assert.match(s, /if \(!isFinite\(OKNO_OD\) \|\| !isFinite\(OKNO_DO\)\) \{ ustaw\('blad'/);
+  assert.match(czytaj('sw.js'), /\\.\(html\|css\|m\?js\|/, 'SW: .mjs z precache serwowane offline jak .js');
+  assert.match(czytaj('supabase/functions/akcja-licznik/index.ts'), /if \(data\.testowa === true\) return new Response\('\{"error":"nie ma takiej akcji"\}', \{ status: 404/, 'próba nie jest publiczna');
 });
 
 test('instalacja: strona i logo w precache SW; osobny manifest strony; główny manifest bez skrótu „Start akcji"', () => {

@@ -198,5 +198,29 @@ begin
   end;
   n := n + 8;
 
+  -- ── 11. plakat (tylko po starcie) + podmiana linku zbiórki przez startującego (Filip 2.11 19:00) ──
+  update public.akcje set plakat_url = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/share-assets/akcja/x.jpg', wystartowala_at = null where slug = 'proba';
+  if public.akcja_licznik('proba') ? 'plakat_url' then raise exception 'FAIL 11a: plakat przed startem'; end if;
+  update public.akcje set wystartowala_at = now(), wizerunek_zgoda = false where slug = 'proba';
+  if public.akcja_licznik('proba')->>'plakat_url' is not null then raise exception 'FAIL 11b: plakat bez zgody mamy'; end if;
+  update public.akcje set wizerunek_zgoda = true where slug = 'proba';
+  if public.akcja_licznik('proba')->>'plakat_url' not like 'https://%' then raise exception 'FAIL 11b2: brak plakatu po starcie ze zgodą'; end if;
+  begin execute 'set local role anon'; perform public.akcja_url_zbiorki('proba', 'https://www.siepomaga.pl/x'); raise exception 'FAIL 11c: anon'; exception when insufficient_privilege then null; end;
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub', r_uid, 'role', 'authenticated')::text, true);
+  begin execute 'set local role authenticated'; perform public.akcja_url_zbiorki('proba', 'https://www.siepomaga.pl/x'); raise exception 'FAIL 11d: nie-startujący'; exception when insufficient_privilege then null; end;
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub', F_UID, 'role', 'authenticated')::text, true);
+  begin execute 'set local role authenticated'; perform public.akcja_url_zbiorki('proba', 'https://zrzutka.pl/abc'); raise exception 'FAIL 11e: obcy host'; exception when sqlstate '22023' then null; end;
+  begin execute 'set local role authenticated'; perform public.akcja_url_zbiorki('proba', 'http://www.siepomaga.pl/abc'); raise exception 'FAIL 11f: http'; exception when sqlstate '22023' then null; end;
+  begin execute 'set local role authenticated'; perform public.akcja_url_zbiorki('proba', 'https://www.siepomaga.pl/abc?x=<script>'); raise exception 'FAIL 11g: znaki'; exception when sqlstate '22023' then null; end;
+  reset role;
+  execute 'set local role authenticated';
+  j := public.akcja_url_zbiorki('proba', ' https://www.siepomaga.pl/fabianek-2026 ');
+  reset role;
+  if j->>'url_zbiorki' <> 'https://www.siepomaga.pl/fabianek-2026' or (select url_zbiorki from public.akcje where slug = 'proba') <> 'https://www.siepomaga.pl/fabianek-2026' then
+    raise exception 'FAIL 11h: link nie zapisany: %', j->>'url_zbiorki'; end if;
+  n := n + 9;
+
   raise exception 'TESTY AKCJI ZIELONE: % asercji (transakcja wycofana)', n;
 end $T$;

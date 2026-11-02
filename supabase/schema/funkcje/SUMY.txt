@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 63
+# Obiektow (funkcje + triggery): 64
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -11,13 +11,14 @@ aa6ccce304e42fe6  achievements.achievements_okno
 cf2ab313aa98adea  akcja_deklaruj
 2ddd2b9debc62f03  akcja_dotarlismy
 305615bc94426567  akcja_km_okna
-f12d51e7d6a2f1b6  akcja_licznik
+5ce51e89a7d53af2  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
 53af56fa11aca0be  akcja_proba_reset
 479b1d22c9b9340b  akcja_start
 f7adf5324cca271b  akcja_tydzien
 78c9da13035f269e  akcja_typ_liczy
+ac4c2c62f806d416  akcja_url_zbiorki
 8707907cefd6e1ca  akcja_wycofaj_deklaracje
 f2be9be93e61f556  akcja_zamknij_dobe
 eaf5a71cb9535673  akcje_push_start

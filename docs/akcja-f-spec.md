@@ -49,7 +49,7 @@ Jedno źródło prawdy: `akcje.wystartowala_at` (publiczny odczyt przez `akcja_l
 - **Karta akcji na Dziś** (v2 pkt 3.3) pojawia się od startu: pasek 0 → 12 500, suma, mój wkład, link do zbiórki, „Zostań sponsorem kilometrów".
 - **Okienko**: zagadka → karta akcji (licznik + link) — miejsce już przygotowane (`odpowiedzZagadki`).
 - **index.html i `dla-fabianka.html`**: przed startem — teaser bez nazwy dziecka („8.11"); po starcie — pełna strona v2.
-- **Push** (jeden, do wszystkich z włączonymi powiadomieniami): w chwili zapisu startu — „Ruszyło. 12 500 km dla Fabianka. Każdy kilometr się liczy." Raz. Plus niedzielne podsumowania i jedna na zamknięcie (v2).
+- **Push** (jeden, do wszystkich z włączonymi powiadomieniami): w chwili zapisu startu — „Ruszyło. 12 500 km dla Fabianka. Każdy krok się liczy." (od 2.11 19:00; wcześniej „Każdy kilometr się liczy") Raz. Plus niedzielne podsumowania i jedna na zamknięcie (v2).
 
 ## 3. Wyprawa na Jasną Górę (Filip i Kasia)
 
@@ -134,6 +134,14 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 (testy okienka). Rozpoznawane po faktach w bazie, nie po e-mailu — migawka `supabase/schema/akcje/startujacy.json`, blizna-97.
 
 **Co się liczy (Filip 2.11 18:35):** tylko bieg i chód — jedna lista w bazie, `public.akcja_typ_liczy` (migracja `20261102_akcja_typy.sql`), używana przez licznik, wkład, wyprawę, push niedzielny, share-card i odznaki; rower, pływanie, siła i każdy nieznany typ — nie. Zwiad typów: `docs/akcja-f-typy-2026-11-02.md`. UI: „Liczy się bieg i spacer. Rower nie.”
+
+**Plakat akcji (Filip 2.11 19:00–19:20):** plik w Storage pod losową nazwą (`share-assets/akcja/<32 hex>.jpg`, wgrany ręcznie 2.11 — nie w repo), adres w `akcje.plakat_url`. Licznik oddaje `plakat_url` WYŁĄCZNIE gdy **po starcie AND `wizerunek_zgoda = true`** (migracje `20261102_akcja_plakat_url`, `20261102_akcja_plakat_zgoda`). Zgoda mamy = `update akcje set wizerunek_zgoda = true where slug = 'dla-fabianka'` — dopiero gdy Filip napisze „zgoda mamy jest". Front: góra `dla-fabianka.html` (pełna szerokość, dotknięcie = pełny ekran) i miniatura w karcie Dziś, pod nimi „Wpłać na zbiórkę"; bez plakatu układ bez dziury. Blizna-106. ⚠️ Plakat ma napis „Liczy się każdy kilometr" — grafika, nie kod.
+
+**Sponsor z zewnątrz:** `dla-fabianka.html` po starcie „Zostań sponsorem kilometrów" → `index.html#sponsor` (bez hero, logowanie/rejestracja) → `zawodnik.html#sponsor` → formularz sponsora otwarty i przewinięty. Blizna-106.
+
+**Link zbiórki bez wdrożenia (zbiórka kończy się 27.11):** RPC `akcja_url_zbiorki(slug, url)` — tylko startujący, tylko `https://www.siepomaga.pl/…`; w `start-akcji.html` po starcie przycisk „⋯" → pole + „Zapisz link zbiórki". Tekst formularza sponsora: „Po zakończeniu akcji wpłacasz sam na zbiórkę <imię z bazy w dopełniaczu> — aktualny link będzie zawsze tutaj. Aplikacja tylko liczy."
+
+**Audyt 2.11 wieczorem:** `docs/akcja-f-audyt-2026-11-02.md` — 6 poprawek bez migracji wdrożonych, 2 propozycje z migracją czekają na OK.
 
 **Guzik:** logo z przezroczystym tłem wtopione w pomarańczowe koło; od 2.11 18:08 (Filip, wariant B — stare zlewało się z kołem) `assets/ui/logo-b-biale-alfa.webp`: B całe białe z delikatnym cieniem, pierścień biały 40%, generowane `tools/logo-guzika.py` z `logo-b-ring-alfa.png`.
 

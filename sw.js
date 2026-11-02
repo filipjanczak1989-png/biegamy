@@ -253,7 +253,8 @@ self.addEventListener('fetch', (event) => {
 function isStaticAsset(request, url) {
   // Lokalne HTML, CSS, JS, fonty, ikony — nasze pliki
   if (url.origin === self.location.origin) {
-    return /\.(html|css|js|png|jpg|jpeg|svg|ico|woff2?|ttf|json)$/i.test(url.pathname)
+    // .mjs (js/*.mjs w PRECACHE_URLS) — do 2.11.2026 regex znał tylko .js, więc moduły szły do sieci mimo precache (audyt projektu F)
+    return /\.(html|css|m?js|png|jpg|jpeg|svg|ico|woff2?|ttf|json)$/i.test(url.pathname)
       || url.pathname === '/';
   }
   return false;

@@ -4427,6 +4427,12 @@ window._renderKartyAkcji = async function (d) {
   el.innerHTML = window.BM_AKCJA.kartaDzisHtml(d, wklad);
   el.style.display = el.innerHTML ? '' : 'none';
   window._sprawdzOdznakiAkcji(d, wklad);
+  /* zawodnik.html#sponsor (z dla-fabianka „Zostań sponsorem kilometrów", przez index.html): otwórz formularz i przewiń — raz */
+  if (window.location.hash === '#sponsor' && el.innerHTML) {
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    const f = el.querySelector('.akcja-form'); if (f) f.hidden = false;
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  }
 };
 /* SPONSOR KILOMETRÓW (projekt F, finał zasad 2.11): formularz w karcie akcji (js/akcja.mjs sponsorHtml, za DEKLARACJE_GOTOWE).
    Zapis/wycofanie przez RPC (akcja_deklaruj przyznaje odznakę akcja-sponsor w tej samej transakcji; po wycofaniu zostaje). */

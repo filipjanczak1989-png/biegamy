@@ -51,5 +51,6 @@ begin
     'wyprawa_cel_km',      a.wyprawa_cel_km,
     'wyprawa_dotarla_at',  a.wyprawa_dotarla_at,
     'wizerunek',           case when a.wizerunek_zgoda then a.wizerunek_url end,
+    'plakat_url',          case when a.wizerunek_zgoda then a.plakat_url end,   -- plakat: po starcie I tylko ze zgodą mamy (Filip 2.11 19:20)
     'testowa',             a.testowa);
 end $function$

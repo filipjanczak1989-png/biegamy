@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     return new Response('{"error":"licznik niedostępny"}', { status: 503, headers: { ...h, 'Cache-Control': 'no-store' } });
   }
   if (data == null) return new Response('{"error":"nie ma takiej akcji"}', { status: 404, headers: h });
+  if (data.testowa === true) return new Response('{"error":"nie ma takiej akcji"}', { status: 404, headers: h });   // audyt 2.11: próba nie jest publiczna
 
   const body = JSON.stringify(data);
   pamiec.set(slug, { t: teraz, body });

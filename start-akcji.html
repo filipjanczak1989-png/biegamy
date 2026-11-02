@@ -49,6 +49,15 @@
   #iskry { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #reset { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 18px); background: transparent; color: var(--muted);
     border: 1px solid var(--szary); border-radius: 12px; padding: 10px 16px; font: 500 12px Inter, sans-serif; letter-spacing: .06em; }
+  /* „⋯" (Filip 2.11 19:00): po starcie — podmiana linku zbiórki (zbiórka kończy się 27.11) bez wdrożenia; RPC akcja_url_zbiorki */
+  #wiecej { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px; background: transparent; color: var(--muted);
+    border: 1px solid var(--szary); border-radius: 999px; width: 38px; height: 38px; font: 600 18px/1 Inter, sans-serif; }
+  #panel { position: absolute; left: 16px; right: 16px; top: calc(env(safe-area-inset-top) + 56px); background: #15141b; border: 1px solid var(--szary);
+    border-radius: 14px; padding: 14px; box-sizing: border-box; }
+  #panel label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  #panel input { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid var(--szary); background: var(--tlo); color: var(--fg); font: 14px Inter, sans-serif; }
+  #panel button { margin-top: 10px; background: var(--akcent); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: 600 13px Inter, sans-serif; }
+  #panel .wynik { font-size: 12px; color: var(--muted); margin-top: 8px; min-height: 1.2em; word-break: break-all; }
   [hidden] { display: none !important; }
 
   main[data-stan="uzbrojony"] #krag { background: radial-gradient(circle at 50% 40%, var(--akcent2), var(--akcent) 70%);
@@ -75,6 +84,13 @@
   <div id="licznik"></div>
   <div id="status"></div>
   <button id="reset" hidden>Resetuj próbę</button>
+  <button id="wiecej" hidden aria-label="Więcej" aria-expanded="false">⋯</button>
+  <div id="panel" hidden>
+    <label for="url-zbiorki">Link zbiórki (https://www.siepomaga.pl/…)</label>
+    <input id="url-zbiorki" type="url" inputmode="url" autocomplete="off" placeholder="https://www.siepomaga.pl/…">
+    <button id="zapisz-url" type="button">Zapisz link zbiórki</button>
+    <div class="wynik" id="url-wynik"></div>
+  </div>
 </main>
 <canvas id="iskry" aria-hidden="true"></canvas>
 <script>
@@ -157,7 +173,11 @@
       if (r.error) {
         var kod = r.error.code || '';
         if (kod === '42501') { await wyczyscLokalnie(); ustaw('brak', { napis: 'To konto nie uruchamia akcji.' }); return; }
-        if (kod === '22023') { await wyczyscLokalnie(); ustaw('poza', { slowo: DATA_SLOWNIE, napis: 'Poza oknem startu (' + (AKC.DATA_KROTKA || '') + ', 6:00–24:00).' }); return; }
+        if (kod === '22023') {
+          // audyt 2.11: 22023 przed 06:00 wg SERWERA (zegar telefonu spieszy) — naciśnięcie zostaje, ponawiamy co 30 s, aż okno minie
+          if (Date.now() <= OKNO_DO) { $('status').textContent = 'wysyłam… (serwer: jeszcze przed 6:00 — ponawiam)'; ponowTimer = setTimeout(wyslij, 30000); return; }
+          await wyczyscLokalnie(); ustaw('poza', { slowo: DATA_SLOWNIE, napis: 'Poza oknem startu (' + (AKC.DATA_KROTKA || '') + ', 6:00–24:00).' }); return;
+        }
         throw r.error;
       }
       await wyczyscLokalnie();
@@ -197,7 +217,7 @@
       licznik: km(d && d.suma_km) + ' / ' + km((d && d.cel_km) || 12500) + ' km',
       status: potwierdzone ? 'zapisane ✓' : 'wysyłam…',
     });
-    if (potwierdzone) przyciskDotarcia(d);
+    if (potwierdzone) { przyciskDotarcia(d); panelLinku(d); }
   }
 
   /* ── przytrzymanie 1 s z pierścieniem ── */
@@ -274,12 +294,32 @@
   function uzbrojGdyCzas() {
     clearTimeout(uzbrojTimer);
     var teraz = Date.now();
+    if (!isFinite(OKNO_OD) || !isFinite(OKNO_DO)) { ustaw('blad', { napis: 'Nie udało się wczytać ustawień akcji. Włącz sieć i odśwież stronę.' }); return; }   // audyt 2.11: bez modułu setTimeout(NaN) kręcił pętlę
+    // audyt 2.11: zakładka z ?proba=1 w dniu startu wystartowałaby PRÓBĘ zamiast akcji — w oknie startu próba odmawia
+    if (PROBA && teraz >= OKNO_OD && teraz <= OKNO_DO) { ustaw('poza', { slowo: 'PRÓBA', napis: 'Dziś jest prawdziwy start. Otwórz start-akcji.html bez „?proba=1”.' }); return; }
     if (PROBA || (teraz >= OKNO_OD && teraz <= OKNO_DO)) { ustaw('uzbrojony', { slowo: 'START' }); return; }
     if (teraz > OKNO_DO) { ustaw('poza', { slowo: DATA_SLOWNIE, napis: 'Okno startu minęło.' }); return; }
     ustaw('rozbrojony', { slowo: DATA_SLOWNIE });
     uzbrojTimer = setTimeout(uzbrojGdyCzas, Math.min(30000, OKNO_OD - teraz + 50));
   }
 
+  /* Podmiana linku zbiórki (D): widoczna po starcie za „⋯"; serwer przyjmuje tylko https://www.siepomaga.pl/… od startującego. */
+  function panelLinku(d) {
+    $('wiecej').hidden = !(d && d.wystartowala);
+    if (d && d.url_zbiorki) $('url-zbiorki').value = d.url_zbiorki;
+  }
+  $('wiecej').addEventListener('click', function () {
+    var otwarty = $('panel').hidden; $('panel').hidden = !otwarty; this.setAttribute('aria-expanded', String(otwarty));
+  });
+  $('zapisz-url').addEventListener('click', async function () {
+    var url = $('url-zbiorki').value.trim(); this.disabled = true; $('url-wynik').textContent = 'Zapisuję…';
+    try {
+      var r = await window.sb.rpc('akcja_url_zbiorki', { p_slug: SLUG, p_url: url });
+      if (r.error) throw r.error;
+      $('url-wynik').textContent = 'Zapisane ✓ ' + (r.data && r.data.url_zbiorki || '');
+    } catch (e) { $('url-wynik').textContent = e && e.code === '22023' ? 'Link musi zaczynać się od https://www.siepomaga.pl/' : 'Nie zapisano — sprawdź sieć.'; }
+    this.disabled = false;
+  });
   $('reset').addEventListener('click', async function () {
     if (!PROBA) return;
     this.disabled = true;
@@ -292,13 +332,19 @@
     this.disabled = false;
   });
 
+  function sesjaWPamieci() {
+    try { return Object.keys(localStorage).some(function (k) { return /^sb-.*-auth-token$/.test(k); }); } catch (e) { return false; }
+  }
+
   /* ── start strony ── */
   async function init() {
     $('proba-znak').hidden = !PROBA;
     if (!window.sb) { ustaw('blad', { napis: 'Nie udało się wczytać aplikacji. Odśwież stronę.' }); return; }
     var sesja = null;
     try { sesja = (await window.sb.auth.getSession()).data.session; } catch (e) {}
-    if (!sesja) { ustaw('brak', { napis: 'Zaloguj się na konto trenera i otwórz tę stronę ponownie.' }); return; }
+    /* audyt 2.11: token wygasł, a odświeżenie nie przeszło (brak sieci) → getSession() = null, choć sesja jest w pamięci telefonu.
+       Wtedy nie blokujemy guzika: naciśnięcie zapisze się lokalnie, RPC poleci po powrocie sieci z odświeżonym tokenem. */
+    if (!sesja && !sesjaWPamieci()) { ustaw('brak', { napis: 'Zaloguj się na konto trenera i otwórz tę stronę ponownie.' }); return; }
 
     var czekajace = await odczytajLokalnie();
     if (czekajace) { ustaw('zapisane', { slowo: 'Akcja ruszyła · ' + godzina(czekajace), licznik: '0 / 12 500 km', status: 'wysyłam…' }); wyslij(); return; }

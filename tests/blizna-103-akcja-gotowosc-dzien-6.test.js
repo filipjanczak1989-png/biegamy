@@ -36,7 +36,7 @@ test('okienko: pytania o akcję przed i po starcie; własne km i „dołączyć 
 
 test('„Dołącz" → index.html#dolacz: bez hero, zakładka Rejestracja (klik, bo switchTab czyta event.target)', () => {
   const ix = czytaj('index.html');
-  assert.match(ix, /const seenHero = localStorage\.getItem\('biegamy_seen_landing'\) \|\| location\.hash === '#dolacz';/);
+  assert.match(ix, /const seenHero = localStorage\.getItem\('biegamy_seen_landing'\) \|\| location\.hash === '#dolacz' \|\| location\.hash === '#sponsor';/);
   assert.match(ix, /if \(location\.hash === '#dolacz'\) \{[^}]*document\.querySelector\('\.tab\[onclick\*="register"\]'\);\s*if \(zakladka\) zakladka\.click\(\);/);
   assert.match(czytaj('dla-fabianka.html'), /href="index\.html#dolacz"/);
 });

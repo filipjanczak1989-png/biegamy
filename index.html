@@ -860,7 +860,7 @@ async function checkSession() {
   }
   // Brak sesji - sprawdź czy to pierwszy raz
   // „Dołącz i biegnij” z dla-fabianka.html (index.html#dolacz) → od razu formularz, bez hero (projekt F dzień 6)
-  const seenHero = localStorage.getItem('biegamy_seen_landing') || location.hash === '#dolacz';
+  const seenHero = localStorage.getItem('biegamy_seen_landing') || location.hash === '#dolacz' || location.hash === '#sponsor';   // #sponsor: z dla-fabianka (Zostań sponsorem) - od razu logowanie
   if (!seenHero) {
     // Pierwszy raz - pokaż hero
     document.body.classList.remove('loading');
@@ -897,7 +897,7 @@ async function _odswiezAkcjeLanding() {
   }
   el.innerHTML = '<div class="akcja-karta"><div class="akcja-nazwa">' + window.escapeHtml(d.nazwa || '') + '</div>' + window.BM_AKCJA.pasekHtml(d) +
     '<div class="akcja-filip">' + window.escapeHtml(window.BM_AKCJA.tekstFilipa(d)) + '</div>' +
-    '<div class="akcja-przyciski">' + (d.zamknieta ? '' : '<a class="akcja-wiecej" href="#dolacz" onclick="doRejestracji();return false;">Dołącz i biegnij</a>') +
+    '<div class="akcja-przyciski">' + (d.koniec ? '' : '<a class="akcja-wiecej" href="#dolacz" onclick="doRejestracji();return false;">Dołącz i biegnij</a>') +
     '<a class="akcja-link" href="dla-fabianka.html">Szczegóły ›</a></div></div>';
   el.hidden = false;
 }
@@ -940,6 +940,12 @@ async function logoutSession() {
   showAlert('Wylogowano pomyślnie.', 'success');
 }
 
+/* Sponsor z zewnątrz (Filip 2.11 19:00): index.html#sponsor → po logowaniu/rejestracji/sesji zawodnik.html#sponsor
+   (formularz sponsora na Dziś otwiera się sam). Hash zostaje tylko dla zawodnika; trener idzie jak dotąd. */
+function celZawodnika(onboarding) {
+  const sponsor = location.hash === '#sponsor';
+  return 'zawodnik.html' + (onboarding ? '?onboarding=1' : '') + (sponsor ? '#sponsor' : '');
+}
 async function redirectUser(user) {
   // 1) Najpierw sprawdź user_metadata (szybko, dla rejestracji email/password)
   const metaRole = user.user_metadata?.role;
@@ -955,7 +961,7 @@ async function redirectUser(user) {
       return;
     }
   } catch(e) { /* fallback do zawodnika */ }
-  window.location.href = 'zawodnik.html';
+  window.location.href = celZawodnika(false);
 }
 
 // ── TAB SWITCH ────────────────────────────────────────────────────────────────
@@ -1091,7 +1097,7 @@ async function register() {
     document.getElementById('success-msg').textContent = `Witaj, ${name}! Konto ${roleLabel} zostało utworzone.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
     setTimeout(() => {
-      window.location.href = selectedRole === 'coach' ? 'trener.html' : 'zawodnik.html?onboarding=1';
+      window.location.href = selectedRole === 'coach' ? 'trener.html' : celZawodnika(true);
     }, 1500);
   } else {
     // Email confirmation włączone — poinformuj i zostań na stronie
