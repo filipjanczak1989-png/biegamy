@@ -7,7 +7,7 @@
 <title>BiegaMy — Odznaki</title>
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/akcja-cytaty.mjs"></script><script src="js/odznaki-akcji.mjs"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -130,7 +130,13 @@ const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
    · 31 „bez reguły" (w tym stare id maratończyk/gaduła): 0 przyznań → zmiana id na ASCII tylko tu w katalogu,
      migracja przepinająca achievements NIEPOTRZEBNA (usunięta z drzewa 7.10).
    · 33 tylko-silnik: 26 przyznawanych, 7 nigdy — wszystkie widoczne (definicje mają regułę w zawodnik.html). */
-const KATALOG = () => BADGES.filter(b => !b.bez_reguly);
+/* Odznaki akcji (projekt F dzień 4, js/odznaki-akcji.mjs) dochodzą do katalogu DOPIERO po starcie akcji (stan z akcja_licznik);
+   przed startem nic nie zdradza akcji. Obraz: assets/odznaki/<slug>.webp, do czasu grafiki zaślepka w tym samym <img>. */
+window._akcjaStan = null;
+const _OA = () => window.BM_ODZNAKI_AKCJI;
+const KATALOG = () => BADGES.filter(b => !b.bez_reguly).concat(_OA() && _OA().katalogWidoczny(window._akcjaStan) ? _OA().LISTA : []);
+const _odzSrc = (id) => (_OA() && _OA().czyAkcyjna(id)) ? _OA().src(id) : BASE_URL + encodeURIComponent(id) + '.webp';
+const _odzErr = (id, domyslny) => (_OA() && _OA().czyAkcyjna(id)) ? _OA().onerrorAttr(id) : domyslny;
 
 const BADGES = [
   // PODSTAWOWE
@@ -356,9 +362,9 @@ function renderBadgesSection() {
       html += `
         <div onclick="showBadgeDetail('${b.id}',false)" style="background:#13111f;border:1px solid ${col}55;border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 0 16px ${col}18;cursor:pointer;transition:transform 0.15s, border-color 0.15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='${col}'" onmouseout="this.style.transform='';this.style.borderColor='${col}55'">
           <div style="position:relative;width:56px;height:56px;">
-            <img src="${BASE_URL}${encodeURIComponent(b.id)}.webp" alt="${safeName}" loading="lazy"
+            <img src="${_odzSrc(b.id)}" data-odz="${b.id}" alt="${safeName}" loading="lazy"
               style="width:56px;height:56px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px ${col}44;display:block;"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              onerror="${_odzErr(b.id, "this.style.display='none';this.nextElementSibling.style.display='flex';")}">
             <div style="display:none;width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,${col}33,${col}11);border:1px solid ${col}44;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};box-shadow:0 0 12px ${col}44;">${initial}</div>
           </div>
           <div style="font-size:11px;font-weight:600;line-height:1.2;">${b.name}</div>
@@ -379,9 +385,9 @@ function renderBadgesSection() {
       html += `
         <div onclick="showBadgeDetail('${b.id}',${isHidden})" style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:0.45;cursor:pointer;transition:opacity 0.15s, transform 0.15s;padding:4px;" onmouseover="this.style.opacity='0.85';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='0.45';this.style.transform=''">
           <div style="position:relative;width:40px;height:40px;">
-            <img src="${BASE_URL}${encodeURIComponent(b.id)}.webp" alt="${(b.name||'?').replace(/'/g,"\\'")}" loading="lazy"
+            <img src="${_odzSrc(b.id)}" data-odz="${b.id}" alt="${(b.name||'?').replace(/'/g,"\\'")}" loading="lazy"
               style="width:40px;height:40px;border-radius:8px;object-fit:cover;filter:grayscale(1) brightness(0.4);display:block;"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              onerror="${_odzErr(b.id, "this.style.display='none';this.nextElementSibling.style.display='flex';")}">
             <div style="display:none;width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.15);align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:rgba(255,255,255,0.4);">${isHidden?'?':initial}</div>
           </div>
           <div style="font-size:8px;color:var(--muted);line-height:1.2;">${isHidden?'?':b.name}</div>
@@ -395,7 +401,7 @@ function renderBadgesSection() {
 
 // ✨ Modal szczegółów odznaki — Adam wymagał
 async function showBadgeDetail(badgeId, isHidden) {
-  const badge = BADGES.find(b => b.id === badgeId);
+  const badge = BADGES.find(b => b.id === badgeId) || (_OA() ? _OA().znajdz(badgeId) : null);
   if (!badge) return;
   const modal = document.getElementById('badge-detail-modal');
   if (!modal) return;
@@ -437,7 +443,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     status.style.color = 'var(--muted)';
     status.style.background = 'rgba(255,255,255,0.04)';
   } else {
-    img.src = BASE_URL + encodeURIComponent(badge.id) + '.webp';
+    if (_OA() && _OA().czyAkcyjna(badge.id)) _OA().ustawObraz(img, badge.id, true); else img.src = BASE_URL + encodeURIComponent(badge.id) + '.webp';
     img.style.opacity = earned ? '1' : '0.4';
     img.alt = badge.name;
     nameEl.textContent = badge.name;
@@ -536,6 +542,9 @@ async function init() {
     if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
     /* A2b: obejrzane — kropka „nowa" na kaflu Odznaki gaśnie (KAFLE.odznaki porównuje z tą liczbą). */
     if (data && window.KAFLE) window.KAFLE.zapiszWidziane(data.length);
+    /* stan akcji (konto testowe → 'proba'); bez sieci/przed startem: katalog bez odznak akcji */
+    try { if (window.BM_AKCJA_CYTATY) window._akcjaStan = await window.BM_AKCJA_CYTATY.odswiezStan(_sb, _athleteId); } catch (e) {}
+    if (window._akcjaStan && window._akcjaStan.wystartowala && window._akcjaStan.nazwa && window.KAT_LABEL) window.KAT_LABEL.Akcja = window._akcjaStan.nazwa;
   }
   renderBadgesSection();
 }

@@ -1849,7 +1849,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
-<script src="js/akcja.mjs"></script><!-- karta akcji na Dziś (projekt F dzień 3): liczby i teksty z akcja_licznik -->
+<script src="js/akcja.mjs"></script><script src="js/odznaki-akcji.mjs"></script><!-- odznaki akcji (projekt F dzień 4) --><!-- karta akcji na Dziś (projekt F dzień 3): liczby i teksty z akcja_licznik -->
 <script src="js/akcja-cytaty.mjs"></script><!-- cytaty akcji (2.11.2026): baner cytatu na Dziś, pierwszeństwo przed zwykłym -->
 <script src="sb.js"></script>
 <script src="js/wyniki-api.js"></script><!-- K5: podpowiedź imprez z kalendarza maszyny w modalu celu (window.IMPREZY.podpowiedz) -->
@@ -4398,6 +4398,7 @@ window.odswiezCytatAkcji = function () {
 window._odswiezStanAkcji = function () {
   if (!window.BM_AKCJA_CYTATY || !window.sb || !_athleteId) return Promise.resolve(null);
   return window.BM_AKCJA_CYTATY.odswiezStan(window.sb, _athleteId).then(function (d) {
+    window._akcjaStan = d;   // okno odznak akcji i katalog (js/odznaki-akcji.mjs)
     if ((window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
     window._renderKartyAkcji(d);
     return d;
@@ -4419,6 +4420,23 @@ window._renderKartyAkcji = async function (d) {
   } catch (e) {}
   el.innerHTML = window.BM_AKCJA.kartaDzisHtml(d, wklad);
   el.style.display = el.innerHTML ? '' : 'none';
+  window._sprawdzOdznakiAkcji(d, wklad);
+};
+/* ODZNAKI AKCJI (projekt F dzień 4): reguły w js/odznaki-akcji.mjs (doPrzyznania — poza oknem pusta lista). Km z akcja_moj_wklad
+   (te same co w liczniku: cap/doba, doba warszawska). Dni aktywne pobierane TYLKO w dniu zamknięcia („Razem", „Co tydzień"). */
+window._sprawdzOdznakiAkcji = async function (d, wklad) {
+  const O = window.BM_ODZNAKI_AKCJI;
+  if (!O || !_athleteId || !O.oknoOtwarte(d)) return;
+  const dni = new Set();
+  if (O.dzienZamkniecia(d)) {
+    try {
+      const od = new Date(Date.parse(d.start + 'T00:00:00Z') - 86400000).toISOString();
+      const { data } = await sb.from('training_logs').select('logged_at, distance_km, training_type')
+        .eq('athlete_id', _athleteId).gte('logged_at', od).gt('distance_km', 0);
+      (data || []).forEach(l => { if (!String(l.training_type || '').startsWith('__badge__')) dni.add(window._dzienWaw(l.logged_at)); });
+    } catch (e) {}
+  }
+  for (const id of O.doPrzyznania(d, wklad, dni)) await awardBadge(id);
 };
 
 window.loadWeather = async function() {
@@ -14128,7 +14146,8 @@ window._earnedBadges = new Set();
 // ── Pokaż pop-up odznaki ───────────────────────────────────────────
 function showBadgePopup(badge) {
   const popup = document.getElementById('badge-popup');
-  document.getElementById('badge-popup-img').src = BASE_URL + badge.id + '.webp';
+  if (window.BM_ODZNAKI_AKCJI && window.BM_ODZNAKI_AKCJI.czyAkcyjna(badge.id)) window.BM_ODZNAKI_AKCJI.ustawObraz(document.getElementById('badge-popup-img'), badge.id, true);
+  else document.getElementById('badge-popup-img').src = BASE_URL + badge.id + '.webp';
   document.getElementById('badge-popup-name').textContent = badge.name;
   document.getElementById('badge-popup-desc').textContent = badge.desc;
   const rarEl = document.getElementById('badge-popup-rarity');
@@ -14142,7 +14161,7 @@ function showBadgePopup(badge) {
 
 // ✨ Modal szczegółów odznaki — klikalny z listy odznak (Adam wymagał)
 async function showBadgeDetail(badgeId, isHidden) {
-  const badge = BADGES.find(b => b.id === badgeId);
+  const badge = window._odznakaDef(badgeId);
   if (!badge) return;
   const modal = document.getElementById('badge-detail-modal');
   if (!modal) return;
@@ -14179,7 +14198,8 @@ async function showBadgeDetail(badgeId, isHidden) {
     status.style.color = 'var(--muted)';
     status.style.background = 'rgba(255,255,255,0.04)';
   } else {
-    document.getElementById('bd-img').src = BASE_URL + badge.id + '.webp';
+    if (window.BM_ODZNAKI_AKCJI && window.BM_ODZNAKI_AKCJI.czyAkcyjna(badge.id)) window.BM_ODZNAKI_AKCJI.ustawObraz(document.getElementById('bd-img'), badge.id, true);
+    else document.getElementById('bd-img').src = BASE_URL + badge.id + '.webp';
     document.getElementById('bd-img').style.opacity = earned ? '1' : '0.4';
     document.getElementById('bd-img').alt = badge.name;
     document.getElementById('bd-name').textContent = badge.name;
@@ -14279,7 +14299,26 @@ window.closeBadgeDetail = closeBadgeDetail;
 // zastają kolejkę zamkniętą i idą starą ścieżką — ich zachowanie się nie zmienia.
 let _badgeKolejka = null;
 
+/* OKNO PRZYZNAWANIA (projekt F dzień 4): odznaki z oknem przyznają się WYŁĄCZNIE, gdy DZIŚ (Warszawa) jest w oknie.
+   #100kmDlaKasi (WYZWANIA, 15.08–20.09.2026): do 2.11 pętla sprawdzała tylko datę WPISU — bieg z 10.09 dopisany po
+   zamknięciu dawał odznakę dziś. Odznaki akcji: od dnia startu do dnia zamknięcia (js/odznaki-akcji.mjs, stan z
+   akcja_licznik). Przyznane zostają; poza oknem nikt nie dostaje nowej. Twarda kontrola w bazie (insert idzie wprost z
+   przeglądarki): wyzwalacz achievements_okno — migracja 20261102_odznaki_okna, wdrażana po OK Filipa. */
+window._odznakaWOknie = function (id) {
+  const O = window.BM_ODZNAKI_AKCJI;
+  if (typeof id === 'string' && id.indexOf('akcja-') === 0) return !!(O && O.oknoOtwarte(window._akcjaStan));
+  const w = (typeof WYZWANIA !== 'undefined') ? WYZWANIA.find(x => x.id === id) : null;
+  if (!w) return true;
+  // window._teraz — zegar podmieniany WYŁĄCZNIE w testach (tests/odznaki.test.js liczy okno #100kmDlaKasi „z wnętrza" okna)
+  const dzis = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(window._teraz ? window._teraz() : new Date());
+  return dzis >= w.od && dzis <= w.do;
+};
+window._odznakaDef = function (id) {
+  return BADGES.find(b => b.id === id) || (window.BM_ODZNAKI_AKCJI ? window.BM_ODZNAKI_AKCJI.znajdz(id) : null);
+};
+
 async function awardBadge(badgeId) {
+  if (!window._odznakaWOknie(badgeId)) return;
   if (window._earnedBadges.has(badgeId)) return;
   if (!_athleteId) return;
   if (_badgeKolejka) {
@@ -14295,7 +14334,7 @@ async function awardBadge(badgeId) {
   await sb.from('achievements').insert({ athlete_id: _athleteId, badge_id: badgeId });
   window._earnedBadges.add(badgeId);
   // Wyświetl pop-up
-  const badge = BADGES.find(b => b.id === badgeId);
+  const badge = window._odznakaDef(badgeId);
   if (badge) setTimeout(() => showBadgePopup(badge), 400);
   // Powiadomienie dla mnie (żebym widział w dzwonku)
   try {
@@ -14317,7 +14356,7 @@ async function awardBadge(badgeId) {
 // EF send-push), więc każdy wiersz to push na telefon. Zaległości w bazie to ~146
 // odznak na 28 osób; głośny backfill oznaczałby tyle samo pushy.
 async function _wyslijOdznaki(cicho) {
-  const nowe = _badgeKolejka ? [..._badgeKolejka] : [];
+  const nowe = (_badgeKolejka ? [..._badgeKolejka] : []).filter(id => window._odznakaWOknie(id));   // okno — druga linia obrony
   _badgeKolejka = null;
   if (!nowe.length) return 0;
 
@@ -14994,10 +15033,13 @@ function renderBadgesSection() {
     }
   }
 
-  const cats = [...new Set(BADGES.map(b => b.cat))];
+  /* Odznaki akcji w katalogu dopiero po starcie (js/odznaki-akcji.mjs katalogWidoczny); kategoria = nazwa akcji z bazy. */
+  const _O = window.BM_ODZNAKI_AKCJI, _KAT = BADGES.concat(_O && _O.katalogWidoczny(window._akcjaStan) ? _O.LISTA : []);
+  if (_O && window._akcjaStan && window._akcjaStan.nazwa && window.KAT_LABEL) window.KAT_LABEL.Akcja = window._akcjaStan.nazwa;
+  const cats = [...new Set(_KAT.map(b => b.cat))];
   let html = '';
   for (const cat of cats) {
-    const catBadges = BADGES.filter(b => b.cat === cat);
+    const catBadges = _KAT.filter(b => b.cat === cat);
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
     html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);">${(window.KAT_LABEL||{})[cat] || cat}</div>
@@ -15017,7 +15059,7 @@ function renderBadgesSection() {
       } else {
         html += `<div class="badge-item${earned?' earned':' locked'}" onclick="showBadgeDetail('${b.id}',false)" title="${b.desc}">
           ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
-          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
+          <img src="${_O && _O.czyAkcyjna(b.id) ? _O.src(b.id) : BASE_URL + b.id + '.webp'}" data-odz="${b.id}" alt="${b.name}" loading="lazy" onerror="${_O && _O.czyAkcyjna(b.id) ? _O.onerrorAttr(b.id) : 'this.style.opacity=0.2'}">
           <div class="badge-item-name">${b.name}</div>
           ${earned ? `<div style="font-size:8px;font-family:DM Mono,monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
         </div>`;
@@ -15035,12 +15077,12 @@ function renderBadgesSection() {
       </div>
       <div style="margin-left:auto;background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:10px;padding:6px 12px;text-align:center;">
         <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.12em;">PROGRES</div>
-        <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/_KAT.length*100)}%</div>
       </div>
     </div>
     <div style="padding:0 16px 10px;">
       <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${Math.round(earned/BADGES.length*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.8s ease;"></div>
+        <div style="height:100%;width:${Math.round(earned/_KAT.length*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.8s ease;"></div>
       </div>
     </div>
     ${html}`;

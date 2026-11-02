@@ -30,6 +30,10 @@ const { zaladujStrone } = require('./_srodowisko.js');
 // przez `przygotuj()` — _earnedBadges, _badgeKolejka, _athleteId, sb i setTimeout
 // są nadpisywane przed każdym wywołaniem, więc testy się nie zarażają.
 const ctx = zaladujStrone('zawodnik.html');
+// Projekt F dzień 4: awardBadge/_wyslijOdznaki przepuszczają odznaki z oknem tylko, gdy DZIŚ jest w oknie (naprawa
+// przyznawania wstecz #100kmDlaKasi). Ten plik testuje liczenie okna PO DATACH WPISÓW, więc „dziś" = środek okna
+// (10.09.2026). Bramkę dla prawdziwej daty (po zamknięciu — nic) pilnuje blizna-99.
+vm.runInContext("window._teraz = () => new Date('2026-09-10T12:00:00Z');", ctx);
 const ID_WYZWAN = vm.runInContext('WYZWANIA.map(w => w.id)', ctx);
 const ID_ZWYKLE = vm.runInContext('BADGES.map(b => b.id)', ctx)
   .filter((id) => !ID_WYZWAN.includes(id));

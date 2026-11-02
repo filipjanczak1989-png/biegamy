@@ -73,9 +73,10 @@ test('id = nazwa pliku .webp: tylko ASCII [a-z0-9_]', () => {
 
 test('render katalogu idzie przez KATALOG() (bez bez_reguly), a detail nadal przez BADGES.find', () => {
   const src = KATALOG.src;
-  assert.match(src, /const KATALOG = \(\) => BADGES\.filter\(b => !b\.bez_reguly\);/);
+  // projekt F dzień 4: do katalogu dochodzą odznaki akcji (po starcie) — BADGES dalej filtrowane przez bez_reguly (blizna-99)
+  assert.match(src, /const KATALOG = \(\) => BADGES\.filter\(b => !b\.bez_reguly\)\.concat\(/);
   assert.equal((src.match(/KATALOG\(\)/g) || []).length, 4, 'render ma 4 użycia KATALOG() (cats, licznik, kategorie, zablokowane)');
-  assert.match(src, /const badge = BADGES\.find\(b => b\.id === badgeId\);/, 'szczegół ma czytać pełną listę (zdobyta odznaka bez_reguly nadal ma nazwę)');
+  assert.match(src, /const badge = BADGES\.find\(b => b\.id === badgeId\) \|\| /, 'szczegół ma czytać pełną listę (zdobyta odznaka bez_reguly nadal ma nazwę); dalej odznaki akcji');
 });
 
 test('pary duplikatów: po pomiarze 7.10 obie strony zdefiniowane, strona bez reguły ukryta flagą, strony z regułą widoczne', () => {

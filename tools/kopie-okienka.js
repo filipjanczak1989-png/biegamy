@@ -37,6 +37,7 @@ fs.writeFileSync(K + '/supabase/functions/_shared/odznaki-nazwy.mjs',
 // źródło, które widzi zawodnik na ekranie Odznaki). odznaki.html jest źródłem; tę kopię pilnuje
 // tests/blizna-64-okienko-narzedzia.test.js (nazwy) i blizna-84 (opisy). Zmiana w odznaki.html bez zmiany tutaj = czerwony
 // test. Generator: tools/kopie-okienka.js. Wygenerowane 1.11.2026 z odznaki.html (${B.length} odznak).
+import "../../../js/odznaki-akcji.mjs";   // BM_ODZNAKI_AKCJI — nazwy odznak akcji (poza BADGES)
 export const NAZWY_ODZNAK = {
 ${pary}
 };
@@ -45,13 +46,19 @@ export const OPISY_ODZNAK = {
 ${opisy}
 };
 
+/* Odznaki akcji (projekt F dzień 4) nie są w BADGES — definicje w js/odznaki-akcji.mjs (wspólne z frontem), bez imienia dziecka. */
+const AKCJA = () => globalThis.BM_ODZNAKI_AKCJI;
 /** Nazwa z katalogu; id spoza katalogu → „Odznaka" (slug nigdy nie trafia do karty). */
 export function nazwaOdznaki(id) {
-  return Object.prototype.hasOwnProperty.call(NAZWY_ODZNAK, id) ? NAZWY_ODZNAK[id] : "Odznaka";
+  if (Object.prototype.hasOwnProperty.call(NAZWY_ODZNAK, id)) return NAZWY_ODZNAK[id];
+  const a = AKCJA() && AKCJA().znajdz(id);
+  return a ? a.name : "Odznaka";
 }
 /** Opis z katalogu; brak → null (karta bez opisu, nie zmyślamy). */
 export function opisOdznaki(id) {
-  return Object.prototype.hasOwnProperty.call(OPISY_ODZNAK, id) && OPISY_ODZNAK[id] ? OPISY_ODZNAK[id] : null;
+  if (Object.prototype.hasOwnProperty.call(OPISY_ODZNAK, id) && OPISY_ODZNAK[id]) return OPISY_ODZNAK[id];
+  const a = AKCJA() && AKCJA().znajdz(id);
+  return a ? a.desc : null;
 }
 `);
 console.log('pojecia', Object.keys(okno.METRIC_TOOLTIPS).length, 'odznaki', B.length, 'bez opisu', B.filter((x) => !x.desc).length);
