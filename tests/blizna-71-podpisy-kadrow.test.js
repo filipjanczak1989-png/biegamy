@@ -152,7 +152,7 @@ test('samokontrola reguły „razem": „ramię w ramię" na kadrze z dwiema oso
    (asfalt, szuter/żwir, piasek, bieżnia/tartan, beton, śnieg, lód) wymaga potwierdzenia w opisie obrazu ALBO w strukturze
    (nawierzchnia, otoczenie, pogoda). ⚠️ Reguła łapie rozjazd PODPIS↔OPIS; gdy myli się sam vision (14: zdanie i struktura
    mówiły „asfalt"), nie złapie — dlatego struktura 14 ma ręczną korektę Filipa (pole `korekta`).
-   ZAPADKA: 70 „*Lód* uczy pokory" — opis: śnieg i mróz, bez lodu; czeka na decyzję Filipa (tylko raport). */
+   ZAPADKA pusta od 2.11.2026 (70 „*Lód*" → „*Mróz* uczy pokory", Filip). */
 const NAWIERZCHNIE = {
   asfalt: [w('asfal'), w('asfal')],
   szuter: [w('szuter|szutr|żwir'), w('szuter|szutr|żwir|ziemn|gruntow|kamien')],
@@ -162,7 +162,7 @@ const NAWIERZCHNIE = {
   'śnieg': [w('śnieg|śnież'), w('śnieg|śnież|zaśnież')],
   'lód': [w('lód|lod[uyz]|lodem|oblodz'), w('lód|lod[uyz]|lodem|oblodz|zamarz')],
 };
-const ZNANE_ROZJAZDY_NAWIERZCHNI = [70];   // 2.11.2026 — tylko raport, podpis pisze Filip
+const ZNANE_ROZJAZDY_NAWIERZCHNI = [];   // 2.11.2026: 70 → „*Mróz* uczy pokory" (Filip) — lista pusta
 function rozjazdyNawierzchni(lista) {
   const out = [];
   lista.forEach((p, i) => {
