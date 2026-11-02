@@ -118,7 +118,7 @@ test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie,
 
 test('instalacja: strona i logo w precache SW; osobny manifest strony; główny manifest bez skrótu „Start akcji"', () => {
   const sw = czytaj('sw.js');
-  for (const u of ['/start-akcji.html', '/manifest-start-akcji.json', '/assets/ui/logo-b-ring.webp']) {
+  for (const u of ['/start-akcji.html', '/manifest-start-akcji.json', '/assets/ui/logo-b-ring-alfa.webp']) {
     assert.ok(sw.includes(`'${u}',`), 'precache bez ' + u);
     assert.ok(fs.existsSync(path.join(KORZEN, u.slice(1))), 'brak pliku ' + u + ' (addAll wywróci instalację SW)');
   }
@@ -128,4 +128,7 @@ test('instalacja: strona i logo w precache SW; osobny manifest strony; główny 
   assert.ok(m.start_url.startsWith(m.scope));
   assert.doesNotMatch(czytaj('manifest.json'), /start-akcji/);
   assert.match(czytaj('start-akcji.html'), /<link rel="manifest" href="manifest-start-akcji\.json">/);
+  // logo z alfą wtopione w koło (2.11): bez filtrów i bez ciemnego krążka pod spodem
+  assert.match(czytaj('start-akcji.html'), /<img src="assets\/ui\/logo-b-ring-alfa\.webp" alt="">/);
+  assert.doesNotMatch(czytaj('start-akcji.html'), /mix-blend-mode|#krag::before|invert\(/);
 });

@@ -51,7 +51,7 @@ const PRECACHE_URLS = [
   /* projekt F (3.11.2026): guzik startu akcji — otwierany przed wyjściem, pod domem może nie być zasięgu */
   '/start-akcji.html',
   '/manifest-start-akcji.json',
-  '/assets/ui/logo-b-ring.webp',
+  '/assets/ui/logo-b-ring-alfa.webp',
   '/o-nas.html',
   '/terms.html',
   '/privacy.html',
