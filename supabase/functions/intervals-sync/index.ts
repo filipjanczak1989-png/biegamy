@@ -39,7 +39,7 @@ function gapToPace(v: number): string | null {
 // 06.10.2026: RUN_ACT / ACT_MAP / typeFromPlan / typeForActivity wyniesione do
 // ../_shared/typ-aktywnosci.mjs (do tego dnia „świadomy duplikat" z intervals-webhook,
 // rozjechany od 27.07 — webhook nie dostał ACT_MAP). Bramka: tools/bramka-reguly.js część D.
-import { RUN_ACT, typeForActivity, rawActivityType } from '../_shared/typ-aktywnosci.mjs';
+import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
@@ -174,6 +174,8 @@ Deno.serve(async (req) => {
           athlete_id,
           training_type: typeForActivity(a, planByDate.get(dateKey) ?? null),
           external_type: rawActivityType(a),   // 06.10: surowy typ z intervals — mapowanie odtwarzalne z bazy
+          icu_stream_types: strumienieAktywnosci(a),   // 02.11: pomiar do decyzji o mapkach (latlng = GPS), bez UI
+          icu_trainer: trenazerAktywnosci(a),
 
           distance_km: distM ? Math.round(distM / 10) / 100 : null,
           duration: sec ? secToClock(sec) : null,

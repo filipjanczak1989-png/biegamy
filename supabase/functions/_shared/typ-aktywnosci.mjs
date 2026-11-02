@@ -54,3 +54,18 @@ export function rawActivityType(a) {
   const raw = String((a && a.type) || '').trim();
   return raw ? raw.slice(0, 64) : null;
 }
+
+/** POMIAR DO DECYZJI O MAPKACH (2.11.2026, docs/dzis-najpierw-dane-zwiad.md §0/§2): lista strumieni obecnych
+ *  w aktywności (`Activity.stream_types`, np. 'latlng' = był GPS). Tylko zapis do training_logs.icu_stream_types —
+ *  zero pobierania tras. Brak pola / nie-tablica → null (nie „brak GPS"). Do 40 nazw po 32 znaki. */
+export function strumienieAktywnosci(a) {
+  const s = a && a.stream_types;
+  if (!Array.isArray(s)) return null;
+  const out = s.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 32)).slice(0, 40);
+  return out.length ? out : null;
+}
+
+/** `Activity.trainer` — bieżnia/trenażer. Tylko jawne true/false; brak pola → null (nie „na zewnątrz"). */
+export function trenazerAktywnosci(a) {
+  return a && typeof a.trainer === 'boolean' ? a.trainer : null;
+}

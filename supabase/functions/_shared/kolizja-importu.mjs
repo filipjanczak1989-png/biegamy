@@ -97,7 +97,8 @@ export function rozstrzygnijKolizje(akt, kandydaci) {
    nie doklejamy „[auto]" do notatki zawodnika. */
 export const POLA_WZBOGACENIA = [
   'heart_rate', 'pace', 'gap_pace', 'cadence',
-  'icu_load', 'icu_intensity', 'elevation_gain', 'calories'
+  'icu_load', 'icu_intensity', 'elevation_gain', 'calories',
+  'icu_stream_types', 'icu_trainer'   // 02.11: telemetria do pomiaru GPS — wzbogacony wpis ręczny też się liczy
 ];
 
 export function zbudujWzbogacenie(wiersz) {

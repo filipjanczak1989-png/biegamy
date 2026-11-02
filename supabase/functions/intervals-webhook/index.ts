@@ -16,7 +16,7 @@ const J = (s: number, b: unknown) =>
 // 06.10.2026: B2 wykonane — RUN_ACT/ACT_MAP/typeFromPlan/typeForActivity w ../_shared/typ-aktywnosci.mjs.
 //    „Świadomy duplikat" z B1 rozjechał się 27.07 (sync dostał ACT_MAP, webhook nie): przez 10 tygodni
 //    każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. secToClock/paceStr/kształt wiersza nadal lokalnie.
-import { RUN_ACT, typeForActivity, rawActivityType } from '../_shared/typ-aktywnosci.mjs';
+import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
 function secToClock(sec: number): string {
   sec = Math.round(sec);
@@ -45,6 +45,8 @@ function mapActivity(a: any, athlete_id: string, planType: string | null) {
     athlete_id,
     training_type: typeForActivity(a, planType),
     external_type: rawActivityType(a),   // 06.10: surowy typ z intervals — mapowanie odtwarzalne z bazy
+    icu_stream_types: strumienieAktywnosci(a),   // 02.11: pomiar do decyzji o mapkach (latlng = GPS), bez UI
+    icu_trainer: trenazerAktywnosci(a),
     distance_km: distM ? Math.round(distM / 10) / 100 : null,       // metry → km, 2 miejsca
     duration: sec ? secToClock(sec) : null,                         // STRING "H:MM:SS" (NIE sekundy)
     pace: isRun ? paceStr(distM, sec) : null,                       // "M:SS"/km, tylko bieg
