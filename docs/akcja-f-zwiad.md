@@ -113,3 +113,14 @@ wycofanej. ⚠️ **Kolejność: migracja na prod PRZED deployem obu EF**, inacz
 | 4 | konto testowe próby (`konta_testowe`) — które konto liczy się w `proba` | puste; bez niego próba liczy 0 km |
 | 5 | limit 100 km/doba/osoba w sumie akcji (precedens #100kmDlaKasi, dziś ucina 0 km) | wpisany, zmiana = UPDATE `cap_km_doba` |
 | 6 | wyprawa: dystans, dni, czyje konta (Filip, Kasia) | kolumny gotowe, puste (dzień 5) |
+
+## 9. Decyzje Filipa 2.11 i stan produkcji
+
+- **Obie migracje NA PROD 2.11** z trailerem bramki: `20261102_icu_stream_types` → deploy `intervals-sync` (v44) i
+  `intervals-webhook` (v32, bez weryfikacji JWT); potem `20261102_akcje`. Commity `472b11d`, `3e03219`.
+- **Licznik publiczny = wariant (b):** EF `akcja-licznik` (bez weryfikacji JWT, klucz serwisowy tylko do RPC licznika,
+  cache 60 s, CORS biegamy.run + run.biegamy.app). Rola anonimowa nie ma żadnego uprawnienia do akcji — RPC wołany
+  wprost kluczem publicznym odbija się 42501. Pkt 3 tabeli wyżej: rozstrzygnięty.
+- **Konto testowe próby** = persona zawodnika Filipa (konto, na którym testowano okienko M3b po wdrożeniu 1.11 15:17).
+- **Nadal puste:** link zbiórki, forma imienia, nazwa akcji.
+- Testy transakcyjne po przeróbce: 45/45. Migawki dostępu i funkcji odświeżone z produkcji, porównanie „Zgodne".
