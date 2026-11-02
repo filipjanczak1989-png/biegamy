@@ -116,6 +116,9 @@ verify_jwt = false       # trigger pg_net (schema/funkcje/trigger_send_push.sql:
 [functions.intervals-webhook]
 verify_jwt = false       # serwer intervals.icu, sekret w ciele (index.ts:84-87)
 
+[functions.akcja-push]
+verify_jwt = false       # cron + wyzwalacz akcje_push_start (pg_net); sekret x-push-secret obowiązkowy
+
 [functions.akcja-licznik]
 verify_jwt = false       # publiczny licznik akcji (landing, wylogowani); klucz serwisowy tylko do RPC akcja_licznik
 

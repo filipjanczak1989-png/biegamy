@@ -4399,7 +4399,13 @@ window._odswiezStanAkcji = function () {
   if (!window.BM_AKCJA_CYTATY || !window.sb || !_athleteId) return Promise.resolve(null);
   return window.BM_AKCJA_CYTATY.odswiezStan(window.sb, _athleteId).then(function (d) {
     window._akcjaStan = d;   // okno odznak akcji i katalog (js/odznaki-akcji.mjs)
-    if ((window._currentSection || 'home') === 'home') window.odswiezCytatAkcji();
+    if ((window._currentSection || 'home') === 'home') {
+      window.odswiezCytatAkcji();
+      // film akcji: raz u każdego zaraz po starcie, także bez przeładowania (powrót karty) — sb.js FILM_DZIS
+      if (window.FILM_DZIS && window.FILM_DZIS.czekaFilmAkcji && window.FILM_DZIS.czekaFilmAkcji()) {
+        const baner = document.getElementById('daily-motivation'); if (baner) window.FILM_DZIS.start(baner);
+      }
+    }
     window._renderKartyAkcji(d);
     return d;
   });
@@ -4429,6 +4435,7 @@ document.addEventListener('click', async function (e) {
   if (!b || !window.BM_AKCJA_CYTATY) return;
   const karta = document.getElementById('akcja-karta'), slug = window.BM_AKCJA_CYTATY.slugDla(_athleteId), co = b.dataset.akcja;
   if (co === 'sponsor') { const f = karta.querySelector('.akcja-form'); if (f) f.hidden = !f.hidden; return; }
+  if (co === 'udostepnij') { window._udostepnijKarteAkcji(b, slug); return; }
   b.disabled = true;
   try {
     let r;
@@ -4451,6 +4458,28 @@ document.addEventListener('click', async function (e) {
     if (window.showToast) window.showToast('Nie udało się zapisać — spróbuj za chwilę.');
   }
 });
+
+/* KARTA AKCJI DO UDOSTĘPNIENIA (projekt F dzień 5): EF share-card {akcja: slug} → obraz (mój wkład + suma + % celu).
+   Udostępnianie systemowe z plikiem, gdy przeglądarka umie; inaczej obraz w nowej karcie. */
+window._udostepnijKarteAkcji = async function (btn, slug) {
+  const tekst0 = btn.textContent; btn.disabled = true; btn.textContent = 'Renderuję kartę…';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('brak sesji');
+    const res = await fetch((window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/share-card', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ akcja: slug }) });
+    const d = await res.json().catch(() => null);
+    if (!res.ok || !d || !d.url) throw new Error('ef ' + res.status);
+    const blob = await (await fetch(d.url)).blob();
+    const plik = new File([blob], 'biegamy-akcja.jpg', { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [plik] })) await navigator.share({ files: [plik] });
+    else window.open(d.url, '_blank', 'noopener');
+  } catch (e) {
+    if (!(e && e.name === 'AbortError') && window.showToast) window.showToast('Nie udało się przygotować karty — spróbuj za chwilę.');
+  }
+  btn.disabled = false; btn.textContent = tekst0;
+};
 
 /* ODZNAKI AKCJI (projekt F dzień 4, finał zasad 2.11): reguły w js/odznaki-akcji.mjs (doPrzyznania — poza oknem pusta lista).
    Km z akcja_moj_wklad (jak licznik: cap/doba, doba warszawska). Dni aktywne (każdy typ, bez __badge__) od startu — dla serii

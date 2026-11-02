@@ -141,7 +141,9 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const z = czytaj('zawodnik.html');
   const i = z.indexOf('async function loadDailyMotivation()'), j = z.indexOf('\n}\n', i);
   assert.match(z.slice(i, j), /if \(window\.FILM_DZIS\) window\.FILM_DZIS\.start\(el\);/);
-  assert.equal((z.match(/FILM_DZIS\.start\(/g) || []).length, 1, 'jedno miejsce startu');
+  // projekt F (2.11): drugie miejsce startu = film akcji raz po starcie — ten sam baner #daily-motivation, nie duży kadr
+  assert.equal((z.match(/FILM_DZIS\.start\(/g) || []).length, 2, 'start z loadDailyMotivation + film akcji po starcie');
+  assert.match(z, /const baner = document\.getElementById\('daily-motivation'\); if \(baner\) window\.FILM_DZIS\.start\(baner\);/);
   const hero = z.slice(z.indexOf('id="today-hero"'), z.indexOf('<!-- Kafelki po prawej -->'));
   assert.ok(!/video|FILM/i.test(hero), 'duży kadr bez zmian');
   const sb = czytaj('sb.js');

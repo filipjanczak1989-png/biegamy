@@ -850,6 +850,41 @@ async function kartaMomentu(
   });
 }
 
+// KARTA AKCJI (projekt F dzień 5): {akcja: slug} — mój wkład w akcji + suma społeczności + % celu, podpis = nazwa akcji
+// Z BAZY (repo publiczne). Liczby z akcja_licznik / akcja_km_okna (te same co licznik: cap/doba, doba warszawska) — klient
+// podaje tylko slug. Karta osoby, która woła (po user_id z tokena); akcja testowa — tylko jej konta testowe.
+// ZAMROŻENIE: plik = klucz cache, a suma rośnie — w nazwie dzień i liczby, więc karta nigdy nie pokaże starej liczby.
+async function kartaAkcji(admin: Admin, userId: string, slug: unknown): Promise<Response> {
+  if (typeof slug !== "string" || !/^[a-z0-9-]{2,40}$/.test(slug)) return json({ error: "zła akcja" }, 400);
+  const { data: ath } = await admin.from("athletes")
+    .select("id,full_name,avatar_url,user_id,coach_id,gender").eq("user_id", userId).maybeSingle();
+  if (!ath) return json({ error: "nie ma zawodnika" }, 404);
+  const { data: a } = await admin.from("akcje").select("id,slug,start,testowa,konta_testowe").eq("slug", slug).maybeSingle();
+  if (!a) return json({ error: "nie ma takiej akcji" }, 404);
+  if (a.testowa && !((a.konta_testowe || []) as string[]).includes(ath.id)) return json({ error: "nie twoja akcja" }, 403);
+  const { data: d } = await admin.rpc("akcja_licznik", { p_slug: slug });
+  if (!d || !d.wystartowala) return json({ error: "akcja nie wystartowała" }, 422);
+  const dzis = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const { data: moje } = await admin.rpc("akcja_km_okna", { p_akcja_id: a.id, p_od: a.start, p_do: dzis, p_tylko: [ath.id] });
+  const mojeKm = Number(moje) || 0;
+  if (!(mojeKm > 0)) return json({ error: "brak kilometrów w akcji" }, 422);
+  const suma = Number(d.suma_km) || 0, pct = Math.min(100, Math.floor(Number(d.pct) || 0));
+  const plik = `akcja-${slug}-${ath.id}-${dzis}-${Math.round(mojeKm * 10)}-${Math.round(suma)}.jpg`;
+  const publicUrl = `${SB_URL}/storage/v1/object/public/${CARDS_BUCKET}/${plik}`;
+  const { data: juz } = await admin.storage.from(CARDS_BUCKET).list("", { search: plik, limit: 1 });
+  if (juz && juz.length) return json({ url: publicUrl, cached: true });
+  const tys = (x: number) => Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+  return await wyrenderuj(admin, {
+    plik, publicUrl, ziarno: plik, dataDoSezonu: new Date().toISOString(), ath: ath as Zawodnik,
+    meta: "mój wkład", bohater: fmtDystans1(mojeKm), jednostka: "KM", podpis: String(d.nazwa || "Akcja").toUpperCase(),
+    staty: [
+      { ikona: IKONY.aktywnosci, etykieta: "RAZEM", wartosc: tys(suma), jednostka: "km" },
+      { ikona: IKONY.kalendarz, etykieta: "CELU", wartosc: String(pct), jednostka: "%" },
+    ],
+    wlasneTlo: null, uklad: "standard",
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -857,8 +892,8 @@ Deno.serve(async (req) => {
     const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!jwt) return json({ error: "brak autoryzacji" }, 401);
 
-    const { log_id, moment_id } = await req.json().catch(() => ({}));
-    if (!log_id && !moment_id) return json({ error: "brak log_id albo moment_id" }, 400);
+    const { log_id, moment_id, akcja } = await req.json().catch(() => ({}));
+    if (!log_id && !moment_id && !akcja) return json({ error: "brak log_id, moment_id albo akcja" }, 400);
     if (log_id && typeof log_id !== "string") return json({ error: "złe log_id" }, 400);
     if (moment_id && typeof moment_id !== "string") return json({ error: "złe moment_id" }, 400);
 
@@ -868,6 +903,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "zły token" }, 401);
 
     if (moment_id) return await kartaMomentu(admin, user.id, moment_id);
+    if (akcja) return await kartaAkcji(admin, user.id, akcja);
 
     const { data: log } = await admin.from("training_logs")
       .select("id,athlete_id,distance_km,duration,pace,heart_rate,elevation_gain,calories,training_type,casual_effort,logged_at,external_source,card_bg_url")

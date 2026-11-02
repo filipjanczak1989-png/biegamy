@@ -7,11 +7,11 @@
   "use strict";
   var EF = "/functions/v1/akcja-licznik";
   var CACHE_MS = 60000;
-  var DNI_KARTY_PO_ZAMKNIECIU = 7;
+  var DNI_KARTY_PO_ZAMKNIECIU = 7;   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
   /* Formularz sponsora kilometrów (RPC akcja_deklaruj / akcja_wycofaj_deklaracje, migracja 20261102_akcja_deklaracje).
      Włączany RAZEM z migracją na prod — bez niej „Zapisz" dostałby błąd. */
   var DEKLARACJE_GOTOWE = true;   // 2.11: migracja 20261102_akcja_deklaracje NA PROD (OK Filipa)
-  var TEKST_DEKLARACJI = "Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy.";   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
+  var TEKST_DEKLARACJI = "Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy.";
 
   /* Własne formatowanie zamiast toLocaleString: polski format w przeglądarce NIE grupuje liczb 4-cyfrowych („1250"),
      a teksty akcji mówią „1 250 zł". Grupowanie zawsze, twarda spacja (liczba się nie łamie), przecinek dziesiętny. */
@@ -88,6 +88,7 @@
     ".akcja-wiecej,.akcja-link{cursor:pointer;font-family:inherit}button.akcja-link{background:transparent}" +
     ".akcja-sponsor{margin-top:10px;font-size:13px}.akcja-tekstowy{background:none;border:0;color:#ff8a3d;font:inherit;text-decoration:underline;cursor:pointer;padding:0}" +
     ".akcja-form{margin-top:10px}.akcja-form label{font-size:13px}.akcja-stawka{width:72px;margin:0 6px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font:inherit}" +
+    ".akcja-wyprawa{margin-top:8px;font-size:12px;color:var(--fg,#f0ede8)}" +
     ".akcja-uwaga{font-size:12px;color:var(--fg2,rgba(240,237,232,.7));margin:8px 0 10px;line-height:1.45}";
   function wstrzyknijCss() {
     try {
@@ -120,9 +121,17 @@
       '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
       '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
       (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
+      (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
       sponsorHtml(wklad) +
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="dla-fabianka.html">Szczegóły ›</a>' +
+      (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") +
       (link ? '<a class="akcja-link" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + "</div></div>";
+  }
+
+  /** Wyprawa na Jasną Górę (spec v3 pkt 3): tylko gdy Filip ustawi cel (akcje.wyprawa_cel_km). Km z licznika (wyprawa_km). */
+  function tekstWyprawy(d) {
+    if (!d || !d.wystartowala || d.wyprawa_cel_km == null) return "";
+    return "Wyprawa na Jasną Górę · Filip i Kasia: " + km(d.wyprawa_km) + " z " + km(d.wyprawa_cel_km) + " km" + (d.wyprawa_dotarla_at ? " · dotarli ✓" : "");
   }
 
   /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj" albo „Zostań sponsorem" z formularzem.
@@ -148,7 +157,7 @@
   }
 
   g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
-    pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
+    tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI,
     CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
 })(typeof globalThis !== "undefined" ? globalThis : this);

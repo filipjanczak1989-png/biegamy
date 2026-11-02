@@ -566,11 +566,26 @@
     { id: 'film-02', mp4: 'filmy/film-02.mp4', webm: 'filmy/film-02.webm', poster: 'filmy/film-02-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 12%' }, { od: 6.88, pos: '50% 0%' }, { od: 8.3, pos: '50% 72%' }] },
   ];
+  /* FILM AKCJI (projekt F, spec v3 pkt 2): od startu akcji baner gra film akcji zamiast FILMY_PROMO — RAZ u każdego
+     (znacznik 'film_akcji'), nawet jeśli dziś już grał teaser. Do czasu pliku od Filipa null → bez zmian (film-02).
+     Przygotowanie: node tools/filmy/przygotuj.mjs <plik.mp4> film-akcja → biegamy-assets/filmy, potem obiekt jak w FILMY_PROMO:
+     { id: 'film-akcja', mp4: 'filmy/film-akcja.mp4', webm: 'filmy/film-akcja.webm', poster: 'filmy/film-akcja-poster.jpg',
+       dzwiek: true, pozycje: [{ od: 0, pos: '50% 50%' }] }. Stan akcji: BM_AKCJA_CYTATY.czyAkcjaRuszyla() (js/akcja-cytaty.mjs). */
+  window.FILM_AKCJI = null;
   window.FILM_DZIS = (function () {
-    var KLUCZ = 'film_dzis', CZEKAJ_MS = 4000;
+    var KLUCZ = 'film_dzis', KLUCZ_AKCJI = 'film_akcji', CZEKAJ_MS = 4000;
+    function filmAkcjiTeraz() {
+      var A = window.BM_AKCJA_CYTATY;
+      return !!(window.FILM_AKCJI && A && typeof A.czyAkcjaRuszyla === 'function' && A.czyAkcjaRuszyla());
+    }
+    function filmAkcjiByl() { try { return window.localStorage.getItem(KLUCZ_AKCJI) === '1'; } catch (e) { return false; } }
+    /** Czy film akcji czeka na pierwsze odtworzenie (akcja ruszyła, plik jest, jeszcze nie grał u tej osoby). */
+    function czekaFilmAkcji() { return filmAkcjiTeraz() && !filmAkcjiByl(); }
     function dzis(teraz) { var d = teraz || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
     function czytaj() { try { return window.localStorage.getItem(KLUCZ); } catch (e) { return null; } }
-    function oznacz(teraz) { try { window.localStorage.setItem(KLUCZ, dzis(teraz)); } catch (e) {} }
+    function oznacz(teraz) {
+      try { window.localStorage.setItem(KLUCZ, dzis(teraz)); if (filmAkcjiTeraz()) window.localStorage.setItem(KLUCZ_AKCJI, '1'); } catch (e) {}
+    }
     function wymuszony() { try { return new URLSearchParams(window.location.search || '').get('film') === '1'; } catch (e) { return false; } }
     /** Powód, dla którego film NIE gra (albo null = grać). Kolejność: preferencje człowieka, potem sieć, potem „już był". */
     function powodBlokady(teraz) {
@@ -578,10 +593,10 @@
       var c = window.navigator && window.navigator.connection;
       if (c && c.saveData) return 'save-data';
       if (window.navigator && window.navigator.onLine === false) return 'offline';
-      if (czytaj() === dzis(teraz) && !wymuszony()) return 'juz-dzis';   // ?film=1 — test: pomija „raz dziennie" dla tej wizyty
+      if (czytaj() === dzis(teraz) && !wymuszony() && !czekaFilmAkcji()) return 'juz-dzis';   // ?film=1 — test; film akcji raz u każdego
       return null;
     }
-    function filmDnia(teraz) { var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
+    function filmDnia(teraz) { if (filmAkcjiTeraz()) return window.FILM_AKCJI; var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
     function pozycja(film, t) { var p = film.pozycje[0].pos; film.pozycje.forEach(function (x) { if (t >= x.od) p = x.pos; }); return p; }
     /* ▶ PONOWNE ODTWORZENIE (2.11.2026): po końcu / pominięciu filmu, a także gdy dziś już był albo przy reduced-motion
        (świadomy wybór — przycisk JEST, ale bez autostartu). Prawy dolny róg banera: 32 px wizualnie, pole dotyku 44 px,
@@ -730,7 +745,7 @@
       setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
       return v;
     }
-    return { start: start, pokazPowtorke: pokazPowtorke, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
+    return { czekaFilmAkcji: czekaFilmAkcji,  start: start, pokazPowtorke: pokazPowtorke, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
   })();
 
   window.escapeHtml = function(s) {

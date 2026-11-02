@@ -73,7 +73,7 @@ test('zawodnik.html: cytat akcji przed „Twój plan" i zwykłym; skrypt w preca
   assert.match(z, /if \(name === 'home' && typeof window\.odswiezCytatAkcji === 'function'\) window\.odswiezCytatAkcji\(\);/);
   // projekt F dzień 2: powrót karty → najpierw stan z bazy (cache 60 s), potem cytat (tylko na Dziś) — blizna-96
   assert.match(z, /document\.addEventListener\('visibilitychange', function \(\) \{\n\s*if \(document\.visibilityState === 'visible'\) window\._odswiezStanAkcji\(\);/);
-  assert.match(z, /if \(\(window\._currentSection \|\| 'home'\) === 'home'\) window\.odswiezCytatAkcji\(\);/);
+  assert.match(z, /if \(\(window\._currentSection \|\| 'home'\) === 'home'\) \{\n\s*window\.odswiezCytatAkcji\(\);/);
   const i = z.indexOf('window.odswiezCytatAkcji = function'), f = z.slice(i, z.indexOf('\n};\n', i));
   assert.ok(!/setInterval|setTimeout/.test(f), 'bez pollingu');
 });
