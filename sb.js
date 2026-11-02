@@ -565,6 +565,13 @@
        Startuje wyciszony; dźwięk tylko z przycisku 🔊 (ten sam <video>, bez osobnego pliku audio). Pliki film-01 zostają w assets. */
     { id: 'film-02', mp4: 'filmy/film-02.mp4', webm: 'filmy/film-02.webm', poster: 'filmy/film-02-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 12%' }, { od: 6.88, pos: '50% 0%' }, { od: 8.3, pos: '50% 72%' }] },
+    /* FILM-03 (2.11.2026 wieczór, Filip: „żeby jutro rano grał"): 12,96 s z dźwiękiem (przygotuj.mjs od 2.11 zachowuje audio: AAC/Opus).
+       0–10 s pełny kadr 16:9 — nogi i buty w DOLNEJ połowie → dolny pas (50% 100%); cięcie w 10,00 s → kwadratowy kadr z czarnymi
+       pasami po bokach i logo „BiegaMy jesteśmy obok" u góry → górny pas (50% 0%) od 9,6 s, żeby przejście CSS 0,6 s skończyło się
+       PRZED cięciem (logo od pierwszej klatki całe; w pasie ~49% wysokości kadru logo sięga ~35%). Mapowanie dni: YYYYMMDD % 2 —
+       3.11 (20261103) → indeks 1 = film-03, 4.11 → film-02, i tak na przemian. */
+    { id: 'film-03', mp4: 'filmy/film-03.mp4', webm: 'filmy/film-03.webm', poster: 'filmy/film-03-poster.jpg',
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 100%' }, { od: 9.6, pos: '50% 0%' }] },
   ];
   /* FILM AKCJI (projekt F, spec v3 pkt 2): od startu akcji baner gra film akcji zamiast FILMY_PROMO — RAZ u każdego
      (znacznik 'film_akcji'), nawet jeśli dziś już grał teaser. Do czasu pliku od Filipa null → bez zmian (film-02).

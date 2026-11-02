@@ -23,7 +23,8 @@ const { zaladujSb } = require('./_srodowisko.js');
 
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
-const TERAZ = new Date('2026-11-01T10:00:00');
+// FILM-03 (2.11): dwa filmy na przemian (YYYYMMDD % 2) — „dziś" testu = 2.11 (parzysty → film-02); 1.11 dawałoby film-03
+const TERAZ = new Date('2026-11-02T10:00:00');
 
 function el(tag) {
   const e = { tag, style: {}, dataset: {}, dzieci: [], atrybuty: {}, h: {}, parentNode: null,
@@ -59,13 +60,13 @@ function srodowisko({ ruch = false, saveData = false, online = true, zapis = nul
 }
 
 test('(1) warunki: reduced-motion, Save-Data, offline, już dziś → nie gra; localStorage rzucający → gra bez wyjątku', () => {
-  for (const [opcje, powod] of [[{ ruch: true }, 'reduced-motion'], [{ saveData: true }, 'save-data'], [{ online: false }, 'offline'], [{ zapis: '2026-11-01' }, 'juz-dzis']]) {
+  for (const [opcje, powod] of [[{ ruch: true }, 'reduced-motion'], [{ saveData: true }, 'save-data'], [{ online: false }, 'offline'], [{ zapis: '2026-11-02' }, 'juz-dzis']]) {
     const s = srodowisko(opcje);
     assert.equal(s.ctx.FILM_DZIS.powodBlokady(TERAZ), powod);
     assert.equal(s.ctx.FILM_DZIS.start(s.baner, TERAZ), null);
     assert.equal(s.baner.dataset.film, powod); assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'baner bez filmu — cytat jak zawsze');
   }
-  assert.equal(srodowisko({ zapis: '2026-10-31' }).ctx.FILM_DZIS.powodBlokady(TERAZ), null, 'wczoraj → dziś znowu');
+  assert.equal(srodowisko({ zapis: '2026-11-01' }).ctx.FILM_DZIS.powodBlokady(TERAZ), null, 'wczoraj → dziś znowu');
   const p = srodowisko({ rzuca: true });
   assert.equal(p.ctx.FILM_DZIS.powodBlokady(TERAZ), null);
   assert.ok(p.ctx.FILM_DZIS.start(p.baner, TERAZ));
@@ -81,7 +82,7 @@ test('(6) start: niewidoczne, bez autoplay; preload auto po wyrenderowaniu; play
   assert.equal(v.grano, 1, 'play raz, po canplaythrough');
   assert.equal(v.style.opacity, undefined, 'nadal niewidoczne do „playing"');
   v.emit('playing');
-  assert.equal(v.style.opacity, '1'); assert.equal(s.mag.get('film_dzis'), '2026-11-01');
+  assert.equal(v.style.opacity, '1'); assert.equal(s.mag.get('film_dzis'), '2026-11-02');
   s.uplyw(5000);
   assert.equal(s.baner.dzieci.length, 2, 'limit 4 s nie dotyczy filmu, który już gra (film + 🔊)');
   assert.match(czytaj('tools/filmy/przygotuj.mjs'), /ff\(\["-i", wej, "-frames:v", "1"/, 'plakat z klatki 0 (bez -ss)');
@@ -114,7 +115,7 @@ test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+web
   for (const [t, p] of [[0, '50% 12%'], [6.87, '50% 12%'], [6.88, '50% 0%'], [8.29, '50% 0%'], [8.3, '50% 72%'], [9.9, '50% 72%']]) { v.currentTime = t; v.emit('timeupdate'); assert.equal(v.style.objectPosition, p, 't=' + t); }
   assert.equal(s.mag.get('film_dzis'), undefined, 'znacznik dopiero, gdy film naprawdę gra');
   v.emit('playing');
-  assert.equal(s.mag.get('film_dzis'), '2026-11-01'); assert.equal(s.baner.dataset.film, 'gra');
+  assert.equal(s.mag.get('film_dzis'), '2026-11-02'); assert.equal(s.baner.dataset.film, 'gra');
   assert.equal(s.ctx.FILM_DZIS.start(s.baner, TERAZ), null, 'drugi film na tym samym banerze — nie');
   v.emit('ended');
   assert.equal(v.style.opacity, '0'); s.uplyw(520); assert.equal(s.baner.dzieci.filter((d) => d.className !== 'film-powtorz').length, 0, 'po końcu film znika — cytat pod spodem wraca'); assert.ok(v.pauza);
@@ -149,7 +150,13 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const sb = czytaj('sb.js');
   assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 12%' \}, \{ od: 6\.88, pos: '50% 0%' \}, \{ od: 8\.3, pos: '50% 72%' \}\] \}/);
   const promo = sb.slice(sb.indexOf('window.FILMY_PROMO = ['), sb.indexOf('];', sb.indexOf('window.FILMY_PROMO = [')));
-  assert.equal((promo.match(/\{ id: 'film-/g) || []).length, 1, 'tylko jeden film'); assert.match(promo, /id: 'film-02'/);
+  // FILM-03 (2.11): dwa filmy na przemian — YYYYMMDD % 2: 3.11 → film-03, 4.11 → film-02 (film-02 zostaje na indeksie 0)
+  assert.equal((promo.match(/\{ id: 'film-/g) || []).length, 2, 'dwa filmy: film-02 i film-03'); assert.match(promo, /id: 'film-02'/);
+  assert.match(promo, /\{ id: 'film-03', mp4: 'filmy\/film-03\.mp4', webm: 'filmy\/film-03\.webm', poster: 'filmy\/film-03-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 100%' \}, \{ od: 9\.6, pos: '50% 0%' \}\] \}/);
+  assert.ok(promo.indexOf("id: 'film-02'") < promo.indexOf("id: 'film-03'"), 'film-02 pierwszy — 3.11 (nieparzysty) = film-03');
+  const sr = srodowisko();
+  assert.equal(sr.ctx.FILM_DZIS.filmDnia(new Date('2026-11-03T08:00:00')).id, 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
+  assert.equal(sr.ctx.FILM_DZIS.filmDnia(new Date('2026-11-04T08:00:00')).id, 'film-02', '4.11 → film-02');
   assert.ok(!/film-0\d/.test(czytaj('sw.js').slice(czytaj('sw.js').indexOf('const PRECACHE_URLS'), czytaj('sw.js').indexOf('const PRECACHE_KRYTYCZNE'))), 'filmy poza precache');
 });
 
@@ -216,15 +223,15 @@ test('(7) 🔊: start wyciszony; przycisk 44 px z aria-label pojawia się przy �
 });
 
 test('(7) ?film=1 pomija „raz dziennie" dla tej wizyty — ale nie reduced-motion, Save-Data ani offline', () => {
-  const z = srodowisko({ zapis: '2026-11-01' });
+  const z = srodowisko({ zapis: '2026-11-02' });
   assert.equal(z.ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
   z.ctx.location = { search: '?film=1' };
   assert.equal(z.ctx.FILM_DZIS.powodBlokady(TERAZ), null, '?film=1 → gra mimo znacznika');
-  const r = srodowisko({ zapis: '2026-11-01', ruch: true }); r.ctx.location = { search: '?film=1' };
+  const r = srodowisko({ zapis: '2026-11-02', ruch: true }); r.ctx.location = { search: '?film=1' };
   assert.equal(r.ctx.FILM_DZIS.powodBlokady(TERAZ), 'reduced-motion');
   const o = srodowisko({ online: false }); o.ctx.location = { search: '?x=1&film=1' };
   assert.equal(o.ctx.FILM_DZIS.powodBlokady(TERAZ), 'offline');
-  const inny = srodowisko({ zapis: '2026-11-01' }); inny.ctx.location = { search: '?film=0' };
+  const inny = srodowisko({ zapis: '2026-11-02' }); inny.ctx.location = { search: '?film=0' };
   assert.equal(inny.ctx.FILM_DZIS.powodBlokady(TERAZ), 'juz-dzis');
 });
 
@@ -261,7 +268,7 @@ test('(8) ▶: po końcu filmu wraca cytat i ▶ (32 px w polu 44 px, opacity .7
 });
 
 test('(8) ▶ bez autostartu: „już dziś" i reduced-motion → od razu ▶; offline / Save-Data / brak filmu → bez ▶; ręczne gra mimo reduced-motion', () => {
-  const j = srodowisko({ zapis: '2026-11-01' });
+  const j = srodowisko({ zapis: '2026-11-02' });
   assert.equal(j.ctx.FILM_DZIS.start(j.baner, TERAZ), null);
   assert.ok(powtorka(j.baner), 'już dziś → ▶'); assert.ok(!j.baner.dzieci.some((d) => d.className === 'film-dzis'), 'bez autostartu');
   const r = srodowisko({ ruch: true });
@@ -275,7 +282,7 @@ test('(8) ▶ bez autostartu: „już dziś" i reduced-motion → od razu ▶; o
     assert.equal(x.baner.dzieci.length, 0, JSON.stringify(o) + ' → bez ▶');
     assert.equal(x.ctx.FILM_DZIS.pokazPowtorke(x.baner, TERAZ), null);
   }
-  const bez = srodowisko({ zapis: '2026-11-01' });
+  const bez = srodowisko({ zapis: '2026-11-02' });
   bez.ctx.FILMY_PROMO = [];
   bez.ctx.FILM_DZIS.start(bez.baner, TERAZ);
   assert.equal(bez.baner.dzieci.length, 0, 'brak filmu w FILMY_PROMO → bez ▶');
@@ -286,7 +293,7 @@ test('(8) autostart zawsze muted=true; ▶ odrzucone z dźwiękiem → gra wycis
   const v = a.ctx.FILM_DZIS.start(a.baner, TERAZ);
   assert.equal(v.muted, true); assert.ok('muted' in v.atrybuty);
   v.emit('canplaythrough'); assert.deepEqual(v.playMuted, [true], 'autostart: play() wyciszony');
-  const s = srodowisko({ zapis: '2026-11-01', play: 'blokada-dzwieku' });
+  const s = srodowisko({ zapis: '2026-11-02', play: 'blokada-dzwieku' });
   s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   s.baner.dzieci.find((d) => d.className === 'film-powtorz').emit('click', { stopPropagation() {} });
   const v2 = s.baner.dzieci.find((d) => d.className === 'film-dzis');
@@ -296,7 +303,7 @@ test('(8) autostart zawsze muted=true; ▶ odrzucone z dźwiękiem → gra wycis
   const g = s.baner.dzieci.find((d) => d.className === 'film-dzwiek');
   assert.equal(g.textContent, '🔊'); assert.equal(g.atrybuty['aria-label'], 'Włącz dźwięk');
   assert.ok(s.baner.dzieci.includes(v2), 'film gra dalej (wyciszony)');
-  const b = srodowisko({ zapis: '2026-11-01', play: 'blokada' });
+  const b = srodowisko({ zapis: '2026-11-02', play: 'blokada' });
   b.ctx.FILM_DZIS.start(b.baner, TERAZ);
   b.baner.dzieci.find((d) => d.className === 'film-powtorz').emit('click', { stopPropagation() {} });
   await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r)); b.uplyw(520);
@@ -306,7 +313,7 @@ test('(8) autostart zawsze muted=true; ▶ odrzucone z dźwiękiem → gra wycis
 
 test('(8) ▶ AbortError (przerwane ładowaniem) → druga próba Z DŹWIĘKIEM po canplay; NotAllowedError → od razu wyciszony; każde odrzucenie → client_errors', async () => {
   const klik = (s) => { s.ctx.FILM_DZIS.start(s.baner, TERAZ); s.baner.dzieci.find((d) => d.className === 'film-powtorz').emit('click', { stopPropagation() {} }); return s.baner.dzieci.find((d) => d.className === 'film-dzis'); };
-  const a = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'ok'] });
+  const a = srodowisko({ zapis: '2026-11-02', play: ['AbortError', 'ok'] });
   const v = klik(a);
   assert.equal(v.preload, 'auto', 'preload auto PRZED play()'); assert.equal(v.zaladowano, undefined, 'przy ▶ bez load() (to on przerywał play)');
   await new Promise((r) => setImmediate(r));
@@ -321,20 +328,20 @@ test('(8) ▶ AbortError (przerwane ładowaniem) → druga próba Z DŹWIĘKIEM 
   assert.equal(w.kind, 'media'); assert.equal(w.source, 'FILM_DZIS.play'); assert.match(w.message, /^▶ pierwsza · AbortError/);
   assert.equal(typeof w.user_agent, 'string'); assert.deepEqual(Object.keys(w).sort(), ['app_version', 'created_at', 'kind', 'message', 'source', 'url', 'user_agent', 'user_id'].sort());
 
-  const n = srodowisko({ zapis: '2026-11-01', play: ['NotAllowedError', 'ok'] });
+  const n = srodowisko({ zapis: '2026-11-02', play: ['NotAllowedError', 'ok'] });
   const vn = klik(n);
   await new Promise((r) => setImmediate(r));
   assert.deepEqual(vn.playMuted, [false, true], 'NotAllowedError → od razu wyciszony');
   assert.equal(n.baner.dzieci.find((d) => d.className === 'film-dzwiek').textContent, '🔊');
   assert.match(n.zgloszenia[0].w.message, /NotAllowedError/);
 
-  const dwa = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'AbortError', 'ok'] });
+  const dwa = srodowisko({ zapis: '2026-11-02', play: ['AbortError', 'AbortError', 'ok'] });
   const vd = klik(dwa);
   await new Promise((r) => setImmediate(r)); vd.emit('canplay'); await new Promise((r) => setImmediate(r));
   assert.deepEqual(vd.playMuted, [false, false, true], 'druga porażka → wyciszony (tylko JEDNA ponowna próba)');
   assert.equal(dwa.zgloszenia.length, 2);
 
-  const brak = srodowisko({ zapis: '2026-11-01', play: ['AbortError', 'ok'] });
+  const brak = srodowisko({ zapis: '2026-11-02', play: ['AbortError', 'ok'] });
   const vb = klik(brak);
   await new Promise((r) => setImmediate(r)); brak.uplyw(4000);
   assert.deepEqual(vb.playMuted, [false, true], 'canplay nie przyszło w 4 s → wyciszony');
