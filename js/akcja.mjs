@@ -10,7 +10,7 @@
   var DNI_KARTY_PO_ZAMKNIECIU = 7;
   /* Formularz sponsora kilometrów (RPC akcja_deklaruj / akcja_wycofaj_deklaracje, migracja 20261102_akcja_deklaracje).
      Włączany RAZEM z migracją na prod — bez niej „Zapisz" dostałby błąd. */
-  var DEKLARACJE_GOTOWE = false;
+  var DEKLARACJE_GOTOWE = true;   // 2.11: migracja 20261102_akcja_deklaracje NA PROD (OK Filipa)
   var TEKST_DEKLARACJI = "Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy.";   // v2 pkt 3.3: „Zrobiliśmy to" na Dziś przez 7 dni, potem znika
 
   /* Własne formatowanie zamiast toLocaleString: polski format w przeglądarce NIE grupuje liczb 4-cyfrowych („1250"),
