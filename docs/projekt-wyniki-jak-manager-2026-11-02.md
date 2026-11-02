@@ -508,3 +508,20 @@ i może iść równolegle z 2. Krok 4 wymaga 1 + 2 + 3 (dla `event_key`; bez nie
 10. **Rekord trasy z wierszy `probable`** (dopiętych po nazwisku i roczniku) — liczyć z etykietą czy pomijać?
 11. **Powiadomienie push** przy różnicy > 2 % (`notifications` + `trigger_send_push`) czy tylko dopisek w UI?
 12. **Licznik użycia** `wyniki.html` (ekran, bez kluczy) — chcemy pomiar, czy pytamy Maćka/Kasię jak dotąd?
+
+## Decyzje Filipa 2.11.2026 (wieczór) — projekt A/B PRZYJĘTY
+
+- **Konto serwisowe F6: TAK, wyłącznie serwer** (EF/cron; nigdy w przeglądarce). Dopasowanie hurtowe staje się możliwe w kroku 4;
+  v1 (krok 2) zostaje leniwe w przeglądarce właściciela/trenera.
+- **Nowa `wyniki.html`** (`races.html` = kalendarz).
+- **Widoczność wyniku zgłoszonego = jak profil**: publiczny → wszyscy zalogowani; prywatny → sam + trener (polityka `wz_read_public` po `is_public`).
+- **Progi tempa**: CHECK 2:20–20:00/km w bazie + miękkie ostrzeżenia z tabeli 3.3 (liczby z rekordów świata i rozsądku, nie z pomiaru).
+- **Klucze `k:<nazwisko>|<rocznik>`**: poszerzyć CHECK `athletes.f6_runner_key` (i `RE_KLUCZ` w kliencie/EF) o ten kształt — osoby bez id
+  ze źródła też mogą kliknąć „To ja"; w linku `#/zawodnik/k:…` nazwisko jest (wyniki publiczne) — świadomie.
+- **Kolejność wg projektu**; etapy (1) `wyniki.html` i (2) tabela + modal zaczynają się 2.11 (poza plikami zamrożonymi: do 8.11 bez
+  `zawodnik.html`/`index.html`/`sw.js` — wejścia z Dziś i precache SW po zamrożeniu). Migracje: test w transakcji, OK Filipa jak zwykle.
+- Pozostałe pytania — rozstrzygnięte wg projektu: (1) `event_course_status` zostaje nieużywane do czasu kontraktu z kolektora;
+  (5) edycja krzyżowa zawodnik ↔ trener: TAK (polityki own/coach); (6) zgłoszony nie wchodzi do odznak/wyzwań/`pb_*` — tylko podpowiedź
+  „zaktualizuj życiówkę"; (7) link bez sesji: `wyniki.html` zapamiętuje sam hash w `sessionStorage` przed przekierowaniem i wraca po
+  logowaniu (bez danych osób); (10) rekord trasy z wierszy `probable`: liczyć z etykietą „prawdopodobnie" (jak profil);
+  (11) różnica > 2 %: tylko dopisek w UI (bez pusha w v1); (12) licznik użycia: NIE — jak dotąd pytamy ludzi.

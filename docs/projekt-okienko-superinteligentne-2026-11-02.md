@@ -477,3 +477,12 @@ projekcie — zasada bez zmian: EF i model nie piszą.
 10. **Cena bez karty** (2.8): sieć z intencją wpisowego, czy w ogóle bez sieci („cenę podaje organizator”)?
 11. **Log**: nowy tryb `wyniki` w CHECK (migracja) czy `router` + nazwa narzędzia (bez migracji; ale `zapytania_f6`
     i tak wymaga migracji)?
+
+## Decyzje Filipa 2.11.2026 (wieczór) — projekt PRZYJĘTY, START 9.11 (po zamrożeniu akcji)
+
+- Katar/zdrowie → **stałe teksty bez sieci** (szkic w tonie Filipa do akceptacji przed wdrożeniem; zmiana decyzji z 1.11).
+- Porady ogólne (buty, co jeść…) → **model bez sieci** z dopiskiem „ogólna wskazówka".
+- **Słownik nazwisk PESEL + miasta TERYT — tak** (generatory w tools/, pliki w `_shared/`).
+- **„Który X?" przy wielu trafieniach samego nazwiska — tak, do 5.**
+- **Budżet bez zmian** + **raport kosztów co tydzień** (z `okienko_log`: tokeny, zapytania sieci, F6).
+- Cel: **ławka 100 pytań ≥ 95 % dobrych** (ocena obiektywna, E0 pierwsze).

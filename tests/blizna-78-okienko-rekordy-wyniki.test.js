@@ -94,6 +94,8 @@ test('moje_wyniki: zapamiętany f6_runner_key wygrywa (bez search_runners); „w
 });
 
 test('migracja: kolumna z CHECK formatu, wyzwalacz blokuje zapis poza RPC, RPC z auth.uid(), anon bez EXECUTE, GRANT SELECT, WYCOFANIE', () => {
+  // 2.11: CHECK poszerzony o k:<nazwisko>|<rocznik> w 20261102_wyniki_zgloszone.sql (decyzja Filipa) — stara migracja bez zmian
+  assert.match(czytaj('supabase', 'migrations', '20261102_wyniki_zgloszone.sql'), /athletes_f6_runner_key_check check \(f6_runner_key is null or f6_runner_key ~ '\^\[a-z0-9_-\]\{2,30\}:\[A-Za-z0-9\._-\]\{1,80\}\$\|\^k:\[\^\|\]\{2,60\}\\\|\[0-9\]\{4\}\$'\)/);
   const m = czytaj('supabase', 'migrations', '20261101_f6_runner_key.sql');
   assert.match(m, /add column if not exists f6_runner_key text\s*\n\s*check \(f6_runner_key is null or f6_runner_key ~ '\^\[a-z0-9_-\]\{2,30\}:\[A-Za-z0-9\._-\]\{1,80\}\$'\)/);
   assert.match(m, /grant select \(f6_runner_key\) on public\.athletes to authenticated;/);

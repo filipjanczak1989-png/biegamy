@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<!-- WYNIKI „JAK MANAGER" — etap 1+2 (2.11.2026, docs/projekt-wyniki-jak-manager-2026-11-02.md, decyzje Filipa 2.11 wieczór).
+     Jeden dokument + hash-routing (#/, #/zawodnik/<klucz>, #/porownaj/<a>/<b>; #/impreza — etap 3, czeka na kolektor): stos „wstecz"
+     przez pushState/popstate, pamięć 10 min w dokumencie (nigdy sessionStorage/localStorage z danymi osób), prefetch tylko z intencji
+     (pointerdown na kandydacie), wyłącznik prefetchu po 429. Wymaga sesji (F6 odrzuca anonima) — hash zapamiętany w sessionStorage
+     (sam hash, bez danych) i przywrócony po logowaniu. Logika: js/wyniki-lista.mjs (BM_WYNIKI), js/wynik-zgloszony.mjs. -->
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BiegaMy — Wyniki</title>
+<script src="vendor/supabase-js-2.112.4.min.js"></script>
+<script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
+<script src="js/tekst.mjs"></script>
+<script src="js/kalendarz-lista.mjs"></script>
+<script src="sb.js"></script><script src="js/dzis-offline.js"></script><script src="js/wyszukiwarka-wynikow.js"></script><script src="js/wyniki-api.js"></script>
+<script src="js/wyniki-lista.mjs"></script><script src="js/wynik-zgloszony.mjs"></script>
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-height:100%;}
+#topbar{display:flex;align-items:center;gap:12px;padding:52px 20px 14px;background:var(--bg);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+#topbar h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;}
+#topbar .w-dzial{margin-left:auto;display:flex;gap:8px;}
+.top-back-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--fg);border-radius:12px;padding:8px 14px;font-size:13px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;text-decoration:none;}
+#content{padding:12px 16px 100px;max-width:640px;margin:0 auto;}
+.w-karta{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:12px;}
+.w-karta h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:8px;}
+.w-naglowek{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.w-muted{color:var(--muted);font-size:12px;}
+.w-prawd{color:var(--muted);font-size:11px;font-style:italic;}
+.w-btn{background:transparent;border:1px solid rgba(var(--accent-rgb),0.5);color:var(--accent);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.w-btn.glowny{background:var(--accent);color:#fff;border-color:var(--accent);}
+.w-rekordy{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.w-rek{background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 12px;}
+.w-rek b{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;display:block;}
+.w-rek span{font-size:11px;color:var(--muted);}
+table.w-tab{width:100%;border-collapse:collapse;font-size:13px;}
+table.w-tab th{text-align:left;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;padding:6px 4px;border-bottom:1px solid var(--border);}
+table.w-tab td{padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:top;}
+table.w-tab tr.w-klik{cursor:pointer;}
+table.w-tab a{color:var(--accent);text-decoration:none;}
+.w-etyk{display:inline-block;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px;font-family:'DM Mono',monospace;}
+.w-szybszy{color:#3db870;font-weight:600;}
+.w-ostatnio button{display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:10px 0;font:inherit;cursor:pointer;}
+.w-pasek{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px;}
+[hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a class="top-back-btn" href="races.html" id="w-wstecz">‹ Wstecz</a>
+  <h1 id="w-tytul">Wyniki</h1>
+  <div class="w-dzial"><button type="button" class="w-btn" id="w-udostepnij" hidden>Udostępnij</button></div>
+</div>
+<div id="content">
+  <div id="w-status" class="w-muted" role="status"></div>
+  <div id="w-ekran"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function () {
+  'use strict';
+  var _sb = window.sb, W = window.BM_WYNIKI, Z = window.BM_WYNIK_ZGLOSZONY, esc = window.escapeHtml;
+  var api = null, pam = W.pamiec(), wyl = W.wylacznik(), stos = [], _athleteId = null, _mojKlucz = null, _isCoach = false, _wyszukiwarka = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var ekran = $('w-ekran'), status = $('w-status'), tytul = $('w-tytul'), udost = $('w-udostepnij');
+  var KLUCZ_HASH = 'bm_wyniki_hash';   // sam hash (bez danych osób) — powrót po logowaniu
+
+  function komunikat(err) { var k = window._wyszukiwarkaWynikow; return k ? k.komunikatBledu(err, 'Nie udało się pobrać wyników.') : 'Nie udało się pobrać wyników.'; }
+  async function rpc(nazwa, args, opcje) {
+    var k = pam.klucz(nazwa, args), z = pam.czytaj(k);
+    if (z) return { data: z, zPamieci: true };
+    if (opcje && opcje.prefetch && !wyl.wolno()) return { error: { kod: 'wylacznik' } };
+    var r = await api.rpc(nazwa, args);
+    if (r.error) { if (r.error.status === 429 || r.error.kod === 'limit') wyl.zglos429(r.error.retryAfter); return r; }
+    pam.zapisz(k, r.data || []);
+    return { data: r.data || [] };
+  }
+  async function wyniki(klucz, opcje) { var r = await rpc('runner_results', { p_runner_key: klucz }, opcje); return r.error ? r : { data: r.data.map(W.wiersz) }; }
+
+  /* ── nawigacja: pushState + popstate (render z pamięci — zero RPC przy powrocie) ── */
+  function idz(stan, zamien) {
+    var h = W.hashDla(stan);
+    if (zamien) history.replaceState({ h: h }, '', h); else history.pushState({ h: h, y: window.scrollY }, '', h);
+    renderuj(W.parsuj(h));
+  }
+  window.addEventListener('popstate', function () { renderuj(W.parsuj(location.hash)); });
+  ekran.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-klucz],[data-porownaj],[data-toja],[data-wpisz],[data-usun-wz]') : null;
+    if (!el) return;
+    if (el.hasAttribute('data-klucz') && W.kluczOk(el.getAttribute('data-klucz'))) { e.preventDefault(); idz({ ekran: 'zawodnik', klucz: el.getAttribute('data-klucz') }); }
+    else if (el.hasAttribute('data-porownaj')) { e.preventDefault(); porownajZ(el.getAttribute('data-porownaj')); }
+    else if (el.hasAttribute('data-toja')) { e.preventDefault(); toJa(el.getAttribute('data-toja'), el); }
+    else if (el.hasAttribute('data-wpisz')) { e.preventDefault(); wpiszWynik(el); }
+    else if (el.hasAttribute('data-usun-wz')) { e.preventDefault(); usunWynik(el.getAttribute('data-usun-wz'), el); }
+  });
+  ekran.addEventListener('pointerdown', function (e) {   // prefetch TYLKO z intencji (dotknięcie kandydata), jedno wywołanie
+    var el = e.target.closest ? e.target.closest('[data-klucz]') : null;
+    if (el && W.kluczOk(el.getAttribute('data-klucz'))) wyniki(el.getAttribute('data-klucz'), { prefetch: true }).catch(function () {});
+  });
+  udost.addEventListener('click', async function () {
+    var url = location.href.split('#')[0] + location.hash;
+    try { if (navigator.share) await navigator.share({ url: url }); else { await navigator.clipboard.writeText(url); showToast('Link skopiowany.'); } } catch (e) {}
+  });
+
+  /* ── ekrany ── */
+  function renderuj(s) {
+    status.textContent = ''; udost.hidden = s.ekran === 'szukaj';
+    if (s.ekran === 'zawodnik') return ekranZawodnika(s.klucz);
+    if (s.ekran === 'porownaj') return ekranPorownania(s.a, s.b);
+    if (s.ekran === 'impreza') { tytul.textContent = 'Impreza'; ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Wyniki całej imprezy pojawią się po rozszerzeniu maszyny wyników (etap 3). Na razie: profil zawodnika i porównania.</div></div>'; return; }
+    ekranSzukaj(s.zly);
+  }
+  function ekranSzukaj(zly) {
+    tytul.textContent = 'Wyniki';
+    ekran.innerHTML = '<div class="w-karta"><div class="w-naglowek">Szukaj zawodnika</div><div id="w-szukaj"></div></div>' +
+      (zly ? '<div class="w-muted" style="margin-bottom:10px;">Ten link nie wskazuje na zawodnika.</div>' : '') +
+      '<div class="w-karta" id="w-moje" hidden><div class="w-naglowek">Moje wyniki</div><div class="w-pasek"></div></div>' +
+      '<div class="w-karta" id="w-ostatnio" hidden><div class="w-naglowek">Ostatnio oglądani</div><div class="w-ostatnio"></div></div>';
+    _wyszukiwarka = window.initResultsSearch({ client: api, root: $('w-szukaj'), naKandydata: function (c) { if (W.kluczOk(c.runner_key)) { zapamietaj(c); idz({ ekran: 'zawodnik', klucz: c.runner_key }); } } });
+    var moje = $('w-moje'), pasek = moje.querySelector('.w-pasek');
+    if (_mojKlucz) { moje.hidden = false; pasek.innerHTML = '<button type="button" class="w-btn glowny" data-klucz="' + esc(_mojKlucz) + '">Moje wyniki w maszynie</button><button type="button" class="w-btn" data-wpisz="1">Wpisz wynik zgłoszony</button>'; }
+    else if (_athleteId) { moje.hidden = false; pasek.innerHTML = '<span class="w-muted">Znajdź się w wyszukiwarce i dotknij „To ja” — albo </span><button type="button" class="w-btn" data-wpisz="1">wpisz wynik zgłoszony</button>'; }
+    renderujOstatnio();
+    mojeZgloszone(moje);
+  }
+  var ostatnio = [];   // tylko w pamięci dokumentu
+  function zapamietaj(c) { ostatnio = [{ klucz: c.runner_key, nazwa: c.display_name, rocznik: c.yob, probable: !!c.probable }].concat(ostatnio.filter(function (o) { return o.klucz !== c.runner_key; })).slice(0, 5); }
+  function renderujOstatnio() {
+    var k = $('w-ostatnio'); if (!k) return;
+    k.hidden = !ostatnio.length;
+    k.querySelector('.w-ostatnio').innerHTML = ostatnio.map(function (o) { return '<button type="button" data-klucz="' + esc(o.klucz) + '">' + esc(o.nazwa) + (o.rocznik ? ' <span class="w-muted">· ' + esc(o.rocznik) + '</span>' : '') + '</button>'; }).join('');
+  }
+
+  async function ekranZawodnika(klucz) {
+    tytul.textContent = 'Zawodnik';
+    ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Ładuję…</div></div>';
+    var r = await wyniki(klucz);
+    if (r.error) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">' + esc(komunikat(r.error)) + '</div></div>'; return; }
+    var w = r.data, nazwa = (ostatnio.filter(function (o) { return o.klucz === klucz; })[0] || {}).nazwa || (klucz.indexOf('k:') === 0 ? klucz.slice(2).split('|')[0] : 'Zawodnik');
+    var rek = W.rekordy(w), tr = W.trend(w), prawd = !!(ostatnio.filter(function (o) { return o.klucz === klucz; })[0] || {}).probable;   // prawdopodobnie = cecha kandydata z search_runners
+    var toJaHtml = _athleteId && !_mojKlucz ? '<button type="button" class="w-btn" data-toja="' + esc(klucz) + '">To ja</button>' : '';
+    var porHtml = _mojKlucz && _mojKlucz !== klucz ? '<button type="button" class="w-btn" data-porownaj="' + esc(klucz) + '">Porównaj ze mną</button>' : '<button type="button" class="w-btn" data-porownaj="' + esc(klucz) + '">Porównaj z…</button>';
+    var html = '<div class="w-karta"><h2>' + esc(nazwa) + (_mojKlucz === klucz ? '<span class="w-etyk">to ja</span>' : '') + '</h2>' +
+      '<div class="w-muted">' + esc(w.length + ' ' + odmiana(w.length, ['start', 'starty', 'startów']) + ' w maszynie wyników') + (prawd ? ' · <span class="w-prawd">prawdopodobnie — część wyników dopasowana po nazwisku i roczniku</span>' : '') + '</div>' +
+      '<div class="w-pasek">' + toJaHtml + porHtml + '</div></div>';
+    if (rek.klasyczne.length) html += '<div class="w-karta"><div class="w-naglowek">Rekordy na dystansach</div><div class="w-rekordy">' + rek.klasyczne.map(function (x) { return '<div class="w-rek"><b>' + esc(x.czas) + '</b><span>' + esc(x.dystans + (x.rok ? ' · ' + x.rok : '')) + '</span></div>'; }).join('') + '</div>' +
+      (rek.inne.length ? '<div class="w-muted" style="margin-top:8px;">Inne dystanse: ' + esc(rek.inne.map(function (x) { return x.km + ' km ' + x.czas; }).join(' · ')) + '</div>' : '') + '</div>';
+    if (tr) html += '<div class="w-karta"><div class="w-naglowek">Trend formy</div>' + W.wykresSvg(tr) + '<div class="w-muted" style="margin-top:6px;">Z wyników zawodów na dystansach 5–42 km, przeliczone na 10 km (Riegel 1,06), bez treningów. Wyżej = szybciej.</div></div>';
+    else html += '<div class="w-karta"><div class="w-naglowek">Trend formy</div><div class="w-muted">Za mało startów na dystansach klasycznych, żeby pokazać trend (potrzeba 3).</div></div>';
+    html += '<div class="w-karta"><div class="w-naglowek">Wszystkie starty</div>' + tabelaStartow(w) + '</div>';
+    html += '<div class="w-karta" id="w-zgl-cudze" hidden><div class="w-naglowek">Wyniki zgłoszone</div><div class="w-zgl"></div></div>';
+    ekran.innerHTML = html;
+    if (_mojKlucz === klucz) mojeZgloszone($('w-zgl-cudze'));
+  }
+  function tabelaStartow(w) {
+    if (!w.length) return '<div class="w-muted">Brak wyników.</div>';
+    return '<table class="w-tab"><thead><tr><th>Data</th><th>Zawody</th><th>Dyst.</th><th>Czas</th><th>Tempo</th><th>Msc.</th></tr></thead><tbody>' + w.map(function (r) {
+      var href = r.url && window.safeExternalHref ? window.safeExternalHref(r.url, { tylkoHttps: true }) : '';
+      return '<tr><td>' + esc(r.data || '') + '</td><td>' + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(r.bieg) + '</a>' : esc(r.bieg)) + (r.prywatny ? ' <span class="w-etyk">tylko Ty</span>' : '') + '</td>' +
+        '<td>' + esc(r.km ? r.km + ' km' : '') + '</td><td>' + esc(r.czas ? W.fmt(r.czas) : '') + '</td><td>' + esc(W.tempo(r.czas, r.km)) + '</td><td>' + esc(r.miejsce ? r.miejsce + (r.miejsceKat ? ' (kat. ' + r.miejsceKat + ')' : '') : '') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  function odmiana(n, f) { return window.BM_TEKST.odmiana(n, f); }
+
+  /* porównanie: „ze mną" gdy mam klucz, inaczej drugi zawodnik z wyszukiwarki */
+  var _porownanieZ = null;
+  function porownajZ(klucz) {
+    if (_mojKlucz && _mojKlucz !== klucz) { idz({ ekran: 'porownaj', a: _mojKlucz, b: klucz }); return; }
+    _porownanieZ = klucz;
+    tytul.textContent = 'Porównaj z…';
+    ekran.innerHTML = '<div class="w-karta"><div class="w-naglowek">Z kim porównać?</div><div id="w-szukaj2"></div></div>';
+    window.initResultsSearch({ client: api, root: $('w-szukaj2'), naKandydata: function (c) { if (W.kluczOk(c.runner_key) && c.runner_key !== _porownanieZ) { zapamietaj(c); idz({ ekran: 'porownaj', a: _porownanieZ, b: c.runner_key }); } } });
+  }
+  async function ekranPorownania(a, b) {
+    tytul.textContent = 'Porównanie';
+    ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Ładuję…</div></div>';
+    var rr = await Promise.all([wyniki(a), wyniki(b)]);
+    if (rr[0].error || rr[1].error) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">' + esc(komunikat(rr[0].error || rr[1].error)) + '</div></div>'; return; }
+    var wa = rr[0].data, wb = rr[1].data, na = nazwaDla(a), nb = nazwaDla(b), ws = W.wspolneStarty(wa, wb), ra = W.rekordy(wa), rb = W.rekordy(wb);
+    var html = '<div class="w-karta"><h2>' + esc(na) + ' <span class="w-muted">vs</span> ' + esc(nb) + '</h2><div class="w-muted">Bilans wspólnych startów: ' + ws.bilans.a + ' : ' + ws.bilans.b + (ws.bilans.remis ? ' (remisy ' + ws.bilans.remis + ')' : '') + '</div>' +
+      '<div class="w-pasek"><button type="button" class="w-btn" data-klucz="' + esc(a) + '">' + esc(na) + '</button><button type="button" class="w-btn" data-klucz="' + esc(b) + '">' + esc(nb) + '</button></div></div>';
+    html += '<div class="w-karta"><div class="w-naglowek">Wspólne starty</div>' + (ws.starty.length ? '<table class="w-tab"><thead><tr><th>Data</th><th>Zawody</th><th>' + esc(na) + '</th><th>' + esc(nb) + '</th><th>Różnica</th></tr></thead><tbody>' +
+      ws.starty.map(function (s) { return '<tr><td>' + esc(s.data) + '</td><td>' + esc(s.bieg) + ' <span class="w-muted">' + esc(s.km + ' km') + '</span></td><td class="' + (s.szybszy === 'a' ? 'w-szybszy' : '') + '">' + esc(W.fmt(s.czasA)) + '</td><td class="' + (s.szybszy === 'b' ? 'w-szybszy' : '') + '">' + esc(W.fmt(s.czasB)) + '</td><td>' + esc(W.fmt(Math.abs(s.roznica_s)) + ' (' + s.roznica_pct + ' %)') + '</td></tr>'; }).join('') + '</tbody></table>'
+      : '<div class="w-muted">Brak wspólnych startów (ta sama impreza, data ±1 dzień, dystans ±3 %).</div>') + '</div>';
+    html += '<div class="w-karta"><div class="w-naglowek">Rekordy obok siebie</div><table class="w-tab"><thead><tr><th>Dystans</th><th>' + esc(na) + '</th><th>' + esc(nb) + '</th></tr></thead><tbody>' +
+      W.DYSTANSE_PB.map(function (d) { var x = ra.klasyczne.filter(function (r) { return r.km === d[1]; })[0], y = rb.klasyczne.filter(function (r) { return r.km === d[1]; })[0]; if (!x && !y) return ''; var lep = x && y ? (x.czas_s < y.czas_s ? 'a' : y.czas_s < x.czas_s ? 'b' : '') : ''; return '<tr><td>' + esc(d[0]) + '</td><td class="' + (lep === 'a' ? 'w-szybszy' : '') + '">' + esc(x ? x.czas : '—') + '</td><td class="' + (lep === 'b' ? 'w-szybszy' : '') + '">' + esc(y ? y.czas : '—') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    var ta = W.trend(wa), tb = W.trend(wb);
+    if (ta || tb) html += '<div class="w-karta"><div class="w-naglowek">Trendy</div>' + (ta ? '<div class="w-muted">' + esc(na) + '</div>' + W.wykresSvg(ta) : '') + (tb ? '<div class="w-muted" style="margin-top:8px;">' + esc(nb) + '</div>' + W.wykresSvg(tb) : '') + '</div>';
+    ekran.innerHTML = html;
+  }
+  function nazwaDla(klucz) { if (klucz === _mojKlucz) return 'Ja'; var o = ostatnio.filter(function (x) { return x.klucz === klucz; })[0]; return o ? o.nazwa : (klucz.indexOf('k:') === 0 ? klucz.slice(2).split('|')[0] : klucz.split(':')[0]); }
+
+  /* „To ja" → RPC ustaw_f6_runner_key (jedyna ścieżka zapisu klucza; zły klucz → 22023) */
+  async function toJa(klucz, btn) {
+    if (!W.kluczOk(klucz)) return;
+    btn.disabled = true;
+    var r = await _sb.rpc('ustaw_f6_runner_key', { p_key: klucz });
+    if (r.error) { btn.disabled = false; showToast(r.error.code === '22023' ? 'Tego klucza jeszcze nie da się zapisać.' : 'Nie udało się zapisać.'); return; }
+    _mojKlucz = klucz; showToast('Zapisane — to Ty.'); renderuj(W.parsuj(location.hash));
+  }
+
+  /* ── etap 2: wyniki zgłoszone (własne) — lista + „Wpisz wynik" + usuwanie; dopasowanie leniwe z F6, gdy mam klucz ── */
+  async function mojeZgloszone(karta) {
+    if (!karta || !_athleteId) return;
+    var r = await _sb.from('wyniki_zgloszone').select('id,nazwa_imprezy,data,miejscowosc,dystans_km,czas_s,impreza_klucz,zrodlo,stan,oficjalny_czas_s,roznica_pct').eq('athlete_id', _athleteId).order('data', { ascending: false }).limit(50);
+    if (r.error || !Array.isArray(r.data)) return;   // tabeli może jeszcze nie być (migracja czeka) — bez komunikatu
+    var lista = r.data, el = karta.querySelector('.w-zgl') || karta.querySelector('.w-pasek');
+    if (!lista.length) { if (karta.id === 'w-zgl-cudze') return; return; }
+    karta.hidden = false;
+    var html = '<table class="w-tab"><thead><tr><th>Data</th><th>Bieg</th><th>Dyst.</th><th>Czas</th><th></th></tr></thead><tbody>' + lista.map(function (x) {
+      var czas = x.stan === 'zastapiony' && x.oficjalny_czas_s ? esc(Z.fmt(x.oficjalny_czas_s)) + ' <span class="w-etyk">oficjalny</span>' + (x.roznica_pct > 2 ? '<div class="w-muted">zgłoszone ' + esc(Z.fmt(x.czas_s)) + ', różnica ' + esc(x.roznica_pct) + ' %</div>' : '') : esc(Z.fmt(x.czas_s)) + ' <span class="w-etyk">zgłoszony</span>';
+      return '<tr><td>' + esc(x.data) + '</td><td>' + esc(x.nazwa_imprezy) + (x.miejscowosc ? ' <span class="w-muted">' + esc(x.miejscowosc) + '</span>' : '') + (x.zrodlo === 'trener' ? ' <span class="w-etyk">trener</span>' : '') + '</td><td>' + esc(Number(x.dystans_km) + ' km') + '</td><td>' + czas + '</td><td><button type="button" class="w-btn" data-usun-wz="' + esc(x.id) + '" aria-label="Usuń">×</button></td></tr>';
+    }).join('') + '</tbody></table>';
+    var cel = karta.querySelector('.w-zgl'); if (cel) cel.innerHTML = html; else el.insertAdjacentHTML('afterend', html);
+    dopasujLeniwie(lista);
+  }
+  async function dopasujLeniwie(lista) {
+    if (!_mojKlucz) return;
+    var czekajace = lista.filter(function (x) { return x.stan === 'zgloszony'; }); if (!czekajace.length) return;
+    var r = await wyniki(_mojKlucz); if (r.error) return;
+    for (var i = 0; i < czekajace.length; i++) {
+      var d = Z.dopasuj(czekajace[i], r.data); if (!d) continue;
+      var rid = d.oficjalny.url ? d.oficjalny.url.slice(0, 120) : (d.oficjalny.bieg + '|' + d.oficjalny.data).replace(/[^A-Za-z0-9:._-]/g, '_').slice(0, 120);
+      var z = await Z.zapiszDopasowanie(czekajace[i].id, rid, d.oficjalny.czas);
+      if (!z.error && d.informuj) showToast('Oficjalny wynik ' + Z.fmt(d.oficjalny.czas) + ' zastąpił zgłoszony ' + Z.fmt(czekajace[i].czas_s) + ' (różnica ' + d.roznica_pct + ' %).');
+    }
+  }
+  async function wpiszWynik(el) {
+    if (!_athleteId) return;
+    var w = await Z.otworz({ athlete_id: _athleteId, zrodlo: 'zawodnik', nazwa: el.getAttribute('data-nazwa') || '', data: el.getAttribute('data-data') || '', dystans_km: el.getAttribute('data-km') || null, impreza_klucz: el.getAttribute('data-impreza') || null });
+    if (w) { showToast('Wynik zapisany jako zgłoszony.'); renderuj(W.parsuj(location.hash)); }
+  }
+  async function usunWynik(id, btn) {
+    if (!/^[0-9a-f-]{36}$/.test(id)) return;
+    btn.disabled = true;
+    var r = await _sb.from('wyniki_zgloszone').delete().eq('id', id);
+    if (r.error) { btn.disabled = false; showToast('Nie udało się usunąć.'); return; }
+    renderuj(W.parsuj(location.hash));
+  }
+
+  /* ── start: sesja (hash zapamiętany na czas logowania), moje dane, API, render z hash ── */
+  (async function init() {
+    var sesja = (await _sb.auth.getSession()).data.session;
+    if (!sesja) { try { sessionStorage.setItem(KLUCZ_HASH, location.hash || '#/'); } catch (e) {} location.href = 'index.html'; return; }
+    try { var h = sessionStorage.getItem(KLUCZ_HASH); if (h && (!location.hash || location.hash === '#/')) { sessionStorage.removeItem(KLUCZ_HASH); history.replaceState(null, '', h); } } catch (e) {}
+    if (!(typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne())) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Maszyna wyników jest niedostępna w tym środowisku.</div></div>'; return; }
+    api = window.wynikiApi(_sb);
+    try {
+      var a = await _sb.from('athletes').select('id,f6_runner_key').eq('user_id', sesja.user.id).maybeSingle();
+      if (a.data) { _athleteId = a.data.id; _mojKlucz = a.data.f6_runner_key && W.kluczOk(a.data.f6_runner_key) ? a.data.f6_runner_key : null; }
+      var c = await _sb.from('coaches').select('id').eq('id', sesja.user.id).maybeSingle(); _isCoach = !!(c && c.data);
+    } catch (e) {}
+    if (!location.hash) history.replaceState({ h: '#/' }, '', '#/');
+    renderuj(W.parsuj(location.hash));
+  })();
+})();
+</script>
+</body>
+</html>

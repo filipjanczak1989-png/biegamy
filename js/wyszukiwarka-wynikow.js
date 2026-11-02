@@ -11,7 +11,8 @@
    tylko gdy window.wynikiApiDostepne() (flaga WYNIKI_API_WLACZONE + prod). Oba zwracają { data, error }.
    Stany błędów (komunikatBledu): brak sesji / 401, limit 429 (czas z Retry-After), brak sieci, reszta — jak dotąd.
    opts.usunDaneHref = 'usun-dane.html' → link „Usuń moje dane" pod wynikami (tylko ten adres, ta sama domena).
-   opts.podglad = true → pasek „Tryb podglądu API” (przełącznik localStorage z js/wyniki-api.js, tylko prod). */
+   opts.podglad = true → pasek „Tryb podglądu API” (przełącznik localStorage z js/wyniki-api.js, tylko prod).
+   opts.naKandydata(c) → (wyniki.html, etap 1) tap kandydata woła tę funkcję zamiast rozwijać tabelę wyników w miejscu. */
 (function () {
   'use strict';
 
@@ -118,7 +119,7 @@
       status.textContent = data.length > 1 ? 'Znaleziono ' + data.length + ' osób – wybierz właściwą:' : '';
       data.forEach(function (c) {
         var sub = [c.yob ? 'rocznik ' + c.yob : 'rocznik nieznany', liczbaWynikow(Number(c.results_count)), c.last_city, c.last_event].filter(Boolean).join(' · ');
-        var b = el(doc, 'button', { type: 'button', onclick: function () { open(c); } },
+        var b = el(doc, 'button', { type: 'button', onclick: function () { if (typeof opts.naKandydata === 'function') opts.naKandydata(c); else open(c); } },   // wyniki.html: nawigacja do #/zawodnik/<klucz> (etap 1)
           el(doc, 'strong', { text: c.display_name }),
           c.probable ? el(doc, 'span', { class: 'prawd', text: ' · prawdopodobnie', title: 'Część wyników dopasowana po nazwisku i roczniku' }) : null,
           el(doc, 'br'), el(doc, 'span', { class: 'muted', text: sub }));
