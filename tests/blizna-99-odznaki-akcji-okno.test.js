@@ -6,7 +6,8 @@
    tools/odznaki-okna-test.sh; sponsora przyznaje RPC deklaracji (tools/akcje-test-transakcji.sh).
 
    „7 dni z rzędu": 7 kolejnych dni kalendarzowych (Warszawa) z >= 1 aktywnością, wszystkie w oknie; raz, od razu po 7. dniu;
-   przerwa zeruje serię. Blizny Filipa: 6 + przerwa + 7 = przyznana raz; 7 dni od 7.11 = brak (7.11 poza oknem);
+   przerwa zeruje serię. Start 7.11 (zmiana Filipa 2.11 16:22). Blizny Filipa: 6 + przerwa + 7 = przyznana raz; seria od 6.11 = brak
+   (6.11 poza oknem);
    wpis wsteczny po zamknięciu nie daje. */
 'use strict';
 const test = require('node:test');
@@ -21,7 +22,7 @@ const SLUGI = ['akcja-1km', 'akcja-100', 'akcja-200', 'akcja-500', 'akcja-co-tyd
 let O;
 test.before(async () => { await import(pathToFileURL(path.join(KORZEN, 'js/odznaki-akcji.mjs')).href); O = globalThis.BM_ODZNAKI_AKCJI; });
 const T = (d) => new Date(d + 'T12:00:00Z');
-const AK = { wystartowala: true, start: '2026-11-08', koniec: null, suma_km: 3000, cel_km: 12500 };
+const AK = { wystartowala: true, start: '2026-11-07', koniec: null, suma_km: 3000, cel_km: 12500 };
 const dni = (od, n) => { const o = []; const x = new Date(od + 'T12:00:00Z'); for (let i = 0; i < n; i++) { o.push(x.toISOString().slice(0, 10)); x.setUTCDate(x.getUTCDate() + 1); } return o; };
 
 test('zestaw: 6 slugów w kolejności Filipa, bez imienia, plik assets/odznaki/<slug>.webp, zaślepka SVG; usunięte nie wracają', () => {
@@ -47,9 +48,9 @@ test('zestaw: 6 slugów w kolejności Filipa, bez imienia, plik assets/odznaki/<
 });
 
 test('okno: przed startem i po zamknięciu nic; dzień startu i dzień zamknięcia włącznie', () => {
-  assert.deepEqual(O.doPrzyznania({ wystartowala: false, start: '2026-11-08' }, { km: 500 }, null, T('2026-11-08')), []);
-  assert.deepEqual(O.doPrzyznania(AK, { km: 500 }, null, T('2026-11-07')), [], 'dzień przed startem');
-  assert.deepEqual(O.doPrzyznania(AK, { km: 1.2 }, null, T('2026-11-08')), ['akcja-1km'], 'dzień startu');
+  assert.deepEqual(O.doPrzyznania({ wystartowala: false, start: '2026-11-07' }, { km: 500 }, null, T('2026-11-07')), []);
+  assert.deepEqual(O.doPrzyznania(AK, { km: 500 }, null, T('2026-11-06')), [], 'dzień przed startem (6.11)');
+  assert.deepEqual(O.doPrzyznania(AK, { km: 1.2 }, null, T('2026-11-07')), ['akcja-1km'], 'dzień startu (7.11)');
   const zam = { ...AK, koniec: '2026-12-01' };
   assert.ok(O.doPrzyznania(zam, { km: 150 }, null, T('2026-12-01')).includes('akcja-100'), 'dzień zamknięcia');
   assert.deepEqual(O.doPrzyznania(zam, { km: 150 }, null, T('2026-12-02')), [], 'dzień po zamknięciu');
@@ -63,14 +64,14 @@ test('progi i sponsor (zapas z wkładu; właściwie przyznaje RPC deklaracji)', 
   assert.deepEqual(O.doPrzyznania(AK, { km: 0 }, null, T('2026-11-20')), []);
 });
 
-test('„7 dni z rzędu": blizny Filipa — 6 + przerwa + 7 = raz; 7 dni od 7.11 = brak; wstecz po zamknięciu = brak', () => {
+test('„7 dni z rzędu": blizny Filipa — 6 + przerwa + 7 = raz; seria od 6.11 = brak; wstecz po zamknięciu = brak', () => {
   const ma = (zestaw, dzis, d = AK) => O.doPrzyznania(d, { km: 5 }, new Set(zestaw), T(dzis)).includes('akcja-co-tydzien');
-  assert.equal(ma(dni('2026-11-08', 6), '2026-11-13'), false, '6 dni');
-  assert.equal(ma(dni('2026-11-08', 7), '2026-11-14'), true, '7 dni — od razu po 7. dniu');
-  assert.equal(ma([...dni('2026-11-08', 6), ...dni('2026-11-15', 6)], '2026-11-20'), false, '6 + przerwa + 6');
-  assert.equal(ma([...dni('2026-11-08', 6), ...dni('2026-11-15', 7)], '2026-11-21'), true, '6 + przerwa + 7');
-  assert.equal(ma(dni('2026-11-07', 7), '2026-11-20'), false, '7 dni od 7.11: 8.11 to 2. dzień serii, 7.11 poza oknem');
-  assert.equal(ma(dni('2026-11-07', 8), '2026-11-20'), true, '7.11–14.11: 8–14.11 to pełne 7 dni w oknie');
+  assert.equal(ma(dni('2026-11-07', 6), '2026-11-12'), false, '6 dni');
+  assert.equal(ma(dni('2026-11-07', 7), '2026-11-13'), true, '7 dni — od razu po 7. dniu (7–13.11)');
+  assert.equal(ma([...dni('2026-11-07', 6), ...dni('2026-11-14', 6)], '2026-11-19'), false, '6 + przerwa + 6');
+  assert.equal(ma([...dni('2026-11-07', 6), ...dni('2026-11-14', 7)], '2026-11-20'), true, '6 + przerwa + 7');
+  assert.equal(ma(dni('2026-11-06', 7), '2026-11-20'), false, 'seria od 6.11: 7.11 to 2. dzień serii, 6.11 poza oknem');
+  assert.equal(ma(dni('2026-11-06', 8), '2026-11-20'), true, '6.11–13.11: 7–13.11 to pełne 7 dni w oknie');
   const zam = { ...AK, koniec: '2026-11-20' };
   assert.equal(ma(dni('2026-11-14', 7), '2026-11-25', zam), false, 'wpis wsteczny po zamknięciu nie daje (okno zamknięte)');
   assert.equal(ma(dni('2026-11-16', 7), '2026-11-20', zam), false, 'seria wychodząca poza dzień zamknięcia: 16–20.11 = 5 dni');
@@ -92,7 +93,7 @@ test('zawodnik.html: bramka okna w awardBadge i w paczce; #100kmDlaKasi dziś ni
   assert.equal(okno(WYZW, null, '2026-11-02')('razem_wrzesien_2026'), false, 'wstecz po zamknięciu');
   assert.equal(okno(WYZW, null, '2026-09-20')('razem_wrzesien_2026'), true, 'ostatni dzień okna');
   assert.equal(okno(WYZW, null, '2026-11-02')('pierwszy_krok'), true, 'odznaka bez okna');
-  assert.equal(okno(WYZW, null, '2026-11-08')('akcja-100'), false, 'akcja bez stanu = zamknięte');
+  assert.equal(okno(WYZW, null, '2026-11-07')('akcja-100'), false, 'akcja bez stanu = zamknięte');
   const B = z.slice(z.indexOf('const BADGES = ['), z.indexOf('\n];', z.indexOf('const BADGES = [')));
   assert.doesNotMatch(B, /akcja-/);
   assert.match(z, /for \(const id of O\.doPrzyznania\(d, wklad, dni\)\) await awardBadge\(id\);/);

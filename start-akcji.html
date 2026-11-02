@@ -12,11 +12,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="vendor/supabase-js-2.112.4.min.js"></script>
 <script src="sb.js"></script>
+<script src="js/akcja-cytaty.mjs"></script><!-- DZIEN_STARTU / OKNO_STARTU — data startu w jednym miejscu -->
 <!--
-  START AKCJI (projekt F, spec v3 pkt 1) — guzik, który 8.11 naciska Fabianek na telefonie Filipa.
+  START AKCJI (projekt F, spec v3 pkt 1) — guzik, który w dniu startu (sobota 7.11) naciska Fabianek na telefonie Filipa.
   Jeden ekran, bez nawigacji, bez niczego do przypadkowego tapnięcia. Działa wyłącznie dla konta z listy
   akcja_startujacy — sprawdza to RPC (auth.uid()), ta strona tylko nie pokazuje guzika komuś innemu.
-  Stany: ladowanie → rozbrojony (przed 8.11 06:00) / uzbrojony → nacisniety (iskry) → zapisane (· wysyłam… / · zapisane ✓).
+  Stany: ladowanie → rozbrojony (przed 06:00 dnia startu) / uzbrojony → nacisniety (iskry) → zapisane (· wysyłam… / · zapisane ✓).
   Przytrzymanie 1 s z pierścieniem (dziecko widzi, że „ładuje"), bez „Czy na pewno?".
   BRAK ZASIĘGU POD DOMEM: czas naciśnięcia zapisany lokalnie (localStorage + IndexedDB, try/catch), wysyłka co 5 s
   i przy zdarzeniu `online`; serwer przyjmuje czas klienta tylko w oknie i ≤ teraz + 2 min (akcja_start).
@@ -79,16 +80,18 @@
 <script>
 (function () {
   'use strict';
-  /* Okno guzika = akcje.okno_startu_od/do wiersza 'dla-fabianka' (8.11 06:00–23:59:59 Europe/Warsaw = UTC+1).
-     Serwer i tak pilnuje okna — tu tylko, żeby przed czasem nie świecić guzikiem (blizna-96 pilnuje równości). */
-  var OKNO_OD = Date.parse('2026-11-08T05:00:00Z');
-  var OKNO_DO = Date.parse('2026-11-08T22:59:59Z');
+  /* Okno guzika = akcje.okno_startu_od/do (dzień startu 06:00–23:59:59 Europe/Warsaw) — z JEDNEJ stałej w js/akcja-cytaty.mjs
+     (DZIEN_STARTU = akcje.start). Serwer i tak pilnuje okna — tu tylko, żeby przed czasem nie świecić guzikiem (blizna-96). */
+  var AKC = window.BM_AKCJA_CYTATY || {};
+  var OKNO_OD = AKC.OKNO_STARTU ? AKC.OKNO_STARTU.od : NaN;
+  var OKNO_DO = AKC.OKNO_STARTU ? AKC.OKNO_STARTU.do : NaN;
+  var DATA_SLOWNIE = AKC.DATA_SLOWNIE || '';
   var PROBA = new URLSearchParams(location.search).get('proba') === '1';
   var SLUG = PROBA ? 'proba' : 'dla-fabianka';
   var KLUCZ = 'bm_akcja_nacisk_' + SLUG, KLUCZ_MOZE = 'bm_akcja_moze_' + SLUG;
   var PRZYTRZYMAJ_MS = 1000, PONOW_MS = 5000, OBWOD = 314.16;
   /* „Dotarliśmy" (spec v3 pkt 3): RPC akcja_dotarlismy z migracją 20261102_akcja_dzien5 — przełącznik włączany razem z nią. */
-  var DOTARCIE_GOTOWE = false;
+  var DOTARCIE_GOTOWE = true;   // 2.11: migracja 20261102_akcja_dzien5 NA PROD (OK Filipa)
   var $ = function (id) { return document.getElementById(id); };
   var ekran = $('ekran'), krag = $('krag'), postep = $('postep');
   var stan = 'ladowanie', nacisnietoO = 0, trzymanieOd = 0, rafId = 0, wysylam = false, ponowTimer = 0, uzbrojTimer = 0, blokada = null;
@@ -154,7 +157,7 @@
       if (r.error) {
         var kod = r.error.code || '';
         if (kod === '42501') { await wyczyscLokalnie(); ustaw('brak', { napis: 'To konto nie uruchamia akcji.' }); return; }
-        if (kod === '22023') { await wyczyscLokalnie(); ustaw('poza', { slowo: '8 listopada', napis: 'Poza oknem startu (8.11, 6:00–24:00).' }); return; }
+        if (kod === '22023') { await wyczyscLokalnie(); ustaw('poza', { slowo: DATA_SLOWNIE, napis: 'Poza oknem startu (' + (AKC.DATA_KROTKA || '') + ', 6:00–24:00).' }); return; }
         throw r.error;
       }
       await wyczyscLokalnie();
@@ -272,8 +275,8 @@
     clearTimeout(uzbrojTimer);
     var teraz = Date.now();
     if (PROBA || (teraz >= OKNO_OD && teraz <= OKNO_DO)) { ustaw('uzbrojony', { slowo: 'START' }); return; }
-    if (teraz > OKNO_DO) { ustaw('poza', { slowo: '8 listopada', napis: 'Okno startu minęło.' }); return; }
-    ustaw('rozbrojony', { slowo: '8 listopada' });
+    if (teraz > OKNO_DO) { ustaw('poza', { slowo: DATA_SLOWNIE, napis: 'Okno startu minęło.' }); return; }
+    ustaw('rozbrojony', { slowo: DATA_SLOWNIE });
     uzbrojTimer = setTimeout(uzbrojGdyCzas, Math.min(30000, OKNO_OD - teraz + 50));
   }
 

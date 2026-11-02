@@ -2,9 +2,11 @@
 // Plik BEZ import/export (globalThis.BM_AKCJA_CYTATY), jak js/plan-pusty.mjs: <script src> w zawodnik.html i import w testach.
 // Dzień liczony w Europe/Warsaw (nie UTC, nie strefa urządzenia). Cytat akcji ma pierwszeństwo przed zwykłym cytatem
 // dnia i przed „Twój plan"; poza datami akcji — null, czyli zwykłe cytaty bez zmian (blizna-92).
-//   - 2026-11-02 … 2026-11-07: teaser dzień po dniu (nic nie zdradza);
-//   - 2026-11-08 i później, PRZED startem akcji: „Jedno kliknięcie zmieni wszystko." (także gdy start się opóźni);
-//   - 2026-11-08 PO starcie: „12 500 kilometrów. Jeden powód. Fabianek."; od 2026-11-09 po starcie: rotacja ROTACJA;
+//   DATA STARTU W JEDNYM MIEJSCU (Filip 2.11 16:22: sobota 7.11, nie niedziela 8.11): DZIEN_STARTU niżej = akcje.start
+//   w bazie; dzień rotacji, okno guzika i zapis daty w tekstach są z niej LICZONE (blizna-92/96 pilnują równości z migracją).
+//   - 2.11 … dzień przed startem: teaser dzień po dniu (nic nie zdradza; 2–5.11 bez zmian po przesunięciu);
+//   - DZIEŃ STARTU przed naciśnięciem: „Dziś. Jedno kliknięcie zmieni wszystko."; po nim (opóźniony start) „Jedno kliknięcie…";
+//   - dzień startu PO starcie: „12 500 kilometrów. Jeden powód. Fabianek."; od następnego dnia po starcie: rotacja ROTACJA;
 //   Start akcji = czyAkcjaRuszyla() — stan z bazy (RPC akcja_licznik) wpisywany przez odswiezStan() → ustawStan();
 //   bez zgadywania po godzinie. Konto testowe czyta akcję 'proba' (slugDla).
 //   - po zamknięciu (ZAMKNIETA = true + ZAMKNIETA_OD, docelowo ze stanu akcja_licznik): jeden cytat przez 7 dni, potem null.
@@ -18,10 +20,18 @@
     "2026-11-03": "Ktoś już zawiązał buty. Jeszcze nie wiesz po co.",
     "2026-11-04": "Na mapie pojawiła się linia. Daleka. Bardzo daleka.",
     "2026-11-05": "Liczba jest gotowa. Brakuje tylko ludzi.",
-    "2026-11-06": "Peleryny wiszą w szafie. Jeszcze dwa dni.",
-    "2026-11-07": "Jutro wszystko stanie się jasne.",
+    // 6.11 = ostatni dzień teasera (przesunięcie startu na 7.11). „Peleryny wiszą w szafie. Jeszcze dwa dni." wypadło —
+    // liczyło dni do starego terminu.
+    "2026-11-06": "Jutro wszystko stanie się jasne.",
   };
-  var DZIEN_STARTU = "2026-11-08", PRZED_STARTEM = "Jedno kliknięcie zmieni wszystko.", W_DNIU_STARTU = "12 500 kilometrów. Jeden powód. Fabianek.";
+  var DZIEN_STARTU = "2026-11-07", PRZED_STARTEM = "Jedno kliknięcie zmieni wszystko.", W_DNIU_STARTU = "12 500 kilometrów. Jeden powód. Fabianek.";
+  var DZIS_PRZED_STARTEM = "Dziś. " + PRZED_STARTEM;
+  function dodajDni(d, n) { var x = new Date(d + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+  var MIESIACE_D = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+  var DATA_KROTKA = Number(DZIEN_STARTU.slice(8, 10)) + "." + DZIEN_STARTU.slice(5, 7);                        // „7.11"
+  var DATA_SLOWNIE = Number(DZIEN_STARTU.slice(8, 10)) + " " + MIESIACE_D[Number(DZIEN_STARTU.slice(5, 7)) - 1];  // „7 listopada"
+  /* Okno guzika = akcje.okno_startu_od/do: dzień startu 06:00–23:59:59 Europe/Warsaw. Listopad = CET (UTC+1), bez zmiany czasu. */
+  var OKNO_STARTU = { od: Date.parse(DZIEN_STARTU + "T06:00:00+01:00"), do: Date.parse(DZIEN_STARTU + "T23:59:59+01:00") };
   /* STAN AKCJI — JEDNO miejsce podłączenia (projekt F, guzik Fabianka): odczyt stanu z bazy przez RPC akcji woła
      ustawStan({ ruszyla, zamknieta, zamknietaOd }). Do tego czasu nikt go nie woła → akcja „nie ruszyła". */
   var STAN = { ruszyla: false, zamknieta: ZAMKNIETA, zamknietaOd: ZAMKNIETA_OD, proba: false };
@@ -66,7 +76,7 @@
       return null;
     }
   }
-  var START_ROTACJI = "2026-11-09";   // dzień po DZIEN_STARTU
+  var START_ROTACJI = dodajDni(DZIEN_STARTU, 1);   // dzień po DZIEN_STARTU — liczony, nie wpisany
   var ROTACJA = [
     "Twój kilometr to jego krok.",
     "Nie musisz biec szybko. Wystarczy, że biegniesz z nami.",
@@ -88,12 +98,12 @@
      DATA PRZEGLĄDU: dzień zamknięcia akcji (ZAMKNIETA = true / ZAMKNIETA_OD) — wtedy zawęzić do form „Fabianek/
      Fabianka/Fabiankowi/Fabiankiem" albo zdjąć regułę razem z zagadką, w tym samym commicie co blizna-93. */
   var ZAGADKI = [
-    "Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: 8.11.",
+    "Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: " + DATA_KROTKA + ".",
     "Będą znaki. Patrz pod nogi i licz kilometry.",
     "Coś się zaczyna. Twoje buty mogą się przydać.",
     "Odpowiedź przyjdzie jednym kliknięciem. Jeszcze nie dziś.",
     "Na razie tylko tyle: nie biegniesz sam.",
-    "Daleka droga, dużo ludzi, jeden powód. Więcej 8.11.",
+    "Daleka droga, dużo ludzi, jeden powód. Więcej " + DATA_KROTKA + ".",
   ];
   var PO_STARCIE = "Akcja trwa — szczegóły na Dziś.";
   /** Odpowiedź okienka na pytanie o akcję: przed startem losowa zagadka, po starcie zdanie (miejsce na kartę akcji, projekt F). */
@@ -116,11 +126,11 @@
     var zamknieta = o.zamknieta != null ? !!o.zamknieta : STAN.zamknieta;
     var zamknietaOd = o.zamknietaOd != null ? o.zamknietaOd : STAN.zamknietaOd;
     var d = dzienWaw(teraz);
-    // PRÓBA: po naciśnięciu guzika próby konto testowe widzi to, co wszyscy zobaczą 8.11 po starcie — niezależnie od daty.
+    // PRÓBA: po naciśnięciu guzika próby konto testowe widzi to, co wszyscy zobaczą w dniu startu po naciśnięciu — niezależnie od daty.
     if ((o.proba != null ? !!o.proba : STAN.proba) && ruszyla && !zamknieta) return { tekst: W_DNIU_STARTU, zrodlo: ZRODLO };
     if (TEASER[d]) return { tekst: TEASER[d], zrodlo: ZRODLO };
     if (d < DZIEN_STARTU) return null;
-    if (!ruszyla) return { tekst: PRZED_STARTEM, zrodlo: ZRODLO };   // 8.11 przed kliknięciem albo opóźniony start
+    if (!ruszyla) return { tekst: d === DZIEN_STARTU ? DZIS_PRZED_STARTEM : PRZED_STARTEM, zrodlo: ZRODLO };   // dzień startu przed kliknięciem / opóźniony start
     if (d === DZIEN_STARTU) return { tekst: W_DNIU_STARTU, zrodlo: ZRODLO };
     if (zamknieta) {
       if (!zamknietaOd) return null;
@@ -134,5 +144,6 @@
     odswiezStan: odswiezStan, slugDla: slugDla, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
     ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,
-    START_ROTACJI: START_ROTACJI, DNI_PO_ZAMKNIECIU: DNI_PO_ZAMKNIECIU, ZAMKNIETA: ZAMKNIETA };
+    START_ROTACJI: START_ROTACJI, DNI_PO_ZAMKNIECIU: DNI_PO_ZAMKNIECIU, ZAMKNIETA: ZAMKNIETA,
+    DZIS_PRZED_STARTEM: DZIS_PRZED_STARTEM, DATA_KROTKA: DATA_KROTKA, DATA_SLOWNIE: DATA_SLOWNIE, OKNO_STARTU: OKNO_STARTU };
 })(globalThis);

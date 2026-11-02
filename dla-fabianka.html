@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07070a">
-<title>BiegaMy · 8.11</title>
+<title>BiegaMy · wspólne kilometry</title>
 <meta name="description" content="Wspólne kilometry społeczności BiegaMy.">
 <meta property="og:title" content="BiegaMy · wspólne kilometry">
 <meta property="og:description" content="Biegniemy razem. Każdy kilometr się liczy.">
@@ -49,7 +49,7 @@
   <div class="marka">BiegaMy</div>
 
   <div id="teaser">
-    <div class="wielka-data">8.11</div>
+    <div class="wielka-data" id="wielka-data"></div>
     <p class="lead" id="teaser-tekst">Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.</p>
   </div>
 
@@ -83,10 +83,13 @@
   var A = window.BM_AKCJA, $ = function (id) { return document.getElementById(id); };
   function dzisWaw() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
 
+  /* Data startu wyłącznie z licznika (akcje.start) — bez literałów w stronie. */
+  function krotka(iso) { return iso ? Number(String(iso).slice(8, 10)) + '.' + String(iso).slice(5, 7) : ''; }
   function pokaz(d) {
     if (!d || !d.wystartowala) {
       $('pelna').hidden = true; $('teaser').hidden = false;
-      $('teaser-tekst').textContent = dzisWaw() >= '2026-11-08' ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
+      $('wielka-data').textContent = krotka(d && d.start);
+      $('teaser-tekst').textContent = d && d.start && dzisWaw() >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
       return;
     }
     $('teaser').hidden = true; $('pelna').hidden = false;

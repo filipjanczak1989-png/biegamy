@@ -3,7 +3,7 @@
 
    Ryzyka:
    1) dzień liczony po UTC albo strefie urządzenia → o 23:30 w Polsce zły cytat (granica północy w Warszawie);
-   2) 8.11 przed startem akcji pokazuje puentę („12 500 km… Fabianek") — zdradza akcję przed kliknięciem guzika;
+   2) dzień startu (sobota 7.11 — zmiana Filipa 2.11 16:22, wcześniej 8.11) przed naciśnięciem pokazuje puentę („12 500 km… Fabianek") — zdradza akcję przed kliknięciem guzika;
       start = czyAkcjaRuszyla() (stan z RPC, projekt F), NIGDY zgadywanie po godzinie; opóźniony start → dalej teaser;
    3) cytat akcji przegrywa z „Twój plan" albo zwykłym cytatem; poza datami akcji podmienia zwykłe cytaty;
    4) po starcie cytat nie zmienia się bez przeładowania (odśwież przy wejściu na Dziś i powrocie do karty, bez pollingu). */
@@ -28,27 +28,36 @@ test('teaser dzień po dniu, granica północy w Warszawie (nie UTC)', () => {
   assert.equal(T(A, '2026-11-02T23:00:00Z'), 'Ktoś już zawiązał buty. Jeszcze nie wiesz po co.', '3.11 00:00');
   assert.equal(T(A, '2026-11-04T12:00:00Z'), 'Na mapie pojawiła się linia. Daleka. Bardzo daleka.');
   assert.equal(T(A, '2026-11-05T12:00:00Z'), 'Liczba jest gotowa. Brakuje tylko ludzi.');
-  assert.equal(T(A, '2026-11-06T12:00:00Z'), 'Peleryny wiszą w szafie. Jeszcze dwa dni.');
-  assert.equal(T(A, '2026-11-07T12:00:00Z'), 'Jutro wszystko stanie się jasne.', '7.11 — poprawka Filipa');
+  assert.equal(T(A, '2026-11-06T12:00:00Z'), 'Jutro wszystko stanie się jasne.', '6.11 — ostatni dzień teasera (start 7.11)');
+  assert.equal(A.TEASER['2026-11-07'], undefined, '7.11 to dzień startu, nie teaser');
+  assert.ok(!Object.values(A.TEASER).some((t) => /dwa dni|8\.11/.test(t)), 'teaser bez odliczania do starego terminu');
   assert.equal(A.cytat(W('2026-11-03T12:00:00Z')).zrodlo, 'BiegaMy · akcja');
   assert.equal(T(A, '2025-11-02T12:00:00Z'), null, 'rok wcześniej — nic');
 });
 
-test('8.11: przed startem „Jedno kliknięcie…", po starcie puenta; opóźniony start → dalej „Jedno kliknięcie…"; od 9.11 rotacja po starcie', () => {
+test('7.11 (dzień startu): przed naciśnięciem „Dziś. Jedno kliknięcie…", po starcie puenta; opóźniony start → „Jedno kliknięcie…"; od 8.11 rotacja', () => {
   const A = modul();
   assert.equal(A.czyAkcjaRuszyla(), false, 'do podłączenia guzika Fabianka (projekt F) — false');
-  assert.equal(T(A, '2026-11-07T23:00:00Z'), 'Jedno kliknięcie zmieni wszystko.', '8.11 00:00, przed startem');
-  assert.equal(T(A, '2026-11-08T19:00:00Z'), 'Jedno kliknięcie zmieni wszystko.', '8.11 20:00 — godzina NIE uruchamia akcji');
-  assert.equal(T(A, '2026-11-08T19:00:00Z', { ruszyla: true }), '12 500 kilometrów. Jeden powód. Fabianek.', '8.11 po starcie');
-  assert.equal(T(A, '2026-11-08T23:00:00Z'), 'Jedno kliknięcie zmieni wszystko.', '9.11 bez startu — opóźnienie');
-  assert.equal(T(A, '2026-11-08T23:00:00Z', { ruszyla: true }), 'Twój kilometr to jego krok.', '9.11 00:00 po starcie — pierwsza z rotacji');
-  assert.equal(T(A, '2026-11-09T23:00:00Z', { ruszyla: true }), 'Nie musisz biec szybko. Wystarczy, że biegniesz z nami.');
-  assert.equal(T(A, '2026-11-19T12:00:00Z', { ruszyla: true }), 'Dziś biegniesz dla kogoś. To lekki bieg.', '11. dzień');
-  assert.equal(T(A, '2026-11-20T12:00:00Z', { ruszyla: true }), 'Twój kilometr to jego krok.', 'rotacja wraca do początku');
+  assert.equal(T(A, '2026-11-06T23:00:00Z'), 'Dziś. Jedno kliknięcie zmieni wszystko.', '7.11 00:00, przed startem');
+  assert.equal(T(A, '2026-11-07T19:00:00Z'), 'Dziś. Jedno kliknięcie zmieni wszystko.', '7.11 20:00 — godzina NIE uruchamia akcji');
+  assert.equal(T(A, '2026-11-07T19:00:00Z', { ruszyla: true }), '12 500 kilometrów. Jeden powód. Fabianek.', '7.11 po starcie');
+  assert.equal(T(A, '2026-11-07T23:00:00Z'), 'Jedno kliknięcie zmieni wszystko.', '8.11 bez startu — opóźnienie');
+  assert.equal(T(A, '2026-11-07T23:00:00Z', { ruszyla: true }), 'Twój kilometr to jego krok.', '8.11 00:00 po starcie — pierwsza z rotacji');
+  assert.equal(T(A, '2026-11-08T23:00:00Z', { ruszyla: true }), 'Nie musisz biec szybko. Wystarczy, że biegniesz z nami.');
+  assert.equal(T(A, '2026-11-18T12:00:00Z', { ruszyla: true }), 'Dziś biegniesz dla kogoś. To lekki bieg.', '11. dzień');
+  assert.equal(T(A, '2026-11-19T12:00:00Z', { ruszyla: true }), 'Twój kilometr to jego krok.', 'rotacja wraca do początku');
+  // DATA W JEDNYM MIEJSCU: DZIEN_STARTU = akcje.start z migracji 7.11; rotacja i okno guzika liczone, nie wpisane
+  assert.equal(A.DZIEN_STARTU, '2026-11-07');
+  assert.ok(czytaj('supabase/migrations/20261102_akcja_start_7_11.sql').includes("set start = date '2026-11-07'"));
+  assert.equal(A.START_ROTACJI, '2026-11-08');
+  assert.equal(new Date(A.OKNO_STARTU.od).toISOString(), '2026-11-07T05:00:00.000Z', '7.11 06:00 Warszawa');
+  assert.equal(new Date(A.OKNO_STARTU.do).toISOString(), '2026-11-07T22:59:59.000Z', '7.11 23:59:59 Warszawa');
+  assert.match(czytaj('js/akcja-cytaty.mjs'), /var START_ROTACJI = dodajDni\(DZIEN_STARTU, 1\);/);
+  assert.ok(A.ZAGADKI.some((z) => z.includes('7.11')) && !A.ZAGADKI.some((z) => z.includes('8.11')), 'zagadki z nową datą');
   // jedno miejsce podłączenia: ustawStan (stan z RPC) przełącza czyAkcjaRuszyla bez zgadywania
   A.ustawStan({ ruszyla: true });
   assert.equal(A.czyAkcjaRuszyla(), true);
-  assert.equal(T(A, '2026-11-08T19:00:00Z'), '12 500 kilometrów. Jeden powód. Fabianek.');
+  assert.equal(T(A, '2026-11-07T19:00:00Z'), '12 500 kilometrów. Jeden powód. Fabianek.');
   const src = czytaj('js/akcja-cytaty.mjs');
   assert.ok(!/getHours|getUTCHours|hour:/.test(src), 'start akcji nie zależy od godziny');
   assert.match(src, /function czyAkcjaRuszyla\(\) \{ return STAN\.ruszyla === true; \}/);
@@ -82,9 +91,9 @@ test('odswiezCytatAkcji: po starcie podmienia tekst raz (bez przeładowania), dr
   const z = czytaj('zawodnik.html');
   const i = z.indexOf('window.odswiezCytatAkcji = function'), kod = z.slice(i, z.indexOf('\n};\n', i) + 3);
   const A = modul();
-  const txt = { dataset: { akcja: 'Jedno kliknięcie zmieni wszystko.' }, textContent: '"Jedno kliknięcie zmieni wszystko."' }, src = { textContent: 'BiegaMy · akcja' };
+  const txt = { dataset: { akcja: 'Dziś. Jedno kliknięcie zmieni wszystko.' }, textContent: '"Dziś. Jedno kliknięcie zmieni wszystko."' }, src = { textContent: 'BiegaMy · akcja' };
   const ctx = vm.createContext({ window: { BM_AKCJA_CYTATY: A }, document: { getElementById: (id) => (id === 'motiv-text' ? txt : id === 'motiv-source' ? src : null) },
-    Date: class extends Date { constructor(...a) { super(...(a.length ? a : ['2026-11-08T19:00:00Z'])); } } });
+    Date: class extends Date { constructor(...a) { super(...(a.length ? a : ['2026-11-07T19:00:00Z'])); } } });
   vm.runInContext(kod, ctx);
   assert.equal(ctx.window.odswiezCytatAkcji(), false, 'przed startem — ten sam cytat, nic');
   A.ustawStan({ ruszyla: true });

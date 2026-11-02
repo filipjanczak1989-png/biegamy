@@ -16,7 +16,7 @@ const KORZEN = path.join(__dirname, '..');
 const zaladuj = (p) => import(pathToFileURL(path.join(KORZEN, p)).href);
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
 const DZIS = '2026-11-02';
-const PYTANIA = ['co sie dzieje 8 listopada', 'Kim jest Fabianek?', 'fabianek', 'jaka akcja się szykuje', 'co będzie 8.11', '08.11 co bedzie', 'co się szykuje?',
+const PYTANIA = ['co sie dzieje 7 listopada', 'co będzie 7.11', 'siódmego listopada', 'co sie dzieje 8 listopada', 'Kim jest Fabianek?', 'fabianek', 'jaka akcja się szykuje', 'co będzie 8.11', '08.11 co bedzie', 'co się szykuje?',
   'o co chodzi z tą akcją', 'jaki challenge?', 'wyzwanie specjalne', 'będą znaki', 'tajemnica', 'jakaś niespodzianka?', '12 500 km', '12500', 'Jasna Góra', 'peleryny', 'Fabianka'];
 
 test('przed startem: każde pytanie → zdanie z ZAGADEK, log „zagadka", bez narzędzia i bez kart; losowanie z całej listy', async () => {

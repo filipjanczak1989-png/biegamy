@@ -883,8 +883,10 @@ async function _odswiezAkcjeLanding() {
   const dzis = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   if (!d || !d.wystartowala) {
     if (dzis < '2026-11-02' || (d && d.zamknieta)) { el.hidden = true; return; }
-    el.innerHTML = '<div style="text-align:center;font-family:&quot;Bebas Neue&quot;,Inter,sans-serif;font-size:30px;letter-spacing:.06em;color:#e8561e;">8.11</div>' +
-      '<div style="text-align:center;font-size:13px;color:rgba(240,237,232,.7);margin-top:2px;">' + (dzis >= '2026-11-08' ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Zapamiętaj tę datę.') + '</div>';
+    if (!d || !d.start) { el.hidden = true; return; }   // data startu wyłącznie z licznika (akcje.start)
+    const krotka = Number(String(d.start).slice(8, 10)) + '.' + String(d.start).slice(5, 7);
+    el.innerHTML = '<div style="text-align:center;font-family:&quot;Bebas Neue&quot;,Inter,sans-serif;font-size:30px;letter-spacing:.06em;color:#e8561e;">' + krotka + '</div>' +
+      '<div style="text-align:center;font-size:13px;color:rgba(240,237,232,.7);margin-top:2px;">' + (dzis >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Zapamiętaj tę datę.') + '</div>';
     el.hidden = false;
     return;
   }

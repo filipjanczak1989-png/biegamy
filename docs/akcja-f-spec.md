@@ -152,3 +152,20 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
   wsuwana adaptacyjnie bez ścinania metalowych pierścieni. Brak pliku = zaślepka SVG w tym samym `<img>`; „nie mam" = filtr.
   Nazwy plików i slugi bez imienia dziecka (repo publiczne).
 - **Twarda kontrola w bazie**: wyzwalacz `achievements_okno` (migracja `20261102_odznaki_okna`) — wdrażany po OK Filipa.
+
+**Zmiana daty startu (Filip 2.11 16:22): SOBOTA 7.11.2026** (8.11 to niedziela) — zastępuje wszystkie „8.11" wyżej.
+- **Data w jednym miejscu:** `akcje.start = 2026-11-07` (akcja i próba, migracja `20261102_akcja_start_7_11` z asercją);
+  front publiczny (index, dla-fabianka) czyta datę z licznika (`start`), cytaty/okienko/guzik ze stałej
+  `BM_AKCJA_CYTATY.DZIEN_STARTU` — dzień rotacji, okno guzika i zapis „7.11"/„7 listopada" są z niej liczone.
+  Tytuł i opis udostępniania `dla-fabianka.html` bez daty.
+- **Okno guzika:** 7.11 06:00–23:59:59 Europe/Warsaw. Cały dzień 7.11 liczy się do sumy. Okna odznak i seria „7 dni z rzędu"
+  od 7.11 (seria od 6.11 = brak).
+- **Cytaty:** teaser 2–5.11 bez zmian; 6.11 „Jutro wszystko stanie się jasne." (ostatni dzień teasera; „Peleryny… Jeszcze dwa
+  dni." wypadło — liczyło do starego terminu); 7.11 przed naciśnięciem „Dziś. Jedno kliknięcie zmieni wszystko.", po
+  naciśnięciu „12 500 kilometrów. Jeden powód. Fabianek."; od 8.11 rotacja. Zagadki okienka: „7.11".
+- **Plan:** próba generalna (tryb samolotowy, pełna ścieżka na koncie testowym) w **czwartek 6.11 wieczorem**; **7.11 nic się nie
+  wdraża** — start. Pierwszy push niedzielny 8.11 (2 dni akcji) jest OK.
+- **Wyprawa:** km z kont Filipa i Kasi od naciśnięcia guzika do „Dotarliśmy" (licznik `wyprawa_km`); cel `wyprawa_cel_km` poda
+  Filip. Konto Kasi z jej zawodnikami ma jej własne treningi z intervals (osobne konto intervals, 0 wspólnych aktywności
+  z Filipem) — ⚠️ ostatni zsynchronizowany trening 6.10: przed 7.11 sprawdzić, czy aktywności Kasi dochodzą.
+- Pushe start / niedziela / zamknięcie i „Dotarliśmy" — NA PROD 2.11 (migracja `20261102_akcja_dzien5`, EF `akcja-push`).

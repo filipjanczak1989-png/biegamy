@@ -20,8 +20,12 @@ begin
 
   v_suma := public.akcja_km_okna(a.id, a.start, v_dzis);
   if a.wyprawa_athlete_ids is not null then
-    v_wyprawa := public.akcja_km_okna(a.id, a.start,
-                   coalesce((a.wyprawa_dotarla_at at time zone 'Europe/Warsaw')::date, v_dzis), a.wyprawa_athlete_ids);
+    -- wyprawa: km kont wyprawy OD NACIŚNIĘCIA guzika DO „Dotarliśmy" (decyzja Filipa 2.11), wszystkie typy, bez __badge__
+    select coalesce(sum(l.distance_km), 0) into v_wyprawa from public.training_logs l
+     where l.athlete_id = any(a.wyprawa_athlete_ids) and l.distance_km > 0
+       and coalesce(l.training_type, '') not like '\_\_badge\_\_%'
+       and l.logged_at >= a.wystartowala_at and (a.wyprawa_dotarla_at is null or l.logged_at <= a.wyprawa_dotarla_at)
+       and l.logged_at <= now();
   end if;
   select coalesce(sum(stawka_gr), 0), count(*) into v_sp_gr, v_sp_n from public.akcja_sponsorzy where akcja_id = a.id;
 

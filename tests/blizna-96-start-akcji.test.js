@@ -78,8 +78,8 @@ test('próba: konto testowe po starcie próby widzi cytat dnia startu w dowolny 
     A.ustawStan({ ruszyla: false, proba: true });
     assert.equal(A.cytat(d3).tekst, A.TEASER['2026-11-03'], 'próba przed naciśnięciem = teaser');
     await A.odswiezStan(sbFake({ data: { wystartowala: true, koniec: null }, error: null }), 'zwykly', { teraz: 1 });
-    assert.equal(A.cytat(d3).tekst, A.TEASER['2026-11-03'], 'zwykłe konto przed 8.11 = teaser mimo startu');
-    assert.equal(A.cytat(new Date('2026-11-08T12:00:00Z')).tekst, A.W_DNIU_STARTU);
+    assert.equal(A.cytat(d3).tekst, A.TEASER['2026-11-03'], 'zwykłe konto przed 7.11 = teaser mimo startu');
+    assert.equal(A.cytat(new Date('2026-11-07T12:00:00Z')).tekst, A.W_DNIU_STARTU);
   } finally { A.ustawStan({ ruszyla: false, zamknieta: false, proba: false }); }
 });
 
@@ -94,10 +94,12 @@ test('zawodnik.html: stan z bazy po initAuth (obie ścieżki) i przy powrocie ka
 test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie, próba, nic innego do tapnięcia', () => {
   const h = czytaj('start-akcji.html');
   const s = h.slice(h.indexOf('<script>\n(function'));
-  // okno: 8.11 06:00 i 23:59:59 Europe/Warsaw (UTC+1) = akcje.okno_startu_od/do
-  assert.ok(czytaj('supabase/migrations/20261102_akcje.sql').includes("timestamp '2026-11-08 06:00:00' at time zone 'Europe/Warsaw'"));
-  assert.match(s, /OKNO_OD = Date\.parse\('2026-11-08T05:00:00Z'\)/);
-  assert.match(s, /OKNO_DO = Date\.parse\('2026-11-08T22:59:59Z'\)/);
+  // okno: dzień startu 06:00–23:59:59 Europe/Warsaw = akcje.okno_startu_od/do (migracja 7.11) — z jednej stałej (akcja-cytaty)
+  assert.ok(czytaj('supabase/migrations/20261102_akcja_start_7_11.sql').includes("okno_startu_od = timestamp '2026-11-07 06:00:00' at time zone 'Europe/Warsaw'"));
+  assert.match(s, /var OKNO_OD = AKC\.OKNO_STARTU \? AKC\.OKNO_STARTU\.od : NaN;/);
+  assert.match(s, /var OKNO_DO = AKC\.OKNO_STARTU \? AKC\.OKNO_STARTU\.do : NaN;/);
+  assert.match(h, /<script src="js\/akcja-cytaty\.mjs"><\/script>/);
+  assert.doesNotMatch(h, /2026-11-0[78]|8 listopada|8\.11/, 'data startu wpisana w stronie guzika');
   assert.match(s, /PRZYTRZYMAJ_MS = 1000, PONOW_MS = 5000/);
   assert.match(s, /rpc\('akcja_start', \{ p_slug: SLUG, p_nacisnieto_at: t \}\)/);
   assert.match(s, /localStorage\.setItem\(KLUCZ, w\)/);

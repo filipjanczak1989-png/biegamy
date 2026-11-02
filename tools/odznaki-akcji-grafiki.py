@@ -14,7 +14,7 @@ Dla każdego slugu z SLUGI:
   3. zapis WebP 256 i 512 z alfą do assets/odznaki/ (nazwy = slugi, frontend czyta je bez zmian w kodzie).
 Brakujący lub odrzucony plik -> zostaje zaślepka CSS/SVG we froncie (js/odznaki-akcji.mjs). Kod wyjścia 0 zawsze, gdy narzędzie
 zadziałało; raport mówi, co przeszło. Podgląd zestawu: zdobyta i „nie mam" (szarość + przygaszenie) na ciemnym tle.
-⚠️ Nazwy plików i slugi BEZ imienia dziecka (repo publiczne, przed 8.11 nic nie może zdradzać akcji).
+⚠️ Nazwy plików i slugi BEZ imienia dziecka (repo publiczne, przed startem 7.11 nic nie może zdradzać akcji).
 """
 import argparse, os, sys
 import numpy as np

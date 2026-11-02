@@ -1,6 +1,6 @@
 // ODZNAKI AKCJI (projekt F, dzień 4) — definicje, okno przyznawania i reguły. Plik BEZ import/export (globalThis.BM_ODZNAKI_AKCJI),
 // jak js/akcja.mjs: <script src> w zawodnik.html i odznaki.html, import w testach i w EF (nazwy dla okienka).
-// ⚠️ Repo jest publiczne, a przed 8.11 nic nie może zdradzać akcji: w nazwach plików, slugach i tekstach NIE MA imienia dziecka.
+// ⚠️ Repo jest publiczne, a przed startem (7.11) nic nie może zdradzać akcji: w nazwach plików, slugach i tekstach NIE MA imienia dziecka.
 //    Nazwa akcji w UI przychodzi z bazy (akcja_licznik.nazwa) i tylko po starcie. Katalog odznak akcji widać dopiero po starcie.
 // FINAŁ ZASAD (Filip 2.11 15:16): 6 odznak w tej kolejności — progi 1 · 100 · 200 · 500 km akcji (km jak w liczniku:
 // akcja_moj_wklad, cap/doba, doba warszawska), „7 dni z rzędu" (akcja-co-tydzien: 7 KOLEJNYCH dni kalendarzowych Europe/Warsaw
@@ -59,7 +59,7 @@
   /** Katalog odznak akcji widoczny dopiero po starcie (i zostaje po zamknięciu — przyznane są na zawsze). */
   function katalogWidoczny(d) { return !!(d && d.wystartowala); }
   /** Seria 7 dni: czy w dniAktywne jest 7 KOLEJNYCH dni, wszystkie w oknie [start, min(koniec, dziś)].
-   *  Dzień sprzed startu nie należy do serii (7.11–13.11 → 8.11 jest dopiero 2. dniem → za mało). */
+   *  Dzień sprzed startu nie należy do serii (6.11–12.11 → 7.11 jest dopiero 2. dniem → za mało). */
   function seria7(d, dniAktywne, teraz) {
     if (!d || !d.start) return false;
     var od = String(d.start), dzis = dzienWaw(teraz), doDnia = d.koniec && String(d.koniec) < dzis ? String(d.koniec) : dzis;

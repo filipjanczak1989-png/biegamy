@@ -134,14 +134,14 @@ export function dopasujBiegi(tekst, dzis) {
    charakterystyczne (fabian, 12 500, 8.11, peleryny, Jasna Góra, tajemnica, niespodzianka, akcja, challenge…) działają
    zawsze; OGÓLNE („co się dzieje", „co się szykuje", „o co chodzi z…") tylko bez słów o własnych danych i pojęciach
    aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
-const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|co bedzie 8|8 listopad\w*|osm\w* listopad\w*|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
+const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|co bedzie [78]|[78] listopad\w*|siodm\w* listopad\w*|osm\w* listopad\w*|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
 const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
 const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || /(^|[^0-9])0?8[ .]11([^0-9]|$)/.test(surowy)) return true;
+  if (ZAGADKA_ZAWSZE.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) return true;   // 7.11 (start) i 8.11 (stary termin)
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
 
