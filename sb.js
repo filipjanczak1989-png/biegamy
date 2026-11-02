@@ -571,6 +571,12 @@
        PRZED cięciem (logo od pierwszej klatki całe; w pasie ~49% wysokości kadru logo sięga ~35%). Dzień → film: FILMY_DNI. */
     { id: 'film-03', mp4: 'filmy/film-03.mp4', webm: 'filmy/film-03.webm', poster: 'filmy/film-03-poster.jpg',
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 100%' }, { od: 9.6, pos: '50% 0%' }] },
+    /* FILM-04 (2.11.2026, na 4.11 wg FILMY_DNI): 10 s z dźwiękiem, lot nad doliną o świcie. 0–4 s biegacze na dole po lewej
+       (zmierzone: 77–93% wysokości kadru) → dolny pas (50% 85% = pas 43–92%). Potem kamera się wznosi; słońce i horyzont są
+       na 7–19% kadru — Filip prosił o „50% 55%", ale to pas 28–77%, bez słońca; żeby linia i słońce były w kadrze: 50% 12%
+       (pas 6–55%). Przejście od 4,0 s (CSS 0,6 s), biegacze wtedy już maleją. */
+    { id: 'film-04', mp4: 'filmy/film-04.mp4', webm: 'filmy/film-04.webm', poster: 'filmy/film-04-poster.jpg',
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 85%' }, { od: 4, pos: '50% 12%' }] },
   ];
   /* MAPA DNI (Filip 2.11 wieczór): w kampanii przed akcją film jest przypisany do DATY, nie rotowany (YYYYMMDD % n psuło się
      przy każdym nowym pliku — 3.11 musi zostać film-03). Jedno miejsce: data (Europe/Warsaw, jak `dzis`) → id z FILMY_PROMO.

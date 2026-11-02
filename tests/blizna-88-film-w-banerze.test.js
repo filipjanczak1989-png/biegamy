@@ -157,9 +157,11 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   assert.match(sb, /window\.FILMY_DNI = \{\s*'2026-11-02': 'film-02', '2026-11-03': 'film-03', '2026-11-04': 'film-04', '2026-11-05': 'film-05',\s*'2026-11-06': 'film-06', '2026-11-07': 'film-06',\s*\};/);
   const sr = srodowisko(), dnia = (d) => sr.ctx.FILM_DZIS.filmDnia(new Date(d + 'T08:00:00')).id;
   assert.equal(dnia('2026-11-02'), 'film-02'); assert.equal(dnia('2026-11-03'), 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
-  for (const d of ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
-  sr.ctx.FILMY_PROMO.push({ id: 'film-04', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] }, { id: 'film-06', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
-  assert.equal(dnia('2026-11-04'), 'film-04', 'po dodaniu pliku — bez zmian w mapie'); assert.equal(dnia('2026-11-03'), 'film-03', 'dodanie film-04 NIE przesuwa 3.11 (rotacja by przesunęła)');
+  assert.equal(dnia('2026-11-04'), 'film-04', '4.11 → film-04 (wgrany 2.11)');
+  for (const d of ['2026-11-05', '2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
+  sr.ctx.FILMY_PROMO.push({ id: 'film-06', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
+  assert.equal(dnia('2026-11-03'), 'film-03', 'dodanie kolejnych plików NIE przesuwa 3.11 (rotacja by przesunęła)');
+  assert.match(promo, /\{ id: 'film-04', mp4: 'filmy\/film-04\.mp4', webm: 'filmy\/film-04\.webm', poster: 'filmy\/film-04-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 85%' \}, \{ od: 4, pos: '50% 12%' \}\] \}/, 'film-04: dół (biegacze) → góra (słońce na horyzoncie)');
   assert.equal(dnia('2026-11-06'), 'film-06'); assert.equal(dnia('2026-11-07'), 'film-06', '7.11 przed naciśnięciem = film-06');
   const n = sr.ctx.FILMY_PROMO.length, rot = (d) => sr.ctx.FILMY_PROMO[Number(d.replace(/-/g, '')) % n].id;
   for (const d of ['2026-11-08', '2026-11-09', '2026-12-25', '2026-11-01']) assert.equal(dnia(d), rot(d), d + ' poza kampanią → rotacja wszystkich');
