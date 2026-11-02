@@ -568,11 +568,18 @@
     /* FILM-03 (2.11.2026 wieczór, Filip: „żeby jutro rano grał"): 12,96 s z dźwiękiem (przygotuj.mjs od 2.11 zachowuje audio: AAC/Opus).
        0–10 s pełny kadr 16:9 — nogi i buty w DOLNEJ połowie → dolny pas (50% 100%); cięcie w 10,00 s → kwadratowy kadr z czarnymi
        pasami po bokach i logo „BiegaMy jesteśmy obok" u góry → górny pas (50% 0%) od 9,6 s, żeby przejście CSS 0,6 s skończyło się
-       PRZED cięciem (logo od pierwszej klatki całe; w pasie ~49% wysokości kadru logo sięga ~35%). Mapowanie dni: YYYYMMDD % 2 —
-       3.11 (20261103) → indeks 1 = film-03, 4.11 → film-02, i tak na przemian. */
+       PRZED cięciem (logo od pierwszej klatki całe; w pasie ~49% wysokości kadru logo sięga ~35%). Dzień → film: FILMY_DNI. */
     { id: 'film-03', mp4: 'filmy/film-03.mp4', webm: 'filmy/film-03.webm', poster: 'filmy/film-03-poster.jpg',
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 100%' }, { od: 9.6, pos: '50% 0%' }] },
   ];
+  /* MAPA DNI (Filip 2.11 wieczór): w kampanii przed akcją film jest przypisany do DATY, nie rotowany (YYYYMMDD % n psuło się
+     przy każdym nowym pliku — 3.11 musi zostać film-03). Jedno miejsce: data (Europe/Warsaw, jak `dzis`) → id z FILMY_PROMO.
+     Dzień z mapy, ale bez pliku w FILMY_PROMO → film-02. 7.11 przed naciśnięciem film-06, po starcie FILM_AKCJI (raz, filmAkcjiTeraz).
+     Dzień spoza mapy (po 7.11 albo przed 2.11) → rotacja wszystkich jak dotąd (YYYYMMDD % n). Blizna-88. */
+  window.FILMY_DNI = {
+    '2026-11-02': 'film-02', '2026-11-03': 'film-03', '2026-11-04': 'film-04', '2026-11-05': 'film-05',
+    '2026-11-06': 'film-06', '2026-11-07': 'film-06',
+  };
   /* FILM AKCJI (projekt F, spec v3 pkt 2): od startu akcji baner gra film akcji zamiast FILMY_PROMO — RAZ u każdego
      (znacznik 'film_akcji'), nawet jeśli dziś już grał teaser. Do czasu pliku od Filipa null → bez zmian (film-02).
      Przygotowanie: node tools/filmy/przygotuj.mjs <plik.mp4> film-akcja → biegamy-assets/filmy, potem obiekt jak w FILMY_PROMO:
@@ -603,7 +610,13 @@
       if (czytaj() === dzis(teraz) && !wymuszony() && !czekaFilmAkcji()) return 'juz-dzis';   // ?film=1 — test; film akcji raz u każdego
       return null;
     }
-    function filmDnia(teraz) { if (filmAkcjiTeraz()) return window.FILM_AKCJI; var f = window.FILMY_PROMO || []; if (!f.length) return null; var d = dzis(teraz); return f[Number(d.replace(/-/g, '')) % f.length]; }
+    function filmDnia(teraz) { if (filmAkcjiTeraz()) return window.FILM_AKCJI;
+      var f = window.FILMY_PROMO || []; if (!f.length) return null;
+      var d = dzis(teraz), mapa = window.FILMY_DNI || {}, id = mapa[d];
+      var zId = function (x) { for (var i = 0; i < f.length; i++) if (f[i].id === x) return f[i]; return null; };
+      if (id) return zId(id) || zId('film-02') || f[0];   // kampania: data → film; brak pliku → film-02
+      return f[Number(d.replace(/-/g, '')) % f.length];     // poza kampanią: rotacja wszystkich
+    }
     function pozycja(film, t) { var p = film.pozycje[0].pos; film.pozycje.forEach(function (x) { if (t >= x.od) p = x.pos; }); return p; }
     /* ▶ PONOWNE ODTWORZENIE (2.11.2026): po końcu / pominięciu filmu, a także gdy dziś już był albo przy reduced-motion
        (świadomy wybór — przycisk JEST, ale bez autostartu). Prawy dolny róg banera: 32 px wizualnie, pole dotyku 44 px,

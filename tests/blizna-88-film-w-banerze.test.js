@@ -150,13 +150,21 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const sb = czytaj('sb.js');
   assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 12%' \}, \{ od: 6\.88, pos: '50% 0%' \}, \{ od: 8\.3, pos: '50% 72%' \}\] \}/);
   const promo = sb.slice(sb.indexOf('window.FILMY_PROMO = ['), sb.indexOf('];', sb.indexOf('window.FILMY_PROMO = [')));
-  // FILM-03 (2.11): dwa filmy na przemian — YYYYMMDD % 2: 3.11 → film-03, 4.11 → film-02 (film-02 zostaje na indeksie 0)
-  assert.equal((promo.match(/\{ id: 'film-/g) || []).length, 2, 'dwa filmy: film-02 i film-03'); assert.match(promo, /id: 'film-02'/);
+  // FILM-03 (2.11): dziś dwa pliki; mapa dni (FILMY_DNI) decyduje, nie kolejność
+  assert.ok((promo.match(/\{ id: 'film-/g) || []).length >= 2, 'film-02 i film-03 (i kolejne)'); assert.match(promo, /id: 'film-02'/);
   assert.match(promo, /\{ id: 'film-03', mp4: 'filmy\/film-03\.mp4', webm: 'filmy\/film-03\.webm', poster: 'filmy\/film-03-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 100%' \}, \{ od: 9\.6, pos: '50% 0%' \}\] \}/);
-  assert.ok(promo.indexOf("id: 'film-02'") < promo.indexOf("id: 'film-03'"), 'film-02 pierwszy — 3.11 (nieparzysty) = film-03');
-  const sr = srodowisko();
-  assert.equal(sr.ctx.FILM_DZIS.filmDnia(new Date('2026-11-03T08:00:00')).id, 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
-  assert.equal(sr.ctx.FILM_DZIS.filmDnia(new Date('2026-11-04T08:00:00')).id, 'film-02', '4.11 → film-02');
+  // MAPA DNI (Filip 2.11 wieczór): data → film, nie rotacja; dzień z mapy bez pliku → film-02; poza mapą → rotacja wszystkich
+  assert.match(sb, /window\.FILMY_DNI = \{\s*'2026-11-02': 'film-02', '2026-11-03': 'film-03', '2026-11-04': 'film-04', '2026-11-05': 'film-05',\s*'2026-11-06': 'film-06', '2026-11-07': 'film-06',\s*\};/);
+  const sr = srodowisko(), dnia = (d) => sr.ctx.FILM_DZIS.filmDnia(new Date(d + 'T08:00:00')).id;
+  assert.equal(dnia('2026-11-02'), 'film-02'); assert.equal(dnia('2026-11-03'), 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
+  for (const d of ['2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
+  sr.ctx.FILMY_PROMO.push({ id: 'film-04', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] }, { id: 'film-06', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
+  assert.equal(dnia('2026-11-04'), 'film-04', 'po dodaniu pliku — bez zmian w mapie'); assert.equal(dnia('2026-11-03'), 'film-03', 'dodanie film-04 NIE przesuwa 3.11 (rotacja by przesunęła)');
+  assert.equal(dnia('2026-11-06'), 'film-06'); assert.equal(dnia('2026-11-07'), 'film-06', '7.11 przed naciśnięciem = film-06');
+  const n = sr.ctx.FILMY_PROMO.length, rot = (d) => sr.ctx.FILMY_PROMO[Number(d.replace(/-/g, '')) % n].id;
+  for (const d of ['2026-11-08', '2026-11-09', '2026-12-25', '2026-11-01']) assert.equal(dnia(d), rot(d), d + ' poza kampanią → rotacja wszystkich');
+  sr.ctx.FILMY_PROMO.splice(0, 1);   // bez film-02 w ogóle → pierwszy z listy (nie wywraca Dziś)
+  assert.equal(dnia('2026-11-05'), sr.ctx.FILMY_PROMO[0].id);
   assert.ok(!/film-0\d/.test(czytaj('sw.js').slice(czytaj('sw.js').indexOf('const PRECACHE_URLS'), czytaj('sw.js').indexOf('const PRECACHE_KRYTYCZNE'))), 'filmy poza precache');
 });
 
