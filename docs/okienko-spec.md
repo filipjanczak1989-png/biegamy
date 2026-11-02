@@ -334,3 +334,14 @@ Decyzja Filipa: zgłoszenie widoczne OD RAZU (status `zgloszona`, etykieta „zg
 - (e) kalorie produktów — nie (osobna decyzja).
 Ławka etap 5: docs/lawka-pytan-2026-11-01-5.md — dobra 44/50, zła 0, pusta 0, za droga 6 (porady i kalorie — poza
 zakresem), koszt symulacji $0,24. Testy: blizna-89; blizna-74 (link https).
+
+## Zagadka akcji (2.11.2026) — wdrożone w v27
+
+Pierwsza reguła routera (przed osobą, imprezą, katalogiem, siecią): pytania o akcję → zdanie z `ZAGADKI`
+(js/akcja-cytaty.mjs), 0 tokenów, log router/„zagadka"; po starcie (`czyAkcjaRuszyla`) „Akcja trwa — szczegóły na Dziś."
+(miejsce na kartę akcji, projekt F). Ogólne wzorce („co się dzieje", „co się szykuje", „o co chodzi z") tylko bez słów
+o własnych danych i pojęciach aplikacji. Testy: blizna-93.
+
+⚠️ `fabian*` CELOWO szeroko (decyzja Filipa 2.11.2026: ochrona dziecka > wyniki dorosłych Fabianów) — „Fabian Kowalski
+wyniki" dostaje zagadkę zamiast trybu osoby. **PRZEGLĄD: w dniu zamknięcia akcji** (`ZAMKNIETA = true`, `ZAMKNIETA_OD`
+w js/akcja-cytaty.mjs) — zawęzić do „Fabianek/Fabianka/Fabiankowi/Fabiankiem" albo zdjąć regułę razem z zagadką.

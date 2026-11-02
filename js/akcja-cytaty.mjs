@@ -48,7 +48,11 @@
   ];
   var PO_ZAMKNIECIU = "Daliśmy radę. Razem. Dla Fabianka.", DNI_PO_ZAMKNIECIU = 7;
   /* ZAGADKI (okienko „Zapytaj", decyzja Filipa 2.11): pytania o akcję PRZED startem → losowo jedna z nich, 0 tokenów,
-     bez kart, bez sieci, bez modelu. Po starcie (czyAkcjaRuszyla) → PO_STARCIE, do czasu karty akcji z projektu F. */
+     bez kart, bez sieci, bez modelu. Po starcie (czyAkcjaRuszyla) → PO_STARCIE, do czasu karty akcji z projektu F.
+     ⚠️ PRZEGLĄD (decyzja Filipa 2.11.2026): wzorzec `fabian\w*` w routerze okienka (ZAGADKA_ZAWSZE, router.mjs) jest
+     CELOWO szeroki — łapie też dorosłych Fabianów („Fabian Kowalski wyniki"), bo ochrona dziecka > wyniki dorosłych.
+     DATA PRZEGLĄDU: dzień zamknięcia akcji (ZAMKNIETA = true / ZAMKNIETA_OD) — wtedy zawęzić do form „Fabianek/
+     Fabianka/Fabiankowi/Fabiankiem" albo zdjąć regułę razem z zagadką, w tym samym commicie co blizna-93. */
   var ZAGADKI = [
     "Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: 8.11.",
     "Będą znaki. Patrz pod nogi i licz kilometry.",
