@@ -79,6 +79,9 @@ verify_jwt = true        # kalendarz.html:3751, zawodnik.html:2568; wymagajUsera
 [functions.okienko]
 verify_jwt = true        # zawodnik.html „Zapytaj" (M1); wymagajUsera, klient z JWT użytkownika (RLS)
 
+[functions.okladki-imprez]
+verify_jwt = false       # KALENDARZ 2–3: cron nocny z x-push-secret (okładki imprez z automatu, konto F6) + tryby trenera (wymagajUsera + coaches): nowa wersja Gemini, własne zdjęcie
+
 [functions.okienko-v2]
 verify_jwt = true        # Okienko 2.0 (E0, 5.11): to samo wejście co okienko; front kieruje tu tylko konta z okienko_v2_konta (RPC okienko_wersja)
 

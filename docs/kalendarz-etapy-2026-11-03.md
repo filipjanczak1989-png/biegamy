@@ -22,14 +22,37 @@
 - Podglądy (atrapy backendu, po migracji na żywo zachowanie identyczne): `Downloads\biegamy-podglady\kalendarz-e1-arkusz-imprezy.png`,
   `kalendarz-e1-po-zapisie.png`.
 
-## Etap 2 — okładki z automatu (EF `okladki-imprez` + pg_cron co noc 30 okładek) — czeka na „konto F6 gotowe”
+## Etap 2 — okładki z automatu (EF `okladki-imprez` + pg_cron co noc) — ZBUDOWANE 3.11, uruchomi się po „konto F6 gotowe” (blizna-120)
+
+- EF `okladki-imprez` `{rodzaj:'noc'}` z `x-push-secret` (cron `okladki-imprez-noc` 02:40 UTC, sekret z vault jak `akcja-push`): logowanie konta
+  serwisowego F6 kluczem publicznym (`signInWithPassword`, sekrety **`F6_KONTO_EMAIL` / `F6_KONTO_HASLO`**, hasło nigdy w logu), `upcoming_races`
+  od dziś na rok (≤ 300), klucz bez roku jak w `js/kalendarz-lista.mjs` (EF importuje ten sam moduł), pomija klucze z okładką, **najbliższe
+  terminy najpierw, ≤ 30/dobę** liczone z `okladki_log`; prompt wyłącznie z danych serwera (typ/miejsce/pora roku; `_shared/okladka-prompt.mjs`);
+  zapis `race-covers/impreza-<sha1>.jpg` + `imprezy_okladki` (zrodlo `gemini-nano-banana-2.1`) + `okladki_log` (koszt 0,034 USD/kadr).
+  Raport kosztu: `select date_trunc('day', kiedy), rodzaj, count(*), sum(koszt_usd) from okladki_log group by 1,2 order by 1 desc;`
+- Migracja `20261105_okladki_automat.sql` (**do wykonania przez Filipa**): `okladki_log` (zero dostępu z przeglądarki), cron. Test po skutku
+  `tools/okladki-automat-test.sh` (8 asercji). Bez sekretów F6 cron loguje `lista: brak konta F6` i nic nie generuje.
+- Narzędzie lokalne `tools/kalendarz/generuj-okladki.mjs` zostaje jako zapas (ten sam klucz i nazwa pliku).
+
+## Etap 2 (pierwotny opis)
 
 Konto serwisowe F6 (zatwierdzone: tylko serwer): sekrety `F6_KONTO_EMAIL`, `F6_KONTO_HASLO`. EF loguje się kluczem publicznym
 (`signInWithPassword`), bierze JWT, woła `upcoming_races` (najbliższe terminy najpierw), dla imprez bez okładki generuje Gemini (prompt
 wyłącznie z danych serwera: typ/miejsce/pora roku), zapis do `imprezy_okladki`, raport kosztu w `okladki_log`. Sekret `x-push-secret`
 jak `akcja-push`, `verify_jwt = false`.
 
-## Etap 3 — „Zmień zdjęcie” dla trenera przy KAŻDEJ karcie (nasze i z maszyny)
+## Etap 3 — „Zmień zdjęcie” dla trenera przy KAŻDEJ karcie — ZBUDOWANE 3.11 (blizna-120)
+
+- Arkusz imprezy z maszyny (trener): **„Nowa okładka (Gemini)”** → EF `{rodzaj:'trener-gemini', klucz}` — dane do promptu z `imprezy_okladki`
+  albo z F6 po kluczu (nigdy z żądania), **limit 20/dobę** wspólny z `race-image` („Nowa okładka” naszych zawodów też loguje `race-gemini`
+  i przy `force` sprawdza limit); **„Własne zdjęcie”** → plik → canvas ≤ 1600 px, JPEG 0,85 → base64 → EF `{rodzaj:'wlasne', klucz|race_id}`
+  (typ po bajtach: JPEG/PNG/WebP, ≤ 3 MB; SVG odrzucone). Impreza → `imprezy_okladki` (zrodlo `trener-wlasne`, nadpisuje automat), nasze →
+  `races.cover_url`. Bucket `race-covers` nadal bez polityk zapisu z przeglądarki — upload tylko przez EF (service).
+- Arkusz naszych zawodów: obok „Nowa okładka” przycisk **„Własne zdjęcie”** (ten sam mechanizm, `race_id`).
+- `race-image` przepisany na wspólny moduł `_shared/okladka-gemini.mjs` (+ `okladka-prompt.mjs` bez Deno — testy): zero kopii promptu/skalowania.
+- Do deployu przez Filipa: `okladki-imprez` (nowa), `race-image` (refaktor + log + limit). `deno check` obu EF przeszedł lokalnie (3.11).
+
+## Etap 3 (pierwotny opis)
 
 Nowa wersja Gemini (limit dzienny z `okladki_log`) albo własne zdjęcie (upload przez EF — bucket `race-covers` nie ma polityk zapisu
 z przeglądarki; walidacja typu/rozmiaru). Dla kart z maszyny zapis do `imprezy_okladki` (nadpisuje automat), dla naszych `races.cover_url`.

@@ -485,9 +485,16 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
       </div>
       <div id="m-coach-approved" style="display:none;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
         <button onclick="openEditRace()" style="width:100%;background:rgba(78,140,214,0.12);border:1px solid rgba(78,140,214,0.35);color:var(--blue);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-nut-edit.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Edytuj zawody</button>
+        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Własne zdjęcie</button>
         <button id="m-cover-btn" onclick="nowaOkladka()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">🖼 Nowa okładka</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń zawody z kalendarza</button>
       </div>
+      <!-- KALENDARZ etap 3 (3.11): trener zmienia zdjęcie KAŻDEJ karty — dla imprezy z maszyny tu (EF okladki-imprez: Gemini z limitem dziennym albo własne zdjęcie) -->
+      <div id="m-coach-impreza" style="display:none;margin-bottom:10px;flex-direction:column;gap:8px;">
+        <button id="m-impreza-gemini" onclick="nowaOkladkaImprezy()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">🖼 Nowa okładka (Gemini)</button>
+        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Własne zdjęcie</button>
+      </div>
+      <input type="file" id="m-plik" accept="image/jpeg,image/png,image/webp" hidden onchange="wyslijWlasneZdjecie(this)">
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
     </div>
     <div style="height:20px;"></div>
@@ -1193,6 +1200,7 @@ function openRace(id) {
   if (!race) return;
   _currentRace = race; _currentImpreza = null;
   const pasDesc = document.getElementById('m-desc'); if (pasDesc) pasDesc.style.display = 'none';
+  const sekTr = document.getElementById('m-coach-impreza'); if (sekTr) sekTr.style.display = 'none';
 
   const signed = _mySignups.has(race.id);
   document.getElementById('m-dist').textContent = distanceLabel(race.distance_km).toUpperCase();
@@ -1470,11 +1478,70 @@ function openImpreza(id) {
     ? `<a href="${href}" target="_blank" rel="noopener" class="modal-link-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Strona imprezy / zapisy</span></a>`
     : '';
   for (const idEl of ['m-submitted-by', 'm-same-day', 'm-coach-pending', 'm-coach-approved']) { const e = document.getElementById(idEl); if (e) e.style.display = 'none'; }
+  const sekTr = document.getElementById('m-coach-impreza'); if (sekTr) sekTr.style.display = _isCoach ? 'flex' : 'none';
   const btn = document.getElementById('m-signup-btn');
   btn.style.display = 'flex'; btn.className = 'modal-signup-btn'; btn.disabled = x.dokladnosc === 'miesiac';
   btn.innerHTML = x.dokladnosc === 'miesiac' ? 'Termin niepotwierdzony' : (_isCoach ? '＋ Dodaj do naszych startów' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Wezmę udział!');
   document.getElementById('race-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+/* ── ETAP 3 KALENDARZA (3.11): „Zmień zdjęcie” trenera przy KAŻDEJ karcie przez EF okladki-imprez (JWT trenera). Gemini z limitem
+   dziennym (20, wspólny z race-image) — prompt buduje serwer z własnych danych; własne zdjęcie: plik → canvas ≤ 1600 px, JPEG 0,85
+   (telefon robi 4–8 MB, EF przyjmuje ≤ 3 MB) → base64 → EF (typ po bajtach po stronie serwera). Impreza → imprezy_okladki (nadpisuje
+   automat), nasze zawody → races.cover_url. Klucz imprezy = klucz bez roku (ten sam co okładki automatu). */
+async function efOkladki(body) {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) return { ok: false, blad: 'sesja' };
+  const res = await fetch((window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/okladki-imprez', { method: 'POST', headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await res.json().catch(() => null);
+  return { ok: res.ok && !!(d && d.url), status: res.status, url: d && d.url, blad: d && d.blad };
+}
+function kluczImprezyOkladki(x) { return window.BM_KALENDARZ.kluczBezRoku(x.nazwa, x.miasto); }
+function pokazOkladkeImprezy(klucz, url) {
+  _okladkiImprez[klucz] = url;
+  if (_currentImpreza && kluczImprezyOkladki(_currentImpreza) === klucz) pokazOkladke({ cover_url: url, cover_9x16_url: null });
+  renderRaces();
+}
+async function nowaOkladkaImprezy() {
+  const x = _currentImpreza; if (!x || !_isCoach) return;
+  const btn = document.getElementById('m-impreza-gemini'); if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję…'; }
+  const r = await efOkladki({ rodzaj: 'trener-gemini', klucz: kluczImprezyOkladki(x) });
+  if (btn) { btn.disabled = false; btn.textContent = '🖼 Nowa okładka (Gemini)'; }
+  if (r.ok) { pokazOkladkeImprezy(kluczImprezyOkladki(x), r.url); showToast('Nowa okładka gotowa ✓'); }
+  else showToast(r.status === 429 ? 'Dzienny limit nowych okładek wyczerpany (20).' : r.status === 404 ? 'Maszyna wyników nie zna tej imprezy — spróbuj po nocnym automacie.' : 'Nie udało się wygenerować okładki');
+}
+function wlasneZdjecie() {
+  if (!_isCoach || !(_currentImpreza || _currentRace)) return;
+  const inp = document.getElementById('m-plik'); if (inp) { inp.value = ''; inp.click(); }
+}
+function zmniejszZdjecie(plik) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image(); const url = URL.createObjectURL(plik);
+    img.onload = function () {
+      try {
+        const skala = Math.min(1, 1600 / img.naturalWidth), c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * skala); c.height = Math.round(img.naturalHeight * skala);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.85));
+      } catch (e) { reject(e); }
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('obraz')); };
+    img.src = url;
+  });
+}
+async function wyslijWlasneZdjecie(inp) {
+  const plik = inp && inp.files && inp.files[0]; if (!plik) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(plik.type)) { showToast('Wybierz zdjęcie JPEG, PNG albo WebP.'); return; }
+  showToast('Wysyłam zdjęcie…');
+  let dane;
+  try { dane = await zmniejszZdjecie(plik); } catch (e) { showToast('Nie udało się odczytać zdjęcia.'); return; }
+  const cel = _currentImpreza ? { rodzaj: 'wlasne', klucz: kluczImprezyOkladki(_currentImpreza), dane_b64: dane } : { rodzaj: 'wlasne', race_id: _currentRace.id, dane_b64: dane };
+  const r = await efOkladki(cel);
+  if (!r.ok) { showToast(r.blad ? 'Odrzucone: ' + r.blad : 'Nie udało się wgrać zdjęcia'); return; }
+  if (_currentImpreza) pokazOkladkeImprezy(cel.klucz, r.url);
+  else { const race = _allRaces.find(x => x.id === cel.race_id); if (race) race.cover_url = r.url; if (_currentRace && _currentRace.id === cel.race_id) { _currentRace.cover_url = r.url; pokazOkladke(_currentRace); } renderRaces(); }
+  showToast('Zdjęcie ustawione ✓');
 }
 
 /** Impreza z maszyny → nasz start (RPC, bez duplikatów) → zapis jak dla naszej. Zwraca id naszego startu albo null. */

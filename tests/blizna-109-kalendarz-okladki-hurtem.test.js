@@ -41,7 +41,8 @@ test('races.html: jeden select imprezy_okladki (bez in(...)), okładka po kluczB
   const r = czytaj('races.html');
   assert.match(r, /_sb\.from\('imprezy_okladki'\)\.select\('klucz,url'\)/);
   assert.doesNotMatch(r, /imprezy_okladki'\)\.(insert|upsert|update|delete)/);
-  assert.doesNotMatch(r, /imprezy-okladki|imprezy_okladki_kolejka/, 'klient nie zleca generowania okładek imprez z maszyny (race-image zostaje — „Nowa okładka" trenera dla NASZYCH zawodów)');
+  assert.doesNotMatch(r, /imprezy-okladki|imprezy_okladki_kolejka/, 'klient nie zleca generowania okładek imprez z maszyny HURTEM (od 3.11 TRENER może dla JEDNEJ karty przez EF okladki-imprez — blizna-120)');
+  assert.doesNotMatch(r, /from\('imprezy_okladki'\)\.(insert|upsert|update|delete)\(/, 'żadnego zapisu imprezy_okladki z klienta');
   assert.match(r, /_okladkiImprez\[window\.BM_KALENDARZ\.kluczBezRoku\(x\.nazwa, x\.miasto\)\]/);
   assert.match(r, /await okladkiLaduj\(\);[^\n]*\n\s*imprezyLaduj\(\);/, 'mapa przed renderem imprez');
 });

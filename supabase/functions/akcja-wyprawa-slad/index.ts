@@ -28,7 +28,7 @@ function naglowekIntervals(c: { access_token?: string | null; api_key?: string |
   return null;
 }
 
-async function odswiez(sb: ReturnType<typeof createClient>, a: Akcja, od: string | null, tylkoAthlete: string | null) {
+async function odswiez(sb: any, a: Akcja, od: string | null, tylkoAthlete: string | null) {
   const raport = { slug: a.slug, aktywnosci: 0, nowe: 0, bez_trasy: 0, bledy: [] as string[] };
   if (!a.wystartowala_at || !a.wyprawa_athlete_ids?.length) return raport;
   const odIso = od && a.testowa ? od + "T00:00:00Z" : a.wystartowala_at;
@@ -73,7 +73,7 @@ async function odswiez(sb: ReturnType<typeof createClient>, a: Akcja, od: string
   return raport;
 }
 
-async function slad(sb: ReturnType<typeof createClient>, a: Akcja) {
+async function slad(sb: any, a: Akcja) {
   if (!a.wystartowala_at || !a.wyprawa_athlete_ids?.length) return { start: false, trwa: false, segmenty: [] };
   const { data } = await sb.from("akcja_wyprawa_slad").select("intervals_activity_id,start_at,koniec_at,punkty,pobrano_at").eq("akcja_id", a.id).order("start_at", { ascending: true });
   const wiersze = ((data || []) as Wiersz[]).filter((r) => Array.isArray(r.punkty) && r.punkty.length > 1);
