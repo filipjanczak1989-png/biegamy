@@ -29,7 +29,7 @@ async function sprawdz(svc: any, athleteId: string) {
     try {
       const r = await fetch(`https://intervals.icu/api/v1/athlete/${icu}/activities?oldest=${oldest}&newest=${newest}`, { headers: { Authorization: auth }, signal: AbortSignal.timeout(8000) });
       http = r.status;
-      if (r.ok) { const j = await r.json(); aktywnosci = Array.isArray(j) ? j.map((a: Record<string, unknown>) => ({ start_date_local: a.start_date_local, start_date: a.start_date, source: a.source, device_name: a.device_name })) : []; }
+      if (r.ok) { const j = await r.json(); aktywnosci = Array.isArray(j) ? j.map((a: Record<string, unknown>) => ({ id: a.id, start_date_local: a.start_date_local, start_date: a.start_date, source: a.source, device_name: a.device_name, distance: a.distance, moving_time: a.moving_time, elapsed_time: a.elapsed_time, icu_training_load: a.icu_training_load })) : []; }   // + pola do rozpoznania wydmuszek (plan B Garmin)
     } catch { http = 0; }
   }
   const { data: ostLog } = await svc.from("training_logs").select("logged_at").eq("athlete_id", athleteId).eq("external_source", "intervals").order("logged_at", { ascending: false }).limit(1).maybeSingle();

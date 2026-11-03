@@ -2573,7 +2573,7 @@
       const esc = window.escapeHtml || function (x) { return String(x); };
       if (st.ogniwo === 'token') return 'Połączenie z intervals.icu wygasło — treningi nie wpadają.';
       if (st.ogniwo === 'zegarek') return 'Zegarek nie wysyła treningów do intervals.icu' + (st.zrodlo ? ' (' + esc(st.zrodlo) + ')' : '') + (st.dni_ciszy != null ? ' — ostatni ' + this._dniTemu(st.dni_ciszy) + '.' : '.');
-      if (st.ogniwo === 'garmin') return 'Garmin ogranicza dostęp dla intervals.icu — to nie wina Twojego zegarka; poczekaj na bezpośrednie połączenie albo dodaj trening ręcznie.';
+      if (st.ogniwo === 'garmin') return 'Garmin ogranicza dostęp dla intervals.icu — Twoje dotychczasowe treningi są bezpieczne; nowe dodaj ręcznie, wkrótce także plikiem .FIT.';
       if (st.ogniwo === 'import') return 'intervals.icu ma nowe treningi, a BiegaMy jeszcze nie — kliknij „Sprawdź teraz”.';
       if (st.ogniwo === 'siec') return 'Nie udało się sprawdzić połączenia — spróbuj za chwilę.';
       return '';
@@ -2610,8 +2610,8 @@
       } else if (st.ogniwo === 'garmin') {
         /* tekst „wgraj plik .FIT” wejdzie razem z wgrywaniem FIT (docs/fit-upload-projekt-2026-11-03.md) — dziś byłby martwym linkiem */
         srodek = '<div class="wc-kr-h">Garmin ogranicza dostęp dla intervals.icu</div>'
-          + '<p class="wc-kr-p">To nie wina Twojego zegarka ani telefonu. Garmin zmienił zasady i intervals.icu nie może przekazywać treningów z Garmina do innych aplikacji' + (st.ost_intervals ? ' (ostatni, który doszedł: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>)' : '') + '.</p>'
-          + '<p class="wc-kr-p">Pracujemy nad bezpośrednim połączeniem z Garminem. Do tego czasu dodaj trening ręcznie — najszybciej ze zdjęcia ekranu zegarka (rozpoznamy liczby).</p>' + btnSprawdz;
+          + '<p class="wc-kr-p"><b>Twoje dotychczasowe treningi są bezpieczne — nic nie znika.</b> To nie wina Twojego zegarka ani telefonu: Garmin zmienił zasady i intervals.icu nie może przekazywać nam treningów z Garmina' + (st.ost_intervals ? ' (ostatni pełny: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>)' : '') + '.</p>'
+          + '<p class="wc-kr-p">Treningi z tego okresu zapisujemy jako „wykonane, szczegóły niedostępne” — plan się domyka, ale bez kilometrów. Nowe dodaj ręcznie (zapis treningu albo zdjęcie ekranu zegarka); wkrótce także plikiem .FIT. Pracujemy nad bezpośrednim połączeniem z Garminem.</p>' + btnSprawdz;
       } else if (st.ogniwo === 'siec') {
         srodek = '<div class="wc-kr-h">Nie udało się sprawdzić połączenia</div><p class="wc-kr-p">intervals.icu nie odpowiedział. Spróbuj za chwilę.</p>' + btnSprawdz;
       }

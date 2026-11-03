@@ -14,6 +14,7 @@ const J = (s: number, b: unknown) =>
 
 // ── mapowanie aktywność intervals → wiersz training_logs ──
 // 06.10.2026: B2 wykonane — RUN_ACT/ACT_MAP/typeFromPlan/typeForActivity w ../_shared/typ-aktywnosci.mjs.
+import { czyWydmuszka, wierszWydmuszki } from '../_shared/wydmuszka.mjs';   // plan B Garmin (3.11)
 //    „Świadomy duplikat" z B1 rozjechał się 27.07 (sync dostał ACT_MAP, webhook nie): przez 10 tygodni
 //    każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. secToClock/paceStr/kształt wiersza nadal lokalnie.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
@@ -82,6 +83,7 @@ Deno.serve(async (req) => {
   const svc = createClient(SB_URL, SVCKEY);   // default OK dla legacy i sb_secret; NIE dodawać Authorization:'' — łamie legacy (42501)
   const events = Array.isArray(body.events) ? body.events : [];
   let imported = 0, dup = 0, skipped = 0, unmatched = 0, domkniete = 0;
+  let ostatniAth: string | null = null;   // 3.11: `ath` jest stałą pętli — hak wyprawy niżej czytał ją spoza pętli (ReferenceError przy imported > 0)
 
   for (const ev of events) {
     // ── 2) FILTR TYPU — tylko ACTIVITY_UPLOADED. Reszta (ACTIVITY_ANALYZED/CALENDAR_*/SPORT_SETTINGS…) pomijana ──
@@ -112,22 +114,23 @@ Deno.serve(async (req) => {
     //   if (r.ok) a = await r.json();
     if (!a || a.id == null) { skipped++; continue; }              // brak aktywności/id → nie ma co zapisać
 
+    const wydmuszka = czyWydmuszka(a);   // plan B Garmin (3.11): bez dystansu/czasu/obciążenia → log „szczegóły niedostępne”, nie ogryzek
     // filtr ogryzków (spójny z sync): pomiń mikro-aktywności start/stop — < 60s LUB < 300m
     const _sec = Number(a.moving_time || a.elapsed_time || 0);
     const _m   = Number(a.distance || 0);
-    if (_sec < 60 && _m < 300) { skipped++; continue; }
+    if (!wydmuszka && _sec < 60 && _m < 300) { skipped++; continue; }
 
     // #6: typ biegu z PLANU tego dnia (pojedynczy select — webhook to jedna aktywność/event).
     const dateKey = String(a.start_date_local || a.start_date || '').slice(0, 10);   // lokalny klucz = trainings.date
     const { data: plan } = await svc.from('trainings')
       .select('type').eq('athlete_id', ath.id).eq('date', dateKey).maybeSingle();
-    const row = mapActivity(a, ath.id, plan?.type ?? null);
+    const row = wydmuszka ? wierszWydmuszki(a, ath.id, typeForActivity(a, plan?.type ?? null), rawActivityType(a)) : mapActivity(a, ath.id, plan?.type ?? null);
 
     // ── 5) IDEMPOTENCJA — insert + catch 23505 (unique training_logs_external_uniq) ──
     // ⚠️ NIE upsert onConflict: indeks jest PARTIAL (WHERE external_source/external_id NOT NULL),
     //    supabase-js nie dopisze predykatu → ON CONFLICT nie znajdzie arbitra. Catch 23505 jest odporny.
     //    Chroni przed: retry po nie-2xx, redelivery ORAZ UPLOADED+ANALYZED dla tego samego activity.
-    const { data: wstawiony, error } = await svc.from('training_logs').insert(row)
+    const { data: wstawiony, error } = await svc.from('training_logs').insert(row as any)
       .select('id,logged_at,training_type,distance_km').single();
     if (error) {
       if (error.code === '23505') { dup++; continue; }           // już zaimportowany → idempotentny sukces
@@ -135,6 +138,7 @@ Deno.serve(async (req) => {
       skipped++; continue;
     }
     imported++;
+    ostatniAth = ath.id;
     /* 06.10.2026 (paczka 2): import DOMYKA plan jak ręczny zapis logu — reguła w
        _shared/domknij-plan.mjs (SSOT: sb.js wybierzPlanDoDomkniecia). Błąd nie psuje importu. */
     try {
@@ -145,10 +149,10 @@ Deno.serve(async (req) => {
 
   // ── 5b) WYPRAWA (komenda Filipa 4.11): nowa aktywność konta wyprawy → odświeżenie śladu (EF sama sprawdza, czy konto jest w trwającej
   //       wyprawie; błąd nie psuje importu; ten sam sekret co cron) ──
-  if (imported > 0 && ath?.id && Deno.env.get('PUSH_HOOK_SECRET')) {
+  if (imported > 0 && ostatniAth && Deno.env.get('PUSH_HOOK_SECRET')) {
     try {
       await fetch(`${SB_URL}/functions/v1/akcja-wyprawa-slad`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-push-secret': Deno.env.get('PUSH_HOOK_SECRET')! },
-        body: JSON.stringify({ rodzaj: 'odswiez', athlete_id: ath.id }) });
+        body: JSON.stringify({ rodzaj: 'odswiez', athlete_id: ostatniAth }) });
     } catch (e) { console.error('intervals-webhook wyprawa', (e as Error)?.message); }
   }
   // ── 6) ZAWSZE 200 przy poprawnym secret (miss/skip/dup też) — inaczej intervals retry-uje w kółko ──

@@ -41,7 +41,8 @@ function gapToPace(v: number): string | null {
 // rozjechany od 27.07 — webhook nie dostał ACT_MAP). Bramka: tools/bramka-reguly.js część D.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
-import { oknoSyncu } from '../_shared/okno-syncu.mjs';   // 3.11: 90 dni / pełna historia — jedno miejsce, blizna-121 (luka 30 dni → komplet)
+import { oknoSyncu } from '../_shared/okno-syncu.mjs';
+import { czyWydmuszka, wierszWydmuszki } from '../_shared/wydmuszka.mjs';   // plan B Garmin (3.11): aktywność bez dystansu/czasu = log „szczegóły niedostępne”, nie ogryzek   // 3.11: 90 dni / pełna historia — jedno miejsce, blizna-121 (luka 30 dni → komplet)
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
 // dwutorowa notyfikacja (zawodnik + trener). Best-effort: blad tu NIE psuje odpowiedzi EF.
@@ -156,9 +157,15 @@ Deno.serve(async (req) => {
       recznePoDacie.get(k)!.push(r);
     }
 
+    /* WYDMUSZKI (plan B Garmin, 3.11): aktywność bez dystansu, czasu i obciążenia (intervals bez dostępu do danych Garmina) → wiersz
+       „wykonany, szczegóły niedostępne” bez km (nie liczy się do akcji/odznak), plan tego dnia domyka się jak zwykle. Do 3.11 wpadała
+       w filtr ogryzków i znikała bez śladu. Istniejących logów nie dotyka (dedup wyżej). */
+    const wydmuszki = (Array.isArray(acts) ? acts : [])
+      .filter((a: any) => !seen.has(String(a.id)) && czyWydmuszka(a))
+      .map((a: any) => { const dateKey = String(a.start_date_local || a.start_date || '').slice(0, 10); return wierszWydmuszki(a, athlete_id, typeForActivity(a, planByDate.get(dateKey) ?? null), rawActivityType(a)); });
     // ⚠️⚠️ NAZWY PÓL = ZAŁOŻENIA — potwierdzić realnym curlem (klasa signed_at) ⚠️⚠️
     const rows = (Array.isArray(acts) ? acts : [])
-      .filter((a: any) => !seen.has(String(a.id)))
+      .filter((a: any) => !seen.has(String(a.id)) && !czyWydmuszka(a))
       .filter((a: any) => {                                    // filtr ogryzków start/stop: odrzuć < 60s LUB < 300m
         const sec = Number(a.moving_time || a.elapsed_time || 0);
         const m   = Number(a.distance || 0);
@@ -217,6 +224,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    for (const w of wydmuszki) doWstawienia.push(w);   // wydmuszki nigdy nie wzbogacają wpisu ręcznego — zawsze osobny wiersz
     let synced = 0, wzbogacone = 0;
     let pominiete: { external_id: string; data: string; powod: string; powodCzytelny: string }[] = [];
     let domkniete = 0;   // plany domknięte logami z tej paczki (06.10)
@@ -305,7 +313,7 @@ Deno.serve(async (req) => {
        odpadlo, i nie ma jak sie dowiedziec co. Klient sklada z tego zdanie
        „zaimportowano 438 z 440, 2 pominiete". */
     return J(200, {
-      ok: true, synced, wzbogacone, wellness: wellnessSynced,
+      ok: true, synced, wzbogacone, wellness: wellnessSynced, wydmuszki: wydmuszki.length,
       domkniete,                           // 06.10: plany oznaczone done przez ten import
       pominietych: pominiete.length,
       pominiete: pominiete.slice(0, 20),   // cap na odpowiedz; licznik zostaje pelny

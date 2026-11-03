@@ -2,7 +2,8 @@
 // intervals-status i testy (blizna-121). Zasada z blizny-20: SAM CZAS nie odróżnia „rura zepsuta” od „człowiek ma przerwę” — dlatego
 // pytamy intervals (źródło prawdy o zegarku): 401 = nasz token; brak nowych aktywności w intervals = zegarek nie wysyła do intervals;
 // intervals ma nowsze niż BiegaMy = nasz import. Błąd inny niż 401 = 'siec' (nie oskarżamy nikogo).
-export const PROG_CISZY_DNI = 7, OKNO_DNI = 30;
+import { czyWydmuszka, zGarmina } from "../_shared/wydmuszka.mjs";
+export const PROG_CISZY_DNI = 7, OKNO_DNI = 30, PROG_WYDMUSZEK = 2;
 // BLOKADA GARMINA (3.11, Filip): Garmin zmienił T&C — intervals.icu może przestać przekazywać dane Garmina (wątek intervals 9.10,
 // the5krunner 14.10). Objaw u nas: ZBIOROWA cisza źródła „Garmin Connect” (≥ BLOKADA_MIN osób i ≥ BLOKADA_PROG tych z Garminem),
 // podczas gdy inne źródła płyną. Wtedy ogniwo = 'garmin' („Garmin ogranicza dostęp”), nie 'zegarek' (nie oskarżamy człowieka).
@@ -40,14 +41,18 @@ const dni = (a, b) => Math.round((Date.parse(a + "T12:00:00Z") - Date.parse(b + 
     @returns {{ogniwo:string, zrodlo:string|null, urzadzenie:string|null, ost_intervals:string|null, ost_biegamy:string|null, dni_ciszy:number|null, szczegoly:object}} */
 export function ustalOgniwo(o) {
   const dzis = o.dzis;
-  const akt = (Array.isArray(o.aktywnosci) ? o.aktywnosci : []).map((a) => ({ d: String(a.start_date_local || a.start_date || "").slice(0, 10), source: a.source || null, device: a.device_name || null }))
+  const akt = (Array.isArray(o.aktywnosci) ? o.aktywnosci : []).map((a) => ({ d: String(a.start_date_local || a.start_date || "").slice(0, 10), source: a.source || null, device: a.device_name || null, wydmuszka: czyWydmuszka(a) && zGarmina(a) }))
     .filter((a) => /^\d{4}-\d{2}-\d{2}$/.test(a.d)).sort((a, b) => (a.d < b.d ? 1 : -1));
   const ost = akt[0] || null;
   const baza = { zrodlo: ost ? nazwaZrodla(ost.source, ost.device) : null, urzadzenie: ost ? (ost.device ? String(ost.device).slice(0, 80) : null) : null,
-    ost_intervals: ost ? ost.d : null, ost_biegamy: o.ostBiegamy || null, dni_ciszy: ost ? Math.max(0, dni(dzis, ost.d)) : null, szczegoly: { aktywnosci_30d: akt.length, http: o.http ?? null } };
+    ost_intervals: ost ? ost.d : null, ost_biegamy: o.ostBiegamy || null, dni_ciszy: ost ? Math.max(0, dni(dzis, ost.d)) : null, szczegoly: { aktywnosci_30d: akt.length, http: o.http ?? null, wydmuszki: akt.filter((a) => a.wydmuszka).length } };
   if (!o.polaczony) return { ogniwo: "brak", ...baza };
   if (o.http === 401 || o.http === 403) return { ogniwo: "token", ...baza };
   if (o.http != null && (o.http < 200 || o.http >= 300)) return { ogniwo: "siec", ...baza };
+  /* WYDMUSZKI (plan B Garmin, 3.11): ≥ PROG_WYDMUSZEK aktywności Garmina bez dystansu/czasu w oknie i ostatnia z Garmina to wydmuszka → Garmin
+     ogranicza dostęp (dowód u tej osoby — bez warunku zbiorowego). Wydmuszki importujemy jako „szczegóły niedostępne”, więc nie są „nowe w intervals”. */
+  const garminAkt = akt.filter((a) => nazwaZrodla(a.source, a.device) === "Garmin Connect");
+  if (garminAkt.filter((a) => a.wydmuszka).length >= PROG_WYDMUSZEK && garminAkt[0] && garminAkt[0].wydmuszka) return { ogniwo: "garmin", ...baza };
   if (!ost || dni(dzis, ost.d) > PROG_CISZY_DNI) {
     const garmin = o.blokadaGarmina === true && baza.zrodlo === ZRODLO_GARMIN;   // blokada dotyczy TYLKO źródła Garmin
     return { ogniwo: garmin ? "garmin" : "zegarek", ...baza, dni_ciszy: ost ? Math.max(0, dni(dzis, ost.d)) : OKNO_DNI };

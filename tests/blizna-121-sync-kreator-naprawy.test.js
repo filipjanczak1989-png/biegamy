@@ -155,11 +155,11 @@ test('BLOKADA GARMINA: zbiorowa cisza źródła Garmin (≥3 osoby i ≥50%, inn
   assert.match(czytaj('tools/intervals-status-test.sql'), /set ogniwo = 'garmin' where athlete_id = z_ath/);
   const ctx = zaladujSb(); const W = ctx.WATCH;
   const kr = W.kreatorHtml({ ogniwo: 'garmin', zrodlo: 'Garmin Connect', ost_intervals: '2026-10-06', dni_ciszy: 28 }, 'a1', '');
-  assert.match(kr, /Garmin ogranicza dostęp dla intervals\.icu/); assert.match(kr, /To nie wina Twojego zegarka ani telefonu/); assert.match(kr, /bezpośrednim połączeniem z Garminem/);
+  assert.match(kr, /Garmin ogranicza dostęp dla intervals\.icu/); assert.match(kr, /Twoje dotychczasowe treningi są bezpieczne/); assert.match(kr, /To nie wina Twojego zegarka ani telefonu/); assert.match(kr, /bezpośrednim połączeniem z Garminem/); assert.match(kr, /wykonane, szczegóły niedostępne/);
   assert.doesNotMatch(kr, /Zegarek nie wysyła|Disconnect|sparuj/, 'żadnych kroków naprawy zegarka — to nie zegarek');
   assert.doesNotMatch(kr, /wgraj plik/i, 'wgrywanie FIT jeszcze nie istnieje — tekst nie obiecuje martwej drogi (docs/fit-upload-projekt)');
   assert.doesNotMatch(kr.replace(/<[^>]+>/g, ''), ZARGON);
-  assert.match(W.opisOgniwa({ ogniwo: 'garmin' }), /^Garmin ogranicza dostęp dla intervals\.icu — to nie wina Twojego zegarka/);
+  assert.match(W.opisOgniwa({ ogniwo: 'garmin' }), /^Garmin ogranicza dostęp dla intervals\.icu — Twoje dotychczasowe treningi są bezpieczne/);
   assert.match(czytaj('sb.js'), /\['token', 'zegarek', 'import', 'garmin'\]\.indexOf\(st\.ogniwo\)/, 'pasek na Dziś też przy garmin');
   assert.match(czytaj('trener.html'), /sz\.ogniwo === 'garmin'\) sig\.push\('\\u231a Garmin ogranicza dost/);
 });
