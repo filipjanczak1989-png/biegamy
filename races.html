@@ -583,6 +583,7 @@ const _sb = window.sb;
 
 let _user = null, _athleteId = null, _athleteGoals = [], _athleteGoalsUszkodzone = false, _isCoach = false;
 let _allRaces = [], _mySignups = new Set();
+let _currentImpreza = null, _imprezyWgId = {};   // etap 1 kalendarza (3.11): impreza z maszyny otwarta w arkuszu („Wezmę udział” → RPC impreza_do_races)
 let _racesSeenBaseline = '';   // KROK 3: "ostatnia wizyta" sprzed tego wejścia — do badge "NOWE"
 let _activeDist = 'all', _searchVal = '';
 let _currentRace = null;
@@ -653,7 +654,8 @@ function renderImprezaCard(x) {
      własny origin nie przeszedłby safeUrlAttr, a SW nie zna .webp — przegląd B pkt 12). Pliki: kalendarz/typ-<typ>.webp (6 typów). */
   var zBazy = _okladkiImprez[window.BM_KALENDARZ.kluczBezRoku(x.nazwa, x.miasto)] || null;   // L4: ta sama impreza w kolejnych latach = ta sama okładka
   var okladka = x.okladka ? safeUrlAttr(x.okladka) : zBazy ? safeUrlAttr(zBazy) : (window.assetUrl && window.BM_KALENDARZ.TYPY.indexOf(x.typ) >= 0 ? safeUrlAttr(window.assetUrl('kalendarz/typ-' + x.typ + '.webp')) : '');
-  return '<div class="race-card impreza-karta" data-klucz="' + escAttr(x.klucz || '') + '" data-typ="' + escAttr(x.typ) + '">'
+  /* etap 1 (3.11): tap w kartę/zdjęcie → ten sam arkusz szczegółów co nasze (openImpreza po id z data-*, nie JS w atrybucie) */
+  return '<div class="race-card impreza-karta" data-klucz="' + escAttr(x.klucz || '') + '" data-typ="' + escAttr(x.typ) + '" data-id="' + escAttr(x.id) + '" onclick="openImpreza(this.dataset.id)">'
     + (okladka ? '<img src="' + okladka + '" loading="lazy" decoding="async" alt="" style="display:block;width:100%;aspect-ratio:21/9;object-fit:cover;">' : '')
     + '<div class="race-card-inner"><div class="race-top">'
     + '<div class="race-dist-badge"><div class="dist-num">' + distNum + '</div><div class="dist-unit">' + distUnit + '</div></div>'
@@ -665,8 +667,8 @@ function renderImprezaCard(x) {
     + '</div></div></div>'
     + '<div class="race-footer"><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;">kalendarz biegów w Polsce</div>'
     + '<div style="display:flex;gap:8px;align-items:center;">'
-    + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
-    + (_isCoach && x.status && /^zgloszenie:/.test(x.klucz || '') ? '<button type="button" class="imprezy-ukryj" data-klucz="' + escAttr(x.klucz) + '" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 8px;font-size:11px;">Ukryj</button>' : '')
+    + (href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size:12px;color:var(--accent);">Strona imprezy ›</a>' : '')
+    + (_isCoach && x.status && /^zgloszenie:/.test(x.klucz || '') ? '<button type="button" class="imprezy-ukryj" data-klucz="' + escAttr(x.klucz) + '" onclick="event.stopPropagation()" style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 8px;font-size:11px;">Ukryj</button>' : '')
     + '</div></div></div>';
 }
 function imprezyStopka(wynik) {
@@ -913,6 +915,8 @@ function renderRaces() {
     return;
   }
 
+  _imprezyWgId = {};
+  for (const x of wynik.lista) if (x.zrodlo === 'maszyna' && x.id) _imprezyWgId[x.id] = x;
   // Grupuj po miesiącu (imprezy z dokładnością miesiąca sortują się na jego koniec — BM_KALENDARZ.sortuj)
   let currentMonth = '';
   for (const x of wynik.lista) {
@@ -1187,7 +1191,8 @@ _populateMonthOptions();
 function openRace(id) {
   const race = _allRaces.find(r => r.id === id);
   if (!race) return;
-  _currentRace = race;
+  _currentRace = race; _currentImpreza = null;
+  const pasDesc = document.getElementById('m-desc'); if (pasDesc) pasDesc.style.display = 'none';
 
   const signed = _mySignups.has(race.id);
   document.getElementById('m-dist').textContent = distanceLabel(race.distance_km).toUpperCase();
@@ -1434,6 +1439,62 @@ async function deleteRace() {
 function closeModal() {
   document.getElementById('race-modal').classList.remove('open');
   document.body.style.overflow = '';
+  _currentImpreza = null;
+}
+
+/* ── ETAP 1 KALENDARZA (Filip 3.11 02:31): karta imprezy z maszyny = jak nasza ──
+   Ten sam arkusz (#race-modal): data, miasto, dystanse, link zapisów (tylko https), „Nasi biorą udział: 0” (przed zapisem to nie jest
+   nasz start; po zapisie karta jest nasza i openRace pokazuje signup_count). „Wezmę udział”: RPC impreza_do_races (bez duplikatów — klucz
+   imprezy + nazwa + data ±1 + miasto; status approved; okładka przejęta z imprezy_okladki) → zwykły zapis (doSignup: race_signups + cel).
+   Trener: „Dodaj do naszych” (RPC bez zapisu). Dane do RPC z OBIEKTU stanu (_imprezyWgId), nie z atrybutów. Dokładność „miesiąc” =
+   bez zapisu (termin niepotwierdzony). */
+function openImpreza(id) {
+  const x = _imprezyWgId[id];
+  if (!x) return;
+  _currentImpreza = x; _currentRace = null;
+  const d0 = x.dystanse[0];
+  document.getElementById('m-dist').textContent = (d0 ? imprezyDystansTxt([d0]) : '—').toUpperCase();
+  document.getElementById('m-name').textContent = x.nazwa;
+  document.getElementById('m-date').textContent = imprezyDataTxt(x) || '—';
+  document.getElementById('m-city').textContent = (x.miasto || '—') + (x.wojewodztwo ? ' · ' + x.wojewodztwo : '');
+  document.getElementById('m-dist2').textContent = x.dystanse.length ? imprezyDystansTxt(x.dystanse) : '—';
+  document.getElementById('m-count').textContent = '0 os.';
+  const zBazy = _okladkiImprez[window.BM_KALENDARZ.kluczBezRoku(x.nazwa, x.miasto)] || null;
+  pokazOkladke({ cover_url: zBazy || (window.assetUrl && window.BM_KALENDARZ.TYPY.indexOf(x.typ) >= 0 ? window.assetUrl('kalendarz/typ-' + x.typ + '.webp') : ''), cover_9x16_url: null });
+  var partBtn = document.getElementById('m-participants-btn'); if (partBtn) partBtn.style.display = 'none';
+  const descEl = document.getElementById('m-desc');
+  descEl.textContent = x.dokladnosc === 'miesiac' ? 'Termin podany z dokładnością do miesiąca — zapis będzie możliwy, gdy kalendarz potwierdzi dzień.' : 'Impreza z kalendarza biegów w Polsce. Po „Wezmę udział” trafia do naszych startów.';
+  descEl.style.display = 'block';
+  const href = window.safeExternalHref ? window.safeExternalHref(x.url, { tylkoHttps: true }) : '';
+  document.getElementById('m-links').innerHTML = href
+    ? `<a href="${href}" target="_blank" rel="noopener" class="modal-link-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>Strona imprezy / zapisy</span></a>`
+    : '';
+  for (const idEl of ['m-submitted-by', 'm-same-day', 'm-coach-pending', 'm-coach-approved']) { const e = document.getElementById(idEl); if (e) e.style.display = 'none'; }
+  const btn = document.getElementById('m-signup-btn');
+  btn.style.display = 'flex'; btn.className = 'modal-signup-btn'; btn.disabled = x.dokladnosc === 'miesiac';
+  btn.innerHTML = x.dokladnosc === 'miesiac' ? 'Termin niepotwierdzony' : (_isCoach ? '＋ Dodaj do naszych startów' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Wezmę udział!');
+  document.getElementById('race-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/** Impreza z maszyny → nasz start (RPC, bez duplikatów) → zapis jak dla naszej. Zwraca id naszego startu albo null. */
+async function imprezaDoNaszych(x) {
+  if (!x || x.dokladnosc === 'miesiac') return null;
+  const zBazy = _okladkiImprez[window.BM_KALENDARZ.kluczBezRoku(x.nazwa, x.miasto)] || null;
+  const r = await _sb.rpc('impreza_do_races', { p_klucz: x.klucz || null, p_nazwa: String(x.nazwa || '').slice(0, 200), p_data: x.data, p_miasto: x.miasto ? String(x.miasto).slice(0, 80) : null,
+    p_dystans: x.dystanse[0] || null, p_url: x.url || null, p_okladka: zBazy });
+  if (r.error || !r.data || !r.data.id) { window.zglosNieudanyZapis && window.zglosNieudanyZapis('rpc', 'impreza_do_races', r.error); showToast('Nie udało się dodać imprezy — spróbuj za chwilę.'); return null; }
+  return r.data.id;
+}
+async function wezmeUdzialImpreza() {
+  const x = _currentImpreza; if (!x) return;
+  const btn = document.getElementById('m-signup-btn'); if (btn) btn.disabled = true;
+  const id = await imprezaDoNaszych(x);
+  if (!id) { if (btn) btn.disabled = false; return; }
+  closeModal();
+  await loadRaces();   // po RPC impreza jest naszym startem (scal: nasza wygrywa, okładka przejęta)
+  if (!_isCoach && _athleteId) await doSignup(id); else showToast('Dodano do naszych startów ✓');
+  if (_allRaces.find(r => r.id === id)) openRace(id);
 }
 
 function handleModalOverlayClick(e) {
@@ -1442,6 +1503,7 @@ function handleModalOverlayClick(e) {
 
 // ── SIGNUP / UNSIGNUP ─────────────────────────────────────────────
 async function toggleSignup() {
+  if (_currentImpreza) { await wezmeUdzialImpreza(); return; }   // etap 1: impreza z maszyny
   if (!_currentRace) return;
   const id = _currentRace.id;
   const signed = _mySignups.has(id);

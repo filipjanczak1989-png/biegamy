@@ -102,7 +102,7 @@
   function zNaszego(r) {
     return { zrodlo: "nasze", id: r.id, race: r, nazwa: String(r.name || ""), data: r.date, dokladnosc: "dzien", miasto: r.city || null,
       wojewodztwo: r.voivodeship || r.region || wojewodztwo(r.city) || null, dystanse: Number(r.distance_km) > 0 ? [Number(r.distance_km)] : [],
-      okladka: r.cover_url || null, typ: typImprezy(r.name, [Number(r.distance_km)]), klucz: r.impreza_klucz || null, status: r.status, url: r.organizer_url || null };
+      okladka: r.cover_url || null, typ: typImprezy(r.name, [Number(r.distance_km)]), klucz: r.impreza_klucz || null, status: r.status, url: r.url_organizer || null };   // etap 1 (3.11): kolumna to url_organizer (organizer_url było martwe), impreza_klucz od migracji 20261105
   }
   function zMaszyny(i) {
     return { zrodlo: "maszyna", id: i.klucz || ("m:" + kluczBezRoku(i.nazwa, i.miejscowosc) + "|" + i.data), nazwa: String(i.nazwa || ""), data: i.data,
