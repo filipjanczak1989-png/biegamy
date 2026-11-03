@@ -53,6 +53,7 @@ test('potok + akcja-v2: licznik i wyprawa tylko po starcie, cel nigdy (także po
   const p = czytaj('supabase/functions/okienko-v2/potok.mjs');
   assert.match(p, /const zd = traf\.log === "zagadka" \? \(zdanieAkcji\(traf\.rodzaj, akcjaDane, AKK\) \|\| traf\.zdanie\) : traf\.zdanie;/);
   assert.match(p, /if \(traf\.log === "zagadka"\) await zapiszTure\(adm, athleteId, "akcja", \{\}, \{ pytanie: tekst, odpowiedz: \[zd\] \}\);/);
-  assert.match(p, /if \(rozmowa\[0\] && rozmowa\[0\]\.intencja === "akcja" && \(kont \|\| pytOMiejsce \|\| czyDopytanie\(normalizuj\(tekst\), rozmowa\)\) && AK\) \{/);   // blizna-137: + pytanie o miejsce
+  assert.match(p, /const akcjaTuz = !!\(rozmowa\[0\] && rozmowa\[0\]\.intencja === "akcja"\);/);
+  assert.match(p, /if \(\(\(akcjaTuz && \(kont \|\| czyDopytanie\(normalizuj\(tekst\), rozmowa\)\)\) \|\| \(akcjaNiedawno && pytOMiejsce\)\) && AK\) \{/);   // blizna-137: + pytanie o miejsce; blizna-142: miejsce na 3 ostatnich turach
   assert.ok(p.indexOf('rozmowa[0].intencja === "akcja"') < p.indexOf('czyDopytanie(normalizuj(tekst), rozmowa)) {'), 'dopytanie po akcji PRZED trybem rozmowy (model)');
 });

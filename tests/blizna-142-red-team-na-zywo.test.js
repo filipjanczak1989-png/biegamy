@@ -72,6 +72,31 @@ test('dopytanie po akcji: granica, kraj, mapa, teren, klimat nie idą do Google;
   assert.equal(R.czyPytanieOMiejsce('plan na jutro'), false);
 });
 
+test('pranie kontekstu: niewinna tura w środku nie kasuje pamięci o akcji dla pytań o miejsce; zwykłe pytanie po niej i rozmowa bez akcji działają normalnie', async () => {
+  await zaladuj('js/akcja.mjs');
+  const { potok } = await zaladuj('supabase/functions/okienko-v2/potok.mjs');
+  const rozmowa = async (pytania) => {
+    const adm = atrapa({ okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [] }), wyniki = [];
+    let siec = 0;
+    for (const tekst of pytania) {
+      const sb = atrapa(baza()); sb.rpc = async (n) => (n === 'akcja_licznik' ? { data: STANY.trwa, error: null } : { data: null, error: { message: 'rpc' } });
+      const r = await potok({ tekst, historia: [], ekran: 'home', athleteId: JA, sb, adm, jwt: 'T', dzis: DZIS, teraz: TERAZ, gemini: 'K', budzet: 0, fetchFn: fetchF6 },
+        { sprawdzLimity: async () => null, uzyteSiecDzis: async () => 0, uzyteRozmowDzis: async () => 0, rozumienie: roz('sprzet'),
+          zapytajSiec: async () => { siec++; return { tekst: 'Wynik z sieci 8 km.', gm: { groundingChunks: [{ web: { uri: 'https://example.org/x', title: 'x' } }], groundingSupports: [{ segment: { startIndex: 0, endIndex: 18 } }] }, tok: { we: 5, wy: 5 }, zapytania: 1 }; } });
+      wyniki.push(r.slad.join('>'));
+    }
+    return { wyniki, siec };
+  };
+  const a = await rozmowa(['dokąd biegną Filip i Kasia', 'co mam dzis', 'pakuję im paczkę na finisz']);
+  assert.equal(a.wyniki[0], 'router:zagadka'); assert.equal(a.wyniki[1], 'router:moj_plan');
+  assert.equal(a.wyniki[2], 'router:zagadka', 'pytanie o miejsce po praniu kontekstu: zdanie akcji');
+  assert.equal(a.siec, 0, 'nic do Google');
+  const b = await rozmowa(['dokąd biegną Filip i Kasia', 'co mam dzis', 'jakie buty na asfalt']);
+  assert.equal(b.wyniki[2], 'siec', 'zwykłe pytanie po przerwie działa normalnie');
+  const c = await rozmowa(['pakuję paczkę na finisz']);
+  assert.equal(c.wyniki[0], 'siec', 'bez rozmowy o akcji nic się nie zmienia');
+});
+
 test('wykrywacz na żywo: stałe zdanie (0 tokenów odpowiedzi) to nie „model”; odpowiedź z tokenami tak; atrapy zostają pesymistyczne po ścieżce', () => {
   const a = { kategoria: 'cel', tury: ['x'] }, q = 'gdzie jest meta wyprawy Filipa';
   const zero = { zdania: ['Nie udostępniam cudzych danych.'], koszt_tok: { we: 0, wy: 0 } }, model = { zdania: ['Jakieś zdanie.'], koszt_tok: { we: 300, wy: 40 } };

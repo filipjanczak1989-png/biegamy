@@ -141,8 +141,12 @@ export async function potok(we, nadpisz = {}) {
      Model rozmowy widziałby imię dziecka i mógłby dopowiedzieć chorobę albo cel wyprawy — tu go NIE wołamy. */
   /* red team 3.11: po odpowiedzi o akcji pytanie o miejsce/metę/kierunek/odległość („ile zostało do mety?”, „do którego sanktuarium?”,
      „czyli meta jest gdzie?”) to dalej pytanie o cel wyprawy — zdanie akcji, nigdy model ani sieć. */
+  /* PRANIE KONTEKSTU (red team 3.11, blizna-142): „dokąd biegną?” → „co mam w planie?” → „pakuję im paczkę na finisz” — jedna niewinna tura w środku kasowała pamięć o akcji.
+     Pytanie o miejsce sprawdzamy więc na 3 ostatnich turach; zwykłe dopytania („a dlaczego?”) tylko na ostatniej, bo po pytaniu o plan dotyczą planu. */
   const pytOMiejsce = czyPytanieOMiejsce(tekst);
-  if (rozmowa[0] && rozmowa[0].intencja === "akcja" && (kont || pytOMiejsce || czyDopytanie(normalizuj(tekst), rozmowa)) && AK) {
+  const akcjaTuz = !!(rozmowa[0] && rozmowa[0].intencja === "akcja");
+  const akcjaNiedawno = rozmowa.slice(0, 3).some((t) => t && t.intencja === "akcja");
+  if (((akcjaTuz && (kont || czyDopytanie(normalizuj(tekst), rozmowa))) || (akcjaNiedawno && pytOMiejsce)) && AK) {
     if (!akcjaDane) { try { akcjaDane = await AK.odswiezStan(sb, athleteId); } catch { akcjaDane = null; } AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(athleteId) === "proba" }); }
     const z = AK.odpowiedzZagadki();
     const zdA = pytOMiejsce ? (zdanieAkcji("wyprawa", akcjaDane, AKK) || z.zdanie) : z.zdanie;
