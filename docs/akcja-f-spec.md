@@ -173,7 +173,7 @@ do `akcja_*` — v2 pkt 5 („EXECUTE dla anon") nieaktualny. Zalogowani: RPC wp
 - **Cytaty:** teaser 2–5.11 bez zmian; 6.11 „Jutro wszystko stanie się jasne." (ostatni dzień teasera; „Peleryny… Jeszcze dwa
   dni." wypadło — liczyło do starego terminu); 7.11 przed naciśnięciem „Dziś. Jedno kliknięcie zmieni wszystko.", po
   naciśnięciu „12 500 kilometrów. Jeden powód. Fabianek."; od 8.11 rotacja. Zagadki okienka: „7.11".
-- **Plan:** próba generalna (tryb samolotowy, pełna ścieżka na koncie testowym) w **czwartek 6.11 wieczorem**; **7.11 nic się nie
+- **Plan:** próba generalna (tryb samolotowy, pełna ścieżka na koncie testowym) w **piątek 6.11 wieczorem**; **7.11 nic się nie
   wdraża** — start. Pierwszy push niedzielny 8.11 (2 dni akcji) jest OK.
 - **Wyprawa:** km z kont Filipa i Kasi od naciśnięcia guzika do „Dotarliśmy" (licznik `wyprawa_km`); cel `wyprawa_cel_km` poda
   Filip. Konto Kasi z jej zawodnikami ma jej własne treningi z intervals (osobne konto intervals, 0 wspólnych aktywności

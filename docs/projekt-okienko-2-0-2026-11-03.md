@@ -79,7 +79,7 @@ index.ts:  wymagajUsera → ustawStan akcji → [B1] dopasuj (router, 0 tok.) �
   na v1 od następnego otwarcia okienka (klient pyta RPC raz przy otwarciu arkusza; błąd RPC = v1).
 - Klient (`js/okienko.js`, ~8 linii): `wersja = await rpc('okienko_wersja')` → URL `/functions/v1/okienko` lub
   `/functions/v1/okienko-v2`; kształt odpowiedzi identyczny, reszta kodu bez zmian. **Jedyna decyzja terminowa**: ta
-  zmiana musi wejść **przed czwartkiem 6.11 18:00** (z blizną) albo **po 8.11** — bez niej v2 nie da się włączyć z telefonu.
+  zmiana musi wejść **przed piątkiem 6.11 18:00** (z blizną) albo **po 8.11** — bez niej v2 nie da się włączyć z telefonu.
 
 ## 3. Koszt i opóźnienie (flash-lite 0,30 / 2,50 USD za 1 M tok., ceny z `model.mjs`)
 
@@ -124,12 +124,12 @@ dla przepisów złożonych, narzędzia równolegle, timeout klasyfikatora 1,5 s.
    trafienia B2 = chipy. Odwrotnie (nazwisko, a intencja inna) — B2 i tak blokuje sieć.
 3. **Opóźnienie** — dwa wywołania modelu w jednym pytaniu tylko dla złożonych; szablony dla reszty.
 4. **Koszt klasyfikatora przy spamie** — liczy się do 60/dobę; bramka „bez liter”/1 słowo (blizna-112) przed nim.
-5. **Zamrożenie** — E0 albo przed czwartkiem 18:00, albo po 8.11; v2 w zamrożeniu rozwija tylko `okienko-v2/`, testy, docs.
+5. **Zamrożenie** — E0 albo przed piątkiem 6.11 18:00, albo po 8.11; v2 w zamrożeniu rozwija tylko `okienko-v2/`, testy, docs.
 6. **Dane osobowe w ławce** — realne pytania wchodzą do repo dopiero po maskowaniu i przeglądzie Filipa (blizna-101).
 
 ## Pytania do Filipa (OK = start E0)
 
-1. E0 (przełącznik w `js/okienko.js`, ~8 linii + migracja) — **przed czwartkiem 18:00** (proponuję: środa 5.11) czy po 8.11?
+1. E0 (przełącznik w `js/okienko.js`, ~8 linii + migracja) — **przed piątkiem 6.11 18:00** (proponuję: czwartek 5.11) czy po 8.11?
 2. Konto testowe na liście v2 — to z tokenu z 2.11 (dzień 6)? Podaj `athlete_id` albo e-mail, wpiszę do migracji jako insert.
 3. Kciuki 👍/👎 — zmiana klienta po 8.11 (E7), zgoda?
 4. Raport nocny: tabela + `tools/okienko-raport.js` (czytasz na żądanie) czy dodatkowo mail przez Resend?

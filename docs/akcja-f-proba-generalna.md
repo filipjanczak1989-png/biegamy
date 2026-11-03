@@ -1,4 +1,4 @@
-# Próba generalna — czwartek 6.11 wieczorem (projekt F)
+# Próba generalna — piątek 6.11 wieczorem (projekt F)
 
 Start prawdziwej akcji: **sobota 7.11**, guzik 06:00–23:59. **7.11 nic się nie wdraża.** Próba idzie na akcji testowej
 (`proba`): liczy tylko konto testowe, push tylko do konta testowego, prawdziwa akcja nietknięta.

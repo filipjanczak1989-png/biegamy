@@ -1,4 +1,4 @@
-# WYPRAWA (projekt F) — sekrety akcji + ślad GPS + mapa (komenda Filipa 4.11.2026, termin czwartek 6.11 18:00)
+# WYPRAWA (projekt F) — sekrety akcji + ślad GPS + mapa (komenda Filipa 4.11.2026, termin piątek 6.11 18:00)
 
 Wyprawa Filipa i Kasi w DWÓCH DNIACH (7–8.11, ok. 2×120 km, nocleg po drodze). **Cel tajny do „Dotarliśmy”.** Akcja trwa dalej
 do 12 500 km — „Dotarliśmy” kończy tylko wyprawę.
@@ -61,7 +61,7 @@ każdej aktywności dopóki `wyprawa_dotarla_at is null`. Bez punktu „teraz”
 `.gitattributes` `vendor/** -text`), kafle `tile.openstreetmap.org` z atrybucją, linia `#e8561e`, bez znacznika celu do dotarcia,
 „ostatnia aktualizacja HH:MM”, „Dokąd biegną? Zobaczysz na końcu.”; po dotarciu kółko w ostatnim widocznym punkcie z nazwą z bazy.
 Linki „Zobacz trasę ›”: `dla-fabianka.html` (przycisk `#trasa`, widoczny gdy `linkTrasy`) i karta Dziś (`js/akcja.mjs kartaDzisHtml`) —
-oba PRZED czwartkiem 18:00. Podglądy: `Downloads\biegamy-podglady\mapa-wyprawy-trwa.png`, `mapa-wyprawy-dotarli.png` (atrapa śladu).
+oba PRZED piątkiem 6.11 18:00. Podglądy: `Downloads\biegamy-podglady\mapa-wyprawy-trwa.png`, `mapa-wyprawy-dotarli.png` (atrapa śladu).
 
 ## E) Próba na koncie testowym (Filip)
 
