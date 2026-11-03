@@ -204,7 +204,35 @@
      Okienko 2.0 (E0): odpowiedź z EF okienko-v2 niesie wersja:'v2' → mała etykieta, żeby testujący wiedział, która wersja odpowiada. */
   function htmlOdpowiedzi(status, json, tekst) {
     var tresc = htmlOdpowiedziTresc(status, json, tekst);
-    return (status === 200 && json && json.wersja === 'v2') ? '<p class="okn-etykieta-siec okn-wersja">okienko 2.0</p>' + tresc : tresc;
+    if (!(status === 200 && json && json.wersja === 'v2')) return tresc;
+    /* KCIUKI (Filip 3.11): tylko v2 i tylko gdy EF oddało log_id (wpis w okienko_v2_log) — ocena idzie przez RPC okienko_ocena; v1 bez zmian */
+    var kciuki = (Number.isFinite(Number(json.log_id)) && Number(json.log_id) > 0) ? htmlKciukow(Number(json.log_id)) : '';
+    return '<p class="okn-etykieta-siec okn-wersja">okienko 2.0</p>' + tresc + kciuki;
+  }
+  function htmlKciukow(id) {
+    return '<div class="okn-kciuki" data-log="' + esc(String(id)) + '"><span class="okn-meta">Pomogło?</span>'
+      + '<button type="button" class="okn-kciuk" data-ocena="1" aria-label="Tak, pomogło">👍</button>'
+      + '<button type="button" class="okn-kciuk" data-ocena="-1" aria-label="Nie pomogło">👎</button></div>';
+  }
+  function ocen(id, ocena, komentarz) {
+    try {
+      if (!window.sb || typeof window.sb.rpc !== 'function') return Promise.resolve(false);
+      return Promise.resolve(window.sb.rpc('okienko_ocena', { p_id: Number(id), p_ocena: ocena, p_komentarz: komentarz ? String(komentarz).slice(0, 300) : null }))
+        .then(function (r) { return !(r && r.error); }).catch(function () { return false; });
+    } catch (e) { return Promise.resolve(false); }
+  }
+  function akcjaOceny(b) {
+    var box = b.closest('.okn-kciuki'); if (!box) return;
+    var id = box.getAttribute('data-log'), ocena = Number(b.getAttribute('data-ocena'));
+    if (ocena === 1) { ocen(id, 1); box.innerHTML = '<span class="okn-meta">Dzięki!</span>'; return; }
+    ocen(id, -1);   // 👎 liczy się od razu; komentarz jest opcjonalny i dopisuje się drugim wywołaniem
+    box.innerHTML = '<textarea class="okn-kciuk-kom" maxlength="300" placeholder="Co było nie tak? (opcjonalnie)"></textarea>'
+      + '<button type="button" class="okn-chip" data-kciuk-wyslij="' + esc(String(id)) + '">Wyślij</button>';
+  }
+  function akcjaKomentarza(b) {
+    var box = b.closest('.okn-kciuki'); var ta = box ? box.querySelector('textarea') : null;
+    ocen(b.getAttribute('data-kciuk-wyslij'), -1, ta ? ta.value.trim() : '');
+    if (box) box.innerHTML = '<span class="okn-meta">Dzięki, przeczytamy.</span>';
   }
   function htmlOdpowiedziTresc(status, json, tekst) {
     if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
@@ -356,8 +384,10 @@
     var ov = el('okienko-arkusz');
     if (ov) ov.addEventListener('click', function (e) {
       if (e.target === ov) return zamknij();
-      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan],[data-katalog],[data-ktoty]') : null;
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan],[data-katalog],[data-ktoty],[data-ocena],[data-kciuk-wyslij]') : null;
       if (!b) return;
+      if (b.hasAttribute('data-ocena')) return akcjaOceny(b);
+      if (b.hasAttribute('data-kciuk-wyslij')) return akcjaKomentarza(b);
       if (b.hasAttribute('data-ktoty')) return akcjaKtoTy(b);
       if (b.hasAttribute('data-katalog')) return akcjaKatalogu(b);
       if (b.hasAttribute('data-osoba')) return akcjaOsoby(b);

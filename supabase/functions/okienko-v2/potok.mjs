@@ -44,9 +44,13 @@ export async function potok(we, nadpisz = {}) {
   const T0 = we.T0 || Date.now();
   const slad = [];   // ścieżka decyzji (ławka: oczekiwana ścieżka vs przebyta)
   const dodTok = { we: 0, wy: 0 };   // tokeny rozumienia (E2) doliczane do wpisu końcowego
+  /* KCIUKI (3.11): zapis logu oddaje id wpisu → `log_id` w odpowiedzi 200 (tylko v2) → klient ocenia przez RPC okienko_ocena; skrót odpowiedzi dopisuje index.ts */
+  const ostatni = { id: null };
+  const zapiszOryg = d.zapiszLog;
+  d.zapiszLog = async (a, w) => { const r = await zapiszOryg(a, w); if (Number.isFinite(Number(r)) && typeof r === "number") ostatni.id = r; return r; };
   const log = async (w) => { slad.push(w.tryb + (w.narzedzia?.length ? ":" + w.narzedzia.join("+") : ""));
     return d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, tok_we: (w.tok_we || 0) + dodTok.we, tok_wy: (w.tok_wy || 0) + dodTok.wy, ms: Date.now() - T0 }); };
-  const odp = (status, body) => ({ status, body, slad });
+  const odp = (status, body) => ({ status, body: status === 200 && ostatni.id && body && typeof body === "object" && !body.log_id ? { ...body, log_id: ostatni.id } : body, slad });
 
   const AK = globalThis.BM_AKCJA_CYTATY, AKK = globalThis.BM_AKCJA;
   let akcjaDane = null;

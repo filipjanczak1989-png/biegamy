@@ -52,14 +52,23 @@ export async function sprawdzLimityV2(adm, athleteId, dzis, budzetUsd) {
 
 export { LIMIT_SIEC };
 
-/** Jedyny zapis logu v2 (nazwa tabeli literałem — blizna-113 skanuje zapisy po literale). Błąd logu NIE psuje odpowiedzi, ale wraca do wołającego. */
+/** Jedyny zapis logu v2 (nazwa tabeli literałem — blizna-113 skanuje zapisy po literale). Błąd logu NIE psuje odpowiedzi, ale wraca do wołającego.
+    Zwraca id wpisu (kciuki 3.11: klient ocenia wpis przez RPC okienko_ocena) albo true, gdy klient nie umie `.select` (atrapa ławki), albo false. */
 export async function zapiszLogV2(adm, w) {
-  const { error } = await adm.from("okienko_v2_log").insert({
+  const q = adm.from("okienko_v2_log").insert({
     athlete_id: w.athlete_id, tekst: String(w.tekst || "").slice(0, 300), narzedzia: w.narzedzia || [], tryb: w.tryb,
     tok_we: w.tok_we || 0, tok_wy: w.tok_wy || 0, zapytania_sieci: w.zapytania_sieci || 0, ok: w.ok !== false,
     powod_odrzucenia: w.powod_odrzucenia ? String(w.powod_odrzucenia).slice(0, 500) : null,
     intencja: w.intencja || null, pewnosc: typeof w.pewnosc === "number" ? Math.max(0, Math.min(1, Math.round(w.pewnosc * 100) / 100)) : null,
     plan: w.plan || [], ms: typeof w.ms === "number" ? Math.max(0, Math.round(w.ms)) : null,
     samosprawdzenie: typeof w.samosprawdzenie === "boolean" ? w.samosprawdzenie : null });
-  return !error;
+  const r = q && typeof q.select === "function" ? await q.select("id").single() : await q;
+  if (!r || r.error) return false;
+  return r.data && Number.isFinite(Number(r.data.id)) ? Number(r.data.id) : true;
+}
+
+/** skrót odpowiedzi do wpisu (raport poranny, sędzia) — best-effort, nigdy nie psuje odpowiedzi; zdania bez kart i źródeł, ≤ 400 */
+export async function zapiszOdpowiedzV2(adm, id, zdania) {
+  if (!Number.isFinite(Number(id)) || !Array.isArray(zdania) || !zdania.length) return false;
+  try { const { error } = await adm.from("okienko_v2_log").update({ odpowiedz: zdania.filter((z) => typeof z === "string").join(" ").slice(0, 400) }).eq("id", Number(id)); return !error; } catch { return false; }
 }

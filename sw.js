@@ -97,7 +97,8 @@ const PRECACHE_URLS = [
   '/js/plan-pusty.mjs',     // M3b: reguła CTA „Ułóż plan" (dynamiczny import w zawodnik.html) — offline też
   '/js/cwiczenia-nazwy.mjs', // M3c: nazwy ćwiczeń — zwykły <script src> w zawodnik.html (bez niego zakładka Ćwiczenia bez nazw)
   '/js/przepisy-szukaj.mjs', // M3c: pole „Szukaj przepisu" w Jedzeniu
-  '/js/tekst.mjs'            // porządek 1.11: normalizacja, miesiące, odmiana (ładowany przed sb.js)
+  '/js/tekst.mjs',           // porządek 1.11: normalizacja, miesiące, odmiana (ładowany przed sb.js)
+  '/js/riegel.js'            // 3.11: wykładnik Riegela — jedno źródło (predyktor Forma, generator planu), ładowany przed nimi
 ];
 
 /* KRYTYCZNE (08.10.2026) — bez nich „Dziś" i Plan offline nie istnieją. Instalacja nowej wersji SW

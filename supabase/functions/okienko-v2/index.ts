@@ -12,6 +12,7 @@ import { dzisWaw } from "../okienko/narzedzia.mjs";
 import { NIE_MAM } from "../okienko/straznik.mjs";
 import "../../../js/akcja.mjs";
 import { potok } from "./potok.mjs";
+import { zapiszOdpowiedzV2 } from "./log-v2.mjs";   // kciuki/raport (3.11): skrót odpowiedzi do wpisu logu
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -51,5 +52,7 @@ Deno.serve(async (req) => {
   const teraz = new Date();
   const w = await potok({ tekst, historia: Array.isArray(body.historia) ? body.historia : [], ekran: body.ekran, athleteId: ath.id, sb, adm, jwt,
     dzis: dzisWaw(teraz), teraz, gemini: GEMINI, budzet: BUDZET, fetchFn: fetch, T0 });
+  const b = w.body as { log_id?: number; zdania?: string[] };
+  if (w.status === 200 && b && b.log_id && Array.isArray(b.zdania) && b.zdania.length) await zapiszOdpowiedzV2(adm, b.log_id, b.zdania);
   return odp(w.status, w.body);
 });
