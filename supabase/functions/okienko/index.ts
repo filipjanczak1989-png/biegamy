@@ -13,7 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
-import { dopasuj, normalizuj, zagadkaKandydat } from "./router.mjs";
+import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU } from "./router.mjs";
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
@@ -39,6 +39,12 @@ const cors = {
 };
 const odp = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const pusto = (tryb: string, extra: Record<string, unknown> = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
+
+/* Filip 3.11: przy reakcji („co odwaliłeś”) log dostaje ostatnie pytanie z historii klienta (bez treści odpowiedzi) — paliwo nocnego raportu złych odpowiedzi. */
+function poprzedniePytanie(traf: unknown, historia: unknown): string {
+  if (!(traf as { feedback?: boolean })?.feedback || !Array.isArray(historia) || !historia.length) return "";
+  return String((historia[historia.length - 1] as { q?: unknown })?.q || "").slice(0, 120);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -75,7 +81,8 @@ Deno.serve(async (req) => {
     return odp(200, { ...pusto("router"), akcja: { nawiguj: traf.nawiguj } });
   }
   if (traf && "zdanie" in traf) {   // M3-1 (3): powitanie; M3-2: kalkulator tempa, biegi za granicą — jedno zdanie, 0 tokenów
-    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: [traf.log] });
+    const poprz = poprzedniePytanie(traf, body.historia);   // Filip 3.11: reakcja → feedback z poprzednim pytaniem
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: [traf.log], powod_odrzucenia: poprz ? "feedback: " + poprz : null });
     // etap 5 (c): przy bólu/kontuzji przycisk „Napisz do trenera" (ta sama karta co pusty plan) — tylko gdy jest trener
     let kartyZd: unknown[] = [];
     if ((traf as { trener?: boolean }).trener) {
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
     // po starcie akcji: zagadka → zdanie + karta akcji (nazwa, licznik, oficjalna zbiórka) — dane jak w publicznym liczniku
     if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
     if (Array.isArray((traf as { karty?: unknown[] }).karty)) kartyZd = (traf as { karty: unknown[] }).karty;   // „jak dołączyć" przed startem → karta rejestracji
-    return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd });
+    return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd, chipy: (traf as { chipy?: unknown[] }).chipy || [] });
   }
   if (traf) {
     const w = waliduj(traf.narzedzie, traf.args);
@@ -139,6 +146,11 @@ Deno.serve(async (req) => {
   if (kat) {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: ["katalog"], tryb: "router" });
     return odp(200, { ...pusto("router"), zdania: kat.zdania, karty: kat.karty, narzedzia: ["katalog"] });
+  }
+  // ── NISKA PEWNOŚĆ (Filip 3.11): bez liter / 1–2 słowa bez trafienia w router, osobę, imprezę i katalog → chipy, 0 tokenów ──
+  if (czyNiepewne(tekst)) {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: ["niepewne"] });
+    return odp(200, { ...pusto("router"), zdania: [ODP_NIEPEWNE], karty: [], chipy: CHIPY_WYBORU });
   }
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);

@@ -110,7 +110,7 @@ test('Dziś i index: miejsce, źródło danych, bez zakazanych nazw #100kmDlaKas
 
 test('okienko: stan tylko dla pytań o akcję, ustawStan synchronicznie tuż przed dopasuj, karta z kartaOkienka', () => {
   const ef = czytaj('supabase/functions/okienko/index.ts');
-  assert.match(ef, /import \{ dopasuj, normalizuj, zagadkaKandydat \} from "\.\/router\.mjs";/);
+  assert.match(ef, /import \{ dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU \} from "\.\/router\.mjs";/);   // 3.11: + niska pewność (blizna-112)
   assert.match(ef, /import "\.\.\/\.\.\/\.\.\/js\/akcja\.mjs";/);
   assert.match(ef, /if \(AK && zagadkaKandydat\(tekst\)\) \{ try \{ akcjaDane = await AK\.odswiezStan\(sb, ath\.id\); \}/);
   const u = ef.indexOf('AK.ustawStan('), d = ef.indexOf('const traf = dopasuj(tekst, dzis);');

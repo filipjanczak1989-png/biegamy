@@ -81,6 +81,10 @@ export const DEKLARACJE = [
     parameters: { type: "object", properties: {} } },
 ];
 export const NAZWY = DEKLARACJE.map((d) => d.name);
+/* Filip 3.11 (test 2.11: „na kogo zbiórka” → model wybrał znajomi_tydzien, „co odwaliłeś” → osoby_z_miasta): narzędzia o LUDZIACH
+   wywołuje wyłącznie router po jawnych wzorcach („moi znajomi”, „kto biega z mojego miasta”) — model ich nie widzi. */
+export const TYLKO_ROUTER = new Set(["znajomi_tydzien", "osoby_z_miasta"]);
+export const DEKLARACJE_MODELU = DEKLARACJE.filter((d) => !TYLKO_ROUTER.has(d.name));
 
 // ── daty w Europe/Warsaw ─────────────────────────────────────────────────────
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;

@@ -212,6 +212,9 @@
     if (!zdania.length && !cel) zdania = [TEKSTY.pusto];
     var html = zdania.slice(0, 2).map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('');
     html += (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
+    /* Filip 3.11: chipy z odpowiedzi (reakcja / niska pewność) — etykieta na przycisku, pytanie w data-pytanie (ten sam klik co podpowiedzi) */
+    if (Array.isArray(json.chipy) && json.chipy.length) html += '<div class="okn-chipy">' + json.chipy.slice(0, 4).filter(function (c) { return c && typeof c.pytanie === 'string' && typeof c.etykieta === 'string'; })
+      .map(function (c) { return '<button type="button" class="okn-chip" data-pytanie="' + esc(c.pytanie) + '">' + esc(c.etykieta) + '</button>'; }).join('') + '</div>';
     if (cel) html += '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Otwórz ›</button>';
     return html;
   }

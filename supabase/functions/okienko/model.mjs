@@ -6,7 +6,7 @@
 // Wyniki narzędzi idą WYŁĄCZNIE jako functionResponse (dane), nigdy do promptu systemowego ani tekstu użytkownika —
 // zasada 4 promptu + strażnik cyfr to obrona przed wstrzyknięciem z danych (np. nazwa biegu w race_goals).
 // fetch wstrzykiwany (testy na atrapie); klucz z env w EF, tu tylko parametr — nigdzie nie logowany.
-import { DEKLARACJE, NAZWY, waliduj, wykonaj } from "./narzedzia.mjs";
+import { DEKLARACJE_MODELU, NAZWY, waliduj, wykonaj } from "./narzedzia.mjs";
 
 export const MODEL = "gemini-3.5-flash-lite";
 export const CENA_USD_ZA_1M = { we: 0.30, wy: 2.50 };   // zestawienia zewnętrzne 10.2026; przelicznik budżetu, nie faktura
@@ -53,7 +53,7 @@ export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, histo
     let r;
     try {
       r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz },
-        body: JSON.stringify({ systemInstruction: system, contents: cont, tools: [{ functionDeclarations: DEKLARACJE }], generationConfig }) });
+        body: JSON.stringify({ systemInstruction: system, contents: cont, tools: [{ functionDeclarations: DEKLARACJE_MODELU }], generationConfig }) });
     } catch { throw new BladModelu("sieć"); }
     if (!r.ok) throw new BladModelu("http " + r.status);
     const j = await r.json().catch(() => null);

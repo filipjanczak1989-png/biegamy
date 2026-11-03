@@ -155,6 +155,9 @@ const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
 /* Projekt F dzień 6 (zwiad okienka po starcie): jednoznaczne pytania o akcję łapane ZAWSZE (przed startem → zagadka,
    po starcie → zdanie + karta akcji); krótkie „jak dołączyć" / „ile już km" — WYŁĄCZNIE po starcie (przed startem to
    pytania o aplikację albo o własne kilometry). */
+/* ZBIÓRKA (Filip 3.11, test 2.11 22:37: „Na kogo zbiorka” → model → znajomi_tydzien → profil znajomego): każda forma zbiórk…, zbiera…
+   oraz „na kogo”, „dla kogo”, „komu” → zagadka przed startem, karta akcji po starcie. Nigdy tryb osoby, nigdy model. */
+const ZAGADKA_ZBIORKA = /\b(zbiork\w*|zbiorek|zbiorka|kto zbiera\w*|zbiera\w* (i )?(na|dla|co|kogo|sie|pieniadz\w*|kase)|na kogo|dla kogo|komu (jest|sie|to|pomagamy|zbieramy)|komu pomagamy|na co idzie|na co ida)\b/;
 const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*|kiedy (rusza|ruszy|startuje|wystartuje|zaczyna sie|zacznie sie|start|poczatek) akcj\w*|kiedy akcj\w* (rusza|ruszy|startuje|wystartuje|sie zaczyna|sie zacznie)|(jaki( jest)? )?cel akcj\w*|na co( jest)?( ta| to| sie)? (zbiera\w*|zbiork\w*)|ile km ma akcj\w*|link (do )?zbiork\w*|zbiork\w* (dla )?fabian\w*|akcj\w* charytatywn\w*|o co chodzi w akcji)\b/;   // przed 8.11 (2): słowa akcji/zbiórki → zagadka / karta
 const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
 /* „JAK DOŁĄCZYĆ" (Filip 2.11 18:30): przed startem → rejestracja w aplikacji (odpowiedź z katalogu, bez słowa o akcji),
@@ -164,12 +167,33 @@ export const ODP_REJESTRACJA = { klucz: "rejestracja", tytul: "Konto w BiegaMy",
   tekst: "Konto zakładasz na stronie głównej BiegaMy: Rejestracja → imię, e-mail i hasło. Potem zapisujesz treningi ręcznie albo łączysz zegarek w Profilu.",
   cel: "index.html#dolacz", ekran_nazwa: "rejestrację" };
 export const ZDANIE_REJESTRACJA = "Dołączasz, zakładając konto w BiegaMy:";
+/* REAKCJE i META (Filip 3.11): „co odwaliłeś”, „źle”, „nie o to pytałem”, „bez sensu”, „głupie”, „co ty gadasz”, „nie rozumiesz” →
+   stałe zdanie + chipy; log jako feedback z poprzednim pytaniem (EF czyta historię); bez narzędzi, bez modelu.
+   Mocne zwroty mogą mieć ogon (≤ 40 znaków); pojedyncze „źle”, „nie tak”, „serio” — tylko jako CAŁA wiadomość („źle mi się biega po 10 km” to pytanie). */
+export const ODP_NIEZROZUMIALEM = "Chyba źle zrozumiałem. Napisz inaczej albo wybierz:";
+export const CHIPY_WYBORU = [{ etykieta: "Mój plan", pytanie: "Plan na jutro" }, { etykieta: "Moje treningi", pytanie: "Ile przebiegłem w tym tygodniu" },
+  { etykieta: "Wyniki", pytanie: "Moje wyniki" }, { etykieta: "Biegi w kalendarzu", pytanie: "Jakie biegi w najbliższym miesiącu" }];
+const REAKCJA_MOCNA = /^(co (ty )?odwali\w*|nie o to (pytal\w*|chodzi\w*)|bez sensu|glupie|glupota|co ty (gadasz|pleciesz)|nie rozumiesz|nie zrozumiales|nie zrozumiala\w*|zla odpowiedz|zle odpowied\w*|bzdura|bzdury|chyba zartujesz|o co ci chodzi|pomylka|nie pomogl\w*|nie o to mi chodzi\w*)\b.{0,40}$/;
+const REAKCJA_KROTKA = /^(zle|zly|nie to|nie tak|serio|jeszcze raz|powtorz|no nie|nie)[?!. ]*$/;
+const REAKCJA_ZWROT = /^(stary|ej|halo|no|hej|czlowieku)[ ,]+(zapytal\w*|pytal\w*|chcial\w*|co ty|nie o to|zle|co odwali\w*).{0,80}$/;
+export function czyReakcja(tekst) { const t = normalizuj(tekst); return !!t && (REAKCJA_MOCNA.test(t) || REAKCJA_KROTKA.test(t) || REAKCJA_ZWROT.test(t)); }
+/* NISKA PEWNOŚĆ (Filip 3.11): bez liter albo jedno–dwa słowa, których nie zna router (ani osoba, impreza, katalog — one idą wcześniej)
+   → nie zgadujemy (model miał wolną rękę i wybierał narzędzia „ludzkie”), tylko chipy „Chodzi Ci o…?” — 0 tokenów. */
+export const ODP_NIEPEWNE = "Nie jestem pewien, o co pytasz. Chodzi Ci o…?";
+export function czyNiepewne(tekst) {
+  const t = normalizuj(tekst);
+  if (!t || t.replace(/[^a-z]/g, "").length < 3) return true;   // emoji, „12”, „???”
+  const slowa = t.split(" ").filter(Boolean);
+  if (slowa.length === 1) return true;   // jedno słowo bez trafienia (np. samo imię) — nie zgadujemy
+  return slowa.length === 2 && slowa.every((w) => w.length <= 4 || /^(czesc|dzieki|ok|okej|dobra|super|tak|nie|moze|no|hmm|aha)$/.test(w));
+}
+
 const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t)) return true;
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t)) return true;
   if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
@@ -186,6 +210,7 @@ export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!t) return null;
   if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); return { zdanie: z.zdanie, log: "zagadka" }; }
+  if (czyReakcja(tekst)) return { zdanie: ODP_NIEZROZUMIALEM, log: "reakcja", chipy: CHIPY_WYBORU, feedback: true };   // Filip 3.11: reakcje → chipy, bez narzędzi
   if (PYT_DOLACZ.test(t)) return { zdanie: ZDANIE_REJESTRACJA, log: "rejestracja",
     karty: [{ typ: "kat_pojecie", dane: { klucz: ODP_REJESTRACJA.klucz, tytul: ODP_REJESTRACJA.tytul, co_to: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa } }] };
   if (/\bplan\w*\b.*\b(dzis|dzisiaj)\b|\bco (mam )?(dzis|dzisiaj)\b|\b(dzis|dzisiaj)\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "dzis" } };

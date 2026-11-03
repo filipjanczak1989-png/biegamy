@@ -39,7 +39,7 @@ test('EF: odpowiedź routera ze zdaniem zwraca karty routera i kończy pytanie P
   const iRouter = ef.indexOf('const traf = dopasuj(tekst, dzis);'), iSiec = ef.indexOf('zapytajSiec(');
   assert.ok(iRouter > 0 && iSiec > iRouter, 'router przed siecią');
   assert.match(ef, /if \(Array\.isArray\(\(traf as \{ karty\?: unknown\[\] \}\)\.karty\)\) kartyZd = /);
-  assert.match(ef, /if \(traf && "zdanie" in traf\) \{[\s\S]*?return odp\(200, \{ \.\.\.pusto\("router"\), zdania: \[traf\.zdanie\], karty: kartyZd \}\);/);
+  assert.match(ef, /if \(traf && "zdanie" in traf\) \{[\s\S]*?return odp\(200, \{ \.\.\.pusto\("router"\), zdania: \[traf\.zdanie\], karty: kartyZd, chipy: \(traf as \{ chipy\?: unknown\[\] \}\)\.chipy \|\| \[\] \}\);/);   // 3.11: + chipy (blizna-112)
 });
 
 test('klient: przycisk karty prowadzi do rejestracji (biała lista celu), katalog zna to samo zdanie', async () => {
