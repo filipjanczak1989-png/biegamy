@@ -191,7 +191,7 @@ table.w-tab a{color:var(--accent);text-decoration:none;}
     if (ta || tb) html += '<div class="w-karta"><div class="w-naglowek">Trendy</div>' + (ta ? '<div class="w-muted">' + esc(na) + '</div>' + W.wykresSvg(ta) : '') + (tb ? '<div class="w-muted" style="margin-top:8px;">' + esc(nb) + '</div>' + W.wykresSvg(tb) : '') + '</div>';
     ekran.innerHTML = html;
   }
-  function nazwaDla(klucz) { if (klucz === _mojKlucz) return 'Ja'; var o = ostatnio.filter(function (x) { return x.klucz === klucz; })[0]; return o ? o.nazwa : (klucz.indexOf('k:') === 0 ? klucz.slice(2).split('|')[0] : klucz.split(':')[0]); }
+  function nazwaDla(klucz) { if (klucz === _mojKlucz) return 'Ja'; var o = ostatnio.filter(function (x) { return x.klucz === klucz; })[0]; return o ? o.nazwa : (klucz.indexOf('k:') === 0 ? klucz.slice(2).split('|')[0] : 'Zawodnik ' + klucz); }   // nazwisko znamy tylko z wyszukiwarki (runner_results go nie zwraca) — inaczej klucz
 
   /* „To ja" → RPC ustaw_f6_runner_key (jedyna ścieżka zapisu klucza; zły klucz → 22023) */
   async function toJa(klucz, btn) {
