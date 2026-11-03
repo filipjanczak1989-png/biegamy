@@ -2520,6 +2520,9 @@
         ? crypto.randomUUID()
         : (Date.now() + '.' + Math.random().toString(36).slice(2));
       sessionStorage.setItem('icu_oauth_state', nonce);            // CSRF — sprawdzany w intervals-callback.html
+      /* POPRAWIONY STATE (Filip 3.11): na telefonie zgoda intervals często wraca w INNEJ karcie/aplikacji (PWA → przeglądarka), a sessionStorage
+         jest per karta → „Błąd bezpieczeństwa” mimo poprawnej zgody. Zapas w localStorage (ten sam origin, 15 min), nadal jednorazowy. */
+      try { localStorage.setItem('icu_oauth_state_ls', JSON.stringify({ n: nonce, t: Date.now() })); } catch (e) {}
       if (returnTo) sessionStorage.setItem('icu_oauth_return', returnTo);  // powrót do onboardingu (dopięcie callbacku osobno)
       // location.origin (8.10.2026): na prod = 'https://biegamy.run' jak dotąd; na teście wraca na host testowy
       // (adres testowy trzeba DOPISAĆ w ustawieniach aplikacji intervals.icu client_id 533 → Manage App → redirect URIs).
@@ -2530,6 +2533,108 @@
         + '&scope=ACTIVITY:READ,CALENDAR:WRITE,WELLNESS:READ'   /* E3-K1: HRV/RHR/sen/waga */
         + '&state=' + encodeURIComponent(nonce)
         + '&response_type=code';
+    },
+
+    /* ── STATUS SYNCHRONIZACJI + KREATOR NAPRAWY (Filip 3.11 11:53) ──
+       Ogniwo liczy EF intervals-status (pyta intervals: 401 = nasze połączenie, brak nowych aktywności = zegarek nie wysyła do intervals,
+       intervals nowsze niż BiegaMy = nasz import); wiersz w intervals_status czyta właściciel i trener. Teksty tu, proste, bez żargonu. */
+    NAZWY_ZRODEL_UI: { 'Garmin Connect': { app: 'Garmin Connect', link: 'https://connect.garmin.com/', apps: 'Garmin Connect → Ustawienia konta → Połączone aplikacje' },
+      'Coros': { app: 'COROS', link: null, apps: 'aplikacja COROS → Profil → Aplikacje innych firm' }, 'Suunto': { app: 'Suunto', link: null, apps: 'aplikacja Suunto → Profil → Połączone usługi' },
+      'Polar Flow': { app: 'Polar Flow', link: 'https://flow.polar.com/', apps: 'flow.polar.com → Ustawienia → Połączenia' } },
+    statusSync: async function(athleteId) {
+      if (!athleteId) return null;
+      try {
+        const q = window.sb.from('intervals_status').select('athlete_id,sprawdzono_at,ogniwo,zrodlo,urzadzenie,ost_intervals,ost_biegamy,dni_ciszy').eq('athlete_id', athleteId);
+        const r = q && q.maybeSingle ? await q.maybeSingle() : null;
+        return r && !r.error ? (r.data || null) : null;
+      } catch (e) { return null; }
+    },
+    sprawdzSync: async function(athleteId) {   // EF — jedno zapytanie do intervals; wynik ląduje w intervals_status
+      try {
+        const { data: { session } } = await window.sb.auth.getSession();
+        if (!session) return null;
+        const r = await fetch(window.SB_FN_URL + '/intervals-status', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ athlete_id: athleteId }) });
+        const d = await r.json().catch(function () { return null; });
+        return d && d.ok ? d.status : null;
+      } catch (e) { return null; }
+    },
+    /* raz na dobę w tle (otwarcie Dziś): świeży status bez klikania; wynik w tabeli, więc trener też go widzi */
+    statusDnia: async function(athleteId) {
+      const st = await this.statusSync(athleteId);
+      const swiezy = st && st.sprawdzono_at && (Date.now() - new Date(st.sprawdzono_at).getTime()) < 24 * 3600000;
+      if (swiezy) return st;
+      const nowy = await this.sprawdzSync(athleteId);
+      return nowy || st;
+    },
+    _dataKrotka: function(d) { return d ? Number(String(d).slice(8, 10)) + '.' + String(d).slice(5, 7) : ''; },
+    _dniTemu: function(n) { n = Number(n); if (!isFinite(n)) return ''; return n === 0 ? 'dziś' : n === 1 ? 'wczoraj' : n + ' dni temu'; },
+    opisOgniwa: function(st) {   // jedno zdanie dla paska na Dziś i listy trenera
+      if (!st) return '';
+      const esc = window.escapeHtml || function (x) { return String(x); };
+      if (st.ogniwo === 'token') return 'Połączenie z intervals.icu wygasło — treningi nie wpadają.';
+      if (st.ogniwo === 'zegarek') return 'Zegarek nie wysyła treningów do intervals.icu' + (st.zrodlo ? ' (' + esc(st.zrodlo) + ')' : '') + (st.dni_ciszy != null ? ' — ostatni ' + this._dniTemu(st.dni_ciszy) + '.' : '.');
+      if (st.ogniwo === 'import') return 'intervals.icu ma nowe treningi, a BiegaMy jeszcze nie — kliknij „Sprawdź teraz”.';
+      if (st.ogniwo === 'siec') return 'Nie udało się sprawdzić połączenia — spróbuj za chwilę.';
+      return '';
+    },
+    /* KREATOR — pełny, w Profilu. Kroki po kolei, krótko, z linkami; nazwa źródła z intervals („Garmin Connect”), nie ogólnie. */
+    kreatorHtml: function(st, athleteId, rt) {
+      if (!st || st.ogniwo === 'ok' || st.ogniwo === 'brak') return '';
+      const esc = window.escapeHtml || function (x) { return String(x); };
+      const btnSprawdz = '<button class="wc-btn-sm" onclick="WATCH.sprawdzTeraz(\'' + esc(athleteId) + '\', this)">Sprawdź teraz</button>';
+      const kiedy = st.sprawdzono_at ? new Date(st.sprawdzono_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+      let srodek = '';
+      if (st.ogniwo === 'token') {
+        srodek = '<div class="wc-kr-h">Połączenie BiegaMy ↔ intervals.icu wygasło</div>'
+          + '<p class="wc-kr-p">Treningi nie wpadają. Połącz ponownie — zajmuje minutę, nic więcej nie trzeba ustawiać.</p>'
+          + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz ponownie z intervals</button>';
+      } else if (st.ogniwo === 'zegarek') {
+        const z = st.zrodlo || null, u = z && this.NAZWY_ZRODEL_UI[z] ? this.NAZWY_ZRODEL_UI[z] : null;
+        const app = u ? u.app : 'aplikacji zegarka (Garmin Connect / Coros / Suunto / Polar)';
+        const nazwa = z || 'Twoim zegarkiem';
+        srodek = '<div class="wc-kr-h">Zegarek nie wysyła treningów do intervals.icu</div>'
+          + '<p class="wc-kr-p">Połączenie BiegaMy ↔ intervals.icu działa. Ostatni trening w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals) || 'brak') + '</b>'
+          + (st.dni_ciszy != null ? ' (' + esc(this._dniTemu(st.dni_ciszy)) + ')' : '') + (z ? ' · źródło: <b>' + esc(z) + '</b>' : '') + (st.urzadzenie ? ' · ' + esc(st.urzadzenie) : '') + '.</p>'
+          + '<ol class="wc-kr-kroki">'
+          + '<li><b>Czy treningi są w ' + esc(app) + ' na telefonie?</b> Jeśli nie — sparuj zegarek z telefonem na nowo (typowe po zmianie telefonu), a trening zgraj jeszcze raz.</li>'
+          + '<li><b>Jeśli są</b> — na komputerze wejdź w <a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">intervals.icu → Ustawienia → Połączenia ↗</a>, przy ' + esc(nazwa) + ' kliknij <b>Disconnect</b>, potem <b>Connect</b> i zaloguj się na stronie producenta. '
+          + 'Gdy intervals pokazuje błąd przy połączeniu (np. „401”): najpierw ' + (u ? '<b>' + esc(u.apps) + '</b>' : 'w aplikacji zegarka, w połączonych aplikacjach,') + (u && u.link ? ' (<a class="wc-icu-link" href="' + u.link + '" target="_blank" rel="noopener noreferrer">otwórz ↗</a>)' : '') + ' usuń intervals.icu, a potem połącz od nowa.</li>'
+          + '<li><b>Sprawdź</b>, czy trening pojawił się w <a class="wc-icu-link" href="https://intervals.icu/calendar" target="_blank" rel="noopener noreferrer">intervals.icu → Kalendarz ↗</a>.</li>'
+          + '<li><b>Wróć tu</b> i kliknij „Sprawdź teraz”.</li></ol>' + btnSprawdz;
+      } else if (st.ogniwo === 'import') {
+        srodek = '<div class="wc-kr-h">intervals.icu ma nowe treningi, BiegaMy jeszcze nie</div>'
+          + '<p class="wc-kr-p">Ostatni w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>, w BiegaMy: <b>' + esc(this._dataKrotka(st.ost_biegamy) || 'brak') + '</b>. „Sprawdź teraz” pobiera brakujące.</p>' + btnSprawdz;
+      } else if (st.ogniwo === 'siec') {
+        srodek = '<div class="wc-kr-h">Nie udało się sprawdzić połączenia</div><p class="wc-kr-p">intervals.icu nie odpowiedział. Spróbuj za chwilę.</p>' + btnSprawdz;
+      }
+      return '<div class="wc-kreator" data-ogniwo="' + esc(st.ogniwo) + '">' + srodek + (kiedy ? '<div class="wc-kr-kiedy">sprawdzono ' + esc(kiedy) + '</div>' : '') + '</div>';
+    },
+    /* „Sprawdź teraz”: ręczny sync (gdy połączony) + świeży status + przerysowanie panelu w miejscu */
+    sprawdzTeraz: async function(athleteId, btn) {
+      if (btn) { btn.disabled = true; btn.textContent = 'Sprawdzam…'; }
+      try { const st = await this.czyPolaczony(athleteId); if (st.polaczony && !st.tokenMartwy) await this.sync(athleteId, null, false); } catch (e) {}
+      await this.sprawdzSync(athleteId);
+      await this._rerenderStatus(athleteId);
+      if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'Sprawdź teraz'; }
+    },
+    _rerenderStatus: async function(athleteId) {
+      const w = document.querySelector('.wc-status-wrap[data-athlete="' + athleteId + '"]');
+      if (!w) return;
+      w.outerHTML = await this.render('status', { athleteId: athleteId });
+      if (typeof window._onWatchSynced === 'function') window._onWatchSynced();
+    },
+    /* PASEK NA DZIŚ — jednorazowy przy problemie (zamknięcie pamiętane per sprawdzenie), prowadzi do pełnego kreatora w Profilu */
+    pasekProblemu: async function(athleteId) {
+      if (!athleteId) return '';
+      const st = await this.statusDnia(athleteId);
+      if (!st || ['token', 'zegarek', 'import'].indexOf(st.ogniwo) < 0) return '';
+      const klucz = 'wc_pasek_' + athleteId + '_' + st.ogniwo + '_' + String(st.sprawdzono_at || '').slice(0, 10);
+      try { if (localStorage.getItem(klucz)) return ''; } catch (e) {}
+      const esc = window.escapeHtml || function (x) { return String(x); };
+      return '<div class="wc-pasek" data-klucz="' + esc(klucz) + '" style="display:flex;align-items:center;gap:10px;margin:8px 16px;padding:10px 12px;border:1px solid var(--yellow,#e8b840);border-radius:12px;font-size:12.5px;background:rgba(232,184,64,.08)">'
+        + '<span style="flex:1">⌚ ' + this.opisOgniwa(st) + '</span>'
+        + '<a href="profil.html?open=icu" style="color:var(--accent);font-weight:600;white-space:nowrap">Napraw ›</a>'
+        + '<button type="button" aria-label="Zamknij" onclick="try{localStorage.setItem(this.parentNode.dataset.klucz,\'1\')}catch(e){};this.parentNode.remove()" style="background:none;border:0;color:inherit;font-size:16px;cursor:pointer;padding:0 2px">✕</button></div>';
     },
 
     // 2) STAN — JEDNO źródło prawdy. Zwraca {polaczony, od_kiedy}
@@ -2690,8 +2795,12 @@
             + '<div class="wc-brak-d">Od połączenia zapisałeś ' + st2.recznePo + ' ' + WATCH._odmienTrening(st2.recznePo) + ' ręcznie, a z zegarka nie wpadło nic.</div>'
             + helpHtml(false)
             + '</div>' : '';
-          return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
-            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock + brak;
+          /* kreator naprawy (3.11): wiersz intervals_status — bez wiersza nic nie udajemy; „Sprawdź teraz” liczy od nowa */
+          const stS = await this.statusSync(opts.athleteId);
+          const kreator = this.kreatorHtml(stS, opts.athleteId, rt);
+          const brakHtml = kreator && stS && stS.ogniwo === 'zegarek' ? '' : brak;   // kreator mówi to samo konkretniej (źródło, kroki) — bez dwóch paneli
+          return '<div class="wc-status-wrap" data-athlete="' + opts.athleteId + '"><div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
+            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock + brakHtml + kreator + '</div>';
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
@@ -2817,6 +2926,7 @@
       if (document.getElementById('wc-css')) return;
       const s = document.createElement('style'); s.id = 'wc-css';
       s.textContent =
+        '.wc-kreator{margin-top:10px;padding:12px;border:1px solid var(--yellow,#e8b840);border-radius:12px;background:rgba(232,184,64,.06);font-size:13px;line-height:1.5}.wc-kr-h{font-weight:700;margin-bottom:4px}.wc-kr-p{margin:0 0 8px}.wc-kr-kroki{margin:0 0 10px;padding-left:18px}.wc-kr-kroki li{margin-bottom:6px}.wc-kr-kiedy{margin-top:8px;font-size:11px;opacity:.6}' + 
         '.wc-icon{transition:transform .2s}'
         + '@keyframes wc-pulse{0%,100%{opacity:1}50%{opacity:.5}}'
         + '.watch-pulse .wc-icon{animation:wc-pulse 2.4s ease-in-out infinite}'

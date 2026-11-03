@@ -73,6 +73,9 @@ verify_jwt = true        # kalendarz.html:1984,2018, trener.html:2262; guard get
 [functions.intervals-sync]
 verify_jwt = true        # profil.html:1885, sb.js:2122; guard getUser
 
+[functions.intervals-status]
+verify_jwt = true        # status synchronizacji + kreator naprawy (sb.js WATCH.sprawdzSync, trener.html sprawdzZegarki); własny albo podopieczny
+
 [functions.ocr-training-screen]
 verify_jwt = true        # kalendarz.html:3751, zawodnik.html:2568; wymagajUsera
 

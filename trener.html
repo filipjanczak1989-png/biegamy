@@ -5047,6 +5047,18 @@ function tpTogglePoranek() {
   if (arr) arr.style.transform = zwiniete ? 'rotate(0deg)' : 'rotate(-90deg)';
   try { localStorage.setItem('tp_poranek_zwiniety', zwiniete ? '0' : '1'); } catch (e) {}
 }
+/* „Sprawdź zegarki wszystkich” (3.11): EF intervals-status {wszyscy:true} — po kolei pyta intervals o każdego podopiecznego z zegarkiem */
+async function sprawdzZegarki(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Sprawdzam…'; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(window.SB_FN_URL + '/intervals-status', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ wszyscy: true }) });
+    const d = await r.json().catch(() => null);
+    if (window.showToast) showToast(d && d.ok ? 'Sprawdzono ' + d.sprawdzono + ' zegark\u00f3w' : 'Nie uda\u0142o si\u0119 sprawdzi\u0107');
+  } catch (e) { if (window.showToast) showToast('Nie uda\u0142o si\u0119 sprawdzi\u0107'); }
+  if (btn) { btn.disabled = false; btn.textContent = '\u231a Sprawd\u017a zegarki wszystkich'; }
+  zaladujPoranek();
+}
 async function zaladujPoranek() {
   try {
     const sec = document.getElementById('poranek-sec');
@@ -5056,6 +5068,9 @@ async function zaladujPoranek() {
       .select('id,full_name,intervals_token_dead_at').eq('coach_id', _coachId);
     const ids = (ath || []).map(a => a.id);
     if (!ids.length) { sec.style.display = 'none'; return; }
+    /* STATUS ZEGARKÓW (3.11): wiersze intervals_status podopiecznych (RLS: trener) — ogniwo z nazwą źródła; „Sprawdź zegarki” liczy od nowa */
+    const _statusZeg = {};
+    try { const { data: stz } = await sb.from('intervals_status').select('athlete_id,ogniwo,zrodlo,dni_ciszy,sprawdzono_at').in('athlete_id', ids); (stz || []).forEach(x => { _statusZeg[x.athlete_id] = x; }); } catch (e) {}
     const od = new Date(Date.now() - 90 * 864e5).toISOString();
     const { data: logs } = await sb.from('training_logs')
       .select('athlete_id,logged_at,duration,training_type,feel,external_source')
@@ -5126,7 +5141,10 @@ async function zaladujPoranek() {
       else if (tsb >= 25 && ctl > 10) sig.push('\ud83d\udca4 du\u017co \u015bwie\u017co\u015bci \u2014 mo\u017cna doda\u0107 bod\u017aca (+' + tsb + ')');
       const cisza = p.last ? Math.floor((Date.now() - new Date(p.last).getTime()) / 864e5) : 99;
       if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 nie logowa\u0142 od ' + (cisza > 30 ? '30+' : cisza) + ' dni \u2014 zagadaj');
-      if (a.intervals_token_dead_at) sig.push('\u231a zegarek si\u0119 roz\u0142\u0105czy\u0142 \u2014 poprosi ponowne po\u0142\u0105czenie');
+      const sz = _statusZeg[a.id];
+      if (sz && sz.ogniwo === 'zegarek') sig.push('\u231a zegarek nie wysy\u0142a do intervals' + (sz.zrodlo ? ' (' + esc(sz.zrodlo) + ')' : '') + (sz.dni_ciszy != null ? ' od ' + sz.dni_ciszy + ' dni' : '') + ' \u2014 kreator w jego Profilu');
+      else if (sz && sz.ogniwo === 'import') sig.push('\u231a intervals ma nowe treningi, BiegaMy nie \u2014 sync');
+      else if (a.intervals_token_dead_at || (sz && sz.ogniwo === 'token')) sig.push('\u231a zegarek si\u0119 roz\u0142\u0105czy\u0142 \u2014 poprosi ponowne po\u0142\u0105czenie');
       if (p.brakFeel) sig.push('\u231a ' + (window.escapeHtml ? window.escapeHtml(p.brakFeel.training_type || 'Trening') : (p.brakFeel.training_type || 'Trening')) + ' z zegarka bez odczu\u0107 \u2014 przypomnij (forma liczy z domy\u015blnym)');
       const wl = perW[a.id];
       if (wl && wl.length >= 3) {
@@ -5205,12 +5223,13 @@ async function zaladujPoranek() {
         + '<span style="font-size:11px;font-family:DM Mono,monospace;color:' + kolor + ';">' + gotowiWell + '/' + total + '</span></div>'
         + '<div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:5px;">' + tekst + '</div></div>';
     }
+    const zegarkiBtn = '<div style="text-align:right;margin-top:6px;"><button type="button" onclick="sprawdzZegarki(this)" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);border-radius:8px;padding:5px 10px;font-size:11px;font-family:DM Mono,monospace;cursor:pointer;">\u231a Sprawd\u017a zegarki wszystkich</button></div>';
     if (!alerty.length) {
-      el.innerHTML = agregatHtml + '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>' + startyHtml;
+      el.innerHTML = zegarkiBtn + agregatHtml + '<div style="padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;font-size:12px;color:#4ade80;font-family:DM Mono,monospace;">\u2705 Wszyscy w normie \u2014 dobrego dnia, trenerze.</div>' + startyHtml;
       return;
     }
     alerty.sort((x, y) => y.waga - x.waga);
-    el.innerHTML = agregatHtml + alerty.map(x =>
+    el.innerHTML = zegarkiBtn + agregatHtml + alerty.map(x =>
       '<div onclick="openAthleteProfile(\'' + x.a.id + '\', \'' + esc(x.a.full_name).replace(/'/g, '') + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
       + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
       + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'

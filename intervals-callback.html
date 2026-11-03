@@ -79,8 +79,15 @@
   }
 
   // 2) BRAMKA CSRF — state musi zgadzać się z nonce zapisanym przed przekierowaniem (sessionStorage, one-shot)
-  const savedState = sessionStorage.getItem('icu_oauth_state');
-  sessionStorage.removeItem('icu_oauth_state');   // jednorazowy — zużyty niezależnie od wyniku
+  /* POPRAWIONY STATE (Filip 3.11): sessionStorage jest per karta — na telefonie zgoda wraca często w innej karcie (PWA → Chrome) i state
+     „znikał” mimo poprawnej zgody. Zapas: localStorage (ten sam origin, ważny 15 min). Oba jednorazowe — zużyte niezależnie od wyniku. */
+  let savedState = sessionStorage.getItem('icu_oauth_state');
+  sessionStorage.removeItem('icu_oauth_state');
+  try {
+    const ls = JSON.parse(localStorage.getItem('icu_oauth_state_ls') || 'null');
+    localStorage.removeItem('icu_oauth_state_ls');
+    if (!savedState && ls && ls.n && Date.now() - Number(ls.t || 0) < 15 * 60000) savedState = ls.n;
+  } catch (e) {}
   if (!state || !savedState || state !== savedState) {
     // BEZPIECZEŃSTWO BEZ ZMIAN — dalej twardy blok + return. Zmienia się TYLKO treść komunikatu:
     // pod Google Translate origin się zmienia i state znika → to nie atak, tylko tłumaczenie. Czytelny komunikat zamiast strasznego „CSRF".
@@ -89,7 +96,7 @@
     if (viaTranslate) {
       show('🌐', 'Tłumaczenie przerwało łączenie', 'Google Translate zmienił adres strony i połączenie nie doszło. Otwórz BiegaMy bez tłumaczenia i połącz ponownie z profilu.', true);
     } else {
-      show('🛑', 'Błąd bezpieczeństwa', 'nieprawidłowy parametr state (CSRF) — spróbuj połączyć ponownie z profilu', true);
+      show('🛑', 'Nie udało się potwierdzić połączenia', 'Zgoda wróciła z innego okna niż to, z którego zaczynałeś. Zacznij jeszcze raz z profilu — zwykle za drugim razem działa.', true);
     }
     return;
   }
