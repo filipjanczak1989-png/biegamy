@@ -889,7 +889,8 @@ async function _odswiezAkcjeLanding() {
   if (!d || !d.wystartowala) {
     if (dzis < '2026-11-02' || (d && d.zamknieta)) { el.hidden = true; return; }
     if (!d || !d.start) { el.hidden = true; return; }   // data startu wyłącznie z licznika (akcje.start)
-    const krotka = Number(String(d.start).slice(8, 10)) + '.' + String(d.start).slice(5, 7);
+    const zap = String(d.data_zapowiedzi || d.start);   // Z (Filip 3.11): data na zapowiedzi ≠ data startu — teaser z data_zapowiedzi, „Dziś…” według start
+    const krotka = Number(zap.slice(8, 10)) + '.' + zap.slice(5, 7);
     el.innerHTML = '<div style="text-align:center;font-family:&quot;Bebas Neue&quot;,Inter,sans-serif;font-size:30px;letter-spacing:.06em;color:#e8561e;">' + krotka + '</div>' +
       '<div style="text-align:center;font-size:13px;color:rgba(240,237,232,.7);margin-top:2px;">' + (dzis >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Zapamiętaj tę datę.') + '</div>';
     el.hidden = false;

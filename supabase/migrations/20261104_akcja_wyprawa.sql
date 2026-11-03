@@ -3,6 +3,10 @@
 --       a gdy tego dnia nie ma jego aktywności — drugiego (Kasia, zapas); suma po dniach. Źródło: akcja_wyprawa_slad (dystans z intervals,
 --       niezależny od synchronizacji logów), a gdy ślad pusty (cron jeszcze nie ruszył) — training_logs tą samą regułą. Suma AKCJI
 --       bez zmian (oba konta). Test: obaj po 100 km tego samego dnia → wyprawa 100, akcja +200. wyprawa_cel_km = 240.
+--   Z) DATA NA ZAPOWIEDZI ≠ DATA STARTU (Filip 3.11 03:31): teaser (index.html, dla-fabianka.html) pokazuje data_zapowiedzi (8.11) do
+--      zapowiedz_zmiana_at (5.11 20:00 Europe/Warsaw), potem data_zapowiedzi_po (7.11). Prawdziwy start (akcje.start, okno guzika, licznik,
+--      odznaki, cytaty dnia) BEZ ZMIAN = 7.11. Licznik przed startem oddaje `data_zapowiedzi` według now(). Godzinę zmienia jeden UPDATE:
+--      update public.akcje set zapowiedz_zmiana_at = '2026-11-05 20:00 Europe/Warsaw' where slug = 'dla-fabianka';
 --   A) akcje.wyprawa_cel_nazwa — nazwa celu wyprawy żyje TYLKO w bazie (jak imię przed startem, plakat przed zgodą); akcja_licznik
 --      oddaje wyprawa_cel_nazwa i wyprawa_cel_km WYŁĄCZNIE po „Dotarliśmy” (wyprawa_dotarla_at), przed tym tylko wyprawa_km + wyprawa_trwa.
 --   B) akcja_wyprawa_slad — uproszczone punkty aktywności kont wyprawy (≤ 1 pkt / 50 m) z intervals; RLS: ZERO dostępu bezpośredniego
@@ -15,6 +19,8 @@ begin;
 
 alter table public.akcje add column wyprawa_cel_nazwa text check (wyprawa_cel_nazwa is null or char_length(wyprawa_cel_nazwa) between 1 and 60);
 update public.akcje set wyprawa_cel_nazwa = 'Jasna Góra', wyprawa_cel_km = 240 where slug in ('dla-fabianka', 'proba');
+alter table public.akcje add column data_zapowiedzi date, add column zapowiedz_zmiana_at timestamptz default ('2026-11-05 20:00' at time zone 'Europe/Warsaw'), add column data_zapowiedzi_po date;
+update public.akcje set data_zapowiedzi = '2026-11-08', data_zapowiedzi_po = '2026-11-07', zapowiedz_zmiana_at = ('2026-11-05 20:00' at time zone 'Europe/Warsaw') where slug in ('dla-fabianka', 'proba');
 
 create table public.akcja_wyprawa_slad (
   id                     bigint generated always as identity primary key,
@@ -50,6 +56,9 @@ begin
   -- PRZED STARTEM nic, co zdradza akcję: bez nazwy, imienia, linku, sumy (v3 pkt 6).
   if a.wystartowala_at is null then
     return jsonb_build_object('wystartowala', false, 'wystartowala_at', null, 'start', a.start,
+                              'data_zapowiedzi', case when a.data_zapowiedzi is null then a.start
+                                                      when a.zapowiedz_zmiana_at is not null and now() >= a.zapowiedz_zmiana_at then coalesce(a.data_zapowiedzi_po, a.start)
+                                                      else a.data_zapowiedzi end,   -- Z: teaser ≠ start; start zostaje prawdziwy
                               'cel_km', a.cel_km, 'suma_km', null, 'pct', null, 'zamknieta', false);
   end if;
 
@@ -129,6 +138,7 @@ begin
   -- licznik akcji, która nie wystartowała, nie zdradza niczego o wyprawie
   j := public.akcja_licznik('dla-fabianka');
   if j ? 'wyprawa_cel_nazwa' or j ? 'wyprawa_cel_km' then raise exception 'akcja_licznik: cel wyprawy widoczny przed startem'; end if;
+  if j->>'start' <> '2026-11-07' then raise exception 'akcja_licznik: start zmieniony (%)', j->>'start'; end if;   -- Z: start bez zmian
 end $$;
 
 notify pgrst, 'reload schema';

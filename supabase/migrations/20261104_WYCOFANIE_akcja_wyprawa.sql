@@ -41,6 +41,6 @@ begin
     'testowa', a.testowa);
 end $function$;
 
-alter table public.akcje drop column if exists wyprawa_cel_nazwa;
+alter table public.akcje drop column if exists wyprawa_cel_nazwa, drop column if exists data_zapowiedzi, drop column if exists zapowiedz_zmiana_at, drop column if exists data_zapowiedzi_po;
 notify pgrst, 'reload schema';
 commit;

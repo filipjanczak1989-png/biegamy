@@ -60,6 +60,17 @@ begin
   reset role;
   n := n + 6;
 
+  -- 4. Z: data na zapowiedzi ≠ data startu — przed zmianą 8.11, po zmianie 7.11; start i okno guzika niezależne
+  update public.akcje set wystartowala_at = null, wyprawa_dotarla_at = null, start = '2026-11-07', zapowiedz_zmiana_at = now() + interval '1 hour' where slug = 'dla-fabianka';   -- krok 1 przestawił start na dziś
+  j := public.akcja_licznik('dla-fabianka');
+  if j->>'data_zapowiedzi' <> '2026-11-08' or j->>'start' <> '2026-11-07' then raise exception 'FAIL 4a: przed zmianą zapowiedź % / start %', j->>'data_zapowiedzi', j->>'start'; end if;
+  update public.akcje set zapowiedz_zmiana_at = now() - interval '1 second' where slug = 'dla-fabianka';
+  j := public.akcja_licznik('dla-fabianka');
+  if j->>'data_zapowiedzi' <> '2026-11-07' or j->>'start' <> '2026-11-07' then raise exception 'FAIL 4b: po zmianie zapowiedź % / start %', j->>'data_zapowiedzi', j->>'start'; end if;
+  if (select okno_startu_od::date from public.akcje where slug = 'dla-fabianka') <> '2026-11-07' then raise exception 'FAIL 4c: okno guzika ruszone'; end if;
+  if (j ? 'nazwa') or (j ? 'imie') then raise exception 'FAIL 4d: teaser zdradza nazwę'; end if;
+  n := n + 4;
+
   create temp table _wyp_wynik as select 'TESTY WYPRAWY ZIELONE: ' || n || ' asercji' as wynik;
 end $T$;
 select wynik from _wyp_wynik;

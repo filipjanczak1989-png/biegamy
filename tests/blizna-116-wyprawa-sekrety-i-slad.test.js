@@ -71,13 +71,14 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   assert.equal((m.match(/coalesce\(nullif\(d\.km_glowny, 0\), d\.km_zapas\)/g) || []).length, 2, 'ta sama reguła dla śladu i dla logów');
   assert.match(m, /wyprawa_cel_km = 240 where slug in \('dla-fabianka', 'proba'\)/);
   assert.ok(m.indexOf('create table public.akcja_wyprawa_slad') < m.indexOf('create or replace function public.akcja_licznik'), 'tabela śladu przed licznikiem, który z niej czyta');
-  for (const f of ['FAIL 0a', 'FAIL 0b', 'FAIL 0c', 'FAIL 0d']) assert.ok(t.includes(f), f);
+
   assert.match(m, /revoke all on public\.akcja_wyprawa_slad from public, anon, authenticated;/); assert.doesNotMatch(m, /create policy[^\n]*akcja_wyprawa_slad/);
   assert.match(m, /cron\.schedule\('akcja-wyprawa-slad', '\*\/15 \* \* \* \*'/);
   assert.match(m, /if j \? 'wyprawa_cel_nazwa' or j \? 'wyprawa_cel_km' then raise exception/);
   assert.ok(fs.existsSync(path.join(KORZEN, 'supabase/migrations/20261104_WYCOFANIE_akcja_wyprawa.sql')));
   const t = czytaj('tools/akcja-wyprawa-test.sql');
   for (const f of ['FAIL 1b', 'FAIL 1e', 'FAIL 2a', 'FAIL 2b', 'FAIL 3d', 'FAIL 3e']) assert.ok(t.includes(f), f);
+  for (const f of ['FAIL 0a', 'FAIL 0b', 'FAIL 0c', 'FAIL 0d']) assert.ok(t.includes(f), f);   // A0: jedno konto per dzień, ślad przed logami
   globalThis.escapeHtml = (s) => String(s);
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja.mjs')).href);
   const A = globalThis.BM_AKCJA;

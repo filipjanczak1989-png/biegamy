@@ -98,12 +98,12 @@
      DATA PRZEGLĄDU: dzień zamknięcia akcji (ZAMKNIETA = true / ZAMKNIETA_OD) — wtedy zawęzić do form „Fabianek/
      Fabianka/Fabiankowi/Fabiankiem" albo zdjąć regułę razem z zagadką, w tym samym commicie co blizna-93. */
   var ZAGADKI = [
-    "Jeszcze nie mogę powiedzieć. Ale zapamiętaj datę: " + DATA_KROTKA + ".",
+    "Jeszcze nie mogę powiedzieć. Niedługo.",   // Z (3.11): zagadki bez dnia — zapowiedź (8.11) ≠ start (7.11)
     "Będą znaki. Patrz pod nogi i licz kilometry.",
     "Coś się zaczyna. Twoje buty mogą się przydać.",
     "Odpowiedź przyjdzie jednym kliknięciem. Jeszcze nie dziś.",
     "Na razie tylko tyle: nie biegniesz sam.",
-    "Daleka droga, dużo ludzi, jeden powód. Więcej " + DATA_KROTKA + ".",
+    "Daleka droga, dużo ludzi, jeden powód. Więcej wkrótce.",
   ];
   var PO_STARCIE = "Akcja trwa — każdy Twój kilometr biegu i spaceru w BiegaMy liczy się sam, nic nie trzeba włączać. Rower nie. Szczegóły na Dziś.";
   /** Odpowiedź okienka na pytanie o akcję: przed startem losowa zagadka, po starcie zdanie (miejsce na kartę akcji, projekt F). */

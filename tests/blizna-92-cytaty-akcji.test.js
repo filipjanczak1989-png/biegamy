@@ -53,7 +53,7 @@ test('7.11 (dzień startu): przed naciśnięciem „Dziś. Jedno kliknięcie…"
   assert.equal(new Date(A.OKNO_STARTU.od).toISOString(), '2026-11-07T05:00:00.000Z', '7.11 06:00 Warszawa');
   assert.equal(new Date(A.OKNO_STARTU.do).toISOString(), '2026-11-07T22:59:59.000Z', '7.11 23:59:59 Warszawa');
   assert.match(czytaj('js/akcja-cytaty.mjs'), /var START_ROTACJI = dodajDni\(DZIEN_STARTU, 1\);/);
-  assert.ok(A.ZAGADKI.some((z) => z.includes('7.11')) && !A.ZAGADKI.some((z) => z.includes('8.11')), 'zagadki z nową datą');
+  assert.ok(!A.ZAGADKI.some((z) => /\d{1,2}\.\d{2}/.test(z)), 'zagadki BEZ dnia (3.11, blizna-118: data na zapowiedzi 8.11 ≠ start 7.11 — żadna zagadka nie zdradza żadnej)');
   // jedno miejsce podłączenia: ustawStan (stan z RPC) przełącza czyAkcjaRuszyla bez zgadywania
   A.ustawStan({ ruszyla: true });
   assert.equal(A.czyAkcjaRuszyla(), true);

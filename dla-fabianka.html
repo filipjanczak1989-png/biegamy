@@ -93,7 +93,7 @@
   function pokaz(d) {
     if (!d || !d.wystartowala) {
       $('pelna').hidden = true; $('teaser').hidden = false;
-      $('wielka-data').textContent = krotka(d && d.start);
+      $('wielka-data').textContent = krotka(d && (d.data_zapowiedzi || d.start));   // Z: data na zapowiedzi (8.11 → 7.11 wg bazy), nie data startu
       $('teaser-tekst').textContent = d && d.start && dzisWaw() >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
       return;
     }
