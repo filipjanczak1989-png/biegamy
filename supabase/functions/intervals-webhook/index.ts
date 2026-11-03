@@ -143,6 +143,14 @@ Deno.serve(async (req) => {
     } catch (e) { console.error('intervals-webhook domkniecie planu', rawId, (e as Error)?.message); }
   }
 
+  // ── 5b) WYPRAWA (komenda Filipa 4.11): nowa aktywność konta wyprawy → odświeżenie śladu (EF sama sprawdza, czy konto jest w trwającej
+  //       wyprawie; błąd nie psuje importu; ten sam sekret co cron) ──
+  if (imported > 0 && ath?.id && Deno.env.get('PUSH_HOOK_SECRET')) {
+    try {
+      await fetch(`${SB_URL}/functions/v1/akcja-wyprawa-slad`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-push-secret': Deno.env.get('PUSH_HOOK_SECRET')! },
+        body: JSON.stringify({ rodzaj: 'odswiez', athlete_id: ath.id }) });
+    } catch (e) { console.error('intervals-webhook wyprawa', (e as Error)?.message); }
+  }
   // ── 6) ZAWSZE 200 przy poprawnym secret (miss/skip/dup też) — inaczej intervals retry-uje w kółko ──
   return J(200, { ok: true, imported, dup, skipped, unmatched, domkniete });
 });

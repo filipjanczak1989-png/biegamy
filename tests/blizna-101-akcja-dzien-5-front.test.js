@@ -31,11 +31,13 @@ test('wyprawa: tylko z celem; tekst bez imienia; dla-fabianka i karta Dziś', as
   globalThis.escapeHtml = (s) => String(s);
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja.mjs')).href);
   const A = globalThis.BM_AKCJA;
-  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_cel_km: null }), '');
-  assert.equal(A.tekstWyprawy({ wystartowala: false, wyprawa_cel_km: 150 }), '');
-  const t = A.tekstWyprawy({ wystartowala: true, wyprawa_cel_km: 150, wyprawa_km: 42.4, wyprawa_dotarla_at: null }).replace(/ /g, ' ');
-  assert.equal(t, 'Wyprawa na Jasną Górę · Filip i Kasia: 42 z 150 km');
-  assert.match(A.tekstWyprawy({ wystartowala: true, wyprawa_cel_km: 150, wyprawa_km: 151, wyprawa_dotarla_at: '2026-11-12T10:00:00Z' }), /dotarli ✓$/);
+  /* 4.11 (komenda Filipa, blizna-116): cel TAJNY do dotarcia — tekst bez nazwy celu i bez cel_km; po dotarciu nazwa z BAZY (wyprawa_cel_nazwa). */
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_dotarla_at: null }), '', 'akcja bez wyprawy');
+  assert.equal(A.tekstWyprawy({ wystartowala: false, wyprawa_trwa: true }), '', 'przed startem nic');
+  const t = A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: true, wyprawa_km: 42.4, wyprawa_dotarla_at: null }).replace(/ /g, ' ');
+  assert.equal(t, 'Wyprawa · Filip i Kasia: 42 km · cel: tajemnica');
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 241, wyprawa_dotarla_at: '2026-11-08T16:00:00Z', wyprawa_cel_nazwa: 'Cel Z Bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Cel Z Bazy ✓ · 241 km');
+  assert.equal(A.linkTrasy({ wystartowala: true, wyprawa_trwa: true }), 'mapa-wyprawy.html'); assert.equal(A.linkTrasy({ wystartowala: false, wyprawa_trwa: true }), '');
   assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian|borowczyk/i, 'imię poza nazwą pliku strony');
   assert.match(czytaj('dla-fabianka.html'), /var wy = A\.tekstWyprawy\(d\);/);
 });

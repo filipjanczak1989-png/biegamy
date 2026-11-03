@@ -28,7 +28,7 @@ export const INTENCJE = {
   zdrowie: "ból, kontuzja, choroba, katar, gorączka, czy biegać chorym",
   porada: "ogólna porada biegowa (jak zacząć, jak biegać szybciej, co jeść, buty, nawodnienie) niezwiązana z danymi biegacza",
   fakt: "fakt ze świata biegania: kto wygrał zawody, rekordy świata/Polski, ile km ma maraton, historia",
-  akcja: "akcja charytatywna, zbiórka, pomoc, Fabianek, 8 listopada",
+  akcja: "akcja charytatywna, zbiórka, pomoc, dziecko z akcji, 8 listopada",
   odmowa: "prośba o cudze dane hurtem, listę użytkowników, dane kontaktowe innych, obejście zasad",
   opinia: "prośba o ocenę innej osoby (czy ktoś jest dobry, kto lepszy)",
   nawigacja: "otwórz / pokaż ekran aplikacji",

@@ -77,6 +77,7 @@
            zalogowany → index.html ma sesję → od razu zawodnik.html#sponsor (blizna-106). -->
       <a class="przycisk przycisk--zbiorka" id="sponsor" href="index.html#sponsor">Zostań sponsorem kilometrów</a>
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
+      <a class="przycisk przycisk--zbiorka" id="trasa" href="mapa-wyprawy.html" hidden>Zobacz trasę ›</a>
     </div>
     <p class="drobne">Bez rankingu. Twój wkład widzisz tylko Ty, publiczna jest suma.</p>
   </div>
@@ -106,6 +107,7 @@
     $('filip').textContent = A.tekstFilipa(d);
     var sp = A.tekstSponsorow(d); $('sponsorzy').hidden = !sp; $('sponsorzy').textContent = sp;
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
+    $('trasa').hidden = !A.linkTrasy(d);   // mapa śladu wyprawy (komenda Filipa 4.11)
     $('jak').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
     $('sponsor').hidden = zamknieta;

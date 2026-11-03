@@ -174,15 +174,20 @@
       (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
       sponsorHtml(wklad, d) +
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="dla-fabianka.html">Szczegóły ›</a>' +
+      (linkTrasy(d) ? '<a class="akcja-link" href="' + linkTrasy(d) + '">Zobacz trasę ›</a>' : "") +
       (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") +
       (link ? '<a class="akcja-link" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + "</div></div>";
   }
 
-  /** Wyprawa na Jasną Górę (spec v3 pkt 3): tylko gdy Filip ustawi cel (akcje.wyprawa_cel_km). Km z licznika (wyprawa_km). */
+  /** Wyprawa (komenda Filipa 4.11, SEKRET CELU): cel wyprawy żyje TYLKO w bazie — licznik oddaje wyprawa_cel_nazwa/wyprawa_cel_km
+   *  dopiero po „Dotarliśmy”; przed tym tylko wyprawa_km + wyprawa_trwa. W kodzie nie ma nazwy celu (blizna-116). */
   function tekstWyprawy(d) {
-    if (!d || !d.wystartowala || d.wyprawa_cel_km == null) return "";
-    return "Wyprawa na Jasną Górę · Filip i Kasia: " + km(d.wyprawa_km) + " z " + km(d.wyprawa_cel_km) + " km" + (d.wyprawa_dotarla_at ? " · dotarli ✓" : "");
+    if (!d || !d.wystartowala || !(d.wyprawa_trwa || d.wyprawa_dotarla_at)) return "";
+    if (d.wyprawa_dotarla_at) return "Wyprawa · dotarli: " + (d.wyprawa_cel_nazwa || "na miejsce") + " ✓ · " + km(d.wyprawa_km) + " km";
+    return "Wyprawa · Filip i Kasia: " + km(d.wyprawa_km) + " km · cel: tajemnica";
   }
+  /** Link do mapy śladu (mapa-wyprawy.html) — tylko po starcie, gdy akcja ma wyprawę. */
+  function linkTrasy(d) { return d && d.wystartowala && (d.wyprawa_trwa || d.wyprawa_dotarla_at) ? "mapa-wyprawy.html" : ""; }
 
   /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj" albo „Zostań sponsorem" z formularzem.
    *  Przyciski przez data-akcja (handler w zawodnik.html), bez danych użytkownika w atrybutach JS. */
@@ -208,7 +213,7 @@
   }
 
   g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
-    tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
+    tekstWyprawy: tekstWyprawy, linkTrasy: linkTrasy, pobierzPubliczny: pobierzPubliczny, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
     plakatUrl: plakatUrl, plakatHtml: plakatHtml, pokazPlakat: pokazPlakat,
     CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
