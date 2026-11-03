@@ -106,11 +106,16 @@ export async function rozumienie({ fetchFn, klucz, tekst, dzis, poprzednie = [],
   let w;
   try { w = await generujJson({ fetchFn, klucz, system: promptRozumienia(dzis), contents, schema: SCHEMAT, maxOutputTokens: MAX_TOK_WY, timeoutMs }); }
   catch (e) { throw new BladRozumienia(e instanceof BladGemini ? e.message : "model"); }
-  const j = w.json || {};
+  return wynikRozumienia(w.json, w.tok);
+}
+
+/** surowy JSON klasyfikatora → wynik dla potoku (ta sama normalizacja dla każdego dostawcy: tools/porownaj-dostawcow.mjs) */
+export function wynikRozumienia(json, tok) {
+  const j = json || {};
   const intencja = NAZWY_INTENCJI.includes(j.intencja) ? j.intencja : "nie_wiem";
   const pewnosc = typeof j.pewnosc === "number" && Number.isFinite(j.pewnosc) ? Math.max(0, Math.min(1, j.pewnosc)) : 0;
   const kandydaci = (Array.isArray(j.kandydaci) ? j.kandydaci : []).filter((k) => NAZWY_INTENCJI.includes(k) && k !== intencja && k !== "nie_wiem").slice(0, 3);
-  return { intencja, pewnosc, dopytac: !!j.dopytac || pewnosc < PROG_PEWNOSCI || intencja === "nie_wiem", kandydaci, sloty: czysteSloty(j.sloty), tok: w.tok };
+  return { intencja, pewnosc, dopytac: !!j.dopytac || pewnosc < PROG_PEWNOSCI || intencja === "nie_wiem", kandydaci, sloty: czysteSloty(j.sloty), tok };
 }
 
 /** klucz nagrania na ławce (tests/_nagrania-v2.json) — ten sam normalizator co router */

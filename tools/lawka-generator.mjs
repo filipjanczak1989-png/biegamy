@@ -6,8 +6,10 @@
 //   deno run -A tools/lawka-generator.mjs --scal [--bez k0007,k0123]
 //        → po OK: kandydaci dopisani do tests/_lawka-v2-pytania.js (sekcja „wygenerowane”), `oczekiwane` z mapy intencji;
 //          wiersze, których potok dziś nie przechodzi, dostają `luka: 'gen'` + „dziś: <ślad>” (CI zostaje zielone, lista do pracy)
-//   node tests/_lawka-v2.js --zywy   → nagrania klasyfikatora dla nowych pytań (Gemini ~0,0003 USD/pytanie), potem znów --scal --przelicz
+//   node tests/_lawka-v2.js --zywy --rownolegle 8   → nagrania klasyfikatora dla nowych pytań (Gemini ~0,0005 USD/pytanie) do tests/_nagrania-v2-zywe.json
+//   deno run -A tools/lawka-generator.mjs --nagrania    → dopisuje BRAKUJĄCE nagrania do tests/_nagrania-v2.json (istniejące, w tym ręczne, nietknięte)
 //   deno run -A tools/lawka-generator.mjs --scal --przelicz   → tylko przeliczenie `luka` w sekcji wygenerowanej
+// Kandydaci zapisują się po KAŻDEJ partii, więc błąd ani stop budżetu nie marnują wydanych pieniędzy.
 // Budżet: tools/_claude.mjs (dziennik poza repo, stop przy 90 USD).
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -25,15 +27,17 @@ export const PLIK_LAWKI = path.join(KORZEN, "tests", "_lawka-v2-pytania.js");
 export const ZNACZNIK_OD = "  // ── WYGENEROWANE (tools/lawka-generator.mjs, Claude; zatwierdzone przez Filipa) — nie edytować ręcznie, przelicza --scal --przelicz ──";
 export const ZNACZNIK_DO = "  // ── KONIEC WYGENEROWANYCH ──";
 
-/* intencja → oczekiwany ślad potoku (konwencja ławki: 'router:X' przechodzi też przez rozumienie v2, '…*' = prefiks) */
+/* intencja → oczekiwany ślad potoku (konwencja ławki: 'router:X' przechodzi też przez rozumienie v2, '…*' = prefiks, 'a|b' = każda droga poprawna).
+   Sprawdzone przez prawdziwy potok (blizna-139). Dwie drogi: nie_wiem (bełkot przed klasyfikatorem albo dopytanie po nim), zywienie (baza produktów albo sieć),
+   opinia i porownaj (z imieniem i nazwiskiem bramka B2 kieruje do trybu osoby, zgodnie z zasadą ławki). rywal: znana luka E5, dziś idzie do sieci. */
 export const MAPA = {
   moj_plan: "router:moj_plan", moje_treningi: "router:moje_treningi", moje_starty: "router:moje_starty", moje_rekordy: "router:moje_rekordy",
   moje_wyniki: "router:moje_wyniki", moja_forma: "router:moja_forma", moj_trener: "router:moj_trener", odznaki: "router:odznaki_moje",
   wyzwania: "router:wyzwania_postep", znajomi: "router:znajomi_tydzien", osoby_z_miasta: "router:osoby_z_miasta", osoba: "osoba", impreza: "impreza",
   biegi_nadchodzace: "router:biegi_nadchodzace", katalog: "router:katalog", kalkulator: "router:kalkulator", pogoda: "klient", zdrowie: "router:zdrowie",
-  porada: "siec", zywienie: "siec", sprzet: "siec", o_nas: "router:o-nas", fakt: "siec", akcja: "router:zagadka", odmowa: "router:odmowa",
-  opinia: "v2:opinia", nawigacja: "router:nawigacja", rywal: "v2:rywal", gotowosc: "v2:gotowosc*", porownaj: "v2:porownaj*", najdluzszy: "v2:najdluzszy*",
-  nie_wiem: "v2-niepewne:niepewne",
+  porada: "siec", zywienie: "siec|v2:produkt", sprzet: "siec", o_nas: "router:o-nas", fakt: "siec", akcja: "router:zagadka", odmowa: "router:odmowa",
+  opinia: "v2:opinia|osoba", nawigacja: "router:nawigacja", rywal: "v2:rywal", gotowosc: "v2:gotowosc*", porownaj: "v2:porownaj*|osoba", najdluzszy: "v2:najdluzszy*",
+  nie_wiem: "v2-niepewne:*",
 };
 /* udział intencji w 1630 „typowych” pytaniach (szacunek z logów i ławki: własne dane najczęściej) — skalowany do N */
 const UDZIAL = { moj_plan: 150, moje_treningi: 150, moje_starty: 80, moje_rekordy: 60, moje_wyniki: 50, moja_forma: 60, moj_trener: 30, odznaki: 30, wyzwania: 30,
@@ -67,7 +71,7 @@ export function rozdzial(n) {
   return r;
 }
 
-export async function generuj(n, { model = MODELE.opus, klient, log = console.log, istniejace = [] } = {}) {
+export async function generuj(n, { model = MODELE.opus, klient, log = console.log, istniejace = [], poPartii = () => {} } = {}) {
   const znane = new Set(istniejace.map(norm)), wynik = [];
   for (const [intencja, ile] of Object.entries(rozdzial(n))) {
     let zostalo = ile, partia = 0;
@@ -78,7 +82,7 @@ export async function generuj(n, { model = MODELE.opus, klient, log = console.lo
         Object.entries(INTENCJE).filter(([x]) => x !== intencja).map(([x, o]) => `- ${x}: ${o}`).join("\n")].join("\n");
       let r;
       try { r = await zapytaj({ narzedzie: "lawka-generator", model, system: SYSTEM_GENERATORA, messages: [{ role: "user", content: tresc }], schema: SCHEMAT, maxTokens: 16000, effort: "medium", klient }); }
-      catch (e) { if (e instanceof StopBudzetu) throw e; log(`  ! ${intencja}/${partia}: ${e.message}`); zostalo -= k; continue; }
+      catch (e) { log(`  ! ${intencja}/${partia}: ${e.message}`); if (e instanceof StopBudzetu) return wynik; zostalo -= k; continue; }
       let dodane = 0;
       for (const q of r.json.pytania || []) {
         const p = String(q.p || "").trim().slice(0, 300), po = (Array.isArray(q.po) ? q.po : []).map((x) => String(x).trim().slice(0, 300)).filter(Boolean).slice(0, 3);
@@ -87,6 +91,7 @@ export async function generuj(n, { model = MODELE.opus, klient, log = console.lo
         znane.add(klucz); dodane++;
         wynik.push({ id: "k" + String(wynik.length + 1).padStart(4, "0"), p, ...(po.length ? { po } : {}), intencja, kat: KATEGORIA(intencja), waga: Math.min(5, Math.max(1, Number(q.waga) || 2)), styl: String(q.styl || "").slice(0, 60) });
       }
+      poPartii(wynik);
       log(`  ${intencja}/${partia}: ${dodane}/${k}, ${r.usd.toFixed(4)} USD`);
       zostalo -= Math.max(dodane, 1);
     }
@@ -127,15 +132,31 @@ export function zapiszSekcje(plik, kandydaci, luki = {}) {
   fs.writeFileSync(plik, CRLF ? s.split("\n").join("\r\n") : s);
 }
 
+/** nagrania żywe → plik CI: tylko brakujące klucze, bez czasu (ms); istniejące (ręczne `_recznie_*`, starsze) zostają. → ile dopisano */
+export function dopiszNagrania(ci, zywe) {
+  let dopisano = 0;
+  for (const [k, v] of Object.entries(zywe)) {
+    if (k in ci || k.startsWith("_")) continue;
+    const { ms: _ms, ...bezCzasu } = v;
+    ci[k] = bezCzasu; dopisano++;
+  }
+  return dopisano;
+}
+
 if (import.meta.main) {
   const model = arg("--model", MODELE.opus);
-  if (jest("--generuj")) {
+  if (jest("--nagrania")) {
+    const pCi = path.join(KORZEN, "tests", "_nagrania-v2.json"), pZ = path.join(KORZEN, "tests", "_nagrania-v2-zywe.json");
+    const ci = JSON.parse(fs.readFileSync(pCi, "utf8")), n = dopiszNagrania(ci, JSON.parse(fs.readFileSync(pZ, "utf8")));
+    fs.writeFileSync(pCi, JSON.stringify(ci, null, 1) + "\n");
+    console.log(`dopisano nagrań: ${n}; teraz: deno run -A tools/lawka-generator.mjs --scal --przelicz`);
+  } else if (jest("--generuj")) {
     const n = Number(arg("--generuj", "1500"));
     const { PYTANIA } = require("../tests/_lawka-v2-pytania.js");
     console.log(`Claude (${model}) generuje ${n} pytań…`);
-    let k = [];
-    try { k = await generuj(n, { model, istniejace: PYTANIA.map((w) => w.p) }); } catch (e) { console.error("STOP:", e.message); }
-    fs.writeFileSync(PLIK_KANDYDATOW, JSON.stringify({ dzis: DZIS, model, kandydaci: k }, null, 1) + "\n");
+    const zapisz = (lista) => fs.writeFileSync(PLIK_KANDYDATOW, JSON.stringify({ dzis: DZIS, model, kandydaci: lista }, null, 1) + "\n");
+    const k = await generuj(n, { model, istniejace: PYTANIA.map((w) => w.p), poPartii: zapisz });
+    zapisz(k);
     const pm = path.join(KORZEN, "docs", `lawka-probka-${DZIS}.md`);
     fs.writeFileSync(pm, mdProbki(probka(k), k.length));
     console.log(`kandydaci: ${k.length} → ${PLIK_KANDYDATOW}\npróbka do OK: ${pm}\nkoszt: ${(podsumowanie().narzedzia["lawka-generator"] || { usd: 0 }).usd.toFixed(2)} USD (łącznie ${podsumowanie().razem.toFixed(2)} / 90 USD)`);
@@ -153,6 +174,6 @@ if (import.meta.main) {
     zapiszSekcje(PLIK_LAWKI, lista, luki);
     console.log(`dopisano ${lista.length} pytań (pominięte: ${bez.size}); przechodzi dziś ${lista.length - Object.keys(luki).length}, luka 'gen': ${Object.keys(luki).length}`);
   } else {
-    console.log("użycie: --generuj 1500 | --scal [--bez id,id] [--przelicz]");
+    console.log("użycie: --generuj 1500 | --scal [--bez id,id] [--przelicz] | --nagrania");
   }
 }

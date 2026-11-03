@@ -7,6 +7,9 @@
 # SEKRETY (Settings → Secrets → Actions): GEMINI_API_KEY (ławka --zywy + sędzia), RAPORT_SECRET (nagłówek do EF okienko-raport-dane, która
 #   oddaje jedną dobę logów zanonimizowaną po stronie serwera; klucz serwisowy bazy NIGDY nie trafia do GitHuba — blizna-125). Koszt nocy:
 #   limit 0,50 USD (--limit-usd) — przekroczenie przerywa sędziego/ławkę i zapisuje to w raporcie. Commit raportu z [skip ci] — bez deployu.
+# SĘDZIA (Filip 3.11): SEDZIA=gemini (domyślnie w narzędziu) | claude. Claude działa tylko do SEDZIA_CLAUDE_DO (kredyty Anthropic ~10 dni) i tylko z sekretem
+#   ANTHROPIC_API_KEY; potem narzędzie samo wraca do gemini, a raport to mówi. Treść: pytanie, ścieżka, odpowiedź po anonimizacji i strażniku `czysty`.
+#   ⚠️ Dziennik budżetu lokalny NIE widzi wydatków z CI: górna granica to limit nocy × liczba nocy (0,50 × 10 = 5 USD), ponad próg 90 USD w narzędziach.
 name: okienko-noc
 
 on:
@@ -27,6 +30,9 @@ jobs:
     permissions:
       contents: write   # commit raportu do docs/okienko-raport (z [skip ci])
       issues: write     # issue przy alarmie
+    env:
+      SEDZIA: claude    # przełącznik: gemini | claude
+      SEDZIA_CLAUDE_DO: '2026-11-13'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,14 +42,25 @@ jobs:
         with:
           node-version: '24'
 
+      # sędzia Claude używa oficjalnego SDK przez npm: (Deno, bez node_modules, jak reszta tools/_claude.mjs); ścieżka gemini zostaje na Node bez zmian
+      - uses: denoland/setup-deno@v2
+        if: env.SEDZIA == 'claude'
+        with:
+          deno-version: v2.x
+
       - name: Raport nocy (ławka na żywo + prawdziwe pytania + sędzia)
         id: raport
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RAPORT_SECRET: ${{ secrets.RAPORT_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set +e
-          node tools/okienko-raport-dnia.mjs --noc --limit-usd 0.5
+          if [ "$SEDZIA" = "claude" ]; then
+            deno run -A tools/okienko-raport-dnia.mjs --noc --limit-usd 0.5
+          else
+            node tools/okienko-raport-dnia.mjs --noc --limit-usd 0.5
+          fi
           echo "kod=$?" >> "$GITHUB_OUTPUT"
           set -e
 

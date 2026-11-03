@@ -51,7 +51,8 @@ test('narzędzie raportu: dane TYLKO z EF okienko-raport-dane (sekret), bez kluc
   assert.doesNotMatch(ef.slice(ef.indexOf('const n = ')), /athlete_id: w\.athlete_id|athlete_id,/, 'athlete_id nie wychodzi z EF');
   assert.match(czytaj('supabase/config.toml'), /\[functions\.okienko-raport-dane\]\s*\nverify_jwt = false/);
   assert.match(czytaj('tools/_anonimizuj.mjs'), /from "\.\.\/supabase\/functions\/_shared\/anonimizuj\.mjs"/, 'jedna anonimizacja dla EF i narzędzi');
-  assert.match(r, /required: \["odpowiada", "konkret", "liczby_z_pokryciem", "wyciek", "ton", "uzasadnienie"\]/); assert.match(r, /temperature: 0/); assert.match(r, /model: "gemini-3\.5-flash"/);
+  const s = czytaj('tools/_sedzia.mjs');   // sędzia wydzielony (blizna-141): wspólny dla raportu, porównania dostawców i wzorców
+  assert.match(s, /required: \["odpowiada", "konkret", "liczby_z_pokryciem", "wyciek", "ton", "uzasadnienie"\]/); assert.match(s, /temperature: 0/); assert.match(s, /model: "gemini-3\.5-flash"/);
   assert.match(r, /limit \$\{OPCJE\.limitUsd\} USD przekroczony/); assert.match(r, /if \(!czysty\(/, 'strażnik przed zapisem'); assert.match(r, /process\.exitCode = 3/);
   assert.match(r, /klasyfikuj|kandydatDoLawki/); assert.doesNotMatch(r, /functions\/v1\/okienko(-v2)?["'`]/, 'raport nie pyta okienka (koszt, limity użytkowników)');
 });
@@ -70,5 +71,5 @@ test('workflow okienko-noc: cron 02:00 UTC, sekrety, blizna przed commitem, comm
   for (const [i, l] of w.split('\n').entries()) if (l && !/^\s/.test(l) && !/^#/.test(l)) assert.match(l, /^(name|on|permissions|concurrency|jobs):/, `linia ${i + 1} od kolumny 0 w YAML: ${l.slice(0, 60)}`);
   assert.match(w, /^on:\n  schedule:\n    - cron: '0 2 \* \* \*'\n  workflow_dispatch:\n/m, 'tylko schedule + workflow_dispatch'); assert.doesNotMatch(w, /^\s+push:/m);
   assert.match(w, /--body-file "\$RUNNER_TEMP\/issue\.md"/, 'treść issue z pliku, nie z wieloliniowego argumentu');
-  assert.doesNotMatch(w, /SUPABASE_ACCESS_TOKEN|SB_SECRET_KEY/, 'tylko klucz do odczytu logów i klucz Gemini');
+  assert.doesNotMatch(w, /SUPABASE_ACCESS_TOKEN|SB_SECRET_KEY/, 'tylko klucz do odczytu logów i klucze modeli (Gemini, Anthropic)');
 });

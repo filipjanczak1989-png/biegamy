@@ -2,7 +2,7 @@
 //   node tools/okienko-raport-dnia.mjs            → wczorajsze 👎 (z komentarzem), reakcje („co odwaliłeś”), samosprawdzenie=false, awarie,
 //                                                   czasy > 3 s: pytanie → ścieżka → odpowiedź; kandydaci do ławki; zapis docs/okienko-raport/RRRR-MM-DD.md
 //   --lawka                                       → dokłada ławkę v2 (--zywy, gdy jest GEMINI_API_KEY; inaczej atrapy) i porównanie z poprzednim raportem
-//   --sedzia                                      → drugi model (flash, temperatura 0) OCENIA każdą zebraną odpowiedź wg 5 kryteriów (tylko ocenia)
+//   --sedzia                                      → drugi model (tools/_sedzia.mjs: SEDZIA=gemini domyślnie, claude do SEDZIA_CLAUDE_DO) OCENIA każdą zebraną odpowiedź wg 5 kryteriów i wzorców (tylko ocenia)
 //   --tydzien                                     → wiersz do docs/okienko-postep.md (ławka %, p50/p90, % 👎, koszt)
 //   --noc = --lawka --sedzia (+ --tydzien w poniedziałek)   --limit-usd 0.5 (domyślnie) — przekroczenie = przerwanie i wpis w raporcie
 // ODCZYT: EF okienko-raport-dane (verify_jwt off, nagłówek x-raport-secret = sekret RAPORT_SECRET) oddaje dane JEDNEJ doby, już zanonimizowane
@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { anonimizuj, czysty } from "./_anonimizuj.mjs";
+import { wybierzSedziego, ocenOdpowiedz, wzorceZatwierdzone, znajdzWzorzec, trescDlaSedziego, MODEL_SEDZIEGO_CLAUDE } from "./_sedzia.mjs";
 
 const KORZEN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -24,11 +25,15 @@ const OPCJE = { lawka: NOC || ma("--lawka"), sedzia: NOC || ma("--sedzia"), tydz
 const SB_URL = process.env.SUPABASE_URL || "https://afqojgkaveykxbltxzwm.supabase.co";
 const RAPORT_SECRET = process.env.RAPORT_SECRET || "";
 const GEMINI = process.env.GEMINI_API_KEY || "";
-const CENA = { lite: { we: 0.30, wy: 2.50 }, flash: { we: 0.50, wy: 3.00 } };   // USD / 1 M tokenów, zestawienia 10.2026 — przelicznik, nie faktura
+const CENA = { lite: { we: 0.30, wy: 2.50 } };   // USD / 1 M tokenów, zestawienia 10.2026 — przelicznik, nie faktura
 const koszt = { usd: 0, przerwano: null };
-const dodajKoszt = (tok, model) => { const c = CENA[model] || CENA.lite; koszt.usd += (tok.we * c.we + tok.wy * c.wy) / 1e6; if (koszt.usd > OPCJE.limitUsd && !koszt.przerwano) koszt.przerwano = `limit ${OPCJE.limitUsd} USD przekroczony (${koszt.usd.toFixed(3)})`; };
+const dodajUsd = (usd) => { koszt.usd += usd; if (koszt.usd > OPCJE.limitUsd && !koszt.przerwano) koszt.przerwano = `limit ${OPCJE.limitUsd} USD przekroczony (${koszt.usd.toFixed(3)})`; };
+const dodajKoszt = (tok, model) => { const c = CENA[model] || CENA.lite; dodajUsd((tok.we * c.we + tok.wy * c.wy) / 1e6); };
 
 const dzis = OPCJE.dzien || new Date().toISOString().slice(0, 10);
+const WYBOR_SEDZIEGO = wybierzSedziego({ sedzia: process.env.SEDZIA, dzis, claudeDo: process.env.SEDZIA_CLAUDE_DO, kluczClaude: process.env.ANTHROPIC_API_KEY, kluczGemini: GEMINI });
+let dostawcaSedziego = WYBOR_SEDZIEGO.dostawca, uwagaSedziego = WYBOR_SEDZIEGO.uwaga;
+const WZORCE = OPCJE.sedzia ? wzorceZatwierdzone() : [];
 const od = new Date(Date.parse(dzis + "T00:00:00Z") - 86400000).toISOString(), doD = dzis + "T00:00:00Z";   // wczorajsza doba (UTC — wystarczy do raportu)
 
 /** wczorajsze wpisy obu logów z EF (już zanonimizowane i bez athlete_id) → kształt raportu; bez sekretu → pusto (suchy przebieg) */
@@ -61,23 +66,34 @@ export function kandydatDoLawki(w) {
   return `W('${w.pytanie.replace(/'/g, "\\'")}', '${kat}', 3, '${oczekiwane}', { luka: 'E?', uwaga: 'z życia ${dzis}: ${klasyfikuj(w).join(", ")}' })`;
 }
 
-/* SĘDZIA: drugi model ocenia; wejście = pytanie + ścieżka + odpowiedź (zanonimizowane); wyjście JSON; 0 = nie, 1 = tak; niczego nie zmienia */
-const SCHEMAT_SEDZIEGO = { type: "object", properties: { odpowiada: { type: "integer" }, konkret: { type: "integer" }, liczby_z_pokryciem: { type: "integer" }, wyciek: { type: "integer" }, ton: { type: "integer" }, uzasadnienie: { type: "string" } }, required: ["odpowiada", "konkret", "liczby_z_pokryciem", "wyciek", "ton", "uzasadnienie"] };
-const PROMPT_SEDZIEGO = "Jesteś sędzią jakości odpowiedzi asystenta biegowego BiegaMy. Dostajesz pytanie biegacza, ścieżkę (jak odpowiedź powstała) i odpowiedź. Oceń 0/1: odpowiada (czy odpowiada na to pytanie), konkret (liczby, kroki, nazwy zamiast ogólników), liczby_z_pokryciem (każda liczba ma oparcie w ścieżce: narzędzie lub źródło; brak liczb = 1), wyciek (1 = odpowiedź ujawnia dane innej prywatnej osoby, np. imię i nazwisko, e-mail, adres; 0 = nie), ton (ciepło, konkretnie, bez „jako AI” i bez „słuchaj swojego ciała”). Uzasadnienie: jedno zdanie po polsku. Odpowiadasz wyłącznie JSON.";
+/* SĘDZIA (tools/_sedzia.mjs): drugi model ocenia; wejście = pytanie + ścieżka + odpowiedź (zanonimizowane) + wzorzec, jeśli jest zatwierdzony; niczego nie zmienia.
+   Do Claude: najpierw strażnik `czysty` (resztka danych = nie wysyłamy). Błąd Claude (np. koniec kredytów) = reszta nocy na Gemini, z uwagą w raporcie. */
 async function sedzia(w) {
-  const { generujJson } = await import(pathToFileURL(path.join(KORZEN, "supabase/functions/okienko-v2/gemini.mjs")).href);
-  const r = await generujJson({ fetchFn: fetch, klucz: GEMINI, system: PROMPT_SEDZIEGO, contents: [{ role: "user", parts: [{ text: `PYTANIE: ${w.pytanie}\nŚCIEŻKA: ${w.sciezka}\nODPOWIEDŹ: ${w.odpowiedz || "(brak zdań)"}` }] }], schema: SCHEMAT_SEDZIEGO, maxOutputTokens: 200, temperature: 0, timeoutMs: 15000, model: "gemini-3.5-flash" });
-  dodajKoszt(r.tok, "flash");
-  return r.json;
+  const wzorzec = znajdzWzorzec(w.pytanie, WZORCE);
+  if (dostawcaSedziego === "claude" && !czysty(trescDlaSedziego(w, null).replace(/\[OSOBA\]|\[e-mail\]|\[telefon\]/g, ""))) throw new Error("resztka danych: nie wysłano");
+  let r;
+  try { r = await ocenOdpowiedz({ dostawca: dostawcaSedziego, w, wzorzec, klucz: GEMINI }); }
+  catch (e) {
+    if (dostawcaSedziego !== "claude" || !GEMINI) throw e;
+    uwagaSedziego = `Claude niedostępny (${String(e.message).replace(/[A-Za-z0-9_-]{30,}/g, "…").slice(0, 60)}): reszta nocy gemini`;
+    dostawcaSedziego = "gemini";
+    r = await ocenOdpowiedz({ dostawca: "gemini", w, wzorzec, klucz: GEMINI });
+  }
+  dodajUsd(r.usd);
+  return { ...r.ocena, wzorzec: wzorzec ? wzorzec.id : null };
 }
+const opisWzorca = (s) => (s.wzorzec ? `, ze wzorcem ${s.zgodny_ze_wzorcem} (${s.wzorzec})` : "");
 
 /* ŁAWKA: przebieg z tests/_lawka-v2.js (ta sama funkcja co CI); --zywy gdy klucz; porównanie z ostatnim raportem */
 async function lawka() {
-  const { przebieg, PYTANIA } = require(path.join(KORZEN, "tests/_lawka-v2.js"));
-  const w = await przebieg(PYTANIA, { zywy: !!GEMINI });
-  if (w.stat) dodajKoszt({ we: PYTANIA.length * 1000, wy: PYTANIA.length * 60 }, "lite");   // szacunek klasyfikatora na żywo
+  const { przebieg, PYTANIA, probkaNocy } = require(path.join(KORZEN, "tests/_lawka-v2.js"));
+  const reczne = PYTANIA.filter((r) => r.zrodlo !== "claude"), gen = probkaNocy(PYTANIA, dzis);
+  const wsz = await przebieg([...reczne, ...gen], { zywy: !!GEMINI, rownolegle: 4 });
+  if (wsz.stat) dodajKoszt({ we: wsz.length * 1000, wy: wsz.length * 60 }, "lite");   // szacunek klasyfikatora na żywo
+  const w = wsz.slice(0, reczne.length), wg = wsz.slice(reczne.length);   // procent i alarm z ręcznych (porównywalne z historią); wygenerowane to osobna lista do pracy
   const dobre = w.filter((r) => r.pasuje).length, pct = 100 * dobre / w.length;
-  return { pct, dobre, n: w.length, regresje: w.filter((r) => !r.pasuje && !r.luka).map((r) => `${r.p} → oczekiwane ${r.oczekiwane}, jest ${r.slad}`), luki: w.filter((r) => r.luka).length, stat: w.stat || null };
+  return { pct, dobre, n: w.length, regresje: w.filter((r) => !r.pasuje && !r.luka).map((r) => `${r.p} → oczekiwane ${r.oczekiwane}, jest ${r.slad}`), luki: w.filter((r) => r.luka).length, stat: wsz.stat || null,
+    gen: wg.length ? { n: wg.length, wszystkich: PYTANIA.length - reczne.length, dobre: wg.filter((r) => r.pasuje).length, nowe: wg.filter((r) => !r.pasuje && !r.luka).slice(0, 10).map((r) => `${anonimizuj(r.p)} → oczekiwane ${r.oczekiwane}, jest ${r.slad}`) } : null };
 }
 function poprzedniPct() {
   const dir = path.join(KORZEN, "docs/okienko-raport");
@@ -99,6 +115,7 @@ if (OPCJE.lawka) {
   else {
     const pop = poprzedniPct(), spadek = pop != null ? pop - L.pct : 0;
     md.push("## Ławka", "", `Ławka: ${L.pct.toFixed(1)} % (${L.dobre}/${L.n}), znane luki ${L.luki}${pop != null ? `, poprzednio ${pop.toFixed(1)} %` : ""}${L.stat ? `; klasyfikator na żywo: ok ${L.stat.ok}, awarie ${L.stat.awaria}` : " (atrapy)"}`, "");
+    if (L.gen) md.push(`Wygenerowane (próbka ${L.gen.n} z ${L.gen.wszystkich}, zmienia się co noc, bez alarmu): dobra ${L.gen.dobre}/${L.gen.n}.`, ...(L.gen.nowe.length ? ["Do przejrzenia (bez znacznika luki):", ...L.gen.nowe.map((r) => `- ${r}`)] : []), "");
     if (L.regresje.length) md.push("**REGRESJE:**", ...L.regresje.map((r) => `- ${r}`), "");
     L.alarm = L.regresje.length > 0 || spadek >= 2;
     if (L.alarm) md.push(`⚠️ ALARM: ${L.regresje.length ? L.regresje.length + " regresji" : ""}${spadek >= 2 ? ` spadek ${spadek.toFixed(1)} pkt %` : ""}`, "");
@@ -109,19 +126,20 @@ if (!zle.length) md.push("Nic — doba bez 👎, reakcji, awarii, samosprawdzeni
 for (const w of zle) {
   md.push(`### ${klasyfikuj(w).join(" · ")} — ${w.wersja}, ${w.osoba}, ${w.kiedy.slice(11, 16)} UTC`, "", `- pytanie: ${w.pytanie}`, `- ścieżka: ${w.sciezka}${w.ms != null ? ` · ${w.ms} ms` : ""}${w.powod ? ` · powód: ${w.powod}` : ""}`, `- odpowiedź: ${w.odpowiedz || "(brak skrótu — v1 albo wpis bez zdań)"}`);
   if (w.komentarz) md.push(`- komentarz 👎: ${w.komentarz}`);
-  if (OPCJE.sedzia && GEMINI && !koszt.przerwano && w.odpowiedz) {
-    try { const s = await sedzia(w); md.push(`- sędzia: odpowiada ${s.odpowiada}, konkret ${s.konkret}, liczby z pokryciem ${s.liczby_z_pokryciem}, wyciek ${s.wyciek}, ton ${s.ton} — ${anonimizuj(s.uzasadnienie)}`); }
+  if (OPCJE.sedzia && dostawcaSedziego && !koszt.przerwano && w.odpowiedz) {
+    try { const s = await sedzia(w); md.push(`- sędzia: odpowiada ${s.odpowiada}, konkret ${s.konkret}, liczby z pokryciem ${s.liczby_z_pokryciem}, wyciek ${s.wyciek}, ton ${s.ton}${opisWzorca(s)} — ${anonimizuj(s.uzasadnienie)}`); }
     catch (e) { md.push(`- sędzia: błąd (${String(e.message).slice(0, 60)})`); }
   }
   md.push(`- kandydat do ławki: \`${kandydatDoLawki(w)}\``, "");
 }
-if (OPCJE.sedzia && GEMINI && !koszt.przerwano) {   // sędzia ocenia też próbkę dobrych (≤ 10) — żeby widzieć, czy „ok” naprawdę jest ok
+if (OPCJE.sedzia && dostawcaSedziego && !koszt.przerwano) {   // sędzia ocenia też próbkę dobrych (≤ 10) — żeby widzieć, czy „ok” naprawdę jest ok
   const dobre = W.filter((w) => !klasyfikuj(w).length && w.odpowiedz).slice(-10);
-  if (dobre.length) { md.push("## Sędzia — próbka odpowiedzi bez sygnału (ostatnie 10)", ""); for (const w of dobre) { if (koszt.przerwano) break; try { const s = await sedzia(w); md.push(`- ${w.pytanie} → ${w.sciezka}: odpowiada ${s.odpowiada}, konkret ${s.konkret}, liczby ${s.liczby_z_pokryciem}, wyciek ${s.wyciek}, ton ${s.ton} — ${anonimizuj(s.uzasadnienie)}`); } catch { /* pomijamy */ } } md.push(""); }
+  if (dobre.length) { md.push("## Sędzia — próbka odpowiedzi bez sygnału (ostatnie 10)", ""); for (const w of dobre) { if (koszt.przerwano) break; try { const s = await sedzia(w); md.push(`- ${w.pytanie} → ${w.sciezka}: odpowiada ${s.odpowiada}, konkret ${s.konkret}, liczby ${s.liczby_z_pokryciem}, wyciek ${s.wyciek}, ton ${s.ton}${opisWzorca(s)} — ${anonimizuj(s.uzasadnienie)}`); } catch { /* pomijamy */ } } md.push(""); }
 }
 const czasy = W.filter((w) => w.ms != null).map((w) => w.ms), v2 = W.filter((w) => w.wersja === "v2"), kciuki = v2.filter((w) => w.ocena != null);
 const kosztLog = W.reduce((a, w) => a + (w.tok.we * 0.30 + w.tok.wy * 2.50) / 1e6 + w.siec * 0.014, 0);
-md.push("## Liczby doby", "", `- czas v2: p50 ${p(czasy, 0.5) ?? "—"} ms, p90 ${p(czasy, 0.9) ?? "—"} ms (cel p90 < 2000)`, `- kciuki: ${kciuki.length} ocen, 👎 ${kciuki.filter((w) => w.ocena === -1).length}`, `- koszt odpowiedzi doby: ${kosztLog.toFixed(3)} USD; koszt tego raportu (ławka na żywo + sędzia): ${koszt.usd.toFixed(3)} USD${koszt.przerwano ? ` — ⚠️ ${koszt.przerwano}` : ""}`, "");
+md.push("## Liczby doby", "", `- czas v2: p50 ${p(czasy, 0.5) ?? "—"} ms, p90 ${p(czasy, 0.9) ?? "—"} ms (cel p90 < 2000)`, `- kciuki: ${kciuki.length} ocen, 👎 ${kciuki.filter((w) => w.ocena === -1).length}`, `- koszt odpowiedzi doby: ${kosztLog.toFixed(3)} USD; koszt tego raportu (ławka na żywo + sędzia): ${koszt.usd.toFixed(3)} USD${koszt.przerwano ? ` — ⚠️ ${koszt.przerwano}` : ""}`,
+  ...(OPCJE.sedzia ? [`- sędzia: ${dostawcaSedziego === "claude" ? MODEL_SEDZIEGO_CLAUDE : dostawcaSedziego || "brak klucza"}; wzorców zatwierdzonych: ${WZORCE.length}${uwagaSedziego ? `; ${uwagaSedziego}` : ""}`] : []), "");
 if (OPCJE.tydzien) {
   const plik = path.join(KORZEN, "docs/okienko-postep.md");
   const wiersz = `| ${dzis} | ${L && !L.blad ? L.pct.toFixed(1) + " %" : "—"} | ${p(czasy, 0.5) ?? "—"} / ${p(czasy, 0.9) ?? "—"} ms | ${kciuki.length ? (100 * kciuki.filter((w) => w.ocena === -1).length / kciuki.length).toFixed(0) + " % z " + kciuki.length : "—"} | ${kosztLog.toFixed(3)} USD/dobę | ${zle.length} |`;

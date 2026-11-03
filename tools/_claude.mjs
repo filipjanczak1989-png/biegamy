@@ -97,7 +97,7 @@ export async function zapytaj(o) {
   };
   if (!Object.keys(params.output_config).length) delete params.output_config;
   const t0 = Date.now();
-  const r = zFallbackiem ? await klient.beta.messages.create(params) : await klient.messages.create(params);
+  const r = zFallbackiem ? await klient.beta.messages.create(params, o.opcjeZadania) : await klient.messages.create(params, o.opcjeZadania);   // opcjeZadania: { maxRetries, timeout } SDK
   const ms = Date.now() - t0;
   const usd = Math.max(kosztUsd(model, r.usage), kosztUsd(r.model || model, r.usage));
   fs.mkdirSync(path.dirname(plik), { recursive: true });
@@ -112,4 +112,47 @@ export async function zapytaj(o) {
     json = JSON.parse(tekst);
   }
   return { tekst, json, usd, ms, model: r.model || model, usage: r.usage, stop_reason: r.stop_reason, content: r.content || [] };
+}
+
+/** schemat w stylu Gemini → structured outputs Claude: każdy obiekt musi mieć additionalProperties: false */
+export function schematClaude(s) {
+  if (Array.isArray(s)) return s.map(schematClaude);
+  if (!s || typeof s !== "object") return s;
+  const o = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, schematClaude(v)]));
+  if (o.type === "object") o.additionalProperties = false;
+  return o;
+}
+
+/** wywołanie z wyszukiwarką Anthropic: pause_turn dokańczane (≤ 3 razy) z tą samą treścią; suma kosztu i czasu. Bez `schema`: cytowania sieci nie łączą się pewnie z formatem JSON. */
+export async function zapytajZWyszukiwaniem(o) {
+  let messages = o.messages, usd = 0, ms = 0, zapytania = 0, we = 0, wy = 0, r;
+  for (let i = 0; i < 4; i++) {
+    r = await zapytaj({ ...o, messages });
+    usd += r.usd; ms += r.ms;
+    zapytania += r.usage?.server_tool_use?.web_search_requests || 0;
+    we += (r.usage?.input_tokens || 0) + (r.usage?.cache_read_input_tokens || 0) + (r.usage?.cache_creation_input_tokens || 0); wy += r.usage?.output_tokens || 0;
+    if (r.stop_reason !== "pause_turn") break;
+    messages = [...messages, { role: "assistant", content: r.content }];
+  }
+  return { ...r, usd, ms, zapytania, tok: { we, wy } };
+}
+
+/** końcowy tekst modelu (bloki PO ostatnim wyniku wyszukiwania; „sprawdzę w sieci” sprzed narzędzia odpada) + cytowane źródła z zakresami w bajtach UTF-8 */
+export function tekstZCytowaniami(content) {
+  const bloki = content || [];
+  let od = 0;
+  bloki.forEach((b, i) => { if (b.type === "web_search_tool_result") od = i + 1; });
+  const enk = new TextEncoder(), czesci = [], zrodla = [], bylo = new Set(), zakresy = [];
+  let bajty = 0;
+  for (const b of bloki.slice(od)) {
+    if (b.type !== "text") continue;
+    const dl = enk.encode(b.text).length;
+    for (const c of b.citations || []) {
+      if (!c.url) continue;
+      if (!bylo.has(c.url)) { bylo.add(c.url); zrodla.push({ url: c.url, tytul: String(c.title || "").slice(0, 120) }); }
+      zakresy.push({ od: bajty, do: bajty + dl, tekst: b.text });
+    }
+    czesci.push(b.text); bajty += dl;
+  }
+  return { tekst: czesci.join(""), zrodla, zakresy };
 }

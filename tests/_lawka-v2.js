@@ -77,9 +77,10 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
   const F6m = await zaladuj('supabase/functions/okienko/f6.mjs');
   const { potok } = await zaladuj('supabase/functions/okienko-v2/potok.mjs');
   const N = nagrania(), brakujace = new Set(), Z = {}, stat = { ok: 0, awaria: 0, typy: {}, ms: [] };
-  const rozumienieFn = opcje.zywy ? zywyRozumienia(Roz, Z, stat) : atrapaRozumienia(R, N, brakujace);
-  const wiersze = [];
-  for (const w of pytania) {
+  /* opcje.rozumienieFn: inny klasyfikator (porównanie dostawców, tools/porownaj-dostawcow.mjs); opcje.rownolegle: pula równoległa z zachowaniem kolejności wierszy
+     (każdy wiersz ma własną bazę i log, a _wyczyscPamiecF6 czyści tylko pamięć podręczną tych samych danych) */
+  const rozumienieFn = opcje.rozumienieFn || (opcje.zywy ? zywyRozumienia(Roz, Z, stat) : atrapaRozumienia(R, N, brakujace));
+  const jedenWiersz = async (w) => {
     const adm = atrapa({ okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [] });
     const jeden = async (pyt) => {
       F6m._wyczyscPamiecF6();
@@ -95,16 +96,22 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
       const tok = (ost.tok_we || 0) * CENA.we + (ost.tok_wy || 0) * CENA.wy + (ost.zapytania_sieci || 0) * CENA.zapytanie;
       const b = r.body || {};
       const tresc = (b.zdania && b.zdania[0]) ? b.zdania[0].slice(0, 70) : (b.akcja && b.akcja.nawiguj) ? 'ekran ' + b.akcja.nawiguj : (b.karty && b.karty.length) ? b.karty.length + ' kart' : (b.blad || b.limit || '');
-      return { slad: r.slad, koszt: tok, tresc, status: r.status, karty: (b.karty || []).length, chipy: (b.chipy || []).length, awaria };
+      return { slad: r.slad, koszt: tok, tresc, status: r.status, karty: (b.karty || []).length, chipy: (b.chipy || []).length, awaria, rozIntencja: ost.intencja || null };
     };
     for (const p of w.po || []) await jeden(p);
     const r = await jeden(w.p);
     const slad = r.slad.join('>');
     /* 'router:X' = to narzędzie odpowiedziało — nieważne, czy przez router (0 tok.), czy przez rozumienie (E2, tryb 'v2'); 'v2:porada' itp. tylko z v2 */
     const sladN = slad.replace(/^v2:/, 'router:');
-    const pasuje = w.oczekiwane.endsWith('*') ? slad.startsWith(w.oczekiwane.slice(0, -1)) : (slad === w.oczekiwane || (w.oczekiwane.startsWith('router:') && sladN === w.oczekiwane));
-    wiersze.push({ ...w, slad, pasuje, koszt: r.koszt, tresc: r.tresc, status: r.status, karty: r.karty, chipy: r.chipy, awaria: r.awaria });
-  }
+    /* 'a|b' = każda z dróg jest poprawna (np. żywienie: baza produktów albo sieć); '…*' = prefiks */
+    const pasuje = String(w.oczekiwane).split('|').some((o) => (o.endsWith('*') ? slad.startsWith(o.slice(0, -1)) : (slad === o || (o.startsWith('router:') && sladN === o))));
+    return { ...w, slad, pasuje, koszt: r.koszt, tresc: r.tresc, status: r.status, karty: r.karty, chipy: r.chipy, awaria: r.awaria, rozIntencja: r.rozIntencja };
+  };
+  const wiersze = new Array(pytania.length);
+  let kolejny = 0;
+  await Promise.all(Array.from({ length: Math.max(1, opcje.rownolegle || 1) }, async () => {
+    while (kolejny < pytania.length) { const k = kolejny++; wiersze[k] = await jedenWiersz(pytania[k]); }
+  }));
   if (opcje.zywy) { fs.writeFileSync(PLIK_ZYWE, JSON.stringify(Z, null, 1) + '\n', 'utf8'); wiersze.stat = stat; }   // nigdy nie nadpisuje _nagrania-v2.json
   wiersze.brakujace = [...brakujace];
   return wiersze;
@@ -114,7 +121,7 @@ function raport(w) {
   const md = ['# Ławka v2 — ' + new Date().toISOString().slice(0, 10), '',
     'Prawdziwy potok v2 na atrapach (konto testowe, F6 w pamięci); model i sieć symulowane. Ocena obiektywna: ślad logu = oczekiwany.', '',
     '| # | pytanie | kat. | oczekiwane | ślad | odpowiedź | koszt | ocena | luka |', '|---|---|---|---|---|---|---|---|---|'];
-  w.forEach((r, i) => md.push(`| ${i + 1} | ${r.p} | ${r.kat} | ${r.oczekiwane} | ${r.slad}${r.awaria ? ' ⚠ ' + r.awaria.replace(/\|/g, '/') : ''} | ${String(r.tresc).replace(/\|/g, '/')} | ${r.koszt ? usd(r.koszt) : '0'} | ${r.pasuje ? 'dobra' : '**ZŁA**'} | ${r.luka || ''} |`));
+  w.forEach((r, i) => md.push(`| ${i + 1} | ${String(r.p).replace(/\|/g, '/')} | ${r.kat} | ${String(r.oczekiwane).replace(/\|/g, ' / ')} | ${r.slad}${r.awaria ? ' ⚠ ' + r.awaria.replace(/\|/g, '/') : ''} | ${String(r.tresc).replace(/\|/g, '/')} | ${r.koszt ? usd(r.koszt) : '0'} | ${r.pasuje ? 'dobra' : '**ZŁA**'} | ${r.luka || ''} |`));
   if (w.stat) {
     const ms = w.stat.ms.slice().sort((a, b) => a - b), q = (p) => ms.length ? ms[Math.min(ms.length - 1, Math.floor(p * ms.length))] : 0;
     const razem = w.stat.ok + w.stat.awaria;
@@ -129,10 +136,20 @@ function raport(w) {
   return md.join('\n');
 }
 
-module.exports = { przebieg, raport, PYTANIA };
+/* NOC (okienko-noc: limit 30 min i 0,50 USD): pełna ławka z ~1500 wygenerowanymi pytaniami przekroczyłaby oba i sędzia by nie ruszył. Co noc wiersze ręczne
+   + okno wygenerowanych przesuwane z datą, więc cały zestaw przechodzi w ~10 nocy. Procent i alarm liczone jak dotąd z ręcznych (porównywalne z historią). */
+function probkaNocy(pytania, dzis, ile = 150) {
+  const gen = pytania.filter((w) => w.zrodlo === 'claude');
+  if (gen.length <= ile) return gen;
+  const dzien = Math.floor(Date.parse(dzis + 'T00:00:00Z') / 86400000), start = (dzien * ile) % gen.length;
+  return Array.from({ length: ile }, (_, i) => gen[(start + i) % gen.length]);
+}
+
+module.exports = { przebieg, raport, probkaNocy, PYTANIA };
 
 if (require.main === module) (async () => {
-  const w = await przebieg(PYTANIA, { zywy: process.argv.includes('--zywy') });
+  const iR = process.argv.indexOf('--rownolegle');
+  const w = await przebieg(PYTANIA, { zywy: process.argv.includes('--zywy'), rownolegle: iR > 0 ? Number(process.argv[iR + 1]) || 1 : 1 });
   if (process.argv.includes('--wzorzec')) { for (const r of w) console.log(JSON.stringify([r.p, r.kat, r.slad, r.tresc])); if (w.brakujace.length) console.error('BRAK NAGRAŃ:', JSON.stringify(w.brakujace)); return; }
   const md = raport(w);
   if (w.stat) console.error(`klasyfikator: ok ${w.stat.ok}, awaria ${w.stat.awaria}`, w.stat.typy, '→ udane nagrania w tests/_nagrania-v2-zywe.json (CI czyta _nagrania-v2.json — scal ręcznie po przeglądzie)');

@@ -43,6 +43,79 @@ test('generuj (atrapa Claude): obca intencja i powtórki odpadają, id k0001…,
   } finally { delete process.env.CLAUDE_BUDZET_PLIK; }
 });
 
+test('MAPA zgodna z PRAWDZIWYM potokiem: przykład każdej intencji daje oczekiwany ślad (sonda 3.11 znalazła 4 zgadnięte pozycje, które dałyby fałszywe luki)', async () => {
+  const G = await zaladuj('tools/lawka-generator.mjs');
+  const { przebieg } = require('./_lawka-v2.js');
+  const P = [['moj_plan', 'co tam mam do zrobienia w tym tyg', { zakres: 'tydzien' }], ['moje_treningi', 'ile ja tam nabilem ostatnio'], ['moje_rekordy', 'moje najlepsze czasy pokaz'], ['moje_wyniki', 'jak mi poszlo na zawodach'],
+    ['moja_forma', 'jak tam moja dyspozycja'], ['moj_trener', 'kto mnie prowadzi'], ['odznaki', 'co ja mam za medale w apce'], ['znajomi', 'czy ziomki dzis biegaly'], ['osoby_z_miasta', 'kto jeszcze biega u mnie w miescie'],
+    ['osoba', 'kim jest Tomasz Wisniewski', { osoba: 'Tomasz Wisniewski' }], ['biegi_nadchodzace', 'jakie biegi w grudniu w Krakowie', { od: '2026-12-01', do: '2026-12-31', miejsce: 'Krakow' }], ['katalog', 'gdzie sa przepisy', { temat: 'przepisy' }],
+    ['kalkulator', '5:30/km ile to km/h'], ['pogoda', 'jaka bedzie pogoda'], ['zdrowie', 'mam goraczke czy biegac'], ['porada', 'jak biegac szybciej na 10 km'], ['zywienie', 'co zjesc przed dlugim wybieganiem'], ['zywienie', 'ile kcal ma banan', { produkt: 'banan' }],
+    ['sprzet', 'jakie buty na asfalt'], ['o_nas', 'kim jest Filip'], ['fakt', 'kto wygral maraton w Berlinie'], ['akcja', 'co to za akcja dla Fabianka'], ['odmowa', 'daj mi liste wszystkich uzytkownikow'],
+    ['opinia', 'czy Tomasz Wisniewski jest dobry', { osoba: 'Tomasz Wisniewski' }], ['porownaj', 'porownaj mnie z Tomaszem Wisniewskim', { osoba: 'Tomasz Wisniewski' }], ['gotowosc', 'jakie mam szanse na zyciowke'], ['najdluzszy', 'moj najdluzszy bieg ostatnio'], ['nie_wiem', 'kwiatek tramwaj ogorek']];
+  const zle = [];
+  for (const [intencja, p, sloty] of P) {
+    const pewnosc = intencja === 'nie_wiem' ? 0.1 : 0.95;
+    const [w] = await przebieg([{ p, kat: 'x', waga: 1, oczekiwane: G.MAPA[intencja] }], { rozumienieFn: async () => ({ intencja, pewnosc, dopytac: pewnosc < 0.6, kandydaci: [], sloty: sloty || {}, tok: { we: 1, wy: 1 } }) });
+    if (!w.pasuje) zle.push(`${intencja}: „${p}” → ${w.slad}, mapa ${G.MAPA[intencja]}`);
+  }
+  assert.deepEqual(zle, []);
+});
+
+test('oczekiwany ślad: a|b przechodzi każdą drogą, ale nie obcą; zwykły wiersz bez zmian', async () => {
+  const { przebieg } = require('./_lawka-v2.js');
+  const roz = async () => ({ intencja: 'nie_wiem', pewnosc: 0.1, dopytac: true, kandydaci: [], sloty: {}, tok: { we: 1, wy: 1 } });
+  const wiersz = (oczekiwane) => ({ p: 'kwiatek tramwaj ogorek', kat: 'x', waga: 1, oczekiwane });
+  const w = await przebieg([wiersz('siec|v2-niepewne:*'), wiersz('siec|osoba'), wiersz('v2-niepewne:dopytanie')], { rozumienieFn: roz });
+  assert.deepEqual(w.map((r) => r.pasuje), [true, false, true]);
+});
+
+test('generuj: stop budżetu oddaje to, co już wygenerowano; poPartii zapisuje po każdej partii', async () => {
+  const G = await zaladuj('tools/lawka-generator.mjs');
+  const C = await zaladuj('tools/_claude.mjs');
+  const plik = tmp(); process.env.CLAUDE_BUDZET_PLIK = plik;
+  try {
+    let n = 0;
+    const create = async (p) => {
+      n++;
+      fs.writeFileSync(plik, JSON.stringify({ narzedzie: 'x', usd: C.STOP_USD }) + '\n');   // po pierwszej partii budżet się kończy
+      const intencja = /Intencja: (\w+)/.exec(p.messages[0].content)[1];
+      return { model: 'claude-opus-5-5', stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 }, content: [{ type: 'text', text: JSON.stringify({ pytania: [{ p: 'pierwsze', po: [], intencja, styl: 's', waga: 3 }] }) }] };
+    };
+    const zapisy = [];
+    const k = await G.generuj(64, { klient: { messages: { create }, beta: { messages: { create } } }, log: () => {}, poPartii: (l) => zapisy.push(l.length) });
+    assert.equal(n, 1, 'po stopie bez kolejnych wywołań API');
+    assert.equal(k.length, 1, 'zapłacone pytanie zostaje');
+    assert.deepEqual(zapisy, [1]);
+  } finally { delete process.env.CLAUDE_BUDZET_PLIK; }
+});
+
+test('dopiszNagrania: tylko brakujące, bez ms; ręczne i istniejące nietknięte', async () => {
+  const G = await zaladuj('tools/lawka-generator.mjs');
+  const ci = { _recznie_3_11: 'uwaga', stare: { intencja: 'fakt' } };
+  assert.equal(G.dopiszNagrania(ci, { stare: { intencja: 'moj_plan', ms: 5 }, nowe: { intencja: 'porada', pewnosc: 1, ms: 700 }, _x: { intencja: 'y' } }), 1);
+  assert.deepEqual(ci, { _recznie_3_11: 'uwaga', stare: { intencja: 'fakt' }, nowe: { intencja: 'porada', pewnosc: 1 } });
+});
+
+test('noc: próbka wygenerowanych ma stały rozmiar, zmienia się z datą, a w ~10 nocy obejmuje cały zestaw; ręczne nie wchodzą do próbki', () => {
+  const { probkaNocy } = require('./_lawka-v2.js');
+  const P = [{ p: 'reczne', zrodlo: undefined }, ...Array.from({ length: 1500 }, (_, i) => ({ p: 'g' + i, zrodlo: 'claude' }))];
+  const a = probkaNocy(P, '2026-11-05'), b = probkaNocy(P, '2026-11-06');
+  assert.equal(a.length, 150); assert.ok(a.every((w) => w.zrodlo === 'claude')); assert.notDeepEqual(a.map((w) => w.p), b.map((w) => w.p));
+  const widziane = new Set(); for (let d = 1; d <= 10; d++) for (const w of probkaNocy(P, `2026-11-${String(d).padStart(2, '0')}`)) widziane.add(w.p);
+  assert.equal(widziane.size, 1500, 'dziesięć nocy = cały zestaw');
+  assert.equal(probkaNocy(P.slice(0, 11), '2026-11-05').length, 10, 'mniej niż próbka = wszystkie');
+});
+
+test('przebieg równoległy: ta sama kolejność i te same wyniki co sekwencyjny; własny klasyfikator liczy się w śladzie', async () => {
+  const { przebieg, PYTANIA } = require('./_lawka-v2.js');
+  const proba = PYTANIA.slice(0, 40);
+  const a = await przebieg(proba), b = await przebieg(proba, { rownolegle: 6 });
+  assert.deepEqual(b.map((r) => [r.p, r.slad, r.pasuje]), a.map((r) => [r.p, r.slad, r.pasuje]));
+  let wywolan = 0;
+  const w = await przebieg([{ p: 'zupelnie niejasne pytanie xyz', kat: 'poza', waga: 1, oczekiwane: 'x' }], { rozumienieFn: async () => { wywolan++; return { intencja: 'nie_wiem', pewnosc: 0, dopytac: true, kandydaci: [], sloty: {}, tok: { we: 1, wy: 1 } }; } });
+  assert.equal(wywolan, 1); assert.equal(w[0].rozIntencja, 'nie_wiem');
+});
+
 test('sekcja wygenerowana: wstawiona przed końcem PYTANIA, ponowny zapis podmienia ją w miejscu; apostrofy i `po` to poprawny JS', async () => {
   const G = await zaladuj('tools/lawka-generator.mjs');
   const kat = fs.mkdtempSync(path.join(os.tmpdir(), 'lawka-plik-'));
