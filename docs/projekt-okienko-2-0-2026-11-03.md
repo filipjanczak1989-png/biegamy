@@ -1,0 +1,136 @@
+# Okienko 2.0 — projekt (3.11.2026, krótki, do OK Filipa 4.11; STOP przed kodem)
+
+Rozszerza `docs/projekt-okienko-superinteligentne-2026-11-02.md` (decyzje z 2.11 zostają: katar = stałe teksty, porady =
+model bez sieci, słownik PESEL + TERYT, „Który X?” do 5, budżet bez zmian + raport tygodniowy, cel ławki ≥ 95 %).
+Nowe od Filipa 3.11: **osobna funkcja Edge `okienko-v2`**, stare okienko bez zmian (poza a–d z blizny-112, wdrożone 3.11),
+**front wybiera v2 tylko dla kont z listy w bazie**, przełączenie wszystkich po 8.11 przy ławce ≥ 95 % i OK, powrót jednym
+przełącznikiem. Liczby z `okienko_log` (30 dni, 3.11): 74 pytania od 3 osób — router 30, flash 17 (śr. 3261/77 tok.),
+sieć 13, osoba 12; 1.11 = 60 pytań (testy Filipa). Opóźnienia **nie mierzymy** — log nie ma kolumny czasu (v2 ją dostaje).
+
+## 0. Zasady, które nie podlegają modelowi (twarde bramki, każda z blizną)
+
+| # | bramka | gdzie dziś | w v2 |
+|---|---|---|---|
+| B1 | zagadka/karta akcji, fabian*, zbiórka, reakcje, zdrowie — PRZED modelem | `router.mjs` (`dopasuj`) | v2 importuje `../okienko/router.mjs` bez zmian, woła `dopasuj` jako pierwszy krok |
+| B2 | tryb osoby tylko przy czymś, co wygląda na imię/nazwisko; prywatne nazwiska nigdy do sieci | `pamiec.mjs`, `osoba.mjs`, `siec.mjs` (`czyDoSieci`) | te same moduły; **klasyfikator nie może włączyć osoby ani sieci** — jego `intencja=osoba` bez trafienia B2 = chipy |
+| B3 | dane tylko przez RLS (klient z JWT usera) i narzędzia tylko-odczyt | `narzedzia.mjs` (`wykonaj`), `index.ts` pkt 2 | te same; zapis kluczem service tylko do logu/pamięci (blizna-69 rozszerzona o `okienko_v2_*`) |
+| B4 | limity 60/dobę, sieć 20/dobę, budżet miesięczny | `limity.mjs` | te same liczniki (wspólny `okienko_log` + nowy `okienko_v2_log` liczone razem); klasyfikator liczy się do 60 |
+| B5 | liczby w zdaniach tylko z narzędzi | `straznik.mjs` | ten sam strażnik na każdym zdaniu, także składanym z 3 narzędzi |
+
+Blizna „v2 nie kopiuje”: `supabase/functions/okienko-v2/` **nie zawiera** własnych regexów routera, własnej listy narzędzi
+ani własnego strażnika — tylko importy z `../okienko/`. Poprawka w v1 (jak a–d) obowiązuje v2 automatycznie.
+
+## 1. Architektura v2 (nowe pliki tylko w `supabase/functions/okienko-v2/`)
+
+```
+klient (js/okienko.js) ──RPC okienko_wersja()──► 'v1' | 'v2'  ──POST──► /functions/v1/okienko-v2
+index.ts:  wymagajUsera → ustawStan akcji → [B1] dopasuj (router, 0 tok.) → trafienie? odpowiedź jak v1
+           → rozumienie.mjs (flash-lite, JSON) → {intencja, sloty, pewnosc, dopytac}
+           → pamiec-rozmowy.mjs (scalanie slotów z 3–5 tur)
+           → pewnosc < 0,6 lub dopytac → chipy „Chodzi Ci o…?” (0 narzędzi)
+           → plan.mjs (przepis ≤ 3 narzędzi, równolegle) → [B2–B4] → wykonaj
+           → sklad.mjs (szablon deterministyczny; model-proza tylko dla przepisów złożonych) → [B5] strażnik
+           → samosprawdzenie.mjs → OK: odpowiedź | NIE: „Nie mam tego w Twoich danych.” / „Nie wiem.”
+           → okienko_v2_log (intencja, pewnosc, plan, ms, samosprawdzenie)
+```
+
+1. **Rozumienie przed narzędziem** (`rozumienie.mjs`): `gemini-3.5-flash-lite`, `responseSchema`, `maxOutputTokens 96`,
+   `temperature 0`, timeout 1,5 s. Wejście: **tylko tekst pytania + 3 poprzednie (pytanie, intencja)** — zero danych
+   użytkownika, zero narzędzi. Wyjście: `intencja` z zamkniętej listy (~22: moj_plan, moje_treningi, moja_forma,
+   moje_starty, moje_rekordy, moje_wyniki, moj_trener, odznaki, znajomi, osoby_z_miasta, osoba_wyniki, porownaj_osoby,
+   impreza_info, biegi_nadchodzace, katalog_pojecie, gotowosc_na_start, nawigacja, akcja, zdrowie, porada_ogolna,
+   siec_ogolna, nie_wiem), `sloty` {osoba, data, okres, miejsce, dystans, impreza} (teksty ≤ 60 zn.), `pewnosc` 0–1,
+   `dopytac` bool, `kandydaci` (2–3 intencje do chipów). Router zostaje szybką ścieżką (dziś 30/74 = 40 % pytań, 0 tok.).
+2. **Pamięć rozmowy** (`pamiec-rozmowy.mjs`): po stronie serwera, tabela `okienko_v2_rozmowa(athlete_id, kiedy, intencja,
+   sloty jsonb)`, ostatnie 5 tur ≤ 30 min, zapis kluczem service, **bez zmian w kliencie** (klient i tak śle `historia`
+   3 tur — v2 ją ignoruje poza B1). Scalanie: „a w grudniu?” = poprzednia intencja + nowy slot okres; „a on?” / „porównaj
+   z nim” = slot osoba z poprzedniej tury (nadal przez B2).
+3. **Dopytywanie**: `pewnosc < 0,6` lub `dopytac` → zdanie stałe + 2–4 chipy z `kandydaci` mapowanych na **stałe etykiety
+   i pytania** (`CHIPY_INTENCJI` w kodzie — model nigdy nie pisze treści chipa). Wiele osób → „Którego X?” do 5
+   (`osoba.mjs`, bez zmian). Chipy klient już rysuje (`json.chipy`, blizna-112).
+4. **Łączenie narzędzi** (`plan.mjs`): **przepisy w kodzie, nie plany modelu**: `gotowosc_na_start` = moje_starty +
+   moja_forma + moje_treningi(14 dni) [+ moje_rekordy], `porownaj_osoby` = osoba_wyniki × 2, `impreza_info` =
+   impreza + biegi_nadchodzace. Maks 3 wywołania, `Promise.all`, każde z `waliduj`. Składanie (`sklad.mjs`): szablony
+   deterministyczne dla przepisów prostych; dla złożonych jedno wywołanie modelu z wynikami narzędzi (jak dziś M1),
+   strażnik B5 na wyjściu. Karty — z `odpowiedz.mjs` (bez zmian).
+5. **Samosprawdzenie** (`samosprawdzenie.mjs`), deterministyczne, 0 tok.: (a) użyte narzędzia ⊆ przepis intencji,
+   (b) strażnik cyfr przeszedł, (c) zdania niepuste i bez „nie wiem” + liczb jednocześnie, (d) intencja osobowa →
+   odpowiedź nazywa rozstrzygniętą osobę, (e) intencja o okresie → wynik narzędzia obejmuje ten okres. Każde NIE →
+   uczciwe `NIE_MAM` / „Nie wiem.” + chipy. Sędzia-model **tylko na ławce** (nie na prod — koszt i czas).
+6. **Pętla uczenia**: kciuk 👍/👎 pod odpowiedzią → RPC `okienko_ocena(log_id, ocena)` (user pisze tylko własny wpis;
+   zmiana w `js/okienko.js` → **po 8.11**), reakcje meta już logowane (`feedback: <poprzednie>`). Nocny raport:
+   funkcja SQL `okienko_raport_nocny()` (pg_cron 03:30) agreguje do `okienko_v2_raport(dzien, n, zle, wg_intencji jsonb,
+   przyklady text[])` — `przyklady` z maskowaniem imion/nazwisk słownikami (`_shared/imiona.mjs`, PESEL), bez athlete_id.
+   `tools/okienko-raport.js` drukuje tydzień → kandydaci na blizny (ręcznie, jak dziś).
+7. **Ewaluacja** (`tests/_lawka-v2.js`): 200 pytań = 96 z `_lawka-pytan.js` + ~60 realnych z `okienko_log`
+   (zanonimizowane: nazwiska → słownikowe zamienniki, Filip przegląda listę PRZED commitem — blizna-101) + ~44 pułapki
+   (zaimki po turze, dwie intencje w jednym, literówki, skróty, pytania o cudze dane). Każdy wiersz: `oczekiwane`
+   {intencja, narzedzia, siec:false|true, maks_usd, maks_ms}. Dwa tryby: **atrapa** (nagrane odpowiedzi modelu w
+   `tests/_nagrania-v2.json`, CI, 0 $) i **żywy** (ręcznie, budżet ≤ $1 na przebieg, z czasem). Próbka 30 do oceny Filipa.
+
+## 2. Przełącznik (migracja `20261105_okienko_v2_przelacznik.sql`, do wykonania przez Filipa)
+
+- `okienko_v2_konta(athlete_id uuid pk → athletes, od timestamptz, kto text)` — lista (Filip + konto testowe).
+- `okienko_ustawienia(klucz text pk, wartosc text)` z wierszami `v2_wlaczone='true'`, `v2_dla_wszystkich='false'`.
+- RPC `okienko_wersja() returns text` SECURITY DEFINER: `'v2'` gdy `v2_wlaczone` i (`v2_dla_wszystkich` lub athlete
+  z `auth.uid()` na liście), inaczej `'v1'`; `revoke all from public, anon`, `grant execute to authenticated`; obie tabele
+  bez grantów dla użytkowników (czyta tylko RPC). Asercje `do $$` + WYCOFANIE.
+- **Powrót jednym przełącznikiem**: `update okienko_ustawienia set wartosc='false' where klucz='v2_wlaczone'` → wszyscy
+  na v1 od następnego otwarcia okienka (klient pyta RPC raz przy otwarciu arkusza; błąd RPC = v1).
+- Klient (`js/okienko.js`, ~8 linii): `wersja = await rpc('okienko_wersja')` → URL `/functions/v1/okienko` lub
+  `/functions/v1/okienko-v2`; kształt odpowiedzi identyczny, reszta kodu bez zmian. **Jedyna decyzja terminowa**: ta
+  zmiana musi wejść **przed czwartkiem 6.11 18:00** (z blizną) albo **po 8.11** — bez niej v2 nie da się włączyć z telefonu.
+
+## 3. Koszt i opóźnienie (flash-lite 0,30 / 2,50 USD za 1 M tok., ceny z `model.mjs`)
+
+| ścieżka | tokeny | USD/pytanie | czas (szac.) |
+|---|---|---|---|
+| router (B1, ~40 % pytań) | 0 | 0 | 0,1–0,3 s |
+| klasyfikator + szablon (proste „o mnie”, ~35 %) | ~600/60 | **$0,0003** | 0,6–1,2 s |
+| klasyfikator + model-proza (złożone, ~15 %) | ~600/60 + ~2000/100 | **$0,0012** | 1,5–2,3 s |
+| sieć (≤ 20/dobę, bez zmian) | + grounding | $0,021 | 2–4 s |
+| dziś (v1, flash) | 3261/77 | $0,0012 | niemierzone |
+
+Miesięcznie (10 pytań/os./mies., 10 % sieci): **100 użytkowników ≈ $1 + $2 sieci ≈ $3; 500 ≈ $15**. Cel opóźnienia
+**< 2 s dla 90 % pytań**: router + proste = ~75 % pytań poniżej 1,2 s; złożone na granicy — dlatego proza modelu tylko
+dla przepisów złożonych, narzędzia równolegle, timeout klasyfikatora 1,5 s. Mierzymy kolumną `ms` od E2.
+
+## 4. Awaria modelu / co wyłączamy
+
+- Klasyfikator błąd/timeout → **ścieżka v1** (router → osoba → impreza → katalog → pamięć sieci) bez modelu; brak trafienia
+  → chipy „Chodzi Ci o…?”. Log `tryb='v2-awaria'`.
+- Trzy awarie z rzędu w 5 min → v2 sama zwraca `nagłówek X-Okienko-Wersja: v1` i klient do końca sesji woła v1
+  (bez zapisu w bazie); globalnie: `v2_wlaczone=false`.
+- Budżet 80 % → jak dziś (`budzet80`); 100 % → klasyfikator wyłączony, zostaje router + chipy.
+
+## 5. Etapy (każdy: jeden commit, blizna, miara na ławce; v2 nie dotyka plików wspólnych 6.11 18:00–8.11)
+
+| etap | co | miara „zrobione” |
+|---|---|---|
+| E0 (4–6.11, przed 18:00 albo po 8.11) | migracja przełącznika + RPC; `js/okienko.js` przełącznik; EF `okienko-v2` = ta sama ścieżka co v1 (import, bez nowej logiki) | Filip i konto testowe dostają z v2 odpowiedzi identyczne jak v1 (10 pytań), log w `okienko_v2_log` z `ms`; reszta kont na v1 |
+| E1 (9.11) | ławka 200 + ocena obiektywna + atrapa nagrań | ławka chodzi w CI 0 $, raport dobra/zła/za droga per kategoria |
+| E2 | `rozumienie.mjs` + log intencji | trafność intencji ≥ 90 % na ławce, p90 klasyfikatora < 1 s, $/pytanie ≤ $0,0005 |
+| E3 | dopytywanie (pewność, chipy, „Którego X?”) | 0 odpowiedzi „z czapy” na pułapkach; każde niepewne → chipy |
+| E4 | pamięć rozmowy (5 tur) | „a w grudniu?”, „a on?”, „porównaj z nim” — 20 par na ławce ≥ 90 % |
+| E5 | przepisy ≤ 3 narzędzi + składanie | `gotowosc_na_start`, `porownaj_osoby`, `impreza_info` ≥ 90 %, p90 < 2,3 s |
+| E6 | samosprawdzenie | 100 % niezgodnych odpowiedzi atrapy kończy się `NIE_MAM`, 0 fałszywych blokad na „dobrych” |
+| E7 | kciuki + raport nocny + maskowanie | raport bez ani jednego nazwiska (test na słowniku), kciuki w logu |
+| E8 (po 8.11, ławka ≥ 95 %, OK Filipa) | `v2_dla_wszystkich=true`, tydzień obserwacji, potem decyzja o kasacji v1 | 7 dni: 👎 ≤ 5 %, koszt w budżecie, p90 < 2 s |
+
+## 6. Ryzyka
+
+1. **Rozjazd v1/v2** — bramka „v2 nie kopiuje” + wspólne moduły; poprawki v1 wchodzą do v2 bez pracy.
+2. **Klasyfikator „widzi” osobę tam, gdzie jej nie ma** — B2 jest niezależna od intencji; `intencja=osoba` bez
+   trafienia B2 = chipy. Odwrotnie (nazwisko, a intencja inna) — B2 i tak blokuje sieć.
+3. **Opóźnienie** — dwa wywołania modelu w jednym pytaniu tylko dla złożonych; szablony dla reszty.
+4. **Koszt klasyfikatora przy spamie** — liczy się do 60/dobę; bramka „bez liter”/1 słowo (blizna-112) przed nim.
+5. **Zamrożenie** — E0 albo przed czwartkiem 18:00, albo po 8.11; v2 w zamrożeniu rozwija tylko `okienko-v2/`, testy, docs.
+6. **Dane osobowe w ławce** — realne pytania wchodzą do repo dopiero po maskowaniu i przeglądzie Filipa (blizna-101).
+
+## Pytania do Filipa (OK = start E0)
+
+1. E0 (przełącznik w `js/okienko.js`, ~8 linii + migracja) — **przed czwartkiem 18:00** (proponuję: środa 5.11) czy po 8.11?
+2. Konto testowe na liście v2 — to z tokenu z 2.11 (dzień 6)? Podaj `athlete_id` albo e-mail, wpiszę do migracji jako insert.
+3. Kciuki 👍/👎 — zmiana klienta po 8.11 (E7), zgoda?
+4. Raport nocny: tabela + `tools/okienko-raport.js` (czytasz na żądanie) czy dodatkowo mail przez Resend?
+5. Próg pewności 0,6 i limit 3 narzędzi w przepisie — zostawiamy, dostrajamy po E2 na ławce?
