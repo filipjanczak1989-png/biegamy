@@ -74,9 +74,9 @@
     return { klasyczne: klas, inne: Object.keys(inne).sort(function (a, b) { return Number(a) - Number(b); }).map(function (k) { var r = inne[k]; return { km: Number(k), czas: fmt(r.czas), czas_s: r.czas, bieg: r.bieg, data: r.data }; }) };
   }
 
-  /* TREND FORMY: każdy start na dystansie klasycznym → ekwiwalent 10 km przez Riegela 1,06 (ta sama stała co generator/zawodnik —
-     jedna kopia tutaj dla wyników; bez prognoz, bez ocen słownych). ≥ 3 punkty, inaczej null. Punkt: {data, km, czas, ekw10} rosnąco po dacie. */
-  var RIEGEL = 1.06;
+  /* TREND FORMY: każdy start na dystansie klasycznym → ekwiwalent 10 km przez Riegela (stała z js/riegel.js — ta sama co generator/zawodnik;
+     bez prognoz, bez ocen słownych). ≥ 3 punkty, inaczej null. Punkt: {data, km, czas, ekw10} rosnąco po dacie. */
+  var RIEGEL = g.BM_RIEGEL.WYKLADNIK;   // jedno źródło: js/riegel.js, ładowany przed tym plikiem (blizna-123)
   function ekwiwalent10(czas, km) { return czas * Math.pow(10 / km, RIEGEL); }
   function trend(wiersze) {
     var p = (wiersze || []).filter(function (r) { return r.czas > 0 && r.km > 0 && r.data && klasyczny(r.km); })

@@ -322,7 +322,7 @@
   var MIN_TAPER_DLUGIE = 2;
   var MARATON_MIN_DNI = 4;       // maratonu nie da się unieść na trzech jednostkach
   var OBJETOSC_DOMYSLNA = 20;    // km/tydz przy braku danych — FLOOR, świadomie w dół
-  var RIEGEL = 1.06;
+  var RIEGEL = (typeof module !== 'undefined' && typeof require === 'function' ? require('./riegel.js') : globalThis.BM_RIEGEL).WYKLADNIK;   // jedno źródło: js/riegel.js (blizna-123)
 
   /* Szczyt objętości = sufit bezpieczeństwa, nie cel do osiągnięcia.
      peakKm dystansu jest bezwzględnym sufitem, ale przy zawodniku na 30 km/tydz

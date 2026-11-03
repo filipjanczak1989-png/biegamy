@@ -1850,6 +1850,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="js/tekst.mjs"></script>
+<script src="js/riegel.js"></script><!-- wykładnik Riegela: jedno źródło (predyktor Forma, generator planu) -->
 <script src="js/akcja.mjs"></script><script src="js/odznaki-akcji.mjs"></script><!-- odznaki akcji (projekt F dzień 4) --><!-- karta akcji na Dziś (projekt F dzień 3): liczby i teksty z akcja_licznik -->
 <script src="js/akcja-cytaty.mjs"></script><!-- cytaty akcji (2.11.2026): baner cytatu na Dziś, pierwszeństwo przed zwykłym -->
 <script src="sb.js"></script>
@@ -5105,7 +5106,7 @@ async function _renderPredykcje() {
           o dacie, nie sprzecznosc danych.
        ⚠️ WARUNEK POWROTU: daty przy PB albo wyniki startow. Patrz zaleglosc
           `project_zaleglosc_pb_bez_dat_wykladnik_odrzucony`. */
-    const K_DOLNA = 1.06;      /* wykladnik Riegela — dolna krawedz pasma z literatury */
+    const K_DOLNA = window.BM_RIEGEL.WYKLADNIK;      /* wykladnik Riegela — dolna krawedz pasma; JEDNO zrodlo: js/riegel.js (blizna-123) */
     const K_GORNA = 1.15;      /* gorna krawedz tego samego pasma */
     const PROG_ZAKRESU = 3;    /* od ilu razy dystans jest „daleko" — patrz nizej */
     tb.innerHTML = PBS.map(p => {

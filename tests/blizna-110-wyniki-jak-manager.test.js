@@ -13,7 +13,7 @@ const { pathToFileURL } = require('node:url');
 
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
-async function W() { globalThis.window = globalThis; for (const p of ['js/tekst.mjs', 'js/kalendarz-lista.mjs', 'js/wyniki-lista.mjs']) await import(pathToFileURL(path.join(KORZEN, p)).href); return globalThis.BM_WYNIKI; }
+async function W() { globalThis.window = globalThis; for (const p of ['js/tekst.mjs', 'js/kalendarz-lista.mjs', 'js/riegel.js', 'js/wyniki-lista.mjs']) await import(pathToFileURL(path.join(KORZEN, p)).href); return globalThis.BM_WYNIKI; }
 
 test('router: ekrany i walidacja kluczy; k:<nazwisko>|<rocznik> przechodzi, śmieci nie; hash ↔ stan', async () => {
   const w = await W();

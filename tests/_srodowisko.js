@@ -127,6 +127,8 @@ function zaladujSb() {
   cicho(ctx, fs.readFileSync(path.join(KORZEN, 'js', 'tekst.mjs'), 'utf8'), 'js/tekst.mjs');
   // L2 (2.11): races.html ładuje js/kalendarz-lista.mjs zaraz po tekst.mjs (BM_KALENDARZ: jedna lista) — ta sama kolejność tutaj
   cicho(ctx, fs.readFileSync(path.join(KORZEN, 'js', 'kalendarz-lista.mjs'), 'utf8'), 'js/kalendarz-lista.mjs');
+  // 3.11: strony ładują js/riegel.js przed generatorem/predyktorem (BM_RIEGEL — jedno źródło wykładnika, blizna-123)
+  cicho(ctx, fs.readFileSync(path.join(KORZEN, 'js', 'riegel.js'), 'utf8'), 'js/riegel.js');
   cicho(ctx, fs.readFileSync(path.join(KORZEN, 'sb.js'), 'utf8'), 'sb.js');
   return ctx;
 }
