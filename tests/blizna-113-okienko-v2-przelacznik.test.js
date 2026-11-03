@@ -2,7 +2,7 @@
    1) Przełącznik W BAZIE, nie w kodzie: migracja 20261105 (okienko_ustawienia, okienko_v2_konta, RPC okienko_wersja, okienko_v2_log z ms,
       okienko_v2_rozmowa) — revoke jawny, authenticated czyta tylko swój log v2 i woła RPC; dwa konta na liście; WYCOFANIE; test RLS po skutku.
    2) Klient: wersję wybiera RPC raz na sesję, błąd/brak RPC → v1; adres EF tylko z 'v2' idzie do okienko-v2; nagłówek X-Okienko-Wersja: v1
-      z EF v2 przełącza sesję na v1; etykieta „okienko 2.0” tylko przy wersja:'v2'; stary kształt odpowiedzi bez zmian.
+      z EF v2 przełącza sesję na v1; od przepięcia 3.11 BEZ etykiety wersji (blizna-130); stary kształt odpowiedzi bez zmian.
    3) EF okienko-v2 NIE KOPIUJE: żadnych własnych regexów routera, deklaracji narzędzi ani strażnika — tylko importy z ../okienko/;
       zapis service wyłącznie do okienko_v2_log (log-v2.mjs); każdy wpis z ms; config.toml ma wpis; limity v2 z progami v1. */
 'use strict';
@@ -81,7 +81,7 @@ test('2) klient: RPC raz na sesję, v2 → okienko-v2, błąd/brak RPC → v1, n
   await awaria.O.zapytaj('a'); await awaria.O.zapytaj('b');
   assert.deepEqual(awaria.ctx.__fetch.map((u) => u.split('/').pop()), ['okienko-v2', 'okienko'], 'X-Okienko-Wersja: v1 → do końca sesji v1');
   const O = v2.O;
-  assert.match(O.htmlOdpowiedzi(200, { zdania: ['Oto.'], karty: [], akcja: null, wersja: 'v2' }), /^<p class="okn-etykieta-siec okn-wersja">okienko 2\.0<\/p><p class="okn-zdanie">Oto\.<\/p>/);
+  assert.doesNotMatch(O.htmlOdpowiedzi(200, { zdania: ['Oto.'], karty: [], akcja: null, wersja: 'v2' }), /okn-wersja|okienko 2/, 'przepięcie 3.11: bez etykiety wersji');
   assert.doesNotMatch(O.htmlOdpowiedzi(200, { zdania: ['Oto.'], karty: [], akcja: null }), /okienko 2\.0/);
   assert.doesNotMatch(O.htmlOdpowiedzi(429, { limit: 'dzien', wersja: 'v2' }, ''), /okienko 2\.0/, 'etykieta tylko przy 200');
   assert.match(OKN, /function otworz\(\) \{[\s\S]*?wersjaOkienka\(\);/, 'RPC rusza przy otwarciu arkusza');
@@ -108,7 +108,7 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
   assert.ok(!/zapiszLog\(adm/.test(ef + pt.replace(/d\.zapiszLog\(adm/g, '')), 'v2 nie pisze do okienko_log');
   assert.equal((pt.match(/zapiszLogV2\(/g) || []).length, 0, 'wszystkie wpisy przez log() z ms (zapiszLogV2 tylko jako DOMYSLNE.zapiszLog)');
   assert.match(ef, /"Access-Control-Expose-Headers": "X-Okienko-Wersja"/);
-  assert.match(pt, /const traf = dopasuj\(tekst, dzis\);/); assert.ok(pt.indexOf('const traf = dopasuj(tekst, dzis);') < pt.indexOf('const os = osobaZPytania(tekst);'), 'router (B1) przed osobą');
+  assert.match(pt, /(const|let) traf = dopasuj\(tekst, dzis\);/); assert.ok(pt.search(/(const|let) traf = dopasuj\(tekst, dzis\);/) < pt.indexOf('const os = osobaZPytania(tekst);'), 'router (B1) przed osobą');
   assert.match(pt, /export async function potok\(we, nadpisz = \{\}\)/, 'zależności podmienialne (ławka: atrapy modelu/sieci/limitów/logu)');
   // log-v2.mjs na atrapie: limit dzienny liczy 'v2' i 'flash', zapis z ms/intencja/pewnosc przyciętymi
   const L = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/okienko-v2/log-v2.mjs')).href);

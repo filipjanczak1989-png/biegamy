@@ -56,7 +56,8 @@ test('A) sekret celu i imię dziecka nie trafiają do użytkownika (html, js, EF
   assert.deepEqual(winni, [], 'nazwa celu / imię dziecka poza bazą:\n' + winni.join('\n'));
   // wzorce wejścia MOGĄ znać cel (żeby zagadka odpowiadała), ale odpowiedzi — nie
   const r = czytaj('supabase/functions/okienko/router.mjs');
-  assert.match(r, /^const ZAGADKA_ZAWSZE = \/.*jasna gora.*\/;$/m, 'router rozpoznaje pytanie o cel (wzorzec wejścia zostaje)');
+  assert.match(r, /^const ZAGADKA_ZAWSZE = \/.*jasn\\w\* gor\\w\*.*\/;$/m,'router rozpoznaje pytanie o cel — od 3.11 każda odmiana „Jasna Góra” (wzorzec wejścia zostaje)');
+  assert.match(r, /^const ZAGADKA_WYPRAWA = \/.*czestochow.*\/;$/m, '3.11: wyprawa, meta, „dokąd biegniecie”, kandydaci na cel — zagadka');
   const cyt = czytaj('js/akcja-cytaty.mjs');
   assert.doesNotMatch(bezKomentarzy(cyt), CEL, 'zagadki/cytaty bez nazwy celu');
 });

@@ -6,6 +6,7 @@
 // Wynik: { status, body } — body w kształcie v1 (zdania, karty, akcja, zrodla, narzedzia, tryb, koszt_tok, chipy?); index.ts dokłada wersję.
 import { waliduj, wykonaj, nawigacja } from "../okienko/narzedzia.mjs";
 import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU } from "../okienko/router.mjs";
+import { zdanieAkcji, liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "./akcja-v2.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "../okienko/model.mjs";
 import { sprawdz, powodPustych, NIE_MAM } from "../okienko/straznik.mjs";
@@ -60,7 +61,9 @@ export async function potok(we, nadpisz = {}) {
   if (AK) AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(athleteId) === "proba" });
 
   // ── B1: router v1 (0 tokenów) — zagadka/akcja, fabian*, zbiórka, reakcje, zdrowie, tanie narzędzia ──
-  const traf = dopasuj(tekst, dzis);
+  let traf = dopasuj(tekst, dzis);
+  // „o nas” wygrywa z NAWIGACJĄ i tanim narzędziem routera („pokaż profil Kasi” ≠ mój Profil), nigdy z zagadką, odmową ani reakcją (3.11)
+  if (traf && ("nawiguj" in traf || "narzedzie" in traf) && oNas(tekst)) traf = null;
   if (traf && "nawiguj" in traf) {
     await log({ tryb: "router", narzedzia: ["nawigacja"] });
     return odp(200, { ...pusto("router"), akcja: { nawiguj: traf.nawiguj } });
@@ -75,14 +78,19 @@ export async function potok(we, nadpisz = {}) {
     }
     if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
     if (Array.isArray(traf.karty)) kartyZd = traf.karty;
-    return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd, chipy: traf.chipy || [] });
+    // 3.11: po starcie — licznik z akcja_licznik („ile km już jest”), wyprawa bez celu; pamięć tury „akcja” (dopytania bez modelu)
+    const zd = traf.log === "zagadka" ? (zdanieAkcji(traf.rodzaj, akcjaDane, AKK) || traf.zdanie) : traf.zdanie;
+    if (traf.log === "zagadka") await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [zd] });
+    return odp(200, { ...pusto("router"), zdania: [zd], karty: kartyZd, chipy: traf.chipy || [] });
   }
   // ── O NAS (Filip 3.11 15:25): plik wiedzy o BiegaMy (_shared/o-nas.mjs) — PRZED bramką osób i przed siecią, 0 tokenów:
   //    „kim jest Filip”, „co to BiegaMy”, „kto stoi za aplikacją”, „jak zostać podopiecznym” nie są trybem osoby ani pytaniem do Google ──
   const on = oNas(tekst);
   if (on) {
+    let zdaniaOn = on.zdania;
+    if (on.temat === "liczba") { let n = null; try { n = await liczbaBiegaczy(adm); } catch { n = null; } zdaniaOn = [n || ZDANIE_LICZBY_ZAPAS]; }   // Filip 3.11: z bazy, w dół do dziesiątek
     await log({ tryb: "router", narzedzia: ["o-nas"] });
-    return odp(200, { ...pusto("router"), zdania: on.zdania, akcja: on.akcja || null });
+    return odp(200, { ...pusto("router"), zdania: zdaniaOn, karty: on.karty || [], akcja: on.akcja || null });
   }
   // sieć ze źródłami (wspólna dla osoby, imprezy, przepisów) — deklarowana PRZED routerem, bo przepis gotowosc rusza już z routera
   const sieciDozwolona = async () => { if (!gemini) return false; try { return (await d.uzyteSiecDzis(adm, athleteId, dzis)) < d.LIMIT_SIEC; } catch { return false; } };
@@ -113,6 +121,16 @@ export async function potok(we, nadpisz = {}) {
   // E4: pamięć rozmowy (intencje + sloty ≤ 5 tur, ≤ 30 min) — czyta i pisze tylko EF
   const rozmowa = await czytajRozmowe(adm, athleteId, teraz);
   const kont = czyKontynuacja(normalizuj(tekst), rozmowa);
+  /* DOPYTANIE PO AKCJI (3.11, ławka akcji): „a dlaczego?”, „a on?”, „co jeszcze?” zaraz po odpowiedzi o akcji → znowu odpowiedź akcji, 0 tokenów.
+     Model rozmowy widziałby imię dziecka i mógłby dopowiedzieć chorobę albo cel wyprawy — tu go NIE wołamy. */
+  if (rozmowa[0] && rozmowa[0].intencja === "akcja" && (kont || czyDopytanie(normalizuj(tekst), rozmowa)) && AK) {
+    if (!akcjaDane) { try { akcjaDane = await AK.odswiezStan(sb, athleteId); } catch { akcjaDane = null; } AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(athleteId) === "proba" }); }
+    const z = AK.odpowiedzZagadki();
+    let kartyA = []; if (AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyA = [k]; }
+    await log({ tryb: "router", narzedzia: ["zagadka"], powod_odrzucenia: "dopytanie po akcji" });
+    await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [z.zdanie] });
+    return odp(200, { ...pusto("router"), zdania: [z.zdanie], karty: kartyA });
+  }
   // ── R2: TRYB ROZMOWA — dopytanie w świeżej rozmowie („a dlaczego?”, „wyjaśnij prościej”, „a dla mnie?”) → jedno wywołanie modelu
   //    z poprzednimi wymianami; liczby tylko z rozmowy, strażnik ogólników; limit 20 tur/dobę; PRZED bramką osób (dopytanie nigdy nie idzie do sieci) ──
   if (gemini && d.rozmowaModel && czyDopytanie(normalizuj(tekst), rozmowa)) {

@@ -29,16 +29,26 @@ export const O_NAS = {
   radio: [
     "Radio BiegaMy to muzyka do biegania tworzona przez Filipa — ekran Radio w menu.",
   ],
+  liczba: [],   // liczona w potoku z bazy (Filip 3.11: „ponad X biegaczy”, X w dół do dziesiątek) — tu pusto, plik zostaje bez bazy
+  profil_kasi: ["Kasia — współtrenerka w BiegaMy. Jej profil:"],
+  profil_filipa: ["Filip Jańczak — założyciel BiegaMy i trener. Jego profil:"],
   podopieczny: [
     "Żeby trenować z Filipem albo Kasią, załóż konto w BiegaMy i napisz do nas przez czat w aplikacji.",
     "Bez trenera też skorzystasz: generator planu, dziennik treningów, forma i społeczność działają od razu po rejestracji.",
   ],
 };
 
+/* profile osób projektu (oba publiczne, sprawdzone 3.11) — karta „osoba” bez przycisku znajomości (bez_znajomosci: nie znamy relacji pytającego) */
+export const PROFILE = { profil_kasi: { id: "2dd9206b-d2f0-4bdc-a1ef-4d7765e446b8", nazwa: "Kasia — współtrenerka" },
+  profil_filipa: { id: "56092926-2cf1-44b6-952f-38614497fdc2", nazwa: "Filip Jańczak — trener" } };
+
 const fold = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L").toLowerCase().replace(/[?!.,;:"'„”()]+/g, " ").replace(/\s+/g, " ").trim();
 
 const KTO = "(?:kim jest|kto to jest|kto to|kto jest|co wiesz o|opowiedz mi o|opowiedz o|przedstaw|kto to taki|kto to taka)";
 const WZORCE = [
+  ["liczba", /\b((ile|jak duzo|jak wiele|ilu) (jest )?(osob|ludzi|biegaczy|uzytkownikow|zawodnikow|was|nas|kont)\b.*\b(korzyst\w*|uzyw\w*|ma konto|maja konto|jest w|jestescie|trenuje w|zarejestr\w*|w biegamy|z biegamy|w aplikacji|w apce)|ilu (macie|jest|ma biegamy) (uzytkownikow|biegaczy|zawodnikow|osob)|ile (macie|ma biegamy) (uzytkownikow|biegaczy|zawodnikow|kont))\b/],
+  ["profil_kasi", /\b(pokaz|otworz|zobacz|daj|gdzie (jest|znajde))\b.*\bprofi\w*\b.*\b(kasi|kasia|kasie|wspoltrenerk\w*)\b|\bprofi\w* (kasi|kasia|wspoltrenerki)\b/],
+  ["profil_filipa", /\b(pokaz|otworz|zobacz|daj|gdzie (jest|znajde))\b.*\bprofi\w*\b.*\b(filip\w*|trenera filipa|zalozyciela)\b|\bprofi\w* (filipa|zalozyciela)\b/],
   ["podopieczny", /\b(jak (zostac|byc|moge zostac) (podopieczn\w*|zawodnikiem|zawodniczka|twoim zawodnikiem|zawodnikiem filipa|zawodniczka filipa)|jak (miec|dostac|zdobyc|znalezc|wziac|zalatwic) trenera|czy (filip|kasia|ty) (mnie |mozesz mnie |moze mnie )?(potrenuje|potrenujesz|poprowadzi|poprowadzisz|wezmie|wezmiesz|bedzie mnie trenowa\w*)|chce (miec )?trenera|ile kosztuje (trening|trener|wspolpraca|prowadzenie|plan od trenera|plan)|jak (zaczac|rozpoczac|nawiazac) (wspolprace|treningi|trening) (z filipem|z kasia|z wami|z trenerem)|jak trenowac z (filipem|kasia|wami))\b/],
   ["zespol", /\b(kto (stoi za|prowadzi|robi|tworzy|stworzyl|zrobil|zalozyl|napisal|zaprojektowal|zbudowal) (biegamy|ta aplikacj\w*|te aplikacj\w*|tej aplikacji|aplikacj\w*|apk\w*|to wszystko|to|ten projekt|projekt)|kto wy jestescie|kim jestescie|kim wy jestescie|kto jest (tworca|autorem|wlascicielem) (biegamy|aplikacji|apki)|kto za tym stoi|czyja to aplikacja|kto was prowadzi|kto za tobo stoi|kto cie (stworzyl|zrobil|napisal))\b/],
   ["filip", new RegExp("\\b" + KTO + " (filip\\w*|tworc\\w*|zalozyciel\\w*|autor\\w* (aplikacji|biegamy)|trener(a|em|ze)? filip\\w*)\\b(?!\\s+(?!janczak)[a-z]{3,})|\\bfilip jancz\\w*\\b")],   // samo „filip” = jedno słowo, nie pytanie o osobę (ławka: chipy/katalog)
@@ -53,7 +63,11 @@ export function oNas(tekst) {
   const t = fold(tekst);
   if (!t) return null;
   for (const [temat, re] of WZORCE) {
-    if (re.test(t)) return { temat, zdania: O_NAS[temat].slice(), akcja: temat === "radio" ? { nawiguj: "radio.html" } : null };
+    if (re.test(t)) {
+      const p = PROFILE[temat];
+      return { temat, zdania: O_NAS[temat].slice(), akcja: temat === "radio" ? { nawiguj: "radio.html" } : null,
+        karty: p ? [{ typ: "osoba", dane: { id: p.id, nazwa: p.nazwa, prywatny: false, bez_znajomosci: true } }] : [] };
+    }
   }
   return null;
 }

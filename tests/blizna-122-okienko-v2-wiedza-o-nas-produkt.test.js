@@ -125,7 +125,7 @@ test('5) klasyfikator i intencje: zywienie / sprzet / o_nas + slot produkt; pora
 
 test('6) potok: o-nas PRZED bramką osób (0 tokenów); INTENCJE_SIECI → produkt przed siecią → wiedza; blokadaSieci bez zmian; ławka: wiersze porad = siec', () => {
   const p = czytaj('supabase/functions/okienko-v2/potok.mjs');
-  const iOnas = p.indexOf('const on = oNas(tekst);'), iOsoba = p.indexOf('const os = osobaZPytania(tekst);'), iRouter = p.indexOf('const traf = dopasuj(tekst, dzis);');
+  const iOnas = p.indexOf('const on = oNas(tekst);'), iOsoba = p.indexOf('const os = osobaZPytania(tekst);'), iRouter = p.search(/(const|let) traf = dopasuj\(tekst, dzis\);/);
   assert.ok(iRouter > 0 && iRouter < iOnas && iOnas < iOsoba, 'kolejność: router → o-nas → osoba');
   assert.match(p, /if \(INTENCJE_SIECI\.includes\(roz\.intencja\)\) \{/); assert.match(p, /if \(roz\.intencja === "zywienie" \|\| produktZPytania\(tekst\)\)/);
   assert.match(p, /if \(!blokadaSieci\) \{\s*const w = await przezSiec\(\{ tok: \{ we: 0, wy: 0 \} \}, roz\);/, 'sieć tylko gdy bramka prywatności przepuszcza');

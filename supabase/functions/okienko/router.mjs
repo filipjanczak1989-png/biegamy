@@ -152,7 +152,14 @@ export function dopasujBiegi(tekst, dzis) {
    charakterystyczne (fabian, 12 500, 8.11, peleryny, Jasna Góra, tajemnica, niespodzianka, akcja, challenge…) działają
    zawsze; OGÓLNE („co się dzieje", „co się szykuje", „o co chodzi z…") tylko bez słów o własnych danych i pojęciach
    aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
-const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasna gora|jasnej gor\w*|peleryn\w*)\b/;
+const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasn\w* gor\w*|peleryn\w*)\b/;
+/* WYPRAWA I JEJ CEL (Filip 3.11, ławka akcji przed przepięciem): cel wyprawy jest tajemnicą do „Dotarliśmy” — NIGDY model, sieć ani
+   zgadywanie. Każde pytanie o wyprawę, metę, „dokąd biegniecie”, „czy biegniecie do X” i o miejsca-kandydatów (Częstochowa, Jasna Góra)
+   → zagadka (przed startem) albo stałe zdanie bez celu (po starcie). Celowo szerokie (jak fabian*): „biegi w Częstochowie” też tu trafi —
+   ochrona sekretu > kalendarz jednego miasta. Przegląd razem z fabian* w dniu zamknięcia akcji. */
+const ZAGADKA_WYPRAWA = /\b(wypraw\w*|dokad (biegniecie|biegniemy|biegna|biegnie|zmierzacie|zmierzamy|idziecie|idziemy|pobiegniecie|pobiegniemy|jedziecie|lecicie)|gdzie (konczy sie|sie konczy|bedzie meta|jest meta|meta|biegniecie|biegniemy|dobiegniecie|dobiegniemy|konczycie|skonczycie)|(biegniecie|biegniemy|pobiegniecie|pobiegniemy|biegna|dobiegniecie|dobiegniemy) (do|na|w strone|w kierunku|az do|az na)|cel (wypraw\w*|biegu filipa|podrozy)|meta (wypraw\w*|akcj\w*)|czestochow\w*|jasn\w* gor\w*|filip i kasia (biegna|biegnie|ida)|trasa (wypraw\w*|filipa|kasi))\b/;
+/* LICZNIK AKCJI (Filip 3.11): „ile km już jest”, „ile na liczniku” — po starcie liczba z akcja_licznik (potok v2), przed startem zagadka. */
+const ZAGADKA_KM = /\b(ile (juz )?(km|kilometrow) (juz )?(jest|mamy|nabiegalismy|uzbieralismy|razem|na liczniku|w liczniku|zostalo|brakuje)|ile (jest )?na liczniku|stan licznika|ile (juz )?(zebraliscie|uzbieraliscie|przebiegliscie|nabiegaliscie))\b/;
 /* PRZED 8.11 (Filip 2.11, przegląd A pkt 1): DATA startu łapie zagadkę tylko BEZ słów o własnych danych — „plan na 7.11”,
    „co mam 8.11”, „trening 8.11” to pytania o plan/treningi, nie o akcję (ławka: pułapka daty). */
 const ZAGADKA_DATA = /\b(co bedzie [78]|[78] listopad\w*|siodm\w* listopad\w*|osm\w* listopad\w*)\b/;
@@ -207,12 +214,19 @@ export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t)) return true;
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t)) return true;
   if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
+/** Rodzaj pytania o akcję (potok v2 dobiera zdanie po starcie): 'wyprawa' (cel/meta — nigdy nie zdradzamy), 'km' (licznik), null (ogólne). */
+export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return ZAGADKA_WYPRAWA.test(t) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
+/* ZDROWIE INNYCH OSÓB (Filip 3.11, ławka akcji: „co mu jest” po pytaniu o Fabianka): o zdrowiu kogokolwiek poza pytającym Okienko nie mówi —
+   stałe zdanie, 0 tokenów, przed modelem i siecią (model mógłby zmyślić chorobę, sieć mogłaby ją znaleźć). „co mi jest” to zdrowie pytającego. */
+export const ODP_ZDROWIE_INNYCH = "O zdrowiu innych osób nie rozmawiam. Jeśli chodzi o Ciebie — napisz, co Ci dolega.";
+const ZDROWIE_INNYCH = /\b(co (mu|jej|im|jemu) (jest|dolega|sie stalo)|na co (on |ona )?(choruje|chorowal\w*|zmarl\w*)|(jest|byl) (chory|chora|ciezko chor\w*)|(jaka|jaką|ktora) (ma )?chorob\w*|co (mu|jej) (dolega|doskwiera)|czy (on|ona) (jest )?(chor\w*|w szpitalu)|jak sie (on|ona) czuje)\b/;
+export function czyZdrowieInnych(tekst) { return ZDROWIE_INNYCH.test(normalizuj(tekst)); }
 /** Czy pytanie MOŻE być o akcję (niezależnie od stanu) — EF okienko pobiera stan akcji tylko dla takich (bez RPC dla reszty). */
 export function zagadkaKandydat(tekst) {
   const t = normalizuj(tekst);
@@ -223,7 +237,8 @@ export function zagadkaKandydat(tekst) {
 export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!t) return null;
-  if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); return { zdanie: z.zdanie, log: "zagadka" }; }
+  if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); const rz = rodzajZagadki(tekst); return rz ? { zdanie: z.zdanie, log: "zagadka", rodzaj: rz } : { zdanie: z.zdanie, log: "zagadka" }; }
+  if (czyZdrowieInnych(tekst)) return { zdanie: ODP_ZDROWIE_INNYCH, log: "zdrowie-innych" };   // 3.11: przed modelem i siecią
   if (czyReakcja(tekst)) return { zdanie: ODP_NIEZROZUMIALEM, log: "reakcja", chipy: CHIPY_WYBORU, feedback: true };   // Filip 3.11: reakcje → chipy, bez narzędzi
   if (PODZIEKOWANIE.test(t)) return { zdanie: ODP_PODZIEKOWANIE, log: "podziekowanie" };
   if (czyOdmowa(tekst)) return { zdanie: ODP_ODMOWA, log: "odmowa" };   // bramka odmowy — przed każdym narzędziem, modelem i siecią

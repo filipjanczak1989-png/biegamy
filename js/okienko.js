@@ -155,7 +155,8 @@
   function kartaOsoby(d) {
     if (!RE_UUID.test(String(d.id || ''))) return '';
     var id = esc(d.id), nazwa = esc(d.nazwa || 'Biegacz');
-    var znaj = d.znajomosc === 'znajomi' ? '<span class="okn-meta">✓ Znajomi</span>'
+    var znaj = d.bez_znajomosci ? ''   // 3.11: profil osoby projektu z „o nas” (Kasia, Filip) — relacji pytającego nie znamy, przycisku nie pokazujemy
+      : d.znajomosc === 'znajomi' ? '<span class="okn-meta">✓ Znajomi</span>'
       : d.znajomosc === 'wyslano' ? '<span class="okn-meta">Zaproszenie wysłane</span>'
       : d.znajomosc === 'czeka' ? '<span class="okn-meta">Czeka na Twoją odpowiedź</span>'
       : '<button type="button" class="okn-chip" data-osoba="znajomy" data-id="' + id + '">Dodaj do znajomych</button>';
@@ -201,13 +202,13 @@
   }
 
   /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc.
-     Okienko 2.0 (E0): odpowiedź z EF okienko-v2 niesie wersja:'v2' → mała etykieta, żeby testujący wiedział, która wersja odpowiada. */
+     PRZEPIĘCIE (Filip 3.11): dla użytkownika to po prostu Okienko — bez etykiety wersji (było „okienko 2.0” dla testujących; blizna-130). */
   function htmlOdpowiedzi(status, json, tekst) {
     var tresc = htmlOdpowiedziTresc(status, json, tekst);
     if (!(status === 200 && json && json.wersja === 'v2')) return tresc;
     /* KCIUKI (Filip 3.11): tylko v2 i tylko gdy EF oddało log_id (wpis w okienko_v2_log) — ocena idzie przez RPC okienko_ocena; v1 bez zmian */
     var kciuki = (Number.isFinite(Number(json.log_id)) && Number(json.log_id) > 0) ? htmlKciukow(Number(json.log_id)) : '';
-    return '<p class="okn-etykieta-siec okn-wersja">okienko 2.0</p>' + tresc + kciuki;
+    return tresc + kciuki;
   }
   function htmlKciukow(id) {
     return '<div class="okn-kciuki" data-log="' + esc(String(id)) + '"><span class="okn-meta">Pomogło?</span>'
@@ -342,16 +343,27 @@
     return '<p class="okn-zdanie">' + esc(zd) + '</p>';
   }
 
+  /* BLOKADA PODWÓJNEGO WYSŁANIA (Filip 3.11, raport: „Jak zacząć biegać” poszło dwa razy w 1,75 s — dwa zapytania do sieci, drugie przed
+     zapisem pamięci podręcznej): póki trwa odpowiedź, kolejne wysłanie (Enter, przycisk, chip) jest ignorowane, przycisk „Zapytaj” wyłączony. */
+  var wTrakcie = false;
+  function przyciskZapytaj(wylaczony) {
+    var f = el('okienko-form'), b = f && f.querySelector ? f.querySelector('button[type="submit"]') : null;
+    if (b) { b.disabled = !!wylaczony; if (wylaczony) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy'); }
+  }
   async function wyslij(tekst) {
     var wynik = el('okienko-wynik'); if (!wynik) return;
+    if (wTrakcie) return;
     var lokalnie = pogodaLokalnie(tekst);
     if (lokalnie) { wynik.innerHTML = lokalnie; zapamietajPytanie(tekst); return; }
-    wynik.innerHTML = '<div class="okn-szkielet" aria-hidden="true"></div>';
-    wynik.setAttribute('aria-busy', 'true');
-    var o = await zapytaj(tekst);
-    wynik.removeAttribute('aria-busy');
-    wynik.innerHTML = htmlOdpowiedzi(o.status, o.json, tekst);
-    zapamietajPytanie(tekst);
+    wTrakcie = true; przyciskZapytaj(true);
+    try {
+      wynik.innerHTML = '<div class="okn-szkielet" aria-hidden="true"></div>';
+      wynik.setAttribute('aria-busy', 'true');
+      var o = await zapytaj(tekst);
+      wynik.removeAttribute('aria-busy');
+      wynik.innerHTML = htmlOdpowiedzi(o.status, o.json, tekst);
+      zapamietajPytanie(tekst);
+    } finally { wTrakcie = false; przyciskZapytaj(false); }
   }
   function zapamietajPytanie(tekst) {
     var ost = czytaj(KLUCZ_OSTATNIE, []);
@@ -483,6 +495,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, pogodaLokalnie: pogodaLokalnie };
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, pogodaLokalnie: pogodaLokalnie, wyslij: wyslij };   // wyslij: blizna-131 (blokada podwójnego wysłania)
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();
