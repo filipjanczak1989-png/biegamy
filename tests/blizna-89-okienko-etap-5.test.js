@@ -95,7 +95,8 @@ test('(c) ból / kontuzja → stałe zdanie (0 tokenów), „Napisz do trenera" 
     assert.deepEqual(R.dopasuj(q, DZIS), { zdanie: R.ODP_ZDROWIE, log: 'zdrowie', trener: true }, q);
   assert.equal(R.ODP_ZDROWIE, 'Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.');
   assert.equal(R.dopasuj('odznaka powrot po kontuzji', DZIS).narzedzie, 'odznaki_moje');
-  assert.equal(R.dopasuj('czy biegac z katarem', DZIS), null, 'porady ogólne zostają w sieci (decyzja 1.11)');
+  assert.deepEqual(R.dopasuj('czy biegac z katarem', DZIS), { zdanie: R.ODP_CHOROBA, log: 'zdrowie' }, 'od 3.11 (decyzja Filipa 2.11, ławka v2): katar/choroba = stały tekst bez sieci; do 3.11 szło do Google');
+  assert.equal(R.dopasuj('wyniki Katarzyny Chojnackiej', DZIS), null, '„Katarzyny” to nie katar');
   const ef = czytaj('supabase/functions/okienko/index.ts');
   const i = ef.indexOf('if (traf && "zdanie" in traf)');
   const blok = ef.slice(i, ef.indexOf('\n  }\n', i));

@@ -33,11 +33,33 @@ function symModel(R) {
 const symSiec = async () => ({ tekst: 'Wynik z sieci.', gm: { groundingChunks: [{ web: { uri: 'https://example.org/x', title: 'x' } }], groundingSupports: [] },
   tok: { we: SR.siec.we, wy: SR.siec.wy }, zapytania: SR.siec.zapytania });
 
-async function przebieg(pytania = PYTANIA) {
+/* E2 — ROZUMIENIE: atrapa z nagrań (tests/_nagrania-v2.json: klucz = normalizuj(pytanie) → {intencja, pewnosc, dopytac, kandydaci, sloty}).
+   Brak nagrania → nie_wiem/0 (chipy) i wpis na listę „brakujące” (--wzorzec je wypisuje). Tryb --zywy: prawdziwy klasyfikator z kluczem
+   GEMINI_API_KEY z env (koszt ~$0,0003/pytanie), a wynik ZAPISUJE do nagrań — tak odświeżamy ławkę po zmianie promptu. */
+const PLIK_NAGRAN = path.join(__dirname, '_nagrania-v2.json');
+const SR_ROZ = { we: 600, wy: 40 };
+function nagrania() { try { return JSON.parse(fs.readFileSync(PLIK_NAGRAN, 'utf8')); } catch { return {}; } }
+function atrapaRozumienia(R, N, brakujace) {
+  return async ({ tekst }) => {
+    const k = R.normalizuj(tekst), n = N[k];
+    if (!n) { brakujace.add(k); return { intencja: 'nie_wiem', pewnosc: 0, dopytac: true, kandydaci: [], sloty: {}, tok: { ...SR_ROZ } }; }
+    return { intencja: n.intencja, pewnosc: typeof n.pewnosc === 'number' ? n.pewnosc : 0.9, dopytac: !!n.dopytac, kandydaci: n.kandydaci || [], sloty: n.sloty || {}, tok: { ...SR_ROZ } };
+  };
+}
+function zywyRozumienia(Roz, N) {
+  const klucz = process.env.GEMINI_API_KEY;
+  if (!klucz) throw new Error('--zywy wymaga GEMINI_API_KEY w env');
+  return async (o) => { const r = await Roz.rozumienie({ ...o, fetchFn: fetch, klucz }); N[Roz.kluczNagrania(o.tekst)] = { intencja: r.intencja, pewnosc: r.pewnosc, dopytac: r.dopytac, kandydaci: r.kandydaci, sloty: r.sloty }; return r; };
+}
+
+async function przebieg(pytania = PYTANIA, opcje = {}) {
   const KLIENT = okienkoKlienta();
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
+  const Roz = await zaladuj('supabase/functions/okienko-v2/rozumienie.mjs');
   const F6m = await zaladuj('supabase/functions/okienko/f6.mjs');
   const { potok } = await zaladuj('supabase/functions/okienko-v2/potok.mjs');
+  const N = nagrania(), brakujace = new Set();
+  const rozumienieFn = opcje.zywy ? zywyRozumienia(Roz, N) : atrapaRozumienia(R, N, brakujace);
   const wiersze = [];
   for (const w of pytania) {
     const adm = atrapa({ okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [] });
@@ -47,7 +69,8 @@ async function przebieg(pytania = PYTANIA) {
       const lok = KLIENT.pogodaLokalnie(pyt);
       if (lok) return { slad: ['klient'], koszt: 0, tresc: lok.replace(/<[^>]+>/g, '').slice(0, 70), status: 200 };
       const r = await potok({ tekst: pyt, historia: [], ekran: 'home', athleteId: JA, sb, adm, jwt: 'T', dzis: DZIS, teraz: TERAZ, gemini: 'K', budzet: 0, fetchFn: fetchF6 },
-        { zapytajModel: symModel(R), zapytajSiec: symSiec, sprawdzLimity: async () => null, uzyteSiecDzis: async () => 0 });
+        { zapytajModel: symModel(R), zapytajSiec: symSiec, sprawdzLimity: async () => null, uzyteSiecDzis: async () => 0, rozumienie: rozumienieFn,
+          generujJson: async () => ({ json: { zdania: ['Zacznij od marszobiegów i dokładaj czas, nie tempo.', 'Dwa dni luzu w tygodniu to też trening.'] }, tok: { we: 300, wy: 60 } }) });
       const ost = adm.tabele.okienko_v2_log[adm.tabele.okienko_v2_log.length - 1] || {};
       const tok = (ost.tok_we || 0) * CENA.we + (ost.tok_wy || 0) * CENA.wy + (ost.zapytania_sieci || 0) * CENA.zapytanie;
       const b = r.body || {};
@@ -57,9 +80,13 @@ async function przebieg(pytania = PYTANIA) {
     for (const p of w.po || []) await jeden(p);
     const r = await jeden(w.p);
     const slad = r.slad.join('>');
-    const pasuje = w.oczekiwane.endsWith('*') ? slad.startsWith(w.oczekiwane.slice(0, -1)) : slad === w.oczekiwane;
+    /* 'router:X' = to narzędzie odpowiedziało — nieważne, czy przez router (0 tok.), czy przez rozumienie (E2, tryb 'v2'); 'v2:porada' itp. tylko z v2 */
+    const sladN = slad.replace(/^v2:/, 'router:');
+    const pasuje = w.oczekiwane.endsWith('*') ? slad.startsWith(w.oczekiwane.slice(0, -1)) : (slad === w.oczekiwane || (w.oczekiwane.startsWith('router:') && sladN === w.oczekiwane));
     wiersze.push({ ...w, slad, pasuje, koszt: r.koszt, tresc: r.tresc, status: r.status, karty: r.karty, chipy: r.chipy });
   }
+  if (opcje.zywy) fs.writeFileSync(PLIK_NAGRAN, JSON.stringify(N, null, 1) + '\n', 'utf8');
+  wiersze.brakujace = [...brakujace];
   return wiersze;
 }
 
@@ -79,8 +106,8 @@ function raport(w) {
 module.exports = { przebieg, raport, PYTANIA };
 
 if (require.main === module) (async () => {
-  const w = await przebieg();
-  if (process.argv.includes('--wzorzec')) { for (const r of w) console.log(JSON.stringify([r.p, r.kat, r.slad, r.tresc])); return; }
+  const w = await przebieg(PYTANIA, { zywy: process.argv.includes('--zywy') });
+  if (process.argv.includes('--wzorzec')) { for (const r of w) console.log(JSON.stringify([r.p, r.kat, r.slad, r.tresc])); if (w.brakujace.length) console.error('BRAK NAGRAŃ:', JSON.stringify(w.brakujace)); return; }
   const md = raport(w);
   const plik = path.join(KORZEN, 'docs', 'lawka-v2-' + new Date().toISOString().slice(0, 10) + '.md');
   fs.writeFileSync(plik, md, 'utf8');

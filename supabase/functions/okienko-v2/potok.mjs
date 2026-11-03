@@ -15,10 +15,13 @@ import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "../okienko
 import { imprezaZPytania, odpowiedzImpreza } from "../okienko/impreza.mjs";
 import { szukajWKatalogu } from "../okienko/katalog.mjs";
 import { zapiszLogV2, sprawdzLimityV2, uzyteSiecDzisV2, LIMIT_SIEC } from "./log-v2.mjs";
+import { rozumienie, PROG_PEWNOSCI } from "./rozumienie.mjs";
+import { wykonajIntencje, chipyDla } from "./intencje.mjs";
+import { generujJson } from "./gemini.mjs";
 
 export const MODEL_SIECI = "gemini-3.5-flash-lite";   // etykieta pamięci sieci (jak v1)
 export const DOMYSLNE = { wykonaj, zapytajModel, zapytajSiec, odpowiedzOsoba, odpowiedzImpreza, szukajWKatalogu, zPamieci, doPamieci, zapiszZnaleziska,
-  uzyteSiecDzis: uzyteSiecDzisV2, sprawdzLimity: sprawdzLimityV2, zapiszLog: zapiszLogV2, LIMIT_SIEC };
+  uzyteSiecDzis: uzyteSiecDzisV2, sprawdzLimity: sprawdzLimityV2, zapiszLog: zapiszLogV2, LIMIT_SIEC, rozumienie, generujJson };
 
 const pusto = (tryb, extra = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
 const httpsOk = (u) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
@@ -34,7 +37,9 @@ export async function potok(we, nadpisz = {}) {
   const { tekst, historia, ekran, athleteId, sb, adm, jwt, dzis, teraz, gemini, budzet, fetchFn } = we;
   const T0 = we.T0 || Date.now();
   const slad = [];   // ścieżka decyzji (ławka: oczekiwana ścieżka vs przebyta)
-  const log = async (w) => { slad.push(w.tryb + (w.narzedzia?.length ? ":" + w.narzedzia.join("+") : "")); return d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, ms: Date.now() - T0 }); };
+  const dodTok = { we: 0, wy: 0 };   // tokeny rozumienia (E2) doliczane do wpisu końcowego
+  const log = async (w) => { slad.push(w.tryb + (w.narzedzia?.length ? ":" + w.narzedzia.join("+") : ""));
+    return d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, tok_we: (w.tok_we || 0) + dodTok.we, tok_wy: (w.tok_wy || 0) + dodTok.wy, ms: Date.now() - T0 }); };
   const odp = (status, body) => ({ status, body, slad });
 
   const AK = globalThis.BM_AKCJA_CYTATY, AKK = globalThis.BM_AKCJA;
@@ -114,7 +119,6 @@ export async function potok(we, nadpisz = {}) {
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
   }
 
-  // ── model (E0: jak v1) ──
   if (!gemini) return odp(502, { blad: "model niedostępny" });
   let limit;
   try { limit = await d.sprawdzLimity(adm, athleteId, dzis, budzet); } catch { return odp(503, { blad: "limity" }); }
@@ -122,6 +126,36 @@ export async function potok(we, nadpisz = {}) {
     await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit " + limit });
     return odp(429, { limit });
   }
+  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);
+
+  // ── E2: ROZUMIENIE PRZED NARZĘDZIEM — model widzi tylko tekst + 3 poprzednie pytania; decyzja należy do kodu (intencje.mjs).
+  //    Błąd/timeout → ścieżka v1 niżej (powód 'v2-awaria' w logu). Niska pewność → chipy, 0 narzędzi. ──
+  let roz = null, awaria = null;
+  if (d.rozumienie) {
+    try { roz = await d.rozumienie({ fetchFn, klucz: gemini, tekst, dzis, poprzednie: (Array.isArray(historia) ? historia : []).slice(-3).map((h) => ({ q: h && h.q, intencja: h && h.intencja })) }); }
+    catch (e) { awaria = "v2-awaria: rozumienie " + String(e && e.message).slice(0, 60); }
+  }
+  if (roz) {
+    dodTok.we += roz.tok.we; dodTok.wy += roz.tok.wy;
+    if (roz.dopytac || roz.pewnosc < PROG_PEWNOSCI || roz.intencja === "nie_wiem") {
+      await log({ tryb: "v2-niepewne", narzedzia: ["dopytanie"], intencja: roz.intencja, pewnosc: roz.pewnosc });
+      return odp(200, { ...pusto("router"), zdania: [ODP_NIEPEWNE], karty: [], chipy: chipyDla(roz.kandydaci), intencja: roz.intencja });
+    }
+    if (roz.intencja === "fakt" && !blokadaSieci) {   // fakt ze świata → prosto do sieci ze źródłami (bez modelu z narzędziami)
+      const w = await przezSiec({ tok: { we: 0, wy: 0 } }, roz);
+      if (w) return w;
+    } else if (roz.intencja !== "fakt") {
+      const ctx = { tekst, sb, adm, athleteId, jwt, dzis, teraz, fetchFn, gemini, d, sieciDozwolona, siecZeZrodlami, AK, AKK, akcjaDane };
+      let w = null;
+      try { w = await wykonajIntencje(ctx, roz); } catch (e) { awaria = "v2-awaria: intencja " + String(e && e.message).slice(0, 60); w = null; }
+      if (w) {
+        await log({ tryb: "v2", ...w.log, intencja: roz.intencja, pewnosc: roz.pewnosc });
+        return odp(w.status || 200, { ...w.body, intencja: roz.intencja });
+      }
+    }
+  }
+
+  // ── model v1 z narzędziami (bez rozumienia, awaria albo intencja bez obsługi w tym etapie) ──
   let m;
   try {
     m = await d.zapytajModel({ fetchFn, klucz: gemini, sb, athleteId, tekst, historia, ekran, dzis, teraz, f6ctx: { fetchFn, token: jwt } });
@@ -130,8 +164,24 @@ export async function potok(we, nadpisz = {}) {
     await log({ tryb: "blad", ok: false, powod_odrzucenia: (modelu ? "model: " : "narzędzie: ") + String(e && e.message).slice(0, 120) });
     return odp(modelu ? 502 : 503, { blad: modelu ? "model" : "narzędzie" });
   }
-  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
+    const w = await przezSiec(m, roz);
+    if (w) return w;
+  }
+
+  const zKartami = m.karty_z.filter((n) => { const u = m.uzyte.find((x) => x.nazwa === n); return u && zWyniku(n, u.wynik, u.args).karty.length > 0; });
+  const karty = zKartami.flatMap((n) => { const u = m.uzyte.find((x) => x.nazwa === n); return u ? zWyniku(n, u.wynik, u.args).karty : []; });
+  const s = sprawdz(m.zdania, karty.length, m.uzyte.map((u) => u.wynik), zKartami);
+  const nazwy = m.uzyte.map((u) => u.nazwa);
+  await log({ narzedzia: nazwy, tryb: "flash", tok_we: m.tok.we, tok_wy: m.tok.wy, plan: nazwy, samosprawdzenie: !s.puste && s.odrzucone.length === 0,
+    intencja: roz ? roz.intencja : null, pewnosc: roz ? roz.pewnosc : undefined,
+    ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: [awaria, powodPustych(s, m)].filter(Boolean).join(" | ") || null });
+  const zdania = (blokadaSieci && !karty.length && (s.puste || s.zdania[0] === NIE_MAM || m.poza_danymi)) ? [ODP_NIC] : s.zdania;
+  return odp(200, { zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
+
+  /* sieć ze źródłami (M2a): limit 20/dobę, pamięć 24 h, znaleziska; `m` = koszt poprzedzającego modelu (0 przy skoku z intencji „fakt”).
+     null = limit (odpowiedź 429 już zwrócona przez wyjątek niżej) — zwracamy gotową odpowiedź potoku. */
+  async function przezSiec(m, roz) {
     let ileSiec;
     try { ileSiec = await d.uzyteSiecDzis(adm, athleteId, dzis); } catch { return odp(503, { blad: "limity" }); }
     if (ileSiec >= d.LIMIT_SIEC) {
@@ -150,17 +200,8 @@ export async function potok(we, nadpisz = {}) {
       await d.doPamieci(adm, klucz, o.zdania, o.zrodla, MODEL_SIECI, teraz);
       await d.zapiszZnaleziska(adm, athleteId, znaleziskaZ(tekst, o.zrodla));
     }
-    await log({ tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania,
+    await log({ tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania, intencja: roz ? roz.intencja : null, pewnosc: roz ? roz.pewnosc : undefined,
       ok: o.odrzucone.length === 0, powod_odrzucenia: o.odrzucone.length ? o.odrzucone.map((x) => `${x.powod}: ${x.zdanie}`).join(" | ") : null });
     return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
   }
-
-  const zKartami = m.karty_z.filter((n) => { const u = m.uzyte.find((x) => x.nazwa === n); return u && zWyniku(n, u.wynik, u.args).karty.length > 0; });
-  const karty = zKartami.flatMap((n) => { const u = m.uzyte.find((x) => x.nazwa === n); return u ? zWyniku(n, u.wynik, u.args).karty : []; });
-  const s = sprawdz(m.zdania, karty.length, m.uzyte.map((u) => u.wynik), zKartami);
-  const nazwy = m.uzyte.map((u) => u.nazwa);
-  await log({ narzedzia: nazwy, tryb: "flash", tok_we: m.tok.we, tok_wy: m.tok.wy, plan: nazwy, samosprawdzenie: !s.puste && s.odrzucone.length === 0,
-    ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: powodPustych(s, m) });
-  const zdania = (blokadaSieci && !karty.length && (s.puste || s.zdania[0] === NIE_MAM || m.poza_danymi)) ? [ODP_NIC] : s.zdania;
-  return odp(200, { zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
 }

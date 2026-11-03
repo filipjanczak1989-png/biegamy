@@ -151,3 +151,20 @@ dla przepisów złożonych, narzędzia równolegle, timeout klasyfikatora 1,5 s.
 Stan 3.11 (noc): E0 zbudowane lokalnie — migracja `20261105_okienko_v2_przelacznik.sql` (test po skutku `tools/okienko-v2-test.sh`,
 z `OV2_Z_MIGRACJA=1` przechodzi na prod w transakcji z rollbackiem), EF `okienko-v2` **wdrożona** (nikt do niej nie trafia, dopóki
 migracja nie wejdzie), `js/okienko.js` z przełącznikiem. Wykonanie migracji i push — Filip w środę 5.11.
+
+## Stan budowy 4.11.2026 (noc z 3 na 4) — E0, E1, E2 zbudowane lokalnie
+
+| etap | commit | co | miara |
+|---|---|---|---|
+| E0 | `eb4b049` | migracja przełącznika `20261105_okienko_v2_przelacznik.sql` (+WYCOFANIE, `tools/okienko-v2-test.sh`: 16/16 na prod w transakcji z rollbackiem), EF `okienko-v2` (ścieżka v1 z importów, log z `ms`), `js/okienko.js` wybiera wersję przez RPC, blizna-113 | identyczne odpowiedzi jak v1 dla kont z listy; **do wykonania przez Filipa 5.11**: migracja, push, deploy |
+| E1 | `709e075` | `potok.mjs` (orkiestracja bez HTTP, zależności podmienialne), ławka v2 241 pytań z oczekiwanym śladem (`tests/_lawka-v2-pytania.js`), test CI `tests/lawka-v2.test.js` (regresja = czerwono, zamknięta luka bez zdjęcia znacznika = czerwono, prywatna para nigdy w sieci/modelu) | 176/241 = 73 %, 65 luk, 0 regresji; przy okazji 6 poprawek routera/osoby v1 („adres Jana Kowalskiego” szło do Google) |
+| E2 | (ten commit) | `gemini.mjs` (jedno wywołanie JSON, timeout), `rozumienie.mjs` (28 intencji, sloty, pewność, kandydaci; model widzi tylko tekst + 3 poprzednie pytania z intencją), `intencje.mjs` (intencja → narzędzie v1 / stałe zdanie / katalog / impreza / osoba z B2 / porada bez sieci + dopisek / chipy z kodu), potok: limity → rozumienie → (fakt → sieć bez modelu) → model v1 jako awaria; katar/choroba = stały tekst w routerze (SZKIC do akceptacji), blizna-114 | **215/241 = 89,2 %**, 26 luk (E2: 8 — wszystkie „router chwyta przed klasyfikatorem”, E4: 7, E5: 11), 0 regresji |
+
+⚠️ Uczciwie o liczbie 89 %: nagrania klasyfikatora (`tests/_nagrania-v2.json`, 55 pytań) są **napisane ręcznie** jako oczekiwany wynik
+modelu — ławka w CI sprawdza, czy potok robi z intencją to, co trzeba (0 $), a NIE czy flash-lite tak klasyfikuje. Prawdziwą trafność
+mierzy `node tests/_lawka-v2.js --zywy` z `GEMINI_API_KEY` w env (~55 wywołań ≈ $0,02): nadpisuje nagrania prawdziwymi odpowiedziami
+i wtedy ławka pokazuje rozjazdy modelu. Do zrobienia przez Filipa (klucz jest tylko w sekretach Supabase) albo po 8.11 przez EF testową.
+
+Pozostałe luki E2 (8) to pytania, które router v1 łapie zbyt szeroko PRZED klasyfikatorem („ile km ma maraton” → MOJE treningi,
+„co na śniadanie przed biegiem” → biegi w mieście „Sniadanie”, „kiedy ostatnio biegałem” → biegi nadchodzące) — naprawa w routerze
+v1, po zamrożeniu (8.11), albo w v2 przez odwrócenie kolejności dla wąskiej listy wzorców.

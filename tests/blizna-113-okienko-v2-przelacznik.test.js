@@ -95,16 +95,16 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
     const kod = czytaj('supabase/functions/okienko-v2', f);
     for (const m of kod.matchAll(/from\(["']([a-z_0-9]+)["']\)\s*\.(insert|upsert|update|delete)\(/g)) tabeleZapisu.add(m[1]);
     assert.ok(!/\.rpc\(/.test(kod), `${f}: rpc`);
-    assert.doesNotMatch(kod, /const (ZAGADKA|REAKCJA|PYT_|ZDROWIE|DEKLARACJE|NAZWY)\w* = /, `${f}: własna kopia reguły routera / narzędzi`);
+    assert.doesNotMatch(kod, /const (ZAGADKA|REAKCJA|PYT_|ZDROWIE|CHOROBA|DEKLARACJE)\w* = |const NAZWY = /, `${f}: własna kopia reguły routera / narzędzi`);
     assert.doesNotMatch(kod, /export function (dopasuj|sprawdz|osobaZPytania|imprezaZPytania|zapytajModel|zapytajSiec)\b/, `${f}: kopia funkcji v1`);
-    assert.doesNotMatch(kod, /googleapis\.com/, `${f}: model woła się tylko przez moduły v1`);
+    if (f !== 'gemini.mjs') assert.doesNotMatch(kod, /googleapis\.com/, `${f}: Gemini tylko przez gemini.mjs (v2) albo moduły v1`);
   }
   assert.equal(JSON.stringify([...tabeleZapisu].sort()), '["okienko_v2_log"]');
   const ef = czytaj('supabase/functions/okienko-v2/index.ts'), pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
   assert.match(ef, /import \{ potok \} from "\.\/potok\.mjs";/, 'index.ts = tylko HTTP; orkiestracja w potok.mjs (ta sama na ławce v2)');
   assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(pt), 'moduły v1 z ../okienko/, nie z ./');
   for (const mod of ['router', 'narzedzia', 'model', 'siec', 'osoba', 'impreza', 'katalog', 'straznik', 'pamiec', 'odpowiedz']) assert.match(pt, new RegExp(`from "\\.\\./okienko/${mod}\\.mjs"`), mod);
-  assert.match(pt, /return d\.zapiszLog\(adm, \{ athlete_id: athleteId, tekst, \.\.\.w, ms: Date\.now\(\) - T0 \}\);/, 'ms w każdym wpisie');
+  assert.match(pt, /return d\.zapiszLog\(adm, \{ athlete_id: athleteId, tekst, \.\.\.w, tok_we: \(w\.tok_we \|\| 0\) \+ dodTok\.we, tok_wy: \(w\.tok_wy \|\| 0\) \+ dodTok\.wy, ms: Date\.now\(\) - T0 \}\); \};/, 'ms w każdym wpisie (+ tokeny rozumienia, E2)');
   assert.ok(!/zapiszLog\(adm/.test(ef + pt.replace(/d\.zapiszLog\(adm/g, '')), 'v2 nie pisze do okienko_log');
   assert.equal((pt.match(/zapiszLogV2\(/g) || []).length, 0, 'wszystkie wpisy przez log() z ms (zapiszLogV2 tylko jako DOMYSLNE.zapiszLog)');
   assert.match(ef, /"Access-Control-Expose-Headers": "X-Okienko-Wersja"/);

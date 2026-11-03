@@ -17,6 +17,7 @@ export function normalizuj(t) { return T.normalizuj(t); }
 function dodajDni(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 function poniedzialek(d) { const dow = new Date(d + "T12:00:00Z").getUTCDay(); return dodajDni(d, -((dow + 6) % 7)); }
 function ostatniDzien(r, m) { return new Date(Date.UTC(r, m, 0)).toISOString().slice(0, 10); }   // m: 1..12
+export { dodajDni, poniedzialek, ostatniDzien };   // Okienko 2.0 (intencje.mjs) liczy zakresy tymi samymi funkcjami
 function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego roku → ten sam miesiąc rok wcześniej
   let r = Number(dzis.slice(0, 4));
   if (nr > Number(dzis.slice(5, 7))) r -= 1;
@@ -26,7 +27,11 @@ function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego 
 
 export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utwór z radia albo przepis.";
 export const ODP_TYLKO_POLSKA = "Maszyna wyników zna tylko biegi w Polsce.";   // M3-2 (e)
-export const ODP_ZDROWIE = "Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.";   // etap 5 (c): bez porad medycznych
+export const ODP_ZDROWIE = "Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.";
+/* ławka v2 (3.11; decyzja Filipa 2.11: katar/choroba = STAŁY TEKST bez sieci; do 3.11 „mam katar” szło do modelu, a „czy biegać z katarem”
+   do Google). SZKIC w tonie Filipa — Filip akceptuje przed wdrożeniem EF (sam ją wdraża). */
+export const ODP_CHOROBA = "Katar bez gorączki zwykle nie wyklucza spokojnego biegu. Gorączka, kaszel w piersiach albo osłabienie to sygnał, żeby odpuścić i wrócić po dwóch dniach bez objawów. W razie wątpliwości zapytaj lekarza.";
+const CHOROBA = /\b(katar|katarem|kataru|katarze|przezieb\w*|goraczk\w*|gryp[aeyo]\w*|chory|chora|chorob\w*|kaszel|kaszl\w*|antybiotyk\w*|infekcj\w*|zatok\w*)\b/;   // nie „katar\w*”: „Katarzyny” (ławka v2)   // etap 5 (c): bez porad medycznych
 const ZDROWIE = /\b(skrecil\w*|zlamal\w*|naderwal\w*|naciagnal\w*|stlukl\w*|zwichnal\w*|kontuzj\w*|boli|bola|bolal\w*|bol|bolu|bolem|uraz\w*|naciagn\w*|naderwan\w*|skrecon\w*|zwichn\w*|stluczon\w*|zapalen\w*|shin splint\w*|piszczel\w* boli)\b/;
 export const ODP_KALKULATOR_PUSTY = "Napisz tempo (np. 5:30/km), prędkość w km/h albo czas i dystans — przeliczę.";   // M3-2 (d)
 const EKRAN_SLOWO = [
@@ -231,6 +236,7 @@ export function dopasuj(tekst, dzis) {
   if (/\b(moj|mojego|moim|mojemu)\s+trener\w*|\bmoim trenerem\b|\bmam trenera\b|\bkto mnie trenuje\b/.test(t)) return { narzedzie: "moj_trener", args: {} };
   // etap 5 (c): ból / kontuzja → stałe zdanie, 0 tokenów, bez porad; EF dokłada „Napisz do trenera", gdy jest trener
   if (ZDROWIE.test(t) && !/\bodzna\w*|\bpowrot po kontuzji\b.*\bodzna/.test(t)) return { zdanie: ODP_ZDROWIE, log: "zdrowie", trener: true };
+  if (CHOROBA.test(t)) return { zdanie: ODP_CHOROBA, log: "zdrowie" };
   // M3-2 (a): forma („jaka mam formę", „mój TSB"), znajomi („moi znajomi co biegali" — nie „dodaj X do znajomych", to osoba),
   // miasto („kto biega z mojego miasta") — 0 tokenów; „co to jest forma / jak działa TSB" zostaje dla katalogu pojęć
   if (/\bmoj\w* tsb\b|\bmam tsb\b|\b(jaka|jaką|moja|mam|sprawdz|ocen)\b[^.]*\bform[aey]\b|\bform[aey]\b[^.]*\b(mam|moja)\b/.test(t)) return { narzedzie: "moja_forma", args: {} };
