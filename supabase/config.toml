@@ -79,6 +79,9 @@ verify_jwt = true        # kalendarz.html:3751, zawodnik.html:2568; wymagajUsera
 [functions.okienko]
 verify_jwt = true        # zawodnik.html „Zapytaj" (M1); wymagajUsera, klient z JWT użytkownika (RLS)
 
+[functions.okienko-v2]
+verify_jwt = true        # Okienko 2.0 (E0, 5.11): to samo wejście co okienko; front kieruje tu tylko konta z okienko_v2_konta (RPC okienko_wersja)
+
 [functions.impreza-zglos]
 verify_jwt = true        # K5: zawodnik.html saveGoal → F6 event_propose; wymagajUsera, token użytkownika do F6, biała lista 3 pól
 

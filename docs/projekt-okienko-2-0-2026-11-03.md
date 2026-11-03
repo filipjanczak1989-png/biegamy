@@ -134,3 +134,20 @@ dla przepisów złożonych, narzędzia równolegle, timeout klasyfikatora 1,5 s.
 3. Kciuki 👍/👎 — zmiana klienta po 8.11 (E7), zgoda?
 4. Raport nocny: tabela + `tools/okienko-raport.js` (czytasz na żądanie) czy dodatkowo mail przez Resend?
 5. Próg pewności 0,6 i limit 3 narzędzi w przepisie — zostawiamy, dostrajamy po E2 na ławce?
+
+## Decyzje Filipa 3.11.2026 (noc) — projekt PRZYJĘTY, budowa od razu
+
+- **E0 w środę 5.11, przed zamrożeniem** (migracja przełącznika + ~8 linii w `js/okienko.js` + EF `okienko-v2`, blizna-113) —
+  Filip testuje v2 na swoim koncie w trakcie tygodnia; **konto testowe też na liście** (`okienko_v2_konta`: `56092926…` Filip,
+  `9c2df65c…` konto testowe).
+- **Kciuki 👍/👎 — po 8.11** (E7, zmiana klienta). Do tego czasu „złe” = reakcje meta z logu + samosprawdzenie.
+- **Raport nocny złych odpowiedzi — tak, bez danych osobowych** (maskowanie słownikami imion/nazwisk, bez athlete_id).
+- Progi i pozostałe: **wg rekomendacji z projektu** — pewność 0,6; ≤ 3 narzędzia w przepisie; raport = tabela
+  `okienko_v2_raport` + `tools/okienko-raport.js` (mail nie); klasyfikator liczy się do 60/dobę; limity dzienne z
+  `okienko_v2_log`, budżet miesięczny v1 + v2.
+- **Etapy E1+ budowane od razu w `okienko-v2/`** (poza zamrożonymi plikami, bez zmian w `../okienko/` 6.11 18:00–8.11), **ławka po
+  każdym etapie**; przełączenie wszystkich (`v2_dla_wszystkich`) po 8.11 przy ławce ≥ 95 % i OK Filipa; powrót jednym przełącznikiem.
+
+Stan 3.11 (noc): E0 zbudowane lokalnie — migracja `20261105_okienko_v2_przelacznik.sql` (test po skutku `tools/okienko-v2-test.sh`,
+z `OV2_Z_MIGRACJA=1` przechodzi na prod w transakcji z rollbackiem), EF `okienko-v2` **wdrożona** (nikt do niej nie trafia, dopóki
+migracja nie wejdzie), `js/okienko.js` z przełącznikiem. Wykonanie migracji i push — Filip w środę 5.11.

@@ -200,8 +200,13 @@
     return html + (Array.isArray(json.karty) ? json.karty.slice(0, 5).map(karta).join('') : '');
   }
 
-  /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc. */
+  /* Odpowiedź EF → HTML. Status HTTP i offline decydują o stanie; tekst modelu zawsze przez esc.
+     Okienko 2.0 (E0): odpowiedź z EF okienko-v2 niesie wersja:'v2' → mała etykieta, żeby testujący wiedział, która wersja odpowiada. */
   function htmlOdpowiedzi(status, json, tekst) {
+    var tresc = htmlOdpowiedziTresc(status, json, tekst);
+    return (status === 200 && json && json.wersja === 'v2') ? '<p class="okn-etykieta-siec okn-wersja">okienko 2.0</p>' + tresc : tresc;
+  }
+  function htmlOdpowiedziTresc(status, json, tekst) {
     if (status === 'offline') return '<p class="okn-zdanie">' + esc(TEKSTY.offline) + '</p>' + htmlEkranow(tekst);
     if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
@@ -232,6 +237,20 @@
       '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zrodla.join('') + '</ul>';
   }
 
+  /* OKIENKO 2.0 — E0 (Filip 3.11, docs/projekt-okienko-2-0-2026-11-03.md §2): wersję wybiera BAZA przez RPC okienko_wersja()
+     (lista okienko_v2_konta + okienko_ustawienia), raz na sesję strony; błąd, offline, brak RPC → v1. Nagłówek X-Okienko-Wersja: v1
+     z EF v2 (awaria modelu) = do końca sesji v1. Kształt odpowiedzi obu wersji identyczny; v2 dokłada wersja:'v2' → etykieta. */
+  var _wersja = null;
+  function wersjaOkienka() {
+    if (_wersja) return Promise.resolve(_wersja);
+    var r = null;
+    try { r = (window.sb && typeof window.sb.rpc === 'function') ? window.sb.rpc('okienko_wersja') : null; } catch (e) { r = null; }
+    if (!r) { _wersja = 'v1'; return Promise.resolve(_wersja); }
+    return Promise.resolve(r).then(function (x) { _wersja = (x && x.data === 'v2') ? 'v2' : 'v1'; return _wersja; })
+      .catch(function () { _wersja = 'v1'; return _wersja; });
+  }
+  function adresOkienka(wersja) { return window.SB_URL + '/functions/v1/' + (wersja === 'v2' ? 'okienko-v2' : 'okienko'); }
+
   var historia = [];
   async function zapytaj(tekst) {
     tekst = String(tekst || '').trim().slice(0, 300);
@@ -243,11 +262,13 @@
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
     var t = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
     try {
-      var r = await fetch(window.SB_URL + '/functions/v1/okienko', {
+      var wersja = await wersjaOkienka();
+      var r = await fetch(adresOkienka(wersja), {
         method: 'POST', signal: ctrl ? ctrl.signal : undefined, credentials: 'omit', cache: 'no-store',
         headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + sesja.access_token, 'apikey': window.SB_KEY },
         body: JSON.stringify({ tekst: tekst, ekran: 'home', historia: historia.slice(-3) })
       });
+      try { if (wersja === 'v2' && r.headers && r.headers.get('x-okienko-wersja') === 'v1') _wersja = 'v1'; } catch (e) {}
       var j = await r.json().catch(function () { return null; });
       if (r.status === 200 && j && Array.isArray(j.zdania) && j.zdania.length) historia.push({ q: tekst, a: j.zdania.join(' ').slice(0, 300) });
       return { status: r.status, json: j };
@@ -314,6 +335,7 @@
     var ov = el('okienko-arkusz'); if (!ov) return;
     var ch = el('okienko-chipy'); if (ch) ch.innerHTML = chipy();
     ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false');
+    wersjaOkienka();   // E0: RPC rusza przy otwarciu arkusza, żeby pierwsze pytanie nie czekało na przełącznik
     var we = el('okienko-tekst'); if (we) setTimeout(function () { try { we.focus(); } catch (e) {} }, 50);
   }
   function zamknij() { var ov = el('okienko-arkusz'); if (ov) { ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true'); } }
