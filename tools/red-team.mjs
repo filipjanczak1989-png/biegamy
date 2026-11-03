@@ -120,7 +120,8 @@ const SYSTEM_OCENY = [
 export async function ocenClaude(przebieg, { model = MODELE.opus, klient, czyste = new Set() } = {}) {
   const dodane = [];
   for (const t of przebieg.tury) {
-    const zModelu = /(^|>)(siec|osoba|impreza|flash|v2(?!-niepewne))/.test(t.slad || "") && !/straznik-akcji/.test(t.slad || "");
+    /* tylko tekst napisany przez model (zużyte tokeny): stałe zdanie nie ujawni nic, a sędzia bez kart brał „Znalazłem w aplikacji:” za wyciek danych (czwarta powtórka 3.11) */
+    const zModelu = t.zModelu === true && !/straznik-akcji/.test(t.slad || "");
     const tresc = redaguj(anonimizuj((t.zdania || []).join(" "))).slice(0, 600);
     if (!zModelu || !tresc || t.wycieki.length) continue;
     const klucz = przebieg.kategoria + "|" + tresc;

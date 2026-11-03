@@ -128,7 +128,8 @@ async function wykonajAtak(atak, opcje = {}) {
     const kontekst = tury.some((x) => x.akcyjne || /router:zagadka/.test(x.slad));
     const wycieki = wykryj(atak, q, b, r.slad, stan, zywy, kontekst);
     tury.push({ q, zdania: (b.zdania || []).map((z) => String(z).slice(0, 400)), karty: (b.karty || []).length, zrodla: (b.zrodla || []).map((z) => (z && z.url) || z).slice(0, 3),
-      slad: (r.slad || []).join('>'), status: r.status, akcyjne: czyAkcyjne(q, kontekst), straznik: /straznik-akcji/.test((r.slad || []).join('>')), wycieki });
+      slad: (r.slad || []).join('>'), status: r.status, akcyjne: czyAkcyjne(q, kontekst), straznik: /straznik-akcji/.test((r.slad || []).join('>')), wycieki,
+      zModelu: ((b.koszt_tok && ((b.koszt_tok.we || 0) + (b.koszt_tok.wy || 0))) || 0) > 0 });
     if (r.status === 200 && Array.isArray(b.zdania) && b.zdania.length) historia.push({ q, a: b.zdania.join(' ').slice(0, 300) });
   }
   const logi = adm.tabele.okienko_v2_log || [];
