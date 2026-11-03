@@ -80,11 +80,11 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   <div class="meta-bar">
     <div class="meta-item">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      Effective: 1 July 2026
+      Effective: 5 November 2026
     </div>
     <div class="meta-item">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-      Version 1.0
+      Version 1.1
     </div>
   </div>
 
@@ -110,7 +110,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
       <li><strong>Coarse location</strong> — the city name you provide, used only for weather. No GPS.</li>
       <li><strong>Communication</strong> — messages and comments with your coach and friends, notifications.</li>
       <li><strong>Technical</strong> — login session and, if you enable them, a push subscription id and browser type.</li>
-      <li><strong>Integration keys</strong> — if you connect intervals.icu (or Strava), the data needed for the connection (see §5).</li>
+      <li><strong>Integration keys</strong> — if you connect intervals.icu (and, in future, Garmin Connect directly), the data needed for the connection (see §5).</li>
     </ul>
   </div>
 
@@ -120,7 +120,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
     <div class="section-title">Legal basis (GDPR)</div>
     <ul>
       <li><strong>Performance of a service (Art. 6(1)(b))</strong> — running your account, logging training, coach–athlete communication.</li>
-      <li><strong>Your consent (Art. 6(1)(a))</strong> — push notifications, integrations (intervals.icu, Strava), AI report generation. Withdrawable anytime.</li>
+      <li><strong>Your consent (Art. 6(1)(a))</strong> — push notifications, integrations (intervals.icu, in future Garmin Connect), AI report generation and use of the “Okienko” assistant. Withdrawable anytime.</li>
       <li><strong>Explicit consent for health data (Art. 9(2)(a))</strong> — health data is provided voluntarily and processed only with your explicit consent.</li>
       <li><strong>Legitimate interest (Art. 6(1)(f))</strong> — app security and abuse prevention.</li>
     </ul>
@@ -146,11 +146,15 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
     </div>
     <div class="svc">
       <div class="svc-name"><a href="https://intervals.icu/privacy" target="_blank" rel="noopener">intervals.icu</a> — watch training import</div>
-      <div class="svc-desc">If you connect it, we pull your activities (Garmin/Polar/Coros data) into BiegaMy as workouts. Your API key is stored server-side and <strong>never read by the browser</strong>. We send intervals.icu nothing beyond what's needed to connect (your id and key).</div>
+      <div class="svc-desc">If you connect it, we pull your activities (Garmin/Polar/Coros/Suunto data you connect there yourself) into BiegaMy as workouts. Your API key is stored server-side and <strong>never read by the browser</strong>. We send intervals.icu nothing beyond what's needed to connect (your id and key).</div>
     </div>
     <div class="svc">
       <div class="svc-name"><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic (Claude)</a> — AI reports & analysis</div>
-      <div class="svc-desc">When an AI report, plan or analysis is generated, the relevant training/health data (and training/meal images for recognition) is sent server-side to Anthropic's Claude model to produce the content. Under Anthropic's API policy, data sent via the API is not used to train models (see their privacy policy).</div>
+      <div class="svc-desc">When an AI report, plan or analysis is generated, the relevant training/health data (including workouts imported from your watch, and training/meal images for recognition) is sent server-side to Anthropic's Claude model to produce the content. Under Anthropic's API policy, data sent via the API is not used to train models (see their privacy policy).</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google (Gemini)</a> — the “Okienko” assistant and race cover images</div>
+      <div class="svc-desc">When you ask the “Okienko” assistant a question, Google's Gemini model receives the text of your question, the previous turns of that conversation and — where needed to answer — app data required for the reply (e.g. your recent workouts). This happens server-side, without your e-mail address. If a question needs a web search, only the question text reaches the search engine. Gemini also generates race cover images from the event description (type, place, season) — no personal data.</div>
     </div>
     <div class="svc">
       <div class="svc-name"><a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend</a> — email delivery</div>
@@ -173,8 +177,8 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
       <div class="svc-desc">The app and its static assets are hosted on GitHub Pages. No personal data is uploaded there — user files go to Supabase.</div>
     </div>
     <div class="svc">
-      <div class="svc-name"><a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener">Strava</a> — optional integration</div>
-      <div class="svc-desc">If connected, we store access tokens to fetch your activities. Fully optional; tokens are removed on disconnect or account deletion.</div>
+      <div class="svc-name"><a href="https://www.garmin.com/en-US/privacy/global/" target="_blank" rel="noopener">Garmin Connect</a> — direct connection (planned)</div>
+      <div class="svc-desc">We are working on a direct Garmin Connect integration (Garmin Connect Developer Program). Once live: after your consent given in Garmin Connect we will receive <strong>only your activities</strong> (type, start time and duration, distance, pace, heart rate, elevation gain, calories, device) and store them as workouts labelled “Data from Garmin Connect”. We do not pull Garmin health data (sleep, stress, Body Battery). Access tokens are held server-side only. Disconnecting in BiegaMy or in Garmin Connect (we then receive a deregistration notification) removes the token and stops the import; Garmin-sourced data is deleted on your request and when you delete your account. Garmin data is never passed to other applications or to anyone other than you and your coach.</div>
     </div>
     <p style="margin-top:16px;">We do not sell your data or share it with advertisers.</p>
   </div>
@@ -185,7 +189,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
     <div class="section-title">Storage & security</div>
     <p>Data is stored with Supabase in the <strong>European Union (Ireland)</strong>, over encrypted connections (HTTPS). Row Level Security gates database access (anonymous users have none). The intervals.icu API key is server-side only. Screenshots and blood-test scans live in a private, non-public storage bucket; profile avatars are served from a public URL.</p>
     <h4>Who can see your data</h4>
-    <p>Your data is accessible to <strong>you</strong> and <strong>your coach</strong> (for coaching). To be transparent: the app is in active development and full data isolation between all athlete accounts is still being rolled out — currently some profile data of other athletes may be visible to signed-in users. You can mark your profile private in settings (it is private by default).</p>
+    <p>Your data is accessible to <strong>you</strong> and <strong>your coach</strong> (for coaching). The database access rules (Row Level Security) were fully reviewed in September 2026 and restrict every record to its owner and their coach. The only exceptions are what you share in the community yourself: a public profile, posts and friendships, and aggregate counters (e.g. community kilometres) that contain no personal data. You can mark your profile private in settings (it is private by default).</p>
   </div>
 
   <!-- 7 -->
@@ -208,14 +212,14 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
     <div class="section-title">How to delete your account & data</div>
     <p>Delete your account yourself: <strong>Profile → Settings → Delete account</strong> (you type “USUŃ KONTO” and your password if you use email login).</p>
     <ul>
-      <li><strong>Permanently deleted:</strong> all workouts, nutrition data, health data and intake form (including blood-test scans), personal bests, notifications, push subscriptions, game data, <strong>the intervals.icu API key and Strava tokens</strong>, race sign-ups, posts and friendships.</li>
+      <li><strong>Permanently deleted:</strong> all workouts, nutrition data, health data and intake form (including blood-test scans), personal bests, notifications, push subscriptions, game data, <strong>the intervals.icu API key (and, in future, Garmin Connect tokens)</strong>, race sign-ups, posts and friendships.</li>
       <li><strong>Profile anonymised</strong> — personal data removed, profile marked “Deleted user”; the login account is deactivated and stripped of personal data.</li>
       <li><strong>Files</strong> (photos, screenshots, scans) are removed from storage.</li>
     </ul>
     <div class="highlight">
       <p>Your messages and comments intentionally <strong>remain</strong> with their recipients — but shown as “Deleted user”, unlinked from your identity, so other people's conversations stay coherent.</p>
     </div>
-    <p>Coach accounts can't be deleted this way — contact us and we'll handle it manually. You can also disconnect an integration (e.g. intervals.icu) at any time without deleting your account; we then remove the connection key while imported workouts remain.</p>
+    <p>Coach accounts can't be deleted this way — contact us and we'll handle it manually. You can also disconnect an integration (e.g. intervals.icu) at any time without deleting your account; we then remove the connection key while imported workouts remain. If you revoke consent on the provider's side (e.g. in Garmin Connect), we receive a notification and remove the connection key in the same way; Garmin-sourced data is additionally deleted on your request.</p>
   </div>
 
   <!-- 10 -->

@@ -91,11 +91,11 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
   <div class="meta-bar">
     <div class="meta-item">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      Obowiązuje od: 1 lipca 2026
+      Obowiązuje od: 5 listopada 2026
     </div>
     <div class="meta-item">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-      Wersja 1.0
+      Wersja 1.1
     </div>
   </div>
 
@@ -137,7 +137,7 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
       <li><strong>Lokalizacja (zgrubna)</strong> — nazwa miasta, którą sam podajesz. Cel: prognoza pogody dla Twoich treningów. Nie zbieramy dokładnej lokalizacji GPS.</li>
       <li><strong>Komunikacja</strong> — wiadomości i komentarze między Tobą a trenerem oraz znajomymi, powiadomienia. Cel: komunikacja w ramach coachingu i społeczności.</li>
       <li><strong>Dane techniczne</strong> — dane sesji logowania oraz — jeśli włączysz powiadomienia — identyfikator subskrypcji push i typ przeglądarki. Cel: działanie i bezpieczeństwo aplikacji.</li>
-      <li><strong>Klucze integracji</strong> — jeśli łączysz konto z intervals.icu (lub Stravą), przechowujemy dane potrzebne do połączenia (patrz sekcja 5).</li>
+      <li><strong>Klucze integracji</strong> — jeśli łączysz konto z intervals.icu (a w przyszłości bezpośrednio z Garmin Connect), przechowujemy dane potrzebne do połączenia (patrz sekcja 5).</li>
     </ul>
   </div>
 
@@ -148,7 +148,7 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
     <p>Przetwarzamy Twoje dane na następujących podstawach RODO:</p>
     <ul>
       <li><strong>Wykonanie usługi (art. 6 ust. 1 lit. b)</strong> — prowadzenie konta, rejestrowanie treningów i komunikacja trener–zawodnik. To rdzeń działania aplikacji.</li>
-      <li><strong>Twoja zgoda (art. 6 ust. 1 lit. a)</strong> — powiadomienia push, połączenie z integracjami (intervals.icu, Strava), generowanie raportów przez AI. Zgodę możesz wycofać w każdej chwili.</li>
+      <li><strong>Twoja zgoda (art. 6 ust. 1 lit. a)</strong> — powiadomienia push, połączenie z integracjami (intervals.icu, w przyszłości Garmin Connect), generowanie raportów przez AI i korzystanie z asystenta „Okienko”. Zgodę możesz wycofać w każdej chwili.</li>
       <li><strong>Wyraźna zgoda na dane o zdrowiu (art. 9 ust. 2 lit. a)</strong> — dane zdrowotne podajesz dobrowolnie i przetwarzamy je wyłącznie za Twoją wyraźną zgodą (sekcja 4).</li>
       <li><strong>Uzasadniony interes (art. 6 ust. 1 lit. f)</strong> — bezpieczeństwo aplikacji i zapobieganie nadużyciom.</li>
     </ul>
@@ -160,7 +160,7 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
     <div class="section-title">Dane o zdrowiu (wrażliwe)</div>
     <p>Aplikacja przetwarza <strong>dane dotyczące zdrowia</strong>, które w RODO są kategorią szczególną (art. 9). Są to, w zależności od tego, co sam wprowadzisz:</p>
     <ul>
-      <li>tętno (z ręcznego wpisu, importu z zegarka lub Stravy),</li>
+      <li>tętno (z ręcznego wpisu lub importu z zegarka),</li>
       <li>waga, wzrost, podstawowa i całkowita przemiana materii (BMR/TDEE),</li>
       <li>kalorie i makroskładniki spożywanych posiłków,</li>
       <li>w miarę rozwoju planowana jest analiza zmienności rytmu serca (HRV),</li>
@@ -184,12 +184,17 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
 
     <div class="svc">
       <div class="svc-name"><a href="https://intervals.icu/privacy" target="_blank" rel="noopener">intervals.icu</a> — import treningów z zegarka</div>
-      <div class="svc-desc">Jeśli połączysz konto, pobieramy Twoje aktywności z intervals.icu (dane z Garmin/Polar/Coros) i zapisujemy je jako treningi w BiegaMy. Twój klucz API jest przechowywany po stronie serwera i <strong>nigdy nie jest odczytywany przez przeglądarkę</strong>. Do intervals.icu nie wysyłamy żadnych Twoich danych poza tym, co potrzebne do połączenia (Twój identyfikator i klucz).</div>
+      <div class="svc-desc">Jeśli połączysz konto, pobieramy Twoje aktywności z intervals.icu (dane z Garmin/Polar/Coros/Suunto, które sam tam podłączasz) i zapisujemy je jako treningi w BiegaMy. Twój klucz API jest przechowywany po stronie serwera i <strong>nigdy nie jest odczytywany przez przeglądarkę</strong>. Do intervals.icu nie wysyłamy żadnych Twoich danych poza tym, co potrzebne do połączenia (Twój identyfikator i klucz).</div>
     </div>
 
     <div class="svc">
       <div class="svc-name"><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic (Claude)</a> — raporty i analizy AI</div>
-      <div class="svc-desc">Gdy generowany jest raport, plan lub analiza AI, odpowiednie dane treningowe i zdrowotne (oraz zdjęcia treningów/posiłków przy rozpoznawaniu) są wysyłane do modelu Claude firmy Anthropic w celu wygenerowania treści. Dzieje się to po stronie serwera. Zgodnie z polityką Anthropic dla API dane przesyłane przez API nie są wykorzystywane do trenowania modeli (szczegóły w ich polityce prywatności).</div>
+      <div class="svc-desc">Gdy generowany jest raport, plan lub analiza AI, odpowiednie dane treningowe i zdrowotne (w tym treningi zaimportowane z zegarka, oraz zdjęcia treningów/posiłków przy rozpoznawaniu) są wysyłane do modelu Claude firmy Anthropic w celu wygenerowania treści. Dzieje się to po stronie serwera. Zgodnie z polityką Anthropic dla API dane przesyłane przez API nie są wykorzystywane do trenowania modeli (szczegóły w ich polityce prywatności).</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google (Gemini)</a> — asystent „Okienko” i okładki zawodów</div>
+      <div class="svc-desc">Gdy zadajesz pytanie asystentowi „Okienko”, do modelu Gemini firmy Google trafia treść Twojego pytania, poprzednie wymiany w tej rozmowie oraz — gdy odpowiedź tego wymaga — dane z aplikacji potrzebne do odpowiedzi (np. Twoje ostatnie treningi). Dzieje się to po stronie serwera, bez Twojego adresu e-mail. Jeśli pytanie wymaga wyszukania w sieci, do wyszukiwarki trafia wyłącznie treść pytania. Gemini generuje też grafiki okładek zawodów z opisu imprezy (typ, miejsce, pora roku) — bez żadnych danych osobowych.</div>
     </div>
 
     <div class="svc">
@@ -218,8 +223,8 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
     </div>
 
     <div class="svc">
-      <div class="svc-name"><a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener">Strava</a> — opcjonalna integracja</div>
-      <div class="svc-desc">Jeśli połączysz konto ze Stravą, przechowujemy tokeny dostępu, aby pobierać Twoje aktywności. Integracja jest w pełni dobrowolna, a tokeny usuwamy przy odłączeniu lub usunięciu konta.</div>
+      <div class="svc-name"><a href="https://www.garmin.com/pl-PL/privacy/global/" target="_blank" rel="noopener">Garmin Connect</a> — bezpośrednie połączenie (planowane)</div>
+      <div class="svc-desc">Pracujemy nad bezpośrednim połączeniem z Garmin Connect (Garmin Connect Developer Program). Gdy je uruchomimy: po Twojej zgodzie wyrażonej w Garmin Connect będziemy otrzymywać <strong>wyłącznie Twoje aktywności</strong> (typ, czas startu i trwania, dystans, tempo, tętno, przewyższenie, kalorie, urządzenie) i zapisywać je jako treningi oznaczone „Dane: Garmin Connect”. Nie pobieramy danych o zdrowiu z Garmina (sen, stres, Body Battery). Tokeny dostępu są trzymane wyłącznie po stronie serwera. Odłączenie w BiegaMy albo w Garmin Connect (otrzymujemy wtedy powiadomienie o cofnięciu zgody) usuwa token i zatrzymuje import; dane pobrane z Garmina usuwamy na Twoje żądanie i przy usunięciu konta. Danych z Garmina nie przekazujemy innym aplikacjom ani nikomu poza Tobą i Twoim trenerem.</div>
     </div>
 
     <p style="margin-top:16px;">Nie sprzedajemy Twoich danych i nie przekazujemy ich reklamodawcom.</p>
@@ -237,7 +242,7 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
       <li>Zrzuty ekranu i skany badań przechowujemy w prywatnym, niepublicznym magazynie plików. Zdjęcia profilowe (avatary) są dostępne pod publicznym adresem — nie umieszczaj tam treści, których nie chcesz upubliczniać.</li>
     </ul>
     <h4>Kto widzi Twoje dane</h4>
-    <p>Dostęp do Twoich danych masz <strong>Ty</strong> oraz <strong>Twój trener</strong> (w celach coachingowych). Uczciwie zaznaczamy: aplikacja jest w aktywnym rozwoju i pełna izolacja danych między wszystkimi kontami zawodników jest dopiero wdrażana — obecnie część danych profilowych innych zawodników może być widoczna dla zalogowanych użytkowników. Profil możesz oznaczyć jako prywatny w ustawieniach (domyślnie jest prywatny).</p>
+    <p>Dostęp do Twoich danych masz <strong>Ty</strong> oraz <strong>Twój trener</strong> (w celach coachingowych). Reguły dostępu w bazie (Row Level Security) zostały w całości przejrzane we wrześniu 2026 i ograniczają każdy zapis do jego właściciela i jego trenera. Wyjątkiem jest tylko to, co sam udostępniasz w społeczności: profil publiczny, posty i znajomości oraz zbiorcze liczniki (np. wspólne kilometry) bez danych osobowych. Profil możesz oznaczyć jako prywatny w ustawieniach (domyślnie jest prywatny).</p>
   </div>
 
   <!-- 7 -->
@@ -272,14 +277,14 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
     <p>Konto usuniesz samodzielnie: <strong>Profil → Ustawienia → Usuń konto</strong>. Dla bezpieczeństwa poprosimy o wpisanie frazy „USUŃ KONTO" (oraz hasła, jeśli logujesz się e-mailem).</p>
     <h4>Co dokładnie się dzieje</h4>
     <ul>
-      <li><strong>Trwale usuwamy:</strong> wszystkie treningi, dane diety i profilu żywieniowego, dane zdrowotne i ankietę wstępną (w tym skany badań krwi), rekordy, powiadomienia, subskrypcje push, dane mini-gier, <strong>klucz API intervals.icu i tokeny Strava</strong>, zapisy na zawody, posty i znajomości.</li>
+      <li><strong>Trwale usuwamy:</strong> wszystkie treningi, dane diety i profilu żywieniowego, dane zdrowotne i ankietę wstępną (w tym skany badań krwi), rekordy, powiadomienia, subskrypcje push, dane mini-gier, <strong>klucz API intervals.icu (a w przyszłości tokeny Garmin Connect)</strong>, zapisy na zawody, posty i znajomości.</li>
       <li><strong>Anonimizujemy Twój profil</strong> — dane osobowe są usuwane, a profil zostaje oznaczony jako „Usunięty użytkownik". Konto logowania jest dezaktywowane i pozbawione danych osobowych.</li>
       <li><strong>Pliki</strong> (zdjęcia, zrzuty ekranu, skany) są usuwane z magazynu.</li>
     </ul>
     <div class="highlight">
       <p>Celowo <strong>pozostają</strong> Twoje wiadomości i komentarze u ich odbiorców — ale podpisane już jako „Usunięty użytkownik", bez powiązania z Twoją tożsamością. Dzięki temu rozmowy innych osób pozostają spójne.</p>
     </div>
-    <p>Konta trenera nie można usunąć tą drogą — napisz do nas, a zajmiemy się tym ręcznie. Możesz też w każdej chwili odłączyć samą integrację (np. intervals.icu) bez usuwania konta — wtedy usuwamy klucz połączenia, a zaimportowane treningi pozostają.</p>
+    <p>Konta trenera nie można usunąć tą drogą — napisz do nas, a zajmiemy się tym ręcznie. Możesz też w każdej chwili odłączyć samą integrację (np. intervals.icu) bez usuwania konta — wtedy usuwamy klucz połączenia, a zaimportowane treningi pozostają. Jeśli cofniesz zgodę po stronie dostawcy (np. w Garmin Connect), dostaniemy o tym powiadomienie i usuniemy klucz połączenia tak samo; dane pobrane z Garmina usuwamy dodatkowo na Twoje żądanie.</p>
   </div>
 
   <!-- 10 -->
