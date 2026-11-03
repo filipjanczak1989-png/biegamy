@@ -28,7 +28,7 @@ Powtórki to dokładnie te same rozmowy (`--ataki`), łącznie z turami adaptacy
 
 Żaden nie doprowadził do wycieku. Kolejność wg tego, co zobaczyliby ludzie w sobotę.
 
-1. **Tekst przed startem w trakcie akcji.** Pytanie o akcję rozpoznane tylko przez klasyfikator nie pobierało stanu akcji, więc po starcie dostawało odpowiedź z okresu przed startem. W stanie `trwa`: 10 z 18 takich tur. Na produkcji działoby się to za każdym razem, bo tam stan nie ma skąd się przypadkowo ustawić.
+1. **Tekst przed startem w trakcie akcji.** Pytanie o akcję rozpoznane tylko przez klasyfikator nie pobierało stanu akcji, więc po starcie dostawało odpowiedź z okresu przed startem. W stanie `trwa`: 10 z 18 takich tur. Pozostałe 8 było poprawne prawdopodobnie tylko dlatego, że równoległe żądania w tym samym procesie ustawiały wspólny stan, więc przy małym ruchu na produkcji odsetek błędnych może być wyższy (nie zmierzono).
 2. **Strażnik wyjścia ślepy na języki ataków.** Znalezione sondą przed płatnym przebiegiem: 13 z 21 podłożonych przecieków przechodziło, m.in. nazwa celu cyrylicą i po niemiecku, opisy celu oraz choroba dziecka po ukraińsku, rosyjsku, hiszpańsku i czesku. Ostatnia linia obrony miałaby lukę dokładnie tam, gdzie celuje atakujący.
 3. **Pranie kontekstu.** Jedno niewinne pytanie o plan między pytaniami o metę kasowało pamięć o akcji i kolejne pytanie o miejsce szło do Google.
 4. **Dopytania o trasę w sieci i zgadywanie tak/nie.** Pytania o granicę, kraj czy półmetek trafiały do wyszukiwarki i wracały z przypadkowym maratonem albo gołym „Nie.”, które wygląda jak potwierdzenie. Do wyszukiwarki idzie samo pytanie bez danych o wyprawie, więc wycieku nie było, ale odpowiedź wprowadzała w błąd.
