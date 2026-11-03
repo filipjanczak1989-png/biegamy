@@ -20,7 +20,7 @@ test('shared okladka-prompt: prompt z danych serwera, bez tekstu na obrazie; wal
   const P = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/_shared/okladka-prompt.mjs')).href);
   const p = P.promptOkladki({ nazwa: 'XII Bieg Niepodległości <script>', miasto: 'Poznań', dystanse: [10, 5], data: '2026-11-11', typ: 'ulica' });
   assert.match(p, /^Szeroka okładka wydarzenia biegowego: bieg na 10 km w miejscowości Poznań \(XII Bieg Niepodległości <script>\), pora roku: jesień\./);
-  assert.match(p, /Bez żadnego tekstu, liter, numerów startowych i logotypów\.$/); assert.match(p, /naturalne światło dzienne/);
+  assert.match(p, /Bez żadnego tekstu, liter, numerów startowych, logotypów, logo organizatora ani nazwy wydarzenia na obrazie\.$/);   // 3.11: blizna-135 assert.match(p, /naturalne światło dzienne/);
   assert.match(P.promptOkladki({ nazwa: 'Nocny Bieg', dystanse: 5, data: '2026-07-01', typ: 'ulica-noc' }), /nocą/);
   assert.match(P.promptOkladki({ nazwa: 'Marsz', dystanse: 5, data: '2026-01-01', typ: 'nordic' }), /marsz nordic walking/);
   assert.match(P.promptOkladki({ nazwa: 'X', dystanse: 42.195, data: '2026-04-01', typ: 'smieci' }), /maraton[\s\S]*ulice miasta/, 'nieznany typ → ulica');
@@ -47,7 +47,7 @@ test('EF okladki-imprez: noc tylko z sekretem, F6 przez konto serwisowe, limity 
   assert.match(e, /dzisWLogu\(sb, \["trener-gemini", "race-gemini"\]\)\) >= LIMIT_TRENER\) return J\(429/);
   assert.match(e, /promptOkladki\(e\)/); assert.doesNotMatch(e, /promptOkladki\(\{[^}]*body\./, 'prompt nigdy z ciała żądania');
   assert.match(e, /from\("imprezy_okladki"\)\.select\("klucz,nazwa,miasto,typ"\)\.eq\("klucz", klucz\)/, 'dane do promptu z bazy');
-  assert.match(e, /\(await imprezyZF6\(\)\)\.find\(\(x\) => x\.klucz === klucz\)/, 'albo z F6 po kluczu');
+  assert.match(e, /\(await imprezyZF6\(jwtTrenera\)\)\.find\(\(x\) => x\.klucz === klucz\)/, 'albo z F6 po kluczu — od 3.11 tokenem trenera (blizna-135)');
   const tabele = new Set(); for (const m of e.matchAll(/from\("([a-z_]+)"\)\s*\.(insert|upsert|update|delete)\(/g)) tabele.add(m[1]);
   assert.deepEqual([...tabele].sort(), ['imprezy_okladki', 'okladki_log', 'races'], 'zapisy tylko: imprezy_okladki, okladki_log, races.cover_url');
   assert.match(e, /sprawdzWlasneZdjecie\(bajty\)/); assert.match(e, /wgrajOkladke\(sb, await obiektImprezy\(klucz\), obraz\)/); assert.match(e, /wgrajOkladke\(sb, `race-\$\{raceId\}`, obraz\)/);

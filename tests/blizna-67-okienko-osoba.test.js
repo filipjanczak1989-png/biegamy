@@ -157,7 +157,7 @@ test('brak zapisu: osoba.mjs i zapytania trybu osoby tylko czytają; jedyny zapi
   assert.deepEqual([...blok.matchAll(/(zapiszLog|doPamieci|zapiszZnaleziska|\.insert\(|\.upsert\()/g)].map((m) => m[1]), ['zapiszLog']);
 });
 
-test('UI: karta osoby — data-*, bez onclick, id tylko UUID, nazwa escapowana; karta wyników z „Otwórz wyniki" do races.html', () => {
+test('UI: karta osoby — data-*, bez onclick, id tylko UUID, nazwa escapowana; karta wyników z „Otwórz wyniki" do Wyników (od 3.11, blizna-134)', () => {
   const okno = { BM_TEKST: tekstDlaOkna(), escapeHtml: (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     safeExternalHref: (u) => (/^https:\/\//.test(u) ? u : '') };
   const ctx = vm.createContext({ window: okno, document: { readyState: 'loading', addEventListener() {}, getElementById: () => null }, sessionStorage: { getItem: () => null, setItem() {} },
@@ -174,7 +174,7 @@ test('UI: karta osoby — data-*, bez onclick, id tylko UUID, nazwa escapowana; 
   assert.ok(!html.includes('Zły'), 'karta z id spoza UUID');
   assert.equal((html.match(/data-osoba="(profil|znajomy|napisz)"/g) || []).length, 3);
   assert.match(html, /12 startów · ostatni: Maraton Dębno \(18\.10\.2026\) · najlepszy czas 2:57:32 na 42,2 km/);
-  assert.match(html, /data-cel="races\.html">Otwórz wyniki</);
+  assert.match(html, /data-cel="wyniki\.html(#\/zawodnik\/[^"]+)?">Otwórz wyniki</);   // 3.11: nie kalendarz (blizna-134)
   assert.equal(O.htmlOdpowiedzi(200, { tryb: 'osoba', zdania: ['Nie znalazłem tej osoby w aplikacji ani w wynikach.'], karty: [] }),
     '<p class="okn-zdanie">Nie znalazłem tej osoby w aplikacji ani w wynikach.</p>');
 });

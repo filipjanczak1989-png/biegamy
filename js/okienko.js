@@ -37,6 +37,7 @@
     if (typeof url !== 'string') return null;
     for (var k in EKRANY) if (EKRANY[k] === url) return url;
     if (url === 'index.html#dolacz') return url;   // karta „Konto w BiegaMy" (okienko: „jak dołączyć" przed startem akcji)
+    if (/^wyniki\.html(#\/zawodnik\/[A-Za-z0-9%._~-]{1,240})?$/.test(url)) return url;   // 3.11: karta zawodnika w Wynikach (klucz zakodowany)
     return null;
   }
   function czytaj(k, d) { try { var v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -172,6 +173,10 @@
   function miesiacTxt(d) { var p = String(d || '').split('-'); return p.length >= 2 ? window.BM_TEKST.MIESIACE_MIANOWNIK[Number(p[1]) - 1] + ' ' + p[0] : ''; }
   function dataTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] + '.' + p[0] : ''; }
   function startyTxt(n) { return n + ' ' + window.BM_TEKST.startow(n); }   // js/tekst.mjs
+  /* „Otwórz wyniki” → karta zawodnika w Wynikach (wyniki.html#/zawodnik/<klucz>), bez klucza → wyszukiwarka Wyników. Do 3.11 prowadziło
+     do kalendarza startów (races.html) — blizna-134. Klucz jak BM_WYNIKI.RE_KLUCZ; zły → bez hasha. */
+  var RE_KLUCZ_WYNIKOW = /^(?:[a-z0-9_-]{2,30}:[A-Za-z0-9._-]{1,80}|k:[\p{L}][\p{L} .'-]{0,59}\|\d{4})$/u;
+  function celWynikow(klucz) { return typeof klucz === 'string' && RE_KLUCZ_WYNIKOW.test(klucz) ? 'wyniki.html#/zawodnik/' + encodeURIComponent(klucz) : 'wyniki.html'; }
   /* M2b: wyniki z maszyny wyników (F6) — „N startów · ostatni: … · najlepszy czas …" + 5 ostatnich + „Otwórz wyniki". */
   function kartaWynikow(d) {
     var glowa = [d.starty != null ? startyTxt(Number(d.starty)) : '',
@@ -186,7 +191,7 @@
     return '<div class="okn-karta okn-karta--wyniki"><b>' + esc((d.nazwa || '') + (d.rocznik ? ' (' + d.rocznik + ')' : '')) + '</b>' +
       '<span class="okn-meta">' + esc(glowa.join(' · ')) + '</span>' + (lista ? '<ul class="okn-wyniki">' + lista + '</ul>' : '') +
       (inne ? '<span class="okn-meta">Też w wynikach: ' + inne + '</span>' : '') +
-      '<button type="button" class="okn-otworz" data-cel="' + esc(EKRANY.starty) + '">Otwórz wyniki</button></div>';
+      '<button type="button" class="okn-otworz" data-cel="' + esc(celWynikow(d.klucz)) + '">Otwórz wyniki</button></div>';
   }
 
   /* M2b: tryb „osoba" — zdania z sieci (gdy były: etykieta i źródła), potem karty osób i wyników. */

@@ -485,14 +485,14 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
       </div>
       <div id="m-coach-approved" style="display:none;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
         <button onclick="openEditRace()" style="width:100%;background:rgba(78,140,214,0.12);border:1px solid rgba(78,140,214,0.35);color:var(--blue);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-nut-edit.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Edytuj zawody</button>
-        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Własne zdjęcie</button>
-        <button id="m-cover-btn" onclick="nowaOkladka()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">🖼 Nowa okładka</button>
+        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Zmień zdjęcie</button>
+        <button id="m-cover-btn" onclick="nowaOkladka()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✨ Wygeneruj okładkę</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń zawody z kalendarza</button>
       </div>
       <!-- KALENDARZ etap 3 (3.11): trener zmienia zdjęcie KAŻDEJ karty — dla imprezy z maszyny tu (EF okladki-imprez: Gemini z limitem dziennym albo własne zdjęcie) -->
       <div id="m-coach-impreza" style="display:none;margin-bottom:10px;flex-direction:column;gap:8px;">
-        <button id="m-impreza-gemini" onclick="nowaOkladkaImprezy()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">🖼 Nowa okładka (Gemini)</button>
-        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Własne zdjęcie</button>
+        <button id="m-impreza-gemini" onclick="nowaOkladkaImprezy()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">✨ Wygeneruj okładkę</button>
+        <button onclick="wlasneZdjecie()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">📷 Zmień zdjęcie</button>
       </div>
       <input type="file" id="m-plik" accept="image/jpeg,image/png,image/webp" hidden onchange="wyslijWlasneZdjecie(this)">
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
@@ -1399,7 +1399,7 @@ async function nowaOkladka() {
   const btn = document.getElementById('m-cover-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję 2 kadry…'; }
   const { pas, pion } = await zlecOkladki(_currentRace.id, true);
-  if (btn) { btn.disabled = false; btn.textContent = '🖼 Nowa okładka'; }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ Wygeneruj okładkę'; }
   showToast(pas && pion ? 'Nowe okładki gotowe ✓'
     : (pas || pion) ? 'Gotowa tylko ' + (pas ? 'szeroka' : 'pionowa') + ' — spróbuj ponownie'
     : 'Nie udało się wygenerować okładek');
@@ -1507,7 +1507,7 @@ async function nowaOkladkaImprezy() {
   const x = _currentImpreza; if (!x || !_isCoach) return;
   const btn = document.getElementById('m-impreza-gemini'); if (btn) { btn.disabled = true; btn.textContent = '⏳ Generuję…'; }
   const r = await efOkladki({ rodzaj: 'trener-gemini', klucz: kluczImprezyOkladki(x) });
-  if (btn) { btn.disabled = false; btn.textContent = '🖼 Nowa okładka (Gemini)'; }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ Wygeneruj okładkę'; }
   if (r.ok) { pokazOkladkeImprezy(kluczImprezyOkladki(x), r.url); showToast('Nowa okładka gotowa ✓'); }
   else showToast(r.status === 429 ? 'Dzienny limit nowych okładek wyczerpany (20).' : r.status === 404 ? 'Maszyna wyników nie zna tej imprezy — spróbuj po nocnym automacie.' : 'Nie udało się wygenerować okładki');
 }

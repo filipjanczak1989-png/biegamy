@@ -48,7 +48,7 @@ export async function mojeWyniki(sb, athleteId, args, f6ctx, teraz = Date.now())
     let b, w;
     if (a && a.f6_runner_key && RE_KLUCZ.test(a.f6_runner_key)) {
       w = await f6(f6ctx.fetchFn, f6ctx.token, "runner_results", { p_runner_key: a.f6_runner_key }, teraz);
-      b = { display_name: a.full_name || "", yob: a.date_of_birth ? Number(String(a.date_of_birth).slice(0, 4)) : null, results_count: w.length };
+      b = { display_name: a.full_name || "", yob: a.date_of_birth ? Number(String(a.date_of_birth).slice(0, 4)) : null, results_count: w.length, runner_key: a.f6_runner_key };
     } else {
       const imie = String((a && a.full_name) || "").trim();
       if (imie.split(/\s+/).filter(Boolean).length < 2) return { brak_imienia: true };

@@ -31,7 +31,7 @@ export function promptOkladki(e) {
     "Żadnego tłumu, żadnej grupy biegaczy, żadnego peletonu ani startu masowego.",
     "Styl dokumentalny: obiektyw 35 mm, lekkie poruszenie sylwetek w ruchu, zróżnicowane zwykłe stroje biegowe, niedoskonałe, nieustawiane światło.",
     e.kompozycja || "",
-    "Bez rozpoznawalnych twarzy. Bez żadnego tekstu, liter, numerów startowych i logotypów.",
+    "Bez rozpoznawalnych twarzy (sylwetki z daleka, od tyłu). Bez żadnego tekstu, liter, numerów startowych, logotypów, logo organizatora ani nazwy wydarzenia na obrazie.",
   ].filter(Boolean).join(" ");
 }
 /** własne zdjęcie trenera: typ po BAJTACH (nie po nagłówku), rozmiar ≤ 3 MB → {bajty, mime} | {blad} */

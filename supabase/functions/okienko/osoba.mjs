@@ -171,6 +171,9 @@ export async function wynikiSzukaj(fetchFn, token, q, teraz = Date.now(), gdzie 
 
 /** Karta wyników biegacza (wspólna dla trybu osoby i „moich wyników", M3d): b = wiersz search_runners (albo
     {display_name, yob, results_count}), w = runner_results. → {podsumowanie, publiczna}. */
+/* Klucz zawodnika w maszynie (wyniki.html#/zawodnik/<klucz>) — ten sam kształt co BM_WYNIKI.RE_KLUCZ: „źródło:id” albo „k:imię nazwisko|rok”.
+   3.11: „Otwórz wyniki” w Okienku prowadziło do kalendarza (races.html); karta dostaje klucz i otwiera kartę zawodnika (blizna-134). */
+export const RE_KLUCZ_WYNIKOW = /^(?:[a-z0-9_-]{2,30}:[A-Za-z0-9._-]{1,80}|k:[\p{L}][\p{L} .'-]{0,59}\|\d{4})$/u;
 export function podsumujWyniki(b, w) {
   const ostatnie = w.slice(0, MAX_WYNIKOW).map((r) => ({ bieg: String(r.event_name || "").slice(0, 120), data: r.event_date || null,
     miasto: r.event_city || null, dystans_km: r.distance_km != null ? Number(r.distance_km) : null, czas_s: r.time_seconds ?? null,
@@ -187,6 +190,7 @@ export function podsumujWyniki(b, w) {
     w.some((r) => r.position_total != null && Number(r.position_total) >= 1 && Number(r.position_total) <= 3);
   return {
     podsumowanie: { nazwa: String(b.display_name || "").slice(0, 80), rocznik: b.yob ?? null, starty: liczba,
+      klucz: typeof b.runner_key === "string" && RE_KLUCZ_WYNIKOW.test(b.runner_key) ? b.runner_key : null,
       ostatni: ostatnie[0] ? { bieg: ostatnie[0].bieg, data: ostatnie[0].data } : null, najlepszy_czas: najlepszy, ostatnie },
     publiczna,
   };

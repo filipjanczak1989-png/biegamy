@@ -47,17 +47,23 @@ async function zapiszOkladkeImprezy(sb: any, e: { klucz: string; url: string; ty
   if (error) throw new Error("imprezy_okladki: " + error.message);
 }
 
-/* F6 przez konto serwisowe: logowanie kluczem publicznym (hasło tylko w pamięci), upcoming_races od dziś na rok, ≤ 300 */
-async function imprezyZF6(): Promise<Impreza[]> {
-  if (!F6_EMAIL || !F6_HASLO) throw new Error("brak konta F6 (F6_KONTO_EMAIL/F6_KONTO_HASLO)");
-  const anon = createClient(SB_URL, PUBLISHABLE, { auth: { persistSession: false } });
-  const { data, error } = await anon.auth.signInWithPassword({ email: F6_EMAIL, password: F6_HASLO });
-  /* 401 z F6 = najczęściej hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO (zasada w docs) — wpis w okladki_log, pilnuje blizna-120 */
-  if (error || !data.session) throw new Error("logowanie F6 nieudane (hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO?)");
+/* F6: upcoming_races od dziś na rok, ≤ 300. Token: (a) TRENER — jego własny JWT z żądania (3.11: przycisk „Wygeneruj okładkę” nie zależy od
+   konta serwisowego; maszyna przyjmuje każdy zalogowany token), (b) NOC — konto serwisowe F6 (sekrety F6_KONTO_EMAIL/F6_KONTO_HASLO,
+   logowanie kluczem publicznym, hasło tylko w pamięci). 3.11: sekretów konta F6 nie było → noc i przycisk padały z 502 (blizna-135). */
+async function imprezyZF6(tokenTrenera: string | null = null): Promise<Impreza[]> {
+  let token = tokenTrenera, anon: any = null;
+  if (!token) {
+    if (!F6_EMAIL || !F6_HASLO) throw new Error("brak konta F6 (F6_KONTO_EMAIL/F6_KONTO_HASLO)");
+    anon = createClient(SB_URL, PUBLISHABLE, { auth: { persistSession: false } });
+    const { data, error } = await anon.auth.signInWithPassword({ email: F6_EMAIL, password: F6_HASLO });
+    /* 401 z F6 = najczęściej hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO (zasada w docs) — wpis w okladki_log, pilnuje blizna-120 */
+    if (error || !data.session) throw new Error("logowanie F6 nieudane (hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO?)");
+    token = data.session.access_token;
+  }
   const od = dzisWaw(), doD = new Date(Date.parse(od + "T12:00:00Z") + DNI_OKNA * 86400000).toISOString().slice(0, 10);
-  const r = await fetch(`${F6_URL}/rpc/upcoming_races`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${data.session.access_token}` },
+  const r = await fetch(`${F6_URL}/rpc/upcoming_races`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ p_from: od, p_to: doD, lim: LIMIT_F6 }) });
-  try { await anon.auth.signOut(); } catch { /* sesja i tak nietrwała */ }
+  if (anon) { try { await anon.auth.signOut(); } catch { /* sesja i tak nietrwała */ } }
   if (!r.ok) throw new Error("F6 upcoming_races " + r.status);
   const rows = await r.json();
   const dyst = (v: unknown) => (Array.isArray(v) ? v : String(v || "").split(/[;,|]/)).map((x) => Number(String(x).replace(",", ".").replace(/[^\d.]/g, ""))).filter((x) => x > 0).slice(0, 6);
@@ -128,7 +134,8 @@ Deno.serve(async (req) => {
     // dane do promptu: z bazy (okładka automatu) albo z F6 po kluczu — nigdy z żądania
     const { data: w } = await sb.from("imprezy_okladki").select("klucz,nazwa,miasto,typ").eq("klucz", klucz).maybeSingle();
     let e: Impreza | null = w ? { klucz, nazwa: w.nazwa, miasto: w.miasto, data: dzisWaw(), dystanse: [], typ: w.typ } : null;
-    if (!e) { try { e = (await imprezyZF6()).find((x) => x.klucz === klucz) || null; } catch (err) { return J(502, { blad: (err as Error).message }); } }
+    const jwtTrenera = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim() || null;
+    if (!e) { try { e = (await imprezyZF6(jwtTrenera)).find((x) => x.klucz === klucz) || null; } catch (err) { await log(sb, { rodzaj: "trener-gemini", klucz, kto: user.id, ok: false, blad: "lista: " + (err as Error).message }); return J(502, { blad: (err as Error).message }); } }
     if (!e) return J(404, { blad: "nie znam tej imprezy" });
     try { const url = await wygenerujIZapisz(sb, e, "trener-gemini", user.id); return J(200, { url, klucz }); }
     catch (err) { await log(sb, { rodzaj: "trener-gemini", klucz, kto: user.id, ok: false, blad: (err as Error).message }); return J(502, { blad: "generowanie nieudane" }); }
