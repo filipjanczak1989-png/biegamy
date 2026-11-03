@@ -66,6 +66,12 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   assert.match(m, /alter table public\.akcje add column wyprawa_cel_nazwa text check/);
   assert.match(m, /'wyprawa_cel_km',\s+case when v_dotarla then a\.wyprawa_cel_km end/); assert.match(m, /'wyprawa_cel_nazwa',\s+case when v_dotarla then a\.wyprawa_cel_nazwa end/);
   assert.match(m, /'wyprawa_trwa',\s+\(a\.wyprawa_athlete_ids is not null and not v_dotarla\)/);
+  // A0 (Filip 4.11): wyprawa_km = dystans trasy z JEDNEGO konta per dzień (główny, zapas gdy brak), ślad przed logami; cel 240
+  assert.match(m, /v_glowny := a\.wyprawa_athlete_ids\[1\]; v_zapas := a\.wyprawa_athlete_ids\[2\];/);
+  assert.equal((m.match(/coalesce\(nullif\(d\.km_glowny, 0\), d\.km_zapas\)/g) || []).length, 2, 'ta sama reguła dla śladu i dla logów');
+  assert.match(m, /wyprawa_cel_km = 240 where slug in \('dla-fabianka', 'proba'\)/);
+  assert.ok(m.indexOf('create table public.akcja_wyprawa_slad') < m.indexOf('create or replace function public.akcja_licznik'), 'tabela śladu przed licznikiem, który z niej czyta');
+  for (const f of ['FAIL 0a', 'FAIL 0b', 'FAIL 0c', 'FAIL 0d']) assert.ok(t.includes(f), f);
   assert.match(m, /revoke all on public\.akcja_wyprawa_slad from public, anon, authenticated;/); assert.doesNotMatch(m, /create policy[^\n]*akcja_wyprawa_slad/);
   assert.match(m, /cron\.schedule\('akcja-wyprawa-slad', '\*\/15 \* \* \* \*'/);
   assert.match(m, /if j \? 'wyprawa_cel_nazwa' or j \? 'wyprawa_cel_km' then raise exception/);

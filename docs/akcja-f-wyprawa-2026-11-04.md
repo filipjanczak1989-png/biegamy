@@ -25,6 +25,14 @@ do 12 500 km — „Dotarliśmy” kończy tylko wyprawę.
   linii definiujących wzorce wejścia (`const X = /…/`), i failuje na nazwę celu **oraz nazwisko dziecka** (dotychczasowy strażnik z blizny-101
   dotyczył `js/akcja.mjs`; imię po starcie jest w cytatach i na guziku świadomie — decyzja Filipa z dnia 3).
 
+## A0) wyprawa_km = dystans TRASY, nie suma kont (Filip 4.11)
+
+Per dzień warszawski: km PIERWSZEGO konta z `wyprawa_athlete_ids` (Filip); gdy tego dnia nie ma jego aktywności — drugiego (Kasia, zapas).
+Źródło 1: `akcja_wyprawa_slad` (dystans z intervals, bieg/chód z zegarka — niezależny od tego, czy aplikacja zsynchronizowała logi);
+źródło 2 (ślad pusty, np. cron jeszcze nie ruszył): `training_logs` tą samą regułą. Suma AKCJI (12 500 km) bez zmian — liczy oba konta.
+Test po skutku: obaj po 100 km → wiersz 100, akcja +200; ślad 50 (Filip) + 100 (Kasia) → 50; dzień tylko Kasi 30 → 80. `wyprawa_cel_km = 240`
+(akcja i próba) — pokazuje się dopiero po dotarciu.
+
 ## B) Ślad GPS
 
 - EF `akcja-wyprawa-slad` (`verify_jwt = false`): `POST {rodzaj:'odswiez', slug?, athlete_id?, od?}` z `x-push-secret` — pobiera
@@ -67,10 +75,29 @@ oba PRZED czwartkiem 18:00. Podglądy: `Downloads\biegamy-podglady\mapa-wyprawy-
 4. „Resetuj próbę” czyści `wystartowala_at`/`wyprawa_dotarla_at`; wiersze śladu próby zostają (klucz akcja × aktywność) — usuń ręcznie:
    `delete from akcja_wyprawa_slad where akcja_id = (select id from akcje where slug = 'proba')`.
 
+## Tokeny intervals (pkt 2) i Kasia (pkt 3) — raport 4.11
+
+- **Tokeny OAuth intervals** (`intervals_credentials.access_token`, 32 znaki, bez refresh tokenu w repo — `intervals-oauth` nie dostaje
+  i nie zapisuje `refresh_token`, `expires_in` nie jest używane): Filip — token z 20.10, Kasia — **z 8.07.2026**, oba dziś (4.11) odpowiedziały
+  200 na strumienie i listę aktywności (sonda pg_net z bazy, tokeny nie opuściły bazy). Token sprzed 4 miesięcy działa → intervals.icu nie
+  wygasza tokenów OAuth czasowo (wygasają przy cofnięciu zgody / wylogowaniu aplikacji w intervals). **Nic do klikania w piątek.** Plan B,
+  gdyby EF zalogowała `intervals lista 401`: Profil → Połącz z intervals.icu (ten sam przepływ `intervals-oauth`), 1 minuta.
+- **Kasia od 6.10**: intervals.icu ma jej 10 aktywności w październiku, **ostatnia 6.10 11:49** — czyli to nie nasz import (BiegaMy ma
+  wszystko, co jest w intervals), tylko **zegarek przestał wysyłać do intervals** (Garmin/Polar/Strava → intervals: zgoda wygasła albo
+  rozłączona w intervals.icu → Settings → Connections). Do sprawdzenia u Kasi PRZED 7.11, inaczej ani jej km, ani ślad nie wejdą.
+- **Oba konta bez webhooka intervals** (`intervals_connections` puste) — logi do BiegaMy wchodzą przez `intervals-sync` przy otwarciu
+  aplikacji. Ślad i `wyprawa_km` to NIE blokuje (EF czyta intervals wprost, cron co 15 min), ale do SUMY AKCJI ich kilometry wejdą dopiero,
+  gdy Filip/Kasia otworzą aplikację (sync) — w trasie raz dziennie wystarczy.
+
+## Stan prod 4.11 (sonda po „zrobione”)
+
+Migracja `20261104_akcja_wyprawa.sql` **nie weszła** (brak kolumny, tabeli, crona, stary licznik), EF `akcja-wyprawa-slad` **nie ma na
+liście funkcji**, `intervals-webhook` nadal v32 (2.11). Wszedł tylko `okienko-v2` (v4). Migracja została od tego czasu rozszerzona (A0,
+cel 240) — wykonać JĄ (test po skutku `WYP_Z_MIGRACJA=1 bash tools/akcja-wyprawa-test.sh`: 17/17), potem deploy trzech EF.
+
 ## Czego się nie da / do decyzji
 
 - Kasia: ostatnia aktywność w BiegaMy 6.10 — bez działającego sync jej km i ślad nie wejdą (próba generalna, pkt „Kasia”).
-- Dystans/dni wyprawy (`wyprawa_cel_km`) nadal `null` — ustaw w bazie (po dotarciu pokaże się obok nazwy).
 - Mapa dla próby jest publiczna jak dla akcji (`?slug=proba`) — ślad konta testowego po strefach; jeśli to przeszkadza, EF może odmówić
   `testowa` bez sesji (jedna linia).
 
