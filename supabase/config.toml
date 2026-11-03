@@ -88,6 +88,9 @@ verify_jwt = false       # KALENDARZ 2–3: cron nocny z x-push-secret (okładki
 [functions.okienko-v2]
 verify_jwt = true        # Okienko 2.0 (E0, 5.11): to samo wejście co okienko; front kieruje tu tylko konta z okienko_v2_konta (RPC okienko_wersja)
 
+[functions.okienko-raport-dane]
+verify_jwt = false       # noc w Actions (tools/okienko-raport-dnia.mjs): nagłówek x-raport-secret = RAPORT_SECRET obowiązkowy; tylko odczyt, dane zanonimizowane po stronie serwera
+
 [functions.impreza-zglos]
 verify_jwt = true        # K5: zawodnik.html saveGoal → F6 event_propose; wymagajUsera, token użytkownika do F6, biała lista 3 pól
 

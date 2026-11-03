@@ -4,9 +4,9 @@
 #   sędzia (drugi model ocenia, niczego nie zmienia), kandydaci do ławki → docs/okienko-raport/RRRR-MM-DD.md (ZANONIMIZOWANY — repo
 #   publiczne; strażnik w narzędziu + blizna-125). Spadek ≥ 2 pkt % albo regresja → issue. NIGDY automatycznego deployu ani zmiany kodu:
 #   poranna pętla to człowiek („przeczytaj raport okienka i przygotuj poprawki” → gałąź okienko/poprawki-RRRR-MM-DD → OK Filipa → merge).
-# SEKRETY (Settings → Secrets → Actions): GEMINI_API_KEY (ławka --zywy + sędzia), OKIENKO_RAPORT_KEY (service_role — narzędzie tylko CZYTA
-#   logi; klucz jest pełny, więc odczyt wymusza kod + blizna, nie uprawnienia). Koszt nocy: limit 0,50 USD (--limit-usd) — przekroczenie
-#   przerywa sędziego/ławkę i zapisuje to w raporcie. Commit raportu z [skip ci] — nie uruchamia deployu.
+# SEKRETY (Settings → Secrets → Actions): GEMINI_API_KEY (ławka --zywy + sędzia), RAPORT_SECRET (nagłówek do EF okienko-raport-dane, która
+#   oddaje jedną dobę logów zanonimizowaną po stronie serwera; klucz serwisowy bazy NIGDY nie trafia do GitHuba — blizna-125). Koszt nocy:
+#   limit 0,50 USD (--limit-usd) — przekroczenie przerywa sędziego/ławkę i zapisuje to w raporcie. Commit raportu z [skip ci] — bez deployu.
 name: okienko-noc
 
 on:
@@ -14,9 +14,7 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
-permissions:
-  contents: write
-  issues: write
+permissions: {}   # domyślnie nic; job raport dostaje tylko to, czego potrzebuje
 
 concurrency:
   group: okienko-noc
@@ -26,6 +24,9 @@ jobs:
   raport:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # commit raportu do docs/okienko-raport (z [skip ci])
+      issues: write     # issue przy alarmie
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,7 +40,7 @@ jobs:
         id: raport
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OKIENKO_RAPORT_KEY: ${{ secrets.OKIENKO_RAPORT_KEY }}
+          RAPORT_SECRET: ${{ secrets.RAPORT_SECRET }}
         run: |
           set +e
           node tools/okienko-raport-dnia.mjs --noc --limit-usd 0.5

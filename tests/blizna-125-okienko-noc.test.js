@@ -1,7 +1,8 @@
 /* BLIZNA 125 (3.11.2026, Filip 16:12 „Okienko samo się sprawdza codziennie”): raport nocy trafia do PUBLICZNEGO repo, więc
    (1) anonimizacja: imiona/nazwiska → [OSOBA], e-maile i telefony usunięte, publiczni sportowcy zostają; (2) każdy plik docs/okienko-raport/*.md
-   jest czysty; (3) narzędzie raportu TYLKO CZYTA bazę (klucz service jest pełny — odczyt wymusza kod); sędzia tylko ocenia; (4) workflow:
-   cron 02:00 UTC, sekrety GEMINI_API_KEY i OKIENKO_RAPORT_KEY, commit z [skip ci], issue przy alarmie, ZERO deployu; (5) limit kosztu. */
+   jest czysty; (3) dane z EF okienko-raport-dane (sekret RAPORT_SECRET; EF: same SELECT, anonimizacja po stronie serwera, bez athlete_id,
+   limit wierszy) — klucz serwisowy bazy NIGDY w GitHubie; sędzia tylko ocenia; (4) workflow: cron 02:00 UTC, sekrety GEMINI_API_KEY
+   i RAPORT_SECRET, uprawnienia tylko na jobie, commit z [skip ci], issue przy alarmie, ZERO deployu; (5) limit kosztu. */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -39,18 +40,27 @@ test('każdy raport w docs/okienko-raport/*.md jest czysty (bez imion ze słowni
   }
 });
 
-test('narzędzie raportu: tylko GET do Supabase (zero zapisów), sędzia ocenia (schemat 5 kryteriów), limit kosztu przerywa, alarm = kod 3, zapis do docs/okienko-raport', () => {
+test('narzędzie raportu: dane TYLKO z EF okienko-raport-dane (sekret), bez klucza service i bez REST do tabel; sędzia ocenia (5 kryteriów), limit kosztu, alarm = kod 3; EF: sekret, same SELECT, anonimizacja, bez athlete_id', () => {
   const r = czytaj('tools/okienko-raport-dnia.mjs');
-  assert.doesNotMatch(r, /method:\s*["'](POST|PATCH|PUT|DELETE)["']/, 'zapis do bazy przez REST'); assert.doesNotMatch(r, /\.(insert|update|upsert|delete)\(/, 'zapis przez klienta');
-  assert.match(r, /rest\/v1\/\$\{tabela\}\?\$\{q\}/); assert.match(r, /OKIENKO_RAPORT_KEY/); assert.match(r, /anonimizuj\(w\.tekst\)/); assert.match(r, /anonimizuj\(w\.odpowiedz\)/); assert.match(r, /anonimizuj\(w\.komentarz\)/);
+  assert.doesNotMatch(r, /rest\/v1|service_role|OKIENKO_RAPORT_KEY|SUPABASE_SERVICE/, 'narzędzie nie zna klucza do bazy'); assert.doesNotMatch(r, /\.(insert|update|upsert|delete)\(/);
+  assert.match(r, /functions\/v1\/okienko-raport-dane/); assert.match(r, /"x-raport-secret": RAPORT_SECRET/); assert.match(r, /anonimizuj\(w\.pytanie\)/); assert.match(r, /anonimizuj\(w\.odpowiedz\)/); assert.match(r, /anonimizuj\(w\.komentarz\)/);
+  const ef = czytaj('supabase/functions/okienko-raport-dane/index.ts');
+  assert.match(ef, /req\.headers\.get\("x-raport-secret"\) \|\| ""\) !== SEKRET\) return J\(401/); assert.match(ef, /if \(!SEKRET \|\|/, 'bez ustawionego sekretu EF odmawia');
+  assert.doesNotMatch(ef, /\.(insert|update|upsert|delete|rpc)\(/, 'EF tylko czyta'); assert.match(ef, /\.limit\(MAX_WIERSZY\)/); assert.match(ef, /const MAX_WIERSZY = 500;/);
+  assert.match(ef, /import \{ anonimizuj \} from "\.\.\/_shared\/anonimizuj\.mjs";/); assert.match(ef, /osoba: ps\(w\.athlete_id\)/);
+  assert.doesNotMatch(ef.slice(ef.indexOf('const n = ')), /athlete_id: w\.athlete_id|athlete_id,/, 'athlete_id nie wychodzi z EF');
+  assert.match(czytaj('supabase/config.toml'), /\[functions\.okienko-raport-dane\]\s*\nverify_jwt = false/);
+  assert.match(czytaj('tools/_anonimizuj.mjs'), /from "\.\.\/supabase\/functions\/_shared\/anonimizuj\.mjs"/, 'jedna anonimizacja dla EF i narzędzi');
   assert.match(r, /required: \["odpowiada", "konkret", "liczby_z_pokryciem", "wyciek", "ton", "uzasadnienie"\]/); assert.match(r, /temperature: 0/); assert.match(r, /model: "gemini-3\.5-flash"/);
   assert.match(r, /limit \$\{OPCJE\.limitUsd\} USD przekroczony/); assert.match(r, /if \(!czysty\(/, 'strażnik przed zapisem'); assert.match(r, /process\.exitCode = 3/);
-  assert.match(r, /klasyfikuj|kandydatDoLawki/); assert.doesNotMatch(r, /functions\/v1\/okienko/, 'raport nie pyta okienka (koszt, limity użytkowników)');
+  assert.match(r, /klasyfikuj|kandydatDoLawki/); assert.doesNotMatch(r, /functions\/v1\/okienko(-v2)?["'`]/, 'raport nie pyta okienka (koszt, limity użytkowników)');
 });
 
 test('workflow okienko-noc: cron 02:00 UTC, sekrety, blizna przed commitem, commit [skip ci], issue tylko przy kodzie 3, żadnego deployu', () => {
   const w = czytaj('.github/workflows/okienko-noc.yml');
-  assert.match(w, /cron: '0 2 \* \* \*'/); assert.match(w, /GEMINI_API_KEY: \$\{\{ secrets\.GEMINI_API_KEY \}\}/); assert.match(w, /OKIENKO_RAPORT_KEY: \$\{\{ secrets\.OKIENKO_RAPORT_KEY \}\}/);
+  assert.match(w, /cron: '0 2 \* \* \*'/); assert.match(w, /GEMINI_API_KEY: \$\{\{ secrets\.GEMINI_API_KEY \}\}/); assert.match(w, /RAPORT_SECRET: \$\{\{ secrets\.RAPORT_SECRET \}\}/);
+  assert.match(w, /^permissions: \{\}/m, 'na poziomie workflow nic'); assert.match(w, /    permissions:\n      contents: write[^\n]*\n      issues: write/, 'uprawnienia tylko na jobie raport');
+  for (const f of fs.readdirSync(path.join(KORZEN, '.github/workflows'))) assert.doesNotMatch(czytaj('.github/workflows/' + f), /service_role|SERVICE_ROLE|OKIENKO_RAPORT_KEY|SB_SECRET_KEY/, f + ': klucz do bazy w GitHubie');
   assert.match(w, /node tools\/okienko-raport-dnia\.mjs --noc --limit-usd 0\.5/); assert.match(w, /node --test tests\/blizna-125-okienko-noc\.test\.js/);
   assert.ok(w.indexOf('blizna-125') < w.indexOf('git commit'), 'blizna PRZED commitem raportu');
   assert.match(w, /\[skip ci\]/); assert.match(w, /if: steps\.raport\.outputs\.kod == '3'/); assert.match(w, /gh issue create/);

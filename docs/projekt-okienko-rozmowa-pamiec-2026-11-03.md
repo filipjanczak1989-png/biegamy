@@ -161,8 +161,13 @@ W4 0,5 dnia narzędzie + ocena Filipa. Wszystko po R1–R6 (pamięć), zgodnie z
 | sędzia | drugi model `gemini-3.5-flash`, temperatura 0, 5 kryteriów (odpowiada / konkret / liczby z pokryciem / wyciek / ton) + uzasadnienie; tylko ocenia | gotowe |
 | koszt nocy | ławka --zywy ≈ 255 × ~0,0005 = 0,13 USD; sędzia ≈ 30 × ~0,001 = 0,03 USD; razem ≈ **0,15 USD/noc ≈ 4,5 USD/mies.**; limit `--limit-usd 0.5` — przekroczenie przerywa i zapisuje w raporcie | — |
 
-**Sekrety do ustawienia (Settings → Secrets and variables → Actions):** `GEMINI_API_KEY` (ten sam klucz co w EF), `OKIENKO_RAPORT_KEY`
-(= `service_role` projektu; narzędzie wykonuje wyłącznie GET na `okienko_log` / `okienko_v2_log` — blizna-125 pilnuje braku zapisów; klucz jest
-pełny, więc odczyt wymusza kod, nie uprawnienia; jeśli chcesz twardo: osobna rola Postgres z SELECT tylko na dwie tabele + własny JWT — zaległość).
-Workflow potrzebuje też `Settings → Actions → Workflow permissions: Read and write` (commit raportu) i etykiety `okienko` dla issue.
+**Sekrety (wersja bez klucza serwisowego w GitHubie — decyzja Filipa 3.11):**
+- Supabase (Edge Functions → Secrets): `RAPORT_SECRET` — dowolny długi losowy ciąg (np. `openssl rand -hex 32`); EF `okienko-raport-dane`
+  (verify_jwt off) oddaje jedną dobę logów zanonimizowaną po stronie serwera, bez athlete_id, ≤ 500 wierszy, tylko gdy nagłówek
+  `x-raport-secret` jest równy temu sekretowi. Klucz serwisowy bazy zostaje wyłącznie w env EF.
+- GitHub (Settings → Secrets and variables → Actions): `GEMINI_API_KEY` (ten sam co w EF) i `RAPORT_SECRET` (ta sama wartość co w Supabase).
+  Nic więcej — blizna-125 sprawdza, że w `.github/` nie ma klucza serwisowego ani jego nazw.
+- GitHub: `Settings → Actions → General → Workflow permissions: Read and write` (job `raport` ma `contents: write` + `issues: write`,
+  workflow poza nim `permissions: {}`), etykieta `okienko` dla issue.
+Deploy: `supabase functions deploy okienko-raport-dane --use-api` (po ustawieniu sekretu). Test ręczny: `RAPORT_SECRET=… node tools/okienko-raport-dnia.mjs`.
 Poranna pętla: Filip „przeczytaj raport okienka i przygotuj poprawki” → cc czyta `docs/okienko-raport/<dziś>.md` → gałąź `okienko/poprawki-RRRR-MM-DD` z bliznami → OK → merge + deploy ręcznie.

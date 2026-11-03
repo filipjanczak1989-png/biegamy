@@ -5,8 +5,9 @@
 //   --sedzia                                      → drugi model (flash, temperatura 0) OCENIA każdą zebraną odpowiedź wg 5 kryteriów (tylko ocenia)
 //   --tydzien                                     → wiersz do docs/okienko-postep.md (ławka %, p50/p90, % 👎, koszt)
 //   --noc = --lawka --sedzia (+ --tydzien w poniedziałek)   --limit-usd 0.5 (domyślnie) — przekroczenie = przerwanie i wpis w raporcie
-// ODCZYT z bazy: PostgREST GET kluczem service (sekret OKIENKO_RAPORT_KEY = service_role; narzędzie NIGDY nie pisze do bazy — blizna-125 skanuje).
-// ANONIMIZACJA: każdy tekst z logu przechodzi przez tools/_anonimizuj.mjs PRZED zapisem; strażnik `czysty` odrzuca raport z resztką danych.
+// ODCZYT: EF okienko-raport-dane (verify_jwt off, nagłówek x-raport-secret = sekret RAPORT_SECRET) oddaje dane JEDNEJ doby, już zanonimizowane
+// po stronie serwera, bez athlete_id (pseudonimy), ≤ 500 wierszy — klucz service NIE opuszcza Supabase (Filip 3.11: repo publiczne).
+// ANONIMIZACJA drugi raz tutaj (ta sama funkcja z _shared) PRZED zapisem; strażnik `czysty` odrzuca raport z resztką danych.
 // Nigdy automatycznego deployu — raport czyta Filip / cc rano i dopiero wtedy powstaje gałąź z poprawkami.
 import fs from "node:fs";
 import path from "node:path";
@@ -21,7 +22,7 @@ const ma = (n) => process.argv.includes(n);
 const NOC = ma("--noc");
 const OPCJE = { lawka: NOC || ma("--lawka"), sedzia: NOC || ma("--sedzia"), tydzien: ma("--tydzien") || (NOC && new Date().getUTCDay() === 1), limitUsd: Number(arg("--limit-usd", "0.5")), dzien: arg("--dzien", null) };
 const SB_URL = process.env.SUPABASE_URL || "https://afqojgkaveykxbltxzwm.supabase.co";
-const KLUCZ = process.env.OKIENKO_RAPORT_KEY || "";
+const RAPORT_SECRET = process.env.RAPORT_SECRET || "";
 const GEMINI = process.env.GEMINI_API_KEY || "";
 const CENA = { lite: { we: 0.30, wy: 2.50 }, flash: { we: 0.50, wy: 3.00 } };   // USD / 1 M tokenów, zestawienia 10.2026 — przelicznik, nie faktura
 const koszt = { usd: 0, przerwano: null };
@@ -30,25 +31,17 @@ const dodajKoszt = (tok, model) => { const c = CENA[model] || CENA.lite; koszt.u
 const dzis = OPCJE.dzien || new Date().toISOString().slice(0, 10);
 const od = new Date(Date.parse(dzis + "T00:00:00Z") - 86400000).toISOString(), doD = dzis + "T00:00:00Z";   // wczorajsza doba (UTC — wystarczy do raportu)
 
-async function rest(tabela, q) {
-  if (!KLUCZ) return null;
-  const r = await fetch(`${SB_URL}/rest/v1/${tabela}?${q}`, { headers: { apikey: KLUCZ, Authorization: "Bearer " + KLUCZ, Accept: "application/json" } });
-  if (!r.ok) throw new Error(`${tabela}: http ${r.status}`);
-  return r.json();
-}
-const KOL_V2 = "id,kiedy,tekst,narzedzia,tryb,intencja,pewnosc,ok,powod_odrzucenia,ms,samosprawdzenie,ocena,komentarz,odpowiedz,tok_we,tok_wy,zapytania_sieci,athlete_id";
-const KOL_V1 = "id,kiedy,tekst,narzedzia,tryb,ok,powod_odrzucenia,tok_we,tok_wy,athlete_id";
-
-/** wczorajsze wpisy obu logów (v1 bez ocen/odpowiedzi) → znormalizowane */
+/** wczorajsze wpisy obu logów z EF (już zanonimizowane i bez athlete_id) → kształt raportu; bez sekretu → pusto (suchy przebieg) */
 async function wpisy() {
-  const v2 = (await rest("okienko_v2_log", `select=${KOL_V2}&kiedy=gte.${od}&kiedy=lt.${doD}&order=kiedy.asc&limit=2000`)) || [];
-  const v1 = (await rest("okienko_log", `select=${KOL_V1}&kiedy=gte.${od}&kiedy=lt.${doD}&order=kiedy.asc&limit=2000`)) || [];
-  const osoby = new Map();   // athlete_id → „osoba #n” (pseudonim na jeden raport, nieodwracalny)
-  const ps = (id) => { if (!osoby.has(id)) osoby.set(id, "osoba #" + (osoby.size + 1)); return osoby.get(id); };
-  const n = (w, wersja) => ({ wersja, id: w.id, kiedy: w.kiedy, osoba: ps(w.athlete_id), pytanie: anonimizuj(w.tekst), sciezka: [w.tryb, ...(w.narzedzia || [])].join(":") + (w.intencja ? ` · ${w.intencja}${w.pewnosc != null ? " " + w.pewnosc : ""}` : ""),
-    odpowiedz: w.odpowiedz ? anonimizuj(w.odpowiedz) : null, ok: w.ok, powod: w.powod_odrzucenia ? anonimizuj(w.powod_odrzucenia) : null, ms: w.ms ?? null, samosprawdzenie: w.samosprawdzenie ?? null,
-    ocena: w.ocena ?? null, komentarz: w.komentarz ? anonimizuj(w.komentarz) : null, tok: { we: w.tok_we || 0, wy: w.tok_wy || 0 }, siec: w.zapytania_sieci || 0, tryb: w.tryb, narzedzia: w.narzedzia || [] });
-  return [...v2.map((w) => n(w, "v2")), ...v1.map((w) => n(w, "v1"))].sort((a, b) => (a.kiedy < b.kiedy ? -1 : 1));
+  if (!RAPORT_SECRET) return [];
+  const r = await fetch(`${SB_URL}/functions/v1/okienko-raport-dane`, { method: "POST", headers: { "x-raport-secret": RAPORT_SECRET, "content-type": "application/json" }, body: JSON.stringify({ dzien: dzis }) });
+  if (!r.ok) throw new Error(`okienko-raport-dane: http ${r.status}`);
+  const j = await r.json();
+  if (!j || !j.ok || !Array.isArray(j.wpisy)) throw new Error("okienko-raport-dane: zła odpowiedź");
+  if (j.liczby && j.liczby.uciete) console.error("uwaga: EF ucięła listę do limitu wierszy");
+  return j.wpisy.map((w) => ({ wersja: w.wersja, id: w.id, kiedy: w.kiedy, osoba: w.osoba, pytanie: anonimizuj(w.pytanie), sciezka: [w.tryb, ...(w.narzedzia || [])].join(":") + (w.intencja ? ` · ${w.intencja}${w.pewnosc != null ? " " + w.pewnosc : ""}` : ""),
+    odpowiedz: w.odpowiedz ? anonimizuj(w.odpowiedz) : null, ok: w.ok, powod: w.powod ? anonimizuj(w.powod) : null, ms: w.ms ?? null, samosprawdzenie: w.samosprawdzenie ?? null,
+    ocena: w.ocena ?? null, komentarz: w.komentarz ? anonimizuj(w.komentarz) : null, tok: { we: w.tok_we || 0, wy: w.tok_wy || 0 }, siec: w.zapytania_sieci || 0, tryb: w.tryb, narzedzia: w.narzedzia || [] }));
 }
 
 export function klasyfikuj(w) {

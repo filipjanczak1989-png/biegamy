@@ -2823,7 +2823,7 @@ function calcIntervalPace(input) {
   const paceEl = row.querySelector('.iv-pace');
   // Parse distance — accept "400 m", "400m", "1 km", "1km", "1.2"
   let distKm = null;
-  const mMatch = distInput.match(/(\d+(?:\.\d+)?)\s*m/i);
+  const mMatch = distInput.match(/(\d+(?:\.\d+)?)\s*m\b/i);
   const kmMatch = distInput.match(/(\d+(?:\.\d+)?)\s*km/i);
   const numMatch = distInput.match(/^(\d+(?:\.\d+)?)$/);
   if (mMatch) distKm = parseFloat(mMatch[1]) / 1000;
@@ -2857,7 +2857,7 @@ function updateIvSummary() {
     const d = row.querySelector('.iv-dist')?.value.trim();
     if (!d) return;
     count++;
-    const mMatch = d.match(/(\d+(?:\.\d+)?)\s*m/i);
+    const mMatch = d.match(/(\d+(?:\.\d+)?)\s*m\b/i);
     const kmMatch = d.match(/(\d+(?:\.\d+)?)\s*km/i);
     const numMatch = d.match(/^(\d+(?:\.\d+)?)$/);
     if (mMatch) totalKm += parseFloat(mMatch[1])/1000;

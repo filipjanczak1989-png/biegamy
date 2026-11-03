@@ -418,7 +418,7 @@ function samokontrola() {
   console.log('\n  6) NIE blokuje SQL-a, który tylko CZYTA');
   ok(P(['tools/pomiar.sql'], ['select count(*) from public.athletes;']).blokady.length === 0, 'zwykły SELECT');
   /* ⚠️ TA ASERCJA MIAŁA ODWROTNE OCZEKIWANIE i przez to samokontrola padała.
-     Zmierzone: reguła to `(GRANT|REVOKE)\s+(ALL|SELECT|…)`, więc wymaga
+     Zmierzone: reguła to `\b(GRANT|REVOKE)\s+(ALL|SELECT|…)\b`, więc wymaga
      SŁOWA UPRAWNIENIA po czasowniku. Samo słowo „GRANT" w zdaniu nie odpala —
      i dobrze, bo inaczej każdy komentarz o uprawnieniach byłby blokadą.
      Poprawione zostało OCZEKIWANIE, nie reguła: zachowanie było właściwe. */
