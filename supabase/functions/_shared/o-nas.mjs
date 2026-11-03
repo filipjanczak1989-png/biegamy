@@ -15,11 +15,11 @@ export const O_NAS = {
   ],
   zespol: [
     "Za BiegaMy stoją Filip Jańczak (założyciel, trener, członek sztabu szkoleniowego kadry Polski na MŚ IAU w biegu na 100 km) i Kasia (współtrenerka, ultraska).",
-    "To projekt prowadzony przez nich samych — bez firmy, bez reklam, bez sprzedawania danych.",
+    "To projekt prowadzony przez nich samych.",
   ],
   biegamy: [
     "BiegaMy to aplikacja do biegania z trenerem: plan na każdy dzień, treningi z zegarka, forma, rekordy, starty, społeczność i Radio BiegaMy.",
-    "Tworzą ją Filip Jańczak (trener) i Kasia (współtrenerka) — bez firmy, bez reklam i bez sprzedawania danych.",
+    "Tworzą ją Filip Jańczak (trener) i Kasia (współtrenerka).",
   ],
   funkcje: [
     "Dziś — plan na dzisiaj, ostatni bieg i forma (ekran główny).",
@@ -30,7 +30,7 @@ export const O_NAS = {
     "Radio BiegaMy to muzyka do biegania tworzona przez Filipa — ekran Radio w menu.",
   ],
   podopieczny: [
-    "Żeby trenować z Filipem albo Kasią, załóż konto w BiegaMy i napisz do nas: biegamy.run@gmail.com albo przez czat w aplikacji.",
+    "Żeby trenować z Filipem albo Kasią, załóż konto w BiegaMy i napisz do nas przez czat w aplikacji.",
     "Bez trenera też skorzystasz: generator planu, dziennik treningów, forma i społeczność działają od razu po rejestracji.",
   ],
 };

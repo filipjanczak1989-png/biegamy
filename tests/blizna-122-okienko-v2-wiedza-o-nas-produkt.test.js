@@ -80,7 +80,9 @@ test('3) o-nas.mjs: pytania o Filipa, Kasię, twórcę, BiegaMy, podopiecznego �
   assert.doesNotMatch(src, /SZKIC/, 'treść zatwierdzona 3.11 — znacznik szkicu zdjęty'); assert.doesNotMatch(src, /fabian/i, 'imię dziecka z akcji nie w pliku o nas');
   const fakty = Object.values(O.O_NAS).flat().join(' ');
   assert.doesNotMatch(fakty, /reprezentant\w*|zawodni\w* kadry|biega ultra/i, 'Filip = sztab szkoleniowy kadry, NIE zawodnik/reprezentant (poprawka Filipa 3.11) — to nie może wrócić');
-  assert.match(fakty, /sztabu szkoleniowego kadry Polski na mistrzostwa świata IAU w biegu na 100 km/); assert.match(O.O_NAS.radio.join(' '), /muzyka do biegania tworzona przez Filipa/);
+  assert.match(fakty, /sztabu szkoleniowego kadry Polski na mistrzostwa świata IAU w biegu na 100 km/);
+  assert.doesNotMatch(fakty, /bez firmy|bez reklam|sprzedawani|@/, 'niepotwierdzone obietnice i adres e-mail zdjęte (Filip 3.11) — kontakt tylko przez czat');
+  assert.match(O.O_NAS.podopieczny.join(' '), /przez czat w aplikacji/); assert.match(O.O_NAS.radio.join(' '), /muzyka do biegania tworzona przez Filipa/);
   for (const k of ['filip', 'kasia', 'zespol', 'biegamy', 'funkcje', 'radio', 'podopieczny']) assert.ok(Array.isArray(O.O_NAS[k]) && O.O_NAS[k].length >= 1, k);
   assert.doesNotMatch(src, /Deno\.|googleapis|from\("/, 'plik czysty: bez Deno, bez sieci, bez bazy');
 });
