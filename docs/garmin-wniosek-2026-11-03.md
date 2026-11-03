@@ -8,7 +8,8 @@ nic nie jest wymyślone. Przed wysłaniem: zrobić poprawki w privacy.html / pri
 ⚠️ Decyzja Filipa przed wysłaniem (pkt „AI”): dziś dane treningowe (w tym importowane z zegarka) trafiają do Anthropic (raporty, plany,
 brief trenera, OCR) i do Google Gemini (Okienko — odpowiedzi o własnych treningach). Umowa Garmina (Rev. B 03/2026, §15.10 wg relacji
 Sahha) wymaga jawnego oświadczenia o AI. Dwie drogi: (a) zadeklarować oba, (b) wyłączyć dane z Garmina z AI (osobna flaga na
-`external_source`) i zadeklarować „no AI on Garmin data”. Tekst poniżej zakłada (a) — przy (b) usunąć zdania oznaczone [AI].
+`external_source`) i zadeklarować „no AI on Garmin data”. DECYZJA FILIPA 3.11: wariant (a) — Anthropic i Google zadeklarowane JAWNIE we wniosku (dokument niepubliczny, czyta Garmin). Publiczna privacy.html
+od wersji 1.1 NIE wymienia nazw dostawców AI (kategoria „zewnętrzni dostawcy usług AI — podmioty przetwarzające”) — to świadoma różnica.
 
 ## PL — dla Filipa (co i dlaczego mówimy)
 
@@ -48,7 +49,8 @@ treningi). Brak narzędzi analitycznych i reklamowych.
 **Organization / application name:** BiegaMy (biegamy.run) — a non-commercial, coach-run running-coaching web app operated by an individual
 (Filip Jańczak, Poland). Not a registered company.
 
-**Website:** https://biegamy.run — **Privacy policy:** https://biegamy.run/privacy-en.html (Polish: https://biegamy.run/privacy.html)
+**Website:** https://biegamy.run — **Privacy policy:** https://biegamy.run/privacy-en.html (Polish: https://biegamy.run/privacy.html; the public policy names
+AI providers as a category — the named providers are disclosed here for Garmin's review)
 — **Contact:** biegamy.run@gmail.com
 
 **Application description:** BiegaMy is a Progressive Web App used by one running coach and about 60 athletes. It provides weekly training
