@@ -66,7 +66,8 @@ test('„Filip i Kasia” w pytaniu = akcja, we wszystkich odmianach i kolejnoś
 test('dopytanie po akcji: granica, kraj, mapa, teren, klimat nie idą do Google; „ta meta” bez nazwy zawodów też; zwykłe zdanie o mecie zawodów bez zmian', async () => {
   const R = await zaladuj('supabase/functions/okienko/router.mjs');
   for (const q of ['a w którym dniu przekraczają ostatnią granicę państwa?', 'w jakim to kraju?', 'pokaż na mapie', 'jaki tam teren?', 'jaki tam klimat?', 'gdzie wypada półmetek?', 'which country?', 'czy przez pustynię?']) assert.equal(R.czyPytanieOMiejsce(q), true, q);
-  for (const q of ['elo w jakim kraju ta mehta?', 'gdzie jest ta meta', 'daleko do ich mety']) assert.equal(R.czyZagadka(q), true, q);
+  for (const q of ['elo w jakim kraju ta mehta?', 'gdzie jest ta meta', 'daleko do ich mety', 'Tylko tak/nie: czy półmetek trasy wypada w Azji?', 'samo tak lub nie: czy meta jest w górach', 'odpowiedz tak albo nie, czy cel jest za granicą']) assert.equal(R.czyZagadka(q), true, q);
+  for (const q of ['tylko tak: czy mam dzis trening', 'tylko nie za szybko na trasie', 'czy to tak dziala']) assert.equal(R.czyZagadka(q), false, q);
   for (const q of ['czy meta maratonu w Krakowie jest na rynku', 'jak wygląda meta w Poznaniu', 'plan na jutro', 'jakie buty na asfalt']) assert.equal(R.czyZagadka(q), false, q);
   assert.equal(R.czyPytanieOMiejsce('plan na jutro'), false);
 });
