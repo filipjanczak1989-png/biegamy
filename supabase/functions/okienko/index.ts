@@ -13,7 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
-import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU } from "./router.mjs";
+import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH } from "./router.mjs";
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
@@ -38,7 +38,14 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const odp = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+/* STRAŻNIK WYJŚCIA AKCJI (red team 3.11, wspólny z v2): odpowiedź modelu/sieci z nazwą celu wyprawy albo imieniem dziecka obok choroby → stałe zdanie */
+const strazAkcji = (body: unknown) => {
+  const b = body as { tryb?: string; zdania?: unknown };
+  if (!b || typeof b !== "object" || b.tryb === "router" || !Array.isArray(b.zdania)) return body;
+  const p = przeciekAkcji(b.zdania as string[]);
+  return p ? { zdania: [p === "cel" ? ODP_CEL_TAJNY : ODP_ZDROWIE_INNYCH], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb: "router", koszt_tok: { we: 0, wy: 0 }, straznik: p } : body;
+};
+const odp = (status: number, body: unknown) => new Response(JSON.stringify(status === 200 ? strazAkcji(body) : body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const pusto = (tryb: string, extra: Record<string, unknown> = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
 
 /* Filip 3.11: przy reakcji („co odwaliłeś”) log dostaje ostatnie pytanie z historii klienta (bez treści odpowiedzi) — paliwo nocnego raportu złych odpowiedzi. */

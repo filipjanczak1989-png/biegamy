@@ -5,7 +5,7 @@
 // między routerem a modelem, i jest mierzony ławką przed wdrożeniem.
 // Wynik: { status, body } — body w kształcie v1 (zdania, karty, akcja, zrodla, narzedzia, tryb, koszt_tok, chipy?); index.ts dokłada wersję.
 import { waliduj, wykonaj, nawigacja } from "../okienko/narzedzia.mjs";
-import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU } from "../okienko/router.mjs";
+import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH, czyPytanieOMiejsce } from "../okienko/router.mjs";
 import { zdanieAkcji, liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "./akcja-v2.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "../okienko/model.mjs";
@@ -57,7 +57,18 @@ export async function potok(we, nadpisz = {}) {
     try { return await d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, tok_we: (w.tok_we || 0) + dodTok.we, tok_wy: (w.tok_wy || 0) + dodTok.wy, ms: Date.now() - T0 }); }
     catch { return false; } };
   const blad = async (status, body, powod) => { await log({ tryb: "blad", ok: false, powod_odrzucenia: powod }); return odp(status, body); };
-  const odp = (status, body) => ({ status, body: status === 200 && ostatni.id && body && typeof body === "object" && !body.log_id ? { ...body, log_id: ostatni.id } : body, slad });
+  /* STRAŻNIK WYJŚCIA AKCJI (red team 3.11): odpowiedź modelu/sieci z nazwą celu wyprawy albo z imieniem dziecka obok choroby → stałe zdanie */
+  const odp = (status, body) => {
+    if (status === 200 && body && typeof body === "object" && body.tryb !== "router" && Array.isArray(body.zdania)) {
+      const p = przeciekAkcji(body.zdania);
+      if (p) {
+        slad.push("straznik-akcji:" + p);
+        log({ tryb: "router", narzedzia: ["straznik-akcji"], ok: false, powod_odrzucenia: "strażnik wyjścia akcji: " + p + " (tryb " + body.tryb + ")" }).catch(() => {});
+        body = { ...pusto("router"), zdania: [p === "cel" ? ODP_CEL_TAJNY : ODP_ZDROWIE_INNYCH], karty: [] };
+      }
+    }
+    return { status, body: status === 200 && ostatni.id && body && typeof body === "object" && !body.log_id ? { ...body, log_id: ostatni.id } : body, slad };
+  };
 
   const AK = globalThis.BM_AKCJA_CYTATY, AKK = globalThis.BM_AKCJA;
   let akcjaDane = null;
@@ -128,13 +139,17 @@ export async function potok(we, nadpisz = {}) {
   const kont = czyKontynuacja(normalizuj(tekst), rozmowa);
   /* DOPYTANIE PO AKCJI (3.11, ławka akcji): „a dlaczego?”, „a on?”, „co jeszcze?” zaraz po odpowiedzi o akcji → znowu odpowiedź akcji, 0 tokenów.
      Model rozmowy widziałby imię dziecka i mógłby dopowiedzieć chorobę albo cel wyprawy — tu go NIE wołamy. */
-  if (rozmowa[0] && rozmowa[0].intencja === "akcja" && (kont || czyDopytanie(normalizuj(tekst), rozmowa)) && AK) {
+  /* red team 3.11: po odpowiedzi o akcji pytanie o miejsce/metę/kierunek/odległość („ile zostało do mety?”, „do którego sanktuarium?”,
+     „czyli meta jest gdzie?”) to dalej pytanie o cel wyprawy — zdanie akcji, nigdy model ani sieć. */
+  const pytOMiejsce = czyPytanieOMiejsce(tekst);
+  if (rozmowa[0] && rozmowa[0].intencja === "akcja" && (kont || pytOMiejsce || czyDopytanie(normalizuj(tekst), rozmowa)) && AK) {
     if (!akcjaDane) { try { akcjaDane = await AK.odswiezStan(sb, athleteId); } catch { akcjaDane = null; } AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(athleteId) === "proba" }); }
     const z = AK.odpowiedzZagadki();
+    const zdA = pytOMiejsce ? (zdanieAkcji("wyprawa", akcjaDane, AKK) || z.zdanie) : z.zdanie;
     let kartyA = []; if (AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyA = [k]; }
     await log({ tryb: "router", narzedzia: ["zagadka"], powod_odrzucenia: "dopytanie po akcji" });
-    await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [z.zdanie] });
-    return odp(200, { ...pusto("router"), zdania: [z.zdanie], karty: kartyA });
+    await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [zdA] });
+    return odp(200, { ...pusto("router"), zdania: [zdA], karty: kartyA });
   }
   // ── R2: TRYB ROZMOWA — dopytanie w świeżej rozmowie („a dlaczego?”, „wyjaśnij prościej”, „a dla mnie?”) → jedno wywołanie modelu
   //    z poprzednimi wymianami; liczby tylko z rozmowy, strażnik ogólników; limit 20 tur/dobę; PRZED bramką osób (dopytanie nigdy nie idzie do sieci) ──

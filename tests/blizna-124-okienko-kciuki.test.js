@@ -40,7 +40,7 @@ test('log-v2: zapis zwraca id, gdy klient umie .select (prod), true na atrapie; 
   assert.equal(await L.zapiszOdpowiedzV2(zUpd, 'zly', ['Raz.']), false);
   const pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
   assert.match(pt, /d\.zapiszLog = async \(a, w\) => \{ const r = await zapiszOryg\(a, w\); if \(Number\.isFinite\(Number\(r\)\) && typeof r === "number"\) ostatni\.id = r; return r; \};/);
-  assert.match(pt, /const odp = \(status, body\) => \(\{ status, body: status === 200 && ostatni\.id && body && typeof body === "object" && !body\.log_id \? \{ \.\.\.body, log_id: ostatni\.id \} : body, slad \}\);/);
+  assert.match(pt, /return \{ status, body: status === 200 && ostatni\.id && body && typeof body === "object" && !body\.log_id \? \{ \.\.\.body, log_id: ostatni\.id \} : body, slad \};/);   // blizna-137: odp ze strażnikiem wyjścia akcji
   const ef = czytaj('supabase/functions/okienko-v2/index.ts');
   assert.match(ef, /if \(w\.status === 200 && b && b\.log_id && Array\.isArray\(b\.zdania\) && b\.zdania\.length\) \{ try \{ await zapiszOdpowiedzV2\(adm, b\.log_id, b\.zdania\); \} catch/);   // blizna-136: best-effort
 });

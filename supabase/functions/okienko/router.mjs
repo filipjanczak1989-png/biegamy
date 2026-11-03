@@ -152,12 +152,14 @@ export function dopasujBiegi(tekst, dzis) {
    charakterystyczne (fabian, 12 500, 8.11, peleryny, Jasna Góra, tajemnica, niespodzianka, akcja, challenge…) działają
    zawsze; OGÓLNE („co się dzieje", „co się szykuje", „o co chodzi z…") tylko bez słów o własnych danych i pojęciach
    aplikacji — inaczej „o co chodzi z TSB" (katalog) albo „co się dzieje z moim planem" trafiłyby w zagadkę (blizna-93). */
-const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|12 ?500|jasn\w* gor\w*|peleryn\w*)\b/;
+const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki challenge|challenge\w*|wyzwanie specjalne|beda znaki|tajemnic\w*|niespodzian\w*|fabian\w*|fabjan\w*|fabijan\w*|zrzutk\w*|siepomaga\w*|charity|fundrais\w*|spendenlauf\w*|12 ?500|jasn\w* gor\w*|jasnogor\w*|peleryn\w*)\b/;
 /* WYPRAWA I JEJ CEL (Filip 3.11, ławka akcji przed przepięciem): cel wyprawy jest tajemnicą do „Dotarliśmy” — NIGDY model, sieć ani
    zgadywanie. Każde pytanie o wyprawę, metę, „dokąd biegniecie”, „czy biegniecie do X” i o miejsca-kandydatów (Częstochowa, Jasna Góra)
    → zagadka (przed startem) albo stałe zdanie bez celu (po starcie). Celowo szerokie (jak fabian*): „biegi w Częstochowie” też tu trafi —
    ochrona sekretu > kalendarz jednego miasta. Przegląd razem z fabian* w dniu zamknięcia akcji. */
-const ZAGADKA_WYPRAWA = /\b(wypraw\w*|dokad (biegniecie|biegniemy|biegna|biegnie|zmierzacie|zmierzamy|idziecie|idziemy|pobiegniecie|pobiegniemy|jedziecie|lecicie)|gdzie (konczy sie|sie konczy|bedzie meta|jest meta|meta|biegniecie|biegniemy|dobiegniecie|dobiegniemy|konczycie|skonczycie)|(biegniecie|biegniemy|pobiegniecie|pobiegniemy|biegna|dobiegniecie|dobiegniemy) (do|na|w strone|w kierunku|az do|az na)|cel (wypraw\w*|biegu filipa|podrozy)|meta (wypraw\w*|akcj\w*)|czestochow\w*|jasn\w* gor\w*|filip i kasia (biegna|biegnie|ida)|trasa (wypraw\w*|filipa|kasi))\b/;
+const ZAGADKA_WYPRAWA = /\b(wypraw\w*|dokad (biegniecie|biegniemy|biegna|biegnie|zmierzacie|zmierzamy|idziecie|idziemy|pobiegniecie|pobiegniemy|jedziecie|lecicie)|gdzie (konczy sie|sie konczy|bedzie meta|jest meta|meta|biegniecie|biegniemy|dobiegniecie|dobiegniemy|konczycie|skonczycie)|(biegniecie|biegniemy|pobiegniecie|pobiegniemy|biegna|dobiegniecie|dobiegniemy) (do|na|w strone|w kierunku|az do|az na)|cel (wypraw\w*|biegu filipa|podrozy)|meta (wypraw\w*|akcj\w*)|czestochow\w*|jasn\w* gor\w*|filip i kasia (biegna|biegnie|ida)|trasa (wypraw\w*|filipa|kasi)|(dokad|dokond|dokat|dokont) (wy )?(biegn\w*|biegi\w*|pobiegn\w*|zmierza\w*)|expedition\w*|expedic\w*|expedice|ekspedycj\w*|(met[aey]|mecie|mete)\b.{0,25}\b(wypraw\w*|filip\w*|kasi\w*|akcj\w*|wasz\w*)|(dotar\w*|dobieg\w*)\b.{0,25}\b(met[aey]|mecie|mete)|(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*)\b.{0,40}\b(dokad|gdzie|where|wohin|adonde|donde|kam|biegn\w*|pobiegn\w*|dobiegn\w*|run\w*|lauf\w*|corr\w*|bezi|tras\w*|route|map\w*|met[aey]|mecie|finish\w*|cel\w*)|(dokad|gdzie|where|wohin|adonde|donde|kam|tras\w*|route|map\w*)\b.{0,40}\b(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*))\b/;
+/* CYRYLICA (red team 3.11): normalizuj zostawia tylko a-z, więc ukraińskie/rosyjskie pytania o akcję sprawdzamy na surowym tekście */
+const ZAGADKA_CYRYLICA = /фаб[іиї]ан|експедиц|экспедиц|(філіп|филип)\S*\s+(і|и|та)\s+кас|кас\S*\s+(і|и|та)\s+(філіп|филип)/;
 /* LICZNIK AKCJI (Filip 3.11): „ile km już jest”, „ile na liczniku” — po starcie liczba z akcja_licznik (potok v2), przed startem zagadka. */
 const ZAGADKA_KM = /\b(ile (juz )?(km|kilometrow) (juz )?(jest|mamy|nabiegalismy|uzbieralismy|razem|na liczniku|w liczniku|zostalo|brakuje)|ile (jest )?na liczniku|stan licznika|ile (juz )?(zebraliscie|uzbieraliscie|przebiegliscie|nabiegaliscie))\b/;
 /* PRZED 8.11 (Filip 2.11, przegląd A pkt 1): DATA startu łapie zagadkę tylko BEZ słów o własnych danych — „plan na 7.11”,
@@ -213,6 +215,7 @@ const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tyg
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
+  if (ZAGADKA_CYRYLICA.test(surowy)) return true;
   if (!t) return false;
   if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t)) return true;
   if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
@@ -221,7 +224,7 @@ export function czyZagadka(tekst) {
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
 /** Rodzaj pytania o akcję (potok v2 dobiera zdanie po starcie): 'wyprawa' (cel/meta — nigdy nie zdradzamy), 'km' (licznik), null (ogólne). */
-export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return ZAGADKA_WYPRAWA.test(t) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
+export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return (ZAGADKA_WYPRAWA.test(t) || /експедиц|экспедиц/.test(String(tekst || "").toLowerCase())) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
 /* ZDROWIE INNYCH OSÓB (Filip 3.11, ławka akcji: „co mu jest” po pytaniu o Fabianka): o zdrowiu kogokolwiek poza pytającym Okienko nie mówi —
    stałe zdanie, 0 tokenów, przed modelem i siecią (model mógłby zmyślić chorobę, sieć mogłaby ją znaleźć). „co mi jest” to zdrowie pytającego. */
 export const ODP_ZDROWIE_INNYCH = "O zdrowiu innych osób nie rozmawiam. Jeśli chodzi o Ciebie — napisz, co Ci dolega.";
@@ -230,6 +233,7 @@ export function czyZdrowieInnych(tekst) { return ZDROWIE_INNYCH.test(normalizuj(
 /** Czy pytanie MOŻE być o akcję (niezależnie od stanu) — EF okienko pobiera stan akcji tylko dla takich (bez RPC dla reszty). */
 export function zagadkaKandydat(tekst) {
   const t = normalizuj(tekst);
+  if (ZAGADKA_CYRYLICA.test(String(tekst || "").toLowerCase())) return true;
   return !!t && (czyZagadka(tekst) || ZAGADKA_PO_STARCIE.test(t) || PYT_DOLACZ.test(t));
 }
 
@@ -297,3 +301,22 @@ export function dopasuj(tekst, dzis) {
   if (nav) for (const [re, ekran] of EKRAN_SLOWO) if (re.test(nav[2])) return { nawiguj: EKRANY[ekran], ekran };
   return null;
 }
+
+/* STRAŻNIK WYJŚCIA AKCJI (red team 3.11, przed startem 7.11): ostatnia linia obrony dla odpowiedzi z MODELU i SIECI (tryb ≠ router) — nazwa
+   celu wyprawy (te same słowa, które router i tak łapie w pytaniach) albo imię dziecka obok słowa o chorobie → stałe zdanie zamiast odpowiedzi.
+   Woła potok v2 i EF okienko (v1) tuż przed wysłaniem; odpowiedzi routera (zagadka, cytaty akcji) są pisane ręcznie i tu nie trafiają. */
+export const ODP_CEL_TAJNY = "Cel wyprawy zdradzimy na mecie. Postęp widać na Dziś.";
+const PRZECIEK_CELU = /\b(czestochow\w*|jasn\w* gor\w*|jasnogor\w*)\b/;
+const PRZECIEK_DZIECKA = /\b(chor\w*|nowotw\w*|bialacz\w*|guz\w*|rak\w*|sma|zespol\w*|operac\w*|lecze\w*|terapi\w*|diagnoz\w*|szpital\w*|hospic\w*|onkolog\w*|chemi\w*|przeszczep\w*|zanik\w*|mutacj\w*|disease|illness|cancer|leukemia|tumou?r|diagnos\w*|hospital|krankheit|krebs)\b/;
+/** → 'cel' | 'dziecko' | null */
+export function przeciekAkcji(zdania) {
+  const t = normalizuj((Array.isArray(zdania) ? zdania : [zdania]).join(" "));
+  if (!t) return null;
+  if (PRZECIEK_CELU.test(t)) return "cel";
+  if (/\b(fabian\w*|fabjan\w*)\b/.test(t) && PRZECIEK_DZIECKA.test(t)) return "dziecko";
+  return null;
+}
+/* DOPYTANIE O MIEJSCE PO AKCJI (red team 3.11): po odpowiedzi o akcji „ile zostało do mety?”, „do którego sanktuarium?”, „czyli meta jest gdzie?”
+   to dalej pytanie o cel wyprawy — potok v2 odpowiada zdaniem akcji (nigdy model, sieć). Samo w sobie (bez rozmowy o akcji) nic nie znaczy. */
+const PYT_O_MIEJSCE = /\b(met[aey]?|mecie|mete|cel\w*|dokad|gdzie|tras\w*|miast\w*|miejsc\w*|miejscowosc\w*|zostal\w*|brakuje|daleko|kilometr\w*|km|sanktuar\w*|pielgrzym\w*|klasztor\w*|kierun\w*|strone|wojewodztw\w*|region\w*|polud\w*|polnoc\w*|wschod\w*|zachod\w*|finish\w*|where|wohin|destination)\b/;
+export function czyPytanieOMiejsce(tekst) { return PYT_O_MIEJSCE.test(normalizuj(tekst)); }
