@@ -157,9 +157,16 @@
           '<a class="btn btn-ghost" href="profil.html?open=icu">Nie wiesz, gdzie szukać? Instrukcja ze zrzutami</a>';
       } else {
         // count>0 → treningi są; count null/undefined (EF call padł, nieznane) → nie strasz. Oba: normalny sukces + redirect.
-        const sub = (data.activities_count > 0) ? 'Twoje treningi zaczną wpadać — przekierowuję…' : 'przekierowuję…';
+        /* BACKFILL (3.11, przypadek Kasi): po ponownym połączeniu od razu sync z ostatnich 90 dni (EF dedupuje po external_id), żeby
+           luka po przerwie zegarka domknęła się tu, a nie dopiero przy kolejnym otwarciu Dziś. Błąd syncu nie psuje połączenia. */
+        show('✅', 'Połączono z intervals.icu', 'Pobieram treningi z ostatnich 90 dni…', false);
+        let sub = (data.activities_count > 0) ? 'Twoje treningi zaczną wpadać — przekierowuję…' : 'przekierowuję…';
+        try {
+          const { data: ath } = await window.sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+          if (ath && window.WATCH) { const w = await window.WATCH.sync(ath.id, null, false); if (w && w.ok) sub = (w.synced > 0 ? 'Pobrano ' + w.synced + ' treningów z ostatnich 90 dni' : 'Treningi będą wpadać') + ' — przekierowuję…'; }
+        } catch (e) {}
         show('✅', 'Połączono z intervals.icu', sub, false);
-        setTimeout(() => { location.replace(returnDest); }, 3500);
+        setTimeout(() => { location.replace(returnDest); }, 2500);
       }
     } else if (data && data.error === 'already_linked') {
       show('✕', 'To konto intervals jest już podłączone', 'do zawodnika: ' + (data.owner || '?') + '. Wyloguj się z tego konta na intervals.icu i połącz swoje.', true);

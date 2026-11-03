@@ -46,3 +46,22 @@ Nazwa źródła z pola intervals `source` (GARMIN_CONNECT → „Garmin Connect�
 2. `supabase functions deploy intervals-status`.
 3. Kasia (ogniwo `zegarek`, Garmin fenix 3, ostatni 6.10): komputer → intervals.icu → Settings → Connections → Garmin: Disconnect / Connect;
    przy 401 najpierw usunąć intervals.icu w Garmin Connect → Połączone aplikacje. Potem w BiegaMy „Sprawdź teraz”.
+
+## LEKCJA — przypadek Kasi (3.11.2026, Filip 12:43: „działa, dużo tarcia, nie może się powtórzyć”)
+
+Przebieg: zmiana telefonu → Garmin Connect na nowym telefonie nie był połączony z intervals.icu (przy Garminie w intervals „401”) →
+intervals nie dostawał nic od 6.10 → BiegaMy od 6.10 nic nie importowało. BiegaMy ↔ intervals było cały czas sprawne (token z 8.07 żył),
+więc panel „nie dosyła od X dni” wskazywał złe miejsce. Naprawa, która zadziałała:
+
+1. intervals.icu → Settings → Connections → Garmin: **Disconnect**, potem **Connect** (na komputerze, logowanie do Garmina od nowa).
+2. **Download old data** przy Garminie — bez tego intervals dostaje tylko NOWE treningi, przerwa (6.10–3.11) zostaje dziurą. To był
+   krok kluczowy i najmniej oczywisty; stąd osobny punkt ④ w kreatorze.
+3. BiegaMy: sync (okno 90 dni + dedup po external_id) dociągnął 15 treningów 6.10–2.11 bez duplikatów.
+
+Co zmieniło się w kodzie: kroki kreatora po jednym zdaniu, „Pobierz stare dane” jako osobny krok, przycisk „Pobierz zaległe treningi”
+(Profil = pełna historia, kreator/callback = 90 dni), sync od razu po ponownym połączeniu w `intervals-callback.html`, okno syncu w
+`_shared/okno-syncu.mjs` (blizna-121: luka 30 dni → komplet, drugi sync → 0).
+
+Dla trenera: gdy w Poranku widać „zegarek nie wysyła do intervals (Garmin Connect) od N dni”, to Z DEFINICJI problem po stronie
+zegarek→intervals — pierwsze pytanie brzmi „zmieniałeś telefon / zegarek?”, a nie „połącz ponownie BiegaMy”.
+

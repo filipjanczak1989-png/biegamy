@@ -58,16 +58,25 @@ test('sb.js WATCH: kreator per ogniwo (kroki ①–④, źródło z intervals, l
   const W = ctx.WATCH;
   const zeg = W.kreatorHtml({ ogniwo: 'zegarek', zrodlo: 'Garmin Connect', urzadzenie: 'Garmin fenix 3', ost_intervals: '2026-10-06', dni_ciszy: 28, sprawdzono_at: '2026-11-03T10:00:00Z' }, 'a1', "'profil.html'");
   assert.match(zeg, /Zegarek nie wysyła treningów do intervals\.icu/); assert.match(zeg, /6\.10/); assert.match(zeg, /28 dni temu/); assert.match(zeg, /źródło: <b>Garmin Connect<\/b>/);
-  assert.match(zeg, /Czy treningi są w Garmin Connect na telefonie\?/, 'krok ① z nazwą aplikacji');
-  assert.match(zeg, /sparuj zegarek z telefonem na nowo \(typowe po zmianie telefonu\)/);
-  assert.match(zeg, /intervals\.icu\/settings\/connections/); assert.match(zeg, /Disconnect<\/b>, potem <b>Connect<\/b>/); assert.match(zeg, /„401”/); assert.match(zeg, /Garmin Connect → Ustawienia konta → Połączone aplikacje/); assert.match(zeg, /connect\.garmin\.com/);
-  assert.match(zeg, /intervals\.icu\/calendar/); assert.match(zeg, /Sprawdź teraz/);
+  const kroki = [...zeg.matchAll(/<li>(.*?)<\/li>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''));
+  assert.equal(kroki.length, 6, 'sześć kroków: telefon, reconnect, błąd 401, stare dane, kalendarz, pobierz');
+  for (const k of kroki) assert.ok((k.replace(/np\. /g, 'np').match(/[.!?](\s|$)/g) || []).length <= 1, 'jedno zdanie na krok: ' + k);
+  assert.match(kroki[0], /^Telefon: sprawdź, czy ostatni trening jest w Garmin Connect/);
+  assert.match(kroki[1], /^Komputer: .*Połączenia ↗ i przy Garmin Connect kliknij Disconnect, potem Connect\.$/);
+  assert.match(kroki[2], /^Gdy intervals pokazuje błąd \(np\. „401”\): najpierw usuń intervals\.icu w Garmin Connect → Ustawienia konta → Połączone aplikacje/);
+  assert.match(kroki[3], /^Pobierz stare dane: w tym samym miejscu \(Połączenia → Garmin Connect\) kliknij Download old data/, 'osobny krok po ponownym połączeniu (Kasia 3.11)');
+  assert.match(kroki[4], /^Sprawdź w intervals\.icu → Kalendarz ↗/);
+  assert.match(kroki[5], /^Wróć tu i kliknij „Pobierz zaległe treningi” — BiegaMy dociągnie ostatnie 90 dni, bez duplikatów\.$/);
+  assert.match(zeg, /intervals\.icu\/settings\/connections/); assert.match(zeg, /connect\.garmin\.com/); assert.match(zeg, /intervals\.icu\/calendar/);
+  assert.match(zeg, /onclick="WATCH\.pobierzZalegle\('a1', this\)">Pobierz zaległe treningi</);
   assert.doesNotMatch(zeg.replace(/<[^>]+>/g, ''), ZARGON, 'bez żargonu w tekście dla ludzi');
   const bez = W.kreatorHtml({ ogniwo: 'zegarek', zrodlo: null, ost_intervals: null, dni_ciszy: 30 }, 'a1', '');
   assert.match(bez, /aplikacji zegarka \(Garmin Connect \/ Coros \/ Suunto \/ Polar\)/, 'bez źródła — ogólnie, ale konkretnie o aplikacjach');
   const tok = W.kreatorHtml({ ogniwo: 'token' }, 'a1', "'profil.html'");
   assert.match(tok, /Połączenie BiegaMy ↔ intervals\.icu wygasło/); assert.match(tok, /onclick="WATCH\.odpalOAuth\('profil\.html'\)">Połącz ponownie z intervals</); assert.doesNotMatch(tok.replace(/<[^>]+>/g, ''), ZARGON);
-  assert.match(W.kreatorHtml({ ogniwo: 'import', ost_intervals: '2026-11-02', ost_biegamy: '2026-10-20' }, 'a1', ''), /intervals\.icu ma nowe treningi, BiegaMy jeszcze nie/);
+  const imp = W.kreatorHtml({ ogniwo: 'import', ost_intervals: '2026-11-02', ost_biegamy: '2026-10-20' }, 'a1', '');
+  assert.match(imp, /intervals\.icu ma nowe treningi, BiegaMy jeszcze nie/); assert.match(imp, /pobierzZalegle/);
+  assert.match(W.kreatorHtml({ ogniwo: 'siec' }, 'a1', ''), /sprawdzTeraz/);
   assert.equal(W.kreatorHtml({ ogniwo: 'ok' }, 'a1', ''), ''); assert.equal(W.kreatorHtml({ ogniwo: 'brak' }, 'a1', ''), ''); assert.equal(W.kreatorHtml(null, 'a1', ''), '');
   assert.match(W.opisOgniwa({ ogniwo: 'zegarek', zrodlo: 'Coros', dni_ciszy: 9 }), /^Zegarek nie wysyła treningów do intervals\.icu \(Coros\) — ostatni 9 dni temu\.$/);
   assert.doesNotMatch(W.opisOgniwa({ ogniwo: 'token' }), ZARGON);
@@ -77,7 +86,8 @@ test('sb.js WATCH: kreator per ogniwo (kroki ①–④, źródło z intervals, l
   assert.match(sb, /pasekProblemu: async function\(athleteId\)[\s\S]*?\['token', 'zegarek', 'import'\]\.indexOf\(st\.ogniwo\) < 0\) return '';/);
   assert.match(sb, /href="profil\.html\?open=icu"[^>]*>Napraw ›<\/a>/); assert.match(sb, /localStorage\.setItem\(this\.parentNode\.dataset\.klucz/, 'zamknięcie paska pamiętane');
   assert.match(sb, /<div class="wc-status-wrap" data-athlete="' \+ opts\.athleteId \+ '">/); assert.match(sb, /const brakHtml = kreator && stS && stS\.ogniwo === 'zegarek' \? '' : brak;/, 'bez dwóch paneli o tym samym');
-  assert.match(sb, /sprawdzTeraz: async function\(athleteId, btn\)[\s\S]*?await this\.sync\(athleteId, null, false\);[\s\S]*?await this\.sprawdzSync\(athleteId\);[\s\S]*?await this\._rerenderStatus\(athleteId\);/);
+  assert.match(sb, /_odswiez: async function\(athleteId, btn, wTrakcie, etykieta\)[\s\S]*?await this\.sync\(athleteId, null, false\);[\s\S]*?await this\.sprawdzSync\(athleteId\);[\s\S]*?await this\._rerenderStatus\(athleteId\);/);
+  assert.match(sb, /pobierzZalegle: function\(athleteId, btn\) \{ return this\._odswiez\(athleteId, btn, 'Pobieram…', 'Pobierz zaległe treningi'\); \}/);
 });
 
 test('intervals-callback: state z sessionStorage ALBO localStorage (15 min, jednorazowe), komunikat bez „CSRF”; Dziś: slot paska; trener: lista + przycisk', () => {
@@ -93,3 +103,32 @@ test('intervals-callback: state z sessionStorage ALBO localStorage (15 min, jedn
   assert.match(t, /zegarek nie wysy\\u0142a do intervals/); assert.match(t, /sprawdzZegarki\(this\)/); assert.match(t, /JSON\.stringify\(\{ wszyscy: true \}\)/);
   assert.doesNotMatch(t.slice(t.indexOf('async function sprawdzZegarki'), t.indexOf('async function zaladujPoranek')), ZARGON);
 });
+
+test('BACKFILL: sync zawsze z ostatnich 90 dni + dedup po external_id → luka 30 dni domyka się do kompletu; po ponownym połączeniu sync od razu; przycisk w Profilu', async () => {
+  const O = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/_shared/okno-syncu.mjs')).href);
+  const teraz = Date.parse('2026-11-03T12:00:00Z');
+  const okno = O.oknoSyncu(false, teraz);
+  assert.equal(okno.dni, 90); assert.equal(okno.oldest, '2026-08-05'); assert.equal(okno.newest, '2026-11-04');
+  assert.equal(O.oknoSyncu(true, teraz).dni, 365 * 8);
+  // intervals: trening codziennie przez 60 dni; BiegaMy ma wszystko poza luką 30 dni (6.10–4.11 → zegarek nie wysyłał, potem „Download old data”)
+  const dzien = (n) => new Date(teraz - n * 864e5).toISOString().slice(0, 10);
+  const intervals = Array.from({ length: 60 }, (_, n) => ({ id: 'i' + n, start_date_local: dzien(n) + 'T08:00:00' }));
+  const luka = new Set(intervals.filter((a) => a.start_date_local >= '2026-10-05' && a.start_date_local < '2026-11-04').map((a) => a.id));
+  assert.equal(luka.size, 30);
+  const mamy = intervals.filter((a) => !luka.has(a.id)).map((a) => a.id);
+  const doWstawienia = O.nowe(intervals, mamy);
+  assert.deepEqual(new Set(doWstawienia.map((a) => a.id)), luka, 'wstawiamy DOKŁADNIE lukę — nic więcej (bez duplikatów), nic mniej (komplet)');
+  assert.ok(doWstawienia.every((a) => a.start_date_local.slice(0, 10) >= okno.oldest), 'cała luka mieści się w oknie 90 dni');
+  assert.equal(O.nowe(intervals, intervals.map((a) => a.id)).length, 0, 'drugi sync z rzędu nie wstawia nic');
+  assert.equal(O.nowe(intervals, mamy.map(Number).concat(mamy)).length, 30, 'porównanie po String(id)');
+  const ef = czytaj('supabase/functions/intervals-sync/index.ts');
+  assert.match(ef, /import \{ oknoSyncu \} from '\.\.\/_shared\/okno-syncu\.mjs';/); assert.match(ef, /const \{ oldest, newest \} = oknoSyncu\(full === true\);/);
+  assert.doesNotMatch(ef, /_syncDays/, 'okno tylko w module');
+  assert.match(ef, /const seen = new Set\(\(have \|\| \[\]\)\.map\(\(r: \{ external_id: string \}\) => r\.external_id\)\);/, 'dedup po external_id zostaje');
+  const c = czytaj('intervals-callback.html');
+  assert.match(c, /Pobieram treningi z ostatnich 90 dni…/); assert.match(c, /await window\.WATCH\.sync\(ath\.id, null, false\)/, 'po ponownym połączeniu sync od razu');
+  assert.match(c, /'Pobrano ' \+ w\.synced \+ ' treningów z ostatnich 90 dni'/);
+  const p = czytaj('profil.html');
+  assert.equal((p.match(/↻ Pobierz zaległe treningi/g) || []).length, 2, 'przycisk w Profilu (etykieta spoczynkowa + po syncu)');
+});
+

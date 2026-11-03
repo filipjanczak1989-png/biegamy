@@ -506,7 +506,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <div class="st-label">Połączenia</div>
       <!-- WATCH 'status' — SSOT (Połączono ✓/Rozłącz ↔ Autoryzuj), wypełniany w checkIntervalsStatus -->
       <div id="icu-status-slot"></div>
-      <button id="icu-sync-btn" onclick="syncIntervals()" style="display:none;width:100%;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">↻ Synchronizuj aktywności</button>
+      <button id="icu-sync-btn" onclick="syncIntervals()" style="display:none;width:100%;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">↻ Pobierz zaległe treningi</button>
       <div id="icu-connect-form">
         <details class="wc-adv"><summary>Zaawansowane: połącz kluczem API</summary>
           <div class="wc-adv-body">
@@ -1990,8 +1990,8 @@ async function syncIntervals() {
   if (!_myId) return;
   const btn = document.getElementById('icu-sync-btn');
   if (btn) { btn.textContent = '↻ Synchronizuję...'; btn.disabled = true; }
-  await window.WATCH.sync(_myId, null, true);   // FULL-SYNC: reczny przycisk ciagnie CALA historie
-  if (btn) { btn.textContent = '↻ Synchronizuj aktywności'; btn.disabled = false; }
+  await window.WATCH.sync(_myId, null, true);   // FULL-SYNC: reczny przycisk ciagnie CALA historie (3.11: etykieta „Pobierz zaległe treningi” — dedup po external_id, więc bez duplikatów)
+  if (btn) { btn.textContent = '↻ Pobierz zaległe treningi'; btn.disabled = false; }
   /* ⚠️ BEZ TEJ LINII PANEL „nie dosyła" NIE MIAŁ JAK ZNIKNĄĆ. Sekcja renderuje
      się raz, przy wejściu; sync zaciągał treningi i zostawiał na ekranie żółty
      komunikat mówiący, że nic nie wpadło — do najbliższego przeładowania strony.

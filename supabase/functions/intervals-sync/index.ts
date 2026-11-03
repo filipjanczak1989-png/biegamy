@@ -41,6 +41,7 @@ function gapToPace(v: number): string | null {
 // rozjechany od 27.07 — webhook nie dostał ACT_MAP). Bramka: tools/bramka-reguly.js część D.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
+import { oknoSyncu } from '../_shared/okno-syncu.mjs';   // 3.11: 90 dni / pełna historia — jedno miejsce, blizna-121 (luka 30 dni → komplet)
 
 // E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
 // dwutorowa notyfikacja (zawodnik + trener). Best-effort: blad tu NIE psuje odpowiedzi EF.
@@ -119,9 +120,7 @@ Deno.serve(async (req) => {
     const icuAth = useOAuth ? '0' : icuId;
 
     // --- SYNC: 90 dni (zwykly) lub CALA HISTORIA (full=true, np. przy pierwszym polaczeniu/onboardingu) ---
-    const _syncDays = full ? 365 * 8 : 90;   /* full = do 8 lat wstecz (praktyczny limit historii biegowej) */
-    const oldest = new Date(Date.now() - _syncDays * 864e5).toISOString().slice(0, 10);
-    const newest = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    const { oldest, newest } = oknoSyncu(full === true);   /* 90 dni zwykle; full = do 8 lat wstecz (praktyczny limit historii biegowej) */
     const ar = await fetch(
       `https://intervals.icu/api/v1/athlete/${icuAth}/activities?oldest=${oldest}&newest=${newest}`,
       { headers: { Authorization: authH } },

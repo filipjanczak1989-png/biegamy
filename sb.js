@@ -2582,6 +2582,7 @@
       if (!st || st.ogniwo === 'ok' || st.ogniwo === 'brak') return '';
       const esc = window.escapeHtml || function (x) { return String(x); };
       const btnSprawdz = '<button class="wc-btn-sm" onclick="WATCH.sprawdzTeraz(\'' + esc(athleteId) + '\', this)">Sprawdź teraz</button>';
+      const btnZalegle = '<button class="wc-btn" onclick="WATCH.pobierzZalegle(\'' + esc(athleteId) + '\', this)">Pobierz zaległe treningi</button>';
       const kiedy = st.sprawdzono_at ? new Date(st.sprawdzono_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
       let srodek = '';
       if (st.ogniwo === 'token') {
@@ -2596,26 +2597,30 @@
           + '<p class="wc-kr-p">Połączenie BiegaMy ↔ intervals.icu działa. Ostatni trening w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals) || 'brak') + '</b>'
           + (st.dni_ciszy != null ? ' (' + esc(this._dniTemu(st.dni_ciszy)) + ')' : '') + (z ? ' · źródło: <b>' + esc(z) + '</b>' : '') + (st.urzadzenie ? ' · ' + esc(st.urzadzenie) : '') + '.</p>'
           + '<ol class="wc-kr-kroki">'
-          + '<li><b>Czy treningi są w ' + esc(app) + ' na telefonie?</b> Jeśli nie — sparuj zegarek z telefonem na nowo (typowe po zmianie telefonu), a trening zgraj jeszcze raz.</li>'
-          + '<li><b>Jeśli są</b> — na komputerze wejdź w <a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">intervals.icu → Ustawienia → Połączenia ↗</a>, przy ' + esc(nazwa) + ' kliknij <b>Disconnect</b>, potem <b>Connect</b> i zaloguj się na stronie producenta. '
-          + 'Gdy intervals pokazuje błąd przy połączeniu (np. „401”): najpierw ' + (u ? '<b>' + esc(u.apps) + '</b>' : 'w aplikacji zegarka, w połączonych aplikacjach,') + (u && u.link ? ' (<a class="wc-icu-link" href="' + u.link + '" target="_blank" rel="noopener noreferrer">otwórz ↗</a>)' : '') + ' usuń intervals.icu, a potem połącz od nowa.</li>'
-          + '<li><b>Sprawdź</b>, czy trening pojawił się w <a class="wc-icu-link" href="https://intervals.icu/calendar" target="_blank" rel="noopener noreferrer">intervals.icu → Kalendarz ↗</a>.</li>'
-          + '<li><b>Wróć tu</b> i kliknij „Sprawdź teraz”.</li></ol>' + btnSprawdz;
+          + '<li><b>Telefon:</b> sprawdź, czy ostatni trening jest w ' + esc(app) + ' — jeśli nie, sparuj zegarek z telefonem na nowo i zgraj go jeszcze raz.</li>'
+          + '<li><b>Komputer:</b> wejdź w <a class="wc-icu-link" href="' + window.ICU_POLACZENIA_URL + '" target="_blank" rel="noopener noreferrer">intervals.icu → Ustawienia → Połączenia ↗</a> i przy ' + esc(nazwa) + ' kliknij <b>Disconnect</b>, potem <b>Connect</b>.</li>'
+          + '<li><b>Gdy intervals pokazuje błąd (np. „401”):</b> najpierw usuń intervals.icu w ' + (u ? '<b>' + esc(u.apps) + '</b>' : 'aplikacji zegarka, w połączonych aplikacjach') + (u && u.link ? ' (<a class="wc-icu-link" href="' + u.link + '" target="_blank" rel="noopener noreferrer">otwórz ↗</a>)' : '') + ', potem wróć do kroku 2.</li>'
+          + '<li><b>Pobierz stare dane:</b> w tym samym miejscu (Połączenia → ' + esc(nazwa) + ') kliknij <b>Download old data</b> — intervals ściągnie treningi z przerwy.</li>'
+          + '<li><b>Sprawdź</b> w <a class="wc-icu-link" href="https://intervals.icu/calendar" target="_blank" rel="noopener noreferrer">intervals.icu → Kalendarz ↗</a>, czy treningi z ostatnich dni już są.</li>'
+          + '<li><b>Wróć tu</b> i kliknij „Pobierz zaległe treningi” — BiegaMy dociągnie ostatnie 90 dni, bez duplikatów.</li></ol>' + btnZalegle;
       } else if (st.ogniwo === 'import') {
         srodek = '<div class="wc-kr-h">intervals.icu ma nowe treningi, BiegaMy jeszcze nie</div>'
-          + '<p class="wc-kr-p">Ostatni w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>, w BiegaMy: <b>' + esc(this._dataKrotka(st.ost_biegamy) || 'brak') + '</b>. „Sprawdź teraz” pobiera brakujące.</p>' + btnSprawdz;
+          + '<p class="wc-kr-p">Ostatni w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>, w BiegaMy: <b>' + esc(this._dataKrotka(st.ost_biegamy) || 'brak') + '</b>. „Pobierz zaległe treningi” dociąga ostatnie 90 dni, bez duplikatów.</p>' + btnZalegle;
       } else if (st.ogniwo === 'siec') {
         srodek = '<div class="wc-kr-h">Nie udało się sprawdzić połączenia</div><p class="wc-kr-p">intervals.icu nie odpowiedział. Spróbuj za chwilę.</p>' + btnSprawdz;
       }
       return '<div class="wc-kreator" data-ogniwo="' + esc(st.ogniwo) + '">' + srodek + (kiedy ? '<div class="wc-kr-kiedy">sprawdzono ' + esc(kiedy) + '</div>' : '') + '</div>';
     },
-    /* „Sprawdź teraz”: ręczny sync (gdy połączony) + świeży status + przerysowanie panelu w miejscu */
-    sprawdzTeraz: async function(athleteId, btn) {
-      if (btn) { btn.disabled = true; btn.textContent = 'Sprawdzam…'; }
+    /* „Sprawdź teraz” / „Pobierz zaległe treningi”: to samo — sync 90 dni (gdy połączony; EF dedupuje po external_id) + świeży status
+       + przerysowanie panelu w miejscu. Dwie etykiety, bo w kroku ⑥ człowiek chce POBRAĆ, a przy „siec” tylko SPRAWDZIĆ. */
+    sprawdzTeraz: function(athleteId, btn) { return this._odswiez(athleteId, btn, 'Sprawdzam…', 'Sprawdź teraz'); },
+    pobierzZalegle: function(athleteId, btn) { return this._odswiez(athleteId, btn, 'Pobieram…', 'Pobierz zaległe treningi'); },
+    _odswiez: async function(athleteId, btn, wTrakcie, etykieta) {
+      if (btn) { btn.disabled = true; btn.textContent = wTrakcie; }
       try { const st = await this.czyPolaczony(athleteId); if (st.polaczony && !st.tokenMartwy) await this.sync(athleteId, null, false); } catch (e) {}
       await this.sprawdzSync(athleteId);
       await this._rerenderStatus(athleteId);
-      if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'Sprawdź teraz'; }
+      if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = etykieta; }
     },
     _rerenderStatus: async function(athleteId) {
       const w = document.querySelector('.wc-status-wrap[data-athlete="' + athleteId + '"]');
