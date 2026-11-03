@@ -20,14 +20,26 @@ function atrapaKlienta(odp) {
 }
 const ok = (json, usage = { input_tokens: 1000, output_tokens: 500 }) => ({ model: 'claude-opus-5-5', stop_reason: 'end_turn', usage, content: [{ type: 'text', text: JSON.stringify(json) }] });
 
-test('ceny i koszt: Opus 5.5, Haiku 5.5, cache; nieznany model liczony po Opusie', async () => {
+test('ceny i koszt: Opus 5.5, Haiku 5.5, cache; nieznany model liczony po najwyższych stawkach', async () => {
   const C = await zaladuj('tools/_claude.mjs');
   assert.equal(C.STOP_USD, 90);
   assert.equal(C.kosztUsd('claude-opus-5-5', { input_tokens: 1e6, output_tokens: 1e6 }), 24);
   assert.equal(C.kosztUsd('claude-haiku-5-5', { input_tokens: 1e6, output_tokens: 1e6 }), 0.6);
   assert.equal(C.kosztUsd('claude-opus-5-5', { cache_read_input_tokens: 1e6, cache_creation_input_tokens: 1e6 }), 5.2);
-  assert.equal(C.kosztUsd('model-x', { input_tokens: 1e6 }), 4);
+  assert.equal(C.kosztUsd('claude-opus-4-8', { input_tokens: 1e6, output_tokens: 1e6 }), 30, 'fallback ma wyższe stawki niż Opus 5.5');
+  assert.equal(C.kosztUsd('model-x', { input_tokens: 1e6 }), 10);
   assert.match(C.SDK, /^npm:@anthropic-ai\/sdk@\d+\.\d+\.\d+$/, 'SDK przypięte do wersji');
+});
+
+test('fallback w koszcie: usage.iterations liczy próbę odrzuconą i ratującą, każdą po jej stawkach; bez iterations bez zmian (próba na żywo 3.11)', async () => {
+  const C = await zaladuj('tools/_claude.mjs');
+  const it = { input_tokens: 1000, output_tokens: 100, iterations: [{ type: 'message', input_tokens: 2000, output_tokens: 500 }, { type: 'fallback_message', input_tokens: 1000, output_tokens: 100 }] };
+  const odrzucona = (2000 * 4 + 500 * 20) / 1e6, ratujaca = (1000 * 5 + 100 * 25) / 1e6;
+  assert.ok(Math.abs(C.kosztWywolania('claude-opus-5-5', 'claude-opus-4-8', it) - (odrzucona + ratujaca)) < 1e-9);
+  assert.equal(C.kosztWywolania('claude-opus-5-5', 'claude-opus-5-5', { input_tokens: 1e6 }), 4);
+  assert.equal(C.kosztWywolania('claude-opus-5-5', 'claude-opus-4-8', { input_tokens: 1e6 }), 5, 'bez iterations: wyższa stawka z dwóch');
+  const zSiecia = C.kosztWywolania('claude-opus-5-5', 'claude-opus-5-5', { input_tokens: 0, server_tool_use: { web_search_requests: 2 }, iterations: [{ type: 'message', input_tokens: 0 }] });
+  assert.ok(Math.abs(zSiecia - 0.02) < 1e-9, 'wyszukanie liczone raz');
 });
 
 test('zapytaj: Opus przez beta z fallbacks "default", JSON wg schematu, wpis w dzienniku BEZ treści', async () => {
@@ -119,6 +131,35 @@ test('red team: tryb adaptacyjny po równo z każdej kategorii (lista idzie po k
   const w = RT.wybierzDoAdaptacji(ataki, 100);
   assert.equal(w.size, 100);
   for (const kat of ['cel', 'dziecko', 'osoby', 'bramki']) assert.equal([...w].filter((id) => id.includes(kat)).length, 25, kat);
+});
+
+test('red team: powtórka to dokładne rozmowy atak × stan, z turami adaptacyjnymi; wpis z powtórki idzie tylko w swoim stanie; redakcja zna warianty nazwy', async () => {
+  const RT = await zaladuj('tools/red-team.mjs');
+  const { redaguj } = require('./_red-team.js');
+  const prz = [{ id: 'c001', kategoria: 'cel', technika: 't', jezyk: 'pl', stan: 'trwa', tury: [{ q: 'pierwsza' }, { q: 'dopisana przez adaptację' }], wycieki: [{ typ: 'cel' }] },
+    { id: 'c001', kategoria: 'cel', technika: 't', jezyk: 'pl', stan: 'przed', tury: [{ q: 'pierwsza' }], wycieki: [] }];
+  const pow = RT.doPowtorki(prz);
+  assert.deepEqual(pow[0], { id: 'c001', kategoria: 'cel', technika: 't', jezyk: 'pl', stan: 'trwa', tury: ['pierwsza', 'dopisana przez adaptację'], dziura: true });
+  assert.equal(pow[1].dziura, false);
+  assert.deepEqual(RT.atakiNaStan(pow, 'trwa').map((a) => a.tury.length), [2]);
+  assert.equal(RT.atakiNaStan([{ id: 'z' }], 'dotarli').length, 1, 'zwykły atak w każdym stanie');
+  for (const s of ['Ченстохова', 'в Ченстохові', 'Ясна Гора', 'на Ясній Горі', 'Tschenstochau', 'Čenstochová', 'Czestochowa', 'Jasna Góra', 'Jasnogórski']) assert.match(redaguj(`meta: ${s}.`), /^meta: (в |на )?\[SEKRET\]/, s);
+  assert.equal(redaguj('Jutro 8 km spokojnie.'), 'Jutro 8 km spokojnie.');
+});
+
+test('red team: identyczna czysta odpowiedź nie jest oceniana drugi raz; odpowiedź z wyciekiem nie trafia do pamięci czystych', async () => {
+  const RT = await zaladuj('tools/red-team.mjs');
+  process.env.CLAUDE_BUDZET_PLIK = tmp();
+  try {
+    const k = atrapaKlienta(ok({ wyciek: false, co: '' })), czyste = new Set();
+    const p = () => ({ kategoria: 'cel', wycieki: [], tury: [{ q: 'a', slad: 'v2:odmowa', zdania: ['Nie udostępniam cudzych danych.'], wycieki: [] }] });
+    await RT.ocenClaude(p(), { klient: k, czyste }); await RT.ocenClaude(p(), { klient: k, czyste });
+    assert.equal(k.wolania.length, 1, 'stałe zdanie oceniane raz');
+    const k2 = atrapaKlienta(ok({ wyciek: true, co: 'x' })), cz2 = new Set();
+    const q = () => ({ kategoria: 'cel', wycieki: [], tury: [{ q: 'a', slad: 'siec', zdania: ['Podejrzane zdanie.'], wycieki: [] }] });
+    await RT.ocenClaude(q(), { klient: k2, czyste: cz2 }); await RT.ocenClaude(q(), { klient: k2, czyste: cz2 });
+    assert.equal(k2.wolania.length, 2, 'wyciek zawsze oceniany');
+  } finally { delete process.env.CLAUDE_BUDZET_PLIK; }
 });
 
 test('red team: ocena Claude pomija stałe zdania routera, nie zna sekretu, dopisuje wyciek do tury i przebiegu', async () => {

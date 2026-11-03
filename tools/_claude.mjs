@@ -19,10 +19,12 @@ export const MODELE = { opus: "claude-opus-5-5", sonnet: "claude-sonnet-5-5", ha
 /* USD za 1 mln tokenów (cennik Anthropic 10.2026): we, wy, zapis cache (1,25 × we), odczyt cache */
 export const CENY = {
   "claude-opus-5-5": { we: 4, wy: 20, cw: 5, cr: 0.2 },
+  "claude-opus-5": { we: 5, wy: 25, cw: 6.25, cr: 0.5 },
+  "claude-opus-4-8": { we: 5, wy: 25, cw: 6.25, cr: 0.5 },   // tu trafia fallback "default" (próba na żywo 3.11)
   "claude-sonnet-5-5": { we: 2, wy: 10, cw: 2.5, cr: 0.2 },
   "claude-haiku-5-5": { we: 0.1, wy: 0.5, cw: 0.125, cr: 0.01 },
 };
-const NAJDROZSZY = CENY["claude-opus-5-5"];
+const NAJDROZSZY = { we: 10, wy: 50, cw: 12.5, cr: 1 };   // model spoza cennika: stawki Fable; zawyżenie jest bezpieczniejsze od niedoszacowania
 export const CENA_WYSZUKANIA_USD = 0.01;   // web search Anthropic: 10 USD / 1000 wyszukań (opłata ponad tokeny)
 
 export function plikBudzetu() {
@@ -37,11 +39,22 @@ export function wydano(plik = plikBudzetu()) {
   return wpisy(plik).reduce((s, w) => s + (Number(w.usd) || 0), 0);
 }
 
-/** koszt z `usage` odpowiedzi; model spoza cennika (np. fallback) liczony po stawkach Opusa — zawyżenie jest bezpieczniejsze od niedoszacowania */
+/** koszt z `usage` odpowiedzi; model spoza cennika liczony po najwyższych stawkach */
 export function kosztUsd(model, usage) {
   const c = CENY[model] || NAJDROZSZY, u = usage || {};
   return ((u.input_tokens || 0) * c.we + (u.output_tokens || 0) * c.wy + (u.cache_creation_input_tokens || 0) * c.cw + (u.cache_read_input_tokens || 0) * c.cr) / 1e6
     + ((u.server_tool_use && u.server_tool_use.web_search_requests) || 0) * CENA_WYSZUKANIA_USD;
+}
+
+/** koszt całego wywołania z fallbackiem: górne `usage` obejmuje tylko próbę, która zwróciła odpowiedź, a `usage.iterations` wszystkie.
+    Próba odrzucona (`message`) po stawkach modelu żądanego, próba ratująca (`fallback_message`) po stawkach modelu z odpowiedzi; odrzucenie sprzed wyjścia może być darmowe, więc raczej zawyżamy. */
+export function kosztWywolania(modelZadany, modelOdpowiedzi, usage) {
+  const gorne = Math.max(kosztUsd(modelZadany, usage), kosztUsd(modelOdpowiedzi, usage));
+  const it = usage && usage.iterations;
+  if (!Array.isArray(it) || !it.length) return gorne;
+  const suma = it.reduce((s, x) => s + kosztUsd(x.model || (x.type === "fallback_message" ? modelOdpowiedzi : modelZadany), { ...x, server_tool_use: undefined }), 0)
+    + ((usage.server_tool_use && usage.server_tool_use.web_search_requests) || 0) * CENA_WYSZUKANIA_USD;
+  return Math.max(gorne, suma);
 }
 
 /** najgorszy koszt wywołania: całe wejście bez cache (≈ 1 token na 3 znaki) + pełne max_tokens wyjścia */
@@ -99,7 +112,7 @@ export async function zapytaj(o) {
   const t0 = Date.now();
   const r = zFallbackiem ? await klient.beta.messages.create(params, o.opcjeZadania) : await klient.messages.create(params, o.opcjeZadania);   // opcjeZadania: { maxRetries, timeout } SDK
   const ms = Date.now() - t0;
-  const usd = Math.max(kosztUsd(model, r.usage), kosztUsd(r.model || model, r.usage));
+  const usd = kosztWywolania(model, r.model || model, r.usage);
   fs.mkdirSync(path.dirname(plik), { recursive: true });
   fs.appendFileSync(plik, JSON.stringify({ kiedy: new Date().toISOString(), narzedzie: o.narzedzie || "?", model: r.model || model,
     we: r.usage?.input_tokens || 0, wy: r.usage?.output_tokens || 0, cw: r.usage?.cache_creation_input_tokens || 0, cr: r.usage?.cache_read_input_tokens || 0,

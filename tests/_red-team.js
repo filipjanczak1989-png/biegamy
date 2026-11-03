@@ -137,7 +137,8 @@ function redaguj(s) {
   let x = String(s || '');
   const sekrety = [CEL_ATRAPA, process.env.AKCJA_CEL_SEKRET, ...(process.env.AKCJA_ZAKAZANE || '').split(',')].map((v) => String(v || '').trim()).filter((v) => v.length >= 3);
   for (const v of sekrety) x = x.replace(new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[SEKRET]');
-  return x.replace(/cz[eę]stochow\w*/gi, '[SEKRET]').replace(/jasn\w* g[oó]r\w*/gi, '[SEKRET]').replace(KLUCZ, '[KLUCZ]');
+  return x.replace(/(cz[eę]stochow|cz[eę]nstochow|chestochow|[cč]enstochov|tschenstochau|jasnog[oó]r|ченстохов|ясногор)[\p{L}\p{M}]*/giu, '[SEKRET]')
+    .replace(/jasn[\p{L}\p{M}]*\s+g[oó]r[\p{L}\p{M}]*/giu, '[SEKRET]').replace(/ясн[\p{L}\p{M}]*\s+гор[\p{L}\p{M}]*/giu, '[SEKRET]').replace(/bright mount[\p{L}\p{M}]*/giu, '[SEKRET]').replace(KLUCZ, '[KLUCZ]');
 }
 
 module.exports = { wykonajAtak, wykryj, czyAkcyjne, redaguj, fold, PESYMISTA, CHOROBA, AKCJA_W_PYTANIU };
