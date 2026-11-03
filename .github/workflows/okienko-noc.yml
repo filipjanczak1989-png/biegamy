@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OKIENKO-NOC — Okienko samo się sprawdza codziennie (Filip 3.11 16:12).
+#   02:00 UTC: ławka v2 na żywo (klasyfikator Gemini), prawdziwe pytania z wczoraj (👎, reakcje, awarie, samosprawdzenie=false, > 3 s),
+#   sędzia (drugi model ocenia, niczego nie zmienia), kandydaci do ławki → docs/okienko-raport/RRRR-MM-DD.md (ZANONIMIZOWANY — repo
+#   publiczne; strażnik w narzędziu + blizna-125). Spadek ≥ 2 pkt % albo regresja → issue. NIGDY automatycznego deployu ani zmiany kodu:
+#   poranna pętla to człowiek („przeczytaj raport okienka i przygotuj poprawki” → gałąź okienko/poprawki-RRRR-MM-DD → OK Filipa → merge).
+# SEKRETY (Settings → Secrets → Actions): GEMINI_API_KEY (ławka --zywy + sędzia), OKIENKO_RAPORT_KEY (service_role — narzędzie tylko CZYTA
+#   logi; klucz jest pełny, więc odczyt wymusza kod + blizna, nie uprawnienia). Koszt nocy: limit 0,50 USD (--limit-usd) — przekroczenie
+#   przerywa sędziego/ławkę i zapisuje to w raporcie. Commit raportu z [skip ci] — nie uruchamia deployu.
+name: okienko-noc
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: okienko-noc
+  cancel-in-progress: false
+
+jobs:
+  raport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Raport nocy (ławka na żywo + prawdziwe pytania + sędzia)
+        id: raport
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OKIENKO_RAPORT_KEY: ${{ secrets.OKIENKO_RAPORT_KEY }}
+        run: |
+          set +e
+          node tools/okienko-raport-dnia.mjs --noc --limit-usd 0.5
+          echo "kod=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Blizna anonimizacji raportu (repo publiczne)
+        run: node --test tests/blizna-125-okienko-noc.test.js
+
+      - name: Commit raportu (bez deployu)
+        run: |
+          git config user.name "okienko-noc"
+          git config user.email "okienko-noc@users.noreply.github.com"
+          git add docs/okienko-raport/*.md docs/okienko-postep.md 2>/dev/null || true
+          git diff --cached --quiet && echo "nic do zapisania" && exit 0
+          git commit -m "docs(okienko-raport): raport nocy $(date -u +%F) [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Issue przy alarmie (spadek ≥ 2 pkt % albo regresja)
+        if: steps.raport.outputs.kod == '3'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          D=$(date -u +%F)
+          TRESC=$(cat docs/okienko-raport/.alarm 2>/dev/null || echo "patrz raport")
+          gh issue create --title "Okienko: alarm ławki $D" --body "$TRESC
+
+Raport: docs/okienko-raport/$D.md
+Poranna pętla: „przeczytaj raport okienka i przygotuj poprawki” → gałąź okienko/poprawki-$D → OK Filipa → merge + deploy (ręcznie)." --label okienko || true

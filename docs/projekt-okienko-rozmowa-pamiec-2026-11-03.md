@@ -148,3 +148,21 @@ przez strażnik, zero zdań modelu bez pokrycia. Model pisze prozę dopiero na k
 Koszt W1–W4: W1 i W2 bez modelu (0 tokenów, F6 w limicie 500/10 min); W3 to inżynieria; W4 ≈ 50 pytań × 2 wersje ≈ 0,1 USD.
 Szacunek: W1 2–3 dni (najwięcej: prognoza i kategoria, bo potrzebują wyników F6 dla imprezy), W2 1–2 dni, W3 1 dzień + pomiar tydzień,
 W4 0,5 dnia narzędzie + ocena Filipa. Wszystko po R1–R6 (pamięć), zgodnie z kolejnością Filipa.
+
+## 9. Stały rytm uczenia + „Okienko samo się sprawdza codziennie” (Filip 3.11 16:10 / 16:12) — ZBUDOWANE 3.11
+
+| co | gdzie | stan |
+|---|---|---|
+| kciuki 👍/👎 pod odpowiedzią v2 (komentarz po 👎) | migracja `20261105_okienko_kciuki.sql` (RPC `okienko_ocena`, kolumny komentarz/odpowiedz), `js/okienko.js`, EF v2 oddaje `log_id` | gotowe, blizna-124; migracja + deploy u Filipa |
+| raport poranny | `node tools/okienko-raport-dnia.mjs` → `docs/okienko-raport/RRRR-MM-DD.md`: 👎, reakcje, samosprawdzenie=false, awarie, > 3 s; pytanie → ścieżka → odpowiedź; kandydat do ławki przy każdym | gotowe |
+| tygodniowo | `--tydzien` → wiersz w `docs/okienko-postep.md` (ławka %, p50/p90, % 👎, koszt) | gotowe (pierwszy wiersz ręczny 3.11) |
+| noc w Actions | `.github/workflows/okienko-noc.yml` 02:00 UTC: `--noc` = ławka --zywy + prawdziwe pytania + sędzia; commit raportu `[skip ci]`; issue przy spadku ≥ 2 pkt % albo regresji; ZERO deployu | gotowe; wymaga 2 sekretów |
+| anonimizacja | `tools/_anonimizuj.mjs` (imiona z odmianą, nazwiska, e-maile, telefony → zamazane; publiczni sportowcy i Filip/Kasia bez nazwiska zostają) + strażnik `czysty` przed zapisem + blizna-125 skanuje każdy raport | gotowe |
+| sędzia | drugi model `gemini-3.5-flash`, temperatura 0, 5 kryteriów (odpowiada / konkret / liczby z pokryciem / wyciek / ton) + uzasadnienie; tylko ocenia | gotowe |
+| koszt nocy | ławka --zywy ≈ 255 × ~0,0005 = 0,13 USD; sędzia ≈ 30 × ~0,001 = 0,03 USD; razem ≈ **0,15 USD/noc ≈ 4,5 USD/mies.**; limit `--limit-usd 0.5` — przekroczenie przerywa i zapisuje w raporcie | — |
+
+**Sekrety do ustawienia (Settings → Secrets and variables → Actions):** `GEMINI_API_KEY` (ten sam klucz co w EF), `OKIENKO_RAPORT_KEY`
+(= `service_role` projektu; narzędzie wykonuje wyłącznie GET na `okienko_log` / `okienko_v2_log` — blizna-125 pilnuje braku zapisów; klucz jest
+pełny, więc odczyt wymusza kod, nie uprawnienia; jeśli chcesz twardo: osobna rola Postgres z SELECT tylko na dwie tabele + własny JWT — zaległość).
+Workflow potrzebuje też `Settings → Actions → Workflow permissions: Read and write` (commit raportu) i etykiety `okienko` dla issue.
+Poranna pętla: Filip „przeczytaj raport okienka i przygotuj poprawki” → cc czyta `docs/okienko-raport/<dziś>.md` → gałąź `okienko/poprawki-RRRR-MM-DD` z bliznami → OK → merge + deploy ręcznie.
