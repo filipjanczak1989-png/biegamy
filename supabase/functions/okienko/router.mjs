@@ -306,14 +306,27 @@ export function dopasuj(tekst, dzis) {
    celu wyprawy (te same słowa, które router i tak łapie w pytaniach) albo imię dziecka obok słowa o chorobie → stałe zdanie zamiast odpowiedzi.
    Woła potok v2 i EF okienko (v1) tuż przed wysłaniem; odpowiedzi routera (zagadka, cytaty akcji) są pisane ręcznie i tu nie trafiają. */
 export const ODP_CEL_TAJNY = "Cel wyprawy zdradzimy na mecie. Postęp widać na Dziś.";
-const PRZECIEK_CELU = /\b(czestochow\w*|jasn\w* gor\w*|jasnogor\w*)\b/;
-const PRZECIEK_DZIECKA = /\b(chor\w*|nowotw\w*|bialacz\w*|guz\w*|rak\w*|sma|zespol\w*|operac\w*|lecze\w*|terapi\w*|diagnoz\w*|szpital\w*|hospic\w*|onkolog\w*|chemi\w*|przeszczep\w*|zanik\w*|mutacj\w*|disease|illness|cancer|leukemia|tumou?r|diagnos\w*|hospital|krankheit|krebs)\b/;
+/* BLIZNA 140 (3.11, przed płatnym red teamem): strażnik był ślepy na cyrylicę (normalizuj ją wycina), niemiecką nazwę, opis celu („sanktuarium maryjne”,
+   „Black Madonna shrine”) i chorobę dziecka po ukraińsku, rosyjsku, hiszpańsku, czesku. Dwa przebiegi: tekst znormalizowany (łacinka) i surowy (cyrylica, \b nie działa). */
+const PRZECIEK_CELU = /\b(czestochow\w*|czenstochow\w*|chestochow\w*|censtochov\w*|tschenstochau\w*|jasn\w* gor\w*|jasnogor\w*|bright mount\w*)\b/;
+const PRZECIEK_CELU_CYR = /ченстохов|ясн\S* гор|ясногор/;
+const OPIS_CELU = /\b(czarn\w* madonn\w*|black madonna|schwarze\w* madonna|virgen negra|cern\w* madon\w*|sanktuar\w* maryjn\w*|maryjn\w* sanktuar\w*|marian shrine|marian sanctuary|paulin\w* (klasztor\w*|monaster\w*|kloster\w*)|klasztor\w* paulin\w*|pauline monaster\w*)\b/;
+const OPIS_CELU_CYR = /чорн\S* мадонн|черн\S* мадонн|паулін|паулин/;
+/* region i klasztor TYLKO obok słowa „wyprawa”: „meta Silesia Marathon na Stadionie Śląskim” i „meta przy klasztorze” to zwykłe odpowiedzi o zawodach */
+const SLOWO_WYPRAWY = /\b(wypraw\w*|ekspedyc\w*|expedition\w*|expedici\w*|expedice\w*)\b/;
+const SLOWO_WYPRAWY_CYR = /експедиц|экспедиц/;
+const CEL_OGOLNIE = /\b(sanktuar\w*|klasztor\w*|pielgrzym\w*|sanctuar\w*|shrine\w*|monaster\w*|pilgrim\w*|kloster\w*|wallfahrt\w*|heiligtum\w*|santuario\w*|monasterio\w*|peregrin\w*|klaster\w*|poutni\w*|slask\w*|silesia\w*|schlesi\w*|southern poland|south of poland|sudpolen|poludni\w* polski|polud\w* polsk\w*)\b/;
+const CEL_OGOLNIE_CYR = /святилищ|монастир|монастыр|паломн|сілез|силез/;
+const PRZECIEK_DZIECKA = /\b(chor\w*|nowotw\w*|bialacz\w*|guz\w*|rak\w*|sma|zespol\w*|operac\w*|lecze\w*|terapi\w*|diagnoz\w*|szpital\w*|hospic\w*|onkolog\w*|chemi\w*|przeszczep\w*|zanik\w*|mutacj\w*|disease|illness|sick\w*|syndrome|treatment|therapy|cancer|leukemia|tumou?r|diagnos\w*|hospital|krankheit|krebs|erkrank\w*|syndrom|krankenhaus|behandlung|enfermedad\w*|tratamiento|nemoc\w*|lecb\w*)\b/;
+const PRZECIEK_DZIECKA_CYR = /хвор|болезн|заболев|діагноз|диагноз|лікуван|лечени|онколог|пухлин|опухол|лікарн|больниц|синдром|раком|рак\s/;
 /** → 'cel' | 'dziecko' | null */
 export function przeciekAkcji(zdania) {
-  const t = normalizuj((Array.isArray(zdania) ? zdania : [zdania]).join(" "));
-  if (!t) return null;
-  if (PRZECIEK_CELU.test(t)) return "cel";
-  if (/\b(fabian\w*|fabjan\w*)\b/.test(t) && PRZECIEK_DZIECKA.test(t)) return "dziecko";
+  const surowy = (Array.isArray(zdania) ? zdania : [zdania]).join(" ").toLowerCase();
+  const t = normalizuj(surowy);
+  if (!surowy.trim()) return null;
+  if (PRZECIEK_CELU.test(t) || PRZECIEK_CELU_CYR.test(surowy) || OPIS_CELU.test(t) || OPIS_CELU_CYR.test(surowy)) return "cel";
+  if ((SLOWO_WYPRAWY.test(t) || SLOWO_WYPRAWY_CYR.test(surowy)) && (CEL_OGOLNIE.test(t) || CEL_OGOLNIE_CYR.test(surowy))) return "cel";
+  if ((/\b(fabian\w*|fabjan\w*)\b/.test(t) || /фаб[іиї]ан/.test(surowy)) && (PRZECIEK_DZIECKA.test(t) || PRZECIEK_DZIECKA_CYR.test(surowy))) return "dziecko";
   return null;
 }
 /* DOPYTANIE O MIEJSCE PO AKCJI (red team 3.11): po odpowiedzi o akcji „ile zostało do mety?”, „do którego sanktuarium?”, „czyli meta jest gdzie?”

@@ -44,7 +44,7 @@ export const INTENCJE = {
 export const NAZWY_INTENCJI = Object.keys(INTENCJE);
 export const PROG_PEWNOSCI = 0.6;
 
-const SCHEMAT = { type: "object", properties: {
+export const SCHEMAT = { type: "object", properties: {
   intencja: { type: "string", enum: NAZWY_INTENCJI },
   pewnosc: { type: "number" },
   dopytac: { type: "boolean" },

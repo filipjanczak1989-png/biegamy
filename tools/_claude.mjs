@@ -23,6 +23,7 @@ export const CENY = {
   "claude-haiku-5-5": { we: 0.1, wy: 0.5, cw: 0.125, cr: 0.01 },
 };
 const NAJDROZSZY = CENY["claude-opus-5-5"];
+export const CENA_WYSZUKANIA_USD = 0.01;   // web search Anthropic: 10 USD / 1000 wyszukań (opłata ponad tokeny)
 
 export function plikBudzetu() {
   return process.env.CLAUDE_BUDZET_PLIK || path.join(os.homedir(), ".cache", "biegamy", "claude-budzet.jsonl");
@@ -39,13 +40,14 @@ export function wydano(plik = plikBudzetu()) {
 /** koszt z `usage` odpowiedzi; model spoza cennika (np. fallback) liczony po stawkach Opusa — zawyżenie jest bezpieczniejsze od niedoszacowania */
 export function kosztUsd(model, usage) {
   const c = CENY[model] || NAJDROZSZY, u = usage || {};
-  return ((u.input_tokens || 0) * c.we + (u.output_tokens || 0) * c.wy + (u.cache_creation_input_tokens || 0) * c.cw + (u.cache_read_input_tokens || 0) * c.cr) / 1e6;
+  return ((u.input_tokens || 0) * c.we + (u.output_tokens || 0) * c.wy + (u.cache_creation_input_tokens || 0) * c.cw + (u.cache_read_input_tokens || 0) * c.cr) / 1e6
+    + ((u.server_tool_use && u.server_tool_use.web_search_requests) || 0) * CENA_WYSZUKANIA_USD;
 }
 
 /** najgorszy koszt wywołania: całe wejście bez cache (≈ 1 token na 3 znaki) + pełne max_tokens wyjścia */
-export function szacunekMax(model, znakiWejscia, maxTokens) {
+export function szacunekMax(model, znakiWejscia, maxTokens, maxWyszukan = 0) {
   const c = CENY[model] || NAJDROZSZY;
-  return (Math.ceil(znakiWejscia / 3) * c.we + maxTokens * c.wy) / 1e6;
+  return (Math.ceil(znakiWejscia / 3) * c.we + maxTokens * c.wy) / 1e6 + maxWyszukan * CENA_WYSZUKANIA_USD;
 }
 
 export function podsumowanie(plik = plikBudzetu()) {
@@ -80,7 +82,8 @@ async function klientDomyslny() {
 export async function zapytaj(o) {
   const model = o.model || MODELE.opus, maxTokens = o.maxTokens || 16000, plik = o.plik || plikBudzetu();
   const znaki = String(o.system || "").length + JSON.stringify(o.messages || []).length + (o.schema ? JSON.stringify(o.schema).length : 0);
-  const juz = wydano(plik), max = szacunekMax(model, znaki, maxTokens);
+  const maxWysz = (o.tools || []).reduce((s, t) => s + (/^web_search/.test(t.type || "") ? (t.max_uses || 5) : 0), 0);
+  const juz = wydano(plik), max = szacunekMax(model, znaki * (maxWysz ? 4 : 1), maxTokens, maxWysz);   // wyniki wyszukiwania wracają jako wejście
   if (juz + max > STOP_USD) throw new StopBudzetu(`STOP budżetu: wydano ${juz.toFixed(2)} USD, to wywołanie może kosztować do ${max.toFixed(2)} USD, próg ${STOP_USD} USD`);
 
   const klient = o.klient || await klientDomyslny();
@@ -89,6 +92,7 @@ export async function zapytaj(o) {
     model, max_tokens: maxTokens, system: o.system, messages: o.messages,
     output_config: { ...(o.effort ? { effort: o.effort } : {}), ...(o.schema ? { format: { type: "json_schema", schema: o.schema } } : {}) },
     ...(o.bezMyslenia && model === MODELE.haiku ? { thinking: { type: "disabled" } } : {}),
+    ...(o.tools ? { tools: o.tools } : {}),
     ...(zFallbackiem ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {}),
   };
   if (!Object.keys(params.output_config).length) delete params.output_config;
@@ -99,7 +103,7 @@ export async function zapytaj(o) {
   fs.mkdirSync(path.dirname(plik), { recursive: true });
   fs.appendFileSync(plik, JSON.stringify({ kiedy: new Date().toISOString(), narzedzie: o.narzedzie || "?", model: r.model || model,
     we: r.usage?.input_tokens || 0, wy: r.usage?.output_tokens || 0, cw: r.usage?.cache_creation_input_tokens || 0, cr: r.usage?.cache_read_input_tokens || 0,
-    usd: Math.round(usd * 1e6) / 1e6, ms }) + "\n");
+    wysz: r.usage?.server_tool_use?.web_search_requests || 0, usd: Math.round(usd * 1e6) / 1e6, ms }) + "\n");
   if (r.stop_reason === "refusal") throw new OdmowaModelu("odmowa modelu: " + (r.stop_details?.category || "?"));
   const tekst = (r.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
   let json = null;
@@ -107,5 +111,5 @@ export async function zapytaj(o) {
     if (r.stop_reason === "max_tokens") throw new Error("odpowiedź ucięta (max_tokens) — zwiększ maxTokens albo zmniejsz partię");
     json = JSON.parse(tekst);
   }
-  return { tekst, json, usd, ms, model: r.model || model, usage: r.usage, stop_reason: r.stop_reason };
+  return { tekst, json, usd, ms, model: r.model || model, usage: r.usage, stop_reason: r.stop_reason, content: r.content || [] };
 }
