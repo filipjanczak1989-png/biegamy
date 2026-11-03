@@ -54,13 +54,16 @@ const zleSlowoOsoby = (s) => !SLOWO_OSOBY.test(s) || PYTAJNE.test(s) || NIE_IMIE
 export function osobaWZdaniu(tekst) {
   const t = String(tekst || "").replace(/[?!.]+$/g, "").trim();
   const slowa = t.replace(/[\\"'„”(),;:]+/g, " ").split(/\s+/).filter(Boolean);
-  if (slowa.length < 4) return null;
+  /* ławka v2 (3.11): „adres Jana Kowalskiego” (3 słowa) nie łapał się ani tu (próg 4 słów), ani w wygladaNaOsobe (pierwsze słowo
+     nie jest imieniem) → szedł do modelu i do SIECI. Trzy słowa liczą się TYLKO z imieniem ze słownika (A), nie z samej wielkiej
+     litery (B) — „Ultra Kotlina Szklarska” to nie osoba. */
+  if (slowa.length < 3) return null;
   for (let i = 0; i < slowa.length - 1; i++) {
     const w1 = slowa[i], w2 = slowa[i + 1];
     if (zleSlowoOsoby(w1) || zleSlowoOsoby(w2)) continue;
     const poPrzyimku = i > 0 && PRZYIMKI_MIEJSCA.test(slowa[i - 1]);
     const A = czyImie(w1);
-    const B = i > 0 && !poPrzyimku && DUZA.test(w1) && DUZA.test(w2);
+    const B = slowa.length >= 4 && i > 0 && !poPrzyimku && DUZA.test(w1) && DUZA.test(w2);
     if (!A && !B) continue;
     const reszta = slowa.slice(i + 2);
     let gdzie = null;

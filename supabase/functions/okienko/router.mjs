@@ -27,7 +27,7 @@ function miesiacZakres(nr, dzis) {   // nr 1..12; miesiąc w przyszłości tego 
 export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okolicy, utwór z radia albo przepis.";
 export const ODP_TYLKO_POLSKA = "Maszyna wyników zna tylko biegi w Polsce.";   // M3-2 (e)
 export const ODP_ZDROWIE = "Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.";   // etap 5 (c): bez porad medycznych
-const ZDROWIE = /\b(kontuzj\w*|boli|bola|bolal\w*|bol|bolu|bolem|uraz\w*|naciagn\w*|naderwan\w*|skrecon\w*|zwichn\w*|stluczon\w*|zapalen\w*|shin splint\w*|piszczel\w* boli)\b/;
+const ZDROWIE = /\b(skrecil\w*|zlamal\w*|naderwal\w*|naciagnal\w*|stlukl\w*|zwichnal\w*|kontuzj\w*|boli|bola|bolal\w*|bol|bolu|bolem|uraz\w*|naciagn\w*|naderwan\w*|skrecon\w*|zwichn\w*|stluczon\w*|zapalen\w*|shin splint\w*|piszczel\w* boli)\b/;
 export const ODP_KALKULATOR_PUSTY = "Napisz tempo (np. 5:30/km), prędkość w km/h albo czas i dystans — przeliczę.";   // M3-2 (d)
 const EKRAN_SLOWO = [
   [/\b(log|dziennik)\b/, "log"], [/\bplan\b/, "plan"], [/\bform\w*/, "forma"], [/\bspolecznos\w*/, "spolecznosc"],
@@ -157,7 +157,7 @@ const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
    pytania o aplikację albo o własne kilometry). */
 /* ZBIÓRKA (Filip 3.11, test 2.11 22:37: „Na kogo zbiorka” → model → znajomi_tydzien → profil znajomego): każda forma zbiórk…, zbiera…
    oraz „na kogo”, „dla kogo”, „komu” → zagadka przed startem, karta akcji po starcie. Nigdy tryb osoby, nigdy model. */
-const ZAGADKA_ZBIORKA = /\b(zbiork\w*|zbiorek|zbiorka|kto zbiera\w*|zbiera\w* (i )?(na|dla|co|kogo|sie|pieniadz\w*|kase)|na kogo|dla kogo|komu (jest|sie|to|pomagamy|zbieramy)|komu pomagamy|na co idzie|na co ida)\b/;
+const ZAGADKA_ZBIORKA = /\b(zbiork\w*|zbiorek|zbiorka|kto zbiera\w*|zbiera\w* (i )?(na|dla|co|kogo|sie|pieniadz\w*|kase)|zebral\w*|uzbieral\w*|wplac\w*|przelew\w*|darowizn\w*|na kogo|dla kogo|komu (jest|sie|to|pomagamy|zbieramy)|komu pomagamy|na co idzie|na co ida|ile osob (biegnie|biega|bierze udzial|startuje|dolaczylo|pomaga)|jak (moge|mozna|mozemy) pomoc)\b/;   // ławka v2 (3.11): „ile zebraliście”, „gdzie wpłacić”
 const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*|kiedy (rusza|ruszy|startuje|wystartuje|zaczyna sie|zacznie sie|start|poczatek) akcj\w*|kiedy akcj\w* (rusza|ruszy|startuje|wystartuje|sie zaczyna|sie zacznie)|(jaki( jest)? )?cel akcj\w*|na co( jest)?( ta| to| sie)? (zbiera\w*|zbiork\w*)|ile km ma akcj\w*|link (do )?zbiork\w*|zbiork\w* (dla )?fabian\w*|akcj\w* charytatywn\w*|o co chodzi w akcji)\b/;   // przed 8.11 (2): słowa akcji/zbiórki → zagadka / karta
 const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
 /* „JAK DOŁĄCZYĆ" (Filip 2.11 18:30): przed startem → rejestracja w aplikacji (odpowiedź z katalogu, bez słowa o akcji),
@@ -174,7 +174,10 @@ export const ODP_NIEZROZUMIALEM = "Chyba źle zrozumiałem. Napisz inaczej albo 
 export const CHIPY_WYBORU = [{ etykieta: "Mój plan", pytanie: "Plan na jutro" }, { etykieta: "Moje treningi", pytanie: "Ile przebiegłem w tym tygodniu" },
   { etykieta: "Wyniki", pytanie: "Moje wyniki" }, { etykieta: "Biegi w kalendarzu", pytanie: "Jakie biegi w najbliższym miesiącu" }];
 const REAKCJA_MOCNA = /^(co (ty )?odwali\w*|nie o to (pytal\w*|chodzi\w*)|bez sensu|glupie|glupota|co ty (gadasz|pleciesz)|nie rozumiesz|nie zrozumiales|nie zrozumiala\w*|zla odpowiedz|zle odpowied\w*|bzdura|bzdury|chyba zartujesz|o co ci chodzi|pomylka|nie pomogl\w*|nie o to mi chodzi\w*)\b.{0,40}$/;
-const REAKCJA_KROTKA = /^(zle|zly|nie to|nie tak|serio|jeszcze raz|powtorz|no nie|nie)[?!. ]*$/;
+const REAKCJA_KROTKA = /^(zle|zly|nie to|to nie to|nie tak|serio|jeszcze raz|powtorz|no nie|nie)[?!. ]*$/;
+/* podziękowanie (ławka v2, 3.11): „dzięki” trafiało do katalogu treści („Znalazłem w aplikacji:”) — stałe zdanie, 0 tokenów */
+const PODZIEKOWANIE = /^(ok |super |no |wielkie |dobra )?(dzieki|dziekuje|dziekuje bardzo|dzieki wielkie|thx|thanks)[!. ]*$/;
+export const ODP_PODZIEKOWANIE = "Nie ma za co. Pytaj dalej.";
 const REAKCJA_ZWROT = /^(stary|ej|halo|no|hej|czlowieku)[ ,]+(zapytal\w*|pytal\w*|chcial\w*|co ty|nie o to|zle|co odwali\w*).{0,80}$/;
 export function czyReakcja(tekst) { const t = normalizuj(tekst); return !!t && (REAKCJA_MOCNA.test(t) || REAKCJA_KROTKA.test(t) || REAKCJA_ZWROT.test(t)); }
 /* NISKA PEWNOŚĆ (Filip 3.11): bez liter albo jedno–dwa słowa, których nie zna router (ani osoba, impreza, katalog — one idą wcześniej)
@@ -211,8 +214,13 @@ export function dopasuj(tekst, dzis) {
   if (!t) return null;
   if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); return { zdanie: z.zdanie, log: "zagadka" }; }
   if (czyReakcja(tekst)) return { zdanie: ODP_NIEZROZUMIALEM, log: "reakcja", chipy: CHIPY_WYBORU, feedback: true };   // Filip 3.11: reakcje → chipy, bez narzędzi
+  if (PODZIEKOWANIE.test(t)) return { zdanie: ODP_PODZIEKOWANIE, log: "podziekowanie" };
   if (PYT_DOLACZ.test(t)) return { zdanie: ZDANIE_REJESTRACJA, log: "rejestracja",
     karty: [{ typ: "kat_pojecie", dane: { klucz: ODP_REJESTRACJA.klucz, tytul: ODP_REJESTRACJA.tytul, co_to: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa } }] };
+  /* ławka v2 (3.11): pytanie o INNĄ osobę („ile km przebiegł Robert Korzeniowski w tym tygodniu”, „pokaż plan Jana Kowalskiego”) trafiało
+     w „moje” narzędzia (moje_treningi, nawigacja do mojego planu). Para imię+nazwisko bez słowa „mój/mam/mnie” → router oddaje
+     pytanie trybowi osoby (osoba.mjs). */
+  if (maPareOsoby(tekst) && !/\b(moj\w*|mam|mnie|ja)\b/.test(t)) return null;
   if (/\bplan\w*\b.*\b(dzis|dzisiaj)\b|\bco (mam )?(dzis|dzisiaj)\b|\b(dzis|dzisiaj)\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "dzis" } };
   if (/\bplan\w*\b.*\bjutr\w*|\bco (mam )?jutr\w*|\bjutr\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "jutro" } };
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };

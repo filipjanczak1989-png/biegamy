@@ -100,14 +100,16 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
     assert.doesNotMatch(kod, /googleapis\.com/, `${f}: model woła się tylko przez moduły v1`);
   }
   assert.equal(JSON.stringify([...tabeleZapisu].sort()), '["okienko_v2_log"]');
-  const ef = czytaj('supabase/functions/okienko-v2/index.ts');
-  assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(ef), 'moduły v1 z ../okienko/, nie z ./');
-  for (const mod of ['router', 'narzedzia', 'model', 'siec', 'osoba', 'impreza', 'katalog', 'straznik', 'pamiec', 'odpowiedz']) assert.match(ef, new RegExp(`from "\\.\\./okienko/${mod}\\.mjs"`), mod);
-  assert.match(ef, /const log = \(w: Record<string, unknown>\) => zapiszLogV2\(adm, \{ athlete_id: ath\.id, tekst, \.\.\.w, ms: Date\.now\(\) - T0 \}\);/, 'ms w każdym wpisie');
-  assert.ok(!/zapiszLog\(adm/.test(ef), 'v2 nie pisze do okienko_log');
-  assert.equal((ef.match(/await zapiszLogV2\(/g) || []).length, 0, 'wszystkie wpisy przez log() z ms');
+  const ef = czytaj('supabase/functions/okienko-v2/index.ts'), pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
+  assert.match(ef, /import \{ potok \} from "\.\/potok\.mjs";/, 'index.ts = tylko HTTP; orkiestracja w potok.mjs (ta sama na ławce v2)');
+  assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(pt), 'moduły v1 z ../okienko/, nie z ./');
+  for (const mod of ['router', 'narzedzia', 'model', 'siec', 'osoba', 'impreza', 'katalog', 'straznik', 'pamiec', 'odpowiedz']) assert.match(pt, new RegExp(`from "\\.\\./okienko/${mod}\\.mjs"`), mod);
+  assert.match(pt, /return d\.zapiszLog\(adm, \{ athlete_id: athleteId, tekst, \.\.\.w, ms: Date\.now\(\) - T0 \}\);/, 'ms w każdym wpisie');
+  assert.ok(!/zapiszLog\(adm/.test(ef + pt.replace(/d\.zapiszLog\(adm/g, '')), 'v2 nie pisze do okienko_log');
+  assert.equal((pt.match(/zapiszLogV2\(/g) || []).length, 0, 'wszystkie wpisy przez log() z ms (zapiszLogV2 tylko jako DOMYSLNE.zapiszLog)');
   assert.match(ef, /"Access-Control-Expose-Headers": "X-Okienko-Wersja"/);
-  assert.match(ef, /const traf = dopasuj\(tekst, dzis\);/); assert.ok(ef.indexOf('const traf = dopasuj(tekst, dzis);') < ef.indexOf('const os = osobaZPytania(tekst);'), 'router (B1) przed osobą');
+  assert.match(pt, /const traf = dopasuj\(tekst, dzis\);/); assert.ok(pt.indexOf('const traf = dopasuj(tekst, dzis);') < pt.indexOf('const os = osobaZPytania(tekst);'), 'router (B1) przed osobą');
+  assert.match(pt, /export async function potok\(we, nadpisz = \{\}\)/, 'zależności podmienialne (ławka: atrapy modelu/sieci/limitów/logu)');
   // log-v2.mjs na atrapie: limit dzienny liczy 'v2' i 'flash', zapis z ms/intencja/pewnosc przyciętymi
   const L = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/okienko-v2/log-v2.mjs')).href);
   const t = { okienko_v2_log: [], okienko_log: [] };
@@ -115,7 +117,7 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
   assert.equal(await L.zapiszLogV2(adm, { athlete_id: JA, tekst: 'x'.repeat(400), tryb: 'v2', ms: 1234.6, pewnosc: 1.7, intencja: 'moj_plan', plan: ['moj_plan'] }), true);
   const w = t.okienko_v2_log[0];
   assert.equal(w.tekst.length, 300); assert.equal(w.ms, 1235); assert.equal(w.pewnosc, 1); assert.equal(w.intencja, 'moj_plan'); assert.deepEqual(w.plan, ['moj_plan']); assert.equal(w.samosprawdzenie, null);
-  for (let i = 0; i < 59; i++) t.okienko_v2_log.push({ athlete_id: JA, tryb: i % 2 ? 'flash' : 'v2', kiedy: '2026-11-05T09:00:00.000Z' });
+  for (let i = 0; i < 60; i++) t.okienko_v2_log.push({ athlete_id: JA, tryb: i % 2 ? 'flash' : 'v2', kiedy: '2026-11-05T09:00:00.000Z' });   // pierwszy wpis ma kiedy=dziś, poza dobą 5.11
   assert.equal(await L.uzyteDzisV2(adm, JA, '2026-11-05'), 60); assert.equal(await L.sprawdzLimityV2(adm, JA, '2026-11-05', 0), 'dzien');
   assert.equal(L.TRYBY_MODELU.includes('router'), false, 'router i chipy nie liczą się do limitu');
   const l = czytaj('supabase/functions/okienko-v2/log-v2.mjs');

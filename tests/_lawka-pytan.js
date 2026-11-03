@@ -247,7 +247,9 @@ function raport(w) {
   return md.join('\n');
 }
 
-(async () => {
+module.exports = { PYTANIA, baza, F6, fetchF6, okienkoKlienta, CENA, SR, DZIS, TERAZ };   // ławka v2 (tests/_lawka-v2.js) używa tych samych atrap
+
+if (require.main === module) (async () => {
   const w = await przebieg();
   const md = raport(w);
   const ie = process.argv.indexOf('--etap');
