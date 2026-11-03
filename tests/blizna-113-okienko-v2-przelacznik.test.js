@@ -99,7 +99,7 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
     assert.doesNotMatch(kod, /export function (dopasuj|sprawdz|osobaZPytania|imprezaZPytania|zapytajModel|zapytajSiec)\b/, `${f}: kopia funkcji v1`);
     if (f !== 'gemini.mjs') assert.doesNotMatch(kod, /googleapis\.com/, `${f}: Gemini tylko przez gemini.mjs (v2) albo moduły v1`);
   }
-  assert.equal(JSON.stringify([...tabeleZapisu].sort()), '["okienko_v2_log"]');
+  assert.equal(JSON.stringify([...tabeleZapisu].sort()), '["okienko_v2_log","okienko_v2_rozmowa"]', 'E4: pamięć rozmowy (rozmowa.mjs) — nic więcej');
   const ef = czytaj('supabase/functions/okienko-v2/index.ts'), pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
   assert.match(ef, /import \{ potok \} from "\.\/potok\.mjs";/, 'index.ts = tylko HTTP; orkiestracja w potok.mjs (ta sama na ławce v2)');
   assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(pt), 'moduły v1 z ../okienko/, nie z ./');

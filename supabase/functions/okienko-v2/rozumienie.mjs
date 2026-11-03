@@ -35,6 +35,7 @@ export const INTENCJE = {
   rywal: "kto jest rywalem biegacza, osoby o podobnych wynikach",
   gotowosc: "szanse na życiówkę / rekord na starcie, gotowość do startu",
   porownaj: "porównanie biegacza z inną osobą albo dwóch osób",
+  najdluzszy: "najdłuższy albo najszybszy trening biegacza w ostatnim czasie",
   nie_wiem: "nie da się przypisać żadnej intencji z listy",
 };
 export const NAZWY_INTENCJI = Object.keys(INTENCJE);

@@ -168,3 +168,24 @@ i wtedy ławka pokazuje rozjazdy modelu. Do zrobienia przez Filipa (klucz jest t
 Pozostałe luki E2 (8) to pytania, które router v1 łapie zbyt szeroko PRZED klasyfikatorem („ile km ma maraton” → MOJE treningi,
 „co na śniadanie przed biegiem” → biegi w mieście „Sniadanie”, „kiedy ostatnio biegałem” → biegi nadchodzące) — naprawa w routerze
 v1, po zamrożeniu (8.11), albo w v2 przez odwrócenie kolejności dla wąskiej listy wzorców.
+
+## Backlog PO 8.11 — etap „dostawcy” (Filip 4.11)
+
+Warstwa dostawcy modelu w `okienko-v2` (`gemini` | `anthropic`), wybór **per rola** (rozumienie / odpowiedź / sieć) z tabeli
+`okienko_ustawienia` (klucze `dostawca_rozumienie`, `dostawca_odpowiedz`, `dostawca_siec`), nie z kodu. Anthropic: Haiku, klucz
+`ANTHROPIC_API_KEY` w secrets (ustawia Filip). Ławka `--zywy` na obu dostawcach: trafność intencji, % „z czapy”, czas p90, koszt na
+pytanie i miesięcznie przy 100/500 osobach → tabela porównawcza do decyzji Filipa. Twarde bramki prywatności identyczne dla obu
+(blizna: żaden dostawca nie dostaje prywatnego nazwiska — B2 jest NAD dostawcą). Sieć na żywo zostaje na Gemini + Google, chyba że
+ławka pokaże inaczej. Punkt zaczepienia: `gemini.mjs` → `dostawca.mjs` z tym samym kontraktem `generujJson({system, contents, schema})`.
+
+## Stan 4.11.2026 — E4, E5, E6 zbudowane (po push/migracji/deployu E0 przez Filipa)
+
+| etap | co | miara |
+|---|---|---|
+| E4 | `rozmowa.mjs`: pamięć rozmowy w `okienko_v2_rozmowa` (TYLKO intencja + sloty, ≤ 5 tur ≤ 30 min; pisze/czyta EF); tura po routerze (narzędzie → intencja/sloty), po osobie, imprezie i po udanej odpowiedzi v2 (nie po dopytaniu); kontynuacja („a w grudniu?”, „a on?”, „porównaj z nim”) omija bramkę „niepewne”, klasyfikator dostaje kontekst z intencji/slotów (nie z treści), brakujące sloty dziedziczą (okres nigdy) | 6/7 zaimków po turze na ławce (zostaje „a on?” po liście znajomych — pamięć nie zna, o którego znajomego chodzi) |
+| E5 | `przepisy.mjs`: przepisy W KODZIE — gotowosc (starty + forma + 14 dni + rekord, równolegle; także z routera „jakie szanse na życiówkę”, 0 tokenów), najdluzszy (maksimum z listy 90 dni), porownaj (osoba z pamięci rozmowy, B2 nadal, + moje_wyniki); zdania składane z odpowiedzi narzędzi, model nie pisze prozy | 4 wiersze E5 zamknięte; zostaje 6 (kalorie/produkt — brak narzędzia; rywal; dwie intencje w jednym; wyniki imprezy z F6) |
+| E6 | `samosprawdzenie.mjs`: narzędzia ⊆ intencji, zdania niepuste, liczby tylko z narzędzi (strażnik v1), okres/dzień objęty argumentami, osoba nazwana w odpowiedzi; NIE → „Nie mam tego w Twoich danych.” + chipy, `okienko_v2_log.samosprawdzenie=false` z powodem | każda odpowiedź v2 z narzędzi przechodzi przez sprawdzenie (blizna-115); pierwszy złapany błąd: „Ostatnie 14 dni” w zdaniu przepisu — 14 nie było w wynikach → zdanie przepisane na datę z narzędzia |
+
+Ławka v2: **225/241 = 93,4 %**, 16 znanych luk (E2: 8 — router v1 za szeroki, naprawa po 8.11; E4: 1; E5: 6; reszta: brak narzędzi),
+0 regresji. Do 95 % brakuje 4 pytań — najtańsze: 8 wierszy „router za szeroki” (zmiana wzorców `ile km`, `kiedy ostatnio`, `co na
+śniadanie` w `router.mjs` po zamrożeniu). ⚠️ nagrania klasyfikatora nadal ręczne (`--zywy` do zmierzenia prawdziwej trafności).

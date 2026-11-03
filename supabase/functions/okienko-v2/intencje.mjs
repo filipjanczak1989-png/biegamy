@@ -38,6 +38,9 @@ export const CHIPY_INTENCJI = {
   porada: { etykieta: "Porada", pytanie: "Jak zacząć biegać" },
   fakt: { etykieta: "Fakt ze świata biegania", pytanie: "Rekord świata w maratonie" },
   akcja: { etykieta: "Akcja", pytanie: "Co to za akcja" },
+  gotowosc: { etykieta: "Gotowość na start", pytanie: "Jakie szanse na życiówkę" },
+  najdluzszy: { etykieta: "Najdłuższy bieg", pytanie: "Jaki mam najdłuższy bieg" },
+  porownaj: { etykieta: "Porównaj", pytanie: "Porównaj mnie z…" },
 };
 export function chipyDla(kandydaci = []) {
   const z = (Array.isArray(kandydaci) ? kandydaci : []).map((k) => CHIPY_INTENCJI[k]).filter(Boolean).slice(0, 4);
@@ -65,7 +68,7 @@ function argumenty(intencja, s, dzis) {
   if (intencja === "moje_wyniki") return { narzedzie: "moje_wyniki", args: s.miejsce ? { gdzie: s.miejsce } : {} };
   if (intencja === "biegi_nadchodzace") {
     const a = {};
-    if (s.od) a.od = s.od; if (s.do) a.do = s.do; if (s.miejsce) a.miejsce = s.miejsce; if (s.dystans) a.dystans = s.dystans;
+    if (s.od) a.od = s.od; if (s.do) a.do = s.do; if (s.miejsce) { a.miejsce = s.miejsce; a.przy = "w"; } if (s.dystans) a.dystans = s.dystans;
     return { narzedzie: "biegi_nadchodzace", args: a };
   }
   if (NARZEDZIE_INTENCJI[intencja]) return { narzedzie: NARZEDZIE_INTENCJI[intencja], args: {} };
@@ -89,7 +92,7 @@ export async function wykonajIntencje(ctx, r) {
     try { wynik = await d.wykonaj(sb, athleteId, n.narzedzie, w.args, teraz, { fetchFn, token: jwt }); } catch { return { status: 503, body: { blad: "narzędzie" }, log: { narzedzia: [n.narzedzie], ok: false } }; }
     const zw = zWyniku(n.narzedzie, wynik, w.args);
     return { body: { ...pusto("router"), zdania: zw.zdania, karty: zw.karty, akcja: zw.akcja !== undefined ? zw.akcja : nawigacja([n.narzedzie]), narzedzia: [n.narzedzie] },
-      log: { narzedzia: [n.narzedzie], plan: [n.narzedzie] } };
+      log: { narzedzia: [n.narzedzie], plan: [n.narzedzie] }, meta: { wyniki: [wynik], args: w.args, narzedzia: [n.narzedzie] } };
   }
   switch (r.intencja) {
     case "kalkulator": { const k = kalkulator(tekst); return k && k.zdanie ? zdanie(k.zdanie, "kalkulator") : null; }

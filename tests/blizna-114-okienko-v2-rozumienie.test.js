@@ -86,7 +86,7 @@ test('3) sloty → argumenty narzędzi v1 (przez waliduj), domyślny tydzień, w
   await I.wykonajIntencje(ctx, { intencja: 'odznaki', sloty: {} }); await I.wykonajIntencje(ctx, { intencja: 'moje_wyniki', sloty: { miejsce: 'Dębno' } });
   assert.deepEqual(wyk, [['moj_plan', { data: '2026-11-07' }], ['moj_plan', { data: '2026-11-01' }], ['moj_plan', { data: '2026-11-07' }], ['moj_plan', { zakres: 'dzis' }],
     ['moje_treningi', { od: '2026-10-26', do: '2026-11-01' }], ['moje_treningi', { od: '2026-10-31', do: '2026-10-31' }], ['moje_treningi', { od: '2026-10-01', do: '2026-10-31' }],
-    ['biegi_nadchodzace', { od: '2026-12-01', do: '2026-12-31', miejsce: 'Kraków', dystans: '21' }], ['odznaki_moje', {}], ['moje_wyniki', { gdzie: 'Dębno' }]]);
+    ['biegi_nadchodzace', { od: '2026-12-01', do: '2026-12-31', miejsce: 'Kraków', przy: 'w', dystans: '21' }], ['odznaki_moje', {}], ['moje_wyniki', { gdzie: 'Dębno' }]]);
 });
 
 test('4) potok: rozumienie po limitach i po tanich ścieżkach; awaria → v1 z powodem; tokeny doliczone; fakt → sieć bez modelu; niepewne → chipy', async () => {

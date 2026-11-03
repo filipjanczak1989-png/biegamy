@@ -40,8 +40,9 @@ const PLIK_NAGRAN = path.join(__dirname, '_nagrania-v2.json');
 const SR_ROZ = { we: 600, wy: 40 };
 function nagrania() { try { return JSON.parse(fs.readFileSync(PLIK_NAGRAN, 'utf8')); } catch { return {}; } }
 function atrapaRozumienia(R, N, brakujace) {
-  return async ({ tekst }) => {
-    const k = R.normalizuj(tekst), n = N[k];
+  return async ({ tekst, poprzednie }) => {
+    const k = R.normalizuj(tekst), ostatnia = Array.isArray(poprzednie) && poprzednie.length ? poprzednie[poprzednie.length - 1].intencja : null;
+    const n = (ostatnia && N[k + ' <<' + ostatnia]) || N[k];   // E4: nagranie z kontekstem (po turze o intencji X) ma pierwszeństwo
     if (!n) { brakujace.add(k); return { intencja: 'nie_wiem', pewnosc: 0, dopytac: true, kandydaci: [], sloty: {}, tok: { ...SR_ROZ } }; }
     return { intencja: n.intencja, pewnosc: typeof n.pewnosc === 'number' ? n.pewnosc : 0.9, dopytac: !!n.dopytac, kandydaci: n.kandydaci || [], sloty: n.sloty || {}, tok: { ...SR_ROZ } };
   };
@@ -49,7 +50,8 @@ function atrapaRozumienia(R, N, brakujace) {
 function zywyRozumienia(Roz, N) {
   const klucz = process.env.GEMINI_API_KEY;
   if (!klucz) throw new Error('--zywy wymaga GEMINI_API_KEY w env');
-  return async (o) => { const r = await Roz.rozumienie({ ...o, fetchFn: fetch, klucz }); N[Roz.kluczNagrania(o.tekst)] = { intencja: r.intencja, pewnosc: r.pewnosc, dopytac: r.dopytac, kandydaci: r.kandydaci, sloty: r.sloty }; return r; };
+  return async (o) => { const r = await Roz.rozumienie({ ...o, fetchFn: fetch, klucz }); const ost = Array.isArray(o.poprzednie) && o.poprzednie.length ? ' <<' + o.poprzednie[o.poprzednie.length - 1].intencja : '';
+    N[Roz.kluczNagrania(o.tekst) + ost] = { intencja: r.intencja, pewnosc: r.pewnosc, dopytac: r.dopytac, kandydaci: r.kandydaci, sloty: r.sloty }; return r; };
 }
 
 async function przebieg(pytania = PYTANIA, opcje = {}) {
