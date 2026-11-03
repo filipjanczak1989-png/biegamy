@@ -98,3 +98,53 @@ zdrowie · R4 Profil „Co Okienko o mnie wie” · R5 ławka rozmów 30 · R6 p
 
 Decyzje do Twojego OK: (a) rozszerzenie istniejącej tabeli rozmowy zamiast nowej; (b) limit 20 tur rozmowy/dobę i 30 faktów;
 (c) właściciel może dodawać fakty także ręcznie z Profilu; (d) kategoria zdrowie z osobną zgodą jak wyżej; (e) tekst dopisku do polityki.
+
+## 8. „EFEKT WOW” — po pamięci (Filip 3.11, pkt 6); kolejność W1 → W4
+
+Zasada wspólna: wszystko z DANYCH (narzędzia v1 + maszyna wyników F6 przez `okienko/f6.mjs`, pamięć 10 min, ≤ 500 wpisów), liczby tylko
+przez strażnik, zero zdań modelu bez pokrycia. Model pisze prozę dopiero na końcu, gdy fakty są już policzone w kodzie.
+
+**W1 — przewaga danych: pytania łączące moją formę/treningi z wynikami z maszyny** (przepisy E5 w kodzie, ≤ 4 narzędzia równolegle):
+- `prognoza_startu` — „jaki czas zrobię na Biegu X?”: cel/start z `moje_starty` → rekordy (`moje_rekordy`, Riegel z `sb.js` — jedna kopia,
+  wykładnik 1,091 jak w aplikacji) → forma dziś (`moja_forma`, TSB) → 14 dni treningu → zdanie: „Z rekordu 10 km 45:10 i obecnej formy
+  wychodzi 1:40–1:43 na półmaraton; w ostatnich 14 dniach 62 km.” Zakres, nie jedna liczba (lekcja: kotwica, odrzucone warianty VDOT).
+- `porownanie_z_kategoria` — „jak wypadam w swojej kategorii?”: rocznik + płeć z `athletes` → kategoria (M40 itd., jak kolektor) → wyniki
+  z maszyny dla tej imprezy/dystansu (`upcoming_races`/wyniki F6: mediana kategorii, miejsce zawodnika) → „W M40 na tym biegu mediana to
+  1:52; Twój rekord 1:43 dałby ok. 8. miejsce na 61.”
+- `rekord_trasy` — „jaki jest rekord trasy X?”: wyniki F6 po nazwie imprezy (klucz nazwy jak `klucz_nazwy_imprezy`) → najlepszy czas
+  w historii + rok + nazwisko (publiczny wynik sportowy — dozwolone jak dziś w trybie imprezy).
+- `rywale` — „kto jest moim rywalem?” (intencja `rywal` dziś bez obsługi): osoby z wyników F6 o czasach ±3 % od mojego rekordu na tym samym
+  dystansie w ostatnich 12 mies., tylko z publicznych wyników; prezentacja jak tryb osoby (B2: karta publiczna, nigdy sieć). Wymaga
+  `f6_runner_key` zawodnika (jak dziś przy „moje wyniki”).
+- Ławka: 20 pytań, każde z oczekiwanym zestawem narzędzi i zakresem liczb; `--zywy` tylko na maszynie testowej.
+
+**W2 — jedna proaktywna uwaga na Dziś dziennie** (kafel pod planem, nie push):
+- Źródło: wyłącznie przepisy W1 + dane własne; lista kandydatów w kodzie z progiem pewności (np. „do startu 12 dni, TSB −18: ostatni
+  mocny akcent powinien być do piątku” — tylko gdy start w `race_goals` i TSB z ≥ 14 dni danych; „nowy rekord trasy w Twojej kategorii na
+  biegu, na który jesteś zapisany”; „w tym tygodniu 0 km, a plan ma 3 treningi” — tylko gdy plan istnieje). Każdy kandydat ma warunek
+  danych i wagę; dzień bez kandydata ≥ próg = brak uwagi (cisza lepsza niż ogólnik).
+- Jedna na dobę, liczona raz (cron 05:00 Warszawa, EF `okienko-uwaga`, tabela `okienko_uwaga_dnia` (athlete_id, data, tekst, powod,
+  pewnosc, pokazana, zamknieta) — RLS właściciel czyta; wyłączenie w Profilu (`okienko_ustawienia`/athletes flaga `uwaga_dnia=false`,
+  domyślnie ON tylko dla kont v2). Model NIE pisze uwagi — zdania z kodu (jak przepisy), 0 tokenów.
+- Ocena: tydzień na kontach v2 → ile pokazanych, ile zamkniętych, ile kliknięć; cel: < 20 % zamknięć bez kliknięcia.
+
+**W3 — czas p90 < 2 s** (`okienko_v2_log.ms` już jest):
+- Pomiar: raport z logu (p50/p90 per tryb) w `tools/okienko-czas.sql`; dziś klasyfikator ma timeout 3 s — więc p90 < 2 s wymaga:
+  (1) równoległe: klasyfikator i tanie narzędzia startują razem (narzędzie wg routera/regex nie czeka na model); (2) pamięć 24 h dla
+  sieci jak dziś + pamięć 10 min F6 jak dziś; (3) rozmowa: jedno wywołanie, maks 160 tokenów wyjścia; (4) sieć (2–4 s) wyłączona z celu
+  p90 — raportowana osobno, bo to Google, nie my; (5) region EF: sprawdzić, czy funkcje chodzą w eu-central (opóźnienie do Gemini z EU).
+- Cel mierzony na ławce `--zywy` i w logu prod po tygodniu; brak celu = nie przełączamy wszystkich (razem z ≥ 95 % ławki).
+
+**W4 — benchmark 50 pytań: Okienko vs ChatGPT/Gemini bez naszych danych** (ocena Filipa):
+- `tools/okienko-benchmark-pytania.json`: 20 osobistych („jaka mam formę”, „prognoza na mój start”, „ile km w październiku”), 15 o polską
+  scenę („rekord trasy Biegu X”, „kto wygrał Y 2026”, „ile kosztuje Z”, „kto z Poznania biega 10 km w 40 min” — tylko publiczne wyniki),
+  15 wiedzy ogólnej (żywienie, sprzęt, trening). Narzędzie jak A/B (`tools/okienko-benchmark.mjs`): Okienko przez EF z sesją Filipa;
+  odpowiedzi ChatGPT/Gemini wkleja Filip ręcznie do JSON (albo kolumna „zwykły model” przez API Gemini bez narzędzi — ten sam klucz,
+  0 danych); HTML obok siebie, wybór, podsumowanie per kategoria.
+- Kryterium: osobiste i polska scena **100 %** dla Okienka (zwykły model nie ma danych — każda remis/przegrana = błąd po naszej stronie
+  do naprawy, nie „trudne pytanie”); wiedza ogólna — ≥ 50 % (tu konkurujemy jakością promptu i źródłami).
+- Po benchmarku: lista przegranych → zaległości z priorytetem; powtórka benchmarku po każdej paczce.
+
+Koszt W1–W4: W1 i W2 bez modelu (0 tokenów, F6 w limicie 500/10 min); W3 to inżynieria; W4 ≈ 50 pytań × 2 wersje ≈ 0,1 USD.
+Szacunek: W1 2–3 dni (najwięcej: prognoza i kategoria, bo potrzebują wyników F6 dla imprezy), W2 1–2 dni, W3 1 dzień + pomiar tydzień,
+W4 0,5 dnia narzędzie + ocena Filipa. Wszystko po R1–R6 (pamięć), zgodnie z kolejnością Filipa.
