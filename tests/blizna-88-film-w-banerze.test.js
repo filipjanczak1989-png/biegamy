@@ -84,7 +84,8 @@ test('(6) start: niewidoczne, bez autoplay; preload auto po wyrenderowaniu; play
   v.emit('playing');
   assert.equal(v.style.opacity, '1'); assert.equal(s.mag.get('film_dzis'), '2026-11-02');
   s.uplyw(5000);
-  assert.equal(s.baner.dzieci.length, 2, 'limit 4 s nie dotyczy filmu, który już gra (film + 🔊)');
+  assert.equal(s.baner.dzieci.length, 3, 'limit 4 s nie dotyczy filmu, który już gra (film + 🔊 + pomiń)');
+  const pm = s.baner.dzieci.find((d) => d.className === 'film-pomin'); assert.ok(pm, 'napis „pomiń” (3.11)'); assert.equal(pm.textContent, 'pomiń ›'); assert.equal(pm.style.opacity, '1', 'widoczny od „playing”');
   assert.match(czytaj('tools/filmy/przygotuj.mjs'), /ff\(\["-i", wej, "-frames:v", "1"/, 'plakat z klatki 0 (bez -ss)');
 });
 
@@ -92,7 +93,7 @@ test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zu
   const s = srodowisko();
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   s.uplyw(3999);
-  assert.equal(s.baner.dzieci.length, 2, 'film + 🔊 (niewidoczne) czekają');
+  assert.equal(s.baner.dzieci.length, 3, 'film + 🔊 + pomiń (niewidoczne) czekają');
   s.uplyw(1);
   assert.equal(s.baner.dataset.film, 'za-wolno'); assert.equal(v.grano, undefined);
   s.uplyw(600);
@@ -157,15 +158,16 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   assert.match(sb, /window\.FILMY_DNI = \{\s*'2026-11-02': 'film-02', '2026-11-03': 'film-03', '2026-11-04': 'film-04', '2026-11-05': 'film-05',\s*'2026-11-06': 'film-06', '2026-11-07': 'film-06',\s*\};/);
   const sr = srodowisko(), dnia = (d) => sr.ctx.FILM_DZIS.filmDnia(new Date(d + 'T08:00:00')).id;
   assert.equal(dnia('2026-11-02'), 'film-02'); assert.equal(dnia('2026-11-03'), 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
-  assert.equal(dnia('2026-11-04'), 'film-04', '4.11 → film-04 (wgrany 2.11)');
-  for (const d of ['2026-11-05', '2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
+  assert.equal(dnia('2026-11-04'), 'film-04', '4.11 → film-04 (wgrany 2.11)'); assert.equal(dnia('2026-11-05'), 'film-05', '5.11 → film-05 (wgrany 3.11)');
+  for (const d of ['2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
+  assert.match(promo, /\{ id: 'film-05', mp4: 'filmy\/film-05\.mp4', webm: 'filmy\/film-05\.webm', poster: 'filmy\/film-05-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 25%' \}, \{ od: 38\.5, pos: '50% 100%' \}\] \}/, 'film-05: twarze w górnej połowie pasa → plansza z napisem na dole');
   sr.ctx.FILMY_PROMO.push({ id: 'film-06', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
   assert.equal(dnia('2026-11-03'), 'film-03', 'dodanie kolejnych plików NIE przesuwa 3.11 (rotacja by przesunęła)');
   assert.match(promo, /\{ id: 'film-04', mp4: 'filmy\/film-04\.mp4', webm: 'filmy\/film-04\.webm', poster: 'filmy\/film-04-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 85%' \}, \{ od: 4, pos: '50% 12%' \}\] \}/, 'film-04: dół (biegacze) → góra (słońce na horyzoncie)');
   assert.equal(dnia('2026-11-06'), 'film-06'); assert.equal(dnia('2026-11-07'), 'film-06', '7.11 przed naciśnięciem = film-06');
   const n = sr.ctx.FILMY_PROMO.length, rot = (d) => sr.ctx.FILMY_PROMO[Number(d.replace(/-/g, '')) % n].id;
   for (const d of ['2026-11-08', '2026-11-09', '2026-12-25', '2026-11-01']) assert.equal(dnia(d), rot(d), d + ' poza kampanią → rotacja wszystkich');
-  sr.ctx.FILMY_PROMO.splice(0, 1);   // bez film-02 w ogóle → pierwszy z listy (nie wywraca Dziś)
+  sr.ctx.FILMY_PROMO.splice(0, 1); sr.ctx.FILMY_DNI['2026-11-05'] = 'film-99';   // dzień wskazuje brakujący plik i nie ma film-02 → pierwszy z listy (nie wywraca Dziś)
   assert.equal(dnia('2026-11-05'), sr.ctx.FILMY_PROMO[0].id);
   assert.ok(!/film-0\d/.test(czytaj('sw.js').slice(czytaj('sw.js').indexOf('const PRECACHE_URLS'), czytaj('sw.js').indexOf('const PRECACHE_KRYTYCZNE'))), 'filmy poza precache');
 });

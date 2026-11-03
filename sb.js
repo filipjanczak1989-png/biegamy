@@ -577,6 +577,12 @@
        (pas 6–55%). Przejście od 4,0 s (CSS 0,6 s), biegacze wtedy już maleją. */
     { id: 'film-04', mp4: 'filmy/film-04.mp4', webm: 'filmy/film-04.webm', poster: 'filmy/film-04-poster.jpg',
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 85%' }, { od: 4, pos: '50% 12%' }] },
+    /* FILM-05 (3.11.2026, na 5.11 wg FILMY_DNI): PROMO PARY, 42,96 s z dźwiękiem (przygotuj.mjs --cel-mb 4 --crf 24 → crf 28 mieści
+       3,9 MB; 24 i 26 przekraczały 4 MB). Para w środku kadru, twarze na ~20–35% wysokości → pas 50% 25% (13–62%: twarze w górnej
+       połowie pasa). Plansza „BIEGAMY jesteśmy obok CDN…” od ~38,9 s, napis w dolnych ~20% kadru → 50% 100% (pas 51–100%, napis cały);
+       przejście od 38,5 s (CSS 0,6 s kończy się przed planszą). Przy 43 s napis „pomiń” widoczny od startu (razem z 🔊). */
+    { id: 'film-05', mp4: 'filmy/film-05.mp4', webm: 'filmy/film-05.webm', poster: 'filmy/film-05-poster.jpg',
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 25%' }, { od: 38.5, pos: '50% 100%' }] },
   ];
   /* MAPA DNI (Filip 2.11 wieczór): w kampanii przed akcją film jest przypisany do DATY, nie rotowany (YYYYMMDD % n psuło się
      przy każdym nowym pliku — 3.11 musi zostać film-03). Jedno miejsce: data (Europe/Warsaw, jak `dzis`) → id z FILMY_PROMO.
@@ -713,16 +719,24 @@
         glosnik.setAttribute('aria-label', v.muted ? 'Włącz dźwięk' : 'Wycisz');
       }
       stanGlosnika();
+      /* „pomiń” (Filip 3.11, film-05 ma 43 s): widoczny napis od startu filmu (pojawia się z „playing”, jak 🔊), tap = koniec filmu.
+         Do 3.11 pomijało tylko dotknięcie samego filmu — bez podpisu nikt o tym nie wiedział. */
+      var pomin = document.createElement('button');
+      pomin.type = 'button'; pomin.className = 'film-pomin'; pomin.textContent = 'pomiń ›'; pomin.setAttribute('aria-label', 'Pomiń film');
+      pomin.style.cssText = 'position:absolute;top:10px;left:10px;z-index:4;min-height:32px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.35);' +
+        'background:rgba(7,7,10,.55);color:#fff;font:600 12px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease;';
+      pomin.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });
       function zakoncz() {
         if (koniec) return; koniec = true;
         v.style.opacity = '0';
         if (glosnik) { glosnik.style.opacity = '0'; glosnik.style.pointerEvents = 'none'; }
-        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik);
+        pomin.style.opacity = '0'; pomin.style.pointerEvents = 'none';
+        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik); if (pomin.parentNode) pomin.parentNode.removeChild(pomin);
           pokazPowtorke(baner, teraz); }, 520);   // po końcu / pominięciu — ▶ (ten sam film od początku)
         baner.dataset.film = 'koniec';
       }
       v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
-      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } pomin.style.opacity = '1'; pomin.style.pointerEvents = 'auto'; if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
         try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
@@ -732,6 +746,7 @@
       v.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });   // tap pomija
       baner.appendChild(v);
       if (glosnik) baner.appendChild(glosnik);
+      baner.appendChild(pomin);
       baner.dataset.film = 'laduje';
       if (recznie) {
         /* ▶: play() TERAZ, w tym samym handlerze kliknięcia (gest) — z dźwiękiem, preload 'auto' PRZED play().
