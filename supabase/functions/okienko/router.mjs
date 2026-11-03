@@ -29,8 +29,8 @@ export const POWITANIE = "Cześć! Pytaj o plan, kilometry, starty, biegi w okol
 export const ODP_TYLKO_POLSKA = "Maszyna wyników zna tylko biegi w Polsce.";   // M3-2 (e)
 export const ODP_ZDROWIE = "Przy bólu lub kontuzji decyzję podejmij z trenerem albo fizjoterapeutą.";
 /* ławka v2 (3.11; decyzja Filipa 2.11: katar/choroba = STAŁY TEKST bez sieci; do 3.11 „mam katar” szło do modelu, a „czy biegać z katarem”
-   do Google). SZKIC w tonie Filipa — Filip akceptuje przed wdrożeniem EF (sam ją wdraża). */
-export const ODP_CHOROBA = "Katar bez gorączki zwykle nie wyklucza spokojnego biegu. Gorączka, kaszel w piersiach albo osłabienie to sygnał, żeby odpuścić i wrócić po dwóch dniach bez objawów. W razie wątpliwości zapytaj lekarza.";
+   do Google). tekst zaakceptowany przez Filipa 4.11. */
+export const ODP_CHOROBA = "Katar bez gorączki zwykle nie wyklucza spokojnego biegu, zrób go lżej niż w planie. Gorączka, kaszel z klatki piersiowej, bóle mięśni albo osłabienie to sygnał, żeby odpuścić i wrócić po co najmniej dwóch dniach bez objawów. W razie wątpliwości zapytaj lekarza.";   // tekst Filipa 4.11 (zaakceptowany)
 const CHOROBA = /\b(katar|katarem|kataru|katarze|przezieb\w*|goraczk\w*|gryp[aeyo]\w*|chory|chora|chorob\w*|kaszel|kaszl\w*|antybiotyk\w*|infekcj\w*|zatok\w*)\b/;   // nie „katar\w*”: „Katarzyny” (ławka v2)   // etap 5 (c): bez porad medycznych
 const ZDROWIE = /\b(skrecil\w*|zlamal\w*|naderwal\w*|naciagnal\w*|stlukl\w*|zwichnal\w*|kontuzj\w*|boli|bola|bolal\w*|bol|bolu|bolem|uraz\w*|naciagn\w*|naderwan\w*|skrecon\w*|zwichn\w*|stluczon\w*|zapalen\w*|shin splint\w*|piszczel\w* boli)\b/;
 export const ODP_KALKULATOR_PUSTY = "Napisz tempo (np. 5:30/km), prędkość w km/h albo czas i dystans — przeliczę.";   // M3-2 (d)
