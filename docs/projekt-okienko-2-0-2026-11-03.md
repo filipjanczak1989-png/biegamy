@@ -198,8 +198,9 @@ Przykłady: „kim jest Filip” → nic; „ile kcal ma banan” → nic; porad
    z googleSearch (ten sam `../okienko/siec.mjs`, teraz z opcjonalnym promptem i limitem tokenów; v1 woła bez nich — bez zmian) z promptem
    NA KONKRET (`okienko-v2/wiedza.mjs`): liczby, zakresy, kroki; 3–5 zdań; źródła. Bramka prywatności (`blokadaSieci`, odmowa, fabian*)
    BEZ ZMIAN — nazwisko w pytaniu nadal idzie ścieżką v1, nigdy do Google.
-2. **„O nas”** — `_shared/o-nas.mjs` (⚠️ SZKIC do zatwierdzenia przez Filipa; tylko jego słowa z 3.11 + fakty z kodu): Filip (założyciel,
-   trener, reprezentant Polski na 100 km IAU), Kasia (współtrenerka, ultraska), czym jest BiegaMy, funkcje i gdzie są, Radio, jak zostać
+2. **„O nas”** — `_shared/o-nas.mjs` (treść zatwierdzona przez Filipa 3.11; poprawka: Filip = członek sztabu szkoleniowego kadry Polski na
+   MŚ IAU 100 km, NIE zawodnik — blizna-122 blokuje powrót słowa „reprezentant”): Filip (założyciel, trener, sztab kadry), Kasia
+   (współtrenerka, ultraska), czym jest BiegaMy, funkcje i gdzie są, Radio (muzyka do biegania tworzona przez Filipa), jak zostać
    podopiecznym. „kim jest Filip/Kasia/twórca”, „co to biegamy”, „kto stoi za aplikacją” → odpowiedź z pliku, 0 tokenów, w potoku PRZED
    bramką osób. Pojedyncze słowo („filip”, „kasia”) i „gdzie jest radio” zostają w dotychczasowych ścieżkach (chipy / katalog).
 3. **Produkt / kalorie** — `okienko-v2/produkt.mjs`: „ile kcal ma banan” → `food_database` (Jedzenie; dokładna nazwa → początek →

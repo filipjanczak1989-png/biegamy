@@ -1,11 +1,12 @@
 // „O NAS” — plik wiedzy o BiegaMy dla Okienka (Filip 3.11 15:25 pkt 2). Pytania „kim jest Filip/Kasia/twórca”, „co to BiegaMy”, „kto stoi
 // za aplikacją”, „jak zostać podopiecznym” → odpowiedź STĄD: 0 tokenów, PRZED bramką osób i przed siecią (nigdy do Google).
-// ⚠️ SZKIC DO ZATWIERDZENIA PRZEZ FILIPA — tylko fakty z jego słów (3.11) i z kodu aplikacji; nic domyślonego. Zmiana treści = tylko tu.
+// Treść zatwierdzona przez Filipa 3.11 (poprawka: Filip = członek SZTABU SZKOLENIOWEGO kadry Polski na MŚ IAU 100 km, NIE zawodnik/reprezentant —
+// blizna-122 pilnuje, że słowo „reprezentant” tu nie wróci). Tylko fakty z jego słów i z kodu aplikacji. Zmiana treści = tylko tu.
 // Wczytywany jako moduł (EF okienko-v2, testy); bez Deno, bez bazy. Nazwisko dziecka z akcji NIGDY tu nie trafia (blizna „sekrety akcji”).
 export const O_NAS = {
   filip: [
     "Filip Jańczak — założyciel BiegaMy i trener biegania.",
-    "Biega ultra: reprezentant Polski w biegu na 100 km (kadra IAU).",
+    "Członek sztabu szkoleniowego kadry Polski na mistrzostwa świata IAU w biegu na 100 km.",
     "W BiegaMy układa plany, prowadzi zawodników i odpowiada w czacie.",
   ],
   kasia: [
@@ -13,7 +14,7 @@ export const O_NAS = {
     "Razem z Filipem prowadzi zawodników.",
   ],
   zespol: [
-    "Za BiegaMy stoją Filip Jańczak (założyciel, trener, reprezentant Polski na 100 km) i Kasia (współtrenerka, ultraska).",
+    "Za BiegaMy stoją Filip Jańczak (założyciel, trener, członek sztabu szkoleniowego kadry Polski na MŚ IAU w biegu na 100 km) i Kasia (współtrenerka, ultraska).",
     "To projekt prowadzony przez nich samych — bez firmy, bez reklam, bez sprzedawania danych.",
   ],
   biegamy: [
@@ -26,7 +27,7 @@ export const O_NAS = {
     "Starty — kalendarz zawodów i Twoje cele; Jedzenie — dziennik posiłków i przepisy; Społeczność — znajomi i posty; Radio, Odznaki i Wyzwania — osobne ekrany w menu.",
   ],
   radio: [
-    "Radio BiegaMy to utwory do słuchania w trakcie biegu — ekran Radio w menu.",
+    "Radio BiegaMy to muzyka do biegania tworzona przez Filipa — ekran Radio w menu.",
   ],
   podopieczny: [
     "Żeby trenować z Filipem albo Kasią, załóż konto w BiegaMy i napisz do nas: biegamy.run@gmail.com albo przez czat w aplikacji.",

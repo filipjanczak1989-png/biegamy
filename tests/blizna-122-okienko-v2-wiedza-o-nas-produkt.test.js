@@ -77,7 +77,10 @@ test('3) o-nas.mjs: pytania o Filipa, Kasię, twórcę, BiegaMy, podopiecznego �
   assert.equal(t('kto wygrał maraton w berlinie'), null); assert.equal(t('kim jest Kipchoge'), null); assert.equal(t('ile przebiegłem'), null); assert.equal(t(''), null);
   const r = O.oNas('co to jest radio biegamy'); assert.deepEqual(r.akcja, { nawiguj: 'radio.html' }); assert.equal(O.oNas('kim jest Filip').akcja, null);
   const src = czytaj('supabase/functions/_shared/o-nas.mjs');
-  assert.match(src, /SZKIC DO ZATWIERDZENIA PRZEZ FILIPA/); assert.doesNotMatch(src, /fabian/i, 'imię dziecka z akcji nie w pliku o nas');
+  assert.doesNotMatch(src, /SZKIC/, 'treść zatwierdzona 3.11 — znacznik szkicu zdjęty'); assert.doesNotMatch(src, /fabian/i, 'imię dziecka z akcji nie w pliku o nas');
+  const fakty = Object.values(O.O_NAS).flat().join(' ');
+  assert.doesNotMatch(fakty, /reprezentant\w*|zawodni\w* kadry|biega ultra/i, 'Filip = sztab szkoleniowy kadry, NIE zawodnik/reprezentant (poprawka Filipa 3.11) — to nie może wrócić');
+  assert.match(fakty, /sztabu szkoleniowego kadry Polski na mistrzostwa świata IAU w biegu na 100 km/); assert.match(O.O_NAS.radio.join(' '), /muzyka do biegania tworzona przez Filipa/);
   for (const k of ['filip', 'kasia', 'zespol', 'biegamy', 'funkcje', 'radio', 'podopieczny']) assert.ok(Array.isArray(O.O_NAS[k]) && O.O_NAS[k].length >= 1, k);
   assert.doesNotMatch(src, /Deno\.|googleapis|from\("/, 'plik czysty: bez Deno, bez sieci, bez bazy');
 });
