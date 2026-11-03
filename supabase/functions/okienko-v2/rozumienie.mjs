@@ -84,7 +84,11 @@ function czysteSloty(s) {
 
 /** @param {{fetchFn: Function, klucz: string, tekst: string, dzis: string, poprzednie?: {q: string, intencja?: string}[], timeoutMs?: number}} o
     @returns {Promise<{intencja: string, pewnosc: number, dopytac: boolean, kandydaci: string[], sloty: object, tok: {we:number, wy:number}}>} */
-export async function rozumienie({ fetchFn, klucz, tekst, dzis, poprzednie = [], timeoutMs = 1500 }) {
+/* --zywy Filipa 3.11 03:20: klasyfikator ani razu nie zadziałał — każde pytanie poszło ścieżką awaryjną. Z kodu: 1,5 s timeoutu przy
+   ~1 k tokenów promptu to za mało dla flash-lite z Node w Polsce (v1 model nie ma timeoutu w ogóle), a 96 tokenów wyjścia tnie JSON ze
+   slotami i kandydatami (ucięty JSON = „odpowiedź bez JSON wg schematu”). Teraz 3 s i 160 tokenów; --zywy liczy typy awarii. */
+export const TIMEOUT_MS = 3000, MAX_TOK_WY = 160;
+export async function rozumienie({ fetchFn, klucz, tekst, dzis, poprzednie = [], timeoutMs = TIMEOUT_MS }) {
   const contents = [];
   for (const p of (Array.isArray(poprzednie) ? poprzednie : []).slice(-3)) {
     if (!p || typeof p.q !== "string" || !p.q.trim()) continue;
@@ -93,7 +97,7 @@ export async function rozumienie({ fetchFn, klucz, tekst, dzis, poprzednie = [],
   }
   contents.push({ role: "user", parts: [{ text: String(tekst).slice(0, 300) }] });
   let w;
-  try { w = await generujJson({ fetchFn, klucz, system: promptRozumienia(dzis), contents, schema: SCHEMAT, maxOutputTokens: 96, timeoutMs }); }
+  try { w = await generujJson({ fetchFn, klucz, system: promptRozumienia(dzis), contents, schema: SCHEMAT, maxOutputTokens: MAX_TOK_WY, timeoutMs }); }
   catch (e) { throw new BladRozumienia(e instanceof BladGemini ? e.message : "model"); }
   const j = w.json || {};
   const intencja = NAZWY_INTENCJI.includes(j.intencja) ? j.intencja : "nie_wiem";

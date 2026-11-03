@@ -47,11 +47,27 @@ function atrapaRozumienia(R, N, brakujace) {
     return { intencja: n.intencja, pewnosc: typeof n.pewnosc === 'number' ? n.pewnosc : 0.9, dopytac: !!n.dopytac, kandydaci: n.kandydaci || [], sloty: n.sloty || {}, tok: { ...SR_ROZ } };
   };
 }
-function zywyRozumienia(Roz, N) {
+/* --zywy (Filip 3.11 03:20: „klasyfikator ani razu nie zadziałał”, a ławka tego nie pokazała): liczymy ok/awaria z TYPEM błędu (bez klucza),
+   czasy (p50/p90), a udane klasyfikacje zapisujemy do OSOBNEGO pliku do przeglądu (_nagrania-v2-zywe.json) — nagrania CI zostają nietknięte. */
+const PLIK_ZYWE = path.join(__dirname, '_nagrania-v2-zywe.json');
+function zywyRozumienia(Roz, Z, stat) {
   const klucz = process.env.GEMINI_API_KEY;
   if (!klucz) throw new Error('--zywy wymaga GEMINI_API_KEY w env');
-  return async (o) => { const r = await Roz.rozumienie({ ...o, fetchFn: fetch, klucz }); const ost = Array.isArray(o.poprzednie) && o.poprzednie.length ? ' <<' + o.poprzednie[o.poprzednie.length - 1].intencja : '';
-    N[Roz.kluczNagrania(o.tekst) + ost] = { intencja: r.intencja, pewnosc: r.pewnosc, dopytac: r.dopytac, kandydaci: r.kandydaci, sloty: r.sloty }; return r; };
+  return async (o) => {
+    const t0 = Date.now();
+    try {
+      const r = await Roz.rozumienie({ ...o, fetchFn: fetch, klucz });
+      stat.ok++; stat.ms.push(Date.now() - t0);
+      const ost = Array.isArray(o.poprzednie) && o.poprzednie.length ? ' <<' + o.poprzednie[o.poprzednie.length - 1].intencja : '';
+      Z[Roz.kluczNagrania(o.tekst) + ost] = { intencja: r.intencja, pewnosc: r.pewnosc, dopytac: r.dopytac, kandydaci: r.kandydaci, sloty: r.sloty, ms: Date.now() - t0 };
+      return r;
+    } catch (e) {
+      stat.awaria++; stat.ms.push(Date.now() - t0);
+      const typ = String(e && e.message || 'błąd').replace(/[A-Za-z0-9_-]{30,}/g, '…').slice(0, 90);
+      stat.typy[typ] = (stat.typy[typ] || 0) + 1;
+      throw e;
+    }
+  };
 }
 
 async function przebieg(pytania = PYTANIA, opcje = {}) {
@@ -60,8 +76,8 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
   const Roz = await zaladuj('supabase/functions/okienko-v2/rozumienie.mjs');
   const F6m = await zaladuj('supabase/functions/okienko/f6.mjs');
   const { potok } = await zaladuj('supabase/functions/okienko-v2/potok.mjs');
-  const N = nagrania(), brakujace = new Set();
-  const rozumienieFn = opcje.zywy ? zywyRozumienia(Roz, N) : atrapaRozumienia(R, N, brakujace);
+  const N = nagrania(), brakujace = new Set(), Z = {}, stat = { ok: 0, awaria: 0, typy: {}, ms: [] };
+  const rozumienieFn = opcje.zywy ? zywyRozumienia(Roz, Z, stat) : atrapaRozumienia(R, N, brakujace);
   const wiersze = [];
   for (const w of pytania) {
     const adm = atrapa({ okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [] });
@@ -74,10 +90,11 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
         { zapytajModel: symModel(R), zapytajSiec: symSiec, sprawdzLimity: async () => null, uzyteSiecDzis: async () => 0, rozumienie: rozumienieFn,
           generujJson: async () => ({ json: { zdania: ['Zacznij od marszobiegów i dokładaj czas, nie tempo.', 'Dwa dni luzu w tygodniu to też trening.'] }, tok: { we: 300, wy: 60 } }) });
       const ost = adm.tabele.okienko_v2_log[adm.tabele.okienko_v2_log.length - 1] || {};
+      const awaria = /v2-awaria/.test(String(ost.powod_odrzucenia || '')) ? String(ost.powod_odrzucenia).replace(/[A-Za-z0-9_-]{30,}/g, '…').slice(0, 80) : '';
       const tok = (ost.tok_we || 0) * CENA.we + (ost.tok_wy || 0) * CENA.wy + (ost.zapytania_sieci || 0) * CENA.zapytanie;
       const b = r.body || {};
       const tresc = (b.zdania && b.zdania[0]) ? b.zdania[0].slice(0, 70) : (b.akcja && b.akcja.nawiguj) ? 'ekran ' + b.akcja.nawiguj : (b.karty && b.karty.length) ? b.karty.length + ' kart' : (b.blad || b.limit || '');
-      return { slad: r.slad, koszt: tok, tresc, status: r.status, karty: (b.karty || []).length, chipy: (b.chipy || []).length };
+      return { slad: r.slad, koszt: tok, tresc, status: r.status, karty: (b.karty || []).length, chipy: (b.chipy || []).length, awaria };
     };
     for (const p of w.po || []) await jeden(p);
     const r = await jeden(w.p);
@@ -85,9 +102,9 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
     /* 'router:X' = to narzędzie odpowiedziało — nieważne, czy przez router (0 tok.), czy przez rozumienie (E2, tryb 'v2'); 'v2:porada' itp. tylko z v2 */
     const sladN = slad.replace(/^v2:/, 'router:');
     const pasuje = w.oczekiwane.endsWith('*') ? slad.startsWith(w.oczekiwane.slice(0, -1)) : (slad === w.oczekiwane || (w.oczekiwane.startsWith('router:') && sladN === w.oczekiwane));
-    wiersze.push({ ...w, slad, pasuje, koszt: r.koszt, tresc: r.tresc, status: r.status, karty: r.karty, chipy: r.chipy });
+    wiersze.push({ ...w, slad, pasuje, koszt: r.koszt, tresc: r.tresc, status: r.status, karty: r.karty, chipy: r.chipy, awaria: r.awaria });
   }
-  if (opcje.zywy) fs.writeFileSync(PLIK_NAGRAN, JSON.stringify(N, null, 1) + '\n', 'utf8');
+  if (opcje.zywy) { fs.writeFileSync(PLIK_ZYWE, JSON.stringify(Z, null, 1) + '\n', 'utf8'); wiersze.stat = stat; }   // nigdy nie nadpisuje _nagrania-v2.json
   wiersze.brakujace = [...brakujace];
   return wiersze;
 }
@@ -96,7 +113,13 @@ function raport(w) {
   const md = ['# Ławka v2 — ' + new Date().toISOString().slice(0, 10), '',
     'Prawdziwy potok v2 na atrapach (konto testowe, F6 w pamięci); model i sieć symulowane. Ocena obiektywna: ślad logu = oczekiwany.', '',
     '| # | pytanie | kat. | oczekiwane | ślad | odpowiedź | koszt | ocena | luka |', '|---|---|---|---|---|---|---|---|---|'];
-  w.forEach((r, i) => md.push(`| ${i + 1} | ${r.p} | ${r.kat} | ${r.oczekiwane} | ${r.slad} | ${String(r.tresc).replace(/\|/g, '/')} | ${r.koszt ? usd(r.koszt) : '0'} | ${r.pasuje ? 'dobra' : '**ZŁA**'} | ${r.luka || ''} |`));
+  w.forEach((r, i) => md.push(`| ${i + 1} | ${r.p} | ${r.kat} | ${r.oczekiwane} | ${r.slad}${r.awaria ? ' ⚠ ' + r.awaria.replace(/\|/g, '/') : ''} | ${String(r.tresc).replace(/\|/g, '/')} | ${r.koszt ? usd(r.koszt) : '0'} | ${r.pasuje ? 'dobra' : '**ZŁA**'} | ${r.luka || ''} |`));
+  if (w.stat) {
+    const ms = w.stat.ms.slice().sort((a, b) => a - b), q = (p) => ms.length ? ms[Math.min(ms.length - 1, Math.floor(p * ms.length))] : 0;
+    const razem = w.stat.ok + w.stat.awaria;
+    md.push('', `## Klasyfikator na żywo: obsłużył ${w.stat.ok}/${razem} (${razem ? (100 * w.stat.ok / razem).toFixed(1) : 0} %), awarie ${w.stat.awaria}; czas p50 ${q(0.5)} ms, p90 ${q(0.9)} ms, max ${ms[ms.length - 1] || 0} ms`, '');
+    for (const [t, n] of Object.entries(w.stat.typy).sort((a, b) => b[1] - a[1])) md.push(`- ${n}× ${t}`);
+  }
   const dobre = w.filter((r) => r.pasuje).length, luki = w.filter((r) => r.luka), zamkniete = luki.filter((r) => r.pasuje), regres = w.filter((r) => !r.pasuje && !r.luka);
   md.push('', `Podsumowanie: dobra ${dobre}/${w.length} (${(100 * dobre / w.length).toFixed(1)} %), znane luki ${luki.length} (w tym już zamknięte: ${zamkniete.length}), ` +
     `REGRESJE (złe bez znacznika luki): ${regres.length}; koszt sumy (symulacja): ${usd(w.reduce((s, r) => s + r.koszt, 0))}.`);
@@ -111,7 +134,8 @@ if (require.main === module) (async () => {
   const w = await przebieg(PYTANIA, { zywy: process.argv.includes('--zywy') });
   if (process.argv.includes('--wzorzec')) { for (const r of w) console.log(JSON.stringify([r.p, r.kat, r.slad, r.tresc])); if (w.brakujace.length) console.error('BRAK NAGRAŃ:', JSON.stringify(w.brakujace)); return; }
   const md = raport(w);
-  const plik = path.join(KORZEN, 'docs', 'lawka-v2-' + new Date().toISOString().slice(0, 10) + '.md');
+  if (w.stat) console.error(`klasyfikator: ok ${w.stat.ok}, awaria ${w.stat.awaria}`, w.stat.typy, '→ udane nagrania w tests/_nagrania-v2-zywe.json (CI czyta _nagrania-v2.json — scal ręcznie po przeglądzie)');
+  const plik = path.join(KORZEN, 'docs', 'lawka-v2-' + new Date().toISOString().slice(0, 10) + (w.stat ? '-zywy' : '') + '.md');
   fs.writeFileSync(plik, md, 'utf8');
   if (!process.argv.includes('--md')) console.log(md);
   console.error('zapisano', path.relative(KORZEN, plik));

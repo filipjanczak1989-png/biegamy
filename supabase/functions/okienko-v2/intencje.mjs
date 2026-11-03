@@ -3,14 +3,14 @@
 // osoby jest w pytaniu i wygląda na imię/nazwisko — B2), porada (model bez narzędzi i bez sieci, z dopiskiem), chipy „Chodzi Ci o…?”.
 // null = intencja bez obsługi w tym etapie (nawigacja, rywal, gotowosc, porownaj → E5) → potok idzie ścieżką v1 (model z narzędziami).
 import { waliduj, nawigacja } from "../okienko/narzedzia.mjs";
-import { kalkulator, CHIPY_WYBORU, ODP_ZDROWIE, ODP_CHOROBA, dodajDni, poniedzialek } from "../okienko/router.mjs";
+import { kalkulator, CHIPY_WYBORU, ODP_ZDROWIE, ODP_CHOROBA, ODP_ODMOWA, dodajDni, poniedzialek } from "../okienko/router.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { wygladaNaOsobeSlownik } from "../okienko/pamiec.mjs";
 import { normalizuj } from "../okienko/router.mjs";
 import { generujJson } from "./gemini.mjs";
 
 export const ODP_POGODA = "Pogoda jest na kaflu Dziś — napisz „pogoda”, „pogoda jutro” albo „pogoda pojutrze”.";
-export const ODP_ODMOWA = "Nie udostępniam cudzych danych ani list użytkowników. Mogę pokazać Twoje dane albo publiczny profil konkretnej osoby.";
+export { ODP_ODMOWA };   // zdanie odmowy ma jedno źródło — router v1 (bramka przed modelem w obu wersjach)
 export const ODP_OPINIA = "Nie oceniam ludzi — mogę pokazać wyniki i treningi z publicznych profili.";
 export const ODP_OSOBA_BEZ_NAZWISKA = "Jeśli pytasz o osobę, napisz imię i nazwisko.";
 export const ODP_KATALOG_PUSTY = "Nie znalazłem tego w aplikacji.";

@@ -28,7 +28,7 @@ test('1) rozumienie: tylko tekst + data + 3 poprzednie intencje; schemat; sanity
   const r = await R.rozumienie({ fetchFn, klucz: 'K', tekst: 'a w zeszłym tygodniu?', dzis: DZIS, poprzednie: [{ q: 'ile km w tym tygodniu', intencja: 'moje_treningi' }, { q: 'x', intencja: 'nie-ma-takiej' }, { q: '' }] });
   assert.equal(zadania.length, 1); const c = zadania[0].cialo;
   assert.match(zadania[0].url, /gemini-3\.5-flash-lite:generateContent$/, 'ten sam tani model co v1 (import MODEL)');
-  assert.equal(c.generationConfig.responseMimeType, 'application/json'); assert.equal(c.generationConfig.maxOutputTokens, 96); assert.equal(c.generationConfig.temperature, 0);
+  assert.equal(c.generationConfig.responseMimeType, 'application/json'); assert.equal(c.generationConfig.maxOutputTokens, 160);   // 3.11 po --zywy: 96 cięło JSON ze slotami assert.equal(c.generationConfig.temperature, 0);
   assert.ok(!c.tools, 'klasyfikator bez narzędzi');
   const tekst = JSON.stringify(c);
   assert.ok(!/athlete|Testowa|trainings|race_goals|10,2/.test(tekst), 'zero danych użytkownika w zapytaniu');

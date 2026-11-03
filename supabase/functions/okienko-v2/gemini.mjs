@@ -17,12 +17,12 @@ export async function generujJson({ fetchFn, klucz, system, contents, schema, ma
         generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature, maxOutputTokens } }) });
   } catch (e) { throw new BladGemini(e && e.name === "AbortError" ? "timeout" : "sieć"); }
   finally { if (t) clearTimeout(t); }
-  if (!r.ok) throw new BladGemini("http " + r.status);
+  if (!r.ok) { let t = ""; try { t = (await r.text()).replace(/[A-Za-z0-9_-]{30,}/g, "…").slice(0, 200); } catch { /* bez treści */ } throw new BladGemini("http " + r.status + (t ? " " + t : "")); }   // treść błędu API (diagnoza), długie tokeny wycięte
   const j = await r.json().catch(() => null);
   if (!j) throw new BladGemini("zły JSON odpowiedzi");
   const tok = { we: j.usageMetadata?.promptTokenCount || 0, wy: (j.usageMetadata?.candidatesTokenCount || 0) + (j.usageMetadata?.thoughtsTokenCount || 0) };
   const tekst = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
   let json;
-  try { json = JSON.parse(tekst); } catch { throw new BladGemini("odpowiedź bez JSON wg schematu"); }
+  try { json = JSON.parse(tekst); } catch { throw new BladGemini("odpowiedź bez JSON wg schematu (" + String(j.candidates?.[0]?.finishReason || "?") + ", " + tekst.length + " zn.)"); }
   return { json, tok };
 }
