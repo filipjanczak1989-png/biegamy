@@ -65,5 +65,10 @@ test('workflow okienko-noc: cron 02:00 UTC, sekrety, blizna przed commitem, comm
   assert.ok(w.indexOf('blizna-125') < w.indexOf('git commit'), 'blizna PRZED commitem raportu');
   assert.match(w, /\[skip ci\]/); assert.match(w, /if: steps\.raport\.outputs\.kod == '3'/); assert.match(w, /gh issue create/);
   assert.doesNotMatch(w, /supabase functions deploy|db push|db query|deploy\.yml|workflow_call/, 'noc nigdy nie wdraża');
+  /* 3.11: GitHub pokazywał plik jako ścieżkę bez nazwy — treść issue w `run: |` miała linie od kolumny 0 (zepsuty YAML). Każda linia od kolumny 0
+     musi być pustą, komentarzem albo jednym z kluczy najwyższego poziomu; wyzwalacze tylko schedule + workflow_dispatch. */
+  for (const [i, l] of w.split('\n').entries()) if (l && !/^\s/.test(l) && !/^#/.test(l)) assert.match(l, /^(name|on|permissions|concurrency|jobs):/, `linia ${i + 1} od kolumny 0 w YAML: ${l.slice(0, 60)}`);
+  assert.match(w, /^on:\n  schedule:\n    - cron: '0 2 \* \* \*'\n  workflow_dispatch:\n/m, 'tylko schedule + workflow_dispatch'); assert.doesNotMatch(w, /^\s+push:/m);
+  assert.match(w, /--body-file "\$RUNNER_TEMP\/issue\.md"/, 'treść issue z pliku, nie z wieloliniowego argumentu');
   assert.doesNotMatch(w, /SUPABASE_ACCESS_TOKEN|SB_SECRET_KEY/, 'tylko klucz do odczytu logów i klucz Gemini');
 });

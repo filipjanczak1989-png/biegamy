@@ -74,11 +74,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           D=$(date -u +%F)
-          TRESC=$(cat docs/okienko-raport/.alarm 2>/dev/null || echo "patrz raport")
-          gh issue create --title "Okienko: alarm ławki $D" --body "$TRESC
-
-Raport: docs/okienko-raport/$D.md
-Poranna pętla: „przeczytaj raport okienka i przygotuj poprawki” → gałąź okienko/poprawki-$D → OK Filipa → merge + deploy (ręcznie)." --label okienko || true
+          { cat docs/okienko-raport/.alarm 2>/dev/null || echo "patrz raport"; echo; echo "Raport: docs/okienko-raport/$D.md";
+            echo "Poranna pętla: „przeczytaj raport okienka i przygotuj poprawki” → gałąź okienko/poprawki-$D → OK Filipa → merge + deploy (ręcznie)."; } > "$RUNNER_TEMP/issue.md"
+          gh issue create --title "Okienko: alarm ławki $D" --body-file "$RUNNER_TEMP/issue.md" --label okienko || true
 
       - name: Issue czujki (nowy post Davida o Garminie)
         if: steps.czujka.outputs.kod == '4'
@@ -86,7 +84,6 @@ Poranna pętla: „przeczytaj raport okienka i przygotuj poprawki” → gałą�
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           D=$(date -u +%F)
-          TRESC=$(cat docs/okienko-raport/.czujka-alarm 2>/dev/null || echo "patrz log")
-          gh issue create --title "intervals/Garmin: nowy post Davida $D" --body "$TRESC
-
-Plan B: docs/garmin-plan-b-2026-11-03.md (przełącznik GARMIN_BLOKADA=1 w sekretach EF intervals-status + deploy; komunikat gotowy)." --label garmin || true
+          { cat docs/okienko-raport/.czujka-alarm 2>/dev/null || echo "patrz log"; echo;
+            echo "Plan B: docs/garmin-plan-b-2026-11-03.md (przełącznik GARMIN_BLOKADA=1 w sekretach EF intervals-status + deploy; komunikat gotowy)."; } > "$RUNNER_TEMP/issue.md"
+          gh issue create --title "intervals/Garmin: nowy post Davida $D" --body-file "$RUNNER_TEMP/issue.md" --label garmin || true
