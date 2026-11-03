@@ -101,6 +101,17 @@ To prove the CI gate can actually fail, run the `bramki` workflow manually with
 `test_negatywny: true` — it injects a rule divergence plus a forbidden file and
 the run must go red.
 
+## Migrations — manual, never `db push`
+
+Migrations in `supabase/migrations/` are applied BY HAND by Filip:
+
+```bash
+supabase db query --linked --workdir ~/.cache/sb-audit -f supabase/migrations/<plik>.sql
+```
+
+Supabase's migration history does not know them, so `supabase db push` would try to replay the whole directory. Never
+suggest `db push`; always hand over the exact `db query --linked -f` line per file, after the `tools/<x>-test.sh` post-effect test.
+
 ## Conventions
 - Polish-first naming: variable names, comments, and UI text are in Polish throughout the game layer and much of the main app
 - No TypeScript, no linting tooling — consistency is maintained by convention

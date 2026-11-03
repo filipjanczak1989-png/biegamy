@@ -34,6 +34,13 @@
   `tools/okladki-automat-test.sh` (8 asercji). Bez sekretów F6 cron loguje `lista: brak konta F6` i nic nie generuje.
 - Narzędzie lokalne `tools/kalendarz/generuj-okladki.mjs` zostaje jako zapas (ten sam klucz i nazwa pliku).
 
+## Konto F6 — GOTOWE 3.11 (Filip: sekrety ustawione)
+
+Konto F6 = konto testowe BiegaMy (to samo, którym testujemy apkę). **Hasło konta testowego zmieniać TYLKO razem z sekretem
+`F6_KONTO_HASLO`** — inaczej cron okładek dostaje 401 i co noc loguje w `okladki_log` wpis `automat / ok=false / blad: „lista: logowanie F6
+nieudane (…)”`, nic nie generuje. Blizna-120 pilnuje, że EF zapisuje ten wpis (nie ginie cicho). Kontrola po zmianie hasła:
+`select kiedy, blad from okladki_log where ok = false order by kiedy desc limit 5` (service / `db query --linked`).
+
 ## Etap 2 (pierwotny opis)
 
 Konto serwisowe F6 (zatwierdzone: tylko serwer): sekrety `F6_KONTO_EMAIL`, `F6_KONTO_HASLO`. EF loguje się kluczem publicznym

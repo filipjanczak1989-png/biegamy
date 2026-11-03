@@ -52,7 +52,8 @@ async function imprezyZF6(): Promise<Impreza[]> {
   if (!F6_EMAIL || !F6_HASLO) throw new Error("brak konta F6 (F6_KONTO_EMAIL/F6_KONTO_HASLO)");
   const anon = createClient(SB_URL, PUBLISHABLE, { auth: { persistSession: false } });
   const { data, error } = await anon.auth.signInWithPassword({ email: F6_EMAIL, password: F6_HASLO });
-  if (error || !data.session) throw new Error("logowanie konta F6 nieudane");
+  /* 401 z F6 = najczęściej hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO (zasada w docs) — wpis w okladki_log, pilnuje blizna-120 */
+  if (error || !data.session) throw new Error("logowanie F6 nieudane (hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO?)");
   const od = dzisWaw(), doD = new Date(Date.parse(od + "T12:00:00Z") + DNI_OKNA * 86400000).toISOString().slice(0, 10);
   const r = await fetch(`${F6_URL}/rpc/upcoming_races`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${data.session.access_token}` },
     body: JSON.stringify({ p_from: od, p_to: doD, lim: LIMIT_F6 }) });

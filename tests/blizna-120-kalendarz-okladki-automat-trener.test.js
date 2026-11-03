@@ -82,3 +82,13 @@ test('front: przyciski tylko dla trenera, własne zdjęcie przez canvas → EF, 
   assert.doesNotMatch(r, /from\('imprezy_okladki'\)\.(insert|upsert|update|delete)\(/); assert.doesNotMatch(r, /storage\.from\('race-covers'\)/, 'upload tylko przez EF');
   assert.match(r, /r\.status === 429 \? 'Dzienny limit nowych okładek wyczerpany \(20\)\.'/);
 });
+
+test('konto F6: nieudane logowanie (401 — hasło testowe zmienione bez sekretu) ląduje w okladki_log jako „logowanie F6 nieudane”, a nie ginie cicho', () => {
+  const e = fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/okladki-imprez/index.ts'), 'utf8').replace(/\r/g, '');
+  assert.match(e, /if \(error \|\| !data\.session\) throw new Error\("logowanie F6 nieudane \(hasło konta testowego zmienione bez sekretu F6_KONTO_HASLO\?\)"\);/);
+  assert.match(e, /try \{ lista = await imprezyZF6\(\); \} catch \(e\) \{ await log\(sb, \{ rodzaj: "automat", ok: false, blad: "lista: " \+ \(e as Error\)\.message \}\);/, 'automat: błąd listy = wpis w okladki_log');
+  assert.doesNotMatch(e, /F6_HASLO[^\n]*(log\(|console\.|blad)/, 'hasło nigdy w logu');
+  const d = fs.readFileSync(path.join(__dirname, '..', 'docs/kalendarz-etapy-2026-11-03.md'), 'utf8');
+  assert.match(d, /Hasło konta testowego zmieniać TYLKO razem z sekretem/);
+});
+
