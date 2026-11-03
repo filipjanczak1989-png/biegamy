@@ -52,6 +52,14 @@ export async function sprawdzLimityV2(adm, athleteId, dzis, budzetUsd) {
 
 export { LIMIT_SIEC };
 
+export const LIMIT_ROZMOW = 20;   // R2: tur rozmowy (dopytań z modelem) na dobę i osobę — w ramach 60/dobę
+export async function uzyteRozmowDzisV2(adm, athleteId, dzis) {
+  try {
+    const { count, error } = await adm.from(TABELA).select("id", { count: "exact", head: true }).eq("athlete_id", athleteId).eq("tryb", "v2").contains("narzedzia", ["rozmowa"]).gte("kiedy", poczatekDniaWaw(dzis));
+    return error ? 0 : (count || 0);
+  } catch { return 0; }   // atrapa ławki nie zna contains → 0 (limit testowany osobno)
+}
+
 /** Jedyny zapis logu v2 (nazwa tabeli literałem — blizna-113 skanuje zapisy po literale). Błąd logu NIE psuje odpowiedzi, ale wraca do wołającego.
     Zwraca id wpisu (kciuki 3.11: klient ocenia wpis przez RPC okienko_ocena) albo true, gdy klient nie umie `.select` (atrapa ławki), albo false. */
 export async function zapiszLogV2(adm, w) {

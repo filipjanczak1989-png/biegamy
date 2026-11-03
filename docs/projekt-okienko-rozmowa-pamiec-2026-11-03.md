@@ -91,6 +91,17 @@ Okienko o mnie wie”) albo nie usuniesz konta.”
 §4 (zdrowie), dopisek: „Faktów o zdrowiu Okienko nie zapamiętuje samo; zapisuje je wyłącznie, gdy o to poprosisz i osobno to potwierdzisz.”
 §9, dopisek do listy usuwanych: „…pamięć Okienka (rozmowy i zapamiętane fakty)…”.
 
+## 7a. Stan budowy (3.11 wieczór)
+
+| etap | stan |
+|---|---|
+| R1 migracja (treść rozmowy + okienko_pamiec, RLS, limit 30) | ✅ NA PROD (test 10/10) |
+| R2 tryb ROZMOWA (`rozmowa-model.mjs`: detektor dopytań, charakter trenera, liczby tylko z rozmowy, ogólniki, limit 20/dobę; treść tury przy każdej odpowiedzi) | ✅ kod + blizna-127, ławka 246/261 = 94,3 %; deploy okienko-v2 u Filipa |
+| R3 „zapamiętaj, że…” + potwierdzenie + zdrowie z osobną zgodą; `faktyPamieci` do kontekstu rozmowy | ⏳ następne |
+| R4 Profil „Co Okienko o mnie wie” | ⏳ |
+| R5 ławka rozmów 30 scenariuszy (`tests/_lawka-rozmowy.js`) | ⏳ (dziś 5 dopytań w ławce v2) |
+| R6 privacy PL+EN dopisek (bez nazw dostawców) — diff do OK | ⏳ |
+
 ## 7. Etapy (po OK) i co do mojego OK
 
 R1 migracja (2 kolumny + `okienko_pamiec` + RLS + testy) · R2 tryb ROZMOWA + charakter + strażniki · R3 „zapamiętaj” + potwierdzenie +

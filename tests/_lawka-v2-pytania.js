@@ -205,6 +205,13 @@ const PYTANIA = [
   W('jak biegac szybciej', 'poza', 3, 'siec', { uwaga: 'porada → sieć z konkretem (3.11)' }),
   W('ile wody pic na dlugim biegu', 'poza', 2, 'siec', { uwaga: 'żywienie → sieć z konkretem (3.11)' }),
   // ── O NAS (Filip 3.11 15:25): plik _shared/o-nas.mjs, 0 tokenów, PRZED bramką osób; nigdy sieć ──
+  // ── R2 ROZMOWA (3.11): dopytanie w świeżej rozmowie → model z poprzednimi wymianami (liczby tylko z rozmowy); bez rozmowy → zwykła ścieżka ──
+  W('a dlaczego?', 'rozmowa', 4, 'v2:rozmowa', { po: ['co mam dzis'] }),
+  W('wyjasnij prosciej', 'rozmowa', 3, 'v2:rozmowa', { po: ['jaka mam forme'] }),
+  W('a dla mnie?', 'rozmowa', 3, 'v2:rozmowa', { po: ['jak zaczac biegac'] }),
+  W('jak to zrobic w praktyce', 'rozmowa', 3, 'v2:rozmowa', { po: ['plan na jutro'] }),
+  W('a jeszcze?', 'rozmowa', 2, 'v2:rozmowa', { po: ['moje rekordy'] }),
+  W('a dlaczego', 'poza', 2, 'v2-niepewne:dopytanie', { uwaga: 'bez świeżej rozmowy dopytanie nie ma do czego sięgać → chipy' }),
   W('kim jest filip', 'o_nas', 4, 'router:o-nas'),
   W('kim jest filip janczak', 'o_nas', 3, 'router:o-nas'),
   W('co to jest biegamy', 'o_nas', 4, 'router:o-nas'),

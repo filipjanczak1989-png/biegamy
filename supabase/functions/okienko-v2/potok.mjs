@@ -14,7 +14,7 @@ import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe, wyg
 import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "../okienko/osoba.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "../okienko/impreza.mjs";
 import { szukajWKatalogu } from "../okienko/katalog.mjs";
-import { zapiszLogV2, sprawdzLimityV2, uzyteSiecDzisV2, LIMIT_SIEC } from "./log-v2.mjs";
+import { zapiszLogV2, sprawdzLimityV2, uzyteSiecDzisV2, LIMIT_SIEC, uzyteRozmowDzisV2, LIMIT_ROZMOW } from "./log-v2.mjs";
 import { rozumienie, PROG_PEWNOSCI } from "./rozumienie.mjs";
 import { wykonajIntencje, chipyDla } from "./intencje.mjs";
 import { generujJson } from "./gemini.mjs";
@@ -24,10 +24,12 @@ import { samosprawdz, ODP_NIE_PRZESZLO } from "./samosprawdzenie.mjs";
 import { INTENCJE_SIECI, szukajWiedzy } from "./wiedza.mjs";
 import { produktZPytania } from "./produkt.mjs";
 import { oNas } from "../_shared/o-nas.mjs";
+import { czyDopytanie, odpowiedzRozmowy } from "./rozmowa-model.mjs";
 
 export const MODEL_SIECI = "gemini-3.5-flash-lite";   // etykieta pamięci sieci (jak v1)
 export const DOMYSLNE = { wykonaj, zapytajModel, zapytajSiec, odpowiedzOsoba, odpowiedzImpreza, szukajWKatalogu, zPamieci, doPamieci, zapiszZnaleziska,
-  uzyteSiecDzis: uzyteSiecDzisV2, sprawdzLimity: sprawdzLimityV2, zapiszLog: zapiszLogV2, LIMIT_SIEC, rozumienie, generujJson, wykonajPrzepis };
+  uzyteSiecDzis: uzyteSiecDzisV2, sprawdzLimity: sprawdzLimityV2, zapiszLog: zapiszLogV2, LIMIT_SIEC, rozumienie, generujJson, wykonajPrzepis,
+  rozmowaModel: odpowiedzRozmowy, uzyteRozmowDzis: uzyteRozmowDzisV2, LIMIT_ROZMOW, faktyPamieci: async () => [] };   // R2 rozmowa; R3 podmieni faktyPamieci
 
 const pusto = (tryb, extra = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
 const httpsOk = (u) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
@@ -105,12 +107,31 @@ export async function potok(we, nadpisz = {}) {
     const zw = zWyniku(traf.narzedzie, wynik, w.args);
     await log({ narzedzia: [traf.narzedzie], tryb: "router", plan: [traf.narzedzie] });
     const tura = turaZNarzedzia(traf.narzedzie, w.args);
-    await zapiszTure(adm, athleteId, tura.intencja, tura.sloty);   // E4: pamięć rozmowy także po routerze („a w grudniu?”)
+    await zapiszTure(adm, athleteId, tura.intencja, tura.sloty, { pytanie: tekst, odpowiedz: zw.zdania });   // E4: pamięć rozmowy także po routerze („a w grudniu?”); R2: z treścią
     return odp(200, { ...pusto("router"), zdania: zw.zdania, karty: zw.karty, akcja: zw.akcja !== undefined ? zw.akcja : nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
   }
   // E4: pamięć rozmowy (intencje + sloty ≤ 5 tur, ≤ 30 min) — czyta i pisze tylko EF
   const rozmowa = await czytajRozmowe(adm, athleteId, teraz);
   const kont = czyKontynuacja(normalizuj(tekst), rozmowa);
+  // ── R2: TRYB ROZMOWA — dopytanie w świeżej rozmowie („a dlaczego?”, „wyjaśnij prościej”, „a dla mnie?”) → jedno wywołanie modelu
+  //    z poprzednimi wymianami; liczby tylko z rozmowy, strażnik ogólników; limit 20 tur/dobę; PRZED bramką osób (dopytanie nigdy nie idzie do sieci) ──
+  if (gemini && d.rozmowaModel && czyDopytanie(normalizuj(tekst), rozmowa)) {
+    let limit = null;
+    try { limit = await d.sprawdzLimity(adm, athleteId, dzis, budzet); } catch { limit = null; }
+    if (!limit && (await d.uzyteRozmowDzis(adm, athleteId, dzis)) >= d.LIMIT_ROZMOW) limit = "rozmowa";
+    if (limit) { await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit " + limit }); return odp(429, { limit }); }
+    let fakty = [];
+    try { fakty = await d.faktyPamieci(adm, athleteId, tekst, rozmowa); } catch { fakty = []; }
+    const w = await d.rozmowaModel({ fetchFn, klucz: gemini, tekst, dzis, rozmowa, fakty });
+    if (w && w.zdania.length) {
+      await log({ tryb: "v2", narzedzia: ["rozmowa"], tok_we: w.tok.we, tok_wy: w.tok.wy, intencja: "rozmowa", ok: !w.ogolnik && !w.odrzucone.length,
+        powod_odrzucenia: [w.ogolnik ? "ogólnik mimo ponowienia: skrócono" : (w.ponowiono ? "ogólnik: ponowiono" : null), ...w.odrzucone.map((x) => `liczba spoza rozmowy ${x.liczba}: ${x.zdanie}`)].filter(Boolean).join(" | ") || null });
+      await zapiszTure(adm, athleteId, "rozmowa", {}, { pytanie: tekst, odpowiedz: w.zdania });
+      return odp(200, { ...pusto("v2"), zdania: w.zdania, narzedzia: ["rozmowa"], koszt_tok: w.tok, intencja: "rozmowa" });
+    }
+    await log({ tryb: "v2-niepewne", narzedzia: ["rozmowa"], intencja: "rozmowa", ok: false, powod_odrzucenia: "rozmowa: model bez zdań po strażnikach" });
+    return odp(200, { ...pusto("router"), zdania: [ODP_NIE_PRZESZLO], karty: [], chipy: CHIPY_WYBORU, intencja: "rozmowa" });
+  }
 
   // ── B2: osoba / impreza — moduły v1; sieć wyłącznie przez ich strażniki i wspólny limit ──
   const os = osobaZPytania(tekst);
@@ -118,7 +139,7 @@ export async function potok(we, nadpisz = {}) {
     const o = await d.odpowiedzOsoba({ sb, athleteId, fetchFn, token: jwt, q: os.q, wprost: os.wprost, gdzie: os.gdzie || null, sieciDozwolona, siec: siecZeZrodlami });
     await log({ tryb: "osoba", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci,
       ok: o.f6 === "ok", powod_odrzucenia: o.nic ? ["brak trafień: odpowiedź informacyjna", o.powod].filter(Boolean).join(" | ") : o.powod });
-    if (!o.nic) await zapiszTure(adm, athleteId, "osoba", { osoba: os.q, miejsce: os.gdzie || undefined });   // E4: „porównaj z nim”
+    if (!o.nic) await zapiszTure(adm, athleteId, "osoba", { osoba: os.q, miejsce: os.gdzie || undefined }, { pytanie: tekst, odpowiedz: o.zdania });   // E4: „porównaj z nim”
     return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
   }
   const imp = imprezaZPytania(tekst);
@@ -130,7 +151,7 @@ export async function potok(we, nadpisz = {}) {
       znaleziska: (w) => d.zapiszZnaleziska(adm, athleteId, w) });
     if (o) {
       await log({ tryb: "impreza", tok_we: o.tok.we, tok_wy: o.tok.wy, zapytania_sieci: o.zapytania_sieci, ok: o.f6 === "ok", powod_odrzucenia: o.powod });
-      await zapiszTure(adm, athleteId, "impreza", { impreza: imp.q });
+      await zapiszTure(adm, athleteId, "impreza", { impreza: imp.q }, { pytanie: tekst, odpowiedz: o.zdania });
       return odp(200, { ...pusto("impreza"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, koszt_tok: o.tok });
     }
   }
@@ -223,6 +244,7 @@ export async function potok(we, nadpisz = {}) {
     intencja: roz ? roz.intencja : null, pewnosc: roz ? roz.pewnosc : undefined,
     ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: [awaria, powodPustych(s, m)].filter(Boolean).join(" | ") || null });
   const zdania = (blokadaSieci && !karty.length && (s.puste || s.zdania[0] === NIE_MAM || m.poza_danymi)) ? [ODP_NIC] : s.zdania;
+  if (!s.puste) await zapiszTure(adm, athleteId, nazwy[0] || "flash", {}, { pytanie: tekst, odpowiedz: zdania });   // R2
   return odp(200, { zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
 
   /* E5: przepis → E6: samosprawdzenie → odpowiedź; null = przepis nic nie dał (ścieżka v1 niżej) */
@@ -244,7 +266,7 @@ export async function potok(we, nadpisz = {}) {
     }
     const { tryb: trybLog, ...resztaLog } = w.log || {};
     await log({ tryb: trybLog || "v2", ...resztaLog, intencja: roz.intencja, pewnosc: roz.pewnosc, samosprawdzenie: meta ? true : undefined });
-    if (w.status == null || w.status === 200) { const { _zPamieci, ...sloty } = roz.sloty || {}; await zapiszTure(adm, athleteId, roz.intencja, sloty); }
+    if (w.status == null || w.status === 200) { const { _zPamieci, ...sloty } = roz.sloty || {}; await zapiszTure(adm, athleteId, roz.intencja, sloty, { pytanie: tekst, odpowiedz: w.body && w.body.zdania }); }
     return odp(w.status || 200, { ...w.body, intencja: roz.intencja });
   }
   /* sieć ze źródłami (M2a): limit 20/dobę, pamięć 24 h, znaleziska; `m` = koszt poprzedzającego modelu (0 przy skoku z intencji „fakt”).
@@ -273,6 +295,7 @@ export async function potok(we, nadpisz = {}) {
     await log({ tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania, intencja: roz ? roz.intencja : null, pewnosc: roz ? roz.pewnosc : undefined,
       ok: o.odrzucone.length === 0 && !o.ogolnik,
       powod_odrzucenia: [o.ogolnik ? "ogólnik mimo ponowienia: skrócono" : (o.ponowiono ? "ogólnik: ponowiono z instrukcją „liczby/kroki”" : null), ...o.odrzucone.map((x) => `${x.powod}: ${x.zdanie}`)].filter(Boolean).join(" | ") || null });
+    await zapiszTure(adm, athleteId, roz && roz.intencja ? roz.intencja : "siec", {}, { pytanie: tekst, odpowiedz: o.zdania });   // R2: dopytanie po odpowiedzi z sieci
     return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
   }
 }

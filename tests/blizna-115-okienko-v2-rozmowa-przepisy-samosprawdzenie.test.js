@@ -36,7 +36,10 @@ test('E4: rozmowa.mjs — tylko intencja+sloty, TTL, kontynuacja, dziedziczenie 
   assert.deepEqual(Rz.turaZNarzedzia('odznaki_moje', {}), { intencja: 'odznaki', sloty: {} });
   assert.deepEqual(Rz.turaZNarzedzia('biegi_nadchodzace', { od: '2026-11-01', do: '2026-11-30', miejsce: 'Poznań', dystans: '10' }), { intencja: 'biegi_nadchodzace', sloty: { od: '2026-11-01', do: '2026-11-30', miejsce: 'Poznań', dystans: '10' } });
   assert.match(czytaj('supabase/functions/okienko-v2/rozmowa.mjs'), /from\("okienko_v2_rozmowa"\)\.insert\(/);
-  assert.doesNotMatch(czytaj('supabase/functions/okienko-v2/rozmowa.mjs'), /tekst:|zdania/, 'pamięć bez treści pytań i odpowiedzi');
+  /* R2 (3.11, OK Filipa): pamięć MA treść tury (pytanie/odpowiedź dla dopytań), ale klasyfikator nadal dostaje tylko intencje i sloty */
+  const rz = czytaj('supabase/functions/okienko-v2/rozmowa.mjs');
+  assert.match(rz, /wiersz\.pytanie = tresc\.pytanie\.trim\(\)\.slice\(0, 300\)/); assert.match(rz, /wiersz\.odpowiedz = o\.trim\(\)\.slice\(0, 400\)/);
+  assert.doesNotMatch(rz.slice(rz.indexOf('export function kontekstDlaModelu'), rz.indexOf('/* narzędzie z routera')), /r\.pytanie|r\.odpowiedz/, 'kontekst dla klasyfikatora bez treści');
 });
 
 test('E5: przepisy — gotowosc z 4 narzędzi (zdania z narzędzi), najdluzszy = maksimum z listy, porownaj wymaga osoby z B2', async () => {

@@ -88,7 +88,8 @@ async function przebieg(pytania = PYTANIA, opcje = {}) {
       if (lok) return { slad: ['klient'], koszt: 0, tresc: lok.replace(/<[^>]+>/g, '').slice(0, 70), status: 200 };
       const r = await potok({ tekst: pyt, historia: [], ekran: 'home', athleteId: JA, sb, adm, jwt: 'T', dzis: DZIS, teraz: TERAZ, gemini: 'K', budzet: 0, fetchFn: fetchF6 },
         { zapytajModel: symModel(R), zapytajSiec: symSiec, sprawdzLimity: async () => null, uzyteSiecDzis: async () => 0, rozumienie: rozumienieFn,
-          generujJson: async () => ({ json: { zdania: ['Zacznij od marszobiegów i dokładaj czas, nie tempo.', 'Dwa dni luzu w tygodniu to też trening.'] }, tok: { we: 300, wy: 60 } }) });
+          generujJson: async () => ({ json: { zdania: ['Zacznij od marszobiegów i dokładaj czas, nie tempo.', 'Dwa dni luzu w tygodniu to też trening.'] }, tok: { we: 300, wy: 60 } }),
+          rozmowaModel: async (o) => ({ zdania: ['Bo tak układa się bazę pod Twój najbliższy start.', 'Najpierw spokojne biegi, potem akcenty.'], tok: { we: 900, wy: 60 }, odrzucone: [], ponowiono: false, ogolnik: false }) });   // R2: atrapa rozmowy (0 $)
       const ost = adm.tabele.okienko_v2_log[adm.tabele.okienko_v2_log.length - 1] || {};
       const awaria = /v2-awaria/.test(String(ost.powod_odrzucenia || '')) ? String(ost.powod_odrzucenia).replace(/[A-Za-z0-9_-]{30,}/g, '…').slice(0, 80) : '';
       const tok = (ost.tok_we || 0) * CENA.we + (ost.tok_wy || 0) * CENA.wy + (ost.zapytania_sieci || 0) * CENA.zapytanie;
