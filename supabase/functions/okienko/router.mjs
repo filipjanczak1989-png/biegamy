@@ -157,9 +157,14 @@ const ZAGADKA_ZAWSZE = /\b(jaka akcj\w*|jakie akcj\w*|akcj\w* specjaln\w*|jaki c
    zgadywanie. Każde pytanie o wyprawę, metę, „dokąd biegniecie”, „czy biegniecie do X” i o miejsca-kandydatów (Częstochowa, Jasna Góra)
    → zagadka (przed startem) albo stałe zdanie bez celu (po starcie). Celowo szerokie (jak fabian*): „biegi w Częstochowie” też tu trafi —
    ochrona sekretu > kalendarz jednego miasta. Przegląd razem z fabian* w dniu zamknięcia akcji. */
-const ZAGADKA_WYPRAWA = /\b(wypraw\w*|dokad (biegniecie|biegniemy|biegna|biegnie|zmierzacie|zmierzamy|idziecie|idziemy|pobiegniecie|pobiegniemy|jedziecie|lecicie)|gdzie (konczy sie|sie konczy|bedzie meta|jest meta|meta|biegniecie|biegniemy|dobiegniecie|dobiegniemy|konczycie|skonczycie)|(biegniecie|biegniemy|pobiegniecie|pobiegniemy|biegna|dobiegniecie|dobiegniemy) (do|na|w strone|w kierunku|az do|az na)|cel (wypraw\w*|biegu filipa|podrozy)|meta (wypraw\w*|akcj\w*)|czestochow\w*|jasn\w* gor\w*|filip i kasia (biegna|biegnie|ida)|trasa (wypraw\w*|filipa|kasi)|(dokad|dokond|dokat|dokont) (wy )?(biegn\w*|biegi\w*|pobiegn\w*|zmierza\w*)|expedition\w*|expedic\w*|expedice|ekspedycj\w*|(met[aey]|mecie|mete)\b.{0,25}\b(wypraw\w*|filip\w*|kasi\w*|akcj\w*|wasz\w*)|(dotar\w*|dobieg\w*)\b.{0,25}\b(met[aey]|mecie|mete)|(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*)\b.{0,40}\b(dokad|gdzie|where|wohin|adonde|donde|kam|biegn\w*|pobiegn\w*|dobiegn\w*|run\w*|lauf\w*|corr\w*|bezi|tras\w*|route|map\w*|met[aey]|mecie|finish\w*|cel\w*)|(dokad|gdzie|where|wohin|adonde|donde|kam|tras\w*|route|map\w*)\b.{0,40}\b(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*))\b/;
+const ZAGADKA_WYPRAWA = /\b(wypraw\w*|(ta|tej|ich|wasza|waszej) (meta|mehta|metha|mety|mecie|mete)|dokad (biegniecie|biegniemy|biegna|biegnie|zmierzacie|zmierzamy|idziecie|idziemy|pobiegniecie|pobiegniemy|jedziecie|lecicie)|gdzie (konczy sie|sie konczy|bedzie meta|jest meta|meta|biegniecie|biegniemy|dobiegniecie|dobiegniemy|konczycie|skonczycie)|(biegniecie|biegniemy|pobiegniecie|pobiegniemy|biegna|dobiegniecie|dobiegniemy) (do|na|w strone|w kierunku|az do|az na)|cel (wypraw\w*|biegu filipa|podrozy)|meta (wypraw\w*|akcj\w*)|czestochow\w*|jasn\w* gor\w*|filip i kasia (biegna|biegnie|ida)|trasa (wypraw\w*|filipa|kasi)|(dokad|dokond|dokat|dokont) (wy )?(biegn\w*|biegi\w*|pobiegn\w*|zmierza\w*)|expedition\w*|expedic\w*|expedice|ekspedycj\w*|(met[aey]|mecie|mete)\b.{0,25}\b(wypraw\w*|filip\w*|kasi\w*|akcj\w*|wasz\w*)|(dotar\w*|dobieg\w*)\b.{0,25}\b(met[aey]|mecie|mete)|(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*)\b.{0,40}\b(dokad|gdzie|where|wohin|adonde|donde|kam|biegn\w*|pobiegn\w*|dobiegn\w*|run\w*|lauf\w*|corr\w*|bezi|tras\w*|route|map\w*|met[aey]|mecie|finish\w*|cel\w*)|(dokad|gdzie|where|wohin|adonde|donde|kam|tras\w*|route|map\w*)\b.{0,40}\b(filip\w* (i|and|und|y|a|et) kasi\w*|kasi\w* (i|and|und|y|a|et) filip\w*))\b/;
 /* CYRYLICA (red team 3.11): normalizuj zostawia tylko a-z, więc ukraińskie/rosyjskie pytania o akcję sprawdzamy na surowym tekście */
 const ZAGADKA_CYRYLICA = /фаб[іиї]ан|експедиц|экспедиц|(філіп|филип)\S*\s+(і|и|та)\s+кас|кас\S*\s+(і|и|та)\s+(філіп|филип)/;
+/* PARA ZAŁOŻYCIELI (red team 3.11, blizna-142): „Filip i Kasia” w jednym pytaniu to wyprawa, nie wyszukiwanie osoby: „czy Filip i Kasia mają powitanie na finiszu?”
+   szło do trybu osoby i dostawało „W BiegaMy nie ma nikogo o tym imieniu i nazwisku”. Wyjątek: pytania o nich samych zostają przy „o nas” i profilach. */
+const PARA_ZALOZYCIELI = /\b(filip\w* (i|and|und|y|a|et|oraz) kasi\w*|kasi\w* (i|and|und|y|a|et|oraz) filip\w*)\b/;
+const PARA_O_NAS = /\b(kim (sa|jest)|kto (to|jest|sa)|co wiesz o|opowiedz|przedstaw|profi\w*|trener\w*|podopieczn\w*|who (are|is))\b/;
+const czyPara = (t) => PARA_ZALOZYCIELI.test(t) && !PARA_O_NAS.test(t);
 /* LICZNIK AKCJI (Filip 3.11): „ile km już jest”, „ile na liczniku” — po starcie liczba z akcja_licznik (potok v2), przed startem zagadka. */
 const ZAGADKA_KM = /\b(ile (juz )?(km|kilometrow) (juz )?(jest|mamy|nabiegalismy|uzbieralismy|razem|na liczniku|w liczniku|zostalo|brakuje)|ile (jest )?na liczniku|stan licznika|ile (juz )?(zebraliscie|uzbieraliscie|przebiegliscie|nabiegaliscie))\b/;
 /* PRZED 8.11 (Filip 2.11, przegląd A pkt 1): DATA startu łapie zagadkę tylko BEZ słów o własnych danych — „plan na 7.11”,
@@ -217,14 +222,14 @@ export function czyZagadka(tekst) {
   const t = normalizuj(tekst);
   if (ZAGADKA_CYRYLICA.test(surowy)) return true;
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t)) return true;
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t) || czyPara(t)) return true;
   if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
 /** Rodzaj pytania o akcję (potok v2 dobiera zdanie po starcie): 'wyprawa' (cel/meta — nigdy nie zdradzamy), 'km' (licznik), null (ogólne). */
-export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return (ZAGADKA_WYPRAWA.test(t) || /експедиц|экспедиц/.test(String(tekst || "").toLowerCase())) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
+export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return (ZAGADKA_WYPRAWA.test(t) || czyPara(t) || /експедиц|экспедиц/.test(String(tekst || "").toLowerCase())) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
 /* ZDROWIE INNYCH OSÓB (Filip 3.11, ławka akcji: „co mu jest” po pytaniu o Fabianka): o zdrowiu kogokolwiek poza pytającym Okienko nie mówi —
    stałe zdanie, 0 tokenów, przed modelem i siecią (model mógłby zmyślić chorobę, sieć mogłaby ją znaleźć). „co mi jest” to zdrowie pytającego. */
 export const ODP_ZDROWIE_INNYCH = "O zdrowiu innych osób nie rozmawiam. Jeśli chodzi o Ciebie — napisz, co Ci dolega.";
@@ -331,5 +336,5 @@ export function przeciekAkcji(zdania) {
 }
 /* DOPYTANIE O MIEJSCE PO AKCJI (red team 3.11): po odpowiedzi o akcji „ile zostało do mety?”, „do którego sanktuarium?”, „czyli meta jest gdzie?”
    to dalej pytanie o cel wyprawy — potok v2 odpowiada zdaniem akcji (nigdy model, sieć). Samo w sobie (bez rozmowy o akcji) nic nie znaczy. */
-const PYT_O_MIEJSCE = /\b(met[aey]?|mecie|mete|cel\w*|dokad|gdzie|tras\w*|miast\w*|miejsc\w*|miejscowosc\w*|zostal\w*|brakuje|daleko|kilometr\w*|km|sanktuar\w*|pielgrzym\w*|klasztor\w*|kierun\w*|strone|wojewodztw\w*|region\w*|polud\w*|polnoc\w*|wschod\w*|zachod\w*|finish\w*|where|wohin|destination)\b/;
+const PYT_O_MIEJSCE = /\b(met[aey]?|mecie|mete|cel\w*|dokad|gdzie|tras\w*|miast\w*|miejsc\w*|miejscowosc\w*|zostal\w*|brakuje|daleko|kilometr\w*|km|sanktuar\w*|pielgrzym\w*|klasztor\w*|kierun\w*|strone|wojewodztw\w*|region\w*|polud\w*|polnoc\w*|wschod\w*|zachod\w*|finish\w*|finisz\w*|map\w*|granic\w*|kraj\w*|panstw\w*|polmet\w*|pustyn\w*|klimat\w*|teren\w*|country|border|where|wohin|destination)\b/;
 export function czyPytanieOMiejsce(tekst) { return PYT_O_MIEJSCE.test(normalizuj(tekst)); }

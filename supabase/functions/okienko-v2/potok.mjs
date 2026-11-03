@@ -260,6 +260,13 @@ export async function potok(we, nadpisz = {}) {
         const p = await wykonajZPrzepisu(roz, roz);
         if (p) return p;
       }
+      /* AKCJA Z KLASYFIKATORA (red team 3.11, blizna-142): router jej nie poznał, więc stan nie był pobrany i ruszyla=false: w trakcie akcji ludzie dostawaliby
+         tekst przed startem („Jeszcze nie mogę powiedzieć. Niedługo.”). Stan pobieramy tutaj, a ustawiamy synchronicznie tuż przed odczytem, bo STAN jest
+         wspólny dla żądań w tym samym izolacie i po każdym await mógł go zmienić ktoś inny. */
+      if (roz.intencja === "akcja" && AK) {
+        if (!akcjaDane) { try { akcjaDane = await AK.odswiezStan(sb, athleteId); } catch { akcjaDane = null; } }
+        AK.ustawStan({ ruszyla: !!(akcjaDane && akcjaDane.wystartowala), proba: AK.slugDla(athleteId) === "proba" });
+      }
       let w = null;
       try { w = await wykonajIntencje(ctxV2(), roz); } catch (e) { awaria = "v2-awaria: intencja " + String(e && e.message).slice(0, 60); w = null; }
       if (w) return await odpowiedzV2(w, roz);
