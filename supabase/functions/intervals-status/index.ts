@@ -5,7 +5,7 @@
 // intervals_status. 401 ustawia athletes.intervals_token_dead_at (jak intervals-sync), udany odczyt ją czyści. Zapis service WYŁĄCZNIE:
 // intervals_status, athletes.intervals_token_dead_at. Teksty dla ludzi buduje klient (sb.js WATCH.kreatorHtml), EF oddaje tylko fakty.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ustalOgniwo, OKNO_DNI } from "./ogniwo.mjs";
+import { ustalOgniwo, czyBlokadaGarmina, OKNO_DNI } from "./ogniwo.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON = "sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY";   // publiczny (== sb.js) — literał przetrwa Disable legacy anon
@@ -34,7 +34,15 @@ async function sprawdz(svc: any, athleteId: string) {
   }
   const { data: ostLog } = await svc.from("training_logs").select("logged_at").eq("athlete_id", athleteId).eq("external_source", "intervals").order("logged_at", { ascending: false }).limit(1).maybeSingle();
   const ostBiegamy = ostLog?.logged_at ? new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ostLog.logged_at)) : null;
-  const w = ustalOgniwo({ polaczony, http, aktywnosci: aktywnosci as never[], ostBiegamy, dzis });
+  let w = ustalOgniwo({ polaczony, http, aktywnosci: aktywnosci as never[], ostBiegamy, dzis });
+  /* BLOKADA GARMINA (3.11): cisza Garmina u tej osoby → sprawdź, czy to cisza ZBIOROWA (inne wiersze intervals_status) albo wymuszona
+     sekretem GARMIN_BLOKADA=1 (Filip, gdy intervals ogłosi odcięcie). Wtedy 'garmin' zamiast 'zegarek'. Zdjęcie sekretu + kolejne
+     sprawdzenie → wiersze wracają same. */
+  if (w.ogniwo === "zegarek" && w.zrodlo === "Garmin Connect") {
+    let blokada = Deno.env.get("GARMIN_BLOKADA") === "1";
+    if (!blokada) { const { data: inni } = await svc.from("intervals_status").select("zrodlo,ogniwo").neq("athlete_id", athleteId).limit(500); blokada = czyBlokadaGarmina([...(inni || []), { zrodlo: w.zrodlo, ogniwo: w.ogniwo }]); }
+    if (blokada) w = ustalOgniwo({ polaczony, http, aktywnosci: aktywnosci as never[], ostBiegamy, dzis, blokadaGarmina: true });
+  }
   const wiersz = { athlete_id: athleteId, sprawdzono_at: new Date().toISOString(), ...w };
   await svc.from("intervals_status").upsert(wiersz, { onConflict: "athlete_id" });
   if (w.ogniwo === "token" && ath && !ath.intervals_token_dead_at) await svc.from("athletes").update({ intervals_token_dead_at: new Date().toISOString() }).eq("id", athleteId);

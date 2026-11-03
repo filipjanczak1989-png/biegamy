@@ -65,3 +65,18 @@ Co zmieniło się w kodzie: kroki kreatora po jednym zdaniu, „Pobierz stare da
 Dla trenera: gdy w Poranku widać „zegarek nie wysyła do intervals (Garmin Connect) od N dni”, to Z DEFINICJI problem po stronie
 zegarek→intervals — pierwsze pytanie brzmi „zmieniałeś telefon / zegarek?”, a nie „połącz ponownie BiegaMy”.
 
+## Monitoring blokady Garmina (3.11, ogniwo `garmin`)
+
+Garmin zmienił T&C; intervals.icu może przestać przekazywać dane Garmina (wątek intervals 9.10, the5krunner 14.10, data nieznana).
+Objaw u nas byłby identyczny z „zegarek nie wysyła” — u WIELU osób naraz. Dlatego:
+
+- `ogniwo.mjs czyBlokadaGarmina(wiersze)`: wśród wierszy `intervals_status` (bez brak/siec/token) źródło „Garmin Connect” ma ≥ 3 osoby
+  w ciszy (zegarek|garmin) i ≥ 50% Garminów w ciszy, a inne źródła (jeśli ≥ 2 osoby) NIE są w ≥ 50% ciche → blokada.
+- EF liczy to tylko wtedy, gdy u sprawdzanej osoby wyszło `zegarek` + Garmin (jedno dodatkowe zapytanie), albo gdy sekret
+  **`GARMIN_BLOKADA=1`** (Filip wymusza ręcznie, gdy intervals ogłosi odcięcie; zdjęcie sekretu + kolejne sprawdzenie → wiersze wracają).
+- Tekst: „Garmin ogranicza dostęp dla intervals.icu — to nie wina Twojego zegarka; poczekaj na bezpośrednie połączenie albo dodaj trening
+  ręcznie (zdjęcie ekranu)”. „Wgraj plik” wejdzie razem z FIT (docs/fit-upload-projekt-2026-11-03.md) — dziś byłby martwym linkiem.
+- Trener w Poranku: „Garmin ogranicza dostęp dla intervals — nie wina zawodnika”. Pasek na Dziś też.
+- Migracja `20261105_intervals_status_garmin.sql` dopuszcza wartość; bez niej EF dostałaby check_violation i nie zapisała statusu.
+  Test: `IS_Z_MIGRACJA=1 bash tools/intervals-status-test.sh` (7 asercji). Próg 3 osoby: dziś Kasia sama to 1 — przypadek, nie blokada.
+

@@ -5143,6 +5143,7 @@ async function zaladujPoranek() {
       if (cisza >= 5 && ctl > 5) sig.push('\ud83d\udd15 nie logowa\u0142 od ' + (cisza > 30 ? '30+' : cisza) + ' dni \u2014 zagadaj');
       const sz = _statusZeg[a.id];
       if (sz && sz.ogniwo === 'zegarek') sig.push('\u231a zegarek nie wysy\u0142a do intervals' + (sz.zrodlo ? ' (' + esc(sz.zrodlo) + ')' : '') + (sz.dni_ciszy != null ? ' od ' + sz.dni_ciszy + ' dni' : '') + ' \u2014 kreator w jego Profilu');
+      else if (sz && sz.ogniwo === 'garmin') sig.push('\u231a Garmin ogranicza dost\u0119p dla intervals \u2014 nie wina zawodnika, czeka na bezpo\u015brednie po\u0142\u0105czenie (r\u0119czny wpis / zdj\u0119cie ekranu)');
       else if (sz && sz.ogniwo === 'import') sig.push('\u231a intervals ma nowe treningi, BiegaMy nie \u2014 sync');
       else if (a.intervals_token_dead_at || (sz && sz.ogniwo === 'token')) sig.push('\u231a zegarek si\u0119 roz\u0142\u0105czy\u0142 \u2014 poprosi ponowne po\u0142\u0105czenie');
       if (p.brakFeel) sig.push('\u231a ' + (window.escapeHtml ? window.escapeHtml(p.brakFeel.training_type || 'Trening') : (p.brakFeel.training_type || 'Trening')) + ' z zegarka bez odczu\u0107 \u2014 przypomnij (forma liczy z domy\u015blnym)');

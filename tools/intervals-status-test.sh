@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# STATUS SYNCHRONIZACJI: testy 20261105_intervals_status.sql w JEDNEJ transakcji na bazie połączonej, zawsze wycofanej. Przed wdrożeniem: IS_Z_MIGRACJA=1.
+# STATUS SYNCHRONIZACJI: testy intervals_status w JEDNEJ transakcji na bazie połączonej, zawsze wycofanej (7 asercji).
+# IS_Z_MIGRACJA=1 dokłada NAJNOWSZĄ niewdrożoną migrację (dziś: 20261105_intervals_status_garmin.sql); IS_Z_MIGRACJA=all — obie (świeża baza).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 { echo 'begin;'
-  if [ "${IS_Z_MIGRACJA:-0}" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261105_intervals_status.sql; fi
+  case "${IS_Z_MIGRACJA:-0}" in
+    all) for m in 20261105_intervals_status 20261105_intervals_status_garmin; do sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' "supabase/migrations/$m.sql"; done ;;
+    1)   sed -e '/^begin;$/d' -e '/^commit;$/d' -e '/^notify pgrst/d' supabase/migrations/20261105_intervals_status_garmin.sql ;;
+  esac
   cat tools/intervals-status-test.sql
   echo 'rollback;'; } > "$TMP"
 OUT="$(supabase db query --linked --workdir "${BM_SB_WORKDIR:-$HOME/.cache/sb-audit}" -o json -f "$TMP" 2>&1 || true)"

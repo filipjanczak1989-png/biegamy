@@ -3,6 +3,22 @@
 // pytamy intervals (źródło prawdy o zegarku): 401 = nasz token; brak nowych aktywności w intervals = zegarek nie wysyła do intervals;
 // intervals ma nowsze niż BiegaMy = nasz import. Błąd inny niż 401 = 'siec' (nie oskarżamy nikogo).
 export const PROG_CISZY_DNI = 7, OKNO_DNI = 30;
+// BLOKADA GARMINA (3.11, Filip): Garmin zmienił T&C — intervals.icu może przestać przekazywać dane Garmina (wątek intervals 9.10,
+// the5krunner 14.10). Objaw u nas: ZBIOROWA cisza źródła „Garmin Connect” (≥ BLOKADA_MIN osób i ≥ BLOKADA_PROG tych z Garminem),
+// podczas gdy inne źródła płyną. Wtedy ogniwo = 'garmin' („Garmin ogranicza dostęp”), nie 'zegarek' (nie oskarżamy człowieka).
+export const BLOKADA_MIN = 3, BLOKADA_PROG = 0.5;
+const ZRODLO_GARMIN = "Garmin Connect", POZA_OCENA = new Set(["brak", "siec", "token"]);
+/** @param {Array<{zrodlo?:string|null, ogniwo:string}>} wiersze — wszystkie wiersze intervals_status (service) */
+export function czyBlokadaGarmina(wiersze, o = {}) {
+  const min = o.min ?? BLOKADA_MIN, prog = o.prog ?? BLOKADA_PROG;
+  const oceniane = (Array.isArray(wiersze) ? wiersze : []).filter((w) => w && w.zrodlo && !POZA_OCENA.has(w.ogniwo));
+  const cisza = (w) => w.ogniwo === "zegarek" || w.ogniwo === "garmin";
+  const garmin = oceniane.filter((w) => w.zrodlo === ZRODLO_GARMIN), inne = oceniane.filter((w) => w.zrodlo !== ZRODLO_GARMIN);
+  const gC = garmin.filter(cisza).length, iC = inne.filter(cisza).length;
+  if (gC < min || gC / garmin.length < prog) return false;
+  if (inne.length >= 2 && iC / inne.length >= prog) return false;   // cisza wszędzie = nie Garmin (np. intervals leży)
+  return true;
+}
 export const NAZWY_ZRODEL = { GARMIN_CONNECT: "Garmin Connect", GARMIN: "Garmin Connect", COROS: "Coros", SUUNTO: "Suunto", POLAR: "Polar Flow", STRAVA: "Strava",
   WAHOO: "Wahoo", ZWIFT: "Zwift", DROPBOX: "Dropbox", UPLOAD: "plik wgrany ręcznie", OAUTH_CLIENT: "aplikacja", MANUAL: "wpis ręczny", HAMMERHEAD: "Hammerhead", XERT: "Xert" };
 /** nazwa źródła po polsku z pola intervals `source` (np. GARMIN_CONNECT) albo z device_name */
@@ -20,7 +36,7 @@ export function nazwaZrodla(source, device) {
 }
 const dni = (a, b) => Math.round((Date.parse(a + "T12:00:00Z") - Date.parse(b + "T12:00:00Z")) / 86400000);
 
-/** @param {{polaczony:boolean, http:number|null, aktywnosci:Array<{start_date_local?:string, start_date?:string, source?:string, device_name?:string}>, ostBiegamy:string|null, dzis:string}} o
+/** @param {{polaczony:boolean, http:number|null, aktywnosci:Array<{start_date_local?:string, start_date?:string, source?:string, device_name?:string}>, ostBiegamy:string|null, dzis:string, blokadaGarmina?:boolean}} o
     @returns {{ogniwo:string, zrodlo:string|null, urzadzenie:string|null, ost_intervals:string|null, ost_biegamy:string|null, dni_ciszy:number|null, szczegoly:object}} */
 export function ustalOgniwo(o) {
   const dzis = o.dzis;
@@ -32,7 +48,10 @@ export function ustalOgniwo(o) {
   if (!o.polaczony) return { ogniwo: "brak", ...baza };
   if (o.http === 401 || o.http === 403) return { ogniwo: "token", ...baza };
   if (o.http != null && (o.http < 200 || o.http >= 300)) return { ogniwo: "siec", ...baza };
-  if (!ost || dni(dzis, ost.d) > PROG_CISZY_DNI) return { ogniwo: "zegarek", ...baza, dni_ciszy: ost ? Math.max(0, dni(dzis, ost.d)) : OKNO_DNI };
+  if (!ost || dni(dzis, ost.d) > PROG_CISZY_DNI) {
+    const garmin = o.blokadaGarmina === true && baza.zrodlo === ZRODLO_GARMIN;   // blokada dotyczy TYLKO źródła Garmin
+    return { ogniwo: garmin ? "garmin" : "zegarek", ...baza, dni_ciszy: ost ? Math.max(0, dni(dzis, ost.d)) : OKNO_DNI };
+  }
   if (!o.ostBiegamy || dni(ost.d, o.ostBiegamy) > 1) return { ogniwo: "import", ...baza };
   return { ogniwo: "ok", ...baza };
 }

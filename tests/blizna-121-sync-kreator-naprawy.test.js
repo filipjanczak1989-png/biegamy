@@ -83,9 +83,9 @@ test('sb.js WATCH: kreator per ogniwo (kroki ①–④, źródło z intervals, l
   const sb = czytaj('sb.js');
   assert.match(sb, /localStorage\.setItem\('icu_oauth_state_ls', JSON\.stringify\(\{ n: nonce, t: Date\.now\(\) \}\)\)/, 'zapas state w localStorage');
   assert.match(sb, /statusDnia: async function\(athleteId\)[\s\S]*?< 24 \* 3600000/, 'raz na dobę w tle');
-  assert.match(sb, /pasekProblemu: async function\(athleteId\)[\s\S]*?\['token', 'zegarek', 'import'\]\.indexOf\(st\.ogniwo\) < 0\) return '';/);
+  assert.match(sb, /pasekProblemu: async function\(athleteId\)[\s\S]*?\['token', 'zegarek', 'import', 'garmin'\]\.indexOf\(st\.ogniwo\) < 0\) return '';/);
   assert.match(sb, /href="profil\.html\?open=icu"[^>]*>Napraw ›<\/a>/); assert.match(sb, /localStorage\.setItem\(this\.parentNode\.dataset\.klucz/, 'zamknięcie paska pamiętane');
-  assert.match(sb, /<div class="wc-status-wrap" data-athlete="' \+ opts\.athleteId \+ '">/); assert.match(sb, /const brakHtml = kreator && stS && stS\.ogniwo === 'zegarek' \? '' : brak;/, 'bez dwóch paneli o tym samym');
+  assert.match(sb, /<div class="wc-status-wrap" data-athlete="' \+ opts\.athleteId \+ '">/); assert.match(sb, /const brakHtml = kreator && stS && \(stS\.ogniwo === 'zegarek' \|\| stS\.ogniwo === 'garmin'\) \? '' : brak;/, 'bez dwóch paneli o tym samym');
   assert.match(sb, /_odswiez: async function\(athleteId, btn, wTrakcie, etykieta\)[\s\S]*?await this\.sync\(athleteId, null, false\);[\s\S]*?await this\.sprawdzSync\(athleteId\);[\s\S]*?await this\._rerenderStatus\(athleteId\);/);
   assert.match(sb, /pobierzZalegle: function\(athleteId, btn\) \{ return this\._odswiez\(athleteId, btn, 'Pobieram…', 'Pobierz zaległe treningi'\); \}/);
 });
@@ -130,5 +130,37 @@ test('BACKFILL: sync zawsze z ostatnich 90 dni + dedup po external_id → luka 3
   assert.match(c, /'Pobrano ' \+ w\.synced \+ ' treningów z ostatnich 90 dni'/);
   const p = czytaj('profil.html');
   assert.equal((p.match(/↻ Pobierz zaległe treningi/g) || []).length, 2, 'przycisk w Profilu (etykieta spoczynkowa + po syncu)');
+});
+
+test('BLOKADA GARMINA: zbiorowa cisza źródła Garmin (≥3 osoby i ≥50%, inne źródła płyną) → ogniwo garmin, nie zegarek; tekst „Garmin ogranicza dostęp”; migracja dopuszcza wartość; sekret GARMIN_BLOKADA', async () => {
+  const O = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/intervals-status/ogniwo.mjs')).href);
+  const g = (ogniwo) => ({ zrodlo: 'Garmin Connect', ogniwo }), c = (ogniwo) => ({ zrodlo: 'Coros', ogniwo });
+  assert.equal(O.czyBlokadaGarmina([g('zegarek'), g('zegarek'), g('zegarek'), g('ok'), c('ok'), c('ok')]), true, '3 z 4 Garminów cicho, Coros płynie');
+  assert.equal(O.czyBlokadaGarmina([g('zegarek'), g('zegarek'), g('ok'), g('ok'), g('ok')]), false, 'tylko 2 — za mało (Kasia + jedna osoba = przypadek, nie blokada)');
+  assert.equal(O.czyBlokadaGarmina([g('zegarek'), g('zegarek'), g('zegarek'), g('ok'), g('ok'), g('ok'), g('ok')]), false, '3 z 7 < 50%');
+  assert.equal(O.czyBlokadaGarmina([g('zegarek'), g('zegarek'), g('zegarek'), c('zegarek'), c('zegarek')]), false, 'cisza wszędzie = nie Garmin (np. intervals leży)');
+  assert.equal(O.czyBlokadaGarmina([g('garmin'), g('garmin'), g('zegarek'), g('ok')]), true, 'już oznaczone garmin liczą się jako cisza (stan trwa)');
+  assert.equal(O.czyBlokadaGarmina([g('token'), g('brak'), g('siec'), g('zegarek'), g('zegarek'), g('zegarek')]), true, 'token/brak/siec poza oceną');
+  assert.equal(O.czyBlokadaGarmina([]), false); assert.equal(O.czyBlokadaGarmina(null), false);
+  const d = '2026-11-03', akt = [{ start_date_local: '2026-10-06T11:49:28', source: 'GARMIN_CONNECT', device_name: 'Garmin fenix 3' }];
+  assert.equal(O.ustalOgniwo({ polaczony: true, http: 200, aktywnosci: akt, ostBiegamy: '2026-10-06', dzis: d, blokadaGarmina: true }).ogniwo, 'garmin');
+  assert.equal(O.ustalOgniwo({ polaczony: true, http: 200, aktywnosci: akt, ostBiegamy: '2026-10-06', dzis: d }).ogniwo, 'zegarek', 'bez flagi jak dotąd');
+  assert.equal(O.ustalOgniwo({ polaczony: true, http: 200, aktywnosci: [{ start_date_local: '2026-10-06T11:49:28', source: 'COROS' }], ostBiegamy: null, dzis: d, blokadaGarmina: true }).ogniwo, 'zegarek', 'blokada dotyczy tylko źródła Garmin');
+  const e = czytaj('supabase/functions/intervals-status/index.ts');
+  assert.match(e, /Deno\.env\.get\("GARMIN_BLOKADA"\) === "1"/); assert.match(e, /czyBlokadaGarmina\(\[\.\.\.\(inni \|\| \[\]\), \{ zrodlo: w\.zrodlo, ogniwo: w\.ogniwo \}\]\)/);
+  assert.match(e, /if \(w\.ogniwo === "zegarek" && w\.zrodlo === "Garmin Connect"\)/, 'liczone tylko gdy u tej osoby cisza Garmina');
+  const m = czytaj('supabase/migrations/20261105_intervals_status_garmin.sql');
+  assert.match(m, /check \(ogniwo in \('ok', 'brak', 'token', 'zegarek', 'import', 'siec', 'garmin'\)\)/); assert.match(m, /raise exception 'ogniwo garmin niedopuszczone'/);
+  assert.match(czytaj('supabase/migrations/20261105_WYCOFANIE_intervals_status_garmin.sql'), /update public\.intervals_status set ogniwo = 'zegarek' where ogniwo = 'garmin';/);
+  assert.match(czytaj('tools/intervals-status-test.sql'), /set ogniwo = 'garmin' where athlete_id = z_ath/);
+  const ctx = zaladujSb(); const W = ctx.WATCH;
+  const kr = W.kreatorHtml({ ogniwo: 'garmin', zrodlo: 'Garmin Connect', ost_intervals: '2026-10-06', dni_ciszy: 28 }, 'a1', '');
+  assert.match(kr, /Garmin ogranicza dostęp dla intervals\.icu/); assert.match(kr, /To nie wina Twojego zegarka ani telefonu/); assert.match(kr, /bezpośrednim połączeniem z Garminem/);
+  assert.doesNotMatch(kr, /Zegarek nie wysyła|Disconnect|sparuj/, 'żadnych kroków naprawy zegarka — to nie zegarek');
+  assert.doesNotMatch(kr, /wgraj plik/i, 'wgrywanie FIT jeszcze nie istnieje — tekst nie obiecuje martwej drogi (docs/fit-upload-projekt)');
+  assert.doesNotMatch(kr.replace(/<[^>]+>/g, ''), ZARGON);
+  assert.match(W.opisOgniwa({ ogniwo: 'garmin' }), /^Garmin ogranicza dostęp dla intervals\.icu — to nie wina Twojego zegarka/);
+  assert.match(czytaj('sb.js'), /\['token', 'zegarek', 'import', 'garmin'\]\.indexOf\(st\.ogniwo\)/, 'pasek na Dziś też przy garmin');
+  assert.match(czytaj('trener.html'), /sz\.ogniwo === 'garmin'\) sig\.push\('\\u231a Garmin ogranicza dost/);
 });
 

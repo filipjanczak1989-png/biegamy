@@ -2573,6 +2573,7 @@
       const esc = window.escapeHtml || function (x) { return String(x); };
       if (st.ogniwo === 'token') return 'Połączenie z intervals.icu wygasło — treningi nie wpadają.';
       if (st.ogniwo === 'zegarek') return 'Zegarek nie wysyła treningów do intervals.icu' + (st.zrodlo ? ' (' + esc(st.zrodlo) + ')' : '') + (st.dni_ciszy != null ? ' — ostatni ' + this._dniTemu(st.dni_ciszy) + '.' : '.');
+      if (st.ogniwo === 'garmin') return 'Garmin ogranicza dostęp dla intervals.icu — to nie wina Twojego zegarka; poczekaj na bezpośrednie połączenie albo dodaj trening ręcznie.';
       if (st.ogniwo === 'import') return 'intervals.icu ma nowe treningi, a BiegaMy jeszcze nie — kliknij „Sprawdź teraz”.';
       if (st.ogniwo === 'siec') return 'Nie udało się sprawdzić połączenia — spróbuj za chwilę.';
       return '';
@@ -2606,6 +2607,11 @@
       } else if (st.ogniwo === 'import') {
         srodek = '<div class="wc-kr-h">intervals.icu ma nowe treningi, BiegaMy jeszcze nie</div>'
           + '<p class="wc-kr-p">Ostatni w intervals.icu: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>, w BiegaMy: <b>' + esc(this._dataKrotka(st.ost_biegamy) || 'brak') + '</b>. „Pobierz zaległe treningi” dociąga ostatnie 90 dni, bez duplikatów.</p>' + btnZalegle;
+      } else if (st.ogniwo === 'garmin') {
+        /* tekst „wgraj plik .FIT” wejdzie razem z wgrywaniem FIT (docs/fit-upload-projekt-2026-11-03.md) — dziś byłby martwym linkiem */
+        srodek = '<div class="wc-kr-h">Garmin ogranicza dostęp dla intervals.icu</div>'
+          + '<p class="wc-kr-p">To nie wina Twojego zegarka ani telefonu. Garmin zmienił zasady i intervals.icu nie może przekazywać treningów z Garmina do innych aplikacji' + (st.ost_intervals ? ' (ostatni, który doszedł: <b>' + esc(this._dataKrotka(st.ost_intervals)) + '</b>)' : '') + '.</p>'
+          + '<p class="wc-kr-p">Pracujemy nad bezpośrednim połączeniem z Garminem. Do tego czasu dodaj trening ręcznie — najszybciej ze zdjęcia ekranu zegarka (rozpoznamy liczby).</p>' + btnSprawdz;
       } else if (st.ogniwo === 'siec') {
         srodek = '<div class="wc-kr-h">Nie udało się sprawdzić połączenia</div><p class="wc-kr-p">intervals.icu nie odpowiedział. Spróbuj za chwilę.</p>' + btnSprawdz;
       }
@@ -2632,7 +2638,7 @@
     pasekProblemu: async function(athleteId) {
       if (!athleteId) return '';
       const st = await this.statusDnia(athleteId);
-      if (!st || ['token', 'zegarek', 'import'].indexOf(st.ogniwo) < 0) return '';
+      if (!st || ['token', 'zegarek', 'import', 'garmin'].indexOf(st.ogniwo) < 0) return '';
       const klucz = 'wc_pasek_' + athleteId + '_' + st.ogniwo + '_' + String(st.sprawdzono_at || '').slice(0, 10);
       try { if (localStorage.getItem(klucz)) return ''; } catch (e) {}
       const esc = window.escapeHtml || function (x) { return String(x); };
@@ -2803,7 +2809,7 @@
           /* kreator naprawy (3.11): wiersz intervals_status — bez wiersza nic nie udajemy; „Sprawdź teraz” liczy od nowa */
           const stS = await this.statusSync(opts.athleteId);
           const kreator = this.kreatorHtml(stS, opts.athleteId, rt);
-          const brakHtml = kreator && stS && stS.ogniwo === 'zegarek' ? '' : brak;   // kreator mówi to samo konkretniej (źródło, kroki) — bez dwóch paneli
+          const brakHtml = kreator && stS && (stS.ogniwo === 'zegarek' || stS.ogniwo === 'garmin') ? '' : brak;   // kreator mówi to samo konkretniej (źródło, kroki) — bez dwóch paneli
           return '<div class="wc-status-wrap" data-athlete="' + opts.athleteId + '"><div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
             + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock + brakHtml + kreator + '</div>';
         }
