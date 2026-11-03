@@ -16,7 +16,7 @@ import { imprezaZPytania, odpowiedzImpreza } from "../okienko/impreza.mjs";
 import { szukajWKatalogu } from "../okienko/katalog.mjs";
 import { zapiszLogV2, sprawdzLimityV2, uzyteSiecDzisV2, LIMIT_SIEC, uzyteRozmowDzisV2, LIMIT_ROZMOW } from "./log-v2.mjs";
 import { rozumienie, PROG_PEWNOSCI } from "./rozumienie.mjs";
-import { wykonajIntencje, chipyDla } from "./intencje.mjs";
+import { wykonajIntencje, chipyDla, slotyZTekstu } from "./intencje.mjs";
 import { generujJson } from "./gemini.mjs";
 import { czytajRozmowe, zapiszTure, czyKontynuacja, scalSloty, kontekstDlaModelu, turaZNarzedzia } from "./rozmowa.mjs";
 import { PRZEPISY, wykonajPrzepis } from "./przepisy.mjs";
@@ -192,7 +192,13 @@ export async function potok(we, nadpisz = {}) {
     dodTok.we += roz.tok.we; dodTok.wy += roz.tok.wy;
     const bezPamieci = roz.sloty;
     roz = scalSloty(roz, rozmowa, kont);
+    const zt = slotyZTekstu(tekst);   // 3.11: słowo z pytania wygrywa z klasyfikatorem i pamięcią („a w Krakowie?”, „a na 21 km”)
+    if (zt.miejsce) roz.sloty = { ...roz.sloty, miejsce: zt.miejsce, przy: zt.przy }; if (zt.dystans) roz.sloty = { ...roz.sloty, dystans: zt.dystans };
     if (!bezPamieci.osoba && roz.sloty.osoba) roz.sloty = { ...roz.sloty, _zPamieci: true };
+    /* 3.11 (ławka na żywo): klasyfikator widzi osobę w kontekście poprzedniej tury i oddaje ją w slocie, choć w pytaniu jest tylko „z nim” —
+       to nadal osoba Z PAMIĘCI (przepis porownaj wymaga znacznika, inaczej „podaj imię i nazwisko”) */
+    const osobaPam = rozmowa[0] && rozmowa[0].sloty && rozmowa[0].sloty.osoba;
+    if (roz.sloty.osoba && !roz.sloty._zPamieci && osobaPam && normalizuj(osobaPam) === normalizuj(roz.sloty.osoba) && !normalizuj(tekst).includes(normalizuj(roz.sloty.osoba))) roz.sloty = { ...roz.sloty, _zPamieci: true };
     if (roz.dopytac || roz.pewnosc < PROG_PEWNOSCI || roz.intencja === "nie_wiem") {
       await log({ tryb: "v2-niepewne", narzedzia: ["dopytanie"], intencja: roz.intencja, pewnosc: roz.pewnosc });
       return odp(200, { ...pusto("router"), zdania: [ODP_NIEPEWNE], karty: [], chipy: chipyDla(roz.kandydaci), intencja: roz.intencja });

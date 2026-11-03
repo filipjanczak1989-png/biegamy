@@ -4,7 +4,7 @@
 // porada / fakt / sprzet / zywienie-bez-produktu → null → potok: WIEDZA Z SIECI (wiedza.mjs; Filip 3.11 15:25 cofnął „porada = model bez sieci”).
 // null = intencja bez obsługi w tym etapie (nawigacja, rywal, gotowosc, porownaj → E5) → potok idzie ścieżką v1 (model z narzędziami).
 import { waliduj, nawigacja } from "../okienko/narzedzia.mjs";
-import { kalkulator, CHIPY_WYBORU, ODP_ZDROWIE, ODP_CHOROBA, ODP_ODMOWA, dodajDni, poniedzialek } from "../okienko/router.mjs";
+import { kalkulator, CHIPY_WYBORU, ODP_ZDROWIE, ODP_CHOROBA, ODP_ODMOWA, dodajDni, poniedzialek, ostatniDzien } from "../okienko/router.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { wygladaNaOsobeSlownik } from "../okienko/pamiec.mjs";
 import { normalizuj } from "../okienko/router.mjs";
@@ -59,7 +59,38 @@ const NARZEDZIE_INTENCJI = { moje_starty: "moje_starty", moje_rekordy: "moje_rek
 
 function sobota(dzis) { const dow = new Date(dzis + "T12:00:00Z").getUTCDay(); return dow === 0 || dow === 6 ? dzis : dodajDni(dzis, 6 - dow); }
 
-function argumenty(intencja, s, dzis) {
+/* OKRES Z NIEPEŁNYCH SLOTÓW (raport nocy 3.11, ławka na żywo): klasyfikator oddaje „od” bez „do” (a w grudniu → od=2026-12-01) albo
+   „do” bez „od”, do tego zbędny zakres — waliduj odrzucało („zła data”) i pytanie spadało na model v1 → sieć. Dopełniamy w kodzie:
+   od bez do → do = koniec miesiąca „od” (tydzień → od+6), do bez od → od = dziś; okres jawny wygrywa z zakresem. */
+export function dopelnijOkres(s, dzis) {
+  const o = { ...(s || {}) };
+  const RE = /^\d{4}-\d{2}-\d{2}$/;
+  if (o.od && !RE.test(o.od)) delete o.od; if (o.do && !RE.test(o.do)) delete o.do;
+  if (o.od && !o.do) {
+    const pon = new Date(o.od + "T12:00:00Z").getUTCDay() === 1, pierwszy = o.od.slice(8, 10) === "01";
+    o.do = (o.zakres === "tydzien" && pon && !pierwszy) ? dodajDni(o.od, 6) : ostatniDzien(Number(o.od.slice(0, 4)), Number(o.od.slice(5, 7)));   // „w grudniu” → cały miesiąc, choć model dokleja zakres=tydzien
+  }
+  if (o.do && !o.od) o.od = dzis <= o.do ? dzis : o.do;
+  if (o.od && o.do && o.od > o.do) { const t = o.od; o.od = o.do; o.do = t; }
+  if (o.od && o.do) delete o.zakres;
+  return o;
+}
+
+/* SLOTY Z TEKSTU (ławka na żywo 3.11): „a w Krakowie?” po pytaniu o Poznań — klasyfikator gubił miejsce, a pamięć rozmowy dziedziczyła Poznań;
+   „a na 21 km” po „dyche” — dziedziczony dystans 10. Słowo z pytania WYGRYWA z klasyfikatorem i pamięcią. Miejsce = słowo po „w/we”
+   (miejscownik, narzędzie biegi_nadchodzace przyjmuje `przy`), bez miesięcy, dni i słów pospolitych. */
+const NIE_MIEJSCE = /^(tym|tej|ten|zeszl\w*|przyszl\w*|nastepn\w*|poprzedni\w*|ostatni\w*|tygodniu|tygodn\w*|weekend\w*|miesiac\w*|roku|dniu|domu|pracy|planie|aplikacji|apce|okienku|biegamy|sobot\w*|niedziel\w*|poniedzial\w*|wtorek|wtorki|srod\w*|czwart\w*|piat\w*|styczn\w*|lut\w*|marc\w*|kwietn\w*|maju|czerwc\w*|lipc\w*|sierpni\w*|wrzesni\w*|pazdziernik\w*|listopad\w*|grudni\w*|gor\w*|lesie|parku|terenie|miescie|okolic\w*|polsce|kraju|biegu|maratonie|polmaratonie|zawodach|trening\w*|formie|tempie|ogole|koncu|sumie|praktyce|skrocie)$/;
+export function slotyZTekstu(tekst) {
+  const t = normalizuj(tekst), o = {};
+  const km = t.match(/(^|\s)(5|10|21|42)\s*km(\s|$)/); if (km) o.dystans = km[2];
+  else if (/(^|\s)polmaraton\w*/.test(t)) o.dystans = "21"; else if (/(^|\s)maraton\w*/.test(t)) o.dystans = "42"; else if (/(^|\s)dych\w*/.test(t)) o.dystans = "10"; else if (/(^|\s)piatk\w*/.test(t)) o.dystans = "5";
+  const m = t.match(/(^|\s)(w|we)\s+([a-z][a-z-]{3,})(\s|$)/);
+  if (m && !NIE_MIEJSCE.test(m[3])) { o.miejsce = m[3]; o.przy = m[2]; }
+  return o;
+}
+
+function argumenty(intencja, sSurowe, dzis) {
+  const s = dopelnijOkres(sSurowe, dzis);
   if (intencja === "moj_plan") {
     if (s.data) return { narzedzie: "moj_plan", args: { data: s.data } };
     if (s.zakres === "weekend") return { narzedzie: "moj_plan", args: { data: sobota(dzis) } };
@@ -74,7 +105,7 @@ function argumenty(intencja, s, dzis) {
   if (intencja === "moje_wyniki") return { narzedzie: "moje_wyniki", args: s.miejsce ? { gdzie: s.miejsce } : {} };
   if (intencja === "biegi_nadchodzace") {
     const a = {};
-    if (s.od) a.od = s.od; if (s.do) a.do = s.do; if (s.miejsce) { a.miejsce = s.miejsce; a.przy = "w"; } if (s.dystans) a.dystans = s.dystans;
+    if (s.od) a.od = s.od; if (s.do) a.do = s.do; if (s.miejsce) { a.miejsce = s.miejsce; a.przy = s.przy || "w"; } if (s.dystans) a.dystans = s.dystans;
     return { narzedzie: "biegi_nadchodzace", args: a };
   }
   if (NARZEDZIE_INTENCJI[intencja]) return { narzedzie: NARZEDZIE_INTENCJI[intencja], args: {} };

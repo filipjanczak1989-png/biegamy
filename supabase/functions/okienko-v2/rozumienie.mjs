@@ -70,7 +70,9 @@ export function promptRozumienia(dzis) {
     "4. pewnosc 0–1: 1 = oczywiste, < 0.6 = zgadujesz; wtedy dopytac: true i 2–3 kandydaci. Pytanie bez sensu, same znaki, jedno słowo bez kontekstu → nie_wiem.",
     "5. Poprzednie pytania służą tylko do zrozumienia skrótów („a w grudniu?”, „a on?”) — intencja dziedziczy, slot się zmienia.",
     "6. „ile kcal / kalorii / białka ma X” → zywienie ze slotem produkt = X (sama nazwa produktu). Pytania o Filipa, Kasię, twórcę, o to, czym jest BiegaMy → o_nas, nie osoba.",
-    "7. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
+    "7. Okres ZAWSZE jako para od i do (np. „w grudniu” → od 2026-12-01, do 2026-12-31) — nigdy samo od; zakres tylko gdy pytanie mówi dziś/jutro/weekend/tydzień. Miejsce z pytania („a w Krakowie?”) zawsze w slocie miejsce, dystans („a na 21 km”) w slocie dystans.",
+    "8. „sugerowane / polecane starty”, „gdzie pobiec”, „jakie biegi” → biegi_nadchodzace (lista zawodów), nie moje_starty. Zaimek (on, ona, nim, niej) to NIE slot osoba — zostaw pusty.",
+    "9. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
   ].join("\n");
 }
 
@@ -83,6 +85,7 @@ function czysteSloty(s) {
   for (const k of ["zakres", "dystans"]) if (typeof s[k] === "string" && s[k]) o[k] = s[k];
   for (const k of ["data", "od", "do"]) if (typeof s[k] === "string" && RE_DATA.test(s[k])) o[k] = s[k];
   for (const k of ["miejsce", "osoba", "impreza", "temat", "ekran", "produkt"]) if (typeof s[k] === "string" && s[k].trim()) o[k] = s[k].trim().slice(0, 60);
+  if (o.osoba && /^(on|ona|oni|one|nim|nia|nią|niej|niego|jego|jej|ich|nich|ten|ta|tamten|tamta)$/i.test(o.osoba)) delete o.osoba;   // zaimek to nie osoba (3.11)
   return o;
 }
 

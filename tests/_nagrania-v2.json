@@ -35,13 +35,13 @@
   "sloty": {}
  },
  "ile kalorii ma banan": {
-  "intencja": "fakt",
-  "pewnosc": 0.65,
+  "intencja": "zywienie",
+  "pewnosc": 1,
   "dopytac": false,
-  "kandydaci": [
-   "katalog"
-  ],
-  "sloty": {}
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "banan"
+  }
  },
  "rekord swiata w maratonie": {
   "intencja": "fakt",
@@ -51,11 +51,13 @@
   "sloty": {}
  },
  "jak dobrac buty do biegania": {
-  "intencja": "porada",
-  "pewnosc": 0.9,
+  "intencja": "sprzet",
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
-  "sloty": {}
+  "sloty": {
+   "temat": "buty"
+  }
  },
  "ile powinienem biegac tygodniowo": {
   "intencja": "porada",
@@ -291,13 +293,13 @@
   "sloty": {}
  },
  "co jesc po treningu": {
-  "intencja": "porada",
-  "pewnosc": 0.9,
+  "intencja": "zywienie",
+  "pewnosc": 1,
   "dopytac": false,
-  "kandydaci": [
-   "katalog"
-  ],
-  "sloty": {}
+  "kandydaci": [],
+  "sloty": {
+   "temat": "po treningu"
+  }
  },
  "jak biegac szybciej": {
   "intencja": "porada",
@@ -307,11 +309,13 @@
   "sloty": {}
  },
  "ile wody pic na dlugim biegu": {
-  "intencja": "porada",
-  "pewnosc": 0.85,
+  "intencja": "zywienie",
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
-  "sloty": {}
+  "sloty": {
+   "temat": "nawodnienie"
+  }
  },
  "rekord polski w maratonie": {
   "intencja": "fakt",
@@ -443,14 +447,12 @@
   }
  },
  "ile kalorii ma omlet": {
-  "intencja": "katalog",
-  "pewnosc": 0.6,
+  "intencja": "zywienie",
+  "pewnosc": 1,
   "dopytac": false,
-  "kandydaci": [
-   "fakt"
-  ],
+  "kandydaci": [],
   "sloty": {
-   "temat": "omlet"
+   "produkt": "omlet"
   }
  },
  "co to vo2max": {
@@ -493,22 +495,22 @@
  },
  "a w grudniu <<biegi_nadchodzace": {
   "intencja": "biegi_nadchodzace",
-  "pewnosc": 0.9,
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
   "sloty": {
-   "od": "2026-12-01",
-   "do": "2026-12-31"
+   "zakres": "tydzien",
+   "od": "2026-12-01"
   }
  },
  "a w zeszlym tygodniu <<moje_treningi": {
   "intencja": "moje_treningi",
-  "pewnosc": 0.9,
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
   "sloty": {
-   "od": "2026-10-19",
-   "do": "2026-10-25"
+   "zakres": "tydzien",
+   "od": "2026-10-19"
   }
  },
  "a on <<znajomi": {
@@ -526,7 +528,9 @@
   "pewnosc": 0.9,
   "dopytac": false,
   "kandydaci": [],
-  "sloty": {}
+  "sloty": {
+   "osoba": "Robert Korzeniowski"
+  }
  },
  "a jutro <<moj_plan": {
   "intencja": "moj_plan",
@@ -549,20 +553,23 @@
  },
  "a w krakowie <<biegi_nadchodzace": {
   "intencja": "biegi_nadchodzace",
-  "pewnosc": 0.9,
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
   "sloty": {
-   "miejsce": "Kraków"
+   "miejsce": "Kraków",
+   "od": "2026-11-01"
   }
  },
  "a na 21 km <<biegi_nadchodzace": {
   "intencja": "biegi_nadchodzace",
-  "pewnosc": 0.9,
+  "pewnosc": 1,
   "dopytac": false,
   "kandydaci": [],
   "sloty": {
-   "dystans": "21"
+   "zakres": "tydzien",
+   "dystans": "21",
+   "od": "2026-12-01"
   }
  },
  "jakie buty na asfalt": {
@@ -582,5 +589,18 @@
  "_recznie_3_11": [
   "jakie buty na asfalt",
   "ile pic na maratonie"
+ ],
+ "_zywe_3_11": [
+  "ile kalorii ma banan",
+  "jak dobrac buty do biegania",
+  "co jesc po treningu",
+  "ile wody pic na dlugim biegu",
+  "ile kalorii ma omlet",
+  "sugerowane starty",
+  "a w grudniu <<biegi_nadchodzace",
+  "a w krakowie <<biegi_nadchodzace",
+  "a na 21 km <<biegi_nadchodzace",
+  "porownaj z nim <<osoba",
+  "a w zeszlym tygodniu <<moje_treningi"
  ]
 }

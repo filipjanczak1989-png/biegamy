@@ -286,7 +286,7 @@ const PYTANIA = [
   W('10 km w 50 minut jakie tempo', 'poza', 3, 'router:kalkulator', { luka: 'E2', uwaga: 'dziś: sieć' }),
   W('czy bedzie padac jutro', 'poza', 3, 'v2:pogoda', { uwaga: 'dziś: sieć; intencja pogoda → zdanie „Pogoda jest na kaflu Dziś” (klient łapie tylko „pogoda”)' }),
   W('co na sniadanie przed biegiem', 'tresci', 3, 'router:katalog', { luka: 'E2', uwaga: 'dziś: biegi_nadchodzace w mieście „Sniadanie” (!)' }),
-  W('ile kalorii ma omlet', 'poza', 2, 'v2:produkt', { luka: 'E5' }),
+  W('ile kalorii ma omlet', 'poza', 2, 'v2:produkt', { uwaga: 'produkt z bazy Jedzenia (nagranie żywe 3.11: zywienie)' }),
   W('puść coś do biegania', 'tresci', 3, 'router:katalog'),
   W('co to jest ctl', 'tresci', 3, 'router:katalog'),
   W('co to vo2max', 'tresci', 3, 'router:katalog', { uwaga: 'dziś: sieć' }),
