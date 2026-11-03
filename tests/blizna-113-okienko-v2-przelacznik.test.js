@@ -104,7 +104,7 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
   assert.match(ef, /import \{ potok \} from "\.\/potok\.mjs";/, 'index.ts = tylko HTTP; orkiestracja w potok.mjs (ta sama na ławce v2)');
   assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(pt), 'moduły v1 z ../okienko/, nie z ./');
   for (const mod of ['router', 'narzedzia', 'model', 'siec', 'osoba', 'impreza', 'katalog', 'straznik', 'pamiec', 'odpowiedz']) assert.match(pt, new RegExp(`from "\\.\\./okienko/${mod}\\.mjs"`), mod);
-  assert.match(pt, /return d\.zapiszLog\(adm, \{ athlete_id: athleteId, tekst, \.\.\.w, tok_we: \(w\.tok_we \|\| 0\) \+ dodTok\.we, tok_wy: \(w\.tok_wy \|\| 0\) \+ dodTok\.wy, ms: Date\.now\(\) - T0 \}\); \};/, 'ms w każdym wpisie (+ tokeny rozumienia, E2)');
+  assert.match(pt, /try \{ return await d\.zapiszLog\(adm, \{ athlete_id: athleteId, tekst, \.\.\.w, tok_we: \(w\.tok_we \|\| 0\) \+ dodTok\.we, tok_wy: \(w\.tok_wy \|\| 0\) \+ dodTok\.wy, ms: Date\.now\(\) - T0 \}\); \}/, 'ms w każdym wpisie (+ tokeny rozumienia, E2); 3.11 blizna-136: błąd zapisu nie psuje odpowiedzi');
   assert.ok(!/zapiszLog\(adm/.test(ef + pt.replace(/d\.zapiszLog\(adm/g, '')), 'v2 nie pisze do okienko_log');
   assert.equal((pt.match(/zapiszLogV2\(/g) || []).length, 0, 'wszystkie wpisy przez log() z ms (zapiszLogV2 tylko jako DOMYSLNE.zapiszLog)');
   assert.match(ef, /"Access-Control-Expose-Headers": "X-Okienko-Wersja"/);

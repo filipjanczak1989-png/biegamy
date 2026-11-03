@@ -25,6 +25,7 @@ import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "./osoba.mj
 import { NIE_MAM } from "./straznik.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "./impreza.mjs";
 import { szukajWKatalogu } from "./katalog.mjs";
+import { zTerminem, PrzekroczonyTermin, opisBledu, TERMIN_MS } from "./straz-http.mjs";   // AWARIA 3.11 (blizna-136)
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -46,7 +47,22 @@ function poprzedniePytanie(traf: unknown, historia: unknown): string {
   return String((historia[historia.length - 1] as { q?: unknown })?.q || "").slice(0, 120);
 }
 
+/* AWARIA 3.11 (blizna-136): cała obsługa w zTerminem + catch — wyjątek albo zawieszenie dają wpis 'blad' (gdy znamy zawodnika),
+   console.error do logów EF i odpowiedź Z CORS (bez CORS przeglądarka widziała tylko „błąd sieci”, a log był pusty). */
+type Stan = { athleteId: string | null; tekst: string; adm: any };
 Deno.serve(async (req) => {
+  const stan: Stan = { athleteId: null, tekst: "", adm: null };
+  try { return await zTerminem(obsluz(req, stan), TERMIN_MS); }
+  catch (e) {
+    const czas = e instanceof PrzekroczonyTermin;
+    const powod = (czas ? "termin EF: " : "wyjątek EF: ") + opisBledu(e);
+    console.error("okienko:", powod);
+    if (stan.athleteId && stan.adm) { try { await zapiszLog(stan.adm, { athlete_id: stan.athleteId, tekst: stan.tekst, tryb: "blad", ok: false, powod_odrzucenia: powod }); } catch { /* best-effort */ } }
+    return odp(czas ? 504 : 500, { blad: czas ? "czas" : "wyjątek" });
+  }
+});
+
+async function obsluz(req: Request, stan: Stan): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return odp(405, { blad: "tylko POST" });
   const user = await wymagajUsera(req);
@@ -62,6 +78,11 @@ Deno.serve(async (req) => {
   const adm = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });   // WYŁĄCZNIE okienko_log (limity.mjs)
   const { data: ath } = await sb.from("athletes").select("id").eq("user_id", user.id).maybeSingle();
   if (!ath) return odp(200, { ...pusto("router"), zdania: ["Nie mam tego w Twoich danych."] });
+  stan.athleteId = ath.id; stan.tekst = tekst; stan.adm = adm;
+  const blad = async (status: number, body: unknown, powod: string) => {
+    try { await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "blad", ok: false, powod_odrzucenia: powod.slice(0, 500) }); } catch { /* best-effort */ }
+    return odp(status, body);
+  };
 
   const teraz = new Date();
   const dzis = dzisWaw(teraz);
@@ -96,9 +117,10 @@ Deno.serve(async (req) => {
   }
   if (traf) {
     const w = waliduj(traf.narzedzie, traf.args);
-    if (!w.ok) return odp(400, { blad: w.blad });
+    if (!w.ok) return await blad(400, { blad: w.blad }, "router: argumenty " + String(w.blad).slice(0, 80));
     let wynik;
-    try { wynik = await wykonaj(sb, ath.id, traf.narzedzie, w.args, teraz, { fetchFn: fetch, token: jwt }); } catch { return odp(503, { blad: "narzędzie" }); }
+    try { wynik = await wykonaj(sb, ath.id, traf.narzedzie, w.args, teraz, { fetchFn: fetch, token: jwt }); }
+    catch (e) { return await blad(503, { blad: "narzędzie" }, "narzędzie " + traf.narzedzie + ": " + opisBledu(e)); }
     const zw = zWyniku(traf.narzedzie, wynik, w.args) as { zdania: string[]; karty: unknown[]; akcja?: unknown };
     await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: [traf.narzedzie], tryb: "router" });
     return odp(200, { ...pusto("router"), zdania: zw.zdania, karty: zw.karty, akcja: zw.akcja !== undefined ? zw.akcja : nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
@@ -161,9 +183,9 @@ Deno.serve(async (req) => {
   }
 
   // ── model ──
-  if (!GEMINI) return odp(502, { blad: "model niedostępny" });
+  if (!GEMINI) return await blad(502, { blad: "model niedostępny" }, "brak GEMINI_API_KEY");
   let limit;
-  try { limit = await sprawdzLimity(adm, ath.id, dzis, BUDZET); } catch { return odp(503, { blad: "limity" }); }
+  try { limit = await sprawdzLimity(adm, ath.id, dzis, BUDZET); } catch (e) { return await blad(503, { blad: "limity" }, "limity: " + opisBledu(e)); }
   if (limit) {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "limit", ok: false, powod_odrzucenia: "limit " + limit });
     return odp(429, { limit });
@@ -183,7 +205,7 @@ Deno.serve(async (req) => {
   const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);   // M3-1: nazwisko wewnątrz zdania; przed 8.11 (4): także SAMO nazwisko w kontekście wyników
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
     let ileSiec;
-    try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch { return odp(503, { blad: "limity" }); }
+    try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch (e) { return await blad(503, { blad: "limity" }, "limity sieci: " + opisBledu(e)); }
     if (ileSiec >= LIMIT_SIEC) {
       await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "limit", ok: false, powod_odrzucenia: "limit siec", tok_we: m.tok.we, tok_wy: m.tok.wy });
       return odp(429, { limit: "siec" });
@@ -213,4 +235,4 @@ Deno.serve(async (req) => {
     ok: !s.puste && s.odrzucone.length === 0, powod_odrzucenia: powodPustych(s, m) });
   const zdania = (blokadaSieci && !karty.length && (s.puste || s.zdania[0] === NIE_MAM || m.poza_danymi)) ? [ODP_NIC] : s.zdania;
   return odp(200, { zdania, karty, akcja: nawigacja(nazwy), zrodla: [], narzedzia: nazwy, tryb: "flash", koszt_tok: m.tok });
-});
+}

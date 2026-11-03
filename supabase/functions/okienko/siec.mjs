@@ -74,20 +74,33 @@ export function zOdpowiedziSieci(tekst, gm, czyHttps, maxZdan = MAX_ZDAN) {
 /** Wywołanie z googleSearch. Wejście CELOWO wąskie: tekst + data. Brak groundingChunks → JEDNA ponowna próba
     (decyzja Filipa 1.11: nigdy zdań bez źródeł). → {tekst, gm, tok, zapytania, proby} ; rzuca przy błędzie HTTP. */
 /* prompt / maxOutputTokens: opcjonalne (Okienko 2.0 wiedza.mjs — konkret dla porad; v1 woła bez nich = promptSieci + 300, bez zmian) */
-export async function zapytajSiec({ fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300 }) {
-  const a = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens);
+/* AWARIA 3.11 (blizna-136): limit czasu na KAŻDE wyszukanie (AbortController) — bez niego wiszący Gemini trzymał EF dłużej niż klient
+   czeka (20 s) i nie powstawał żaden wpis logu. Ponowienie (brak źródeł) tylko, gdy zostało ≥ połowy budżetu czasu. */
+export const LIMIT_SIECI_MS = 8000;
+export async function zapytajSiec({ fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300, timeoutMs = LIMIT_SIECI_MS }) {
+  const t0 = Date.now();
+  const a = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens, timeoutMs);
   if (((a.gm && a.gm.groundingChunks) || []).length) return { ...a, proby: 1 };
-  const b = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens);
+  if (Date.now() - t0 > timeoutMs / 2) return { ...a, proby: 1 };
+  const b = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens, timeoutMs);
   return { ...b, tok: { we: a.tok.we + b.tok.we, wy: a.tok.wy + b.tok.wy }, zapytania: a.zapytania + b.zapytania, proby: 2 };
 }
-async function jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300) {
+async function jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300, timeoutMs = LIMIT_SIECI_MS) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-  const r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt || promptSieci(dzis) }] },
-      contents: [{ role: "user", parts: [{ text: String(tekst).slice(0, 300) }] }],
-      tools: [{ googleSearch: {} }], generationConfig: { temperature: 0.2, maxOutputTokens } }) });
-  if (!r.ok) throw new Error("sieć http " + r.status);
-  const j = await r.json();
+  const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  let r, j;
+  try {
+    r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz }, signal: ctrl ? ctrl.signal : undefined,
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt || promptSieci(dzis) }] },
+        contents: [{ role: "user", parts: [{ text: String(tekst).slice(0, 300) }] }],
+        tools: [{ googleSearch: {} }], generationConfig: { temperature: 0.2, maxOutputTokens } }) });
+    if (!r.ok) throw new Error("sieć http " + r.status);
+    j = await r.json();
+  } catch (e) {
+    if (e && e.name === "AbortError") throw new Error("sieć timeout " + timeoutMs + " ms");
+    throw e;
+  } finally { if (t) clearTimeout(t); }
   const kand = j.candidates && j.candidates[0];
   const gm = (kand && kand.groundingMetadata) || {};
   return {

@@ -34,10 +34,14 @@ const SCHEMAT = { type: "object", properties: { zdania: { type: "array", items: 
 
 export class BladModelu extends Error {}
 
+/* AWARIA 3.11 (blizna-136): fetch do Gemini bez limitu czasu potrafi wisieć dłużej niż klient czeka (20 s) — EF nie zdążała zapisać
+   logu, a użytkownik widział „Nie dam rady”. Każdy krok ma własny limit (AbortController) → BladModelu("timeout") → wpis 'blad' i 502. */
+export const LIMIT_KROKU_MS = 8000;
+
 /** → {zdania, karty_z, uzyte:[{nazwa,args,wynik}], tok:{we,wy}} ; rzuca BladModelu (502) albo Error („narzędzie" → 503). */
 /** @param {{fetchFn: Function, klucz: string, sb: any, athleteId: string, tekst: string, historia?: any[], ekran?: any, dzis: string, teraz: Date,
-    f6ctx?: {fetchFn: Function, token: string} | null}} o */
-export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, historia = [], ekran, dzis, teraz, f6ctx = null }) {
+    f6ctx?: {fetchFn: Function, token: string} | null, timeoutMs?: number}} o */
+export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, historia = [], ekran, dzis, teraz, f6ctx = null, timeoutMs = LIMIT_KROKU_MS }) {
   const tok = { we: 0, wy: 0 };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const system = { parts: [{ text: promptSystemowy(dzis, ekran) }] };
@@ -50,13 +54,17 @@ export async function zapytajModel({ fetchFn, klucz, sb, athleteId, tekst, histo
   contents.push({ role: "user", parts: [{ text: tekst }] });
   const generationConfig = { responseMimeType: "application/json", responseSchema: SCHEMAT, temperature: 0.2, maxOutputTokens: 256 };
   async function krok(cont) {
-    let r;
+    let r, j;
+    const ctrl = typeof AbortController === "function" ? new AbortController() : null;
+    const t = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
     try {
-      r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz },
-        body: JSON.stringify({ systemInstruction: system, contents: cont, tools: [{ functionDeclarations: DEKLARACJE_MODELU }], generationConfig }) });
-    } catch { throw new BladModelu("sieć"); }
-    if (!r.ok) throw new BladModelu("http " + r.status);
-    const j = await r.json().catch(() => null);
+      try {
+        r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz }, signal: ctrl ? ctrl.signal : undefined,
+          body: JSON.stringify({ systemInstruction: system, contents: cont, tools: [{ functionDeclarations: DEKLARACJE_MODELU }], generationConfig }) });
+      } catch (e) { throw new BladModelu(e && e.name === "AbortError" ? "timeout " + timeoutMs + " ms" : "sieć"); }
+      if (!r.ok) throw new BladModelu("http " + r.status);
+      j = await r.json().catch((e) => { if (e && e.name === "AbortError") throw new BladModelu("timeout " + timeoutMs + " ms"); return null; });
+    } finally { if (t) clearTimeout(t); }
     if (!j) throw new BladModelu("zły JSON odpowiedzi");
     tok.we += j.usageMetadata?.promptTokenCount || 0;
     tok.wy += (j.usageMetadata?.candidatesTokenCount || 0) + (j.usageMetadata?.thoughtsTokenCount || 0);

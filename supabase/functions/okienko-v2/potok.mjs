@@ -51,8 +51,12 @@ export async function potok(we, nadpisz = {}) {
   const ostatni = { id: null };
   const zapiszOryg = d.zapiszLog;
   d.zapiszLog = async (a, w) => { const r = await zapiszOryg(a, w); if (Number.isFinite(Number(r)) && typeof r === "number") ostatni.id = r; return r; };
+  /* AWARIA 3.11 (blizna-136): zapis logu nigdy nie psuje odpowiedzi (wyjątek klienta bazy → false), a KAŻDY powrót inny niż 200 zostawia wpis 'blad'
+     z powodem — 19:36–19:45 Okienko odpowiadało „Nie dam rady”, a w logu nie było ani jednego wiersza, więc nie było czego czytać. */
   const log = async (w) => { slad.push(w.tryb + (w.narzedzia?.length ? ":" + w.narzedzia.join("+") : ""));
-    return d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, tok_we: (w.tok_we || 0) + dodTok.we, tok_wy: (w.tok_wy || 0) + dodTok.wy, ms: Date.now() - T0 }); };
+    try { return await d.zapiszLog(adm, { athlete_id: athleteId, tekst, ...w, tok_we: (w.tok_we || 0) + dodTok.we, tok_wy: (w.tok_wy || 0) + dodTok.wy, ms: Date.now() - T0 }); }
+    catch { return false; } };
+  const blad = async (status, body, powod) => { await log({ tryb: "blad", ok: false, powod_odrzucenia: powod }); return odp(status, body); };
   const odp = (status, body) => ({ status, body: status === 200 && ostatni.id && body && typeof body === "object" && !body.log_id ? { ...body, log_id: ostatni.id } : body, slad });
 
   const AK = globalThis.BM_AKCJA_CYTATY, AKK = globalThis.BM_AKCJA;
@@ -104,14 +108,15 @@ export async function potok(we, nadpisz = {}) {
   let roz = null, awaria = null;   // rozumienie (E2) i powód awarii — deklarowane tu, bo przepis gotowosc (E5) rusza już z routera
   if (traf) {
     const w = waliduj(traf.narzedzie, traf.args);
-    if (!w.ok) return odp(400, { blad: w.blad });
+    if (!w.ok) return await blad(400, { blad: w.blad }, "router: argumenty " + String(w.blad).slice(0, 80));
     // E5: „jakie szanse na życiówkę” (router: moje_rekordy + szanse) → przepis gotowosc (starty + forma + 14 dni + rekord), 0 tokenów
     if (traf.narzedzie === "moje_rekordy" && w.args.szanse && d.wykonajPrzepis) {
       const p = await wykonajZPrzepisu({ intencja: "gotowosc", sloty: {}, kandydaci: [] }, null);
       if (p) return p;
     }
     let wynik;
-    try { wynik = await d.wykonaj(sb, athleteId, traf.narzedzie, w.args, teraz, { fetchFn, token: jwt }); } catch { return odp(503, { blad: "narzędzie" }); }
+    try { wynik = await d.wykonaj(sb, athleteId, traf.narzedzie, w.args, teraz, { fetchFn, token: jwt }); }
+    catch (e) { return await blad(503, { blad: "narzędzie" }, "narzędzie " + traf.narzedzie + ": " + String(e && e.message).slice(0, 100)); }
     const zw = zWyniku(traf.narzedzie, wynik, w.args);
     await log({ narzedzia: [traf.narzedzie], tryb: "router", plan: [traf.narzedzie] });
     const tura = turaZNarzedzia(traf.narzedzie, w.args);
@@ -190,9 +195,9 @@ export async function potok(we, nadpisz = {}) {
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
   }
 
-  if (!gemini) return odp(502, { blad: "model niedostępny" });
+  if (!gemini) return await blad(502, { blad: "model niedostępny" }, "brak GEMINI_API_KEY");
   let limit;
-  try { limit = await d.sprawdzLimity(adm, athleteId, dzis, budzet); } catch { return odp(503, { blad: "limity" }); }
+  try { limit = await d.sprawdzLimity(adm, athleteId, dzis, budzet); } catch (e) { return await blad(503, { blad: "limity" }, "limity: " + String(e && e.message).slice(0, 100)); }
   if (limit) {
     await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit " + limit });
     return odp(429, { limit });
@@ -297,7 +302,7 @@ export async function potok(we, nadpisz = {}) {
      null = limit (odpowiedź 429 już zwrócona przez wyjątek niżej) — zwracamy gotową odpowiedź potoku. */
   async function przezSiec(m, roz) {
     let ileSiec;
-    try { ileSiec = await d.uzyteSiecDzis(adm, athleteId, dzis); } catch { return odp(503, { blad: "limity" }); }
+    try { ileSiec = await d.uzyteSiecDzis(adm, athleteId, dzis); } catch (e) { return await blad(503, { blad: "limity" }, "limity sieci: " + String(e && e.message).slice(0, 100)); }
     if (ileSiec >= d.LIMIT_SIEC) {
       await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit siec", tok_we: m.tok.we, tok_wy: m.tok.wy });
       return odp(429, { limit: "siec" });

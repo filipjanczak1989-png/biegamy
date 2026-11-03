@@ -12,7 +12,8 @@ import { dzisWaw } from "../okienko/narzedzia.mjs";
 import { NIE_MAM } from "../okienko/straznik.mjs";
 import "../../../js/akcja.mjs";
 import { potok } from "./potok.mjs";
-import { zapiszOdpowiedzV2 } from "./log-v2.mjs";   // kciuki/raport (3.11): skrót odpowiedzi do wpisu logu
+import { zapiszOdpowiedzV2, zapiszLogV2 } from "./log-v2.mjs";   // kciuki/raport (3.11): skrót odpowiedzi do wpisu logu
+import { zTerminem, PrzekroczonyTermin, opisBledu, TERMIN_MS } from "../okienko/straz-http.mjs";   // AWARIA 3.11 (blizna-136)
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -31,10 +32,28 @@ const odp = (status: number, body: unknown, wersja = WERSJA) =>
   new Response(JSON.stringify(typeof body === "object" && body ? { ...(body as object), wersja } : body),
     { status, headers: { ...cors, "Content-Type": "application/json", "X-Okienko-Wersja": wersja } });
 
+/* AWARIA 3.11 (blizna-136): 19:36–19:45 każde pytanie → „Nie dam rady”, w okienko_v2_log ZERO wierszy. Cała obsługa w zTerminem + catch:
+   wyjątek albo zawieszenie → wpis 'blad' (gdy znamy zawodnika), console.error do logów EF i odpowiedź Z CORS (bez CORS przeglądarka
+   widzi tylko „błąd sieci”). Termin krótszy niż klient (20 s) — odpowiedź dochodzi, zanim klient się podda. */
+type Stan = { athleteId: string | null; tekst: string; adm: any; T0: number };
 Deno.serve(async (req) => {
+  const stan: Stan = { athleteId: null, tekst: "", adm: null, T0: Date.now() };
+  try { return await zTerminem(obsluz(req, stan), TERMIN_MS); }
+  catch (e) {
+    const czas = e instanceof PrzekroczonyTermin;
+    const powod = (czas ? "termin EF: " : "wyjątek EF: ") + opisBledu(e);
+    console.error("okienko-v2:", powod);
+    if (stan.athleteId && stan.adm) {
+      try { await zapiszLogV2(stan.adm, { athlete_id: stan.athleteId, tekst: stan.tekst, tryb: "blad", ok: false, powod_odrzucenia: powod, ms: Date.now() - stan.T0 }); } catch { /* best-effort */ }
+    }
+    return odp(czas ? 504 : 500, { blad: czas ? "czas" : "wyjątek" });
+  }
+});
+
+async function obsluz(req: Request, stan: Stan): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return odp(405, { blad: "tylko POST" });
-  const T0 = Date.now();
+  const T0 = stan.T0;
   const user = await wymagajUsera(req);
   if (!user) return odp(401, { blad: "brak sesji" });
 
@@ -48,11 +67,12 @@ Deno.serve(async (req) => {
   const adm = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
   const { data: ath } = await sb.from("athletes").select("id").eq("user_id", user.id).maybeSingle();
   if (!ath) return odp(200, { zdania: [NIE_MAM], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb: "router", koszt_tok: { we: 0, wy: 0 } });
+  stan.athleteId = ath.id; stan.tekst = tekst; stan.adm = adm;
 
   const teraz = new Date();
   const w = await potok({ tekst, historia: Array.isArray(body.historia) ? body.historia : [], ekran: body.ekran, athleteId: ath.id, sb, adm, jwt,
     dzis: dzisWaw(teraz), teraz, gemini: GEMINI, budzet: BUDZET, fetchFn: fetch, T0 });
   const b = w.body as { log_id?: number; zdania?: string[] };
-  if (w.status === 200 && b && b.log_id && Array.isArray(b.zdania) && b.zdania.length) await zapiszOdpowiedzV2(adm, b.log_id, b.zdania);
+  if (w.status === 200 && b && b.log_id && Array.isArray(b.zdania) && b.zdania.length) { try { await zapiszOdpowiedzV2(adm, b.log_id, b.zdania); } catch { /* best-effort */ } }
   return odp(w.status, w.body);
-});
+}

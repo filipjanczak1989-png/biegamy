@@ -286,17 +286,27 @@
   function adresOkienka(wersja) { return window.SB_URL + '/functions/v1/' + (wersja === 'v2' ? 'okienko-v2' : 'okienko'); }
 
   var historia = [];
-  async function zapytaj(tekst) {
-    tekst = String(tekst || '').trim().slice(0, 300);
-    if (!tekst) return { status: 0, json: null };
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return { status: 'offline', json: null };
-    var sesja = null;
-    try { sesja = (await window.sb.auth.getSession()).data.session; } catch (e) {}
-    if (!sesja) return { status: 401, json: null };
+  /* AWARIA 3.11 (blizna-136): 19:36–19:45 każde pytanie kończyło się „Nie dam rady”, a ani logi Okienka, ani client_errors nie miały śladu —
+     przyczyny nie dało się odczytać. Teraz każda odpowiedź inna niż 200/429/offline trafia do client_errors (kind 'okienko'): wersja, status,
+     kod błędu z odpowiedzi (np. bramki Supabase), czas. NIGDY treść pytania. Najwyżej 5 zgłoszeń na stronę. */
+  var _zgloszenAwarii = 0;
+  function zglosAwarie(wersja, o, uid, zapas) {
+    try {
+      if (_zgloszenAwarii >= 5 || !uid || !window.sb || typeof window.sb.from !== 'function') return;
+      _zgloszenAwarii++;
+      var j = o.json || {};
+      var kod = o.wyjatek || String(j.blad || j.code || j.message || '').slice(0, 80) || 'bez treści';
+      window.sb.from('client_errors').insert({ user_id: uid, url: String((typeof location !== 'undefined' && location.pathname) || '').slice(0, 990), kind: 'okienko',
+        source: wersja === 'v2' ? 'okienko-v2' : 'okienko', message: ('http ' + o.status + ' · ' + kod + ' · ' + o.ms + ' ms' + (zapas ? ' · ponowione w v1' : '')).slice(0, 300),
+        user_agent: String((typeof navigator !== 'undefined' && navigator.userAgent) || '').slice(0, 500), app_version: window._appVersion || null, created_at: new Date().toISOString() })
+        .then(function () {}, function () {});
+    } catch (e) {}
+  }
+  async function jednoZapytanie(wersja, tekst, sesja) {
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
     var t = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
+    var t0 = Date.now();
     try {
-      var wersja = await wersjaOkienka();
       var r = await fetch(adresOkienka(wersja), {
         method: 'POST', signal: ctrl ? ctrl.signal : undefined, credentials: 'omit', cache: 'no-store',
         headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + sesja.access_token, 'apikey': window.SB_KEY },
@@ -304,11 +314,32 @@
       });
       try { if (wersja === 'v2' && r.headers && r.headers.get('x-okienko-wersja') === 'v1') _wersja = 'v1'; } catch (e) {}
       var j = await r.json().catch(function () { return null; });
-      if (r.status === 200 && j && Array.isArray(j.zdania) && j.zdania.length) historia.push({ q: tekst, a: j.zdania.join(' ').slice(0, 300) });
-      return { status: r.status, json: j };
+      return { status: r.status, json: j, ms: Date.now() - t0 };
     } catch (e) {
-      return { status: (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 502, json: null };
+      var off = typeof navigator !== 'undefined' && navigator.onLine === false;
+      return { status: off ? 'offline' : 502, json: null, wyjatek: String((e && e.name) || 'Error'), ms: Date.now() - t0 };
     } finally { if (t) clearTimeout(t); }
+  }
+  async function zapytaj(tekst) {
+    tekst = String(tekst || '').trim().slice(0, 300);
+    if (!tekst) return { status: 0, json: null };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return { status: 'offline', json: null };
+    var sesja = null;
+    try { sesja = (await window.sb.auth.getSession()).data.session; } catch (e) {}
+    if (!sesja) return { status: 401, json: null };
+    var uid = sesja.user && sesja.user.id;
+    var wersja = await wersjaOkienka();
+    var o = await jednoZapytanie(wersja, tekst, sesja);
+    /* v2 padła jak przy wadliwym wdrożeniu — 500 (wyjątek), 404 (brak funkcji) albo brak odpowiedzi bez przerwania po 20 s (CORS, sieć):
+       zgłoszenie, to samo pytanie raz do v1 i v1 do końca sesji strony. 502/503/504 (model, limity, termin) v1 dzieli z v2 — bez ponowienia. */
+    if (wersja === 'v2' && (o.status === 500 || o.status === 404 || o.wyjatek === 'TypeError')) {
+      zglosAwarie('v2', o, uid, true);
+      _wersja = 'v1'; wersja = 'v1';
+      o = await jednoZapytanie('v1', tekst, sesja);
+    }
+    if (o.status !== 200 && o.status !== 429 && o.status !== 'offline') zglosAwarie(wersja, o, uid, false);
+    if (o.status === 200 && o.json && Array.isArray(o.json.zdania) && o.json.zdania.length) historia.push({ q: tekst, a: o.json.zdania.join(' ').slice(0, 300) });
+    return { status: o.status, json: o.json };
   }
 
   function chipy() {
