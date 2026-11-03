@@ -564,5 +564,23 @@
   "sloty": {
    "dystans": "21"
   }
- }
+ },
+ "jakie buty na asfalt": {
+  "intencja": "sprzet",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile pic na maratonie": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "_recznie_3_11": [
+  "jakie buty na asfalt",
+  "ile pic na maratonie"
+ ]
 }

@@ -141,6 +141,8 @@ function baza() {
     athletes: [{ id: JA, user_id: 'u-ja', full_name: 'Testowa Osoba', is_public: false, coach_id: null, date_of_birth: '1990-05-05', city: 'Poznań', race_goals: JSON.stringify([{ name: 'Bieg Niepodległości', date: '2026-11-11', distance_km: 10 }]) },
       { id: U1, full_name: 'Robert Korzeniowski', is_public: true, city: 'Poznań' }],   // etap 4: miasto i jeden znajomy publiczny (odstępstwo od konta testowego, żeby ścieżki M3-2 miały co pokazać)
     trainings: [], training_logs: [{ athlete_id: JA, logged_at: '2026-10-27T07:00:00Z', training_type: 'Spokojny', distance_km: '10.2', duration: '1:00:00' }],
+    food_database: [{ display_name: 'Banan', brand: null, name_normalized: 'banan', kcal_per_100: 89, protein_g_per_100: 1.1, carbs_g_per_100: 22.8, fat_g_per_100: 0.3, fiber_g_per_100: 2.6, sugar_g_per_100: 12.2, hit_count: 5 },
+      { display_name: 'Omlet', brand: null, name_normalized: 'omlet', kcal_per_100: 154, protein_g_per_100: 11, carbs_g_per_100: 1, fat_g_per_100: 12, fiber_g_per_100: 0, sugar_g_per_100: 0.5, hit_count: 1 }],   // narzędzie produkt (3.11)
     achievements: Array.from({ length: 44 }, (_, i) => ({ athlete_id: JA, badge_id: 'b' + i, earned_at: '2026-10-01T10:00:00Z' })),
     races: [], friendships: [{ requester_id: JA, addressee_id: U1, status: 'accepted' }],
     public_training_logs: [{ athlete_id: U1, logged_at: '2026-10-28T07:00:00Z', training_type: 'Spokojny', distance_km: '12.5' }], radio_tracks: [{ id: '22222222-2222-4222-8222-222222222222', title: 'Czwarta Godzina', artist: 'X' }, { id: '33333333-3333-4333-8333-333333333333', title: 'Boso', artist: 'Y' }],

@@ -45,7 +45,7 @@ export function zdaniaZZakresem(tekst) {
 }
 
 /** → {zdania, zrodla, odrzucone} wg zasad M2a (strażnik supports, źródła https, pusto → NIE_ZNALAZLEM). */
-export function zOdpowiedziSieci(tekst, gm, czyHttps) {
+export function zOdpowiedziSieci(tekst, gm, czyHttps, maxZdan = MAX_ZDAN) {
   const ok = typeof czyHttps === "function" ? czyHttps : (u) => /^https:\/\//i.test(String(u || ""));
   const zrodla = [], bylo = new Set();
   for (const c of (gm && gm.groundingChunks) || []) {
@@ -68,23 +68,24 @@ export function zOdpowiedziSieci(tekst, gm, czyHttps) {
     else odrzucone.push({ zdanie: z.zdanie.slice(0, 200), powod: "cyfra bez potwierdzenia w groundingSupports" });
   }
   if (!zrodla.length) return { zdania: [NIE_ZNALAZLEM], zrodla: [], odrzucone: odrzucone.concat(zdania.map((z) => ({ zdanie: z.slice(0, 200), powod: "brak źródeł" }))) };
-  return { zdania: zdania.length ? zdania.slice(0, MAX_ZDAN) : [NIE_ZNALAZLEM], zrodla: zdania.length ? zrodla : [], odrzucone };
+  return { zdania: zdania.length ? zdania.slice(0, maxZdan) : [NIE_ZNALAZLEM], zrodla: zdania.length ? zrodla : [], odrzucone };
 }
 
 /** Wywołanie z googleSearch. Wejście CELOWO wąskie: tekst + data. Brak groundingChunks → JEDNA ponowna próba
     (decyzja Filipa 1.11: nigdy zdań bez źródeł). → {tekst, gm, tok, zapytania, proby} ; rzuca przy błędzie HTTP. */
-export async function zapytajSiec({ fetchFn, klucz, tekst, dzis }) {
-  const a = await jednoWyszukanie(fetchFn, klucz, tekst, dzis);
+/* prompt / maxOutputTokens: opcjonalne (Okienko 2.0 wiedza.mjs — konkret dla porad; v1 woła bez nich = promptSieci + 300, bez zmian) */
+export async function zapytajSiec({ fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300 }) {
+  const a = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens);
   if (((a.gm && a.gm.groundingChunks) || []).length) return { ...a, proby: 1 };
-  const b = await jednoWyszukanie(fetchFn, klucz, tekst, dzis);
+  const b = await jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt, maxOutputTokens);
   return { ...b, tok: { we: a.tok.we + b.tok.we, wy: a.tok.wy + b.tok.wy }, zapytania: a.zapytania + b.zapytania, proby: 2 };
 }
-async function jednoWyszukanie(fetchFn, klucz, tekst, dzis) {
+async function jednoWyszukanie(fetchFn, klucz, tekst, dzis, prompt = null, maxOutputTokens = 300) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const r = await fetchFn(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": klucz },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: promptSieci(dzis) }] },
+    body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt || promptSieci(dzis) }] },
       contents: [{ role: "user", parts: [{ text: String(tekst).slice(0, 300) }] }],
-      tools: [{ googleSearch: {} }], generationConfig: { temperature: 0.2, maxOutputTokens: 300 } }) });
+      tools: [{ googleSearch: {} }], generationConfig: { temperature: 0.2, maxOutputTokens } }) });
   if (!r.ok) throw new Error("sieć http " + r.status);
   const j = await r.json();
   const kand = j.candidates && j.candidates[0];

@@ -189,3 +189,31 @@ pytanie i miesięcznie przy 100/500 osobach → tabela porównawcza do decyzji F
 Ławka v2: **225/241 = 93,4 %**, 16 znanych luk (E2: 8 — router v1 za szeroki, naprawa po 8.11; E4: 1; E5: 6; reszta: brak narzędzi),
 0 regresji. Do 95 % brakuje 4 pytań — najtańsze: 8 wierszy „router za szeroki” (zmiana wzorców `ile km`, `kiedy ostatnio`, `co na
 śniadanie` w `router.mjs` po zamrożeniu). ⚠️ nagrania klasyfikatora nadal ręczne (`--zywy` do zmierzenia prawdziwej trafności).
+
+## KOREKTA KURSU — 3.11 15:25 (Filip: „z sesji na sesję się cofamy; googlowskie było najbardziej doinformowane”)
+
+Przykłady: „kim jest Filip” → nic; „ile kcal ma banan” → nic; porada → „słuchaj swojego ciała”. Decyzje i stan (blizna-122):
+
+1. **Wiedza ogólna z sieci** — COFNIĘTE „porada = model bez sieci” (E2). Intencje `porada` / `fakt` / `zywienie` / `sprzet` → Gemini
+   z googleSearch (ten sam `../okienko/siec.mjs`, teraz z opcjonalnym promptem i limitem tokenów; v1 woła bez nich — bez zmian) z promptem
+   NA KONKRET (`okienko-v2/wiedza.mjs`): liczby, zakresy, kroki; 3–5 zdań; źródła. Bramka prywatności (`blokadaSieci`, odmowa, fabian*)
+   BEZ ZMIAN — nazwisko w pytaniu nadal idzie ścieżką v1, nigdy do Google.
+2. **„O nas”** — `_shared/o-nas.mjs` (⚠️ SZKIC do zatwierdzenia przez Filipa; tylko jego słowa z 3.11 + fakty z kodu): Filip (założyciel,
+   trener, reprezentant Polski na 100 km IAU), Kasia (współtrenerka, ultraska), czym jest BiegaMy, funkcje i gdzie są, Radio, jak zostać
+   podopiecznym. „kim jest Filip/Kasia/twórca”, „co to biegamy”, „kto stoi za aplikacją” → odpowiedź z pliku, 0 tokenów, w potoku PRZED
+   bramką osób. Pojedyncze słowo („filip”, „kasia”) i „gdzie jest radio” zostają w dotychczasowych ścieżkach (chipy / katalog).
+3. **Produkt / kalorie** — `okienko-v2/produkt.mjs`: „ile kcal ma banan” → `food_database` (Jedzenie; dokładna nazwa → początek →
+   gdziekolwiek, odmiana → rdzeń) → „Banan: 100 g to 89 kcal — białko 1,1 g, węglowodany 22,8 g, tłuszcz 0,3 g.” 0 tokenów, przed siecią,
+   także gdy klasyfikator powie „fakt”. Brak w bazie → sieć.
+4. **Strażnik ogólników** — odpowiedź z sieci bez konkretu (ani liczby, ani kroków) → JEDNO ponowienie z instrukcją „podaj liczby/kroki”;
+   nadal ogólnik → zdania-wytrychy („słuchaj swojego ciała”, „każdy organizm jest inny”, „to zależy od wielu czynników”…) wycięte, krócej,
+   źródła zostają; log `ok=false` z powodem. Tylko porada/żywienie/sprzęt (fakt bez strażnika: „wygrał X” bez cyfr to nie ogólnik).
+   Zdrowie (choroba, kontuzja) bez zmian — stałe teksty.
+5. **Test A/B** — `tools/okienko-ab.mjs` + `tools/okienko-ab-pytania.json` (30: 12 Filipa z logu + 18 typowych). Uruchamia FILIP własną sesją:
+   `OKIENKO_EMAIL=… OKIENKO_HASLO=… node tools/okienko-ab.mjs` → `Downloads\biegamy-podglady\okienko-ab-<data>.html` (v1 i v2 obok siebie,
+   wybór przy każdym, podsumowanie + wycieki = pytanie o osobę prywatną z odpowiedzią z sieci). Limit sieci 20/dobę na wersję — drugi
+   przebieg nazajutrz scala (`--wersja v2`). v2 dla wszystkich dopiero przy ≥ 80 % i 0 wycieków.
+
+Ławka po korekcie: 240/255 = 94,1 % (cel 95 %), 15 luk, 0 regresji. Nowe intencje klasyfikatora: `zywienie`, `sprzet`, `o_nas`; slot `produkt`.
+Nagrania ręczne (nie z modelu) w `_nagrania-v2.json`: klucz `_recznie_3_11`. Wdrożenie: tylko `okienko-v2` (stare okienko bez zmian;
+`siec.mjs` ma nowe parametry opcjonalne, v1 bez redeployu zachowuje się tak samo).

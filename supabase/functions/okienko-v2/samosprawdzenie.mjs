@@ -10,6 +10,7 @@ export const NARZEDZIA_INTENCJI = {
   moja_forma: ["moja_forma"], moj_trener: ["moj_trener"], odznaki: ["odznaki_moje"], wyzwania: ["wyzwania_postep"], znajomi: ["znajomi_tydzien"],
   osoby_z_miasta: ["osoby_z_miasta"], biegi_nadchodzace: ["biegi_nadchodzace"], katalog: ["katalog"], kalkulator: ["kalkulator"],
   gotowosc: ["moje_starty", "moja_forma", "moje_treningi", "moje_rekordy"], najdluzszy: ["moje_treningi"], porownaj: ["osoba", "moje_wyniki"],
+  zywienie: ["produkt"], o_nas: ["o-nas"],
 };
 
 /** @param {{intencja:string, sloty?:object, narzedzia?:string[], args?:object, zdania?:string[], karty?:any[], wyniki?:any[]}} o

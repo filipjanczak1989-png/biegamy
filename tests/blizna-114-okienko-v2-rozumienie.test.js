@@ -5,7 +5,7 @@
       odpowiedzOsoba); etykiety chipów pisze kod (CHIPY_INTENCJI), model nigdy; pewność < 0,6 / dopytac / nie_wiem → chipy, 0 narzędzi.
    3) Potok: rozumienie PO routerze/osobie/imprezie/katalogu/pamięci sieci i PO limitach (liczy się do 60/dobę), awaria → ścieżka v1
       z powodem 'v2-awaria'; tokeny rozumienia doliczone do wpisu końcowego; 'fakt' → sieć bez modelu z narzędziami; 'odmowa'/'opinia'/
-      'pogoda' → stałe zdania bez narzędzi; porada → model bez narzędzi i bez sieci + dopisek, zdania z cyframi odrzucone.
+      'pogoda' → stałe zdania bez narzędzi; porada → null (od 3.11 15:25: sieć ze źródłami, wiedza.mjs — blizna-122).
    4) Sloty → argumenty narzędzi v1 (waliduj): data/zakres/weekend dla moj_plan, od/do dla moje_treningi, domyślnie bieżący tydzień. */
 'use strict';
 const test = require('node:test');
@@ -48,7 +48,7 @@ test('1) rozumienie: tylko tekst + data + 3 poprzednie intencje; schemat; sanity
   assert.equal(R.PROG_PEWNOSCI, 0.6);
 });
 
-test('2) intencje: osoba tylko ze slotem w pytaniu wyglądającym na osobę; chipy z kodu; stałe zdania; porada bez cyfr + dopisek', async () => {
+test('2) intencje: osoba tylko ze slotem w pytaniu wyglądającym na osobę; chipy z kodu; stałe zdania; porada → null (sieć)', async () => {
   const I = await Z('supabase/functions/okienko-v2/intencje.mjs');
   const wolania = [];
   const d = { wykonaj: async () => ({}), szukajWKatalogu: async () => null, odpowiedzOsoba: async (o) => { wolania.push(o.q); return { zdania: ['x'], karty: [], zrodla: [], akcja: null, tok: { we: 0, wy: 0 }, zapytania_sieci: 0, f6: 'ok' }; },
@@ -65,9 +65,8 @@ test('2) intencje: osoba tylko ze slotem w pytaniu wyglądającym na osobę; chi
   for (const [k, zd] of [['pogoda', I.ODP_POGODA], ['odmowa', I.ODP_ODMOWA], ['opinia', I.ODP_OPINIA]]) {
     const w = await I.wykonajIntencje(ctx, { intencja: k, sloty: {}, kandydaci: [] }); assert.equal(w.body.zdania[0], zd, k); assert.deepEqual(w.body.narzedzia, []); assert.deepEqual(w.log.narzedzia, [k]);
   }
-  const por = await I.wykonajIntencje({ ...ctx, tekst: 'jak zaczac biegac' }, { intencja: 'porada', sloty: {}, kandydaci: [] });
-  assert.deepEqual(por.body.zdania, ['Biegaj spokojnie.', I.DOPISEK_PORADY], 'zdanie z cyframi odrzucone, dopisek na końcu'); assert.deepEqual(por.log.narzedzia, ['porada']);
-  for (const k of ['rywal', 'gotowosc', 'porownaj', 'nawigacja', 'fakt', 'nie_wiem']) assert.equal(await I.wykonajIntencje(ctx, { intencja: k, sloty: {}, kandydaci: [] }), null, k + ' → null (ścieżka v1 / E5)');
+  assert.equal(await I.wykonajIntencje({ ...ctx, tekst: 'jak zaczac biegac' }, { intencja: 'porada', sloty: {}, kandydaci: [] }), null, 'porada → null → potok: WIEDZA Z SIECI (Filip 3.11 15:25 cofnął „model bez sieci”)');
+  for (const k of ['rywal', 'gotowosc', 'porownaj', 'nawigacja', 'fakt', 'sprzet', 'nie_wiem']) assert.equal(await I.wykonajIntencje(ctx, { intencja: k, sloty: {}, kandydaci: [] }), null, k + ' → null (ścieżka v1 / E5)');
   assert.deepEqual(I.chipyDla(['moj_plan', 'moje_treningi', 'hack', 'osoba', 'impreza', 'katalog']).map((c) => c.etykieta), ['Mój plan', 'Moje treningi', 'Osoba', 'Impreza'], '≤ 4, tylko znane, etykiety z kodu');
   assert.equal(I.chipyDla(['moj_plan']).length, 4, 'jeden kandydat → domyślne 4 chipy');
   const src = czytaj('supabase/functions/okienko-v2/intencje.mjs');

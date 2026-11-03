@@ -1,20 +1,23 @@
 // OKIENKO 2.0 — E2: co zrobić z intencją (rozumienie.mjs) — przepisy w KODZIE, nie w modelu. Intencja → narzędzie v1 (waliduj/wykonaj
 // z ../okienko/narzedzia.mjs, sloty → argumenty), stałe zdanie (pogoda, zdrowie, odmowa, opinia), katalog, impreza, osoba (TYLKO gdy slot
-// osoby jest w pytaniu i wygląda na imię/nazwisko — B2), porada (model bez narzędzi i bez sieci, z dopiskiem), chipy „Chodzi Ci o…?”.
+// osoby jest w pytaniu i wygląda na imię/nazwisko — B2), zywienie (produkt z bazy Jedzenia), o_nas (plik _shared/o-nas.mjs), chipy „Chodzi Ci o…?”.
+// porada / fakt / sprzet / zywienie-bez-produktu → null → potok: WIEDZA Z SIECI (wiedza.mjs; Filip 3.11 15:25 cofnął „porada = model bez sieci”).
 // null = intencja bez obsługi w tym etapie (nawigacja, rywal, gotowosc, porownaj → E5) → potok idzie ścieżką v1 (model z narzędziami).
 import { waliduj, nawigacja } from "../okienko/narzedzia.mjs";
 import { kalkulator, CHIPY_WYBORU, ODP_ZDROWIE, ODP_CHOROBA, ODP_ODMOWA, dodajDni, poniedzialek } from "../okienko/router.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { wygladaNaOsobeSlownik } from "../okienko/pamiec.mjs";
 import { normalizuj } from "../okienko/router.mjs";
-import { generujJson } from "./gemini.mjs";
+import { produktZPytania, szukajProduktu, zdanieProduktu } from "./produkt.mjs";
+import { oNas } from "../_shared/o-nas.mjs";
 
 export const ODP_POGODA = "Pogoda jest na kaflu Dziś — napisz „pogoda”, „pogoda jutro” albo „pogoda pojutrze”.";
 export { ODP_ODMOWA };   // zdanie odmowy ma jedno źródło — router v1 (bramka przed modelem w obu wersjach)
 export const ODP_OPINIA = "Nie oceniam ludzi — mogę pokazać wyniki i treningi z publicznych profili.";
 export const ODP_OSOBA_BEZ_NAZWISKA = "Jeśli pytasz o osobę, napisz imię i nazwisko.";
 export const ODP_KATALOG_PUSTY = "Nie znalazłem tego w aplikacji.";
-export const DOPISEK_PORADY = "To ogólna wskazówka, nie plan — Twój plan i trener mają pierwszeństwo.";
+export { DOPISEK_PORADY } from "./wiedza.mjs";   // porada idzie przez sieć (wiedza.mjs) — dopisek ma jedno źródło
+export const ODP_O_NAS_OGOLNIE = "Pytasz o BiegaMy? Napisz „co to jest BiegaMy”, „kim jest Filip” albo „jak zostać podopiecznym”.";
 
 /* etykiety chipów PISZE KOD (model nigdy nie pisze treści chipa) */
 export const CHIPY_INTENCJI = {
@@ -36,6 +39,9 @@ export const CHIPY_INTENCJI = {
   kalkulator: { etykieta: "Kalkulator tempa", pytanie: "Jaki czas na 10 km w tempie 5:00" },
   pogoda: { etykieta: "Pogoda", pytanie: "Pogoda jutro" },
   porada: { etykieta: "Porada", pytanie: "Jak zacząć biegać" },
+  zywienie: { etykieta: "Jedzenie", pytanie: "Co jeść przed długim biegiem" },
+  sprzet: { etykieta: "Sprzęt", pytanie: "Jakie buty na asfalt" },
+  o_nas: { etykieta: "O BiegaMy", pytanie: "Co to jest BiegaMy" },
   fakt: { etykieta: "Fakt ze świata biegania", pytanie: "Rekord świata w maratonie" },
   akcja: { etykieta: "Akcja", pytanie: "Co to za akcja" },
   gotowosc: { etykieta: "Gotowość na start", pytanie: "Jakie szanse na życiówkę" },
@@ -133,17 +139,18 @@ export async function wykonajIntencje(ctx, r) {
       if (ctx.AKK) { const k = ctx.AKK.kartaOkienka(ctx.akcjaDane); if (k) karty = [k]; }
       return { body: { ...pusto("router"), zdania: [z.zdanie], karty }, log: { narzedzia: ["zagadka"] } };
     }
-    case "porada": {
-      if (!gemini) return null;
-      let w;
-      try {
-        w = await (d.generujJson || generujJson)({ fetchFn, klucz: gemini, timeoutMs: 2500, maxOutputTokens: 120, temperature: 0.3,
-          system: "Jesteś okienkiem aplikacji BiegaMy dla biegaczy amatorów. Dajesz jedną ogólną wskazówkę biegową po polsku: 2 krótkie zdania, bez liczb, bez porad lekarskich, bez obietnic wyników, bez emoji. Zwracasz JSON {\"zdania\": [..]}.",
-          contents: [{ role: "user", parts: [{ text: String(tekst).slice(0, 300) }] }], schema: { type: "object", properties: { zdania: { type: "array", items: { type: "string" } } }, required: ["zdania"] } });
-      } catch { return null; }
-      const zd = (Array.isArray(w.json && w.json.zdania) ? w.json.zdania : []).filter((x) => typeof x === "string" && x.trim() && !/\d/.test(x)).slice(0, 2);
-      if (!zd.length) return null;
-      return { body: { ...pusto("router"), zdania: [...zd, DOPISEK_PORADY], koszt_tok: w.tok }, log: { narzedzia: ["porada"], tok_we: w.tok.we, tok_wy: w.tok.wy } };
+    case "porada": case "sprzet": case "fakt": return null;   // WIEDZA Z SIECI (Filip 3.11 15:25): potok → wiedza.mjs (googleSearch, konkret, strażnik ogólników)
+    case "zywienie": {   // produkt z bazy Jedzenia PRZED siecią (0 tokenów); brak → null → potok → sieć
+      const nazwa = String(s.produkt || "").trim() || produktZPytania(tekst);
+      if (!nazwa) return null;
+      const p = await szukajProduktu(sb, nazwa);
+      if (!p) return null;
+      return { body: { ...pusto("router"), zdania: [zdanieProduktu(p)], narzedzia: ["produkt"], akcja: { nawiguj: "nutrition.html" } }, log: { narzedzia: ["produkt"], tryb: "v2" }, meta: null };   // zdanie deterministyczne z bazy — bez strażnika liczb
+    }
+    case "o_nas": {   // plik _shared/o-nas.mjs; klasyfikator mówi o_nas, a wzorzec nie trafia → podpowiedź, NIGDY sieć
+      const on = oNas(tekst);
+      if (on) return { body: { ...pusto("router"), zdania: on.zdania, akcja: on.akcja }, log: { narzedzia: ["o-nas"] }, meta: null };
+      return zdanie(ODP_O_NAS_OGOLNIE, "o-nas", { chipy: chipyDla(["o_nas", "katalog", "porada"]) });
     }
     default: return null;   // fakt (potok: prosto do sieci), nawigacja, rywal, gotowosc, porownaj (E5), nie_wiem (potok: chipy)
   }

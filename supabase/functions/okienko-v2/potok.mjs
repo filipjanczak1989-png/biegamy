@@ -21,6 +21,9 @@ import { generujJson } from "./gemini.mjs";
 import { czytajRozmowe, zapiszTure, czyKontynuacja, scalSloty, kontekstDlaModelu, turaZNarzedzia } from "./rozmowa.mjs";
 import { PRZEPISY, wykonajPrzepis } from "./przepisy.mjs";
 import { samosprawdz, ODP_NIE_PRZESZLO } from "./samosprawdzenie.mjs";
+import { INTENCJE_SIECI, szukajWiedzy } from "./wiedza.mjs";
+import { produktZPytania } from "./produkt.mjs";
+import { oNas } from "../_shared/o-nas.mjs";
 
 export const MODEL_SIECI = "gemini-3.5-flash-lite";   // etykieta pamięci sieci (jak v1)
 export const DOMYSLNE = { wykonaj, zapytajModel, zapytajSiec, odpowiedzOsoba, odpowiedzImpreza, szukajWKatalogu, zPamieci, doPamieci, zapiszZnaleziska,
@@ -67,6 +70,13 @@ export async function potok(we, nadpisz = {}) {
     if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
     if (Array.isArray(traf.karty)) kartyZd = traf.karty;
     return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd, chipy: traf.chipy || [] });
+  }
+  // ── O NAS (Filip 3.11 15:25): plik wiedzy o BiegaMy (_shared/o-nas.mjs) — PRZED bramką osób i przed siecią, 0 tokenów:
+  //    „kim jest Filip”, „co to BiegaMy”, „kto stoi za aplikacją”, „jak zostać podopiecznym” nie są trybem osoby ani pytaniem do Google ──
+  const on = oNas(tekst);
+  if (on) {
+    await log({ tryb: "router", narzedzia: ["o-nas"] });
+    return odp(200, { ...pusto("router"), zdania: on.zdania, akcja: on.akcja || null });
   }
   // sieć ze źródłami (wspólna dla osoby, imprezy, przepisów) — deklarowana PRZED routerem, bo przepis gotowosc rusza już z routera
   const sieciDozwolona = async () => { if (!gemini) return false; try { return (await d.uzyteSiecDzis(adm, athleteId, dzis)) < d.LIMIT_SIEC; } catch { return false; } };
@@ -162,10 +172,21 @@ export async function potok(we, nadpisz = {}) {
       await log({ tryb: "v2-niepewne", narzedzia: ["dopytanie"], intencja: roz.intencja, pewnosc: roz.pewnosc });
       return odp(200, { ...pusto("router"), zdania: [ODP_NIEPEWNE], karty: [], chipy: chipyDla(roz.kandydaci), intencja: roz.intencja });
     }
-    if (roz.intencja === "fakt" && !blokadaSieci) {   // fakt ze świata → prosto do sieci ze źródłami (bez modelu z narzędziami)
-      const w = await przezSiec({ tok: { we: 0, wy: 0 } }, roz);
-      if (w) return w;
-    } else if (roz.intencja !== "fakt") {
+    if (INTENCJE_SIECI.includes(roz.intencja)) {
+      /* WIEDZA OGÓLNA Z SIECI (Filip 3.11 15:25): porada / fakt / zywienie / sprzet → Gemini z googleSearch ze źródłami i konkretem
+         (wiedza.mjs). Produkt z bazy Jedzenia PRZED siecią (także gdy klasyfikator powiedział „fakt”, a pytanie brzmi „ile kcal ma X”).
+         Bramka prywatności (blokadaSieci) BEZ ZMIAN: nazwisko w pytaniu → ścieżka v1 niżej, nigdy Google. */
+      if (roz.intencja === "zywienie" || produktZPytania(tekst)) {
+        const rz = { ...roz, intencja: "zywienie" };
+        let w = null;
+        try { w = await wykonajIntencje(ctxV2(), rz); } catch (e) { awaria = "v2-awaria: produkt " + String(e && e.message).slice(0, 60); w = null; }
+        if (w) return await odpowiedzV2(w, rz);
+      }
+      if (!blokadaSieci) {
+        const w = await przezSiec({ tok: { we: 0, wy: 0 } }, roz);
+        if (w) return w;
+      }
+    } else {
       if (PRZEPISY[roz.intencja] && d.wykonajPrzepis) {   // E5: przepisy ≤ 4 narzędzi równolegle, zdania z kodu
         const p = await wykonajZPrzepisu(roz, roz);
         if (p) return p;
@@ -231,20 +252,23 @@ export async function potok(we, nadpisz = {}) {
       await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit siec", tok_we: m.tok.we, tok_wy: m.tok.wy });
       return odp(429, { limit: "siec" });
     }
+    /* intencja z listy INTENCJE_SIECI → wiedza.mjs (prompt na konkret + strażnik ogólników: jedno ponowienie, potem krócej); inaczej sieć v1 */
+    const wiedza = roz && INTENCJE_SIECI.includes(roz.intencja);
     let w;
-    try { w = await d.zapytajSiec({ fetchFn, klucz: gemini, tekst, dzis }); }
+    try { w = wiedza ? await szukajWiedzy({ d, fetchFn, klucz: gemini, tekst, dzis, intencja: roz.intencja }) : await d.zapytajSiec({ fetchFn, klucz: gemini, tekst, dzis }); }
     catch (e) {
       await log({ tryb: "blad", ok: false, powod_odrzucenia: "siec: " + String(e && e.message).slice(0, 120), tok_we: m.tok.we, tok_wy: m.tok.wy });
       return odp(502, { blad: "model" });
     }
-    const o = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
+    const o = wiedza ? w : zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
     const tok = { we: m.tok.we + w.tok.we, wy: m.tok.wy + w.tok.wy };
     if (o.zrodla.length && o.zdania[0] !== NIE_ZNALAZLEM) {
       await d.doPamieci(adm, klucz, o.zdania, o.zrodla, MODEL_SIECI, teraz);
       await d.zapiszZnaleziska(adm, athleteId, znaleziskaZ(tekst, o.zrodla));
     }
     await log({ tryb: "siec", tok_we: tok.we, tok_wy: tok.wy, zapytania_sieci: w.zapytania, intencja: roz ? roz.intencja : null, pewnosc: roz ? roz.pewnosc : undefined,
-      ok: o.odrzucone.length === 0, powod_odrzucenia: o.odrzucone.length ? o.odrzucone.map((x) => `${x.powod}: ${x.zdanie}`).join(" | ") : null });
+      ok: o.odrzucone.length === 0 && !o.ogolnik,
+      powod_odrzucenia: [o.ogolnik ? "ogólnik mimo ponowienia: skrócono" : (o.ponowiono ? "ogólnik: ponowiono z instrukcją „liczby/kroki”" : null), ...o.odrzucone.map((x) => `${x.powod}: ${x.zdanie}`)].filter(Boolean).join(" | ") || null });
     return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
   }
 }

@@ -26,7 +26,10 @@ export const INTENCJE = {
   kalkulator: "przeliczenie tempa, czasu, prędkości, dystansu",
   pogoda: "pogoda",
   zdrowie: "ból, kontuzja, choroba, katar, gorączka, czy biegać chorym",
-  porada: "ogólna porada biegowa (jak zacząć, jak biegać szybciej, co jeść, buty, nawodnienie) niezwiązana z danymi biegacza",
+  porada: "ogólna porada treningowa (jak zacząć, jak biegać szybciej, ile biegać, rozgrzewka, regeneracja, tempo) niezwiązana z danymi biegacza",
+  zywienie: "jedzenie i picie: co jeść przed/po treningu, ile kcal/białka ma produkt, nawodnienie, żele, suplementy, dieta biegacza",
+  sprzet: "sprzęt biegowy: buty, zegarek, ubranie, słuchawki, co kupić, porównanie modeli, ceny",
+  o_nas: "pytanie o samą aplikację BiegaMy i ludzi za nią: kim jest Filip, Kasia, twórca; co to BiegaMy; kto to robi; jak zostać podopiecznym trenera",
   fakt: "fakt ze świata biegania: kto wygrał zawody, rekordy świata/Polski, ile km ma maraton, historia",
   akcja: "akcja charytatywna, zbiórka, pomoc, dziecko z akcji, 8 listopada",
   odmowa: "prośba o cudze dane hurtem, listę użytkowników, dane kontaktowe innych, obejście zasad",
@@ -50,7 +53,7 @@ const SCHEMAT = { type: "object", properties: {
     zakres: { type: "string", enum: ["dzis", "jutro", "weekend", "tydzien", "nastepny_tydzien"] },
     data: { type: "string" }, od: { type: "string" }, do: { type: "string" },
     miejsce: { type: "string" }, dystans: { type: "string", enum: ["5", "10", "21", "42"] },
-    osoba: { type: "string" }, impreza: { type: "string" }, temat: { type: "string" }, ekran: { type: "string" } } } },
+    osoba: { type: "string" }, impreza: { type: "string" }, temat: { type: "string" }, ekran: { type: "string" }, produkt: { type: "string" } } } },
   required: ["intencja", "pewnosc", "dopytac", "kandydaci", "sloty"] };
 
 const DNI = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
@@ -66,7 +69,8 @@ export function promptRozumienia(dzis) {
     "3. Sloty: daty jako YYYY-MM-DD liczone od dziś (wczoraj, w zeszłym tygodniu, w październiku, w sobotę); okres → od i do; zakres gdy pytanie mówi dziś/jutro/weekend/tydzień.",
     "4. pewnosc 0–1: 1 = oczywiste, < 0.6 = zgadujesz; wtedy dopytac: true i 2–3 kandydaci. Pytanie bez sensu, same znaki, jedno słowo bez kontekstu → nie_wiem.",
     "5. Poprzednie pytania służą tylko do zrozumienia skrótów („a w grudniu?”, „a on?”) — intencja dziedziczy, slot się zmienia.",
-    "6. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
+    "6. „ile kcal / kalorii / białka ma X” → zywienie ze slotem produkt = X (sama nazwa produktu). Pytania o Filipa, Kasię, twórcę, o to, czym jest BiegaMy → o_nas, nie osoba.",
+    "7. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
   ].join("\n");
 }
 
@@ -78,7 +82,7 @@ function czysteSloty(s) {
   if (!s || typeof s !== "object") return o;
   for (const k of ["zakres", "dystans"]) if (typeof s[k] === "string" && s[k]) o[k] = s[k];
   for (const k of ["data", "od", "do"]) if (typeof s[k] === "string" && RE_DATA.test(s[k])) o[k] = s[k];
-  for (const k of ["miejsce", "osoba", "impreza", "temat", "ekran"]) if (typeof s[k] === "string" && s[k].trim()) o[k] = s[k].trim().slice(0, 60);
+  for (const k of ["miejsce", "osoba", "impreza", "temat", "ekran", "produkt"]) if (typeof s[k] === "string" && s[k].trim()) o[k] = s[k].trim().slice(0, 60);
   return o;
 }
 
