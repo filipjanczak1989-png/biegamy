@@ -136,7 +136,9 @@ test('B) EF akcja-wyprawa-slad: odczyt po starcie przez strefy, surowe punkty ni
   assert.match(ef, /if \(!SEKRET \|\| \(req\.headers\.get\("x-push-secret"\) \|\| ""\) !== SEKRET\) return J\(401/);
   assert.match(ef, /const odIso = od && a\.testowa \? od \+ "T00:00:00Z" : a\.wystartowala_at;/, '`od` tylko dla próby');
   assert.match(ef, /TYPY_SLADU\.has\(String\(x\.type\)\)/); assert.doesNotMatch(ef, /access_token[^\n]*J\(|api_key[^\n]*J\(/, 'poświadczenia nigdy w odpowiedzi');
-  assert.match(czytaj('supabase/functions/intervals-webhook/index.ts'), /akcja-wyprawa-slad[\s\S]*rodzaj: 'odswiez', athlete_id: ath\.id/);
+  /* 3.11: `ath` to stała pętli — hak czytał ją spoza pętli (ReferenceError przy imported > 0); teraz ostatniAth ustawiane przy imported++ */
+  const wh = czytaj('supabase/functions/intervals-webhook/index.ts');
+  assert.match(wh, /akcja-wyprawa-slad[\s\S]*rodzaj: 'odswiez', athlete_id: ostatniAth/); assert.match(wh, /imported\+\+;\n\s*ostatniAth = ath\.id;/);
   assert.match(czytaj('supabase/config.toml'), /\[functions\.akcja-wyprawa-slad\]\s*\nverify_jwt = false/);
 });
 
