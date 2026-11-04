@@ -35,6 +35,8 @@ export const CHIPY_INTENCJI = {
   osoba: { etykieta: "Osoba", pytanie: "Wpisz imię i nazwisko" },
   impreza: { etykieta: "Impreza", pytanie: "Wpisz nazwę biegu" },
   biegi_nadchodzace: { etykieta: "Biegi w kalendarzu", pytanie: "Jakie biegi w najbliższym miesiącu" },
+  plan_startowy: { etykieta: "Plan startowy", pytanie: "Ułóż mi plan startowy" },
+  oboz: { etykieta: "Obóz biegowy", pytanie: "Gdzie na obóz biegowy" },
   katalog: { etykieta: "W aplikacji", pytanie: "Gdzie są ustawienia" },
   kalkulator: { etykieta: "Kalkulator tempa", pytanie: "Jaki czas na 10 km w tempie 5:00" },
   pogoda: { etykieta: "Pogoda", pytanie: "Pogoda jutro" },

@@ -204,7 +204,7 @@ niezmienionej bazie. Samokontrola ma na to osobny przypadek.
 
 ## Czego ta migawka NIE robi
 
-- **Nie obejmuje schematu `storage`** — tam żyje kolejnych **19 polityk**
+- **Nie obejmuje schematu `storage`** — tam żyje kolejnych **22 polityk** (19 + 3 z `20261104_akcja_firmy.sql`)
   (m.in. dla awatarów i kart), a 2 dalsze są poza `public` i `storage`.
   To znana, nazwana dziura, nie przeoczenie.
 - Nie tłumaczy, **dlaczego** dana polityka powstała. Zapisuje stan, nie zamiar.

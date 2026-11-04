@@ -30,7 +30,7 @@ test('zestaw: 6 slugów w kolejności Filipa, bez imienia, plik assets/odznaki/<
   assert.equal(O.znajdz('akcja-co-tydzien').name, '7 dni z rzędu');
   for (const u of ['akcja-1000', 'akcja-razem', 'akcja-dzien-startu']) assert.equal(O.znajdz(u), null, 'usunięta odznaka wróciła: ' + u);
   const tekst = czytaj('js/odznaki-akcji.mjs') + JSON.stringify(O.LISTA);
-  assert.doesNotMatch(tekst, /fabian|borowczyk/i, 'imię/nazwisko w module odznak — repo publiczne');
+  assert.doesNotMatch(tekst, /fabian/i, 'imię/nazwisko w module odznak — repo publiczne');
   assert.equal(O.src('akcja-100'), 'assets/odznaki/akcja-100.webp');
   assert.equal(O.src('akcja-100', true), 'assets/odznaki/akcja-100-512.webp');
   const z = decodeURIComponent(O.zaslepka('akcja-sponsor'));

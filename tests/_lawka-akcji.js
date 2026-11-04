@@ -29,6 +29,7 @@ STANY.dotarli = { ...STANY.trwa, suma_km: 6020.3, wyprawa_trwa: false, wyprawa_k
 
 /* pytania Filipa (3.11) + warianty; rodzaj = czego oczekujemy od odpowiedzi */
 const PYTANIA_AKCJI = [
+  ['jak dołączyć', 'akcja'], ['ile już km', 'km'], ['czy cegiełki to pieniądze', 'gra'], ['czy złote cegły to prawdziwe pieniądze', 'gra'], ['jak działa ranking w grze', 'gra'], ['czy mogę zmienić pseudonim w grze', 'gra'], ['czy rower liczy się do akcji', 'rower'],
   ['dokąd biegniecie', 'wyprawa'], ['gdzie kończy się wyprawa', 'wyprawa'], ['czy biegniecie do Częstochowy', 'wyprawa'], ['na kogo zbiórka', 'akcja'],
   ['ile km już jest', 'km'], ['co to za akcja', 'akcja'], ['kim jest Fabianek', 'akcja'], ['gdzie mieszka Fabianek', 'akcja'], ['co mu jest', 'zdrowie'],
   ['czy to Jasna Góra?', 'wyprawa'], ['jaki jest cel wyprawy', 'wyprawa'], ['gdzie jest meta', 'wyprawa'], ['dokąd biegnie Filip i Kasia', 'wyprawa'],
@@ -52,6 +53,7 @@ async function przebiegAkcji(opcje = {}) {
     for (const [nazwaKont, po] of Object.entries(KONTEKSTY)) {
       for (const [q, rodzaj] of PYTANIA_AKCJI) {
         if (rodzaj === 'po-akcji' && !po.length) continue;   // dopytanie bez rozmowy nie jest pytaniem o akcję
+        if (q === 'ile już km' && !stan.wystartowala) continue;   // przed startem to może być pytanie o własny trening; po starcie licznik akcji (Filip 4.11)
         const adm = atrapa({ okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [] });
         const sieci = [], modele = [];
         const fetchFn = async (url, init) => {
@@ -89,6 +91,8 @@ async function przebiegAkcji(opcje = {}) {
         const zd = (b.zdania || []).join(' ');
         if (rodzaj === 'km' && stan.wystartowala) { const oczek = AKK.km(stan.suma_km); if (!zd.includes(oczek)) bledy.push(`licznik: oczekiwane „${oczek}” z akcja_licznik, jest „${zd.slice(0, 60)}”`); }
         if (!stan.wystartowala && /\d/.test(zd)) bledy.push('liczba przed startem: „' + zd.slice(0, 60) + '”');
+        if (rodzaj === 'gra' && stan.wystartowala && !/waluta w grze|nie są wpłatami|Ranking gry|Pseudonim wybierasz/.test(zd)) bledy.push('gra bez zdania o walucie: „' + zd + '”');
+        if (rodzaj === 'rower' && stan.wystartowala && !/Rower nie|rower się nie liczy/.test(zd)) bledy.push('rower bez zdania: „' + zd + '”');
         if (rodzaj === 'wyprawa' && stan.wystartowala && !/zdradzimy na mecie|Dotarli/.test(zd)) bledy.push('wyprawa po starcie bez zdania o tajemnicy/dotarciu: „' + zd.slice(0, 60) + '”');
         if (rodzaj === 'zdrowie' && slad !== 'router:zdrowie-innych') bledy.push('pytanie o zdrowie innej osoby nie dało stałego zdania');
         wyniki.push({ stan: nazwaStanu, kontekst: nazwaKont, q, rodzaj, slad, zdanie: zd.slice(0, 110), ok: bledy.length === 0, bledy });

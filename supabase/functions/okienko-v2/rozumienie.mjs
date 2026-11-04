@@ -22,6 +22,8 @@ export const INTENCJE = {
   osoba: "pytanie o KONKRETNĄ inną osobę wskazaną imieniem i/lub nazwiskiem",
   impreza: "konkretna impreza biegowa wskazana nazwą: termin, zapisy, trasa, cena, wyniki tej imprezy",
   biegi_nadchodzace: "lista biegów/zawodów w okresie, mieście lub na dystansie (bez konkretnej nazwy imprezy)",
+  plan_startowy: "ułożenie planu startów na sezon: jakie starty wybrać w tym sezonie, gdzie pobiec wiosną lub jesienią, który start ma być główny, kalendarz startów dla mnie",
+  oboz: "obóz biegowy albo zgrupowanie dla biegaczy: gdzie pojechać, terminy, ceny (nie impreza, nawet gdy słowo obóz stoi w nazwie)",
   katalog: "treści i ekrany aplikacji BiegaMy: przepisy, ćwiczenia, oddech, radio, pojęcia (TSB, CTL, VO2max), jak coś zrobić w aplikacji, ustawienia, konto, zegarek",
   kalkulator: "przeliczenie tempa, czasu, prędkości, dystansu",
   pogoda: "pogoda",
@@ -72,7 +74,9 @@ export function promptRozumienia(dzis) {
     "6. „ile kcal / kalorii / białka ma X” → zywienie ze slotem produkt = X (sama nazwa produktu). Pytania o Filipa, Kasię, twórcę, o to, czym jest BiegaMy → o_nas, nie osoba.",
     "7. Okres ZAWSZE jako para od i do (np. „w grudniu” → od 2026-12-01, do 2026-12-31) — nigdy samo od; zakres tylko gdy pytanie mówi dziś/jutro/weekend/tydzień. Miejsce z pytania („a w Krakowie?”) zawsze w slocie miejsce, dystans („a na 21 km”) w slocie dystans.",
     "8. „sugerowane / polecane starty”, „gdzie pobiec”, „jakie biegi” → biegi_nadchodzace (lista zawodów), nie moje_starty. Zaimek (on, ona, nim, niej) to NIE slot osoba — zostaw pusty.",
-    "9. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
+    "9. „ułóż plan startowy”, „jakie starty w tym sezonie”, „gdzie pobiec wiosną” → plan_startowy, nie moje_starty i nie biegi_nadchodzace. Wyjątek: konkretny miesiąc albo miasto („gdzie pobiec w grudniu”, „biegi w Krakowie”) → biegi_nadchodzace.",
+    "10. „gdzie na obóz”, „obóz biegowy”, „zgrupowanie” → oboz, nigdy impreza. Tylko „wyniki biegu Obóz…” albo „kiedy jest bieg Obóz…” → impreza albo fakt.",
+    "11. Odpowiadasz wyłącznie JSON wg schematu, po polsku, bez komentarzy.",
   ].join("\n");
 }
 

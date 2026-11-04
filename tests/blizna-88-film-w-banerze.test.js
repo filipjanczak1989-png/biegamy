@@ -104,7 +104,7 @@ test('(6) brak canplaythrough w 4 s → film znika, cytat zostaje, dzień NIE zu
   assert.equal(v.grano, undefined, 'spóźnione canplaythrough po rezygnacji nic nie odpala');
 });
 
-test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+webm film-02 z biegamy-assets, pozycje 12% → 0% (6,88 s) → 72% (8,3 s), raz dziennie', async () => {
+test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+webm film-02 z biegamy-assets, pozycje 12% → 0% (6,88 s) → 72% (8,3 s) → pełna klatka (9 s), raz dziennie', async () => {
   const s = srodowisko();
   const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
   assert.equal(v.tag, 'video'); assert.equal(s.baner.dzieci[0], v);
@@ -113,7 +113,7 @@ test('(2)(3) start: video muted/playsinline NA banerze (inset:0, cover), mp4+web
   assert.deepEqual(v.dzieci.map((z) => [z.src, z.type]), [['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02.mp4', 'video/mp4'],
     ['https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02.webm', 'video/webm']]);
   assert.equal(v.atrybuty.poster, 'https://filipjanczak1989-png.github.io/biegamy-assets/filmy/film-02-poster.jpg');
-  for (const [t, p] of [[0, '50% 12%'], [6.87, '50% 12%'], [6.88, '50% 0%'], [8.29, '50% 0%'], [8.3, '50% 72%'], [9.9, '50% 72%']]) { v.currentTime = t; v.emit('timeupdate'); assert.equal(v.style.objectPosition, p, 't=' + t); }
+  for (const [t, p, fit] of [[0, '50% 12%', 'cover'], [6.87, '50% 12%', 'cover'], [6.88, '50% 0%', 'cover'], [8.29, '50% 0%', 'cover'], [8.3, '50% 72%', 'cover'], [8.99, '50% 72%', 'cover'], [9, '50% 50%', 'contain'], [9.9, '50% 50%', 'contain']]) { v.currentTime = t; v.emit('timeupdate'); assert.equal(v.style.objectPosition, p, 't=' + t); assert.equal(v.style.objectFit, fit, 't=' + t); }
   assert.equal(s.mag.get('film_dzis'), undefined, 'znacznik dopiero, gdy film naprawdę gra');
   v.emit('playing');
   assert.equal(s.mag.get('film_dzis'), '2026-11-02'); assert.equal(s.baner.dataset.film, 'gra');
@@ -149,7 +149,7 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const hero = z.slice(z.indexOf('id="today-hero"'), z.indexOf('<!-- Kafelki po prawej -->'));
   assert.ok(!/video|FILM/i.test(hero), 'duży kadr bez zmian');
   const sb = czytaj('sb.js');
-  assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 12%' \}, \{ od: 6\.88, pos: '50% 0%' \}, \{ od: 8\.3, pos: '50% 72%' \}\] \}/);
+  assert.match(sb, /pozycje: \[\{ od: 0, pos: '50% 12%' \}, \{ od: 6\.88, pos: '50% 0%' \}, \{ od: 8\.3, pos: '50% 72%' \}, \{ od: 9, pos: '50% 50%', fit: 'contain' \}\] \}/);
   const promo = sb.slice(sb.indexOf('window.FILMY_PROMO = ['), sb.indexOf('];', sb.indexOf('window.FILMY_PROMO = [')));
   // FILM-03 (2.11): dziś dwa pliki; mapa dni (FILMY_DNI) decyduje, nie kolejność
   assert.ok((promo.match(/\{ id: 'film-/g) || []).length >= 2, 'film-02 i film-03 (i kolejne)'); assert.match(promo, /id: 'film-02'/);
@@ -159,9 +159,10 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   const sr = srodowisko(), dnia = (d) => sr.ctx.FILM_DZIS.filmDnia(new Date(d + 'T08:00:00')).id;
   assert.equal(dnia('2026-11-02'), 'film-02'); assert.equal(dnia('2026-11-03'), 'film-03', '3.11 rano → film-03 (Filip: „żeby jutro rano grał")');
   assert.equal(dnia('2026-11-04'), 'film-04', '4.11 → film-04 (wgrany 2.11)'); assert.equal(dnia('2026-11-05'), 'film-05', '5.11 → film-05 (wgrany 3.11)');
-  for (const d of ['2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-02', d + ': plik jeszcze nie istnieje → film-02');
+  for (const d of ['2026-11-06', '2026-11-07']) assert.equal(dnia(d), 'film-06', d + ': film-06 (wgrany 4.11), 7.11 do naciśnięcia guzika');
+  assert.match(promo, /\{ id: 'film-06', mp4: 'filmy\/film-06\.mp4', webm: 'filmy\/film-06\.webm', poster: 'filmy\/film-06-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 58%' \}\] \}/);
   assert.match(promo, /\{ id: 'film-05', mp4: 'filmy\/film-05\.mp4', webm: 'filmy\/film-05\.webm', poster: 'filmy\/film-05-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 25%' \}, \{ od: 38\.5, pos: '50% 100%' \}\] \}/, 'film-05: twarze w górnej połowie pasa → plansza z napisem na dole');
-  sr.ctx.FILMY_PROMO.push({ id: 'film-06', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
+  sr.ctx.FILMY_PROMO.push({ id: 'film-07', mp4: 'x', webm: 'x', poster: 'x', pozycje: [{ od: 0, pos: '50% 50%' }] });
   assert.equal(dnia('2026-11-03'), 'film-03', 'dodanie kolejnych plików NIE przesuwa 3.11 (rotacja by przesunęła)');
   assert.match(promo, /\{ id: 'film-04', mp4: 'filmy\/film-04\.mp4', webm: 'filmy\/film-04\.webm', poster: 'filmy\/film-04-poster\.jpg',\s*dzwiek: true, pozycje: \[\{ od: 0, pos: '50% 85%' \}, \{ od: 4, pos: '50% 12%' \}\] \}/, 'film-04: dół (biegacze) → góra (słońce na horyzoncie)');
   assert.equal(dnia('2026-11-06'), 'film-06'); assert.equal(dnia('2026-11-07'), 'film-06', '7.11 przed naciśnięciem = film-06');
@@ -170,6 +171,34 @@ test('(2)(4) zawodnik.html: film startuje z loadDailyMotivation na #daily-motiva
   sr.ctx.FILMY_PROMO.splice(0, 1); sr.ctx.FILMY_DNI['2026-11-05'] = 'film-99';   // dzień wskazuje brakujący plik i nie ma film-02 → pierwszy z listy (nie wywraca Dziś)
   assert.equal(dnia('2026-11-05'), sr.ctx.FILMY_PROMO[0].id);
   assert.ok(!/film-0\d/.test(czytaj('sw.js').slice(czytaj('sw.js').indexOf('const PRECACHE_URLS'), czytaj('sw.js').indexOf('const PRECACHE_KRYTYCZNE'))), 'filmy poza precache');
+});
+
+test('film akcji: tajny do startu, adres z licznika, bez webm i plakatu, pełny adres bez przedrostka assets', () => {
+  const ADR = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/sign/akcja-wizerunek/film-akcja.mp4?token=abc.def-1';
+  const s = srodowisko({ zapis: null });
+  s.ctx.BM_AKCJA_CYTATY = { czyAkcjaRuszyla: () => true };
+  s.ctx.FILM_AKCJI = { id: 'film-akcja', mp4: ADR, dzwiek: true, pozycje: [{ od: 0, pos: '50% 45%' }] };
+  assert.equal(s.ctx.FILM_DZIS.filmDnia(TERAZ).id, 'film-akcja');
+  const v = s.ctx.FILM_DZIS.start(s.baner, TERAZ);
+  assert.ok(v, 'film akcji startuje');
+  assert.deepEqual(v.dzieci.map((z) => [z.src, z.type]), [[ADR, 'video/mp4']], 'tylko mp4, adres bez przedrostka biegamy-assets');
+  assert.equal(v.atrybuty.poster, undefined, 'plakat w assets zdradziłby film');
+  const sw = czytaj('sw.js');
+  assert.ok(!/akcja-wizerunek/.test(sw), 'tajny plik nie trafia do cache SW z nazwy');
+  // zwykły film dalej z assets
+  const z = srodowisko();
+  const w = z.ctx.FILM_DZIS.start(z.baner, TERAZ);
+  assert.match(w.dzieci[0].src, /^https:\/\/filipjanczak1989-png\.github\.io\/biegamy-assets\/filmy\//);
+  assert.ok(w.atrybuty.poster);
+  // obiekt filmu powstaje tylko z licznika, po starcie, z adresu podpisanego
+  const piask = { };
+  require('node:vm').runInNewContext(czytaj('js/akcja-cytaty.mjs'), { globalThis: piask, window: piask, console });
+  const F = (piask.BM_AKCJA_CYTATY || globalThis.BM_AKCJA_CYTATY).filmAkcjiZLicznika;
+  assert.equal(F({ wystartowala: true, film_akcji_url: ADR }).mp4, ADR);
+  assert.equal(F({ wystartowala: false, film_akcji_url: ADR }), null, 'przed startem nic, nawet gdyby serwer się pomylił');
+  for (const zly of ['https://zly.example/storage/v1/object/sign/akcja-wizerunek/a.mp4?token=a', ADR.replace('.mp4', '.webp'), ADR + '"><script>', 'filmy/film-akcja.mp4', null, 5]) assert.equal(F({ wystartowala: true, film_akcji_url: zly }), null, String(zly));
+  assert.match(czytaj('sb.js'), /window\.FILM_AKCJI = null;/, 'w sb.js nie ma adresu ani nazwy pliku');
+  assert.doesNotMatch(czytaj('sb.js'), /filmy\/film-akcja/, 'film akcji nie idzie przez publiczne assets');
 });
 
 test('(5) SW: osobny cache filmów (max 3, przeżywa deploy), zakresy 206/416, radio dalej bez SW', async () => {

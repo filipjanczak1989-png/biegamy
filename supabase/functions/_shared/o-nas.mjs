@@ -41,6 +41,12 @@ export const O_NAS = {
 /* profile osób projektu (oba publiczne, sprawdzone 3.11) — karta „osoba” bez przycisku znajomości (bez_znajomosci: nie znamy relacji pytającego) */
 export const PROFILE = { profil_kasi: { id: "2dd9206b-d2f0-4bdc-a1ef-4d7765e446b8", nazwa: "Kasia — współtrenerka" },
   profil_filipa: { id: "56092926-2cf1-44b6-952f-38614497fdc2", nazwa: "Filip Jańczak — trener" } };
+/* temat → osoba projektu: karta z avatarem i wynikami (okienko/osoba.mjs kartyProfilu). `szukaj` = imię i nazwisko do maszyny wyników, gdy konto ma samo imię
+   (Filip 3.11: „Filip Janczak” trafiał tu i dostawał samo zdanie, bez wyników). Kasia bez `szukaj`: nazwiska nie ma w bazie, a po samym imieniu maszyna da przypadkowe osoby. */
+export const PROFIL_TEMATU = {
+  filip: { ...PROFILE.profil_filipa, szukaj: "Filip Jańczak" }, profil_filipa: { ...PROFILE.profil_filipa, szukaj: "Filip Jańczak" },
+  kasia: { ...PROFILE.profil_kasi, szukaj: null }, profil_kasi: { ...PROFILE.profil_kasi, szukaj: null },
+};
 
 const fold = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L").toLowerCase().replace(/[?!.,;:"'„”()]+/g, " ").replace(/\s+/g, " ").trim();
 

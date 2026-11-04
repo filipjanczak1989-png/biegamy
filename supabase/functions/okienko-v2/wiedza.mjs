@@ -6,8 +6,8 @@
 // przed tym modułem i nie zmienia się. Zdrowie (choroba, kontuzja) nie wchodzi tu — stałe teksty z routera/intencji.
 import { zOdpowiedziSieci, NIE_ZNALAZLEM } from "../okienko/siec.mjs";
 
-export const INTENCJE_SIECI = ["fakt", "porada", "zywienie", "sprzet"];
-export const Z_STRAZNIKIEM = ["porada", "zywienie", "sprzet"];   // fakt bez strażnika: „maraton wygrał X” bez cyfr to nie ogólnik
+export const INTENCJE_SIECI = ["fakt", "porada", "zywienie", "sprzet", "oboz"];
+export const Z_STRAZNIKIEM = ["porada", "zywienie", "sprzet", "oboz", "zagranica"];   // fakt bez strażnika: „maraton wygrał X” bez cyfr to nie ogólnik
 export const MAX_ZDAN_WIEDZY = 5, MAX_TOK_WIEDZY = 500;
 export const DOPISEK_PORADY = "To ogólna wskazówka, nie plan — Twój plan i trener mają pierwszeństwo.";
 
@@ -42,6 +42,8 @@ const OPIS_INTENCJI = {
   zywienie: "To pytanie o jedzenie lub picie: podaj kcal, gramy, mililitry i czas (np. ile godzin przed startem), wartości na 100 g albo na porcję.",
   sprzet: "To pytanie o sprzęt biegowy: wymień 2–3 konkretne modele albo cechy (drop, amortyzacja, waga) i orientacyjne ceny w złotych, jeśli są w wynikach.",
   fakt: "To pytanie o fakt ze świata biegania: podaj datę, nazwisko, wynik, miejsce.",
+  oboz: "To pytanie o obozy biegowe albo zgrupowania dla biegaczy amatorów, nie o zawody: wymień 2–4 obozy, przy każdym termin, miejsce, cenę w złotych i organizatora. Jeśli pytanie podaje miesiąc albo region, tylko z tego miesiąca i regionu.",
+  zagranica: "To pytanie o popularne biegi za granicą: wymień 2–4 imprezy, przy każdej nazwę, miasto, kraj i datę następnej edycji. Tylko imprezy, których data jest w wynikach wyszukiwania.",
 };
 export function promptWiedzy(dzis, intencja, ponow = false) {
   return [

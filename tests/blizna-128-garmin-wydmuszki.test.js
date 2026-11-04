@@ -86,7 +86,7 @@ test('czujka: nowe posty autora wątku o Garminie od ostatniego sprawdzenia; sta
   const n = C.noweOGarminie(posty, 'david', 892);
   assert.equal(n.length, 1); assert.equal(n[0].post_number, 894); assert.equal(n[0].url, 'https://forum.intervals.icu/t/609/894'); assert.equal(n[0].cytat, 'We will block Garmin data on 15 Nov.');
   assert.equal(C.noweOGarminie(posty, 'david', 894).length, 0); assert.equal(C.noweOGarminie(posty, 'david', 0).length, 2, 'bez stanu — wszystkie Davida o Garminie');
-  const stan = JSON.parse(czytaj('docs/czujka-intervals.json')); assert.equal(stan.ostatni_post, 892); assert.equal(stan.autor, 'david');
+  const stan = JSON.parse(czytaj('docs/czujka-intervals.json')); assert.ok(Number.isInteger(stan.ostatni_post) && stan.ostatni_post >= 892, 'stan przesuwa nocny krok, nigdy w tył'); assert.equal(stan.autor, 'david');
   const w = czytaj('.github/workflows/okienko-noc.yml');
   assert.match(w, /node tools\/czujka-intervals\.mjs/); assert.match(w, /if: steps\.czujka\.outputs\.kod == '4'/); assert.match(w, /docs\/czujka-intervals\.json/);
   assert.ok(w.indexOf('node tools/czujka-intervals.mjs') < w.indexOf('git commit'), 'czujka przed commitem (stan trafia do repo)');

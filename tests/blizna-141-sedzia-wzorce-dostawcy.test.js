@@ -41,7 +41,7 @@ test('ocena: Claude dostaje schemat strict, effort low i wzorzec tylko, gdy jest
   assert.equal(bez.dostawca, 'claude'); assert.ok(bez.usd > 0);
   assert.equal(k.wolania[0].output_config.effort, 'low'); assert.equal(k.wolania[0].output_config.format.schema.additionalProperties, false);
   assert.doesNotMatch(JSON.stringify(k.wolania[0].messages), /WZORCOWA/); assert.ok(!k.wolania[0].output_config.format.schema.required.includes('zgodny_ze_wzorcem'));
-  await S.ocenOdpowiedz({ dostawca: 'claude', w, wzorzec: { id: 'w001', wzorzec: 'Zacznij od 20 min marszobiegu.' }, klient: k, plik });
+  await S.ocenOdpowiedz({ dostawca: 'claude', w, wzorzec: { id: 1, odpowiedz: 'Zacznij od 20 min marszobiegu.' }, klient: k, plik });
   assert.match(JSON.stringify(k.wolania[1].messages), /ODPOWIEDŹ WZORCOWA: Zacznij od 20 min/); assert.ok(k.wolania[1].output_config.format.schema.required.includes('zgodny_ze_wzorcem'));
   assert.match(k.wolania[1].system, /zgodny_ze_wzorcem/);
   let body = null, adres = null;
@@ -50,53 +50,83 @@ test('ocena: Claude dostaje schemat strict, effort low i wzorzec tylko, gdy jest
   assert.match(adres, /gemini-3\.5-flash:/); assert.equal(body.generationConfig.temperature, 0); assert.equal(g.dostawca, 'gemini'); assert.ok(g.usd > 0); assert.equal(g.ocena.odpowiada, 1);
 });
 
-test('wzorce: plik ↔ lista (także CRLF), sędzia widzi tylko OK; zatwierdzanie z --bez; dopasowanie po słowach z progiem', async () => {
+test('wzorce: sędzia dopasowuje jak potok, tylko zatwierdzone i ważne; zatwierdzanie przez plik md zniknęło', async () => {
   const S = await zaladuj('tools/_sedzia.mjs');
-  const Z = await zaladuj('tools/okienko-wzorce.mjs');
   const wpisy = [
-    { id: 'w001', intencja: 'porada', waga: 5, status: 'DO-OK', pytanie: 'Jak zacząć biegać?', wzorzec: 'Zacznij od 20 minut marszobiegu 3 razy w tygodniu.', zrodla: ['https://a.pl/x', 'https://b.pl/y'] },
-    { id: 'w002', intencja: 'zywienie', waga: 4, status: 'DO-OK', pytanie: 'Co jeść przed długim wybieganiem?', wzorzec: 'Zjedz 60–90 g węglowodanów 3 godziny wcześniej.', zrodla: [] },
+    { id: 1, intencja: 'porada', status: 'zatwierdzona', waznosc: 'wieczna', wazna_do: null, pytanie: 'Jak zacząć biegać?', odpowiedz: 'Zacznij od 20 minut marszobiegu 3 razy w tygodniu.' },
+    { id: 2, intencja: 'zywienie', status: 'odrzucona', waznosc: 'wieczna', wazna_do: null, pytanie: 'Co jeść przed długim wybieganiem?', odpowiedz: 'Zjedz 60–90 g węglowodanów 3 godziny wcześniej.' },
+    { id: 3, intencja: 'sprzet', status: 'zatwierdzona', waznosc: 'do_daty', wazna_do: '2026-11-01', pytanie: 'Ile kosztują buty do biegania?', odpowiedz: 'Dobre buty kosztują około 500 zł w listopadzie.' },
   ];
-  const md = Z.doMd(wpisy);
-  assert.deepEqual(S.wczytajWzorce(md), wpisy); assert.deepEqual(S.wczytajWzorce(md.replace(/\n/g, '\r\n')), wpisy, 'CRLF z Windowsa nie gubi wpisów');
-  const plik = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'wz-')), 'w.md');
-  fs.writeFileSync(plik, md); assert.deepEqual(S.wzorceZatwierdzone(plik), [], 'niezatwierdzone nie idą do sędziego');
-  const zatw = Z.zatwierdz(wpisy, ['w002']);
-  assert.equal(zatw[0].status, 'OK'); assert.equal(zatw[1].status, 'ODRZUCONY');
-  fs.writeFileSync(plik, Z.doMd(zatw)); assert.deepEqual(S.wzorceZatwierdzone(plik).map((w) => w.id), ['w001']);
-  assert.deepEqual(S.wzorceZatwierdzone(plik + '.brak'), [], 'brak pliku = brak wzorców, nie błąd');
-  assert.equal(S.znajdzWzorzec('jak zaczac biegac', zatw).id, 'w001', 'bez polskich znaków');
-  assert.equal(S.znajdzWzorzec('jak zacząć biegać?', zatw).id, 'w001');
-  assert.equal(S.znajdzWzorzec('ile kalorii ma banan', zatw), null);
-  assert.equal(S.znajdzWzorzec('co jesc przed dlugim wybieganiem', zatw), null, 'odrzucony wzorzec nie pasuje');
-  assert.equal(S.znajdzWzorzec('jak zacząć biegać', wpisy), null, 'status DO-OK nie pasuje');
+  assert.equal(S.znajdzWzorzec('jak zaczac biegac', wpisy, '2026-11-04').id, 1, 'bez polskich znaków');
+  assert.equal(S.znajdzWzorzec('od czego zacząć bieganie', wpisy, '2026-11-04').id, 1, 'innymi słowami, ta sama reguła co w potoku');
+  assert.equal(S.znajdzWzorzec('ile kalorii ma banan', wpisy, '2026-11-04'), null);
+  assert.equal(S.znajdzWzorzec('co jesc przed dlugim wybieganiem', wpisy, '2026-11-04'), null, 'odrzucony nie jest wzorcem');
+  assert.equal(S.znajdzWzorzec('ile kosztują buty do biegania', wpisy, '2026-11-04'), null, 'przeterminowany nie jest wzorcem');
+  assert.match(S.trescDlaSedziego({ pytanie: 'q', sciezka: 's', odpowiedz: 'a' }, wpisy[0]), /ODPOWIEDŹ WZORCOWA: Zacznij od 20 minut/);
+  for (const nazwa of ['wczytajWzorce', 'wzorceZatwierdzone', 'PLIK_WZORCOW']) assert.equal(S[nazwa], undefined, nazwa + ': bez zatwierdzania przez plik');
+  assert.doesNotMatch(czytaj('tools/_sedzia.mjs') + czytaj('tools/okienko-raport-dnia.mjs') + czytaj('tools/okienko-wzorce.mjs').replace(/Nic nie trafia do docs\./, ''), /docs\/okienko-wzorce/, 'docs/okienko-wzorce.md nie powstaje');
+  assert.ok(!fs.existsSync(path.join(KORZEN, 'docs/okienko-wzorce.md')));
 });
 
-test('wzorce: lista z ławki wg wagi bez powtórek i bez dopytań; uzupełnienie do N; wznowienie nie płaci drugi raz; limit punktu; przeciek akcji nie trafia do repo', async () => {
+test('wzorce: plik poza repo z wznawianiem i limitem, SQL tylko kandydaci i idempotentny; lista z ławki bez powtórek i bez dopytań; przeciek akcji i dane osoby odpadają', async () => {
   const Z = await zaladuj('tools/okienko-wzorce.mjs');
+  assert.match(Z.PLIK_DOMYSLNY, /Downloads[\\/]biegamy-podglady[\\/]wzorce-kandydaci\.json$/, 'poza repo');
   const P = [{ p: 'jak zacząć biegać', intencja: 'porada', waga: 3 }, { p: 'jak zaczac biegac?', intencja: 'porada', waga: 5 }, { p: 'co jeść przed startem', intencja: 'zywienie', waga: 4 },
-    { p: 'a jutro?', intencja: 'porada', waga: 5, po: ['x'] }, { p: 'moj plan', intencja: 'moj_plan', waga: 5 }, { p: 'jakie buty na asfalt', intencja: 'sprzet', waga: 2 }];
+    { p: 'a jutro?', intencja: 'porada', waga: 5, po: ['x'] }, { p: 'moj plan', intencja: 'moj_plan', waga: 5 }, { p: 'jakie buty na asfalt', intencja: 'sprzet', waga: 2 }, { p: 'jak trenuje Jan Kowalski', intencja: 'porada', waga: 5 }, { p: 'jak pomóc Fabiankowi', intencja: 'porada', waga: 5 }];
   const l = Z.wybierzPytania(P, 10);
-  assert.deepEqual(l.map((x) => x.pytanie), ['jak zaczac biegac?', 'co jeść przed startem', 'jakie buty na asfalt']);
+  assert.deepEqual(l.map((x) => x.pytanie), ['jak zaczac biegac?', 'co jeść przed startem', 'jakie buty na asfalt'], 'powtórka, dopytanie, osoba i akcja odpadają');
   assert.equal(Z.wybierzPytania(P, 2).length, 2);
+  const P2 = [{ p: 'Jak zacząć biegać, jeśli nigdy wcześniej nie trenowałem?', intencja: 'porada', waga: 5 }, { p: 'jak zacząć biegać jeśli nigdy wcześniej nie ćwiczyłem', intencja: 'porada', waga: 4 }, { p: 'czy mogę biegać skoro biegałem wczoraj', intencja: 'porada', waga: 4 }, { p: 'jak przebiec 5 km bez zatrzymywania?? 😩', intencja: 'porada', waga: 3 }, { p: 'jak przebiec 10 km bez zatrzymywania', intencja: 'porada', waga: 2 }];
+  assert.deepEqual(Z.wybierzPytania(P2, 10).map((x) => x.pytanie), ['Jak zacząć biegać, jeśli nigdy wcześniej nie trenowałem?', 'jak przebiec 5 km bez zatrzymywania?', 'jak przebiec 10 km bez zatrzymywania'], 'prawie to samo i własne dane odpadają, emoji też; inna liczba to inne pytanie');
   const plik = tmp();
-  const kL = klient(json({ pytania: [{ p: 'ile wody pić', intencja: 'zywienie', waga: 9 }, { p: 'jak zacząć biegać', intencja: 'porada', waga: 3 }, { p: 'ile dni biegać w tygodniu', intencja: 'porada', waga: 4 }] }));
+  const kL = klient(json({ pytania: [{ p: 'ile wody pić', intencja: 'zywienie', waga: 9 }, { p: 'jak zacząć biegać', intencja: 'porada', waga: 3 }, { p: 'jaki zegarek do biegania', intencja: 'sprzet', waga: 4 }] }));
   const pelna = await Z.uzupelnijPytania(l, 5, { klient: kL, plik, log: () => {} });
   assert.equal(pelna.length, 5); assert.ok(pelna.some((x) => x.pytanie === 'ile wody pić' && x.waga === 5), 'waga obcięta do 5'); assert.equal(pelna.filter((x) => /zacz/.test(x.pytanie)).length, 1, 'powtórka odsiana');
   const odp = (t) => ({ model: 'claude-opus-5-5', stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 20 }, content: [
     { type: 'text', text: 'Sprawdzę to.' }, { type: 'server_tool_use', name: 'web_search' }, { type: 'web_search_tool_result', content: [] },
     { type: 'text', text: t, citations: [{ url: 'https://zrodlo.pl/a', title: 'a' }, { url: 'http://niebezpieczne.pl/b', title: 'b' }] }] });
-  const k = klient((p) => (/asfalt/.test(p.messages[0].content) ? odp('Meta wyprawy to Częstochowa.') : odp('Zacznij od 20 minut.')));
+  const k = klient((p) => (/asfalt/.test(p.messages[0].content) ? odp('Meta wyprawy to Częstochowa, a dalej 20 km trasy.') : odp('Zacznij od 20 minut marszobiegu i dokładaj czas.')));
   const zapisy = [];
-  const r = await Z.generujWzorce(l, { wpisy: [{ id: 'w007', intencja: 'porada', waga: 5, status: 'OK', pytanie: 'jak zaczac biegac?', wzorzec: 'x', zrodla: [] }], klient: k, plik, rownolegle: 1, kosztNarzedzia: () => 0, zapisz: (w) => zapisy.push(w.length), log: () => {} });
-  assert.equal(k.wolania.length, 2, 'gotowe pytanie bez ponownego wywołania');
-  assert.deepEqual(r.wpisy.map((w) => w.id), ['w007', 'w008'], 'przeciek akcji odrzucony, id ciągłe');
-  assert.equal(r.wpisy[1].wzorzec, 'Zacznij od 20 minut.', 'bez „Sprawdzę to” sprzed narzędzia'); assert.deepEqual(r.wpisy[1].zrodla, ['https://zrodlo.pl/a'], 'tylko https'); assert.equal(r.wpisy[1].status, 'DO-OK');
+  const r = await Z.generujWzorce(l, { wpisy: [{ pytanie: 'jak zaczac biegac?', intencja: 'porada', waga: 5, wzorzec: 'x'.repeat(25) }], klient: k, plik, rownolegle: 1, dzis: '2026-11-04', kosztNarzedzia: () => 0, zapisz: (w) => zapisy.push(w.length), log: () => {} });
+  assert.equal(k.wolania.length, 2, 'gotowe pytanie bez ponownej zapłaty');
+  assert.equal(r.wpisy.length, 2, 'przeciek akcji odrzucony');
+  const nowy = r.wpisy[1];
+  assert.equal(nowy.wzorzec, 'Zacznij od 20 minut marszobiegu i dokładaj czas.', 'bez „Sprawdzę to” sprzed narzędzia'); assert.deepEqual(nowy.zrodla, [{ tytul: 'a', url: 'https://zrodlo.pl/a' }], 'tylko https');
+  assert.equal(nowy.waznosc, 'wieczna'); assert.equal(nowy.wazna_do, null); assert.ok(nowy.temat);
   assert.deepEqual(zapisy, [2], 'zapis po każdym wpisie');
-  assert.equal(k.wolania[0].tools[0].type, 'web_search_20260209'); assert.equal(k.wolania[0].output_config.format, undefined, 'bez formatu JSON przy cytowaniach');
+  assert.equal(k.wolania[0].tools[0].type, 'web_search_20250305', '20260209 nie zwraca cytowań (próba na żywo 4.11)'); assert.equal(k.wolania[0].tools[0].max_uses, 1); assert.equal(k.wolania[0].output_config.format, undefined, 'bez formatu JSON przy cytowaniach');
+  assert.ok(['trening', 'żywienie', 'sprzęt'].includes(nowy.temat), 'temat czytelny dla trenera: ' + nowy.temat);
+  const bezZrodel = klient(() => ({ model: 'claude-opus-5-5', stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 20 }, content: [{ type: 'web_search_tool_result', content: [] }, { type: 'text', text: 'Zacznij od 20 minut marszobiegu 3 razy w tygodniu.' }] }));
+  assert.equal(await Z.napiszWzorzec({ pytanie: 'jak zacząć biegać', intencja: 'porada' }, { klient: bezZrodel, plik }), null, 'wzorzec z sieci bez źródła odpada');
   const k2 = klient(odp('x'));
-  const lim = await Z.generujWzorce(l, { klient: k2, plik, limitUsd: 1, kosztNarzedzia: () => 1, log: () => {} });
+  const lim = await Z.generujWzorce(l, { klient: k2, plik, limitUsd: 1, dzis: '2026-11-04', kosztNarzedzia: () => 1, log: () => {} });
   assert.equal(k2.wolania.length, 0); assert.match(lim.stop, /limit 1 USD/);
+  const s = Z.sqlKandydatow([{ ...nowy, pytanie: "co jeść przed 'startem'", wzorzec: "Zjedz to, co znasz: 'sprawdzone' 60 g." }, { ...nowy, pytanie: "co jeść przed 'startem'", wzorzec: 'duplikat klucza' }, { ...nowy, pytanie: 'x', wzorzec: 'bez klucza' }, { pytanie: 'jak często biegać', intencja: 'moj_plan', wzorzec: 'obca intencja' },
+    { ...nowy, pytanie: 'ile kosztują buty', intencja: 'sprzet', wzorzec: 'Buty kosztują około 500 zł.', waznosc: 'do_daty', wazna_do: '2026-12-04', nietrwala: true }]);
+  assert.equal(s.wierszy, 2, 'duplikat, brak klucza i obca intencja odpadają');
+  assert.equal((s.tekst.match(/on conflict \(klucz\) do nothing;/g) || []).length, 2, 'idempotentny'); assert.equal((s.tekst.match(/'kandydat', 0\)/g) || []).length, 2, 'tylko kandydat, 0 zapytań');
+  assert.doesNotMatch(s.tekst, /zatwierdzona|odrzucona/); assert.match(s.tekst, /''sprawdzone''/, 'apostrof podwojony'); assert.match(s.tekst, /true, true, 'wzorzec'|false, true, 'wzorzec'/, 'wzorzec nie idzie do przepisania');
+  assert.match(s.tekst, /'2026-12-04'::date, true, true, 'wzorzec'/); assert.match(s.tekst, /\]'::jsonb/);
+  const dlugi = 'Zdanie pierwsze. Żel między 30. a 45. minutą. Trzecie zdanie. Czwarte zdanie. Piąte zdanie. Szóste odpada. Siódme też.';
+  assert.equal(Z.przytnijWzorzec(dlugi), 'Zdanie pierwsze. Żel między 30. a 45. minutą. Trzecie zdanie. Czwarte zdanie. Piąte zdanie.', 'najwyżej 5 całych zdań (Filip 4.11)');
+  assert.equal(Z.przytnijWzorzec('Krótki wzorzec. Dwa zdania.'), 'Krótki wzorzec. Dwa zdania.');
+  const s2 = Z.sqlKandydatow([{ ...nowy, pytanie: 'jak długo biegać rano', wzorzec: dlugi }]);
+  assert.doesNotMatch(s2.tekst, /Szóste/, 'SQL też przycięty, bez ponownej zapłaty za istniejące wzorce');
+  const k3 = klient(() => odp(dlugi));
+  assert.doesNotMatch((await Z.napiszWzorzec({ pytanie: 'jak długo biegać rano', intencja: 'porada' }, { klient: k3, plik })).wzorzec, /Szóste/, 'nowy wzorzec też');
+  /* Filip 4.11: bez źródeł komercyjnych, po trenersku, bez nowych liczb */
+  for (const u of ['https://www.decathlon.pl/x', 'https://sklep.garmin.com/a', 'https://cokolwiek.store/a', 'https://apka.app/b', 'nie-adres']) assert.equal(Z.czyKomercyjne(u), true, u);
+  for (const u of ['https://bieganie.pl/a', 'https://pubmed.ncbi.nlm.nih.gov/1', 'https://magazynbieganie.pl/x']) assert.equal(Z.czyKomercyjne(u), false, u);
+  const sk = Z.sqlKandydatow([{ ...nowy, pytanie: 'jak długo biegać w zimie', wzorzec: 'Biegaj spokojnie przez 30 minut w zimie.', zrodla: [{ tytul: 'x', url: 'https://decathlon.pl/x' }, { tytul: 'y', url: 'https://bieganie.pl/y' }] }, { ...nowy, pytanie: 'jak długo biegać latem', wzorzec: 'Biegaj rano przez 40 minut latem.', bez_zrodla: true }]);
+  assert.equal(sk.wierszy, 1, 'wpis bez źródła nie idzie do kolejki'); assert.doesNotMatch(sk.tekst, /decathlon/); assert.match(sk.tekst, /bieganie\.pl/);
+  const odpJson = (o) => ({ model: 'claude-opus-5-5', stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 20 }, content: [{ type: 'text', text: JSON.stringify(o) }] });
+  const baza = { pytanie: 'jak często biegać', wzorzec: 'Biegaj 3 razy w tygodniu po 30 minut, a jeden dzień zostaw na odpoczynek po treningu.' };
+  const zLiczba = await Z.przepiszWzorzec(baza, { klient: klient(() => odpJson({ zdania: ['Biegaj 5 razy w tygodniu po 30 minut i odpoczywaj po treningu.'] })), plik });
+  assert.equal(zLiczba.przepisany, false, 'nowa liczba: zostaje tekst źródłowy'); assert.equal(zLiczba.wzorzec, baza.wzorzec);
+  const zMarka = await Z.przepiszWzorzec(baza, { klient: klient(() => odpJson({ zdania: ['Biegaj 3 razy w tygodniu po 30 minut, najlepiej w butach Nike na treningu.'] })), plik });
+  assert.equal(zMarka.przepisany, false, 'marka w odpowiedzi');
+  const dobry = await Z.przepiszWzorzec(baza, { klient: klient(() => odpJson({ zdania: ['Biegaj 3 razy w tygodniu po 30 minut.', 'Jeden dzień zostaw na odpoczynek.'] })), plik });
+  assert.deepEqual(dobry, { wzorzec: 'Biegaj 3 razy w tygodniu po 30 minut. Jeden dzień zostaw na odpoczynek.', przepisany: true });
 });
 
 test('zapytajZWyszukiwaniem: pause_turn dokończone tą samą treścią, koszt i tokeny zsumowane; web search w koszcie', async () => {

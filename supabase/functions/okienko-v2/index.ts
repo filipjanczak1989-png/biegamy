@@ -5,7 +5,7 @@
 // Tu jest TYLKO HTTP: CORS, wymagajUsera (jedyna bramka usera, LEKCJE #20), klienci Supabase (JWT usera → RLS; service → log),
 // athlete_id z sesji. Cała orkiestracja = potok.mjs (ta sama funkcja chodzi na ławce v2 z atrapami, 0 $).
 // ZASADA „v2 NIE KOPIUJE” (blizna-113): router, osoba, impreza, katalog, model, sieć, strażnik — wyłącznie importy z ../okienko/.
-// Zapis kluczem service WYŁĄCZNIE: okienko_v2_log (log-v2.mjs) + przez moduły v1: okienko_siec_cache, okienko_znaleziska.
+// Zapis kluczem service WYŁĄCZNIE: okienko_v2_log (log-v2.mjs), okienko_wiedza przez RPC (baza-wiedzy.mjs) + przez moduły v1: okienko_siec_cache, okienko_znaleziska.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { dzisWaw } from "../okienko/narzedzia.mjs";
@@ -70,8 +70,11 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
   stan.athleteId = ath.id; stan.tekst = tekst; stan.adm = adm;
 
   const teraz = new Date();
+  /* Praca po wysłaniu odpowiedzi (kandydat do bazy wiedzy, przepisanie): tylko gdy środowisko to obsługuje; bez EdgeRuntime kandydat zapisuje się surowy i szybko, odpowiedź nigdy nie czeka na przepisanie */
+  const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  const wTle = er && typeof er.waitUntil === "function" ? (p: Promise<unknown>) => er.waitUntil!(p) : null;
   const w = await potok({ tekst, historia: Array.isArray(body.historia) ? body.historia : [], ekran: body.ekran, athleteId: ath.id, sb, adm, jwt,
-    dzis: dzisWaw(teraz), teraz, gemini: GEMINI, budzet: BUDZET, fetchFn: fetch, T0 });
+    dzis: dzisWaw(teraz), teraz, gemini: GEMINI, budzet: BUDZET, fetchFn: fetch, T0, wTle });
   const b = w.body as { log_id?: number; zdania?: string[] };
   if (w.status === 200 && b && b.log_id && Array.isArray(b.zdania) && b.zdania.length) { try { await zapiszOdpowiedzV2(adm, b.log_id, b.zdania); } catch { /* best-effort */ } }
   return odp(w.status, w.body);

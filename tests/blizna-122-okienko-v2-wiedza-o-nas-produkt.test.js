@@ -20,7 +20,7 @@ const zaladuj = (p) => import(pathToFileURL(path.join(KORZEN, p)).href);
 
 test('1) wiedza.mjs: strażnik ogólników — fraza bez konkretu → ponowienie z instrukcją; nadal ogólnik → krócej + źródła; fakt bez strażnika; porada z dopiskiem', async () => {
   const W = await zaladuj('supabase/functions/okienko-v2/wiedza.mjs');
-  assert.deepEqual(W.INTENCJE_SIECI, ['fakt', 'porada', 'zywienie', 'sprzet']);
+  assert.deepEqual(W.INTENCJE_SIECI, ['fakt', 'porada', 'zywienie', 'sprzet', 'oboz']);
   assert.equal(W.czyOgolnik(['Słuchaj swojego ciała i biegaj z umiarem.']), true);
   assert.equal(W.czyOgolnik(['Każdy organizm jest inny, to zależy od wielu czynników.']), true);
   assert.equal(W.czyOgolnik(['Biegaj regularnie i odpoczywaj.']), true, 'bez frazy, ale bez żadnego konkretu = ogólnik');

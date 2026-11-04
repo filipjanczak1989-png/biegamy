@@ -58,7 +58,7 @@ test('potok: rozmowa po pamięci E4 i PRZED bramką osób; limit 20 tur; każda 
   assert.ok(iKont > 0 && iKont < iRoz && iRoz < iOs, 'kolejność: pamięć → rozmowa → osoba');
   assert.match(p, /\(await d\.uzyteRozmowDzis\(adm, athleteId, dzis\)\) >= d\.LIMIT_ROZMOW\) limit = "rozmowa";/);
   assert.match(p, /await zapiszTure\(adm, athleteId, "rozmowa", \{\}, \{ pytanie: tekst, odpowiedz: w\.zdania \}\);/);
-  assert.equal((p.match(/zapiszTure\([^)]*\{ pytanie: tekst, odpowiedz: /g) || []).length, 9, 'router, akcja (zagadka i dopytanie po akcji — 3.11), rozmowa, osoba, impreza, v2, sieć, flash — treść tury wszędzie');
+  assert.equal((p.match(/zapiszTure\([^)]*\{ pytanie: tekst, odpowiedz: /g) || []).length, 10, 'router, akcja (zagadka i dopytanie po akcji — 3.11), rozmowa, osoba, impreza, baza wiedzy, v2, sieć, flash — treść tury wszędzie');
   const L = await zaladuj('supabase/functions/okienko-v2/log-v2.mjs'); assert.equal(L.LIMIT_ROZMOW, 20);
   assert.equal(await L.uzyteRozmowDzisV2(atrapa({ okienko_v2_log: [] }), JA, '2026-11-03'), 0, 'atrapa bez contains → 0, bez wyjątku');
   const { przebieg } = require('./_lawka-v2.js');

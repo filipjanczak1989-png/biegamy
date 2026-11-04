@@ -5,14 +5,14 @@
 // między routerem a modelem, i jest mierzony ławką przed wdrożeniem.
 // Wynik: { status, body } — body w kształcie v1 (zdania, karty, akcja, zrodla, narzedzia, tryb, koszt_tok, chipy?); index.ts dokłada wersję.
 import { waliduj, wykonaj, nawigacja } from "../okienko/narzedzia.mjs";
-import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH, czyPytanieOMiejsce } from "../okienko/router.mjs";
+import { dopasuj, normalizuj, czyOboz, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, kartyBezDanychDziecka, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH, czyPytanieOMiejsce } from "../okienko/router.mjs";
 import { zdanieAkcji, liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "./akcja-v2.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "../okienko/model.mjs";
 import { sprawdz, powodPustych, NIE_MAM } from "../okienko/straznik.mjs";
 import { zapytajSiec, zOdpowiedziSieci, czyDoSieci, NIE_ZNALAZLEM } from "../okienko/siec.mjs";
 import { zPamieci, doPamieci, znaleziskaZ, zapiszZnaleziska, wygladaNaOsobe, wygladaNaNazwisko } from "../okienko/pamiec.mjs";
-import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC } from "../okienko/osoba.mjs";
+import { osobaZPytania, odpowiedzOsoba, osobaWZdaniu, ODP_NIC, kartyProfilu } from "../okienko/osoba.mjs";
 import { imprezaZPytania, odpowiedzImpreza } from "../okienko/impreza.mjs";
 import { szukajWKatalogu } from "../okienko/katalog.mjs";
 import { zapiszLogV2, sprawdzLimityV2, uzyteSiecDzisV2, LIMIT_SIEC, uzyteRozmowDzisV2, LIMIT_ROZMOW } from "./log-v2.mjs";
@@ -24,13 +24,16 @@ import { PRZEPISY, wykonajPrzepis } from "./przepisy.mjs";
 import { samosprawdz, ODP_NIE_PRZESZLO } from "./samosprawdzenie.mjs";
 import { INTENCJE_SIECI, szukajWiedzy } from "./wiedza.mjs";
 import { produktZPytania } from "./produkt.mjs";
-import { oNas } from "../_shared/o-nas.mjs";
+import { oNas, PROFIL_TEMATU } from "../_shared/o-nas.mjs";
+import { kartyNaszegoObozu } from "../_shared/nasz-oboz.mjs";
+import { czyPlanStartowy, komendaPlanu, stanZRozmowy } from "./plan-startowy.mjs";
+import { INTENCJE_BAZY, dopasujWiedze, czyWlasne, zdaniaWpisu, kluczWiedzy, wiedzaZatwierdzone, wiedzaPolicz, wiedzaKandydat } from "./baza-wiedzy.mjs";
 import { czyDopytanie, odpowiedzRozmowy } from "./rozmowa-model.mjs";
 
 export const MODEL_SIECI = "gemini-3.5-flash-lite";   // etykieta pamięci sieci (jak v1)
 export const DOMYSLNE = { wykonaj, zapytajModel, zapytajSiec, odpowiedzOsoba, odpowiedzImpreza, szukajWKatalogu, zPamieci, doPamieci, zapiszZnaleziska,
   uzyteSiecDzis: uzyteSiecDzisV2, sprawdzLimity: sprawdzLimityV2, zapiszLog: zapiszLogV2, LIMIT_SIEC, rozumienie, generujJson, wykonajPrzepis,
-  rozmowaModel: odpowiedzRozmowy, uzyteRozmowDzis: uzyteRozmowDzisV2, LIMIT_ROZMOW, faktyPamieci: async () => [] };   // R2 rozmowa; R3 podmieni faktyPamieci
+  rozmowaModel: odpowiedzRozmowy, uzyteRozmowDzis: uzyteRozmowDzisV2, LIMIT_ROZMOW, faktyPamieci: async () => [], wiedzaZatwierdzone, wiedzaPolicz, wiedzaKandydat };   // R2 rozmowa; R3 podmieni faktyPamieci
 
 const pusto = (tryb, extra = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
 const httpsOk = (u) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
@@ -67,6 +70,10 @@ export async function potok(we, nadpisz = {}) {
         body = { ...pusto("router"), zdania: [p === "cel" ? ODP_CEL_TAJNY : ODP_ZDROWIE_INNYCH], karty: [] };
       }
     }
+    if (status === 200 && body && typeof body === "object" && Array.isArray(body.karty) && body.karty.length) {
+      const czyste = kartyBezDanychDziecka(body.karty);
+      if (czyste.length !== body.karty.length) { slad.push("straznik-akcji:karta"); body = { ...body, karty: czyste }; }
+    }
     return { status, body: status === 200 && ostatni.id && body && typeof body === "object" && !body.log_id ? { ...body, log_id: ostatni.id } : body, slad };
   };
 
@@ -79,6 +86,9 @@ export async function potok(we, nadpisz = {}) {
   let traf = dopasuj(tekst, dzis);
   // „o nas” wygrywa z NAWIGACJĄ i tanim narzędziem routera („pokaż profil Kasi” ≠ mój Profil), nigdy z zagadką, odmową ani reakcją (3.11)
   if (traf && ("nawiguj" in traf || "narzedzie" in traf) && oNas(tekst)) traf = null;
+  /* plan startowy i obóz (Filip 3.11) też wygrywają z tanim narzędziem („jakie obozy biegowe” to nie lista biegów), nigdy z zagadką ani odmową */
+  const jestOboz = czyOboz(tekst);
+  if (traf && ("nawiguj" in traf || "narzedzie" in traf) && (jestOboz || czyPlanStartowy(tekst) || komendaPlanu(tekst))) traf = null;
   if (traf && "nawiguj" in traf) {
     await log({ tryb: "router", narzedzia: ["nawigacja"] });
     return odp(200, { ...pusto("router"), akcja: { nawiguj: traf.nawiguj } });
@@ -104,8 +114,11 @@ export async function potok(we, nadpisz = {}) {
   if (on) {
     let zdaniaOn = on.zdania;
     if (on.temat === "liczba") { let n = null; try { n = await liczbaBiegaczy(adm); } catch { n = null; } zdaniaOn = [n || ZDANIE_LICZBY_ZAPAS]; }   // Filip 3.11: z bazy, w dół do dziesiątek
+    /* „Filip Janczak” trafiał tu PRZED trybem osoby i dostawał samo zdanie, bez wyników i zdjęcia (blizna-143) */
+    let kartyOn = on.karty || [];
+    if (PROFIL_TEMATU[on.temat]) { try { kartyOn = await kartyProfilu({ sb, fetchFn, token: jwt, profil: PROFIL_TEMATU[on.temat] }); } catch { /* zostaje karta z o-nas */ } }
     await log({ tryb: "router", narzedzia: ["o-nas"] });
-    return odp(200, { ...pusto("router"), zdania: zdaniaOn, karty: on.karty || [], akcja: on.akcja || null });
+    return odp(200, { ...pusto("router"), zdania: zdaniaOn, karty: kartyOn, akcja: on.akcja || null });
   }
   // sieć ze źródłami (wspólna dla osoby, imprezy, przepisów) — deklarowana PRZED routerem, bo przepis gotowosc rusza już z routera
   const sieciDozwolona = async () => { if (!gemini) return false; try { return (await d.uzyteSiecDzis(adm, athleteId, dzis)) < d.LIMIT_SIEC; } catch { return false; } };
@@ -155,6 +168,12 @@ export async function potok(we, nadpisz = {}) {
     await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [zdA] });
     return odp(200, { ...pusto("router"), zdania: [zdA], karty: kartyA });
   }
+  // ── PLAN STARTOWY (Filip 3.11): przepis w kodzie; chipy i krótkie dopytania liczą się tylko, gdy plan jest w pamięci rozmowy. Nazwisko w pytaniu = tryb osoby. ──
+  const komenda = stanZRozmowy(rozmowa) ? komendaPlanu(tekst) : null;
+  if ((komenda || czyPlanStartowy(tekst)) && d.wykonajPrzepis && !osobaZPytania(tekst)) {
+    const p = await wykonajZPrzepisu({ intencja: "plan_startowy", sloty: {}, kandydaci: [], pewnosc: 1, komenda, rozmowa }, null);
+    if (p) return p;
+  }
   // ── R2: TRYB ROZMOWA — dopytanie w świeżej rozmowie („a dlaczego?”, „wyjaśnij prościej”, „a dla mnie?”) → jedno wywołanie modelu
   //    z poprzednimi wymianami; liczby tylko z rozmowy, strażnik ogólników; limit 20 tur/dobę; PRZED bramką osób (dopytanie nigdy nie idzie do sieci) ──
   if (gemini && d.rozmowaModel && czyDopytanie(normalizuj(tekst), rozmowa)) {
@@ -198,20 +217,38 @@ export async function potok(we, nadpisz = {}) {
     }
   }
   let kat = null;
-  try { kat = await d.szukajWKatalogu(sb, tekst); } catch { kat = null; }
+  if (!jestOboz) { try { kat = await d.szukajWKatalogu(sb, tekst); } catch { kat = null; } }
   if (kat) {
     await log({ narzedzia: ["katalog"], tryb: "router" });
     return odp(200, { ...pusto("router"), zdania: kat.zdania, karty: kat.karty, narzedzia: ["katalog"] });
   }
-  if (czyNiepewne(tekst) && !kont) {   // E4: „a jutro?” w świeżej rozmowie idzie do rozumienia z kontekstem, nie do chipów
+  if (czyNiepewne(tekst) && !kont && !jestOboz) {   // E4: „a jutro?” w świeżej rozmowie idzie do rozumienia z kontekstem, nie do chipów
     await log({ tryb: "v2-niepewne", narzedzia: ["niepewne"] });
     return odp(200, { ...pusto("router"), zdania: [ODP_NIEPEWNE], karty: [], chipy: CHIPY_WYBORU });
   }
   const klucz = normalizuj(tekst);
+  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);
+  /* BAZA WIEDZY (Filip 3.11): odpowiedź zatwierdzona przez trenera, zanim pójdziemy do pamięci i sieci. Bramki (router, akcja, osoba, nazwisko, zdrowie, odmowa, obóz) są wyżej i tu nie sięgają.
+     Tutaj tylko dopasowanie DOKŁADNE po normalizacji i synonimach, bez klasyfikatora: naprawdę 0 tokenów. Prawie to samo sprawdzamy dopiero po klasyfikatorze, z filtrem intencji.
+     Tryb „wiedza”, nie „router”: tekst wpisu przechodzi przez strażnika wyjścia w odp(). Przeterminowany wpis nie jest zwracany: idzie sieć, a z niej nowy kandydat. */
+  let _wiedza = null;
+  const listaWiedzy = async () => { if (_wiedza) return _wiedza; try { _wiedza = await d.wiedzaZatwierdzone(adm); } catch { _wiedza = []; } return _wiedza; };
+  const odpowiedzZWiedzy = async (t, r) => {
+    const zdania = zdaniaWpisu(t.wpis);
+    await log({ tryb: "wiedza", narzedzia: ["wiedza"], plan: ["wiedza:" + t.wpis.id], intencja: r ? r.intencja : t.wpis.intencja, pewnosc: r ? r.pewnosc : undefined });
+    try { await d.wiedzaPolicz(adm, { id: t.wpis.id }); } catch { /* licznik nie psuje odpowiedzi */ }
+    await zapiszTure(adm, athleteId, t.wpis.intencja, {}, { pytanie: tekst, odpowiedz: zdania });
+    return odp(200, { ...pusto("wiedza"), zdania, zrodla: Array.isArray(t.wpis.zrodla) ? t.wpis.zrodla : [], narzedzia: ["wiedza"], intencja: t.wpis.intencja });
+  };
+  if (!jestOboz && !kont && !blokadaSieci && !czyWlasne(tekst) && !produktZPytania(tekst)) {
+    const t = dopasujWiedze(tekst, await listaWiedzy(), { dzis });
+    if (t) return await odpowiedzZWiedzy(t, null);
+  }
   const pam = await d.zPamieci(adm, klucz, teraz);
   if (pam && pam.zrodla.length) {
     await log({ tryb: "siec-cache" });
-    return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
+    if (!jestOboz && kluczWiedzy(tekst)) { try { await d.wiedzaPolicz(adm, { klucz: kluczWiedzy(tekst) }); } catch { /* licznik nie psuje odpowiedzi */ } }   // liczba zapytań w panelu liczy też odpowiedzi z pamięci 24 h
+    return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla, karty: jestOboz ? kartyNaszegoObozu() : [] });
   }
 
   if (!gemini) return await blad(502, { blad: "model niedostępny" }, "brak GEMINI_API_KEY");
@@ -221,7 +258,12 @@ export async function potok(we, nadpisz = {}) {
     await log({ tryb: "limit", ok: false, powod_odrzucenia: "limit " + limit });
     return odp(429, { limit });
   }
-  const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);
+  /* OBÓZ (Filip 3.11): nigdy impreza z kalendarza po słowie w nazwie; odpowiedź z sieci (wiedza.mjs: konkret i strażnik ogólników), miesiąc i region są w samym pytaniu.
+     Bramka prywatności obowiązuje: nazwisko w pytaniu nie idzie do Google. */
+  if (jestOboz && !blokadaSieci) {
+    const w = await przezSiec({ tok: { we: 0, wy: 0 } }, { intencja: "oboz", pewnosc: 1, sloty: {} });
+    if (w) return w;
+  }
 
   // ── E2: ROZUMIENIE PRZED NARZĘDZIEM — model widzi tylko tekst + 3 poprzednie pytania; decyzja należy do kodu (intencje.mjs).
   //    Błąd/timeout → ścieżka v1 niżej (powód 'v2-awaria' w logu). Niska pewność → chipy, 0 narzędzi. ──
@@ -261,6 +303,7 @@ export async function potok(we, nadpisz = {}) {
       }
     } else {
       if (PRZEPISY[roz.intencja] && d.wykonajPrzepis) {   // E5: przepisy ≤ 4 narzędzi równolegle, zdania z kodu
+        if (roz.intencja === "plan_startowy") roz.rozmowa = rozmowa;   // ustawienia poprzedniej wersji planu
         const p = await wykonajZPrzepisu(roz, roz);
         if (p) return p;
       }
@@ -351,6 +394,13 @@ export async function potok(we, nadpisz = {}) {
       ok: o.odrzucone.length === 0 && !o.ogolnik,
       powod_odrzucenia: [o.ogolnik ? "ogólnik mimo ponowienia: skrócono" : (o.ponowiono ? "ogólnik: ponowiono z instrukcją „liczby/kroki”" : null), ...o.odrzucone.map((x) => `${x.powod}: ${x.zdanie}`)].filter(Boolean).join(" | ") || null });
     await zapiszTure(adm, athleteId, roz && roz.intencja ? roz.intencja : "siec", {}, { pytanie: tekst, odpowiedz: o.zdania });   // R2: dopytanie po odpowiedzi z sieci
-    return odp(200, { zdania: o.zdania, karty: [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
+    /* KANDYDAT do bazy wiedzy: po wysłaniu odpowiedzi, gdy EF to potrafi (we.wTle, EdgeRuntime.waitUntil), wtedy też przepisanie w głosie BiegaMy; inaczej sam szybki zapis surowy.
+       Ani błąd, ani czas tego kroku nie dotykają odpowiedzi. Koszt przepisania to osobny wpis logu w trybie „wiedza” (liczy się do budżetu, nie do 60 pytań/dobę). */
+    if (wiedza && INTENCJE_BAZY.includes(roz.intencja) && o.zrodla.length && o.zdania[0] !== NIE_ZNALAZLEM && !o.ogolnik) {
+      const zadanie = Promise.resolve().then(() => d.wiedzaKandydat({ adm, tekst, intencja: roz.intencja, sloty: roz.sloty, zdania: o.zdania, zrodla: o.zrodla, dzis, tlo: !!we.wTle, fetchFn, klucz: gemini, generujJson: d.generujJson,
+        kosztLog: ({ tok: t, ok, powod }) => zapiszOryg(adm, { athlete_id: athleteId, tekst: "przepisanie kandydata do bazy wiedzy", tryb: "wiedza", narzedzia: ["przepisanie"], tok_we: t.we, tok_wy: t.wy, ok, powod_odrzucenia: powod, intencja: roz.intencja }) })).catch(() => null);
+      if (we.wTle) we.wTle(zadanie); else await zadanie;
+    }
+    return odp(200, { zdania: o.zdania, karty: roz && roz.intencja === "oboz" ? kartyNaszegoObozu() : [], akcja: null, zrodla: o.zrodla, narzedzia: [], tryb: "siec", koszt_tok: tok });
   }
 }

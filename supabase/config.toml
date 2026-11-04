@@ -134,6 +134,21 @@ verify_jwt = false       # cron + wyzwalacz akcje_push_start (pg_net); sekret x-
 [functions.akcja-wyprawa-slad]
 verify_jwt = false       # WYPRAWA: GET ?slug= publiczny (mapa-wyprawy.html, po strefach prywatności); POST odswiez tylko z x-push-secret (cron, intervals-webhook)
 
+[functions.akcja-proba-wizerunek]
+verify_jwt = false       # Ścieżka Fabianka: wymagajUsera + coaches albo konto testowe próby, adresy podpisane na 15 min
+
+[functions.firma-zgloszenie]
+verify_jwt = false       # formularz firm na stronie akcji, bez logowania; przełącznik i limit w bazie, klucz serwisowy tylko do RPC akcja_firmy_*
+
+[functions.firma-panel]
+verify_jwt = false       # panel trenera (wymagajUsera + coaches) i nocne sprzątanie z crona (x-push-secret)
+
+[functions.gra-ranking]
+verify_jwt = false       # publiczny ranking Cegiełek (gracze bez konta); klucz serwisowy tylko do gra_ranking, blizna-154
+
+[functions.gra-pseudonim]
+verify_jwt = true        # gra-cegielki.html, js/cegielki-konto.js; guard getUser
+
 [functions.akcja-licznik]
 verify_jwt = false       # publiczny licznik akcji (landing, wylogowani); klucz serwisowy tylko do RPC akcja_licznik
 

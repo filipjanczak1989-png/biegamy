@@ -94,12 +94,13 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
   for (const f of pliki) {
     const kod = czytaj('supabase/functions/okienko-v2', f);
     for (const m of kod.matchAll(/from\(["']([a-z_0-9]+)["']\)\s*\.(insert|upsert|update|delete)\(/g)) tabeleZapisu.add(m[1]);
-    assert.ok(!/\.rpc\(/.test(kod), `${f}: rpc`);
+    if (f !== 'baza-wiedzy.mjs') assert.ok(!/\.rpc\(/.test(kod), `${f}: rpc`);   // baza wiedzy: jedyny wyjątek, atomowy licznik i wariant po stronie bazy (lista RPC niżej)
     assert.doesNotMatch(kod, /const (ZAGADKA|REAKCJA|PYT_|ZDROWIE|CHOROBA|DEKLARACJE)\w* = |const NAZWY = /, `${f}: własna kopia reguły routera / narzędzi`);
     assert.doesNotMatch(kod, /export function (dopasuj|sprawdz|osobaZPytania|imprezaZPytania|zapytajModel|zapytajSiec)\b/, `${f}: kopia funkcji v1`);
     if (f !== 'gemini.mjs') assert.doesNotMatch(kod, /googleapis\.com/, `${f}: Gemini tylko przez gemini.mjs (v2) albo moduły v1`);
   }
   assert.equal(JSON.stringify([...tabeleZapisu].sort()), '["okienko_v2_log","okienko_v2_rozmowa"]', 'E4: pamięć rozmowy (rozmowa.mjs) — nic więcej');
+  assert.deepEqual([...czytaj('supabase/functions/okienko-v2', 'baza-wiedzy.mjs').matchAll(/\.rpc\("([a-z_]+)"/g)].map((m) => m[1]).sort(), ['okienko_wiedza_kandydat', 'okienko_wiedza_policz', 'okienko_wiedza_przepisana'], 'baza wiedzy zapisuje wyłącznie przez te trzy RPC');
   const ef = czytaj('supabase/functions/okienko-v2/index.ts'), pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
   assert.match(ef, /import \{ potok \} from "\.\/potok\.mjs";/, 'index.ts = tylko HTTP; orkiestracja w potok.mjs (ta sama na ławce v2)');
   assert.ok(!/from "\.\/(router|narzedzia|model|siec|osoba|impreza|katalog|straznik|pamiec|odpowiedz|limity)\.mjs"/.test(pt), 'moduły v1 z ../okienko/, nie z ./');

@@ -65,8 +65,9 @@ jobs:
             #    20 commitow, przeplatane z ludzkimi jeden do jednego.
             #    Cofniecie bumpa nie cofa ZADNEGO kodu, za to OBNIZA CACHE_VERSION,
             #    czyli zostawia ludzi na starym cache'u. Gorsze niz nic.
+            #    To samo raport nocny Okienka: autor okienko-noc zmienia tylko docs (luka 9, 4.11).
             CEL=$(git log --format='%H %an' -50 \
-                  | grep -v 'github-actions\[bot\]' | head -1 | cut -d' ' -f1)
+                  | grep -vE ' (github-actions\[bot\]|okienko-noc)$' | head -1 | cut -d' ' -f1)
           fi
           if [ -z "$CEL" ]; then
             echo "::error::Nie znalazlem commita do cofniecia"; exit 1

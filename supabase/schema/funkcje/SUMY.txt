@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 69
+# Obiektow (funkcje + triggery): 105
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -10,14 +10,29 @@ a3ece9021a7333e4  accept_terms
 aa6ccce304e42fe6  achievements.achievements_okno
 cf2ab313aa98adea  akcja_deklaruj
 2ddd2b9debc62f03  akcja_dotarlismy
-305615bc94426567  akcja_km_okna
-5ce51e89a7d53af2  akcja_licznik
+d9293f37af355d4c  akcja_firmy_do_sprawdzenia
+631c58d4308bb2bf  akcja_firmy_odrzuc
+7925920cd800b2c6  akcja_firmy_progi
+224eaa9e1b094377  akcja_firmy_sprzatanie
+f9dcab18c36745df  akcja_firmy_wpusc
+68f56d8df9f023ed  akcja_firmy_zatwierdz
+6ca6244c439139ce  akcja_firmy_zgloszenia_lista
+7cbf7a2e860277f5  akcja_firmy_zgloszenie_dodaj
+076fd7e52aadb4f3  akcja_km_okna
+0f826b9d431cafbe  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
+0c2d2b9fe5411492  akcja_proba_firmy
+5a8a9926a0b4b4b1  akcja_proba_od_zera
 53af56fa11aca0be  akcja_proba_reset
+1afe0d41a0cdaf2d  akcja_proba_symuluj
+86926422eeb9f558  akcja_sciezka_stan
 479b1d22c9b9340b  akcja_start
 f7adf5324cca271b  akcja_tydzien
 78c9da13035f269e  akcja_typ_liczy
+45daf2e59f3347c2  akcja_ulica_publiczna
+a135b6f9a240e8b9  akcja_ulica_zmiana
+2cb1f394468e4a52  akcja_ulica.akcja_ulica_zmiana
 ac4c2c62f806d416  akcja_url_zbiorki
 8707907cefd6e1ca  akcja_wycofaj_deklaracje
 f2be9be93e61f556  akcja_zamknij_dobe
@@ -35,13 +50,30 @@ f7c505f0aebb99a8  bump_food_hit
 f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
 4e2b79fe1e3b47f3  coaches.coaches_ensure_athlete_row
 6d0d28b7664a3e4e  count_pending_intakes
-480bd0b0906d192f  delete_my_account
+86658e0f13be05d4  delete_my_account
 0723ea23ebfdad19  ensure_coach_athlete_row
 40ec3907096b11eb  get_app_stats
+eda5534a24e3587d  gra_dolozyli
+5622887af8f0af48  gra_kup
+238828ee3013db19  gra_liczba
+37f43098cf60444f  gra_miejsca
+4f4ea45a4f79513c  gra_moj_postep
+f5ecd8783c4b155e  gra_moje_dolozone
+e803c6cb756e7169  gra_postac_odblokowana
+7a320ebdc5827258  gra_poziom
+ac94f5b9661d5407  gra_ranking
+9666e2e50fb5fabe  gra_ranking_od
+0edb875b3956e864  gra_start_rundy
+a08b2ab01fec0c3e  gra_suma_cegiel
+2b6aedd737a8544c  gra_token_ok
+fd27441bb1d8a4ff  gra_ustaw_pseudonim
+9f7d4b193d457217  gra_zapisz_wynik
 013b730325385fdf  handle_new_user
+8ea2d5a07539cb35  impreza_do_races
 911eb41b95030867  increment_play
 e824285492d2a019  intervals_connections.intervals_conn_update_ts
 11d14e46c3e8b8c7  is_run_type
+03badf8856189630  klucz_nazwy_imprezy
 26b448bc351a1bce  lookup_food_by_barcode
 4452eadef4ca7df3  match_food_category
 af697fcd0e4ddb8f  messages_guard_autorstwa
@@ -49,6 +81,10 @@ af697fcd0e4ddb8f  messages_guard_autorstwa
 e0f617aedb896511  notifications.notifications_send_push
 e6d620c60af5636f  notify_filip_new_athlete
 eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
+08937d779014df34  okienko_ocena
+a7c292fe68e0995d  okienko_pamiec_limit
+5e11053bc3a6097a  okienko_pamiec.okienko_pamiec_limit_trg
+3fd294982bfb6079  okienko_wersja
 067fc22d9b769a04  race_signups.trg_race_signup_count
 00c6bf1a1b7ce0a2  review_moment
 25d900a25e2d2961  search_food_by_name

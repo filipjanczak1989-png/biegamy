@@ -9,7 +9,7 @@
 // „maraton warszawski kiedy"; ALBO 1–3 słowa bez słowa z listy, gdy nazwa trafia w kalendarz („ultrakotlina").
 // Wynik („kto wygrał…", „wyniki…", „rekord…", „moje…") NIE jest imprezą. Odpowiedź: zdania z sieci (etykieta,
 // źródła) → karty z kalendarza → karty z naszych startów; pusto → „Nie znalazłem tego biegu w kalendarzu ani w sieci."
-import { normalizuj } from "./router.mjs";
+import { normalizuj, czyOboz } from "./router.mjs";
 import { wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { szukajImprez } from "./kalendarz.mjs";
 import { BladF6, ODP_F6_ZAJETA } from "./f6.mjs";
@@ -31,7 +31,7 @@ export const ODP_CENA_BEZ_LINKU = "Maszyna wyników nie zna strony tej imprezy �
 /** → {q, jawne} | null. jawne = jest słowo z listy (impreza nawet bez trafienia w kalendarzu). */
 export function imprezaZPytania(tekst) {
   const t = normalizuj(tekst);
-  if (!t || /^\d+$/.test(t)) return null;
+  if (!t || /^\d+$/.test(t) || czyOboz(tekst)) return null;   // obóz to nie impreza z kalendarza (Filip 3.11; „ile kosztuje obóz biegowy” też)
   if (CENA.test(t) && !/\b(kto|wynik\w*|rekord\w*|moj\w*|moje|mam)\b/.test(t)) {
     const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean)
       .filter((w) => { const n = normalizuj(w); return n && !SLOWA_CENY.test(n) && !PYTAJNE.test(n) && !OGOLNE.test(n); });
@@ -39,6 +39,7 @@ export function imprezaZPytania(tekst) {
     return { q: slowa.join(" ").slice(0, 80), jawne: SLOWA_IMPREZY.test(t), cena: true };   // bez słowa biegu („para butów") impreza tylko po trafieniu w kalendarz
   }
   if (NIE_IMPREZA.test(t)) return null;
+  if (/\bdystans\w* (ma|maja) (maraton|polmaraton|ultramaraton|dych\w*|piatk\w*)$/.test(t)) return null;   // baza wiedzy 4.11: „jaki dystans ma maraton” to wiedza ogólna, nie nazwa imprezy
   const slowa = String(tekst).replace(/[?!.,;:"„”()]/g, " ").split(/\s+/).filter(Boolean);
   const nazwa = slowa.filter((w) => { const n = normalizuj(w); return n && !PYTAJNE.test(n) && !OGOLNE.test(n); });
   if (!nazwa.length || nazwa.length > 5) return null;

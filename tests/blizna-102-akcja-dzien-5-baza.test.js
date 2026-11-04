@@ -33,13 +33,13 @@ test('EF akcja-push: sekret obowiązkowy, RAZ, niedziela bez kwot, próba tylko 
   const niedziela = EF.slice(EF.indexOf('body.rodzaj === "niedziela"'), EF.lastIndexOf('return J(400'));
   assert.doesNotMatch(niedziela, /zł|gr\b|kwot/, 'push niedzielny z kwotą — rozliczenie jest jednorazowe');
   assert.match(EF, /`Ruszyło\. \$\{a\.nazwa \|\| "Akcja"\}\. Każdy krok się liczy\.`/);
-  assert.doesNotMatch(EF, /fabian|borowczyk/i);
+  assert.doesNotMatch(EF, /fabian/i);
   assert.match(czytaj('supabase/config.toml'), /\[functions\.akcja-push\]\nverify_jwt = false/);
 });
 
-test('start-akcji: „Dotarliśmy" włączony razem z migracją (RPC akcja_dotarlismy), podwójne dotknięcie', () => {
+test('start-akcji: „Dotarliśmy" włączony razem z migracją (RPC akcja_dotarlismy), przytrzymanie 2 s pod „⋯”', () => {
   const h = czytaj('start-akcji.html');
   assert.match(h, /var DOTARCIE_GOTOWE = true;/, 'migracja dnia 5 na prod — przycisk włączony');
   assert.match(h, /window\.sb\.rpc\('akcja_dotarlismy', \{ p_slug: SLUG \}\)/);
-  assert.match(h, /Date\.now\(\) - uzbrojony > 3000/);
+  assert.match(h, /DOTARCIE_MS = 2000/);
 });

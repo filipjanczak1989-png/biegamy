@@ -108,6 +108,6 @@ test('potok: kontynuacja omija „niepewne”, tura po routerze/osobie, samospra
   assert.equal(niep.body.tryb, 'router'); assert.ok(niep.body.chipy.length >= 2, '„a on?” → dopytanie (kontynuacja ominęła bramkę niepewne)');
   assert.equal(t.okienko_v2_rozmowa.filter((x) => x.intencja === 'osoba').length, 0, 'dopytanie nie zapisuje tury');
   const pt = czytaj('supabase/functions/okienko-v2/potok.mjs');
-  assert.match(pt, /if \(czyNiepewne\(tekst\) && !kont\)/); assert.match(pt, /samosprawdz\(\{ intencja: roz\.intencja/); assert.match(pt, /zdania: \[ODP_NIE_PRZESZLO\], karty: \[\], chipy: chipyDla\(roz\.kandydaci\)/);
+  assert.match(pt, /if \(czyNiepewne\(tekst\) && !kont && !jestOboz\)/); assert.match(pt, /samosprawdz\(\{ intencja: roz\.intencja/); assert.match(pt, /zdania: \[ODP_NIE_PRZESZLO\], karty: \[\], chipy: chipyDla\(roz\.kandydaci\)/);
   assert.match(pt, /traf\.narzedzie === "moje_rekordy" && w\.args\.szanse && d\.wykonajPrzepis/, 'szanse z routera → przepis gotowosc');
 });

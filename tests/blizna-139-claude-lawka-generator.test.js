@@ -43,6 +43,23 @@ test('generuj (atrapa Claude): obca intencja i powtórki odpadają, id k0001…,
   } finally { delete process.env.CLAUDE_BUDZET_PLIK; }
 });
 
+test('próbka do OK: przez wszystkie intencje I style, z dopytaniami; pierwsza wersja dała 50 × „poprawna polszczyzna” (3.11)', async () => {
+  const G = await zaladuj('tools/lawka-generator.mjs');
+  const style = ['poprawna polszczyzna', 'literowki', 'slang i potoczny', 'bez polskich znakow', 'skroty', 'emotki', 'caps i błędna interpunkcja', 'pelne dlugie zdanie', 'jedno–dwa słowa'];
+  const K = [];
+  for (const i of Object.keys(G.MAPA)) for (let j = 0; j < 20; j++) K.push({ id: `${i}-${j}`, intencja: i, p: `${i} ${j}`, styl: j === 19 ? 'dopytanie w rozmowie' : style[j % style.length], ...(j === 19 ? { po: ['wcześniej'] } : {}) });
+  const p = G.probka(K, 50);
+  assert.equal(p.length, 50);
+  assert.equal(new Set(p.map((k) => k.id)).size, 50, 'bez powtórek');
+  assert.equal(new Set(p.map((k) => k.intencja)).size, Object.keys(G.MAPA).length, 'każda intencja');
+  const rodziny = p.map(G.rodzinaStylu), ile = (s) => rodziny.filter((x) => x === s).length;
+  for (const s of ['poprawna polszczyzna', 'literówki', 'slang', 'bez polskich znaków', 'skróty', 'emotki', 'interpunkcja lub CAPS', 'długie zdanie', 'jedno–dwa słowa', 'dopytanie']) assert.ok(ile(s) >= 2, `${s}: ${ile(s)}`);
+  assert.ok(ile('poprawna polszczyzna') <= 10, 'poprawna polszczyzna nie dominuje');
+  assert.deepEqual(G.probka(K, 50).map((k) => k.id), p.map((k) => k.id), 'deterministyczna');
+  assert.equal(G.probka(K.slice(0, 3), 50).length, 3, 'mniej kandydatów niż próbka');
+  assert.equal(G.rodzinaStylu({ styl: 'literówki', po: ['x'] }), 'dopytanie', 'pytanie z rozmową to dopytanie');
+});
+
 test('MAPA zgodna z PRAWDZIWYM potokiem: przykład każdej intencji daje oczekiwany ślad (sonda 3.11 znalazła 4 zgadnięte pozycje, które dałyby fałszywe luki)', async () => {
   const G = await zaladuj('tools/lawka-generator.mjs');
   const { przebieg } = require('./_lawka-v2.js');
@@ -121,7 +138,7 @@ test('sekcja wygenerowana: wstawiona przed końcem PYTANIA, ponowny zapis podmie
   const kat = fs.mkdtempSync(path.join(os.tmpdir(), 'lawka-plik-'));
   const plik = path.join(kat, '_lawka-v2-pytania.js');
   fs.copyFileSync(path.join(KORZEN, 'tests/_lawka-v2-pytania.js'), plik);
-  const ile = require(plik).PYTANIA.length; delete require.cache[require.resolve(plik)];
+  const ile = require(plik).PYTANIA.filter((w) => w.zrodlo !== 'claude').length; delete require.cache[require.resolve(plik)];   // plik może już mieć sekcję wygenerowaną: podmiana, nie dopisanie
   const kand = [{ id: 'k0001', p: "what's my plan 'jutro'?", intencja: 'moj_plan', kat: 'wlasne', waga: 4 },
     { id: 'k0002', p: 'a w grudniu?', po: ['ile przebieglem w listopadzie'], intencja: 'moje_treningi', kat: 'wlasne', waga: 3 }];
   G.zapiszSekcje(plik, kand);

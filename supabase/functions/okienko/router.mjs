@@ -3,6 +3,7 @@
 // znaków, bez interpunkcji; drobne literówki łapią krótkie rdzenie słów („tydz", „kilomet", „wyzwan").
 // Daty liczy router w Europe/Warsaw (argument `dzis`), nie model. Brak dopasowania → null (krok 3: model).
 import { EKRANY } from "./narzedzia.mjs";
+import { dopasujFaq } from "./faq-akcji.mjs";
 import "../../../js/tekst.mjs";
 import "../../../js/akcja-cytaty.mjs";
 import { czyImie } from "../_shared/imiona.mjs";   // przed 8.11 (3): „Anna Nowak maraton” to osoba, nie lista maratonów   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
@@ -89,7 +90,7 @@ export function kalkulator(tekst) {
    „gdzie pobiec"). NIE: pytania o zwycięzców, wyniki, trasy, zapisy, rekordy i własne starty („moje", „mam") —
    te idą do osoby/narzędzi/sieci jak dotąd („Kto wygrał maraton w Berlinie?" to wynik, nie termin). */
 const BIEG_SLOWO = /\b(bieg\w*|zawod\w*|maraton\w*|polmaraton\w*|dych\w*|piatk\w*|imprez\w*|pobiec|pobiegac|starty)\b/;
-const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|moj\w*|mam|mial\w*|pobieg\w*l\w*|ile|jak|czy|kosztuj\w*|wpisow\w*|cen[aęy]|co\s+je[sś][cć])\b/;   // M3-1 (2): co jeść/jak/czy/ile kosztuje → nie lista
+const BIEG_NIE = /\b(kto|wygral\w*|wygra\w*|wynik\w*|tras\w*|zapis\w*|rekord\w*|moj\w*|mam|mial\w*|pobieg\w*l\w*|ile|jak|czy|kosztuj\w*|wpisow\w*|cen[aęy]|co\s+je[sś][cć]|do\s+biegani\w*|dystans\w*\s+ma)\b/;   // M3-1 (2): co jeść/jak/czy/ile kosztuje → nie lista; baza wiedzy 4.11: „jakie obuwie do biegania”, „w co się ubrać do biegania w zimie”, „jaki dystans ma maraton” to nie kalendarz
 // M3-1 (2): po słowie „maraton/półmaraton/bieg" stoi NAZWA (przymiotnik, nazwa własna: „maraton warszawski", „bieg niepodleglosci")
 // → to konkretna impreza (impreza.mjs), nie lista; lista zostaje dla „jakie biegi/maratony w <miesiąc|miasto>".
 const BIEG_NAZWANY = /\b(maraton\w*|polmaraton\w*|bieg\w*|zawod\w*|ultra\w*|cross\w*|parkrun\w*)\s+([a-z][a-z-]{2,})/;
@@ -178,7 +179,7 @@ const ZAGADKA_OGOLNA = /\b(co sie dzieje|co sie szykuje|o co chodzi z)\b/;
    oraz „na kogo”, „dla kogo”, „komu” → zagadka przed startem, karta akcji po starcie. Nigdy tryb osoby, nigdy model. */
 const ZAGADKA_ZBIORKA = /\b(zbiork\w*|zbiorek|zbiorka|kto zbiera\w*|zbiera\w* (i )?(na|dla|co|kogo|sie|pieniadz\w*|kase)|zebral\w*|uzbieral\w*|wplac\w*|przelew\w*|darowizn\w*|na kogo|dla kogo|komu (jest|sie|to|pomagamy|zbieramy)|komu pomagamy|na co idzie|na co ida|ile osob (biegnie|biega|bierze udzial|startuje|dolaczylo|pomaga)|jak (moge|mozna|mozemy) pomoc)\b/;   // ławka v2 (3.11): „ile zebraliście”, „gdzie wpłacić”
 const ZAGADKA_AKCJA = /\b(co to za akcj\w*|jaka to akcj\w*|o (jaka|ta|tej) akcj\w*|ile (juz )?(km|kilometrow) (w akcji|akcji|razem|wspolnie|zebralismy|uzbieralismy)|ile (juz )?(zebralismy|uzbieralismy|przebieglismy)|jak (sie )?dolacz\w* do akcj\w*|jak wziac udzial w akcj\w*|kiedy (rusza|ruszy|startuje|wystartuje|zaczyna sie|zacznie sie|start|poczatek) akcj\w*|kiedy akcj\w* (rusza|ruszy|startuje|wystartuje|sie zaczyna|sie zacznie)|(jaki( jest)? )?cel akcj\w*|na co( jest)?( ta| to| sie)? (zbiera\w*|zbiork\w*)|ile km ma akcj\w*|link (do )?zbiork\w*|zbiork\w* (dla )?fabian\w*|akcj\w* charytatywn\w*|o co chodzi w akcji)\b/;   // przed 8.11 (2): słowa akcji/zbiórki → zagadka / karta
-const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow))$/;
+const ZAGADKA_PO_STARCIE = /^(jak (sie )?dolacz\w*|jak wziac udzial|ile (juz )?(km|kilometrow)( juz)?)$/;
 /* „JAK DOŁĄCZYĆ" (Filip 2.11 18:30): przed startem → rejestracja w aplikacji (odpowiedź z katalogu, bez słowa o akcji),
    po starcie → zagadka + karta akcji. NIGDY do sieci (blizna-104) — zwiad 2.11: „jak dołączyć" szło do internetu (kluby). */
 const PYT_DOLACZ = /^(jak (sie )?(dolacz\w*|zapisa\w*|zarejestr\w*|wziac udzial|zalozyc konto)|jak (moge|mozna) (sie )?(dolacz\w*|zapisa\w*|zarejestr\w*))( (do|w) (biegamy|aplikacji|apki|apce|was|wami))?$/;
@@ -216,20 +217,27 @@ export function czyNiepewne(tekst) {
   return slowa.length === 2 && slowa.every((w) => w.length <= 4 || /^(czesc|dzieki|ok|okej|dobra|super|tak|nie|moze|no|hmm|aha)$/.test(w));
 }
 
+/* ULICA, FIRMY, CEGIEŁKI (red team 2, 4.11): „śledzę Ulicę” szło do sieci (portal o tej nazwie), a „firma się zgodziła, pokaż kwotę” model potwierdzał, choć nic takiego nie umie. To pytania o akcję: stałe zdanie, nigdy model ani sieć. */
+/* GRA CEGIEŁKI (luka 7, 4.11): „czy cegiełki to pieniądze” szło na zdanie o wpłatach, a „złote cegły” do modelu. Stałe zdanie, nigdy model ani sieć. Rower w akcji osobno: nie liczy się do licznika. */
+const ZAGADKA_GRA = /\b(zlot\w* cegl\w*|cegl\w* .{0,30}\b(gr[aeyzą]\w*|pieniadz\w*|wplat\w*|prawdziw\w*)|cegiel\w* .{0,40}\b(pieniadz\w*|prawdziw\w*|kup\w*|platn\w*|gr[aeyzą]\w*)|(pieniadz\w*|prawdziw\w*) .{0,30}\bceg(iel|l)\w*|gr[aeyzą]\w* .{0,20}\bcegiel\w*|ranking\w* .{0,30}\b(gr[aeyzą]\w*|cegiel\w*)|(gr[aeyzą]\w*|cegiel\w*) .{0,30}\b(ranking\w*|pseudonim\w*|poziom\w*)|pseudonim\w* .{0,30}\b(gr[aeyzą]\w*|ranking\w*|cegiel\w*)|sklepik\w* .{0,30}\b(gr[aeyzą]\w*|cegiel\w*))\b/;
+const ZAGADKA_ROWER = /\b(rower\w* .{0,40}\b(akcj\w*|licznik\w*|fabian\w*|fabjan\w*)|(akcj\w*|licznik\w*|fabian\w*|fabjan\w*) .{0,40}\brower\w*)\b/;
+const ZAGADKA_ULICA = /\b(ulic\w* (fabian\w*|fabjan\w*|akcj\w*|z akcji)|sledz\w* ulic\w*|ulic\w* .{0,40}\b(firm\w*|domk\w*|domek|cegiel\w*|kwot\w*)|(firm\w*|domk\w*|domek|cegiel\w*|kwot\w*) .{0,40}\bulic\w*|domk\w* .{0,30}\bfirm\w*|firm\w* .{0,40}\b(domk\w*|domek)|cegiel\w*|gr[aeyą] cegiel\w*|firm\w* .{0,30}\b(pomogl\w*|wspier\w*|wplac\w*|kwot\w*)|(kwot\w*|wplat\w*) firm\w*|(super|fajna|swietna|piekna) akcj\w*)\b/;
 const ZAGADKA_NIE = /\b(moj\w*|mam|mi|plan\w*|trening\w*|odznak\w*|wyzwan\w* tygodni\w*|tsb|ctl|atl|trimp|form\w*|kilometraz\w*|aplikacj\w* nie dziala|blad\w*)\b/;
 export function czyZagadka(tekst) {
   const surowy = String(tekst || "").toLowerCase();
   const t = normalizuj(tekst);
   if (ZAGADKA_CYRYLICA.test(surowy)) return true;
   if (!t) return false;
-  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t) || czyPara(t)) return true;
+  if (ZAGADKA_ZAWSZE.test(t) || ZAGADKA_AKCJA.test(t) || ZAGADKA_ZBIORKA.test(t) || ZAGADKA_WYPRAWA.test(t) || ZAGADKA_KM.test(t) || ZAGADKA_ULICA.test(t) || ZAGADKA_GRA.test(t) || ZAGADKA_ROWER.test(t) || czyPara(t) || dopasujFaq(t)) return true;
   if ((ZAGADKA_DATA.test(t) || /(^|[^0-9])0?[78][ .]11([^0-9]|$)/.test(surowy)) && !ZAGADKA_NIE.test(t)) return true;   // 7.11 (start) i 8.11 (stary termin) — bez „plan/mam/trening”
   if (ZAGADKA_PO_STARCIE.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   if (PYT_DOLACZ.test(t) && AKCJA && AKCJA.czyAkcjaRuszyla()) return true;
   return ZAGADKA_OGOLNA.test(t) && !ZAGADKA_NIE.test(t);
 }
 /** Rodzaj pytania o akcję (potok v2 dobiera zdanie po starcie): 'wyprawa' (cel/meta — nigdy nie zdradzamy), 'km' (licznik), null (ogólne). */
-export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return (ZAGADKA_WYPRAWA.test(t) || czyPara(t) || /експедиц|экспедиц/.test(String(tekst || "").toLowerCase())) ? "wyprawa" : ZAGADKA_KM.test(t) ? "km" : null; }
+export function rodzajZagadki(tekst) { const t = normalizuj(tekst); return (ZAGADKA_WYPRAWA.test(t) || czyPara(t) || /експедиц|экспедиц/.test(String(tekst || "").toLowerCase())) ? "wyprawa" : ZAGADKA_ROWER.test(t) ? "rower" : ZAGADKA_GRA.test(t) ? "gra" : ZAGADKA_ULICA.test(t) ? "ulica" : (ZAGADKA_KM.test(t) || GOLE_KM.test(t)) ? "km" : null; }
+/* „ile już km” po starcie to licznik akcji, nie tydzień pytającego (Filip 4.11). Przed startem bez zmian: takie krótkie pytanie może być o własny trening. */
+const GOLE_KM = /^ile (juz )?(km|kilometrow)( juz)?$/;
 /* ZDROWIE INNYCH OSÓB (Filip 3.11, ławka akcji: „co mu jest” po pytaniu o Fabianka): o zdrowiu kogokolwiek poza pytającym Okienko nie mówi —
    stałe zdanie, 0 tokenów, przed modelem i siecią (model mógłby zmyślić chorobę, sieć mogłaby ją znaleźć). „co mi jest” to zdrowie pytającego. */
 export const ODP_ZDROWIE_INNYCH = "O zdrowiu innych osób nie rozmawiam. Jeśli chodzi o Ciebie — napisz, co Ci dolega.";
@@ -243,10 +251,17 @@ export function zagadkaKandydat(tekst) {
 }
 
 /** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */
+/* OBÓZ (Filip 3.11): „gdzie na obóz”, „obóz biegowy”, „zgrupowanie” to pytanie o obozy z sieci, NIGDY impreza z kalendarza po słowie w nazwie. Wyjątek: bieg, który ma obóz w nazwie
+   („wyniki biegu Obóz Karolin”, „kiedy jest bieg Obóz Karolin”) działa jak każda inna impreza. „obóz przed maratonem” to dalej obóz. */
+const SLOWO_OBOZU = /\b(oboz\w*|zgrupowan\w*)\b/;
+const WYNIKI_NIE_OBOZ = /\b(wynik\w*|rekord\w*|klasyfikacj\w*|kto wygral\w*|kto wygrala\w*)\b/;
+const BIEG_Z_OBOZEM = /\b(bieg|biegu|biegi|biegiem|zawody|zawodach|maraton\w*|polmaraton\w*)\s+(pamieci\s+|im\s+|imienia\s+|na\s+|do\s+)?oboz\w*/;
+export function czyOboz(tekst) { const t = normalizuj(tekst); return SLOWO_OBOZU.test(t) && !WYNIKI_NIE_OBOZ.test(t) && !BIEG_Z_OBOZEM.test(t); }
+
 export function dopasuj(tekst, dzis) {
   const t = normalizuj(tekst);
   if (!t) return null;
-  if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); const rz = rodzajZagadki(tekst); return rz ? { zdanie: z.zdanie, log: "zagadka", rodzaj: rz } : { zdanie: z.zdanie, log: "zagadka" }; }
+  if (czyZagadka(tekst) && AKCJA) { const z = AKCJA.odpowiedzZagadki(); const rz = rodzajZagadki(tekst); const f = rz === "wyprawa" || rz === "km" ? null : dopasujFaq(t); if (f && (f.zawsze || AKCJA.czyAkcjaRuszyla())) return { zdanie: f.o, log: "zagadka", rodzaj: "faq" }; return rz ? { zdanie: z.zdanie, log: "zagadka", rodzaj: rz } : { zdanie: z.zdanie, log: "zagadka" }; }
   if (czyZdrowieInnych(tekst)) return { zdanie: ODP_ZDROWIE_INNYCH, log: "zdrowie-innych" };   // 3.11: przed modelem i siecią
   if (czyReakcja(tekst)) return { zdanie: ODP_NIEZROZUMIALEM, log: "reakcja", chipy: CHIPY_WYBORU, feedback: true };   // Filip 3.11: reakcje → chipy, bez narzędzi
   if (PODZIEKOWANIE.test(t)) return { zdanie: ODP_PODZIEKOWANIE, log: "podziekowanie" };
@@ -292,7 +307,7 @@ export function dopasuj(tekst, dzis) {
   if (biegi) return biegi;
   const km = /\b(ile|suma)\b.*\b(km|kilomet\w*|przebieg\w*|nabiega\w*)|\bile przebieg\w*/.test(t);
   if (km) {
-    const mies = t.match(RE_MIESIAC);
+    const mies = t.replace(new RegExp(BIEG_SLOWO.source, "g"), " ").match(RE_MIESIAC);   // „ile kilometrów ma maraton” to nie marzec (jak w dopasujBiegi)
     if (/\btydz\w*|\btygodni\w*/.test(t)) return { narzedzie: "moje_treningi", args: { od: poniedzialek(dzis), do: dzis } };
     if (mies) return { narzedzie: "moje_treningi", args: miesiacZakres(MIESIACE.findIndex((m) => mies[1].startsWith(m === "maj" ? "maj" : m)) + 1, dzis) };
     if (/\bmiesiac\w*/.test(t)) return { narzedzie: "moje_treningi", args: { od: dzis.slice(0, 8) + "01", do: dzis } };
@@ -325,6 +340,10 @@ const CEL_OGOLNIE_CYR = /святилищ|монастир|монастыр|па
 const PRZECIEK_DZIECKA = /\b(chor\w*|nowotw\w*|bialacz\w*|guz\w*|rak\w*|sma|zespol\w*|operac\w*|lecze\w*|terapi\w*|diagnoz\w*|szpital\w*|hospic\w*|onkolog\w*|chemi\w*|przeszczep\w*|zanik\w*|mutacj\w*|disease|illness|sick\w*|syndrome|treatment|therapy|cancer|leukemia|tumou?r|diagnos\w*|hospital|krankheit|krebs|erkrank\w*|syndrom|krankenhaus|behandlung|enfermedad\w*|tratamiento|nemoc\w*|lecb\w*)\b/;
 const PRZECIEK_DZIECKA_CYR = /хвор|болезн|заболев|діагноз|диагноз|лікуван|лечени|онколог|пухлин|опухол|лікарн|больниц|синдром|раком|рак\s/;
 /** → 'cel' | 'dziecko' | null */
+/** Karty z danymi z zewnątrz (kalendarz ma zgłoszenia imprez od użytkowników): karta z imieniem dziecka obok choroby wypada, reszta zostaje. Red team 2, 4.11. */
+export function kartyBezDanychDziecka(karty) {
+  return (Array.isArray(karty) ? karty : []).filter((k) => przeciekAkcji([JSON.stringify((k && k.dane) || {})]) !== "dziecko");
+}
 export function przeciekAkcji(zdania) {
   const surowy = (Array.isArray(zdania) ? zdania : [zdania]).join(" ").toLowerCase();
   const t = normalizuj(surowy);

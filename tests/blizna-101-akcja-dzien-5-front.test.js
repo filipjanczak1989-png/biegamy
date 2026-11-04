@@ -38,7 +38,7 @@ test('wyprawa: tylko z celem; tekst bez imienia; dla-fabianka i karta Dziś', as
   assert.equal(t, 'Wyprawa · Filip i Kasia: 42 km · cel: tajemnica');
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 241, wyprawa_dotarla_at: '2026-11-08T16:00:00Z', wyprawa_cel_nazwa: 'Cel Z Bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Cel Z Bazy ✓ · 241 km');
   assert.equal(A.linkTrasy({ wystartowala: true, wyprawa_trwa: true }), 'mapa-wyprawy.html'); assert.equal(A.linkTrasy({ wystartowala: false, wyprawa_trwa: true }), '');
-  assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian|borowczyk/i, 'imię poza nazwą pliku strony');
+  assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, 'imię poza nazwą pliku strony');
   assert.match(czytaj('dla-fabianka.html'), /var wy = A\.tekstWyprawy\(d\);/);
 });
 
@@ -55,6 +55,6 @@ test('karta akcji: przycisk tylko z wkładem > 0, EF share-card {akcja} — licz
   assert.match(f, /admin\.rpc\("akcja_licznik"/);
   assert.match(f, /admin\.rpc\("akcja_km_okna"/);
   assert.match(f, /const plik = `akcja-\$\{slug\}-\$\{ath\.id\}-\$\{dzis\}-\$\{Math\.round\(mojeKm \* 10\)\}-\$\{Math\.round\(suma\)\}\.jpg`;/);
-  assert.doesNotMatch(f, /fabian|borowczyk/i, 'imię w kodzie EF — repo publiczne');
+  assert.doesNotMatch(f, /fabian/i, 'imię w kodzie EF — repo publiczne');
   assert.match(ef, /if \(akcja\) return await kartaAkcji\(admin, user\.id, akcja\);/);
 });

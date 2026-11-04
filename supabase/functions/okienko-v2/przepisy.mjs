@@ -9,11 +9,13 @@ import { NIE_MAM } from "../okienko/straznik.mjs";
 import { dodajDni, normalizuj } from "../okienko/router.mjs";
 import { wygladaNaOsobeSlownik } from "../okienko/pamiec.mjs";
 import { ODP_OSOBA_BEZ_NAZWISKA, chipyDla } from "./intencje.mjs";
+import { wykonajPlanStartowy } from "./plan-startowy.mjs";
 
 export const PRZEPISY = {
   gotowosc: ["moje_starty", "moja_forma", "moje_treningi", "moje_rekordy"],
   najdluzszy: ["moje_treningi"],
   porownaj: ["osoba", "moje_wyniki"],
+  plan_startowy: ["plan_startowy"],   // plan-startowy.mjs: kalendarz maszyny + reguły w kodzie, bez narzędzi v1
 };
 export const MAX_NARZEDZI_PRZEPISU = 4;
 const pusto = (tryb, extra = {}) => ({ zdania: [], karty: [], akcja: null, zrodla: [], narzedzia: [], tryb, koszt_tok: { we: 0, wy: 0 }, ...extra });
@@ -31,6 +33,7 @@ const pierwsze = (o) => (o && o.odp.zdania && o.odp.zdania[0] && o.odp.zdania[0]
 /** @returns {Promise<null | {body, log, meta:{wyniki, args, narzedzia}}>} */
 export async function wykonajPrzepis(ctx, r) {
   const s = r.sloty || {};
+  if (r.intencja === "plan_startowy") return wykonajPlanStartowy(ctx, r);
   if (r.intencja === "gotowosc") {
     const od = dodajDni(ctx.dzis, -13);
     const [st, fo, tr, re] = await Promise.all([narzedzie(ctx, "moje_starty", {}), narzedzie(ctx, "moja_forma", {}), narzedzie(ctx, "moje_treningi", { od, do: ctx.dzis }), narzedzie(ctx, "moje_rekordy", { szanse: true })]);

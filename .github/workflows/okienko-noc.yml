@@ -104,3 +104,11 @@ jobs:
           { cat docs/okienko-raport/.czujka-alarm 2>/dev/null || echo "patrz log"; echo;
             echo "Plan B: docs/garmin-plan-b-2026-11-03.md (przełącznik GARMIN_BLOKADA=1 w sekretach EF intervals-status + deploy; komunikat gotowy)."; } > "$RUNNER_TEMP/issue.md"
           gh issue create --title "intervals/Garmin: nowy post Davida $D" --body-file "$RUNNER_TEMP/issue.md" --label garmin || true
+
+      # 4.11: przebieg był zielony, a raportu nie było: krok raportu ma set +e, więc jego błąd nikogo nie alarmował. Ostatni krok, żeby commit czujki i issue i tak poszły.
+      - name: Brak raportu = czerwono
+        env:
+          KOD: ${{ steps.raport.outputs.kod }}
+        run: |
+          D=$(date -u +%F)
+          if [ ! -f "docs/okienko-raport/$D.md" ]; then echo "::error::Raport $D nie powstał (kod narzędzia: $KOD)"; exit 1; fi

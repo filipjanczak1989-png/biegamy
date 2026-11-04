@@ -6,8 +6,15 @@ export const ZDANIE_WYPRAWA_DOTARLI = "Dotarli! Szczegóły na Dziś.";
 export const ZDANIE_LICZBY_ZAPAS = "Z BiegaMy korzysta kilkadziesiąt osób — biegacze i ich trenerzy.";
 
 /** → zdanie dla pytania o akcję PO STARCIE albo null (wtedy zostaje zdanie z routera: zagadka przed startem, PO_STARCIE po). */
+export const ZDANIE_ULICA = "Ulicę, domki firm i wpisy osób wpłacających zobaczysz na stronie akcji. Firmy i wpisy dopisuje trener po zobaczeniu potwierdzenia wpłaty, a kwotę firmy pokazujemy tylko za jej zgodą. Okienko niczego tam nie zmienia ani nie potwierdza.";
+export const ZDANIE_GRA = "Cegiełki to gra w aplikacji. Cegły i złote cegły to wyłącznie waluta w grze: nie są wpłatami, nie da się ich kupić ani wypłacić, a gra nie zmienia licznika kilometrów ani statystyk treningów. Ranking jest pod pseudonimem, a poziomy i dodatki zdobywa się samym graniem. Pomóc pieniędzmi można tylko przez oficjalną zbiórkę.";
+export const ZDANIE_ROWER = "Rower nie liczy się do licznika akcji. Liczą się bieg i spacer.";
 export function zdanieAkcji(rodzaj, d, AKK) {
   if (!d || !d.wystartowala) return null;   // przed startem: zagadka (nic o wyprawie, nic o liczbach)
+  if (rodzaj === "faq") return null;   // zdanie z FAQ jest już w trafieniu routera
+  if (rodzaj === "ulica") return ZDANIE_ULICA;
+  if (rodzaj === "gra") return ZDANIE_GRA;
+  if (rodzaj === "rower") return ZDANIE_ROWER;
   if (rodzaj === "wyprawa") return d.wyprawa_dotarla_at ? ZDANIE_WYPRAWA_DOTARLI : ZDANIE_WYPRAWA_TRWA;
   if (rodzaj === "km") {
     const s = Number(d.suma_km), c = Number(d.cel_km);

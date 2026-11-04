@@ -23,11 +23,37 @@ export function promptSieci(dzis) {
 
 const norm = (s) => String(s || "").replace(/\*\*|__|`/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\s+/g, " ").trim().toLowerCase();
 
+/* Koniec zdania (Filip 4.11: zdań nie wolno urywać): znak końca, odstęp i początek nowego zdania, czyli wielka litera albo cyfra.
+   Nie kończą zdania: kropka w słowie („obozygorskie.pl”, „10.5 km”), liczba porządkowa („między 30. a 45. minutą”, „12. Maraton”), skrót („m.in. Poznań”, „ok. 5 km”), inicjał („J. Kowalski”).
+   Pomyłka w tę stronę skleja dwa zdania, co jest bezpieczniejsze niż urwanie. Strażnik cyfr ocenia wtedy całość. */
+const SKROTY = new Set(["np", "m.in", "tzw", "tj", "tzn", "ok", "ul", "al", "os", "pl", "św", "im", "nr", "dr", "prof", "mgr", "inż", "ww", "zob", "por", "woj", "gen", "ks", "płk"]);
+const SKROTY_PRZED_LICZBA = new Set(["godz", "min", "maks", "max", "pkt", "str", "tel"]);
+function zakresyZdan(t) {
+  const wynik = [];
+  let start = 0;
+  for (const m of t.matchAll(/[.!?]+/g)) {
+    const poZnaku = m.index + m[0].length, po = t.slice(poZnaku);
+    const domkniecie = po.match(/^[”"'’)\]*_`]*/)[0], reszta = po.slice(domkniecie.length);
+    if (!reszta.trim() || !/^\s/.test(reszta)) continue;
+    const nast = (reszta.match(/^[\s*_`„"“'(\[•–—-]*(.)/su) || [])[1] || "";
+    if (/^\.+$/.test(m[0])) {
+      if (/^\p{Ll}$/u.test(nast)) continue;
+      const slowo = (t.slice(start, m.index).match(/[^\s(„"“'*_`]+$/) || [""])[0], maly = slowo.toLowerCase();
+      if (m[0] === "." && (/^\d{1,3}$/.test(slowo) || /^\p{Lu}$/u.test(slowo) || SKROTY.has(maly) || (SKROTY_PRZED_LICZBA.has(maly) && /^\d$/.test(nast)))) continue;
+    }
+    const koniec = poZnaku + domkniecie.length;
+    wynik.push({ od: start, do: koniec, zamkniete: true });
+    start = koniec;
+  }
+  const ogon = t.slice(start);
+  if (ogon.trim()) wynik.push({ od: start, do: t.length, zamkniete: /[.!?][”"'’)\]*_`]*\s*$/.test(ogon) });
+  return wynik;
+}
 /** Tekst modelu → zdania (bez markdownu). */
 export function naZdania(tekst) {
   const czysty = String(tekst || "").replace(/\*\*|__|`/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*[-*•]\s+/gm, "").replace(/\s+/g, " ").trim();
   if (!czysty) return [];
-  return (czysty.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g) || []).map((z) => z.trim()).filter(Boolean);
+  return zakresyZdan(czysty).map((z) => czysty.slice(z.od, z.do).trim()).filter(Boolean);
 }
 
 /* Zdania SUROWEGO tekstu modelu z zakresem w BAJTACH UTF-8 — groundingSupports[].segment.startIndex/endIndex liczy
@@ -35,11 +61,12 @@ export function naZdania(tekst) {
 const ENK = new TextEncoder();
 export function zdaniaZZakresem(tekst) {
   const surowy = String(tekst || ""), wynik = [];
-  for (const m of surowy.matchAll(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)) {
-    const pokaz = m[0].replace(/\*\*|__|`/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*[-*•]\s+/gm, "").replace(/\s+/g, " ").trim();
+  for (const z of zakresyZdan(surowy)) {
+    const kawalek = surowy.slice(z.od, z.do);
+    const pokaz = kawalek.replace(/\*\*|__|`/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*[-*•]\s+/gm, "").replace(/\s+/g, " ").trim();
     if (!pokaz) continue;
-    const od = ENK.encode(surowy.slice(0, m.index)).length;
-    wynik.push({ zdanie: pokaz, od, do: od + ENK.encode(m[0]).length });
+    const od = ENK.encode(surowy.slice(0, z.od)).length;
+    wynik.push({ zdanie: pokaz, od, do: od + ENK.encode(kawalek).length, ...(z.zamkniete ? {} : { urwane: true }) });
   }
   return wynik;
 }
@@ -59,7 +86,10 @@ export function zOdpowiedziSieci(tekst, gm, czyHttps, maxZdan = MAX_ZDAN) {
   const supports = ((gm && gm.groundingSupports) || []).map((s) => s && s.segment).filter(Boolean)
     .map((g) => ({ od: Number.isFinite(g.startIndex) ? g.startIndex : (Number.isFinite(g.endIndex) ? 0 : null), do: Number.isFinite(g.endIndex) ? g.endIndex : null, tekst: norm(g.text) }));
   const zdania = [], odrzucone = [];
-  for (const z of zdaniaZZakresem(tekst)) {
+  const zakresy = zdaniaZZakresem(tekst);
+  for (const z of zakresy) {
+    /* limit tokenów ucina odpowiedź w pół zdania: ogon bez znaku końca odpada, o ile cokolwiek zostaje */
+    if (z.urwane && zakresy.length > 1) { odrzucone.push({ zdanie: z.zdanie.slice(0, 200), powod: "urwane: brak znaku końca zdania" }); continue; }
     if (!/\d/.test(z.zdanie)) { zdania.push(z.zdanie); continue; }
     const n = norm(z.zdanie).replace(/[.!?]+$/, "");
     const pokryte = supports.some((g) => (g.do != null && g.od != null) ? (g.od < z.do && g.do > z.od)

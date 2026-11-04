@@ -1,0 +1,41 @@
+MIGAWKA STANU DOSTĘPU — public.akcja_firmy
+⚠️ Zapis stanu produkcji, NIE migracja i NIE skrypt do wykonania.
+   Patrz README.md w tym katalogu.
+
+RLS            : WŁĄCZONE
+FORCE RLS      : nie
+
+UPRAWNIENIA (tabelowe)
+  anon           : — brak
+  authenticated  : DELETE, SELECT
+  postgres       : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+  service_role   : DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+
+UPRAWNIENIA (kolumnowe, ponad tabelowymi)
+  authenticated / INSERT na kolumnach:
+    akcja_slug, kwota_gr, link, logo_url, nazwa, potwierdzenie_widziane, rodzaj, wsparcie, zgoda_na_kwote, zgoda_na_wymienienie
+  authenticated / UPDATE na kolumnach:
+    link, logo_url, nazwa, potwierdzenie_widziane, rodzaj, ukryta, wsparcie
+
+POLITYKI (4)
+
+  [1] akcja_firmy_trener_dodaje
+      polecenie : INSERT   rodzaj: PERMISSIVE
+      role      : authenticated
+      przy zapisie: (auth_is_coach() AND (dodal = auth.uid()))
+
+  [2] akcja_firmy_trener_kasuje
+      polecenie : DELETE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : auth_is_coach()
+
+  [3] akcja_firmy_trener_odczyt
+      polecenie : SELECT   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : auth_is_coach()
+
+  [4] akcja_firmy_trener_zmienia
+      polecenie : UPDATE   rodzaj: PERMISSIVE
+      role      : authenticated
+      warunek   : auth_is_coach()
+      przy zapisie: auth_is_coach()

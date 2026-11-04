@@ -1,6 +1,6 @@
 /* BLIZNA 134 (3.11.2026, Filip): „Otwórz wyniki” prowadziło do kalendarza startów (races.html) zamiast do Wyników. Każdy link do wyników
    ma prowadzić do wyniki.html: karta zawodnika `#/zawodnik/<klucz>` (klucz z maszyny, zakodowany), bez klucza — wyszukiwarka Wyników.
-   Ekran imprezy (`#/impreza/…`) czeka na kolektor (wyniki.html: „etap 3”), więc dziś żaden link nie prowadzi do niego. */
+   Ekran imprezy (`#/impreza/…`) działa od blizna-143 (F6 019); link do niego dostaje każda edycja na karcie imprezy. */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -61,7 +61,8 @@ test('każdy link „wyniki” w stronach i skryptach prowadzi do wyniki.html (n
     const s = czytaj(p);
     for (const m of s.matchAll(/(?:href|data-cel)="([^"]*)"[^>]*>[^<]*(?:[Ww]ynik(?:i|ów)|Otwórz wyniki)/g)) {
       if (/^#$|^javascript:/.test(m[1])) continue;
-      assert.match(m[1], /^wyniki\.html|' \+ esc\(celWynikow/, `${p}: link do wyników prowadzi do ${m[1]}`);
+      if (m[1] === 'usun-dane.html') continue;   // „Usuń moje wyniki” w stopce ekranu imprezy (blizna-143) to nie link do wyników
+      assert.match(m[1], /^wyniki\.html|' \+ esc\(cel(?:Wynikow|Imprezy)/, `${p}: link do wyników prowadzi do ${m[1]}`);
     }
     assert.doesNotMatch(s, /races\.html[^"']*"[^>]*>\s*(Otwórz wyniki|Zobacz wyniki)/, p);
   }

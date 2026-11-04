@@ -36,6 +36,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execFileSync } = require('child_process');
+const { wierszeZCli } = require('./cli-wiersze.js');
 
 const KORZEN = path.join(__dirname, '..');
 const KATALOG = path.join(KORZEN, 'supabase', 'schema', 'rls');
@@ -108,7 +109,7 @@ function zapytaj(sql, etykieta) {
   } finally {
     try { fs.unlinkSync(tmp); } catch (_) {}
   }
-  return JSON.parse(out.slice(out.indexOf('{'))).rows;
+  return wierszeZCli(out);
 }
 
 /* ⚠️ `roles` przychodzi jako TABLICA (`{anon,authenticated}`) i kolejność nie
@@ -225,6 +226,7 @@ function suma(s) {
 
 function zBazy() {
   const relacje = zapytaj(Q_RELACJE, 'rel');
+  if (!relacje.length) { console.error('\n  Baza nie zwróciła żadnej relacji. Migawka zostaje bez zmian.\n'); process.exit(2); }
   const polityki = zapytaj(Q_POLITYKI, 'pol');
   const granty = zapytaj(Q_GRANTY, 'gr');
   const grantyKol = zapytaj(Q_GRANTY_KOL, 'grk');

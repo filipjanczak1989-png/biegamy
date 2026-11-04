@@ -37,12 +37,12 @@ export const MAPA = {
   biegi_nadchodzace: "router:biegi_nadchodzace", katalog: "router:katalog", kalkulator: "router:kalkulator", pogoda: "klient", zdrowie: "router:zdrowie",
   porada: "siec", zywienie: "siec|v2:produkt", sprzet: "siec", o_nas: "router:o-nas", fakt: "siec", akcja: "router:zagadka", odmowa: "router:odmowa",
   opinia: "v2:opinia|osoba", nawigacja: "router:nawigacja", rywal: "v2:rywal", gotowosc: "v2:gotowosc*", porownaj: "v2:porownaj*|osoba", najdluzszy: "v2:najdluzszy*",
-  nie_wiem: "v2-niepewne:*",
+  nie_wiem: "v2-niepewne:*", plan_startowy: "v2:plan_startowy", oboz: "siec",
 };
 /* udział intencji w 1630 „typowych” pytaniach (szacunek z logów i ławki: własne dane najczęściej) — skalowany do N */
 const UDZIAL = { moj_plan: 150, moje_treningi: 150, moje_starty: 80, moje_rekordy: 60, moje_wyniki: 50, moja_forma: 60, moj_trener: 30, odznaki: 30, wyzwania: 30,
   znajomi: 30, osoby_z_miasta: 20, osoba: 50, impreza: 70, biegi_nadchodzace: 80, katalog: 100, kalkulator: 50, pogoda: 30, zdrowie: 60, porada: 100, zywienie: 60,
-  sprzet: 40, o_nas: 30, fakt: 40, akcja: 40, odmowa: 30, opinia: 15, nawigacja: 30, rywal: 15, gotowosc: 25, porownaj: 15, najdluzszy: 20, nie_wiem: 40 };
+  sprzet: 40, o_nas: 30, fakt: 40, akcja: 40, odmowa: 30, opinia: 15, nawigacja: 30, rywal: 15, gotowosc: 25, porownaj: 15, najdluzszy: 20, nie_wiem: 40, plan_startowy: 40, oboz: 20 };
 const KATEGORIA = (i) => (["moj_plan", "moje_treningi", "moje_starty", "moje_rekordy", "moje_wyniki", "moja_forma", "moj_trener", "odznaki", "wyzwania", "gotowosc", "najdluzszy"].includes(i) ? "wlasne"
   : ["osoba", "osoby_z_miasta", "znajomi", "rywal", "porownaj", "opinia", "odmowa"].includes(i) ? "osoby" : ["impreza", "biegi_nadchodzace"].includes(i) ? "imprezy"
   : ["katalog", "nawigacja", "o_nas", "kalkulator"].includes(i) ? "tresci" : i === "akcja" ? "akcja" : "poza");
@@ -99,20 +99,56 @@ export async function generuj(n, { model = MODELE.opus, klient, log = console.lo
   return wynik;
 }
 
-/** 50 do zatwierdzenia: po kolei z każdej intencji (różne style), deterministycznie */
+/** rodzina stylu: model zapisuje go różnie („literowki”, „caps i błędna interpunkcja”), a pytanie z `po` to zawsze dopytanie */
+export function rodzinaStylu(k) {
+  if (k.po && k.po.length) return "dopytanie";
+  const s = String(k.styl || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").toLowerCase();
+  if (/bez polskich/.test(s)) return "bez polskich znaków";
+  if (/literow/.test(s)) return "literówki";
+  if (/slang|potoczn/.test(s)) return "slang";
+  if (/skrot/.test(s)) return "skróty";
+  if (/emotk|wykrzyk/.test(s)) return "emotki";
+  if (/caps|interpunk/.test(s)) return "interpunkcja lub CAPS";
+  if (/dlugie|pelne/.test(s)) return "długie zdanie";
+  if (/jedno|krotkie/.test(s)) return "jedno–dwa słowa";
+  if (/dopyt/.test(s)) return "dopytanie";
+  return "poprawna polszczyzna";
+}
+
+/** 50 do zatwierdzenia: po kolei z każdej intencji i z kolejnym stylem, deterministycznie. Pierwsza wersja brała pierwsze wiersze każdej partii,
+    więc wszystkie 50 było „poprawną polszczyzną”: zatwierdzałoby się najłatwiejszą część, bez literówek, slangu i dopytań. */
 export function probka(kandydaci, ile = 50) {
-  const wg = {}; for (const k of kandydaci) (wg[k.intencja] = wg[k.intencja] || []).push(k);
-  const kolejki = Object.values(wg), out = [];
-  for (let i = 0; out.length < ile && kolejki.some((q) => q.length > i); i++) for (const q of kolejki) if (q[i] && out.length < ile) out.push(q[i]);
+  const wg = new Map(), style = [];
+  for (const k of kandydaci) {
+    const s = rodzinaStylu(k);
+    if (!style.includes(s)) style.push(s);
+    if (!wg.has(k.intencja)) wg.set(k.intencja, new Map());
+    const m = wg.get(k.intencja);
+    if (!m.has(s)) m.set(s, []);
+    m.get(s).push(k);
+  }
+  const out = [], n = style.length;
+  let wskaznik = 0, zostalo = kandydaci.length;
+  while (out.length < ile && zostalo > 0) {
+    for (const m of wg.values()) {
+      if (out.length >= ile) break;
+      for (let t = 0; t < n; t++) {
+        const q = m.get(style[(wskaznik + t) % n]);
+        if (q && q.length) { out.push(q.shift()); zostalo--; break; }
+      }
+      wskaznik++;
+    }
+  }
   return out;
 }
 
 function mdProbki(p, wszystkich) {
   const esc = (s) => String(s).replace(/\|/g, "/");
   return [`# Ławka v2 — próbka ${p.length} z ${wszystkich} pytań od Claude (${DZIS}) — do OK Filipa`, "",
-    "Każde pytanie ma oczekiwaną intencję (ocena klasyfikacji). Zatwierdzenie próbki = zgoda na dopisanie całości (`--scal`); złe pytania wpisz po `--bez` (id).", "",
+    "Każde pytanie ma oczekiwaną intencję (ocena klasyfikacji). Zatwierdzenie próbki = zgoda na dopisanie całości (`--scal`); złe pytania wpisz po `--bez` (id).",
+    "Próbka idzie przez wszystkie intencje i style, więc celowo pokazuje też trudne przypadki: literówki, slang, dopytania w rozmowie. Mylić się może oczekiwana intencja; takie pytania też wypisz.", "",
     "| id | rozmowa wcześniej | pytanie | intencja | styl | waga |", "|---|---|---|---|---|---|",
-    ...p.map((k) => `| ${k.id} | ${esc((k.po || []).join(" → ")) || "—"} | ${esc(k.p)} | ${k.intencja} | ${esc(k.styl)} | ${k.waga} |`), ""].join("\n");
+    ...p.map((k) => `| ${k.id} | ${esc((k.po || []).join(" → ")) || "—"} | ${esc(k.p)} | ${k.intencja} | ${rodzinaStylu(k)} | ${k.waga} |`), ""].join("\n");
 }
 
 const lit = (s) => "'" + String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
@@ -150,6 +186,11 @@ if (import.meta.main) {
     const ci = JSON.parse(fs.readFileSync(pCi, "utf8")), n = dopiszNagrania(ci, JSON.parse(fs.readFileSync(pZ, "utf8")));
     fs.writeFileSync(pCi, JSON.stringify(ci, null, 1) + "\n");
     console.log(`dopisano nagrań: ${n}; teraz: deno run -A tools/lawka-generator.mjs --scal --przelicz`);
+  } else if (jest("--probka")) {   // nowa próbka z zapisanych kandydatów (0 $)
+    const d = JSON.parse(fs.readFileSync(PLIK_KANDYDATOW, "utf8"));
+    const pm = path.join(KORZEN, "docs", `lawka-probka-${d.dzis}.md`);
+    fs.writeFileSync(pm, mdProbki(probka(d.kandydaci, Number(arg("--probka", "50"))), d.kandydaci.length));
+    console.log("próbka:", pm);
   } else if (jest("--generuj")) {
     const n = Number(arg("--generuj", "1500"));
     const { PYTANIA } = require("../tests/_lawka-v2-pytania.js");

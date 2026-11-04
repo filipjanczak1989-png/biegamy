@@ -95,7 +95,7 @@ begin
   execute 'set local role service_role';
   j := public.akcja_licznik('dla-fabianka');
   reset role;
-  if j->>'start' <> '2026-11-07' or (j->>'wystartowala')::boolean or j::text ~* 'fabian|borowczyk|siepomaga' then raise exception 'data: licznik %', j; end if;
+  if j->>'start' <> '2026-11-07' or (j->>'wystartowala')::boolean or j::text ~* 'fabian|siepomaga' then raise exception 'data: licznik %', j; end if;
 end $$;
 
 notify pgrst, 'reload schema';

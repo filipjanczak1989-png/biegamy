@@ -4,13 +4,33 @@
 //                               2 000 m przed i po każdej przerwie > 3 h (nocleg) ukryte na zawsze; ostatnie 500 m każdej aktywności
 //                               ukryte, dopóki wyprawa trwa (postoje, aktualna pozycja); bez punktu „teraz”.
 // Dystans liczony wzdłuż CAŁEJ wyprawy (aktywności po kolei), więc strefy nie zależą od tego, jak zegarek pociął dzień.
-export const KROK_M = 50, START_UKRYJ_M = 2000, PRZERWA_H = 3, PRZERWA_UKRYJ_M = 2000, KONCOWKA_UKRYJ_M = 500;
+// Do tego promień: 2 km po krętej drodze to czasem kilkaset metrów w linii prostej, a dom i nocleg mają być ukryte w terenie, nie tylko na liczniku trasy.
+// Dwa konta rysują jedną trasę (jednoKontoNaDzien). Pomieszane dawały start drugiego konta w środku dystansu, bez strefy, czyli dokładny adres.
+export const KROK_M = 50, START_UKRYJ_M = 2000, PRZERWA_H = 3, PRZERWA_UKRYJ_M = 2000, KONCOWKA_UKRYJ_M = 500, PROMIEN_UKRYJ_M = 2000;
 
 const R = 6371000;
 export function odleglosc(a, b) {
   const f1 = a[0] * Math.PI / 180, f2 = b[0] * Math.PI / 180, df = (b[0] - a[0]) * Math.PI / 180, dl = (b[1] - a[1]) * Math.PI / 180;
   const h = Math.sin(df / 2) ** 2 + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Strumień latlng z intervals: szerokości w `data`, długości w `data2`. Pary w `data` też przechodzą, żeby zmiana po ich stronie nie wyzerowała mapy. */
+export function paryLatLng(strumien) {
+  const d = strumien && strumien.data;
+  if (!Array.isArray(d)) return [];
+  return Array.isArray(strumien.data2) ? d.map((lat, i) => [lat, strumien.data2[i]]) : d;
+}
+
+/** Dzień wg Warszawy: główne konto (pierwsze na liście), gdy ma tego dnia trasę; inaczej zapasowe. Ta sama reguła co wyprawa_km w liczniku, więc mapa i karta się zgadzają. */
+export function jednoKontoNaDzien(wiersze, konta) {
+  const dzien = (w) => new Date(Date.parse(w.start_at) + 3600000).toISOString().slice(0, 10);
+  const lista = wiersze || [], ids = konta || [];
+  return lista.filter((w) => {
+    const d = dzien(w);
+    for (const id of ids) if (lista.some((x) => x.athlete_id === id && dzien(x) === d)) return w.athlete_id === id;
+    return false;
+  });
 }
 
 /** [[lat,lon],…] (null-e pomijane) → [[lat,lon,dist_m],…]: ≤ 1 punkt na `krok` m, pierwszy i ostatni zawsze */
@@ -48,14 +68,20 @@ export function strefyUkryte(aktywnosci, o = {}) {
 export function ukryj(aktywnosci, o = {}) {
   const akt = (aktywnosci || []).filter((a) => a && Array.isArray(a.punkty) && a.punkty.length).slice().sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at));
   const { strefy, granice, dlugosc } = strefyUkryte(akt, o);
-  const ukryty = (D) => strefy.some(([a, b]) => D >= a && D <= b);
+  const promien = o.promienM ?? PROMIEN_UKRYJ_M, przerwaH = o.przerwaH ?? PRZERWA_H, kotwice = [];
+  akt.forEach((a, i) => {
+    if (i === 0) kotwice.push(a.punkty[0]);
+    const nast = akt[i + 1];
+    if (nast && Date.parse(nast.start_at) - Date.parse(a.koniec_at) > przerwaH * 3600000) kotwice.push(a.punkty[a.punkty.length - 1], nast.punkty[0]);
+  });
+  const ukryty = (D, p) => strefy.some(([a, b]) => D >= a && D <= b) || kotwice.some((k) => odleglosc(p, k) < promien);
   const segmenty = [];
   let ostatni = null;
   akt.forEach((a, i) => {
     let seg = [];
     for (const p of a.punkty) {
       const D = granice[i].od + p[2];
-      if (ukryty(D)) { if (seg.length > 1) segmenty.push(seg); seg = []; continue; }
+      if (ukryty(D, p)) { if (seg.length > 1) segmenty.push(seg); seg = []; continue; }
       seg.push([p[0], p[1]]); ostatni = [p[0], p[1]];
     }
     if (seg.length > 1) segmenty.push(seg);

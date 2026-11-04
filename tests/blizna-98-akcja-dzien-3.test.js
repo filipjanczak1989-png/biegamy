@@ -82,7 +82,7 @@ test('przed startem nic nie zdradza: statyczny kod stron bez imienia; nazwisko n
   }
   const pliki = execFileSync('git', ['ls-files'], { cwd: KORZEN, encoding: 'utf8' }).split('\n')
     .filter((f) => /\.(html|js|mjs|ts)$/.test(f) && !f.startsWith('tests/') && !f.startsWith('supabase/migrations/'));
-  const zNazwiskiem = pliki.filter((f) => fs.existsSync(path.join(KORZEN, f)) && /borowczyk/i.test(fs.readFileSync(path.join(KORZEN, f), 'utf8')));
+  const zNazwiskiem = pliki.filter((f) => fs.existsSync(path.join(KORZEN, f)) && require('./_nazwisko.js').maNazwisko(fs.readFileSync(path.join(KORZEN, f), 'utf8')));
   assert.deepEqual(zNazwiskiem, [], 'nazwisko dziecka poza linkiem w bazie');
   for (const p of ['js/akcja.mjs', 'dla-fabianka.html', 'zawodnik.html', 'index.html']) {
     assert.doesNotMatch(czytaj(p), /wpłat\w* tygodni|rozliczeni\w* tygodni|do przelewu/i, p + ': kwoty tygodniowe w UI');

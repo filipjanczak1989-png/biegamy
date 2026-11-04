@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.akcja_km_okna(p_akcja_id uuid, p_od date, p_do
 AS $function$
   -- ⚠️ JOIN, nie LEFT JOIN: least() w Postgresie POMIJA NULL — least(NULL, 100) = 100, więc pusty wiersz
   --    z left join dawał akcji bez jednego wpisu 100 km (złapane testem 5a, 2.11.2026).
-  select coalesce(sum(least(dz.km, a.cap_km_doba)), 0)::numeric
+  select coalesce(sum(least(dz.km, case when dz.athlete_id = any(coalesce(a.wyprawa_athlete_ids, '{}'::uuid[])) then a.cap_km_doba_wyprawa else a.cap_km_doba end)), 0)::numeric
   from public.akcje a
   join lateral (
     select l.athlete_id, (l.logged_at at time zone 'Europe/Warsaw')::date as d, sum(l.distance_km) as km

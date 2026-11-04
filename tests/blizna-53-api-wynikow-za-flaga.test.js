@@ -25,11 +25,11 @@ test('klient: flaga WYNIKI_API_WLACZONE = true w repo (U3/B8 włączone 1.11.202
   assert.equal((bezKomentarzy(KLIENT).match(/WYNIKI_API_WLACZONE = (true|false)/g) || []).length, 1, 'flaga ustawiana w jednym miejscu');
 });
 
-test('klient: tylko https://api.biegamy.run i tylko 11 RPC z listy Caddy/f6.bramka (z events_search 017 i event_hide 018), bez funkcji operatora', () => {
+test('klient: tylko https://api.biegamy.run i tylko 13 RPC z listy Caddy/f6.bramka (z events_search 017, event_hide 018, event_info i event_results 019), bez funkcji operatora', () => {
   assert.match(KLIENT, /var API_URL = 'https:\/\/api\.biegamy\.run';/);
   const lista = KLIENT.match(/var RPC_DOZWOLONE = \[([\s\S]*?)\];/)[1].match(/'[^']+'/g).map((x) => x.slice(1, -1));
   assert.deepEqual(lista.slice().sort(), ['erasure_cancel', 'erasure_confirm', 'erasure_preview', 'erasure_request', 'erasure_status',
-    'event_course_status', 'event_hide', 'events_search', 'runner_results', 'search_runners', 'upcoming_races'], 'events_search: K-API 017, event_hide: 018 (1.11.2026), Caddy i f6.bramka też');
+    'event_course_status', 'event_hide', 'event_info', 'event_results', 'events_search', 'runner_results', 'search_runners', 'upcoming_races'], 'events_search: K-API 017, event_hide: 018, event_info i event_results: 019 (Caddy i f6.bramka też)');
   assert.ok(!lista.includes('event_propose'), 'zgłoszenie imprezy wyłącznie przez EF impreza-zglos (biała lista pól), nie z przeglądarki');
   assert.ok(!/_operator|erasure_release|erasure_check|erasure_finalize|resolve_runners/.test(bezKomentarzy(KLIENT)));
 });

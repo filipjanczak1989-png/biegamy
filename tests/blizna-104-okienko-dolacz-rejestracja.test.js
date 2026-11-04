@@ -11,7 +11,7 @@ const { pathToFileURL } = require('node:url');
 
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
-const PYTANIA = ['jak dołączyć', 'Jak dołączyć?', 'jak się zapisać', 'jak dołączyć do biegamy', 'jak się zarejestrować', 'jak mogę dołączyć', 'jak założyć konto'];
+const PYTANIA = ['jak się zapisać', 'jak dołączyć do biegamy', 'jak się zarejestrować', 'jak założyć konto'];   // gołe „jak dołączyć” od 4.11 to zdanie akcji (blizna-158)
 
 test('przed startem: rejestracja w aplikacji, bez słowa o akcji; po starcie: zagadka akcji', async () => {
   const R = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/okienko/router.mjs')).href);

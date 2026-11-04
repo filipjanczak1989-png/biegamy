@@ -47,6 +47,8 @@ test('narzędzie raportu: dane TYLKO z EF okienko-raport-dane (sekret), bez kluc
   const ef = czytaj('supabase/functions/okienko-raport-dane/index.ts');
   assert.match(ef, /req\.headers\.get\("x-raport-secret"\) \|\| ""\) !== SEKRET\) return J\(401/); assert.match(ef, /if \(!SEKRET \|\|/, 'bez ustawionego sekretu EF odmawia');
   assert.doesNotMatch(ef, /\.(insert|update|upsert|delete|rpc)\(/, 'EF tylko czyta'); assert.match(ef, /\.limit\(MAX_WIERSZY\)/); assert.match(ef, /const MAX_WIERSZY = 500;/);
+  assert.match(ef, /\.from\("okienko_wiedza"\)\.select\("id,pytanie,warianty,odpowiedz,intencja,waznosc,wazna_do,status"\)\.eq\("status", "zatwierdzona"\)\.limit\(MAX_WZORCOW\)/, 'sędzia dostaje z EF tylko zatwierdzone wpisy bazy wiedzy');
+  assert.match(ef, /wzorce: wz\.error \? \[\] : \(wz\.data \|\| \[\]\)/, 'brak tabeli przed migracją nie psuje raportu nocy'); assert.match(r, /WZORCE = j\.wzorce/);
   assert.match(ef, /import \{ anonimizuj \} from "\.\.\/_shared\/anonimizuj\.mjs";/); assert.match(ef, /osoba: ps\(w\.athlete_id\)/);
   assert.doesNotMatch(ef.slice(ef.indexOf('const n = ')), /athlete_id: w\.athlete_id|athlete_id,/, 'athlete_id nie wychodzi z EF');
   assert.match(czytaj('supabase/config.toml'), /\[functions\.okienko-raport-dane\]\s*\nverify_jwt = false/);

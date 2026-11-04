@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego wyjścia pg_policies.
 # Generowane: node tools/polityki-bazy.js --zrzut
 # Porównanie:  node tools/polityki-bazy.js
-# Relacji: 75
+# Relacji: 92
 
 a792e255c2e15564  account_deletions_audit
 50a5ed748f55e614  achievements
@@ -11,8 +11,14 @@ a1d7edd80bb1e569  ai_cache
 e3f7ccefa905354f  ai_reports
 05e73a311c6a8e54  ai_usage_log
 0c0022b63f26a7bb  ai_usage_today
+c98356729ab074f3  akcja_cegielki
+21465c71ebfa6a32  akcja_firmy
+f3c0575ea7d8bca4  akcja_firmy_proby
+ee8177f312b1db2e  akcja_firmy_zgloszenia
 51a8914cfb7c49bd  akcja_sponsorzy
 05398202f4a91f4f  akcja_startujacy
+480b32aa34989bcc  akcja_ulica
+d39cd2a7b7b387ca  akcja_wyprawa_slad
 cdd735f2e7bc52de  akcje
 873db500d0e18c10  athlete_intake_forms
 10cd8e0df711f107  athletes
@@ -35,11 +41,16 @@ b00ea2294ef83f9e  food_cache
 3636cd977bd16d1b  friendships
 9aa6116cc2b602be  game_scores
 c3b4f2b4304bac53  generator_proby
+87b4a266a9860b03  gra_konto
+ffe0f90f9c7e26d0  gra_podejrzane
+81338dbec9c85d0a  gra_rundy
+ab770c72437579f1  gra_wyniki
 25eaf8889beee47c  imprezy_okladki
 9b6a2dbefe06e15b  injuries
 db738b998d0239e1  intervals_activities
 6f45cd1778055cfd  intervals_connections
 97d69ce95217f81d  intervals_credentials
+aed010c9366db40c  intervals_status
 e7b696bdfddb298a  log_comments
 20c506fa85ff7b91  log_reactions
 000985dd9630fdad  messages
@@ -49,8 +60,14 @@ f75568e29d5f08cc  nutrition_meals
 1d14f47758d29c3c  nutrition_quotes
 e9cd91349ed10743  odznaki_okna
 c87921fca3db10ab  okienko_log
+c732e832ba75b846  okienko_pamiec
 2b8286136abd9311  okienko_siec_cache
+b78570c5f081ae57  okienko_ustawienia
+e941e3018e82db95  okienko_v2_konta
+8013257db05f6617  okienko_v2_log
+722b9a8357435d54  okienko_v2_rozmowa
 d3d46704cee95b23  okienko_znaleziska
+83f812b280706981  okladki_log
 33df849c53033130  peer_messages
 9d77bc357fc08df4  profile_posts
 70da7b17647e0a3e  profiles

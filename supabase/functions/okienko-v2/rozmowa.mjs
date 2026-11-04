@@ -22,7 +22,7 @@ export async function czytajRozmowe(adm, athleteId, teraz = new Date()) {
 export async function zapiszTure(adm, athleteId, intencja, sloty = {}, tresc = null) {
   if (!/^[a-z_]{1,40}$/.test(String(intencja || ""))) return false;
   const czyste = {};
-  for (const k of ["zakres", "data", "od", "do", ...DZIEDZICZONE]) if (typeof sloty[k] === "string" && sloty[k]) czyste[k] = sloty[k].slice(0, 60);
+  for (const k of ["zakres", "data", "od", "do", "plan", ...DZIEDZICZONE]) if (typeof sloty[k] === "string" && sloty[k]) czyste[k] = sloty[k].slice(0, 60);
   const wiersz = { athlete_id: athleteId, intencja, sloty: czyste };
   if (tresc && typeof tresc === "object") {   // R2: treść tury (dopytania); zdania bez kart i źródeł
     if (typeof tresc.pytanie === "string" && tresc.pytanie.trim()) wiersz.pytanie = tresc.pytanie.trim().slice(0, 300);

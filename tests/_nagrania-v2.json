@@ -602,5 +602,8228 @@
   "a na 21 km <<biegi_nadchodzace",
   "porownaj z nim <<osoba",
   "a w zeszlym tygodniu <<moje_treningi"
- ]
+ ],
+ "a dlaczego": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "porada",
+   "katalog",
+   "o_nas"
+  ],
+  "sloty": {}
+ },
+ "co mam zaplanowane na sobote": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "czy w czwartek mam interwaly czy spokojne bieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-05"
+  }
+ },
+ "jaki trening czeka mnie jutro": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "czy w srode mam wolne od biegania": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "jaki mam trening w niedziele": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "ile mam akcentow w przyszlym tygodniu": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-09"
+  }
+ },
+ "co mam rozpisane na weekend": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "co mam dzsiaj w palnie": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "data": "2026-11-01"
+  }
+ },
+ "jaki trenig na jutor": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "czy w piatke mam dlugie wybieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "co mam w przysztym tygodnu zaplanowane": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "ile kilometrw mam w sobte": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "co tam mam dzis do odklepania": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "jutro jakas katorga czy luzik": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "weekend wolny czy zapiernicz w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "jest dzisiaj jakis akcent czy tylko czlapanie": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "co mi tam wjezdza w przyszlym tygodniu na rozpisce": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "jutro tempo czy owb": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "co mam w pon": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02"
+  }
+ },
+ "sob ile km i jakie tempo mam rozpisane": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "w weekend jade do rodzicow na wies wiec chcialbym wiedziec z wyprzedzeniem jakie treningi mam zaplanowane na sobote i niedziele": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "wracam dzis pozno z pracy i zastanawiam sie czy mam w planie jakis mocny trening czy wystarczy krotkie rozbieganie wieczorem": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "ukladam sobie grafik na przyszly tydzien i potrzebuje wiedziec w ktore dni mam treningi a ktore sa wolne od biegania": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "jutro rano mam tylko godzine przed praca powiedz mi prosze ile trwa trening ktory mam rozpisany na jutro": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "pod koniec tygodnia chce isc na silownie wiec sprawdz czy w piatek nie mam przypadkiem ciezkiej jednostki biegowej": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "plan weekend": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "trening sroda": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "w niedziele mam dlugie wybieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "blagam powiedz ze jutro mam wolne": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "jaki trening mam w sobote": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "co mam w srode w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "a w nastepnym <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-02"
+  }
+ },
+ "jaki mam trening na jutro": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "jakie interwaly mam w czwartek": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "data": "2026-11-05"
+  }
+ },
+ "dzis biegam czy odpoczywam": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "jutro co mam w planie bo nie pamietam": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "ile to bedzie km <<moj_plan": {
+  "intencja": "kalkulator",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki trening w sobote": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "co mam pojutrze interwaly czy rozbieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-03"
+  }
+ },
+ "a jakie tempo mam tam rozpisane <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jutro mam urodziny zony malo czasu <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "w piatek wolne czy biegam": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "czy na srode mam interwaly": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "a w niedziele <<kalkulator": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "data": "2026-11-08"
+  }
+ },
+ "czy w czwartek mam dzien wolny od biegania": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-05"
+  }
+ },
+ "ile treningow mam w przyszlym tygodniu": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "co mam dzsiaj w planei": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "a w czwartek co mam moze tam przerzuce <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-05"
+  }
+ },
+ "jaki trenig mam w piatek": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "czy jutor mam dlugie wybieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "co mam zaplanowne na nastepny tydzien": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "ile km mam w planei na wtorke": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "data": "2026-11-03"
+  }
+ },
+ "jaka rozpiska na jutro ziomek": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "siema co mi dzis wpadlo do odbebnienia w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "data": "2026-11-01"
+  }
+ },
+ "ogarnij mi co mam w tym tygodniu do latania": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "czy w weekend mam jakas dluga rabanke w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend",
+   "od": "2026-11-07"
+  }
+ },
+ "czy w sob jest dlugi wb 25 km": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "jutro w planie owb czy bc2": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "co mam w pon i wt": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-02"
+  }
+ },
+ "wczoraj nie dalem rady pobiec bo siedzialem w pracy do pozna wiec powiedz mi prosze co dokladnie mam dzisiaj w planie i czy to cos mocnego": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "na nast tydz mam jakies akcenty": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-09"
+  }
+ },
+ "w przyszlym tygodniu wyjezdzam sluzbowo do gdanska i chce wiedziec jakie treningi mam wtedy zaplanowane zeby spakowac odpowiednie rzeczy": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "miejsce": "Gdańsk"
+  }
+ },
+ "mam w srode wieczorem troche czasu i zastanawiam sie jaki trening jest wtedy w moim planie i ile mniej wiecej zajmie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "planuje w sobote rodzinna impreze wiec chcialabym sprawdzic czy na ten dzien przypada u mnie dlugi bieg czy moze cos lzejszego": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "jutro odpoczynek czy biegamy wg planu": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "blagam powiedz ze w niedziele mam wolne w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "jaki trening na piatek": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "a ile jeszcze mam w planie do konca tygodnia <<moje_treningi": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ok a co mam w planie w tygodniu przed nim <<moje_starty": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_starty"
+  ],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "a co mam wtedy w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki trening jutro bo nie wiem czy wstawac rano": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "czy w piatek mam interwaly": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "co mam w planie na wtorek i srode": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-03"
+  }
+ },
+ "jaki trening mam w czwartek": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-05"
+  }
+ },
+ "co mam zaplanowane na weekend": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "a ile to km <<moj_plan": {
+  "intencja": "kalkulator",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy w sobote mam dlugie wybieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "co mam w niedziele w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "ile mam dzis odcinkow w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "jaki tening na jutor": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "jakie mam interwaly w piatke wg planu": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "co mam zaplanowne w srode": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "a w niedziele co <<kalkulator": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "co mi dzis wpadlo do rozpiski": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "jaka katorga mnie jutro czeka w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "na weekend jakas dluga wycieczka w rozpisce": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "rzuc okiem co mam w rozpisce na przyszly tydzien": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "jutro tempo czy rozbieganie wg planu": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "pon co mam w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02"
+  }
+ },
+ "wczoraj wrocilem z delegacji i nie zagladalem do aplikacji wiec powiedz mi prosze jaki trening mam zaplanowany na dzisiaj i czy to cos intensywnego": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "ile km dl wybiegania mam w nd": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "planuje w weekend wyjazd w gory wiec chcialabym wiedziec co mam w planie na sobote i niedziele zeby sie jakos zorganizowac": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend",
+   "od": "2026-11-07"
+  }
+ },
+ "mam w piatek wieczorem impreze firmowa czy w sobote rano mam jakis mocny trening w planie czy tylko spokojne bieganie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro",
+   "data": "2026-11-07"
+  }
+ },
+ "chce rozplanowac prace na przyszly tydzien ile dni biegania i jakie jednostki mam tam rozpisane": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "jutro mam tylko godzine przed praca ile trwa trening ktory mam zaplanowany na jutro zebym wiedzial czy zdaze": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "trening jutro": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "rozpiska tygodnia": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "ile km w niedziele mam w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "jutro wolne czy trening w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "sroda plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-04"
+  }
+ },
+ "mam w czwartek interwaly w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-05"
+  }
+ },
+ "a ile juz zrobilem <<moj_plan": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "najdluzszy"
+  ],
+  "sloty": {}
+ },
+ "co mam w poniedzialek w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02"
+  }
+ },
+ "dzis masz spokojne 8 km w tempie konwersacyjnym <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "ile treningow zrobilem w pazdzierniku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01",
+   "temat": "liczba_treningow"
+  }
+ },
+ "jaki trening mam w piatek czy jest wolne": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-06"
+  }
+ },
+ "a w niedziele <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "co robilem na wczorajszym treningu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "a ile w przyszlym tygodniu mam rozpisane <<moje_treningi": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "a we wtorek co dalej <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-03"
+  }
+ },
+ "a w przyszlym tygodniu <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "ile godzin biegania mam za soba w tym roku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2026-01-01",
+   "temat": "godziny"
+  }
+ },
+ "co biegalem przedwczoraj": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-30"
+  }
+ },
+ "ile razy biegalam w zeszlym tygodniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2025-10-19",
+   "temat": "liczba treningów"
+  }
+ },
+ "co bieglem wczraj": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile kilomterow zrobilem w tym tygodnu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-26"
+  }
+ },
+ "ile kilosow wykrecilem w tym tygodniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "ile treingow mialam w lisopadzie": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "dawno nie truchtalem chyba kiedy to bylo ostatnio": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co tam wczoraj nakrecilem na zegarku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile razy w tym tyg wyszlam pobiegac bo czuje ze lipa": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-26"
+  }
+ },
+ "ile tren w tym mies": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "km w tym tydz": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ile km w pazdz": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "sr km tydz z ostatnich 4 tyg": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-04"
+  }
+ },
+ "lacznie km i hm w ostatnim tyg": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-25"
+  }
+ },
+ "zapomnialem co dokladnie robilem we wtorek czy to byly interwaly czy spokojne rozbieganie mozesz mi przypomniec ten trening": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-27"
+  }
+ },
+ "mam wrazenie ze w tym miesiacu biegalam duzo mniej niz zwykle mozesz sprawdzic ile treningow faktycznie zrobilam od pierwszego": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "treningi wrzesien": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01"
+  }
+ },
+ "czy przebilem 200 km w tym miesiacu sprawdz": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ile km dzis zrobilam": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "ile treningow w tym tygodniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ej co ja wczoraj biegalam bo nie pamietam": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "a w poprzednim <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-19"
+  }
+ },
+ "ile treningow zrobilam w marcu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-03-01",
+   "temat": "treningów"
+  }
+ },
+ "ok a co zrobilem wczoraj <<moj_plan": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "a w zeszlym <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-19"
+  }
+ },
+ "a ile wtedy km wyszlo <<biegi_nadchodzace": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co biegalem w sobote": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile treningow zrobilam w styczniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "temat": "treningów"
+  }
+ },
+ "ile km w ostatnie 7 dni bo cos malo": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-25"
+  }
+ },
+ "kiedy ostatnio bylem na treningu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a w kwietniu <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-04-01"
+  }
+ },
+ "ile treningow zrobilam w pazdzierniku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "co biegalem wczoraj": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile razy biegalem w zeszlym tygodniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-19",
+   "temat": "ile_razy"
+  }
+ },
+ "a od poczatku roku razem <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01"
+  }
+ },
+ "co robilem w niedziele na treningu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-25"
+  }
+ },
+ "co robilem wczoraj na treningku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile kilometrow przebigelem w tym tygoniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-26"
+  }
+ },
+ "ile zrobilem kilometrow w listpadzie": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ile mam treinngow zrobionych w tym msc": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "co ja tam wczoraj wybiegalem": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "km w tym tyg": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "ile razy w ogole wyszlam pobiegac ostatnio bo czuje ze sie lenie": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile tren w ost 30 dni": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-02"
+  }
+ },
+ "ile nabilem kilosow w tym miesiacu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "suma km od 1 01": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01"
+  }
+ },
+ "zapomnialem zapisac w notesie co robilem we wtorek mozesz sprawdzic jaki to byl trening i ile mial kilometrow": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-27"
+  }
+ },
+ "ile hm przewyzszenia zrobilem w tym mies": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "trener pyta mnie ile srednio biegam tygodniowo w ostatnich dwoch miesiacach a ja nie pamietam ile mi to wychodzi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01"
+  }
+ },
+ "wczorajszy trening": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile treningow": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co wczoraj biegalem bo nie pamietam": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "km wrzesien": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01",
+   "temat": "km"
+  }
+ },
+ "a co robilem wczoraj <<moj_plan": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "a ile to bylo km <<biegi_nadchodzace": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.3,
+  "dopytac": true,
+  "kandydaci": [
+   "najdluzszy",
+   "moje_treningi"
+  ],
+  "sloty": {}
+ },
+ "co robilem wczoraj na treningu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile treningow w styczniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-01-01"
+  }
+ },
+ "ile kilometrw przebieglm w tym tygodiu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "co biegalem wczoaj": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile razy bieglam w zeszlym tygodniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-19",
+   "temat": "ile"
+  }
+ },
+ "a w listopadzie <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01",
+   "temat": "liczba_treningow"
+  }
+ },
+ "a przedostatni trening <<biegi_nadchodzace": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile trenigow zrobilam w listopadze": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "jakie byly moje ostanie trenigi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co ja wczoraj klepalem na bieganiu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ile razy w tym miesiacu ruszylem tylek na bieganie": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ile tren w lut": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-02-01"
+  }
+ },
+ "ile km w zeszlym mies i ile treningow": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "wczoraj biegalam wieczorem po pracy i zapomnialam sprawdzic ile wyszlo ile kilometrow zrobilam wczoraj i w jakim tempie": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "trener pyta mnie ile treningow zrobilem w ostatnich czterech tygodniach a ja nie prowadze notatek sprawdzisz to": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-04"
+  }
+ },
+ "ile treningow w tym roku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01"
+  }
+ },
+ "co robilam wczoraj na bieganiu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "moje treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile treningow zrobilam we wrzesniu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01"
+  }
+ },
+ "a co biegalem dzisiaj rano <<moj_plan": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "a ile wtedy zrobilem <<biegi_nadchodzace": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.3,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_treningi",
+   "najdluzszy",
+   "moje_wyniki"
+  ],
+  "sloty": {}
+ },
+ "ile treningow mam w tym tygodniu zrobionych": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-02"
+  }
+ },
+ "ile w sumie nabilem kilosow od nowego roku": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01"
+  }
+ },
+ "co ja wczoraj biegalem": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "a ile kilometrow lacznie <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01"
+  }
+ },
+ "ile treningow zrobilem w zeszlym tygodiu": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-19"
+  }
+ },
+ "jaki trening zrobilem w sobote bo nie pamietam czy to byly interwaly czy spokojne": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "ostatni trening zapisales w czwartek 8 km spokojnie <<biegi_nadchodzace": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.1,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_treningi",
+   "moj_plan"
+  ],
+  "sloty": {}
+ },
+ "ile dni zostalo do mojego nastepnego startu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni do mojego startu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy mam jakis start zaplanowany w przyszlym miesiacu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-12-01"
+  }
+ },
+ "a w sierpniu <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-08-01"
+  }
+ },
+ "kiedy mam nastepne zawody": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki mam cel na najblizszy polmaraton": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "czy mam jakis start w maju": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-05-01"
+  }
+ },
+ "kiedy mam najblizszyy satrt": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ile lacznie wyszlo w tamtym tygodniu <<biegi_nadchodzace": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-25"
+  }
+ },
+ "jakii mam cell na dyche": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "ile mi jeszcze zostalo do dnia d": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dnii zostalo do zawodo": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "moje startty w tym sezonie": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co tam mam w kalendarzu startow jakies sciganko niedlugo": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "no i kiedy ta moja dycha bo juz nie pamietam xd": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "jaki cel na hm": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "ile startow mam w tym r": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01"
+  }
+ },
+ "zapisalam sie chyba na dwa biegi jesienia ale nie pamietam dokladnie dat mozesz mi przypomniec jakie starty mam w kalendarzu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni do startu na 10 km": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "czy mam ustawiony cel sub4 na m": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "ustawialem kiedys w aplikacji cel na najblizsze zawody i zapomnialem jaki czas wtedy wpisalem mozesz sprawdzic jaki mam cel": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam w tym roku sporo planow startowych wiec powiedz mi prosze ktore z moich zawodow sa najblizsze i na jakim dystansie": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "dni do startu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile jeszcze do startu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy juz niedlugo sie scigam": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jaki mam na niego cel <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie mam starty w tym roku": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "temat": "2026"
+  }
+ },
+ "kiedy moje zawody": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ile dni do zawodow <<moje_treningi": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki mam cel na polowke": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "a w sobote <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "jaki mam cel na zawody": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni do startu bo stresik": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "moj nastepny start kiedy i na jaki dystans": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy mam jakies starty w czerwcu jakie": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-06-01",
+   "temat": "starty"
+  }
+ },
+ "jaki cel czasowy mam ustawiony na najblizszy bieg": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ten nastepny po nim kiedy <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "ile zostalo tygodni do mojego maratonu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "na jakie zawodu jestem zapisny": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ej co ja tam mam w kalendarzu startowym jakies sciganko niedlugo": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dnii do mojeog startu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki mam cle na dyche w kwietniu": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "dystans": "10",
+   "od": "2027-04-01",
+   "temat": "cel"
+  }
+ },
+ "cel na hm w paz": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "dystans": "21",
+   "od": "2027-10-01"
+  }
+ },
+ "zapisalem sie w zeszlym miesiacu na kilka biegow i juz sie pogubilem mozesz mi przypomniec jakie starty mam zaplanowane na najblizsze pol roku i jakie cele sobie przy nich wpisalem": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2026-11-01"
+  }
+ },
+ "szykuje sie do jesiennego maratonu i chcialabym wiedziec ile dokladnie dni zostalo mi do startu oraz czy mam w aplikacji ustawiony cel czasowy na ten bieg": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "jaki mam cel na maraton": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "ok a kiedy w ogole mam najblizsze zawody <<moj_plan": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni do mojego maratonu": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "jakie mam starty w maju": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-05-01"
+  }
+ },
+ "jaki mam cel na ten polmaraton co sie zapisalem": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "kidy mam nastepne zawdoy": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jaki tam mam cel <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie biegi mam zaplanowane na jesien": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-09-01",
+   "temat": "jesień"
+  }
+ },
+ "moj rekort na polmaratn": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "kidey pobilem rekod na 5 ka": {
+  "intencja": "najdluzszy",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_rekordy"
+  ],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "ile mam rekrod zyciowy na 21km": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "jaka moja najlepsza dycha ever": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "a w czerwcu <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-06-01"
+  }
+ },
+ "ile wykrecilem najlepiej na polowce": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "a ten drugi kiedy dokladnie <<biegi_nadchodzace": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jaki mam tam wpisany cel czasowy <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie mam najlepsze wykrecone czasy na wszystkich dystansach": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a kiedy ja zrobilem <<moje_rekordy": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam w kwietniu maraton w krakowie": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-04-01"
+  }
+ },
+ "jakie mialem wyniki w zawodach w tym roku": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "temat": "wyniki zawodow"
+  }
+ },
+ "a rok temu jaki byl <<moje_rekordy": {
+  "intencja": "moje_rekordy",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2025-01-01",
+   "temat": "rok_temu"
+  }
+ },
+ "ile zawodow juz ukonczylem odkad korzystam z aplikacji": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "w ilu zawodach wystartowalem w zeszlym sezonie i z jakimi wynikami": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2025-01-01",
+   "temat": "wyniki"
+  }
+ },
+ "jaki mialem czas na ostatniej dyszce": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "ile razy bieglem polmaraton na zawodach i z jakimi czasami": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "jakie mam wyniki z zawodow w 2023": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2023-01-01"
+  }
+ },
+ "jakei mam wynki z zawodow": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni zostalo <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "od": "2027-04-01"
+  }
+ },
+ "ile mi wyszlo na ostantim maratonei": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "ktor emiejsce mialam w kategori na zawodach": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wynkii z moich startow w tym rokuu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "temat": "starty"
+  }
+ },
+ "ile wykrecilem na ostatnich zawodach": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak mi poslo na piatce w sobote jaki czas": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_rekordy"
+  ],
+  "sloty": {
+   "dystans": "5",
+   "data": "2026-10-31"
+  }
+ },
+ "no to jak tam wyszla ta moja dycha w weekend": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend",
+   "dystans": "10"
+  }
+ },
+ "jak poszlo na polowce bo nie pamietam dokladnie czasu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "dawaj moje czasy ze startow w tym roku": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "temat": "starty"
+  }
+ },
+ "wyniki startow 2024 hm i 10k": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2024-01-01",
+   "temat": "hm i 10k"
+  }
+ },
+ "msc open i w kat na ost polm": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "ile startow w tym r i jakie czasy": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2026-01-01",
+   "temat": "starty i czasy"
+  }
+ },
+ "startowalem w maju w polmaratonie i chcialbym sobie przypomniec jaki dokladnie czas mi zapisano i ktore miejsce zajalem w klasyfikacji generalnej": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "od": "2026-05-01",
+   "temat": "półmaraton"
+  }
+ },
+ "podsumuj mi prosze wszystkie moje tegoroczne starty dystans czas netto i miejsce bo robie sobie podsumowanie sezonu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2026-01-01",
+   "temat": "starty"
+  }
+ },
+ "moj zegarek pokazal inny czas niz organizator wiec chcialbym zobaczyc oficjalny wynik jaki mam zapisany z ostatnich zawodow": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wyniki startow": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegalem w tym roku kilka razy na zawodach na 10 km i chce zobaczyc wyniki z kazdego z tych biegow po kolei zeby sprawdzic czy ide do przodu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "wynik startu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_starty"
+  ],
+  "sloty": {}
+ },
+ "moje miejsca": {
+  "intencja": "katalog",
+  "pewnosc": 0.5,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_treningi"
+  ],
+  "sloty": {}
+ },
+ "chce zobaczyc moje czasy z zawodow": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ukonczylem pierwszy maraton jaki mam oficjalny czas": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "ile mialam na dyszce w niedziele na zawodach": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10",
+   "data": "2026-10-25"
+  }
+ },
+ "a na dziesiatce <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10",
+   "miejsce": "ostatnich"
+  }
+ },
+ "a jakie mialem wtedy wyniki na zawodach <<moje_treningi": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-03-01"
+  }
+ },
+ "jaki czas mialem na polmaratonie w kwietniu": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "dystans": "21",
+   "od": "2026-04-01",
+   "temat": "czas"
+  }
+ },
+ "czy jestem przemeczony": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak poszedl poprzedni <<moje_starty": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_starty"
+  ],
+  "sloty": {}
+ },
+ "czy moje zmeczenie jest teraz wysokie": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy jestem zmeczony po tym tygodniu": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-26"
+  }
+ },
+ "jestem wypoczety czy nie": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a w zeszlym <<moje_wyniki": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2025-10-20"
+  }
+ },
+ "jaka mam frome": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a miejsce w kategorii <<moje_wyniki": {
+  "intencja": "moje_wyniki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "od": "2026-04-01",
+   "temat": "miejsce"
+  }
+ },
+ "czy jesetm przetrenowany": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie mam zmeczneie teraz": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile wynosi moje tbs": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak wyglada moja fomra na tle zeszlego miesiaca": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "mam juz dziada w nogach wedlug danych czy to tylko w glowie": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jestem juz zajechany czy jeszcze daje rade": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "forma rosnie czy lece na leb na szyje": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile mi jeszcze zostalo paliwa w baku wg apki": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "od dwoch tygodni biegam po 60 km tygodniowo i czuje ze nogi sa ciezkie czy wedlug moich danych jestem juz przemeczony": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "forma vs mies temu": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "porownaj"
+  ],
+  "sloty": {}
+ },
+ "wrocilem po dwutygodniowej przerwie urlopowej i zastanawiam sie ile formy stracilem w tym czasie wedlug aplikacji": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ostatnio dolozylam silownie do biegania i chcialabym sprawdzic czy moje obciazenie treningowe nie jest za duze i czy nie lapie zmeczenia": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "zmecz po 70 km w tydz jak wyglada": {
+  "intencja": "moja_forma",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_treningi"
+  ],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "czy ja jestem zmeczona czy mi sie tylko wydaje": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "powiedz ze nie jestem przetrenowany": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "forma idzie w gore": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a tydzien temu <<moja_forma": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-18"
+  }
+ },
+ "ok a ile ja mam": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_treningi",
+   "moje_rekordy",
+   "moja_forma"
+  ],
+  "sloty": {}
+ },
+ "a w porownaniu z marcem <<moja_forma": {
+  "intencja": "moje_treningi",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moja_forma"
+  ],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-03-01"
+  }
+ },
+ "czy jestem przemeczony po tym tygodniu": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "jak forma bo czuje sie jak flak": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy moje zmeczenie jest za duze": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ale jestem zajechany ostatnio mam jeszcze paliwo w baku czy jade na rezerwie": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "od trzech tygodni robie okolo 60 km tygodniowo i czuje ze nogi mam coraz ciezsze czy wedlug moich danych z treningow jestem juz mocno zmeczony": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "masz 58 km w 5 treningach <<moje_treningi": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_treningi"
+  ],
+  "sloty": {}
+ },
+ "a jak teraz stoje ze zmeczeniem <<moj_plan": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy trener odpisal na moja wiadomosc": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak moge skontaktowac sie ze swoim trenerem": {
+  "intencja": "moj_trener",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy moj treenr dostal moj raport z tygodnia": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_treningi"
+  ],
+  "sloty": {}
+ },
+ "kiedy mam nastepna konsultacje z trenrem": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ej moj coach w ogole ogarnia co ja biegam": {
+  "intencja": "moj_trener",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "trener cos pisal czy cisza": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak tam z moim zmeczeniem nie przesadzam <<moje_treningi": {
+  "intencja": "moja_forma",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile tydz jestem juz u trenera": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy trener ma info o moim hm za 2 tyg": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy trener widzial moje 25 km z niedz": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-25"
+  }
+ },
+ "chce przesunac wtorkowy trening bo wyjezdzam sluzbowo wiec czy powinienem najpierw dac znac trenerowi i jak mu to przekazac": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zmiana terminu treningu"
+  }
+ },
+ "da sie zmienic trenera bo moj mi srednio pasuje": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "moj_trener"
+  ],
+  "sloty": {
+   "temat": "zmiana trenera"
+  }
+ },
+ "od dwoch tygodni mam rozpisany plan ale nie wiem kto go uklada czy przypisano mi juz jakiegos trenera i jak moge sie z nim dogadac": {
+  "intencja": "moj_trener",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam w ogole trenera": {
+  "intencja": "moj_trener",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kontakt trener": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "chce pogadac z trenerem": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy trener jest dzis dostepny": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "a kto mi to rozpisal <<moj_plan": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "o_nas"
+  ],
+  "sloty": {}
+ },
+ "mam start w poznaniu za miesiac": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-12-01",
+   "miejsce": "Poznań"
+  }
+ },
+ "a trener to widzi <<moje_treningi": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak zapytac trenera o zmiane bo w sobote nie dam rady": {
+  "intencja": "moj_trener",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend",
+   "data": "2026-11-07"
+  }
+ },
+ "twoim trenerem jest filip <<moj_trener": {
+  "intencja": "moj_trener",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kiedy dostalem ostatnia odznkae": {
+  "intencja": "odznaki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakih odzank jeszcze nie mam": {
+  "intencja": "odznaki",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile blach juz nazbieralem w apce": {
+  "intencja": "odznaki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ktorej mi brakuje najmniej <<odznaki": {
+  "intencja": "odznaki",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki mam plan na weekend": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "jkie mam wyzwnaia": {
+  "intencja": "wyzwania",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile dni do startu <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ktore konczy sie najszybciej <<wyzwania": {
+  "intencja": "wyzwania",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "biegi_nadchodzace"
+  ],
+  "sloty": {}
+ },
+ "to biegowy kalendarz adwentowy <<wyzwania": {
+  "intencja": "wyzwania",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "odznaki"
+  ],
+  "sloty": {
+   "temat": "kalendarz adwentowy"
+  }
+ },
+ "a w zeszlym miesiacu <<wyzwania": {
+  "intencja": "wyzwania",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "czy ktos z moich zanjomych biegal rano": {
+  "intencja": "znajomi",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "czy ktos z obserwowanych przeze mnie osob trenowal w ten weekend": {
+  "intencja": "znajomi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "kto z kumpli wbil jakas dyche ostatnio": {
+  "intencja": "znajomi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "ktos z ekipy dzis smigal": {
+  "intencja": "znajomi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "a ile osob w nim bierze udzial <<wyzwania": {
+  "intencja": "wyzwania",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "kalendarz adwentowy"
+  }
+ },
+ "a w niedziele dlugie wybieganie ile km <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "no i co ziomki biegaly czy sie obijaly w weekend": {
+  "intencja": "znajomi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "czy ktos ze znaj zrobil dzis dl wybieganie": {
+  "intencja": "znajomi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "data": "2026-11-01"
+  }
+ },
+ "kto biegal": {
+  "intencja": "znajomi",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "osoby_z_miasta"
+  ],
+  "sloty": {}
+ },
+ "a wczoraj <<znajomi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31"
+  }
+ },
+ "jutro masz 8 km spokojnego biegu w ii zakresie <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "kto biega u mnie w miescie": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ej jest tu jakas ekipa z mojej dziury co biega": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto z moejgo miasta tez biega": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "pokasz biegaczy z mojeog miata": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "przeprowadzilam sie niedawno do lublina i chcialabym wiedziec czy sa tu inni biegacze z biegamy z ktorymi moglabym kiedys pobiegac": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Lublin"
+  }
+ },
+ "a inni z mojego miasta ile biegali <<moje_treningi": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegacze z miasta": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto jeszcze biega u mnie w miescie": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ktos z mojego miasta biega tu jeszcze czy tylko ja": {
+  "intencja": "osoby_z_miasta",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co tam ostatnio kreci iza maj duzo biega": {
+  "intencja": "osoba",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Iza Maj"
+  }
+ },
+ "jak wyglada trasa cracovia maratonu": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Cracovia Maraton"
+  }
+ },
+ "jaki jest limit czasu na silesia marathon": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "silesia marathon"
+  }
+ },
+ "czy anka sowinska biegala dzisiaj": {
+  "intencja": "osoba",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01",
+   "osoba": "Anka Sowińska"
+  }
+ },
+ "czy na bieg 7 dolin trzeba miec punkty itra": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Bieg 7 Dolin"
+  }
+ },
+ "trasa orlen warsw marathon jest plaska": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Warszawa",
+   "impreza": "Orlen Warsaw Marathon"
+  }
+ },
+ "co biegal wczoraj piotrek jasinski": {
+  "intencja": "osoba",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-10-31",
+   "osoba": "Piotr Jasiński"
+  }
+ },
+ "zapsiy na biegnij warszawo juz ruszyly": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "biegnij warszawo"
+  }
+ },
+ "kiedy jest maratn gdanski w tym rku": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-01-01",
+   "impreza": "maraton gdański",
+   "temat": "termin"
+  }
+ },
+ "ej a na lodz maraton jeszcze da sie wbic czy juz po ptokach": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Łódź Maraton"
+  }
+ },
+ "wyniki polmaratnu wiazowskigo gdzie sa": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "półmaraton wiązowski"
+  }
+ },
+ "co tam z maratonem torunskim jest w tym roku czy kaplica": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Maraton Toruński"
+  }
+ },
+ "ta chomiczowka to jakas mordercza trasa czy luzik": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Chomiczówka"
+  }
+ },
+ "maraton warszawski ile hm na trasie": {
+  "intencja": "impreza",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Maraton Warszawski"
+  }
+ },
+ "berlin marathon losowanie kiedy wyniki za ile tydz": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Berlin Marathon"
+  }
+ },
+ "chce w tym roku pobiec swoj pierwszy maraton w poznaniu i zastanawiam sie czy zapisy na poznan maraton sa jeszcze otwarte i ile teraz kosztuje oplata startowa": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "miejsce": "Poznań",
+   "impreza": "Poznań Maraton"
+  }
+ },
+ "polmaraton slezanski 21 km limit czasu ile h": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Półmaraton Ślężański",
+   "temat": "limit czasu"
+  }
+ },
+ "wybieram sie z rodzina na polmaraton warszawski i chcialbym wiedziec gdzie dokladnie jest start i meta oraz czy jest depozyt na rzeczy": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Półmaraton Warszawski"
+  }
+ },
+ "ile trzeba wybulic za maraton w debnie": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "maraton w Dębnie"
+  }
+ },
+ "moj kolega mowil ze na wroclaw maraton mozna zmienic dystans juz po zapisaniu sie czy to prawda i do kiedy mozna to zrobic": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Wrocław Maraton"
+  }
+ },
+ "rzeznik termin": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Rzeźnik"
+  }
+ },
+ "slyszalem ze bieg rzeznika ma bardzo trudne podejscia czy mozesz mi powiedziec ile kilometrow ma trasa i jakie jest przewyzszenie": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Bieg Rzeźnika"
+  }
+ },
+ "silesia zapisy": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Silesia"
+  }
+ },
+ "wings for life": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Wings for Life"
+  }
+ },
+ "zapisy na biegnij warszawo ruszyly ile kosztuje": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Biegnij Warszawo"
+  }
+ },
+ "wyniki cracovia maratonu juz sa": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Cracovia Maraton"
+  }
+ },
+ "a ile kosztuje <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Półmaraton Warszawski"
+  }
+ },
+ "okej a gdzie start <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "biegi_nadchodzace"
+  ],
+  "sloty": {
+   "impreza": "Wrocław Maraton"
+  }
+ },
+ "ile kosztuje start w berlin marathon": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Berlin Marathon"
+  }
+ },
+ "czy rzeznik w tym roku jest w czerwcu czy lipcu": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Rzeźnik"
+  }
+ },
+ "gdzie sa wyniki biegu niepodleglosci": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Bieg Niepodległości"
+  }
+ },
+ "kiedy w tym roku odbywa sie cracovia maraton i do kiedy mozna sie na niego zapisac": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Cracovia Maraton"
+  }
+ },
+ "do kiedy mozna zmienic dane w pakiecie na gdansk business run": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Gdansk Business Run"
+  }
+ },
+ "jaka jest trsa poznan maratonu przebiega przez stary rynek czy nie": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Poznań Maraton"
+  }
+ },
+ "i jaki tam limit czasu <<biegi_nadchodzace": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a meta tez na stadionie <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Wrocław Maraton"
+  }
+ },
+ "siema ogarniasz czy na bieg rzeznika sa jeszcze miejsca czy juz po ptakach": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Bieg Rzeźnika"
+  }
+ },
+ "wrzucili juz wyniki z dychy do maratonu czy jeszcze trzeba czekac": {
+  "intencja": "impreza",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Dycha do Maratonu"
+  }
+ },
+ "wings for life termin": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Wings for Life"
+  }
+ },
+ "gdzie znajde wyniki z biegu lwa w tarnowie podgornym": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Tarnowo Podgórne",
+   "impreza": "Bieg Lwa"
+  }
+ },
+ "mysle o swoim pierwszym ultra i wpadl mi w oko bieg 7 dolin w krynicy powiedz prosze jakie sa tam dystanse kiedy ruszaja zapisy i czy trzeba miec jakies punkty kwalifikacyjne": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Krynica",
+   "impreza": "Bieg 7 Dolin"
+  }
+ },
+ "a zapisy juz otwarte <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Maraton Warszawski"
+  }
+ },
+ "a punkty z woda gdzie sa <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "półmaraton Gdyni"
+  }
+ },
+ "czy w maju sa jakies polmaratony w okolicach poznania": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2027-05-01"
+  }
+ },
+ "szukam jakiejs polowki na jesien co jest grane": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "miejsce": "jesień"
+  }
+ },
+ "czy sa jakies maratnoy w pazdzierniku": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "dystans": "42",
+   "od": "2026-10-01",
+   "temat": "maratony"
+  }
+ },
+ "biegii uliczne w lublinie w kwietniu": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-04-01"
+  }
+ },
+ "jakei imprezy biegowe sa w przyszlym tygdoniu": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien"
+  }
+ },
+ "jest jakas dyszka do ogarniecia w marcu w szczecinie": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "dystans": "10",
+   "od": "2027-03-01",
+   "miejsce": "Szczecin"
+  }
+ },
+ "a ile kosztuje start <<impreza": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Maraton Warszawski"
+  }
+ },
+ "hm w polsce we ix jakie sa": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "dystans": "21",
+   "od": "2027-09-01",
+   "miejsce": "Polska"
+  }
+ },
+ "biegi ultra 50 km w v i vi": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2027-05-01"
+  }
+ },
+ "w przyszlym tygodniu jestem sluzbowo w rzeszowie i zastanawiam sie czy w tym czasie odbywa sie tam jakis bieg uliczny w ktorym moglbym wystartowac": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-09"
+  }
+ },
+ "moja corka chce pobiec swoj pierwszy bieg dla dzieci czy w czerwcu sa jakies biegi dzieciece w poznaniu albo okolicach": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2027-06-01"
+  }
+ },
+ "a tylko na zachodzie polski <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-09-01"
+  }
+ },
+ "a w czerwcu <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-06-01"
+  }
+ },
+ "a ile treningow <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "a cos dluzszego niz 10 km <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-04-01"
+  }
+ },
+ "lista startow na 21 km w pazdzierniku pls": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "dystans": "21",
+   "od": "2026-10-01",
+   "temat": "21"
+  }
+ },
+ "w drugiej polowie lipca jedziemy nad morze czy w tym czasie sa jakies biegi po plazy albo inne zawody w okolicach kolobrzegu": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-07-16",
+   "temat": "plaża"
+  }
+ },
+ "dyszki krakow": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10",
+   "miejsce": "Kraków"
+  }
+ },
+ "szukam bigu na 5 km we wrocawiu w przyszla sobote": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5",
+   "data": "2026-11-07",
+   "miejsce": "Wrocław"
+  }
+ },
+ "a jakies krotsze na 10 <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "od": "2027-10-01"
+  }
+ },
+ "jakies polowki we wrzesniu w okolicach poznania": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "dystans": "21",
+   "od": "2027-09-01",
+   "miejsce": "Poznań"
+  }
+ },
+ "jak usunac konto z aplikacji": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "konto"
+  }
+ },
+ "czy w aplikacji sa cwiczenia stabilizacyjne na miesnie glebokie": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "cwiczenia"
+  }
+ },
+ "a w zamosciu <<biegi_nadchodzace": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2027-04-01",
+   "miejsce": "Zamościu"
+  }
+ },
+ "czym sie rozni vo2max od progu mleczanowego w waszych wyliczeniach": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "VO2max i próg mleczanowy"
+  }
+ },
+ "jak polaczyc garmina z aplikacja": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "Garmin"
+  }
+ },
+ "gdzie zmienic jednostki z km na mile": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "jakie przepisy macie w aplikacji na sniadanie": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "jak wlaczyc radio podczas biegu": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co ozancza vo2max": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "vo2max"
+  }
+ },
+ "jak zmienic zdjecei profilowe": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "konto"
+  }
+ },
+ "jak zsynhronizowac treningi ze stavy bo mi sie nie wgrywaja": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "strava"
+  }
+ },
+ "jak wylaczyc powiadomenia o trenigu": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "gdize sa cwieczenia oddechowe": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "oddech"
+  }
+ },
+ "ej jak podpiac zegarek pod apke bo cos nie smiga": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "macie jakas muze do biegania w apce radio czy cos": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "radio"
+  }
+ },
+ "jak ogarnac zmiane maila na koncie": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zmiana maila"
+  }
+ },
+ "co to rpe w opisie tr": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "RPE"
+  }
+ },
+ "jak dodac tr recznie np 10 km z biezni": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "dodawanie treningu ręcznie"
+  }
+ },
+ "jak ustawic hrmax w ust konta": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "co znaczy hm w opisie trasy przewyzszenie": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "hm"
+  }
+ },
+ "trener wspominal o obciazeniu chronicznym i ostrym a w aplikacji widze wykresy z tymi skrotami czy mozesz wyjasnic czym one sie roznia i jak je czytac": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "CTL TSB obciazenie chroniczne ostre"
+  }
+ },
+ "biegam od pol roku z polarem i chcialbym zeby treningi same wpadaly do biegamy bez recznego wpisywania jak to skonfigurowac krok po kroku": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "polar"
+  }
+ },
+ "tryb ciemny": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "chcialabym przed snem uspokoic sie po ciezkim treningu czy w aplikacji jest jakas sesja oddechowa albo relaksacyjna ktora moge wlaczyc": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "oddech"
+  }
+ },
+ "eksport danych": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "eksport_danych"
+  }
+ },
+ "jak zmienic tydz treningowy zeby zaczynal sie od pn": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zmiana dnia tygodnia treningowego"
+  }
+ },
+ "szukam w aplikacji przepisu na cos wysokobialkowego i wegetarianskiego po dlugim wybieganiu macie takie w bazie przepisow": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "jest radio w apce": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "radio"
+  }
+ },
+ "co to jest prog mleczanowy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "próg mleczanowy"
+  }
+ },
+ "help zegarek nie chce sie sparowac z apka": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "macie w apce zestaw cwiczen rozgrzewkowych": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "cwiczenia"
+  }
+ },
+ "jak zmienic nick w profilu": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zmiana nicku w profilu"
+  }
+ },
+ "jakie cwiczenia oddechowe macie w aplikacji": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "a coros tez sie da": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "coros"
+  }
+ },
+ "a jak wlaczyc logowanie dwuetapowe": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "logowanie dwuetapowe"
+  }
+ },
+ "macie przepisy na obiad": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "jak ustawic przypomnienia o treningu czy da sie na rano": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przypomnienia"
+  }
+ },
+ "co znacza strefy z1 z5 w aplikacji bo nie kumam": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "strefy"
+  }
+ },
+ "jak polaczyc zegarek garmin z aplikacja biegamy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "a ile trwa ta z liczeniem do 4 <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "a suunto <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "sprzet"
+  ],
+  "sloty": {
+   "temat": "suunto"
+  }
+ },
+ "a cos na kolacje bez glutenu <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "gdzie w ustawieniach zmienie jednostki z kilometrow na mile": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "czy w aplikacji sa cwiczenia wzmacniajace dla biegaczy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "cwiczenia"
+  }
+ },
+ "jak usunac konto w biegamy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "konto"
+  }
+ },
+ "co to jest vo2max i jak apka to liczy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "vo2max"
+  }
+ },
+ "macie jakies cwiczenia oddechowe przed startem": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "gdzie sa przepisy w aplikacji szukam czegos na kolacje po treningu": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "przepisy"
+  }
+ },
+ "jak wylaczyc powiadomienia z biegamy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "powiadomienia"
+  }
+ },
+ "jak podlaczyc zegrek suunto do aplkacji": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "zegarek"
+  }
+ },
+ "co tto znaczy tbs w wykresie formy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "TSB"
+  }
+ },
+ "jak zmeinic zdjecie profliowe": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "konto"
+  }
+ },
+ "czy mozna eksportowac trenigni do pliku gpx": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "eksport gpx"
+  }
+ },
+ "jak tu przestawic zeby mi apka po angielsku nie gadala": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "język aplikacji"
+  }
+ },
+ "zegarek mi sie nie synchronizuje z apka co jest grane": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "jak dodac recznie trening 10 km bez zeg": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "trening"
+  }
+ },
+ "ej a to radio to co tam leci w ogole": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "radio"
+  }
+ },
+ "co to hm max i gdzie ustawic w profilu": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "hr max"
+  }
+ },
+ "gdzie ust strefy tetna wg hrmax": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "strefy tętna"
+  }
+ },
+ "po dlugich wybieganiach strasznie sztywnieja mi biodra czy w waszej aplikacji jest jakis zestaw cwiczen mobilizacyjnych ktory moglbym robic wieczorem": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "mobilizacja bioder"
+  }
+ },
+ "widze na wykresie formy trzy rozne linie i kompletnie nie wiem co one oznaczaja mozesz mi wytlumaczyc jak czytac ten wykres": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "wykres formy"
+  }
+ },
+ "cwiczenia oddechowe": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "nie umiem podpiac polara pomocy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "co to jest ten ramp test w aplikacji": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "ramp test"
+  }
+ },
+ "jest jakis przepis na batony owsiane w apce": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "parowanie zegarka": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "macie cwiczenia na stabilizacje": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "stabilizacja"
+  }
+ },
+ "gdzie w aplikacji znajde przepis na owsianke przed dlugim wybieganiem": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przepisy"
+  }
+ },
+ "sa jakies cwiczenia oddechowe na wyciszenie": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "jak polaczyc zegarek garmina z biegamy": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "ustawienia"
+  }
+ },
+ "jakie tempo zeby zlamac 2h w polowce": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "jakie tempo na kilometr musze utrzymac zeby przebiec 10 km w 45 minut": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "dzieki dziala na garminie <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "Garmin"
+  }
+ },
+ "jaki bede mial czas w polmaratonie jesli pobiegne rowno po 5 15 na kilometr": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "a sa tez jakies na kolana <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "stabilizacja na kolana"
+  }
+ },
+ "na biezni mam 11 5 km h jakie to tempo": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "tak w zakladce oddech jest kilka technik <<katalog": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oddech"
+  }
+ },
+ "ile to kilomterow na godzine 5 min na km": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki czsa na 21km jak bigne po 5 45": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "ziomek ile to na kilosa jak chce piatke na 22 minuty": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "przy tempie 7 min na km ile zajmie mi 15 km": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "polowka w 1 45 to po ile trzeba cisnac": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "bieznia pokazuje 13 na godzine to jakie to tempo w ludzkim jezyku xd": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "jak dam po 6 na kilosie to w ile wbije dyche": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "hm w 1 50 tempo km": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "10 km w 50 min ile min km": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "maraton z trojka z przodu po ile trzeba ciagnac kilosa": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "tempo"
+  }
+ },
+ "zrobilem odcinek 8 4 km w 47 minut i 30 sekund a zegarek padl mi w polowie wiec policz prosze jakie wyszlo srednie tempo na kilometr": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mar 42 2 km po 5 40 km czas": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "5:40/km"
+  }
+ },
+ "mam 35 minut przed praca i biegam mniej wiecej po 5 50 na kilometr wiec ile kilometrow realnie zdaze zrobic w tym czasie": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "tempo predkosc": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kalkulator tempa": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie tempo na 10 km w 55 minut": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "chce 5 km ponizej 25 min po ile biec": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "wyjdzie okolo 3 45 00": {
+  "intencja": "kalkulator",
+  "pewnosc": 0.5,
+  "dopytac": true,
+  "kandydaci": [
+   "moje_starty",
+   "gotowosc"
+  ],
+  "sloty": {}
+ },
+ "i ile w tym tempie zrobie w 45 min": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie tempo na 10 km w 50 minut": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "czy w sobote przed poludniem bedzie padac w poznaniu": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07",
+   "miejsce": "Poznań"
+  }
+ },
+ "ile stopni bedzie dzis wieczorem": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "czy jutro bedzie padac": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "a jakbym zwolnil do 5 40": {
+  "intencja": "kalkulator",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "porada"
+  ],
+  "sloty": {
+   "temat": "tempo"
+  }
+ },
+ "jaki wiatr bedzie w niedziele nad morzem w gdyni": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01",
+   "miejsce": "Gdynia"
+  }
+ },
+ "jaka pogda jutor w warszawie": {
+  "intencja": "pogoda",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02",
+   "miejsce": "Warszawa"
+  }
+ },
+ "czy bedize burza dzis po poudniu": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "ile stopini rano w gdansku": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Gdańsk"
+  }
+ },
+ "ej leje dzis u mnie czy nie": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis"
+  }
+ },
+ "co z tym upalem ma sie w koncu ochlodzic": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "5 km 27 minut jakie tempo to wychodzi": {
+  "intencja": "kalkulator",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "prognoza na nast tydz dla lublina": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "nastepny_tydzien",
+   "od": "2026-11-02",
+   "miejsce": "Lublin"
+  }
+ },
+ "jutro rano mam zaplanowane dlugie wybieganie po lesie i zastanawiam sie czy nie bedzie padac miedzy 6 a 9 sprawdzisz prognoze dla katowic": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02",
+   "miejsce": "Katowice"
+  }
+ },
+ "w niedziele biegne polmaraton w szczecinie i chcialbym wiedziec jaka tam bedzie temperatura i czy zapowiadaja silny wiatr w okolicach poludnia": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01",
+   "miejsce": "Szczecin"
+  }
+ },
+ "deszcz jutro": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "wracam z pracy okolo 18 i chce pobiegac po bulwarach mozesz sprawdzic czy o tej porze nie przejdzie burza nad wroclawiem": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01",
+   "miejsce": "Wrocław"
+  }
+ },
+ "smog krakow": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Kraków"
+  }
+ },
+ "znowu ulewa do kiedy ma tak padac": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy jutro bedzie slonce": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02"
+  }
+ },
+ "a w sobote": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "mroz ma byc w weekend": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "masz jutro 10 km spokojnie w ii zakresie <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "jutro"
+  }
+ },
+ "czy dzis pada w gdyni": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-01",
+   "miejsce": "Gdynia"
+  }
+ },
+ "jak dlugo powinienem odpoczac od biegania po przebytej grypie": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "grypa"
+  }
+ },
+ "czy jutro rano w krakowie bedzie padac planuje wybiec przed praca na dluzsze rozbieganie i nie wiem czy brac kurtke": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-02",
+   "miejsce": "Kraków"
+  }
+ },
+ "dretwieje mi stopa w trakcie biegu dlaczgo tak jest": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "siadlo mi kolano biegac dalej czy odpuscic": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam klucie w klatce przy biegu czy to powazne": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy mozna biegac jak sie ma zapalnie gardla": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "klucie w boku podczas biegu skad sie bierze i czy to grozne": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "klucie w boku"
+  }
+ },
+ "biodro mi strzyka jak biegam ogarniasz co to moze byc": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "biodro"
+  }
+ },
+ "wedlug prognozy w gdyni do 15 przelotne opady potem przejasnienia <<pogoda": {
+  "intencja": "pogoda",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Gdynia"
+  }
+ },
+ "po zlamaniu zmeczeniowym ile tydz przerwy zanim zaczne biegac": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "złamanie zmęczeniowe"
+  }
+ },
+ "biegam od pol roku i od kilku tygodni po treningach puchnie mi kostka choc nie pamietam zadnego skrecenia co moze byc przyczyna": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jestem w trzecim miesiacu ciazy i do tej pory biegalam regularnie czy moge dalej biegac i na co powinnam uwazac": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam 38 stopni a w planie interwaly robic": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "znowu ten achilles ile mam odpoczywac": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "achilles"
+  }
+ },
+ "zbieglam z gorki i teraz kolano jak balon co robic": {
+  "intencja": "zdrowie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak juz zejdzie na oskrzela": {
+  "intencja": "zdrowie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "oskrzela"
+  }
+ },
+ "a wiatr mocny <<pogoda": {
+  "intencja": "pogoda",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Gdynia"
+  }
+ },
+ "to pobiegne rano": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "moj_plan",
+   "moje_treningi"
+  ],
+  "sloty": {}
+ },
+ "a jak mam 38 stopni": {
+  "intencja": "zdrowie",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak zaczac biegac jesli nigdy wczesniej nie trenowalem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak zacząć"
+  }
+ },
+ "ile razy w tygodniu powinno sie biegac zeby robic postepy": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "czestotliwosc treningow"
+  }
+ },
+ "czy rozgrzewka przed spokojnym biegiem jest naprawde potrzebna": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozgrzewka"
+  }
+ },
+ "jak czesto warto robic trening interwalowy": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "trening interwałowy"
+  }
+ },
+ "jak dlugo powinna trwac regeneracja po maratonie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja"
+  }
+ },
+ "tylko ze od wczoraj lamie mnie w kosciach dam rade": {
+  "intencja": "zdrowie",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile powinno trwac schlodzenie po treningu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "schlodzenie"
+  }
+ },
+ "jak poprawic czas na 5 km": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "i jeszcze puchnie wieczorem": {
+  "intencja": "zdrowie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy mozna biegac codziennie bez dnia przerwy": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "codzienne bieganie"
+  }
+ },
+ "czy lepiej biegac rano czy wieczorem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "pora dnia"
+  }
+ },
+ "ile powiniem biegac dlugie wybieganie przed polmaratonem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "dlugie wybieganie"
+  }
+ },
+ "jak biegac pod gurke zeby nie stanac w polowie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi"
+  }
+ },
+ "jak pilnowac tepa konwersacyjnego na spokojnym biegu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "tempo konwersacyjne"
+  }
+ },
+ "czy rozciaganei po bieganiu ma wogole sens": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozciaganie po bieganiu"
+  }
+ },
+ "jak sie zmotywowac do bieganai zima": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "motywacja zimą"
+  }
+ },
+ "jak nie zdychac po 2 km serio": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak nie zdychać po 2 km"
+  }
+ },
+ "oplaca sie katowac interwaly czy lepiej klepac spokojne kilosy": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "siema jak sie ogarnac z bieganiem po dlugiej przerwie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak zacząć po przerwie"
+  }
+ },
+ "ile min rozgrzewki przed interwalami": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozgrzewka"
+  }
+ },
+ "ile podbiegow w tyg przed biegiem gorskim": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi przed biegiem górskim"
+  }
+ },
+ "mam malo czasu przez prace i moge trenowac tylko po 30 minut dziennie czy da sie tak przygotowac do polmaratonu i jak to rozplanowac": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "trening w 30 minut do półmaratonu"
+  }
+ },
+ "jak nie spuchnac na ostatnich kilometrach polowki": {
+  "intencja": "porada",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "zmęczenie na końcówce"
+  }
+ },
+ "ile dni odpoczynku po hm": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja po półmaratonie"
+  }
+ },
+ "na zawodach zawsze zaczynam za szybko i potem odcina mi prad jak nauczyc sie rowno rozkladac sily na calym dystansie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "równe tempo"
+  }
+ },
+ "jesli raz w tygodniu jezdze na rowerze i dwa razy plywam to czy to realnie pomaga w bieganiu czy lepiej te godziny przeznaczyc na dodatkowe biegi": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "trening uzupełniający"
+  }
+ },
+ "poczatki biegania": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "początki biegania"
+  }
+ },
+ "jak przyspieszyc": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak przyspieszyc"
+  }
+ },
+ "jak w koncu przebiec 5 km bez zatrzymywania": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "pierwszy maraton za mna ile odpoczywac zanim wroce do treningow": {
+  "intencja": "porada",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja po maratonie"
+  }
+ },
+ "ile powinien trwac niedzielny dlugi bieg": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "dlugi bieg"
+  }
+ },
+ "jak nie stracic formy na wakacjach": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "wakacje"
+  }
+ },
+ "jak poprawic czas na 10 km": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "jak biegac wolniej bo zawsze lece za szybko": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak biegać wolniej"
+  }
+ },
+ "ile biegac tygodniowo przed maratonem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "objętość treningowa przed maratonem"
+  }
+ },
+ "jak sie rozgrzac przed zawodami": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozgrzewka"
+  }
+ },
+ "czy mozna biegac codziennie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "codzienne bieganie"
+  }
+ },
+ "co lepsze na wytrzymalosc dlugie wybiegania czy tempo": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "wytrzymałość"
+  }
+ },
+ "a interwaly ile razy w tygodniu <<porada": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "interwały"
+  }
+ },
+ "podbiegi czy schody co lepsze na sile biegowa": {
+  "intencja": "porada",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi czy schody"
+  }
+ },
+ "a ile minut na poczatek <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "początek"
+  }
+ },
+ "jak dlugo biec w strefie 2 zeby to cos dalo": {
+  "intencja": "porada",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "strefa 2"
+  }
+ },
+ "a ile wczesniej przed startem zaczac <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_starty"
+  ],
+  "sloty": {
+   "temat": "przygotowanie do startu"
+  }
+ },
+ "a najdluzsze wybieganie ile km <<porada": {
+  "intencja": "najdluzszy",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak rozlozyc mocne i lekkie dni <<porada": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozklad mocnych i lekkich dni"
+  }
+ },
+ "jak zaczac biegac jesli nigdy wczesniej nie biegalem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak zacząć"
+  }
+ },
+ "czy rozgrzewka przed biegiem jest naprawde konieczna": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozgrzewka"
+  }
+ },
+ "jak biegac szybciej na 5 km": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "jak dluga powinna byc przerwa miedzy odcinkami na treningu interwalowym": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "interwały"
+  }
+ },
+ "ile dni odpoczynku po maratonie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja po maratonie"
+  }
+ },
+ "a kiedy zaczac zmniejszac objetosc <<najdluzszy": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zmniejszanie objętości"
+  }
+ },
+ "czy biegac codziennie czy robic dni wolne": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "czestotliwosc treningow"
+  }
+ },
+ "jak sie rozciagac po bieganiu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozciaganie"
+  }
+ },
+ "jak utrzymac rowne tempo przez caly bieg": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "równe tempo"
+  }
+ },
+ "czy lepeij biegac rano czy wieczorme": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "pora dnia"
+  }
+ },
+ "ile powinien trwac dlugi bieg w przygotowaniahc do polmaratonu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "dlugi bieg"
+  }
+ },
+ "jak zwiekszyc dystans bez przetrenowania sie o ile prcent na tydzien": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zwiekszenie dystansu"
+  }
+ },
+ "jak sie biega podbiegi zeby to mialo snes": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi"
+  }
+ },
+ "co robic w dzien wolny od biegnia": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "dzien wolny"
+  }
+ },
+ "ziomek gada ze trzeba robic interwaly serio to daje kopa": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "interwały"
+  }
+ },
+ "jak przestac czlapac i zaczac w koncu zasuwac": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "szybkość"
+  }
+ },
+ "jak sie nie zajechac na pierwszym kilosie na zawodach": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak biegać szybciej"
+  }
+ },
+ "co robic zeby nogi nie byly jak z waty dzien po dlugim wybieganiu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja"
+  }
+ },
+ "warto ogarniac silke jak sie biega czy szkoda czasu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "trening siłowy dla biegacza"
+  }
+ },
+ "ile podbiegow w tyg ma sens dla amatora": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi"
+  }
+ },
+ "tempo rozbiegania vs tempo startowe na 5k jaka roznica ok": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "tempo"
+  }
+ },
+ "chce za rok przebiec pierwszy maraton a teraz ledwo robie 10 km jak rozsadnie budowac dystans zeby nie przesadzic": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "budowanie dystansu"
+  }
+ },
+ "ile tyg taperingu przed hm": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "tapering"
+  }
+ },
+ "pracuje na zmiany i czesto moge biegac tylko poznym wieczorem czy taki trening ma sens i jak go zorganizowac zeby sie zregenerowac": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "trening wieczorny"
+  }
+ },
+ "po czterdziestce wrocilam do biegania po dlugiej przerwie i zastanawiam sie czy zaczynac od marszobiegow czy od razu spokojnie biegac ciagiem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak zacząć"
+  }
+ },
+ "ile odpoczywac miedzy mocnymi treningami": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja"
+  }
+ },
+ "jak w koncu zlamac 25 minut na 5 km": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "jak sie zmotywowac zeby wyjsc pobiegac jak sie nie chce": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "motywacja"
+  }
+ },
+ "zaczynam biegac od jutra od czego zaczac": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "jak zacząć"
+  }
+ },
+ "jak biegac zeby nie umierac na kazdym podbiegu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "podbiegi"
+  }
+ },
+ "jak sie robi interwaly": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "interwały"
+  }
+ },
+ "czy robic rozciaganie przed biegiem": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozciaganie"
+  }
+ },
+ "ile treningow w tygodniu jest optymalnie": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "ile biegać"
+  }
+ },
+ "jak rozgrzac sie przed zawodami ile minut wczesniej zaczac": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozgrzewka"
+  }
+ },
+ "ile biegac tygodniowo jak sie dopiero zaczyna": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak przygotowac sie do polmaratonu": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "przygotowanie"
+  }
+ },
+ "co najlepiej zjesc dwie godziny przed dlugim wybieganiem": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "przed dlugim wybieganiem"
+  }
+ },
+ "ile bialka powinien dziennie jesc biegacz wazacy 70 kg": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "białko"
+  }
+ },
+ "czy kofeina przed zawodami rzeczywiscie poprawia wynik": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "kofeina"
+  }
+ },
+ "jak czesto brac zel energetyczny w trakcie maratonu": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "zel energetyczny"
+  }
+ },
+ "co zjesc po treningu interwalowym zeby sie dobrze zregenerowac": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak rozlozyc szybkie i spokojne <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozkladanie szybkiego i spokojnego biegu"
+  }
+ },
+ "a ile tygodni trwa takie przygotowanie <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile wody pic w czasie biegu na 15 km": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "sniadanie przed startem o 9 rano co polecasz": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "sniadanie"
+  }
+ },
+ "czy warto brac magnez jak biegam 5 razy w tygodniu": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "magnez"
+  }
+ },
+ "ile wegli ladowac przed maratonem": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "carbo-loading"
+  }
+ },
+ "ile kalori ma owsainka z bananem i miodem": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "owsianka z bananem i miodem"
+  }
+ },
+ "czy bialko w proszku jest potrzbne biegaczowi amatorowi": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "białko w proszku"
+  }
+ },
+ "a jak ktos ma tylko 3 dni <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie elektrolity sa najlpesze na upaly": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "elektrolity"
+  }
+ },
+ "a dlugie wybiegania jak dlugie <<porada": {
+  "intencja": "porada",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "długie wybieganie"
+  }
+ },
+ "co wciagnac po dlugim zeby nie pasc jak trup": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "regeneracja"
+  }
+ },
+ "jaki zel nie rozwala zoladka na trasie": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "zel"
+  }
+ },
+ "ziomek mowi ze sok z burakow daje kopa sciema czy dziala": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "sok z buraków"
+  }
+ },
+ "ile browarow po maratonie to jeszcze regeneracja xd": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "porada"
+  ],
+  "sloty": {
+   "produkt": "piwo"
+  }
+ },
+ "co szamac wieczorem przed startem": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "hm w ndz ile zeli zabrac na trase": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "3 dni przed mar ile g wegli na kg masy": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "po 10 km tempowce co zjesc w ciagu 30 min": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "po treningu"
+  }
+ },
+ "biegam 50 km tydz ile kcal dziennie powinienem jesc": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile kcal ma 100 g ryzu ugot": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "ryż ugotowany"
+  }
+ },
+ "na ostatnim maratonie zlapala mnie sciana na 32 kilometrze mimo ze bralem zele co 45 minut wiec zastanawiam sie czy powinienem jesc czesciej albo zmienic zele na cos innego": {
+  "intencja": "zywienie",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "zele"
+  }
+ },
+ "biegam od pol roku chce schudnac okolo 5 kg i jednoczesnie przygotowac sie do polmaratonu w kwietniu jak ulozyc jedzenie zeby nie stracic energii na treningach": {
+  "intencja": "zywienie",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jestem wegetarianinem i trenuje do ultra na 50 km skad mam brac wystarczajaco duzo bialka i zelaza w codziennej diecie": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "białko i żelazo wegetarianina"
+  }
+ },
+ "trenuje wieczorami po pracy okolo 19 a obiad jem o 13 czy powinienem cos przekasic przed treningiem i co to powinno byc": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "za tydzien biegne pierwszy raz w upale ponad 25 stopni jak sie nawadniac dzien przed i w trakcie biegu zeby sie nie odwodnic": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "nawodnienie w upale"
+  }
+ },
+ "ladowanie weglowodanow": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "ladowanie weglowodanow"
+  }
+ },
+ "zele energetyczne": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "sprzet"
+  ],
+  "sloty": {
+   "produkt": "zely energetyczne"
+  }
+ },
+ "izotonik czy woda": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "izotonik"
+  }
+ },
+ "co najlepsze na sniadanie przed dlugim": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "sniadanie"
+  }
+ },
+ "kocham slodycze czy biegacz moze jesc czekolade po treningu": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "czekolada"
+  }
+ },
+ "zjadlam pol pizzy przed bieganiem to byl blad": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "pizza"
+  }
+ },
+ "ile pic w dzien zawodow": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "nawodnienie"
+  }
+ },
+ "jaki batonik na trase polecasz": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "batonik"
+  }
+ },
+ "dieta biegacza": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ile godzin przed startem <<biegi_nadchodzace": {
+  "intencja": "zywienie",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "porada"
+  ],
+  "sloty": {}
+ },
+ "ile bialka dziennie dla biegacza": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "białko"
+  }
+ },
+ "a co zamiast zeli jak mi nie podchodza <<biegi_nadchodzace": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zastepstwo za zele"
+  }
+ },
+ "czy pic kawe przed biegiem": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "kawa"
+  }
+ },
+ "suplementy dla biegacza jakie warto brac witamina d omega 3 czy to cos daje": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "suplementy"
+  }
+ },
+ "co jesc przed biegiem rano mam tylko 30min": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "przed biegiem rano"
+  }
+ },
+ "po treningu bialko czy wegle co wazniejsze": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile zeli wziasc na polmaraton zeby nie odcielo na 15 km": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "ile bialka trzeba jesc dziennie jak biegam 4 razy w tyg": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "białko"
+  }
+ },
+ "a 1 6 g na kg to duzo <<zywienie": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "bialko"
+  }
+ },
+ "ok a ile mg kofeiny <<zywienie": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "kofeina"
+  }
+ },
+ "a jak trenuje pozno wieczorem <<zywienie": {
+  "intencja": "porada",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "zywienie"
+  ],
+  "sloty": {
+   "temat": "trening wieczorem"
+  }
+ },
+ "czy warto kupic buty z plytka karbonowa na maraton": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile mniej wiecej trzeba wydac na dobry zegarek z gps do biegania": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "co zalozyc na bieganie zima zeby nie przemarznac": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie sluchawki do biegania zeby nie wypadaly z uszu": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "sluchawki"
+  }
+ },
+ "biegne w niedziele dlugie wybieganie 25 km a ma byc 28 stopni": {
+  "intencja": "pogoda",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moj_plan",
+   "porada"
+  ],
+  "sloty": {
+   "zakres": "weekend",
+   "data": "2026-11-08"
+  }
+ },
+ "a energetyk moze byc zamiast <<zywienie": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "energetyk"
+  }
+ },
+ "pegasus czy novablast co lepsze na codzienne treningi": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "pegasus czy novablast"
+  }
+ },
+ "po ilu km wymienic buty do biegania": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "buty"
+  }
+ },
+ "czy kamizelka biegowa sie oplaca na dlugie wybiegania": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "kamizelka biegowa"
+  }
+ },
+ "czy garmin forerunerr 265 jest wart swojej ceny": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "garmin forerunner 265"
+  }
+ },
+ "skarpetki do biegnia jakie kupic zeby nie zjezdzaly": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "skarpetki"
+  }
+ },
+ "jakie buty na trial w gory polecasz": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "buty"
+  }
+ },
+ "czy kurtka przeciwdeszczowa do bieganie musi byc droga": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "kurtka przeciwdeszczowa"
+  }
+ },
+ "okienko przy takim upale zwolnij tempo i wybierz trase z cieniem <<pogoda": {
+  "intencja": "porada",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ziom jakie kopy na start w maratonie cos szybkiego ale nie za drogie": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "buty"
+  }
+ },
+ "oplaca sie brac chinski zegarek z ali czy szkoda kasy": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "buty startowe na 10 km cena do 500 zl": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "buty na 60 km tydz cos amortyzowanego": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "buty"
+  }
+ },
+ "jaki zegarek z pulsem z nadgarstka do ok 1 tys zl": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "stare bucidla mi sie rozwalily co teraz wziac na treningi": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a ile wody pic w trakcie <<porada": {
+  "intencja": "zywienie",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "woda"
+  }
+ },
+ "moja zona chce zaczac biegac i chcialbym jej kupic na urodziny cos przydatnego zegarek sluchawki czy moze dobre buty": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy coros pace 3 dobrze mierzy tetno hm": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "coros pace 3"
+  }
+ },
+ "w pazdzierniku startuje w pierwszym polmaratonie i zastanawiam sie czy kupic specjalne buty startowe czy zostac przy tych w ktorych trenuje": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "czolowka biegowa": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "czołówka biegowa"
+  }
+ },
+ "czesto biegam wieczorem po nieoswietlonych drogach wiec szukam czolowki i kamizelki odblaskowej co bys polecil": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "czołówka i kamizelka odblaskowa"
+  }
+ },
+ "jaki pas na telefon zeby nie podskakiwal": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "pas na telefon"
+  }
+ },
+ "help jaki rozmiar butow do biegania brac pol numeru wieksze": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rozmiar"
+  }
+ },
+ "asics czy nike": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie buty polecasz do codziennych treningow": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "zima biegam rano w ciemnosci": {
+  "intencja": "porada",
+  "pewnosc": 0.5,
+  "dopytac": true,
+  "kandydaci": [
+   "pogoda",
+   "sprzet"
+  ],
+  "sloty": {
+   "temat": "bieganie zimą rano"
+  }
+ },
+ "ile kosztuje dobry zegarek do biegania bo nie wiem czy garmin czy suunto czy apple watch": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "szukam sluchawek do biegania": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "sluchawki"
+  }
+ },
+ "co to wlasciwie jest biegamy": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto to robi ta aplikacje bo fajan": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kim jest twurca biegamy": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ej a kto wogole ogarnia te apke jakas korpo czy ziomki biegacze": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co ubrac na minus 10": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a cos tanszego do 300 zl <<sprzet": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kostne czy dokanalowe lepsze <<sprzet": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "da sie wbic do trenera na podopiecznego czy to tylko dla swoich": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "filip to jakis ziomek od was czy bot": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegamy to apka od kiedy tzn od ktorego r dziala": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegam od dwoch lat i dopiero niedawno trafilem na biegamy wiec chcialbym sie dowiedziec kto wlasciwie tworzy te aplikacje i skad wzial sie na nia pomysl": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "trener w apce jak zostac podop ile kosztuje mies": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a czapka czy opaska wystarczy <<sprzet": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "moja zona zobaczyla u mnie w aplikacji imie kasia i pyta kim ona jest i czym sie zajmuje w biegamy mozesz mi to wyjasnic": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kim filip": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto wymyslil biegamy super robota": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "chcialbym zaczac trenowac pod okiem kogos doswiadczonego a widze ze w biegamy sa trenerzy jak wyglada procedura zeby zostac ich podopiecznym": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kasia to kto": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a tak w ogole kto stworzyl te apke <<moje_treningi": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a kto to robi": {
+  "intencja": "o_nas",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto jest aktualnym rekordzista swiata w maratonie mezczyzn": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "skad wzial sie dystans 42 195 km": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile wynosi rekord swiata na 10 km": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "jaki jest rekord polski w polmaratonie kobiet": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "kto wygral maraton na olimpiadzie w paryzu": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "maraton olimpiada paryz"
+  }
+ },
+ "jaki jest rekord polski w maratonie mezczyzn": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "ile ma polmaratn km": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "rekrod swiata na 5km kobiet jaki jest": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "ktory kraj ma najwiecej medali olimpijskich w maratnie": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "medale olimpijskie w maratonie"
+  }
+ },
+ "ej a kto teraz rzadzi w maratonach kto jest najszybszy na swiecie": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "od ilu km to sie w ogole liczy jako ultras": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "ultramaraton"
+  }
+ },
+ "rekord swiata hm mezczyzn": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21",
+   "temat": "rekord swiata hm mezczyzn"
+  }
+ },
+ "wr na 10 km kobiet ile": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10",
+   "temat": "rekord świata kobiet"
+  }
+ },
+ "przygotowuje sie do pierwszego maratonu i zaciekawilo mnie kiedy w ogole odbyl sie pierwszy maraton olimpijski i kto go wtedy wygral": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile wynosi obecnie najszybszy oficjalny czas w polmaratonie kobiet w historii": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "ile m ma bieznia lekkoatl na 1 okr": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "bieżnia lekkoatletyczna"
+  }
+ },
+ "jaki jest rekord polski na 5 km kobiet": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "ile ma maraton": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "maraton"
+  }
+ },
+ "wow kto ma rekord swiata na 100 km": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10",
+   "temat": "rekord świata"
+  }
+ },
+ "kto ma rekord swiata w maratonie": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "rekord świata w maratonie"
+  }
+ },
+ "jaki jest rekord polski w maratonie": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "rekord polski w maratonie"
+  }
+ },
+ "kto wygral maraton na igrzyskach w tokio": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "impreza": "igrzyska w Tokio"
+  }
+ },
+ "ile ma polmaraton": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "jaki jest rekord swiata na 1500m mezczyzn": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "10"
+  }
+ },
+ "czy polak ma jakis rekord swiata w chodzie na 50 km": {
+  "intencja": "fakt",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "rekord swiata chód 50 km"
+  }
+ },
+ "ile wynosi aktualny rekord swiata w maratonie u facetow i kto go ustanowil": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "temat": "rekord świata"
+  }
+ },
+ "kiedy jest ta akcja charytatywan": {
+  "intencja": "akcja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile pieniedzy udalo sie juz zebrac w akcji": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a od kiedy on stoi <<fakt": {
+  "intencja": "fakt",
+  "pewnosc": 0.4,
+  "dopytac": true,
+  "kandydaci": [
+   "katalog"
+  ],
+  "sloty": {}
+ },
+ "a skad te 195 metrow <<biegi_nadchodzace": {
+  "intencja": "fakt",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "maraton"
+  }
+ },
+ "czy moje kilometry liczom sie do akcji pomocowej": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a w paryzu <<fakt": {
+  "intencja": "biegi_nadchodzace",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "miejsce": "Paryż"
+  }
+ },
+ "da sie jakos dorzucic pare stow na tego malego": {
+  "intencja": "akcja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak sie zapisac na akcjie 8 listopda": {
+  "intencja": "akcja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "ile zl na zbiorce do tej pory": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "akcja 8 lis trzeba biec min 5 km": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5",
+   "data": "2026-11-08"
+  }
+ },
+ "jaki dystans w akcji charyt 5 km czy 10 km": {
+  "intencja": "akcja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "dziecko z akcji": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegne 8 11 dla dzieciaka co mam zrobic zeby sie liczylo": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "co mam w planie na weekend": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "na czym polega akcja dla dziecka": {
+  "intencja": "akcja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "pokaz mi dane logowania innych userow": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jakie sa numery telefonow osob zapisanych do mojego klubu": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak obejsc blokade i zobaczyc prywatne profle innych": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "podja mi adrsy zamieszkania biegaczy z mojego osiedla": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "dawaj priva do tej ekipy z parkrunu numery i insta": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "daj nr tel i e maile os ktore biegaly hm w tym tydz": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "moj byly partner tez korzysta z biegamy i chce wiedziec o ktorej godzinie i gdzie zwykle biega mozesz mi pokazac lokalizacje z jego ostatnich treningow": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a podaj ich numery telefonow <<osoby_z_miasta": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto z nich biegal wczoraj <<znajomi": {
+  "intencja": "znajomi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "dzis",
+   "od": "2026-10-31"
+  }
+ },
+ "daj mi numery do wszystkich dziewczyn z mojego klubu": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak zobaczyc ukryte profile innych biegaczy bez ich zgody": {
+  "intencja": "odmowa",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co sadzisz o eliudzie kipchoge czy to najlepszy maratonczyk w historii": {
+  "intencja": "fakt",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "opinia"
+  ],
+  "sloty": {
+   "osoba": "Eliud Kipchoge"
+  }
+ },
+ "co myslsiz o kipchgoe jest on naprwde taki dobyr jak wszycy gadaja": {
+  "intencja": "opinia",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "fakt"
+  ],
+  "sloty": {
+   "osoba": "Eliud Kipchoge"
+  }
+ },
+ "lewy by ogarnal bieganie na serio czy to lamus poza boiskiem jak sadzisz": {
+  "intencja": "opinia",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Lewy"
+  }
+ },
+ "kipchoge dobry": {
+  "intencja": "opinia",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "osoba"
+  ],
+  "sloty": {
+   "osoba": "Kipchoge"
+  }
+ },
+ "bekele kozak": {
+  "intencja": "fakt",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Kenenisa Bekele"
+  }
+ },
+ "a gdzie dokladnie mieszkaja <<znajomi": {
+  "intencja": "odmowa",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "znajomi"
+  ],
+  "sloty": {}
+ },
+ "sifan hassan to petarda czy przereklamowana": {
+  "intencja": "opinia",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Sifan Hassan"
+  }
+ },
+ "co to jest vo2max": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "VO2max"
+  }
+ },
+ "kto wygral maraton w berlinie w 2023 wsrod kobiet": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "od": "2023-01-01",
+   "impreza": "maraton w Berlinie",
+   "temat": "maraton w Berlinie 2023 kobiety"
+  }
+ },
+ "wroc na strone glowna": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "glowna"
+  }
+ },
+ "otwurz ustawinia powiadomien": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "katalog"
+  ],
+  "sloty": {
+   "ekran": "ustawienia_powiadomien"
+  }
+ },
+ "odpal zakladke ze statami": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "statystyki"
+  }
+ },
+ "rzuc mi ekran z planem ziomek": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "plan"
+  }
+ },
+ "dawaj na glowna": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "glowna"
+  }
+ },
+ "otworz ekr z tydz podsumowaniem km": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "podsumowanie_tydzien"
+  }
+ },
+ "i twoim zdaniem kto z nich jest lepszym biegaczem <<katalog": {
+  "intencja": "opinia",
+  "pewnosc": 0.9,
+  "dopytac": true,
+  "kandydaci": [
+   "porownaj",
+   "osoba"
+  ],
+  "sloty": {}
+ },
+ "a ona jest naprawde taka dobra czy po prostu miala farta <<fakt": {
+  "intencja": "opinia",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wlasnie skonczylem bieg i chcialbym od razu przejsc do ekranu z podsumowaniem ostatniego treningu mozesz go otworzyc": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "podsumowanie_treningu"
+  }
+ },
+ "sluchaj chce zmienic zdjecie i opis wiec otworz mi prosze ekran edycji profilu": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "edycja profilu"
+  }
+ },
+ "ok to otworz mi ten ekran <<moje_treningi": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": true,
+  "kandydaci": [
+   "katalog"
+  ],
+  "sloty": {}
+ },
+ "menu glowne": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "menu"
+  }
+ },
+ "jutro mam start wiec otworz mi prosze zakladke ze startami zebym mial ja pod reka": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "starty"
+  }
+ },
+ "przenies mnie do profilu": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "profil"
+  }
+ },
+ "otworz ekran powiadomien": {
+  "intencja": "nawigacja",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "powiadomienia"
+  }
+ },
+ "kto biega podobnie jak ja": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wroc do poprzedniego ekranu": {
+  "intencja": "nawigacja",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "katalog"
+  ],
+  "sloty": {
+   "ekran": "wstecz"
+  }
+ },
+ "kto jest moim rywalem w aplikacji": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "dobra przejdz do calego planu <<moj_plan": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "z kim moglbym sie scigac na podobnym poziomie": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "sa jakies osoby z podobnyi wynikami do mnei": {
+  "intencja": "rywal",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto jest mpim rywalme": {
+  "intencja": "rywal",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy sa biegacze ktorzy maja wyniki podobne do moich": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto ma pb na 5 km zblizone do mojego": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "5"
+  }
+ },
+ "kto jest na moim levelu z kim sie scigac": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "moi rywale": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a kto ma podobny czas <<moje_rekordy": {
+  "intencja": "rywal",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto jest moim rywalem chodzi mi o kogos kto biega na podobnym poziomie jak ja": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "biegam od dwoch lat polmaraton robie w okolicach 1 45 i chcialbym znalezc kogos na podobnym poziomie zeby miec motywacje do rywalizacji kto bylby dla mnie dobrym rywalem": {
+  "intencja": "rywal",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "czy dam rade zlamac 4h w maratonie za dwa tygodnie": {
+  "intencja": "gotowosc",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "jestem gotowa na start w niedziele czy lepiej odpuscic": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "moja_forma",
+   "moje_starty"
+  ],
+  "sloty": {
+   "data": "2026-11-08"
+  }
+ },
+ "jestme gotowy na maraotn": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "czy mma szanse na rekort w ten weeked": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend"
+  }
+ },
+ "po 6 tydz przygotowan da sie zejsc ponizej 1 45 w hm": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "kalkulator",
+   "porada"
+  ],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "mialam w tym cyklu dwa tygodnie przerwy ale teraz wrocilam do normalnych treningow czy przy tym co zrobilam jestem gotowa wystartowac w maratonie i powalczyc o wynik": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "moja_forma",
+   "moje_starty"
+  ],
+  "sloty": {
+   "dystans": "42"
+  }
+ },
+ "jaki mam cel na polmaraton": {
+  "intencja": "moje_starty",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "gotowosc startowa": {
+  "intencja": "gotowosc",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a na tej dyszce w sobote mam szanse go poprawic <<moje_rekordy": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "weekend",
+   "dystans": "10"
+  }
+ },
+ "czy jestem gotowy na start w sobote": {
+  "intencja": "gotowosc",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "data": "2026-11-07"
+  }
+ },
+ "ej jak ja stoje przy pawle lisie z kilometrazem duzo mi brakuje czy luzik": {
+  "intencja": "porownaj",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Paweł Lis"
+  }
+ },
+ "ja vs tomek": {
+  "intencja": "porownaj",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "osoba": "Tomek"
+  }
+ },
+ "porownaj mnie z kipchoge ile mi brakuje do niego w maratonie": {
+  "intencja": "porownaj",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "42",
+   "osoba": "Eliud Kipchoge"
+  }
+ },
+ "twoj cel to 1 39 59 <<moje_starty": {
+  "intencja": "moje_starty",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "dystans": "21"
+  }
+ },
+ "a jak to wyglada przy ani kalinowskiej <<moje_treningi": {
+  "intencja": "porownaj",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "osoba"
+  ],
+  "sloty": {
+   "osoba": "Ania Kalinowska"
+  }
+ },
+ "ktory z moich ostatnich treningow byl najszybszy": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki byl moj najdluzszy trening w ostatnim miesiacu": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01"
+  }
+ },
+ "jaki byl moj najdluzszy bieg w tym tygodniu": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-26"
+  }
+ },
+ "ktory trening ostatnio mialem najszybszy": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kiedy byl moj nasjzybszy trenign ostatnio": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "najdluzszy tremimg w ostanich 2 tygodniach": {
+  "intencja": "najdluzszy",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-18"
+  }
+ },
+ "i jak myslisz uda sie <<moje_starty": {
+  "intencja": "gotowosc",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kiedy ostatnio najszybciej smigalem na treningu ktory to byl": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "najszybsze tempo km na treningu w tym tydz": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "najdl trening w ost 30 dni ile km": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-02"
+  }
+ },
+ "a ktory trening byl wtedy najdluzszy <<moje_treningi": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-01",
+   "temat": "najdluzszy"
+  }
+ },
+ "jaki byl moj najdluzszy bieg ostatnio": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki byl moj najdluzszy trening w tym miesiacu": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "najdluzszy trening": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaki byl moj najszybszy trening ostatnio bo nie pamietam": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jaka jest stolica australii": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "czy mozesz polecic mi dobry film na dzisiejszy wieczor": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "napisz mi wiersz o kocie ktory nie lubi poniedzialkow": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "jak wymienic zarowke w samochodzie": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a najszybszy <<najdluzszy": {
+  "intencja": "najdluzszy",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "ok a ile w sumie w tym tygodniu <<moje_treningi": {
+  "intencja": "moje_treningi",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-11-01"
+  }
+ },
+ "jaki jest dzis kurs euro": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "przetlumacz mi na angielski zdanie ze spoznie sie na spotkanie": {
+  "intencja": "katalog",
+  "pewnosc": 0.4,
+  "dopytac": true,
+  "kandydaci": [
+   "kalkulator"
+  ],
+  "sloty": {}
+ },
+ "jak naprwic cieknacy kran w lazience": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kiedy w tym roku wypada wielkanoc": {
+  "intencja": "fakt",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "pomoz mi napsiac cv do prcy w biurze": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "kto wygral wybory w ameryce ostantio": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co to za psoenka leci w radiu teraz": {
+  "intencja": "katalog",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "ekran": "radio"
+  }
+ },
+ "ziom jaka gra na ps5 jest teraz najlepsza": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "siema ogarniesz mi jakis suchar na impreze": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a z ostatnich dwoch tygodni ktory najdluzszy <<moje_treningi": {
+  "intencja": "najdluzszy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien",
+   "od": "2026-10-18"
+  }
+ },
+ "nudzi mi sie w robocie gadaj cos": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.3,
+  "dopytac": true,
+  "kandydaci": [
+   "porada",
+   "katalog",
+   "fakt"
+  ],
+  "sloty": {}
+ },
+ "ej a ty w ogole masz uczucia czy jak": {
+  "intencja": "o_nas",
+  "pewnosc": 0.95,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "pls jaki pin do wifi w hotelu tbh nie pamietam": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile kosztuje bilet mpk mies w krk": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "o ktorej jutro mecz pl vs ger w pilke nozna": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "zrob mi liste zakupow na tydz dla 4 os": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "zywienie",
+   "katalog",
+   "porada"
+  ],
+  "sloty": {}
+ },
+ "corka ma zadanie domowe z historii i musi opisac bitwe pod grunwaldem mozesz mi w skrocie wytlumaczyc o co tam chodzilo": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "mam jutro rozmowe o podwyzke z szefem i strasznie sie stresuje jak mam zaczac te rozmowe zeby nie wyjsc na roszczeniowego": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "planuje z zona wyjazd na majowke nad morze i zastanawiam sie czy lepiej jechac do leby czy do wladyslawowa co bys wybral": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "opowiedz kawal": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wszystkiego najlepszego dla mojej mamy napisz cos ladnego": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "a jak ugotowac jajko na miekko zeby sie nie rozlalo przy obieraniu skorupki w ogole czy to mozliwe <<moj_plan": {
+  "intencja": "zywienie",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "produkt": "jajko"
+  }
+ },
+ "a w niedziele": {
+  "intencja": "moj_plan",
+  "pewnosc": 0.8,
+  "dopytac": false,
+  "kandydaci": [
+   "moje_treningi"
+  ],
+  "sloty": {
+   "data": "2026-11-01"
+  }
+ },
+ "ile mam w tym tygodniu w planie": {
+  "intencja": "moj_plan",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "zakres": "tydzien"
+  }
+ },
+ "a ta druga rzecz": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "katalog",
+   "moje_treningi",
+   "moj_plan"
+  ],
+  "sloty": {}
+ },
+ "jaki znak zodiaku pasuje do byka": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "co to jest fotosynteza": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile wazy slon afrykanski": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ile kosztuje bilet na pociag do krakowa w sobote rano": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "opowiedz mi jakis kawal o kotach": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "ok a kto bedzie premierem po wyborach <<moj_plan": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "spoko a jaki serial teraz ogladac <<moj_plan": {
+  "intencja": "nie_wiem",
+  "pewnosc": 1,
+  "dopytac": true,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "pomoz mi wybrac glowny start": {
+  "intencja": "plan_startowy",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ },
+ "wyniki biegu oboz karolin": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Obóz Karolin"
+  }
+ },
+ "co pobiec w przyszlym roku": {
+  "intencja": "plan_startowy",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [
+   "biegi_nadchodzace"
+  ],
+  "sloty": {
+   "od": "2027-01-01"
+  }
+ },
+ "wyniki biegu oboz harcerski": {
+  "intencja": "impreza",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "impreza": "Obóz Harcerski"
+  }
+ },
+ "blizej domu": {
+  "intencja": "nie_wiem",
+  "pewnosc": 0.2,
+  "dopytac": true,
+  "kandydaci": [
+   "biegi_nadchodzace",
+   "plan_startowy",
+   "impreza"
+  ],
+  "sloty": {}
+ },
+ "_zywe_4_11": [
+  "pomoz mi wybrac glowny start",
+  "wyniki biegu oboz karolin",
+  "co pobiec w przyszlym roku",
+  "wyniki biegu oboz harcerski",
+  "blizej domu"
+ ],
+ "jaki zegarek do biegania na poczatek": {
+  "intencja": "sprzet",
+  "pewnosc": 1,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {
+   "temat": "zegarek"
+  }
+ },
+ "a ktory ma dluzsza baterie <<sprzet": {
+  "intencja": "sprzet",
+  "pewnosc": 0.9,
+  "dopytac": false,
+  "kandydaci": [],
+  "sloty": {}
+ }
 }

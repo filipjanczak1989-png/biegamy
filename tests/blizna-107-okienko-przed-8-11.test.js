@@ -34,7 +34,7 @@ test('2) słowa akcji/zbiórki → zagadka przed startem, PO_STARCIE po starcie;
     A.ustawStan({ ruszyla: false });
     for (const q of Q) { const r = R.dopasuj(q, DZIS); assert.equal(r && r.log, 'zagadka', q); assert.ok(A.ZAGADKI.includes(r.zdanie), 'zagadka z listy: ' + q); }
     A.ustawStan({ ruszyla: true });
-    for (const q of Q) assert.deepEqual(R.dopasuj(q, DZIS), { zdanie: A.PO_STARCIE, log: 'zagadka' }, 'po starcie: ' + q);
+    for (const q of Q.filter((x) => x !== 'jaki jest cel akcji')) assert.deepEqual(R.dopasuj(q, DZIS), { zdanie: A.PO_STARCIE, log: 'zagadka' }, 'po starcie: ' + q);   // „jaki jest cel akcji” ma własne zdanie z FAQ (blizna-158)
     for (const q of ['ile km mam w akcji', 'ile mam km w tym tygodniu', 'moj plan']) assert.notEqual((R.dopasuj(q, DZIS) || {}).log, 'zagadka', q);
   } finally { A.ustawStan({ ruszyla: false }); }
   // karta po starcie niesie link zbiórki (EF: kartaOkienka; klient: „Oficjalna zbiórka ›")

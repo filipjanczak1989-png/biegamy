@@ -108,7 +108,7 @@ test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie,
   assert.match(s, /ponowTimer = setTimeout\(wyslij, PONOW_MS\)/);
   assert.match(s, /var SLUG = PROBA \? 'proba' : 'dla-fabianka';/);
   assert.match(s, /rpc\('akcja_proba_reset'\)/);
-  assert.match(s, /\$\('reset'\)\.hidden = !\(PROBA && nowy === 'zapisane'\)/);
+  assert.match(s, /\$\('reset'\)\.hidden = !\(PROBA && !SCIEZKA && nowy === 'zapisane'\)/);
   assert.match(s, /if \(stan !== 'uzbrojony'\) return;/);
   assert.doesNotMatch(s, /confirm\(|alert\(/, 'pytanie „Czy na pewno?" psuje moment');
   assert.doesNotMatch(h, /<a\s/i, 'link na ekranie guzika');
@@ -120,7 +120,10 @@ test('start-akcji.html: okno z migracji, przytrzymanie 1 s, offline, ponawianie,
   assert.match(s, /\$\('wiecej'\)\.hidden = !\(d && d\.wystartowala\);/, '„⋯" tylko po starcie');
   assert.match(s, /rpc\('akcja_url_zbiorki', \{ p_slug: SLUG, p_url: url \}\)/);
   // błąd uprawnień i okna kończą ponawianie (bez pętli wysyłek bez końca)
-  assert.match(s, /kod === '42501'\) \{ await wyczyscLokalnie\(\);/);
+  assert.match(s, /kod === '42501'\) \{/);
+  assert.match(s, /if \(uzytk\) \{ await wyczyscLokalnie\(\); ustaw\('brak'/, 'odmowa kasuje naciśnięcie tylko przy działającej sesji (luka 6): ten sam kod przychodzi przy wygasłej');
+  assert.match(s, /zLimitem\(window\.sb\.rpc\('akcja_start'/, 'wysyłka z limitem czasu');
+  assert.match(s, /LIMIT_RPC_MS = 8000/);
   // audyt 2.11: 22023 (serwer: przed 06:00) NIE kasuje naciśnięcia, póki okno trwa — ponawia co 30 s; po oknie czyści
   assert.match(s, /kod === '22023'\) \{[\s\S]{0,400}?if \(Date\.now\(\) <= OKNO_DO\) \{[^\n]*setTimeout\(wyslij, 30000\); return; \}[\s\S]{0,80}?await wyczyscLokalnie\(\);/);
   // audyt 2.11: wygasły token bez sieci → guzik zostaje (sesja w pamięci telefonu); brak sesji w pamięci → „Zaloguj się"

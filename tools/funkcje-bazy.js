@@ -32,6 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { wierszeZCli } = require('./cli-wiersze.js');
 
 const KORZEN = path.join(__dirname, '..');
 const KATALOG = path.join(KORZEN, 'supabase', 'schema', 'funkcje');
@@ -94,10 +95,8 @@ function zapytaj(sql, etykieta) {
   } finally {
     try { fs.unlinkSync(tmp); } catch (_) {}
   }
-  const i = out.indexOf('{');
-  const dane = JSON.parse(out.slice(i));
   const mapa = new Map();
-  for (const w of dane.rows) mapa.set(w.nazwa, w.tresc);
+  for (const w of wierszeZCli(out)) mapa.set(w.nazwa, w.tresc);
   return mapa;
 }
 
@@ -105,6 +104,7 @@ function zapytaj(sql, etykieta) {
  *  (`tabela.nazwa`), więc nie kolidują z nazwami funkcji. */
 function zBazy() {
   const f = zapytaj(ZAPYTANIE, 'funkcje');
+  if (!f.size) { console.error('\n  Baza nie zwróciła żadnej funkcji. Migawka zostaje bez zmian.\n'); process.exit(2); }
   const t = zapytaj(ZAPYTANIE_TRG, 'triggery');
   for (const [k, v] of t) f.set(k, v);
   return f;

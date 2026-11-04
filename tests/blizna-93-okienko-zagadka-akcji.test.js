@@ -55,7 +55,8 @@ test('„Fabianek" nigdy do trybu osoby ani sieci — router zatrzymuje pytanie 
   assert.match(ef.slice(iZdanie, iZdanie + 400), /narzedzia: \[traf\.log\]/);
   A.ustawStan({ ruszyla: true });
   try {
-    for (const q of ['Kim jest Fabianek?', 'co sie dzieje 8 listopada', 'jaka akcja']) assert.deepEqual(R.dopasuj(q, DZIS), { zdanie: A.PO_STARCIE, log: 'zagadka' }, q);
+    for (const q of ['co sie dzieje 8 listopada', 'jaka akcja']) assert.deepEqual(R.dopasuj(q, DZIS), { zdanie: A.PO_STARCIE, log: 'zagadka' }, q);
+    assert.match(R.dopasuj('Kim jest Fabianek?', DZIS).zdanie, /To dziecko, dla którego biegniemy/, 'zdanie z FAQ, nadal bez modelu i sieci');
   } finally { A.ustawStan({ ruszyla: false }); }
 });
 

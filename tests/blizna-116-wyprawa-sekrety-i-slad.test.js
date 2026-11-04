@@ -20,7 +20,7 @@ const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/g, '');
 const CEL = /jasn[aąeęy]*\s*g[oó]r|cz[eę]stochow|jasnog[oó]rsk/i;
 /* strażnik NAZWISKA dziecka (imię po starcie jest w cytatach i na guziku — świadomie, decyzja Filipa; nazwisko nigdzie) */
-const DZIECKO = /borowczyk/i;
+const DZIECKO = { test: (s) => require('./_nazwisko.js').maNazwisko(s) };
 /* dozwolone: dane geograficzne (mapa miast → województwo) — lista 300 miast nie zdradza celu */
 const DOZWOLONE = [{ plik: 'js/kalendarz-lista.mjs', wzor: /^\s*slaskie: "/ }];
 
@@ -86,9 +86,9 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: true, wyprawa_km: 12 }).replace(/ /g, ' '), 'Wyprawa · Filip i Kasia: 12 km · cel: tajemnica');
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x', wyprawa_cel_nazwa: 'Z bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Z bazy ✓ · 240 km');
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x' }).replace(/ /g, ' '), 'Wyprawa · dotarli: na miejsce ✓ · 240 km', 'bez nazwy z bazy — bez zgadywania');
-  assert.match(czytaj('start-akcji.html'), /b\.textContent = 'Dotarliśmy';/);
+  assert.match(czytaj('start-akcji.html'), /tekst\.textContent = 'Przytrzymaj 2 s: Dotarliśmy';/);
   const karta = A.kartaDzisHtml({ wystartowala: true, nazwa: 'A', suma_km: 1, cel_km: 10, wyprawa_trwa: true, wyprawa_km: 3, stawka_gr_filip: 10, filip_gr: 10, filip_max_gr: 100 }, { km: 0 }, new Date());
-  assert.match(karta, /href="mapa-wyprawy\.html">Zobacz trasę ›/, 'link na karcie Dziś po starcie');
+  assert.match(karta, /href="mapa-wyprawy\.html">Mapa wyprawy/, 'kafel w Centrum Akcji na Dziś po starcie');
   assert.doesNotMatch(A.kartaDzisHtml({ wystartowala: true, nazwa: 'A', suma_km: 1, cel_km: 10, wyprawa_trwa: false, stawka_gr_filip: 10, filip_gr: 10, filip_max_gr: 100 }, { km: 0 }, new Date()), /mapa-wyprawy/, 'akcja bez wyprawy — bez linku');
   const df = czytaj('dla-fabianka.html');
   assert.match(df, /<a class="przycisk przycisk--zbiorka" id="trasa" href="mapa-wyprawy\.html" hidden>Zobacz trasę ›<\/a>/); assert.match(df, /\$\('trasa'\)\.hidden = !A\.linkTrasy\(d\);/);
@@ -96,6 +96,46 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
 
 const P = (lat, lon) => [lat, lon];
 function trasa(odLat, n, krokDeg = 0.0005) { return Array.from({ length: n }, (_, i) => P(odLat + i * krokDeg, 16.9)); }   // ~55,6 m na punkt
+
+test('ślad: kształt strumienia z intervals, dwa konta i pętla nie odsłaniają domu ani noclegu', async () => {
+  const S = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/akcja-wyprawa-slad/slad.mjs')).href);
+  assert.deepEqual(S.paryLatLng({ data: [52, 52.1], data2: [16.9, 17] }), [[52, 16.9], [52.1, 17]], 'szerokości w data, długości w data2');
+  assert.deepEqual(S.paryLatLng({ data: [[52, 16.9]] }), [[52, 16.9]], 'pary też przechodzą');
+  assert.deepEqual(S.paryLatLng(null), []);
+  assert.ok(S.uprosc(S.paryLatLng({ data: trasa(52, 50).map((p) => p[0]), data2: trasa(52, 50).map((p) => p[1]) })).length > 10, 'prawdziwy kształt daje trasę');
+  const dom = [52, 16.9], nocleg = [53, 16.9], dl = (od, n) => S.uprosc(trasa(od, n));
+  // Dwa konta biegną razem z domu: dzień 1 i dzień 2, po nocy.
+  const wiersze = [
+    { athlete_id: 'F', start_at: '2026-11-07T07:00:00Z', koniec_at: '2026-11-07T17:00:00Z', punkty: dl(52, 1800) },
+    { athlete_id: 'K', start_at: '2026-11-07T07:00:00Z', koniec_at: '2026-11-07T17:00:00Z', punkty: dl(52, 1800) },
+    { athlete_id: 'F', start_at: '2026-11-08T07:00:00Z', koniec_at: '2026-11-08T17:00:00Z', punkty: dl(52.9, 1800) },
+    { athlete_id: 'K', start_at: '2026-11-08T07:00:00Z', koniec_at: '2026-11-08T17:00:00Z', punkty: dl(52.9, 1800) },
+  ];
+  const jeden = S.jednoKontoNaDzien(wiersze, ['F', 'K']);
+  assert.equal(jeden.length, 2); assert.ok(jeden.every((w) => w.athlete_id === 'F'), 'główne konto, gdy ma trasę');
+  const zapas = S.jednoKontoNaDzien(wiersze.filter((w) => !(w.athlete_id === 'F' && w.start_at.startsWith('2026-11-08'))), ['F', 'K']);
+  assert.deepEqual(zapas.map((w) => w.athlete_id), ['F', 'K'], 'zapasowe, gdy główne nie ma trasy tego dnia');
+  assert.equal(S.jednoKontoNaDzien(wiersze, ['Z']).length, 0, 'obce konto nie rysuje');
+  for (const dotarla of [false, true]) {
+    const u = S.ukryj(jeden, { dotarla }), pkt = u.segmenty.flat();
+    assert.ok(pkt.length > 100, 'trasa jest');
+    assert.ok(Math.min(...pkt.map((p) => S.odleglosc(p, dom))) >= 2000, 'dom: co najmniej 2 km w linii prostej, dotarla=' + dotarla);
+  }
+  // Pętla: po dystansie daleko od strefy, w terenie znów pod domem.
+  const petla = trasa(52, 200).concat(trasa(52, 200).reverse());
+  const u2 = S.ukryj([{ start_at: '2026-11-07T07:00:00Z', koniec_at: '2026-11-07T09:00:00Z', punkty: S.uprosc(petla) }], { dotarla: true });
+  assert.ok(Math.min(...u2.segmenty.flat().map((p) => S.odleglosc(p, dom))) >= 2000, 'powrót pod dom też ukryty');
+  // Nocleg po promieniu.
+  const dzien1 = { start_at: '2026-11-07T07:00:00Z', koniec_at: '2026-11-07T17:00:00Z', punkty: dl(52, 1800) };
+  const koniec1 = dzien1.punkty[dzien1.punkty.length - 1];
+  const dzien2 = { start_at: '2026-11-08T07:00:00Z', koniec_at: '2026-11-08T17:00:00Z', punkty: S.uprosc(Array.from({ length: 1800 }, (_, i) => [koniec1[0] + i * 0.0005, 16.9])) };
+  const u3 = S.ukryj([dzien1, dzien2], { dotarla: true }), kraniec = [koniec1[0], koniec1[1]];
+  assert.ok(Math.min(...u3.segmenty.flat().map((p) => S.odleglosc(p, kraniec))) >= 2000, 'nocleg: 2 km w linii prostej');
+  const ef = fs.readFileSync(path.join(KORZEN, 'supabase/functions/akcja-wyprawa-slad/index.ts'), 'utf8');
+  assert.match(ef, /uprosc\(paryLatLng\(latlng\)\)/);
+  assert.match(ef, /jednoKontoNaDzien\(/);
+  assert.match(ef, /console\.error\("akcja-wyprawa-slad:"/, 'awaria śladu ma być widać w logach');
+});
 
 test('B/C) slad.mjs — uproszczenie ≤ 1 pkt/50 m; strefy: start 2 000 m na zawsze, nocleg > 3 h ±2 000 m, końcówki 500 m dopóki trwa', async () => {
   const S = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/akcja-wyprawa-slad/slad.mjs')).href);
@@ -149,7 +189,7 @@ test('D) mapa-wyprawy.html: Leaflet z vendor (nie CDN), OSM z atrybucją, linia 
   assert.doesNotMatch(h, /unpkg|cdnjs|jsdelivr/, 'bez obcego CDN');
   assert.match(h, /tile\.openstreetmap\.org\/\{z\}\/\{x\}\/\{y\}\.png/); assert.match(h, /openstreetmap\.org\/copyright/);
   assert.match(h, /color: '#e8561e', weight: 4/); assert.match(h, /if \(d\.cel && d\.cel\.pozycja\)/); assert.match(h, /Dokąd biegną\? Zobaczysz na końcu\./);
-  assert.match(h, /ostatnia aktualizacja/); assert.doesNotMatch(h, /L\.marker\(/, 'bez ikon markera z obcego originu');
+  assert.match(h, /ostatnia aktualizacja/); assert.doesNotMatch(h, /L\.marker\((?![^\n]*icon: L\.icon\(\{ iconUrl: IKONA_ROWERU)/, 'bez ikon markera z obcego originu');
   assert.ok(fs.statSync(path.join(KORZEN, 'vendor/leaflet-1.9.4.min.js')).size > 100000);
   assert.match(czytaj('.gitattributes'), /vendor\//, 'vendor bez autocrlf (suma kontrolna)');
 });

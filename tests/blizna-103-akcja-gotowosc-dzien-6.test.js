@@ -19,11 +19,12 @@ test('okienko: pytania o akcję przed i po starcie; własne km i „dołączyć 
   try {
     A.ustawStan({ ruszyla: false });
     for (const q of ['co to za akcja', 'ile km w akcji', 'jak dołączyć do akcji', 'kim jest Fabianek', 'Fabianek']) assert.equal(R.dopasuj(q, '2026-11-06').log, 'zagadka', q);
-    for (const q of ['jak dołączyć', 'ile już km']) assert.notEqual((R.dopasuj(q, '2026-11-06') || {}).log, 'zagadka', 'przed startem: ' + q);
+    assert.equal((R.dopasuj('jak dołączyć', '2026-11-06') || {}).log, 'zagadka', 'przed startem: jak dołączyć to zdanie akcji (Filip 4.11)'); assert.notEqual((R.dopasuj('ile już km', '2026-11-06') || {}).log, 'zagadka', 'przed startem: ile już km');
     A.ustawStan({ ruszyla: true });
     for (const q of ['co to za akcja', 'ile już km', 'ile km w akcji', 'jak dołączyć', 'jak dołączyć do akcji', 'kim jest Fabianek']) {
       const r = R.dopasuj(q, '2026-11-07');
-      assert.equal(r.log, 'zagadka', q); assert.equal(r.zdanie, A.PO_STARCIE);
+      assert.equal(r.log, 'zagadka', q);
+      if (r.rodzaj !== 'faq' && r.rodzaj !== 'km') assert.equal(r.zdanie, A.PO_STARCIE);   // FAQ i licznik mają własne zdania (blizna-158)
       assert.ok(R.zagadkaKandydat(q), 'EF pobierze stan akcji dla: ' + q);
     }
     for (const q of ['ile przebiegłem w tym miesiącu', 'ile mam km w tym tygodniu', 'jak dołączyć do trenera']) {

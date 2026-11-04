@@ -48,7 +48,7 @@ export async function biegiNadchodzace(fetchFn, token, args, teraz = Date.now())
   const trafione = wiersze.filter((b) => b && b.event_date >= args.od && b.event_date <= args.do && pasujeMiejsce(b, r) && pasujeDystans(b, km))
     .sort((a, b) => String(a.event_date).localeCompare(String(b.event_date)));
   return { od: args.od, do: args.do, miejsce: args.miejsce || null, dystans_km: km, liczba: trafione.length,
-    biegi: trafione.slice(0, MAX_KART_BIEGOW).map((b) => ({ nazwa: String(b.name || "").slice(0, 120), data: b.event_date || null,
+    biegi: trafione.slice(0, MAX_KART_BIEGOW).map((b) => ({ klucz: typeof b.klucz === "string" ? b.klucz.slice(0, 80) : null, nazwa: String(b.name || "").slice(0, 120), data: b.event_date || null,
       miasto: b.city && b.city !== "Polska" ? String(b.city).slice(0, 60) : null,
       dystanse: (Array.isArray(b.distances) ? b.distances : []).map(Number).filter((x) => x > 0).slice(0, 6),
       zrodlo_domena: domena(b.source_url), status: b.status === "zgloszona" || b.status === "potwierdzona" ? b.status : null })) };   // 018

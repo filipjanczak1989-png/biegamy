@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { anonimizuj, czysty } from "./_anonimizuj.mjs";
-import { wybierzSedziego, ocenOdpowiedz, wzorceZatwierdzone, znajdzWzorzec, trescDlaSedziego, MODEL_SEDZIEGO_CLAUDE } from "./_sedzia.mjs";
+import { wybierzSedziego, ocenOdpowiedz, znajdzWzorzec, trescDlaSedziego, MODEL_SEDZIEGO_CLAUDE } from "./_sedzia.mjs";
 
 const KORZEN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -33,7 +33,7 @@ const dodajKoszt = (tok, model) => { const c = CENA[model] || CENA.lite; dodajUs
 const dzis = OPCJE.dzien || new Date().toISOString().slice(0, 10);
 const WYBOR_SEDZIEGO = wybierzSedziego({ sedzia: process.env.SEDZIA, dzis, claudeDo: process.env.SEDZIA_CLAUDE_DO, kluczClaude: process.env.ANTHROPIC_API_KEY, kluczGemini: GEMINI });
 let dostawcaSedziego = WYBOR_SEDZIEGO.dostawca, uwagaSedziego = WYBOR_SEDZIEGO.uwaga;
-const WZORCE = OPCJE.sedzia ? wzorceZatwierdzone() : [];
+let WZORCE = [];   // zatwierdzone wpisy bazy wiedzy, przychodzą z EF razem z logami (wpisy() niżej); zatwierdzanie tylko w panelu trenera
 const od = new Date(Date.parse(dzis + "T00:00:00Z") - 86400000).toISOString(), doD = dzis + "T00:00:00Z";   // wczorajsza doba (UTC — wystarczy do raportu)
 
 /** wczorajsze wpisy obu logów z EF (już zanonimizowane i bez athlete_id) → kształt raportu; bez sekretu → pusto (suchy przebieg) */
@@ -44,6 +44,7 @@ async function wpisy() {
   const j = await r.json();
   if (!j || !j.ok || !Array.isArray(j.wpisy)) throw new Error("okienko-raport-dane: zła odpowiedź");
   if (j.liczby && j.liczby.uciete) console.error("uwaga: EF ucięła listę do limitu wierszy");
+  if (Array.isArray(j.wzorce)) WZORCE = j.wzorce;
   return j.wpisy.map((w) => ({ wersja: w.wersja, id: w.id, kiedy: w.kiedy, osoba: w.osoba, pytanie: anonimizuj(w.pytanie), sciezka: [w.tryb, ...(w.narzedzia || [])].join(":") + (w.intencja ? ` · ${w.intencja}${w.pewnosc != null ? " " + w.pewnosc : ""}` : ""),
     odpowiedz: w.odpowiedz ? anonimizuj(w.odpowiedz) : null, ok: w.ok, powod: w.powod ? anonimizuj(w.powod) : null, ms: w.ms ?? null, samosprawdzenie: w.samosprawdzenie ?? null,
     ocena: w.ocena ?? null, komentarz: w.komentarz ? anonimizuj(w.komentarz) : null, tok: { we: w.tok_we || 0, wy: w.tok_wy || 0 }, siec: w.zapytania_sieci || 0, tryb: w.tryb, narzedzia: w.narzedzia || [] }));
@@ -69,7 +70,7 @@ export function kandydatDoLawki(w) {
 /* SĘDZIA (tools/_sedzia.mjs): drugi model ocenia; wejście = pytanie + ścieżka + odpowiedź (zanonimizowane) + wzorzec, jeśli jest zatwierdzony; niczego nie zmienia.
    Do Claude: najpierw strażnik `czysty` (resztka danych = nie wysyłamy). Błąd Claude (np. koniec kredytów) = reszta nocy na Gemini, z uwagą w raporcie. */
 async function sedzia(w) {
-  const wzorzec = znajdzWzorzec(w.pytanie, WZORCE);
+  const wzorzec = znajdzWzorzec(w.pytanie, WZORCE, dzis);
   if (dostawcaSedziego === "claude" && !czysty(trescDlaSedziego(w, null).replace(/\[OSOBA\]|\[e-mail\]|\[telefon\]/g, ""))) throw new Error("resztka danych: nie wysłano");
   let r;
   try { r = await ocenOdpowiedz({ dostawca: dostawcaSedziego, w, wzorzec, klucz: GEMINI }); }

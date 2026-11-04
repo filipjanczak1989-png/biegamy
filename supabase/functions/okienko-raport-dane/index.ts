@@ -10,6 +10,7 @@ const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SVCKEY = Deno.env.get("SB_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SEKRET = Deno.env.get("RAPORT_SECRET") || "";
 const MAX_WIERSZY = 500;
+const MAX_WZORCOW = 2000;   // zatwierdzone wpisy bazy wiedzy dla sędziego nocnego (zatwierdza trener w panelu); bez danych osób z definicji wpisu
 const J = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 const KOL_V2 = "id,kiedy,tekst,narzedzia,tryb,intencja,pewnosc,ok,powod_odrzucenia,ms,samosprawdzenie,ocena,komentarz,odpowiedz,tok_we,tok_wy,zapytania_sieci,athlete_id";
 const KOL_V1 = "id,kiedy,tekst,narzedzia,tryb,ok,powod_odrzucenia,tok_we,tok_wy,athlete_id";
@@ -23,9 +24,10 @@ Deno.serve(async (req) => {
   const od = new Date(Date.parse(dzien + "T00:00:00Z") - 86400000).toISOString(), doD = dzien + "T00:00:00Z";   // wczorajsza doba (UTC)
 
   const svc = createClient(SB_URL, SVCKEY, { auth: { persistSession: false } });
-  const [v2, v1] = await Promise.all([
+  const [v2, v1, wz] = await Promise.all([
     svc.from("okienko_v2_log").select(KOL_V2).gte("kiedy", od).lt("kiedy", doD).order("kiedy", { ascending: true }).limit(MAX_WIERSZY),
     svc.from("okienko_log").select(KOL_V1).gte("kiedy", od).lt("kiedy", doD).order("kiedy", { ascending: true }).limit(MAX_WIERSZY),
+    svc.from("okienko_wiedza").select("id,pytanie,warianty,odpowiedz,intencja,waznosc,wazna_do,status").eq("status", "zatwierdzona").limit(MAX_WZORCOW),
   ]);
   if (v2.error || v1.error) return J(500, { ok: false, error: "odczyt" });
 
@@ -37,5 +39,5 @@ Deno.serve(async (req) => {
     samosprawdzenie: w.samosprawdzenie ?? null, ocena: w.ocena ?? null, komentarz: w.komentarz ? anonimizuj(w.komentarz) : null, odpowiedz: w.odpowiedz ? anonimizuj(w.odpowiedz) : null,
     tok_we: w.tok_we || 0, tok_wy: w.tok_wy || 0, zapytania_sieci: w.zapytania_sieci || 0 });
   const wpisy = [...(v2.data || []).map((w) => n(w, "v2")), ...(v1.data || []).map((w) => n(w, "v1"))].sort((a, b) => (a.kiedy < b.kiedy ? -1 : 1));
-  return J(200, { ok: true, od, do: doD, liczby: { v2: (v2.data || []).length, v1: (v1.data || []).length, osoby: osoby.size, uciete: (v2.data || []).length >= MAX_WIERSZY || (v1.data || []).length >= MAX_WIERSZY }, wpisy });
+  return J(200, { ok: true, od, do: doD, liczby: { v2: (v2.data || []).length, v1: (v1.data || []).length, osoby: osoby.size, uciete: (v2.data || []).length >= MAX_WIERSZY || (v1.data || []).length >= MAX_WIERSZY }, wpisy, wzorce: wz.error ? [] : (wz.data || []) });   // brak tabeli przed migracją = brak wzorców, nie awaria nocy
 });

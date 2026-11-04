@@ -40,7 +40,7 @@ test('B: plakat tylko po starcie (baza), tylko z białej listy (front), układ b
   assert.match(h, /class="akcja-wiecej akcja-wplac" href="https:\/\/www\.siepomaga\.pl\/x"[^>]*>Wpłać na zbiórkę</);
   assert.doesNotMatch(A.plakatHtml({ ...d, plakat_url: STORAGE, url_zbiorki: 'javascript:alert(1)' }), /Wpłać/);
   const karta = A.kartaDzisHtml({ ...d, plakat_url: STORAGE }, { km: 1 }, new Date('2026-11-08T12:00:00Z'));
-  assert.ok(karta.indexOf('akcja-plakat--mini') > 0 && karta.indexOf('akcja-plakat--mini') < karta.indexOf('akcja-pasek'), 'miniatura w karcie Dziś, nad paskiem');
+  assert.doesNotMatch(karta, /akcja-plakat--mini/, 'na Dziś Centrum Akcji zamiast grafiki (Filip 4.11); plakat zostaje na stronie akcji');
   assert.match(czytaj('dla-fabianka.html'), /<div id="plakat"><\/div>/);
   assert.match(czytaj('dla-fabianka.html'), /\$\('plakat'\)\.innerHTML = A\.plakatHtml\(d\);/);
   assert.match(czytaj('js/akcja.mjs'), /closest\("\[data-plakat\]"\)/, 'klik → pełny ekran');

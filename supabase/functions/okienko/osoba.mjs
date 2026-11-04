@@ -46,7 +46,7 @@ const SLOWO_OSOBY = /^[\p{L}][\p{L}'-]+$/u;
 const DUZA = /^[\p{Lu}]/u;
 const PRZYIMKI = /^(w|we|na|pod|do|z|ze|od|u|o|przez|dla|kolo|koło|obok|przy|za|bez)$/i;
 const PRZYIMKI_MIEJSCA = /^(w|we|na|pod|kolo|koło|obok|przy|za)$/i;   // po nich wielka litera to zwykle miejsce („w Warszawie Mokotów"), nie osoba; „u Basi Kowalczyk" zostaje
-const SLOWA_IMPREZ_OS = /^(maraton\w*|polmaraton\w*|półmaraton\w*|bieg\w*|zawod\w*|ultra\w*|trail\w*|parkrun\w*|cross\w*|tras[aąyę]|zapis\w*|wynik\w*|rekord\w*|medal\w*|start\w*|kalendarz\w*|pogod\w*|km|dych\w*|piatk\w*|piątk\w*|sztafet\w*|aplikacj\w*|biegamy|radio|plan\w*|trening\w*|odznak\w*|wyzwan\w*|siec\w*|internec\w*|google|facebook\w*|instagram\w*|strav\w*)$/i;
+const SLOWA_IMPREZ_OS = /^(ob[oó]z\w*|zgrupowan\w*|maraton\w*|polmaraton\w*|półmaraton\w*|bieg\w*|zawod\w*|ultra\w*|trail\w*|parkrun\w*|cross\w*|tras[aąyę]|zapis\w*|wynik\w*|rekord\w*|medal\w*|start\w*|kalendarz\w*|pogod\w*|km|dych\w*|piatk\w*|piątk\w*|sztafet\w*|aplikacj\w*|biegamy|radio|plan\w*|trening\w*|odznak\w*|wyzwan\w*|siec\w*|internec\w*|google|facebook\w*|instagram\w*|strav\w*)$/i;
 const MIESIAC_OS = /^(stycze[nń]|stycznia|styczniu|luty|lutego|lutym|marzec|marca|marcu|kwiecie[nń]|kwietnia|kwietniu|maj|maja|maju|czerwiec|czerwca|czerwcu|lipiec|lipca|lipcu|sierpie[nń]|sierpnia|sierpniu|wrzesie[nń]|wrze[sś]nia|wrze[sś]niu|pa[zź]dziernik\w*|listopad\w*|grudzie[nń]|grudnia|grudniu|weekend\w*|jutro|jutra|dzis|dziś|dzisiaj|wczoraj|tydz\w*|tygodni\w*|miesi[aą]c\w*)$/i;   // pełne formy, nie rdzenie („Marcin" ≠ marzec)
 const CZASOWNIK_OS = /^(jest|byl|była|byla|jestem|mam|ma|masz|biega\w*|pobieg\w*|przebieg\w*|zna\w*|lubi\w*|chce\w*|moze\w*|może\w*|dodaj|pokaz\w*|znajd\w*|szukaj|sprawd\w*)$/i;
 const zleSlowoOsoby = (s) => !SLOWO_OSOBY.test(s) || PYTAJNE.test(s) || NIE_IMIE.test(s) || PRZYIMKI.test(s) || SLOWA_IMPREZ_OS.test(s) || MIESIAC_OS.test(s) || CZASOWNIK_OS.test(s);
@@ -123,7 +123,7 @@ function osobaObokSlowBiegowych(t) {
 export async function osobyWAplikacji(sb, athleteId, q) {
   const slowa = String(q).split(/\s+/).map((s) => s.replace(/[%_,()*\\]/g, "")).filter((s) => s.length >= 2).slice(0, 3);
   if (!slowa.length) return [];
-  let zap = sb.from("athletes").select("id,full_name,is_public").neq("id", athleteId);
+  let zap = sb.from("athletes").select("id,full_name,is_public,avatar_url,f6_runner_key,date_of_birth").neq("id", athleteId);
   for (const s of slowa) zap = zap.ilike("full_name", `%${s}%`);
   const { data, error } = await zap.limit(MAX_OSOB);
   if (error) throw new Error("athletes");
@@ -136,7 +136,58 @@ export async function osobyWAplikacji(sb, athleteId, q) {
     const inny = r.requester_id === athleteId ? r.addressee_id : r.requester_id;
     status[inny] = r.status === "accepted" ? "znajomi" : r.requester_id === athleteId ? "wyslano" : "czeka";
   }
-  return osoby.map((a) => ({ id: a.id, nazwa: String(a.full_name || "").slice(0, 80), prywatny: a.is_public !== true, znajomosc: status[a.id] || null }));
+  return osoby.map((a) => {
+    const prywatny = a.is_public !== true;   // prywatny (widzi go tylko jego trener): nic poza imieniem i nazwiskiem, jak dotąd
+    return { id: a.id, nazwa: String(a.full_name || "").slice(0, 80), prywatny, znajomosc: status[a.id] || null, avatar_url: prywatny ? null : (a.avatar_url || null),
+      _klucz: !prywatny && typeof a.f6_runner_key === "string" && RE_KLUCZ_WYNIKOW.test(a.f6_runner_key) ? a.f6_runner_key : null,
+      _rocznik: !prywatny && a.date_of_birth ? Number(String(a.date_of_birth).slice(0, 4)) || null : null };
+  });
+}
+/** pola techniczne (klucz, rocznik z profilu) nie wychodzą do klienta: rocznik z karty pochodzi tylko z maszyny */
+const daneOsoby = (o, wyniki) => {
+  const { _klucz, _rocznik, avatar_url, ...d } = o;
+  return { ...d, ...(o.prywatny ? {} : { avatar_url }), ...(wyniki ? { wyniki } : {}) };   // prywatny: karta nie niesie nic poza imieniem i nazwiskiem (blizna-80)
+};
+
+// ── konto BiegaMy ↔ wyniki z maszyny (Filip 3.11, blizna-143) ───────────────
+/** te same słowa imienia i nazwiska, w dowolnej kolejności, bez znaków diakrytycznych */
+export function kluczNazwy(s) { const T = /** @type {any} */ (globalThis).BM_TEKST; return T.bezZnakow(String(s || "")).split(/[^a-z0-9]+/).filter(Boolean).sort().join(" "); }
+/** Czy najlepszy kandydat z maszyny to ta osoba: te same słowa nazwy (≥ 2) i ten sam rocznik; gdy konto nie ma rocznika, tylko gdy maszyna zna jedną osobę o tej nazwie. */
+export function pasujeDoOsoby(wyniki, nazwa, rocznik) {
+  if (!wyniki || !wyniki.najlepszy) return false;
+  const k = kluczNazwy(nazwa);
+  if (k.split(" ").length < 2 || kluczNazwy(wyniki.najlepszy.nazwa) !== k) return false;
+  if (rocznik) return Number(wyniki.najlepszy.rocznik) === Number(rocznik);
+  const lata = new Set((wyniki.dopasowania || []).filter((x) => kluczNazwy(x.nazwa) === k).map((x) => x.rocznik ?? null));
+  return lata.size <= 1;
+}
+/** Wyniki do karty osoby: po kluczu z profilu (potwierdzone przez zawodnika) albo z dopasowania po nazwie i roczniku (prawdopodobnie). Powiązania NIE zapisujemy: robi to sam zawodnik w Profilu. */
+async function wynikiOsoby(o, wyniki, { fetchFn, token, teraz, gdzie }) {
+  if (o._klucz && !gdzie) {
+    try {
+      const w = await f6(fetchFn, token, "runner_results", { p_runner_key: o._klucz }, teraz);
+      return { ...podsumujWyniki({ display_name: o.nazwa, results_count: w.length, runner_key: o._klucz }, w).podsumowanie, potwierdzone: true };
+    } catch { return null; }
+  }
+  if (!pasujeDoOsoby(wyniki, o.nazwa, o._rocznik)) return null;
+  return { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1), gdzie: wyniki.gdzie_brak ? null : wyniki.gdzie, prawdopodobnie: true };
+}
+/** Karta osoby projektu z „o nas” (Filip, Kasia): zdjęcie z profilu + wyniki. Błąd odczytu → sama karta profilu, odpowiedź zostaje. */
+export async function kartyProfilu({ sb, fetchFn, token, profil, teraz = Date.now() }) {
+  const baza = { id: profil.id, nazwa: profil.nazwa, prywatny: false, bez_znajomosci: true };
+  const { data: a, error } = await sb.from("athletes").select("id,is_public,avatar_url,f6_runner_key").eq("id", profil.id).maybeSingle();
+  if (error || !a || a.is_public !== true) return [{ typ: "osoba", dane: baza }];
+  const dane = { ...baza, avatar_url: a.avatar_url || null };
+  try {
+    if (typeof a.f6_runner_key === "string" && RE_KLUCZ_WYNIKOW.test(a.f6_runner_key)) {
+      const w = await f6(fetchFn, token, "runner_results", { p_runner_key: a.f6_runner_key }, teraz);
+      dane.wyniki = { ...podsumujWyniki({ display_name: profil.szukaj || profil.nazwa, results_count: w.length, runner_key: a.f6_runner_key }, w).podsumowanie, potwierdzone: true };
+    } else if (profil.szukaj) {
+      const r = await wynikiSzukaj(fetchFn, token, profil.szukaj, teraz);
+      if (pasujeDoOsoby(r, profil.szukaj, null)) dane.wyniki = { ...r.najlepszy, inne: r.dopasowania.slice(1), prawdopodobnie: true };
+    }
+  } catch { /* maszyna zajęta albo niedostępna: karta bez wyników */ }
+  return [{ typ: "osoba", dane }];
 }
 
 // ── (b) wyniki z F6 ──────────────────────────────────────────────────────────
@@ -217,9 +268,12 @@ export async function odpowiedzOsoba(deps) {
     } catch { /* sieć padła — reszta odpowiedzi zostaje */ }
   }
   const karty = [];
-  for (const o of osoby) karty.push({ typ: "osoba", dane: o });
+  /* jedna publiczna osoba w BiegaMy → wyniki w jej karcie (Filip 3.11), nie obok; kilka osób albo profil prywatny → jak dotąd osobne karty */
+  const jedna = osoby.length === 1 && !osoby[0].prywatny ? osoby[0] : null;
+  const wJednej = jedna ? await wynikiOsoby(jedna, wyniki, { fetchFn, token, teraz: Date.now(), gdzie }) : null;
+  for (const o of osoby) karty.push({ typ: "osoba", dane: daneOsoby(o, o === jedna ? wJednej : null) });
   if (wyniki && wyniki.gdzie_brak) zdania = [...zdania, `Maszyna wyników nie zna startu tej osoby: ${wyniki.gdzie}.`];
-  if (wyniki) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1), gdzie: wyniki.gdzie_brak ? null : wyniki.gdzie } });
+  if (wyniki && !wJednej) karty.push({ typ: "wyniki", dane: { ...wyniki.najlepszy, inne: wyniki.dopasowania.slice(1), gdzie: wyniki.gdzie_brak ? null : wyniki.gdzie } });
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
   const nic = !karty.length && !zdania.length;
   if (nic) {   // M3-0b: odpowiedź informacyjna, każde zdanie tylko gdy źródło naprawdę odpowiedziało „nie ma"
