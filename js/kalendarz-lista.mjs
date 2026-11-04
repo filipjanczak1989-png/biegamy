@@ -180,7 +180,21 @@
   }
   function dzien(d) { d = d || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
 
-  g.BM_KALENDARZ = { kluczNazwy: kluczNazwy, kluczMiasta: kluczMiasta, kluczBezRoku: kluczBezRoku, toSamo: toSamo, typImprezy: typImprezy, TYPY: TYPY,
+  /* LINK DO KARTY IMPREZY (plan startowy w Okienku, Filip 3.11): races.html#impreza=<JSON zakodowany>. Treść przychodzi z adresu, więc każde pole przechodzi wzorzec; arkusz i tak wstawia
+     tekst przez textContent, a link przez safeExternalHref. Bez danych osób. → obiekt jak w _imprezyWgId albo null. */
+  var RE_KLUCZ_LINKU = /^(kalendarz|biegamy|wyniki|zgloszenie):[A-Za-z0-9:._-]{1,120}$/;
+  function imprezaZLinku(hash) {
+    var m = /^#impreza=([A-Za-z0-9%._~-]{1,1500})$/.exec(String(hash || ""));
+    if (!m) return null;
+    var o; try { o = JSON.parse(decodeURIComponent(m[1])); } catch (e) { return null; }
+    if (!o || typeof o !== "object" || typeof o.n !== "string" || !o.n.trim() || o.n.length > 140 || !/^\d{4}-\d{2}-\d{2}$/.test(String(o.d || ""))) return null;
+    var ds = (Array.isArray(o.ds) ? o.ds : []).map(Number).filter(function (x) { return x > 0 && x <= 400; }).slice(0, 6);
+    var nazwa = o.n.trim(), miasto = typeof o.m === "string" && o.m.length <= 80 ? o.m : null;
+    return { id: "link:" + o.d + ":" + kluczNazwy(nazwa), zrodlo: "maszyna", nazwa: nazwa, data: o.d, miasto: miasto, wojewodztwo: null, dystanse: ds, dokladnosc: "dzien",
+      url: typeof o.u === "string" && /^https:\/\/[^\s"'<>]{4,300}$/.test(o.u) ? o.u : null, klucz: typeof o.k === "string" && RE_KLUCZ_LINKU.test(o.k) ? o.k : null, typ: typImprezy(nazwa, ds) };
+  }
+
+  g.BM_KALENDARZ = { imprezaZLinku: imprezaZLinku, kluczNazwy: kluczNazwy, kluczMiasta: kluczMiasta, kluczBezRoku: kluczBezRoku, toSamo: toSamo, typImprezy: typImprezy, TYPY: TYPY,
     wojewodztwo: wojewodztwo, zNaszego: zNaszego, zMaszyny: zMaszyny, scal: scal, sortuj: sortuj, filtruj: filtruj, pasujeDystans: pasujeDystans,
     okresZFiltra: okresZFiltra, dzien: dzien, _mapaMiast: mapaMiast };
 })(typeof globalThis !== "undefined" ? globalThis : this);

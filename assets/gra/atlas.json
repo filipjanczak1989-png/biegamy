@@ -1,0 +1,394 @@
+{
+  "kasia_bieg": {
+    "src": "kasia_bieg.webp",
+    "cw": 135,
+    "ch": 215,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_bud": {
+    "src": "kasia_bud.webp",
+    "cw": 131,
+    "ch": 215,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_A": {
+    "src": "kasia_A.webp",
+    "cw": 173,
+    "ch": 235,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_B": {
+    "src": "kasia_B.webp",
+    "cw": 137,
+    "ch": 240,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_C": {
+    "src": "kasia_C.webp",
+    "cw": 238,
+    "ch": 230,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_D": {
+    "src": "kasia_D.webp",
+    "cw": 243,
+    "ch": 200,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_E": {
+    "src": "kasia_E.webp",
+    "cw": 210,
+    "ch": 210,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_F": {
+    "src": "kasia_F.webp",
+    "cw": 168,
+    "ch": 240,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_G": {
+    "src": "kasia_G.webp",
+    "cw": 158,
+    "ch": 245,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_H": {
+    "src": "kasia_H.webp",
+    "cw": 291,
+    "ch": 275,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "kasia_I": {
+    "src": "kasia_I.webp",
+    "cw": 181,
+    "ch": 230,
+    "n": 6,
+    "dol": 3,
+    "postac": "kasia"
+  },
+  "filip_bieg": {
+    "src": "filip_bieg.webp",
+    "cw": 134,
+    "ch": 216,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_bud": {
+    "src": "filip_bud.webp",
+    "cw": 132,
+    "ch": 215,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_A": {
+    "src": "filip_A.webp",
+    "cw": 165,
+    "ch": 235,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_B": {
+    "src": "filip_B.webp",
+    "cw": 160,
+    "ch": 240,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_C": {
+    "src": "filip_C.webp",
+    "cw": 252,
+    "ch": 230,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_D": {
+    "src": "filip_D.webp",
+    "cw": 212,
+    "ch": 200,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_E": {
+    "src": "filip_E.webp",
+    "cw": 197,
+    "ch": 210,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_F": {
+    "src": "filip_F.webp",
+    "cw": 193,
+    "ch": 240,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_G": {
+    "src": "filip_G.webp",
+    "cw": 188,
+    "ch": 245,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_H": {
+    "src": "filip_H.webp",
+    "cw": 281,
+    "ch": 275,
+    "n": 4,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "filip_I": {
+    "src": "filip_I.webp",
+    "cw": 183,
+    "ch": 230,
+    "n": 6,
+    "dol": 3,
+    "postac": "filip"
+  },
+  "pacholek": {
+    "src": "pacholek.webp",
+    "w": 161,
+    "h": 162,
+    "dol": 6
+  },
+  "barierka": {
+    "src": "barierka.webp",
+    "w": 235,
+    "h": 138,
+    "dol": 6
+  },
+  "kaluza": {
+    "src": "kaluza.webp",
+    "w": 268,
+    "h": 88,
+    "dol": 6
+  },
+  "worki": {
+    "src": "worki.webp",
+    "w": 226,
+    "h": 145,
+    "dol": 6
+  },
+  "kamien": {
+    "src": "kamien.webp",
+    "w": 257,
+    "h": 157,
+    "dol": 6
+  },
+  "cegla": {
+    "src": "cegla.webp",
+    "w": 102,
+    "h": 84,
+    "dol": 6
+  },
+  "cegla_zlota": {
+    "src": "cegla_zlota.webp",
+    "w": 104,
+    "h": 89,
+    "dol": 6
+  },
+  "kask": {
+    "src": "kask.webp",
+    "w": 114,
+    "h": 94,
+    "dol": 6
+  },
+  "bidon": {
+    "src": "bidon.webp",
+    "w": 69,
+    "h": 108,
+    "dol": 6
+  },
+  "but": {
+    "src": "but.webp",
+    "w": 132,
+    "h": 76,
+    "dol": 6
+  },
+  "zel": {
+    "src": "zel.webp",
+    "w": 76,
+    "h": 100,
+    "dol": 6
+  },
+  "k1": {
+    "src": "k1.webp",
+    "w": 98,
+    "h": 195,
+    "dol": 0
+  },
+  "k2": {
+    "src": "k2.webp",
+    "w": 117,
+    "h": 230,
+    "dol": 0
+  },
+  "k3": {
+    "src": "k3.webp",
+    "w": 146,
+    "h": 230,
+    "dol": 0
+  },
+  "k4": {
+    "src": "k4.webp",
+    "w": 163,
+    "h": 196,
+    "dol": 0
+  },
+  "wywrotka": {
+    "src": "wywrotka.webp",
+    "w": 360,
+    "h": 231
+  },
+  "krajobraz": {
+    "src": "krajobraz.webp",
+    "w": 1922,
+    "h": 300
+  },
+  "krajobraz_daleki": {
+    "src": "krajobraz_daleki.webp",
+    "w": 1317,
+    "h": 300
+  },
+  "droga": {
+    "src": "droga.webp",
+    "w": 773,
+    "h": 230
+  },
+  "latarnia": {
+    "src": "latarnia.webp",
+    "w": 87,
+    "h": 300
+  },
+  "drzewo": {
+    "src": "drzewo.webp",
+    "w": 319,
+    "h": 340
+  },
+  "domek1": {
+    "src": "domek1.webp",
+    "w": 340,
+    "h": 279
+  },
+  "domek2": {
+    "src": "domek2.webp",
+    "w": 340,
+    "h": 272
+  },
+  "domek3": {
+    "src": "domek3.webp",
+    "w": 340,
+    "h": 262
+  },
+  "domek4": {
+    "src": "domek4.webp",
+    "w": 340,
+    "h": 258
+  },
+  "domek5": {
+    "src": "domek5.webp",
+    "w": 340,
+    "h": 258
+  },
+  "domek6": {
+    "src": "domek6.webp",
+    "w": 340,
+    "h": 264
+  },
+  "domek7": {
+    "src": "domek7.webp",
+    "w": 340,
+    "h": 270
+  },
+  "dodatek_czapka-pompon": {
+    "src": "dodatek_czapka-pompon.webp",
+    "w": 193,
+    "h": 200
+  },
+  "dodatek_czapka-zlota": {
+    "src": "dodatek_czapka-zlota.webp",
+    "w": 200,
+    "h": 118
+  },
+  "dodatek_kask-rowerowy": {
+    "src": "dodatek_kask-rowerowy.webp",
+    "w": 200,
+    "h": 175
+  },
+  "dodatek_korona": {
+    "src": "dodatek_korona.webp",
+    "w": 200,
+    "h": 132
+  },
+  "dodatek_medal": {
+    "src": "dodatek_medal.webp",
+    "w": 124,
+    "h": 200
+  },
+  "dodatek_okulary": {
+    "src": "dodatek_okulary.webp",
+    "w": 200,
+    "h": 75
+  },
+  "dodatek_opaska": {
+    "src": "dodatek_opaska.webp",
+    "w": 200,
+    "h": 125
+  },
+  "dodatek_peleryna": {
+    "src": "dodatek_peleryna.webp",
+    "w": 200,
+    "h": 127
+  },
+  "rowerzysta_bieg": {
+    "src": "rowerzysta_bieg.webp",
+    "cw": 165,
+    "ch": 230,
+    "n": 6,
+    "dol": 3,
+    "postac": "rowerzysta"
+  },
+  "rowerzysta_skok": {
+    "src": "rowerzysta_skok.webp",
+    "cw": 310,
+    "ch": 223,
+    "n": 6,
+    "dol": 3,
+    "postac": "rowerzysta"
+  },
+  "wiezowiec": {
+    "src": "wiezowiec.webp",
+    "w": 300,
+    "h": 600
+  }
+}

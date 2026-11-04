@@ -15,6 +15,10 @@
 <script src="vendor/supabase-js-2.112.4.min.js"></script>
 <script src="sb.js"></script>
 <script src="js/akcja.mjs"></script>
+<script src="js/moderacja.mjs"></script>
+<script src="js/firma-formularz.mjs"></script>
+<!-- scena ulicy: pobierana od razu, ładowana po liczniku (js/akcja.mjs zUlica); brak pliku nic nie psuje -->
+<link rel="preload" href="js/ulica.mjs" as="script"><link rel="preload" href="js/ulica-scena.mjs" as="script">
 <!--
   STRONA AKCJI (projekt F, spec v3 pkt 2, v2 pkt 3.2) — publiczna, bez logowania; link do grup biegowych.
   Dane WYŁĄCZNIE z akcja_licznik przez EF akcja-licznik (rola anonimowa nie ma uprawnień do bazy).
@@ -23,6 +27,7 @@
   jednorazowe po akcji), sponsorzy (suma, bez nazwisk), jak to działa, oficjalna zbiórka, „Dołącz".
   PO ZAMKNIĘCIU: liczby końcowe + link do zbiórki (zbiórka trwa dalej, akcja nie).
   Nazwisko dziecka nigdy w tekście — tylko w linku zbiórki z bazy.
+  FIRMY (migracja 20261104_akcja_firmy): lista z tego samego licznika, tytuł i wiersze z js/akcja.mjs firmyHtml; pusta lista albo błąd = sekcja ukryta w całości.
 -->
 <style>
   :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent2: #ff8a3d; --ramka: rgba(255,255,255,.1); }
@@ -41,6 +46,7 @@
   .przycisk { display: block; text-align: center; padding: 15px; border-radius: 14px; font-weight: 600; font-size: 15px; text-decoration: none; }
   .przycisk--glowny { background: var(--akcent); color: #fff; } .przycisk--zbiorka { border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
   .drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin-top: 18px; }
+  .stopka-prawna { font-size: 12px; color: var(--fg2); text-align: center; margin: 22px 0 0; } .stopka-prawna a { color: inherit; display: inline-block; padding: 8px 2px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -51,6 +57,8 @@
   <div id="teaser">
     <div class="wielka-data" id="wielka-data"></div>
     <p class="lead" id="teaser-tekst">Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.</p>
+    <a class="przycisk przycisk--zbiorka" id="teaser-dolacz" href="index.html" hidden>Dołącz ›</a>
+    <div id="ulica-przed"></div>
   </div>
 
   <div id="pelna" hidden>
@@ -63,10 +71,11 @@
       <p class="drobne" id="sponsorzy" hidden></p>
       <p class="drobne" id="wyprawa" hidden></p>
     </section>
+    <div id="ulica-po"></div>
     <section id="jak">
       <h2>Jak to działa</h2>
       <ol>
-        <li>Biegasz albo idziesz — każdy taki kilometr zapisany w BiegaMy liczy się do wspólnej puli. Liczy się bieg i spacer. Rower nie.</li>
+        <li>Liczy się bieg i spacer. Rower nie. Każdy taki kilometr zapisany w BiegaMy wchodzi do wspólnej puli.</li>
         <li>Cel to 12 500 km. Akcja kończy się w dniu, w którym razem go osiągniemy.</li>
         <li>Aplikacja tylko liczy. Pieniądze wpłacasz bezpośrednio na oficjalną zbiórkę.</li>
       </ol>
@@ -78,9 +87,13 @@
       <a class="przycisk przycisk--zbiorka" id="sponsor" href="index.html#sponsor">Zostań sponsorem kilometrów</a>
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
       <a class="przycisk przycisk--zbiorka" id="trasa" href="mapa-wyprawy.html" hidden>Zobacz trasę ›</a>
+      <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›</a>
     </div>
-    <p class="drobne">Bez rankingu. Twój wkład widzisz tylko Ty, publiczna jest suma.</p>
+    <div id="firmy" hidden></div>
+    <section id="firma" hidden></section>
+    <p class="drobne">Kilometry bez rankingu: Twój wkład widzisz tylko Ty, publiczna jest suma. Ranking ma tylko gra Cegiełki, pod pseudonimem.</p>
   </div>
+  <p class="stopka-prawna"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Polityka prywatności</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Regulamin</a> · <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
 </main>
 <script>
 (function () {
@@ -90,11 +103,21 @@
 
   /* Data startu wyłącznie z licznika (akcje.start) — bez literałów w stronie. */
   function krotka(iso) { return iso ? Number(String(iso).slice(8, 10)) + '.' + String(iso).slice(5, 7) : ''; }
+  /* ULICA (js/ulica.mjs, dociągana przez js/akcja.mjs): brak pliku albo błąd = sekcji nie ma, reszta strony bez zmian. */
+  function ulica(d) { try { A.zUlica(function (U) { U.naStronie(d, { przed: $('ulica-przed'), po: $('ulica-po'), pokaz: pokaz }); }); } catch (e) {} }
+  var ostatniStan = null;
+  var DZIEN_STARTU = '2026-11-07';
   function pokaz(d) {
+    ulica(d);
+    var sygn = JSON.stringify(d);   // licznik wraca co 30 s: bez zmiany danych strony nie przepisujemy
+    if (sygn === ostatniStan) return;
+    ostatniStan = sygn;
     if (!d || !d.wystartowala) {
       $('pelna').hidden = true; $('teaser').hidden = false;
       $('wielka-data').textContent = krotka(d && (d.data_zapowiedzi || d.start));   // Z: data na zapowiedzi (8.11 → 7.11 wg bazy), nie data startu
-      $('teaser-tekst').textContent = d && d.start && dzisWaw() >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
+      var trwaBezDanych = !d && dzisWaw() >= DZIEN_STARTU;   // od dnia startu awaria licznika nie może wyglądać jak zapowiedź
+      $('teaser-tekst').textContent = trwaBezDanych ? 'Akcja trwa, licznik jest chwilowo niedostępny. Odśwież za chwilę.' : d && d.start && dzisWaw() >= String(d.start) ? 'Dziś. Jedno kliknięcie zmieni wszystko.' : 'Coś się zaczyna. Zapamiętaj tę datę i wróć tutaj.';
+      var dolacz = $('teaser-dolacz'); if (dolacz) dolacz.hidden = !trwaBezDanych;
       return;
     }
     $('teaser').hidden = true; $('pelna').hidden = false;
@@ -108,16 +131,31 @@
     var sp = A.tekstSponsorow(d); $('sponsorzy').hidden = !sp; $('sponsorzy').textContent = sp;
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
     $('trasa').hidden = !A.linkTrasy(d);   // mapa śladu wyprawy (komenda Filipa 4.11)
+    if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
     $('jak').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
     $('sponsor').hidden = zamknieta;
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;
     if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }
+    var firmy = ''; try { firmy = A.firmyHtml(d, 'akcja-firmy--strona'); } catch (e) { firmy = ''; }   // awaria listy nie psuje strony akcji
+    $('firmy').innerHTML = firmy; $('firmy').hidden = !firmy;
+    try {   // awaria formularza nie psuje strony
+      if (window.BM_FIRMA_FORMULARZ) window.BM_FIRMA_FORMULARZ.zamontuj($('firma'), d);
+      if (location.hash === '#firma' && !$('firma').hidden && !window._firmaPrzewinieta) { window._firmaPrzewinieta = true; $('firma').scrollIntoView({ block: 'start' }); }
+    } catch (e) {}
   }
-  async function odswiez() { try { pokaz(await A.pobierzPubliczny('dla-fabianka')); } catch (e) { pokaz(null); } }
+  /* ?proba=1 (konto testowe, a w ścieżce trener): cała strona z licznika próby, także formularz firm. Każde inne konto widzi prawdziwą akcję. */
+  function licznikStrony() {
+    return new Promise(function (ok) {
+      if (!/[?&]proba=1/.test(location.search || '') || !A.zUlica) return ok(null);
+      A.zUlica(function (U) { U.licznikProby().then(ok, function () { ok(null); }); });
+    });
+  }
+  async function odswiez() { try { var dp = await licznikStrony(); pokaz(dp || await A.pobierzPubliczny('dla-fabianka')); } catch (e) { pokaz(null); } }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
   odswiez();
+  setInterval(function () { if (document.visibilityState === 'visible' && dzisWaw() === DZIEN_STARTU && (!ostatniStan || !JSON.parse(ostatniStan) || !JSON.parse(ostatniStan).wystartowala)) odswiez(); }, 5000);   // w dniu startu strona otwarta przed guzikiem sama przechodzi na akcję
 })();
 </script>
 </body>

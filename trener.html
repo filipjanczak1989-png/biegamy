@@ -371,8 +371,35 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </button>
 </div>
 
+<!-- Firmy wspierające akcję (tabela akcja_firmy, migracja 20261104_akcja_firmy): dodaje i kasuje tylko trener, pilnuje RLS w bazie. -->
+<details class="fi" id="firmy-sec" style="margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 18px;">
+  <summary style="cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--fg);">Firmy wspierające akcję</summary>
+  <form id="firmy-form" novalidate class="add-form" style="margin-top:12px;">
+    <div class="field"><label for="firma-nazwa">Nazwa firmy</label><input type="text" id="firma-nazwa" maxlength="120" required autocomplete="off"></div>
+    <div class="field"><label for="firma-link">Link (https)</label><input type="url" id="firma-link" maxlength="500" required placeholder="https://firma.pl" autocomplete="off"></div>
+    <div class="field"><label for="firma-logo">Logo: PNG, JPG, WebP albo PDF</label><input type="file" id="firma-logo" accept="image/png,image/jpeg,image/webp,application/pdf"><div id="firma-logo-podglad" style="margin-top:6px;font-size:12px;color:var(--muted);"></div></div>
+    <div class="field"><label for="firma-rodzaj">Budynek</label><select id="firma-rodzaj"><option value="domek">Domek</option><option value="wiezowiec">Wieżowiec</option><option value="cegielka">Nazwa w murze (wpłata poniżej progu)</option></select></div>
+    <div class="field"><label for="firma-wsparcie">Typ wsparcia</label><select id="firma-wsparcie"><option value="wplata">Wpłata na zbiórkę</option><option value="rzeczowe">Sponsor rzeczowy (podpis „Partner akcji”, bez progu)</option></select></div>
+    <div id="firma-progi" style="font-size:12px;color:var(--muted);"></div>
+    <details id="firma-kwota-blok" style="font-size:13px;color:var(--fg);"><summary style="cursor:pointer;">Kwota publicznie (opcjonalnie)</summary>
+      <div class="field" style="margin-top:8px;"><label for="firma-kwota">Kwota w zł</label><input type="text" id="firma-kwota" inputmode="decimal" placeholder="1000" autocomplete="off"></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-zgoda" style="margin-top:2px;">Firma zgodziła się na podanie kwoty publicznie</label>
+    </details>
+    <label id="firma-sprawdzona-rzad" hidden style="gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-sprawdzona" style="margin-top:2px;">Sprawdziłem tę nazwę</label>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-wymienienie" required style="margin-top:2px;">Firma zgodziła się na wymienienie</label>
+    <label id="firma-potwierdzenie-rzad" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-potwierdzenie" style="margin-top:2px;"><span id="firma-potwierdzenie-tekst">Wpłata powyżej progu potwierdzona</span></label>
+    <div id="firmy-blad" role="alert" style="display:none;font-size:13px;line-height:1.4;color:var(--red);"></div>
+    <button type="submit" class="btn btn-p" id="firmy-zapisz">Dodaj firmę</button>
+    <button type="button" class="btn" id="firmy-anuluj" hidden>Anuluj edycję</button>
+  </form>
+  <div id="firmy-lista" style="margin-top:14px;"></div>
+  <div id="firmy-zgloszenia" style="margin-top:14px;"></div>
+</details>
+
 <!-- Pasek statystyk aplikacji -->
 <div id="app-stats-bar" class="fi" style="margin:0 16px 16px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);"></div>
+<!-- Ulica akcji: kwota, progi, cegiełki (js/ulica.mjs panelTrenera, migracja 20261104_akcja_ulica). Zamkiem jest baza: RLS auth_is_coach, CHECK-i. -->
+<div id="ulica-panel"></div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ŚWIEŻE OPINIE OD ZAWODNIKÓW (do raportów)                    -->
@@ -802,9 +829,11 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="sb.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="sb.js"></script><script src="js/moderacja.mjs"></script><!-- filtr imion i nazw przy zbiórce (Filip 4.11) --><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="js/firmy-panel.mjs" defer></script><script src="js/logo-firmy.mjs"></script><script src="js/akcja.mjs"></script><!-- firmy wspierające akcję: walidacja formularza i helpery listy (BM_AKCJA) -->
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
+<script src="js/wiedza-panel.mjs"></script><!-- baza wiedzy Okienka: panel kandydatów (Filip 3.11) -->
 
 <script>
 // ── STATE (mocki usunięte — dane ładowane z DB przez loadAthletes) ──
@@ -4664,6 +4693,7 @@ function showCoachSection(name) {
     document.getElementById('analytics-section').style.display = 'block';
     loadAnalytics();
     loadZnaleziskaOkienka();   // M2d
+    loadWiedzaOkienka();   // baza wiedzy
   } else if (name === 'social') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
@@ -5529,6 +5559,16 @@ async function sendCoachMessage() {
   if (error) { showToast('Błąd: '+error.message); return; }
   _notifyCoachMessage(_currentChatAthleteId, body);
   await loadCoachChat();
+}
+
+/* Baza wiedzy (Filip 3.11): kolejka kandydatów z liczbą zapytań, jedyne miejsce zatwierdzania. Logika w js/wiedza-panel.mjs, dostęp daje RLS (auth_is_coach). */
+let _panelWiedzy = null;
+function loadWiedzaOkienka() {
+  const box = document.getElementById('okienko-wiedza');
+  if (!box || !window.BM_WIEDZA_PANEL) return;
+  if (!_panelWiedzy) _panelWiedzy = window.BM_WIEDZA_PANEL.panel({ sb, root: box, esc: window.escapeHtml, href: window.safeExternalHref, toast: showToast,
+    offline: (err) => !!(window.bmOfflineGdy && window.bmOfflineGdy(err, 'okienko-wiedza', 'bazy wiedzy')) });
+  _panelWiedzy.zaladuj();
 }
 
 async function loadZnaleziskaOkienka() {
@@ -6698,6 +6738,8 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
   <!-- M2d (1.11.2026): „Znaleziska z okienka" — źródła z odpowiedzi „Zapytaj" z sieci, które wyglądają na wyniki/imprezy
        (lead dla K-źródła). Odczyt: RLS okienko_znaleziska_trener_czyta; tekst przez textContent, link przez
        safeExternalHref {tylkoHttps}. Status tylko do odczytu — zmiana statusu = osobny krok (zapis ma tylko EF). -->
+  <!-- Baza wiedzy: odpowiedzi z sieci i wzorce czekające na zatwierdzenie; patrz js/wiedza-panel.mjs. -->
+  <div id="okienko-wiedza" style="margin-top:24px;"></div>
   <div id="okienko-znaleziska" style="margin-top:24px;"></div>
 </div>
 
@@ -8957,6 +8999,142 @@ document.addEventListener('keydown', (e) => {
 })();
 </script>
 
+<script>
+/* Firmy wspierające akcję: jeden formularz do dodawania i edycji, lista z podmianą logo, zmianą budynku, ukryciem i usuwaniem. Zamkiem jest baza (RLS: auth_is_coach, CHECK-i, limit bucketu), tu są wygoda i komunikaty po polsku.
+   Dane tylko przez escapeHtml / safeExternalHref / safeUrlAttr, przyciski niosą je w dataset (bez JS w atrybutach). */
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const sekcja = $('firmy-sec'), form = $('firmy-form'), lista = $('firmy-lista'), blad = $('firmy-blad'), zapisz = $('firmy-zapisz'), anuluj = $('firmy-anuluj'), podglad = $('firma-logo-podglad');
+  if (!sekcja || !form || !window.BM_AKCJA || !window.BM_LOGO_FIRMY || !window.sb) return;
+  const A = window.BM_AKCJA, sb = window.sb, SLUG = 'dla-fabianka', NAZWY = { domek: 'domek', wiezowiec: 'wieżowiec', cegielka: 'nazwa w murze' };
+  let wczytano = false, firmy = [], edycja = null, logo = null;
+  const pokazBlad = (t) => { blad.textContent = t || ''; blad.style.display = t ? '' : 'none'; };
+  const plikLogo = (u) => String(u || '').split('/' + A.BUCKET_LOGO + '/')[1] || '';
+  function komunikat(e) {
+    const kod = e && (e.code || e.statusCode);
+    if (kod === '42501' || kod === '403' || kod === 403) return 'baza odmówiła: to konto nie ma uprawnień trenera.';
+    if (kod === '23514') return 'baza odrzuciła dane: sprawdź link, kwotę i potwierdzenie wpłaty.';
+    return (e && e.message) || 'błąd połączenia.';
+  }
+  function ustawWsparcie() {
+    const rzeczowe = $('firma-wsparcie').value === 'rzeczowe';
+    $('firma-potwierdzenie-rzad').style.display = rzeczowe ? 'none' : 'flex';
+    $('firma-progi').style.display = rzeczowe ? 'none' : '';
+    $('firma-potwierdzenie-tekst').textContent = $('firma-rodzaj').value === 'cegielka' ? 'Wpłata potwierdzona' : 'Wpłata powyżej progu potwierdzona';
+  }
+  function czyscLogo() { logo = null; podglad.textContent = ''; }
+  function czyscFormularz() {
+    form.reset(); czyscLogo(); edycja = null;
+    zapisz.textContent = 'Dodaj firmę'; anuluj.hidden = true; $('firma-kwota-blok').hidden = false;
+    $('firma-sprawdzona-rzad').hidden = true; $('firma-sprawdzona-rzad').style.display = '';
+    pokazBlad(''); ustawWsparcie();
+  }
+  function wiersz(f, nr) {
+    const link = A.linkFirmy(f), adresLogo = A.logoFirmy(f), nazwa = window.escapeHtml(f.nazwa);
+    const opis = [NAZWY[f.rodzaj] || f.rodzaj, f.wsparcie === 'rzeczowe' ? 'Partner akcji' : (f.kwota_gr == null ? 'wpłata' : A.zl(f.kwota_gr) + (f.zgoda_na_kwote ? ' publicznie' : ' niepublicznie')), f.ukryta ? 'UKRYTA' : '', 'dodano ' + new Date(f.dodano).toLocaleDateString('pl-PL')].filter(Boolean).join(' · ');
+    const guzik = 'flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;';
+    return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);' + (f.ukryta ? 'opacity:.6;' : '') + '">' +
+      (adresLogo ? '<img src="' + adresLogo + '" alt="" loading="lazy" style="flex:none;width:36px;height:36px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;">' : '') +
+      '<div style="flex:1 1 150px;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;">' +
+      (link ? '<a href="' + link + '" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--fg);">' + nazwa + '</a>' : nazwa) +
+      '<div style="font-size:11px;color:var(--muted);">' + window.escapeHtml(opis) + '</div></div>' +
+      '<button type="button" data-firma-edytuj="' + nr + '" style="' + guzik + 'color:var(--fg);">Edytuj</button>' +
+      '<button type="button" data-firma-ukryj="' + nr + '" style="' + guzik + 'color:var(--fg);">' + (f.ukryta ? 'Pokaż' : 'Ukryj') + '</button>' +
+      '<button type="button" data-firma-usun="' + nr + '" style="' + guzik + 'color:var(--red);">Usuń</button></div>';
+  }
+  async function wczytaj() {
+    const { data, error } = await sb.from('akcja_firmy').select('id,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta').eq('akcja_slug', SLUG).order('dodano').order('id');
+    if (error) { lista.textContent = 'Nie udało się wczytać listy: ' + komunikat(error); return; }
+    wczytano = true; firmy = data || [];
+    lista.innerHTML = firmy.length ? firmy.map(wiersz).join('') : '<div style="font-size:12px;color:var(--muted);">Lista pusta: na stronie akcji sekcji firm nie widać.</div>';
+  }
+  function zacznijEdycje(f) {
+    czyscFormularz(); edycja = f;
+    $('firma-nazwa').value = f.nazwa; $('firma-link').value = f.link; $('firma-rodzaj').value = f.rodzaj; $('firma-wsparcie').value = f.wsparcie;
+    $('firma-wymienienie').checked = true; $('firma-potwierdzenie').checked = f.wsparcie === 'wplata';   // CHECK w bazie: wpłata w tabeli ma potwierdzenie
+    $('firma-kwota-blok').hidden = true; zapisz.textContent = 'Zapisz zmiany'; anuluj.hidden = false;
+    if (A.logoFirmy(f)) podglad.textContent = 'Bez nowego pliku logo zostaje.';
+    ustawWsparcie(); form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  sekcja.addEventListener('toggle', () => { if (sekcja.open && !wczytano) wczytaj(); });
+  anuluj.addEventListener('click', czyscFormularz);
+  $('firma-wsparcie').addEventListener('change', ustawWsparcie);
+  $('firma-rodzaj').addEventListener('change', () => { if (edycja) $('firma-potwierdzenie').checked = false; ustawWsparcie(); });   // inny budynek to inny próg: wpłatę trzeba potwierdzić od nowa
+  $('firma-logo').addEventListener('change', () => {
+    pokazBlad(''); czyscLogo();
+    const plik = $('firma-logo').files[0]; if (!plik) return;
+    podglad.textContent = 'Przygotowuję logo…';
+    const zadanie = window.BM_LOGO_FIRMY.przygotuj(plik);
+    logo = zadanie;
+    zadanie.then((w) => {
+      if (logo !== zadanie) return;
+      podglad.textContent = '';
+      const im = document.createElement('img'); im.alt = 'Podgląd logo'; im.src = URL.createObjectURL(w.blob);
+      im.style.cssText = 'display:block;max-width:220px;max-height:110px;padding:6px;border-radius:8px;background:#fbf3df;';
+      podglad.appendChild(im);
+      podglad.appendChild(document.createTextNode(w.szer + '×' + w.wys + ' px' + (w.zPdf ? ', z PDF, przezroczyste tło' : '')));
+    }).catch((err) => { if (logo === zadanie) { podglad.textContent = ''; pokazBlad(err.message); } });
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    pokazBlad('');
+    const p = A.firmaDoZapisu({ rodzaj: $('firma-rodzaj').value, wsparcie: $('firma-wsparcie').value, nazwa: $('firma-nazwa').value, link: $('firma-link').value, kwotaZl: edycja ? '' : $('firma-kwota').value, zgoda: edycja ? false : $('firma-zgoda').checked, zgodaWymienienie: $('firma-wymienienie').checked, potwierdzenie: $('firma-potwierdzenie').checked, nazwaSprawdzona: $('firma-sprawdzona').checked });
+    if (p.blad) { if (p.mozna_potwierdzic) { $('firma-sprawdzona-rzad').hidden = false; $('firma-sprawdzona-rzad').style.display = 'flex'; } pokazBlad(p.blad); return; }
+    zapisz.disabled = true;
+    let wgrany = null;
+    try {
+      const w = logo ? await logo : null, lg = A.logoDoWgrania(w && w.blob);
+      if (lg.blad) throw new Error(lg.blad);
+      if (w) {
+        const sciezka = crypto.randomUUID() + '.' + lg.rozszerzenie;
+        const up = await sb.storage.from(A.BUCKET_LOGO).upload(sciezka, w.blob, { contentType: w.blob.type, upsert: false, cacheControl: '31536000' });
+        if (up.error) throw up.error;
+        wgrany = sciezka;
+        p.wiersz.logo_url = sb.storage.from(A.BUCKET_LOGO).getPublicUrl(sciezka).data.publicUrl;
+      }
+      if (edycja) {
+        const { data, error } = await sb.from('akcja_firmy').update(A.firmaDoEdycji(p.wiersz)).eq('id', edycja.id).select('id');
+        if (error) throw error;
+        if (!data || !data.length) throw new Error('baza odmówiła zapisu.');
+        const stary = wgrany ? plikLogo(edycja.logo_url) : '';
+        if (stary) { try { await sb.storage.from(A.BUCKET_LOGO).remove([stary]); } catch (_) {} }
+      } else {
+        const { error } = await sb.from('akcja_firmy').insert(p.wiersz);
+        if (error) throw error;
+      }
+      const bylaEdycja = !!edycja;
+      czyscFormularz();
+      window.showToast((bylaEdycja ? 'Zapisano.' : 'Dodano.') + ' Na stronie akcji pojawi się najpóźniej po 2 minutach.');
+      await wczytaj();
+    } catch (err) {
+      if (wgrany) { try { await sb.storage.from(A.BUCKET_LOGO).remove([wgrany]); } catch (_) {} }
+      pokazBlad('Nie udało się zapisać: ' + komunikat(err));
+    } finally { zapisz.disabled = false; }
+  });
+  lista.addEventListener('click', async (e) => {
+    const cel = e.target && e.target.closest ? e.target.closest('button') : null; if (!cel) return;
+    const d = cel.dataset, f = firmy[Number(d.firmaEdytuj != null ? d.firmaEdytuj : d.firmaUkryj != null ? d.firmaUkryj : d.firmaUsun)]; if (!f) return;
+    if (d.firmaEdytuj != null) { zacznijEdycje(f); return; }
+    if (d.firmaUkryj != null) {
+      cel.disabled = true;
+      const { data, error } = await sb.from('akcja_firmy').update({ ukryta: !f.ukryta }).eq('id', f.id).select('id');
+      if (error || !data || !data.length) { cel.disabled = false; window.showToast('Nie udało się: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return; }
+      await wczytaj();
+      return;
+    }
+    if (!window.confirm('Usunąć „' + f.nazwa + '” z listy?')) return;
+    cel.disabled = true;
+    const { data, error } = await sb.from('akcja_firmy').delete().eq('id', f.id).select('id');
+    if (error || !data || !data.length) { cel.disabled = false; window.showToast('Nie udało się usunąć: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return; }
+    const plik = plikLogo(f.logo_url);
+    if (plik) { try { const r = await sb.storage.from(A.BUCKET_LOGO).remove([plik]); if (r.error) throw r.error; } catch (_) { window.showToast('Wpis usunięty, plik logo został w Storage.', 'warn'); } }
+    if (edycja && edycja.id === f.id) czyscFormularz();
+    await wczytaj();
+  });
+  ustawWsparcie();
+})();
+</script>
+
 <!-- ⌚ Modal wykresów per-activity (reużywa #ds-icu-* + _renderIcuDetail z sb.js) -->
 <div id="coach-icu-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:300;overflow-y:auto;padding:18px;backdrop-filter:blur(6px);" onclick="if(event.target===this)closeCoachIcuModal()">
   <div style="max-width:640px;margin:24px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;">
@@ -8981,5 +9159,6 @@ document.addEventListener('keydown', (e) => {
     </div>
   </div>
 </div>
+<script src="js/ulica.mjs"></script><script>(function () { try { window.BM_ULICA.panelTrenera(document.getElementById('ulica-panel'), window.sb); } catch (e) {} })();</script><!-- ulica akcji: bez modułu sekcji nie ma, reszta panelu żyje -->
 </body>
 </html>

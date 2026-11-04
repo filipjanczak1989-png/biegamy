@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- WYNIKI „JAK MANAGER" — etap 1+2 (2.11.2026, docs/projekt-wyniki-jak-manager-2026-11-02.md, decyzje Filipa 2.11 wieczór).
-     Jeden dokument + hash-routing (#/, #/zawodnik/<klucz>, #/porownaj/<a>/<b>; #/impreza — etap 3, czeka na kolektor): stos „wstecz"
+     Jeden dokument + hash-routing (#/, #/zawodnik/<klucz>, #/porownaj/<a>/<b>, #/impreza/<klucz>/<rok>[/<km>] — F6 019, blizna-143): stos „wstecz"
      przez pushState/popstate, pamięć 10 min w dokumencie (nigdy sessionStorage/localStorage z danymi osób), prefetch tylko z intencji
      (pointerdown na kandydacie), wyłącznik prefetchu po 429. Wymaga sesji (F6 odrzuca anonima) — hash zapamiętany w sessionStorage
      (sam hash, bez danych) i przywrócony po logowaniu. Logika: js/wyniki-lista.mjs (BM_WYNIKI), js/wynik-zgloszony.mjs. -->
@@ -46,6 +46,32 @@ table.w-tab a{color:var(--accent);text-decoration:none;}
 .w-szybszy{color:#3db870;font-weight:600;}
 .w-ostatnio button{display:block;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid rgba(255,255,255,0.06);color:var(--fg);padding:10px 0;font:inherit;cursor:pointer;}
 .w-pasek{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px;}
+.w-lata{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.w-lata::-webkit-scrollbar{display:none;}
+.w-chip{flex:none;background:transparent;border:1px solid var(--border);color:var(--fg);border-radius:999px;padding:7px 12px;min-height:36px;font:600 13px 'DM Mono',monospace;cursor:pointer;}
+.w-chip.bez-wynikow{color:var(--muted);border-style:dashed;}
+.w-chip.wlaczony{background:var(--accent);border-color:var(--accent);border-style:solid;color:#fff;}
+.w-naglowek-imprezy .w-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted);margin-top:4px;}
+.w-naglowek-imprezy .w-liczba{color:var(--fg);font-weight:600;}
+.w-filtry{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.w-filtry input,.w-filtry select{width:100%;min-height:44px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font:16px 'DM Sans',sans-serif;}
+.w-filtry-rzad{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.w-filtry-rzad select{flex:1 1 130px;width:auto;}
+table.w-wyniki{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;}
+table.w-wyniki th{text-align:left;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;padding:6px 4px;border-bottom:1px solid var(--border);}
+table.w-wyniki td{padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:middle;overflow-wrap:anywhere;}
+table.w-wyniki .k-msc{width:44px;font-family:'DM Mono',monospace;}
+table.w-wyniki .k-kat{width:52px;color:var(--muted);font-size:12px;}
+table.w-wyniki .k-czas{width:70px;text-align:right;font-family:'DM Mono',monospace;white-space:nowrap;}
+table.w-wyniki tr.w-klik{cursor:pointer;}
+table.w-wyniki tr.w-klik .k-nazwa{color:var(--accent);}
+table.w-wyniki tr.w-nasz{background:rgba(var(--accent-rgb),0.10);}
+table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
+.w-strony{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
+.w-strony .w-btn{min-height:44px;min-width:92px;}
+.w-strony .w-btn:disabled{opacity:0.35;cursor:default;}
+.w-stopka{margin-top:4px;text-align:center;}
+.w-stopka a{color:var(--muted);font-size:13px;text-decoration:underline;display:inline-block;padding:12px;}
 [hidden]{display:none !important;}
 </style>
 </head>
@@ -89,9 +115,12 @@ table.w-tab a{color:var(--accent);text-decoration:none;}
   }
   window.addEventListener('popstate', function () { renderuj(W.parsuj(location.hash)); });
   ekran.addEventListener('click', function (e) {
-    var el = e.target.closest ? e.target.closest('[data-klucz],[data-porownaj],[data-toja],[data-wpisz],[data-usun-wz]') : null;
+    var el = e.target.closest ? e.target.closest('[data-klucz],[data-porownaj],[data-toja],[data-wpisz],[data-usun-wz],[data-imp-rok],[data-imp-km],[data-imp-plec],[data-imp-strona]') : null;
     if (!el) return;
-    if (el.hasAttribute('data-klucz') && W.kluczOk(el.getAttribute('data-klucz'))) { e.preventDefault(); idz({ ekran: 'zawodnik', klucz: el.getAttribute('data-klucz') }); }
+    if (el.hasAttribute('data-imp-rok') || el.hasAttribute('data-imp-km')) { e.preventDefault(); idz({ ekran: 'impreza', klucz: _imp.klucz, rok: Number(el.getAttribute('data-imp-rok')) || _imp.rok, km: Number(el.getAttribute('data-imp-km')) || null }); }
+    else if (el.hasAttribute('data-imp-plec')) { e.preventDefault(); _imp.plec = el.getAttribute('data-imp-plec'); _imp.offset = 0; rysujPlec(); tabelaImprezy(); }
+    else if (el.hasAttribute('data-imp-strona')) { e.preventDefault(); _imp.offset = Math.max(0, _imp.offset + Number(el.getAttribute('data-imp-strona')) * W.PO_ILE); tabelaImprezy(true); }
+    else if (el.hasAttribute('data-klucz') && W.kluczOk(el.getAttribute('data-klucz'))) { e.preventDefault(); if (el.hasAttribute('data-nazwa')) zapamietaj({ runner_key: el.getAttribute('data-klucz'), display_name: el.getAttribute('data-nazwa'), yob: null, probable: false }); idz({ ekran: 'zawodnik', klucz: el.getAttribute('data-klucz') }); }
     else if (el.hasAttribute('data-porownaj')) { e.preventDefault(); porownajZ(el.getAttribute('data-porownaj')); }
     else if (el.hasAttribute('data-toja')) { e.preventDefault(); toJa(el.getAttribute('data-toja'), el); }
     else if (el.hasAttribute('data-wpisz')) { e.preventDefault(); wpiszWynik(el); }
@@ -111,8 +140,93 @@ table.w-tab a{color:var(--accent);text-decoration:none;}
     status.textContent = ''; udost.hidden = s.ekran === 'szukaj';
     if (s.ekran === 'zawodnik') return ekranZawodnika(s.klucz);
     if (s.ekran === 'porownaj') return ekranPorownania(s.a, s.b);
-    if (s.ekran === 'impreza') { tytul.textContent = 'Impreza'; ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Wyniki całej imprezy pojawią się po rozszerzeniu maszyny wyników (etap 3). Na razie: profil zawodnika i porównania.</div></div>'; return; }
+    if (s.ekran === 'impreza') return ekranImprezy(s.klucz, s.rok, s.km);
     ekranSzukaj(s.zly);
+  }
+
+  /* ── EKRAN IMPREZY (blizna-143, F6 019): tylko dane z maszyny. Edycja bez wyników mówi to wprost, a filtry i strony liczy serwer (event_results: ≤ 100 na stronę). ── */
+  var _imp = { klucz: null, rok: null, eventId: null, offset: 0, q: '', kat: '', plec: '', czasQ: null, zadanie: 0 };
+  var _nasi = {}, _nasiWylaczone = false;
+  async function ekranImprezy(klucz, rok, km) {
+    tytul.textContent = 'Impreza';
+    ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Ładuję…</div></div>';
+    var r = await rpc('event_info', { p_klucz: klucz });
+    if (r.error) {
+      var nieWdrozone = r.error.kod === 'brak' || r.error.kod === 'odmowa' || r.error.kod === 'zle_dane';
+      ekran.innerHTML = '<div class="w-karta"><div class="w-muted">' + esc(nieWdrozone ? 'Wyniki imprez jeszcze nie działają w maszynie. Profil zawodnika i porównania działają.' : komunikat(r.error)) + '</div></div>' + stopkaImprezy();
+      return;
+    }
+    var lata = W.edycje(r.data), wyb = W.wybierzEdycje(lata, rok, km);
+    if (!wyb) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Nie znam tej imprezy.</div></div>' + stopkaImprezy(); return; }
+    var E = wyb.pozycja;
+    _imp = { klucz: klucz, rok: wyb.rok, eventId: E.id, offset: 0, q: '', kat: '', plec: '', czasQ: null, zadanie: _imp.zadanie + 1 };
+    var chipyLat = lata.map(function (l) { return '<button type="button" class="w-chip' + (l.rok === wyb.rok ? ' wlaczony' : '') + (l.maWyniki ? '' : ' bez-wynikow') + '" data-imp-rok="' + l.rok + '"' + (l.rok === wyb.rok ? ' aria-current="true"' : '') + '>' + l.rok + '</button>'; }).join('');
+    var chipyKm = wyb.dystanse.length > 1 ? '<div class="w-lata">' + wyb.dystanse.map(function (e) { return '<button type="button" class="w-chip' + (e === E ? ' wlaczony' : '') + '" data-imp-rok="' + wyb.rok + '" data-imp-km="' + esc(e.km) + '">' + esc(W.kmTxt(e.km)) + '</button>'; }).join('') + '</div>' : '';
+    var meta = [E.data ? dataTxt(E.data) : '', E.miasto || '', E.km != null ? W.kmTxt(E.km) : (E.dystanse || '')].filter(Boolean).map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('');
+    var html = (lata.length > 1 ? '<div class="w-lata" role="group" aria-label="Edycje">' + chipyLat + '</div>' : '') + chipyKm +
+      '<div class="w-karta w-naglowek-imprezy"><h2>' + esc(E.nazwa) + '</h2><div class="w-meta">' + meta + (E.id ? '<span class="w-liczba">Ukończyło: ' + esc(E.ukonczonych) + '</span>' : '') + '</div></div>';
+    if (!E.id) html += kartaBezWynikow(E);
+    else {
+      var kat = W.kategorieRosnaco(E.kategorie);
+      html += '<div class="w-karta"><div class="w-filtry"><input type="search" id="w-imp-q" placeholder="Szukaj po nazwisku" aria-label="Szukaj po nazwisku" autocomplete="off" enterkeyhint="search">' +
+        '<div class="w-filtry-rzad"><span id="w-imp-plec" style="display:flex;gap:6px;"></span>' +
+        (kat.length > 1 ? '<select id="w-imp-kat" aria-label="Kategoria"><option value="">Wszystkie kategorie</option>' + kat.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + '</option>'; }).join('') + '</select>' : '') + '</div></div>' +
+        '<div id="w-imp-tabela" aria-live="polite"><div class="w-muted">Ładuję…</div></div></div>';
+    }
+    ekran.innerHTML = html + stopkaImprezy();
+    if (!E.id) return;
+    rysujPlec();
+    var wej = $('w-imp-q');
+    wej.addEventListener('input', function () { clearTimeout(_imp.czasQ); var t = wej.value.trim(); _imp.czasQ = setTimeout(function () { if (t.length === 1) return; _imp.q = t; _imp.offset = 0; tabelaImprezy(); }, 350); });
+    var sel = $('w-imp-kat'); if (sel) sel.addEventListener('change', function () { _imp.kat = sel.value; _imp.offset = 0; tabelaImprezy(); });
+    tabelaImprezy();
+  }
+  function stopkaImprezy() { return '<div class="w-stopka"><a href="usun-dane.html">Usuń moje wyniki</a></div>'; }
+  function dataTxt(d) { var p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + '.' + p[1] + '.' + p[0] : ''; }
+  function kartaBezWynikow(E) {
+    var dzis = new Date().toISOString().slice(0, 10), link = function (u, t) { var h = u && window.safeExternalHref ? window.safeExternalHref(u, { tylkoHttps: true }) : ''; return h ? '<a class="w-btn" href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(t) + ' ›</a>' : ''; };
+    var przyszla = E.data && E.data > dzis, linki = link(E.urlWyniki, 'Wyniki u organizatora') || link(E.urlStrony, 'Strona imprezy');
+    return '<div class="w-karta"><div class="w-muted">' + esc(przyszla ? 'Ta edycja jeszcze się nie odbyła.' : 'Maszyna nie ma jeszcze wyników tej edycji.') + '</div>' + (linki ? '<div class="w-pasek" style="margin-bottom:0;">' + linki + '</div>' : '') + '</div>';
+  }
+  function rysujPlec() {
+    var el = $('w-imp-plec'); if (!el) return;
+    el.innerHTML = [['', 'Wszyscy'], ['K', 'Kobiety'], ['M', 'Mężczyźni']].map(function (x) { return '<button type="button" class="w-chip' + (_imp.plec === x[0] ? ' wlaczony' : '') + '" data-imp-plec="' + x[0] + '">' + x[1] + '</button>'; }).join('');
+  }
+  async function tabelaImprezy(przewin) {
+    var el = $('w-imp-tabela'); if (!el) return;
+    var nr = ++_imp.zadanie, args = { p_event_id: _imp.eventId, p_offset: _imp.offset, p_limit: W.PO_ILE, p_q: _imp.q || null, p_kategoria: _imp.kat || null, p_plec: _imp.plec || null };
+    var r = await rpc('event_results', args);
+    if (nr !== _imp.zadanie || !$('w-imp-tabela')) return;   // starsze zapytanie (kolejna litera, inny filtr) nie nadpisuje nowszego
+    if (r.error) { el.innerHTML = '<div class="w-muted">' + esc(komunikat(r.error)) + '</div>'; return; }
+    var w = r.data.map(W.wierszImprezy), total = r.data[0] ? Number(r.data[0].total) || 0 : 0;
+    if (!w.length) { el.innerHTML = '<div class="w-muted">' + esc(_imp.q || _imp.kat || _imp.plec ? 'Nikt nie pasuje do tych filtrów.' : 'Brak wyników.') + '</div>'; return; }
+    el.innerHTML = '<table class="w-wyniki"><thead><tr><th class="k-msc">Msc.</th><th>Zawodnik</th><th class="k-kat">Kat.</th><th class="k-czas">Czas</th></tr></thead><tbody>' + w.map(wierszImprezyHtml).join('') + '</tbody></table>' +
+      '<div class="w-strony"><button type="button" class="w-btn" data-imp-strona="-1"' + (_imp.offset > 0 ? '' : ' disabled') + '>‹ Poprzednie</button><span class="w-muted">' + esc(W.zakresStrony(_imp.offset, w.length, total)) + '</span>' +
+      '<button type="button" class="w-btn" data-imp-strona="1"' + (_imp.offset + w.length < total ? '' : ' disabled') + '>Następne ›</button></div>';
+    if (przewin) el.scrollIntoView({ block: 'start' });
+    oznaczNaszych(w.map(function (x) { return x.klucz; }).filter(Boolean), nr);
+  }
+  function wierszImprezyHtml(x) {
+    var msc = x.miejsce != null ? String(x.miejsce) : '—', atr = x.klucz ? ' class="w-klik" data-klucz="' + esc(x.klucz) + '" data-nazwa="' + esc(x.nazwa) + '"' : '';
+    return '<tr' + atr + '><td class="k-msc">' + esc(msc) + '</td><td class="k-nazwa">' + esc(x.nazwa) + (x.klucz && x.klucz === _mojKlucz ? '<span class="w-etyk">to ja</span>' : '') + '</td><td class="k-kat">' + esc(x.kat) + '</td><td class="k-czas">' + esc(x.czas ? W.fmt(x.czas) : '') + '</td></tr>';
+  }
+  /* zawodnicy BiegaMy: RPC po naszej stronie (RLS: tylko publiczni, własny, trener swoich). Błąd albo brak funkcji → tabela bez wyróżnienia, nigdy pad ekranu. */
+  async function oznaczNaszych(klucze, nr) {
+    if (!_nasiWylaczone && klucze.length) {
+      var brak = klucze.filter(function (k) { return !(k in _nasi); });
+      if (brak.length) {
+        try {
+          var r = await _sb.rpc('nasi_po_kluczach_f6', { p_klucze: brak });
+          if (r.error) _nasiWylaczone = true;
+          else { brak.forEach(function (k) { _nasi[k] = false; }); (r.data || []).forEach(function (a) { _nasi[a.f6_runner_key] = true; }); }
+        } catch (e) { _nasiWylaczone = true; }
+      }
+    }
+    if (nr !== _imp.zadanie) return;
+    Array.prototype.forEach.call(ekran.querySelectorAll('table.w-wyniki tr[data-klucz]'), function (tr) {
+      var k = tr.getAttribute('data-klucz');
+      if (_nasi[k] || k === _mojKlucz) { tr.classList.add('w-nasz'); if (_nasi[k] && k !== _mojKlucz && !tr.querySelector('.w-etyk')) tr.querySelector('.k-nazwa').insertAdjacentHTML('beforeend', '<span class="w-etyk">BiegaMy</span>'); }
+    });
   }
   function ekranSzukaj(zly) {
     tytul.textContent = 'Wyniki';

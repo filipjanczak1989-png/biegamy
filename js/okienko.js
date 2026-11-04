@@ -38,6 +38,8 @@
     for (var k in EKRANY) if (EKRANY[k] === url) return url;
     if (url === 'index.html#dolacz') return url;   // karta „Konto w BiegaMy" (okienko: „jak dołączyć" przed startem akcji)
     if (/^wyniki\.html(#\/zawodnik\/[A-Za-z0-9%._~-]{1,240})?$/.test(url)) return url;   // 3.11: karta zawodnika w Wynikach (klucz zakodowany)
+    if (/^races\.html#impreza=[A-Za-z0-9%._~-]{1,1500}$/.test(url)) return url;   // plan startowy: karta imprezy z „Wezmę udział” (BM_KALENDARZ.imprezaZLinku w races.html waliduje treść)
+    if (/^wyniki\.html#\/impreza\/[A-Za-z0-9%._~-]{1,240}(\/\d{4})?$/.test(url)) return url;   // blizna-143: edycja imprezy w Wynikach
     return null;
   }
   function czytaj(k, d) { try { var v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
@@ -103,6 +105,14 @@
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
+    if (k.typ === 'plan_start') return kartaPlanu(d);
+    if (k.typ === 'plan_przycisk') return '<button type="button" class="okn-otworz" data-pytanie="Zapisz plan">Zapisz plan</button>';
+    if (k.typ === 'plan_zapis') return (Array.isArray(d.starty) && d.starty.length) ? '<div class="okn-karta" data-plan-box="1"><button type="button" class="okn-otworz" data-plan-zapisz="' + esc(JSON.stringify(d.starty)) + '">Tak, zapisz jako cele</button></div>' : '';
+    if (k.typ === 'oboz_nasz') {
+      var hO = d.url && window.safeExternalHref ? window.safeExternalHref(d.url, { tylkoHttps: true }) : '';
+      return '<div class="okn-karta okn-karta--plan"><span class="okn-rola okn-rola--A">Nasz obóz</span><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc([d.termin, d.miejsce, d.cena].filter(Boolean).join(' · ')) + '</span>' +
+        (hO ? '<a class="okn-link" href="' + hO + '" target="_blank" rel="noopener noreferrer">Szczegóły ›</a>' : '') + '</div>';
+    }
     /* M3d: rekord (z profilu) i „Który to Ty?" (imiennicy w maszynie wyników; wybór zapisuje RPC po tapnięciu). */
     if (k.typ === 'rekord') return '<div class="okn-karta"><b>' + esc(d.dystans || '') + '</b><span class="okn-meta">' + esc([d.czas, d.rok, d.zrodlo === 'wyniki' ? 'z wyników zawodów' + (d.bieg ? ': ' + d.bieg : '') : ''].filter(Boolean).join(' · ')) + '</span></div>';
     if (k.typ === 'trener') return '<div class="okn-karta okn-karta--osoba"><b>' + esc(d.nazwa || 'Trener') + '</b><span class="okn-meta">' + esc(d.specjalizacja ? 'Twój trener · ' + d.specjalizacja : 'Twój trener') + '</span>' +
@@ -123,8 +133,10 @@
     if (k.typ === 'akcja') {
       var p = Math.max(0, Math.min(100, Number(d.pct) || 0)), zb = d.url_zbiorki && window.safeExternalHref ? window.safeExternalHref(d.url_zbiorki, { tylkoHttps: true }) : '';
       return '<div class="okn-karta"><b>' + esc(d.nazwa || 'Akcja') + '</b><span class="okn-meta">' + esc(kmTxt(d.suma_km) + ' z ' + kmTxt(d.cel_km) + ' km · ' + Math.round(p) + '%' + (d.zamknieta ? ' · zrobione' : '')) + '</span>' +
+        (window.BM_AKCJA && window.BM_AKCJA.punktUlicy ? window.BM_AKCJA.punktUlicy({ wystartowala: true, suma_km: d.suma_km, cel_km: d.cel_km, imie: window._akcjaStan && window._akcjaStan.imie }, { kompakt: true }) : '') +   // karta istnieje tylko po starcie (kartaOkienka); km z tej samej karty
         '<a class="okn-link" href="dla-fabianka.html">Szczegóły ›</a>' +
-        (zb ? '<a class="okn-link" href="' + zb + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : '') + '</div>';
+        (zb ? '<a class="okn-link" href="' + zb + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : '') +
+        (window.BM_AKCJA && window.BM_AKCJA.firmyHtml ? window.BM_AKCJA.firmyHtml(window._akcjaStan) : '') + '</div>';   // firmy z licznika, który Dziś już trzyma (_akcjaStan): bez zmiany EF; brak danych = nic
     }
     if (k.typ === 'start_nasz') return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' +
       esc([dataTxt(d.data), d.miasto || '', 'w naszych startach'].filter(Boolean).join(' · ')) + '</span>' +
@@ -138,6 +150,13 @@
     var h = (u && window.safeExternalHref) ? window.safeExternalHref(u, { tylkoHttps: true }) : '';
     return h ? '<a class="okn-link" href="' + h + '" target="_blank" rel="noopener noreferrer">Strona imprezy ›</a>' : '';
   }
+  /* blizna-143 (Filip 3.11: „nie da się w nie kliknąć”): każda edycja z kluczem maszyny prowadzi do ekranu imprezy w Wynikach; zły klucz → bez przycisku */
+  var RE_KLUCZ_IMPREZY = /^(?:kalendarz|biegamy|wyniki|zgloszenie):[A-Za-z0-9:._-]{1,100}$/;
+  function celImprezy(d) {
+    if (typeof d.klucz !== 'string' || !RE_KLUCZ_IMPREZY.test(d.klucz)) return null;
+    var rok = /^\d{4}-/.test(String(d.data || '')) ? String(d.data).slice(0, 4) : '';
+    return 'wyniki.html#/impreza/' + encodeURIComponent(d.klucz) + (rok ? '/' + rok : '');
+  }
   function kartaImprezy(d) {
     var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
       var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
@@ -146,22 +165,84 @@
     var meta = [kiedy, d.miasto || d.miejscowosc || '', dyst].filter(Boolean).join(' · ');
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
       (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') +
-      (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + linkImprezy(d.url) + '</div>';   // K5 (018)
+      (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + linkImprezy(d.url) +   // K5 (018)
+      (celImprezy(d) ? '<button type="button" class="okn-otworz" data-cel="' + esc(celImprezy(d)) + '">Wyniki ›</button>' : '') + '</div>';
+  }
+
+  /* PLAN STARTOWY (Filip 3.11): rola, data, odległość, uzasadnienie; start z kalendarza otwiera kartę imprezy z „Wezmę udział” w races.html (arkusz openImpreza, RPC impreza_do_races).
+     Dane idą w hash (bez osób), races.html sprawdza je wzorcami; `'()*!` kodowane ręcznie, bo encodeURIComponent ich nie rusza. Cel z race_goals nie ma przycisku: już jest zapisany. */
+  var ROLE_PLANU = { A: 'Główny', B: 'Sprawdzian', C: 'Trening' };
+  function celKartyPlanu(d) {
+    if (!d.nazwa || !d.data) return '';
+    var o = { n: d.nazwa, d: d.data, m: d.miasto || null, k: d.klucz || null, u: d.url || null, ds: Array.isArray(d.dystanse) ? d.dystanse.slice(0, 6) : [] };
+    return 'races.html#impreza=' + encodeURIComponent(JSON.stringify(o)).replace(/['()*!]/g, function (c) { return '%' + c.charCodeAt(0).toString(16).toUpperCase(); });
+  }
+  function kartaPlanu(d) {
+    var rola = ROLE_PLANU[d.rola] ? '<span class="okn-rola okn-rola--' + esc(d.rola) + '">' + esc(ROLE_PLANU[d.rola]) + '</span>' : '';
+    var dyst = d.km ? (Math.abs(Number(d.km) - 42.195) < 0.3 ? 'maraton' : Math.abs(Number(d.km) - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(d.km) + ' km') + (d.z_nazwy ? ' (z nazwy)' : '') : 'dystans nieznany';
+    var meta = [dataTxt(d.data), d.miasto || '', dyst, d.odl != null ? d.odl + ' km od Ciebie' : ''].filter(Boolean).join(' · ');
+    var zaaw = '';
+    if (d.cel_czasu && d.cel_czasu.czas_s) zaaw += '<span class="okn-meta">Cel orientacyjnie ' + esc(czasTxt(d.cel_czasu.czas_s)) + ' (wzór Riegla z życiówki na ' + esc(kmTxt(d.cel_czasu.z_km)) + ' km)</span>';
+    if (d.tapering && d.tapering.tyg) zaaw += '<span class="okn-meta">Tapering: ' + esc(d.tapering.tyg) + ' tyg., objętość ' + esc((d.tapering.objetosc || []).join(' → ')) + ' % (reguła planu, nie pomiar)</span>';
+    var cel = d.zCelu ? '' : bezpiecznyCel(celKartyPlanu(d));
+    return '<div class="okn-karta okn-karta--plan">' + rola + '<b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
+      (d.powod ? '<span class="okn-zdanie okn-powod">' + esc(d.powod) + '</span>' : '') + zaaw +
+      (cel ? '<button type="button" class="okn-otworz" data-cel="' + esc(cel) + '">Karta imprezy ›</button>' : (d.zCelu ? '<span class="okn-meta">Już w Twoich celach</span>' : '')) + '</div>';
+  }
+  function htmlPlanu(json) {
+    var zdania = (Array.isArray(json.zdania) ? json.zdania : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 3);
+    var uwagi = (Array.isArray(json.uwagi) ? json.uwagi : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 4);
+    var html = zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('');
+    html += (Array.isArray(json.karty) ? json.karty.slice(0, 9).map(karta).join('') : '');
+    if (uwagi.length) html += uwagi.map(function (z) { return '<p class="okn-meta okn-uwaga">' + esc(z) + '</p>'; }).join('');
+    var za = json.zagranica;
+    if (za) {
+      var zz = (Array.isArray(za.zdania) ? za.zdania : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 5);
+      var zr = (Array.isArray(za.zrodla) ? za.zrodla : []).map(function (z) { var h = (z && typeof window.safeExternalHref === 'function') ? window.safeExternalHref(z.url, { tylkoHttps: true }) : ''; return h ? '<li><a href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(z.tytul || 'źródło') + '</a></li>' : ''; }).filter(Boolean);
+      html += '<p class="okn-etykieta-siec">za granicą, z sieci</p>' + (zz.length && zr.length ? zz.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('') + '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zr.join('') + '</ul>'
+        : '<p class="okn-zdanie">' + esc(za.limit ? 'Na dziś koniec szukania w sieci, od jutra znowu.' : TEKSTY.siecPusto) + '</p>');
+    }
+    if (Array.isArray(json.chipy) && json.chipy.length) html += '<div class="okn-chipy">' + json.chipy.slice(0, 4).filter(function (c) { return c && typeof c.pytanie === 'string' && typeof c.etykieta === 'string'; })
+      .map(function (c) { return '<button type="button" class="okn-chip" data-pytanie="' + esc(c.pytanie) + '">' + esc(c.etykieta) + '</button>'; }).join('') + '</div>';
+    return html;
+  }
+  /* „Tak, zapisz”: przeglądarka dopisuje cele przez window.dodajCeleStartowe (sb.js), EF niczego nie zapisuje; istniejących celów nie rusza */
+  function akcjaZapisuPlanu(b) {
+    var starty = null;
+    try { starty = JSON.parse(b.getAttribute('data-plan-zapisz') || 'null'); } catch (e) { starty = null; }
+    var box = b.closest ? b.closest('[data-plan-box]') : null;
+    function napisz(t) { if (box) box.innerHTML = '<span class="okn-meta">' + esc(t) + '</span>'; }
+    if (!Array.isArray(starty) || typeof window.dodajCeleStartowe !== 'function' || !window.sb) { napisz('Nie udało się zapisać.'); return Promise.resolve(false); }
+    b.disabled = true;
+    return Promise.resolve(window.dodajCeleStartowe(window.sb, starty)).then(function (r) {
+      if (!r || r.blad) { napisz(r && r.blad === 'uszkodzone' ? (window.RACE_GOALS_ODMOWA || 'Nie udało się zapisać.') : 'Nie udało się zapisać. Spróbuj za chwilę.'); return false; }
+      napisz(r.dodane ? 'Zapisane: ' + r.dodane + ' ' + window.BM_TEKST.startow(r.dodane) + ' w Twoich celach.' : 'Te starty już są w Twoich celach.');
+      return true;
+    }, function () { napisz('Nie udało się zapisać. Spróbuj za chwilę.'); return false; });
   }
 
   /* M2b: karta osoby z aplikacji (tylko profile publiczne — filtr w EF). Przyciski wywołują ISTNIEJĄCE funkcje
      zawodnik.html po tapnięciu (openAthleteProfile, sendFriendFromSearch, openChatThread('peer')); id sprawdzone
      wzorcem UUID, przekazywane przez data-*, nigdy przez JS w atrybucie. */
   var RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  /* blizna-143: zdjęcie z profilu (safeUrlAttr: whitelist hostów, wynik już escapowany), bez zdjęcia inicjały. Style na elemencie: arkusz Okienka stoi w zawodnik.html (zamrożony do 8.11). */
+  function avatarOsoby(d, nazwaSurowa) {
+    var st = 'width:44px;height:44px;border-radius:50%;flex:none;object-fit:cover;';
+    var u = d.avatar_url && typeof window.safeUrlAttr === 'function' ? window.safeUrlAttr(d.avatar_url) : '';
+    if (u) return '<img src="' + u + '" alt="" loading="lazy" style="' + st + '">';
+    var inicjaly = String(nazwaSurowa || '').split(/[\s—-]+/).filter(Boolean).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase();
+    return '<span aria-hidden="true" style="' + st + 'display:flex;align-items:center;justify-content:center;background:rgba(var(--accent-rgb),0.18);color:var(--accent);font-weight:700;font-size:15px;">' + esc(inicjaly || '?') + '</span>';
+  }
   function kartaOsoby(d) {
     if (!RE_UUID.test(String(d.id || ''))) return '';
-    var id = esc(d.id), nazwa = esc(d.nazwa || 'Biegacz');
+    var id = esc(d.id), nazwa = esc(d.nazwa || 'Biegacz'), wyn = d.wyniki && !d.prywatny ? d.wyniki : null;
     var znaj = d.bez_znajomosci ? ''   // 3.11: profil osoby projektu z „o nas” (Kasia, Filip) — relacji pytającego nie znamy, przycisku nie pokazujemy
       : d.znajomosc === 'znajomi' ? '<span class="okn-meta">✓ Znajomi</span>'
       : d.znajomosc === 'wyslano' ? '<span class="okn-meta">Zaproszenie wysłane</span>'
       : d.znajomosc === 'czeka' ? '<span class="okn-meta">Czeka na Twoją odpowiedź</span>'
       : '<button type="button" class="okn-chip" data-osoba="znajomy" data-id="' + id + '">Dodaj do znajomych</button>';
-    return '<div class="okn-karta okn-karta--osoba"><b>' + nazwa + '</b><span class="okn-meta">' + (d.prywatny ? 'profil prywatny' : 'profil w BiegaMy') + '</span>' +
+    return '<div class="okn-karta okn-karta--osoba">' + avatarOsoby(d, d.nazwa || 'Biegacz') + '<span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;"><b>' + nazwa + '</b><span class="okn-meta">' + (d.prywatny ? 'profil prywatny' : 'profil w BiegaMy') + '</span></span>' +
+      (wyn ? '<div class="okn-karta--wyniki" style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;">' + trescWynikow(wyn) + '</div>' : '') +
       '<div class="okn-ekrany"><button type="button" class="okn-chip" data-osoba="profil" data-id="' + id + '">Zobacz profil</button>' + znaj +
       '<button type="button" class="okn-chip" data-osoba="napisz" data-id="' + id + '" data-nazwa="' + nazwa + '">Napisz</button></div></div>';
   }
@@ -179,6 +260,10 @@
   function celWynikow(klucz) { return typeof klucz === 'string' && RE_KLUCZ_WYNIKOW.test(klucz) ? 'wyniki.html#/zawodnik/' + encodeURIComponent(klucz) : 'wyniki.html'; }
   /* M2b: wyniki z maszyny wyników (F6) — „N startów · ostatni: … · najlepszy czas …" + 5 ostatnich + „Otwórz wyniki". */
   function kartaWynikow(d) {
+    return '<div class="okn-karta okn-karta--wyniki"><b>' + esc((d.nazwa || '') + (d.rocznik ? ' (' + d.rocznik + ')' : '')) + '</b>' + trescWynikow(d) + '</div>';
+  }
+  /* środek karty wyników: wspólny dla osobnej karty i karty osoby. „Prawdopodobnie” = przypisane po nazwisku, bez potwierdzenia zawodnika (blizna-143). */
+  function trescWynikow(d) {
     var glowa = [d.starty != null ? startyTxt(Number(d.starty)) : '',
       d.ostatni && d.ostatni.bieg ? 'ostatni: ' + d.ostatni.bieg + (d.ostatni.data ? ' (' + dataTxt(d.ostatni.data) + ')' : '') : '',
       d.najlepszy_czas && d.najlepszy_czas.czas_s ? 'najlepszy czas ' + czasTxt(d.najlepszy_czas.czas_s) + (d.najlepszy_czas.dystans_km ? ' na ' + kmTxt(d.najlepszy_czas.dystans_km) + ' km' : '') : ''].filter(Boolean);
@@ -188,10 +273,10 @@
     var inne = (Array.isArray(d.inne) ? d.inne : []).map(function (x) {
       return esc((x.nazwa || '') + (x.rocznik ? ' (' + x.rocznik + ')' : '') + (x.starty != null ? ', ' + startyTxt(Number(x.starty)) : ''));
     }).join(' · ');
-    return '<div class="okn-karta okn-karta--wyniki"><b>' + esc((d.nazwa || '') + (d.rocznik ? ' (' + d.rocznik + ')' : '')) + '</b>' +
+    return (d.prawdopodobnie ? '<span class="okn-meta">prawdopodobnie ta osoba: dopasowane po nazwisku, zawodnik jeszcze nie potwierdził</span>' : '') +
       '<span class="okn-meta">' + esc(glowa.join(' · ')) + '</span>' + (lista ? '<ul class="okn-wyniki">' + lista + '</ul>' : '') +
       (inne ? '<span class="okn-meta">Też w wynikach: ' + inne + '</span>' : '') +
-      '<button type="button" class="okn-otworz" data-cel="' + esc(celWynikow(d.klucz)) + '">Otwórz wyniki</button></div>';
+      '<button type="button" class="okn-otworz" data-cel="' + esc(celWynikow(d.klucz)) + '">Otwórz wyniki</button>';
   }
 
   /* M2b: tryb „osoba" — zdania z sieci (gdy były: etykieta i źródła), potem karty osób i wyników. */
@@ -245,6 +330,8 @@
     if (status === 429) return '<p class="okn-zdanie">' + esc(json && json.limit === 'miesiac' ? TEKSTY.miesiac : json && json.limit === 'siec' ? TEKSTY.siecLimit : TEKSTY.dzien) + '</p>' + htmlEkranow(tekst);
     if (status !== 200 || !json) return '<p class="okn-zdanie">' + esc(TEKSTY.blad) + '</p>';
     if (json.tryb === 'siec' || json.tryb === 'siec-cache') return htmlSieci(json);
+    if (json.tryb === 'wiedza') return htmlWiedzy(json);
+    if (json.tryb === 'plan') return htmlPlanu(json);
     if (json.tryb === 'osoba' || json.tryb === 'impreza') return htmlOsoby(json);   // ten sam układ: sieć ze źródłami → karty   // M2d: odpowiedź z pamięci wygląda jak z sieci (źródła te same)
     var cel = bezpiecznyCel(json.akcja && json.akcja.nawiguj);
     var zdania = Array.isArray(json.zdania) ? json.zdania.filter(function (z) { return typeof z === 'string' && z; }) : [];
@@ -266,9 +353,23 @@
       var h = (z && typeof window.safeExternalHref === 'function') ? window.safeExternalHref(z.url, { tylkoHttps: true }) : '';
       return h ? '<li><a href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(z.tytul || 'źródło') + '</a></li>' : '';
     }).filter(Boolean);
-    if (!zdania.length || !zrodla.length) return '<p class="okn-etykieta-siec">z sieci</p><p class="okn-zdanie">' + esc(TEKSTY.siecPusto) + '</p>';
-    return '<p class="okn-etykieta-siec">z sieci</p>' + zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('') +
+    /* „nasz obóz” (pusta konfiguracja = brak karty) na początku listy obozów; inne karty przy sieci nie występują */
+    var nasze = (Array.isArray(json.karty) ? json.karty : []).filter(function (k) { return k && k.typ === 'oboz_nasz'; }).map(karta).join('');
+    if (!zdania.length || !zrodla.length) return nasze + '<p class="okn-etykieta-siec">z sieci</p><p class="okn-zdanie">' + esc(TEKSTY.siecPusto) + '</p>';
+    return nasze + '<p class="okn-etykieta-siec">z sieci</p>' + zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('') +
       '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zrodla.join('') + '</ul>';
+  }
+
+  /* Baza wiedzy (Filip 3.11): odpowiedź zatwierdzona przez trenera. Układ jak z sieci, inna etykieta; źródła tylko https, a wpis bez źródeł też się pokazuje, bo zatwierdził go człowiek. */
+  function htmlWiedzy(json) {
+    var zdania = (Array.isArray(json.zdania) ? json.zdania : []).filter(function (z) { return typeof z === 'string' && z; }).slice(0, 6);
+    var zrodla = (Array.isArray(json.zrodla) ? json.zrodla : []).map(function (z) {
+      var h = (z && typeof window.safeExternalHref === 'function') ? window.safeExternalHref(z.url, { tylkoHttps: true }) : '';
+      return h ? '<li><a href="' + h + '" target="_blank" rel="noopener noreferrer">' + esc(z.tytul || 'źródło') + '</a></li>' : '';
+    }).filter(Boolean);
+    if (!zdania.length) return '<p class="okn-zdanie">' + esc(TEKSTY.pusto) + '</p>';
+    return '<p class="okn-etykieta-siec">z bazy wiedzy BiegaMy</p>' + zdania.map(function (z) { return '<p class="okn-zdanie">' + esc(z) + '</p>'; }).join('') +
+      (zrodla.length ? '<p class="okn-zrodla-tytul">Źródła:</p><ul class="okn-zrodla">' + zrodla.join('') + '</ul>' : '');
   }
 
   /* OKIENKO 2.0 — E0 (Filip 3.11, docs/projekt-okienko-2-0-2026-11-03.md §2): wersję wybiera BAZA przez RPC okienko_wersja()
@@ -432,13 +533,14 @@
     var ov = el('okienko-arkusz');
     if (ov) ov.addEventListener('click', function (e) {
       if (e.target === ov) return zamknij();
-      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan],[data-katalog],[data-ktoty],[data-ocena],[data-kciuk-wyslij]') : null;
+      var b = e.target.closest ? e.target.closest('[data-pytanie],[data-cel],[data-osoba],[data-plan],[data-plan-zapisz],[data-katalog],[data-ktoty],[data-ocena],[data-kciuk-wyslij]') : null;
       if (!b) return;
       if (b.hasAttribute('data-ocena')) return akcjaOceny(b);
       if (b.hasAttribute('data-kciuk-wyslij')) return akcjaKomentarza(b);
       if (b.hasAttribute('data-ktoty')) return akcjaKtoTy(b);
       if (b.hasAttribute('data-katalog')) return akcjaKatalogu(b);
       if (b.hasAttribute('data-osoba')) return akcjaOsoby(b);
+      if (b.hasAttribute('data-plan-zapisz')) return akcjaZapisuPlanu(b);
       if (b.hasAttribute('data-plan')) return akcjaPlanu(b.getAttribute('data-plan'));
       if (b.hasAttribute('data-pytanie')) { var q = b.getAttribute('data-pytanie'); if (we) we.value = q; wyslij(q); }
       else { var c = bezpiecznyCel(b.getAttribute('data-cel')); if (c) location.href = c; }
@@ -531,6 +633,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, pogodaLokalnie: pogodaLokalnie, wyslij: wyslij };   // wyslij: blizna-131 (blokada podwójnego wysłania)
+    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, akcjaZapisuPlanu: akcjaZapisuPlanu, pogodaLokalnie: pogodaLokalnie, wyslij: wyslij };   // wyslij: blizna-131 (blokada podwójnego wysłania)
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

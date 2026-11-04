@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#14182b">
+<title>Cegiełki</title>
+<style>
+  :root { --tlo:#14182b; --karta:#1f2540; --tekst:#fff7ea; --cichy:#c9c6d6; --akcent:#ff8a3c; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; position:fixed; inset:0; width:100%; background:var(--tlo); color:var(--tekst);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overscroll-behavior:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  canvas#c { position:fixed; inset:0; display:block; touch-action:none; }
+  .ekran { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:12px; padding:16px; text-align:center; background:rgba(16,19,36,.55); overflow:auto; }
+  .ekran > :first-child { margin-top:auto; }
+  .ekran > :last-child { margin-bottom:auto; }
+  .ekran[hidden] { display:none; }
+  [hidden] { display:none !important; }
+  h1 { margin:0; font-size:clamp(34px,8vmin,60px); font-weight:900; letter-spacing:.5px; }
+  h2 { margin:0; font-size:clamp(22px,5vmin,36px); font-weight:900; }
+  p { margin:0; color:var(--cichy); font-size:clamp(14px,3vmin,17px); line-height:1.35; max-width:32em; }
+  .postacie { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .postac { width:156px; padding:12px 8px 14px; border-radius:18px; border:2px solid rgba(255,255,255,.2); background:var(--karta); color:var(--tekst);
+    font:inherit; font-weight:800; font-size:20px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; touch-action:manipulation; overflow:hidden; }
+  .postac:hover,.postac:focus-visible { border-color:var(--akcent); outline:none; }
+  /* Biegacze na kartach nie biegną równo: inne tempo kroku (ok. 7 %), przesunięta faza, inne falowanie góra-dół i powolne wyprzedzanie o pół kroku. */
+  .postac .tor { display:block; animation:wyprzedza var(--tor,5.3s) ease-in-out infinite; }
+  .postac .fala { display:block; animation:fala var(--fala,.71s) ease-in-out infinite; }
+  .postac i { display:block; width:var(--w,99px); height:var(--h,160px); background-repeat:no-repeat; background-size:calc(var(--w,99px)*6) var(--h,160px); animation:bieg var(--krok,.62s) steps(6) infinite; animation-delay:var(--faza,0s); }
+  .postac[data-postac="kasia"] { --krok:.58s; --faza:-.29s; --fala:.83s; --tor:6.7s; --kier:-1; }
+  .postac[data-postac="filip"] { --krok:.62s; --faza:0s; --fala:.71s; --tor:5.3s; --kier:1; }
+  @keyframes bieg { to { background-position-x:calc(var(--w,99px)*-6); } }
+  @keyframes fala { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
+  @keyframes wyprzedza { 0%,100% { transform:translateX(calc(var(--kier,1)*-7px)); } 50% { transform:translateX(calc(var(--kier,1)*7px)); } }
+  @media (prefers-reduced-motion:reduce) { .postac .tor,.postac .fala,.postac i { animation:none; } }
+  .pz-pasek { display:block; height:7px; border-radius:6px; background:rgba(255,255,255,.18); overflow:hidden; }
+  .pz-pasek span { display:block; height:100%; background:var(--akcent); border-radius:6px; }
+  .m-gora { display:flex; align-items:flex-end; justify-content:center; gap:8px; width:100%; flex:none; }
+  .m-bok { height:clamp(58px,13vmin,104px); width:auto; max-width:27vw; object-fit:contain; flex:none; }
+  a.zbiorka { font:inherit; font-weight:800; font-size:16px; padding:12px 18px; border-radius:14px; background:var(--akcent); color:#1b1420; text-decoration:none; display:inline-block; flex:none; }
+  #nowa { z-index:25; justify-content:center; background:rgba(16,19,36,.72); }
+  .n-pudlo { display:flex; flex-direction:column; align-items:center; gap:8px; padding:18px 26px; border-radius:20px; background:var(--karta); border:2px solid var(--akcent); animation:nowa-wejscie .45s cubic-bezier(.2,1.4,.4,1); }
+  .n-pudlo b { font-size:22px; font-weight:900; }
+  .n-pudlo span { font-size:18px; font-weight:800; color:#ffe9b8; }
+  #n-obraz { height:clamp(110px,30vmin,190px); width:auto; }
+  @keyframes nowa-wejscie { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .n-pudlo { animation:none; } }
+  .poziom { display:flex; align-items:center; gap:8px; width:min(360px,88vw); font-size:13px; font-weight:700; }
+  .pz-nazwa { white-space:nowrap; font-weight:900; }
+  .pz-pasek { flex:1; }
+  .pz-reszta { white-space:nowrap; color:var(--cichy); }
+  .s-ikona { width:30px; height:30px; object-fit:contain; flex:none; }
+  #final { z-index:20; background:rgba(16,19,36,.94); }
+  .f-scena { position:relative; width:min(420px,88vw); height:clamp(170px,42vmin,300px); overflow:hidden; }
+  #f-kop { position:absolute; left:50%; bottom:0; height:100%; transform:translateX(-50%); animation:fala .7s ease-in-out infinite; }
+  .f-cegla { position:absolute; top:-40px; width:42px; left:12%; animation:spada 1.5s linear infinite; }
+  .f-c2 { left:38%; animation-delay:.4s; } .f-c3 { left:62%; animation-delay:.8s; } .f-c4 { left:84%; animation-delay:1.1s; }
+  @keyframes spada { to { transform:translateY(340px) rotate(280deg); } }
+  @media (prefers-reduced-motion:reduce) { .f-cegla,#f-kop { animation:none; } }
+  #imie { font:inherit; font-size:16px; padding:10px 12px; border-radius:12px; border:2px solid rgba(255,255,255,.25); background:rgba(16,19,36,.75); color:var(--tekst); width:min(320px,86vw); text-align:center; user-select:text; -webkit-user-select:text; }
+  .stopka-prawna { margin:0; font-size:12px; color:#ffe9b8; } .stopka-prawna a { color:inherit; display:inline-block; padding:8px 2px; }
+  .pasek-info { display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; font-size:14px; color:#ffe9b8; font-weight:700; }
+  .wynik { font-size:clamp(40px,12vmin,76px); font-weight:900; line-height:1; color:#ffb35c; }
+  #k-poza { height:clamp(110px,24vmin,170px); width:auto; display:block; flex:none; }
+  .k-gora { display:flex; gap:16px; align-items:center; justify-content:center; }
+  .k-wynik { font-weight:800; font-size:18px; color:var(--cichy); margin-bottom:8px; text-align:left; }
+  .liczby { display:grid; grid-template-columns:repeat(4,auto); gap:6px 16px; color:var(--cichy); font-size:13px; }
+  .liczby b { display:block; color:var(--tekst); font-size:20px; }
+  .guziki { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  button.g { font:inherit; font-weight:800; font-size:16px; padding:12px 18px; border-radius:14px; border:0; cursor:pointer; touch-action:manipulation; background:var(--akcent); color:#23150a; }
+  button.g.drugi { background:transparent; color:var(--tekst); border:2px solid rgba(255,255,255,.3); }
+  #k-link { font:inherit; font-size:13px; width:min(420px,88vw); padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,.3); background:rgba(16,19,36,.75); color:var(--tekst); user-select:text; -webkit-user-select:text; }
+  #k-ranking { width:min(420px,92vw); flex:none; }
+  .r-zakladki { display:flex; gap:6px; margin-bottom:8px; }
+  .r-zakladka { flex:1; font:inherit; font-size:13px; font-weight:800; padding:9px 4px; border-radius:10px; border:2px solid rgba(255,255,255,.22); background:transparent; color:var(--cichy); cursor:pointer; touch-action:manipulation; }
+  .r-zakladka.wybrana { background:rgba(255,138,60,.2); border-color:var(--akcent); color:var(--tekst); }
+  .r-lista { list-style:none; margin:0; padding:0; background:rgba(16,19,36,.72); border-radius:14px; overflow:hidden; }
+  .r-lista li { display:flex; gap:10px; align-items:center; padding:7px 12px; font-size:15px; border-top:1px solid rgba(255,255,255,.08); }
+  .r-lista li:first-child { border-top:0; }
+  .r-lista li.ja { background:rgba(255,179,92,.2); font-weight:800; }
+  .r-lista li.r-pusto { justify-content:center; color:var(--cichy); padding:14px 12px; }
+  .r-m { width:26px; text-align:right; color:var(--cichy); font-weight:800; flex:none; }
+  .r-n { flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .r-c { font-weight:800; color:#ffb35c; flex:none; }
+  .r-moje { margin:8px auto 0; font-weight:700; color:#ffe9b8; }
+  .r-moje:empty { display:none; }
+  .r-info { margin:8px auto 0; color:#ffd9a0; }
+  .r-pseudonim { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; justify-content:center; }
+  .r-pseudonim input { font:inherit; font-size:16px; padding:9px 12px; border-radius:12px; border:2px solid rgba(255,255,255,.25); background:rgba(16,19,36,.75); color:var(--tekst); flex:1; min-width:0; user-select:text; -webkit-user-select:text; }
+  .r-zaloguj { display:block; margin-top:10px; color:#ffb35c; font-weight:800; font-size:15px; }
+  .maly { display:flex; gap:8px; align-items:center; justify-content:center; font-size:14px; color:var(--cichy); max-width:32em; cursor:pointer; }
+  .maly input { width:20px; height:20px; flex:none; accent-color:var(--akcent); }
+  /* Rysunek z licznika, dźwig z CSS: macha i odbiera cegły. --cel-x, --cel-y to łyżka koparki na rysunku. */
+  .k-koparka { --h:clamp(120px,28vmin,180px); position:relative; width:min(320px,84vw); height:var(--h); flex:none; --cel-x:calc(var(--h) * 1.016); --cel-y:calc(var(--h) * .5); overflow:visible; }
+  #k-kop-img { position:absolute; left:0; bottom:0; height:100%; width:auto; max-width:82%; object-fit:contain; object-position:left bottom; transform-origin:40% 100%; animation:kmacha 1.5s ease-in-out infinite; }
+  .k-maszt { position:absolute; right:2%; bottom:0; top:0; width:8px; background:repeating-linear-gradient(0deg,#f5b52c 0 9px,#2b2b33 9px 12px); border-radius:2px; }
+  .k-belka { position:absolute; right:2%; top:0; left:calc(var(--cel-x) - 14px); height:8px; background:repeating-linear-gradient(90deg,#f5b52c 0 10px,#2b2b33 10px 13px); border-radius:2px; }
+  .k-lina { position:absolute; left:var(--cel-x); top:8px; width:2px; height:calc(var(--cel-y) - 20px); background:#2b2b33; transform-origin:top; animation:klina 1.8s ease-in-out infinite; }
+  .k-cegla { position:absolute; left:calc(var(--cel-x) - 15px); top:8px; width:32px; height:auto; animation:kcegla 1.8s ease-in infinite; }
+  .k-cegla--2 { animation-delay:.9s; opacity:0; }
+  @keyframes kmacha { 0%,100% { transform:rotate(-1.2deg); } 50% { transform:rotate(1.6deg) translateY(-2%); } }
+  @keyframes klina { 0% { transform:scaleY(.12); } 60%,100% { transform:scaleY(1); } }
+  @keyframes kcegla { 0% { top:8px; opacity:0; transform:scale(.8); } 12% { opacity:1; } 62% { top:calc(var(--cel-y) - 10px); opacity:1; transform:scale(1); } 76%,100% { top:calc(var(--cel-y) - 4px); opacity:0; transform:scale(.7); } }
+  @media (prefers-reduced-motion:reduce) { #k-kop-img,.k-lina,.k-cegla { animation:none; } .k-cegla--2 { display:none; } .k-cegla { top:calc(var(--cel-y) - 10px); } }
+  #zamkniete { display:none; }
+  body.gra-zamknieta #zamkniete { display:flex; z-index:7; background:var(--tlo); }
+  body.gra-zamknieta #menu, body.gra-zamknieta #glosnik, body.gra-zamknieta #sklep { display:none !important; }
+  /* Wspólny mur: pasek postępu i stałe zdanie o zbiórce */
+  .mur { width:min(420px,92vw); flex:none; display:flex; flex-direction:column; gap:5px; }
+  .mur-tytul { font-size:14px; font-weight:800; color:#ffe9b8; }
+  .mur-pasek { height:12px; border-radius:7px; background:rgba(16,19,36,.75); border:1px solid rgba(255,255,255,.28); overflow:hidden; }
+  .mur-pasek i { display:block; height:100%; border-radius:6px; background:repeating-linear-gradient(90deg,#d96b3a 0 12px,#b9502a 12px 14px); }
+  .zdanie { font-size:13px; line-height:1.35; color:var(--tekst); max-width:none; }
+  .zdanie a { color:#ffb35c; font-weight:800; white-space:nowrap; margin-left:6px; }
+  .r-widoki { display:flex; gap:6px; margin-bottom:6px; }
+  .r-widok { flex:1; font:inherit; font-size:13px; font-weight:800; padding:8px 4px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--cichy); cursor:pointer; touch-action:manipulation; }
+  .r-widok.wybrana { color:var(--tekst); border-bottom-color:var(--akcent); }
+  .s-cena img { height:16px; width:auto; vertical-align:-2px; margin-left:4px; }
+  .s-saldo { font-size:clamp(20px,5vmin,28px); font-weight:900; color:#ffb35c; }
+  .s-podglad { display:flex; gap:18px; justify-content:center; }
+  .s-podglad canvas { height:clamp(100px,24vmin,150px); width:auto; flex:none; }
+  .s-naglowek { margin:6px 0 0; font-size:16px; font-weight:800; color:var(--tekst); }
+  .s-lista { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,88vw),1fr)); gap:8px; width:min(560px,92vw); flex:none; }
+  .s-wiersz { display:flex; align-items:center; gap:10px; font:inherit; font-size:15px; font-weight:700; padding:9px 12px; border-radius:12px; border:2px solid rgba(255,255,255,.2); background:var(--karta); color:var(--tekst); cursor:pointer; text-align:left; touch-action:manipulation; }
+  .s-wiersz[aria-pressed="true"] { border-color:var(--akcent); background:rgba(255,138,60,.18); }
+  .s-wiersz:disabled { opacity:.55; cursor:default; }
+  .s-probka { width:20px; height:20px; border-radius:50%; flex:none; border:2px solid #fff; }
+  .s-nazwa { flex:1; }
+  .s-cena { color:#ffb35c; font-weight:800; white-space:nowrap; }
+  #s-info:empty { display:none; }
+  #s-info { color:#ffd9a0; }
+  body.w-sklepie #glosnik { display:none; }
+  #menu, #koniec { padding-bottom:calc(66px + env(safe-area-inset-bottom)); }
+  #obroc { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; background:var(--tlo); color:var(--tekst); font-size:20px; font-weight:800; }
+  #obroc[hidden] { display:none; }
+  #obroc span { font-size:44px; }
+  #glosnik { position:fixed; right:calc(10px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); width:48px; height:48px; border-radius:50%; border:0; background:rgba(16,19,36,.72); font-size:22px; cursor:pointer; z-index:5; touch-action:manipulation; }
+  #ladowanie { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--tlo); z-index:6; }
+  @media (max-height:460px) { .ekran { gap:7px; padding:8px 16px; } .liczby b { font-size:17px; } .wynik { font-size:40px; } button.g { padding:8px 14px; font-size:15px; } .postac { padding:6px 8px 8px; } #k-poza { height:84px; }
+    .postac { --w:62px; --h:100px; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="menu" class="ekran" hidden>
+  <div class="m-gora"><img id="m-bok-rower" class="m-bok" alt="" hidden><h1>Cegiełki</h1><img id="m-bok-koparka" class="m-bok" src="assets/gra/koparka.webp" alt=""></div>
+  <p id="m-znajomy" hidden style="color:#ffe9b8;font-weight:700;"></p>
+  <p>Dotknięcie to skok, drugie w powietrzu to salto. Przesunięcie w dół to ślizg pod barierką.</p>
+  <div class="postacie">
+    <button class="postac" data-postac="kasia"><span class="tor"><span class="fala"><i></i></span></span>Kasia</button>
+    <button class="postac" data-postac="filip"><span class="tor"><span class="fala"><i></i></span></span>Filip</button>
+    <button class="postac" data-postac="rowerzysta" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Rowerzysta</span></button>
+    <button class="postac" data-postac="koparka" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Koparka</span></button>
+  </div>
+  <label class="maly"><input type="checkbox" id="m-maly"> <span>Mały budowniczy: wolniej, bez upadków, bez rankingu</span></label>
+  <label class="maly" id="m-podglad" hidden><input type="checkbox" id="m-podglad-pole"> <span>Podgląd postaci: tylko to urządzenie, bez rankingu</span></label>
+  <a id="m-zbiorka" class="g zbiorka" target="_blank" rel="noopener noreferrer" hidden>Wpłać na zbiórkę</a>
+  <div id="m-poziom" class="poziom"></div>
+  <input id="imie" type="text" maxlength="14" autocomplete="off" placeholder="Twoje imię na kartonie kibica" aria-label="Twoje imię na kartonie kibica">
+  <div class="pasek-info"><span id="m-wyzwanie"></span><span id="m-odznaki" hidden></span></div>
+  <div id="m-mur" class="mur"></div>
+  <button class="g drugi" id="m-sklep">Sklepik <span id="m-saldo"></span></button>
+  <p class="stopka-prawna"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Polityka prywatności</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Regulamin</a> · <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
+</div>
+
+<div id="obroc" role="alert" hidden><span aria-hidden="true">📱</span>Obróć telefon, tu jest za wąsko na grę.</div>
+
+<div id="final" class="ekran" hidden>
+  <h2>Mur stoi!</h2>
+  <div class="f-scena" aria-hidden="true"><img class="f-cegla" src="assets/gra/cegla.webp" alt=""><img class="f-cegla f-c2" src="assets/gra/cegla.webp" alt=""><img class="f-cegla f-c3" src="assets/gra/cegla_zlota.webp" alt=""><img class="f-cegla f-c4" src="assets/gra/cegla.webp" alt=""><canvas id="f-kop"></canvas></div>
+  <p id="f-tekst"></p>
+  <button class="g" id="f-dalej">Gramy</button>
+</div>
+
+<div id="nowa" class="ekran" role="status" hidden>
+  <div class="n-pudlo"><canvas id="n-obraz"></canvas><b>Nowa postać odblokowana!</b><span id="n-nazwa"></span></div>
+</div>
+
+<div id="zamkniete" class="ekran">
+  <h2>Cegiełki</h2>
+  <p>Gra rusza wkrótce.</p>
+</div>
+
+<div id="sklep" class="ekran" hidden>
+  <h2>Sklepik</h2>
+  <p id="s-saldo" class="s-saldo"></p>
+  <div class="s-podglad"><canvas id="s-kasia" width="135" height="215" aria-label="Kasia w wybranym stroju" role="img"></canvas><canvas id="s-filip" width="134" height="216" aria-label="Filip w wybranym stroju" role="img"></canvas></div>
+  <div id="s-zdanie" class="mur"></div>
+  <a id="s-zaloguj" class="r-zaloguj" href="index.html" hidden>Zaloguj się, żeby zbierać złote cegły na konto</a>
+  <h3 class="s-naglowek">Na tułów</h3>
+  <div id="s-tulow" class="s-lista"></div>
+  <h3 class="s-naglowek">Spodenki</h3>
+  <div id="s-spodenki" class="s-lista"></div>
+  <h3 class="s-naglowek">Dodatki</h3>
+  <div id="s-glowa" class="s-lista"></div>
+  <p id="s-rower" hidden>Na rowerze pasują tylko okulary, medal i peleryna, bo czapka nie wejdzie na kask.</p>
+  <h3 class="s-naglowek">Na start następnej rundy</h3>
+  <div id="s-start" class="s-lista"></div>
+  <p id="s-info" role="status"></p>
+  <button class="g" id="s-wroc">Wróć</button>
+</div>
+
+<div id="koniec" class="ekran" hidden>
+  <h2>Koniec rundy</h2>
+  <div class="k-gora">
+    <canvas id="k-poza" width="200" height="240" aria-hidden="true"></canvas>
+    <div>
+      <div class="k-wynik"><span class="wynik" id="k-cegly">0</span> <span id="k-podpis">cegieł</span></div>
+      <div class="liczby">
+        <div><b id="k-zlote">0</b>złote</div>
+        <div><b id="k-salta">0</b>salta</div>
+        <div><b id="k-seria">0</b>seria</div>
+        <div><b id="k-upadki">0</b>upadki</div>
+      </div>
+    </div>
+  </div>
+  <div id="k-koparka" class="k-koparka" hidden aria-hidden="true">
+    <i class="k-maszt"></i><i class="k-belka"></i><i class="k-lina"></i><img class="k-cegla" src="assets/gra/cegla.webp" alt=""><img class="k-cegla k-cegla--2" src="assets/gra/cegla.webp" alt="">
+    <img id="k-kop-img" alt="">
+  </div>
+  <p id="k-rekord"></p>
+  <div id="k-poziom" class="poziom"></div>
+  <p id="k-awans" hidden style="color:#9df0a8;font-weight:800;"></p>
+  <p id="k-wyzwanie" style="color:#ffe9b8;font-weight:700;"></p>
+  <p id="k-znajomy" hidden style="color:#9df0a8;font-weight:700;"></p>
+  <div class="guziki">
+    <button class="g" id="k-znow">Jeszcze raz</button>
+    <button class="g" id="k-zmien">Menu główne</button>
+    <button class="g drugi" id="k-udostepnij">Udostępnij wynik</button>
+    <button class="g drugi" id="k-wyzwij">Wyzwij znajomego</button>
+    <button class="g drugi" id="k-sklep">Sklepik</button>
+  </div>
+  <input id="k-link" type="text" readonly hidden aria-label="Link do wyzwania">
+  <p id="k-info" role="status"></p>
+  <div id="k-mur" class="mur"></div>
+  <div id="k-ranking"></div>
+  <p>Gra nie zmienia licznika akcji ani statystyk treningowych.</p>
+</div>
+
+<button id="glosnik" type="button" aria-label="Włącz dźwięki" aria-pressed="false">🔇</button>
+<div id="ladowanie">Ładuję…</div>
+
+<script src="js/moderacja.mjs"></script>
+<script src="js/cegielki-logika.mjs"></script>
+<script src="js/cegielki-przypiecia.js"></script>
+<script src="js/cegielki-stroj.js"></script>
+<script src="js/cegielki.js"></script>
+<script src="js/cegielki-konto.js"></script>
+</body>
+</html>

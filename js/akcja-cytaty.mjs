@@ -53,7 +53,29 @@
   var CACHE_MS = 60000;
   function slugDla(athleteId) { return PROBA_KONTA.indexOf(String(athleteId || "")) >= 0 ? "proba" : "dla-fabianka"; }
   function _schowek() { try { return g.sessionStorage || null; } catch (e) { return null; } }
+  /* Film akcji: plik tajny do startu, adres podpisany z prywatnego kubełka, licznik oddaje go tylko po starcie i przy zgodzie (20261105_akcja_film.sql). Bez adresu FILM_AKCJI zostaje null i baner gra to, co dotąd. Pozycje: telefon i biegacze w pasie 23–72%, od 10 s plansza w pełnej klatce (contain), żeby plakat nie był obcięty u góry. */
+  var ADRES_FILMU = /^https:\/\/afqojgkaveykxbltxzwm\.supabase\.co\/storage\/v1\/object\/sign\/akcja-wizerunek\/[A-Za-z0-9._-]+\.mp4\?token=[A-Za-z0-9._-]+$/;
+  function filmAkcjiZLicznika(d) {
+    var u = d && d.wystartowala && d.film_akcji_url;
+    return typeof u === "string" && ADRES_FILMU.test(u) ? { id: "film-akcja", mp4: u, dzwiek: true, pozycje: [{ od: 0, pos: "50% 45%" }, { od: 10, pos: "50% 50%", fit: "contain" }] } : null;
+  }
+  /* ŚCIEŻKA FABIANKA: licznik nigdy nie oddaje rysunku ani filmu dla próby. Trener i konto testowe dostają je osobną funkcją, na 15 minut. Odmowa = bez adresów, reszta próby działa. */
+  var _wizerunekProby = null, _wizerunekT = 0;
+  function wizerunekProby(sb) {
+    var teraz = Date.now();
+    if (_wizerunekProby && teraz - _wizerunekT < 600000) return _wizerunekProby;
+    _wizerunekT = teraz;
+    _wizerunekProby = Promise.resolve().then(function () {
+      if (!sb || !sb.functions) return null;
+      return sb.functions.invoke("akcja-proba-wizerunek", { body: {} }).then(function (r) { return r.data && r.data.ok ? r.data : null; }, function () { return null; });
+    }).catch(function () { return null; });
+    return _wizerunekProby;
+  }
   function _zastosuj(slug, d) {
+    var film = filmAkcjiZLicznika(d);
+    if (film) g.FILM_AKCJI = film;
+    /* Próba od zera: film akcji ma zagrać jeszcze raz, tak jak zagra każdemu pierwszy raz. */
+    else if (slug === "proba" && d && !d.wystartowala) { g.FILM_AKCJI = null; try { g.localStorage.removeItem("film_akcji"); g.sessionStorage.removeItem("bm_ulica_wjazd"); } catch (e) {} }
     ustawStan({ ruszyla: !!(d && d.wystartowala), zamknieta: !!(d && d.koniec), zamknietaOd: d && d.koniec ? String(d.koniec) : null,
                 proba: slug === "proba" });
   }
@@ -67,6 +89,10 @@
       var r = await sb.rpc("akcja_licznik", { p_slug: slug });
       if (r.error) throw r.error;
       var d = r.data || null;
+      if (slug === "proba" && d && d.wystartowala && g.document) {
+        var w = await wizerunekProby(sb);
+        if (w) { d.koparka_url = w.koparka_url; d.koparka_arkusz_url = w.koparka_arkusz_url; d.film_akcji_url = w.film_akcji_url; }
+      }
       try { if (ss) ss.setItem(klucz, JSON.stringify({ t: teraz, d: d })); } catch (e) {}
       _zastosuj(slug, d);
       return d;
@@ -140,7 +166,7 @@
     return { tekst: ROTACJA[dniMiedzy(START_ROTACJI, d) % ROTACJA.length], zrodlo: ZRODLO };
   }
 
-  g.BM_AKCJA_CYTATY = { cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
+  g.BM_AKCJA_CYTATY = { wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
     odswiezStan: odswiezStan, slugDla: slugDla, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
     ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,

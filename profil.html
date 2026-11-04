@@ -19,7 +19,7 @@
 <!-- build: 2026-05-18-coach-picker -->
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
-<script src="js/tekst.mjs"></script><script src="sb.js"></script><script src="js/wyniki-api.js"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
+<script src="js/tekst.mjs"></script><script src="sb.js"></script><script src="js/wyniki-api.js"></script><script src="js/moje-wyniki.mjs"></script><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -263,6 +263,9 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
          z samą maską. -->
   </div>
 </div>
+
+<!-- „To moje wyniki?” tylko na własnym profilu (js/moje-wyniki.mjs, blizna-143) -->
+<div id="p-moje-wyniki" style="padding:0 20px;margin-bottom:16px;" hidden></div>
 
 <!-- TABS -->
 <div style="padding:0 20px;margin-bottom:16px;">
@@ -754,6 +757,7 @@ function _profilOffline() {
 
   renderActionBtns();
   if(_isOwnProfile)checkProfilFriendRequests();
+  if(_isOwnProfile&&window.BM_MOJE_WYNIKI)window.BM_MOJE_WYNIKI.pokaz({sb:sb,athleteId:_myId,root:document.getElementById('p-moje-wyniki')}).catch(function(){});
   var _tp=new URLSearchParams(location.search).get('tab');if(_tp)setTimeout(function(){switchProfileTab(_tp);},300);
   // ?open=icu — wejście z banera "Połącz zegarek" (zawodnik.html): otwórz Ustawienia + przewiń do sekcji intervals.icu
   var _open=new URLSearchParams(location.search).get('open');

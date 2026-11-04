@@ -21,3 +21,7 @@ android.keystore
 # rozpoznania i suche przebiegi (dane osobowe, nie commitować)
 recon-*/
 out-*/
+
+# Rysunek postaci jest tajny do startu, a repo publiczne: plik nigdy tutaj (blizna-155).
+*koparka-postac*
+fabianek*

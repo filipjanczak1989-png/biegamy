@@ -106,11 +106,13 @@ the run must go red.
 Migrations in `supabase/migrations/` are applied BY HAND by Filip:
 
 ```bash
-supabase db query --linked --workdir ~/.cache/sb-audit -f supabase/migrations/<plik>.sql
+supabase db query --linked --workdir ~/.cache/sb-audit -f "$PWD/supabase/migrations/<plik>.sql"
 ```
 
+The path must be absolute: with a relative one `-f` reads from `--workdir`, not from the repo.
+
 Supabase's migration history does not know them, so `supabase db push` would try to replay the whole directory. Never
-suggest `db push`; always hand over the exact `db query --linked -f` line per file, after the `tools/<x>-test.sh` post-effect test.
+suggest `db push`; always hand over the exact `db query --linked -f` line per file, with the absolute path, after the `tools/<x>-test.sh` post-effect test.
 
 ## Conventions
 - Polish-first naming: variable names, comments, and UI text are in Polish throughout the game layer and much of the main app

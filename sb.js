@@ -562,9 +562,9 @@
      zużyty (znacznik 'film_dzis' tylko przy 'playing'). */
   window.FILMY_PROMO = [
     /* FILM-02 (1.11.2026 noc) zastępuje FILM-01: oryginał Filipa z DŹWIĘKIEM (mp4 1:1, webm VP9+Opus, plakat z klatki 0).
-       Startuje wyciszony; dźwięk tylko z przycisku 🔊 (ten sam <video>, bez osobnego pliku audio). Pliki film-01 zostają w assets. */
+       Startuje wyciszony; dźwięk tylko z przycisku 🔊 (ten sam <video>, bez osobnego pliku audio). Pliki film-01 zostają w assets. Od 9 s pełna klatka: plansza „BiegaMy.run JESTEŚMY OBOK” cała, z ludzikiem (Filip 4.11). */
     { id: 'film-02', mp4: 'filmy/film-02.mp4', webm: 'filmy/film-02.webm', poster: 'filmy/film-02-poster.jpg',   // ścieżki w biegamy-assets (adres: assetUrl przy starcie)
-      dzwiek: true, pozycje: [{ od: 0, pos: '50% 12%' }, { od: 6.88, pos: '50% 0%' }, { od: 8.3, pos: '50% 72%' }] },
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 12%' }, { od: 6.88, pos: '50% 0%' }, { od: 8.3, pos: '50% 72%' }, { od: 9, pos: '50% 50%', fit: 'contain' }] },
     /* FILM-03 (2.11.2026 wieczór, Filip: „żeby jutro rano grał"): 12,96 s z dźwiękiem (przygotuj.mjs od 2.11 zachowuje audio: AAC/Opus).
        0–10 s pełny kadr 16:9 — nogi i buty w DOLNEJ połowie → dolny pas (50% 100%); cięcie w 10,00 s → kwadratowy kadr z czarnymi
        pasami po bokach i logo „BiegaMy jesteśmy obok" u góry → górny pas (50% 0%) od 9,6 s, żeby przejście CSS 0,6 s skończyło się
@@ -583,6 +583,10 @@
        przejście od 38,5 s (CSS 0,6 s kończy się przed planszą). Przy 43 s napis „pomiń” widoczny od startu (razem z 🔊). */
     { id: 'film-05', mp4: 'filmy/film-05.mp4', webm: 'filmy/film-05.webm', poster: 'filmy/film-05-poster.jpg',
       dzwiek: true, pozycje: [{ od: 0, pos: '50% 25%' }, { od: 38.5, pos: '50% 100%' }] },
+    /* FILM-06 (4.11.2026, na 6.11 i 7.11 przed guzikiem wg FILMY_DNI): 18,76 s z dźwiękiem, mp4 Filipa 1:1 (640 px, 2,7 MB), webm i plakat z przygotuj.mjs.
+       Biegacze na 30–72% wysokości kadru, potem telefon z guzikiem (środek na ok. 55%), wybuch guzika 17,2–17,8 s, czerń do końca. Pas 50% 58% = 30–79%: wszystko w kadrze, znak w lewym górnym rogu poza pasem. */
+    { id: 'film-06', mp4: 'filmy/film-06.mp4', webm: 'filmy/film-06.webm', poster: 'filmy/film-06-poster.jpg',
+      dzwiek: true, pozycje: [{ od: 0, pos: '50% 58%' }] },
   ];
   /* MAPA DNI (Filip 2.11 wieczór): w kampanii przed akcją film jest przypisany do DATY, nie rotowany (YYYYMMDD % n psuło się
      przy każdym nowym pliku — 3.11 musi zostać film-03). Jedno miejsce: data (Europe/Warsaw, jak `dzis`) → id z FILMY_PROMO.
@@ -593,10 +597,8 @@
     '2026-11-06': 'film-06', '2026-11-07': 'film-06',
   };
   /* FILM AKCJI (projekt F, spec v3 pkt 2): od startu akcji baner gra film akcji zamiast FILMY_PROMO — RAZ u każdego
-     (znacznik 'film_akcji'), nawet jeśli dziś już grał teaser. Do czasu pliku od Filipa null → bez zmian (film-02).
-     Przygotowanie: node tools/filmy/przygotuj.mjs <plik.mp4> film-akcja → biegamy-assets/filmy, potem obiekt jak w FILMY_PROMO:
-     { id: 'film-akcja', mp4: 'filmy/film-akcja.mp4', webm: 'filmy/film-akcja.webm', poster: 'filmy/film-akcja-poster.jpg',
-       dzwiek: true, pozycje: [{ od: 0, pos: '50% 50%' }] }. Stan akcji: BM_AKCJA_CYTATY.czyAkcjaRuszyla() (js/akcja-cytaty.mjs). */
+     (znacznik 'film_akcji'), nawet jeśli dziś już grał teaser. Plik jest TAJNY do startu (plakat na końcu), więc nie ma go w biegamy-assets:
+     leży w prywatnym kubełku, a adres podpisany przychodzi z licznika po starcie. Obiekt filmu ustawia js/akcja-cytaty.mjs, tu zostaje null. */
   window.FILM_AKCJI = null;
   window.FILM_DZIS = (function () {
     var KLUCZ = 'film_dzis', KLUCZ_AKCJI = 'film_akcji', CZEKAJ_MS = 4000;
@@ -629,7 +631,10 @@
       if (id) return zId(id) || zId('film-02') || f[0];   // kampania: data → film; brak pliku → film-02
       return f[Number(d.replace(/-/g, '')) % f.length];     // poza kampanią: rotacja wszystkich
     }
+    /* Pełny adres (film akcji z kubełka) zostaje jak jest, reszta to ścieżka w biegamy-assets. */
+    function adresFilmu(p) { return /^https:\/\//.test(p || '') ? p : window.assetUrl(p); }
     function pozycja(film, t) { var p = film.pozycje[0].pos; film.pozycje.forEach(function (x) { if (t >= x.od) p = x.pos; }); return p; }
+    function dopasowanie(film, t) { var f = 'cover'; film.pozycje.forEach(function (x) { if (t >= x.od) f = x.fit || 'cover'; }); return f; }
     /* ▶ PONOWNE ODTWORZENIE (2.11.2026): po końcu / pominięciu filmu, a także gdy dziś już był albo przy reduced-motion
        (świadomy wybór — przycisk JEST, ale bez autostartu). Prawy dolny róg banera: 32 px wizualnie, pole dotyku 44 px,
        opacity .7 (hover/focus 1), aria-label „Odtwórz film"; cytat i autor dostają odstęp z prawej, żeby go nie zasłaniał.
@@ -695,10 +700,10 @@
       v.className = 'film-dzis';
       v.muted = !recznie; v.defaultMuted = !recznie; v.playsInline = true; v.autoplay = false; v.preload = 'none';   // preload 'auto' po wyrenderowaniu banera
       if (!recznie) v.setAttribute('muted', '');   // autostart: wyciszony; ▶: z dźwiękiem (gest użytkownika)
-      v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); v.setAttribute('poster', window.assetUrl(film.poster));
+      v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true'); if (film.poster) v.setAttribute('poster', window.assetUrl(film.poster));
       v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
         ';transition:object-position .6s ease,opacity .3s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;opacity:0;';
-      [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { var z = document.createElement('source'); z.src = window.assetUrl(film[s[0]]); z.type = s[1]; v.appendChild(z); });
+      [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { if (!film[s[0]]) return; var z = document.createElement('source'); z.src = adresFilmu(film[s[0]]); z.type = s[1]; v.appendChild(z); });
       var koniec = false, gotowy = false, glosnik = null;
       /* 🔊 (FILM-02): 44 px w rogu banera, pojawia się razem z filmem (przy „playing"); przełącza muted NA TYM SAMYM filmie.
          Nigdy autoodtwarzanie z dźwiękiem — film zawsze startuje wyciszony, dźwięk wyłącznie po dotknięciu. Po końcu znika. */
@@ -735,7 +740,7 @@
           pokazPowtorke(baner, teraz); }, 520);   // po końcu / pominięciu — ▶ (ten sam film od początku)
         baner.dataset.film = 'koniec';
       }
-      v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; });
+      v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0), f = dopasowanie(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; if (v.style.objectFit !== f) v.style.objectFit = f; });
       v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } pomin.style.opacity = '1'; pomin.style.pointerEvents = 'auto'; if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
@@ -4016,6 +4021,37 @@ window._icuRenderSplits = function (d, el) {
   /** Jedyne miejsce, które wie, w jakiej postaci kolumna przyjmuje wartość. */
   window.serializeRaceGoals = function (cele) {
     return JSON.stringify(Array.isArray(cele) ? cele : []);
+  };
+
+  /* PLAN STARTOWY (Okienko, Filip 3.11): starty z planu → cele. Ta sama kolumna i ten sam zapis co modal celu w zawodnik.html: świeży odczyt, czytajRaceGoals (uszkodzone = odmowa),
+     dopisanie NA KOŃCU, serializeRaceGoals, goal/target_date z pierwszego celu. Już obecny cel (klucz imprezy albo nazwa + data) zostaje nietknięty. → {dodane} albo {blad}. */
+  window.scalCeleStartowe = function (cele, starty) {
+    var wynik = (Array.isArray(cele) ? cele : []).slice(), dodane = 0;
+    (Array.isArray(starty) ? starty : []).forEach(function (s) {
+      var name = s && typeof s.name === 'string' ? s.name.trim().slice(0, 200) : '', date = s && /^\d{4}-\d{2}-\d{2}$/.test(String(s.date || '')) ? s.date : '';
+      if (!name || !date) return;
+      var jest = wynik.some(function (g) { return (s.impreza_klucz && g.impreza_klucz === s.impreza_klucz) || (String(g.name || '').toLowerCase() === name.toLowerCase() && String(g.date || '').slice(0, 10) === date); });
+      if (jest) return;
+      var cel = { name: name, date: date, race_id: null };
+      if (typeof s.impreza_klucz === 'string' && s.impreza_klucz) cel.impreza_klucz = s.impreza_klucz;
+      if (typeof s.miejscowosc === 'string' && s.miejscowosc) cel.miejscowosc = s.miejscowosc.slice(0, 80);
+      if (Number(s.distance_km) > 0) cel.distance_km = Number(s.distance_km);
+      wynik.push(cel); dodane++;
+    });
+    return { cele: wynik, dodane: dodane };
+  };
+  window.dodajCeleStartowe = async function (klient, starty) {
+    var sesja = (await klient.auth.getSession()).data.session;
+    if (!sesja) return { blad: 'sesja' };
+    var o = await klient.from('athletes').select('id,race_goals').eq('user_id', sesja.user.id).maybeSingle();
+    if (o.error || !o.data) return { blad: 'odczyt' };
+    var odczyt = window.czytajRaceGoals(o.data.race_goals, 'sb.js:dodajCeleStartowe');
+    if (odczyt.uszkodzone) return { blad: 'uszkodzone' };
+    var s = window.scalCeleStartowe(odczyt.cele, starty);
+    if (!s.dodane) return { dodane: 0 };
+    var u = await klient.from('athletes').update({ race_goals: window.serializeRaceGoals(s.cele), goal: (s.cele[0] && s.cele[0].name) || null, target_date: (s.cele[0] && s.cele[0].date) || null }).eq('id', o.data.id);
+    if (u.error) { if (window.zglosNieudanyZapis) window.zglosNieudanyZapis('update', 'race_goals', u.error); return { blad: 'zapis' }; }
+    return { dodane: s.dodane };
   };
 
   /* Polskie zdanie mówiące, CO ZROBIĆ. Surowy komunikat PostgREST po angielsku

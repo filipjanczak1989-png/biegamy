@@ -122,7 +122,7 @@ Minimalnie, bo to dodatek do akcji, nie osobna aplikacja: na `dla-fabianka.html`
 share-card, push, okienko po starcie, index). Cel 12 500 km zostaje liczbą na pasku i w tekstach, nie w nazwie.
 Cytat dnia startu bez zmian: „12 500 kilometrów. Jeden powód. Fabianek."
 
-**Dane zbiórki** (`akcje`, migracja `20261102_akcje_dane_zbiorki`): `url_zbiorki` = https://www.siepomaga.pl/fabian-borowczyk,
+**Dane zbiórki** (`akcje`, migracja `20261102_akcje_dane_zbiorki`): `url_zbiorki` = https://www.siepomaga.pl/ADRES-ZBIORKI-TYLKO-W-BAZIE,
 `imie_zbiorki` = „Fabianek" (w tekstach tylko to imię i odmiana „Fabianka"; **nigdy nazwisko ani nazwa choroby — nazwisko
 wyłącznie w linku**), `nazwa` = „Kilometry dla Fabianka". Bez pola końca zbiórki i bez logiki końca zbiórki.
 

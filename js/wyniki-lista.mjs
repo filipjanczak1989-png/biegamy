@@ -11,22 +11,58 @@
   var RE_KLUCZ = /^(?:[a-z0-9_-]{2,30}:[A-Za-z0-9._-]{1,80}|k:[\p{L}][\p{L} .'-]{0,59}\|\d{4})$/u;
   function kluczOk(k) { return typeof k === "string" && RE_KLUCZ.test(k) && !/^(javascript|data|vbscript|file|blob):/i.test(k); }   // obrona w głąb: schematy URL nie są źródłami wyników
 
-  /* ROUTER: #/ | #/zawodnik/<klucz> | #/porownaj/<a>/<b> | #/impreza/<klucz>/<rok> (etap 3 — dziś tylko rozpoznanie) */
+  /* ROUTER: #/ | #/zawodnik/<klucz> | #/porownaj/<a>/<b> | #/impreza/<klucz>/<rok>[/<km>] (blizna-143: km przy kilku dystansach tej samej edycji) */
   function parsuj(hash) {
     var h = String(hash || "").replace(/^#/, "");
     if (!h || h === "/") return { ekran: "szukaj" };
     var cz = h.split("/").slice(1).map(function (x) { try { return decodeURIComponent(x); } catch (e) { return null; } });
     if (cz[0] === "zawodnik" && kluczOk(cz[1])) return { ekran: "zawodnik", klucz: cz[1] };
     if (cz[0] === "porownaj" && kluczOk(cz[1]) && kluczOk(cz[2]) && cz[1] !== cz[2]) return { ekran: "porownaj", a: cz[1], b: cz[2] };
-    if (cz[0] === "impreza" && cz[1] && /^[A-Za-z0-9:._|-]{1,120}$/.test(cz[1])) return { ekran: "impreza", klucz: cz[1], rok: /^\d{4}$/.test(cz[2] || "") ? Number(cz[2]) : null };
+    if (cz[0] === "impreza" && cz[1] && /^[A-Za-z0-9:._|-]{1,120}$/.test(cz[1])) {
+      var im = { ekran: "impreza", klucz: cz[1], rok: /^\d{4}$/.test(cz[2] || "") ? Number(cz[2]) : null };
+      if (/^\d{1,3}(\.\d{1,3})?$/.test(cz[3] || "")) im.km = Number(cz[3]);
+      return im;
+    }
     return { ekran: "szukaj", zly: true };
   }
   function hashDla(s) {
     if (!s || s.ekran === "szukaj") return "#/";
     if (s.ekran === "zawodnik") return "#/zawodnik/" + encodeURIComponent(s.klucz);
     if (s.ekran === "porownaj") return "#/porownaj/" + encodeURIComponent(s.a) + "/" + encodeURIComponent(s.b);
-    if (s.ekran === "impreza") return "#/impreza/" + encodeURIComponent(s.klucz) + (s.rok ? "/" + s.rok : "");
+    if (s.ekran === "impreza") return "#/impreza/" + encodeURIComponent(s.klucz) + (s.rok ? "/" + s.rok + (s.km ? "/" + s.km : "") : "");
     return "#/";
+  }
+
+  /* EKRAN IMPREZY (blizna-143): event_info = wiersz na edycję i dystans, najnowsze pierwsze; event_id null = edycja znana tylko z kalendarza (bez wyników w maszynie). */
+  var PO_ILE = 100;
+  function edycja(r) {
+    return { id: r.event_id || null, nazwa: String(r.nazwa || "").split(" – ")[0], data: r.data || null, rok: r.data ? Number(String(r.data).slice(0, 4)) || null : null, miasto: r.miejscowosc || null,
+      km: r.dystans_km != null ? Number(r.dystans_km) : null, dystanse: r.dystanse || null, ukonczonych: Number(r.ukonczonych) || 0, kategorie: Array.isArray(r.kategorie) ? r.kategorie : [], urlWyniki: r.url_wyniki || null, urlStrony: r.url_strony || null };
+  }
+  /** → lata malejąco; w roku edycje z wynikami przed kalendarzowymi. Rok z wynikami i rok bez wyników odróżnia ekran (`maWyniki`). */
+  function edycje(wiersze) {
+    var lata = {}, kolejne = [];
+    (wiersze || []).map(edycja).forEach(function (e) { if (!e.rok) return; if (!lata[e.rok]) { lata[e.rok] = { rok: e.rok, pozycje: [], maWyniki: false }; kolejne.push(lata[e.rok]); } lata[e.rok].pozycje.push(e); if (e.id) lata[e.rok].maWyniki = true; });
+    kolejne.sort(function (a, b) { return b.rok - a.rok; });
+    kolejne.forEach(function (l) { l.pozycje.sort(function (a, b) { return (b.id ? 1 : 0) - (a.id ? 1 : 0) || (b.km || 0) - (a.km || 0); }); });
+    return kolejne;
+  }
+  /** Rok z linku, a gdy go nie ma: najnowszy z wynikami, potem najnowszy w ogóle. Dystans z linku (±0,5 km), a gdy go nie ma: najliczniejszy z wynikami. */
+  function wybierzEdycje(lata, rok, km) {
+    if (!lata || !lata.length) return null;
+    var L = (rok && lata.filter(function (l) { return l.rok === rok; })[0]) || lata.filter(function (l) { return l.maWyniki; })[0] || lata[0];
+    var zWynikami = L.pozycje.filter(function (e) { return e.id; });
+    var E = (km && zWynikami.filter(function (e) { return e.km != null && Math.abs(e.km - km) <= 0.5; })[0]) || zWynikami.slice().sort(function (a, b) { return b.ukonczonych - a.ukonczonych; })[0] || L.pozycje[0];
+    return { rok: L.rok, pozycja: E, dystanse: zWynikami };
+  }
+  function kmTxt(km) { if (km == null) return ""; if (Math.abs(km - 42.195) <= 0.3) return "maraton"; if (Math.abs(km - 21.0975) <= 0.2) return "półmaraton"; return (Math.round(km * 10) / 10).toString().replace(".", ",") + " km"; }
+  /** naturalny porządek kategorii: K przed M, potem liczba („K20”, „K30”, „M20”) */
+  function kategorieRosnaco(lista) { return (lista || []).slice().sort(function (a, b) { return String(a).localeCompare(String(b), "pl", { numeric: true }); }); }
+  function zakresStrony(offset, ile, total) { return total ? (offset + 1) + "–" + (offset + ile) + " z " + total : "0"; }
+  /** „n:<nazwisko>” (wyniki bez rocznika) nie ma karty zawodnika: wiersz bez linku. */
+  function wierszImprezy(r) {
+    var k = typeof r.runner_key === "string" && kluczOk(r.runner_key) ? r.runner_key : null;
+    return { klucz: k, nazwa: String(r.display_name || ""), kat: r.category || "", plec: r.plec || null, czas: Number(r.time_seconds) || null, miejsce: r.position_total || null, miejsceKat: r.position_category || null };
   }
 
   /* PAMIĘĆ w dokumencie: klucz = RPC + argumenty, TTL 10 min, ≤ 200 wpisów (najstarszy wypada). Powrót „wstecz" = zero RPC. */
@@ -123,5 +159,6 @@
   function esc(s) { return g.escapeHtml ? g.escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
 
   g.BM_WYNIKI = { RE_KLUCZ: RE_KLUCZ, kluczOk: kluczOk, parsuj: parsuj, hashDla: hashDla, pamiec: pamiec, wylacznik: wylacznik, TTL_MS: TTL_MS, MAX_WPISOW: MAX_WPISOW,
-    wiersz: wiersz, rekordy: rekordy, trend: trend, wykresSvg: wykresSvg, wspolneStarty: wspolneStarty, klasyczny: klasyczny, fmt: fmt, tempo: tempo, RIEGEL: RIEGEL, DYSTANSE_PB: DYSTANSE_PB };
+    wiersz: wiersz, rekordy: rekordy, trend: trend, wykresSvg: wykresSvg, wspolneStarty: wspolneStarty, klasyczny: klasyczny, fmt: fmt, tempo: tempo, RIEGEL: RIEGEL, DYSTANSE_PB: DYSTANSE_PB,
+    PO_ILE: PO_ILE, edycje: edycje, wybierzEdycje: wybierzEdycje, wierszImprezy: wierszImprezy, kmTxt: kmTxt, kategorieRosnaco: kategorieRosnaco, zakresStrony: zakresStrony };
 })(typeof globalThis !== "undefined" ? globalThis : this);

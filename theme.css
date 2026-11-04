@@ -384,3 +384,11 @@ html[data-vt-dir="back"]::view-transition-new(root) { animation-name: bm-vt-new-
   .ht-tile[data-kafel],.p-nav-tile[data-kafel]{transition:none;}
   .ht-tile[data-kafel]:active,.p-nav-tile[data-kafel]:active{transform:none;}
 }
+
+/* Okienko: plan startowy (Filip 3.11). Tu, a nie w zawodnik.html: do 8.11 ten plik jest zamrożony. */
+.okn-karta--plan{flex-direction:column;align-items:flex-start;gap:4px;}
+.okn-rola{display:inline-block;padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border);color:var(--muted);}
+.okn-rola--A{background:var(--accent);border-color:var(--accent);color:#fff;}
+.okn-rola--B{border-color:var(--accent);color:var(--accent);}
+.okn-powod{margin:2px 0;font-size:13px;}
+.okn-uwaga{display:block;margin:4px 0;}

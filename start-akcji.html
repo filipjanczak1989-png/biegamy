@@ -22,6 +22,7 @@
   BRAK ZASIĘGU POD DOMEM: czas naciśnięcia zapisany lokalnie (localStorage + IndexedDB, try/catch), wysyłka co 5 s
   i przy zdarzeniu `online`; serwer przyjmuje czas klienta tylko w oknie i ≤ teraz + 2 min (akcja_start).
   PRÓBA: ?proba=1 → akcja 'proba' (guzik zawsze uzbrojony, liczy tylko konto testowe) + „Resetuj próbę".
+  ŚCIEŻKA FABIANKA: ?proba=1&sciezka=1, tylko konto trenera → panel: „Od zera”, suwaki km i kwoty, firmy testowe, linki do kolejnych ekranów. Rysunek na próbie przychodzi osobną funkcją, na 15 minut.
 -->
 <style>
   :root { --tlo: #0b0a0f; --fg: #f0ede8; --muted: #8a8798; --akcent: #e8561e; --akcent2: #ff8a3d; --szary: #2a2832; }
@@ -38,6 +39,29 @@
     transition: background .4s ease, transform .2s ease, box-shadow .4s ease; }
   /* logo assets/ui/logo-b-biale-alfa.webp (Filip 2.11 18:08, z tools/logo-guzika.py): B całe białe z cieniem, pierścień biały 40% — biel i cień w pliku, bez filtrów */
   #krag img { width: 56%; opacity: .3; transition: opacity .4s ease; pointer-events: none; }
+  /* ODSŁONA: rysunek przychodzi dopiero w odpowiedzi na naciśnięcie (akcja_start → akcja_licznik), wcześniej przeglądarka nie ma do niego adresu (blizna-155).
+     Rozbłysk od razu, guzik czeka szybko pulsując, a otwiera się, gdy rysunek jest już zdekodowany: kamera nie zobaczy pustego kółka ani ładowania obrazka. */
+  #krag.czeka, #krag.otwarty { opacity: 1 !important; transform: none !important; display: flex !important; }
+  main[data-stan] #krag.czeka { background: radial-gradient(circle at 50% 40%, var(--akcent2), var(--akcent) 70%); box-shadow: 0 0 90px rgba(255, 138, 61, .7); animation: laduje .5s ease-in-out infinite; }
+  main[data-stan] #krag.czeka > img { opacity: 1; }
+  main[data-stan] #krag.otwarty { background: radial-gradient(circle at 50% 42%, #fff4e6 0, #ffc98a 46%, var(--akcent2) 78%, var(--akcent) 100%); box-shadow: 0 0 70px rgba(255, 138, 61, .55); animation: none; }
+  #krag.otwarty > img:not(#postac), #krag.otwarty #pierscien { display: none; }
+  .polowa { position: absolute; inset: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 40%, var(--akcent2), var(--akcent) 70%); pointer-events: none; z-index: 3; }
+  #krag .polowa img { opacity: 1; }
+  .polowa--l { clip-path: inset(0 50% 0 0); animation: otworz-l .72s cubic-bezier(.7, 0, .25, 1) forwards; }
+  .polowa--p { clip-path: inset(0 0 0 50%); animation: otworz-p .72s cubic-bezier(.7, 0, .25, 1) forwards; }
+  #krag img#postac { position: absolute; left: -11%; bottom: 3%; width: 122%; max-width: none; opacity: 1; transform-origin: 50% 96%; z-index: 2; }
+  #krag.odslania img#postac { animation: pojaw .66s cubic-bezier(.2, 1.5, .4, 1) .16s both, macha 1.3s ease-in-out .82s infinite; }
+  #krag.otwarty:not(.odslania) img#postac { animation: macha 1.6s ease-in-out infinite; }
+  #blysk { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 42%, #fff 0, rgba(255, 241, 224, .92) 26%, rgba(255, 179, 71, .35) 52%, transparent 74%); z-index: 4; }
+  #blysk.teraz { animation: blysk .6s ease-out; }
+  @keyframes laduje { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes otworz-l { to { transform: translateX(-74%) rotate(-16deg); opacity: 0; } }
+  @keyframes otworz-p { to { transform: translateX(74%) rotate(16deg); opacity: 0; } }
+  @keyframes pojaw { from { transform: scale(.3) translateY(26%); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  @keyframes macha { 0%, 100% { transform: rotate(-1.4deg); } 50% { transform: rotate(1.8deg) translateY(-1.5%); } }
+  @keyframes blysk { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { main[data-stan] #krag.czeka, #krag.odslania img#postac, #krag.otwarty:not(.odslania) img#postac, .polowa, #blysk.teraz { animation: none; } .polowa { display: none; } }
   #pierscien { position: absolute; inset: -14px; width: calc(100% + 28px); height: calc(100% + 28px); transform: rotate(-90deg); pointer-events: none; }
   #pierscien circle { fill: none; stroke-width: 3; }
   #pierscien .tlo-p { stroke: transparent; }
@@ -59,6 +83,19 @@
   #panel button { margin-top: 10px; background: var(--akcent); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: 600 13px Inter, sans-serif; }
   #panel .wynik { font-size: 12px; color: var(--muted); margin-top: 8px; min-height: 1.2em; word-break: break-all; }
   [hidden] { display: none !important; }
+  #sciezka-guzik { position: absolute; left: 14px; top: calc(env(safe-area-inset-top) + 10px); background: transparent; color: var(--akcent2); border: 1px solid var(--akcent2); border-radius: 999px; padding: 9px 14px; font: 600 12px Inter, sans-serif; }
+  #sciezka { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow-y: auto; touch-action: pan-y; user-select: text; -webkit-user-select: text; background: #15141b; border-top: 1px solid var(--szary); border-radius: 18px 18px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px); box-sizing: border-box; z-index: 8; font-size: 13px; }
+  #sciezka h2 { margin: 0 0 4px; font: 400 22px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .05em; }
+  #sciezka .sz-stan { color: var(--muted); font-size: 12px; min-height: 1.3em; margin-bottom: 10px; }
+  #sciezka button { background: var(--szary); color: var(--fg); border: 0; border-radius: 10px; padding: 11px 14px; font: 600 13px Inter, sans-serif; margin: 4px 6px 4px 0; }
+  #sciezka button.sz-mocny { background: var(--akcent); color: #fff; }
+  #sciezka label { display: block; margin-top: 12px; color: var(--muted); font-size: 12px; }
+  #sciezka input[type=range] { display: block; width: 100%; margin: 8px 0 0; touch-action: auto; accent-color: var(--akcent2); }
+  #sciezka .sz-wart { color: var(--fg); font-weight: 600; }
+  #sciezka a { display: inline-block; color: var(--akcent2); margin: 8px 12px 0 0; font-weight: 600; text-decoration: none; }
+  #trzymaj-dotarcie { position: relative; width: 100%; margin-top: 14px; overflow: hidden; background: var(--szary); color: var(--fg); border: 0; border-radius: 10px; padding: 12px; font: 600 13px Inter, sans-serif; touch-action: none; }
+  #trzymaj-dotarcie i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--akcent); opacity: .55; pointer-events: none; }
+  #trzymaj-dotarcie span { position: relative; }
 
   main[data-stan="uzbrojony"] #krag { background: radial-gradient(circle at 50% 40%, var(--akcent2), var(--akcent) 70%);
     box-shadow: 0 0 60px rgba(232, 86, 30, .45); animation: puls 2.4s ease-in-out infinite; }
@@ -90,8 +127,10 @@
     <input id="url-zbiorki" type="url" inputmode="url" autocomplete="off" placeholder="https://www.siepomaga.pl/…">
     <button id="zapisz-url" type="button">Zapisz link zbiórki</button>
     <div class="wynik" id="url-wynik"></div>
+    <div id="dotarcie-miejsce"></div>
   </div>
 </main>
+<div id="blysk" aria-hidden="true"></div>
 <canvas id="iskry" aria-hidden="true"></canvas>
 <script>
 (function () {
@@ -103,6 +142,7 @@
   var OKNO_DO = AKC.OKNO_STARTU ? AKC.OKNO_STARTU.do : NaN;
   var DATA_SLOWNIE = AKC.DATA_SLOWNIE || '';
   var PROBA = new URLSearchParams(location.search).get('proba') === '1';
+  var SCIEZKA = PROBA && new URLSearchParams(location.search).get('sciezka') === '1';
   var SLUG = PROBA ? 'proba' : 'dla-fabianka';
   var KLUCZ = 'bm_akcja_nacisk_' + SLUG, KLUCZ_MOZE = 'bm_akcja_moze_' + SLUG;
   var PRZYTRZYMAJ_MS = 1000, PONOW_MS = 5000, OBWOD = 314.16;
@@ -125,7 +165,7 @@
     $('napis').textContent = o.napis || '';
     $('licznik').textContent = o.licznik || '';
     $('status').textContent = o.status || '';
-    $('reset').hidden = !(PROBA && nowy === 'zapisane');
+    $('reset').hidden = !(PROBA && !SCIEZKA && nowy === 'zapisane');
     if (nowy === 'uzbrojony') wakeLock();
   }
 
@@ -162,6 +202,13 @@
     return idb('readwrite', function (st) { return st.delete(SLUG); });
   }
 
+  var LIMIT_RPC_MS = 8000;
+  function zLimitem(obietnica, ms) {
+    return new Promise(function (ok, zle) {
+      var z = setTimeout(function () { zle(new Error('limit czasu')); }, ms);
+      Promise.resolve(obietnica).then(function (w) { clearTimeout(z); ok(w); }, function (e) { clearTimeout(z); zle(e); });
+    });
+  }
   /* ── wysyłka: co 5 s i przy powrocie sieci, aż serwer potwierdzi; błąd uprawnień/okna kończy próby ── */
   async function wyslij() {
     if (wysylam) return;
@@ -169,10 +216,20 @@
     if (!t) return;
     wysylam = true; clearTimeout(ponowTimer);
     try {
-      var r = await window.sb.rpc('akcja_start', { p_slug: SLUG, p_nacisnieto_at: t });
+      var r = await zLimitem(window.sb.rpc('akcja_start', { p_slug: SLUG, p_nacisnieto_at: t }), LIMIT_RPC_MS);
       if (r.error) {
         var kod = r.error.code || '';
-        if (kod === '42501') { await wyczyscLokalnie(); ustaw('brak', { napis: 'To konto nie uruchamia akcji.' }); return; }
+        if (kod === '42501') {
+          /* Ten sam kod przychodzi przy wygasłej sesji: bez pewnego konta naciśnięcie zostaje i ponawiamy. Odmowa tylko przy działającej sesji. */
+          var uzytk = null;
+          try { var kto = await zLimitem(window.sb.auth.getUser(), LIMIT_RPC_MS); uzytk = kto && kto.data && kto.data.user; } catch (e2) { uzytk = null; }
+          if (uzytk) { await wyczyscLokalnie(); ustaw('brak', { napis: 'To konto nie uruchamia akcji.' }); return; }
+          $('status').textContent = 'Sesja wygasła. Naciśnięcie jest bezpieczne, ponawiam. ';
+          var dojdz = document.createElement('a'); dojdz.href = 'login.html'; dojdz.target = '_blank'; dojdz.rel = 'noopener'; dojdz.textContent = 'Zaloguj się ponownie'; dojdz.style.color = 'inherit';
+          $('status').appendChild(dojdz);
+          ponowTimer = setTimeout(wyslij, PONOW_MS);
+          return;
+        }
         if (kod === '22023') {
           // audyt 2.11: 22023 przed 06:00 wg SERWERA (zegar telefonu spieszy) — naciśnięcie zostaje, ponawiamy co 30 s, aż okno minie
           if (Date.now() <= OKNO_DO) { $('status').textContent = 'wysyłam… (serwer: jeszcze przed 6:00 — ponawiam)'; ponowTimer = setTimeout(wyslij, 30000); return; }
@@ -189,26 +246,101 @@
   }
   window.addEventListener('online', wyslij);
 
-  /* „Dotarliśmy": tylko po starcie, podwójne dotknięcie w 3 s (bez przypadkowego zapisu), raz — potem napis z godziną. */
+  /* „Dotarliśmy": tylko po starcie, pod „⋯”, przytrzymanie 2 s z paskiem (luka 22: przypadkowe dotknięcie nie zamyka wyprawy). Bez nazwy celu: cel jest tajny do dotarcia (komenda Filipa 4.11, blizna-116). */
+  var DOTARCIE_MS = 2000;
   function przyciskDotarcia(d) {
-    var stary = document.getElementById('dotarlismy'); if (stary) stary.remove();
+    var miejsce = $('dotarcie-miejsce'); miejsce.textContent = '';
     if (!DOTARCIE_GOTOWE || !d || !d.wystartowala) return;
-    var b = document.createElement('button');
-    b.id = 'dotarlismy'; b.type = 'button';
-    b.style.cssText = 'position:absolute;bottom:calc(env(safe-area-inset-bottom) + 64px);background:transparent;color:#ff8a3d;border:1px solid rgba(232,86,30,.5);border-radius:12px;padding:12px 18px;font:600 13px Inter,sans-serif;letter-spacing:.04em';
-    if (d.wyprawa_dotarla_at) { b.disabled = true; b.textContent = 'Dotarliście · ' + godzina(d.wyprawa_dotarla_at); ekran.appendChild(b); return; }
-    var uzbrojony = 0;
-    b.textContent = 'Dotarliśmy';   // bez nazwy celu — cel jest tajny do dotarcia (komenda Filipa 4.11, blizna-116)
-    b.addEventListener('click', async function () {
-      if (Date.now() - uzbrojony > 3000) { uzbrojony = Date.now(); b.textContent = 'Dotknij jeszcze raz, żeby zapisać'; return; }
-      b.disabled = true;
+    if (d.wyprawa_dotarla_at) { var s = document.createElement('div'); s.className = 'wynik'; s.textContent = 'Dotarliście · ' + godzina(d.wyprawa_dotarla_at); miejsce.appendChild(s); return; }
+    var b = document.createElement('button'), pas = document.createElement('i'), tekst = document.createElement('span');
+    b.id = 'trzymaj-dotarcie'; b.type = 'button'; tekst.textContent = 'Przytrzymaj 2 s: Dotarliśmy';
+    b.appendChild(pas); b.appendChild(tekst); miejsce.appendChild(b);
+    var od = 0, raf = 0;
+    function przerwijTrzymanie() { od = 0; cancelAnimationFrame(raf); pas.style.width = '0'; }
+    async function zapisz() {
+      b.disabled = true; tekst.textContent = 'Zapisuję…';
       try { var r = await window.sb.rpc('akcja_dotarlismy', { p_slug: SLUG }); if (r.error) throw r.error; przyciskDotarcia(r.data); }
-      catch (e) { b.disabled = false; b.textContent = 'Nie zapisano — spróbuj jeszcze raz'; uzbrojony = 0; }
+      catch (e) { b.disabled = false; tekst.textContent = 'Nie zapisano. Przytrzymaj jeszcze raz.'; pas.style.width = '0'; }
+    }
+    function krokTrzymania() {
+      if (!od) return;
+      var f = (performance.now() - od) / DOTARCIE_MS;
+      pas.style.width = Math.min(100, f * 100) + '%';
+      if (f >= 1) { od = 0; zapisz(); return; }
+      raf = requestAnimationFrame(krokTrzymania);
+    }
+    b.addEventListener('pointerdown', function (e) { if (b.disabled) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} od = performance.now(); raf = requestAnimationFrame(krokTrzymania); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (n) { b.addEventListener(n, function () { if (od) przerwijTrzymanie(); }); });
+  }
+
+  /* ── ODSŁONA RYSUNKU: adres wyłącznie z odpowiedzi serwera. Próba (akcja testowa) dostaje zwykłą koparkę: licznik próby może wywołać każde zalogowane konto, więc rysunku nie oddaje nigdy. ── */
+  var ADRES_RYSUNKU = /^https:\/\/afqojgkaveykxbltxzwm\.supabase\.co\/storage\/v1\/object\/sign\/akcja-wizerunek\/[A-Za-z0-9._-]+\.webp\?token=[A-Za-z0-9._-]+$/;
+  var ZWYKLA_KOPARKA = 'assets/ulica/koparka.webp', PROB_RYSUNKU = 4, PRZERWA_RYSUNKU_MS = 1500, MIN_BLYSK_MS = 350;
+  var odslona = null;
+  function adresRysunku(d) {
+    if (!d || !d.wystartowala) return '';
+    if (d.testowa === true) return ZWYKLA_KOPARKA;
+    return typeof d.koparka_url === 'string' && ADRES_RYSUNKU.test(d.koparka_url) ? d.koparka_url : '';
+  }
+  function wczytajRysunek(url, proba) {
+    return new Promise(function (ok) {
+      var im = new Image();
+      im.onload = function () { (im.decode ? im.decode().catch(function () {}) : Promise.resolve()).then(function () { ok(true); }); };
+      im.onerror = function () {
+        if (proba >= PROB_RYSUNKU) return ok(false);
+        setTimeout(function () { wczytajRysunek(url, proba + 1).then(ok); }, PRZERWA_RYSUNKU_MS);
+      };
+      im.src = url;
     });
-    ekran.appendChild(b);
+  }
+  function otworzGuzik(url, zAnimacja) {
+    var logo = krag.querySelector('img'), p = document.createElement('img');   // obrazek powstaje dopiero tutaj: przed startem nie ma go w stronie
+    p.id = 'postac'; p.alt = ''; p.src = url; krag.appendChild(p);
+    krag.classList.remove('czeka');
+    krag.classList.add('otwarty');
+    if (!zAnimacja || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    krag.classList.add('odslania');
+    ['l', 'p'].forEach(function (s) {
+      var pol = document.createElement('div'); pol.className = 'polowa polowa--' + s;
+      var b = document.createElement('img'); b.src = logo.src; b.alt = ''; pol.appendChild(b);
+      krag.appendChild(pol);
+      setTimeout(function () { pol.remove(); }, 800);
+    });
+    setTimeout(function () { krag.classList.remove('odslania'); }, 1500);
+  }
+  function odslon(d) {
+    if (odslona) return;
+    /* Ścieżka: prawdziwy rysunek osobną funkcją (trener, 15 min). Odmowa albo brak pliku = zwykła koparka, jak na zwykłej próbie. */
+    if (SCIEZKA && d && d.wystartowala && AKC.wizerunekProby) {
+      odslona = 'czeka';
+      AKC.wizerunekProby(window.sb).then(function (w) {
+        odslona = null;
+        odslonAdres(w && typeof w.koparka_url === 'string' && ADRES_RYSUNKU.test(w.koparka_url) ? w.koparka_url : adresRysunku(d));
+      });
+      return;
+    }
+    odslonAdres(adresRysunku(d));
+  }
+  function odslonAdres(url) {
+    var zAnimacja = nacisnietoO > 0;
+    if (!url) { krag.classList.remove('czeka'); return; }
+    odslona = url;
+    wczytajRysunek(url, 1).then(function (ok) {
+      if (odslona !== url) return;                       // próba zresetowana w trakcie
+      if (!ok) { odslona = null; krag.classList.remove('czeka'); return; }   // bez rysunku zostaje dotychczasowy ekran: iskry i napis
+      setTimeout(function () { if (odslona === url) otworzGuzik(url, zAnimacja); }, zAnimacja ? Math.max(0, MIN_BLYSK_MS - (performance.now() - nacisnietoO)) : 0);
+    });
+  }
+  function zamknijGuzik() {
+    odslona = null; nacisnietoO = 0;
+    krag.classList.remove('czeka', 'otwarty', 'odslania');
+    krag.querySelectorAll('.polowa').forEach(function (x) { x.remove(); });
+    var p = $('postac'); if (p) p.remove();
+    $('blysk').classList.remove('teraz');
   }
 
   function pokazZapisane(d, potwierdzone) {
+    if (potwierdzone) odslon(d);
     var zostalo = stan === 'nacisniety' ? 1800 - (performance.now() - nacisnietoO) : 0;   // iskry i napis zostają min. 1,8 s
     if (zostalo > 0) { setTimeout(function () { pokazZapisane(d, potwierdzone); }, zostalo); return; }
     var t = d && d.wystartowala_at;
@@ -217,7 +349,7 @@
       licznik: km(d && d.suma_km) + ' / ' + km((d && d.cel_km) || 12500) + ' km',
       status: potwierdzone ? 'zapisane ✓' : 'wysyłam…',
     });
-    if (potwierdzone) { przyciskDotarcia(d); panelLinku(d); }
+    if (potwierdzone) { przyciskDotarcia(d); panelLinku(d); zwolnijBlokade(); }
   }
 
   /* ── przytrzymanie 1 s z pierścieniem ── */
@@ -249,6 +381,8 @@
     await zapiszLokalnie(t);
     nacisnietoO = performance.now();
     ustaw('nacisniety', { napis: 'Ruszamy. 12 500 km dla Fabianka.' });
+    krag.classList.add('czeka'); rysujPierscien(0);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { var bl = $('blysk'); bl.classList.remove('teraz'); void bl.offsetWidth; bl.classList.add('teraz'); }
     try { navigator.vibrate && navigator.vibrate([60, 40, 120]); } catch (e) {}
     iskry();
     wyslij();
@@ -284,6 +418,8 @@
   async function wakeLock() {
     try { if (navigator.wakeLock && !blokada) { blokada = await navigator.wakeLock.request('screen'); blokada.addEventListener('release', function () { blokada = null; }); } } catch (e) {}
   }
+  /* Po „zapisane ✓” telefon może znów gasnąć: blokada ma trzymać ekran tylko na czas czekania na guzik i wysyłki. */
+  function zwolnijBlokade() { try { if (blokada) { blokada.release(); blokada = null; } } catch (e) {} }
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState !== 'visible') return;
     if (stan === 'uzbrojony') wakeLock();
@@ -320,6 +456,80 @@
     } catch (e) { $('url-wynik').textContent = e && e.code === '22023' ? 'Link musi zaczynać się od https://www.siepomaga.pl/' : 'Nie zapisano — sprawdź sieć.'; }
     this.disabled = false;
   });
+  /* ── panel Ścieżki Fabianka: tylko konto trenera (zamkiem jest baza, odmowa 42501 = panelu nie ma) ── */
+  var KM_SUWAK = [null, 0, 1000, 3125, 6250, 12500], PROC_SUWAK = [0, 25, 50, 100];
+  function pokazStanSciezki(s) {
+    if (!s) return;
+    if (arguments[1] !== 'zostaw') {   // odpowiedź z suwaka nie może cofnąć tego, co palec właśnie ustawił
+      var i = KM_SUWAK.indexOf(s.sym_km == null ? null : Number(s.sym_km)), ip = PROC_SUWAK.indexOf(Number(s.kwota_proc) || 0);
+      $('sz-km').value = i < 0 ? 1 : i; $('sz-kwota').value = ip < 0 ? 0 : ip; opisSuwakow();
+    }
+    $('sz-stan').textContent = (s.wystartowala ? 'Po naciśnięciu' : 'Przed naciśnięciem') + ' · firmy: ' + (s.firmy || 0) + (s.firmy_ukryte ? ' (ukryte: ' + s.firmy_ukryte + ')' : '') + ' · zgłoszenia: ' + (s.zgloszenia_nowe || 0);
+  }
+  function opisSuwakow() {
+    var k = KM_SUWAK[Number($('sz-km').value)];
+    $('sz-km-wart').textContent = k == null ? 'prawdziwe km konta testowego' : km(k) + ' km';
+    $('sz-kwota-wart').textContent = PROC_SUWAK[Number($('sz-kwota').value)] + '%';
+  }
+  async function sciezkaRpc(nazwa, arg, napis) {
+    $('sz-stan').textContent = napis;
+    var r = await window.sb.rpc(nazwa, arg);
+    if (r.error) { $('sz-stan').textContent = r.error.code === '42501' ? 'To konto nie jest kontem trenera.' : 'Nie udało się: sprawdź sieć.'; return null; }
+    pokazStanSciezki(r.data, nazwa === 'akcja_proba_symuluj' ? 'zostaw' : '');
+    return r.data;
+  }
+  /* Panel powstaje dopiero po zgodzie bazy: na zwykłym ekranie guzika nie ma czego przypadkiem dotknąć (blizna-96). */
+  function budujPanelSciezki() {
+    function w(tag, id, tekst, rodzic) { var e = document.createElement(tag); if (id) e.id = id; if (tekst) e.textContent = tekst; (rodzic || panel).appendChild(e); return e; }
+    function suwak(id, etykieta, idWart, maks) {
+      var l = w('label', '', etykieta); l.htmlFor = id; w('span', idWart, '', l).className = 'sz-wart';
+      var i = w('input', id); i.type = 'range'; i.min = '0'; i.max = String(maks); i.step = '1'; i.value = '0'; i.setAttribute('aria-label', etykieta);
+    }
+    var g = document.createElement('button'); g.id = 'sciezka-guzik'; g.type = 'button'; g.textContent = 'Ścieżka'; g.setAttribute('aria-expanded', 'false'); ekran.appendChild(g);
+    var panel = document.createElement('div'); panel.id = 'sciezka'; panel.hidden = true; ekran.appendChild(panel);
+    w('h2', '', 'Ścieżka Fabianka');
+    var st = w('div', 'sz-stan'); st.className = 'sz-stan'; st.setAttribute('role', 'status');
+    var oz = w('button', 'sz-od-zera', 'Od zera'); oz.type = 'button'; oz.className = 'sz-mocny';
+    suwak('sz-km', 'Symuluj km: ', 'sz-km-wart', 5);
+    suwak('sz-kwota', 'Kwota zbiórki: ', 'sz-kwota-wart', 3);
+    var f = w('div'); f.style.marginTop = '12px';
+    w('button', 'sz-firmy-dodaj', 'Dodaj 3 firmy testowe próby', f).type = 'button';
+    w('button', 'sz-firmy-usun', 'Usuń firmy próby', f).type = 'button';
+    var linki = w('div');
+    [['dla-fabianka.html?proba=1&sciezka=1', 'Ulica i strona próby ›'], ['gra-cegielki.html?sciezka=1', 'Gra ›'], ['trener.html#firmy-sec', 'Panel firm ›']].forEach(function (l) { w('a', '', l[1], linki).href = l[0]; });
+  }
+  async function wlaczSciezke() {
+    var r = await window.sb.rpc('akcja_sciezka_stan');
+    if (r.error) return;
+    budujPanelSciezki();
+    pokazStanSciezki(r.data);
+    $('sciezka-guzik').addEventListener('click', function () { var otw = $('sciezka').hidden; $('sciezka').hidden = !otw; this.setAttribute('aria-expanded', String(otw)); });
+    var odZeraUzbrojone = 0;
+    $('sz-od-zera').addEventListener('click', async function () {
+      if (Date.now() - odZeraUzbrojone > 4000) { odZeraUzbrojone = Date.now(); this.textContent = 'Dotknij jeszcze raz: próba od zera'; var przycisk = this; setTimeout(function () { przycisk.textContent = 'Od zera'; }, 4000); return; }
+      odZeraUzbrojone = 0; this.textContent = 'Od zera';
+      this.disabled = true;
+      var w = await sciezkaRpc('akcja_proba_od_zera', {}, 'Wracam do zera…');
+      this.disabled = false;
+      if (!w) return;
+      await wyczyscLokalnie();
+      zamknijGuzik(); przyciskDotarcia(null); panelLinku(null);
+      $('panel').hidden = true; $('sciezka').hidden = true; $('sciezka-guzik').setAttribute('aria-expanded', 'false');
+      uzbrojGdyCzas();
+    });
+    function zmienSuwak() {
+      opisSuwakow();
+      sciezkaRpc('akcja_proba_symuluj', { p_km: KM_SUWAK[Number($('sz-km').value)], p_proc: PROC_SUWAK[Number($('sz-kwota').value)] }, 'Zapisuję…');
+    }
+    $('sz-km').addEventListener('input', opisSuwakow); $('sz-kwota').addEventListener('input', opisSuwakow);
+    $('sz-km').addEventListener('change', zmienSuwak); $('sz-kwota').addEventListener('change', zmienSuwak);
+    $('sz-firmy-dodaj').addEventListener('click', function () { sciezkaRpc('akcja_proba_firmy', { p_dodaj: true }, 'Dodaję firmy próby…'); });
+    $('sz-firmy-usun').addEventListener('click', async function () {
+      var w = await sciezkaRpc('akcja_proba_firmy', { p_dodaj: false }, 'Usuwam firmy próby…');
+      if (w && w.pliki && w.pliki.length) { try { await window.sb.storage.from('akcja-firmy-logo').remove(w.pliki); } catch (e) {} }
+    });
+  }
+
   $('reset').addEventListener('click', async function () {
     if (!PROBA) return;
     this.disabled = true;
@@ -327,6 +537,7 @@
       var r = await window.sb.rpc('akcja_proba_reset');
       if (r.error) throw r.error;
       await wyczyscLokalnie();
+      zamknijGuzik();
       uzbrojGdyCzas();
     } catch (e) { $('status').textContent = 'Reset się nie udał — sprawdź sieć.'; }
     this.disabled = false;
@@ -358,6 +569,7 @@
       if (moze != null) try { localStorage.setItem(KLUCZ_MOZE, moze ? '1' : '0'); } catch (e) {}
     } catch (e) {}
     if (moze == null) { try { moze = localStorage.getItem(KLUCZ_MOZE) !== '0'; } catch (e) { moze = true; } }
+    if (SCIEZKA) wlaczSciezke();
     if (!moze) { ustaw('brak', { napis: 'Ta strona jest tylko dla osoby, która uruchamia akcję.' }); return; }
 
     try {

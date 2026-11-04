@@ -754,6 +754,7 @@ function imprezyStopka(wynik) {
   await loadMySignups();
   await okladkiLaduj();   // L4: mapa okładek przed renderem imprez
   imprezyLaduj();   // L2: imprezy do stanu, render scalonej listy (loadRaces już wyrenderował nasze)
+  otworzImprezeZAdresu();   // plan startowy z Okienka: races.html#impreza=… otwiera kartę z „Wezmę udział”
 
   // KROK 2: oznacz "widziałem biegi teraz" → kropka "nowe od znajomych" na home zniknie
   try { localStorage.setItem('bm_races_friends_seen', new Date().toISOString()); } catch(e){}
@@ -1456,6 +1457,13 @@ function closeModal() {
    imprezy + nazwa + data ±1 + miasto; status approved; okładka przejęta z imprezy_okladki) → zwykły zapis (doSignup: race_signups + cel).
    Trener: „Dodaj do naszych” (RPC bez zapisu). Dane do RPC z OBIEKTU stanu (_imprezyWgId), nie z atrybutów. Dokładność „miesiąc” =
    bez zapisu (termin niepotwierdzony). */
+function otworzImprezeZAdresu() {
+  const x = window.BM_KALENDARZ && window.BM_KALENDARZ.imprezaZLinku(location.hash);
+  if (!x) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  _imprezyWgId[x.id] = x;
+  openImpreza(x.id);
+}
 function openImpreza(id) {
   const x = _imprezyWgId[id];
   if (!x) return;
