@@ -61,7 +61,7 @@ test('punkty: mnożnik i sufit w grze i na serwerze te same; limit 45 cegieł/s,
   const k = czytaj('js/cegielki-konto.js');
   assert.match(k, /p_cegly: w\.cegly,/, 'do serwera zebrane cegły, nie punkty'); assert.match(k, /bidony: w\.st\.bidony, poziom: w\.poziom \}/);
   assert.match(k, /w\.punkty != null \? w\.punkty : w\.cegly/, 'ranking pokazuje punkty');
-  assert.equal(L.tekstMuru(5, 10), 'Wspólny mur: 5 z 10 cegieł'); assert.match(k, /" pkt"\)\);/, 'ranking w pkt');
+  assert.equal(L.tekstMuru(5, 10), 'Wspólny mur: 5 z 10 cegieł'); assert.match(k, /\|\| 0\) \+ " pkt"; \};/, 'ranking w pkt');
   assert.deepEqual([1, 2, 5, 12, 22].map(L.odmianaPunktow), ['punkt', 'punkty', 'punktów', 'punktów', 'punkty']);
   const w = czytaj(WYC);
   assert.match(w, /GRA_MAKS_NA_S constant numeric := 40;/, 'wycofanie przywraca stary pułap');

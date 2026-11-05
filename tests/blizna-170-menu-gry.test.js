@@ -12,7 +12,7 @@ const L = globalThis.BM_CEGIELKI;
 
 test('menu: cztery przyciski, trzy ekrany z powrotem', () => {
   const h = czytaj('gra-cegielki.html'), m = h.slice(h.indexOf('<div class="m-guziki">'), h.indexOf('<label class="maly"><input type="checkbox" id="m-maly">'));
-  for (const [id, t] of [['m-sklep', 'Magazyn Szefa'], ['m-rankingi', 'Rankingi'], ['m-mur-guzik', 'Mur'], ['m-dziennik', 'Dziennik']]) assert.match(m, new RegExp('id="' + id + '">' + t), id);
+  for (const [id, t] of [['m-sklep', 'Magazyn Szefa'], ['m-rankingi', 'Rankingi'], ['m-mur-guzik', 'Mur'], ['m-dziennik', 'Dziennik']]) assert.match(m, new RegExp('id="' + id + '"[^\\n]*<span class="m-k-nazwa">' + t + '</span>'), id);
   for (const id of ['e-rankingi', 'e-mur', 'e-dziennik']) { const e = h.slice(h.indexOf('<div id="' + id + '"')); assert.match(e.slice(0, e.indexOf('</div>\n<div id=') + 1 || 800), /data-wroc/, id); }
   assert.match(h, /body\.gra-zamknieta \.e-pod/, 'zamknięta gra zamyka też nowe ekrany');
 });

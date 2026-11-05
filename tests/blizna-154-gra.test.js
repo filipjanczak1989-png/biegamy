@@ -249,7 +249,7 @@ test('przemiana: praca na starcie rundy, nietykalność 1 s, świat nie zwalnia'
   assert.match(s, /bitmapyPostaci\(naz\)\.then\(function \(\) \{ return D\.przygotuj\(\); \}\)\.then\(rozgrzejObrazy\)/, 'bitmapy, dźwięk i rozgrzanie przed rundą');
   assert.match(s, /co === "przemiana" && this\.gotowe\.przemiana/, 'w chwili kasku gotowy bufor');
   assert.match(s, /buforSzumu: function/, 'szum liczony raz');
-  assert.match(s, /parametry\.has\("diag"\)/, 'liczby z prawdziwego telefonu');
+  assert.match(s, /L\.diagWlaczony\(location\.search, location\.hostname\)/, 'liczby z prawdziwego telefonu, bramka w blizna-178');
   const kl = s.slice(s.indexOf('function krok(dt)'), s.indexOf('if (g.poza)'));
   assert.doesNotMatch(kl, /\.forEach\(/, 'liczniki bez nowej tablicy i funkcji co klatkę');
 });
@@ -265,7 +265,7 @@ test('menu: Mały budowniczy pod kartami, zbiórka z bazy, boki bez postaci prze
   const g = h.slice(h.indexOf('class="guziki"'));
   assert.ok(g.indexOf('id="k-znow"') < g.indexOf('id="k-zmien"') && g.indexOf('id="k-zmien"') < g.indexOf('id="k-udostepnij"'));
   assert.match(g, /id="k-zmien">Menu główne</);
-  assert.match(czytaj('js/cegielki.js'), /innerHeight <= 460 \? 0\.62 : 1/, 'w poziomie karty mniejsze, żeby reszta menu była na ekranie');
+  assert.match(czytaj('js/cegielki.js'), /innerHeight <= 460 \? 0\.62 : innerWidth <= 480 \? 0\.74 : 1/, 'w poziomie i na wąskim pionie karty mniejsze, żeby reszta menu była na ekranie');
 });
 
 test('koparka: dotknięcie to zamach, trafienie daje bonus, spóźnienie zatrzymuje, sama nie zarabia', () => {

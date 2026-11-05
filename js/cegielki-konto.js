@@ -6,10 +6,7 @@
   var BAZA = "https://afqojgkaveykxbltxzwm.supabase.co";
   var KLUCZ_SESJI = "sb-afqojgkaveykxbltxzwm-auth-token";
   /* Dwa rankingi: najlepsza runda i suma dołożona do wspólnego muru. Klucze to pola odpowiedzi gra_ranking. */
-  var WIDOKI = {
-    runda: { nazwa: "Najlepsza runda", okresy: { dzien: "Dziś", tydzien: "Ten tydzień", wszech: "Wszech czasów" }, domyslny: "dzien" },
-    dolozyli: { nazwa: "Kto najwięcej dołożył", okresy: { dolozyli_akcja: "W czasie akcji", dolozyli_wszech: "Wszech czasów" }, domyslny: "dolozyli_akcja" },
-  };
+  var ZAKLADKI = { dzien: "Dzień", tydzien: "Tydzień", wszech: "Wszech", dolozyli_akcja: "Dołożone" };
   var OPOZNIENIE_STARTU_MS = 6000;   // serwer liczy czas rundy od numeru; później numer zrobiłby z dobrej rundy podejrzaną
   var parametry = new URLSearchParams(location.search);
   var przyklad = parametry.get("ranking") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app";
@@ -18,14 +15,14 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var L = window.BM_CEGIELKI;
-  var stan = { zalogowany: false, pseudonim: null, widok: "runda", okres: "dzien", imie: "", urlZbiorki: "", ranking: undefined, miejsca: null, runda: null, saldo: null, kupione: czytajJson("cegielki_kupione", []), stroje: L.stroje(czytajJson("cegielki_stroje", null), czytajJson("cegielki_stroj", null)), plecak: {}, ulepszenie: null, potwierdz: null,
+  var stan = { zalogowany: false, pseudonim: null, okres: "dzien", imie: "", urlZbiorki: "", ranking: undefined, miejsca: null, runda: null, saldo: null, kupione: czytajJson("cegielki_kupione", []), stroje: L.stroje(czytajJson("cegielki_stroje", null), czytajJson("cegielki_stroj", null)), plecak: {}, ulepszenie: null, potwierdz: null,
     cegly: Number(czytajJson("cegielki_suma", 0)) || 0, rower: false, podpisRoweru: "", koparkaWlaczona: false, arkuszKoparki: "", koparka: false, podglad: false };
   function czytajJson(k, zapas) { try { var w = JSON.parse(localStorage.getItem(k)); return w == null ? zapas : w; } catch (e) { return zapas; } }
   function zapiszJson(k, w) { try { localStorage.setItem(k, JSON.stringify(w)); } catch (e) {} }
   function ustawKonto(saldo, kupione) {
     if (typeof saldo === "number") stan.saldo = saldo;
     if (Array.isArray(kupione)) { stan.kupione = kupione; zapiszJson("cegielki_kupione", kupione); }
-    var e = $("m-saldo"); if (e) e.textContent = stan.saldo == null ? "" : "(" + stan.saldo + ")";
+    var e = $("m-saldo"); if (e) e.textContent = stan.saldo == null ? "" : String(stan.saldo);
   }
   var gotowe = Promise.resolve();
   /* PREMIERA SZEFA (Filip 5.11): pierwsza runda na świecie, zaraz po guziku. Znacznik zapisuje strona guzika przy naciśnięciu, więc tylko na tym urządzeniu; po rundzie jest zagrany, więc raz. Bez gra_konto, bez rankingu, bez plansz. Cegły do muru tylko na prawdziwej akcji: pilnuje premiera_szefa_zapisz. */
@@ -196,12 +193,14 @@
   function otwarta(id) { return stan.podglad || L.odblokowana(id, stan.cegly, stan.ranking && stan.ranking.mur, stan.ranking && stan.ranking.zamknieta); }
   function rysujPostacie(poziomPrzed) {
     rysujPoziom("m-poziom"); rysujPoziom("k-poziom");
+    rysujKafle();
     if (stan.rower && otwarta("rowerzysta")) zaladujRower();
     if (stan.koparkaWlaczona && stan.arkuszKoparki && otwarta("koparka")) sprobujKoparke();
     rysujKarte("rowerzysta", stan.rower, L.imieZPodpisu(stan.podpisRoweru) || "Rowerzysta", stan.rowerGotowy);
     rysujKarte("koparka", stan.koparka, stan.imie || "Koparka", stan.koparka);
     var e = $("k-awans");
     if (e && poziomPrzed) { var teraz = L.poziom(stan.cegly); e.hidden = teraz <= poziomPrzed; e.textContent = L.tekstAwansu(poziomPrzed, teraz, opcjeRozdzialu()); pokazKartke(poziomPrzed, teraz); }
+    if (window.BM_CEGIELKI_GRA && window.BM_CEGIELKI_GRA.odswiezGraj) window.BM_CEGIELKI_GRA.odswiezGraj();
     pokazFinal();
   }
   function opcjeRozdzialu() {
@@ -293,13 +292,6 @@
     var k = $("k-ranking");
     if (k.dataset.gotowy) return;
     k.dataset.gotowy = "1";
-    var wid = el("div", "r-widoki"); wid.setAttribute("role", "tablist"); wid.setAttribute("aria-label", "Rodzaj rankingu");
-    Object.keys(WIDOKI).forEach(function (w) {
-      var b = el("button", "r-widok", WIDOKI[w].nazwa); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.widok = w;
-      b.addEventListener("click", function () { stan.widok = w; stan.okres = WIDOKI[w].domyslny; rysuj(); });
-      wid.appendChild(b);
-    });
-    k.appendChild(wid);
     var zak = el("div", "r-zakladki"); zak.id = "r-zakladki"; zak.setAttribute("role", "tablist"); zak.setAttribute("aria-label", "Okres"); k.appendChild(zak);
     var lista = el("ol", "r-lista"); lista.id = "r-lista"; k.appendChild(lista);
     var moje = el("p", "r-moje"); moje.id = "r-moje"; k.appendChild(moje);
@@ -316,10 +308,9 @@
   }
   function rysuj() {
     var k = $("k-ranking"); if (!k || !k.dataset.gotowy) return;
-    k.querySelectorAll(".r-widok").forEach(function (b) { var w = b.dataset.widok === stan.widok; b.classList.toggle("wybrana", w); b.setAttribute("aria-selected", w ? "true" : "false"); });
-    var zak = $("r-zakladki"), okresy = WIDOKI[stan.widok].okresy; zak.textContent = "";
-    Object.keys(okresy).forEach(function (o) {
-      var w = o === stan.okres, b = el("button", "r-zakladka" + (w ? " wybrana" : ""), okresy[o]); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.okres = o; b.setAttribute("aria-selected", w ? "true" : "false");
+    var zak = $("r-zakladki"); zak.textContent = "";
+    Object.keys(ZAKLADKI).forEach(function (o) {
+      var w = o === stan.okres, b = el("button", "r-zakladka" + (w ? " wybrana" : ""), ZAKLADKI[o]); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.okres = o; b.setAttribute("aria-selected", w ? "true" : "false");
       b.addEventListener("click", function () { stan.okres = o; rysuj(); });
       zak.appendChild(b);
     });
@@ -327,18 +318,25 @@
     if (stan.ranking === undefined) { lista.appendChild(el("li", "r-pusto", "Ładuję ranking…")); }
     else if (!stan.ranking) { lista.appendChild(el("li", "r-pusto", "Ranking chwilowo niedostępny.")); }
     else {
-      var wiersze = Array.isArray(stan.ranking[stan.okres]) ? stan.ranking[stan.okres] : [];
-      if (!wiersze.length) lista.appendChild(el("li", "r-pusto", "Jeszcze nikogo tu nie ma."));
-      wiersze.slice(0, 10).forEach(function (w) {
-        var li = el("li", stan.pseudonim && String(w.pseudonim).toLowerCase() === stan.pseudonim.toLowerCase() ? "ja" : "");
-        li.appendChild(el("span", "r-m", String(Number(w.miejsce) || "")));
-        li.appendChild(el("span", "r-n", String(w.pseudonim == null ? "" : w.pseudonim)));
-        li.appendChild(el("span", "r-c", String(Number(w.punkty != null ? w.punkty : w.cegly) || 0) + " pkt"));
-        lista.appendChild(li);
+      var wiersze = (Array.isArray(stan.ranking[stan.okres]) ? stan.ranking[stan.okres] : []).slice(0, 10), mojeM = stan.miejsca && stan.miejsca[stan.okres], naLiscie = false;
+      var punktyW = function (w) { return String(Number(w.punkty != null ? w.punkty : w.cegly) || 0) + " pkt"; };
+      var wierszRankingu = function (m, nazwa, pkt, ja) {
+        var li = el("li", (ja ? "ja " : "") + (m >= 1 && m <= 3 ? "r-podium" : ""));
+        li.appendChild(m >= 1 && m <= 3 ? el("span", "r-medal r-medal-" + m, String(m)) : el("span", "r-m", String(m || "")));
+        li.appendChild(el("span", "r-n", nazwa)); if (ja) li.appendChild(el("span", "r-ty", "Ty"));
+        li.appendChild(el("span", "r-c", pkt)); lista.appendChild(li);
+      };
+      if (!wiersze.length && !(mojeM && mojeM.miejsce)) lista.appendChild(el("li", "r-pusto", "Jeszcze nikogo tu nie ma."));
+      wiersze.forEach(function (w) {
+        var ja = !!stan.pseudonim && String(w.pseudonim).toLowerCase() === stan.pseudonim.toLowerCase(); if (ja) naLiscie = true;
+        wierszRankingu(Number(w.miejsce) || 0, String(w.pseudonim == null ? "" : w.pseudonim), punktyW(w), ja);
       });
+      /* Poza pierwszą dziesiątką własny wiersz dochodzi na dole: gracz widzi, gdzie jest. */
+      if (!naLiscie && mojeM && mojeM.miejsce) {
+        if (wiersze.length) lista.appendChild(el("li", "r-kropki", "…"));
+        wierszRankingu(Number(mojeM.miejsce), stan.pseudonim || "Ty", punktyW(mojeM), true);
+      }
     }
-    var moje = stan.miejsca && stan.miejsca[stan.okres];
-    $("r-moje").textContent = moje && moje.miejsce ? "Twoje miejsce: " + moje.miejsce + " (" + (moje.punkty != null ? moje.punkty : moje.cegly) + " pkt)" : "";
     $("r-pseudonim").hidden = !(stan.zalogowany && !stan.pseudonim) || stan.podglad;
     $("r-zaloguj").hidden = stan.zalogowany;
   }
@@ -364,7 +362,15 @@
     if (link) { var a = el("a", "", "Zbiórka ›"); a.href = link; a.target = "_blank"; a.rel = "noopener noreferrer"; p.appendChild(a); }
     kontener.appendChild(p);
   }
+  /* Kafle menu: pasek muru, kartki, miejsce dnia. Poziom i mur przychodzą w różnym czasie, więc rysowane z obu miejsc. */
+  function rysujKafle() {
+    var d = stan.ranking, cel = d && Number(d.mur_cel), pas = $("m-mur-pasek"), dz = $("m-dziennik-ile"), mj = $("m-miejsce"), dzis = stan.miejsca && stan.miejsca.dzien;
+    if (pas) { pas.style.width = (cel > 0 ? L.procentMuru(d.mur, cel) : 0) + "%"; pas.parentNode.setAttribute("aria-valuenow", String(cel > 0 ? Number(d.mur) || 0 : 0)); }
+    if (dz) dz.textContent = L.zebraneKartki(poziomGracza(), czytajJson("cegielki_kartka1", false) === true).length + "/" + L.KARTKI.length;
+    if (mj) mj.textContent = dzis && dzis.miejsce ? "dziś " + dzis.miejsce + "." : "";
+  }
   function rysujMur() {
+    rysujKafle();
     ["m-mur", "k-mur"].forEach(function (id) {
       var k = $(id); if (!k) return;
       k.textContent = "";
@@ -610,6 +616,7 @@
   /* ── menu główne: Rankingi, Mur i Dziennik bez rozgrywania rundy. Ranking to ten sam blok co po rundzie, przenoszony między ekranami, żeby nie było dwóch kopii tych samych identyfikatorów. ── */
   function otworzPodmenu(id) { $("menu").hidden = true; $(id).hidden = false; $(id).scrollTop = 0; document.body.classList.add("w-sklepie"); }
   function zamknijPodmenu(id) {
+    if (id === "e-mur") { if (stopMuru) stopMuru(); stopMuru = null; murNaScenie = null; }
     $(id).hidden = true; $("menu").hidden = false; document.body.classList.remove("w-sklepie");
     if (id === "e-rankingi") $("k-ranking-miejsce").appendChild($("k-ranking"));
     kartyWStrojach();
@@ -619,24 +626,25 @@
     budujRanking(); $("e-rankingi-miejsce").appendChild($("k-ranking"));
     info(""); stan.miejsca = stan.miejsca || null; rysuj(); odswiezRanking();
   }
+  /* Scena zamiast suchych liczb. Ponowne wejście: dokładane jest to, czego gracz jeszcze nie widział, a przynajmniej ostatni rząd. */
+  var stopMuru = null, murNaScenie = null;
   function rysujEkranMuru() {
-    var t = $("e-mur-tresc"), d = stan.ranking, cel = d && Number(d.mur_cel); t.textContent = "";
+    var t = $("e-mur-tresc"), d = stan.ranking, cel = d && Number(d.mur_cel), ok = cel > 0, GR = window.BM_CEGIELKI_GRA; t.textContent = "";
+    $("e-mur-scena").hidden = !ok; $("e-mur-dane").hidden = !ok;
     if (d === undefined) t.appendChild(el("div", "mur-tytul", "Ładuję mur…"));
-    else if (!(cel > 0)) t.appendChild(el("div", "mur-tytul", "Mur chwilowo niedostępny."));
+    else if (!ok) t.appendChild(el("div", "mur-tytul", "Mur chwilowo niedostępny."));
     else {
-      t.appendChild(el("div", "mur-tytul", L.tekstMuru(d.mur, cel)));
+      var mur = Number(d.mur) || 0, n = L.ceglyNaScenie(mur, cel);
       if (d.pierwsze_cegly != null) t.appendChild(el("div", "mur-pierwsze", "Pierwsze cegły: Szef"));
-      var pasek = el("div", "mur-pasek"), i = document.createElement("i"), pr = L.procentMuru(d.mur, cel);
-      pasek.setAttribute("role", "progressbar"); pasek.setAttribute("aria-valuemin", "0"); pasek.setAttribute("aria-valuemax", String(cel)); pasek.setAttribute("aria-valuenow", String(Number(d.mur) || 0));
-      i.style.width = pr + "%"; pasek.appendChild(i); t.appendChild(pasek);
+      $("e-mur-z").textContent = L.odmianaCegiel(mur) + " z " + liczba(cel);
+      if (murNaScenie !== mur && GR && GR.scenaMuru) {
+        murNaScenie = mur; if (stopMuru) stopMuru();
+        var od = L.odKtorejCegly(n, czytajJson("cegielki_mur_widziany", null)), liczbaOd = n ? Math.round(mur * od / n) : 0;
+        stopMuru = GR.scenaMuru($("e-mur-scena"), { mur: mur, cel: cel, od: od }, function (f) { $("e-mur-liczba").textContent = liczba(Math.round(liczbaOd + (mur - liczbaOd) * f)); }, function (ile) { zapiszJson("cegielki_mur_widziany", ile); });
+      }
     }
     zdanie(t);
-    var lista = $("e-mur-progi"); lista.textContent = "";
-    if (cel > 0) L.BONUSY_MURU.map(function (b) { return { prog: b.prog, tytul: b.tytul }; }).concat([{ prog: cel, tytul: "Ulica gotowa" }]).forEach(function (w) {
-      var ok = Number(d.mur) >= w.prog, li = el("li", ok ? "zrobione" : "");
-      li.appendChild(el("b", "", w.tytul)); li.appendChild(document.createTextNode(": " + liczba(w.prog) + " " + L.odmianaCegiel(w.prog) + (ok ? " ✓" : ""))); lista.appendChild(li);
-    });
-    $("e-mur-moje").textContent = stan.cegly > 0 ? "Twoje cegły: " + liczba(stan.cegly) : "";
+    $("e-mur-moje").textContent = stan.zalogowany && stan.cegly > 0 ? "Twoje cegły w murze: " + liczba(stan.cegly) : "";
   }
   function otworzMur() { otworzPodmenu("e-mur"); rysujEkranMuru(); odswiezRanking().then(function () { if (!$("e-mur").hidden) rysujEkranMuru(); }); }
   function otworzDziennik() {

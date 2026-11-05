@@ -394,6 +394,71 @@
       if (pl.noc) { k.fillStyle = "rgba(10,16,56,.32)"; k.fillRect(0, 0, sz, wy); }
     });
   }
+  /* SCENA MURU: te same grafiki i pora dnia co w grze. Tło liczone raz, cegły i rusztowanie co klatkę. Zwraca funkcję zatrzymującą; naKlatke(f) liczy liczbę pod sceną, naKoniec zapamiętuje, co gracz widział. */
+  function scenaMuru(kan, o, naKlatke, naKoniec) {
+    var k = kan.getContext("2d"), sz = kan.width, wy = kan.height, M = L.MUR_SCENA, stop = false, raf = 0;
+    var ziemia = wy * 0.86, bw = 21, bh = 10, x0 = 66, n = L.ceglyNaScenie(o.mur, o.cel), od = Math.min(o.od || 0, n), ile = n - od;
+    var xP = x0 + M.kolumny * bw + bw / 2, flagi = L.flagiMuru(o.mur, o.cel);
+    var bezRuchu = !window.matchMedia || window.matchMedia("(prefers-reduced-motion: reduce)").matches, CZAS = bezRuchu || !ile ? 0 : Math.min(2200, 500 + ile * 18);
+    var tlo = document.createElement("canvas"), bud = new Image(); tlo.width = sz; tlo.height = wy;
+    function cegla(c, i, dy, alfa) {
+      var r = Math.floor(i / M.kolumny), kol = i % M.kolumny, x = x0 + kol * bw + (r % 2 ? bw / 2 : 0), y = ziemia - (r + 1) * bh + (dy || 0);
+      c.globalAlpha = alfa == null ? 1 : alfa;
+      c.fillStyle = "#c9562b"; c.fillRect(x, y, bw, bh);
+      c.fillStyle = "#e0764a"; c.fillRect(x + 1, y + 1, bw - 2, 2);
+      c.strokeStyle = "#5e2a14"; c.lineWidth = 1.5; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+      c.globalAlpha = 1;
+    }
+    function rysujTloMuru() {
+      var c = tlo.getContext("2d"), g = c.createLinearGradient(0, 0, 0, ziemia);
+      g.addColorStop(0, pora.g[0]); g.addColorStop(0.55, pora.g[1]); g.addColorStop(1, pora.g[2]);
+      c.fillStyle = g; c.fillRect(0, 0, sz, wy);
+      if (OBR.krajobraz && A.krajobraz) { var hk = A.krajobraz.h * sz / A.krajobraz.w; c.drawImage(OBR.krajobraz, 0, ziemia - hk * 0.92, sz, hk); }
+      if (OBR.droga) c.drawImage(OBR.droga, 0, ziemia, sz, wy - ziemia);
+      if (pora.tint) { c.fillStyle = pora.tint; c.fillRect(0, 0, sz, wy); }
+      c.fillStyle = "rgba(16,19,36,.26)"; c.fillRect(x0, ziemia - M.rzedy * bh, xP - x0, M.rzedy * bh);
+      c.strokeStyle = "rgba(255,255,255,.34)"; c.lineWidth = 2; c.setLineDash([7, 6]); c.strokeRect(x0, ziemia - M.rzedy * bh, xP - x0, M.rzedy * bh); c.setLineDash([]);
+    }
+    function rusztowanie(c, rzedow) {
+      var y = ziemia - rzedow * bh - 4, xa = 16, xb = 58;
+      c.lineCap = "round"; c.strokeStyle = "#2b1c10"; c.lineWidth = 7;
+      [xa, xb].forEach(function (x) { c.beginPath(); c.moveTo(x, ziemia + 4); c.lineTo(x, y - 6); c.stroke(); });
+      c.strokeStyle = "#a9713a"; c.lineWidth = 4;
+      [xa, xb].forEach(function (x) { c.beginPath(); c.moveTo(x, ziemia + 4); c.lineTo(x, y - 6); c.stroke(); });
+      c.lineWidth = 3; for (var s = ziemia - 40; s > y + 20; s -= 44) { c.beginPath(); c.moveTo(xa, s); c.lineTo(xb, s - 30); c.stroke(); }
+      c.fillStyle = "#a9713a"; c.strokeStyle = "#2b1c10"; c.lineWidth = 2.5; c.fillRect(6, y - 4, 66, 9); c.strokeRect(6, y - 4, 66, 9);
+      if (bud.complete && bud.naturalWidth) { var h = 70, w = bud.naturalWidth * h / bud.naturalHeight; c.drawImage(bud, 39 - w / 2, y - 4 - h + 2, w, h); }
+    }
+    function flaga(c, f) {
+      var y = ziemia - f.ulamek * M.rzedy * bh;
+      c.strokeStyle = f.zdobyta ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)"; c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(x0, y); c.lineTo(xP + 8, y); c.stroke(); c.setLineDash([]);
+      c.font = "800 21px Inter, system-ui, sans-serif"; var t = (f.zdobyta ? "✓ " : "") + f.tytul, w = c.measureText(t).width + 22, h = 30, x = xP + 8;
+      c.strokeStyle = "#232a52"; c.lineWidth = 4; c.beginPath(); c.moveTo(x, y + 2); c.lineTo(x, y - h - 8); c.stroke();
+      c.beginPath(); c.moveTo(x, y - h - 6); c.lineTo(x + w, y - h - 6); c.lineTo(x + w - 9, y - h / 2 - 6); c.lineTo(x + w, y - 6); c.lineTo(x, y - 6); c.closePath();
+      c.fillStyle = f.zdobyta ? "#e8561e" : "#fff7ea"; c.fill(); c.lineWidth = 2.5; c.stroke();
+      c.fillStyle = f.zdobyta ? "#fff" : "#232a52"; c.textBaseline = "middle"; c.textAlign = "left"; c.fillText(t, x + 8, y - h / 2 - 5);
+    }
+    function klatkaSceny(f) {
+      k.drawImage(tlo, 0, 0);
+      var pole = f * (ile + 8), widoczne = od;
+      for (var i = 0; i < od; i++) cegla(k, i);
+      for (var j = od; j < n; j++) {
+        var t = Math.min(1, Math.max(0, (pole - (j - od)) / 8)); if (t <= 0) break;
+        cegla(k, j, -(1 - t) * (1 - t) * 40, t); if (t >= 1) widoczne = j + 1;
+      }
+      rusztowanie(k, Math.floor(widoczne / M.kolumny));
+      flagi.forEach(function (fl) { flaga(k, fl); });
+      if (naKlatke) naKlatke(f);
+    }
+    function petlaSceny(t0, t) { if (stop) return; var f = CZAS ? Math.min(1, (t - t0) / CZAS) : 1; klatkaSceny(f); if (f < 1) raf = requestAnimationFrame(function (t2) { petlaSceny(t0, t2); }); else if (naKoniec) naKoniec(n); }
+    var budGotowy = new Promise(function (ok) { bud.onload = ok; bud.onerror = ok; bud.src = "assets/ulica/budowniczy.webp?v=" + WERSJA; });
+    Promise.all([wczytajObrazy(["krajobraz", "droga"]), budGotowy]).then(function () {
+      if (stop) return;
+      rysujTloMuru();
+      raf = requestAnimationFrame(function (t) { petlaSceny(t, t); });
+    });
+    return function () { stop = true; cancelAnimationFrame(raf); };
+  }
   function pokazPlansze(pl) {
     var e = $("plansza");
     if (!e) return Promise.resolve();
@@ -424,7 +489,7 @@
     /* Ładowanie z próbą trwa kilka klatek, a menu jeszcze stoi: drugie stuknięcie zaczęłoby drugą rundę i drugi raz pobrało ulepszenie. */
     if (startuje) return;
     startuje = true;
-    ostatniaPostac = postac;
+    ostatniaPostac = postac; schowek.zapisz("cegielki_postac", postac);
     var pole = $("imie"); if (pole) { imieGracza = pole.value.trim(); schowek.zapisz("cegielki_imie", imieGracza); }
     trybMaly = !!($("m-maly") && $("m-maly").checked);
     var STROJ = window.BM_CEGIELKI_STROJ, KONTO = window.BM_CEGIELKI_KONTO, ubior = KONTO ? L.strojPostaci(KONTO.wybor(postac), postac) : null;
@@ -1150,8 +1215,8 @@
     if (drg) x.translate(-drg, 0);
     if (stan === "gra") rysujHud();
   }
-  /* ?diag=1 na prawdziwym telefonie: emulacja nie pokazuje karty graficznej ani dźwięku. Na końcu rundy liczby do przepisania: najdłuższe klatki przy przemianie i poza nią. */
-  var DIAG = parametry.has("diag") ? { przem: 0, przemN: 0, reszta: 0, resztaN: 0, zbierz: 0, start: 0, po: 0 } : null;
+  /* ?diag=1 na prawdziwym telefonie, poza stroną publiczną: emulacja nie pokazuje karty graficznej ani dźwięku. Na końcu rundy liczby do przepisania: najdłuższe klatki przy przemianie i poza nią. */
+  var DIAG = L.diagWlaczony(location.search, location.hostname) ? { przem: 0, przemN: 0, reszta: 0, resztaN: 0, zbierz: 0, start: 0, po: 0 } : null;
   function diagKlatka(ms) {
     if (G.przemiana > 0 || DIAG.po > 0) { DIAG.przem = Math.max(DIAG.przem, ms); if (ms > 25) DIAG.przemN++; if (G.przemiana <= 0) DIAG.po--; else DIAG.po = 6; }
     else { DIAG.reszta = Math.max(DIAG.reszta, ms); if (ms > 25) DIAG.resztaN++; }
@@ -1194,10 +1259,18 @@
   document.addEventListener("visibilitychange", function () { if (document.hidden && stan === "gra") pauza = true; });
   addEventListener("contextmenu", function (e) { e.preventDefault(); });
   document.querySelectorAll(".postac").forEach(function (b) { b.addEventListener("click", function () { start(b.dataset.postac); }); });
+  /* Graj: ostatnia postać z tego urządzenia, jeśli nadal jest w menu. Dotknięcie karty dalej gra od razu tą postacią. */
+  function postacDoGry() { var z = schowek.czytaj("cegielki_postac", ""), b = z && document.querySelector('.postac[data-postac="' + z + '"]'); return b && !b.hidden ? z : "kasia"; }
+  function odswiezGraj() {
+    var id = postacDoGry(), n = document.querySelector('.postac[data-postac="' + id + '"] .p-nazwa');
+    document.querySelectorAll(".postac").forEach(function (b) { b.classList.toggle("wybrana", b.dataset.postac === id); });
+    if ($("m-graj-kto")) $("m-graj-kto").textContent = n ? n.textContent : "";
+  }
+  if ($("m-graj-guzik")) $("m-graj-guzik").addEventListener("click", function () { start(postacDoGry()); });
   $("k-znow").addEventListener("click", function () { start(ostatniaPostac); });
-  $("k-zmien").addEventListener("click", function () { $("koniec").hidden = true; $("menu").hidden = false; G = nowyStan(ostatniaPostac); stan = "menu"; planujDekor(); });
+  $("k-zmien").addEventListener("click", function () { $("koniec").hidden = true; odswiezGraj(); $("menu").hidden = false; G = nowyStan(ostatniaPostac); stan = "menu"; planujDekor(); });
   var gotowaOk, gotowa = new Promise(function (ok) { gotowaOk = ok; });
-  window.BM_CEGIELKI_GRA = { odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
+  window.BM_CEGIELKI_GRA = { scenaMuru: scenaMuru, odswiezGraj: odswiezGraj, odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
   $("k-udostepnij").addEventListener("click", udostepnijWynik);
   $("k-wyzwij").addEventListener("click", wyzwijZnajomego);
   $("glosnik").addEventListener("click", function () { D.wlaczony = !D.wlaczony; schowek.zapisz("cegielki_dzwiek", D.wlaczony ? "1" : "0"); if (D.wlaczony) { D.start(); D.graj("cegla"); } odswiezGlosnik(); });
@@ -1207,7 +1280,7 @@
   function kartaPostaci(id, adres) {
     var a = id === "koparka" ? A.koparka_ark : A[id + "_bieg"], el = document.querySelector('.postac[data-postac="' + id + '"] i'); if (!a || !el) return;
     /* Styl w elemencie wygrywa z @media, więc wielkość karty w poziomie liczymy tutaj. Inaczej karty zajmują cały ekran i reszta menu wypada pod spód. */
-    var sz = (id === "koparka" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : 1), wys = Math.round(a.ch * sz / a.cw);
+    var sz = (id === "koparka" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : innerWidth <= 480 ? 0.74 : 1), wys = Math.round(a.ch * sz / a.cw);
     el.style.backgroundImage = "url(" + (adres || KAT + a.src + "?v=" + WERSJA) + ")";
     el.style.setProperty("--w", sz + "px"); el.style.setProperty("--h", wys + "px");
   }
@@ -1218,6 +1291,7 @@
     if ($("imie")) $("imie").value = imieGracza;
     /* biegacze na kartach: rozmiar klatki z atlasu, różne tempo i faza */
     ["kasia", "filip"].forEach(function (id) { kartaPostaci(id); });
+    odswiezGraj();
     $("menu").hidden = false;
   }
   (async function () {

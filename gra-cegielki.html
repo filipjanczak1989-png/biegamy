@@ -37,8 +37,38 @@
   .pz-pasek { display:block; height:7px; border-radius:6px; background:rgba(255,255,255,.18); overflow:hidden; }
   .pz-pasek span { display:block; height:100%; background:var(--akcent); border-radius:6px; }
   .m-graj { margin:0; font-weight:800; color:#ffe9b8; }
-  .m-guziki { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:min(420px,92vw); flex:none; }
-  .m-guziki button.g { padding:10px 8px; font-size:15px; }
+  /* MENU (Filip 5.11): scena gry widoczna pod spodem, duży Graj, kafle pod kciuk. Reszta pod zgięciem, na własnym tle. */
+  #menu { background:linear-gradient(180deg, rgba(16,19,36,.5), rgba(16,19,36,.14) 42%, rgba(16,19,36,.14) 70%, rgba(16,19,36,.46)); }
+  #menu h1 { text-shadow:0 3px 0 #232a52, 0 0 16px rgba(16,19,36,.55); }
+  .m-glowne { display:grid; gap:10px; width:min(520px,94vw); flex:none; }
+  #menu button.m-graj-guzik { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:88px; padding:8px 14px; font-size:clamp(34px,9vmin,48px); font-weight:900; line-height:1; border-radius:22px; box-shadow:0 6px 0 #b9502a; }
+  #menu button.m-graj-guzik small { margin-top:5px; font-size:15px; font-weight:800; opacity:.85; }
+  #menu .poziom { padding:4px 12px; border-radius:12px; background:rgba(16,19,36,.78); flex:none; }
+  #menu .poziom .pz-reszta { color:#ffe9b8; }
+  .m-guziki { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+  .m-kafel { display:grid; grid-template-columns:44px minmax(0,1fr); grid-template-rows:auto auto; column-gap:8px; align-items:center; align-content:center; min-height:68px; padding:8px 10px; text-align:left; border-radius:16px; border:2px solid rgba(255,255,255,.24); background:rgba(16,19,36,.88); color:var(--tekst); font:inherit; cursor:pointer; touch-action:manipulation; }
+  .m-kafel:focus-visible { border-color:var(--akcent); outline:none; }
+  .m-ikona { grid-row:1 / span 2; width:44px; height:44px; object-fit:contain; }
+  .m-k-nazwa { font-size:15px; font-weight:800; line-height:1.15; }
+  .m-k-dane { font-size:14px; font-weight:800; color:#ffb35c; min-height:1.1em; }
+  .m-k-pasek { display:block; height:9px; margin-top:4px; border-radius:6px; overflow:hidden; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); }
+  .m-k-pasek i { display:block; height:100%; min-width:2px; background:repeating-linear-gradient(90deg,#d96b3a 0 8px,#b9502a 8px 10px); }
+  .m-graj { color:#fff; font-weight:800; text-shadow:0 1px 3px rgba(16,19,36,.9); }
+  #menu .postac { width:auto; min-width:92px; padding:2px 4px 4px; gap:3px; background:transparent; border:0; }
+  #menu .postac .p-nazwa { padding:3px 12px; border-radius:12px; background:rgba(16,19,36,.88); font-size:15px; }
+  #menu .postac.wybrana .p-nazwa { background:var(--akcent); color:#1b1420; }
+  #menu .postac:focus-visible .p-nazwa { outline:2px solid #fff; }
+  .m-wiecej { display:flex; flex-direction:column; align-items:center; gap:10px; width:min(520px,94vw); padding:12px; border-radius:16px; background:rgba(16,19,36,.86); flex:none; }
+  /* MUR */
+  .e-mur-uklad { display:flex; flex-direction:column; align-items:center; gap:10px; width:min(720px,94vw); flex:none; }
+  #e-mur-scena { width:100%; height:auto; border-radius:16px; border:3px solid #232a52; background:#6db4ec; flex:none; }
+  .e-mur-bok { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; }
+  #e-mur-dane { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  #e-mur-liczba { font-size:clamp(38px,11vmin,62px); font-weight:900; line-height:1; color:#ffb35c; font-variant-numeric:tabular-nums; }
+  #e-mur-z { font-weight:800; color:#ffe9b8; }
+  #e-mur-moje { font-weight:800; color:var(--tekst); }
+  #e-mur-moje:empty { display:none; }
+  #e-mur-tresc { width:100%; max-width:100%; }
   .e-pod { z-index:9; background:rgba(16,19,36,.94); }
   #e-rankingi-miejsce, #k-ranking-miejsce { width:min(420px,92vw); flex:none; }
   .e-lista { list-style:none; margin:0; padding:0; width:min(520px,92vw); flex:none; text-align:left; display:flex; flex-direction:column; gap:7px; }
@@ -92,13 +122,20 @@
   button.g.drugi { background:transparent; color:var(--tekst); border:2px solid rgba(255,255,255,.3); }
   #k-link { font:inherit; font-size:13px; width:min(420px,88vw); padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,.3); background:rgba(16,19,36,.75); color:var(--tekst); user-select:text; -webkit-user-select:text; }
   #k-ranking { width:min(420px,92vw); flex:none; }
-  .r-zakladki { display:flex; gap:6px; margin-bottom:8px; }
+  .r-zakladki { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-bottom:8px; }
   .r-zakladka { flex:1; font:inherit; font-size:13px; font-weight:800; padding:9px 4px; border-radius:10px; border:2px solid rgba(255,255,255,.22); background:transparent; color:var(--cichy); cursor:pointer; touch-action:manipulation; }
   .r-zakladka.wybrana { background:rgba(255,138,60,.2); border-color:var(--akcent); color:var(--tekst); }
   .r-lista { list-style:none; margin:0; padding:0; background:rgba(16,19,36,.72); border-radius:14px; overflow:hidden; }
   .r-lista li { display:flex; gap:10px; align-items:center; padding:7px 12px; font-size:15px; border-top:1px solid rgba(255,255,255,.08); }
   .r-lista li:first-child { border-top:0; }
-  .r-lista li.ja { background:rgba(255,179,92,.2); font-weight:800; }
+  .r-lista li.ja { background:rgba(255,138,60,.3); font-weight:800; outline:2px solid var(--akcent); outline-offset:-2px; }
+  .r-lista li.r-podium { font-size:17px; font-weight:800; padding-top:9px; padding-bottom:9px; }
+  .r-lista li.r-kropki { justify-content:center; padding:0 12px; color:var(--cichy); }
+  .r-medal { width:30px; height:30px; flex:none; display:flex; align-items:center; justify-content:center; border-radius:50%; border:2px solid #232a52; font-size:15px; font-weight:900; color:#3a2410; box-shadow:inset 0 -3px 0 rgba(0,0,0,.18); }
+  .r-medal-1 { background:radial-gradient(circle at 35% 30%,#fff3b0,#f4c430 60%,#c8940f); }
+  .r-medal-2 { background:radial-gradient(circle at 35% 30%,#ffffff,#c9ced6 60%,#8f97a3); }
+  .r-medal-3 { background:radial-gradient(circle at 35% 30%,#ffd9b0,#d98a4a 60%,#a35f28); }
+  .r-ty { flex:none; padding:2px 7px; border-radius:8px; background:var(--akcent); color:#1b1420; font-size:12px; font-weight:900; }
   .r-lista li.r-pusto { justify-content:center; color:var(--cichy); padding:14px 12px; }
   .r-m { width:26px; text-align:right; color:var(--cichy); font-weight:800; flex:none; }
   .r-n { flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -176,6 +213,19 @@
   .pr-guzik span { position:absolute; right:-4px; top:-6px; min-width:20px; padding:2px 6px; border-radius:12px; background:#e8561e; color:#fff; font-size:14px; font-weight:800; line-height:1.2; }
   #glosnik { position:fixed; right:calc(10px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); width:48px; height:48px; border-radius:50%; border:0; background:rgba(16,19,36,.72); font-size:22px; cursor:pointer; z-index:5; touch-action:manipulation; }
   #ladowanie { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--tlo); z-index:6; }
+  /* Telefon w poziomie: Graj obok kafli, mur obok liczby. Wszystko ważne na pierwszym ekranie. */
+  @media (max-height:500px) and (orientation:landscape) {
+    #menu h1 { font-size:30px; }
+    .m-bok { height:40px; }
+    .m-glowne { grid-template-columns:minmax(190px,36%) minmax(0,1fr); width:min(820px,96vw); }
+    #menu button.m-graj-guzik { min-height:0; font-size:44px; }
+    .m-kafel { min-height:60px; padding:5px 8px; }
+    .m-graj { display:none; }
+    .e-mur-uklad { flex-direction:row; align-items:center; gap:16px; width:min(820px,96vw); }
+    #e-mur-scena { width:auto; height:min(70vh,300px); max-width:64%; }
+    .e-mur-bok { flex:1; }
+    #e-mur h2 { font-size:20px; }
+  }
   /* Telefon w poziomie: obrazek obok tekstu, cała plansza i przycisk na jednym ekranie. margin:auto zamiast centrowania, bo to ucinało górę bez możliwości przewinięcia. */
   @media (max-height:500px) and (orientation:landscape) {
     .pl-ramka { display:grid; grid-template-columns:minmax(0,46%) minmax(0,1fr); grid-template-rows:auto 1fr auto; gap:6px 14px; width:min(760px,92vw); align-items:center; text-align:left; }
@@ -195,30 +245,35 @@
 <div id="menu" class="ekran" hidden>
   <div class="m-gora"><img id="m-bok-rower" class="m-bok" alt="" hidden><h1>Cegiełki</h1><img id="m-bok-koparka" class="m-bok" src="assets/gra/koparka.webp" alt=""></div>
   <p id="m-znajomy" hidden style="color:#ffe9b8;font-weight:700;"></p>
-  <p>Dotknięcie to skok, drugie w powietrzu to salto. Przesunięcie w dół to ślizg pod barierką.</p>
-  <p class="m-graj">Graj jako:</p>
-  <div class="postacie">
-    <button class="postac" data-postac="kasia"><span class="tor"><span class="fala"><i></i></span></span>Kasia</button>
-    <button class="postac" data-postac="filip"><span class="tor"><span class="fala"><i></i></span></span>Filip</button>
-    <button class="postac" data-postac="rowerzysta" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Rowerzysta</span></button>
-    <button class="postac" data-postac="koparka" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Koparka</span></button>
-  </div>
-  <div class="m-guziki">
-    <button class="g drugi" id="m-sklep">Magazyn Szefa <span id="m-saldo"></span></button>
-    <button class="g drugi" id="m-rankingi">Rankingi</button>
-    <button class="g drugi" id="m-mur-guzik">Mur</button>
-    <button class="g drugi" id="m-dziennik">Dziennik</button>
+  <div id="m-poziom" class="poziom"></div>
+  <div class="m-glowne">
+    <button class="g m-graj-guzik" id="m-graj-guzik" type="button">Graj<small id="m-graj-kto"></small></button>
+    <div class="m-guziki">
+      <button class="m-kafel" id="m-sklep" type="button"><img class="m-ikona" src="assets/gra/cegla_zlota.webp" alt=""><span class="m-k-nazwa">Magazyn Szefa</span><span class="m-k-dane" id="m-saldo"></span></button>
+      <button class="m-kafel" id="m-rankingi" type="button"><img class="m-ikona" src="assets/gra/dodatek_medal.webp" alt=""><span class="m-k-nazwa">Rankingi</span><span class="m-k-dane" id="m-miejsce"></span></button>
+      <button class="m-kafel" id="m-mur-guzik" type="button"><img class="m-ikona" src="assets/gra/cegla.webp" alt=""><span class="m-k-nazwa">Mur</span><span class="m-k-pasek" role="progressbar" aria-label="Postęp muru" aria-valuemin="0" aria-valuemax="1250000"><i id="m-mur-pasek"></i></span></button>
+      <button class="m-kafel" id="m-dziennik" type="button"><svg class="m-ikona" viewBox="0 0 44 44" aria-hidden="true"><rect x="9" y="5" width="28" height="34" rx="3" fill="#fff7ea" stroke="#232a52" stroke-width="3"/><path d="M15 14h16M15 21h16M15 28h10" stroke="#c9562b" stroke-width="3" stroke-linecap="round"/></svg><span class="m-k-nazwa">Dziennik</span><span class="m-k-dane" id="m-dziennik-ile"></span></button>
+    </div>
   </div>
   <button class="g" id="m-bonus" hidden>Odbierz bonus za trening</button>
   <p id="m-bonus-info" role="status" hidden></p>
+  <p class="m-graj">Graj jako:</p>
+  <div class="postacie">
+    <button class="postac" data-postac="kasia"><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Kasia</span></button>
+    <button class="postac" data-postac="filip"><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Filip</span></button>
+    <button class="postac" data-postac="rowerzysta" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Rowerzysta</span></button>
+    <button class="postac" data-postac="koparka" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Koparka</span></button>
+  </div>
+  <div class="m-wiecej">
+  <p>Dotknięcie to skok, drugie w powietrzu to salto. Przesunięcie w dół to ślizg pod barierką.</p>
   <label class="maly"><input type="checkbox" id="m-maly"> <span>Mały budowniczy: wolniej, bez upadków, bez rankingu</span></label>
   <label class="maly" id="m-podglad" hidden><input type="checkbox" id="m-podglad-pole"> <span>Podgląd postaci: tylko to urządzenie, bez rankingu</span></label>
   <a id="m-zbiorka" class="g zbiorka" target="_blank" rel="noopener noreferrer" hidden>Wpłać na zbiórkę</a>
-  <div id="m-poziom" class="poziom"></div>
   <input id="imie" type="text" maxlength="14" autocomplete="off" placeholder="Twoje imię na kartonie kibica" aria-label="Twoje imię na kartonie kibica">
   <div class="pasek-info"><span id="m-wyzwanie"></span><span id="m-odznaki" hidden></span></div>
   <div id="m-mur" class="mur"></div>
   <p class="stopka-prawna"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Polityka prywatności</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Regulamin</a> · <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
+  </div>
 </div>
 
 <div id="obroc" role="alert" hidden><span aria-hidden="true">📱</span>Obróć telefon, tu jest za wąsko na grę.</div>
@@ -282,9 +337,14 @@
 </div>
 <div id="e-mur" class="ekran e-pod" hidden>
   <h2>Wspólny mur</h2>
-  <div id="e-mur-tresc" class="mur"></div>
-  <ul id="e-mur-progi" class="e-lista"></ul>
-  <p id="e-mur-moje"></p>
+  <div class="e-mur-uklad">
+    <canvas id="e-mur-scena" width="720" height="440" role="img" aria-label="Mur z cegieł rośnie razem z grą. Flagi: Mur do pasa, Połowa muru, Mur stoi."></canvas>
+    <div class="e-mur-bok">
+      <div id="e-mur-dane"><b id="e-mur-liczba">0</b><span id="e-mur-z"></span></div>
+      <p id="e-mur-moje"></p>
+      <div id="e-mur-tresc" class="mur"></div>
+    </div>
+  </div>
   <button class="g" data-wroc>Wróć</button>
 </div>
 <div id="e-dziennik" class="ekran e-pod" hidden>

@@ -15,7 +15,7 @@ const L = globalThis.BM_CEGIELKI;
 
 test('nazwa: Magazyn Szefa w menu, na końcu rundy i w nagłówku', () => {
   const h = czytaj('gra-cegielki.html');
-  assert.match(h, /id="m-sklep">Magazyn Szefa <span id="m-saldo">/); assert.match(h, /id="k-sklep">Magazyn Szefa</); assert.match(h, /<h2>Magazyn Szefa<\/h2>/);
+  assert.match(h, /id="m-sklep"[^\n]*>Magazyn Szefa<\/span><span class="m-k-dane" id="m-saldo">/); assert.match(h, /id="k-sklep">Magazyn Szefa</); assert.match(h, /<h2>Magazyn Szefa<\/h2>/);
   assert.doesNotMatch(h, /Sklepik/);
 });
 
