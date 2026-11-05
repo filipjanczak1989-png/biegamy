@@ -81,7 +81,7 @@ test('cytaty: konto testowe dostaje film z funkcji, po „od zera” film gra je
 
 test('gra: podgląd postaci tylko po zgodzie funkcji, bez zapisu rundy i bez wymiany; suwak i firmy testowe tylko na próbie', () => {
   const k = czytaj('js/cegielki-konto.js');
-  assert.match(k, /if \(stan\.podglad\) \{ stan\.ulepszenie = null; return; \}/, 'przed rundą bez numeru rundy');
+  assert.match(k, /if \(stan\.podglad \|\| premiera\) \{ stan\.ulepszenie = null; return; \}/, 'przed rundą bez numeru rundy');
   assert.match(k, /if \(stan\.podglad\) \{ info\("Podgląd postaci: bez zapisu i bez rankingu\."\)/, 'po rundzie bez zapisu');
   assert.match(k, /var w = r && r\.data && r\.data\.ok \? r\.data : null;\s+if \(!w\) return;/, 'odmowa = bez przełącznika');
   const m = czytaj('supabase/migrations/20261105_akcja_sciezka.sql');

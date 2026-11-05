@@ -113,7 +113,7 @@ test('dla-fabianka.html (kod strony): widoczna przy liście, ukryta przy pustej,
     assert.equal(el.firmy.hidden, true); assert.equal(el.firmy.innerHTML, ''); assert.equal(el.pelna.hidden, false, 'strona akcji żyje');
   }
   el = await z({ ...D, firmy: [FIRMA] }, { firmyHtml() { throw new Error('awaria'); } });
-  assert.equal(el.firmy.hidden, true, 'render rzuca'); assert.equal(el.pelna.hidden, false); assert.match(el.filip.textContent, /Filip dokłada/);
+  assert.equal(el.firmy.hidden, true, 'render rzuca'); assert.equal(el.pelna.hidden, false); assert.match(el.filip.textContent, /Filip i Kasia, dokłada/);
   el = await z({ ...D, firmy: [FIRMA] }, { firmyHtml: undefined });
   assert.equal(el.firmy.hidden, true, 'stary js/akcja.mjs bez firmyHtml');
   el = await pokazana({ ...A, pobierzPubliczny: async () => { throw new Error('siec'); } });

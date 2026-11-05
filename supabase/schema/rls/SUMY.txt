@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego wyjścia pg_policies.
 # Generowane: node tools/polityki-bazy.js --zrzut
 # Porównanie:  node tools/polityki-bazy.js
-# Relacji: 92
+# Relacji: 93
 
 a792e255c2e15564  account_deletions_audit
 50a5ed748f55e614  achievements
@@ -12,7 +12,7 @@ e3f7ccefa905354f  ai_reports
 05e73a311c6a8e54  ai_usage_log
 0c0022b63f26a7bb  ai_usage_today
 c98356729ab074f3  akcja_cegielki
-21465c71ebfa6a32  akcja_firmy
+9d4233498ca817ec  akcja_firmy
 f3c0575ea7d8bca4  akcja_firmy_proby
 ee8177f312b1db2e  akcja_firmy_zgloszenia
 51a8914cfb7c49bd  akcja_sponsorzy
@@ -42,6 +42,7 @@ b00ea2294ef83f9e  food_cache
 9aa6116cc2b602be  game_scores
 c3b4f2b4304bac53  generator_proby
 87b4a266a9860b03  gra_konto
+9113796e55d6c62f  gra_pierwsze_cegly
 ffe0f90f9c7e26d0  gra_podejrzane
 81338dbec9c85d0a  gra_rundy
 ab770c72437579f1  gra_wyniki

@@ -461,3 +461,8 @@ test('panel trenera: kwota i cel bez wartości domyślnych, progi 25/50/100 % ce
   assert.equal(U.panelTrenera(null, {}), false);
   assert.equal(U.panelTrenera(new Wezel('div'), null), false);
 });
+
+test('okno sceny się nie przewija: warstwy pory dnia kryją całą szerokość, także po fokusie na budynku', () => {
+  assert.match(czytaj('js/ulica-scena.mjs'), /okno\.addEventListener\("scroll", function \(\) \{ okno\.scrollLeft = 0; okno\.scrollTop = 0; \}\);/);
+});
+

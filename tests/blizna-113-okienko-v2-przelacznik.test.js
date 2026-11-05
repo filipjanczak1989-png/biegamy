@@ -118,8 +118,8 @@ test('3) EF okienko-v2: tylko importy z ../okienko (zero kopii), zapis service w
   assert.equal(await L.zapiszLogV2(adm, { athlete_id: JA, tekst: 'x'.repeat(400), tryb: 'v2', ms: 1234.6, pewnosc: 1.7, intencja: 'moj_plan', plan: ['moj_plan'] }), true);
   const w = t.okienko_v2_log[0];
   assert.equal(w.tekst.length, 300); assert.equal(w.ms, 1235); assert.equal(w.pewnosc, 1); assert.equal(w.intencja, 'moj_plan'); assert.deepEqual(w.plan, ['moj_plan']); assert.equal(w.samosprawdzenie, null);
-  for (let i = 0; i < 60; i++) t.okienko_v2_log.push({ athlete_id: JA, tryb: i % 2 ? 'flash' : 'v2', kiedy: '2026-11-05T09:00:00.000Z' });   // pierwszy wpis ma kiedy=dziś, poza dobą 5.11
-  assert.equal(await L.uzyteDzisV2(adm, JA, '2026-11-05'), 60); assert.equal(await L.sprawdzLimityV2(adm, JA, '2026-11-05', 0), 'dzien');
+  for (let i = 0; i < 60; i++) t.okienko_v2_log.push({ athlete_id: JA, tryb: i % 2 ? 'flash' : 'v2', kiedy: '2099-01-15T09:00:00.000Z' });   // pierwszy wpis ma kiedy=dziś, a limit liczy od początku doby w górę: doba musi być w przyszłości. Stała „5.11” przestała działać 5.11
+  assert.equal(await L.uzyteDzisV2(adm, JA, '2099-01-15'), 60); assert.equal(await L.sprawdzLimityV2(adm, JA, '2099-01-15', 0), 'dzien');
   assert.equal(L.TRYBY_MODELU.includes('router'), false, 'router i chipy nie liczą się do limitu');
   const l = czytaj('supabase/functions/okienko-v2/log-v2.mjs');
   assert.match(l, /import \{ LIMIT_DZIENNY, LIMIT_SIEC, PROG_OSTRZEZENIA, kosztMiesiaca as kosztMiesiacaV1 \} from "\.\.\/okienko\/limity\.mjs";/, 'progi z v1, budżet v1+v2');

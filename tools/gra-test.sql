@@ -36,7 +36,7 @@ begin
   j := public.gra_start_rundy(); r1 := (j->>'runda')::uuid;
   if not (j->>'ok')::boolean or r1 is null then raise exception 'FAIL 2a: start %', j; end if;
   select count(*) into c from public.gra_konto; if c <> 1 then raise exception 'FAIL 2b: konto %', c; end if;
-  begin insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a1, 'kasia', 999, 60, 0, 0, 0, 0, 0); raise exception 'FAIL 2c: insert do wyników'; exception when insufficient_privilege then null; end;
+  begin insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a1, 'kasia', 999, 999, 60, 0, 0, 0, 0, 0); raise exception 'FAIL 2c: insert do wyników'; exception when insufficient_privilege then null; end;
   begin update public.gra_konto set saldo = 999999; raise exception 'FAIL 2d: dopisanie salda'; exception when insufficient_privilege then null; end;
   begin update public.gra_konto set pseudonim = 'Obejscie'; raise exception 'FAIL 2e: pseudonim bez moderacji'; exception when insufficient_privilege then null; end;
   begin insert into public.gra_konto (athlete_id, saldo) values (a2, 5); raise exception 'FAIL 2f: cudze konto'; exception when insufficient_privilege then null; end;
@@ -77,7 +77,7 @@ begin
 
   -- 5. odrzucone: każdy przypadek na nowej rundzie, ze wskazanym powodem
   for f in select * from (values
-      ('ponad pułap', 'kasia', 2401, 60.0, ST, 'ponad_pulap'),
+      ('ponad pułap', 'kasia', 6000, 60.0, ST, 'ponad_pulap'),
       ('dużo poniżej rundy', 'kasia', 10, 30.0, '{"zlote":0,"salta":0,"seria":0,"upadki":0,"bidony":0}'::jsonb, 'dlugosc_rundy'),
       ('runda dłuższa niż bidony', 'kasia', 10, 70.0, '{"zlote":0,"salta":0,"seria":0,"upadki":0,"bidony":0}'::jsonb, 'dlugosc_rundy'),
       ('bidony z kosmosu', 'kasia', 10, 560.0, '{"zlote":0,"salta":0,"seria":0,"upadki":0,"bidony":100}'::jsonb, 'dlugosc_rundy'),
@@ -180,13 +180,13 @@ begin
   execute 'reset role';
   -- Drugi: 1000 dziś i 4000 sprzed roku; Pierwszy: 2800 (runda z bidonami) dziś
   r2 := gen_random_uuid(); insert into public.gra_rundy (id, athlete_id, koniec_at) values (r2, a2, now());
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r2, a2, 'kasia', 1000, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r2, a2, 'kasia', 1000, 1000, 60, 0, 0, 0, 0, 0);
   r2 := gen_random_uuid(); insert into public.gra_rundy (id, athlete_id, koniec_at) values (r2, a2, now());
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony, dzien, kiedy) values (r2, a2, 'filip', 4000, 60, 0, 0, 0, 0, 0, current_date - 365, now() - interval '365 days');
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony, dzien, kiedy) values (r2, a2, 'filip', 4000, 4000, 60, 0, 0, 0, 0, 0, current_date - 365, now() - interval '365 days');
   -- trzeci gracz z wynikiem, bez pseudonimu: nie ma go na liście ani w miejscach innych
   insert into public.gra_konto (athlete_id) values (a3);
   r2 := gen_random_uuid(); insert into public.gra_rundy (id, athlete_id, koniec_at) values (r2, a3, now());
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r2, a3, 'kasia', 9000, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r2, a3, 'kasia', 9000, 9000, 60, 0, 0, 0, 0, 0);
   perform set_config('request.jwt.claims', json_build_object('sub', u2, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   j := public.gra_ranking();
@@ -251,13 +251,13 @@ begin
   execute 'reset role';
   n := n + 6;
 
-  -- 10d. wspólny mur: suma zwykłych cegieł z przyjętych rund (odrzucone nie mają wiersza), złote się nie liczą, cel 12 500 000; skasowany wynik schodzi z muru
+  -- 10d. wspólny mur: suma zwykłych cegieł z przyjętych rund (odrzucone nie mają wiersza), złote się nie liczą, cel 1 250 000; skasowany wynik schodzi z muru
   execute 'set local role authenticated';
   j := public.gra_ranking();
   execute 'reset role';
   select coalesce(sum(cegly), 0) into v_licz from public.gra_wyniki;
   if v_licz = 0 or (j->>'mur')::numeric <> v_licz then raise exception 'FAIL 15a: mur % zamiast %', j->'mur', v_licz; end if;
-  if (j->>'mur_cel')::bigint <> 12500000 then raise exception 'FAIL 15b: cel %', j->'mur_cel'; end if;
+  if (j->>'mur_cel')::bigint <> 1250000 then raise exception 'FAIL 15b: cel %', j->'mur_cel'; end if;
   n := n + 2;
 
   -- 10h. kto najwięcej dołożył: wszech czasów i w czasie akcji, tylko gracze z pseudonimem, bez identyfikatorów
@@ -349,8 +349,8 @@ begin
   n := n + 1;
 
   -- 18. poziomy: te same progi co w grze
-  if public.gra_poziom(0) <> 1 or public.gra_poziom(null) <> 1 or public.gra_poziom(99) <> 1 or public.gra_poziom(100) <> 2 or public.gra_poziom(19999) <> 9 or public.gra_poziom(20000) <> 10
-     or public.gra_poziom(399999) <> 19 or public.gra_poziom(400000) <> 20 or public.gra_poziom(99000000) <> 20 then raise exception 'FAIL 18a: progi poziomów'; end if;
+  if public.gra_poziom(0) <> 1 or public.gra_poziom(null) <> 1 or public.gra_poziom(99) <> 1 or public.gra_poziom(100) <> 2 or public.gra_poziom(10399) <> 9 or public.gra_poziom(10400) <> 10
+     or public.gra_poziom(52199) <> 19 or public.gra_poziom(52200) <> 20 or public.gra_poziom(99000000) <> 20 then raise exception 'FAIL 18a: progi poziomów'; end if;
   n := n + 9;
   -- 19. korona nie jest na sprzedaż, nowe dodatki są
   perform set_config('request.jwt.claims', json_build_object('sub', u1, 'role', 'authenticated')::text, true);
@@ -397,21 +397,21 @@ begin
   if j->>'rowerzysta_opis' <> 'Podpis Testowy' then raise exception 'FAIL 20h: podpis przy włączonym'; end if;
   execute 'reset role';
   insert into public.gra_rundy (athlete_id) values (a3) returning id into r1;
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a3, 'kasia', 19999, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a3, 'kasia', 10399, 10399, 60, 0, 0, 0, 0, 0);
   insert into public.gra_rundy (athlete_id, start_at) values (a3, now() - interval '70 seconds') returning id into r2;
   execute 'set local role authenticated';
   j := public.gra_zapisz_wynik(r2, 'rowerzysta', 100, 60, '{"zlote":0,"salta":0,"seria":0,"upadki":0,"bidony":0}');
   if j->>'powod' is distinct from 'postac_zablokowana' then raise exception 'FAIL 20i: rower na poziomie 9 %', j; end if;
   execute 'reset role';
   insert into public.gra_rundy (athlete_id) values (a3) returning id into r1;
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a3, 'kasia', 1, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a3, 'kasia', 1, 1, 60, 0, 0, 0, 0, 0);
   insert into public.gra_rundy (athlete_id, start_at) values (a3, now() - interval '70 seconds') returning id into r2;
   execute 'set local role authenticated';
   j := public.gra_zapisz_wynik(r2, 'rowerzysta', 500, 60, '{"zlote":2,"salta":0,"seria":0,"upadki":0,"bidony":0}');
   if (j->>'ok')::boolean is not true then raise exception 'FAIL 20j: rower na poziomie 10 odrzucony %', j; end if;
-  if (j->>'cegly_lacznie')::bigint <> 20500 then raise exception 'FAIL 20k: suma po rundzie %', j; end if;
+  if (j->>'cegly_lacznie')::bigint <> 10900 then raise exception 'FAIL 20k: suma po rundzie %', j; end if;
   j := public.gra_moj_postep();
-  if (j->>'cegly')::bigint <> 20500 or (j->>'poziom')::int <> 10 then raise exception 'FAIL 20l: postęp %', j; end if;
+  if (j->>'cegly')::bigint <> 10900 or (j->>'poziom')::int <> 10 then raise exception 'FAIL 20l: postęp %', j; end if;
   execute 'reset role';
   select postac into t from public.gra_wyniki where runda_id = r2; if t <> 'rowerzysta' then raise exception 'FAIL 20m: postać w wyniku %', t; end if;
   -- poziom jest, przełącznika nie ma: przełącznik wygrywa
@@ -441,9 +441,9 @@ begin
   -- poziom 20 bez ukończonego muru: wystarcza sam poziom
   delete from public.gra_wyniki where athlete_id = a2;
   insert into public.gra_rundy (athlete_id) values (a2) returning id into r1;
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a2, 'kasia', 400000, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a2, 'kasia', 52200, 52200, 60, 0, 0, 0, 0, 0);
   insert into public.gra_konto (athlete_id) values (a2) on conflict (athlete_id) do nothing;
-  select coalesce(sum(cegly), 0) into v_licz from public.gra_wyniki; if v_licz >= 12500000 then raise exception 'FAIL 21h: mur już gotowy w teście (%)', v_licz; end if;
+  select coalesce(sum(cegly), 0) into v_licz from public.gra_wyniki; if v_licz >= 1250000 then raise exception 'FAIL 21h: mur już gotowy w teście (%)', v_licz; end if;
   insert into public.gra_rundy (athlete_id, start_at) values (a2, now() - interval '70 seconds') returning id into r2;
   perform set_config('request.jwt.claims', json_build_object('sub', u2, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
@@ -452,7 +452,7 @@ begin
   execute 'reset role';
   perform set_config('request.jwt.claims', json_build_object('sub', u3, 'role', 'authenticated')::text, true);
   insert into public.gra_rundy (athlete_id) values (a1) returning id into r1;
-  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a1, 'kasia', 13000000, 60, 0, 0, 0, 0, 0);
+  insert into public.gra_wyniki (runda_id, athlete_id, postac, cegly, punkty, czas_s, zlote, salta, seria, upadki, bidony) values (r1, a1, 'kasia', 13000000, 13000000, 60, 0, 0, 0, 0, 0);
   insert into public.gra_rundy (athlete_id, start_at) values (a3, now() - interval '70 seconds') returning id into r2;
   execute 'set local role authenticated';
   j := public.gra_zapisz_wynik(r2, 'koparka', 100, 60, '{"zlote":0,"salta":0,"seria":0,"upadki":0,"bidony":0}');

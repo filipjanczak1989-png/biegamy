@@ -2,7 +2,7 @@
 # (białe znaki zwinięte, małe litery), NIE z surowego pg_get_functiondef.
 # Generowane: node tools/funkcje-bazy.js --zrzut
 # Porównanie:  node tools/funkcje-bazy.js
-# Obiektow (funkcje + triggery): 105
+# Obiektow (funkcje + triggery): 110
 
 1dddac818442dfbd  accept_intake_form
 a3ece9021a7333e4  accept_terms
@@ -19,7 +19,7 @@ f9dcab18c36745df  akcja_firmy_wpusc
 6ca6244c439139ce  akcja_firmy_zgloszenia_lista
 7cbf7a2e860277f5  akcja_firmy_zgloszenie_dodaj
 076fd7e52aadb4f3  akcja_km_okna
-0f826b9d431cafbe  akcja_licznik
+9e9fb3d2a4946e71  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
 0c2d2b9fe5411492  akcja_proba_firmy
@@ -53,21 +53,25 @@ f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
 86658e0f13be05d4  delete_my_account
 0723ea23ebfdad19  ensure_coach_athlete_row
 40ec3907096b11eb  get_app_stats
-eda5534a24e3587d  gra_dolozyli
+c18c2ea5674e8312  gra_dolozyli
 5622887af8f0af48  gra_kup
 238828ee3013db19  gra_liczba
-37f43098cf60444f  gra_miejsca
+364248d7917c37ab  gra_miejsca
+8f6e6ac7f3775b59  gra_mnoznik_poziomu
 4f4ea45a4f79513c  gra_moj_postep
-f5ecd8783c4b155e  gra_moje_dolozone
-e803c6cb756e7169  gra_postac_odblokowana
-7a320ebdc5827258  gra_poziom
-ac94f5b9661d5407  gra_ranking
-9666e2e50fb5fabe  gra_ranking_od
-0edb875b3956e864  gra_start_rundy
+bdb9ed6995a2ed48  gra_moje_dolozone
+3daa186daa17419e  gra_mur
+cb4b75cfe71e9d2b  gra_nagrody_do_poziomu
+352762746ae17e73  gra_postac_odblokowana
+2ba85acb49bc41bb  gra_poziom
+581e60019788f589  gra_ranking
+4b30c16f645c03ee  gra_ranking_od
+bd2f394b8d5229c6  gra_start_rundy
 a08b2ab01fec0c3e  gra_suma_cegiel
 2b6aedd737a8544c  gra_token_ok
 fd27441bb1d8a4ff  gra_ustaw_pseudonim
-9f7d4b193d457217  gra_zapisz_wynik
+a5d9c7208d28625b  gra_zapisz_stroje
+f6179999c79c2c91  gra_zapisz_wynik
 013b730325385fdf  handle_new_user
 8ea2d5a07539cb35  impreza_do_races
 911eb41b95030867  increment_play
@@ -85,6 +89,7 @@ eb44b6d69ef0d9f0  nutrition_profiles.trg_calc_bmr_tdee
 a7c292fe68e0995d  okienko_pamiec_limit
 5e11053bc3a6097a  okienko_pamiec.okienko_pamiec_limit_trg
 3fd294982bfb6079  okienko_wersja
+b613683d3c728200  premiera_szefa_zapisz
 067fc22d9b769a04  race_signups.trg_race_signup_count
 00c6bf1a1b7ce0a2  review_moment
 25d900a25e2d2961  search_food_by_name

@@ -26,7 +26,7 @@ const M = globalThis.BM_MODERACJA, L = globalThis.BM_CEGIELKI;
 test('front gry woła wyłącznie RPC gra_* i czyta wyłącznie gra_konto', () => {
   for (const p of FRONT) {
     const t = bezKomentarzyJs(czytaj(p));
-    for (const m of t.matchAll(/\.rpc\(\s*["'`]([^"'`]+)/g)) assert.match(m[1], /^gra_/, `${p}: rpc ${m[1]}`);
+    for (const m of t.matchAll(/\.rpc\(\s*["'`]([^"'`]+)/g)) assert.ok(/^gra_/.test(m[1]) || ['premiera_szefa_zapisz', 'bonus_treningu_odbierz'].includes(m[1]), `${p}: rpc ${m[1]}`);   // dwa wyjątki: premiera (blizna-166) i bonus za trening (blizna-172) czytają akcję albo treningi, piszą wyłącznie do tabel gry
     for (const m of t.matchAll(/\.from\(\s*["'`]([^"'`]+)/g)) assert.equal(m[1], 'gra_konto', `${p}: from ${m[1]}`);
     for (const m of t.matchAll(/functions\.invoke\(\s*["'`]([^"'`]+)/g)) assert.ok(['gra-pseudonim', 'akcja-proba-wizerunek'].includes(m[1]), `${p}: invoke ${m[1]}`);   // akcja-proba-wizerunek: tylko podgląd postaci w ścieżce próby, odczyt
     assert.doesNotMatch(t, /training_logs|athlete_stats|akcja_(?:deklaruj|startujacy|sponsorzy|licznik\b)|\.from\(\s*["'`]akcj/, p);
@@ -96,7 +96,7 @@ test('pułapy wyniku i balans idą w parze: zmiana balansu = nowy pomiar', () =>
 test('sklepik: ceny w grze i w bazie są te same, wszystko za złote cegły z gry', () => {
   const sql = czytaj(MIG);
   const wBazie = Object.fromEntries([...sql.matchAll(/when '([a-z-]+)' then (\d+)/g)].map((m) => [m[1], Number(m[2])]));
-  const naSprzedaz = L.SKLEP.filter((p) => !p.tylkoCzolowka);
+  const naSprzedaz = L.SKLEP.filter((p) => !p.tylkoCzolowka && !p.tylkoSeria);
   for (const p of naSprzedaz) assert.equal(wBazie[p.id], p.cena, p.id);
   assert.equal(wBazie.korona, undefined, 'korona nie jest na sprzedaż: tylko czołówka rankingu dnia');
   for (const u of L.ULEPSZENIA) assert.equal(wBazie[u.id], u.cena, u.id);
@@ -178,20 +178,20 @@ test('poziomy: te same progi w grze i w bazie, krzywa rosnąca, 20 poziomów', (
   assert.equal(L.POZIOMY.length, 20);
   assert.equal(L.POZIOMY[0], 0);
   for (let i = 1; i < L.POZIOMY.length; i++) assert.ok(L.POZIOMY[i] > L.POZIOMY[i - 1], 'próg ' + i);
-  const sql = bezKomentarzySql(czytaj(MIG)), m = sql.match(/unnest\(array\[([0-9, ]+)\]::bigint\[\]\)/);
+  const sql = bezKomentarzySql(czytaj('supabase/migrations/20261106_gra_poziomy.sql')), m = sql.match(/unnest\(array\[([0-9, ]+)\]::bigint\[\]\)/);
   assert.ok(m, 'progi w migracji');
   assert.deepEqual(m[1].split(',').map(Number), L.POZIOMY);
-  assert.equal(L.poziom(0), 1); assert.equal(L.poziom(99), 1); assert.equal(L.poziom(100), 2); assert.equal(L.poziom(20000), 10); assert.equal(L.poziom(399999), 19); assert.equal(L.poziom(5e6), 20);
+  assert.equal(L.poziom(0), 1); assert.equal(L.poziom(99), 1); assert.equal(L.poziom(100), 2); assert.equal(L.poziom(10400), 10); assert.equal(L.poziom(52199), 19); assert.equal(L.poziom(5e6), 20);
   assert.equal(L.postepPoziomu(5e6).nastepny, null);
   assert.equal(L.postepPoziomu(150).brakuje, 150);
 });
 
 test('postacie do odblokowania: poziom 10, poziom 20 albo mur, tylko za przełącznikami', () => {
   assert.equal(L.odblokowana('kasia', 0), true);
-  assert.equal(L.odblokowana('rowerzysta', 19999), false); assert.equal(L.odblokowana('rowerzysta', 20000), true);
+  assert.equal(L.odblokowana('rowerzysta', 10399), false); assert.equal(L.odblokowana('rowerzysta', 10400), true);
   assert.equal(L.odblokowana('rowerzysta', 0, 13000000), false, 'mur otwiera tylko koparkę');
-  assert.equal(L.odblokowana('koparka', 399999), false); assert.equal(L.odblokowana('koparka', 400000), true);
-  assert.equal(L.odblokowana('koparka', 0, 12499999), false); assert.equal(L.odblokowana('koparka', 0, 12500000), true);
+  assert.equal(L.odblokowana('koparka', 52199), false); assert.equal(L.odblokowana('koparka', 52200), true);
+  assert.equal(L.odblokowana('koparka', 0, 1249999), false); assert.equal(L.odblokowana('koparka', 0, 1250000), true);
   assert.equal(L.odblokowana('nie-ma', 9e9, 9e9), false);
   assert.equal(L.POSTACIE.rowerzysta.tempo, 1.1); assert.ok(Math.abs(L.POSTACIE.rowerzysta.skok ** 2 - 0.8) < 1e-9, 'wysokość skoku 80%');
   assert.equal(L.POSTACIE.koparka.tempo, 0.85); assert.equal(L.POSTACIE.koparka.skacze, false);
@@ -330,7 +330,7 @@ test('złote cegły to waluta, zwykłe idą do muru: osobno w grze i na serwerze
   assert.match(m, /set saldo = saldo \+ v_zlote::integer/);
   assert.doesNotMatch(m, /saldo \+ p_cegly/, 'zwykłe nie są walutą');
   assert.match(m, /'ponad_pulap_zlotych'/);
-  assert.match(m, /'mur_cel', 12500000/);
+  assert.match(m, /'mur_cel', 12500000/, 'stara migracja: nową liczbę nadpisuje 20261106'); assert.equal(L.MUR_CEL, 1250000, '100 cegieł na km akcji');
   assert.match(m, /'mur',\s+\(select coalesce\(sum\(w\.cegly\), 0\) from public\.gra_wyniki w\)/, 'mur tylko ze zwykłych, liczony z przyjętych wyników');
   assert.match(m, /'dolozyli_wszech', public\.gra_dolozyli\(null, null\)/);
   assert.doesNotMatch(m, /zebrane/);
@@ -365,7 +365,7 @@ test('przemiana: arkusze gotowe przed rundą, bez pełnoekranowego błysku, konf
 test('Mały budowniczy: bez rankingu, rekordu i wyzwania, bo to łatwiejsza gra', () => {
   const s = czytaj('js/cegielki.js');
   assert.match(s, /if \(!trybMaly && window\.BM_CEGIELKI_KONTO && window\.BM_CEGIELKI_KONTO\.przedRunda\)/, 'runda bez numeru');
-  assert.match(s, /nowy = !g\.maly && g\.cegly > rekord/, 'rekord nietknięty');
+  assert.match(s, /nowy = !g\.maly && g\.punkty > rekord/, 'rekord nietknięty');
   assert.match(s, /if \(g\.wyzwanieGotowe \|\| g\.maly\) return/, 'bez odznaki');
   assert.match(czytaj('js/cegielki-konto.js'), /if \(w\.maly\) \{ await odswiezRanking\(\); return; \}/, 'bez zapisu wyniku');
   assert.ok(L.MALY_TEMPO < 1);

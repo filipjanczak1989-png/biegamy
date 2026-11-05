@@ -2,7 +2,7 @@
    Spec v3 pkt 2 + zmiany Filipa 2.11 (docs/akcja-f-spec.md pkt 10).
 
    Pilnuje:
-   - rozliczenie JEDNORAZOWE: „Filip dokłada 10 gr za każdy kilometr · dotąd X zł z 1 250 zł", bez kwot tygodnia w UI;
+   - rozliczenie JEDNORAZOWE: „BiegaMy, czyli Filip i Kasia, dokłada 10 gr za każdy kilometr biegu i spaceru · dotąd X zł z 1 250 zł", bez kwot tygodnia w UI;
    - karta na Dziś: przed startem nic, po starcie licznik + wkład, po zamknięciu „Zrobiliśmy to" przez 7 dni, potem nic;
    - nazwa/link z bazy: nazwa escapowana, link zbiórki tylko https przez safeExternalHref (CLAUDE.md);
    - przed startem nic nie zdradza dziecka: statyczny kod index.html i dla-fabianka.html bez imienia (poza nazwą pliku),
@@ -32,8 +32,8 @@ const PO = { wystartowala: true, wystartowala_at: '2026-11-08T10:07:00Z', nazwa:
   url_zbiorki: 'https://www.siepomaga.pl/x', koniec: null, zamknieta: false };
 
 test('teksty: Filip jednorazowo (dotąd X zł z 1 250 zł), złote i km po polsku, sponsorzy bez nazwisk', () => {
-  assert.equal(A.tekstFilipa(PO), 'Filip dokłada 10 gr za każdy kilometr · dotąd 412,04 zł z 1 250 zł');
-  assert.equal(A.tekstFilipa({ ...PO, filip_gr: 125000 }), 'Filip dokłada 10 gr za każdy kilometr · dotąd 1 250 zł z 1 250 zł');
+  assert.equal(A.tekstFilipa(PO), 'BiegaMy, czyli Filip i Kasia, dokłada 10 gr za każdy kilometr biegu i spaceru · dotąd 412,04 zł z 1 250 zł');
+  assert.equal(A.tekstFilipa({ ...PO, filip_gr: 125000 }), 'BiegaMy, czyli Filip i Kasia, dokłada 10 gr za każdy kilometr biegu i spaceru · dotąd 1 250 zł z 1 250 zł');
   assert.equal(A.tekstFilipa({ wystartowala: false }), '');
   assert.equal(A.km(12500), '12 500');
   assert.equal(A.km(3.42), '3,4');

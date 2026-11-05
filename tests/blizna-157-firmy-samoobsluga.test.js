@@ -158,7 +158,7 @@ test('szyld: logo, a bez niego nazwa; podpis Partner akcji; żadnego innerHTML z
   const g = bezKomJs(czytaj('js/cegielki.js'));
   assert.match(g, /firmy = L\.firmyZLicznika\(d\)/);
   assert.match(g, /im\.crossOrigin = "anonymous"/, 'obrazek do udostępnienia nie może się skazić');
-  assert.match(g, /k !== "wiezowiec" && !\/\^\(kasia\|filip\|rowerzysta\|dodatek\)_\//, 'grafika budynku poza ładowaniem startowym');
+  assert.match(g, /k !== "wiezowiec" && !L\.BUDYNKI_POPRZEDNICH\[k\] && !\/\^\(kasia\|filip\|rowerzysta\|dodatek\)_\//, 'grafika budynku poza ładowaniem startowym');
   const c = { globalThis: null, Math }; c.globalThis = c; vm.createContext(c);
   vm.runInContext(czytaj('js/cegielki-logika.mjs'), c);
   const L = c.BM_CEGIELKI, ADR = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/akcja-firmy-logo/11111111-1111-4111-8111-111111111111.webp';
@@ -181,3 +181,11 @@ test('Centrum Akcji na Dziś: bez pełnej sceny, kafle, film dopiero po dotknię
     assert.doesNotMatch(t, /Nie zbieramy dokładnej lokalizacji GPS|No GPS\./, plik + ': stare zdanie przeczyło mapie wyprawy');
   }
 });
+
+test('logo z pustym tłem: panel przycina biały i przezroczysty margines, biel w środku zostaje', () => {
+  const s = czytaj('js/logo-firmy.mjs');
+  assert.match(s, /\} else k = bezPustegoMarginesu\(await obrazNaCanvas\(plik\)\);/);
+  assert.match(s, /d\[i \+ 3\] > PROG_ALFA && Math\.min\(d\[i\], d\[i \+ 1\], d\[i \+ 2\]\) < 245/);
+  assert.match(s, /if \(x1 < 0\) return k;/, 'całe białe logo nie jest błędem');
+});
+

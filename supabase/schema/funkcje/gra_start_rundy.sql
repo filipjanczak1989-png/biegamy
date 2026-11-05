@@ -7,7 +7,7 @@ AS $function$
 declare
   RUND_NA_MINUTE constant integer := 3;   -- runda trwa minutę; zapas na wyjście i ponowny start
   v_konto uuid := public.auth_my_athlete_id();
-  v_ile integer; v_runda uuid; v_saldo integer;
+  v_ile integer; v_runda uuid; v_saldo integer; v_poziom integer;
   v_cena integer := case p_ulepszenie when 'kask' then 5 when 'bidon' then 4 end;
   v_ulepszenie text;
 begin
@@ -27,7 +27,8 @@ begin
     update public.gra_konto set saldo = saldo - v_cena where athlete_id = v_konto and saldo >= v_cena;
     if found then v_ulepszenie := p_ulepszenie; end if;
   end if;
-  insert into public.gra_rundy (athlete_id, ulepszenie) values (v_konto, v_ulepszenie) returning id into v_runda;
+  v_poziom := public.gra_poziom(public.gra_suma_cegiel(v_konto));
+  insert into public.gra_rundy (athlete_id, ulepszenie, poziom) values (v_konto, v_ulepszenie, v_poziom) returning id into v_runda;
   select saldo into v_saldo from public.gra_konto where athlete_id = v_konto;
-  return jsonb_build_object('ok', true, 'runda', v_runda, 'ulepszenie', v_ulepszenie, 'saldo', v_saldo);
+  return jsonb_build_object('ok', true, 'runda', v_runda, 'ulepszenie', v_ulepszenie, 'saldo', v_saldo, 'poziom', v_poziom);
 end $function$

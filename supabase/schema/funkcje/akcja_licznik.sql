@@ -52,7 +52,8 @@ begin
   -- firmy (20261104_akcja_firmy): tylko po starcie (gałąź „przed startem” wyżej ich nie zna). Pola wymienione po imieniu: kwota wyłącznie przy zgodzie, potwierdzenie i autor nie wychodzą.
   -- Własny blok wyjątku: awaria listy firm oddaje pustą listę i nie psuje licznika.
   begin
-    select coalesce(jsonb_agg(jsonb_build_object('nazwa', f.nazwa, 'link', f.link, 'logo_url', f.logo_url, 'rodzaj', f.rodzaj, 'wsparcie', f.wsparcie,
+    select coalesce(jsonb_agg(jsonb_build_object('nazwa', f.nazwa, 'link', f.link, 'logo_url', case when f.logo_zgoda then f.logo_url end, 'rodzaj', f.rodzaj, 'wsparcie', f.wsparcie,
+                                                 'plakat_url', case when f.logo_zgoda then f.plakat_url end, 'plakat_tekst', case when f.logo_zgoda then f.plakat_tekst end,
                                                  'kwota_gr', case when f.zgoda_na_kwote then f.kwota_gr end) order by f.dodano, f.id), '[]'::jsonb)
       into v_firmy from public.akcja_firmy f where f.akcja_slug = a.slug and not f.ukryta;
   exception when others then v_firmy := '[]'::jsonb;
