@@ -63,7 +63,6 @@
 
   <div id="pelna" hidden>
     <h1 id="nazwa"></h1>
-    <div id="plakat"></div>
     <section aria-label="Licznik">
       <div class="duze-liczby" id="duze"></div>
       <div id="pasek"></div>
@@ -72,6 +71,7 @@
       <p class="drobne" id="wyprawa" hidden></p>
     </section>
     <div id="ulica-po"></div>
+    <div id="plakat"></div>
     <section id="jak">
       <h2>Jak to działa</h2>
       <ol>
@@ -123,7 +123,7 @@
     $('teaser').hidden = true; $('pelna').hidden = false;
     var zamknieta = !!d.koniec;   // audyt 2.11: `zamknieta` świeci w chwili dobicia sumy, `koniec` dopiero po zamknięciu doby — jak karta Dziś
     $('nazwa').textContent = zamknieta ? 'Zrobiliśmy to' : (d.nazwa || 'BiegaMy');
-    $('plakat').innerHTML = A.plakatHtml(d);   // plakat na całą szerokość + „Wpłać na zbiórkę"; bez plakatu pusty (bez dziury)
+    $('plakat').innerHTML = A.plakatHtml(d);   // plakat na całą szerokość + „Zbiórka”; bez plakatu pusty (bez dziury)
     document.title = (d.nazwa || 'BiegaMy') + ' · BiegaMy';
     $('duze').innerHTML = '<b>' + A.km(d.suma_km) + '</b> <span>/ ' + A.km(d.cel_km) + ' km</span>';
     $('pasek').innerHTML = A.pasekHtml(d);

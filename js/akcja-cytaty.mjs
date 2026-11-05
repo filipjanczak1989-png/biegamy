@@ -57,7 +57,11 @@
   var ADRES_FILMU = /^https:\/\/afqojgkaveykxbltxzwm\.supabase\.co\/storage\/v1\/object\/sign\/akcja-wizerunek\/[A-Za-z0-9._-]+\.mp4\?token=[A-Za-z0-9._-]+$/;
   function filmAkcjiZLicznika(d) {
     var u = d && d.wystartowala && d.film_akcji_url;
-    return typeof u === "string" && ADRES_FILMU.test(u) ? { id: "film-akcja", mp4: u, dzwiek: true, pozycje: [{ od: 0, pos: "50% 45%" }, { od: 10, pos: "50% 50%", fit: "contain" }] } : null;
+    if (typeof u !== "string" || !ADRES_FILMU.test(u)) return null;
+    /* Od 10. sekundy w pliku stoi plakat w małej rozdzielczości: po to jest osobny plik plakatu, a dźwięk gra dalej. Bez plakatu wszystko jak dotąd. */
+    var pl = d.plakat_url && g.safeUrlAttr && g.safeUrlAttr(d.plakat_url) ? d.plakat_url : "";
+    var zb = g.BM_AKCJA && g.BM_AKCJA.linkZbiorki ? g.BM_AKCJA.linkZbiorki(d) : "";
+    return { id: "film-akcja", mp4: u, dzwiek: true, pozycje: [{ od: 0, pos: "50% 45%" }, { od: 10, pos: "50% 50%", fit: "contain" }], plakat: pl, plakat_od: 10, zbiorka: zb };
   }
   /* ŚCIEŻKA FABIANKA: licznik nigdy nie oddaje rysunku ani filmu dla próby. Trener i konto testowe dostają je osobną funkcją, na 15 minut. Odmowa = bez adresów, reszta próby działa. */
   var _wizerunekProby = null, _wizerunekT = 0;
@@ -91,7 +95,7 @@
       var d = r.data || null;
       if (slug === "proba" && d && d.wystartowala && g.document) {
         var w = await wizerunekProby(sb);
-        if (w) { d.koparka_url = w.koparka_url; d.koparka_arkusz_url = w.koparka_arkusz_url; d.film_akcji_url = w.film_akcji_url; }
+        if (w) { d.koparka_url = w.koparka_url; d.koparka_arkusz_url = w.koparka_arkusz_url; d.film_akcji_url = w.film_akcji_url; d.plakat_url = w.plakat_url; }
       }
       try { if (ss) ss.setItem(klucz, JSON.stringify({ t: teraz, d: d })); } catch (e) {}
       _zastosuj(slug, d);

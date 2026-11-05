@@ -725,6 +725,7 @@
     $("pr-tytul").textContent = "Pierwsza runda na świecie: Szef" + (stan.imie ? " " + stan.imie : "");
     $("pr-cegly").textContent = "Pierwsze cegły ulicy: " + liczba(premiera.cegly);
     $("pr-ponow").hidden = true; $("premiera").hidden = false;
+    $("pr-dzis").hidden = premieraNaProbie();
     if (premieraNaProbie()) { $("pr-info").textContent = "Próba: te cegły nie trafiają do muru."; return; }
     if (premiera.zapisane) { $("pr-info").textContent = "Leżą już w murze jako pierwsze."; return; }
     zapiszPremiere();

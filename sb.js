@@ -704,7 +704,19 @@
       v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + film.pozycje[0].pos +
         ';transition:object-position .6s ease,opacity .3s ease;z-index:3;border-radius:inherit;background:#000;cursor:pointer;opacity:0;';
       [['mp4', 'video/mp4'], ['webm', 'video/webm']].forEach(function (s) { if (!film[s[0]]) return; var z = document.createElement('source'); z.src = adresFilmu(film[s[0]]); z.type = s[1]; v.appendChild(z); });
-      var koniec = false, gotowy = false, glosnik = null;
+      var koniec = false, gotowy = false, glosnik = null, plansza = null;
+      /* Plakat na końcu filmu akcji: od chwili plakatu w pliku pełny plakat z osobnego pliku, dźwięk gra dalej. Dotknięcie: pełny ekran. Nie wczytał się: zostaje film. */
+      function pokazPlansze() {
+        if (plansza || koniec || !film.plakat) return;
+        plansza = document.createElement('div'); plansza.className = 'film-plansza';
+        plansza.style.cssText = 'position:absolute;inset:0;z-index:3;border-radius:inherit;background:#000;cursor:zoom-in;display:flex;align-items:center;justify-content:center;';
+        var im = document.createElement('img'); im.src = film.plakat; im.alt = 'Plakat akcji'; im.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+        im.addEventListener('error', function () { if (plansza && plansza.parentNode) plansza.parentNode.removeChild(plansza); plansza = null; film = Object.assign({}, film, { plakat: '' }); });
+        plansza.appendChild(im);
+        plansza.addEventListener('click', function (e) { e.stopPropagation(); if (window.BM_AKCJA && window.BM_AKCJA.pokazPlakat) window.BM_AKCJA.pokazPlakat(film.plakat, film.zbiorka); });
+        baner.appendChild(plansza);
+      }
+      function koniecFilmu() { if (!film.plakat) return zakoncz(); pokazPlansze(); setTimeout(zakoncz, 5000); }   // plakat zostaje chwilę po ostatnim dźwięku
       /* 🔊 (FILM-02): 44 px w rogu banera, pojawia się razem z filmem (przy „playing"); przełącza muted NA TYM SAMYM filmie.
          Nigdy autoodtwarzanie z dźwiękiem — film zawsze startuje wyciszony, dźwięk wyłącznie po dotknięciu. Po końcu znika. */
       if (film.dzwiek) {
@@ -736,17 +748,18 @@
         v.style.opacity = '0';
         if (glosnik) { glosnik.style.opacity = '0'; glosnik.style.pointerEvents = 'none'; }
         pomin.style.opacity = '0'; pomin.style.pointerEvents = 'none';
-        setTimeout(function () { try { v.pause(); } catch (e) {} if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik); if (pomin.parentNode) pomin.parentNode.removeChild(pomin);
+        if (plansza) plansza.style.opacity = '0';
+        setTimeout(function () { try { v.pause(); } catch (e) {} if (plansza && plansza.parentNode) plansza.parentNode.removeChild(plansza); if (v.parentNode) v.parentNode.removeChild(v); if (glosnik && glosnik.parentNode) glosnik.parentNode.removeChild(glosnik); if (pomin.parentNode) pomin.parentNode.removeChild(pomin);
           pokazPowtorke(baner, teraz); }, 520);   // po końcu / pominięciu — ▶ (ten sam film od początku)
         baner.dataset.film = 'koniec';
       }
-      v.addEventListener('timeupdate', function () { var p = pozycja(film, v.currentTime || 0), f = dopasowanie(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; if (v.style.objectFit !== f) v.style.objectFit = f; });
+      v.addEventListener('timeupdate', function () { if (film.plakat && film.plakat_od != null && (v.currentTime || 0) >= film.plakat_od) pokazPlansze(); var p = pozycja(film, v.currentTime || 0), f = dopasowanie(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; if (v.style.objectFit !== f) v.style.objectFit = f; });
       v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } pomin.style.opacity = '1'; pomin.style.pointerEvents = 'auto'; if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
         try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
       });
-      v.addEventListener('ended', zakoncz);
+      v.addEventListener('ended', koniecFilmu);
       v.addEventListener('error', zakoncz, true);
       v.addEventListener('click', function (e) { e.stopPropagation(); zakoncz(); });   // tap pomija
       baner.appendChild(v);

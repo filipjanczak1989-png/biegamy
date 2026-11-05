@@ -445,7 +445,7 @@
       if (_idProby === "trener") {
         var lt = await g.sb.rpc("akcja_licznik", { p_slug: "proba" });
         if (lt.error || !lt.data) return null;
-        if (lt.data.wystartowala) { var wz = await g.BM_AKCJA_CYTATY.wizerunekProby(g.sb); if (wz) { lt.data.koparka_url = wz.koparka_url; lt.data.koparka_arkusz_url = wz.koparka_arkusz_url; lt.data.film_akcji_url = wz.film_akcji_url; } }
+        if (lt.data.wystartowala) { var wz = await g.BM_AKCJA_CYTATY.wizerunekProby(g.sb); if (wz) { lt.data.koparka_url = wz.koparka_url; lt.data.koparka_arkusz_url = wz.koparka_arkusz_url; lt.data.film_akcji_url = wz.film_akcji_url; lt.data.plakat_url = wz.plakat_url; } }
         return lt.data;
       }
       return await g.BM_AKCJA_CYTATY.odswiezStan(g.sb, _idProby, { wymus: true });

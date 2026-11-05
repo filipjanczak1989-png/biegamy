@@ -29,12 +29,19 @@
     var u = d && d.wystartowala && d.plakat_url;
     return u && g.safeUrlAttr ? g.safeUrlAttr(u) : "";
   }
+  /* Zbiórka: href tylko z linkZbiorki (https). Dotknięcie otwiera zbiórkę, nakładka zostaje pod spodem. */
+  function przyciskZbiorki(href, klasa) {
+    var z = g.document.createElement("a"); z.className = klasa; z.href = href; z.target = "_blank"; z.rel = "noopener noreferrer"; z.textContent = "Zbiórka";
+    z.addEventListener("click", function (e) { e.stopPropagation(); });
+    return z;
+  }
   /** Pełny ekran plakatu — jedna nakładka na stronę, zamykana dotknięciem/Esc. Klik w [data-plakat] (delegacja). */
-  function pokazPlakat(url) {
+  function pokazPlakat(url, zbiorka) {
     if (!g.document || !url) return;
     var stara = g.document.getElementById("bm-plakat-pelny"); if (stara) stara.remove();
     var n = g.document.createElement("div"); n.id = "bm-plakat-pelny"; n.className = "akcja-plakat-pelny"; n.setAttribute("role", "dialog"); n.setAttribute("aria-label", "Plakat akcji");
     var img = g.document.createElement("img"); img.src = url; img.alt = "Plakat akcji"; n.appendChild(img);
+    if (zbiorka) n.appendChild(przyciskZbiorki(zbiorka, "akcja-plakat-zbiorka"));
     var zamknij = function () { n.remove(); g.document.removeEventListener("keydown", naKlawisz); };
     var naKlawisz = function (e) { if (e.key === "Escape") zamknij(); };
     n.addEventListener("click", zamknij); g.document.addEventListener("keydown", naKlawisz);
@@ -44,16 +51,16 @@
     g.document.addEventListener("click", function (e) {
       var el = e.target && e.target.closest ? e.target.closest("[data-plakat]") : null;
       if (!el) return;
-      e.preventDefault(); pokazPlakat(el.getAttribute("data-plakat"));
+      e.preventDefault(); pokazPlakat(el.getAttribute("data-plakat"), el.getAttribute("data-zbiorka") || "");
     });
   } catch (e) {}
   /** Blok plakatu (miniatura → pełny ekran) + „Wpłać na zbiórkę" (url_zbiorki, tylko https). Bez plakatu — pusty napis, bez dziury. */
   function plakatHtml(d, klasa) {
     var u = plakatUrl(d), link = linkZbiorki(d);
     if (!u) return "";
-    return '<div class="akcja-plakat ' + (klasa || "") + '"><a href="' + u + '" data-plakat="' + u + '" target="_blank" rel="noopener noreferrer">' +
-      '<img src="' + u + '" alt="Plakat akcji" loading="lazy"></a>' +
-      (link ? '<a class="akcja-wiecej akcja-wplac" href="' + link + '" target="_blank" rel="noopener noreferrer">Wpłać na zbiórkę</a>' : "") + "</div>";
+    return '<div class="akcja-plakat ' + (klasa || "") + '"><a href="' + u + '" data-plakat="' + u + '"' + (link ? ' data-zbiorka="' + link + '"' : "") + ' target="_blank" rel="noopener noreferrer">' +
+      '<img src="' + u + '" alt="Plakat akcji" loading="lazy" decoding="async"></a>' +
+      (link ? '<a class="akcja-wiecej akcja-wplac" href="' + link + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") + "</div>";
   }
 
   /* Własne formatowanie zamiast toLocaleString: polski format w przeglądarce NIE grupuje liczb 4-cyfrowych („1250"),
@@ -155,7 +162,9 @@
     ".akcja-wyprawa{margin-top:8px;font-size:12px;color:var(--fg,#f0ede8)}" +
     ".akcja-uwaga{font-size:12px;color:var(--fg2,rgba(240,237,232,.7));margin:8px 0 10px;line-height:1.45}" +
     ".akcja-plakat{margin:10px 0}.akcja-plakat a[data-plakat]{display:block}.akcja-plakat img{display:block;width:100%;height:auto;border-radius:12px;cursor:zoom-in}" +
-    ".akcja-plakat--mini img{max-height:220px;object-fit:cover}.akcja-wplac{display:block;text-align:center;margin-top:8px}" +
+    ".akcja-plakat--mini img{max-height:220px;object-fit:cover}.akcja-plakat--dzis img{max-height:340px;object-fit:contain}.akcja-wplac{display:block;text-align:center;margin-top:8px}" +
+    ".akcja-plakat-zbiorka{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:14px 34px;border-radius:14px;background:#e8561e;color:#fff;font-weight:800;text-decoration:none;z-index:1}" +
+    ".akcja-film-plansza{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:#000;cursor:zoom-in}.akcja-film-plansza img{max-width:100%;min-height:0;flex:1 1 auto;object-fit:contain}.akcja-film-plansza .akcja-plakat-zbiorka{position:static;transform:none}" +
     ".akcja-plakat-pelny{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;cursor:zoom-out}" +
     ".akcja-plakat-pelny img{max-width:100vw;max-height:100vh;object-fit:contain}" +
     ".akcja-firmy{flex-basis:100%;min-width:0;margin-top:14px}.akcja-firmy--strona{margin:14px 0}" +
@@ -315,7 +324,7 @@
       (d.firmy_zgloszenia === true || d.kontakt_firmy ? kafel('<a class="akcja-kafel" href="dla-fabianka.html#firma">{T}</a>', "Twoja firma na ulicy") : "") +
       (film ? '<button type="button" class="akcja-kafel" data-film-akcji="1">Zobacz film</button>' : "");
     sprawdzFirmyDoSprawdzenia();
-    return '<div class="akcja-karta akcja-centrum"><a class="akcja-kafel akcja-kafel--wplata" data-firmy-czekaja href="trener.html#firmy-sec" hidden></a><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' + punktUlicy(d) + pasekHtml(d) +
+    return '<div class="akcja-karta akcja-centrum"><a class="akcja-kafel akcja-kafel--wplata" data-firmy-czekaja href="trener.html#firmy-sec" hidden></a><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' + punktUlicy(d) + plakatHtml(d, "akcja-plakat--dzis") + pasekHtml(d) +
       '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
       '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
       '<div class="akcja-kafle">' + kafle + '</div>' +
@@ -335,7 +344,22 @@
     var v = g.document.createElement("video"); v.src = f.mp4; v.controls = true; v.autoplay = true; v.setAttribute("playsinline", "");
     var x = g.document.createElement("button"); x.type = "button"; x.textContent = "Zamknij";
     var zamknij = function () { try { v.pause(); } catch (e2) {} n.remove(); };
-    x.addEventListener("click", zamknij); v.addEventListener("ended", zamknij);
+    /* Od chwili plakatu w filmie pełny plakat z pliku, dźwięk gra dalej. Bez plakatu albo gdy się nie wczyta: film jak dotąd i koniec zamyka nakładkę. */
+    var plansza = null, pokazPlansze = function () {
+      if (plansza || !f.plakat) return;
+      plansza = g.document.createElement("div"); plansza.className = "akcja-film-plansza";
+      var im = g.document.createElement("img"); im.src = f.plakat; im.alt = "Plakat akcji";
+      im.addEventListener("error", function () { if (plansza) plansza.remove(); plansza = null; f = Object.assign({}, f, { plakat: "" }); });
+      plansza.appendChild(im);
+      if (f.zbiorka) plansza.appendChild(przyciskZbiorki(f.zbiorka, "akcja-plakat-zbiorka"));
+      var zamknijP = g.document.createElement("button"); zamknijP.type = "button"; zamknijP.textContent = "Zamknij"; zamknijP.addEventListener("click", function (e3) { e3.stopPropagation(); zamknij(); });
+      plansza.appendChild(zamknijP);
+      plansza.addEventListener("click", function () { pokazPlakat(f.plakat, f.zbiorka); });
+      n.appendChild(plansza);
+    };
+    x.addEventListener("click", zamknij);
+    v.addEventListener("timeupdate", function () { if (f.plakat && f.plakat_od != null && v.currentTime >= f.plakat_od) pokazPlansze(); });
+    v.addEventListener("ended", function () { if (f.plakat) pokazPlansze(); else zamknij(); });
     n.appendChild(v); n.appendChild(x); g.document.body.appendChild(n);
   });
 
