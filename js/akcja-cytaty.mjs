@@ -50,7 +50,7 @@
      PRÓBA (v3 pkt 4): konto testowe czyta akcję 'proba' zamiast 'dla-fabianka' — guzik próby zmienia cytat TYLKO jemu.
      PROBA_KONTA = akcje.konta_testowe wiersza 'proba' (migracja 20261102_akcje_startujacy_poprawka; blizna-96 + migawka blizna-97). */
   var PROBA_KONTA = ["9c2df65c-6a46-410e-ad5f-474e5d973ec9"];   // konto testowe (poprawka 2.11 — NIE główne konto Filipa)
-  var CACHE_MS = 60000;
+  var CACHE_MS = 60000, CACHE_PRZED_STARTEM_MS = 5000;   // przed guzikiem krótko, jak w js/akcja.mjs: po naciśnięciu Dziś ma pokazać akcję od razu, nie po minucie
   function slugDla(athleteId) { return PROBA_KONTA.indexOf(String(athleteId || "")) >= 0 ? "proba" : "dla-fabianka"; }
   function _schowek() { try { return g.sessionStorage || null; } catch (e) { return null; } }
   /* Film akcji: plik tajny do startu, adres podpisany z prywatnego kubełka, licznik oddaje go tylko po starcie i przy zgodzie (20261105_akcja_film.sql). Bez adresu FILM_AKCJI zostaje null i baner gra to, co dotąd. Pozycje: telefon i biegacze w pasie 23–72%, od 10 s plansza w pełnej klatce (contain), żeby plakat nie był obcięty u góry. */
@@ -75,7 +75,16 @@
     }).catch(function () { return null; });
     return _wizerunekProby;
   }
+  /* Próba ma wyglądać jak sobota: adresy i dane prawdziwej akcji dochodzą do licznika tylko z osobnej funkcji, wyłącznie dla trenera i konta testowego. */
+  function scalProbe(d, w) {
+    if (!d || !w) return d;
+    ["koparka_url", "koparka_arkusz_url", "film_akcji_url", "plakat_url"].forEach(function (k) { d[k] = w[k]; });
+    ["nazwa", "imie", "url_zbiorki"].forEach(function (k) { if (w[k]) d[k] = w[k]; });
+    return d;
+  }
   function _zastosuj(slug, d) {
+    /* Kafel akcji stoi na Dziś tylko, gdy akcja trwa: po zamknięciu i po „od zera” wraca zwykły kafel. */
+    if (g.BM_AKCJA && g.BM_AKCJA.zdejmijKafel && g.BM_AKCJA.stanKarty(d) !== "trwa") g.BM_AKCJA.zdejmijKafel();
     var film = filmAkcjiZLicznika(d);
     if (film) g.FILM_AKCJI = film;
     /* Próba od zera: film akcji ma zagrać jeszcze raz, tak jak zagra każdemu pierwszy raz. */
@@ -87,7 +96,7 @@
   async function odswiezStan(sb, athleteId, opcje) {
     var o = opcje || {}, slug = slugDla(athleteId), klucz = "bm_akcja_stan_" + slug, teraz = o.teraz || Date.now(), ss = _schowek(), stary = null;
     try { stary = ss ? JSON.parse(ss.getItem(klucz) || "null") : null; } catch (e) { stary = null; }
-    if (stary && !o.wymus && teraz - stary.t < CACHE_MS) { _zastosuj(slug, stary.d); return stary.d; }
+    if (stary && !o.wymus && teraz - stary.t < (stary.d && stary.d.wystartowala ? CACHE_MS : CACHE_PRZED_STARTEM_MS)) { _zastosuj(slug, stary.d); return stary.d; }
     try {
       if (!sb || typeof sb.rpc !== "function") throw new Error("brak klienta");
       var r = await sb.rpc("akcja_licznik", { p_slug: slug });
@@ -95,7 +104,7 @@
       var d = r.data || null;
       if (slug === "proba" && d && d.wystartowala && g.document) {
         var w = await wizerunekProby(sb);
-        if (w) { d.koparka_url = w.koparka_url; d.koparka_arkusz_url = w.koparka_arkusz_url; d.film_akcji_url = w.film_akcji_url; d.plakat_url = w.plakat_url; }
+        scalProbe(d, w);
       }
       try { if (ss) ss.setItem(klucz, JSON.stringify({ t: teraz, d: d })); } catch (e) {}
       _zastosuj(slug, d);
@@ -170,7 +179,7 @@
     return { tekst: ROTACJA[dniMiedzy(START_ROTACJI, d) % ROTACJA.length], zrodlo: ZRODLO };
   }
 
-  g.BM_AKCJA_CYTATY = { wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
+  g.BM_AKCJA_CYTATY = { scalProbe: scalProbe, wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
     odswiezStan: odswiezStan, slugDla: slugDla, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
     ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,

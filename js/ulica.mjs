@@ -348,7 +348,14 @@
     ".um-tablica-przed{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;color:#5a2d0c;font:700 12px/1.1 Inter,system-ui,sans-serif}" +
     ".um-tablica{position:absolute;right:10px;top:10px;padding:4px 10px;border-radius:5px;background:#1d4e89;border:1.5px solid #fff;color:#fff;font:700 13px/1.2 Inter,system-ui,sans-serif}" +
     ".um-opis{margin:8px 0 0;font-size:12px;line-height:1.45;color:var(--fg2,rgba(240,237,232,.72))}" +
-    ".um-link{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:#ff8a3d}";
+    ".um-link{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:#ff8a3d}" +
+    ".um-pas{position:relative;display:block;height:100%;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,.45);box-sizing:border-box;text-decoration:none;color:#fff;font-family:Inter,system-ui,sans-serif}" +
+    ".um-pas .um-okno{position:absolute;inset:0;height:auto;border-radius:0}.um-pas .um-laka{top:42%}" +
+    ".um-pas .um-grunt,.um-pas .um-droga{bottom:2px;height:17px}.um-pas .um-droga{background-size:57px 17px}" +
+    ".um-pas .um-sprite{bottom:6px}.um-pas .um-koparka{width:37px;height:26px}.um-pas .um-walec{width:31px;height:25px}.um-pas .um-budowniczy{width:12px;height:23px;bottom:2px}" +
+    ".um-pas-domek{position:absolute;bottom:17px}.um-pas-domek img{display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%}.um-pas-domek .um-pas-logo{position:absolute;background:#fbf3df;object-fit:contain}" +
+    ".um-pas-tytul{position:absolute;left:8px;top:3px;font-size:14px;line-height:1.15;font-weight:800;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.7)}" +
+    ".um-pas-zobacz{position:absolute;right:8px;top:4px;font-size:12px;line-height:1.15;font-weight:800;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.7)}";
   function wstrzyknijCss() {
     if (g.document.getElementById("bm-ulica-css")) return;
     var st = g.document.createElement("style"); st.setAttribute("id", "bm-ulica-css"); st.textContent = CSS;
@@ -365,7 +372,7 @@
     if (kontener._bmUlica === klucz && kontener.firstChild) return true;
     wstrzyknijCss();
     var korzen = h(o.bezLinku || przed ? "div" : "a", "um" + (o.ramka ? " um--ramka" : ""));
-    if (!(o.bezLinku || przed)) korzen.setAttribute("href", "dla-fabianka.html");
+    if (!(o.bezLinku || przed)) korzen.setAttribute("href", licznik && licznik.testowa === true ? "dla-fabianka.html?proba=1" : "dla-fabianka.html");
     var tytul = przed || o.kompakt ? "" : (tytulUlicy(dane.imie) || "Ulica w budowie");
     if (tytul || o.proba) {
       var nag = h("div", "um-tytul", korzen, tytul);
@@ -415,6 +422,56 @@
     }
   }
 
+  /* ── PAS W MENU GRY: ta sama ulica co na Dziś, z czołem budowy i budynkami firm. Nieruchomy, link do pełnej sceny. Tylko po starcie. Awaria = pusty kontener. ── */
+  var PAS_BUDYNKOW = 7;
+  function pasGry(kontener, licznik, adres) {
+    if (!kontener) return false;
+    try {
+      var stan = stanUlicy(licznik);
+      if (stan.faza !== "trwa" && stan.faza !== "pelna") { wyczysc(kontener); kontener._bmUlica = null; return false; }
+      var dane = daneScenyZLicznika(licznik), pora = poraDnia(new Date()), klucz = JSON.stringify(["pas", stan, dane, pora]);
+      if (kontener._bmUlica === klucz && kontener.firstChild) return true;
+      wstrzyknijCss();
+      var korzen = h("a", "um-pas"), tytul = tytulUlicy(dane.imie) || "Ulica w budowie";
+      korzen.setAttribute("href", adres || "dla-fabianka.html#ulica-po");
+      korzen.setAttribute("aria-label", tytul + ". " + opisDlaCzytnika(stan, dane, PUSTE_DODATKI) + " Otwórz pełną ulicę.");
+      var okno = h("div", "um-okno", korzen);
+      okno.style.background = tloNieba(pora);
+      h("div", "um-laka", okno);
+      var budynki = dane.firmy.filter(function (f) { return f.rodzaj !== "cegielka"; }).slice(0, PAS_BUDYNKOW), nrDomku = 0;
+      budynki.forEach(function (f, i) {
+        var wiez = f.rodzaj === "wiezowiec", poprz = BUDYNKI_POPRZEDNICH[f.rodzaj], wyb = wiez ? { nazwa: "wiezowiec", lustro: false } : poprz ? { nazwa: f.rodzaj, lustro: false } : domekNaMiejscu(nrDomku++, f.nazwa);
+        var def = SZYLDY[wyb.nazwa], wys = wiez ? 40 : poprz ? 34 : 30, szer = wys * (def ? def.proporcja : 1), d = h("div", "um-pas-domek", okno);
+        d.style.left = "calc(" + ((i + 0.5) / budynki.length * 100) + "% - " + (szer / 2) + "px)"; d.style.width = szer + "px"; d.style.height = wys + "px";
+        var ob = h("img", "", d); ob.setAttribute("src", sciezkaObrazu(wyb.nazwa)); ob.setAttribute("alt", ""); ob.setAttribute("decoding", "async");
+        if (wyb.lustro) ob.style.transform = "scaleX(-1)";
+        if (f.logo && def && def.szyld) {
+          var r = szyldNaDomku(def.szyld, wyb.lustro), lg = h("img", "um-pas-logo", d);
+          lg.setAttribute("src", f.logo); lg.setAttribute("alt", ""); lg.setAttribute("decoding", "async");
+          lg.style.left = (r[0] * 100) + "%"; lg.style.top = (r[1] * 100) + "%"; lg.style.width = (r[2] * 100) + "%"; lg.style.height = (r[3] * 100) + "%";
+        }
+      });
+      var proc = stan.odcinki / ODCINKOW * 100, maszyny = Math.max(30, Math.min(70, proc));
+      h("div", "um-grunt", okno);
+      var dr = h("div", "um-droga", okno);
+      dr.style.width = proc + "%"; dr.style.backgroundImage = "url(" + sciezkaObrazu("droga") + ")";
+      if (stan.faza === "trwa") {
+        var w = h("div", "um-sprite um-walec", okno), ko = h("div", "um-sprite um-koparka", okno);
+        w.style.left = "calc(" + maszyny + "% - 32px)"; ko.style.left = "calc(" + maszyny + "% + 1px)";
+        warstwa("walec", w); warstwa("koparka", ko);
+      }
+      var bu = h("div", "um-sprite um-budowniczy", okno);
+      bu.style.left = stan.faza === "pelna" ? "16px" : "calc(" + maszyny + "% - 8px)";
+      warstwa("budowniczy", bu);
+      h("span", "um-pas-tytul", korzen, tytul); h("span", "um-pas-zobacz", korzen, "Zobacz ›");
+      wyczysc(kontener); kontener.appendChild(korzen); kontener._bmUlica = klucz;
+      return true;
+    } catch (e) {
+      try { wyczysc(kontener); kontener._bmUlica = null; } catch (e2) {}
+      return false;
+    }
+  }
+
   /* ── STRONA AKCJI: pełna scena z osobnego pliku; brak pliku albo awaria = miniatura ─ */
   function czyParametrProby() { try { return new URLSearchParams(g.location.search).get("proba") === "1"; } catch (e) { return false; } }
   function parametrSciezki() { try { return new URLSearchParams(g.location.search).get("sciezka") === "1"; } catch (e) { return false; } }
@@ -445,7 +502,7 @@
       if (_idProby === "trener") {
         var lt = await g.sb.rpc("akcja_licznik", { p_slug: "proba" });
         if (lt.error || !lt.data) return null;
-        if (lt.data.wystartowala) { var wz = await g.BM_AKCJA_CYTATY.wizerunekProby(g.sb); if (wz) { lt.data.koparka_url = wz.koparka_url; lt.data.koparka_arkusz_url = wz.koparka_arkusz_url; lt.data.film_akcji_url = wz.film_akcji_url; lt.data.plakat_url = wz.plakat_url; } }
+        if (lt.data.wystartowala) g.BM_AKCJA_CYTATY.scalProbe(lt.data, await g.BM_AKCJA_CYTATY.wizerunekProby(g.sb));
         return lt.data;
       }
       return await g.BM_AKCJA_CYTATY.odswiezStan(g.sb, _idProby, { wymus: true });
@@ -469,7 +526,8 @@
     usun(tam);
     if (!tu) return false;
     if (stanUlicy(d).faza === "brak") { usun(tu); return false; }
-    var o = { proba: !!dp, pokaz: k.pokaz };
+    /* Znak PRÓBA tylko w ścieżce trenera: konto testowe ogląda to, co zawodnik w sobotę. Zegar sceny czyta prawdziwą akcję, więc na próbie odświeża stronę licznikiem próby, inaczej po 5 minutach strona wracała do zapowiedzi. */
+    var o = { proba: !!dp && _idProby === "trener", pokaz: dp && k.pokaz ? function () { licznikProby().then(function (x) { if (x) k.pokaz(x); }, function () {}); } : k.pokaz };
     if (tu._bmScena) { tu._bmScena.aktualizuj(d); return true; }
     if (tu._bmCzeka) { tu._bmCzeka = d; return true; }   // scena właśnie się ładuje: wejdzie z najnowszym licznikiem
     tu._bmCzeka = d;
@@ -487,6 +545,26 @@
       tu._bmScena = kontroler;
       return true;
     }).catch(awaryjnie);
+  }
+  /** Kafel na Dziś: ta sama scena co na stronie akcji, bez gestów i przycisków. Kolejne wywołania tylko przesuwają licznik. Brak pliku albo awaria = miniatura. */
+  function naKaflu(tu, d) {
+    if (!tu) return false;
+    if (tu._bmScena) { tu._bmScena.aktualizuj(d); return true; }
+    if (tu._bmCzeka) { tu._bmCzeka = d; return true; }
+    tu._bmCzeka = d;
+    return ladujScene().then(function (S) {
+      var ost = tu._bmCzeka;
+      if (!ost) return false;   // kafel zdjęty w trakcie ładowania
+      tu._bmCzeka = null;
+      var kontroler = S.zamontuj(tu, ost, { kafel: true });
+      if (!kontroler) throw new Error("scena nie wstała");
+      tu._bmScena = kontroler;
+      return true;
+    }).catch(function () {
+      var ost = tu._bmCzeka || d;
+      tu._bmCzeka = null;
+      return zamontuj(tu, ost, { kompakt: true, bezLinku: true });
+    });
   }
   /** Punkt wpięcia dla strony akcji: kontener zależy od tego, co widać na stronie (zapowiedź albo pełna strona); drugi kontener czyszczony. Licznik w trakcie oglądania idzie do aktualizuj. */
   function naStronie(licznik, kontenery) {
@@ -648,7 +726,7 @@
     return true;
   }
 
-  g.BM_ULICA = { licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
+  g.BM_ULICA = { naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
     BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,

@@ -1,7 +1,7 @@
 // CEGIEŁKI: silnik gry. Gra NIGDY nie dotyka licznika akcji ani statystyk treningowych (blizna-154): żadnego zapisu do training_logs, akcje, akcja_*.
 (function () {
   "use strict";
-  var KAT = "assets/gra/", WERSJA = "4", BAZA = "https://afqojgkaveykxbltxzwm.supabase.co", LINK_AKCJI = "https://biegamy.run/dla-fabianka.html";
+  var KAT = "assets/gra/", WERSJA = "5", BAZA = "https://afqojgkaveykxbltxzwm.supabase.co", LINK_AKCJI = "https://biegamy.run/dla-fabianka.html";
   var L = window.BM_CEGIELKI, parametry = new URLSearchParams(location.search);
   var c = document.getElementById("c"), x = c.getContext("2d", { alpha: false }), $ = function (id) { return document.getElementById(id); };
   var A = {}, OBR = {};
@@ -10,7 +10,7 @@
   var PRED_START = 300, CZAS_KASKU = 10, CZAS_BUTA = 3, CZAS_ZELU = 8, BIDON_S = 5, CZAS_PRZEMIANY = 0.8, CZAS_NIETYKALNY_PRZEMIANA = 1, MAKS_CZASTEK = 80, MAKS_KONFETTI = 20;
   var PRZESZKODY = { pacholek: { sk: 0.42, hh: 50, hw: 22 }, barierka: { sk: 0.5, hh: 50, hw: 44 }, kaluza: { sk: 0.55, hh: 8, hw: 52 }, worki: { sk: 0.5, hh: 50, hw: 42 }, kamien: { sk: 0.45, hh: 50, hw: 42 } };
   var SK_PRZEDMIOTU = { cegla: 0.5, cegla_zlota: 0.58, kask: 0.6, bidon: 0.6, but: 0.6, zel: 0.6 };
-  var PODPIS_BONUSU = { kask: "Kask! Cegły ×2", bidon: "+5 sekund", but: "Sprint z magnesem", zel: "Żel: ×2" };
+  var PODPIS_BONUSU = { kask: "Kask! Cegły ×2", bidon: "+5 sekund", but: "Sprint z magnesem", zel: "Żel: ×2", rakieta: "Rakieta!" };
   var LISCIE = ["#e9772b", "#f2b233", "#c9472b", "#d98a23", "#8fae3c"];
 
   var W = 960, H = 540, skala = 1, dpr = 1, gradNieba = null, pion = false, pasPodDroga = 0;
@@ -114,7 +114,7 @@
       } catch (e) { /* dźwięk nigdy nie psuje gry */ }
     },
   };
-  function odswiezGlosnik() { var b = $("glosnik"); b.textContent = D.wlaczony ? "🔊" : "🔇"; b.setAttribute("aria-label", D.wlaczony ? "Wycisz dźwięki" : "Włącz dźwięki"); b.setAttribute("aria-pressed", String(D.wlaczony)); }
+  function odswiezGlosnik() { var b = $("glosnik"); b.querySelector("img").src = KAT + (D.wlaczony ? "glosnik_wl" : "glosnik_wyl") + ".webp"; b.setAttribute("aria-label", D.wlaczony ? "Wycisz dźwięki" : "Włącz dźwięki"); b.setAttribute("aria-pressed", String(D.wlaczony)); }
 
   function rozmiar() {
     var cw = innerWidth, ch = innerHeight;
@@ -124,6 +124,7 @@
     skala = pion ? cw / L.SZEROKOSC_PIONU : Math.min(ch / 520, cw / 640);
     W = cw / skala; H = ch / skala;
     pasPodDroga = pion ? Math.max(0, H / 3 - WYS_DROGI) : 0;
+    if (pion && A.trawa_pod_droga && !OBR.trawa_pod_droga) wczytajObrazy(["trawa_pod_droga"]);
     var zaWasko = pion && L.zaWaskoNaGre(cw, ch), ob = $("obroc");
     if (ob) ob.hidden = !zaWasko;
     if (zaWasko && stan === "gra") pauza = true;
@@ -214,7 +215,7 @@
       y: 0, vy: 0, naZiemi: true, bufor: 0, saltoT: -1, saltoUzyte: false, trik: -1, trikCzas: 0, trikPokazany: -1, szczyt: 0, gorka: null, gorkaFaza: null, katDrogi: 0, gorkaPowiedziana: false, efDx: 0, efKat: 0, przysiad: 0, klN: null, klI: 0, przenikN: null, przenikI: 0, przenikOd: 0, anim: 0, slizg: 0, slizgPoLadowaniu: false,
       reakcja: 0, reakcjaTyp: null, nietykalny: 0, poza: null, przemiana: 0,
       bud: 0, kaskX2: 0, sprint: 0, zel: 0, blysk: 0, seria: 0, comboSalt: 0, cegly: 0,
-      st: L.pusteStaty(), uzyte: [], bezUpadku: 0, wyzwanieGotowe: false, dzisZrobione: schowek.czytaj("cegielki_wyzwanie_" + L.dzienWaw(), "") === "1",
+      st: L.pusteStaty(), uzyte: [], rakieta: false, rakietaT: 0, bezUpadku: 0, wyzwanieGotowe: false, dzisZrobione: schowek.czytaj("cegielki_wyzwanie_" + L.dzienWaw(), "") === "1",
       przeszkody: [], przedmioty: [], kibice: [], dekor: [], czastki: [], napisy: [],
       nastPrzeszkoda: 900, nastBonus: 1900, kolejkaBonusow: [plan.pierwszyKask ? "kask" : "but"], nastKibic: 1100, nastDekor: 0, nrFirmy: 0, ileDomkow: 0, ileDoPoprzedniego: 0, nrPoprzedniego: 0, ileDoWiezowca: 0, nrWiezowca: 0, ostPrzerwa: Infinity, ostKaskX: -Infinity,
       maly: trybMaly, nastWywrotka: 1400, lopata: null, zgarnia: 0, stoi: 0, przerwaLyzki: 0, latajace: [], rowerX: null, nastRower: losowa(L.ROWER.pierwszy[0], L.ROWER.pierwszy[1]),
@@ -400,13 +401,12 @@
     var ziemia = wy * 0.86, bw = 21, bh = 10, x0 = 66, n = L.ceglyNaScenie(o.mur, o.cel), od = Math.min(o.od || 0, n), ile = n - od;
     var xP = x0 + M.kolumny * bw + bw / 2, flagi = L.flagiMuru(o.mur, o.cel);
     var bezRuchu = !window.matchMedia || window.matchMedia("(prefers-reduced-motion: reduce)").matches, CZAS = bezRuchu || !ile ? 0 : Math.min(2200, 500 + ile * 18);
-    var tlo = document.createElement("canvas"), bud = new Image(); tlo.width = sz; tlo.height = wy;
+    var tlo = document.createElement("canvas"), bud = new Image(), ceglaGotowa = null; tlo.width = sz; tlo.height = wy;
     function cegla(c, i, dy, alfa) {
       var r = Math.floor(i / M.kolumny), kol = i % M.kolumny, x = x0 + kol * bw + (r % 2 ? bw / 2 : 0), y = ziemia - (r + 1) * bh + (dy || 0);
       c.globalAlpha = alfa == null ? 1 : alfa;
-      c.fillStyle = "#c9562b"; c.fillRect(x, y, bw, bh);
-      c.fillStyle = "#e0764a"; c.fillRect(x + 1, y + 1, bw - 2, 2);
-      c.strokeStyle = "#5e2a14"; c.lineWidth = 1.5; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+      if (ceglaGotowa) c.drawImage(ceglaGotowa, x, y, bw, bh);
+      else { c.fillStyle = "#c9562b"; c.fillRect(x, y, bw, bh); c.fillStyle = "#e0764a"; c.fillRect(x + 1, y + 1, bw - 2, 2); c.strokeStyle = "#5e2a14"; c.lineWidth = 1.5; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1); }
       c.globalAlpha = 1;
     }
     function rysujTloMuru() {
@@ -420,7 +420,18 @@
       c.strokeStyle = "rgba(255,255,255,.34)"; c.lineWidth = 2; c.setLineDash([7, 6]); c.strokeRect(x0, ziemia - M.rzedy * bh, xP - x0, M.rzedy * bh); c.setLineDash([]);
     }
     function rusztowanie(c, rzedow) {
-      var y = ziemia - rzedow * bh - 4, xa = 16, xb = 58;
+      var y = ziemia - rzedow * bh - 4, xa = 16, xb = 58, seg = OBR.mur_rusztowanie, pom = OBR.mur_pomost;
+      if (seg && pom) {
+        /* Segmenty jeden na drugim, od ziemi po pomost: grafika ma szew w pionie, więc łączenia nie widać. */
+        var sw = 66, sh = sw * seg.height / seg.width, gora = y - 6;
+        c.save(); c.beginPath(); c.rect(0, gora, x0, ziemia + 6 - gora); c.clip();
+        for (var yy = ziemia + 6; yy > gora; yy -= sh) c.drawImage(seg, 4, yy - sh, sw, sh + 0.5);
+        c.restore();
+        var pw2 = 76, ph2 = pw2 * pom.height / pom.width;
+        c.drawImage(pom, 1, y - 4 - ph2 * 0.46, pw2, ph2);
+        if (bud.complete && bud.naturalWidth) { var h2 = 70, w2 = bud.naturalWidth * h2 / bud.naturalHeight; c.drawImage(bud, 30 - w2 / 2, y - 4 - h2 + 2, w2, h2); }
+        return;
+      }
       c.lineCap = "round"; c.strokeStyle = "#2b1c10"; c.lineWidth = 7;
       [xa, xb].forEach(function (x) { c.beginPath(); c.moveTo(x, ziemia + 4); c.lineTo(x, y - 6); c.stroke(); });
       c.strokeStyle = "#a9713a"; c.lineWidth = 4;
@@ -432,7 +443,19 @@
     function flaga(c, f) {
       var y = ziemia - f.ulamek * M.rzedy * bh;
       c.strokeStyle = f.zdobyta ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)"; c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(x0, y); c.lineTo(xP + 8, y); c.stroke(); c.setLineDash([]);
-      c.font = "800 21px Inter, system-ui, sans-serif"; var t = (f.zdobyta ? "✓ " : "") + f.tytul, w = c.measureText(t).width + 22, h = 30, x = xP + 8;
+      c.font = "800 21px Inter, system-ui, sans-serif"; var t = (f.zdobyta ? "✓ " : "") + f.tytul, w = c.measureText(t).width + 22, h = 30, x = xP + 8, gr = f.zdobyta ? OBR.mur_flaga_a : OBR.mur_flaga_b;
+      if (gr) {
+        /* Trzy części: drzewiec i ogon w stałej skali, środek rozciągnięty pod napis. Napis zawsze w kodzie, z obrysem, żeby był czytelny na każdym tle. */
+        var H2 = 58, sk = H2 / gr.height, lewo = gr.width * 0.14, prawo = gr.width * 0.2, srod = gr.width - lewo - prawo, lw = lewo * sk, pw = prawo * sk, sw2 = c.measureText(t).width + 8, gy = y + 2 - H2;
+        c.drawImage(gr, 0, 0, lewo, gr.height, x - 8, gy, lw, H2);
+        c.drawImage(gr, lewo, 0, srod, gr.height, x - 8 + lw, gy, sw2, H2);
+        c.drawImage(gr, gr.width - prawo, 0, prawo, gr.height, x - 8 + lw + sw2, gy, pw, H2);
+        c.textBaseline = "middle"; c.textAlign = "left"; c.lineJoin = "round"; c.lineWidth = 4;
+        var ty = gy + H2 * 0.5;
+        if (f.zdobyta) { c.strokeStyle = "#7a2c0c"; c.strokeText(t, x - 8 + lw + 4, ty); }
+        c.fillStyle = f.zdobyta ? "#fff" : "#232a52"; c.fillText(t, x - 8 + lw + 4, ty);
+        return;
+      }
       c.strokeStyle = "#232a52"; c.lineWidth = 4; c.beginPath(); c.moveTo(x, y + 2); c.lineTo(x, y - h - 8); c.stroke();
       c.beginPath(); c.moveTo(x, y - h - 6); c.lineTo(x + w, y - h - 6); c.lineTo(x + w - 9, y - h / 2 - 6); c.lineTo(x + w, y - 6); c.lineTo(x, y - 6); c.closePath();
       c.fillStyle = f.zdobyta ? "#e8561e" : "#fff7ea"; c.fill(); c.lineWidth = 2.5; c.stroke();
@@ -452,8 +475,9 @@
     }
     function petlaSceny(t0, t) { if (stop) return; var f = CZAS ? Math.min(1, (t - t0) / CZAS) : 1; klatkaSceny(f); if (f < 1) raf = requestAnimationFrame(function (t2) { petlaSceny(t0, t2); }); else if (naKoniec) naKoniec(n); }
     var budGotowy = new Promise(function (ok) { bud.onload = ok; bud.onerror = ok; bud.src = "assets/ulica/budowniczy.webp?v=" + WERSJA; });
-    Promise.all([wczytajObrazy(["krajobraz", "droga"]), budGotowy]).then(function () {
+    Promise.all([wczytajObrazy(["krajobraz", "droga", "mur_rusztowanie", "mur_pomost", "mur_flaga_a", "mur_flaga_b", "mur_cegla"]), budGotowy]).then(function () {
       if (stop) return;
+      if (OBR.mur_cegla) { ceglaGotowa = document.createElement("canvas"); ceglaGotowa.width = bw * 2; ceglaGotowa.height = bh * 2; ceglaGotowa.getContext("2d").drawImage(OBR.mur_cegla, 0, 0, bw * 2, bh * 2); }
       rysujTloMuru();
       raf = requestAnimationFrame(function (t) { petlaSceny(t, t); });
     });
@@ -495,6 +519,7 @@
     var STROJ = window.BM_CEGIELKI_STROJ, KONTO = window.BM_CEGIELKI_KONTO, ubior = KONTO ? L.strojPostaci(KONTO.wybor(postac), postac) : null;
     noszone = STROJ && ubior ? STROJ.noszone(ubior) : [];
     var naz = Object.keys(A).filter(function (k) { return k.indexOf(postac + "_") === 0; }).concat(STROJ ? STROJ.nazwyObrazow(noszone) : []);
+    if (L.ulepszenieDla("rakieta", postac) && KONTO && KONTO.plecak && L.mozeUzyc(KONTO.plecak(), [], "rakieta")) naz.push("rakieta_rower");   // arkusz tylko dla tych, którzy mają rakietę
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
     var t0Startu = performance.now();
     wczytajObrazy(naz).then(function () {
@@ -528,7 +553,7 @@
     if (stan !== "gra") return;
     var g = G;
     if (cechy().skacze === false) { zamachLyzka(); return; }
-    if (g.reakcja > 0 || g.przemiana > 0) return;
+    if (g.reakcja > 0 || g.przemiana > 0 || g.rakieta) return;
     if (g.naZiemi) { g.slizg = 0; skocz(); return; }
     if (g.y < 22 && g.vy < 0) { g.bufor = 0.14; return; }
     if (!g.saltoUzyte) { g.saltoUzyte = true; g.saltoT = 0; g.vy = cechy().podbicie || SALTO_V * (cechy().skok || 1); g.szczyt = L.szczytLuku(g.y, g.vy); g.trik = -1; g.trikCzas = 0; g.trikPokazany = -1; D.graj("skok"); }
@@ -537,7 +562,7 @@
     if (pauza || stan !== "gra") return;
     var g = G;
     if (cechy().skacze === false) return;
-    if (g.reakcja > 0 || g.przemiana > 0) return;
+    if (g.reakcja > 0 || g.przemiana > 0 || g.rakieta) return;
     if (g.naZiemi) { if (g.slizg <= 0) { g.slizg = CZAS_SLIZGU; pyl(); } return; }
     g.vy = Math.min(g.vy, -1300); g.slizgPoLadowaniu = true; g.saltoT = -1; g.trik = -1; g.trikCzas = 0;
   }
@@ -609,6 +634,7 @@
     if (e.typ === "bidon") { g.czas += BIDON_S; g.st.bidony++; if (g.naZiemi) ustawPoze("F", 5, 0.5); D.graj("cegla"); }
     if (e.typ === "but") { g.sprint = CZAS_BUTA; g.st.buty++; if (g.naZiemi) pozaBonusu("magnes", 0.45); D.graj("zlota"); }
     if (e.typ === "zel") { g.zel = CZAS_ZELU; g.st.zele++; if (g.naZiemi) pozaBonusu("zel", 0.45); D.graj("zlota"); }
+    if (e.typ === "rakieta") { g.rakieta = true; g.rakietaT = 0; g.naZiemi = false; g.vy = 0; g.slizg = 0; g.saltoT = -1; g.saltoUzyte = false; g.trik = -1; g.trikCzas = 0; g.bufor = 0; g.poza = null; g.slizgPoLadowaniu = false; g.nietykalny = Math.max(g.nietykalny, L.RAKIETA.czas_s + L.RAKIETA.po_s); konfetti(graczX() - 60, stopy() - 30, 12); D.graj("przemiana"); }
     dodajNapis(PODPIS_BONUSU[e.typ], graczX() + 30, stopy() - g.y - 170, "#fff", 24);
   }
 
@@ -617,14 +643,15 @@
     var K = window.BM_CEGIELKI_KONTO, e = $("plecak-runda"); if (!e) return;
     var ile = stan === "gra" && !G.maly && K && K.plecak ? K.plecak() : null, widac = false;
     Array.prototype.forEach.call(e.children, function (b) {
-      var typ = b.dataset.typ, moze = !!ile && L.mozeUzyc(ile, G.uzyte, typ);
+      var typ = b.dataset.typ, moze = !!ile && L.ulepszenieDla(typ, G.postac) && L.mozeUzyc(ile, G.uzyte, typ);
       b.hidden = !moze; b.querySelector("span").textContent = moze ? "×" + ile[typ] : ""; if (moze) widac = true;
     });
     e.hidden = !widac;
   }
   function uzyjZPlecaka(typ) {
     var K = window.BM_CEGIELKI_KONTO;
-    if (stan !== "gra" || pauza || G.maly || !K || !K.plecak || !L.mozeUzyc(K.plecak(), G.uzyte, typ)) return;
+    if (stan !== "gra" || pauza || G.maly || !K || !K.plecak || !L.ulepszenieDla(typ, G.postac) || !L.mozeUzyc(K.plecak(), G.uzyte, typ)) return;
+    if (typ === "rakieta" && G.reakcja > 0) return;
     G.uzyte.push(typ); K.zuzyjZPlecaka(typ);
     zbierz({ typ: typ, x: G.s, h: 60 });
     odswiezPlecak();
@@ -719,7 +746,10 @@
     for (var iz = 0; iz < ZEGARY.length; iz++) { var kz = ZEGARY[iz]; if (g[kz] > 0) g[kz] = Math.max(0, g[kz] - dt); }
     if (g.poza) { g.poza.t -= dt; if (g.poza.t <= 0) g.poza = null; }
     if (g.reakcja > 0) { g.reakcja -= dt; if (g.reakcja <= 0) { g.reakcja = 0; g.reakcjaTyp = null; g.nietykalny = 1.0; ustawPoze("F", 1, 0.35); } }
-    if (!g.naZiemi) {
+    if (g.rakieta) {
+      g.rakietaT += dt; g.y = L.wysokoscRakiety(g.rakietaT, g.postac); g.vy = 0;
+      if (g.rakietaT >= L.RAKIETA.czas_s) { g.rakieta = false; g.y = 0; g.naZiemi = true; pyl(); ustawPoze("skok", 2, 0.14); }
+    } else if (!g.naZiemi) {
       g.vy -= GRAW * dt;
       if (g.trik >= 0 && L.FIGURY[g.trik].lot && g.vy < -L.LOT_OPAD) g.vy = -L.LOT_OPAD;
       g.y += g.vy * dt;
@@ -771,7 +801,7 @@
     for (var i = g.przedmioty.length - 1; i >= 0; i--) {
       var e = g.przedmioty[i], dx = e.x - gx;
       if (g.sprint > 0 && dx > -40 && dx < 340) { var cy = g.y + 65, ciag = dt * 7; e.x -= dx * ciag; e.h += (cy - e.h) * ciag; dx = e.x - gx; }
-      if (Math.abs(dx) < 44 && e.h > g.y - 16 && e.h < glowaH + 16 && !(koparka && e.typ === "cegla_zlota" && !g.lopata)) { zbierz(e); g.przedmioty.splice(i, 1); continue; }
+      if (Math.abs(dx) < 44 && (g.rakieta || e.h > g.y - 16) && e.h < glowaH + 16 && !(koparka && e.typ === "cegla_zlota" && !g.lopata)) { zbierz(e); g.przedmioty.splice(i, 1); continue; }
       if (e.x < zasiegL) g.przedmioty.splice(i, 1);
     }
     for (var k = 0; k < g.kibice.length; k++) {
@@ -832,7 +862,8 @@
     $("k-rekord").textContent = g.maly ? "Mały budowniczy: runda bez rankingu i rekordu." : nowy && rekord > 0 ? "Nowy rekord na tym urządzeniu!" : "Rekord na tym urządzeniu: " + Math.max(rekord, g.punkty);
     $("k-wyzwanie").hidden = g.maly; $("k-wyzwij").hidden = g.maly;
     var pw = L.postepWyzwania(ZASADA_WYZWANIA, g.st);
-    $("k-wyzwanie").textContent = g.wyzwanieGotowe ? "🏅 Wyzwanie dnia zrobione: " + ZASADA_WYZWANIA.opis : "Wyzwanie dnia: " + ZASADA_WYZWANIA.opis + " (" + pw.wartosc + "/" + pw.cel + ")";
+    $("k-wyzwanie").textContent = g.wyzwanieGotowe ? "Wyzwanie dnia zrobione: " + ZASADA_WYZWANIA.opis : "Wyzwanie dnia: " + ZASADA_WYZWANIA.opis + " (" + pw.wartosc + "/" + pw.cel + ")";
+    if (g.wyzwanieGotowe) $("k-wyzwanie").prepend(obrazekOdznaki());
     if (wzywa && !g.maly) { var ok = g.punkty > wzywa.wynik; $("k-znajomy").hidden = false; $("k-znajomy").textContent = ok ? "Pobite! " + (wzywa.od || "Znajomy") + " miał(a) " + wzywa.wynik + "." : "Do pobicia zostało: " + (wzywa.wynik - g.punkty + 1) + ". " + (wzywa.od || "Znajomy") + " ma " + wzywa.wynik + "."; }
     else $("k-znajomy").hidden = true;
     rysujPozeKonca($("k-poza"), pozaKonca);
@@ -885,7 +916,7 @@
   }
   function klatka(n, i, xs, stopaY, obrot) {
     var o = OBR[n], a = A[n]; if (!o) return;
-    var sk = SK * (a.sk || 1), w = a.cw * sk, h = a.ch * sk, y = stopaY - h + (a.dol || 0) * sk, x0 = xs - w / 2, y0 = y;
+    var sk = SK * (a.sk || 1), w = a.cw * sk, h = a.ch * sk, y = stopaY - h + (a.dol || 0) * sk, x0 = xs - w * (a.kx || 0.5), y0 = y;
     var S = noszone.length ? window.BM_CEGIELKI_STROJ : null, ark = S ? n.slice(G.postac.length + 1) : null;
     if (obrot) { x.save(); x.translate(xs, stopaY - 65); x.rotate(obrot); x0 = -w / 2; y0 = 65 - h; }
     if (S) S.dodatki(x, "tyl", OBR, A, G.postac, ark, i, x0, y0, sk, noszone, czasGlobalny);
@@ -908,6 +939,13 @@
     var y0 = goraDrogi() + WYS_DROGI, gr = x.createLinearGradient(0, y0, 0, H);
     gr.addColorStop(0, "#26380f"); gr.addColorStop(1, "#16220a");
     x.fillStyle = gr; x.fillRect(0, y0 - 1, W, H - y0 + 1);
+    if (OBR.trawa_pod_droga) {
+      /* Trawa w swojej skali, niżej sama ziemia: przy dużym pasie pod drogą rozciągnięta kępka zasłaniałaby przyciski. */
+      var wysT = Math.min(H - y0 + 16, 130), zi = x.createLinearGradient(0, y0 + wysT - 18, 0, H);
+      zi.addColorStop(0, "#6b4524"); zi.addColorStop(1, "#33200f");
+      x.fillStyle = zi; x.fillRect(0, y0 + wysT - 18, W, H);
+      pasek("trawa_pod_droga", G.s, y0 - 16, wysT); return;
+    }
     x.fillStyle = "rgba(92,134,48,.55)";
     var okres = 92, prz = G.s % okres;
     for (var r = 0; r < 4; r++) for (var xx = -prz + r * 31; xx < W + okres; xx += okres) { var yy = y0 + 22 + r * (H - y0 - 34) / 4; x.beginPath(); x.moveTo(xx - 7, yy + 9); x.lineTo(xx - 2, yy - 6); x.lineTo(xx + 1, yy + 2); x.lineTo(xx + 5, yy - 9); x.lineTo(xx + 8, yy + 9); x.fill(); }
@@ -917,10 +955,12 @@
     var gy = goraDrogi(), i;
     if (pora.gwiazdy) { x.fillStyle = "#fff"; for (i = 0; i < gwiazdy.length; i++) { var s = gwiazdy[i]; x.globalAlpha = 0.45 + 0.45 * Math.sin(czasGlobalny * 1.5 + s.f); x.fillRect(s.x * W, s.y * gy, s.r, s.r); } x.globalAlpha = 1; }
     if (pora.ksiezyc) { var mx = W * 0.8, my = gy * 0.2; x.fillStyle = "#f5ecc7"; x.beginPath(); x.arc(mx, my, 30, 0, Math.PI * 2); x.fill(); x.fillStyle = pora.g[0]; x.beginPath(); x.arc(mx + 13, my - 7, 26, 0, Math.PI * 2); x.fill(); }
+    else if (pora.slonce && OBR.slonce) x.drawImage(OBR.slonce, W * 0.78 - 46, gy * 0.32 - 46, 92, 92);
     else if (pora.slonce) { x.fillStyle = pora.slonce; x.beginPath(); x.arc(W * 0.78, gy * 0.32, 38, 0, Math.PI * 2); x.fill(); }
     x.fillStyle = "rgba(255,255,255," + pora.chmury + ")";
     for (i = 0; i < chmury.length; i++) {
-      var k = chmury[i], cx = ((k.x * (W + 320) - G.s * 0.03 - czasGlobalny * 5) % (W + 320) + W + 320) % (W + 320) - 160, cy = k.y * gy, z = k.s;
+      var k = chmury[i], cx = ((k.x * (W + 320) - G.s * 0.03 - czasGlobalny * 5) % (W + 320) + W + 320) % (W + 320) - 160, cy = k.y * gy, z = k.s, oc = OBR["chmura" + (i % 3 + 1)];
+      if (oc) { var wc = 112 * z, hc = wc * oc.height / oc.width; x.globalAlpha = pora.chmury; x.drawImage(oc, cx - wc / 2, cy - hc / 2, wc, hc); x.globalAlpha = 1; continue; }
       x.beginPath(); x.ellipse(cx, cy, 58 * z, 15 * z, 0, 0, Math.PI * 2); x.ellipse(cx - 24 * z, cy - 10 * z, 26 * z, 15 * z, 0, 0, Math.PI * 2); x.ellipse(cx + 18 * z, cy - 13 * z, 32 * z, 19 * z, 0, 0, Math.PI * 2); x.fill();
     }
   }
@@ -938,8 +978,8 @@
     if (lg) {
       /* Deska większa niż namalowana: logo ma być czytelne na telefonie. */
       var pw = L.BUDYNKI_POPRZEDNICH[d.typ] ? sw : Math.max(sw, w * 0.8), ph = Math.max(sh, 34), px = sx + sw / 2 - pw / 2, py = sy + sh / 2 - ph / 2, sk = Math.min((pw - 6) / lg.naturalWidth, (ph - 6) / lg.naturalHeight), lw = lg.naturalWidth * sk, lh = lg.naturalHeight * sk;
-      x.fillStyle = "#7a4a1c"; x.fillRect(px - 2, py - 2, pw + 4, ph + 4);
-      x.fillStyle = lg.jasne ? "#2b2230" : "#fbf3df"; x.fillRect(px, py, pw, ph);
+      if (OBR.tablica) x.drawImage(OBR.tablica, px - 7, py - 6, pw + 14, ph + 12); else { x.fillStyle = "#7a4a1c"; x.fillRect(px - 2, py - 2, pw + 4, ph + 4); }
+      if (lg.jasne || !OBR.tablica) { x.fillStyle = lg.jasne ? "#2b2230" : "#fbf3df"; x.fillRect(px, py, pw, ph); }
       x.drawImage(lg, px + (pw - lw) / 2, py + (ph - lh) / 2, lw, lh);
       dol = py + ph + 2;
     } else {
@@ -1023,6 +1063,7 @@
   /* Rower: jazda z arkusza jazdy, reszta z arkusza skoku. Podbicie to przednie koło w górze (klatka 1), kask działa bez przemiany, bo rowerzysta już go ma. */
   function klatkaRoweru(g) {
     var s = nz("skok");
+    if (g.rakieta && OBR.rakieta_rower) return ["rakieta_rower", L.klatkaRakiety(g.rakietaT, g.anim)];
     if (g.reakcja > 0) { var R = L.REAKCJE[g.reakcjaTyp], pr = 1 - g.reakcja / R.czas, kl = R.kl[Math.min(R.kl.length - 1, Math.floor(pr * R.kl.length))]; return [nz(kl[0]), kl[1]]; }
     if (g.gorkaFaza && A[nz("gorka")] && g.naZiemi && !g.poza) return [nz("gorka"), L.klatkaGorki(g.gorkaFaza, g.anim)];
     if (!g.naZiemi) return [s, g.saltoT >= 0 && g.saltoT < 1 ? 0 : 1];
@@ -1055,7 +1096,7 @@
     var g = G, xs = graczX(), bud = g.bud > 0, wlasne = g.postac === "rowerzysta", bieg = nz(bud && !wlasne ? "bud" : "bieg"), stopaY = stopy() - g.y + 2, n = bieg, i = Math.floor(g.anim) % 6, obrot = 0;
     var cien = 1 - Math.min(0.7, g.y / 300);
     x.fillStyle = "rgba(10,10,30,.3)"; x.beginPath(); x.ellipse(xs, stopy() + 3, 34 * cien, 7 * cien, 0, 0, Math.PI * 2); x.fill();
-    if (g.nietykalny > 0 && g.przemiana <= 0 && Math.floor(czasGlobalny * 14) % 2) x.globalAlpha = 0.5;
+    if (g.nietykalny > 0 && g.przemiana <= 0 && !g.rakieta && Math.floor(czasGlobalny * 14) % 2) x.globalAlpha = 0.5;
     if (wlasne) {
       var kr = klatkaRoweru(g); n = kr[0]; i = kr[1];
       if (bud) { x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = 0.3; x.drawImage(poswiataBiala, xs - 70, stopaY - 150, 140, 150); x.restore(); }
@@ -1173,13 +1214,17 @@
     if (mn > 1) tekst("×" + mn, W - m, m + 22, 40, "#ffe07a", "right");
     if (g.seria > 0) tekst("seria " + g.seria, W - m, m + 56, 17, "#d9f5dd", "right");
     var py = m + 74;
-    [["kask", g.bud, CZAS_KASKU], ["but", g.sprint, CZAS_BUTA], ["zel", g.zel, CZAS_ZELU]].forEach(function (w) {
+    [["kask", g.bud, CZAS_KASKU], ["but", g.sprint, CZAS_BUTA], ["zel", g.zel, CZAS_ZELU], ["rakieta", g.rakieta ? L.RAKIETA.czas_s - g.rakietaT : 0, L.RAKIETA.czas_s]].forEach(function (w) {
       if (w[1] <= 0 || !A[w[0]]) return;
       var o = A[w[0]]; x.drawImage(OBR[w[0]], m, py, 30, 30 * o.h / o.w);
       x.fillStyle = "rgba(18,20,40,.6)"; x.fillRect(m + 36, py + 9, 70, 8); x.fillStyle = "#9df0a8"; x.fillRect(m + 36, py + 9, 70 * w[1] / w[2], 8); py += 34;
     });
     var pw = L.postepWyzwania(ZASADA_WYZWANIA, g.st);
-    if (!g.maly) tekst((g.wyzwanieGotowe ? "🏅 " : "") + ZASADA_WYZWANIA.opis + (ZASADA_WYZWANIA.naKoniec ? "" : " " + pw.wartosc + "/" + pw.cel), W / 2, by + 56, Math.min(16, W / 46), g.wyzwanieGotowe ? "#ffe07a" : "#e8e4f2", "center");
+    if (!g.maly) {
+      var tw = ZASADA_WYZWANIA.opis + (ZASADA_WYZWANIA.naKoniec ? "" : " " + pw.wartosc + "/" + pw.cel), rozW = Math.min(16, W / 46);
+      tekst(tw, W / 2, by + 56, rozW, g.wyzwanieGotowe ? "#ffe07a" : "#e8e4f2", "center");
+      if (g.wyzwanieGotowe && OBR.odznaka) x.drawImage(OBR.odznaka, W / 2 - x.measureText(tw).width / 2 - rozW - 6, by + 56 - rozW / 2 - 1, rozW + 2, rozW + 2);
+    }
     if (wzywa) tekst((wzywa.od || "Znajomy") + ": " + wzywa.wynik, W - m, m + (g.seria > 0 ? 80 : 56), 15, wynikTeraz > wzywa.wynik ? "#9df0a8" : "#ffd9a0", "right");
     if (g.t < 5) { x.globalAlpha = Math.min(1, 5 - g.t); tekst(cechy().skacze === false ? "Dotknij przed przeszkodą: łyżka ją rozbije" : cechy().podbicie ? "Dotknij: skok. Drugi raz w powietrzu: podbicie" : "Dotknij: skok. Drugi raz w powietrzu: salto", W / 2, goraDrogi() - 215, Math.min(26, W / 26), "#fff", "center"); x.globalAlpha = 1; }
     if (g.podpowiedz > 0) { x.globalAlpha = Math.min(1, g.podpowiedz); tekst("Przesuń w dół: ślizg pod barierką", W / 2, goraDrogi() - 180, Math.min(26, W / 26), "#ffe07a", "center"); x.globalAlpha = 1; }
@@ -1284,9 +1329,10 @@
     el.style.backgroundImage = "url(" + (adres || KAT + a.src + "?v=" + WERSJA) + ")";
     el.style.setProperty("--w", sz + "px"); el.style.setProperty("--h", wys + "px");
   }
+  function obrazekOdznaki() { var im = document.createElement("img"); im.className = "odznaka-mini"; im.src = KAT + "odznaka.webp"; im.alt = "Odznaka"; return im; }
   function pokazMenu() {
     $("m-wyzwanie").textContent = "Wyzwanie dnia: " + ZASADA_WYZWANIA.opis;
-    var odz = Number(schowek.czytaj("cegielki_odznaki", "0")) || 0; $("m-odznaki").textContent = odz ? "🏅 × " + odz : ""; $("m-odznaki").hidden = !odz;
+    var odz = Number(schowek.czytaj("cegielki_odznaki", "0")) || 0; $("m-odznaki").textContent = odz ? "× " + odz : ""; if (odz) $("m-odznaki").prepend(obrazekOdznaki()); $("m-odznaki").hidden = !odz;
     if (wzywa) { $("m-znajomy").hidden = false; $("m-znajomy").textContent = (wzywa.od ? wzywa.od + " rzuca" : "Znajomy rzuca") + " Ci wyzwanie: pobij " + wzywa.wynik + " " + L.odmianaPunktow(wzywa.wynik) + "!"; }
     if ($("imie")) $("imie").value = imieGracza;
     /* biegacze na kartach: rozmiar klatki z atlasu, różne tempo i faza */
@@ -1299,14 +1345,15 @@
     try {
       var r = await fetch(KAT + "atlas.json?v=" + WERSJA);
       Object.assign(A, await r.json());
-      var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek)_/.test(k) && k !== "druzyna" && k !== "gorka"; }).concat(["kasia_bieg", "filip_bieg"]);
+      var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek|rakieta|mur)_/.test(k) && k !== "druzyna" && k !== "gorka" && k !== "trawa_pod_droga"; }).concat(["kasia_bieg", "filip_bieg"]);
       await wczytajObrazy(wspolne);
+      if (pion) wczytajObrazy(["trawa_pod_droga"]);
     } catch (e) { $("ladowanie").textContent = "Nie udało się wczytać grafik. Odśwież stronę."; return; }
     G = nowyStan("kasia"); planujDekor();
     stan = "menu";
     $("ladowanie").hidden = true;
     odswiezGlosnik(); pokazMenu(); gotowaOk();
-    if (parametry.has("test")) { window.__gra = function () { return G; }; window.__krok = krok; }
+    if (parametry.has("test")) { window.__gra = function () { return G; }; window.__krok = krok; window.__uzyj = uzyjZPlecaka; }
     /* Podgląd ułożenia bez rysunku, poza produkcją: wywrotka na miejscu koparki. */
     if (parametry.get("koparka") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app") ustawKoparke(KAT + "wywrotka.webp");
     /* Podgląd rowerzysty poza produkcją: lokalnie nie ma funkcji z przełącznikiem. */

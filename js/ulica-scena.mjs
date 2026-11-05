@@ -4,7 +4,7 @@
 // Przed startem: plac z tablicą, niebo i liście; bez liczb, licznika, świętowania, dźwięku i udostępniania. Tekst z bazy (firma, imię) tylko przez textContent. Liczby tylko z suma_km licznika.
 (function (g) {
   "use strict";
-  var WYS = 340, ODC = 30.25, START_X = 70, DROGA_Y = 240, DROGA_H = 72, KAFEL_DROGI = 242, KONIEC_SWIATA = 300, OKRES_SRODKA = 1400, KAFEL_DALEKO = 900, KAFEL_PRZOD = 640;
+  var WYS = 340, ODC = 30.25, START_X = 70, DROGA_Y = 240, DROGA_H = 72, KAFEL_DROGI = 242, KONIEC_SWIATA = 300, OKRES_SRODKA = 1400, KAFEL_DALEKO = 700, KAFEL_PRZOD = 380;
   var CEL_PX = 125 * ODC, SWIAT = START_X + CEL_PX + KONIEC_SWIATA, PARALAKSA = { daleko: 0.18, srodek: 0.55, przod: 1.25 };
   var LOGO_SZER = 0.8, LOGO_WYS = 40, ZA_DROGA = 20, POZIOM_DOMKU = 258, POZIOM_MASZYN = 286, POZIOM_DZWIGU = 262, POZIOM_BUDOWNICZEGO = 304, POZIOM_SRODKA = 238;
   var ROZMIAR = { koparka: [124, 85.5], walec: [104, 83.5], dzwig: [130, 90.5], budowniczy: [39, 74] };
@@ -47,10 +47,10 @@
     ".us--dzien .us-tint,.us--dzien .us-swiatla-sr{display:none}.us--swit .us-tint{background:rgba(255,150,120,.1)}.us--swit .us-tint-p{background:rgba(255,150,120,.06)}.us--zmierzch .us-tint{background:rgba(70,40,110,.24)}.us--zmierzch .us-tint-p{background:rgba(70,40,110,.14)}.us--noc .us-tint{background:rgba(10,18,50,.46)}.us--noc .us-tint-p{background:rgba(10,18,50,.26)}" +
     ".us-gwiazdy{right:0;height:110px;background-size:340px 96px;display:none;pointer-events:none}.us--noc .us-gwiazdy{display:block}.us--zmierzch .us-g1{display:block;opacity:.35}" +
     ".us--gra.us--noc .us-g2{animation:us-migot 3.4s ease-in-out infinite alternate}@keyframes us-migot{from{opacity:.35}to{opacity:1}}" +
-    ".us-slonce{position:absolute;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle,#fff3c4 0 45%,rgba(255,214,120,.55) 60%,transparent 72%);pointer-events:none}" +
+    ".us-slonce{position:absolute;width:76px;height:76px;background:url(assets/gra/slonce.webp) center/contain no-repeat;pointer-events:none}" +
     ".us--dzien .us-slonce{left:68%;top:20px}.us--swit .us-slonce{left:14%;top:112px}.us--zmierzch .us-slonce{left:74%;top:118px}.us--noc .us-slonce{display:none}" +
     ".us-ksiezyc{position:absolute;left:76%;top:24px;width:34px;height:34px;border-radius:50%;box-shadow:inset -9px -2px 0 0 #f5efd6;display:none;pointer-events:none}.us--noc .us-ksiezyc{display:block}" +
-    ".us-chmura{position:absolute;left:0;background-repeat:no-repeat;background-size:100% 100%;pointer-events:none;opacity:.92}.us--noc .us-chmura{opacity:.2}.us--zmierzch .us-chmura{opacity:.6}" +
+    ".us-chmura{position:absolute;left:0;background-repeat:no-repeat;background-size:contain;pointer-events:none;opacity:.92}.us--noc .us-chmura{opacity:.2}.us--zmierzch .us-chmura{opacity:.6}" +
     ".us--gra .us-chmura{will-change:transform;animation:us-chmura linear infinite}@keyframes us-chmura{from{transform:translate3d(-150px,0,0)}to{transform:translate3d(640px,0,0)}}" +
     ".us-laka{position:absolute;left:0;right:0;top:206px;bottom:0;background:linear-gradient(#86ad55,#6d9a47 28%,#5f8a3a 62%,#4f7a33);pointer-events:none}" +
     ".us-sprite{position:absolute;display:block;pointer-events:none;object-fit:contain;object-position:50% 100%}" +
@@ -58,9 +58,9 @@
     ".us-grunt,.us-droga{position:absolute;top:" + DROGA_Y + "px;height:" + DROGA_H + "px;pointer-events:none}" +
     ".us-grunt{left:" + START_X + "px;width:" + CEL_PX + "px;background:linear-gradient(#6d8f3f 0 12%,#8c6d3f 12% 72%,#7a5d33 76%,#5f8a3a 78%)}" +
     ".us-droga{left:" + START_X + "px;background-color:#3a3d44;background-repeat:repeat-x;background-size:" + KAFEL_DROGI + "px " + DROGA_H + "px}" +
-    ".us-slupek{position:absolute;top:296px;padding:1px 4px;border-radius:3px;background:#f5efe3;color:#23252b;border:1px solid #23252b;font:700 9px/1.2 Inter,system-ui,sans-serif;transform:translateX(-50%);pointer-events:none}" +
-    ".us-tablica{position:absolute;padding:3px 8px;border-radius:4px;background:#f5efe3;border:1.5px solid #23252b;color:#23252b;font:700 11px/1.2 Inter,system-ui,sans-serif;pointer-events:none}" +
-    ".us-meta{background:#1d4e89;border-color:#fff;color:#fff}" +
+    ".us-slupek{position:absolute;top:" + (DROGA_Y - 76) + "px;width:52px;height:85px;display:flex;align-items:center;justify-content:center;padding-top:9px;box-sizing:border-box;background:url(assets/ulica/slupek.webp) center/contain no-repeat;color:#23252b;font:800 10px/1 Inter,system-ui,sans-serif;letter-spacing:-.3px;white-space:nowrap;transform:translateX(-50%);pointer-events:none}" +
+    ".us-tablica{position:absolute;padding:8px 14px 24px;background:url(assets/ulica/tablica-start.webp) center/100% 100% no-repeat;color:#23252b;font:800 12px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
+    ".us-meta{background-image:url(assets/ulica/tablica-meta.webp);color:#fff}" +
     ".us-btn{position:absolute;display:block;margin:0;padding:0;border:0;background:none;cursor:pointer;touch-action:pan-y;color:inherit;font:inherit;min-width:44px;min-height:44px}" +
     ".us-btn:focus-visible{outline:3px solid #fff;outline-offset:2px;border-radius:8px}" +
     ".us-cz{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;pointer-events:none}" +
@@ -179,7 +179,7 @@
     var dod = przed ? U.dodatkiBezpieczne(null) : U.zFirmamiNaMurze(U.dodatkiBezpieczne(licznik.ulica), dane);
     var pora = U.poraDnia(new Date());
     var d0 = przed ? null : licznik;
-    var dzwiek = noweAudio(), glosno = czytajDzwiek();
+    var dzwiek = noweAudio(), glosno = !o.kafel && czytajDzwiek();   // kafel na Dziś zawsze cichy
     var kam = { x: 0, cel: null, v: 0, ruszona: 0, maks: 0, brudna: true };
     var szerOkna = 390, raf = 0, ostatni = 0, naEkranie = true, kartaWidoczna = true, obs = null;
     var czasy = { lisc: 0, dym: 0, ziemia: 0, dzwig: 5 }, zegary = [];
@@ -191,28 +191,33 @@
     var korzen = el("div", "us us--" + pora);
     var tytulTekst = przed ? "" : (U.tytulUlicy(dane.imie) || "Ulica w budowie");
     var naglowek = null;
-    if (tytulTekst || o.proba) {
+    if (!o.kafel && (tytulTekst || o.proba)) {
       naglowek = el("div", "us-tytul", korzen, tytulTekst);
       if (o.proba) el("span", "us-proba", naglowek, "PRÓBA");
     }
     var okno = el("div", "us-okno", korzen);
     okno.setAttribute("role", "group"); okno.setAttribute("tabindex", "0");
     okno.setAttribute("aria-label", U.opisDlaCzytnika(stan, dane, dod) + (przed ? "" : " Przesuwaj w lewo i w prawo, żeby obejrzeć całą ulicę."));
+    /* Kafel na Dziś: tło bez gestów, dotknięcie należy do linku nad sceną, licznik i przyciski rysuje karta. */
+    if (o.kafel) { okno.removeAttribute("role"); okno.removeAttribute("tabindex"); okno.removeAttribute("aria-label"); okno.setAttribute("aria-hidden", "true"); okno.style.pointerEvents = "none"; }
     /* Kamera przesuwa warstwy, okno stoi. Przewinięcie okna (fokus na budynku, skrypt) wyciągało warstwy nieba i pory dnia poza kadr: ciemny pas na części sceny. */
     okno.addEventListener("scroll", function () { okno.scrollLeft = 0; okno.scrollTop = 0; });
+    /* Warstwa ma kształt z kodu, a plik wchodzi dopiero po wczytaniu: brak pliku nic nie psuje. */
+    function zPliku(n, adres, rozmiar) { var im = new g.Image(); im.onload = function () { n.style.backgroundImage = "url(" + adres + ")"; n.style.backgroundSize = rozmiar; }; im.src = adres; }
     var niebo = el("div", "us-tlo", okno), slonce = el("div", "us-slonce", okno);
     niebo.setAttribute("aria-hidden", "true"); slonce.setAttribute("aria-hidden", "true");
-    [[18, 74, 1, 96, -20], [58, 120, 0.8, 130, -80], [34, 96, 0.62, 170, -40]].forEach(function (c) {
+    [[18, 74, 1, 96, -20], [58, 120, 0.8, 130, -80], [34, 96, 0.62, 170, -40]].forEach(function (c, nrCh) {
       var ch1 = el("div", "us-chmura", okno);
       ch1.setAttribute("aria-hidden", "true");
-      ch1.style.backgroundImage = svgUrl(SVG_CHMURA);
-      ch1.style.top = c[0] + "px"; ch1.style.width = c[1] * c[2] + "px"; ch1.style.height = c[1] * c[2] * 0.38 + "px";
+      ch1.style.backgroundImage = svgUrl(SVG_CHMURA); zPliku(ch1, "assets/gra/chmura" + (nrCh + 1) + ".webp", "contain");
+      ch1.style.top = c[0] + "px"; ch1.style.width = c[1] * c[2] + "px"; ch1.style.height = c[1] * c[2] * 0.56 + "px";
       ch1.style.animationDuration = c[3] + "s"; ch1.style.animationDelay = c[4] + "s";
       if (!ruch) przesun(ch1, 40 + c[3]);
     });
     var daleko = el("div", "us-warstwa", okno);
-    daleko.style.top = "90px"; daleko.style.height = "130px"; daleko.style.width = "calc(100% + " + KAFEL_DALEKO + "px)";
-    daleko.style.backgroundImage = svgUrl(SVG_DALEKO); daleko.style.backgroundRepeat = "repeat-x";
+    daleko.style.top = "100px"; daleko.style.height = "120px"; daleko.style.width = "calc(100% + " + KAFEL_DALEKO + "px)";
+    daleko.style.backgroundImage = svgUrl(SVG_DALEKO); daleko.style.backgroundRepeat = "repeat-x"; daleko.style.backgroundPosition = "0 100%"; daleko.style.backgroundSize = KAFEL_DALEKO + "px 120px";
+    zPliku(daleko, "assets/ulica/wzgorza.webp", KAFEL_DALEKO + "px 120px");
     el("div", "us-laka", okno);
     var srodek = el("div", "us-warstwa", okno);
     srodek.style.width = "calc(100% + " + OKRES_SRODKA + "px)";
@@ -223,8 +228,9 @@
     var ulica = el("div", "us-warstwa", okno);
     ulica.style.width = (przed ? 1200 : SWIAT) + "px";
     var przod = el("div", "us-warstwa", okno);
-    przod.style.top = (WYS - 46) + "px"; przod.style.height = "46px"; przod.style.width = "calc(100% + " + KAFEL_PRZOD + "px)";
-    przod.style.backgroundImage = svgUrl(SVG_PRZOD); przod.style.backgroundRepeat = "repeat-x";
+    przod.style.top = (WYS - 54) + "px"; przod.style.height = "54px"; przod.style.width = "calc(100% + " + KAFEL_PRZOD + "px)";
+    przod.style.backgroundImage = svgUrl(SVG_PRZOD); przod.style.backgroundRepeat = "repeat-x"; przod.style.backgroundSize = KAFEL_PRZOD + "px 54px";
+    zPliku(przod, "assets/ulica/pierwszy-plan.webp", KAFEL_PRZOD + "px 54px");
     var tint = el("div", "us-tint us-tint-p", okno);
     var g1 = el("div", "us-gwiazdy us-g1", okno), g2 = el("div", "us-gwiazdy us-g2", okno), ksiezyc = el("div", "us-ksiezyc", okno);
     [g1, g2, ksiezyc].forEach(function (n) { okno.insertBefore(n, okno.firstChild.nextSibling); });   // niebo: za budynkami, a wysoki budynek sięga pod księżyc
@@ -287,6 +293,19 @@
       };
       return gora + ph;
     }
+    /* Park z grafiki; brak pliku = pięć drzew, jak dotąd. */
+    function rysujPark(xp) {
+      var pk = el("div", "us-sprite", ulica), im = sprite("park", pk);
+      obok(pk, xp, POZIOM_DOMKU - 139, 370, 139);
+      im.onerror = function () {
+        if (pk.parentNode) pk.parentNode.removeChild(pk);
+        [[0, 0.82], [62, 1], [130, 0.74], [186, 0.92], [250, 0.8]].forEach(function (d) {
+          var w = 130 * d[1], bk = el("div", "us-sprite", ulica);
+          obok(bk, xp + d[0], POZIOM_DOMKU - w, w * 0.94, w);
+          zeSpadkiem("drzewo", bk, [sprite("drzewo", bk)]);
+        });
+      };
+    }
     function zeSpadkiem(nazwa, rodzic, obrazy) {
       obrazy[0].onerror = function () {
         obrazy.forEach(function (i) { if (i.parentNode) i.parentNode.removeChild(i); });
@@ -298,6 +317,7 @@
       var plot = el("div", "us-sprite", srodek);
       plot.style.left = "0"; plot.style.right = "0"; plot.style.top = (POZIOM_SRODKA - 34) + "px"; plot.style.height = "26px";
       plot.style.backgroundImage = svgUrl(SVG_PLOT); plot.style.backgroundRepeat = "repeat-x";
+      plot.style.height = "34px"; plot.style.top = (POZIOM_SRODKA - 42) + "px"; zPliku(plot, "assets/ulica/plot.webp", "111px 34px");
       var wzor = [["drzewo", 40, 0.92], ["drzewo", 262, 0.72], ["latarnia", 430, 0.8], ["drzewo", 640, 1], ["latarnia", 870, 0.8], ["drzewo", 1012, 0.78], ["drzewo", 1236, 0.96]].filter(function (w) { return !(przed && w[0] === "latarnia"); });
       wzor.concat(wzor.filter(function (w) { return w[1] < 700; }).map(function (w) { return [w[0], w[1] + OKRES_SRODKA, w[2]]; })).forEach(function (w) {
         var wys = (w[0] === "drzewo" ? 130 : 92) * w[2], szer = wys * (w[0] === "drzewo" ? 0.94 : 0.288);
@@ -340,7 +360,7 @@
     }
     /* Wjazd raz na wizytę: koparka z rysunkiem wjeżdża na plac, staje i zaczyna kopać. */
     function wjazdKoparki() {
-      if (przed || !elKoparka || !U.rysunekKoparki(licznik)) return;
+      if (o.kafel || przed || !elKoparka || !U.rysunekKoparki(licznik)) return;   // wjazd zostaje na pełną Ulicę
       var klucz = "bm_ulica_wjazd", bylo = false;
       try { bylo = g.sessionStorage.getItem(klucz) === "1"; g.sessionStorage.setItem(klucz, "1"); } catch (e) {}
       if (bylo || !ruch) return;
@@ -390,13 +410,13 @@
       el("div", "us-grunt", ulica);
       droga = el("div", "us-droga", ulica);
       droga.style.backgroundImage = "url(" + U.sciezkaObrazu("droga") + ")";
-      if (stan.odcinki >= 6) obok(el("div", "us-tablica", ulica, "START"), START_X - 56, DROGA_Y + 4);   // wcześniej stoją tu maszyny
+      if (stan.odcinki >= 6) obok(el("div", "us-tablica", ulica, "START"), START_X - 66, DROGA_Y - 40);   // wcześniej stoją tu maszyny
       for (var t = 1; t <= 12; t++) {
         var sl = el("div", "us-slupek", ulica, U.formatKm(t * 1000));
         sl.style.left = (START_X + t * 10 * ODC) + "px";
       }
       var meta = el("div", "us-tablica us-meta", ulica, (U.formatKm(dane.cel_km || 12500)) + " km");
-      obok(meta, START_X + CEL_PX + 12, DROGA_Y + 8);
+      obok(meta, START_X + CEL_PX + 110, DROGA_Y - 40);
       var x = START_X + 14;
       /* mur z cegiełek: imię tylko przy zgodzie (baza), przycisk tylko dla imiennej */
       var razem = dod.imiona.length + dod.bez_imienia;
@@ -423,14 +443,7 @@
         zeSpadkiem("plac-zabaw", pz, [sprite("plac-zabaw", pz)]);
         x += 250;
       }
-      if (dod.odblokowane.indexOf("park") >= 0 && stan.faza !== "pelna") {
-        [[0, 0.82], [62, 1], [130, 0.74], [186, 0.92], [250, 0.8]].forEach(function (d) {
-          var w = 130 * d[1], bk = el("div", "us-sprite", ulica);
-          obok(bk, x + d[0], POZIOM_DOMKU - w, w * 0.94, w);
-          zeSpadkiem("drzewo", bk, [sprite("drzewo", bk)]);
-        });
-        x += 370;
-      }
+      if (dod.odblokowane.indexOf("park") >= 0 && stan.faza !== "pelna") { rysujPark(x); x += 370; }
       /* Pierwszy budynek za tabliczkami licznika i muru: kamera nie cofnie się przed początek ulicy, więc inaczej zasłaniałyby szyld i podpis „Partner akcji”. */
       /* Budynki firm: rzędami, front najpierw. Domki rotują, szyld poza odbitym obrazem, więc nigdy lustrzany. Wieżowiec stoi głębiej, za drogą, z logo na górze. Dalsze rzędy mniejsze i za pierwszym, żeby 60 firm zmieściło się przy tej samej drodze. Nazwy poniżej progu są w murze. */
       var KRAWEDZ = START_X + CEL_PX - 30, ZA_TABLICZKA = 190, rzedy = [{ baza: POZIOM_DOMKU, sk: 1, x: x + ZA_TABLICZKA }, { baza: POZIOM_DOMKU - 24, sk: 0.82, x: x + 40 }, { baza: POZIOM_DOMKU - 46, sk: 0.68, x: x + 16 }];
@@ -500,16 +513,10 @@
       }
       if (stan.faza === "pelna") {
         var tab = el("div", "us-tablica us-meta", ulica, (U.tytulUlicy(dane.imie) || "Ulica") + " zbudowana");
-        tab.style.fontSize = "15px"; tab.style.padding = "5px 12px";
-        obok(tab, START_X + CEL_PX - 150, 152);
-        var slup1 = el("div", "us-sprite", ulica); obok(slup1, START_X + CEL_PX - 136, 180, 3, 74); slup1.style.background = "#d7d7dd";
-        var slup2 = el("div", "us-sprite", ulica); obok(slup2, START_X + CEL_PX - 26, 180, 3, 74); slup2.style.background = "#d7d7dd";
+        tab.style.fontSize = "15px"; tab.style.padding = "14px 22px 44px";
+        obok(tab, START_X + CEL_PX - 150, 170);
         /* Koniec akcji: park przy napisie, tam gdzie kończy się droga. */
-        [[0, 0.82], [62, 1], [130, 0.74], [186, 0.92], [250, 0.8]].forEach(function (d) {
-          var wP = 130 * d[1], bkP = el("div", "us-sprite", ulica);
-          obok(bkP, START_X + CEL_PX - 470 + d[0], POZIOM_DOMKU - wP, wP * 0.94, wP);
-          zeSpadkiem("drzewo", bkP, [sprite("drzewo", bkP)]);
-        });
+        rysujPark(START_X + CEL_PX - 530);
         /* Maszyny zjeżdżają raz, gdy ulica właśnie stanęła. Potem zostaje sam budowniczy. */
         if (ruch && !zjazdByl) {
           zjazdByl = true;
@@ -541,6 +548,7 @@
 
     /* interfejs */
     function budujUi() {
+      if (o.kafel) return;
       if (!przed) {
         var l = el("div", "us-licznik", ui);
         licz.el = el("b", "", l, U.formatKm(licz.cel));
@@ -564,6 +572,8 @@
       wyczysc(elGlosnik);
       elGlosnik.setAttribute("aria-label", glosno ? "Wyłącz dźwięk" : "Włącz dźwięk");
       elGlosnik.setAttribute("aria-pressed", glosno ? "true" : "false");
+      var ikona = el("img", "", elGlosnik); ikona.setAttribute("alt", ""); ikona.setAttribute("src", "assets/gra/" + (glosno ? "glosnik_wl" : "glosnik_wyl") + ".webp"); ikona.style.cssText = "width:24px;height:24px;object-fit:contain;display:block;pointer-events:none";
+      ikona.onerror = function () { if (ikona.parentNode) ikona.parentNode.removeChild(ikona); elGlosnik.appendChild(svg); };
       var NS = "http://www.w3.org/2000/svg", svg = g.document.createElementNS(NS, "svg");
       svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true");
       var p = g.document.createElementNS(NS, "path");
@@ -571,7 +581,6 @@
       var q = g.document.createElementNS(NS, "path");
       q.setAttribute("d", glosno ? "M16 8a5 5 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13" : "M16 9l5 6M21 9l-5 6");
       q.setAttribute("fill", "none"); q.setAttribute("stroke", "currentColor"); q.setAttribute("stroke-width", "2"); q.setAttribute("stroke-linecap", "round"); svg.appendChild(q);
-      elGlosnik.appendChild(svg);
     }
     function graj(n) { if (glosno) dzwiek.graj(n); }
 
@@ -872,7 +881,7 @@
       licz.cel = nowy.km;
       if (!ruch && licz.el) { licz.wart = licz.cel; licz.el.textContent = U.formatKm(Math.round(licz.cel)); }
       if (opis) opis.textContent = U.tekstPostepu(nowy);
-      okno.setAttribute("aria-label", U.opisDlaCzytnika(nowy, dane, dod) + " Przesuwaj w lewo i w prawo, żeby obejrzeć całą ulicę.");
+      if (!o.kafel) okno.setAttribute("aria-label", U.opisDlaCzytnika(nowy, dane, dod) + " Przesuwaj w lewo i w prawo, żeby obejrzeć całą ulicę.");
       if (nowy.odcinki !== stare.odcinki && !dotyk && Date.now() - kam.ruszona > 12000) kam.cel = celKamery();
       swietuj(rodzaj, nowy.km);
       popchnij();
@@ -965,14 +974,19 @@
     g.document.addEventListener("visibilitychange", naWidocznosc);
     g.addEventListener("resize", naRozmiar);
     if (g.IntersectionObserver) {
-      obs = new g.IntersectionObserver(function (w) { naEkranie = !!(w[w.length - 1] && w[w.length - 1].isIntersecting); przelaczGre(); }, { threshold: 0.02 });
+      obs = new g.IntersectionObserver(function (w) {
+        naEkranie = !!(w[w.length - 1] && w[w.length - 1].isIntersecting);
+        /* Kafel mógł wstać na ukrytej sekcji Dziś: kadr na czoło budowy dopiero przy prawdziwej szerokości. */
+        if (o.kafel && naEkranie && okno.clientWidth && okno.clientWidth !== szerOkna) { zmierz(); kam.x = celKamery(); kadr(); }
+        przelaczGre();
+      }, { threshold: 0.02 });
       obs.observe(okno);
     }
     var zegarPory = g.setInterval(function () { var p = U.poraDnia(new Date()); if (p !== pora) ustawPore(p); }, 60000);
     wjazdKoparki();
 
     /* Mur graczy z gry Cegiełki: tylko przy włączonej grze i po starcie akcji. Osobno od kilometrów, awaria = brak tabliczki, scena działa dalej. */
-    if (!przed && g.SB_URL && g.fetch) {
+    if (!przed && !o.kafel && g.SB_URL && g.fetch) {
       g.fetch(g.SB_URL + "/functions/v1/gra-ranking", { headers: { Accept: "application/json" } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) {

@@ -18,7 +18,7 @@
   var COMBO_MAKS = 5;
 
   /* MAGAZYN SZEFA: płaci się WYŁĄCZNIE złotymi cegłami zebranymi w grze, nigdy pieniędzmi. Zwykłe cegły idą do wspólnego muru i nie są walutą. Ceny muszą się zgadzać z gra_kup w migracji (blizna-154).
-     Koszulki i spodenki to przemalowanie arkuszy w kodzie, dodatki to obrazki przypinane na żywo w każdej klatce. Korony nie ma w gra_kup: nosi ją tylko czołówka rankingu dnia. */
+     Koszulki i spodenki to przemalowanie arkuszy w kodzie, dodatki i buty to obrazki przypinane na żywo w każdej klatce. Korony nie ma w gra_kup: nosi ją tylko czołówka rankingu dnia. */
   var SKLEP = [
     { id: "koszulka-czerwona", slot: "tulow", rodzaj: "koszulka", nazwa: "Czerwona koszulka", cena: 10, kolor: [224, 50, 58] },
     { id: "koszulka-niebieska", slot: "tulow", rodzaj: "koszulka", nazwa: "Niebieska koszulka", cena: 10, kolor: [38, 112, 226] },
@@ -31,6 +31,11 @@
     { id: "spodenki-niebieskie", slot: "spodenki", rodzaj: "spodenki", nazwa: "Niebieskie spodenki", cena: 8, kolor: [34, 96, 200] },
     { id: "spodenki-zielone", slot: "spodenki", rodzaj: "spodenki", nazwa: "Zielone spodenki", cena: 8, kolor: [30, 148, 80] },
     { id: "spodenki-biale", slot: "spodenki", rodzaj: "spodenki", nazwa: "Białe spodenki", cena: 12, kolor: [226, 228, 232] },
+    { id: "buty-czerwone", slot: "stopy", rodzaj: "buty", nazwa: "Czerwone biegowe", cena: 12 },
+    { id: "buty-niebieskie", slot: "stopy", rodzaj: "buty", nazwa: "Niebieskie biegowe", cena: 12 },
+    { id: "buty-zielone", slot: "stopy", rodzaj: "buty", nazwa: "Zielone biegowe", cena: 12 },
+    { id: "buty-fioletowe", slot: "stopy", rodzaj: "buty", nazwa: "Fioletowe biegowe", cena: 15 },
+    { id: "buty-robocze", slot: "stopy", rodzaj: "buty", nazwa: "Robocze budowlane", cena: 20 },
     { id: "opaska", slot: "glowa", rodzaj: "dodatek", nazwa: "Opaska", cena: 10 },
     { id: "czapka-pompon", slot: "glowa", rodzaj: "dodatek", nazwa: "Czapka z pomponem", cena: 15 },
     { id: "kask-rowerowy", slot: "glowa", rodzaj: "dodatek", nazwa: "Kask rowerowy", cena: 25 },
@@ -40,7 +45,7 @@
     { id: "medal", slot: "szyja", rodzaj: "dodatek", nazwa: "Medal", cena: 30 },
     { id: "peleryna", slot: "plecy", rodzaj: "dodatek", nazwa: "Peleryna", cena: 60 },
   ];
-  var SLOTY = ["tulow", "spodenki", "glowa", "oczy", "szyja", "plecy"];
+  var SLOTY = ["tulow", "spodenki", "stopy", "glowa", "oczy", "szyja", "plecy"];
   var KORONA_MIEJSCA = 10;
   /* Ułożenie dodatku względem przypięcia: szer w promieniach głowy, (kx, ky) punkt obrazka trafiający w przypięcie, (dx, dy) przesunięcie w promieniach, dx do przodu twarzy, dy w górę. */
   var DODATKI = {
@@ -54,6 +59,8 @@
     "medal": { punkt: "szyja", szer: 1.45, kx: 0.5, ky: 0.08, dx: 0.3, dy: -0.25 },
     "peleryna": { punkt: "szyja", szer: 5.2, kx: 0.93, ky: 0.1, dx: -0.2, dy: 0, wTyl: true },
   };
+  /* Buty: ten sam rysunek na obu stopach, przypięty w każdej klatce (js/cegielki-przypiecia.js). szer w promieniach głowy, (kx, ky) punkt rysunku trafiający w środek buta, obrot poprawia pochylenie rysunku względem wzorca. */
+  SKLEP.forEach(function (p) { if (p.rodzaj === "buty") DODATKI[p.id] = { punkt: "stopy", szer: 3.3, kx: 0.5, ky: p.id === "buty-robocze" ? 0.6 : 0.5, dx: 0, dy: 0, obrot: 0 }; });
   /* Koniec akcji i poziomy. Sumę zebranych cegieł liczy serwer z gra_wyniki, próg musi się zgadzać z gra_poziom w migracji (blizna-154). Filip 5.11: 3 awanse w pierwszych 5 rundach nowego gracza, poziom 10 po ok. 40 rundach dobrego, poziom 20 po ok. 300. */
   var POZIOMY = [0, 100, 300, 700, 1800, 3100, 4600, 6400, 8300, 10400, 12900, 15700, 18900, 22500, 26400, 30600, 35300, 40400, 45900, 52200];
   /* Cel muru (Filip 5.11): 100 cegieł na każdy km akcji. Ta sama liczba w gra_ranking i gra_postac_odblokowana. */
@@ -315,7 +322,7 @@
   var POSTACIE = {
     kasia: { sloty: SLOTY },
     filip: { sloty: SLOTY },
-    rowerzysta: { tempo: 1.1, skok: SKOK_ROWERU, podbicie: PODBICIE_ROWERU, sloty: ["oczy", "szyja", "plecy"], poziom: 10, wlasne: true, marginesKolizji: 12 },   // niższy skok to krótsze okno nad przeszkodą: mniejsza kolizja wyrównuje rower do biegaczy
+    rowerzysta: { tempo: 1.1, skok: SKOK_ROWERU, podbicie: PODBICIE_ROWERU, sloty: ["oczy", "szyja", "plecy", "stopy"], poziom: 10, wlasne: true, marginesKolizji: 12 },   // niższy skok to krótsze okno nad przeszkodą: mniejsza kolizja wyrównuje rower do biegaczy
     koparka: { tempo: 0.85, skacze: false, sloty: [], poziom: 20, zaMur: true, wlasne: true },
   };
   /** Czy postać otwarta: poziom z sumy cegieł albo (koparka) ukończony wspólny mur lub zamknięta akcja. */
@@ -352,6 +359,8 @@
   /* STROJE OSOBNO NA POSTAĆ (Filip 5.11): zapis { kasia, filip, rowerzysta }. Koparki tu nie ma: rysunek zostaje bez dodatków. Kupione są wspólne, strój osobny. Stary zapis, jeden na wszystkich, trafia raz do każdej postaci. */
   /* Liczby diagnostyczne na końcu rundy: dokładnie ?diag=1 i nigdy na stronie publicznej (Filip 5.11). */
   function diagWlaczony(adres, host) { return new URLSearchParams(adres || "").get("diag") === "1" && !/(^|\.)biegamy\.(run|app)$/.test(host || ""); }
+  /* Napis po przyjętej rundzie. Imię z licznika akcji, tylko po starcie: bez imienia nie ma napisu. */
+  function napisMuruUlicy(imie) { return imie ? "Twoje cegły lecą na mur przy Ulicy " + dopelniacz(imie) : ""; }
   var POSTACIE_ZE_STROJEM = ["kasia", "filip", "rowerzysta"];
   function stroje(zapis, stary) {
     var w = {}, z = zapis && typeof zapis === "object" && !Array.isArray(zapis) ? zapis : null;
@@ -374,7 +383,19 @@
     return s && s.length <= 14 ? s : "";
   }
   /* Start rundy z ulepszeniem: jednorazowo, za każdą rundę osobno, nic się nie odnawia samo. */
-  var ULEPSZENIA = [{ id: "kask", nazwa: "Kask", cena: 5 }, { id: "bidon", nazwa: "Bidon", cena: 4 }];
+  var ULEPSZENIA = [{ id: "kask", nazwa: "Kask", cena: 5 }, { id: "bidon", nazwa: "Bidon", cena: 4 }, { id: "rakieta", nazwa: "Przyczepka-rakieta", cena: 25, tylko: "rowerzysta" }];
+  /* Rakieta (Filip 5.11): tylko rowerzysta, 4 s lotu na wysokości łuku cegieł, bez kolizji, zbiera wszystko, nad czym leci. Potem jazda bez przyczepki i chwila nietykalności na lądowanie. Ile cegieł daje, liczy pomiar bota w migracji 20261107_gra_rakieta.sql. */
+  var RAKIETA = { czas_s: 4, wznos_s: 0.4, opad_s: 0.35, po_s: 0.6 };
+  function ulepszenieDla(typ, postac) { var u = ULEPSZENIA.filter(function (x) { return x.id === typ; })[0]; return !!u && (!u.tylko || u.tylko === postac); }
+  function wysokoscRakiety(t, postac) {
+    var R = RAKIETA, h = lukCegiel(postac, 0) * 0.85;
+    if (t <= 0 || t >= R.czas_s) return 0;
+    if (t < R.wznos_s) { var a = t / R.wznos_s; return h * a * (2 - a); }
+    if (t > R.czas_s - R.opad_s) { var b = (R.czas_s - t) / R.opad_s; return h * b * (2 - b); }
+    return h + Math.sin(t * 5) * 6;
+  }
+  /* Klatki arkusza: 0 odpalenie, 1-3 lot, 4 lądowanie. */
+  function klatkaRakiety(t, anim) { return t < 0.15 ? 0 : t > RAKIETA.czas_s - 0.3 ? 4 : 1 + Math.floor(anim * 0.5) % 3; }
   /* Plecak: po jednej sztuce każdego rodzaju na rundę i tylko to, co jest. Tę samą regułę sprawdza serwer przy zapisie wyniku. */
   function mozeUzyc(plecak, uzyte, typ) { return (Number(plecak && plecak[typ]) || 0) > 0 && (uzyte || []).indexOf(typ) < 0; }
   /* Rysunek postaci w koparce: licznik oddaje adres tylko po starcie i przy zgodzie. Tu ostatnie sito: wyłącznie adres podpisany z prywatnego kubełka, to samo co na guziku i ulicy. */
@@ -517,5 +538,5 @@
     return n === 1 ? "cegła" : (r10 >= 2 && r10 <= 4 && !(r100 >= 12 && r100 <= 14)) ? "cegły" : "cegieł";
   }
 
-  g.BM_CEGIELKI = { diagWlaczony: diagWlaczony, MUR_SCENA: MUR_SCENA, ceglyNaScenie: ceglyNaScenie, odKtorejCegly: odKtorejCegly, flagiMuru: flagiMuru, SEKWENCJE: SEKWENCJE, sekwencjeWRundzie: sekwencjeWRundzie, dlugoscSekwencji: dlugoscSekwencji, odstepSekwencji: odstepSekwencji, nastepnaFala: nastepnaFala, mozeUzyc: mozeUzyc, tekstBonusu: tekstBonusu, DRUZYNA: DRUZYNA, druzynaWRundzie: druzynaWRundzie, grupyDruzyny: grupyDruzyny, GORKA: GORKA, gorkaWRundzie: gorkaWRundzie, nowaGorka: nowaGorka, fazaGorki: fazaGorki, tempoGorki: tempoGorki, katGorki: katGorki, klatkaGorki: klatkaGorki, TEKST_GORKI: TEKST_GORKI, tekstPrzerzutek: tekstPrzerzutek, zebraneKartki: zebraneKartki, BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, POPRZEDNI_CO: POPRZEDNI_CO, PLAKATY: PLAKATY, planszaFinalu: planszaFinalu, latarnieZapalone: latarnieZapalone, rowerZPodpisu: rowerZPodpisu, miejsceNaLot: miejsceNaLot, czasDoZiemi: czasDoZiemi, stroje: stroje, maStroj: maStroj, POSTACIE_ZE_STROJEM: POSTACIE_ZE_STROJEM, progFigury: progFigury, FIGURY: FIGURY, LOT_OPAD: LOT_OPAD, szczytLuku: szczytLuku, figuraPoSalcie: figuraPoSalcie, strojZPrzedmiotem: strojZPrzedmiotem, punktyRundy: punktyRundy, limitCegiel: limitCegiel, limitPunktow: limitPunktow, odmianaPunktow: odmianaPunktow, PLANSZE: PLANSZE, KARTKI: KARTKI, kartka: kartka, BONUSY_MURU: BONUSY_MURU, bonusyMuru: bonusyMuru, NAGRODY: NAGRODY, nagrodyDoPoziomu: nagrodyDoPoziomu, planszaRozdzialu: planszaRozdzialu, mnoznikSerii: mnoznikSerii, progiSerii: progiSerii, ceglyKoparki: ceglyKoparki, tempoPoziomu: tempoPoziomu, krokiTempa: krokiTempa, tempoRundy: tempoRundy, mnoznikPoziomu: mnoznikPoziomu, planPoziomu: planPoziomu, kolejkaBonusow: kolejkaBonusow, wysokoscRzedu: wysokoscRzedu, wysokoscLuku: wysokoscLuku, PARY: PARY, odstepPary: odstepPary, ROZDZIALY: ROZDZIALY, rozdzial: rozdzial, tekstMnoznika: tekstMnoznika, tekstAwansu: tekstAwansu, GRA_MAKS_NA_S: GRA_MAKS_NA_S, SZEROKOSC_PIONU: 560, zaWaskoNaGre: function (cw, ch) { return cw < 320 || cw / ch < 0.4; }, ROZBIEG_ZLOTEJ: 1.25, FIZYKA: FIZYKA, zasiegPostaci: zasiegPostaci, skalaSkoku: skalaSkoku, lukCegiel: lukCegiel, wysokoscZlotej: wysokoscZlotej, firmyZLicznika: firmyZLicznika, WIEZOWIEC_CO: WIEZOWIEC_CO, SLOTY: SLOTY, DODATKI: DODATKI, KORONA_MIEJSCA: KORONA_MIEJSCA, POZIOMY: POZIOMY, MUR_CEL: MUR_CEL, poziom: poziom, postepPoziomu: postepPoziomu, POSTACIE: POSTACIE, odblokowana: odblokowana, wysokoscKasku: wysokoscKasku, imieZPodpisu: imieZPodpisu, arkuszKoparki: arkuszKoparki, KLATKI_KOPARKI: KLATKI_KOPARKI, maKorone: maKorone, strojPostaci: strojPostaci, dopelniacz: dopelniacz, zdanieOZbiorce: zdanieOZbiorce, linkZbiorki: linkZbiorki, tekstMuru: tekstMuru, procentMuru: procentMuru, odmianaZlotych: odmianaZlotych, ROWER: ROWER, rysunekKoparki: rysunekKoparki, MALY_TEMPO: MALY_TEMPO, MALY_CEGIEL_W_RZEDZIE: MALY_CEGIEL_W_RZEDZIE, poprawnyStroj: poprawnyStroj, SKLEP: SKLEP, ULEPSZENIA: ULEPSZENIA, COMBO_MAKS: COMBO_MAKS, KLATKI_H: KLATKI_H, REAKCJE: REAKCJE, NAZWY_TRIKOW: NAZWY_TRIKOW, SZYLDY: SZYLDY, WYZWANIA: WYZWANIA, dzienWaw: dzienWaw, wyzwanieDnia: wyzwanieDnia, postepWyzwania: postepWyzwania, pusteStaty: pusteStaty, parsujWyzwanieZnajomego: parsujWyzwanieZnajomego, linkWyzwania: linkWyzwania, odmianaCegiel: odmianaCegiel };
+  g.BM_CEGIELKI = { RAKIETA: RAKIETA, ulepszenieDla: ulepszenieDla, wysokoscRakiety: wysokoscRakiety, klatkaRakiety: klatkaRakiety, napisMuruUlicy: napisMuruUlicy, diagWlaczony: diagWlaczony, MUR_SCENA: MUR_SCENA, ceglyNaScenie: ceglyNaScenie, odKtorejCegly: odKtorejCegly, flagiMuru: flagiMuru, SEKWENCJE: SEKWENCJE, sekwencjeWRundzie: sekwencjeWRundzie, dlugoscSekwencji: dlugoscSekwencji, odstepSekwencji: odstepSekwencji, nastepnaFala: nastepnaFala, mozeUzyc: mozeUzyc, tekstBonusu: tekstBonusu, DRUZYNA: DRUZYNA, druzynaWRundzie: druzynaWRundzie, grupyDruzyny: grupyDruzyny, GORKA: GORKA, gorkaWRundzie: gorkaWRundzie, nowaGorka: nowaGorka, fazaGorki: fazaGorki, tempoGorki: tempoGorki, katGorki: katGorki, klatkaGorki: klatkaGorki, TEKST_GORKI: TEKST_GORKI, tekstPrzerzutek: tekstPrzerzutek, zebraneKartki: zebraneKartki, BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, POPRZEDNI_CO: POPRZEDNI_CO, PLAKATY: PLAKATY, planszaFinalu: planszaFinalu, latarnieZapalone: latarnieZapalone, rowerZPodpisu: rowerZPodpisu, miejsceNaLot: miejsceNaLot, czasDoZiemi: czasDoZiemi, stroje: stroje, maStroj: maStroj, POSTACIE_ZE_STROJEM: POSTACIE_ZE_STROJEM, progFigury: progFigury, FIGURY: FIGURY, LOT_OPAD: LOT_OPAD, szczytLuku: szczytLuku, figuraPoSalcie: figuraPoSalcie, strojZPrzedmiotem: strojZPrzedmiotem, punktyRundy: punktyRundy, limitCegiel: limitCegiel, limitPunktow: limitPunktow, odmianaPunktow: odmianaPunktow, PLANSZE: PLANSZE, KARTKI: KARTKI, kartka: kartka, BONUSY_MURU: BONUSY_MURU, bonusyMuru: bonusyMuru, NAGRODY: NAGRODY, nagrodyDoPoziomu: nagrodyDoPoziomu, planszaRozdzialu: planszaRozdzialu, mnoznikSerii: mnoznikSerii, progiSerii: progiSerii, ceglyKoparki: ceglyKoparki, tempoPoziomu: tempoPoziomu, krokiTempa: krokiTempa, tempoRundy: tempoRundy, mnoznikPoziomu: mnoznikPoziomu, planPoziomu: planPoziomu, kolejkaBonusow: kolejkaBonusow, wysokoscRzedu: wysokoscRzedu, wysokoscLuku: wysokoscLuku, PARY: PARY, odstepPary: odstepPary, ROZDZIALY: ROZDZIALY, rozdzial: rozdzial, tekstMnoznika: tekstMnoznika, tekstAwansu: tekstAwansu, GRA_MAKS_NA_S: GRA_MAKS_NA_S, SZEROKOSC_PIONU: 560, zaWaskoNaGre: function (cw, ch) { return cw < 320 || cw / ch < 0.4; }, ROZBIEG_ZLOTEJ: 1.25, FIZYKA: FIZYKA, zasiegPostaci: zasiegPostaci, skalaSkoku: skalaSkoku, lukCegiel: lukCegiel, wysokoscZlotej: wysokoscZlotej, firmyZLicznika: firmyZLicznika, WIEZOWIEC_CO: WIEZOWIEC_CO, SLOTY: SLOTY, DODATKI: DODATKI, KORONA_MIEJSCA: KORONA_MIEJSCA, POZIOMY: POZIOMY, MUR_CEL: MUR_CEL, poziom: poziom, postepPoziomu: postepPoziomu, POSTACIE: POSTACIE, odblokowana: odblokowana, wysokoscKasku: wysokoscKasku, imieZPodpisu: imieZPodpisu, arkuszKoparki: arkuszKoparki, KLATKI_KOPARKI: KLATKI_KOPARKI, maKorone: maKorone, strojPostaci: strojPostaci, dopelniacz: dopelniacz, zdanieOZbiorce: zdanieOZbiorce, linkZbiorki: linkZbiorki, tekstMuru: tekstMuru, procentMuru: procentMuru, odmianaZlotych: odmianaZlotych, ROWER: ROWER, rysunekKoparki: rysunekKoparki, MALY_TEMPO: MALY_TEMPO, MALY_CEGIEL_W_RZEDZIE: MALY_CEGIEL_W_RZEDZIE, poprawnyStroj: poprawnyStroj, SKLEP: SKLEP, ULEPSZENIA: ULEPSZENIA, COMBO_MAKS: COMBO_MAKS, KLATKI_H: KLATKI_H, REAKCJE: REAKCJE, NAZWY_TRIKOW: NAZWY_TRIKOW, SZYLDY: SZYLDY, WYZWANIA: WYZWANIA, dzienWaw: dzienWaw, wyzwanieDnia: wyzwanieDnia, postepWyzwania: postepWyzwania, pusteStaty: pusteStaty, parsujWyzwanieZnajomego: parsujWyzwanieZnajomego, linkWyzwania: linkWyzwania, odmianaCegiel: odmianaCegiel };
 })(typeof globalThis !== "undefined" ? globalThis : this);

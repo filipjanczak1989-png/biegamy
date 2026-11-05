@@ -1323,7 +1323,18 @@ html { scroll-behavior: smooth; }
 <script src="sb.js"></script>
 <script src="js/wyniki-api.js"></script><!-- etap 5 (d): podpowiedź imprez w modalu celu (trener ustawia cel zawodnikowi) -->
 <script src="js/dzis-offline.js"></script>
+<script src="js/akcja-cytaty.mjs"></script>
+<script src="js/odznaki-akcji.mjs"></script>
 <script>
+/* Odznaka akcji od razu po logu (Filip 5.11): Dziś przekierowuje tu po zapisie, więc przyznanie nie może czekać na powrót. Dotyczy tylko własnego konta. */
+window._odznakiAkcjiPoLogu = async function () {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || !window.BM_ODZNAKI_AKCJI) return;
+    const { data: ja } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    if (ja) await window.BM_ODZNAKI_AKCJI.przyznajPoLogu(sb, ja.id);
+  } catch (e) {}
+};
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
   'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
@@ -1778,6 +1789,7 @@ function render() {
   if (window._calOpenDay && window._calLogs) {
     const _od = window._calOpenDay; window._calOpenDay = null;
     setTimeout(() => { _openDayScreen(_od); }, 250);
+    window._odznakiAkcjiPoLogu();
   }
 }
 
@@ -2694,6 +2706,7 @@ async function saveTraining() {
   closeModal();
   await loadTrainingsFromDB();
   notify(athDbId ? 'Trening zaktualizowany ✓' : `Dodano: ${selectedType}${dist > 0 ? ' · ' + dist + ' km' : ''}`);
+  window._odznakiAkcjiPoLogu();
 }
 
 /* Klucz dnia LOKALNY, nie toISOString — ta sama pułapka co przy CTA generatora:
@@ -3924,6 +3937,7 @@ async function saveLog() {
   closeLogModal();
   await loadTrainingsFromDB();
   notify(existingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany ✓');
+  window._odznakiAkcjiPoLogu();
   // PRS pokaż tylko dla NOWEGO loga (nie dla edycji)
   if (!existingLogId) {
     setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);

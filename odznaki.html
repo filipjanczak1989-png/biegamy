@@ -334,7 +334,7 @@ function renderBadgesSection() {
   if (!container) return;
 
   const earned = window._earnedBadges.size;
-  const cats = [...new Set(KATALOG().map(b => b.cat))];
+  const cats = [...new Set(KATALOG().map(b => b.cat))].filter(c => c !== 'Akcja');   // akcja ma własny blok na górze
 
   let html = `
     <div style="display:flex;align-items:center;gap:12px;padding:0 0 16px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:16px;">
@@ -344,6 +344,22 @@ function renderBadgesSection() {
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${KATALOG().length - earned} jeszcze do zdobycia</div>
       </div>
     </div>`;
+
+  /* Kategoria akcji (Filip 5.11): od naciśnięcia guzika cała na górze, także bez żadnej zdobytej: zdobyte w kolorze, niezdobyte przygaszone. Nazwa przychodzi z bazy. */
+  if (_OA() && _OA().katalogWidoczny(window._akcjaStan)) {
+    const lista = _OA().LISTA, maAkcji = lista.filter(b => window._earnedBadges.has(b.id)).length, tytulAkcji = (window.KAT_LABEL||{}).Akcja || 'Akcja';
+    html += `<div id="odznaki-akcji" style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:10px;">${window.escapeHtml(tytulAkcji)} <span style="color:var(--accent);">${maAkcji}/${lista.length}</span></div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">`;
+    for (const b of lista) {
+      const zdobyta = window._earnedBadges.has(b.id), col = RARITY_COLOR[b.rarity] || '#fff';
+      html += `
+        <div onclick="showBadgeDetail('${b.id}',false)" data-odznaka-akcji="${b.id}" data-zdobyta="${zdobyta ? 1 : 0}" style="background:#13111f;border:1px solid ${zdobyta ? col + '55' : 'rgba(255,255,255,0.08)'};border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;${zdobyta ? '' : 'opacity:0.45;'}">
+          <img src="${_odzSrc(b.id)}" data-odz="${b.id}" alt="" loading="lazy" style="width:56px;height:56px;border-radius:10px;object-fit:cover;${zdobyta ? 'box-shadow:0 0 12px ' + col + '44;' : 'filter:grayscale(1) brightness(0.6);'}" onerror="${_odzErr(b.id, '')}">
+          <div style="font-size:11px;font-weight:600;line-height:1.2;">${b.name}</div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
 
   for (const cat of cats) {
     const catBadges = KATALOG().filter(b => b.cat === cat);
@@ -375,7 +391,7 @@ function renderBadgesSection() {
   }
 
   // Niezdobyte — mała szara siatka na dole
-  const locked = KATALOG().filter(b => !window._earnedBadges.has(b.id));
+  const locked = KATALOG().filter(b => !window._earnedBadges.has(b.id) && b.cat !== 'Akcja');
   if (locked.length > 0) {
     html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.2);margin-bottom:10px;">Do zdobycia (${locked.length})</div>`;
     html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">`;

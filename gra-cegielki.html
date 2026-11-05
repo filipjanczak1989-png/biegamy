@@ -41,6 +41,10 @@
   #menu { background:linear-gradient(180deg, rgba(16,19,36,.5), rgba(16,19,36,.14) 42%, rgba(16,19,36,.14) 70%, rgba(16,19,36,.46)); }
   #menu h1 { text-shadow:0 3px 0 #232a52, 0 0 16px rgba(16,19,36,.55); }
   .m-glowne { display:grid; gap:10px; width:min(520px,94vw); flex:none; }
+  .m-graj-kol { display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .m-graj-kol > .m-graj-guzik { flex:1 1 auto; }
+  .m-ulica { flex:none; height:72px; }
+  .k-ulica { margin:6px 0 0; font-weight:800; color:#ffe9b8; text-align:center; }
   #menu button.m-graj-guzik { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:88px; padding:8px 14px; font-size:clamp(34px,9vmin,48px); font-weight:900; line-height:1; border-radius:22px; box-shadow:0 6px 0 #b9502a; }
   #menu button.m-graj-guzik small { margin-top:5px; font-size:15px; font-weight:800; opacity:.85; }
   #menu .poziom { padding:4px 12px; border-radius:12px; background:rgba(16,19,36,.78); flex:none; }
@@ -131,10 +135,10 @@
   .r-lista li.ja { background:rgba(255,138,60,.3); font-weight:800; outline:2px solid var(--akcent); outline-offset:-2px; }
   .r-lista li.r-podium { font-size:17px; font-weight:800; padding-top:9px; padding-bottom:9px; }
   .r-lista li.r-kropki { justify-content:center; padding:0 12px; color:var(--cichy); }
-  .r-medal { width:30px; height:30px; flex:none; display:flex; align-items:center; justify-content:center; border-radius:50%; border:2px solid #232a52; font-size:15px; font-weight:900; color:#3a2410; box-shadow:inset 0 -3px 0 rgba(0,0,0,.18); }
-  .r-medal-1 { background:radial-gradient(circle at 35% 30%,#fff3b0,#f4c430 60%,#c8940f); }
-  .r-medal-2 { background:radial-gradient(circle at 35% 30%,#ffffff,#c9ced6 60%,#8f97a3); }
-  .r-medal-3 { background:radial-gradient(circle at 35% 30%,#ffd9b0,#d98a4a 60%,#a35f28); }
+  .r-medal { width:30px; height:38px; flex:none; display:flex; align-items:flex-end; justify-content:center; padding-bottom:7px; box-sizing:border-box; background:center/contain no-repeat; font-size:14px; font-weight:900; color:#3a2410; }
+  .r-medal-1 { background-image:url(assets/gra/medal_1.webp); }
+  .r-medal-2 { background-image:url(assets/gra/medal_2.webp); }
+  .r-medal-3 { background-image:url(assets/gra/medal_3.webp); }
   .r-ty { flex:none; padding:2px 7px; border-radius:8px; background:var(--akcent); color:#1b1420; font-size:12px; font-weight:900; }
   .r-lista li.r-pusto { justify-content:center; color:var(--cichy); padding:14px 12px; }
   .r-m { width:26px; text-align:right; color:var(--cichy); font-weight:800; flex:none; }
@@ -200,18 +204,22 @@
   .s-probka { width:20px; height:20px; border-radius:50%; flex:none; border:2px solid #fff; }
   .s-nazwa { flex:1; }
   .s-cena { color:#ffb35c; font-weight:800; white-space:nowrap; }
+  .s-wiersz[aria-pressed="true"] .s-cena { white-space:normal; flex:none; max-width:76px; text-align:right; line-height:1.15; }
+  .s-wiersz[aria-pressed="true"] .s-ikona { display:none; }
   #s-info:empty { display:none; }
   #s-info { color:#ffd9a0; }
   body.w-sklepie #glosnik { display:none; }
   #menu, #koniec { padding-bottom:calc(66px + env(safe-area-inset-bottom)); }
   #obroc { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; background:var(--tlo); color:var(--tekst); font-size:20px; font-weight:800; }
   #obroc[hidden] { display:none; }
-  #obroc span { font-size:44px; }
+  #obroc img { width:88px; height:auto; }
   #plecak-runda { position:fixed; left:calc(10px + env(safe-area-inset-left)); bottom:calc(10px + env(safe-area-inset-bottom)); display:flex; gap:10px; z-index:5; }
   .pr-guzik { position:relative; width:72px; height:72px; padding:10px; border-radius:50%; border:3px solid #fff7ea; background:rgba(16,19,36,.72); cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none; }
   .pr-guzik img { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; }
   .pr-guzik span { position:absolute; right:-4px; top:-6px; min-width:20px; padding:2px 6px; border-radius:12px; background:#e8561e; color:#fff; font-size:14px; font-weight:800; line-height:1.2; }
-  #glosnik { position:fixed; right:calc(10px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); width:48px; height:48px; border-radius:50%; border:0; background:rgba(16,19,36,.72); font-size:22px; cursor:pointer; z-index:5; touch-action:manipulation; }
+  #glosnik { position:fixed; right:calc(10px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); width:48px; height:48px; border-radius:50%; border:0; background:rgba(16,19,36,.72); padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; touch-action:manipulation; }
+  #glosnik img { width:32px; height:32px; object-fit:contain; pointer-events:none; }
+  .odznaka-mini { width:18px; height:18px; vertical-align:-4px; margin-right:4px; }
   #ladowanie { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--tlo); z-index:6; }
   /* Telefon w poziomie: Graj obok kafli, mur obok liczby. Wszystko ważne na pierwszym ekranie. */
   @media (max-height:500px) and (orientation:landscape) {
@@ -219,6 +227,9 @@
     .m-bok { height:40px; }
     .m-glowne { grid-template-columns:minmax(190px,36%) minmax(0,1fr); width:min(820px,96vw); }
     #menu button.m-graj-guzik { min-height:0; font-size:44px; }
+    #menu .m-graj-kol.z-ulica button.m-graj-guzik { font-size:30px; padding:2px 10px; }
+    #menu .m-graj-kol.z-ulica button.m-graj-guzik small { margin-top:1px; font-size:12px; }
+    .m-ulica { height:52px; }
     .m-kafel { min-height:60px; padding:5px 8px; }
     .m-graj { display:none; }
     .e-mur-uklad { flex-direction:row; align-items:center; gap:16px; width:min(820px,96vw); }
@@ -247,12 +258,15 @@
   <p id="m-znajomy" hidden style="color:#ffe9b8;font-weight:700;"></p>
   <div id="m-poziom" class="poziom"></div>
   <div class="m-glowne">
-    <button class="g m-graj-guzik" id="m-graj-guzik" type="button">Graj<small id="m-graj-kto"></small></button>
+    <div class="m-graj-kol">
+      <button class="g m-graj-guzik" id="m-graj-guzik" type="button">Graj<small id="m-graj-kto"></small></button>
+      <div id="m-ulica" class="m-ulica" hidden></div>
+    </div>
     <div class="m-guziki">
-      <button class="m-kafel" id="m-sklep" type="button"><img class="m-ikona" src="assets/gra/cegla_zlota.webp" alt=""><span class="m-k-nazwa">Magazyn Szefa</span><span class="m-k-dane" id="m-saldo"></span></button>
-      <button class="m-kafel" id="m-rankingi" type="button"><img class="m-ikona" src="assets/gra/dodatek_medal.webp" alt=""><span class="m-k-nazwa">Rankingi</span><span class="m-k-dane" id="m-miejsce"></span></button>
-      <button class="m-kafel" id="m-mur-guzik" type="button"><img class="m-ikona" src="assets/gra/cegla.webp" alt=""><span class="m-k-nazwa">Mur</span><span class="m-k-pasek" role="progressbar" aria-label="Postęp muru" aria-valuemin="0" aria-valuemax="1250000"><i id="m-mur-pasek"></i></span></button>
-      <button class="m-kafel" id="m-dziennik" type="button"><svg class="m-ikona" viewBox="0 0 44 44" aria-hidden="true"><rect x="9" y="5" width="28" height="34" rx="3" fill="#fff7ea" stroke="#232a52" stroke-width="3"/><path d="M15 14h16M15 21h16M15 28h10" stroke="#c9562b" stroke-width="3" stroke-linecap="round"/></svg><span class="m-k-nazwa">Dziennik</span><span class="m-k-dane" id="m-dziennik-ile"></span></button>
+      <button class="m-kafel" id="m-sklep" type="button"><img class="m-ikona" src="assets/gra/ikona_magazyn.webp" alt=""><span class="m-k-nazwa">Magazyn Szefa</span><span class="m-k-dane" id="m-saldo"></span></button>
+      <button class="m-kafel" id="m-rankingi" type="button"><img class="m-ikona" src="assets/gra/ikona_rankingi.webp" alt=""><span class="m-k-nazwa">Rankingi</span><span class="m-k-dane" id="m-miejsce"></span></button>
+      <button class="m-kafel" id="m-mur-guzik" type="button"><img class="m-ikona" src="assets/gra/ikona_mur.webp" alt=""><span class="m-k-nazwa">Mur</span><span class="m-k-pasek" role="progressbar" aria-label="Postęp muru" aria-valuemin="0" aria-valuemax="1250000"><i id="m-mur-pasek"></i></span></button>
+      <button class="m-kafel" id="m-dziennik" type="button"><img class="m-ikona" src="assets/gra/ikona_dziennik.webp" alt=""><span class="m-k-nazwa">Dziennik</span><span class="m-k-dane" id="m-dziennik-ile"></span></button>
     </div>
   </div>
   <button class="g" id="m-bonus" hidden>Odbierz bonus za trening</button>
@@ -276,7 +290,7 @@
   </div>
 </div>
 
-<div id="obroc" role="alert" hidden><span aria-hidden="true">📱</span>Obróć telefon, tu jest za wąsko na grę.</div>
+<div id="obroc" role="alert" hidden><img src="assets/gra/obroc_telefon.webp" alt="">Obróć telefon, tu jest za wąsko na grę.</div>
 
 <div id="final" class="ekran" hidden>
   <h2 id="f-tytul"></h2>
@@ -313,6 +327,8 @@
   <div id="s-tulow" class="s-lista"></div>
   <h3 class="s-naglowek">Spodenki</h3>
   <div id="s-spodenki" class="s-lista"></div>
+  <h3 class="s-naglowek" id="s-stopy-naglowek" hidden>Buty</h3>
+  <div id="s-stopy" class="s-lista" hidden></div>
   <h3 class="s-naglowek">Dodatki</h3>
   <div id="s-glowa" class="s-lista"></div>
   <p id="s-rower" hidden>Na rowerze pasują tylko okulary, medal i peleryna, bo czapka nie wejdzie na kask.</p>
@@ -395,6 +411,7 @@
     <button class="g drugi" id="k-sklep">Magazyn Szefa</button>
   </div>
   <input id="k-link" type="text" readonly hidden aria-label="Link do wyzwania">
+  <p id="k-ulica" class="k-ulica" hidden></p>
   <p id="k-info" role="status"></p>
   <div id="k-mur" class="mur"></div>
   <div id="k-ranking-miejsce"><div id="k-ranking"></div></div>
@@ -404,8 +421,9 @@
 <div id="plecak-runda" hidden>
   <button class="pr-guzik" type="button" data-typ="kask" aria-label="Użyj kasku z plecaka" hidden><img src="assets/gra/kask.webp" alt=""><span></span></button>
   <button class="pr-guzik" type="button" data-typ="bidon" aria-label="Użyj bidonu z plecaka" hidden><img src="assets/gra/bidon.webp" alt=""><span></span></button>
+  <button class="pr-guzik" type="button" data-typ="rakieta" aria-label="Użyj przyczepki-rakiety z plecaka" hidden><img src="assets/gra/rakieta.webp" alt=""><span></span></button>
 </div>
-<button id="glosnik" type="button" aria-label="Włącz dźwięki" aria-pressed="false">🔇</button>
+<button id="glosnik" type="button" aria-label="Włącz dźwięki" aria-pressed="false"><img src="assets/gra/glosnik_wyl.webp" alt=""></button>
 <div id="ladowanie">Ładuję…</div>
 
 <script src="js/moderacja.mjs"></script>

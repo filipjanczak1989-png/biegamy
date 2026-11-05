@@ -417,5 +417,103 @@
     "ch": 249,
     "n": 2,
     "dol": 3
+  },
+  "odznaka": {
+    "src": "odznaka.webp",
+    "w": 64,
+    "h": 64
+  },
+  "slonce": {
+    "src": "slonce.webp",
+    "w": 192,
+    "h": 191
+  },
+  "trawa_pod_droga": {
+    "src": "trawa_pod_droga.webp",
+    "w": 1280,
+    "h": 268
+  },
+  "mur_pomost": {
+    "src": "mur_pomost.webp",
+    "w": 240,
+    "h": 106
+  },
+  "mur_flaga_a": {
+    "src": "mur_flaga_a.webp",
+    "w": 405,
+    "h": 192
+  },
+  "mur_flaga_b": {
+    "src": "mur_flaga_b.webp",
+    "w": 532,
+    "h": 192
+  },
+  "mur_cegla": {
+    "src": "mur_cegla.webp",
+    "w": 64,
+    "h": 24
+  },
+  "tablica": {
+    "src": "tablica.webp",
+    "w": 300,
+    "h": 145
+  },
+  "mur_rusztowanie": {
+    "src": "mur_rusztowanie.webp",
+    "w": 192,
+    "h": 253
+  },
+  "chmura1": {
+    "src": "chmura1.webp",
+    "w": 320,
+    "h": 176
+  },
+  "chmura2": {
+    "src": "chmura2.webp",
+    "w": 320,
+    "h": 193
+  },
+  "chmura3": {
+    "src": "chmura3.webp",
+    "w": 320,
+    "h": 203
+  },
+  "dodatek_buty-czerwone": {
+    "src": "dodatek_buty-czerwone.webp",
+    "w": 200,
+    "h": 123
+  },
+  "dodatek_buty-niebieskie": {
+    "src": "dodatek_buty-niebieskie.webp",
+    "w": 200,
+    "h": 123
+  },
+  "dodatek_buty-zielone": {
+    "src": "dodatek_buty-zielone.webp",
+    "w": 200,
+    "h": 120
+  },
+  "dodatek_buty-fioletowe": {
+    "src": "dodatek_buty-fioletowe.webp",
+    "w": 200,
+    "h": 120
+  },
+  "dodatek_buty-robocze": {
+    "src": "dodatek_buty-robocze.webp",
+    "w": 200,
+    "h": 142
+  },
+  "rakieta_rower": {
+    "src": "rakieta_rower.webp",
+    "cw": 380,
+    "ch": 301,
+    "n": 5,
+    "dol": 3,
+    "kx": 0.73
+  },
+  "rakieta": {
+    "src": "rakieta.webp",
+    "w": 246,
+    "h": 137
   }
 }

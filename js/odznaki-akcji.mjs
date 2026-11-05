@@ -83,7 +83,54 @@
     return out;
   }
 
-  g.BM_ODZNAKI_AKCJI = { LISTA: LISTA, czyAkcyjna: czyAkcyjna, znajdz: znajdz, nazwa: nazwa, src: src, zaslepka: zaslepka, onerrorAttr: onerrorAttr,
+  /* POP-UP poza Dziś: kalendarz nie ma #badge-popup z zawodnik.html. Ten sam wygląd i czas, kolejka, gdy odznak jest kilka. */
+  var KOLOR = { common: "#e8a040", rare: "#aac8ff", epic: "#c87ef0" }, _kolejka = [], _pokazuje = false;
+  function nastepnyPopup() {
+    if (_pokazuje || !_kolejka.length || !g.document || !g.document.body) return;
+    _pokazuje = true;
+    var b = _kolejka.shift(), n = g.document.createElement("div");
+    n.id = "bm-odznaka-popup"; n.setAttribute("role", "status");
+    n.style.cssText = "position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-160%);z-index:9999;width:90%;min-width:280px;max-width:340px;box-sizing:border-box;display:flex;gap:14px;align-items:center;padding:20px 24px 18px;border:1px solid #e8561e;border-radius:20px;background:linear-gradient(160deg,rgba(20,16,28,.97),rgba(12,10,20,.99));box-shadow:0 0 40px rgba(232,86,30,.5),0 8px 40px rgba(0,0,0,.8);color:#f0ede8;font-family:Inter,system-ui,sans-serif;transition:transform .45s cubic-bezier(.34,1.56,.64,1)";
+    var im = g.document.createElement("img"); im.alt = ""; im.style.cssText = "width:64px;height:64px;border-radius:12px;flex-shrink:0"; ustawObraz(im, b.id, true); n.appendChild(im);
+    var t = g.document.createElement("div"), wiersz = function (tekst, css) { var w = g.document.createElement("div"); w.textContent = tekst; w.style.cssText = css; t.appendChild(w); };
+    wiersz("Nowa odznaka!", "font:400 18px/1 'Bebas Neue',Inter,sans-serif;letter-spacing:.06em");
+    wiersz(b.name, "margin:4px 0 2px;font-size:12px;font-weight:700;letter-spacing:.08em;color:#ff8a3d");
+    wiersz(b.desc, "font-size:11px;line-height:1.4;opacity:.8");
+    wiersz((g.RARITY_LABEL && g.RARITY_LABEL[b.rarity]) || b.rarity, "margin-top:6px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:" + (KOLOR[b.rarity] || "#fff"));
+    n.appendChild(t); g.document.body.appendChild(n);
+    g.setTimeout(function () { n.style.transform = "translateX(-50%) translateY(0)"; }, 30);
+    g.setTimeout(function () { n.style.transform = "translateX(-50%) translateY(-160%)"; }, 3800);
+    g.setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); _pokazuje = false; nastepnyPopup(); }, 4300);
+  }
+  /** Po zapisie logu poza Dziś (kalendarz): to samo przyznanie co na Dziś, od razu, z tym samym wierszem w dzwonku. Poza oknem akcji, bez sieci albo przy odmowie: nic, log i tak jest zapisany. → lista przyznanych. */
+  async function przyznajPoLogu(sb, athleteId, teraz) {
+    var C = g.BM_AKCJA_CYTATY, nowe = [];
+    if (!sb || !athleteId || !C) return nowe;
+    try {
+      var slug = C.slugDla(athleteId), d = await C.odswiezStan(sb, athleteId, { wymus: true });
+      if (!oknoOtwarte(d, teraz)) return nowe;
+      var w = await sb.rpc("akcja_moj_wklad", { p_slug: slug }), r = await sb.rpc("akcja_moje_dni", { p_slug: slug }), dni = new Set();
+      if (w.error) return nowe;
+      ((r && r.data) || []).forEach(function (x) { dni.add(String(x).slice(0, 10)); });
+      var ids = doPrzyznania(d, w.data, dni, teraz);
+      if (!ids.length) return nowe;
+      var ma = await sb.from("achievements").select("badge_id").eq("athlete_id", athleteId).in("badge_id", ids);
+      if (ma.error) return nowe;
+      var juz = (ma.data || []).map(function (x) { return x.badge_id; });
+      for (var i = 0; i < ids.length; i++) {
+        if (juz.indexOf(ids[i]) >= 0) continue;
+        var dop = await sb.from("achievements").insert({ athlete_id: athleteId, badge_id: ids[i] });
+        if (dop.error) continue;
+        nowe.push(ids[i]);
+        _kolejka.push(znajdz(ids[i]));
+        try { await sb.from("notifications").insert({ athlete_id: athleteId, type: "badge", from_athlete_id: null, message: "Zdobyłeś odznakę: " + nazwa(ids[i]) + " 🏅", read: false, created_at: new Date().toISOString() }); } catch (e) {}
+      }
+      nastepnyPopup();
+    } catch (e) {}
+    return nowe;
+  }
+
+  g.BM_ODZNAKI_AKCJI = { przyznajPoLogu: przyznajPoLogu, LISTA: LISTA, czyAkcyjna: czyAkcyjna, znajdz: znajdz, nazwa: nazwa, src: src, zaslepka: zaslepka, onerrorAttr: onerrorAttr,
     ustawObraz: ustawObraz, oknoOtwarte: oknoOtwarte, katalogWidoczny: katalogWidoczny, seria7: seria7,
     doPrzyznania: doPrzyznania, dzienWaw: dzienWaw, KATALOG_PLIKOW: KATALOG_PLIKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

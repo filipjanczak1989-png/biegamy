@@ -43,7 +43,7 @@
   async function polacz() {
     if (przyklad && parametry.get("final") === "1") zapiszJson("cegielki_final", false);
     if (przyklad && parametry.get("plansze") === "znowu") zapiszJson("cegielki_plansze", []);
-    if (przyklad) { stan.zalogowany = true; stan.pseudonim = parametry.get("pseudonim") || null; ustawKonto(40, ["koszulka-czerwona"]); stan.plecak = { kask: 2, bidon: 1 }; stan.plecakJest = true; var pp = Number(parametry.get("poziom")); stan.cegly = pp >= 1 && pp <= L.POZIOMY.length ? L.POZIOMY[pp - 1] : 6000; rysujPostacie(); return; }
+    if (przyklad) { stan.zalogowany = true; stan.pseudonim = parametry.get("pseudonim") || null; ustawKonto(40, ["koszulka-czerwona"]); stan.plecak = { kask: 2, bidon: 1, rakieta: 1 }; stan.plecakJest = true; var pp = Number(parametry.get("poziom")); stan.cegly = pp >= 1 && pp <= L.POZIOMY.length ? L.POZIOMY[pp - 1] : 6000; rysujPostacie(); return; }
     if (!czyJestSesja()) return;
     await skrypt("vendor/supabase-js-2.112.4.min.js");
     await skrypt("sb.js");
@@ -73,6 +73,8 @@
     if (!w) return;
     document.body.classList.remove("gra-zamknieta");
     var etyk = $("m-podglad"), pole = $("m-podglad-pole"); if (!etyk || !pole) return;
+    /* Z kafla próby od razu z postaciami i pasem Ulicy, jak w sobotę. Raz odznaczone zostaje odznaczone. */
+    if (parametry.get("podglad") === "1" && czytajJson("cegielki_podglad", null) === null) zapiszJson("cegielki_podglad", true);
     etyk.hidden = false; pole.checked = czytajJson("cegielki_podglad", false) === true;
     pole.addEventListener("change", function () { zapiszJson("cegielki_podglad", pole.checked); location.reload(); });
     if (pole.checked) ustawPodglad(w);
@@ -85,6 +87,8 @@
     stan.koparkaWlaczona = true; stan.arkuszKoparki = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: w.koparka_arkusz_url }) || stan.arkuszKoparki;
     rysujPostacie();
     if (GR && Array.isArray(w.firmy)) GR.ustawFirmy(L.firmyZLicznika({ firmy: w.firmy }));
+    /* Pas na próbie: trener widzi go przed startem, z budynkami firm z tej samej odpowiedzi. Postęp i imię przykładowe, gra nie czyta licznika próby. */
+    stan.licznikProby = { wystartowala: true, imie: "Fabianek", suma_km: 1900, cel_km: 12500, firmy: Array.isArray(w.firmy) ? w.firmy : [] }; rysujPasUlicy();
   }
   function podpowiedzImie() {
     var pole = $("imie");
@@ -125,6 +129,7 @@
     if (premiera) { koniecPremiery(w); return; }
     if (!$("k-ranking")) return;
     stan.miejsca = null;
+    if ($("k-ulica")) $("k-ulica").hidden = true;
     budujRanking(); info(""); rysuj();
     if (w.maly) { await odswiezRanking(); return; }   // Mały budowniczy: lista do obejrzenia, zapisu nie ma
     if (stan.podglad) { info("Podgląd postaci: bez zapisu i bez rankingu."); await odswiezRanking(); info("Podgląd postaci: bez zapisu i bez rankingu."); return; }
@@ -132,7 +137,7 @@
     var przedRunda2 = L.poziom(stan.cegly);
     if (!stan.zalogowany || przyklad) { stan.cegly += w.cegly; if (!przyklad) zapiszJson("cegielki_suma", stan.cegly); nagrodyNaUrzadzeniu(); rysujPostacie(przedRunda2); }
     var runda = stan.runda; stan.runda = null;
-    if (przyklad) { stan.miejsca = { dzien: { miejsce: 4, punkty: w.punkty }, tydzien: { miejsce: 12, punkty: w.punkty }, wszech: { miejsce: 87, punkty: w.punkty }, dolozyli_akcja: { miejsce: 31, punkty: w.punkty }, dolozyli_wszech: { miejsce: 31, punkty: w.punkty } }; ustawKonto((stan.saldo || 0) + w.st.zlote); await odswiezRanking(); return; }
+    if (przyklad) { napisUlicy(); stan.miejsca = { dzien: { miejsce: 4, punkty: w.punkty }, tydzien: { miejsce: 12, punkty: w.punkty }, wszech: { miejsce: 87, punkty: w.punkty }, dolozyli_akcja: { miejsce: 31, punkty: w.punkty }, dolozyli_wszech: { miejsce: 31, punkty: w.punkty } }; ustawKonto((stan.saldo || 0) + w.st.zlote); await odswiezRanking(); return; }
     await gotowe;
     if (!stan.zalogowany || !runda) { await odswiezRanking(); return; }
     info("Zapisuję wynik…");
@@ -149,7 +154,7 @@
     }
     if (odp && odp.plecak) stan.plecak = odp.plecak;
     if (!odp) info("Nie udało się zapisać wyniku: brak łącza.");
-    else if (odp.ok) { info(""); stan.miejsca = odp.miejsca || null; ustawKonto(odp.saldo, odp.kupione); if (typeof odp.cegly_lacznie === "number") stan.cegly = odp.cegly_lacznie; rysujPostacie(przedRunda2); }
+    else if (odp.ok) { info(""); napisUlicy(); stan.miejsca = odp.miejsca || null; ustawKonto(odp.saldo, odp.kupione); if (typeof odp.cegly_lacznie === "number") stan.cegly = odp.cegly_lacznie; rysujPostacie(przedRunda2); }
     else info(odp.powod === "podejrzany" ? "Ten wynik nie przeszedł kontroli i czeka na przegląd." : odp.powod === "postac_zablokowana" ? "Ta postać nie jest jeszcze odblokowana na Twoim koncie, runda bez rankingu." : "Ta runda bez rankingu.");
     await odswiezRanking();
   }
@@ -393,12 +398,30 @@
   }
   /* Licznik akcji daje imię i adres zbiórki, tylko po starcie. Gra czyta go i tak, po szyldy firm. */
   function ustawAkcje(d) {
+    if (przyklad && parametry.get("ulica") === "przyklad") d = LICZNIK_PODGLADU;
     if (!d) return;
+    stan.licznik = d;
     stan.imie = typeof d.imie === "string" ? d.imie : "";
     stan.urlZbiorki = L.linkZbiorki(d.url_zbiorki);
     stan.arkuszKoparki = L.arkuszKoparki(d) || stan.arkuszKoparki;
     var pa = L.firmyZLicznika(d).filter(function (f) { return f.partner && f.logo; })[0]; stan.logoPartnera = pa ? pa.logo : "";
-    rysujMur(); rysujZbiorke(); rysujPostacie();
+    rysujMur(); rysujZbiorke(); rysujPostacie(); rysujPasUlicy();
+  }
+  /* Pas Ulicy pod Graj: ta sama ulica co na Dziś, dotknięcie otwiera pełną. Tylko po starcie akcji i z sesją. Brak plików albo awaria = pasa nie ma. */
+  var LICZNIK_PODGLADU = { wystartowala: true, imie: parametry.get("ulica_imie") || "Zenek", suma_km: Number(parametry.get("ulica_km")) || 1900, cel_km: 12500, firmy: [{ nazwa: "Firma próbna", rodzaj: "wiezowiec" }, { nazwa: "Sklep próbny" }, { nazwa: "Warsztat próbny" }, { nazwa: "Piekarnia próbna" }, { nazwa: "Biuro próbne" }] };
+  function zaladujUlice() {
+    if (window.BM_ULICA && window.BM_AKCJA) return Promise.resolve(window.BM_ULICA);
+    return (window.BM_AKCJA ? Promise.resolve() : skrypt("js/akcja.mjs")).then(function () { return window.BM_ULICA ? null : skrypt("js/ulica.mjs"); }).then(function () { return window.BM_ULICA; });
+  }
+  function rysujPasUlicy() {
+    var e = $("m-ulica"), d = stan.licznikProby || stan.licznik; if (!e) return;
+    var schowaj = function () { e.hidden = true; e.parentNode.classList.remove("z-ulica"); };
+    if (premiera || !stan.zalogowany || !d || d.wystartowala !== true) { schowaj(); return; }
+    zaladujUlice().then(function (U) { if (U && U.pasGry(e, d, stan.licznikProby ? "dla-fabianka.html?proba=1&sciezka=1#ulica-po" : "")) { e.hidden = false; e.parentNode.classList.add("z-ulica"); } else schowaj(); }).catch(schowaj);
+  }
+  function napisUlicy() {
+    var e = $("k-ulica"), t = stan.licznik && stan.licznik.wystartowala === true ? L.napisMuruUlicy(stan.imie) : ""; if (!e) return;
+    e.textContent = t; e.hidden = !t;
   }
 
   /* ── Magazyn Szefa: złote cegły z gry na wygląd i start z ulepszeniem. Zero pieniędzy. Pierwsze dotknięcie przymierza, drugie wymienia. ── */
@@ -583,16 +606,19 @@
     $("s-saldo").textContent = stan.zalogowany ? "Masz " + (stan.saldo || 0) + " " + L.odmianaZlotych(stan.saldo || 0) : "";
     $("s-saldo").hidden = !stan.zalogowany;
     $("s-zaloguj").hidden = stan.zalogowany;
-    [["s-tulow", ["tulow"]], ["s-spodenki", ["spodenki"]], ["s-glowa", ["glowa", "oczy", "szyja", "plecy"]]].forEach(function (w) {
+    /* Buty pokazują się dopiero z grafiką w atlasie: bez niej nie ma co przymierzać ani czego kupować. */
+    var GRA = window.BM_CEGIELKI_GRA, maObraz = function (p) { return p.rodzaj !== "buty" || !!(GRA && GRA.A && GRA.A["dodatek_" + p.id]); }, butyWidac = L.SKLEP.some(function (p) { return p.rodzaj === "buty" && maObraz(p); });
+    $("s-stopy").hidden = !butyWidac; $("s-stopy-naglowek").hidden = !butyWidac;
+    [["s-tulow", ["tulow"]], ["s-spodenki", ["spodenki"]], ["s-stopy", ["stopy"]], ["s-glowa", ["glowa", "oczy", "szyja", "plecy"]]].forEach(function (w) {
       var kont = $(w[0]); kont.textContent = "";
-      L.SKLEP.filter(function (p) { return w[1].indexOf(p.slot) >= 0; }).forEach(function (p) { kont.appendChild(wierszPrzedmiotu(p)); });
+      L.SKLEP.filter(function (p) { return w[1].indexOf(p.slot) >= 0 && maObraz(p); }).forEach(function (p) { kont.appendChild(wierszPrzedmiotu(p)); });
     });
     var nk = $("s-rower"), kto = postacMagazynu();
-    if (nk) { nk.hidden = kto !== "rowerzysta" && kto !== "koparka"; nk.textContent = kto === "koparka" ? "Koparka zostaje taka, jak ją narysowano: bez dodatków." : "Na rowerze pasują tylko okulary, medal i peleryna, bo czapka nie wejdzie na kask."; }
+    if (nk) { nk.hidden = kto !== "rowerzysta" && kto !== "koparka"; nk.textContent = kto === "koparka" ? "Koparka zostaje taka, jak ją narysowano: bez dodatków." : butyWidac ? "Na rowerze pasują tylko okulary, medal, peleryna i buty, bo czapka nie wejdzie na kask." : "Na rowerze pasują tylko okulary, medal i peleryna, bo czapka nie wejdzie na kask."; }
     var st = $("s-start"); st.textContent = "";
     /* Plecak ma tylko konto i tylko baza po migracji. */
     var plecakWidac = stan.zalogowany && !!stan.plecakJest; st.hidden = !plecakWidac; $("s-start-naglowek").hidden = !plecakWidac;
-    if (plecakWidac) L.ULEPSZENIA.forEach(function (u) { st.appendChild(wierszPlecaka(u)); });
+    if (plecakWidac) L.ULEPSZENIA.filter(function (u) { return !u.tylko || postacieMagazynu().indexOf(u.tylko) >= 0; }).forEach(function (u) { st.appendChild(wierszPlecaka(u)); });
     odswiezPodglad();
   }
   var sklepSkad = "menu";
@@ -759,6 +785,7 @@
       .then(function () { return new Promise(function (ok) { setTimeout(ok, 200); }); });
   }
   gotowe = poZaladowaniu().then(polacz).catch(function () { stan.zalogowany = false; });
+  gotowe.then(function () { if (przyklad && parametry.get("ulica") === "przyklad") ustawAkcje(LICZNIK_PODGLADU); else rysujPasUlicy(); });
   /* Podgląd planszy poza produkcją: numer poziomu, mur25, mur50 albo final. Po „Dalej” wraca menu. */
   async function planszaPodgladu() {
     var co = parametry.get("plansza"), GR = window.BM_CEGIELKI_GRA, o = opcjeRozdzialu(), b = co === "mur25" ? 312500 : co === "mur50" ? 625000 : 0;

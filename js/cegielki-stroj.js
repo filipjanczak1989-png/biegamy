@@ -1,4 +1,4 @@
-// CEGIEŁKI: strój z Magazynu Szefa. Koszulka i spodenki to przemalowanie arkuszy w przeglądarce, bez dodatkowych grafik. Dodatki (czapki, okulary, medal, peleryna) to obrazki przypinane na żywo w każdej klatce.
+// CEGIEŁKI: strój z Magazynu Szefa. Koszulka i spodenki to przemalowanie arkuszy w przeglądarce, bez dodatkowych grafik. Dodatki (czapki, okulary, medal, peleryna) i buty to obrazki przypinane na żywo w każdej klatce.
 // Forma budowniczego zostaje bez przemalowania: to sygnał działającej tarczy i nie może wyglądać jak ozdoba ze sklepiku. Na kasku nie ma czapek, reszta dodatków zostaje.
 // Punkty przypięcia liczy tools/przypiecia-postaci.py (js/cegielki-przypiecia.js).
 (function () {
@@ -110,11 +110,22 @@
   /** Lista dodatków do rysowania z założonego stroju. */
   function noszone(stroj) {
     var lista = [];
-    ["plecy", "szyja", "oczy", "glowa"].forEach(function (s) { if (stroj && stroj[s] && L.DODATKI[stroj[s]]) lista.push({ id: stroj[s], slot: s, u: L.DODATKI[stroj[s]] }); });
+    ["stopy", "plecy", "szyja", "oczy", "glowa"].forEach(function (s) { if (stroj && stroj[s] && L.DODATKI[stroj[s]]) lista.push({ id: stroj[s], slot: s, u: L.DODATKI[stroj[s]] }); });
     return lista;
   }
   function nazwyObrazow(lista) { return lista.map(function (d) { return "dodatek_" + d.id; }); }
 
+  /* Buty: po trzy liczby na stopę (x, y, kąt palców), najpierw dalsza. Rysunek patrzy palcami w prawo, podeszwą w dół. Klatka bez stóp w kadrze nie rysuje nic. */
+  function stopyNaKlatce(k, im, at, pk, x0, y0, sk, w) {
+    var st = pk[9] || [], szer = w.szer * pk[2] * sk, wys = szer * at.h / at.w;
+    for (var j = 0; j + 2 < st.length; j += 3) {
+      k.save();
+      k.translate(x0 + st[j] * sk, y0 + st[j + 1] * sk);
+      k.rotate(st[j + 2] + (w.obrot || 0));
+      k.drawImage(im, (w.dx - w.kx) * szer, (w.dy - w.ky) * wys, szer, wys);
+      k.restore();
+    }
+  }
   /* warstwa "tyl": przed postacią (peleryna), "przod": po postaci. (x0, y0) to lewy górny róg klatki w kontekście k, sk to skala klatki. W obrocie salta kontekst jest już obrócony, więc dodatek obraca się razem z postacią. */
   function dodatki(k, warstwa, OBR, A, postac, arkusz, nr, x0, y0, sk, lista, czas) {
     var P = window.BM_CEGIELKI_PRZYPIECIA, pk = P && P[postac] && P[postac][arkusz] && P[postac][arkusz][nr];
@@ -124,6 +135,7 @@
       if (wTyl !== (warstwa === "tyl")) continue;
       if (d.slot === "glowa" && pk[8]) continue;   // kask na głowie: czapki nie
       var n = "dodatek_" + d.id, im = OBR[n], at = A[n]; if (!im || !at) continue;
+      if (u.punkt === "stopy") { stopyNaKlatce(k, im, at, pk, x0, y0, sk, u[postac] || u); continue; }
       var nagl = u.punkt === "glowa", px = nagl ? pk[0] : pk[5], py = nagl ? pk[1] : pk[6], kat = nagl ? pk[3] : pk[7], r = pk[2] * sk, strona = pk[4] || 1;
       var w = u[postac] || u, szer = w.szer * r, wys = szer * at.h / at.w;
       k.save();
