@@ -19,9 +19,11 @@
   var ZASADA_WYZWANIA = L.wyzwanieDnia();
 
   var losowa = function (a, b) { return a + Math.random() * (b - a); }, wybierz = function (t) { return t[Math.floor(Math.random() * t.length)]; }, lerp = function (a, b, t) { return a + (b - a) * t; };
+  /* Rekord i wyzwanie dnia z próby nie mieszają się z prawdziwym stanem na tym urządzeniu (js/cegielki-konto.js). */
+  function kluczSchowka(k) { var K = window.BM_CEGIELKI_KONTO; return K && K.kluczProby ? K.kluczProby(k) : k; }
   var schowek = {
-    czytaj: function (k, z) { try { var v = localStorage.getItem(k); return v == null ? z : v; } catch (e) { return z; } },
-    zapisz: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* prywatne okno */ } },
+    czytaj: function (k, z) { try { var v = localStorage.getItem(kluczSchowka(k)); return v == null ? z : v; } catch (e) { return z; } },
+    zapisz: function (k, v) { try { localStorage.setItem(kluczSchowka(k), v); } catch (e) { /* prywatne okno */ } },
   };
   imieGracza = schowek.czytaj("cegielki_imie", "");
 
@@ -860,7 +862,7 @@
     $("k-punkty").textContent = g.punkty; $("k-podpis").textContent = g.maly ? L.odmianaCegiel(g.cegly) : L.odmianaPunktow(g.punkty); $("k-cegly").textContent = g.cegly;
     $("k-zlote").textContent = g.st.zlote; $("k-salta").textContent = g.st.salta; $("k-seria").textContent = g.st.seria; $("k-upadki").textContent = g.st.upadki;
     $("k-rekord").textContent = g.maly ? "Mały budowniczy: runda bez rankingu i rekordu." : nowy && rekord > 0 ? "Nowy rekord na tym urządzeniu!" : "Rekord na tym urządzeniu: " + Math.max(rekord, g.punkty);
-    $("k-wyzwanie").hidden = g.maly; $("k-wyzwij").hidden = g.maly;
+    $("k-wyzwanie").hidden = g.maly; $("k-wyzwij").hidden = g.maly; $("k-poziom").hidden = g.maly;   // Mały budowniczy nie ma poziomów
     var pw = L.postepWyzwania(ZASADA_WYZWANIA, g.st);
     $("k-wyzwanie").textContent = g.wyzwanieGotowe ? "Wyzwanie dnia zrobione: " + ZASADA_WYZWANIA.opis : "Wyzwanie dnia: " + ZASADA_WYZWANIA.opis + " (" + pw.wartosc + "/" + pw.cel + ")";
     if (g.wyzwanieGotowe) $("k-wyzwanie").prepend(obrazekOdznaki());

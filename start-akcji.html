@@ -359,6 +359,8 @@
   function znacznikPremiery() { try { return JSON.parse(localStorage.getItem(KLUCZ_PREMIERY) || 'null'); } catch (e) { return null; } }
   function zapiszZnacznikPremiery() { try { localStorage.setItem(KLUCZ_PREMIERY, JSON.stringify({ slug: SLUG, sciezka: SCIEZKA })); } catch (e) {} }
   function wyczyscPremiere() { try { localStorage.removeItem(KLUCZ_PREMIERY); } catch (e) {} $('premiera-miejsce').textContent = ''; }
+  /* Postęp rund próby na tym urządzeniu. Na innym telefonie czyści go sama gra: porównuje chwilę startu próby z funkcji akcja-proba-wizerunek. */
+  function wyczyscPostepGry() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('cegielki_proba_') === 0) localStorage.removeItem(k); }); } catch (e) {} }
   async function przyciskPremiery(d) {
     var z = znacznikPremiery();
     if (!d || !d.wystartowala || !z || z.slug !== SLUG || z.zagrana) { $('premiera-miejsce').textContent = ''; return; }
@@ -533,7 +535,7 @@
       var w = await sciezkaRpc('akcja_proba_od_zera', {}, 'Wracam do zera…');
       this.disabled = false;
       if (!w) return;
-      await wyczyscLokalnie(); wyczyscPremiere();
+      await wyczyscLokalnie(); wyczyscPremiere(); wyczyscPostepGry();
       zamknijGuzik(); przyciskDotarcia(null); panelLinku(null);
       $('panel').hidden = true; $('sciezka').hidden = true; $('sciezka-guzik').setAttribute('aria-expanded', 'false');
       uzbrojGdyCzas();

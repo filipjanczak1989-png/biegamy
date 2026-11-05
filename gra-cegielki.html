@@ -123,6 +123,8 @@
   .liczby b { display:block; color:var(--tekst); font-size:20px; }
   .guziki { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
   button.g { font:inherit; font-weight:800; font-size:16px; padding:12px 18px; border-radius:14px; border:0; cursor:pointer; touch-action:manipulation; background:var(--akcent); color:#23150a; }
+  #k-znow { font-size:20px; padding:15px 40px; }
+  @media (prefers-reduced-motion:no-preference) { #k-poziom .pz-pasek span { transition:width .9s ease-out; } }
   button.g.drugi { background:transparent; color:var(--tekst); border:2px solid rgba(255,255,255,.3); }
   #k-link { font:inherit; font-size:13px; width:min(420px,88vw); padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,.3); background:rgba(16,19,36,.75); color:var(--tekst); user-select:text; -webkit-user-select:text; }
   #k-ranking { width:min(420px,92vw); flex:none; }
@@ -398,13 +400,13 @@
     <img id="k-kop-img" alt="">
   </div>
   <p id="k-rekord"></p>
-  <div id="k-poziom" class="poziom"></div>
   <p id="k-awans" hidden style="color:#9df0a8;font-weight:800;"></p>
   <p id="k-kartka" hidden></p>
   <p id="k-wyzwanie" style="color:#ffe9b8;font-weight:700;"></p>
   <p id="k-znajomy" hidden style="color:#9df0a8;font-weight:700;"></p>
+  <div id="k-poziom" class="poziom"></div>
   <div class="guziki">
-    <button class="g" id="k-znow">Jeszcze raz</button>
+    <button class="g" id="k-znow">Graj dalej</button>
     <button class="g" id="k-zmien">Menu główne</button>
     <button class="g drugi" id="k-udostepnij">Udostępnij wynik</button>
     <button class="g drugi" id="k-wyzwij">Wyzwij znajomego</button>

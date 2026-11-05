@@ -17,8 +17,26 @@
   var L = window.BM_CEGIELKI;
   var stan = { zalogowany: false, pseudonim: null, okres: "dzien", imie: "", urlZbiorki: "", ranking: undefined, miejsca: null, runda: null, saldo: null, kupione: czytajJson("cegielki_kupione", []), stroje: L.stroje(czytajJson("cegielki_stroje", null), czytajJson("cegielki_stroj", null)), plecak: {}, ulepszenie: null, potwierdz: null,
     cegly: Number(czytajJson("cegielki_suma", 0)) || 0, rower: false, podpisRoweru: "", koparkaWlaczona: false, arkuszKoparki: "", koparka: false, podglad: false };
-  function czytajJson(k, zapas) { try { var w = JSON.parse(localStorage.getItem(k)); return w == null ? zapas : w; } catch (e) { return zapas; } }
-  function zapiszJson(k, w) { try { localStorage.setItem(k, JSON.stringify(w)); } catch (e) {} }
+  function czytajJson(k, zapas) { try { var w = JSON.parse(localStorage.getItem(kluczProby(k))); return w == null ? zapas : w; } catch (e) { return zapas; } }
+  function zapiszJson(k, w) { try { localStorage.setItem(kluczProby(k), JSON.stringify(w)); } catch (e) {} }
+  /* PRÓBA (Filip 6.11): rundy w podglądzie liczą postęp tylko na tym urządzeniu, pod własnymi kluczami. Prawdziwy stan gracza na tym samym telefonie zostaje nietknięty. */
+  var PREFIKS_PROBY = "cegielki_proba_", KLUCZE_PROBY = /^cegielki_(suma|plansze|kartka1|kupione|stroje|rekord|odznaki|wyzwanie_.+)$/, TEKST_PROBY = "Próba: postęp tylko na tym urządzeniu, bez zapisu i bez rankingu.";
+  function kluczProby(k) { return stan && stan.podglad && KLUCZE_PROBY.test(k) ? PREFIKS_PROBY + k.slice("cegielki_".length) : k; }
+  /* „Od zera” naciska trener, zwykle na innym telefonie: gra porównuje chwilę startu próby z funkcji i sama czyści stary postęp. Starsza funkcja bez tego pola: bez porównania. */
+  function wczytajPostepProby(od) {
+    if (od !== undefined) {
+      try {
+        if (localStorage.getItem(PREFIKS_PROBY + "od") !== String(od)) {
+          Object.keys(localStorage).forEach(function (k) { if (k.indexOf(PREFIKS_PROBY) === 0) localStorage.removeItem(k); });
+          localStorage.setItem(PREFIKS_PROBY + "od", String(od));
+        }
+      } catch (e) {}
+    }
+    stan.cegly = Number(czytajJson("cegielki_suma", 0)) || 0;
+    var kup = czytajJson("cegielki_kupione", []), str = czytajJson("cegielki_stroje", null);
+    if (Array.isArray(kup)) stan.kupione = stan.kupione.concat(kup.filter(function (x) { return stan.kupione.indexOf(x) < 0; }));
+    if (str) { stan.stroje = L.stroje(str); kartyWStrojach(); }
+  }
   function ustawKonto(saldo, kupione) {
     if (typeof saldo === "number") stan.saldo = saldo;
     if (Array.isArray(kupione)) { stan.kupione = kupione; zapiszJson("cegielki_kupione", kupione); }
@@ -82,6 +100,7 @@
   function ustawPodglad(w) {
     var GR = window.BM_CEGIELKI_GRA;
     stan.podglad = true;
+    wczytajPostepProby(w.proba_od);
     if (GR) { GR.wlaczRowerzyste(); if (w.koparka_url) GR.ustawKoparke(w.koparka_url); }
     wlaczPostacRoweru("");
     stan.koparkaWlaczona = true; stan.arkuszKoparki = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: w.koparka_arkusz_url }) || stan.arkuszKoparki;
@@ -101,7 +120,7 @@
   var zegarStrojow = 0;
   function zapiszStroje() {
     zapiszJson("cegielki_stroje", stan.stroje);
-    if (!stan.zalogowany || przyklad || !window.sb) return;
+    if (!stan.zalogowany || przyklad || stan.podglad || !window.sb) return;
     clearTimeout(zegarStrojow);
     zegarStrojow = setTimeout(function () { window.sb.rpc("gra_zapisz_stroje", { p_stroje: stan.stroje }).then(function () {}, function () {}); }, 700);
   }
@@ -129,10 +148,17 @@
     if (premiera) { koniecPremiery(w); return; }
     if (!$("k-ranking")) return;
     stan.miejsca = null;
+    /* Napisy poprzedniej rundy nie zostają: runda bez awansu albo Mały budowniczy nie nadpisują ich same. */
+    if ($("k-awans")) $("k-awans").hidden = true;
+    if ($("k-kartka")) $("k-kartka").hidden = true;
     if ($("k-ulica")) $("k-ulica").hidden = true;
     budujRanking(); info(""); rysuj();
     if (w.maly) { await odswiezRanking(); return; }   // Mały budowniczy: lista do obejrzenia, zapisu nie ma
-    if (stan.podglad) { info("Podgląd postaci: bez zapisu i bez rankingu."); await odswiezRanking(); info("Podgląd postaci: bez zapisu i bez rankingu."); return; }
+    if (stan.podglad) {
+      var przedProba = L.poziom(stan.cegly);
+      stan.cegly += w.cegly; zapiszJson("cegielki_suma", stan.cegly); nagrodyNaUrzadzeniu(); rysujPostacie(przedProba);
+      info(TEKST_PROBY); await odswiezRanking(); info(TEKST_PROBY); return;
+    }
     /* Bez konta suma żyje tylko na tym urządzeniu. Z kontem liczy ją serwer z przyjętych rund. */
     var przedRunda2 = L.poziom(stan.cegly);
     if (!stan.zalogowany || przyklad) { stan.cegly += w.cegly; if (!przyklad) zapiszJson("cegielki_suma", stan.cegly); nagrodyNaUrzadzeniu(); rysujPostacie(przedRunda2); }
@@ -184,9 +210,12 @@
   function liczba(n) { return Number(n || 0).toLocaleString("pl-PL"); }
   function rysujPoziom(id) {
     var k = $(id); if (!k) return;
-    var pp = L.postepPoziomu(stan.cegly); k.textContent = "";
+    var pp = L.postepPoziomu(stan.cegly), od = k._procent == null ? pp.procent : k._poziom === pp.poziom ? k._procent : 0; k.textContent = "";
     k.appendChild(el("span", "pz-nazwa", "Poziom " + pp.poziom));
-    var pas = el("span", "pz-pasek"), wn = el("span"); wn.style.width = pp.procent + "%"; pas.appendChild(wn); k.appendChild(pas);
+    /* Pasek rusza od poprzedniego stanu, żeby było widać, ile dała runda. */
+    var pas = el("span", "pz-pasek"), wn = el("span"); wn.style.width = od + "%"; pas.appendChild(wn); k.appendChild(pas);
+    k._procent = pp.procent; k._poziom = pp.poziom;
+    if (od !== pp.procent) requestAnimationFrame(function () { requestAnimationFrame(function () { wn.style.width = pp.procent + "%"; }); });
     k.appendChild(el("span", "pz-reszta", pp.nastepny ? "do poziomu " + pp.nastepny + ": " + liczba(pp.brakuje) : "najwyższy poziom"));
   }
   /* Zablokowanych postaci nie pokazujemy wcale (Filip 4.11): karta pojawia się dopiero po odblokowaniu, raz z krótką animacją. */
@@ -800,5 +829,5 @@
   $("f-dalej").addEventListener("click", function () { $("final").hidden = true; });
   $("nowa").addEventListener("click", function () { $("nowa").hidden = true; });
   rysujPostacie();
-  window.BM_CEGIELKI_KONTO = { grupyDruzyny: function () { var d = stan.ranking; return L.grupyDruzyny(d && d.mur, d && d.mur_cel); }, rowerNa: function () { return stan.rower ? L.rowerZPodpisu(stan.podpisRoweru) : null; }, latarnie: function (po) { return L.latarnieZapalone(po, poziomGracza(), !!stan.rower); }, premiera: function () { return !!premiera; }, plecak: function () { return premiera || stan.podglad || !stan.plecakJest ? null : stan.plecak; }, zuzyjZPlecaka: function (typ) { stan.plecak[typ] = Math.max(0, (Number(stan.plecak[typ]) || 0) - 1); }, przedRunda: przedRunda, poRundzie: poRundzie, wybor: wybor, ustawAkcje: ustawAkcje, poziom: poziomGracza, rozdzial: rozdzialGracza, planszeDoPokazania: planszeDoPokazania, pseudonimKibica: pseudonimKibica };
+  window.BM_CEGIELKI_KONTO = { kluczProby: kluczProby, grupyDruzyny: function () { var d = stan.ranking; return L.grupyDruzyny(d && d.mur, d && d.mur_cel); }, rowerNa: function () { return stan.rower ? L.rowerZPodpisu(stan.podpisRoweru) : null; }, latarnie: function (po) { return L.latarnieZapalone(po, poziomGracza(), !!stan.rower); }, premiera: function () { return !!premiera; }, plecak: function () { return premiera || stan.podglad || !stan.plecakJest ? null : stan.plecak; }, zuzyjZPlecaka: function (typ) { stan.plecak[typ] = Math.max(0, (Number(stan.plecak[typ]) || 0) - 1); }, przedRunda: przedRunda, poRundzie: poRundzie, wybor: wybor, ustawAkcje: ustawAkcje, poziom: poziomGracza, rozdzial: rozdzialGracza, planszeDoPokazania: planszeDoPokazania, pseudonimKibica: pseudonimKibica };
 })();
