@@ -57,6 +57,21 @@
     return n;
   }
 
+  /* Puste tło wokół logo (białe albo przezroczyste) tylko zmniejsza znak na szyldzie. Biel w środku logo zostaje. */
+  function bezPustegoMarginesu(k) {
+    var c = k.getContext("2d"), s = k.width, w = k.height, d = c.getImageData(0, 0, s, w).data, x0 = s, y0 = w, x1 = -1, y1 = -1;
+    for (var y = 0; y < w; y++) for (var x = 0; x < s; x++) {
+      var i = (y * s + x) * 4;
+      if (d[i + 3] > PROG_ALFA && Math.min(d[i], d[i + 1], d[i + 2]) < 245) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return k;
+    var m = Math.round(Math.max(x1 - x0, y1 - y0) * 0.03);
+    x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(s - 1, x1 + m); y1 = Math.min(w - 1, y1 + m);
+    var n = nowyCanvas(x1 - x0 + 1, y1 - y0 + 1);
+    n.getContext("2d").drawImage(k, x0, y0, n.width, n.height, 0, 0, n.width, n.height);
+    return n;
+  }
+
   function obrazNaCanvas(plik) {
     return new Promise(function (ok, zle) {
       var u = URL.createObjectURL(plik), im = new Image();
@@ -94,7 +109,7 @@
       try { k = await pdfNaCanvas(bajty); } catch (e) { throw new Error("Logo: nie udało się odczytać PDF. Wyślij PNG."); }
       bezBialegoTla(k);
       k = przytnij(k);
-    } else k = await obrazNaCanvas(plik);
+    } else k = bezPustegoMarginesu(await obrazNaCanvas(plik));
     k = przeskaluj(k);
     var blob = await new Promise(function (ok) { k.toBlob(ok, "image/webp", JAKOSC); });
     if (!blob) throw new Error("Logo: nie udało się przygotować obrazu.");

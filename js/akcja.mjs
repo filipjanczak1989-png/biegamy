@@ -1,7 +1,7 @@
 // AKCJA — wspólne liczby i teksty karty akcji (projekt F, dzień 3). Plik BEZ import/export (globalThis.BM_AKCJA),
 // jak js/akcja-cytaty.mjs: <script src> w zawodnik.html / index.html / dla-fabianka.html, import w testach i w EF okienko.
 // Jedno źródło liczb = akcja_licznik (spec v2 pkt 5). Nazwa, imię i link przychodzą z bazy — w kodzie ich nie ma.
-// Rozliczenie jednorazowe po akcji (decyzja Filipa 2.11): „Filip dokłada 10 gr za każdy kilometr · dotąd X zł z 1 250 zł",
+// Rozliczenie jednorazowe po akcji (decyzja Filipa 2.11): „BiegaMy, czyli Filip i Kasia, dokłada 10 gr za każdy kilometr biegu i spaceru · dotąd X zł z 1 250 zł",
 // bez kwot tygodniowych w UI. Przed startem licznik nie zwraca nazwy ani imienia — teaser nie zna dziecka.
 (function (g) {
   "use strict";
@@ -76,7 +76,7 @@
   function pct(d) { var p = Number(d && d.pct); return isFinite(p) ? Math.max(0, Math.min(100, p)) : 0; }
   function tekstFilipa(d) {
     if (!d || !d.wystartowala) return "";
-    return "Filip dokłada " + (Number(d.stawka_filip_gr) || 10) + " gr za każdy kilometr · dotąd " + zl(d.filip_gr) + " z " + zl(d.filip_max_gr);
+    return "BiegaMy, czyli Filip i Kasia, dokłada " + (Number(d.stawka_filip_gr) || 10) + " gr za każdy kilometr biegu i spaceru · dotąd " + zl(d.filip_gr) + " z " + zl(d.filip_max_gr);
   }
   function tekstSponsorow(d) {
     var n = Number(d && d.sponsorzy_n) || 0;
@@ -217,14 +217,18 @@
   function firmyHtml(d, klasa) {
     try {
       if (!d || !d.wystartowala || !Array.isArray(d.firmy)) return "";
-      var wiersze = d.firmy.map(wierszFirmy).join("");
-      if (!wiersze) return "";
+      /* Partnerzy poprzednich wyzwań osobno: nie wpłacali na tę zbiórkę, więc nie stoją pod tytułem i tekstem o wpłatach. */
+      var poprz = function (f) { return f && f.wsparcie === "poprzednie"; };
+      var wiersze = d.firmy.filter(function (f) { return !poprz(f); }).map(wierszFirmy).join(""), wierszePoprz = d.firmy.filter(poprz).map(wierszFirmy).join("");
+      if (!wiersze && !wierszePoprz) return "";
       wstrzyknijCss();
-      return '<div class="akcja-firmy' + (klasa ? " " + klasa : "") + '"><div class="akcja-firmy-blok"><h3 class="akcja-firmy-tytul">' + esc(tytulFirm(d)) + "</h3>" +
-        '<ul class="akcja-firmy-lista">' + wiersze + '</ul></div><p class="akcja-firmy-uwaga">' + esc(TEKST_FIRM) + "</p></div>";
+      return '<div class="akcja-firmy' + (klasa ? " " + klasa : "") + '">' +
+        (wiersze ? '<div class="akcja-firmy-blok"><h3 class="akcja-firmy-tytul">' + esc(tytulFirm(d)) + "</h3>" + '<ul class="akcja-firmy-lista">' + wiersze + '</ul></div><p class="akcja-firmy-uwaga">' + esc(TEKST_FIRM) + "</p>" : "") +
+        (wierszePoprz ? '<div class="akcja-firmy-blok"><h3 class="akcja-firmy-tytul">Partnerzy poprzednich wyzwań</h3><ul class="akcja-firmy-lista">' + wierszePoprz + "</ul></div>" : "") + "</div>";
     } catch (e) { return ""; }
   }
   /** Formularz w panelu trenera: te same reguły co CHECK-i w bazie, żeby błąd był po polsku (zamkiem jest baza). → { blad } | { wiersz }. */
+  var BUDYNKI_POPRZEDNICH = ["osiedle", "galeria", "fabryka"];
   function firmaDoZapisu(p) {
     var o = p || {}, nazwa = String(o.nazwa == null ? "" : o.nazwa).trim(), link = String(o.link == null ? "" : o.link).trim();
     if (nazwa.length < 2 || nazwa.length > 120) return { blad: "Nazwa firmy: od 2 do 120 znaków." };
@@ -244,14 +248,21 @@
     }
     if (o.zgoda === true && gr == null) return { blad: "Zgoda na podanie kwoty bez kwoty: wpisz kwotę albo odznacz zgodę." };
     if (o.zgodaWymienienie !== true) return { blad: "Zaznacz „Firma zgodziła się na wymienienie”." };
-    var wsparcie = o.wsparcie === "rzeczowe" ? "rzeczowe" : "wplata";   // próg i potwierdzenie dotyczą tylko wpłat na zbiórkę
+    var poprzedni = BUDYNKI_POPRZEDNICH.indexOf(o.rodzaj) >= 0, wsparcie = poprzedni ? "poprzednie" : o.wsparcie === "rzeczowe" ? "rzeczowe" : "wplata";   // próg i potwierdzenie dotyczą tylko wpłat na zbiórkę
+    var tekstPlakatu = String(o.plakatTekst == null ? "" : o.plakatTekst).trim();
+    if (poprzedni && gr != null) return { blad: "Partner poprzedniego wyzwania jest bez kwoty." };
+    if (tekstPlakatu && (tekstPlakatu.length < 2 || tekstPlakatu.length > 120)) return { blad: "Tekst plakatu: od 2 do 120 znaków." };
     if (wsparcie === "wplata" && o.potwierdzenie !== true) return { blad: "Zaznacz potwierdzenie wpłaty." };
-    return { wiersz: { nazwa: nazwa, link: link, rodzaj: o.rodzaj === "wiezowiec" || o.rodzaj === "cegielka" ? o.rodzaj : "domek", wsparcie: wsparcie, kwota_gr: gr, zgoda_na_kwote: o.zgoda === true, potwierdzenie_widziane: wsparcie === "wplata", zgoda_na_wymienienie: true } };
+    var wiersz = { nazwa: nazwa, link: link, rodzaj: poprzedni || o.rodzaj === "wiezowiec" || o.rodzaj === "cegielka" ? o.rodzaj : "domek", wsparcie: wsparcie, kwota_gr: gr, zgoda_na_kwote: o.zgoda === true, potwierdzenie_widziane: wsparcie === "wplata", zgoda_na_wymienienie: true };
+    /* Partner: logo i plakat tylko po zgodzie, przełącznik na wpisie. Firmy akcji zostają przy domyślnej zgodzie z bazy. */
+    if (poprzedni) { wiersz.logo_zgoda = o.logoZgoda === true; wiersz.plakat_tekst = tekstPlakatu || null; }
+    return { wiersz: wiersz };
   }
   /** Edycja firmy z listy: tylko kolumny, które baza pozwala zmieniać. Kwota i zgoda na nią zostają z dodania. */
   function firmaDoEdycji(w) {
     var o = { nazwa: w.nazwa, link: w.link, rodzaj: w.rodzaj, wsparcie: w.wsparcie, potwierdzenie_widziane: w.potwierdzenie_widziane };
     if (w.logo_url) o.logo_url = w.logo_url;
+    if (w.wsparcie === "poprzednie") { o.logo_zgoda = w.logo_zgoda === true; o.plakat_tekst = w.plakat_tekst || null; if (w.plakat_url) o.plakat_url = w.plakat_url; }
     return o;
   }
   /** Plik logo przed wysłaniem: typ i rozmiar jak w buckecie (zamkiem jest bucket). → { rozszerzenie } | { blad }; bez pliku { rozszerzenie: null }. */

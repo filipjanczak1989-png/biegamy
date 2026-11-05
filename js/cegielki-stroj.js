@@ -1,4 +1,4 @@
-// CEGIEŁKI: strój ze sklepiku. Koszulka i spodenki to przemalowanie arkuszy w przeglądarce, bez dodatkowych grafik. Dodatki (czapki, okulary, medal, peleryna) to obrazki przypinane na żywo w każdej klatce.
+// CEGIEŁKI: strój z Magazynu Szefa. Koszulka i spodenki to przemalowanie arkuszy w przeglądarce, bez dodatkowych grafik. Dodatki (czapki, okulary, medal, peleryna) to obrazki przypinane na żywo w każdej klatce.
 // Forma budowniczego zostaje bez przemalowania: to sygnał działającej tarczy i nie może wyglądać jak ozdoba ze sklepiku. Na kasku nie ma czapek, reszta dodatków zostaje.
 // Punkty przypięcia liczy tools/przypiecia-postaci.py (js/cegielki-przypiecia.js).
 (function () {
@@ -135,7 +135,7 @@
     }
   }
 
-  /* Podgląd w sklepiku: pierwsza klatka biegu w wybranym stroju, z marginesem na czapkę i pelerynę. */
+  /* Podgląd w Magazynie: pierwsza klatka biegu w wybranym stroju, z marginesem na czapkę i pelerynę. */
   function podglad(kan, OBR, A, postac, wybor) {
     var n = postac + "_bieg", at = A[n], zrodlo = ORYGINALY[n] || OBR[n];
     if (!at || !zrodlo) return;
@@ -147,5 +147,50 @@
     k.drawImage(obraz, 0, 0, at.cw, at.ch, ML, MG, at.cw, at.ch);
     dodatki(k, "przod", OBR, A, postac, "bieg", 0, ML, MG, 1, lista);
   }
-  window.BM_CEGIELKI_STROJ = { zastosuj: zastosuj, przerob: przerob, podglad: podglad, noszone: noszone, nazwyObrazow: nazwyObrazow, dodatki: dodatki };
+  /* Miniatura w Magazynie: ta sama klatka co w podglądzie, ale przemalowana sama, bez reszty arkusza. Wiersz nie może liczyć całego arkusza: na telefonie to kilkanaście arkuszy naraz. Podział tkaniny ten sam, bo to ta sama funkcja na jednej klatce. Pamięć: klatka raz na postać. */
+  var JEDNA = {};
+  function klatkaPostaci(OBR, A, postac) {
+    var n = postac + "_bieg", at = A[n], zrodlo = ORYGINALY[n] || OBR[n];
+    if (!at || !zrodlo) return null;
+    if (JEDNA[postac]) return JEDNA[postac];
+    var kan = document.createElement("canvas"); kan.width = at.cw; kan.height = at.ch;
+    kan.getContext("2d").drawImage(zrodlo, 0, 0, at.cw, at.ch, 0, 0, at.cw, at.ch);
+    JEDNA[postac] = { kan: kan, at: { cw: at.cw, ch: at.ch, n: 1 } };
+    return JEDNA[postac];
+  }
+  function miniatura(kan, OBR, A, postac, wybor) {
+    var j = klatkaPostaci(OBR, A, postac); if (!j) return false;
+    var obraz = wybor && (wybor.tulow || wybor.spodenki) ? przerob(j.kan, j.at, postac + "_bieg", postac, wybor) : j.kan;
+    var ML = 50, MG = 34;
+    kan.width = j.at.cw + ML; kan.height = j.at.ch + MG;
+    var k = kan.getContext("2d"), lista = noszone(wybor);
+    dodatki(k, "tyl", OBR, A, postac, "bieg", 0, ML, MG, 1, lista);
+    k.drawImage(obraz, 0, 0, j.at.cw, j.at.ch, ML, MG, j.at.cw, j.at.ch);
+    dodatki(k, "przod", OBR, A, postac, "bieg", 0, ML, MG, 1, lista);
+    return true;
+  }
+  /* Pętla biegu w stroju, na podglądzie i na kartach. Arkusz w stroju liczony raz i trzymany, ostatnie kilka: liczy go tylko zmiana stroju, nie każda klatka. */
+  var ARKUSZE = {}, KOLEJKA = [];
+  function arkuszBiegu(OBR, A, postac, wybor) {
+    var n = postac + "_bieg", at = A[n], zrodlo = ORYGINALY[n] || OBR[n];
+    if (!at || !zrodlo) return null;
+    if (!wybor || !(wybor.tulow || wybor.spodenki) || (L.POSTACIE[postac] && L.POSTACIE[postac].wlasne)) return zrodlo;
+    var klucz = postac + "|" + (wybor.tulow || "") + "|" + (wybor.spodenki || "");
+    if (!ARKUSZE[klucz]) {
+      ARKUSZE[klucz] = przerob(zrodlo, at, n, postac, wybor); KOLEJKA.push(klucz);
+      if (KOLEJKA.length > 8) delete ARKUSZE[KOLEJKA.shift()];
+    }
+    return ARKUSZE[klucz];
+  }
+  var ML_BIEG = 50, MG_BIEG = 34;
+  function klatkaBiegu(kan, OBR, A, postac, wybor, nr) {
+    var at = A[postac + "_bieg"], obraz = arkuszBiegu(OBR, A, postac, wybor); if (!at || !obraz) return false;
+    var sz = at.cw + ML_BIEG, wy = at.ch + MG_BIEG, k = kan.getContext("2d"), i = nr % at.n, lista = noszone(wybor);
+    if (kan.width !== sz || kan.height !== wy) { kan.width = sz; kan.height = wy; } else k.clearRect(0, 0, sz, wy);
+    dodatki(k, "tyl", OBR, A, postac, "bieg", i, ML_BIEG, MG_BIEG, 1, lista);
+    k.drawImage(obraz, at.cw * i, 0, at.cw, at.ch, ML_BIEG, MG_BIEG, at.cw, at.ch);
+    dodatki(k, "przod", OBR, A, postac, "bieg", i, ML_BIEG, MG_BIEG, 1, lista);
+    return true;
+  }
+  window.BM_CEGIELKI_STROJ = { klatkaBiegu: klatkaBiegu, ML_BIEG: ML_BIEG, MG_BIEG: MG_BIEG, miniatura: miniatura, zastosuj: zastosuj, przerob: przerob, podglad: podglad, noszone: noszone, nazwyObrazow: nazwyObrazow, dodatki: dodatki };
 })();

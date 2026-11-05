@@ -86,6 +86,8 @@
     ".us-szyld--ciemny{background:#2b2230}.us-szyld--logo{background:#fbf3df;border:2px solid #7a4a1c;border-radius:6px;box-shadow:0 2px 4px rgba(40,20,0,.35);padding:3px;box-sizing:border-box}.us-szyld--logo.us-szyld--ciemny{background:#2b2230}.us-logo{display:block;width:100%;height:100%;object-fit:contain}.us-partner{position:absolute;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#3a2410;color:#fff;font:800 9px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
     ".us-szyld{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:#4a2408;font-family:Inter,system-ui,sans-serif;font-weight:700;line-height:1.08;text-align:center;pointer-events:none}.us-szyld span{display:block;white-space:nowrap}" +
     ".us-lustro{transform:scaleX(-1)}" +
+    "@media (max-width:480px){.us-mur-graczy{max-width:190px}}" +
+    ".us-plakat{position:absolute;object-fit:contain;background:#fffdf7;pointer-events:none}" +
     ".us-mur{position:absolute;top:" + (POZIOM_DOMKU - 62) + "px;height:62px;background-repeat:repeat-x;background-size:auto 62px;background-color:#d9694e;pointer-events:none}" +
     ".us-cegla{position:absolute;display:block;margin:0;padding:0 2px;height:17px;width:54px;box-sizing:border-box;border-radius:3px;border:1.2px solid #4a2408;background:#ef7a2a;color:#fff;font:700 9px/15px Inter,system-ui,sans-serif;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;touch-action:pan-y}" +
     ".us-cegla::after{content:'';position:absolute;left:-2px;right:-2px;top:-14px;bottom:-14px}.us-cegla--pusta{background:#d9694e;cursor:default;pointer-events:none}" +
@@ -196,6 +198,8 @@
     var okno = el("div", "us-okno", korzen);
     okno.setAttribute("role", "group"); okno.setAttribute("tabindex", "0");
     okno.setAttribute("aria-label", U.opisDlaCzytnika(stan, dane, dod) + (przed ? "" : " Przesuwaj w lewo i w prawo, żeby obejrzeć całą ulicę."));
+    /* Kamera przesuwa warstwy, okno stoi. Przewinięcie okna (fokus na budynku, skrypt) wyciągało warstwy nieba i pory dnia poza kadr: ciemny pas na części sceny. */
+    okno.addEventListener("scroll", function () { okno.scrollLeft = 0; okno.scrollTop = 0; });
     var niebo = el("div", "us-tlo", okno), slonce = el("div", "us-slonce", okno);
     niebo.setAttribute("aria-hidden", "true"); slonce.setAttribute("aria-hidden", "true");
     [[18, 74, 1, 96, -20], [58, 120, 0.8, 130, -80], [34, 96, 0.62, 170, -40]].forEach(function (c) {
@@ -269,7 +273,7 @@
       function naDesce(lewo, gora, szer, wys) { sz.style.left = lewo + "px"; sz.style.top = gora + "px"; sz.style.width = szer + "px"; sz.style.height = wys + "px"; }
       naDesce(r[0] * w, r[1] * h0, sw, sh);
       if (!f.logo) { szyldNazwa(sz, f, sw, sh); return (r[1] * h0) + sh; }
-      var pw = Math.max(sw, w * LOGO_SZER), ph = Math.max(sh, LOGO_WYS * Math.min(1, w / 118)), gora = r[1] * h0 + sh / 2 - ph / 2;
+      var pw = U.BUDYNKI_POPRZEDNICH[f.rodzaj] ? sw : Math.max(sw, w * LOGO_SZER), ph = Math.max(sh, LOGO_WYS * Math.min(1, w / 118)), gora = r[1] * h0 + sh / 2 - ph / 2;
       naDesce(r[0] * w + sw / 2 - pw / 2, gora, pw, ph);
       sz.className += " us-szyld--logo";
       var im = el("img", "us-logo", sz);
@@ -427,15 +431,16 @@
         });
         x += 370;
       }
+      /* Pierwszy budynek za tabliczkami licznika i muru: kamera nie cofnie się przed początek ulicy, więc inaczej zasłaniałyby szyld i podpis „Partner akcji”. */
       /* Budynki firm: rzędami, front najpierw. Domki rotują, szyld poza odbitym obrazem, więc nigdy lustrzany. Wieżowiec stoi głębiej, za drogą, z logo na górze. Dalsze rzędy mniejsze i za pierwszym, żeby 60 firm zmieściło się przy tej samej drodze. Nazwy poniżej progu są w murze. */
-      var KRAWEDZ = START_X + CEL_PX - 30, rzedy = [{ baza: POZIOM_DOMKU, sk: 1, x: x }, { baza: POZIOM_DOMKU - 24, sk: 0.82, x: x + 40 }, { baza: POZIOM_DOMKU - 46, sk: 0.68, x: x + 16 }];
+      var KRAWEDZ = START_X + CEL_PX - 30, ZA_TABLICZKA = 190, rzedy = [{ baza: POZIOM_DOMKU, sk: 1, x: x + ZA_TABLICZKA }, { baza: POZIOM_DOMKU - 24, sk: 0.82, x: x + 40 }, { baza: POZIOM_DOMKU - 46, sk: 0.68, x: x + 16 }];
       var miejsca = [], nrRz = 0, nrDomku = 0, wRzedzie = 0;
       dane.firmy.forEach(function (f, nr) {
         if (f.rodzaj === "cegielka") return;
-        var wiez = f.rodzaj === "wiezowiec", wBaz = wiez ? 118 : 160;
+        var wiez = f.rodzaj === "wiezowiec", poprz = U.BUDYNKI_POPRZEDNICH[f.rodzaj], wBaz = poprz || (wiez ? 118 : 160);
         while (nrRz < rzedy.length - 1 && rzedy[nrRz].x + wBaz * rzedy[nrRz].sk > KRAWEDZ) { nrRz++; wRzedzie = 0; }
         var rz = rzedy[nrRz], w = wBaz * rz.sk;
-        var wyb = wiez ? { nazwa: "wiezowiec", lustro: false } : U.domekNaMiejscu(nrDomku++, f.nazwa);
+        var wyb = wiez ? { nazwa: "wiezowiec", lustro: false } : poprz ? { nazwa: f.rodzaj, lustro: false } : U.domekNaMiejscu(nrDomku++, f.nazwa);
         miejsca.push({ f: f, nr: nr, wiez: wiez, wyb: wyb, w: w, x: rz.x, baza: wiez ? rz.baza - ZA_DROGA : rz.baza, nrRz: nrRz });
         rz.x += w + 12 * rz.sk;
         /* drzewo co trzeci budynek w pierwszym rzędzie, latarnia po progu */
@@ -466,6 +471,12 @@
         leniwy(obrazB, U.sciezkaObrazu(m.wyb.nazwa), rekord);
         zeSpadkiem(m.wyb.nazwa, oprawa, [obrazB]);
         var r = U.szyldNaDomku(def.szyld, m.wyb.lustro), dolSzyldu = szyldFirmy(b, f, r, w, h0, rekord);
+        /* Plakat na billboardzie przy fabryce: adres z bazy, tylko po zgodzie firmy. Awaria pliku = pusta tablica. */
+        if (def.plakat && f.plakat) {
+          var pk = el("img", "us-plakat", b); pk.setAttribute("alt", ""); pk.setAttribute("crossorigin", "anonymous"); pk.onerror = function () { if (pk.parentNode) pk.parentNode.removeChild(pk); };
+          pk.style.left = def.plakat[0] * w + "px"; pk.style.top = def.plakat[1] * h0 + "px"; pk.style.width = def.plakat[2] * w + "px"; pk.style.height = def.plakat[3] * h0 + "px";
+          pk.setAttribute("src", f.plakat);
+        }
         if (f.partner) { var pod = el("div", "us-partner", b, "Partner akcji"); pod.style.top = (dolSzyldu + 2) + "px"; }
         if (!m.wiez && m.nrRz === 0) {
           [0.25, 0.75].forEach(function (fx) {
@@ -741,7 +752,9 @@
       b.setAttribute("role", "status");
       if (karta && karta.logo) { var lg = el("img", "", b); lg.setAttribute("alt", ""); lg.setAttribute("crossorigin", "anonymous"); lg.onload = function () { if (U.jasneLogo(lg)) lg.style.background = "#2b2230"; }; lg.onerror = function () { if (lg.parentNode) lg.parentNode.removeChild(lg); }; lg.setAttribute("src", karta.logo); }
       if (karta && karta.partner) el("i", "", b, "Partner akcji");
+      if (karta && karta.poprzedni) el("i", "", b, "Partner poprzednich wyzwań");
       el("b", "", b, tytul);
+      if (karta && karta.plakatTekst) el("span", "", b, karta.plakatTekst);
       if (link) {
         var a = el("a", "", b, "Strona firmy ›");
         a.setAttribute("href", link); a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer nofollow");
@@ -976,6 +989,7 @@
           if (!t) return;
           var m = el("a", "us-mur-graczy", ui);
           el("span", "", m, t);
+          if (d.pierwsze_cegly != null) el("span", "", m, "Pierwsze cegły: Szef");
           if (Number(d.mur_cel) > 0) { var pm = el("span", "us-mur-pasek", m), im = el("i", "", pm); im.style.width = U.procentMuru(d.mur, d.mur_cel) + "%"; }
           m.setAttribute("href", "gra-cegielki.html"); m.setAttribute("aria-label", t + ". Zagraj w Cegiełki.");
           /* Zdanie o zbiórce zaraz pod sceną: cegły z gry nie są pieniędzmi. Link tylko przez sito z js/akcja.mjs. */

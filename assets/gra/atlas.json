@@ -390,5 +390,32 @@
     "src": "wiezowiec.webp",
     "w": 300,
     "h": 600
+  },
+  "osiedle": {
+    "src": "osiedle.webp",
+    "w": 840,
+    "h": 561
+  },
+  "galeria": {
+    "src": "galeria.webp",
+    "w": 800,
+    "h": 371
+  },
+  "fabryka": {
+    "src": "fabryka.webp",
+    "w": 840,
+    "h": 404
+  },
+  "gorka": {
+    "src": "gorka.webp",
+    "w": 1500,
+    "h": 500
+  },
+  "druzyna": {
+    "src": "druzyna.webp",
+    "cw": 505,
+    "ch": 249,
+    "n": 2,
+    "dol": 3
   }
 }

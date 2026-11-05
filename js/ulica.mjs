@@ -23,8 +23,13 @@
     "domek-5": { szyld: [0.3029, 0.3139, 0.3942, 0.1227], proporcja: 1.3158 },
     "domek-6": { szyld: [0.2929, 0.2996, 0.4121, 0.1163], proporcja: 1.289 },
     "domek-7": { szyld: [0.297, 0.3642, 0.406, 0.1036], proporcja: 1.2583 },
-    "plac-budowy": { szyld: [0.3072, 0.1992, 0.3878, 0.2175], proporcja: 2.1094 }
+    "plac-budowy": { szyld: [0.3072, 0.1992, 0.3878, 0.2175], proporcja: 2.1094 },
+    "osiedle": { szyld: [0.3305, 0.0804, 0.3483, 0.119], proporcja: 1.4973 },
+    "galeria": { szyld: [0.3131, 0.1368, 0.376, 0.2149], proporcja: 2.1563 },
+    "fabryka": { szyld: [0.2378, 0.4482, 0.3103, 0.1412], proporcja: 2.0792, plakat: [0.7905, 0.4576, 0.1665, 0.3435] }
   };
+  /* Partnerzy poprzednich wyzwań: budynek i szerokość na scenie. Osobno od firm akcji, za nimi. */
+  var BUDYNKI_POPRZEDNICH = { osiedle: 210, galeria: 240, fabryka: 290 };
 
   /* ── STAN (czysta funkcja, testowana w Node) ────────────────────────────────────── */
   /** Licznik → { faza: 'brak' } (błąd: nic nie rysujemy) | { faza: 'przed' } (bez liczb) | { faza: 'trwa'|'pelna', odcinki, km }. */
@@ -61,12 +66,13 @@
         if (!nazwa) return null;
         var A = g.BM_AKCJA;
         return { nazwa: nazwa, link: typeof f.link === "string" ? f.link : "", logo: A && A.logoFirmy ? A.logoFirmy(f) : "",
-          rodzaj: f.rodzaj === "wiezowiec" || f.rodzaj === "cegielka" ? f.rodzaj : "domek", partner: f.wsparcie === "rzeczowe" };
+          rodzaj: f.rodzaj === "wiezowiec" || f.rodzaj === "cegielka" || BUDYNKI_POPRZEDNICH[f.rodzaj] ? f.rodzaj : "domek", partner: f.wsparcie === "rzeczowe", poprzedni: f.wsparcie === "poprzednie",
+          plakat: A && A.logoFirmy ? A.logoFirmy({ logo_url: f.plakat_url }) : "", plakatTekst: typeof f.plakat_tekst === "string" ? f.plakat_tekst : "" };
       }).filter(Boolean).map(function (f, i) { return [f, i]; }).sort(function (a, b) { return rangaFirmy(a[0]) - rangaFirmy(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; }),
     };
   }
   /** Kolejność na Ulicy: Partner akcji, wieżowce, domki. W każdej grupie wg daty, jak oddaje licznik. */
-  function rangaFirmy(f) { return f.rodzaj === "cegielka" ? 3 : f.partner ? 0 : f.rodzaj === "wiezowiec" ? 1 : 2; }
+  function rangaFirmy(f) { return f.rodzaj === "cegielka" ? 4 : f.poprzedni ? 3 : f.partner ? 0 : f.rodzaj === "wiezowiec" ? 1 : 2; }
   /** Firma poniżej progu: nazwa na cegiełce w murze, bez budynku. Firmy idą przed imionami, żeby nie wypadły poza widoczną część muru. */
   function zFirmamiNaMurze(dod, dane) {
     var nazwy = (dane && dane.firmy || []).filter(function (f) { return f.rodzaj === "cegielka"; }).map(function (f) { return f.nazwa; });
@@ -644,7 +650,7 @@
 
   g.BM_ULICA = { licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
-    sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
+    BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,
     WARSTWY: WARSTWY, ELEMENTY: ELEMENTY, SZYLDY: SZYLDY, KOLORY_NIEBA: KOLORY_NIEBA, NAZWY_ELEMENTOW: NAZWY_ELEMENTOW, KM_NA_ODCINEK: KM_NA_ODCINEK, ODCINKOW: ODCINKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

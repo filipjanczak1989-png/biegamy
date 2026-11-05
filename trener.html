@@ -378,7 +378,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="field"><label for="firma-nazwa">Nazwa firmy</label><input type="text" id="firma-nazwa" maxlength="120" required autocomplete="off"></div>
     <div class="field"><label for="firma-link">Link (https)</label><input type="url" id="firma-link" maxlength="500" required placeholder="https://firma.pl" autocomplete="off"></div>
     <div class="field"><label for="firma-logo">Logo: PNG, JPG, WebP albo PDF</label><input type="file" id="firma-logo" accept="image/png,image/jpeg,image/webp,application/pdf"><div id="firma-logo-podglad" style="margin-top:6px;font-size:12px;color:var(--muted);"></div></div>
-    <div class="field"><label for="firma-rodzaj">Budynek</label><select id="firma-rodzaj"><option value="domek">Domek</option><option value="wiezowiec">Wieżowiec</option><option value="cegielka">Nazwa w murze (wpłata poniżej progu)</option></select></div>
+    <div class="field"><label for="firma-rodzaj">Budynek</label><select id="firma-rodzaj"><option value="domek">Domek</option><option value="wiezowiec">Wieżowiec</option><option value="cegielka">Nazwa w murze (wpłata poniżej progu)</option><optgroup label="Partnerzy poprzednich wyzwań"><option value="osiedle">Osiedle</option><option value="galeria">Galeria handlowa</option><option value="fabryka">Fabryka</option></optgroup></select></div>
+    <div id="firma-poprzedni" hidden style="font-size:13px;line-height:1.4;color:var(--fg);">
+      <label style="display:flex;gap:10px;align-items:flex-start;"><input type="checkbox" id="firma-logo-zgoda" style="margin-top:2px;">Firma zgodziła się na logo (bez zgody budynek stoi z samą nazwą)</label>
+      <div id="firma-plakat-blok" hidden style="margin-top:8px;">
+        <div class="field"><label for="firma-plakat">Plakat na tablicy przy fabryce: PNG, JPG, WebP</label><input type="file" id="firma-plakat" accept="image/png,image/jpeg,image/webp"></div>
+        <div class="field"><label for="firma-plakat-tekst">Tekst po dotknięciu tablicy</label><input type="text" id="firma-plakat-tekst" maxlength="120" autocomplete="off"></div>
+      </div>
+    </div>
     <div class="field"><label for="firma-wsparcie">Typ wsparcia</label><select id="firma-wsparcie"><option value="wplata">Wpłata na zbiórkę</option><option value="rzeczowe">Sponsor rzeczowy (podpis „Partner akcji”, bez progu)</option></select></div>
     <div id="firma-progi" style="font-size:12px;color:var(--muted);"></div>
     <details id="firma-kwota-blok" style="font-size:13px;color:var(--fg);"><summary style="cursor:pointer;">Kwota publicznie (opcjonalnie)</summary>
@@ -9006,7 +9013,7 @@ document.addEventListener('keydown', (e) => {
   const $ = (id) => document.getElementById(id);
   const sekcja = $('firmy-sec'), form = $('firmy-form'), lista = $('firmy-lista'), blad = $('firmy-blad'), zapisz = $('firmy-zapisz'), anuluj = $('firmy-anuluj'), podglad = $('firma-logo-podglad');
   if (!sekcja || !form || !window.BM_AKCJA || !window.BM_LOGO_FIRMY || !window.sb) return;
-  const A = window.BM_AKCJA, sb = window.sb, SLUG = 'dla-fabianka', NAZWY = { domek: 'domek', wiezowiec: 'wieżowiec', cegielka: 'nazwa w murze' };
+  const A = window.BM_AKCJA, sb = window.sb, SLUG = 'dla-fabianka', NAZWY = { domek: 'domek', wiezowiec: 'wieżowiec', cegielka: 'nazwa w murze', osiedle: 'osiedle', galeria: 'galeria handlowa', fabryka: 'fabryka' }, POPRZEDNI = ['osiedle', 'galeria', 'fabryka'];
   let wczytano = false, firmy = [], edycja = null, logo = null;
   const pokazBlad = (t) => { blad.textContent = t || ''; blad.style.display = t ? '' : 'none'; };
   const plikLogo = (u) => String(u || '').split('/' + A.BUCKET_LOGO + '/')[1] || '';
@@ -9017,7 +9024,10 @@ document.addEventListener('keydown', (e) => {
     return (e && e.message) || 'błąd połączenia.';
   }
   function ustawWsparcie() {
-    const rzeczowe = $('firma-wsparcie').value === 'rzeczowe';
+    const poprzedni = POPRZEDNI.includes($('firma-rodzaj').value), rzeczowe = poprzedni || $('firma-wsparcie').value === 'rzeczowe';
+    $('firma-poprzedni').hidden = !poprzedni; $('firma-plakat-blok').hidden = $('firma-rodzaj').value !== 'fabryka';
+    $('firma-wsparcie').closest('.field').style.display = poprzedni ? 'none' : '';
+    if (poprzedni) $('firma-kwota-blok').hidden = true; else if (!edycja) $('firma-kwota-blok').hidden = false;
     $('firma-potwierdzenie-rzad').style.display = rzeczowe ? 'none' : 'flex';
     $('firma-progi').style.display = rzeczowe ? 'none' : '';
     $('firma-potwierdzenie-tekst').textContent = $('firma-rodzaj').value === 'cegielka' ? 'Wpłata potwierdzona' : 'Wpłata powyżej progu potwierdzona';
@@ -9031,19 +9041,20 @@ document.addEventListener('keydown', (e) => {
   }
   function wiersz(f, nr) {
     const link = A.linkFirmy(f), adresLogo = A.logoFirmy(f), nazwa = window.escapeHtml(f.nazwa);
-    const opis = [NAZWY[f.rodzaj] || f.rodzaj, f.wsparcie === 'rzeczowe' ? 'Partner akcji' : (f.kwota_gr == null ? 'wpłata' : A.zl(f.kwota_gr) + (f.zgoda_na_kwote ? ' publicznie' : ' niepublicznie')), f.ukryta ? 'UKRYTA' : '', 'dodano ' + new Date(f.dodano).toLocaleDateString('pl-PL')].filter(Boolean).join(' · ');
+    const opis = [NAZWY[f.rodzaj] || f.rodzaj, f.wsparcie === 'poprzednie' ? 'Partner poprzednich wyzwań, logo: ' + (f.logo_zgoda ? 'zgoda' : 'BEZ ZGODY') : f.wsparcie === 'rzeczowe' ? 'Partner akcji' : (f.kwota_gr == null ? 'wpłata' : A.zl(f.kwota_gr) + (f.zgoda_na_kwote ? ' publicznie' : ' niepublicznie')), f.ukryta ? 'UKRYTA' : '', 'dodano ' + new Date(f.dodano).toLocaleDateString('pl-PL')].filter(Boolean).join(' · ');
     const guzik = 'flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;';
     return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);' + (f.ukryta ? 'opacity:.6;' : '') + '">' +
       (adresLogo ? '<img src="' + adresLogo + '" alt="" loading="lazy" style="flex:none;width:36px;height:36px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;">' : '') +
       '<div style="flex:1 1 150px;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;">' +
       (link ? '<a href="' + link + '" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--fg);">' + nazwa + '</a>' : nazwa) +
       '<div style="font-size:11px;color:var(--muted);">' + window.escapeHtml(opis) + '</div></div>' +
+      (f.wsparcie === 'poprzednie' ? '<button type="button" data-firma-logo="' + nr + '" style="' + guzik + 'color:var(--fg);">' + (f.logo_zgoda ? 'Cofnij zgodę na logo' : 'Zgoda na logo') + '</button>' : '') +
       '<button type="button" data-firma-edytuj="' + nr + '" style="' + guzik + 'color:var(--fg);">Edytuj</button>' +
       '<button type="button" data-firma-ukryj="' + nr + '" style="' + guzik + 'color:var(--fg);">' + (f.ukryta ? 'Pokaż' : 'Ukryj') + '</button>' +
       '<button type="button" data-firma-usun="' + nr + '" style="' + guzik + 'color:var(--red);">Usuń</button></div>';
   }
   async function wczytaj() {
-    const { data, error } = await sb.from('akcja_firmy').select('id,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta').eq('akcja_slug', SLUG).order('dodano').order('id');
+    const { data, error } = await sb.from('akcja_firmy').select('id,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta,logo_zgoda,plakat_url,plakat_tekst').eq('akcja_slug', SLUG).order('dodano').order('id');
     if (error) { lista.textContent = 'Nie udało się wczytać listy: ' + komunikat(error); return; }
     wczytano = true; firmy = data || [];
     lista.innerHTML = firmy.length ? firmy.map(wiersz).join('') : '<div style="font-size:12px;color:var(--muted);">Lista pusta: na stronie akcji sekcji firm nie widać.</div>';
@@ -9051,6 +9062,7 @@ document.addEventListener('keydown', (e) => {
   function zacznijEdycje(f) {
     czyscFormularz(); edycja = f;
     $('firma-nazwa').value = f.nazwa; $('firma-link').value = f.link; $('firma-rodzaj').value = f.rodzaj; $('firma-wsparcie').value = f.wsparcie;
+    $('firma-logo-zgoda').checked = f.logo_zgoda === true; $('firma-plakat-tekst').value = f.plakat_tekst || '';
     $('firma-wymienienie').checked = true; $('firma-potwierdzenie').checked = f.wsparcie === 'wplata';   // CHECK w bazie: wpłata w tabeli ma potwierdzenie
     $('firma-kwota-blok').hidden = true; zapisz.textContent = 'Zapisz zmiany'; anuluj.hidden = false;
     if (A.logoFirmy(f)) podglad.textContent = 'Bez nowego pliku logo zostaje.';
@@ -9078,7 +9090,7 @@ document.addEventListener('keydown', (e) => {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     pokazBlad('');
-    const p = A.firmaDoZapisu({ rodzaj: $('firma-rodzaj').value, wsparcie: $('firma-wsparcie').value, nazwa: $('firma-nazwa').value, link: $('firma-link').value, kwotaZl: edycja ? '' : $('firma-kwota').value, zgoda: edycja ? false : $('firma-zgoda').checked, zgodaWymienienie: $('firma-wymienienie').checked, potwierdzenie: $('firma-potwierdzenie').checked, nazwaSprawdzona: $('firma-sprawdzona').checked });
+    const p = A.firmaDoZapisu({ rodzaj: $('firma-rodzaj').value, wsparcie: $('firma-wsparcie').value, nazwa: $('firma-nazwa').value, link: $('firma-link').value, kwotaZl: edycja ? '' : $('firma-kwota').value, zgoda: edycja ? false : $('firma-zgoda').checked, zgodaWymienienie: $('firma-wymienienie').checked, potwierdzenie: $('firma-potwierdzenie').checked, nazwaSprawdzona: $('firma-sprawdzona').checked, logoZgoda: $('firma-logo-zgoda').checked, plakatTekst: $('firma-plakat-tekst').value });
     if (p.blad) { if (p.mozna_potwierdzic) { $('firma-sprawdzona-rzad').hidden = false; $('firma-sprawdzona-rzad').style.display = 'flex'; } pokazBlad(p.blad); return; }
     zapisz.disabled = true;
     let wgrany = null;
@@ -9091,6 +9103,15 @@ document.addEventListener('keydown', (e) => {
         if (up.error) throw up.error;
         wgrany = sciezka;
         p.wiersz.logo_url = sb.storage.from(A.BUCKET_LOGO).getPublicUrl(sciezka).data.publicUrl;
+      }
+      /* Plakat: ten sam kubełek i te same zasady co logo. */
+      const plikPlakatu = p.wiersz.rodzaj === 'fabryka' ? $('firma-plakat').files[0] : null;
+      if (plikPlakatu) {
+        const pk = await window.BM_LOGO_FIRMY.przygotuj(plikPlakatu), lp = A.logoDoWgrania(pk.blob);
+        if (lp.blad) throw new Error(lp.blad);
+        const sp = crypto.randomUUID() + '.' + lp.rozszerzenie, upp = await sb.storage.from(A.BUCKET_LOGO).upload(sp, pk.blob, { contentType: pk.blob.type, upsert: false, cacheControl: '31536000' });
+        if (upp.error) throw upp.error;
+        p.wiersz.plakat_url = sb.storage.from(A.BUCKET_LOGO).getPublicUrl(sp).data.publicUrl;
       }
       if (edycja) {
         const { data, error } = await sb.from('akcja_firmy').update(A.firmaDoEdycji(p.wiersz)).eq('id', edycja.id).select('id');
@@ -9113,7 +9134,14 @@ document.addEventListener('keydown', (e) => {
   });
   lista.addEventListener('click', async (e) => {
     const cel = e.target && e.target.closest ? e.target.closest('button') : null; if (!cel) return;
-    const d = cel.dataset, f = firmy[Number(d.firmaEdytuj != null ? d.firmaEdytuj : d.firmaUkryj != null ? d.firmaUkryj : d.firmaUsun)]; if (!f) return;
+    const d = cel.dataset, f = firmy[Number(d.firmaEdytuj != null ? d.firmaEdytuj : d.firmaUkryj != null ? d.firmaUkryj : d.firmaLogo != null ? d.firmaLogo : d.firmaUsun)]; if (!f) return;
+    if (d.firmaLogo != null) {
+      cel.disabled = true;
+      const { data, error } = await sb.from('akcja_firmy').update({ logo_zgoda: !f.logo_zgoda }).eq('id', f.id).select('id');
+      if (error || !data || !data.length) { cel.disabled = false; window.showToast('Nie udało się: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return; }
+      await wczytaj();
+      return;
+    }
     if (d.firmaEdytuj != null) { zacznijEdycje(f); return; }
     if (d.firmaUkryj != null) {
       cel.disabled = true;

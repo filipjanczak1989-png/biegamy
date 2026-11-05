@@ -93,6 +93,7 @@
   #sciezka input[type=range] { display: block; width: 100%; margin: 8px 0 0; touch-action: auto; accent-color: var(--akcent2); }
   #sciezka .sz-wart { color: var(--fg); font-weight: 600; }
   #sciezka a { display: inline-block; color: var(--akcent2); margin: 8px 12px 0 0; font-weight: 600; text-decoration: none; }
+  #zagraj-szef { margin-top: 18px; background: var(--akcent); color: #fff; border: 0; border-radius: 12px; padding: 14px 24px; font: 700 16px Inter, sans-serif; }
   #trzymaj-dotarcie { position: relative; width: 100%; margin-top: 14px; overflow: hidden; background: var(--szary); color: var(--fg); border: 0; border-radius: 10px; padding: 12px; font: 600 13px Inter, sans-serif; touch-action: none; }
   #trzymaj-dotarcie i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--akcent); opacity: .55; pointer-events: none; }
   #trzymaj-dotarcie span { position: relative; }
@@ -120,6 +121,7 @@
   <div id="napis"></div>
   <div id="licznik"></div>
   <div id="status"></div>
+  <div id="premiera-miejsce"></div>
   <button id="reset" hidden>Resetuj próbę</button>
   <button id="wiecej" hidden aria-label="Więcej" aria-expanded="false">⋯</button>
   <div id="panel" hidden>
@@ -349,7 +351,25 @@
       licznik: km(d && d.suma_km) + ' / ' + km((d && d.cel_km) || 12500) + ' km',
       status: potwierdzone ? 'zapisane ✓' : 'wysyłam…',
     });
-    if (potwierdzone) { przyciskDotarcia(d); panelLinku(d); zwolnijBlokade(); }
+    if (potwierdzone) { przyciskDotarcia(d); przyciskPremiery(d); panelLinku(d); zwolnijBlokade(); }
+  }
+
+  /* PREMIERA SZEFA (Filip 5.11): znacznik powstaje przy naciśnięciu, więc tylko na tym urządzeniu; po rundzie gra oznacza go jako zagrany, więc raz. Bez konta i bez rankingu, zapis do muru tylko na prawdziwej akcji (pilnuje baza). Rysunku ani adresu tu nie ma, gra bierze je sama. Przycisk powstaje po starcie (blizna-96). */
+  var KLUCZ_PREMIERY = 'cegielki_premiera';
+  function znacznikPremiery() { try { return JSON.parse(localStorage.getItem(KLUCZ_PREMIERY) || 'null'); } catch (e) { return null; } }
+  function zapiszZnacznikPremiery() { try { localStorage.setItem(KLUCZ_PREMIERY, JSON.stringify({ slug: SLUG, sciezka: SCIEZKA })); } catch (e) {} }
+  function wyczyscPremiere() { try { localStorage.removeItem(KLUCZ_PREMIERY); } catch (e) {} $('premiera-miejsce').textContent = ''; }
+  async function przyciskPremiery(d) {
+    var z = znacznikPremiery();
+    if (!d || !d.wystartowala || !z || z.slug !== SLUG || z.zagrana) { $('premiera-miejsce').textContent = ''; return; }
+    var ark = '';
+    if (PROBA) { var w = AKC.wizerunekProby ? await AKC.wizerunekProby(window.sb) : null; ark = w && w.koparka_arkusz_url; }   // próba: tylko trener i konto testowe; odmowa = nie ma przycisku
+    else ark = d.koparka_arkusz_url;                                                                                        // prawdziwa akcja: adres z licznika, wyłącznie przy zgodzie
+    var miejsce = $('premiera-miejsce'); miejsce.textContent = '';
+    if (typeof ark !== 'string' || !ADRES_RYSUNKU.test(ark)) return;
+    var b = document.createElement('button'); b.id = 'zagraj-szef'; b.type = 'button'; b.textContent = 'Zagraj jako Szef';
+    b.addEventListener('click', function () { location.href = 'gra-cegielki.html?premiera=1'; });
+    miejsce.appendChild(b);
   }
 
   /* ── przytrzymanie 1 s z pierścieniem ── */
@@ -379,6 +399,7 @@
     if (stan !== 'uzbrojony') return;
     var t = new Date().toISOString();
     await zapiszLokalnie(t);
+    zapiszZnacznikPremiery();
     nacisnietoO = performance.now();
     ustaw('nacisniety', { napis: 'Ruszamy. 12 500 km dla Fabianka.' });
     krag.classList.add('czeka'); rysujPierscien(0);
@@ -512,7 +533,7 @@
       var w = await sciezkaRpc('akcja_proba_od_zera', {}, 'Wracam do zera…');
       this.disabled = false;
       if (!w) return;
-      await wyczyscLokalnie();
+      await wyczyscLokalnie(); wyczyscPremiere();
       zamknijGuzik(); przyciskDotarcia(null); panelLinku(null);
       $('panel').hidden = true; $('sciezka').hidden = true; $('sciezka-guzik').setAttribute('aria-expanded', 'false');
       uzbrojGdyCzas();
@@ -536,7 +557,7 @@
     try {
       var r = await window.sb.rpc('akcja_proba_reset');
       if (r.error) throw r.error;
-      await wyczyscLokalnie();
+      await wyczyscLokalnie(); wyczyscPremiere();
       zamknijGuzik();
       uzbrojGdyCzas();
     } catch (e) { $('status').textContent = 'Reset się nie udał — sprawdź sieć.'; }
