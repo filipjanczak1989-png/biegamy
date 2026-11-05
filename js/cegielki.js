@@ -209,11 +209,12 @@
   function nowyStan(postac) {
     var pz = poziomRundy(), plan = L.planPoziomu(pz);
     return {
+      fala: L.sekwencjeWRundzie(pz, trybMaly, postac) ? { sek: true, nr: 0, doX: 0 } : null, sekwencje: {},
       postac: postac, t: 0, czas: CZAS_RUNDY, s: 0, v: PRED_START, predBaza: PRED_START, poziom: pz, plan: plan, krokTempa: 0, drganie: 0,
       y: 0, vy: 0, naZiemi: true, bufor: 0, saltoT: -1, saltoUzyte: false, trik: -1, trikCzas: 0, trikPokazany: -1, szczyt: 0, gorka: null, gorkaFaza: null, katDrogi: 0, gorkaPowiedziana: false, efDx: 0, efKat: 0, przysiad: 0, klN: null, klI: 0, przenikN: null, przenikI: 0, przenikOd: 0, anim: 0, slizg: 0, slizgPoLadowaniu: false,
       reakcja: 0, reakcjaTyp: null, nietykalny: 0, poza: null, przemiana: 0,
       bud: 0, kaskX2: 0, sprint: 0, zel: 0, blysk: 0, seria: 0, comboSalt: 0, cegly: 0,
-      st: L.pusteStaty(), bezUpadku: 0, wyzwanieGotowe: false, dzisZrobione: schowek.czytaj("cegielki_wyzwanie_" + L.dzienWaw(), "") === "1",
+      st: L.pusteStaty(), uzyte: [], bezUpadku: 0, wyzwanieGotowe: false, dzisZrobione: schowek.czytaj("cegielki_wyzwanie_" + L.dzienWaw(), "") === "1",
       przeszkody: [], przedmioty: [], kibice: [], dekor: [], czastki: [], napisy: [],
       nastPrzeszkoda: 900, nastBonus: 1900, kolejkaBonusow: [plan.pierwszyKask ? "kask" : "but"], nastKibic: 1100, nastDekor: 0, nrFirmy: 0, ileDomkow: 0, ileDoPoprzedniego: 0, nrPoprzedniego: 0, ileDoWiezowca: 0, nrWiezowca: 0, ostPrzerwa: Infinity, ostKaskX: -Infinity,
       maly: trybMaly, nastWywrotka: 1400, lopata: null, zgarnia: 0, stoi: 0, przerwaLyzki: 0, latajace: [], rowerX: null, nastRower: losowa(L.ROWER.pierwszy[0], L.ROWER.pierwszy[1]),
@@ -279,8 +280,17 @@
   function planujTrase() {
     while (G.nastPrzeszkoda < G.s + W + 300) {
       var przedmiotyOd = G.przedmioty.length, fazaXp = L.fazaGorki(G.nastPrzeszkoda, G.gorka);
+      /* Sekwencje: fala gęstych przeszkód, potem luz bez przeszkód. Górka ma własne tempo, więc na niej zwykła trasa, a za nią od nowa z luzu. */
+      if (G.fala) {
+        if (fazaXp) { koniecSekwencji(); G.fala.doX = 0; }
+        else {
+          if (G.nastPrzeszkoda >= G.fala.doX) { koniecSekwencji(); G.fala = L.nastepnaFala(G.fala, G.poziom, G.predBaza, G.nastPrzeszkoda, Math.random()); }
+          if (!G.fala.sek) { rzedyLuzu(G.nastPrzeszkoda, G.fala.doX - G.nastPrzeszkoda); G.nastPrzeszkoda = G.fala.doX; G.ostPrzerwa = G.predBaza * 2; continue; }
+        }
+      }
+      var wSek = !!(G.fala && G.fala.sek && !fazaXp);
       var P = G.plan, xp = G.nastPrzeszkoda, post = G.maly ? 0 : postepRundy(), para = Math.random() < P.para ? wybierz(L.PARY) : null, typ = para ? para[0] : wybierz(Object.keys(PRZESZKODY));
-      G.przeszkody.push({ typ: typ, x: xp, zuzyta: false, zaliczona: false });
+      G.przeszkody.push(przeszkodaSekwencji({ typ: typ, x: xp, zuzyta: false, zaliczona: false }, wSek));
       /* Mały budowniczy: wywrotka jedzie w tle i zrzuca rząd cegieł na drogę */
       if (G.maly && xp >= G.nastWywrotka) {
         for (var c = 0; c < L.MALY_CEGIEL_W_RZEDZIE; c++) G.przedmioty.push({ typ: "cegla", x: xp + 90 + c * 44, h: 44 });
@@ -296,11 +306,11 @@
         var skB = L.skalaSkoku(G.postac) * 150, xz = cechy().skacze === false ? xp - L.KLATKI_KOPARKI.zlota_przed : xp;   // koparka zgarnia złotą łyżką w tym samym zamachu, który rozbija przeszkodę
         G.przedmioty.push({ typ: "cegla_zlota", x: xz, h: L.wysokoscZlotej(G.postac, G.maly) }, { typ: "cegla", x: xp - 44, h: skB }, { typ: "cegla", x: xp + 44, h: skB });
       }
-      var T = (lerp(1.25, 0.98, post) + Math.random() * lerp(0.85, 0.55, post)) * P.odstep, przerwa = Math.max(280, G.predBaza * T);
+      var T = (lerp(1.25, 0.98, post) + Math.random() * lerp(0.85, 0.55, post)) * P.odstep, przerwa = wSek ? L.odstepSekwencji(G.poziom, G.predBaza, G.postac, Math.random()) : Math.max(280, G.predBaza * T);
       /* Para: druga przeszkoda za pierwszą, reszta trasy liczona od niej. Złota za parą wymaga skoku z drugim ruchem nad drugą przeszkodą, więc za nią musi być miejsce na lądowanie. */
       if (para) {
-        var odl = L.odstepPary(para, G.postac, G.predBaza);
-        G.przeszkody.push({ typ: para[1], x: xp + odl, zuzyta: false, zaliczona: false });
+        var odl = L.odstepPary(para, G.postac, G.predBaza * L.tempoGorki(fazaXp));   // na podjeździe wolniej: pojedynczy skok nie sięgnie tak daleko
+        G.przeszkody.push(przeszkodaSekwencji({ typ: para[1], x: xp + odl, zuzyta: false, zaliczona: false }, wSek));
         xp += odl;
         if (odl > 200 && Math.random() < pLuk) dodajLuk(xp);
         else if (odl > 200 && zRozbiegu && Math.random() < P.zlotaPara) {
@@ -309,19 +319,13 @@
           przerwa = Math.max(przerwa, G.predBaza * 1.3);
         }
       }
-      if (przerwa > 420 && Math.random() < P.rzad * ileCegiel) {
+      if (przerwa > 420 && Math.random() < P.rzad * ileCegiel * (wSek ? L.SEKWENCJE.rzad_w_sekwencji : 1)) {
         var sr = xp + przerwa / 2, hRzedu = L.wysokoscRzedu(G.postac, P, Math.random()), zloty = hRzedu === 44 && Math.random() < P.zlotaNaZiemi;
         for (var k = 0; k < 4; k++) G.przedmioty.push({ typ: zloty && k === 1 ? "cegla_zlota" : "cegla", x: sr + (k - 1.5) * 44, h: hRzedu });
-      } else if (xp + przerwa / 2 > G.nastBonus) {
-        if (!G.kolejkaBonusow.length) G.kolejkaBonusow = L.kolejkaBonusow(P).sort(function () { return Math.random() - 0.5; });
-        var typB = G.kolejkaBonusow.pop();
-        if (typB === "kask") G.ostKaskX = xp + przerwa / 2;
-        G.przedmioty.push({ typ: typB, x: xp + przerwa / 2, h: typB === "kask" ? L.wysokoscKasku(G.postac, G.maly) : Math.random() < 0.6 ? 62 : 150 });
-        G.nastBonus = xp + przerwa / 2 + G.predBaza * losowa(6.5, 10) * P.odstepBonusu;
-      }
+      } else if (!wSek && xp + przerwa / 2 > G.nastBonus) dodajBonus(xp + przerwa / 2);   // w sekwencji bez bonusów: przemiana po kasku zabrałaby sterowanie w środku układu
       /* Podjazd: cegły wyżej, ale zawsze w zasięgu postaci. */
       if (G.gorka) { var zasieg = L.zasiegPostaci(G.postac).maks; for (var pg = przedmiotyOd; pg < G.przedmioty.length; pg++) { var ep = G.przedmioty[pg], fp = L.fazaGorki(ep.x, G.gorka); if (fp && fp.faza === "podjazd") ep.h = Math.min(zasieg, ep.h + L.GORKA.wyzej); } }
-      G.nastPrzeszkoda += przerwa; G.ostPrzerwa = przerwa;
+      G.nastPrzeszkoda = xp + przerwa; G.ostPrzerwa = przerwa;   // xp to już druga przeszkoda pary: liczone od pierwszej następna wpadała na nią
     }
     while (G.nastKibic < G.s + W + 300) {
       var ile = 1 + Math.floor(Math.random() * 3), pula = ["k1", "k2", "k3", "k4"].sort(function () { return Math.random() - 0.5; }).slice(0, ile), px = G.nastKibic;
@@ -332,6 +336,39 @@
       }
       G.nastKibic += G.predBaza * losowa(6, 10);
     }
+  }
+
+  function dodajBonus(x) {
+    if (!G.kolejkaBonusow.length) G.kolejkaBonusow = L.kolejkaBonusow(G.plan).sort(function () { return Math.random() - 0.5; });
+    var typB = G.kolejkaBonusow.pop();
+    if (typB === "kask") G.ostKaskX = x;
+    G.przedmioty.push({ typ: typB, x: x, h: typB === "kask" ? L.wysokoscKasku(G.postac, G.maly) : Math.random() < 0.6 ? 62 : 150 });
+    G.nastBonus = x + G.predBaza * losowa(6.5, 10) * G.plan.odstepBonusu;
+  }
+  /* Luz: bez przeszkód, same rzędy cegieł i bonus, gdy przyszła jego kolej. */
+  function rzedyLuzu(xp, dl) {
+    var krok = G.predBaza * L.SEKWENCJE.rzad_co_s, koniec = xp + dl - krok * 0.4, bonus = false;
+    /* Złota do skoku bez ryzyka: w gęstym układzie nie ma rozbiegu, a to waluta Magazynu. */
+    if (Math.random() < L.SEKWENCJE.zlota_w_luzie) G.przedmioty.push({ typ: "cegla_zlota", x: xp + dl * 0.62, h: L.wysokoscZlotej(G.postac, G.maly) });
+    for (var x = xp + krok * 0.5; x < koniec; x += krok) {
+      /* Bonus tylko na początku luzu: sprint po bucie i przemiana po kasku mają się skończyć przed sekwencją. */
+      if (!bonus && x === xp + krok * 0.5 && x > G.nastBonus) { dodajBonus(x); bonus = true; continue; }
+      var h = L.wysokoscRzedu(G.postac, G.plan, Math.random());
+      for (var k = 0; k < 4; k++) G.przedmioty.push({ typ: "cegla", x: x + (k - 1.5) * 44, h: h });
+    }
+  }
+  function przeszkodaSekwencji(p, wSek) {
+    if (wSek) { var nr = G.fala.nr, s = G.sekwencje[nr] || (G.sekwencje[nr] = { ile: 0, ok: 0, czysta: true, koniec: false, dane: false }); s.ile++; p.sek = nr; }
+    return p;
+  }
+  function koniecSekwencji() { var s = G.fala.sek && G.sekwencje[G.fala.nr]; if (s) { s.koniec = true; czysto(s); } }
+  function zaliczSekwencje(p) { var s = p.sek && G.sekwencje[p.sek]; if (s) { s.ok++; czysto(s); } }
+  /* „Czysto!” za całą sekwencję bez upadku. Kask, który uratował, to nie upadek. */
+  function czysto(s) {
+    if (!s.koniec || s.dane || !s.czysta || s.ok < s.ile) return;
+    s.dane = true;
+    var g = G, n = L.SEKWENCJE.czysto; g.cegly += n; g.bezUpadku += n; g.st.czyste++;
+    dodajNapis("Czysto! +" + n, graczX() + 10, stopy() - g.y - 150, "#9df0a8", 28); D.graj("trik");
   }
 
   function dodajLuk(xs) {
@@ -415,9 +452,8 @@
       $("menu").hidden = true; $("koniec").hidden = true;
       stan = "gra"; pauza = false;
       planujDekor();
-      /* Ulepszenie startowe dopiero po potwierdzeniu z serwera: najpierw zapłacone, potem założone. */
-      var tejRundy = G;
-      if (!trybMaly && window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.przedRunda) window.BM_CEGIELKI_KONTO.przedRunda(function (typ) { if (G === tejRundy && stan === "gra") zbierz({ typ: typ, x: G.s, h: 60 }); });
+      if (!trybMaly && window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.przedRunda) window.BM_CEGIELKI_KONTO.przedRunda();
+      odswiezPlecak();
     });
   }
 
@@ -477,9 +513,11 @@
       konfetti(xs, stopy() - g.y - 70, 34);
       dodajNapis("Kask uratował!", xs + 20, stopy() - g.y - 150, "#ffe07a", 26);
       D.graj("uderzenie");
+      zaliczSekwencje(p);
       return;
     }
     g.st.upadki++; g.seria = 0; g.comboSalt = 0; g.bezUpadku = 0; g.slizg = 0; g.poza = null;
+    if (p.sek && g.sekwencje[p.sek]) g.sekwencje[p.sek].czysta = false;
     var r = g.postac === "rowerzysta" ? "rower" : L.REAKCJE[p.typ] ? p.typ : "inne";
     if (r === "inne" && Math.random() < 0.25) r = "liscie";
     g.reakcjaTyp = r; g.reakcja = L.REAKCJE[r].czas;
@@ -492,7 +530,7 @@
   /* Przemiana blokuje sterowanie, więc tuż po niej nie może czekać przeszkoda: droga na czas przemiany i pół sekundy na reakcję zostaje pusta. */
   function oczyscPrzedGraczem() {
     var g = G, zasieg = g.predBaza * (CZAS_PRZEMIANY + 0.55);
-    g.przeszkody.forEach(function (p) { var d = p.x - g.s; if (!p.zuzyta && d > -30 && d < zasieg) { p.zuzyta = true; p.ukryta = true; } });
+    g.przeszkody.forEach(function (p) { var d = p.x - g.s; if (!p.zuzyta && d > -30 && d < zasieg) { p.zuzyta = true; p.ukryta = true; zaliczSekwencje(p); } });
     if (g.nastPrzeszkoda < g.s + zasieg) g.nastPrzeszkoda = g.s + zasieg;
   }
   function zbierz(e) {
@@ -508,6 +546,27 @@
     if (e.typ === "zel") { g.zel = CZAS_ZELU; g.st.zele++; if (g.naZiemi) pozaBonusu("zel", 0.45); D.graj("zlota"); }
     dodajNapis(PODPIS_BONUSU[e.typ], graczX() + 30, stopy() - g.y - 170, "#fff", 24);
   }
+
+  /* Plecak w rundzie: duże przyciski pod lewy kciuk, poza płótnem, więc dotknięcie nie jest skokiem. Serwer odejmie zużyte przy zapisie wyniku. */
+  function odswiezPlecak() {
+    var K = window.BM_CEGIELKI_KONTO, e = $("plecak-runda"); if (!e) return;
+    var ile = stan === "gra" && !G.maly && K && K.plecak ? K.plecak() : null, widac = false;
+    Array.prototype.forEach.call(e.children, function (b) {
+      var typ = b.dataset.typ, moze = !!ile && L.mozeUzyc(ile, G.uzyte, typ);
+      b.hidden = !moze; b.querySelector("span").textContent = moze ? "×" + ile[typ] : ""; if (moze) widac = true;
+    });
+    e.hidden = !widac;
+  }
+  function uzyjZPlecaka(typ) {
+    var K = window.BM_CEGIELKI_KONTO;
+    if (stan !== "gra" || pauza || G.maly || !K || !K.plecak || !L.mozeUzyc(K.plecak(), G.uzyte, typ)) return;
+    G.uzyte.push(typ); K.zuzyjZPlecaka(typ);
+    zbierz({ typ: typ, x: G.s, h: 60 });
+    odswiezPlecak();
+  }
+  Array.prototype.forEach.call($("plecak-runda") ? $("plecak-runda").children : [], function (b) {
+    b.addEventListener("pointerdown", function (ev) { ev.preventDefault(); ev.stopPropagation(); uzyjZPlecaka(b.dataset.typ); });
+  });
 
   /* Koparka nie skacze: dotknięcie to zamach. W chwili uderzenia łyżka rozbija przeszkody w oknie przed koparką i daje bonus. Spóźnienie nie przewraca, ale koparka staje i seria spada do zera. */
   function zamachLyzka() {
@@ -639,7 +698,7 @@
       if (koparka) { krokLyzki(p, roznica, d); continue; }
       if (!p.zuzyta && !slizgPod && g.reakcja <= 0 && g.nietykalny <= 0 && Math.abs(roznica) < d.hw + (cechy().marginesKolizji || 22) && g.y < d.hh) uderzenie(p);
       if (slizgPod && Math.abs(roznica) < d.hw) p.podSlizgiem = true;
-      if (!p.zuzyta && !p.zaliczona && roznica < -d.hw - 22) { p.zaliczona = true; g.seria++; if (p.podSlizgiem) { g.st.slizgi++; g.seria++; g.cegly += mnoznik(); dodajNapis("Ślizg!", graczX() + 10, stopy() - 110, "#9df0a8", 24); D.graj("trik"); } }
+      if (!p.zuzyta && !p.zaliczona && roznica < -d.hw - 22) { p.zaliczona = true; g.seria++; zaliczSekwencje(p); if (p.podSlizgiem) { g.st.slizgi++; g.seria++; g.cegly += mnoznik(); dodajNapis("Ślizg!", graczX() + 10, stopy() - 110, "#9df0a8", 24); D.graj("trik"); } }
     }
     if (g.przeszkody.length && g.przeszkody[0].x < zasiegL) g.przeszkody.shift();
     /* Koparka sięga wysoko tylko łyżką w górze: wysokie cegły też wymagają dotknięcia. */
@@ -696,6 +755,7 @@
   }
   function koniecRundy() {
     stan = "koniec";
+    odswiezPlecak();
     var g = G; g.st.koniec = true; sprawdzWyzwanie(true); D.graj("meta");
     /* W rankingu liczą się punkty: cegły razy mnożnik poziomu. Mur i poziom rosną od zebranych cegieł. */
     g.punkty = L.punktyRundy(g.cegly, g.poziom);
@@ -714,7 +774,7 @@
     pokazKoparke(); if (g.postac === "koparka") $("k-koparka").hidden = true;
     G.napisy.length = 0; $("k-link").hidden = true;
     $("k-info").textContent = DIAG ? diagTekst() : ""; $("koniec").hidden = false;
-    if (window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.poRundzie) window.BM_CEGIELKI_KONTO.poRundzie({ postac: g.postac, cegly: g.cegly, punkty: g.punkty, st: g.st, t: g.t, maly: g.maly, poziom: g.poziom });
+    if (window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.poRundzie) window.BM_CEGIELKI_KONTO.poRundzie({ postac: g.postac, cegly: g.cegly, punkty: g.punkty, st: g.st, uzyte: g.uzyte, t: g.t, maly: g.maly, poziom: g.poziom });
   }
   function obrazekWyniku() {
     var k = document.createElement("canvas"); k.width = k.height = 1080;
@@ -1137,7 +1197,7 @@
   $("k-znow").addEventListener("click", function () { start(ostatniaPostac); });
   $("k-zmien").addEventListener("click", function () { $("koniec").hidden = true; $("menu").hidden = false; G = nowyStan(ostatniaPostac); stan = "menu"; planujDekor(); });
   var gotowaOk, gotowa = new Promise(function (ok) { gotowaOk = ok; });
-  window.BM_CEGIELKI_GRA = { start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
+  window.BM_CEGIELKI_GRA = { odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
   $("k-udostepnij").addEventListener("click", udostepnijWynik);
   $("k-wyzwij").addEventListener("click", wyzwijZnajomego);
   $("glosnik").addEventListener("click", function () { D.wlaczony = !D.wlaczony; schowek.zapisz("cegielki_dzwiek", D.wlaczony ? "1" : "0"); if (D.wlaczony) { D.start(); D.graj("cegla"); } odswiezGlosnik(); });
@@ -1177,6 +1237,8 @@
     if (parametry.get("koparka") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app") ustawKoparke(KAT + "wywrotka.webp");
     /* Podgląd rowerzysty poza produkcją: lokalnie nie ma funkcji z przełącznikiem. */
     if (parametry.get("rowerzysta") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app") wlaczRowerzyste();
+    /* Podgląd Górki poza produkcją: na każdym poziomie, po 3 s rundy. */
+    if (parametry.get("gorka") === "1" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app") { L.GORKA.poziom_od = 1; L.GORKA.start_s = 3; }
     requestAnimationFrame(petla);
     /* firmy: bez tego szyldy zostają puste, gra działa dalej */
     try {

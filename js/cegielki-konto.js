@@ -13,6 +13,8 @@
   var OPOZNIENIE_STARTU_MS = 6000;   // serwer liczy czas rundy od numeru; później numer zrobiłby z dobrej rundy podejrzaną
   var parametry = new URLSearchParams(location.search);
   var przyklad = parametry.get("ranking") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app";
+  /* Tylko podgląd: katalog poza repo, plik leży wyłącznie na komputerze Filipa. */
+  var ARKUSZ_PODGLADU = "podglad/arkusz.webp";
   var $ = function (id) { return document.getElementById(id); };
 
   var L = window.BM_CEGIELKI;
@@ -29,6 +31,8 @@
   /* PREMIERA SZEFA (Filip 5.11): pierwsza runda na świecie, zaraz po guziku. Znacznik zapisuje strona guzika przy naciśnięciu, więc tylko na tym urządzeniu; po rundzie jest zagrany, więc raz. Bez gra_konto, bez rankingu, bez plansz. Cegły do muru tylko na prawdziwej akcji: pilnuje premiera_szefa_zapisz. */
   var KLUCZ_PREMIERY = "cegielki_premiera";
   var premiera = (function () {
+    /* Podgląd poza produkcją: bez znacznika ze startu, bez zapisu, za każdym razem od nowa. */
+    if (parametry.get("premiera") === "przyklad" && przyklad) return { slug: "proba", podglad: true };
     if (parametry.get("premiera") !== "1") return null;
     var z = czytajJson(KLUCZ_PREMIERY, null);
     return z && (z.slug === "dla-fabianka" || z.slug === "proba") ? z : null;
@@ -40,7 +44,9 @@
     return new Promise(function (ok, zle) { var s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = zle; document.head.appendChild(s); });
   }
   async function polacz() {
-    if (przyklad) { stan.zalogowany = true; stan.pseudonim = parametry.get("pseudonim") || null; ustawKonto(40, ["koszulka-czerwona"]); var pp = Number(parametry.get("poziom")); stan.cegly = pp >= 1 && pp <= L.POZIOMY.length ? L.POZIOMY[pp - 1] : 6000; rysujPostacie(); return; }
+    if (przyklad && parametry.get("final") === "1") zapiszJson("cegielki_final", false);
+    if (przyklad && parametry.get("plansze") === "znowu") zapiszJson("cegielki_plansze", []);
+    if (przyklad) { stan.zalogowany = true; stan.pseudonim = parametry.get("pseudonim") || null; ustawKonto(40, ["koszulka-czerwona"]); stan.plecak = { kask: 2, bidon: 1 }; stan.plecakJest = true; var pp = Number(parametry.get("poziom")); stan.cegly = pp >= 1 && pp <= L.POZIOMY.length ? L.POZIOMY[pp - 1] : 6000; rysujPostacie(); return; }
     if (!czyJestSesja()) return;
     await skrypt("vendor/supabase-js-2.112.4.min.js");
     await skrypt("sb.js");
@@ -57,7 +63,7 @@
     else if (rs && !rs.error && L.POSTACIE_ZE_STROJEM.some(function (x) { return L.maStroj(stan.stroje[x]); })) zapiszStroje();
     var po = await window.sb.rpc("gra_moj_postep");
     /* Plecak i bonus za trening przychodzą z postępem, dopiero po swoich migracjach. Bez nich nie ma pola ani przycisku: front i migracja w dowolnej kolejności, bez błędu w sieci przy każdym wejściu. */
-    if (po && !po.error && po.data) { stan.plecak = po.data.plecak || {}; if (!premiera && po.data.bonus_trening === true) $("m-bonus").hidden = false; }
+    if (po && !po.error && po.data) { stan.plecakJest = !!po.data.plecak; stan.plecak = po.data.plecak || {}; if (!premiera && po.data.bonus_trening === true) $("m-bonus").hidden = false; }
     /* Z kontem poziom liczy serwer. Bez odpowiedzi poziom 1, nie suma z urządzenia: runda z poziomem wyższym niż na koncie to dla serwera oszustwo. */
     stan.cegly = po && !po.error && po.data && typeof po.data.cegly === "number" ? po.data.cegly : 0;
     podpowiedzImie(); rysujPostacie();
@@ -98,21 +104,18 @@
     clearTimeout(zegarStrojow);
     zegarStrojow = setTimeout(function () { window.sb.rpc("gra_zapisz_stroje", { p_stroje: stan.stroje }).then(function () {}, function () {}); }, 700);
   }
-  /* daj(typ) zakłada ulepszenie dopiero po odpowiedzi serwera. Wybór jest jednorazowy: kolejna runda nie zapłaci sama. */
-  function przedRunda(daj) {
+  function przedRunda() {
     stan.runda = null;
-    if (stan.podglad || premiera) { stan.ulepszenie = null; return; }
-    var runda = { numer: null, gotowa: null }, ulepszenie = stan.ulepszenie;
-    stan.ulepszenie = null;
+    if (stan.podglad || premiera) return;
+    var runda = { numer: null, gotowa: null };
     var t0 = performance.now();
     runda.gotowa = gotowe.then(function () {
-      if (przyklad) { if (ulepszenie && daj) { var cena = L.ULEPSZENIA.filter(function (u) { return u.id === ulepszenie; })[0].cena; if (stan.saldo >= cena) { ustawKonto(stan.saldo - cena); daj(ulepszenie); } } return; }
-      if (!stan.zalogowany) return;
-      return window.sb.rpc("gra_start_rundy", ulepszenie ? { p_ulepszenie: ulepszenie } : {}).then(function (r) {
+      if (przyklad || !stan.zalogowany) return;
+      return window.sb.rpc("gra_start_rundy", {}).then(function (r) {
         if (r.error || !r.data || !r.data.ok) { runda.powod = r.data && r.data.powod; return; }
         ustawKonto(r.data.saldo);
-        if (r.data.plecak) stan.plecak = r.data.plecak;
-        if (r.data.ulepszenie && daj) daj(r.data.ulepszenie);
+        /* Stan plecaka z serwera: inne urządzenie mogło coś zużyć albo dokupić. Kupione w tej rundzie nie ma, więc można podmienić w biegu. */
+        if (r.data.plecak) { stan.plecak = r.data.plecak; stan.plecakJest = true; if (window.BM_CEGIELKI_GRA.odswiezPlecak) window.BM_CEGIELKI_GRA.odswiezPlecak(); }
         if (performance.now() - t0 > OPOZNIENIE_STARTU_MS) { runda.powod = "wolno"; return; }
         runda.numer = r.data.runda;
       });
@@ -144,9 +147,10 @@
     var odp = null;
     for (var proba = 0; proba < 2 && !odp; proba++) {
       var r = await window.sb.rpc("gra_zapisz_wynik", { p_runda: runda.numer, p_postac: w.postac, p_cegly: w.cegly, p_czas: Number(w.t.toFixed(2)),
-        p_st: { zlote: w.st.zlote, salta: w.st.salta, seria: w.st.seria, upadki: w.st.upadki, bidony: w.st.bidony, poziom: w.poziom } });
+        p_st: Object.assign({ zlote: w.st.zlote, salta: w.st.salta, seria: w.st.seria, upadki: w.st.upadki, bidony: w.st.bidony, poziom: w.poziom }, w.uzyte && w.uzyte.length ? { uzyte: w.uzyte } : {}) });
       if (!r.error) odp = r.data;
     }
+    if (odp && odp.plecak) stan.plecak = odp.plecak;
     if (!odp) info("Nie udało się zapisać wyniku: brak łącza.");
     else if (odp.ok) { info(""); stan.miejsca = odp.miejsca || null; ustawKonto(odp.saldo, odp.kupione); if (typeof odp.cegly_lacznie === "number") stan.cegly = odp.cegly_lacznie; rysujPostacie(przedRunda2); }
     else info(odp.powod === "podejrzany" ? "Ten wynik nie przeszedł kontroli i czeka na przegląd." : odp.powod === "postac_zablokowana" ? "Ta postać nie jest jeszcze odblokowana na Twoim koncie, runda bez rankingu." : "Ta runda bez rankingu.");
@@ -158,7 +162,7 @@
       return { dzien: [["Biegaczka", 1840, "kasia"], ["Szybki-Janek", 1610, "filip"], ["Ania", 1422, "kasia"], ["Marek", 1200, "filip"], ["Zosia", 960, "kasia"], ["Tomek", 655, "filip"]].map(function (w, i) { return { miejsce: i + 1, pseudonim: w[0], cegly: w[1], postac: w[2] }; }),
         tydzien: [{ miejsce: 1, pseudonim: "Rekordzista", cegly: 2210, postac: "filip" }], wszech: [],
         dolozyli_akcja: [{ miejsce: 1, pseudonim: "Biegaczka", cegly: 18420 }, { miejsce: 2, pseudonim: "Marek", cegly: 9310 }], dolozyli_wszech: [{ miejsce: 1, pseudonim: "Biegaczka", cegly: 18420 }],
-        mur: 48210, mur_cel: 1250000 };
+        mur: Number(parametry.get("mur")) || 48210, mur_cel: 1250000, zamknieta: parametry.get("zamknieta") === "1", rozdzial_meta: parametry.get("meta") === "1", magazyn_podpis: parametry.get("podpis") || null };
     }
     if (stan.zalogowany && window.sb) {
       var r = await window.sb.rpc("gra_ranking");
@@ -542,16 +546,30 @@
   }
   /* Przymierzalnia: podgląd stoi przyklejony nad listą, dotknięcie ma go pokazać, gdziekolwiek palec był na liście. */
   function przymierzalnia() { var e = document.querySelector(".s-podglad"); if (e && e.getBoundingClientRect().bottom < 0) $("sklep").scrollTop = 0; }
-  function wierszUlepszenia(u) {
-    var wybrane = stan.ulepszenie === u.id, b = el("button", "s-wiersz"); b.type = "button"; b.setAttribute("aria-pressed", wybrane ? "true" : "false"); b.disabled = !stan.zalogowany || stan.podglad;
-    b.appendChild(el("span", "s-nazwa", u.nazwa));
-    var wPlecaku = Number(stan.plecak[u.id]) || 0;
-    b.appendChild(wybrane ? el("span", "s-cena", "Wybrane") : wPlecaku > 0 ? el("span", "s-cena", "Z plecaka: " + wPlecaku) : cena(u.cena));
-    b.addEventListener("click", function () {
-      if (!wybrane && !wPlecaku && (stan.saldo || 0) < u.cena) { sinfo(brakuje(u.cena - (stan.saldo || 0))); return; }
-      stan.ulepszenie = wybrane ? null : u.id; sinfo(stan.ulepszenie ? (wPlecaku > 0 ? "Pójdzie z plecaka, bez złotych cegieł." : "Złote cegły zejdą dopiero na starcie następnej rundy.") : ""); rysujSklep(true);
-    });
+  function wierszPlecaka(u) {
+    var klucz = "plecak-" + u.id, czeka = stan.potwierdz === klucz, ile = Number(stan.plecak[u.id]) || 0, b = el("button", "s-wiersz"); b.type = "button"; b.setAttribute("aria-pressed", czeka ? "true" : "false"); b.disabled = stan.podglad;
+    var ik = document.createElement("img"); ik.className = "s-ikona"; ik.src = "assets/gra/" + u.id + ".webp"; ik.alt = ""; b.appendChild(ik);
+    b.appendChild(el("span", "s-nazwa", u.nazwa + (ile ? " · w plecaku: " + ile : "")));
+    b.appendChild(cena(u.cena, czeka ? "Wymień za " : ""));
+    b.addEventListener("click", function () { klikPlecaka(u, klucz); });
     return b;
+  }
+  /* Jak przy przedmiotach: pierwsze dotknięcie pyta, drugie wymienia. Do plecaka, użycie przyciskiem w rundzie. */
+  async function klikPlecaka(u, klucz) {
+    if (stan.potwierdz !== klucz) { stan.potwierdz = klucz; rysujSklep(true); sinfo((stan.saldo || 0) < u.cena ? brakuje(u.cena - (stan.saldo || 0)) : "Dotknij jeszcze raz, żeby wymienić."); return; }
+    stan.potwierdz = null;
+    if (przyklad) {
+      if (stan.saldo < u.cena) { sinfo(brakuje(u.cena - stan.saldo)); rysujSklep(true); return; }
+      stan.plecak[u.id] = (Number(stan.plecak[u.id]) || 0) + 1; ustawKonto(stan.saldo - u.cena);
+    } else {
+      sinfo("Wymieniam…");
+      var r = await window.sb.rpc("gra_kup_do_plecaka", { p_przedmiot: u.id });
+      if (r.error || !r.data) { sinfo("Nie udało się. Sprawdź łącze i spróbuj jeszcze raz."); rysujSklep(true); return; }
+      if (r.data.plecak) stan.plecak = r.data.plecak;
+      if (typeof r.data.saldo === "number") ustawKonto(r.data.saldo);
+      if (!r.data.ok) { sinfo(r.data.powod === "za_malo" ? brakuje(u.cena - (stan.saldo || 0)) : "Nie udało się. Spróbuj jeszcze raz."); rysujSklep(true); return; }
+    }
+    sinfo(u.nazwa + " w plecaku. W rundzie użyjesz przyciskiem."); rysujSklep(true);
   }
   function rysujSklep(zostawInfo) {
     if (!zostawInfo) sinfo($("s-info") ? $("s-info").textContent : "");
@@ -566,7 +584,9 @@
     var nk = $("s-rower"), kto = postacMagazynu();
     if (nk) { nk.hidden = kto !== "rowerzysta" && kto !== "koparka"; nk.textContent = kto === "koparka" ? "Koparka zostaje taka, jak ją narysowano: bez dodatków." : "Na rowerze pasują tylko okulary, medal i peleryna, bo czapka nie wejdzie na kask."; }
     var st = $("s-start"); st.textContent = "";
-    L.ULEPSZENIA.forEach(function (u) { st.appendChild(wierszUlepszenia(u)); });
+    /* Plecak ma tylko konto i tylko baza po migracji. */
+    var plecakWidac = stan.zalogowany && !!stan.plecakJest; st.hidden = !plecakWidac; $("s-start-naglowek").hidden = !plecakWidac;
+    if (plecakWidac) L.ULEPSZENIA.forEach(function (u) { st.appendChild(wierszPlecaka(u)); });
     odswiezPodglad();
   }
   var sklepSkad = "menu";
@@ -645,9 +665,9 @@
   async function sprawdzDostep() {
     if (przyklad) {
       stan.imie = "Fabianek"; stan.urlZbiorki = "https://www.siepomaga.pl/"; rysujZbiorke(); odswiezRanking();
-      if (parametry.get("rowerzysta") === "przyklad") wlaczPostacRoweru("");
+      if (parametry.get("rowerzysta") === "przyklad") wlaczPostacRoweru(parametry.get("rower_opis") || "");
       /* Arkusz koparki nie ma pliku w repo: na podgląd idzie adres podpisany z kubełka, po wgraniu. */
-      var ark = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: parametry.get("koparka_arkusz") });
+      var ark = parametry.get("koparka_lokalna") === "1" ? ARKUSZ_PODGLADU : L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: parametry.get("koparka_arkusz") });
       if (ark) { stan.koparkaWlaczona = true; stan.arkuszKoparki = ark; rysujPostacie(); }
       return;
     }
@@ -679,7 +699,8 @@
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
     var adres = "";
     try {
-      if (premieraNaProbie()) {
+      if (premiera.podglad) { adres = ARKUSZ_PODGLADU; stan.imie = "Fabianek"; }
+      else if (premieraNaProbie()) {
         var r = window.sb ? await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} }) : null;
         adres = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: r && r.data && r.data.ok ? r.data.koparka_arkusz_url : "" });
         stan.imie = "Fabianek";
@@ -729,10 +750,19 @@
       .then(function () { return new Promise(function (ok) { setTimeout(ok, 200); }); });
   }
   gotowe = poZaladowaniu().then(polacz).catch(function () { stan.zalogowany = false; });
+  /* Podgląd planszy poza produkcją: numer poziomu, mur25, mur50 albo final. Po „Dalej” wraca menu. */
+  async function planszaPodgladu() {
+    var co = parametry.get("plansza"), GR = window.BM_CEGIELKI_GRA, o = opcjeRozdzialu(), b = co === "mur25" ? 312500 : co === "mur50" ? 625000 : 0;
+    await GR.gotowa;
+    o.meta = true;
+    var mur = b && L.bonusyMuru(b).pop(), pl = co === "final" ? L.planszaFinalu(o) : mur ? { id: mur.id, tytul: mur.tytul, tekst: mur.tekst, noc: false, scena: mur.scena } : L.planszaRozdzialu(Number(co), o);
+    if (pl) GR.pokazPlansze(pl).then(function () { $("menu").hidden = false; });
+  }
+  if (przyklad && parametry.get("plansza")) gotowe.then(planszaPodgladu);
   if (premiera) gotowe.then(uruchomPremiere);
   else window.BM_CEGIELKI_GRA.gotowa.then(kartyWStrojach);
   $("f-dalej").addEventListener("click", function () { $("final").hidden = true; });
   $("nowa").addEventListener("click", function () { $("nowa").hidden = true; });
   rysujPostacie();
-  window.BM_CEGIELKI_KONTO = { grupyDruzyny: function () { var d = stan.ranking; return L.grupyDruzyny(d && d.mur, d && d.mur_cel); }, rowerNa: function () { return stan.rower ? L.rowerZPodpisu(stan.podpisRoweru) : null; }, latarnie: function (po) { return L.latarnieZapalone(po, poziomGracza(), !!stan.rower); }, premiera: function () { return !!premiera; }, przedRunda: przedRunda, poRundzie: poRundzie, wybor: wybor, ustawAkcje: ustawAkcje, poziom: poziomGracza, rozdzial: rozdzialGracza, planszeDoPokazania: planszeDoPokazania, pseudonimKibica: pseudonimKibica };
+  window.BM_CEGIELKI_KONTO = { grupyDruzyny: function () { var d = stan.ranking; return L.grupyDruzyny(d && d.mur, d && d.mur_cel); }, rowerNa: function () { return stan.rower ? L.rowerZPodpisu(stan.podpisRoweru) : null; }, latarnie: function (po) { return L.latarnieZapalone(po, poziomGracza(), !!stan.rower); }, premiera: function () { return !!premiera; }, plecak: function () { return premiera || stan.podglad || !stan.plecakJest ? null : stan.plecak; }, zuzyjZPlecaka: function (typ) { stan.plecak[typ] = Math.max(0, (Number(stan.plecak[typ]) || 0) - 1); }, przedRunda: przedRunda, poRundzie: poRundzie, wybor: wybor, ustawAkcje: ustawAkcje, poziom: poziomGracza, rozdzial: rozdzialGracza, planszeDoPokazania: planszeDoPokazania, pseudonimKibica: pseudonimKibica };
 })();
