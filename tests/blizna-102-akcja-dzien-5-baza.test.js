@@ -32,7 +32,7 @@ test('EF akcja-push: sekret obowiązkowy, RAZ, niedziela bez kwot, próba tylko 
   assert.match(EF, /if \(a\.testowa\) return \(a\.konta_testowe \|\| \[\]\)\.slice\(\);/);
   const niedziela = EF.slice(EF.indexOf('body.rodzaj === "niedziela"'), EF.lastIndexOf('return J(400'));
   assert.doesNotMatch(niedziela, /zł|gr\b|kwot/, 'push niedzielny z kwotą — rozliczenie jest jednorazowe');
-  assert.match(EF, /`Ruszyło\. \$\{a\.nazwa \|\| "Akcja"\}\. Każdy krok się liczy\.`/);
+  assert.match(EF, /`Ruszyło\. \$\{nazwa \|\| "Akcja"\}\. Każdy krok się liczy\.`/);
   assert.doesNotMatch(EF, /fabian/i);
   assert.match(czytaj('supabase/config.toml'), /\[functions\.akcja-push\]\nverify_jwt = false/);
 });

@@ -39,9 +39,10 @@ begin
   select k.plecak into v_plecak from public.gra_konto k where k.athlete_id = v_konto for update;
   if v_uzyte is not null then
     if jsonb_typeof(v_uzyte) <> 'array' then v_powod_plecaka := 'zle_dane';
-    elsif exists (select 1 from jsonb_array_elements(v_uzyte) x(e) where jsonb_typeof(x.e) <> 'string' or x.e #>> '{}' not in ('kask', 'bidon')) then v_powod_plecaka := 'zle_dane';
+    elsif exists (select 1 from jsonb_array_elements(v_uzyte) x(e) where jsonb_typeof(x.e) <> 'string' or x.e #>> '{}' not in ('kask', 'bidon', 'rakieta')) then v_powod_plecaka := 'zle_dane';
     elsif (select count(*) from jsonb_array_elements_text(v_uzyte) x(t)) > (select count(distinct x.t) from jsonb_array_elements_text(v_uzyte) x(t)) then v_powod_plecaka := 'plecak_ponad_limit';
     elsif exists (select 1 from jsonb_array_elements_text(v_uzyte) x(t) where coalesce((v_plecak ->> x.t)::integer, 0) < 1) then v_powod_plecaka := 'plecak_bez_posiadania';
+    elsif v_uzyte ? 'rakieta' and p_postac is distinct from 'rowerzysta' then v_powod_plecaka := 'plecak_zla_postac';
     end if;
   end if;
 

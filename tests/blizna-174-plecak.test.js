@@ -26,7 +26,7 @@ test('gra: użycie przyciskiem, nic na start rundy, przycisk nie jest skokiem', 
   const s = czytaj('js/cegielki.js');
   assert.match(s, /window\.BM_CEGIELKI_KONTO\.przedRunda\(\);\n\s+odswiezPlecak\(\);/, 'bez zakładania ulepszenia na starcie');
   assert.match(s, /G\.uzyte\.push\(typ\); K\.zuzyjZPlecaka\(typ\);\n\s+zbierz\(\{ typ: typ, x: G\.s, h: 60 \}\);/);
-  assert.match(s, /if \(stan !== "gra" \|\| pauza \|\| G\.maly \|\| !K \|\| !K\.plecak \|\| !L\.mozeUzyc\(K\.plecak\(\), G\.uzyte, typ\)\) return;/);
+  assert.match(s, /if \(stan !== "gra" \|\| pauza \|\| G\.maly \|\| !K \|\| !K\.plecak \|\| !L\.ulepszenieDla\(typ, G\.postac\) \|\| !L\.mozeUzyc\(K\.plecak\(\), G\.uzyte, typ\)\) return;/);
   assert.match(s, /ev\.preventDefault\(\); ev\.stopPropagation\(\); uzyjZPlecaka\(b\.dataset\.typ\);/);
   assert.match(s, /uzyte: g\.uzyte, t: g\.t,/);
   const h = czytaj('gra-cegielki.html');
@@ -50,7 +50,7 @@ test('konto: serwer decyduje, sklep do plecaka, wybór na start zniknął', () =
 test('baza: ceny te same co w grze, sygnatura bez zmian, zużyte schodzą tylko z przyjętą rundą', { skip: !fs.existsSync(path.join(__dirname, '..', MIG)) && 'migracja plecaka jeszcze poza repo' }, () => {
   const m = czytaj(MIG);
   const ceny = m.match(/case p_przedmiot when 'kask' then (\d+) when 'bidon' then (\d+) end/);
-  assert.deepEqual([Number(ceny[1]), Number(ceny[2])], L.ULEPSZENIA.map((u) => u.cena));
+  assert.deepEqual([Number(ceny[1]), Number(ceny[2])], L.ULEPSZENIA.filter((u) => u.id !== 'rakieta').map((u) => u.cena));
   assert.match(m, /'plecak_bez_posiadania'/); assert.match(m, /'plecak_ponad_limit'/);
   assert.match(m, /create or replace function public\.gra_zapisz_wynik\(p_runda uuid, p_postac text, p_cegly integer, p_czas numeric, p_st jsonb\)/);
   assert.ok(m.indexOf('insert into public.gra_wyniki') < m.indexOf('update public.gra_konto k set plecak'), 'odejmowanie po przyjęciu rundy');

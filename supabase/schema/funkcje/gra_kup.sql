@@ -18,6 +18,11 @@ declare
     when 'spodenki-niebieskie' then 8
     when 'spodenki-zielone' then 8
     when 'spodenki-biale' then 12
+    when 'buty-czerwone' then 12
+    when 'buty-niebieskie' then 12
+    when 'buty-zielone' then 12
+    when 'buty-fioletowe' then 15
+    when 'buty-robocze' then 20
     when 'opaska' then 10
     when 'czapka-pompon' then 15
     when 'kask-rowerowy' then 25

@@ -42,7 +42,8 @@ begin
   execute 'reset role';
   if (j->>'sym_km')::numeric <> 3125 or (j->>'kwota_proc')::numeric <> 25 then raise exception 'FAIL 2a: stan po symulacji %', j; end if;
   j := public.akcja_licznik('proba');
-  if (j->>'suma_km')::numeric <> 3125 then raise exception 'FAIL 2b: licznik próby %', j->>'suma_km'; end if;
+  select public.akcja_km_okna(x.id, x.start, (now() at time zone 'Europe/Warsaw')::date) into km from public.akcje x where x.slug = 'proba';
+  if (j->>'suma_km')::numeric <> round(3125 + km, 2) then raise exception 'FAIL 2b: licznik próby % zamiast suwak + km %', j->>'suma_km', km; end if;
   if not (j->'ulica'->'odblokowane' ? 'latarnie') or j->'ulica'->'odblokowane' ? 'plac_zabaw' then raise exception 'FAIL 2c: progi przy 25%%: %', j->'ulica'; end if;
   if public.akcja_licznik('dla-fabianka') is distinct from realny_przed then raise exception 'FAIL 2d: prawdziwa akcja się zmieniła'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
@@ -97,7 +98,8 @@ begin
   if public.akcja_licznik('dla-fabianka') is distinct from realny_przed then raise exception 'FAIL 4g: prawdziwa akcja się zmieniła'; end if;
   update public.akcje set push_start_at = now(), wystartowala_at = now() where slug = 'proba';
   j := public.akcja_licznik('proba');
-  if (j->>'suma_km')::numeric <> 0 then raise exception 'FAIL 4h: licznik po ponownym starcie %', j->>'suma_km'; end if;
+  select public.akcja_km_okna(x.id, x.start, (now() at time zone 'Europe/Warsaw')::date) into km from public.akcje x where x.slug = 'proba';
+  if (j->>'suma_km')::numeric <> round(km, 2) then raise exception 'FAIL 4h: licznik po ponownym starcie % zamiast samych km %', j->>'suma_km', km; end if;
   n := n + 8;
 
   -- 5. limit dobowy przez prawdziwy filtr typów: konto wyprawy 300 km, reszta 100. Dzień sprzed istnienia aplikacji: nikt nie ma wtedy prawdziwych treningów, więc wynik ma się zgadzać co do kilometra.

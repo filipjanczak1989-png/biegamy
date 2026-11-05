@@ -96,15 +96,16 @@ test('pułapy wyniku i balans idą w parze: zmiana balansu = nowy pomiar', () =>
 test('sklepik: ceny w grze i w bazie są te same, wszystko za złote cegły z gry', () => {
   const sql = czytaj(MIG);
   const wBazie = Object.fromEntries([...sql.matchAll(/when '([a-z-]+)' then (\d+)/g)].map((m) => [m[1], Number(m[2])]));
-  const naSprzedaz = L.SKLEP.filter((p) => !p.tylkoCzolowka && !p.tylkoSeria);
+  const naSprzedaz = L.SKLEP.filter((p) => !p.tylkoCzolowka && !p.tylkoSeria && p.rodzaj !== 'buty'); // buty: własna migracja, blizna-179
   for (const p of naSprzedaz) assert.equal(wBazie[p.id], p.cena, p.id);
   assert.equal(wBazie.korona, undefined, 'korona nie jest na sprzedaż: tylko czołówka rankingu dnia');
-  for (const u of L.ULEPSZENIA) assert.equal(wBazie[u.id], u.cena, u.id);
-  assert.equal(Object.keys(wBazie).length, naSprzedaz.length + L.ULEPSZENIA.length, 'przedmiot w bazie bez odpowiednika w grze');
+  for (const u of L.ULEPSZENIA.filter((x) => x.id !== 'rakieta')) assert.equal(wBazie[u.id], u.cena, u.id); // rakieta: własna migracja, blizna-180
+  assert.equal(Object.keys(wBazie).length, naSprzedaz.length + L.ULEPSZENIA.filter((x) => x.id !== 'rakieta').length, 'przedmiot w bazie bez odpowiednika w grze');
   const id = L.SKLEP.map((p) => p.id); assert.equal(new Set(id).size, id.length);
   for (const p of L.SKLEP) {
     assert.ok(L.SLOTY.includes(p.slot), p.id);
     if (p.rodzaj === 'dodatek') { assert.ok(L.DODATKI[p.id], 'dodatek bez ułożenia: ' + p.id); assert.ok(fs.existsSync(path.join(KORZEN, 'assets/gra/dodatek_' + p.id + '.webp')), 'dodatek bez pliku: ' + p.id); }
+    else if (p.rodzaj === 'buty') assert.ok(L.DODATKI[p.id], 'buty bez ułożenia: ' + p.id);
     else assert.ok(Array.isArray(p.kolor) && p.kolor.length === 3, p.id);
   }
   const front = FRONT.map((p) => bezKomentarzyJs(czytaj(p))).join('\n');
@@ -119,7 +120,7 @@ test('sklepik: ceny w grze i w bazie są te same, wszystko za złote cegły z gr
 });
 
 test('strój: zapis z przeglądarki nie zakłada czegoś, czego gracz nie ma', () => {
-  const pusty = { tulow: null, spodenki: null, glowa: null, oczy: null, szyja: null, plecy: null };
+  const pusty = { tulow: null, spodenki: null, stopy: null, glowa: null, oczy: null, szyja: null, plecy: null };
   assert.deepEqual(L.poprawnyStroj({ tulow: 'koszulka-zlota', glowa: 'kask-rowerowy' }, ['kask-rowerowy']), { ...pusty, glowa: 'kask-rowerowy' });
   assert.deepEqual(L.poprawnyStroj({ tulow: 'kask-rowerowy' }, ['kask-rowerowy']), pusty, 'przedmiot na złym miejscu');
   assert.deepEqual(L.poprawnyStroj(null, null), pusty);
@@ -128,7 +129,7 @@ test('strój: zapis z przeglądarki nie zakłada czegoś, czego gracz nie ma', (
 });
 
 test('korona: nie do kupienia, tylko pierwsza dziesiątka rankingu dnia', () => {
-  const pusty = { tulow: null, spodenki: null, glowa: null, oczy: null, szyja: null, plecy: null };
+  const pusty = { tulow: null, spodenki: null, stopy: null, glowa: null, oczy: null, szyja: null, plecy: null };
   assert.deepEqual(L.poprawnyStroj({ glowa: 'korona' }, ['korona'], false), pusty, 'wpis w zapisie nie daje korony');
   assert.deepEqual(L.poprawnyStroj({ glowa: 'korona' }, [], true), { ...pusty, glowa: 'korona' });
   const lista = Array.from({ length: 12 }, (_, i) => ({ miejsce: i + 1, pseudonim: 'Gracz' + 'abcdefghijkl'[i] }));
@@ -155,7 +156,7 @@ test('punkty przypięcia: po jednym na każdą klatkę każdego arkusza, w grani
       assert.ok(pkt, postac + ark); assert.equal(pkt.length, at.n, postac + ark);
       pkt.forEach((p, i) => {
         ile++;
-        assert.equal(p.length, 9, postac + ark + i);
+        assert.equal(p.length, 10, postac + ark + i);
         assert.ok(p[0] >= 0 && p[0] <= at.cw && p[1] >= 0 && p[1] <= at.ch, 'głowa poza klatką: ' + postac + ark + i);
         assert.ok(p[5] >= -5 && p[5] <= at.cw + 5 && p[6] >= -5 && p[6] <= at.ch + 5, 'szyja poza klatką: ' + postac + ark + i);
         assert.ok(p[2] > 8 && p[2] < 25, 'promień głowy: ' + postac + ark + i);
@@ -196,11 +197,11 @@ test('postacie do odblokowania: poziom 10, poziom 20 albo mur, tylko za przełą
   assert.equal(L.POSTACIE.rowerzysta.tempo, 1.1); assert.ok(Math.abs(L.POSTACIE.rowerzysta.skok ** 2 - 0.8) < 1e-9, 'wysokość skoku 80%');
   assert.equal(L.POSTACIE.koparka.tempo, 0.85); assert.equal(L.POSTACIE.koparka.skacze, false);
   const s = L.strojPostaci({ tulow: 'kamizelka', glowa: 'korona', oczy: 'okulary', szyja: 'medal', plecy: 'peleryna' }, 'rowerzysta');
-  assert.deepEqual(s, { tulow: null, spodenki: null, glowa: null, oczy: 'okulary', szyja: 'medal', plecy: 'peleryna' }, 'na kasku tylko to, co pasuje');
-  assert.deepEqual(L.strojPostaci({ oczy: 'okulary' }, 'koparka'), { tulow: null, spodenki: null, glowa: null, oczy: null, szyja: null, plecy: null }, 'na rysunku dziecka nic');
+  assert.deepEqual(s, { tulow: null, spodenki: null, stopy: null, glowa: null, oczy: 'okulary', szyja: 'medal', plecy: 'peleryna' }, 'na kasku tylko to, co pasuje');
+  assert.deepEqual(L.strojPostaci({ oczy: 'okulary' }, 'koparka'), { tulow: null, spodenki: null, stopy: null, glowa: null, oczy: null, szyja: null, plecy: null }, 'na rysunku dziecka nic');
   assert.equal(L.imieZPodpisu('Imię Nazwisko na rowerze'), 'Imię'); assert.equal(L.imieZPodpisu(null), '');
   const silnik = czytaj('js/cegielki.js'), konto = czytaj('js/cegielki-konto.js'), html = czytaj('gra-cegielki.html');
-  assert.match(silnik, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\)_\/\.test\(k\)/, 'arkusze roweru nie wczytują się same przy starcie strony');
+  assert.match(silnik, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\|rakieta\|mur\)_\/\.test\(k\)/, 'arkusze roweru nie wczytują się same przy starcie strony');
   assert.match(konto, /d\.rowerzysta === true && window\.BM_CEGIELKI_GRA\) \{ window\.BM_CEGIELKI_GRA\.wlaczRowerzyste\(\); wlaczPostacRoweru/);
   assert.match(konto, /d\.postac_koparki === true/);
   for (const id of ['rowerzysta', 'koparka']) assert.match(html, new RegExp('data-postac="' + id + '" hidden'), 'karta ukryta do odblokowania: ' + id);

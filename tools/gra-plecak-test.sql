@@ -20,7 +20,7 @@ begin
   if not (j->>'ok')::boolean or (j->>'saldo')::int is distinct from 2 or (j #>> '{plecak,kask}')::int is distinct from 1 then raise exception 'FAIL 1a: kask %', j; end if;
   j := public.gra_kup_do_plecaka('bidon');
   if (j->>'ok')::boolean or j->>'powod' <> 'za_malo' or (j->>'saldo')::int is distinct from 2 then raise exception 'FAIL 1b: bidon bez cegieł %', j; end if;
-  j := public.gra_kup_do_plecaka('rakieta');
+  j := public.gra_kup_do_plecaka('helikopter');
   if (j->>'ok')::boolean or j->>'powod' <> 'nie_ma' then raise exception 'FAIL 1c: nieznany przedmiot %', j; end if;
   j := public.gra_moj_postep();
   if (j #>> '{plecak,kask}')::int is distinct from 1 then raise exception 'FAIL 1d: postęp bez plecaka %', j; end if;
@@ -44,7 +44,7 @@ begin
       ('kask bez posiadania', '{}', '["kask"]', 60.0, 0, 'plecak_bez_posiadania', '{}'),
       ('zero sztuk', '{"kask":0}', '["kask"]', 60.0, 0, 'plecak_bez_posiadania', '{"kask":0}'),
       ('drugi rodzaj bez posiadania', '{"kask":1}', '["kask","bidon"]', 65.0, 1, 'plecak_bez_posiadania', '{"kask":1}'),
-      ('nieznany przedmiot', '{"kask":1}', '["rakieta"]', 60.0, 0, 'zle_dane', '{"kask":1}'),
+      ('nieznany przedmiot', '{"kask":1}', '["helikopter"]', 60.0, 0, 'zle_dane', '{"kask":1}'),
       ('liczba na liście', '{"kask":1}', '[1]', 60.0, 0, 'zle_dane', '{"kask":1}'),
       ('tekst zamiast listy', '{"kask":1}', '"kask"', 60.0, 0, 'zle_dane', '{"kask":1}'),
       ('obiekt zamiast listy', '{"kask":1}', '{"kask":1}', 60.0, 0, 'zle_dane', '{"kask":1}')

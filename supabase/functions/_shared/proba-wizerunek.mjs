@@ -1,4 +1,5 @@
-// Rysunek, arkusz, film i plakat na akcji próbnej (Ścieżka Fabianka): kto dostaje adres i jaki. Bez Deno: to samo wołają EF i test (blizna-161).
+// Rysunek, arkusz, film, plakat, nazwa, imię i adres zbiórki na akcji próbnej (Ścieżka Fabianka): kto dostaje i co. Bez Deno: to samo wołają EF i test (blizna-161).
+// Nazwa, imię i zbiórka nie są w wierszu próby, bo licznik próby może wywołać każdy zalogowany, a przed startem to tajemnica.
 export const KUBELEK = "akcja-wizerunek", WAZNOSC_S = 900;
 export const PLIKI = { koparka_url: "fabianek-koparka.webp", koparka_arkusz_url: "fabianek-koparka-arkusz.webp", film_akcji_url: "film-akcja.mp4", plakat_url: "plakat-akcji.webp" };
 
@@ -22,5 +23,6 @@ export async function odpowiedzWizerunku(sb, user) {
     wynik[pole] = (s.data && s.data.signedUrl) || null;
   }
   const { data: licznik } = await sb.rpc("akcja_licznik", { p_slug: "proba" });
-  return { status: 200, body: { ok: true, ...wynik, firmy: (licznik && licznik.firmy) || [] } };
+  const { data: prawdziwa } = await sb.from("akcje").select("nazwa, imie_zbiorki, url_zbiorki").eq("slug", "dla-fabianka").maybeSingle();
+  return { status: 200, body: { ok: true, ...wynik, nazwa: (prawdziwa && prawdziwa.nazwa) || null, imie: (prawdziwa && prawdziwa.imie_zbiorki) || null, url_zbiorki: (prawdziwa && prawdziwa.url_zbiorki) || null, firmy: (licznik && licznik.firmy) || [] } };
 }

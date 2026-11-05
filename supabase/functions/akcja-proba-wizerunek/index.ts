@@ -2,7 +2,8 @@
 //   * licznik NIGDY nie oddaje tych adresów dla akcji testowej, bo licznik może wywołać każdy; ta funkcja jest osobną drogą z osobną kontrolą;
 //   * bez sesji 401, zwykłe konto 403, a konto nie dostaje ani nazwy pliku, ani adresu;
 //   * adresy podpisane na 15 minut, bez pamięci po stronie przeglądarki i pośredników. Dane pozostają w prywatnym kubełku akcja-wizerunek;
-//   * firmy próby dla podglądu w grze: gra nie woła licznika akcji sama (blizna-154).
+//   * firmy próby dla podglądu w grze: gra nie woła licznika akcji sama (blizna-154);
+//   * nazwa, imię i adres zbiórki prawdziwej akcji: próba ma wyglądać jak sobota, a w wierszu próby ich nie ma, bo licznik próby woła każdy zalogowany.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { odpowiedzWizerunku } from "../_shared/proba-wizerunek.mjs";

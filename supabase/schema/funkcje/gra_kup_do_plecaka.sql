@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.gra_kup_do_plecaka(p_przedmiot text)
 AS $function$
 declare
   v_konto uuid := public.auth_my_athlete_id();
-  v_cena integer := case p_przedmiot when 'kask' then 5 when 'bidon' then 4 end;
+  v_cena integer := case p_przedmiot when 'kask' then 5 when 'bidon' then 4 when 'rakieta' then 25 end;
   k public.gra_konto;
 begin
   if v_konto is null then return jsonb_build_object('ok', false, 'powod', 'brak_profilu'); end if;

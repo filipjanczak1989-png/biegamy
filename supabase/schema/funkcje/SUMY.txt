@@ -19,7 +19,7 @@ f9dcab18c36745df  akcja_firmy_wpusc
 6ca6244c439139ce  akcja_firmy_zgloszenia_lista
 7cbf7a2e860277f5  akcja_firmy_zgloszenie_dodaj
 076fd7e52aadb4f3  akcja_km_okna
-9e9fb3d2a4946e71  akcja_licznik
+4641bd30e05b94f5  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
 19cd0ba1e00c4608  akcja_proba_firmy
@@ -54,8 +54,8 @@ f581cec0da5e04a5  coach_athlete_notes.trg_can_updated_at
 0723ea23ebfdad19  ensure_coach_athlete_row
 40ec3907096b11eb  get_app_stats
 c18c2ea5674e8312  gra_dolozyli
-5622887af8f0af48  gra_kup
-9c2d5a17f1f7a754  gra_kup_do_plecaka
+691ecfa1f2321a07  gra_kup
+b2be96cc58a48ee9  gra_kup_do_plecaka
 238828ee3013db19  gra_liczba
 364248d7917c37ab  gra_miejsca
 8f6e6ac7f3775b59  gra_mnoznik_poziomu
@@ -71,8 +71,8 @@ b48a18be0e5c9e84  gra_start_rundy
 a08b2ab01fec0c3e  gra_suma_cegiel
 2b6aedd737a8544c  gra_token_ok
 fd27441bb1d8a4ff  gra_ustaw_pseudonim
-a5d9c7208d28625b  gra_zapisz_stroje
-a6dd8cb9fa4de045  gra_zapisz_wynik
+4b34e859128c200f  gra_zapisz_stroje
+0fbef02eb00f0745  gra_zapisz_wynik
 013b730325385fdf  handle_new_user
 8ea2d5a07539cb35  impreza_do_races
 911eb41b95030867  increment_play

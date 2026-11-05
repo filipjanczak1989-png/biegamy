@@ -41,7 +41,7 @@ test('silnik: tempo w celu prędkości, cegły w zasięgu, kolizje bez przechył
   assert.match(s, /var cel = g\.predBaza \* L\.tempoGorki\(g\.gorkaFaza\) \*/);
   assert.match(s, /ep\.h = Math\.min\(zasieg, ep\.h \+ L\.GORKA\.wyzej\)/);
   assert.match(s, /\(fazaXp && fazaXp\.faza === "zjazd"\) \|\| r < pLuk/, 'zjazd: łuk przy każdej przeszkodzie');
-  assert.match(s, /&& k !== "gorka"; \}\)/, 'bez górki tła nie pobiera');
+  assert.match(s, /&& k !== "gorka" && k !== "trawa_pod_droga"; \}\)/, 'bez górki tła nie pobiera');
   for (const l of s.split('\n').filter((w) => /katDrogi|przechyl/.test(w))) assert.doesNotMatch(l, /roznica|uderzenie|zbierz\(/, l);
   const atlas = JSON.parse(czytaj('assets/gra/atlas.json'));
   assert.ok(atlas.gorka && fs.statSync(path.join(__dirname, '..', 'assets/gra/gorka.webp')).size < 150 * 1024);

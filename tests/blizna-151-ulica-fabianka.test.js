@@ -287,7 +287,7 @@ test('Mur graczy: osobno od kilometrów, tylko przy włączonej grze, pusta suma
   delete globalThis.BM_AKCJA;
   assert.doesNotMatch(U.zdanieOZbiorce({}), /(?<!\p{L})zł(?!\p{L})|\d/u, 'bez kwot i przeliczników');
   const sc = bezKomentarzy(czytaj('js/ulica-scena.mjs'));
-  assert.match(sc, /!przed && g\.SB_URL && g\.fetch/);
+  assert.match(sc, /!przed && !o\.kafel && g\.SB_URL && g\.fetch/);
   assert.match(sc, /d\.aktywna !== true/);
   assert.match(sc, /d\.rowerzysta === true && ruch/, 'rowerzysta tylko po włączeniu przełącznika');
 });

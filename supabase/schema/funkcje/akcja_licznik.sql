@@ -21,7 +21,7 @@ begin
                               'cel_km', a.cel_km, 'suma_km', null, 'pct', null, 'zamknieta', false);
   end if;
 
-  v_suma := coalesce(case when a.testowa then a.proba_sym_km end, public.akcja_km_okna(a.id, a.start, v_dzis));
+  v_suma := coalesce(case when a.testowa then a.proba_sym_km end, 0) + public.akcja_km_okna(a.id, a.start, v_dzis);
   if a.wyprawa_athlete_ids is not null then
     -- wyprawa = DYSTANS TRASY (Filip 4.11): per dzień km głównego konta (pierwsze z listy), gdy brak — zapasu (drugie); nie suma obu.
     -- Źródło 1: ślad z intervals (akcja_wyprawa_slad, bieg/chód z zegarka, od naciśnięcia guzika do „Dotarliśmy"); źródło 2 (ślad pusty): training_logs.

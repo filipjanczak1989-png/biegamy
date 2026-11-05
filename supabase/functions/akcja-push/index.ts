@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
     // RAZ: zajmij flagę przed wysyłką (dwa równoległe wywołania nie wyślą dwóch pushy)
     const { data: zajete } = await sb.from("akcje").update({ push_start_at: new Date().toISOString() }).eq("id", a.id).is("push_start_at", null).select("id");
     if (!zajete || !zajete.length) return J(200, { ok: true, wyslano: 0, powod: "już wysłany" });
-    const n = await wyslij(await odbiorcy(a), "BiegaMy", `Ruszyło. ${a.nazwa || "Akcja"}. Każdy krok się liczy.`, `akcja-start-${a.slug}`);
+    /* Próba idzie tylko do kont testowych, z tą samą treścią co w sobotę. W wierszu próby prawdziwej nazwy nie ma: licznik próby woła każdy zalogowany. */
+    let nazwa = a.nazwa;
+    if (a.testowa) { const { data: p } = await sb.from("akcje").select("nazwa").eq("testowa", false).order("start", { ascending: false }).limit(1).maybeSingle(); if (p && p.nazwa) nazwa = p.nazwa; }
+    const n = await wyslij(await odbiorcy(a), "BiegaMy", `Ruszyło. ${nazwa || "Akcja"}. Każdy krok się liczy.`, `akcja-start-${a.slug}`);
     return J(200, { ok: true, wyslano: n });
   }
 

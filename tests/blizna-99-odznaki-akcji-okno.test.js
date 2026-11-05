@@ -103,7 +103,7 @@ test('zawodnik.html: bramka okna w awardBadge i w paczce; #100kmDlaKasi dziś ni
 test('odznaki.html: katalog akcji dopiero po starcie, obraz z assets/odznaki z zaślepką; okienko zna nazwy akcji', async () => {
   const h = czytaj('odznaki.html');
   assert.match(h, /const KATALOG = \(\) => BADGES\.filter\(b => !b\.bez_reguly\)\.concat\(_OA\(\) && _OA\(\)\.katalogWidoczny\(window\._akcjaStan\) \? _OA\(\)\.LISTA : \[\]\);/);
-  assert.equal((h.match(/<img src="\$\{_odzSrc\(b\.id\)\}" data-odz="\$\{b\.id\}"/g) || []).length, 2);
+  assert.equal((h.match(/<img src="\$\{_odzSrc\(b\.id\)\}" data-odz="\$\{b\.id\}"/g) || []).length, 3, 'zdobyte, do zdobycia, kategoria akcji');
   assert.match(h, /<script src="js\/odznaki-akcji\.mjs"><\/script>/);
   const N = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/_shared/odznaki-nazwy.mjs')).href);
   assert.equal(N.nazwaOdznaki('akcja-co-tydzien'), '7 dni z rzędu');

@@ -40,7 +40,7 @@ test('Dziś i strona akcji: scena, pod nią plakat z przyciskiem Zbiórka', () =
 test('film: plakat od chwili plakatu w pliku, dźwięk gra dalej, bez plakatu jak dotąd', () => {
   const c = czytaj('js/akcja-cytaty.mjs');
   assert.match(c, /plakat: pl, plakat_od: 10, zbiorka: zb/);
-  assert.match(c, /d\.plakat_url = w\.plakat_url;/, 'próba: plakat z funkcji próby');
+  assert.match(c, /\["koparka_url", "koparka_arkusz_url", "film_akcji_url", "plakat_url"\]\.forEach\(function \(k\) \{ d\[k\] = w\[k\]; \}\);/, 'próba: plakat z funkcji próby');
   const s = czytaj('sb.js');
   assert.match(s, /function koniecFilmu\(\) \{ if \(!film\.plakat\) return zakoncz\(\); pokazPlansze\(\); setTimeout\(zakoncz, 5000\); \}/);
   assert.match(s, /v\.addEventListener\('ended', koniecFilmu\);/);

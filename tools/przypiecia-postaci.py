@@ -2,7 +2,8 @@
 # Głowa to największe koło wpisane w skórę (twarz po domknięciu oczu i ust), o ile dotyka włosów, czapki albo kasku. Kolano bywa równie okrągłe, ale nie ma nad sobą włosów.
 # Tułów to największa plama koszulki albo kamizelki. Szyja leży między głową a tułowiem, a oś głowa-tułów daje obrót, więc salto i wpadki działają bez osobnych danych.
 # Klatki, w których kolory zawodzą, poprawia POPRAWKI: krótka lista z arkusza kontrolnego, reszta jest z automatu i wskazówek.
-# Uruchomienie: python -I -X utf8 tools/przypiecia-postaci.py --kat assets/gra --wyj js/cegielki-przypiecia.js [--kontrola <png>]
+# Stopy: wzorzec prawdziwego buta z pierwszej klatki biegu, szukany w każdym obrocie po bieli i konturze. Kształt buta rozstrzyga kierunek palców, a to, co butem nie jest, nie zbiera wyniku.
+# Uruchomienie (kilka minut): python -I -X utf8 tools/przypiecia-postaci.py --kat assets/gra --wyj js/cegielki-przypiecia.js [--kontrola <png>] [--kontrola-stopy <png>]
 import argparse, json, math, os
 import numpy as np
 from PIL import Image, ImageDraw
@@ -41,6 +42,26 @@ WSKAZOWKI = {
 for _p in ("kasia", "filip"):
     WSKAZOWKI[_p]["bud"] = WSKAZOWKI[_p]["bieg"]
 KLATKI_Z_KASKIEM = {"bud": range(6), "G": (3, 4, 5)}
+# Rowerzysta ma ciemne buty na pedałach, automat ich nie odróżni od ramy. (x, y, kąt w radianach, 0 = palce w prawo), najpierw dalsza stopa, z arkusza kontrolnego.
+STOPY_RECZNIE = {
+    ("rowerzysta", "bieg", 0): [(70, 204, 0), (85, 168, 0)], ("rowerzysta", "bieg", 1): [(70, 200, 0.2), (77, 179, 0.33)], ("rowerzysta", "bieg", 2): [(65, 172, 1.3), (87, 202, 0.24)],
+    ("rowerzysta", "bieg", 3): [(71, 194, 0.22)], ("rowerzysta", "bieg", 4): [(70, 202, 0.2), (75, 176, 0.3)], ("rowerzysta", "bieg", 5): [(70, 202, 0), (85, 166, 0)],
+    ("rowerzysta", "skok", 0): [(147, 172, 0), (142, 159, -0.22)], ("rowerzysta", "skok", 1): [(145, 180, 0), (140, 166, 0)], ("rowerzysta", "skok", 2): [(142, 183, 0.2)],
+    ("rowerzysta", "skok", 3): [(167, 63, 3.14), (125, 89, 2.36)], ("rowerzysta", "skok", 4): [(177, 201, -0.2), (147, 207, 0)], ("rowerzysta", "skok", 5): [(127, 207, 0), (160, 202, -0.1)],
+    # Buty szare w klatkach przemiany albo widziane od podeszwy: wzorzec ich nie zna.
+    ("filip", "G", 2): [(80, 226, 1.4), (62, 226, 1.2)], ("filip", "G", 4): [(57, 234, 0), (116, 234, 0.05)], ("kasia", "I", 1): [(41, 203, -2.18), (164, 197, -1.14)],
+}
+# Dalsza stopa złączona z bliższą, wzorzec widzi jeden but. (x, y, kąt)
+STOPY_DODAJ = {
+    ("kasia", "A", 4): (128, 204, 5.57), ("kasia", "B", 0): (54, 218, 1.17), ("kasia", "B", 3): (72, 84, 2.5), ("kasia", "B", 5): (76, 222, 0.46), ("kasia", "C", 2): (38, 216, 2.36), ("kasia", "C", 3): (101, 212, 1.05), ("kasia", "G", 2): (94, 228, 0.65),
+    ("filip", "A", 0): (80, 213, 0.19), ("filip", "A", 3): (75, 213, 1.57), ("filip", "B", 0): (55, 210, 1.31), ("filip", "G", 1): (47, 233, 0), ("filip", "G", 3): (47, 234, 0),
+}
+# Tylko jeden but w kadrze, drugi siedzi w liściach.
+JEDNA_STOPA = {("filip", "E", 4)}
+# Biel, która butem nie jest, a leży daleko od głowy: czapka Filipa w locie i w ręce. (x, y, promień)
+BEZ_BIELI = {
+    ("filip", "C", 2): [(144, 115, 24)], ("filip", "D", 1): [(111, 24, 28)], ("filip", "D", 2): [(113, 180, 26)], ("filip", "F", 4): [(166, 69, 30)], ("filip", "G", 0): [(162, 73, 28)], ("filip", "I", 5): [(156, 96, 30)],
+}
 
 
 def rozszerz(m):
@@ -176,14 +197,99 @@ def klatka(kl, postac, wsk=None, wymus=None):
     return dict(x=cx, y=cy, r=r, kat=kat, strona=strona, nx=nx, ny=ny, tulow=tulow, kask=kask)
 
 
+def maski_buta(kl):
+    mn, mx = kl[..., :3].min(-1).astype(int), kl[..., :3].max(-1).astype(int)
+    a = kl[..., 3] > 128
+    return a & (mn > 160) & (mx - mn < 40), a & (mx < 80)
+
+
+def wzorzec_buta(kl):
+    bial, ciem = maski_buta(kl)
+    h = kl.shape[0]
+    plamy = sorted((c for c in skladowe(scieraj(bial)) if c[1].mean() > h * 0.6), key=lambda c: -len(c[0]))
+    if not plamy: raise SystemExit("wzorzec buta: brak białej plamy w dolnej części klatki")
+    xs, ys = plamy[0]
+    m = np.zeros(bial.shape, dtype=bool); m[ys, xs] = True
+    m = domknij(rozszerz(m), 2) & (bial | ciem)
+    x0, x1, y0, y1 = max(0, xs.min() - 4), xs.max() + 5, max(0, ys.min() - 4), ys.max() + 5
+    return rozszerz(m)[y0:y1, x0:x1] & bial[y0:y1, x0:x1], rozszerz(rozszerz(m))[y0:y1, x0:x1] & ciem[y0:y1, x0:x1]
+
+
+def skala_maski(m, sk):
+    im = Image.fromarray((m * 255).astype(np.uint8))
+    return np.array(im.resize((max(1, round(im.width * sk)), max(1, round(im.height * sk))), Image.NEAREST)) > 127
+
+
+def obrot_maski(m, st):
+    return np.array(Image.fromarray((m * 255).astype(np.uint8)).rotate(-st, expand=True, resample=Image.NEAREST)) > 127
+
+
+def dopasuj_but(W, N, D, tw, td, katy):
+    H, S = W.shape[0] + 64, W.shape[1] + 64
+    fw, fn, fd = [np.fft.rfft2(x.astype(np.float32), s=(H, S)) for x in (W, N, D)]
+    naj = (-9.0, 0.0, 0.0, 0)
+    for st in katy:
+        rw, rd = obrot_maski(tw, st), obrot_maski(td, st)
+        h, w = rw.shape
+        ft, fk = np.conj(np.fft.rfft2(rw.astype(np.float32), s=(H, S))), np.conj(np.fft.rfft2(rd.astype(np.float32), s=(H, S)))
+        o = (np.fft.irfft2(fw * ft, s=(H, S)) - 0.8 * np.fft.irfft2(fn * ft, s=(H, S)) + 0.6 * np.fft.irfft2(fd * fk, s=(H, S))) / max(1, rw.sum() + 0.6 * rd.sum())
+        o = o[:max(1, W.shape[0] - h // 2), :max(1, W.shape[1] - w // 2)]
+        i = np.unravel_index(int(np.argmax(o)), o.shape)
+        if o[i] > naj[0]: naj = (float(o[i]), int(i[1]) + w / 2, int(i[0]) + h / 2, st)
+    return naj
+
+
+def kierunek_palcow(kl, x, y, dl, st):
+    """Złączone stopy potrafią odwrócić dopasowanie o 180°. Palce leżą o ćwierć obrotu od łydki, a łydkę wskazuje skóra przy bucie."""
+    h, w = kl.shape[:2]
+    skora = kolory(kl)["skora"] & pierscien(h, w, x, y, dl * 0.6, dl * 1.4)
+    ys, xs = np.nonzero(skora)
+    if len(xs) < 8: return st
+    lx, ly = x - float(xs.mean()), y - float(ys.mean())
+    d = math.hypot(lx, ly) or 1
+    a = math.radians(st)
+    return st + 180 if math.cos(a) * ly / d - math.sin(a) * lx / d < -0.25 else st
+
+
+def stopy(kl, glowa, r, wz, sk, bez, ile=2):
+    """Najwyżej dwa buty, najpierw słabiej dopasowany: ten zwykle leży dalej i jest częściowo zasłonięty. [(x, y, kąt)]"""
+    tw, td = skala_maski(wz[0], sk), skala_maski(wz[1], sk)
+    W, D = maski_buta(kl)
+    h, w = W.shape
+    wyklucz = pierscien(h, w, glowa[0], glowa[1], 0, r * 2.4)
+    for x, y, pr in bez: wyklucz |= pierscien(h, w, x, y, 0, pr)
+    N = ~W & ~wyklucz       # pod głową i pod zdjętym butem kara nie działa: dalsza stopa często leży częściowo pod bliższą
+    W = W & ~wyklucz
+    wynik = []
+    for nr in range(ile):
+        z = dopasuj_but(W, N, D, tw, td, range(0, 360, 15))
+        z = dopasuj_but(W, N, D, tw, td, range(z[3] - 12, z[3] + 13, 4))
+        if z[0] < (0.30 if nr == 0 else 0.22): break
+        if nr and math.hypot(z[1] - wynik[0][1], z[2] - wynik[0][2]) < 0.25 * max(tw.shape): break
+        wynik.append(z)
+        rw = obrot_maski(tw, z[3])
+        y0, x0 = round(z[2] - rw.shape[0] / 2), round(z[1] - rw.shape[1] / 2)
+        ys, xs = np.nonzero(rw)
+        ys, xs = ys + y0, xs + x0
+        ok = (ys >= 0) & (ys < h) & (xs >= 0) & (xs < w)
+        W[ys[ok], xs[ok]] = False
+    wynik.sort(key=lambda z: z[0])
+    return [(z[1], z[2], math.radians(kierunek_palcow(kl, z[1], z[2], max(tw.shape), z[3]) % 360)) for z in wynik]
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--kat", required=True); ap.add_argument("--wyj", required=True); ap.add_argument("--kontrola")
+    ap.add_argument("--kat", required=True); ap.add_argument("--wyj", required=True); ap.add_argument("--kontrola"); ap.add_argument("--kontrola-stopy")
     o = ap.parse_args()
     atlas = json.load(open(os.path.join(o.kat, "atlas.json"), encoding="utf-8"))
     dane, wiersze, wzorzec = {}, [], {}
+    at0 = atlas["kasia_bieg"]
+    wz_wspolny = wzorzec_buta(np.array(Image.open(os.path.join(o.kat, at0["src"])).convert("RGBA"))[:, :at0["cw"]])
     for postac in POSTACIE:
         dane[postac] = {}
+        at_b = atlas[postac + "_bieg"]
+        wz_buta = wzorzec_buta(np.array(Image.open(os.path.join(o.kat, at_b["src"])).convert("RGBA"))[:, :at_b["cw"]]) if postac != "rowerzysta" else wz_wspolny
+        r_wzorca = None
         for nazwa, at in atlas.items():
             if not nazwa.startswith(postac + "_"): continue
             ark = nazwa[len(postac) + 1:]
@@ -206,12 +312,40 @@ def main():
                 wzorzec.setdefault(postac, (float(np.median([p["r"] for p in wyn])), wysokosc))
             r = wzorzec[postac][0] * wysokosc / wzorzec[postac][1]
             for p in wyn: p["r"] = r
-            dane[postac][ark] = [[round(p["x"]), round(p["y"]), round(p["r"], 1), round(p["kat"], 2), p["strona"], round(p["nx"]), round(p["ny"]), round(p["tulow"], 2), p["kask"]] for p in wyn]
+            r_wzorca = r_wzorca or r
+            for i, p in enumerate(wyn):
+                kl = im[:, at["cw"] * i:at["cw"] * (i + 1)]
+                kl_id = (postac, ark, i)
+                p["stopy"] = STOPY_RECZNIE[kl_id] if kl_id in STOPY_RECZNIE else stopy(kl, (p["x"], p["y"]), r, wz_buta, r / r_wzorca, BEZ_BIELI.get(kl_id, ()), 1 if kl_id in JEDNA_STOPA or kl_id in STOPY_DODAJ else 2)
+                if kl_id in STOPY_DODAJ: p["stopy"] = [STOPY_DODAJ[kl_id]] + p["stopy"]
+            dane[postac][ark] = [[round(p["x"]), round(p["y"]), round(p["r"], 1), round(p["kat"], 2), p["strona"], round(p["nx"]), round(p["ny"]), round(p["tulow"], 2), p["kask"], [w for s in p["stopy"] for w in (round(s[0]), round(s[1]), round(s[2], 2))]] for p in wyn]
             wiersze.append((postac, ark, at, im, wyn))
     with open(o.wyj, "w", encoding="utf-8", newline="\n") as f:
-        f.write("// Wygenerowane przez tools/przypiecia-postaci.py. Nie edytować ręcznie. Każda klatka: [głowa x, głowa y, promień głowy, kąt głowy, strona twarzy, szyja x, szyja y, kąt tułowia, kask na głowie].\n")
+        f.write("// Wygenerowane przez tools/przypiecia-postaci.py. Nie edytować ręcznie. Każda klatka: [głowa x, głowa y, promień głowy, kąt głowy, strona twarzy, szyja x, szyja y, kąt tułowia, kask na głowie, stopy po trzy: x, y, kąt palców; najpierw dalsza].\n")
         f.write("window.BM_CEGIELKI_PRZYPIECIA = " + json.dumps(dane, separators=(",", ":")) + ";\n")
     print("zapisano", os.path.getsize(o.wyj) // 1024, "KB,", sum(len(v) for p in dane.values() for v in p.values()), "klatek")
+    if o.kontrola_stopy:
+        KOL, kw = 8, 230
+        for postac in POSTACIE:
+            lista = [w for w in wiersze if w[0] == postac]
+            klatki = [(ark, i, im[:, at["cw"] * i:at["cw"] * (i + 1)], p) for _, ark, at, im, wyn in lista for i, p in enumerate(wyn)]
+            k = Image.new("RGB", (KOL * kw, math.ceil(len(klatki) / KOL) * kw), (70, 110, 150)); d = ImageDraw.Draw(k)
+            r0 = lista[0][4][0]["r"]
+            wz = wz_wspolny if postac == "rowerzysta" else wzorzec_buta(lista[0][3][:, :lista[0][2]["cw"]])
+            for n, (ark, i, kl, p) in enumerate(klatki):
+                warstwa = Image.fromarray(kl, "RGBA")
+                for s in p["stopy"]:
+                    m0 = skala_maski(wz[0], p["r"] / r0)
+                    kol = np.zeros(m0.shape + (4,), np.uint8); kol[m0] = (235, 40, 60, 235)
+                    kol[:, m0.shape[1] * 2 // 3:][m0[:, m0.shape[1] * 2 // 3:]] = (255, 225, 0, 255)   # czubek na żółto: widać, w którą stronę patrzy but
+                    ob0 = Image.fromarray(kol, "RGBA").rotate(-math.degrees(s[2]), expand=True, resample=Image.NEAREST)
+                    warstwa.alpha_composite(ob0, (max(0, round(s[0] - ob0.width / 2)), max(0, round(s[1] - ob0.height / 2))))
+                sk = min(1.0, (kw - 6) / max(kl.shape[:2]))
+                x0, y0 = (n % KOL) * kw, (n // KOL) * kw
+                ob = warstwa.resize((round(warstwa.width * sk), round(warstwa.height * sk)))
+                k.paste(ob, (x0, y0), ob)
+                d.text((x0 + 3, y0 + 2), f"{ark}{i}" + ("" if len(p["stopy"]) == 2 else f" [{len(p['stopy'])}]"), fill=(255, 255, 0))
+            k.save(o.kontrola_stopy.replace(".png", f"-{postac}.png"))
     if o.kontrola:
         rz = 300
         k = Image.new("RGB", (6 * 300, len(wiersze) * rz), (70, 110, 150))

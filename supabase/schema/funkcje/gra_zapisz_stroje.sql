@@ -14,7 +14,7 @@ begin
   select k.kupione into v_kupione from public.gra_konto k where k.athlete_id = v_konto for update;
   for p in select e.key, e.value from jsonb_each(p_stroje) e where e.key in ('kasia', 'filip', 'rowerzysta') and jsonb_typeof(e.value) = 'object' loop
     v_czysty := '{}'::jsonb;
-    for s in select t.key, t.value from jsonb_each_text(p.value) t where t.key in ('tulow', 'spodenki', 'glowa', 'oczy', 'szyja', 'plecy') and t.value is not null loop
+    for s in select t.key, t.value from jsonb_each_text(p.value) t where t.key in ('tulow', 'spodenki', 'glowa', 'oczy', 'szyja', 'plecy', 'stopy') and t.value is not null loop
       if v_kupione ? s.value or s.value = 'korona' then v_czysty := v_czysty || jsonb_build_object(s.key, s.value); end if;
     end loop;
     v_wynik := v_wynik || jsonb_build_object(p.key, v_czysty);
