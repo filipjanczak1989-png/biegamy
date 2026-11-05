@@ -30,5 +30,5 @@ begin
   v_poziom := public.gra_poziom(public.gra_suma_cegiel(v_konto));
   insert into public.gra_rundy (athlete_id, ulepszenie, poziom) values (v_konto, v_ulepszenie, v_poziom) returning id into v_runda;
   select saldo into v_saldo from public.gra_konto where athlete_id = v_konto;
-  return jsonb_build_object('ok', true, 'runda', v_runda, 'ulepszenie', v_ulepszenie, 'saldo', v_saldo, 'poziom', v_poziom);
+  return jsonb_build_object('ok', true, 'runda', v_runda, 'ulepszenie', v_ulepszenie, 'saldo', v_saldo, 'poziom', v_poziom, 'plecak', (select k.plecak from public.gra_konto k where k.athlete_id = v_konto));
 end $function$

@@ -49,6 +49,8 @@ test('baza: sam fakt z zegarka, jeden bonus na dzień, tylko tabele gry, nic w r
   assert.doesNotMatch(f, /distance_km|duration|pace/, 'bez warunku na km');
   assert.doesNotMatch(f, /(insert into|update|delete from) +public\.(training_logs|akcje)/i, 'gra nie pisze do treningów ani akcji');
   assert.match(m, /primary key \(athlete_id, dzien\)/);
+  assert.doesNotMatch(m, /add column plecak|function public\.gra_start_rundy/, 'plecak ma własną migrację, nagroda idzie do użycia przyciskiem');
+  assert.match(m, /'bonus_trening', true/, 'bez tego pola przycisku nie ma');
   assert.doesNotMatch(m, /gra_ranking/, 'ranking nietknięty');
   assert.doesNotMatch(m, /create (or replace )?function public\.gra_[a-z_]+\([^)]*\)[\s\S]{0,4000}?training_logs[\s\S]{0,200}?end \$\$;\n\ncreate function public\.bonus/, 'funkcje gra_ nie znają treningów');
 });

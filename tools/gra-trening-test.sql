@@ -109,15 +109,12 @@ begin
   if j->>'powod' is distinct from 'brak_profilu' then raise exception 'FAIL 8b: bez profilu %', j; end if;
   n := n + 2;
 
-  -- 9. plecak na starcie rundy: najpierw plecak bez złotych cegieł, pusty znów za cegły
+  -- 9. przycisk: postęp mówi, że bonus jest, i oddaje plecak
   perform set_config('request.jwt.claims', json_build_object('sub', u1, 'role', 'authenticated')::text, true);
-  update public.gra_konto set saldo = 7, plecak = '{"kask":1,"bidon":0}' where athlete_id = a1;
-  delete from public.gra_rundy where athlete_id = a1;
-  execute 'set local role authenticated'; v_runda := public.gra_start_rundy('kask'); execute 'reset role';
-  if v_runda->>'ulepszenie' is distinct from 'kask' or (v_runda->>'saldo')::int <> 7 or (v_runda #>> '{plecak,kask}')::int <> 0 then raise exception 'FAIL 9a: kask z plecaka %', v_runda; end if;
-  execute 'set local role authenticated'; v_runda := public.gra_start_rundy('kask'); execute 'reset role';
-  if v_runda->>'ulepszenie' is distinct from 'kask' or (v_runda->>'saldo')::int <> 2 then raise exception 'FAIL 9b: pusty plecak za cegły %', v_runda; end if;
-  n := n + 2;
+  update public.gra_konto set plecak = '{"kask":1}' where athlete_id = a1;
+  execute 'set local role authenticated'; v_runda := public.gra_moj_postep(); execute 'reset role';
+  if v_runda->>'bonus_trening' is distinct from 'true' or (v_runda #>> '{plecak,kask}')::int is distinct from 1 then raise exception 'FAIL 9a: postęp bez bonusu %', v_runda; end if;
+  n := n + 1;
 
   -- 10. prywatność i zamki: ranking bez treningów, klient bez dostępu do dni i plecaka, anon bez funkcji
   j := public.gra_ranking();

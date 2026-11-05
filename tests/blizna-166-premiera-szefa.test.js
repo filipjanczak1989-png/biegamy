@@ -28,7 +28,7 @@ test('gra: tylko ze znacznikiem, bez konta, rankingu, plansz i rekordu; próba n
   const k = czytaj('js/cegielki-konto.js'), s = czytaj('js/cegielki.js'), h = czytaj('gra-cegielki.html');
   assert.match(k, /if \(parametry\.get\("premiera"\) !== "1"\) return null;/);
   assert.match(k, /return z && \(z\.slug === "dla-fabianka" \|\| z\.slug === "proba"\) \? z : null;/, 'bez znacznika zwykła gra');
-  assert.match(k, /if \(stan\.podglad \|\| premiera\) \{ stan\.ulepszenie = null; return; \}/, 'bez gra_start_rundy');
+  assert.match(k, /if \(stan\.podglad \|\| premiera\) return;/, 'bez gra_start_rundy');
   assert.match(k, /async function poRundzie\(w\) \{\n\s+if \(premiera\) \{ koniecPremiery\(w\); return; \}/, 'bez gra_zapisz_wynik i bez sumy na urządzeniu');
   assert.match(k, /function poziomGracza\(\) \{ return premiera \? 1 : L\.poziom\(stan\.cegly\); \}/, 'poziom 1, ×1');
   assert.match(k, /&& !premiera\) document\.body\.classList\.add\("gra-zamknieta"\)/, 'guzik działa, zanim gra jest publiczna');
