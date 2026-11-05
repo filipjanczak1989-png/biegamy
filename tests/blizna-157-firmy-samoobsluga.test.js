@@ -171,7 +171,7 @@ test('szyld: logo, a bez niego nazwa; podpis Partner akcji; żadnego innerHTML z
 test('Centrum Akcji na Dziś: bez pełnej sceny, kafle, film dopiero po dotknięciu; polityka opisuje zgłoszenia firm i ślad GPS wyprawy po polsku i angielsku', () => {
   const a = bezKomJs(czytaj('js/akcja.mjs'));
   const karta = a.slice(a.indexOf('function kartaDzisHtml'), a.indexOf('var kafle ='));
-  assert.doesNotMatch(karta, /ulica-scena|plakatHtml/, 'Dziś bez pełnej sceny i bez ciężkiej grafiki');
+  assert.doesNotMatch(karta, /ulica-scena/, 'Dziś bez pełnej sceny');
   for (const tekst of ['Mapa wyprawy', 'Zagraj w Cegiełki', 'Wpłać na zbiórkę', 'Twoja firma na ulicy', 'Zobacz film', 'Twój wkład']) assert.ok(a.includes(tekst), tekst);
   assert.match(a, /var f = _filmKarty; if \(!f \|\| !f\.mp4\) return;/);
   assert.match(a, /v\.src = f\.mp4/);

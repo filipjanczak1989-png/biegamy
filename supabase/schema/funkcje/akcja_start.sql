@@ -26,7 +26,10 @@ begin
 
   update public.akcje
      set wystartowala_at = v_t,
-         start = case when testowa then (v_t at time zone 'Europe/Warsaw')::date else start end
+         start = case when testowa then (v_t at time zone 'Europe/Warsaw')::date else start end,
+         gra_aktywna = case when testowa then gra_aktywna else true end,
+         fabianek_postac_gra = case when testowa then fabianek_postac_gra else true end,
+         rowerzysta_wlaczony = case when not testowa and btrim(coalesce(rowerzysta_opis, '')) <> '' then true else rowerzysta_wlaczony end
    where id = a.id and wystartowala_at is null;
   return public.akcja_licznik(p_slug);
 end $function$

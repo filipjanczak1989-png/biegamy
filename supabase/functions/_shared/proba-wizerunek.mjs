@@ -1,6 +1,6 @@
-// Rysunek, arkusz i film na akcji próbnej (Ścieżka Fabianka): kto dostaje adres i jaki. Bez Deno: to samo wołają EF i test (blizna-161).
+// Rysunek, arkusz, film i plakat na akcji próbnej (Ścieżka Fabianka): kto dostaje adres i jaki. Bez Deno: to samo wołają EF i test (blizna-161).
 export const KUBELEK = "akcja-wizerunek", WAZNOSC_S = 900;
-export const PLIKI = { koparka_url: "fabianek-koparka.webp", koparka_arkusz_url: "fabianek-koparka-arkusz.webp", film_akcji_url: "film-akcja.mp4" };
+export const PLIKI = { koparka_url: "fabianek-koparka.webp", koparka_arkusz_url: "fabianek-koparka-arkusz.webp", film_akcji_url: "film-akcja.mp4", plakat_url: "plakat-akcji.webp" };
 
 /** Trener albo konto z listy testowej akcji proba. Każdy inny: false. */
 export async function maDostep(sb, user) {

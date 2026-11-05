@@ -37,8 +37,8 @@ test('B: plakat tylko po starcie (baza), tylko z białej listy (front), układ b
   assert.equal(A.plakatHtml({ ...d, wystartowala: false, plakat_url: STORAGE }), '', 'przed startem — nic');
   const h = A.plakatHtml({ ...d, plakat_url: STORAGE }, 'akcja-plakat--mini');
   assert.match(h, /data-plakat="https:\/\/afqojgkaveykxbltxzwm/); assert.match(h, /<img src="https:\/\/afqojgkaveykxbltxzwm[^"]+" alt="Plakat akcji"/);
-  assert.match(h, /class="akcja-wiecej akcja-wplac" href="https:\/\/www\.siepomaga\.pl\/x"[^>]*>Wpłać na zbiórkę</);
-  assert.doesNotMatch(A.plakatHtml({ ...d, plakat_url: STORAGE, url_zbiorki: 'javascript:alert(1)' }), /Wpłać/);
+  assert.match(h, /class="akcja-wiecej akcja-wplac" href="https:\/\/www\.siepomaga\.pl\/x"[^>]*>Zbiórka</);
+  assert.doesNotMatch(A.plakatHtml({ ...d, plakat_url: STORAGE, url_zbiorki: 'javascript:alert(1)' }), /Zbiórka/);
   const karta = A.kartaDzisHtml({ ...d, plakat_url: STORAGE }, { km: 1 }, new Date('2026-11-08T12:00:00Z'));
   assert.doesNotMatch(karta, /akcja-plakat--mini/, 'na Dziś Centrum Akcji zamiast grafiki (Filip 4.11); plakat zostaje na stronie akcji');
   assert.match(czytaj('dla-fabianka.html'), /<div id="plakat"><\/div>/);

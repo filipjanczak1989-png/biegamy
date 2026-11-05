@@ -22,12 +22,12 @@ f9dcab18c36745df  akcja_firmy_wpusc
 9e9fb3d2a4946e71  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
-0c2d2b9fe5411492  akcja_proba_firmy
+19cd0ba1e00c4608  akcja_proba_firmy
 5a8a9926a0b4b4b1  akcja_proba_od_zera
 53af56fa11aca0be  akcja_proba_reset
 1afe0d41a0cdaf2d  akcja_proba_symuluj
 86926422eeb9f558  akcja_sciezka_stan
-479b1d22c9b9340b  akcja_start
+69aa445485736019  akcja_start
 f7adf5324cca271b  akcja_tydzien
 78c9da13035f269e  akcja_typ_liczy
 45daf2e59f3347c2  akcja_ulica_publiczna
