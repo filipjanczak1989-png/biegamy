@@ -24,5 +24,5 @@ export async function odpowiedzWizerunku(sb, user) {
   }
   const { data: licznik } = await sb.rpc("akcja_licznik", { p_slug: "proba" });
   const { data: prawdziwa } = await sb.from("akcje").select("nazwa, imie_zbiorki, url_zbiorki").eq("slug", "dla-fabianka").maybeSingle();
-  return { status: 200, body: { ok: true, ...wynik, nazwa: (prawdziwa && prawdziwa.nazwa) || null, imie: (prawdziwa && prawdziwa.imie_zbiorki) || null, url_zbiorki: (prawdziwa && prawdziwa.url_zbiorki) || null, firmy: (licznik && licznik.firmy) || [] } };
+  return { status: 200, body: { ok: true, ...wynik, nazwa: (prawdziwa && prawdziwa.nazwa) || null, imie: (prawdziwa && prawdziwa.imie_zbiorki) || null, url_zbiorki: (prawdziwa && prawdziwa.url_zbiorki) || null, proba_od: (licznik && licznik.wystartowala_at) || null, firmy: (licznik && licznik.firmy) || [] } };
 }

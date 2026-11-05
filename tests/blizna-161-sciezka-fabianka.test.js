@@ -82,7 +82,8 @@ test('cytaty: konto testowe dostaje film z funkcji, po „od zera” film gra je
 test('gra: podgląd postaci tylko po zgodzie funkcji, bez zapisu rundy i bez wymiany; suwak i firmy testowe tylko na próbie', () => {
   const k = czytaj('js/cegielki-konto.js');
   assert.match(k, /if \(stan\.podglad \|\| premiera\) return;/, 'przed rundą bez numeru rundy');
-  assert.match(k, /if \(stan\.podglad\) \{ info\("Podgląd postaci: bez zapisu i bez rankingu\."\)/, 'po rundzie bez zapisu');
+  const poRundzie = k.slice(k.indexOf('if (stan.podglad) {', k.indexOf('async function poRundzie')), k.indexOf('/* Bez konta suma'));
+  assert.ok(poRundzie && !/gra_zapisz_wynik|sb\.rpc/.test(poRundzie) && /info\(TEKST_PROBY\)/.test(poRundzie), 'po rundzie bez zapisu do bazy (postęp tylko lokalnie, blizna-183)');
   assert.match(k, /var w = r && r\.data && r\.data\.ok \? r\.data : null;\s+if \(!w\) return;/, 'odmowa = bez przełącznika');
   const m = czytaj('supabase/migrations/20261105_akcja_sciezka.sql');
   assert.doesNotMatch(m.replace(/--[^\n]*/g, ''), /akcja_slug = 'dla-fabianka'|slug = 'dla-fabianka' and testowa/, 'funkcje próby nie sięgają prawdziwej akcji');

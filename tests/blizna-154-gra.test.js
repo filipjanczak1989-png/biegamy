@@ -255,7 +255,7 @@ test('przemiana: praca na starcie rundy, nietykalność 1 s, świat nie zwalnia'
   assert.doesNotMatch(kl, /\.forEach\(/, 'liczniki bez nowej tablicy i funkcji co klatkę');
 });
 
-test('menu: Mały budowniczy pod kartami, zbiórka z bazy, boki bez postaci przed startem, Menu główne obok Jeszcze raz', () => {
+test('menu: Mały budowniczy pod kartami, zbiórka z bazy, boki bez postaci przed startem, Menu główne obok Graj dalej', () => {
   const h = czytaj('gra-cegielki.html'), m = h.slice(h.indexOf('id="menu"'), h.indexOf('id="nowa"')), k = czytaj('js/cegielki-konto.js');
   assert.ok(m.indexOf('class="postacie"') < m.indexOf('id="m-maly"') && m.indexOf('id="m-maly"') < m.indexOf('id="imie"'), 'tryb od razu pod kartami');
   assert.match(m, /id="m-zbiorka"[^>]*rel="noopener noreferrer" hidden>Wpłać na zbiórkę/);
