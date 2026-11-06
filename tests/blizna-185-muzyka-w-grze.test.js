@@ -116,8 +116,12 @@ test('guzik: pobiera od razu, gra po głośniku, trzymanie przyspiesza, wybuch d
   assert.match(S, /MUZ\.przygotuj\(\[MUZ\.PLIKI\.puls, MUZ\.PLIKI\.fanfara\], true\)/, 'z własnego cache');
   assert.match(S, /PRZYSPIESZENIE_PULSU = 1\.5/); assert.match(S, /MUZ\.tempo\(PRZYSPIESZENIE_PULSU, PRZYTRZYMAJ_MS \/ 1000\)/);
   assert.match(S, /if \(MUZ && dzwiekGuzika\) MUZ\.tempo\(1, 0\.15\);/, 'puszczenie wcześniej wraca do tempa');
-  assert.match(S, /if \(MUZ && dzwiekGuzika\) MUZ\.graj\(MUZ\.PLIKI\.fanfara, \{ glos: 1, przenikanie: 0\.03 \}\);\n\s*iskry\(\);/, 'fanfara razem z błyskiem');
-  assert.doesNotMatch(S, /muzyka-|piosenka/, 'tajna muzyka nie jest pobierana na guziku');
+  assert.match(S, /if \(MUZ && dzwiekGuzika\) MUZ\.graj\(MUZ\.PLIKI\.fanfara, \{ glos: 1, przenikanie: 0\.03, koniec: function \(\) \{ fanfaraMinela = true; grajPiosenke\(\); \} \}\);\n\s*iskry\(\);/, 'fanfara razem z błyskiem, po niej piosenka');
+  assert.doesNotMatch(S, /muzyka-/, 'adresów tajnej muzyki nie ma w kodzie');
+  assert.match(S, /if \(potwierdzone\) \{ ostatniLicznik = d; szykujPiosenke\(d\); \}/, 'adres piosenki dopiero po potwierdzonym starcie');
+  assert.equal((S.match(/szykujPiosenke\(/g) || []).length, 3, 'definicja, po starcie i głośnik dotknięty po wybuchu: przed naciśnięciem nikt o adres nie pyta');
+  assert.match(S, /var zrodlo = PROBA \? \(AKC\.wizerunekProby \? AKC\.wizerunekProby\(window\.sb\) : Promise\.resolve\(null\)\) : Promise\.resolve\(d\);/, 'próba z funkcji, prawdziwa akcja z licznika');
+  assert.match(S, /if \(!MUZ \|\| !dzwiekGuzika \|\| !fanfaraMinela \|\| !adresPiosenki \|\| piosenkaGra\) return;/, 'bez głośnika nie gra, po fanfarze raz');
   assert.doesNotMatch(S, /<button[^>]*guzik-dzwiek/, 'głośnik nie stoi w HTML: bez modułu muzyki ekran zostaje z samym guzikiem');
   assert.match(S, /function zbudujGlosnikGuzika\(\) \{\n\s*if \(!MUZ\) return;/);
   assert.match(S, /b\.innerHTML = '<svg viewBox/, 'ikona bez pliku: ten ekran działa offline');
@@ -149,6 +153,49 @@ test('funkcja próby: adresy muzyki na 15 minut, tylko dla uprawnionych', async 
   assert.equal(ok.body.muzyka.menu1, 'https://x/muzyka-menu-1.mp3'); assert.ok(!('noc' in ok.body.muzyka), 'brak pliku: bez pozycji');
   assert.ok(wazn.every((s) => s === W.WAZNOSC_S));
   assert.deepEqual(await W.odpowiedzWizerunku(sb, null), { status: 401, body: { ok: false } });
+});
+
+test('fanfara krótka, a stary cache z długą fanfarą znika z telefonu', () => {
+  const n = fs.statSync(path.join(KORZEN, 'assets/gra/dzwieki/fanfara.mp3')).size;
+  assert.ok(n > 40 * 1024 && n < 100 * 1024, 'ok. 4,5 s przy 128 kb/s, a jest ' + n);
+  assert.match(M, /NAZWA_CACHE = "bm-muzyka-2", STARE_CACHE = \["bm-muzyka-1"\]/);
+  assert.match(M, /STARE_CACHE\.forEach\(function \(n\) \{ g\.caches\.delete\(n\)/);
+  assert.match(czytaj('assets/gra/dzwieki/zrodla.md'), /\| fanfara\.mp3 \| Victory Fanfare \| 1\.495 \| 4\.5 \|/);
+});
+
+test('przycisk Szefa: na próbie od razu i bez funkcji, na prawdziwej akcji przy adresie z licznika', () => {
+  const f = S.slice(S.indexOf('function przyciskPremiery(d)'), S.indexOf("b.addEventListener('click', function () { location.href = 'gra-cegielki.html?premiera=1'; });"));
+  assert.doesNotMatch(f, /async|await/, 'nie czeka na funkcję');
+  assert.match(f, /if \(!PROBA\) \{ var ark = d\.koparka_arkusz_url; if \(typeof ark !== 'string' \|\| !ADRES_RYSUNKU\.test\(ark\)\) return; \}/);
+  assert.match(f, /if \(PROBA && SCIEZKA\) pokazFunkcjeProby\(\);/, 'linia z wynikiem funkcji tylko w ścieżce trenera');
+  assert.ok(f.indexOf('z.zagrana') < f.indexOf("createElement('button')"), 'dalej tylko ze znacznikiem tego urządzenia i raz');
+  const d = S.slice(S.indexOf('function pokazFunkcjeProby'), S.indexOf('function przyciskPremiery(d)'));
+  assert.doesNotMatch(d, /textContent = [^;]*(koparka_arkusz_url|film_akcji_url)[^;]*\+ w\./, 'bez adresów na ekranie');
+  assert.match(S, /#guzik-dzwiek \{ display: none; position: absolute; top: calc\(58px/, 'głośnik nie zasłania „⋯” w rogu');
+  assert.match(S, /@media \(max-height: 760px\)/, 'na niskim ekranie przycisk się mieści, bo strona nie przewija');
+});
+
+test('funkcja próby: nieudana odpowiedź nie zostaje w pamięci, udana zostaje', async () => {
+  await import(pathToFileURL(path.join(KORZEN, 'js/akcja-cytaty.mjs')).href);
+  const C = globalThis.BM_AKCJA_CYTATY; let wolan = 0, odp = { data: null, error: { context: { status: 503 } } };
+  const sb = { functions: { invoke: async () => { wolan++; return odp; } } };
+  assert.equal(await C.wizerunekProby(sb), null);
+  assert.equal(C.bladWizerunku(), '503');
+  odp = { data: { ok: true, koparka_arkusz_url: 'x' }, error: null };
+  assert.equal((await C.wizerunekProby(sb)).koparka_arkusz_url, 'x', 'drugie pytanie idzie do funkcji');
+  assert.equal(wolan, 2); assert.equal(C.bladWizerunku(), '');
+  await C.wizerunekProby(sb);
+  assert.equal(wolan, 2, 'udana odpowiedź z pamięci');
+});
+
+test('funkcja próby podpisuje równolegle', async () => {
+  const W = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/_shared/proba-wizerunek.mjs')).href);
+  let naraz = 0, maks = 0;
+  const sb = { from: (t) => { const b = { select: () => b, eq: () => b, maybeSingle: async () => ({ data: t === 'coaches' ? { id: 1 } : null }) }; return b; },
+    storage: { from: () => ({ createSignedUrl: async (p) => { naraz++; maks = Math.max(maks, naraz); await new Promise((r) => setTimeout(r, 5)); naraz--; return { data: { signedUrl: 'https://x/' + p } }; } }) }, rpc: async () => ({ data: {} }) };
+  const ok = await W.odpowiedzWizerunku(sb, { id: 1 });
+  assert.ok(maks >= 10, 'naraz było ' + maks);
+  assert.equal(Object.keys(ok.body.muzyka).length, 8); assert.match(ok.body.koparka_arkusz_url, /arkusz/);
 });
 
 test('w repo tylko muzyka bez słów, bez tagów i bez tekstów', () => {
