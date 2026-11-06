@@ -111,9 +111,12 @@
   @media (prefers-reduced-motion: reduce) { main[data-stan="uzbrojony"] #krag { animation: none; } }
   #guzik-dzwiek { display: none; position: absolute; top: calc(58px + env(safe-area-inset-top)); right: 14px; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; background: rgba(16,19,36,.72); cursor: pointer; align-items: center; justify-content: center; z-index: 5; touch-action: manipulation; }
   #guzik-dzwiek svg { width: 32px; height: 32px; color: #fff; }
+  #guzik-dzwiek[aria-pressed="true"] { background: var(--akcent); }
+  #guzik-dzwiek:active { transform: scale(.88); }
   main[data-stan="uzbrojony"] #guzik-dzwiek, main[data-stan="nacisniety"] #guzik-dzwiek, main[data-stan="zapisane"] #guzik-dzwiek { display: flex; }
   #funkcja-proby { font-size: 12px; line-height: 1.35; color: var(--muted); text-align: center; max-width: 34ch; }
   #funkcja-proby:empty { display: none; }
+  #dziennik-proby { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 6px); font: 11px/1.35 ui-monospace, monospace; color: var(--muted); text-align: left; pointer-events: none; }
   /* Niski ekran telefonu: ekran nie przewija się, więc przycisk Szefa musi się zmieścić razem z rysunkiem. */
   @media (max-height: 760px) {
     main[data-stan="zapisane"] { gap: 10px; }
@@ -186,18 +189,21 @@
   }
 
   /* MUZYKA GUZIKA (Filip 6.11): puls i fanfara pobierane od razu, do własnego cache, żeby wybuch nie czekał na sieć. Grają po dotknięciu głośnika, bo telefon inaczej nie pozwoli: trzymany palec dźwięku nie odblokowuje. Bez głośnika guzik działa cicho, jak dotąd. */
-  var MUZ = window.BM_MUZYKA, PRZYSPIESZENIE_PULSU = 1.5, dzwiekGuzika = false, muzykaPobrana = false, fanfaraMinela = false, adresPiosenki = '', piosenkaGra = false, ostatniLicznik = null;
+  var MUZ = window.BM_MUZYKA, PRZYSPIESZENIE_PULSU = 1.5, dzwiekGuzika = false, muzykaPobrana = false, fanfaraMinela = false, adresPiosenki = '', piosenkaGra = false, ostatniLicznik = null, dotykGlosnika = 0, epokaGuzika = 0, ODSTEP_GLOSNIKA_MS = 800;
   function muzykaUzbrojona() {
     if (!MUZ) return;
     fanfaraMinela = false; adresPiosenki = ''; piosenkaGra = false; ostatniLicznik = null;
-    if (!muzykaPobrana) { muzykaPobrana = true; MUZ.przygotuj([MUZ.PLIKI.puls, MUZ.PLIKI.fanfara], true); }
+    /* Kontekst i dekodowanie tutaj, nie w dotknięciu: inaczej strona stoi przy pierwszym dotknięciu głośnika bez żadnej reakcji, a drugie wyłącza dźwięk. */
+    if (!muzykaPobrana) { muzykaPobrana = true; MUZ.przygotuj([MUZ.PLIKI.puls, MUZ.PLIKI.fanfara], true); MUZ.bufor(MUZ.PLIKI.puls); MUZ.bufor(MUZ.PLIKI.fanfara); }
     if (dzwiekGuzika) MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
   }
   /* Piosenka zaraz po fanfarze. Adres dopiero po naciśnięciu: próba bierze go z funkcji, prawdziwa akcja z licznika, a przed startem nikt go nie zna. */
   function szykujPiosenke(d) {
     if (!MUZ || !dzwiekGuzika || adresPiosenki) return;
     var zrodlo = PROBA ? (AKC.wizerunekProby ? AKC.wizerunekProby(window.sb) : Promise.resolve(null)) : Promise.resolve(d);
+    var epoka = epokaGuzika;
     zrodlo.then(function (x) {
+      if (epoka !== epokaGuzika) return;
       var a = MUZ.adresyZLicznika(x && x.muzyka).premiera;
       if (!a || !dzwiekGuzika) return;
       adresPiosenki = a; MUZ.bufor(a); grajPiosenke();
@@ -219,7 +225,10 @@
     b.id = 'guzik-dzwiek'; b.type = 'button';
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path class="fale" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     b.addEventListener('click', function () {
-      dzwiekGuzika = !dzwiekGuzika; rysujGlosnikGuzika();
+      var teraz = performance.now();
+      if (teraz - dotykGlosnika < ODSTEP_GLOSNIKA_MS) return;   // drugie dotknięcie „bo nic nie słychać” nie może wyłączyć dźwięku
+      dotykGlosnika = teraz;
+      dzwiekGuzika = !dzwiekGuzika; rysujGlosnikGuzika(); dziennikGlosnika();
       if (!dzwiekGuzika) { piosenkaGra = false; MUZ.zatrzymaj(0.1); return; }
       MUZ.odblokuj(); MUZ.bufor(MUZ.PLIKI.fanfara);
       if (stan === 'uzbrojony') MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
@@ -372,7 +381,9 @@
     /* Ścieżka: prawdziwy rysunek osobną funkcją (trener, 15 min). Odmowa albo brak pliku = zwykła koparka, jak na zwykłej próbie. */
     if (SCIEZKA && d && d.wystartowala && AKC.wizerunekProby) {
       odslona = 'czeka';
+      var epoka = epokaGuzika;
       AKC.wizerunekProby(window.sb).then(function (w) {
+        if (epoka !== epokaGuzika) return;   // „Od zera” w trakcie: spóźniona odpowiedź nie może odsłonić rysunku na uzbrojonym guziku
         odslona = null;
         odslonAdres(w && typeof w.koparka_url === 'string' && ADRES_RYSUNKU.test(w.koparka_url) ? w.koparka_url : adresRysunku(d));
       });
@@ -391,6 +402,7 @@
     });
   }
   function zamknijGuzik() {
+    epokaGuzika++;
     odslona = null; nacisnietoO = 0;
     krag.classList.remove('czeka', 'otwarty', 'odslania');
     krag.querySelectorAll('.polowa').forEach(function (x) { x.remove(); });
@@ -421,14 +433,45 @@
   function wyczyscPostepGry() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('cegielki_proba_') === 0) localStorage.removeItem(k); }); } catch (e) {} }
   /* Tylko w ścieżce trenera: co naprawdę oddała funkcja próby na tym telefonie. Same liczby, bez adresów. */
   function pokazFunkcjeProby() {
-    var e = $('funkcja-proby'); if (!AKC.wizerunekProby) return;
+    var e = $('funkcja-proby'), epoka = epokaGuzika; if (!AKC.wizerunekProby) return;
     e.textContent = 'Funkcja próby: czekam…';
     AKC.wizerunekProby(window.sb).then(function (w) {
-      var sek = ((performance.now() - nacisnietoO) / 1000).toFixed(1).replace('.', ',');
-      if (!w) { e.textContent = 'Funkcja próby: błąd ' + (AKC.bladWizerunku ? AKC.bladWizerunku() : '') + ', ' + sek + ' s od guzika. Premiera może się nie wczytać.'; return; }
+      if (epoka !== epokaGuzika) return;
+      var sek = nacisnietoO ? ', ' + ((performance.now() - nacisnietoO) / 1000).toFixed(1).replace('.', ',') + ' s od guzika' : '';
+      if (!w) { e.textContent = 'Funkcja próby: błąd ' + (AKC.bladWizerunku ? AKC.bladWizerunku() : '') + sek + '. Premiera może się nie wczytać.'; return; }
       var znak = function (x) { return x ? '✓' : 'BRAK'; };
-      e.textContent = 'Funkcja próby: arkusz ' + znak(ADRES_RYSUNKU.test(w.koparka_arkusz_url || '')) + ', rysunek ' + znak(ADRES_RYSUNKU.test(w.koparka_url || '')) + ', piosenka ' + znak(MUZ && MUZ.adresyZLicznika(w.muzyka).premiera) + ', muzyka ' + (MUZ ? Object.keys(MUZ.adresyZLicznika(w.muzyka)).length : 0) + '/8, ' + sek + ' s od guzika';
+      e.textContent = 'Funkcja próby: arkusz ' + znak(ADRES_RYSUNKU.test(w.koparka_arkusz_url || '')) + ', rysunek ' + znak(ADRES_RYSUNKU.test(w.koparka_url || '')) + ', piosenka ' + znak(MUZ && MUZ.adresyZLicznika(w.muzyka).premiera) + ', muzyka ' + (MUZ ? Object.keys(MUZ.adresyZLicznika(w.muzyka)).length : 0) + '/8' + sek;
     });
+  }
+  /* Tylko w ścieżce trenera, po zgodzie bazy: co na tym telefonie dzieje się z głośnikiem i przyciskiem Szefa (obca warstwa, przycisk poza ekranem albo zdjęty). Same nazwy, bez adresów. */
+  var dziennikMiejsce = null;
+  function wpisDziennika(t) {
+    if (!dziennikMiejsce) return;
+    var w = document.createElement('div'); w.textContent = (performance.now() / 1000).toFixed(1).replace('.', ',') + ' s ' + t;
+    dziennikMiejsce.appendChild(w);
+    while (dziennikMiejsce.children.length > 6) dziennikMiejsce.firstChild.remove();
+  }
+  function dziennikGlosnika() {
+    if (!dziennikMiejsce) return;
+    wpisDziennika('głośnik: ' + (dzwiekGuzika ? 'włączony' : 'wyłączony'));
+    setTimeout(function () { var m = MUZ.stan(); wpisDziennika('dźwięk: ' + (m.kontekst || 'brak') + ', gra ' + (m.adres || 'nic').split('?')[0].split('/').pop()); }, 1000);
+  }
+  function wlaczDziennik() {
+    dziennikMiejsce = document.createElement('div'); dziennikMiejsce.id = 'dziennik-proby'; ekran.appendChild(dziennikMiejsce);
+    document.addEventListener('pointerdown', function (e) {
+      var g = $('guzik-dzwiek'), r = g && g.getBoundingClientRect();
+      if (!r || !r.width || e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      wpisDziennika(g.contains(e.target) ? 'dotyk dotarł do głośnika' : 'dotyk w głośnik przejął: ' + (e.target.id || e.target.tagName));
+    }, true);
+    var poprzednio = '';
+    setInterval(function () {
+      var b = $('zagraj-szef'), o = 'nie ma go';
+      if (b) {
+        var r = b.getBoundingClientRect(), nad = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        o = r.top < 0 || r.bottom > innerHeight ? 'poza ekranem, ' + Math.round(r.top) + '–' + Math.round(r.bottom) + ' z ' + innerHeight : nad === b ? 'widoczny' : 'zasłania go ' + (nad ? nad.id || nad.tagName : 'nic');
+      }
+      if (o !== poprzednio) { poprzednio = o; wpisDziennika('przycisk Szefa: ' + o + ' (' + stan + ')'); }
+    }, 250);
   }
   function przyciskPremiery(d) {
     var z = znacznikPremiery();
@@ -597,6 +640,7 @@
     var r = await window.sb.rpc('akcja_sciezka_stan');
     if (r.error) return;
     budujPanelSciezki();
+    wlaczDziennik();
     pokazStanSciezki(r.data);
     $('sciezka-guzik').addEventListener('click', function () { var otw = $('sciezka').hidden; $('sciezka').hidden = !otw; this.setAttribute('aria-expanded', String(otw)); });
     var odZeraUzbrojone = 0;

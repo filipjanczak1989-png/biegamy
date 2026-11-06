@@ -140,7 +140,7 @@ test('gra: hooki na ekranach, premiera nie przerywa piosenki, dźwięk z kodu ja
   assert.match(K, /window\.BM_MUZYKA\.ustawAdresy\(d\.wystartowala === true \? d\.muzyka : null\)/, 'przed startem bez adresów');
   assert.match(K, /window\.BM_MUZYKA\.ustawAdresy\(w\.proba_od \? w\.muzyka : null\)/, 'próba po guziku');
   assert.match(K, /window\.BM_MUZYKA\.scena\("magazyn"\)/); assert.match(K, /jednorazowo\("final"\)/); assert.match(K, /jednorazowo\("mur"\)/); assert.match(K, /dzingiel\("awans"\)/);
-  assert.match(K, /piosenka = M\.adresyZLicznika\(d\.muzyka\)\.premiera/); assert.match(K, /piosenka = M\.adresyZLicznika\(r\.data\.muzyka\)\.premiera/);
+  assert.match(K, /piosenka: M \? M\.adresyZLicznika\(d\.muzyka\)\.premiera/); assert.match(K, /piosenka: M \? M\.adresyZLicznika\(r\.data\.muzyka\)\.premiera/);
   assert.match(K, /Promise\.race\(\[M\.bufor\(piosenka\), new Promise\(function \(ok\) \{ setTimeout\(ok, 6000\); \}\)\]\)/, 'muzyka nie zatrzymuje premiery');
 });
 
@@ -173,6 +173,60 @@ test('przycisk Szefa: na próbie od razu i bez funkcji, na prawdziwej akcji przy
   assert.doesNotMatch(d, /textContent = [^;]*(koparka_arkusz_url|film_akcji_url)[^;]*\+ w\./, 'bez adresów na ekranie');
   assert.match(S, /#guzik-dzwiek \{ display: none; position: absolute; top: calc\(58px/, 'głośnik nie zasłania „⋯” w rogu');
   assert.match(S, /@media \(max-height: 760px\)/, 'na niskim ekranie przycisk się mieści, bo strona nie przewija');
+});
+
+test('„Od zera” w trakcie odpowiedzi funkcji: spóźniona odpowiedź niczego nie odsłania', () => {
+  assert.match(S, /function zamknijGuzik\(\) \{\n    epokaGuzika\+\+;/, 'zamknięcie guzika unieważnia to, co jeszcze leci');
+  const czesc = (od, do_) => S.slice(S.indexOf(od), S.indexOf(do_));
+  for (const [nazwa, f] of [
+    ['odsłona', czesc('function odslon(d)', 'function odslonAdres')],
+    ['piosenka', czesc('function szykujPiosenke', 'function grajPiosenke')],
+    ['linia funkcji', czesc('function pokazFunkcjeProby', 'var dziennikMiejsce')],
+  ]) {
+    assert.match(f, /epoka = epokaGuzika/, nazwa + ': zapamiętuje, której próby dotyczy');
+    assert.match(f, /if \(epoka !== epokaGuzika\) return;/, nazwa + ': spóźniona odpowiedź odpada');
+  }
+  assert.ok(S.indexOf('if (epoka !== epokaGuzika) return;   // „Od zera”') < S.indexOf("odslona = null;\n        odslonAdres"), 'odsłona sprawdza próbę, zanim cokolwiek zmieni');
+});
+
+test('głośnik: przygotowany przed dotknięciem, drugie dotknięcie nie wyłącza, stan widać', () => {
+  const u = S.slice(S.indexOf('function muzykaUzbrojona'), S.indexOf('/* Piosenka zaraz po fanfarze'));
+  assert.match(u, /MUZ\.bufor\(MUZ\.PLIKI\.puls\); MUZ\.bufor\(MUZ\.PLIKI\.fanfara\);/, 'kontekst i dekodowanie zanim ktoś dotknie');
+  assert.doesNotMatch(u, /MUZ\.bufor\((?!MUZ\.PLIKI\.(puls|fanfara)\))/, 'przed naciśnięciem tylko puls i fanfara, piosenki nikt nie zna');
+  assert.match(S, /if \(teraz - dotykGlosnika < ODSTEP_GLOSNIKA_MS\) return;[^\n]*\n      dotykGlosnika = teraz;\n      dzwiekGuzika = !dzwiekGuzika;/, 'przełącznik dopiero za osłoną');
+  assert.match(S, /#guzik-dzwiek\[aria-pressed="true"\] \{ background: var\(--akcent\); \}/, 'włączony wygląda inaczej');
+  assert.match(S, /#guzik-dzwiek:active \{ transform:/, 'dotknięcie widać od razu');
+});
+
+test('dziennik próby: tylko po zgodzie bazy, tylko tekst, bez adresów', () => {
+  const w = S.slice(S.indexOf('async function wlaczSciezke'), S.indexOf('pokazStanSciezki(r.data);'));
+  assert.ok(w.includes('if (r.error) return;') && w.indexOf('if (r.error) return;') < w.indexOf('wlaczDziennik();'), 'zwykły ekran guzika dziennika nie ma (blizna-96)');
+  assert.equal((S.match(/wlaczDziennik\(\)/g) || []).length, 2, 'definicja i jedno wywołanie');
+  const d = S.slice(S.indexOf('var dziennikMiejsce'), S.indexOf('function przyciskPremiery(d)'));
+  assert.match(d, /if \(!dziennikMiejsce\) return;/);
+  assert.match(d, /split\('\?'\)\[0\]\.split\('\/'\)\.pop\(\)/, 'z adresu muzyki tylko nazwa pliku');
+  assert.doesNotMatch(d, /innerHTML|koparka_|film_akcji_url|plakat_url/);
+  assert.match(S, /#dziennik-proby \{[^}]*pointer-events: none;/, 'dziennik nie łapie dotyku');
+});
+
+test('premiera: kilka prób ze świeżym adresem, powód tylko na próbie i bez tokenu', () => {
+  const K = czytaj('js/cegielki-konto.js');
+  const u = K.slice(K.indexOf('async function uruchomPremiere'), K.indexOf('function koniecPremiery'));
+  assert.match(K, /var PROB_PREMIERY = 4, PRZERWA_PREMIERY_MS = 2000;/, 'razem 6 s czekania: dłużej niż 5 s pamięci licznika sprzed startu');
+  assert.match(u, /for \(var i = 0; i < PROB_PREMIERY; i\+\+\) \{/);
+  assert.match(u, /try \{ w = await adresPremiery\(M\); \} catch \(e\)/, 'wyjątek nie kończy prób');
+  assert.ok(u.indexOf('await adresPremiery(M)') > u.indexOf('for (var i = 0'), 'adres pobierany w każdej próbie, nie raz przed pętlą');
+  assert.match(u, /if \(!w\.adres\) \{ bladPremiery\(w\.powod\); return; \}/);
+  assert.ok(u.indexOf('bladPremiery(w.powod)') < u.indexOf('GR.start("koparka")'), 'bez arkusza runda nie rusza');
+  const b = K.slice(K.indexOf('function bladPremiery'), K.indexOf('function opisAdresu'));
+  assert.match(b, /premieraNaProbie\(\) && powod \? "Powód: "/, 'prawdziwa akcja bez szczegółów');
+  const a = K.slice(K.indexOf('function opisAdresu'), K.indexOf('async function adresPremiery'));
+  assert.doesNotMatch(a, /\.search\b|\.href|searchParams\.get|, *w\)/, 'tylko nazwy parametrów, nigdy wartość tokenu');
+  assert.match(a, /pola\.push\(k\)/);
+  const d = K.slice(K.indexOf('async function adresPremiery'), K.indexOf('async function powodObrazu'));
+  assert.match(d, /akcja-licznik\?slug=dla-fabianka", \{ cache: "no-store"/, 'odpowiedź sprzed guzika nie wraca z pamięci przeglądarki');
+  assert.doesNotMatch(K.slice(K.indexOf('async function powodObrazu'), K.indexOf('async function uruchomPremiere')), /adres \+|\+ adres/, 'powód bez adresu');
+  assert.doesNotMatch(K, /(sessionStorage|zapiszJson)[^\n]*koparka_arkusz_url/, 'adres nigdzie nie zostaje');
 });
 
 test('funkcja próby: nieudana odpowiedź nie zostaje w pamięci, udana zostaje', async () => {

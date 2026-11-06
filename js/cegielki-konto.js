@@ -761,34 +761,58 @@
   sprawdzDostep();
 
   function premieraNaProbie() { return premiera.slug === "proba"; }
-  function bladPremiery() {
+  var PROB_PREMIERY = 4, PRZERWA_PREMIERY_MS = 2000;
+  function bladPremiery(powod) {
     $("pr-tytul").textContent = "Koparka się nie wczytała";
-    $("pr-info").textContent = "Runda jest dalej do zagrania. Sprawdź łącze i spróbuj jeszcze raz.";
+    /* Próba: dokładny powód, bo na telefonie nie ma konsoli. Bez adresu i bez tokenu. Prawdziwa akcja: zwykłe zdanie. */
+    $("pr-info").textContent = premieraNaProbie() && powod ? "Powód: " + powod + ". Spróbuj jeszcze raz." : "Runda jest dalej do zagrania. Sprawdź łącze i spróbuj jeszcze raz.";
     $("pr-ponow").textContent = "Spróbuj jeszcze raz"; $("pr-ponow").hidden = false; $("pr-ponow").onclick = function () { location.reload(); };
     $("ladowanie").hidden = true; $("premiera").hidden = false;
+  }
+  function opisAdresu(u) {
+    try { var a = new URL(u), pola = []; a.searchParams.forEach(function (w, k) { pola.push(k); }); return a.host + ", " + a.pathname.split("/").pop() + ", parametry: " + pola.join("+"); }
+    catch (e) { return "to nie jest adres"; }
+  }
+  /* Jedna próba: świeży adres. → { adres, piosenka } albo { powod }. Żadnej pamięci między wejściami: podpis żyje 15 minut. */
+  async function adresPremiery(M) {
+    var adres = "";
+    if (premiera.podglad) { adres = ARKUSZ_PODGLADU; stan.imie = "Fabianek"; return { adres: adres, piosenka: "" }; }
+    if (premieraNaProbie()) {
+      if (!window.sb) return { powod: "brak połączenia z kontem" + (stan.bladPolaczenia ? " (" + stan.bladPolaczenia + ")" : "") };
+      var r = await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} });
+      if (!r || !r.data || !r.data.ok) return { powod: "funkcja " + ((r && r.error && r.error.context && r.error.context.status) || "bez odpowiedzi") };
+      stan.imie = "Fabianek";
+      var ark = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: r.data.koparka_arkusz_url });
+      if (!ark) return { powod: r.data.koparka_arkusz_url ? "filtr odrzucił adres: " + opisAdresu(r.data.koparka_arkusz_url) : "funkcja bez adresu arkusza" };
+      return { adres: ark, piosenka: M ? M.adresyZLicznika(r.data.muzyka).premiera || "" : "" };
+    }
+    /* Bez pamięci przeglądarki: ta sama strona czyta licznik przed premierą, a odpowiedź sprzed guzika żyje 5 s. */
+    var f = await fetch(BAZA + "/functions/v1/akcja-licznik?slug=dla-fabianka", { cache: "no-store", headers: { Accept: "application/json" } });
+    var d = f.ok ? await f.json() : null;
+    if (d && typeof d.imie === "string") stan.imie = d.imie;
+    adres = L.arkuszKoparki(d);
+    return adres ? { adres: adres, piosenka: M ? M.adresyZLicznika(d.muzyka).premiera || "" : "" } : { powod: "licznik bez adresu arkusza" };
+  }
+  async function powodObrazu(adres) {
+    if (!premieraNaProbie()) return "";
+    try { var f = await fetch(adres, { headers: { Range: "bytes=0-15" } }); return "obraz: http " + f.status + " " + (f.headers.get("content-type") || ""); }
+    catch (e) { return "obraz: sieć (" + ((e && e.name) || "błąd") + ")"; }
   }
   async function uruchomPremiere() {
     var GR = window.BM_CEGIELKI_GRA;
     await GR.gotowa;
     if (premiera.zagrana) { pokazKoniecPremiery(); return; }
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
-    var adres = "", M = window.BM_MUZYKA, piosenka = "";
-    try {
-      if (premiera.podglad) { adres = ARKUSZ_PODGLADU; stan.imie = "Fabianek"; }
-      else if (premieraNaProbie()) {
-        var r = window.sb ? await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} }) : null;
-        adres = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: r && r.data && r.data.ok ? r.data.koparka_arkusz_url : "" });
-        if (M && r && r.data && r.data.ok) piosenka = M.adresyZLicznika(r.data.muzyka).premiera || "";
-        stan.imie = "Fabianek";
-      } else {
-        var f = await fetch(BAZA + "/functions/v1/akcja-licznik?slug=dla-fabianka", { headers: { Accept: "application/json" } });
-        var d = f.ok ? await f.json() : null;
-        adres = L.arkuszKoparki(d);
-        if (d && typeof d.imie === "string") stan.imie = d.imie;
-        if (M && d) piosenka = M.adresyZLicznika(d.muzyka).premiera || "";
-      }
-    } catch (e) { adres = ""; }
-    if (!adres || !(await GR.wczytajArkuszKoparki(adres))) { bladPremiery(); return; }
+    var M = window.BM_MUZYKA, w = {};
+    /* Kilka prób, za każdym razem świeży adres: jedna przejściowa porażka nie może zabrać premiery, a licznik zaraz po guziku bywa jeszcze sprzed startu (5 s w pamięci funkcji). */
+    for (var i = 0; i < PROB_PREMIERY; i++) {
+      if (i) await new Promise(function (ok) { setTimeout(ok, PRZERWA_PREMIERY_MS); });
+      try { w = await adresPremiery(M); } catch (e) { w = { powod: "wyjątek " + ((e && e.name) || "") }; }
+      if (w.adres && (await GR.wczytajArkuszKoparki(w.adres))) break;
+      if (w.adres) w = { powod: await powodObrazu(w.adres) };
+    }
+    if (!w.adres) { bladPremiery(w.powod); return; }
+    var piosenka = w.piosenka;
     /* Piosenka pod rundą Szefa. Bez niej albo po 6 s oczekiwania runda rusza sama: muzyka nie może zatrzymać premiery. */
     if (piosenka) { await Promise.race([M.bufor(piosenka), new Promise(function (ok) { setTimeout(ok, 6000); })]); GR.wlaczDzwiek(); M.graj(piosenka, { glos: 1 }); }
     GR.start("koparka");
@@ -829,7 +853,7 @@
     return new Promise(function (ok) { if (document.readyState === "complete") ok(); else addEventListener("load", function () { ok(); }, { once: true }); })
       .then(function () { return new Promise(function (ok) { setTimeout(ok, 200); }); });
   }
-  gotowe = poZaladowaniu().then(polacz).catch(function () { stan.zalogowany = false; });
+  gotowe = poZaladowaniu().then(polacz).catch(function (e) { stan.zalogowany = false; stan.bladPolaczenia = (e && e.name) || "błąd"; });
   gotowe.then(function () { if (przyklad && parametry.get("ulica") === "przyklad") ustawAkcje(LICZNIK_PODGLADU); else rysujPasUlicy(); });
   /* Podgląd planszy poza produkcją: numer poziomu, mur25, mur50 albo final. Po „Dalej” wraca menu. */
   async function planszaPodgladu() {
