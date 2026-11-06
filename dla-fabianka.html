@@ -10,10 +10,10 @@
 <meta property="og:description" content="Biegniemy i idziemy razem. Każdy krok się liczy.">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon-32.png">
-<!-- Wydajność 6.11: fonty nie blokują pierwszego obrazu (do czasu pobrania tekst w foncie systemowym), skrypty z defer, strona rusza po DOMContentLoaded. -->
+<!-- Wydajność 6.11: skrypty z defer, strona rusza po DOMContentLoaded. Licznik pobiera się od razu (preload), fonty Google dopiero po skryptach strony, żeby nie zabierały łącza sb.js; do tego czasu tekst w foncie systemowym. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" href="https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/akcja-licznik?slug=dla-fabianka" as="fetch" crossorigin>
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap"></noscript>
 <script defer src="vendor/supabase-js-2.112.4.min.js"></script>
 <script defer src="sb.js"></script>
@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function odswiez() { try { var dp = await licznikStrony(); pokaz(dp || await A.pobierzPubliczny('dla-fabianka')); } catch (e) { pokaz(null); } }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
   odswiez();
+  try { var fonty = document.createElement('link'); fonty.rel = 'stylesheet'; fonty.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap'; document.head.appendChild(fonty); } catch (e) {}   // fonty po licznik
   setInterval(function () { if (document.visibilityState === 'visible' && dzisWaw() === DZIEN_STARTU && (!ostatniStan || !JSON.parse(ostatniStan) || !JSON.parse(ostatniStan).wystartowala)) odswiez(); }, 5000);   // w dniu startu strona otwarta przed guzikiem sama przechodzi na akcję
 });
 </script>

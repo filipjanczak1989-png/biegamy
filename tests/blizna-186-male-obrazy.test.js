@@ -46,7 +46,8 @@ test('strona akcji: nic nie blokuje pierwszego obrazu', () => {
   assert.equal(skrypty.length, 5);
   for (const s of skrypty) assert.match(s[1], /\bdefer\b/, s[0]);
   assert.doesNotMatch(glowa.replace(/<noscript>[\s\S]*?<\/noscript>/g, ''), /<link[^>]+rel="stylesheet"/, 'arkusz fontów nie blokuje');
-  assert.match(glowa, /<link rel="preload" as="style" href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]+display=swap" onload="this\.onload=null;this\.rel='stylesheet'">/);
+  assert.match(glowa, /<link rel="preload" href="https:\/\/afqojgkaveykxbltxzwm\.supabase\.co\/functions\/v1\/akcja-licznik\?slug=dla-fabianka" as="fetch" crossorigin>/, 'licznik od razu, nie po skryptach');
+  assert.match(h, /odswiez\(\);\n  try \{ var fonty = document\.createElement\('link'\); fonty\.rel = 'stylesheet'; fonty\.href = 'https:\/\/fonts\.googleapis\.com\/css2\?[^']+display=swap'; document\.head\.appendChild\(fonty\); \} catch/, 'fonty po skryptach strony i po pytaniu o licznik');
   assert.match(glowa, /<link rel="preconnect" href="https:\/\/fonts\.gstatic\.com" crossorigin>/);
   const kod = h.slice(h.lastIndexOf('<script>'));
   assert.match(kod, /^<script>\ndocument\.addEventListener\('DOMContentLoaded', function \(\) \{\n  'use strict';\n  var A = window\.BM_AKCJA/, 'kod strony po skryptach z defer');
