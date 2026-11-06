@@ -16,3 +16,6 @@ vendor/** -text
 #  Chodzi wylacznie o czystosc diffu.)
 supabase/schema/funkcje/** -text
 supabase/schema/rls/** -text
+
+# Prawdziwe pliki do testu logo (blizna-191): bajt w bajt, bez zamiany końców linii.
+tests/_dane/logo/** -text

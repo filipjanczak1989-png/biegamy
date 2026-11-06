@@ -44,7 +44,7 @@ test('lista małych kopii pokrywa to, co Dziś faktycznie pobiera', () => {
 test('strona akcji: nic nie blokuje pierwszego obrazu', () => {
   const h = czytaj('dla-fabianka.html'), glowa = h.slice(0, h.indexOf('</head>'));
   const skrypty = [...glowa.matchAll(/<script([^>]*)src="[^"]+"><\/script>/g)];
-  assert.equal(skrypty.length, 5);
+  assert.equal(skrypty.length, 6, 'szósty: js/logo-firmy.mjs dla formularza firm (blizna-191), też z defer');
   for (const s of skrypty) assert.match(s[1], /\bdefer\b/, s[0]);
   assert.doesNotMatch(glowa.replace(/<noscript>[\s\S]*?<\/noscript>/g, ''), /<link[^>]+rel="stylesheet"/, 'arkusz fontów nie blokuje');
   assert.match(glowa, /<link rel="preload" href="https:\/\/afqojgkaveykxbltxzwm\.supabase\.co\/functions\/v1\/akcja-licznik\?slug=dla-fabianka" as="fetch" crossorigin>/, 'licznik od razu, nie po skryptach');

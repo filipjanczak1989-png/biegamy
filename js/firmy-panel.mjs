@@ -25,11 +25,23 @@
     if (link) { var a = el("a", "font-size:13px;display:block;overflow-wrap:anywhere;", ramka, link); a.href = link; a.target = "_blank"; a.rel = "noopener noreferrer nofollow"; }
     if (z.email) el("div", "font-size:13px;color:var(--muted);overflow-wrap:anywhere;", ramka, z.email);
     el("div", "font-size:11px;color:var(--muted);", ramka, new Date(z.utworzono).toLocaleString("pl-PL") + " · " + ({ nowe: "czeka na decyzję", zatwierdzone: "zatwierdzone", odrzucone: "odrzucone" }[z.status] || z.status) + (z.powod ? ": " + z.powod : ""));
-    if (z.status === "zatwierdzone" && !z.proba) {
-      var ed = el("button", PRZYCISK + "margin-top:8px;background:none;color:var(--fg);border:1px solid var(--border);", ramka, "Edytuj na Ulicy"), edInfo = el("div", "font-size:12px;color:var(--muted);", ramka); ed.type = "button";
+    /* Zatwierdzona firma, z próby też (6.11): „Edytuj” otwiera edytor firm w trener.html, „Usuń z Ulicy” pyta we własnym okienku i kasuje firmę z Ulicy (zgłoszenie zostaje w historii). */
+    if (z.status === "zatwierdzone") {
+      var rzad = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;", ramka), edInfo = el("div", "font-size:12px;color:var(--muted);", ramka);
+      var ed = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--fg);border:1px solid var(--border);", rzad, "Edytuj"); ed.type = "button";
+      var us = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--red);border:1px solid var(--border);", rzad, "Usuń z Ulicy"); us.type = "button";
       ed.addEventListener("click", function () {
         if (!g.BM_EDYTUJ_FIRME) { edInfo.textContent = "Edytor firm się nie wczytał. Odśwież stronę."; return; }
-        g.BM_EDYTUJ_FIRME(z.nazwa).then(function (ok) { edInfo.textContent = ok ? "" : "Tej firmy nie ma na liście firm akcji (zmieniona nazwa albo usunięta)."; });
+        var n = g.document.getElementById("firma-nakladka"); if (n) n.remove();
+        g.BM_EDYTUJ_FIRME(z.nazwa, !!z.proba).then(function (ok) { edInfo.textContent = ok ? "" : "Tej firmy nie ma już na Ulicy (usunięta albo zmieniona nazwa)."; });
+      });
+      us.addEventListener("click", function () {
+        if (!g.BM_USUN_FIRME) { edInfo.textContent = "Edytor firm się nie wczytał. Odśwież stronę."; return; }
+        us.disabled = true; edInfo.textContent = "";
+        g.BM_USUN_FIRME(z.nazwa, !!z.proba).then(function (w) {
+          if (w === "usunieta" || w === "brak") { ed.disabled = true; edInfo.textContent = w === "usunieta" ? "Usunięta z Ulicy." : "Tej firmy nie ma już na Ulicy."; return; }
+          us.disabled = false;
+        }, function () { us.disabled = false; edInfo.textContent = "Nie udało się. Sprawdź łącze."; });
       });
     }
     if (z.status !== "nowe") return;

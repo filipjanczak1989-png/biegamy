@@ -1,6 +1,6 @@
 /* BLIZNA 189 / TRZY POPRAWKI (6.11): edycja po zatwierdzeniu, firmy i mur widoczne, koła walca.
-   - przy zatwierdzonej firmie „Edytuj na Ulicy” otwiera edytor firm w trener.html; pokazanie kwoty zapisane osobno, żeby przed migracją reszta edycji przeszła;
-   - wpisy w murze: zmiana imienia i ukrywanie dopiero, gdy baza ma kolumnę ukryta (migracja 20261106_akcja_edycja); wcześniej panel jak dotąd;
+   - przy zatwierdzonej firmie „Edytuj” otwiera edytor firm w trener.html; pokazanie kwoty zapisane osobno, żeby przed migracją reszta edycji przeszła;
+   - wpisy w murze: od blizny 191 „Edytuj” i „Usuń z Ulicy” bez migracji (nowy wpis + skasowanie starego), ukrywanie z kolumną ukryta odpadło;
    - piąty przycisk na kaflu Dziś na całą szerokość i przycisk na górze strony akcji: do sekcji firm i cegiełek; cegiełka z podglądem, nic nie wysyła;
    - koła walca: owalny wycinek zmierzony na pliku i obrót z kompensacją owalu (bez „jajek”). Po skutku: Chrome (poza repo), klatki 0°, 45°, 90°. */
 'use strict';
@@ -29,18 +29,16 @@ test('cegiełka w sekcji firm: podgląd tą samą funkcją co mur, nic nie wysy�
   assert.match(czytaj('js/ulica.mjs'), /poprawneImie: function \(t\) \{ return RE_IMIE\.test\(String\(t \|\| ""\)\.trim\(\)\); \}/);
 });
 
-test('edycja po zatwierdzeniu: firma przez istniejący edytor, wpis w murze dopiero po migracji', () => {
+test('edycja po zatwierdzeniu: firma przez istniejący edytor, wpis w murze bez migracji', () => {
   const P = czytaj('js/firmy-panel.mjs'), T = czytaj('trener.html'), U = czytaj('js/ulica.mjs');
-  assert.match(P, /if \(z\.status === "zatwierdzone" && !z\.proba\) \{[\s\S]{0,700}g\.BM_EDYTUJ_FIRME\(z\.nazwa\)/);
-  assert.match(T, /window\.BM_EDYTUJ_FIRME = async function \(nazwa\) \{[\s\S]{0,300}zacznijEdycje\(f\);/);
+  assert.match(P, /if \(z\.status === "zatwierdzone"\) \{[\s\S]{0,1200}g\.BM_EDYTUJ_FIRME\(z\.nazwa, !!z\.proba\)/, 'z próby też (blizna-191)');
+  assert.match(T, /window\.BM_EDYTUJ_FIRME = async function \(nazwa, proba\) \{[\s\S]{0,300}zacznijEdycje\(f\);/);
   assert.match(T, /const r = await sb\.from\('akcja_firmy'\)\.update\(\{ zgoda_na_kwote: pokazKwote \}\)\.eq\('id', edycja\.id\)/, 'pokazanie kwoty osobno');
   assert.doesNotMatch(czytaj('js/akcja.mjs').slice(czytaj('js/akcja.mjs').indexOf('function firmaDoEdycji')), /zgoda_na_kwote: w\./, 'główna edycja bez pola, którego baza może jeszcze nie przyjąć');
   const w = U.slice(U.indexOf('function wierszCegielki'), U.indexOf('async function wczytajCegielki'));
-  assert.match(w, /if \("ukryta" in c\) \{/, 'przyciski dopiero, gdy baza ma kolumnę');
-  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\("\*"\)/, 'lista działa przed i po migracji');
-  assert.match(w, /update\(\{ imie: nowe \}\)/); assert.match(w, /update\(\{ ukryta: !c\.ukryta \}\)/);
-  assert.match(w, /RE_IMIE\.test\(nowe\)/); assert.match(w, /M\.sprawdz\(nowe, \{ rodzaj: "imie" \}\)/, 'filtr imion jak przy dodawaniu');
-  assert.doesNotMatch(w, /update\(\{ zgoda/, 'zgody nie zmienia (wycofanie = skasowanie wpisu)');
+  assert.doesNotMatch(w, /ukryta|\.update\(/, 'baza nie daje trenerowi UPDATE na wpisach w murze ani kolumny ukryta');
+  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\("id,imie,zgoda,dodano"\)/);
+  assert.match(w, /cegielkaDoZapisu\(\{ imie: x\.imie, zgoda: x\.zgoda, potwierdzenie: true \}\)\.blad/, 'te same zasady i filtr imion co przy dodawaniu');
 });
 
 test('koła walca: owal zmierzony na pliku, obrót z kompensacją', () => {

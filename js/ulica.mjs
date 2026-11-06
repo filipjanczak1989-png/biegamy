@@ -703,38 +703,37 @@
       iKwota.value = wartosc(w.kwota_zl); iCel.value = wartosc(w.cel_zl);
       pokazPodglad(w);
     }
+    /* Wpis w murze (6.11): „Edytuj” (imię, zgoda) i „Usuń z Ulicy” we własnym okienku, bez window.confirm i prompt. Bez migracji: baza daje trenerowi dodawanie
+       i kasowanie, więc edycja to nowy wpis i skasowanie starego (cegła przechodzi na koniec muru). Mur nie liczy kilometrów: licznik akcji bez zmian. */
     function wierszCegielki(c) {
-      var w = h("div", "", lista); w.setAttribute("style", "display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border);");
-      var op = h("div", "", w); op.setAttribute("style", "flex:1;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:var(--fg);");
+      var w = h("div", "", lista); w.setAttribute("style", "display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);");
+      var op = h("div", "", w); op.setAttribute("style", "flex:1 1 150px;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:var(--fg);");
       h("div", "", op, c.imie);
-      var dalej = h("div", "", op, (c.ukryta ? "UKRYTY · " : "") + (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL"));
-      if (c.ukryta) w.style.opacity = ".6";
-      /* Zmiana imienia i ukrywanie po migracji 20261106_akcja_edycja (kolumna ukryta + prawo zmiany dla trenera). Wcześniej przycisków nie ma. */
-      if ("ukryta" in c) {
-        var styl = "flex:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:11px;padding:6px 10px;cursor:pointer;";
-        var zm = h("button", "", w, "Zmień imię"); zm.setAttribute("type", "button"); zm.setAttribute("style", styl);
-        zm.addEventListener("click", async function () {
-          var nowe = g.prompt("Nowe imię (jedno słowo, może być z łącznikiem):", c.imie); if (nowe == null) return;
-          nowe = nowe.trim(); if (!RE_IMIE.test(nowe)) { blC.textContent = "Imię: jedno słowo, same litery, od 2 do 20 znaków, najwyżej jeden łącznik."; return; }
-          var M = g.BM_MODERACJA; if (!M || !M.sprawdz(nowe, { rodzaj: "imie" }).ok) { blC.textContent = "To imię nie pójdzie na zbiórkę."; return; }
-          zm.disabled = true;
-          var r = await sb.from("akcja_cegielki").update({ imie: nowe }).eq("id", c.id).select("id");
-          if (r.error || !r.data || !r.data.length) { zm.disabled = false; blC.textContent = "Nie udało się zmienić: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
-          await wczytajCegielki();
-        });
-        var uk = h("button", "", w, c.ukryta ? "Pokaż" : "Ukryj"); uk.setAttribute("type", "button"); uk.setAttribute("style", styl);
-        uk.addEventListener("click", async function () {
-          uk.disabled = true;
-          var r = await sb.from("akcja_cegielki").update({ ukryta: !c.ukryta }).eq("id", c.id).select("id");
-          if (r.error || !r.data || !r.data.length) { uk.disabled = false; blC.textContent = "Nie udało się: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
-          await wczytajCegielki();
-        });
-      }
-      dalej.setAttribute("style", "font-size:11px;color:var(--muted);");
-      var us = h("button", "", w, "Usuń"); us.setAttribute("type", "button");
-      us.setAttribute("style", "flex:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:11px;padding:6px 10px;cursor:pointer;");
+      h("div", "", op, (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL")).setAttribute("style", "font-size:11px;color:var(--muted);");
+      var styl = "flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;";
+      var ed = h("button", "", w, "Edytuj"); ed.setAttribute("type", "button"); ed.setAttribute("style", styl + "color:var(--fg);");
+      ed.addEventListener("click", async function () {
+        blC.textContent = "";
+        if (!g.BM_OKIENKO) { blC.textContent = "Okienko edycji się nie wczytało. Odśwież stronę."; return; }
+        var v = await g.BM_OKIENKO({ tytul: "Edytuj wpis w murze", tekst: "Po zapisie cegła przechodzi na koniec muru.", tak: "Zapisz",
+          pola: [{ klucz: "imie", etykieta: "Imię (jedno słowo, może być z łącznikiem)", wartosc: c.imie, maks: 20 }, { klucz: "zgoda", typ: "checkbox", etykieta: "Osoba zgodziła się na imię w murze", wartosc: c.zgoda }],
+          sprawdz: function (x) { return cegielkaDoZapisu({ imie: x.imie, zgoda: x.zgoda, potwierdzenie: true }).blad || ""; } });
+        if (!v || (v.imie === c.imie && v.zgoda === c.zgoda)) return;
+        var p = cegielkaDoZapisu({ imie: v.imie, zgoda: v.zgoda, potwierdzenie: true });
+        if (p.blad) { blC.textContent = p.blad; return; }
+        ed.disabled = true;
+        var r = await sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: SLUG_PANELU }, p.wiersz)).select("id");
+        if (r.error || !r.data || !r.data.length) { ed.disabled = false; blC.textContent = "Nie udało się zapisać: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
+        var s2 = await sb.from("akcja_cegielki").delete().eq("id", c.id).select("id");
+        if (s2.error || !s2.data || !s2.data.length) blC.textContent = "Nowy wpis zapisany, ale starego baza nie skasowała: usuń „" + c.imie + "” z listy.";
+        await wczytajCegielki();
+      });
+      var us = h("button", "", w, "Usuń z Ulicy"); us.setAttribute("type", "button"); us.setAttribute("style", styl + "color:var(--red);");
       us.addEventListener("click", async function () {
-        if (!g.confirm("Usunąć wpis: " + c.imie + "?")) return;
+        blC.textContent = "";
+        if (!g.BM_OKIENKO) { blC.textContent = "Okienko potwierdzenia się nie wczytało. Odśwież stronę."; return; }
+        var tak = await g.BM_OKIENKO({ tytul: "Usunąć z Ulicy?", tekst: "Wpis „" + c.imie + "” zniknie z muru. Licznik kilometrów akcji się nie zmienia.", tak: "Usuń z Ulicy", grozne: true });
+        if (!tak) return;
         us.disabled = true;
         var r = await sb.from("akcja_cegielki").delete().eq("id", c.id).select("id");
         if (r.error || !r.data || !r.data.length) { us.disabled = false; blC.textContent = "Nie udało się usunąć: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
@@ -742,7 +741,7 @@
       });
     }
     async function wczytajCegielki() {
-      var r = await sb.from("akcja_cegielki").select("*").eq("akcja_slug", SLUG_PANELU).order("dodano").order("id");   // * : kolumna ukryta dochodzi migracją, bez niej lista działa jak dotąd
+      var r = await sb.from("akcja_cegielki").select("id,imie,zgoda,dodano").eq("akcja_slug", SLUG_PANELU).order("dodano").order("id");
       wyczysc(lista);
       if (r.error) { lista.textContent = "Nie udało się wczytać wpisów: " + komunikatBledu(r.error); return; }
       if (!r.data || !r.data.length) { h("div", "", lista, "Na razie bez wpisów: muru na rysunku nie widać.").setAttribute("style", "font-size:12px;color:var(--muted);"); return; }

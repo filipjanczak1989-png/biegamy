@@ -377,12 +377,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <form id="firmy-form" novalidate class="add-form" style="margin-top:12px;">
     <div class="field"><label for="firma-nazwa">Nazwa firmy</label><input type="text" id="firma-nazwa" maxlength="120" required autocomplete="off"></div>
     <div class="field"><label for="firma-link">Link (https)</label><input type="url" id="firma-link" maxlength="500" required placeholder="https://firma.pl" autocomplete="off"></div>
-    <div class="field"><label for="firma-logo">Logo: PNG, JPG, WebP albo PDF</label><input type="file" id="firma-logo" accept="image/png,image/jpeg,image/webp,application/pdf"><div id="firma-logo-podglad" style="margin-top:6px;font-size:12px;color:var(--muted);"></div></div>
+    <div class="field"><label for="firma-logo">Logo: PNG, JPG, WebP, SVG, PDF albo zdjęcie z telefonu</label><input type="file" id="firma-logo" accept="image/*,application/pdf"><div id="firma-logo-podglad" style="margin-top:6px;font-size:12px;color:var(--muted);"></div></div>
     <div class="field"><label for="firma-rodzaj">Budynek</label><select id="firma-rodzaj"><option value="domek">Domek</option><option value="wiezowiec">Wieżowiec</option><option value="cegielka">Nazwa w murze (wpłata poniżej progu)</option><optgroup label="Partnerzy poprzednich wyzwań"><option value="osiedle">Osiedle</option><option value="galeria">Galeria handlowa</option><option value="fabryka">Fabryka</option></optgroup></select></div>
     <div id="firma-poprzedni" hidden style="font-size:13px;line-height:1.4;color:var(--fg);">
       <label style="display:flex;gap:10px;align-items:flex-start;"><input type="checkbox" id="firma-logo-zgoda" style="margin-top:2px;">Firma zgodziła się na logo (bez zgody budynek stoi z samą nazwą)</label>
       <div id="firma-plakat-blok" hidden style="margin-top:8px;">
-        <div class="field"><label for="firma-plakat">Plakat na tablicy przy fabryce: PNG, JPG, WebP</label><input type="file" id="firma-plakat" accept="image/png,image/jpeg,image/webp"></div>
+        <div class="field"><label for="firma-plakat">Plakat na tablicy przy fabryce: PNG, JPG, WebP albo zdjęcie</label><input type="file" id="firma-plakat" accept="image/*"></div>
         <div class="field"><label for="firma-plakat-tekst">Tekst po dotknięciu tablicy</label><input type="text" id="firma-plakat-tekst" maxlength="120" autocomplete="off"></div>
       </div>
     </div>
@@ -838,7 +838,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script><script src="js/moderacja.mjs"></script><!-- filtr imion i nazw przy zbiórce (Filip 4.11) --><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
-<script src="js/firmy-panel.mjs" defer></script><script src="js/logo-firmy.mjs"></script><script src="js/akcja.mjs"></script><!-- firmy wspierające akcję: walidacja formularza i helpery listy (BM_AKCJA) -->
+<script src="js/okienko-panelu.js"></script><!-- okienko potwierdzenia i edycji zamiast window.confirm (6.11) --><script src="js/firmy-panel.mjs" defer></script><script src="js/logo-firmy.mjs"></script><script src="js/akcja.mjs"></script><!-- firmy wspierające akcję: walidacja formularza i helpery listy (BM_AKCJA) -->
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
 <script src="js/wiedza-panel.mjs"></script><!-- baza wiedzy Okienka: panel kandydatów (Filip 3.11) -->
@@ -9014,7 +9014,8 @@ document.addEventListener('keydown', (e) => {
   const $ = (id) => document.getElementById(id);
   const sekcja = $('firmy-sec'), form = $('firmy-form'), lista = $('firmy-lista'), blad = $('firmy-blad'), zapisz = $('firmy-zapisz'), anuluj = $('firmy-anuluj'), podglad = $('firma-logo-podglad');
   if (!sekcja || !form || !window.BM_AKCJA || !window.BM_LOGO_FIRMY || !window.sb) return;
-  const A = window.BM_AKCJA, sb = window.sb, SLUG = 'dla-fabianka', NAZWY = { domek: 'domek', wiezowiec: 'wieżowiec', cegielka: 'nazwa w murze', osiedle: 'osiedle', galeria: 'galeria handlowa', fabryka: 'fabryka' }, POPRZEDNI = ['osiedle', 'galeria', 'fabryka'];
+  /* Lista z obu akcji: prawdziwej i próby (PRÓBA), żeby dało się poprawić albo usunąć także firmę z testu formularza (6.11). Nowa firma z tego formularza idzie do prawdziwej akcji (domyślna akcja_slug w bazie). */
+  const A = window.BM_AKCJA, sb = window.sb, SLUGI = ['dla-fabianka', 'proba'], NAZWY = { domek: 'domek', wiezowiec: 'wieżowiec', cegielka: 'nazwa w murze', osiedle: 'osiedle', galeria: 'galeria handlowa', fabryka: 'fabryka' }, POPRZEDNI = ['osiedle', 'galeria', 'fabryka'];
   let wczytano = false, firmy = [], edycja = null, logo = null;
   const pokazBlad = (t) => { blad.textContent = t || ''; blad.style.display = t ? '' : 'none'; };
   const plikLogo = (u) => String(u || '').split('/' + A.BUCKET_LOGO + '/')[1] || '';
@@ -9042,7 +9043,7 @@ document.addEventListener('keydown', (e) => {
   }
   function wiersz(f, nr) {
     const link = A.linkFirmy(f), adresLogo = A.logoFirmy(f), nazwa = window.escapeHtml(f.nazwa);
-    const opis = [NAZWY[f.rodzaj] || f.rodzaj, f.wsparcie === 'poprzednie' ? 'Partner poprzednich wyzwań, logo: ' + (f.logo_zgoda ? 'zgoda' : 'BEZ ZGODY') : f.wsparcie === 'rzeczowe' ? 'Partner akcji' : (f.kwota_gr == null ? 'wpłata' : A.zl(f.kwota_gr) + (f.zgoda_na_kwote ? ' publicznie' : ' niepublicznie')), f.ukryta ? 'UKRYTA' : '', 'dodano ' + new Date(f.dodano).toLocaleDateString('pl-PL')].filter(Boolean).join(' · ');
+    const opis = [f.akcja_slug === 'proba' ? 'PRÓBA' : '', NAZWY[f.rodzaj] || f.rodzaj, f.wsparcie === 'poprzednie' ? 'Partner poprzednich wyzwań, logo: ' + (f.logo_zgoda ? 'zgoda' : 'BEZ ZGODY') : f.wsparcie === 'rzeczowe' ? 'Partner akcji' : (f.kwota_gr == null ? 'wpłata' : A.zl(f.kwota_gr) + (f.zgoda_na_kwote ? ' publicznie' : ' niepublicznie')), f.ukryta ? 'UKRYTA' : '', 'dodano ' + new Date(f.dodano).toLocaleDateString('pl-PL')].filter(Boolean).join(' · ');
     const guzik = 'flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;';
     return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);' + (f.ukryta ? 'opacity:.6;' : '') + '">' +
       (adresLogo ? '<img src="' + adresLogo + '" alt="" loading="lazy" style="flex:none;width:36px;height:36px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;">' : '') +
@@ -9052,22 +9053,48 @@ document.addEventListener('keydown', (e) => {
       (f.wsparcie === 'poprzednie' ? '<button type="button" data-firma-logo="' + nr + '" style="' + guzik + 'color:var(--fg);">' + (f.logo_zgoda ? 'Cofnij zgodę na logo' : 'Zgoda na logo') + '</button>' : '') +
       '<button type="button" data-firma-edytuj="' + nr + '" style="' + guzik + 'color:var(--fg);">Edytuj</button>' +
       '<button type="button" data-firma-ukryj="' + nr + '" style="' + guzik + 'color:var(--fg);">' + (f.ukryta ? 'Pokaż' : 'Ukryj') + '</button>' +
-      '<button type="button" data-firma-usun="' + nr + '" style="' + guzik + 'color:var(--red);">Usuń</button></div>';
+      '<button type="button" data-firma-usun="' + nr + '" style="' + guzik + 'color:var(--red);">Usuń z Ulicy</button></div>';
   }
   async function wczytaj() {
-    const { data, error } = await sb.from('akcja_firmy').select('id,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta,logo_zgoda,plakat_url,plakat_tekst').eq('akcja_slug', SLUG).order('dodano').order('id');
+    const { data, error } = await sb.from('akcja_firmy').select('id,akcja_slug,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta,logo_zgoda,plakat_url,plakat_tekst').in('akcja_slug', SLUGI).order('akcja_slug').order('dodano').order('id');
     if (error) { lista.textContent = 'Nie udało się wczytać listy: ' + komunikat(error); return; }
     wczytano = true; firmy = data || [];
     lista.innerHTML = firmy.length ? firmy.map(wiersz).join('') : '<div style="font-size:12px;color:var(--muted);">Lista pusta: na stronie akcji sekcji firm nie widać.</div>';
   }
-  /* Wejście z panelu zgłoszeń (js/firmy-panel.mjs): „Edytuj na Ulicy” przy zatwierdzonej firmie otwiera ten sam edytor. */
-  window.BM_EDYTUJ_FIRME = async function (nazwa) {
+  /* Wejście z panelu zgłoszeń (js/firmy-panel.mjs): „Edytuj” i „Usuń z Ulicy” przy zatwierdzonej firmie, z próby też. Zgłoszenie nie zna id firmy, więc po nazwie i akcji. */
+  function znajdz(nazwa, proba) {
+    const k = String(nazwa || '').trim().toLowerCase();
+    return firmy.filter((x) => String(x.nazwa || '').trim().toLowerCase() === k && (proba == null || (x.akcja_slug === 'proba') === !!proba));
+  }
+  window.BM_EDYTUJ_FIRME = async function (nazwa, proba) {
     if (!wczytano) await wczytaj();
-    const k = String(nazwa || '').trim().toLowerCase(), f = firmy.find((x) => String(x.nazwa || '').trim().toLowerCase() === k);
+    const f = znajdz(nazwa, proba)[0];
     if (!f) return false;
     sekcja.open = true; zacznijEdycje(f); form.scrollIntoView({ block: 'start', behavior: 'smooth' });
     return true;
   };
+  /** → 'usunieta' | 'anulowano' | 'brak' | 'blad'. Kilka firm o tej nazwie: nic nie zgadujemy, usuwa się z listy. */
+  window.BM_USUN_FIRME = async function (nazwa, proba) {
+    await wczytaj();
+    const pasujace = znajdz(nazwa, proba);
+    if (!pasujace.length) return 'brak';
+    if (pasujace.length > 1) { window.showToast('Kilka firm o tej nazwie: usuń właściwą z listy „Firmy wspierające akcję”.', 'warn'); return 'blad'; }
+    return usunFirme(pasujace[0]);
+  };
+  /* Usunięcie z Ulicy: własne okienko (window.confirm w PWA bywa zablokowane), wpis z tabeli firm i plik logo. Licznik kilometrów liczy treningi, nie firmy, więc się nie zmienia. */
+  async function usunFirme(f) {
+    if (!window.BM_OKIENKO) { window.showToast('Okienko potwierdzenia się nie wczytało. Odśwież stronę.', 'error'); return 'blad'; }
+    const tak = await window.BM_OKIENKO({ tytul: 'Usunąć z Ulicy?', tekst: '„' + f.nazwa + '”' + (f.akcja_slug === 'proba' ? ' (próba)' : '') + ' zniknie z Ulicy i z listy firm na stronie akcji, najpóźniej po 2 minutach. Licznik kilometrów się nie zmienia.', tak: 'Usuń z Ulicy', grozne: true });
+    if (!tak) return 'anulowano';
+    const { data, error } = await sb.from('akcja_firmy').delete().eq('id', f.id).select('id');
+    if (error || !data || !data.length) { window.showToast('Nie udało się usunąć: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return 'blad'; }
+    const plik = plikLogo(f.logo_url);
+    if (plik) { try { const r = await sb.storage.from(A.BUCKET_LOGO).remove([plik]); if (r.error) throw r.error; } catch (_) { window.showToast('Wpis usunięty, plik logo został w Storage.', 'warn'); } }
+    if (edycja && edycja.id === f.id) czyscFormularz();
+    window.showToast('Usunięto z Ulicy. Ze strony akcji zniknie najpóźniej po 2 minutach.');
+    await wczytaj();
+    return 'usunieta';
+  }
   function zacznijEdycje(f) {
     czyscFormularz(); edycja = f;
     $('firma-nazwa').value = f.nazwa; $('firma-link').value = f.link; $('firma-rodzaj').value = f.rodzaj; $('firma-wsparcie').value = f.wsparcie;
@@ -9166,14 +9193,8 @@ document.addEventListener('keydown', (e) => {
       await wczytaj();
       return;
     }
-    if (!window.confirm('Usunąć „' + f.nazwa + '” z listy?')) return;
     cel.disabled = true;
-    const { data, error } = await sb.from('akcja_firmy').delete().eq('id', f.id).select('id');
-    if (error || !data || !data.length) { cel.disabled = false; window.showToast('Nie udało się usunąć: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return; }
-    const plik = plikLogo(f.logo_url);
-    if (plik) { try { const r = await sb.storage.from(A.BUCKET_LOGO).remove([plik]); if (r.error) throw r.error; } catch (_) { window.showToast('Wpis usunięty, plik logo został w Storage.', 'warn'); } }
-    if (edycja && edycja.id === f.id) czyscFormularz();
-    await wczytaj();
+    if (await usunFirme(f) !== 'usunieta') cel.disabled = false;
   });
   ustawWsparcie();
 })();

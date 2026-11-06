@@ -198,8 +198,8 @@ test('formularz: walidacja jak CHECK-i w bazie (komunikat po polsku, zamkiem jes
 test('panel trenera: pole plik, nie adres; potwierdzenie; dane w dataset, bez JS w atrybutach; zapis przez akcja_firmy; bez adresu z przeglądarki w logo', () => {
   const h = czytaj('trener.html');
   const f = h.slice(h.indexOf('<details class="fi" id="firmy-sec"'), h.indexOf('id="firmy-lista"'));
-  assert.match(f, /<input type="file" id="firma-logo" accept="image\/png,image\/jpeg,image\/webp,application\/pdf">/);
-  assert.doesNotMatch(f, /type="url" id="firma-logo|svg/i);
+  assert.match(f, /<input type="file" id="firma-logo" accept="image\/\*,application\/pdf">/);   // zdjęcie z telefonu i SVG też (blizna-191); do bucketu idzie tylko obraz z canvasu
+  assert.doesNotMatch(f, /type="url" id="firma-logo|accept="[^"]*svg/i, 'plik, nie adres; SVG wchodzi tylko jako obraz do przerysowania (blizna-191), do bucketu nie (logoDoWgrania)');
   assert.match(f, /id="firma-potwierdzenie-tekst">Wpłata powyżej progu potwierdzona<\/span><\/label>/);
   assert.match(f, /id="firma-wymienienie" required[^>]*>Firma zgodziła się na wymienienie<\/label>/, 'obowiązkowa (Filip 4.11)');
   assert.match(h, /<script src="js\/akcja\.mjs"><\/script>/);

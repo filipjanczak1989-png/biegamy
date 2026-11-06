@@ -117,7 +117,7 @@ test('panel ręczny: wpłata wymaga potwierdzenia, Partner akcji bez progu; edyc
   const h = czytaj('trener.html');
   const f = h.slice(h.indexOf('<form id="firmy-form"'), h.indexOf('</form>', h.indexOf('<form id="firmy-form"')));
   for (const id of ['firma-nazwa', 'firma-link', 'firma-logo', 'firma-rodzaj', 'firma-wsparcie', 'firma-wymienienie']) assert.match(f, new RegExp('id="' + id + '"'), id);
-  assert.match(f, /accept="image\/png,image\/jpeg,image\/webp,application\/pdf"/);
+  assert.match(f, /accept="image\/\*,application\/pdf"/);   // zdjęcie z telefonu i SVG też (blizna-191); do bucketu i tak idzie tylko obraz z canvasu
   const start = h.indexOf('/* Firmy wspierające akcję: jeden formularz'), k = h.slice(start, h.indexOf('</script>', start));
   assert.match(k, /\.update\(A\.firmaDoEdycji\(p\.wiersz\)\)\.eq\('id', edycja\.id\)\.select\('id'\)/, 'RLS daje 0 wierszy bez błędu: bez select zapis „udałby się” po cichu');
   assert.match(k, /\.update\(\{ ukryta: !f\.ukryta \}\)\.eq\('id', f\.id\)\.select\('id'\)/);
@@ -125,20 +125,23 @@ test('panel ręczny: wpłata wymaga potwierdzenia, Partner akcji bez progu; edyc
   assert.doesNotMatch(k, /onclick=|onerror=|onload=/, 'bez JS w atrybutach');
 });
 
-test('logo w panelu: PDF po bajtach, pdf.js dopiero po wybraniu i bez eval, biblioteka lokalnie; SVG nie przejdzie', () => {
+test('logo w panelu: PDF po bajtach, pdf.js dopiero po wybraniu i bez eval, biblioteka lokalnie; SVG tylko jako obraz z canvasu', () => {
   const l = bezKomJs(czytaj('js/logo-firmy.mjs'));
   assert.match(l, /await import\(new URL\(KAT_PDF \+ "pdf\.min\.mjs"/, 'dynamicznie: waga panelu bez zmian');
   assert.match(l, /isEvalSupported: false/);
   assert.match(l, /background: "rgba\(0,0,0,0\)"/, 'przezroczyste tło');
   assert.match(l, /BOK = 400/);
-  assert.doesNotMatch(l, /svg/i);
+  /* SVG (blizna-191) wchodzi jako plik, ale do bucketu i do funkcji idzie wyłącznie raster z canvasu: wynik przygotuj() to toBlob, nigdy plik wejściowy */
+  assert.match(l, /k\.toBlob\(ok, "image\/webp", JAKOSC\)/);
+  assert.doesNotMatch(l, /blob: plik|return plik/, 'przygotuj nie oddaje pliku wejściowego');
+  assert.match(l, /type: "image\/svg\+xml"/, 'SVG rysowane przez <img>, bez skryptów i zasobów z zewnątrz');
   for (const p of ['vendor/pdfjs-4.10.38/pdf.min.mjs', 'vendor/pdfjs-4.10.38/pdf.worker.min.mjs', 'vendor/pdfjs-4.10.38/LICENSE']) assert.ok(fs.existsSync(path.join(KORZEN, p)), p);
   const c = { globalThis: null, URL, Promise }; c.globalThis = c; vm.createContext(c);
   vm.runInContext(czytaj('js/logo-firmy.mjs'), c);
   const r = c.BM_LOGO_FIRMY.rodzajPoBajtach;
   assert.equal(r(new TextEncoder().encode('%PDF-1.7 tresc pliku')), 'pdf');
   assert.equal(r(png(1, 1)), 'obraz'); assert.equal(r(jpeg(1, 1)), 'obraz'); assert.equal(r(webpX(1, 1)), 'obraz');
-  assert.equal(r(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>')), '');
+  assert.equal(r(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>')), 'svg');
 });
 
 test('szyld: logo, a bez niego nazwa; podpis Partner akcji; żadnego innerHTML z danych firmy; wieżowiec głębiej', () => {
@@ -184,7 +187,7 @@ test('Centrum Akcji na Dziś: bez pełnej sceny, kafle, film dopiero po dotknię
 
 test('logo z pustym tłem: panel przycina biały i przezroczysty margines, biel w środku zostaje', () => {
   const s = czytaj('js/logo-firmy.mjs');
-  assert.match(s, /\} else k = bezPustegoMarginesu\(await obrazNaCanvas\(plik\)\);/);
+  assert.match(s, /try \{ k = await obrazNaCanvas\(plik, bajty, rodzaj\); \}[\s\S]{0,400}try \{ k = bezPustegoMarginesu\(k\); \} catch \(e\) \{\}/, 'po odczycie obrazu przycięcie; canvas, którego nie wolno czytać, zostaje bez przycięcia (blizna-191)');
   assert.match(s, /d\[i \+ 3\] > PROG_ALFA && Math\.min\(d\[i\], d\[i \+ 1\], d\[i \+ 2\]\) < 245/);
   assert.match(s, /if \(x1 < 0\) return k;/, 'całe białe logo nie jest błędem');
 });

@@ -1,15 +1,33 @@
-// Logo firmy z panelu trenera: PNG, JPG, WebP albo PDF → obraz najwyżej 400 px, gotowy do bucketu akcja-firmy-logo. Plik BEZ import/export (globalThis.BM_LOGO_FIRMY).
+// Logo firmy z panelu trenera i z formularza na stronie akcji: PNG, JPG, WebP, GIF, AVIF, SVG, zdjęcie z telefonu (duże, z obrotem EXIF; HEIC tam, gdzie przeglądarka je otwiera, czyli w Safari),
+// w panelu także PDF → obraz najwyżej 400 px, gotowy do bucketu akcja-firmy-logo i do funkcji firma-zgloszenie. Plik BEZ import/export (globalThis.BM_LOGO_FIRMY).
+// 400 px: granica funkcji firma-zgloszenie (większy WebP odrzuca), a szyld na Ulicy ma najwyżej 160 px szerokości. Wynik zawsze z canvasu (WebP, Safari bez zapisu WebP oddaje PNG), więc SVG nie trafia do bucketu jako SVG.
 // PDF rysuje pdf.js w przeglądarce trenera, tylko gdy ktoś wybierze PDF (vendor/pdfjs-4.10.38). Przezroczyste tło: strona bez koloru tła, a białe tło namalowane w pliku jest wycinane od krawędzi. Margines strony jest przycinany, żeby logo wypełniło szyld.
 (function (g) {
   "use strict";
-  var BOK = 400, WEJSCIE_MAKS = 10 * 1024 * 1024, PDF_BOK = 1600, KAT_PDF = "vendor/pdfjs-4.10.38/", JAKOSC = 0.92, PROG_BIELI = 245, PROG_ALFA = 8;
+  var BOK = 400, WEJSCIE_MAKS = 25 * 1024 * 1024, ETAP_BOK = 1600, SVG_BOK = 800, PDF_BOK = 1600, KAT_PDF = "vendor/pdfjs-4.10.38/", JAKOSC = 0.92, PROG_BIELI = 245, PROG_ALFA = 8;
+  var PROSBA = "Wyślij logo jako PNG lub JPG.";
+  var HEIF = /^(heic|heix|hevc|hevx|heim|heis|hevm|hevs|mif1|msf1)$/;
 
+  function ascii(b, od, ile) { var s = ""; for (var i = od; i < od + ile && i < b.length; i++) s += String.fromCharCode(b[i]); return s; }
+  /** Po pierwszych bajtach: "pdf" | "obraz" (PNG, JPG, WebP, GIF, AVIF) | "heic" | "svg" | "" (nieznany: i tak próbujemy go otworzyć). */
   function rodzajPoBajtach(b) {
     if (b.length < 12) return "";
     if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 && b[4] === 0x2d) return "pdf";
     if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "obraz";
     if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "obraz";
     if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "obraz";
+    if (ascii(b, 0, 4) === "GIF8") return "obraz";
+    if (ascii(b, 4, 4) === "ftyp") { var marka = ascii(b, 8, 4); if (marka === "avif" || marka === "avis") return "obraz"; if (HEIF.test(marka)) return "heic"; }
+    var poczatek = ascii(b, b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf ? 3 : 0, 1024);
+    if (/^\s*(<\?xml[\s\S]*?\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(poczatek)) return "svg";
+    return "";
+  }
+  /** Gdy bajty nic nie mówią (długi komentarz na początku SVG, HEIC bez znanej marki): typ i nazwa pliku z telefonu. */
+  function rodzajPoNazwie(plik) {
+    var t = String(plik.type || "").toLowerCase(), n = String(plik.name || "").toLowerCase();
+    if (t === "image/svg+xml" || /\.svgz?$/.test(n)) return "svg";
+    if (/^image\/hei[cf]/.test(t) || /\.hei[cf]$/.test(n)) return "heic";
+    if (t === "application/pdf" || /\.pdf$/.test(n)) return "pdf";
     return "";
   }
   function nowyCanvas(s, w) { var k = g.document.createElement("canvas"); k.width = Math.max(1, Math.round(s)); k.height = Math.max(1, Math.round(w)); return k; }
@@ -72,14 +90,35 @@
     return n;
   }
 
-  function obrazNaCanvas(plik) {
+  /** Wymiary z <svg width height> albo viewBox; logo bez nich (tylko CSS) dostaje kwadrat. */
+  function proporcjeSvg(tekst) {
+    var tag = (/<svg\b[^>]*>/i.exec(tekst) || [""])[0];
+    function atr(n) { var m = new RegExp("\\s" + n + "\\s*=\\s*[\"']\\s*([0-9.]+)\\s*(px)?\\s*[\"']", "i").exec(tag); return m ? Number(m[1]) : 0; }
+    var s = atr("width"), w = atr("height");
+    if (s > 0 && w > 0) return [s, w];
+    var vb = /\sviewBox\s*=\s*["']\s*[-0-9.]+[\s,]+[-0-9.]+[\s,]+([0-9.]+)[\s,]+([0-9.]+)\s*["']/i.exec(tag);
+    if (vb && Number(vb[1]) > 0 && Number(vb[2]) > 0) return [Number(vb[1]), Number(vb[2])];
+    return [1, 1];
+  }
+
+  /* Obraz rysuje przeglądarka (z obrotem EXIF, jak w <img>) od razu w mniejszym canvasie: zdjęcie 48 Mpx nie robi canvasu, którego telefon nie uniesie.
+     SVG rysowany w docelowej wielkości, więc ostry. Błąd = przeglądarka nie zna formatu. */
+  function obrazNaCanvas(plik, bajty, rodzaj) {
     return new Promise(function (ok, zle) {
-      var u = URL.createObjectURL(plik), im = new Image();
-      im.onerror = function () { URL.revokeObjectURL(u); zle(new Error("Logo: nie udało się odczytać obrazu.")); };
+      var svg = rodzaj === "svg", zrodlo = svg ? new Blob([bajty], { type: "image/svg+xml" }) : plik, u = URL.createObjectURL(zrodlo), im = new Image();
+      im.onerror = function () { URL.revokeObjectURL(u); zle(new Error("dekodowanie")); };
       im.onload = function () {
-        var k = nowyCanvas(im.naturalWidth, im.naturalHeight);
-        k.getContext("2d").drawImage(im, 0, 0);
-        URL.revokeObjectURL(u); ok(k);
+        try {
+          var sw = im.naturalWidth, sh = im.naturalHeight, sk;
+          if (svg) { var p = proporcjeSvg(new TextDecoder().decode(bajty.subarray(0, 65536))); sw = p[0]; sh = p[1]; sk = SVG_BOK / Math.max(sw, sh); }
+          else sk = Math.min(1, ETAP_BOK / Math.max(sw, sh));
+          if (!(sw > 0 && sh > 0)) throw new Error("dekodowanie");
+          var k = nowyCanvas(sw * sk, sh * sk), c = k.getContext("2d");
+          if (!c) throw new Error("pamięć");
+          c.imageSmoothingQuality = "high";
+          c.drawImage(im, 0, 0, k.width, k.height);
+          ok(k);
+        } catch (e) { zle(e); } finally { URL.revokeObjectURL(u); }
       };
       im.src = u;
     });
@@ -99,21 +138,28 @@
     return n;
   }
 
-  /** Plik z formularza → { blob, szer, wys, zPdf }. Typ wyniku: WebP, a Safari, które WebP nie zapisze, oddaje PNG. Błędy po polsku w Error.message. */
-  async function przygotuj(plik) {
+  /** Plik → { blob, szer, wys, zPdf }. opcje.pdf === false: PDF odrzucany (formularz na stronie akcji, bez pdf.js). Błędy po polsku w Error.message, zawsze z tym, co zrobić. */
+  async function przygotuj(plik, opcje) {
+    var o = opcje || {};
     if (!plik || !(plik.size > 0)) throw new Error("Logo: wybierz plik.");
-    if (plik.size > WEJSCIE_MAKS) throw new Error("Logo: plik do 10 MB.");
-    var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty), k;
-    if (!rodzaj) throw new Error("Logo: tylko PNG, JPG, WebP albo PDF.");
+    if (plik.size > WEJSCIE_MAKS) throw new Error("Logo: plik ma ponad 25 MB. " + PROSBA);
+    var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
     if (rodzaj === "pdf") {
-      try { k = await pdfNaCanvas(bajty); } catch (e) { throw new Error("Logo: nie udało się odczytać PDF. Wyślij PNG."); }
+      if (o.pdf === false) throw new Error("Logo: to plik PDF. " + PROSBA);
+      try { k = await pdfNaCanvas(bajty); } catch (e) { throw new Error("Logo: nie udało się odczytać PDF. " + PROSBA); }
       bezBialegoTla(k);
       k = przytnij(k);
-    } else k = bezPustegoMarginesu(await obrazNaCanvas(plik));
+    } else {
+      try { k = await obrazNaCanvas(plik, bajty, rodzaj); } catch (e) {
+        throw new Error(rodzaj === "heic" ? "Logo: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA + " Wystarczy zrzut ekranu z logo." : "Logo: tego pliku nie da się otworzyć jako obrazu. " + PROSBA);
+      }
+      try { k = bezPustegoMarginesu(k); } catch (e) {}   // canvas, którego nie wolno czytać (stare Safari i SVG): logo bez przycięcia
+    }
     k = przeskaluj(k);
-    var blob = await new Promise(function (ok) { k.toBlob(ok, "image/webp", JAKOSC); });
-    if (!blob) throw new Error("Logo: nie udało się przygotować obrazu.");
+    var blob = null;
+    try { blob = await new Promise(function (ok) { k.toBlob(ok, "image/webp", JAKOSC); }); } catch (e) { blob = null; }
+    if (!blob) throw new Error("Logo: nie udało się przygotować obrazu. " + PROSBA);
     return { blob: blob, szer: k.width, wys: k.height, zPdf: rodzaj === "pdf" };
   }
-  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, rodzajPoBajtach: rodzajPoBajtach };
+  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, rodzajPoBajtach: rodzajPoBajtach, PROSBA: PROSBA };
 })(globalThis);
