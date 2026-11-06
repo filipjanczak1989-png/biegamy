@@ -90,6 +90,11 @@
     ".us-szyld--ciemny{background:#2b2230}.us-szyld--logo{background:#fbf3df;border:2px solid #7a4a1c;border-radius:6px;box-shadow:0 2px 4px rgba(40,20,0,.35);padding:3px;box-sizing:border-box}.us-szyld--logo.us-szyld--ciemny{background:#2b2230}.us-logo{display:block;width:100%;height:100%;object-fit:contain}.us-partner{position:absolute;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#3a2410;color:#fff;font:800 9px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
     ".us-szyld{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:#4a2408;font-family:Inter,system-ui,sans-serif;font-weight:700;line-height:1.08;text-align:center;pointer-events:none}.us-szyld span{display:block;white-space:nowrap}" +
     ".us-lustro{transform:scaleX(-1)}" +
+    ".us-bilbord{position:absolute;box-sizing:border-box;padding:4px;border:1.5px solid #5a2e0e;border-radius:5px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 55%,#df8f2e 100%);box-shadow:0 2px 4px rgba(40,20,0,.38),inset 0 1px 0 rgba(255,240,200,.65);pointer-events:none}" +
+    ".us-bilbord-mata{width:100%;height:100%;box-sizing:border-box;padding:10%;border-radius:2px;background:#f6f1e7;box-shadow:inset 0 0 0 1px rgba(90,46,14,.6)}.us-bilbord-mata--ciemna{background:#2a2a2a}" +
+    ".us-bilbord-logo{display:block;width:100%;height:100%;object-fit:contain}" +
+    ".us-szyld--deska{box-sizing:border-box;padding:0 3px;border:1.5px solid #5a2e0e;border-radius:3px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 60%,#e9993a 100%);box-shadow:0 1px 2px rgba(40,20,0,.35)}" +
+    ".us-bilbord-slupek{position:absolute;box-sizing:border-box;border:1px solid #5a2e0e;border-radius:1px;background:linear-gradient(90deg,#c97a30,#e9a04a 50%,#b56a26);pointer-events:none}" +
     "@media (max-width:480px){.us-mur-graczy{max-width:190px}}" +
     ".us-plakat{position:absolute;object-fit:contain;background:#fffdf7;pointer-events:none}" +
     ".us-mur{position:absolute;top:" + (POZIOM_DOMKU - 62) + "px;height:62px;background-repeat:repeat-x;background-size:auto 62px;background-color:#d9694e;pointer-events:none}" +
@@ -218,7 +223,64 @@
     laduj(im, f.logo);
     return gora + ph;
   }
-  /** Budynek firmy: obraz z kształtem na wypadek braku pliku, szyld, plakat na billboardzie, „Partner akcji”. → { el, h0, dolSzyldu } */
+  /* SZYLD Z NAZWĄ (domek, wieżowiec; Filip 6.11 wieczór): napis na namalowanej desce, jedna albo dwie linie od 8 px. Gdy się nie mieści, większa drewniana deska
+     w tym samym miejscu (do 66 % szerokości domku, 82 % wieżowca) i dwie linie; bardzo długa nazwa: dwie linie z wielokropkiem. → dół szyldu w px. */
+  function napisDeski(t, szer, miara) {
+    var r, i, slowa = t.split(" "), najl = null;
+    for (r = 9.5; r >= 7; r -= 0.5) if (miara(t, r) <= szer) return { rozmiar: r, linie: [t] };
+    for (i = 1; i < slowa.length; i++) {
+      var a = slowa.slice(0, i).join(" "), b = slowa.slice(i).join(" "), m = Math.max(miara(a, 8), miara(b, 8));
+      if (!najl || m < najl.m) najl = { a: a, b: b, m: m };
+    }
+    if (najl) for (r = 9.5; r >= 7; r -= 0.5) if (miara(najl.a, r) <= szer && miara(najl.b, r) <= szer) return { rozmiar: r, linie: [najl.a, najl.b] };
+    function utnij(x) { var zn = Array.from(x); if (miara(x, 7) <= szer) return x; while (zn.length > 1 && miara(zn.join("") + "…", 7) > szer) zn.pop(); return zn.join("") + "…"; }
+    return { rozmiar: 7, linie: najl ? [utnij(najl.a), utnij(najl.b)] : [utnij(t)] };
+  }
+  function szyldZNazwa(U, b, f, r, w, wiez, h0) {
+    var sx = r[0] * w, sy = r[1] * h0, sw = r[2] * w, sh = r[3] * h0, t = String(f.nazwa || "").replace(/\s+/g, " ").trim(), sz = el("div", "us-szyld", b);
+    var miara = function (x, roz) { return U.mierzTekst(x, roz, 700); };
+    function naDesce(lewo, gora, szer, wys, nap) {
+      sz.style.left = lewo + "px"; sz.style.top = gora + "px"; sz.style.width = szer + "px"; sz.style.height = wys + "px"; sz.style.fontSize = nap.rozmiar + "px";
+      nap.linie.forEach(function (l) { el("span", "", sz, l); });
+    }
+    var na = U.dopasujSzyld(t, sw - 4, sh, miara, { maks: 13, min: 8 });
+    if (na.linie.join(" ") === t) { naDesce(sx, sy, sw, sh, na); return sy + sh; }
+    var maks = w * (wiez ? 0.82 : 0.66), nap = napisDeski(t, maks - 10, miara);
+    var szer = Math.max(sw, Math.min(maks, Math.max.apply(null, nap.linie.map(function (l) { return miara(l, nap.rozmiar); })) + 12)), wys = Math.max(sh, nap.linie.length * nap.rozmiar * 1.12 + 6);
+    sz.className += " us-szyld--deska";
+    naDesce(sx + sw / 2 - szer / 2, sy + sh / 2 - wys / 2, szer, wys, nap);
+    return sy + sh / 2 + wys / 2;
+  }
+  /* TABLICA Z LOGO (Filip 6.11 wieczór): szyld nad drzwiami to zawsze nazwa firmy, logo stoi na kwadratowej tablicy. Domek: nad dachem, na dwóch słupkach za kalenicą
+     (dach zasłania ich dół), bok 55 % szerokości. Wieżowiec: na elewacji pod szyldem z nazwą, bo nad dachem nie ma miejsca (sięga góry sceny). Drewniana ramka jak szyld,
+     w środku mata dobrana do jasności logo (U.ciemnaMata: jasne → #2a2a2a, ciemne → #f6f1e7, awaria odczytu → kremowa), logo z marginesem 10 % i contain.
+     Logo się nie wczyta: tablicy nie ma, nazwa i tak stoi na szyldzie. */
+  var TABLICA = { bok: 0.55, nadDachem: 0.04, slupek: 0.035, rozstaw: 0.6, wDach: 0.28, wiezBok: 0.64, wiezGora: 0.282 };
+  function tablicaZLogo(U, b, oprawa, f, w, h0, wiez, laduj, naLogo) {
+    var bok = Math.round(w * (wiez ? TABLICA.wiezBok : TABLICA.bok)), gora = wiez ? h0 * TABLICA.wiezGora : -(bok + w * TABLICA.nadDachem), slupki = [];
+    if (!wiez) {
+      var gr = Math.max(3, w * TABLICA.slupek), odSz = gora + bok - 2;
+      [-1, 1].forEach(function (s) {
+        var sl = el("div", "us-bilbord-slupek");
+        b.insertBefore(sl, oprawa);   // przed obrazem budynku: dach zasłania dół słupka
+        sl.style.left = (w / 2 + s * bok * TABLICA.rozstaw / 2 - gr / 2) + "px"; sl.style.top = odSz + "px";
+        sl.style.width = gr + "px"; sl.style.height = (h0 * TABLICA.wDach - odSz) + "px";
+        slupki.push(sl);
+      });
+    }
+    var t = el("div", "us-bilbord" + (wiez ? " us-bilbord--wiez" : ""), b);
+    t.style.left = (w - bok) / 2 + "px"; t.style.top = gora + "px"; t.style.width = bok + "px"; t.style.height = bok + "px";
+    var mata = el("div", "us-bilbord-mata", t), im = el("img", "us-bilbord-logo", mata);
+    im.setAttribute("crossorigin", "anonymous");   // odczyt jasności logo; magazyn publiczny oddaje CORS dla każdego
+    im.onload = function () { var ciemna = U.ciemnaMata(im); if (ciemna) mata.classList.add("us-bilbord-mata--ciemna"); if (naLogo) naLogo(im, ciemna); };
+    im.onerror = function () {
+      slupki.concat([t]).forEach(function (x) { if (x.parentNode) x.parentNode.removeChild(x); });
+      if (naLogo) naLogo(null, false);
+    };
+    laduj(im, f.logo);
+    return t;
+  }
+  /** Budynek firmy: obraz z kształtem na wypadek braku pliku, szyld z nazwą, tablica z logo, plakat na billboardzie, „Partner akcji”. → { el, h0, dolSzyldu } */
   function budynekFirmy(U, rodzic, f, wyb, xb, baza, w, nr, laduj, naLogo) {
     var def = U.SZYLDY[wyb.nazwa], h0 = w / def.proporcja;
     var b = el("button", "us-btn us-domek", rodzic);
@@ -228,7 +290,13 @@
     var obrazB = el("img", "us-cz", oprawa);
     laduj(obrazB, U.sciezkaObrazu(wyb.nazwa));
     obrazZeSpadkiem(U, wyb.nazwa, oprawa, [obrazB]);
-    var r = U.szyldNaDomku(def.szyld, wyb.lustro), dolSzyldu = szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo);
+    var r = U.szyldNaDomku(def.szyld, wyb.lustro), poprz = !!U.BUDYNKI_POPRZEDNICH[f.rodzaj], dolSzyldu;
+    if (poprz) dolSzyldu = szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo);
+    else {
+      dolSzyldu = szyldZNazwa(U, b, f, r, w, wyb.nazwa === "wiezowiec", h0);
+      if (f.logo) tablicaZLogo(U, b, oprawa, f, w, h0, wyb.nazwa === "wiezowiec", laduj, naLogo);
+      else if (naLogo) naLogo(null, false);
+    }
     /* Plakat na billboardzie przy fabryce: adres z bazy, tylko po zgodzie firmy. Awaria pliku = pusta tablica. */
     if (def.plakat && f.plakat) {
       var pk = el("img", "us-plakat", b); pk.setAttribute("alt", ""); pk.setAttribute("crossorigin", "anonymous"); pk.onerror = function () { if (pk.parentNode) pk.parentNode.removeChild(pk); };

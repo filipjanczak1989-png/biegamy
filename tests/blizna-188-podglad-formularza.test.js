@@ -42,8 +42,9 @@ test('formularz firmy: podgląd nad „Wyślij”, logo jak do wysyłki, nic na 
 
 test('ocena logo: za szerokie, słabo widoczne, ciemny prostokąt; panel trenera z podglądem cegły', () => {
   const o = U.slice(U.indexOf('function ocenaLogo('), U.indexOf('function podgladFirmy('));
-  assert.match(o, /nw \/ nh > 3\.2/); assert.match(o, /blisko \/ n > 0\.85/); assert.match(o, /tlo = ciemnySzyld \? 40 : 240/);
-  assert.match(o, /słabo widać na szyldzie: wyślij wersję na przezroczystym tle/);
+  /* od blizny 194 logo stoi na kwadratowej tablicy z matą #2a2a2a albo #f6f1e7: wydłużone w obie strony, jasność maty zamiast deski */
+  assert.match(o, /nw \/ nh > 3\.2 \|\| nh \/ nw > 3\.2/); assert.match(o, /blisko \/ n > 0\.85/); assert.match(o, /tlo = ciemnySzyld \? 42 : 241/);
+  assert.match(o, /słabo widać na tablicy: wyślij wersję na przezroczystym tle/);
   assert.match(U, /function podgladFirmy\(kontener, f, naLogo\) \{ return ladujScene\(\)\.then\(function \(S\) \{ return S\.podgladFirmy\(kontener, f, naLogo\); \}\); \}/);
   const pt = U.slice(U.indexOf('function panelTrenera('));
   assert.match(pt, /podgladCegly\(podCegly, ok \? im : "", iZgoda\.checked\)/);

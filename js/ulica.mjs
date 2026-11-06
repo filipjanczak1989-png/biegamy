@@ -191,24 +191,43 @@
       return n > 0 && przezr > 0 && suma / n >= 225;
     } catch (e) { return false; }
   }
-  /** Podpowiedź do logo w podglądzie formularza firmy: bez blokowania wysyłki. ciemnySzyld = jasneLogo (wtedy deska ciemna). → [] albo teksty. */
+  /** Mata pod logo na tablicy (Filip 6.11): średnia jasność nieprzezroczystych pikseli z próbki 32×32. Jasne logo (L > 0,6) → ciemna mata, ciemne → kremowa.
+      Logo bez przezroczystości (JPG na własnym tle): tło pliku to nie logo, więc mata w kolorze brzegu, czyli białe tło na kremowej, czarne na ciemnej, bez „naklejki”.
+      Awaria odczytu (obraz bez CORS) albo logo całe przezroczyste → kremowa. → true = ciemna. */
+  function ciemnaMata(im) {
+    try {
+      var k = g.document.createElement("canvas"); k.width = 32; k.height = 32;
+      var c = k.getContext("2d"); c.drawImage(im, 0, 0, 32, 32);
+      var d = c.getImageData(0, 0, 32, 32).data, waga = 0, suma = 0, przezr = 0, brzeg = 0, brzegSuma = 0;
+      for (var i = 0; i < d.length; i += 4) {
+        var a = d[i + 3] / 255, x = (i / 4) % 32, y = Math.floor(i / 128);
+        if (a < 0.16) { przezr++; continue; }
+        var l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+        waga += a; suma += a * l;
+        if (x === 0 || y === 0 || x === 31 || y === 31) { brzeg++; brzegSuma += l; }
+      }
+      if (!przezr && brzeg) return brzegSuma / brzeg <= 0.6;
+      return waga > 0 && suma / waga > 0.6;
+    } catch (e) { return false; }
+  }
+  /** Podpowiedź do logo w podglądzie formularza firmy: bez blokowania wysyłki. ciemnySzyld = ciemnaMata (wtedy mata ciemna). → [] albo teksty. */
   function ocenaLogo(im, ciemnySzyld) {
     var w = [];
     try {
       var nw = im.naturalWidth || 1, nh = im.naturalHeight || 1;
-      if (nw / nh > 3.2) w.push("Logo bardzo szerokie: na szyldzie wyjdzie małe. Lepiej wersja bardziej kwadratowa.");
+      if (nw / nh > 3.2 || nh / nw > 3.2) w.push("Logo bardzo wydłużone: na kwadratowej tablicy wyjdzie małe. Lepiej wersja bardziej kwadratowa.");
       var k = g.document.createElement("canvas"); k.width = 32; k.height = 32;
       var c = k.getContext("2d"); c.drawImage(im, 0, 0, 32, 32);
-      var d = c.getImageData(0, 0, 32, 32).data, n = 0, przezr = 0, blisko = 0, tlo = ciemnySzyld ? 40 : 240;   // jasność deski: #2b2230 albo #fbf3df
+      var d = c.getImageData(0, 0, 32, 32).data, n = 0, przezr = 0, blisko = 0, tlo = ciemnySzyld ? 42 : 241;   // jasność maty: #2a2a2a albo #f6f1e7
       for (var i = 0; i < d.length; i += 4) {
         if (d[i + 3] < 40) { przezr++; continue; }
         n++; var l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
         if (Math.abs(l - tlo) < 38) blisko++;
       }
-      if (n > 0 && blisko / n > 0.85) w.push("Logo słabo widać na szyldzie: wyślij wersję na przezroczystym tle albo w mocniejszym kolorze.");
+      if (n > 0 && blisko / n > 0.85) w.push("Logo słabo widać na tablicy: wyślij wersję na przezroczystym tle albo w mocniejszym kolorze.");
       else if (n > 0 && przezr === 0 && !ciemnySzyld) {
         var rog = c.getImageData(0, 0, 1, 1).data, lr = 0.3 * rog[0] + 0.59 * rog[1] + 0.11 * rog[2];
-        if (lr < 60) w.push("Logo na ciemnym prostokącie: na jasnym szyldzie wyjdzie jak czarna tabliczka. Lepiej wersja na przezroczystym tle.");
+        if (lr < 60) w.push("Logo na ciemnym prostokącie: na jasnej tablicy wyjdzie jak czarny kwadrat. Lepiej wersja na przezroczystym tle.");
       }
     } catch (e) {}
     return w;
@@ -782,7 +801,7 @@
     return true;
   }
 
-  g.BM_ULICA = { poprawneImie: function (t) { return RE_IMIE.test(String(t || "").trim()); }, ocenaLogo: ocenaLogo, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
+  g.BM_ULICA = { poprawneImie: function (t) { return RE_IMIE.test(String(t || "").trim()); }, ocenaLogo: ocenaLogo, ciemnaMata: ciemnaMata, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
     BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,

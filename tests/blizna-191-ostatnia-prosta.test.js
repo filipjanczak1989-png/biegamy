@@ -97,7 +97,7 @@ test('formularz: prawdziwy powód zamiast „nie da się odczytać”, pole przy
   assert.match(F, /"Podgląd logo się nie wyświetlił, ale zgłoszenie możesz wysłać: organizator zobaczy plik\."/, 'awaria samego podglądu nie blokuje');
   assert.ok(H.indexOf('<script defer src="js/logo-firmy.mjs"></script>') > 0 && H.indexOf('<script defer src="js/logo-firmy.mjs"></script>') < H.indexOf('<script defer src="js/firma-formularz.mjs"></script>'));
   const sub = F.slice(F.indexOf('f.addEventListener("submit"'));
-  assert.match(sub, /e2\.message && \/\^\(Logo\|Zrzut\)\/\.test\(e2\.message\) \? e2\.message/, 'przy wysyłce ten sam komunikat (logo i zrzut, blizna-192)');
+  assert.match(sub, /if \(\/\^\(Logo\|Zrzut\)\/\.test\(tresc\)\) \{ info\.textContent = tresc; return; \}/, 'przy wysyłce ten sam komunikat (logo i zrzut, blizna-192; błędy rozdzielone w blizna-194)');
 });
 
 test('panel trenera: własne okienko zamiast window.confirm i prompt (firmy, zgłoszenia, mur)', () => {

@@ -158,9 +158,16 @@
           return dane;
         });
       }
+      /* Błędy rozdzielone (Filip 6.11): odpowiedź funkcji (jej komunikat albo kod HTTP), brak połączenia przy samym wysyłaniu i awaria przygotowania pliku.
+         Przy dwóch ostatnich widać nazwę błędu, żeby zgłoszenie testera mówiło, co się stało. */
+      var etap = "przygotowanie";
       zadanie.then(function (dane) {
+        etap = "wysylka";
         return g.fetch((g.SB_URL || "") + EF, { method: "POST", body: dane, headers: g.SB_KEY ? { apikey: g.SB_KEY } : {} });
-      }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok && j.ok, blad: j.blad }; }); }).then(function (w) {
+      }).then(function (r) {
+        etap = "odpowiedz";
+        return r.text().then(function (t) { var j = {}; try { j = JSON.parse(t) || {}; } catch (e) { j = {}; } return { ok: r.ok && j.ok === true, status: r.status, blad: j.blad }; });
+      }).then(function (w) {
         wyslij.disabled = false;
         if (w.ok) {
           var bylaOsoba = kOsoba.checked;
@@ -168,8 +175,15 @@
           info.textContent = bylaOsoba ? "Dziękujemy! Sprawdzimy wpłatę i cegła stanie w murze po zatwierdzeniu." : "Dziękujemy! Sprawdzimy wpłatę i logo pojawi się na budynku po zatwierdzeniu.";
           return;
         }
-        info.textContent = w.blad || "Nie udało się wysłać. Spróbuj za chwilę.";
-      }).catch(function (e2) { wyslij.disabled = false; info.textContent = e2 && e2.message && /^(Logo|Zrzut)/.test(e2.message) ? e2.message : "Nie udało się wysłać. Sprawdź połączenie."; });
+        info.textContent = w.blad || ("Serwer nie przyjął zgłoszenia (kod " + w.status + "). Spróbuj za chwilę, a gdy się powtórzy, napisz do organizatora.");
+      }).catch(function (e2) {
+        wyslij.disabled = false;
+        var tresc = (e2 && e2.message) || "", opis = ((e2 && e2.name) || "Error") + (tresc ? ": " + tresc : "");
+        if (/^(Logo|Zrzut)/.test(tresc)) { info.textContent = tresc; return; }
+        info.textContent = etap === "wysylka" ? "Nie udało się wysłać: brak połączenia z serwerem (" + opis + "). Sprawdź internet i spróbuj jeszcze raz."
+          : etap === "odpowiedz" ? "Nie udało się odczytać odpowiedzi serwera (" + opis + "). Spróbuj jeszcze raz."
+          : "Nie udało się przygotować plików (" + opis + "). Wybierz pliki jeszcze raz albo zrób zrzut ekranu potwierdzenia.";
+      });
     });
   }
 
