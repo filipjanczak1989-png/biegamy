@@ -37,6 +37,7 @@
   var GWIAZDY2 = "radial-gradient(1px 1px at 44px 66px,#fff,transparent),radial-gradient(1.5px 1.5px at 100px 30px,#fff,transparent),radial-gradient(1px 1px at 156px 84px,#fff,transparent),radial-gradient(1.3px 1.3px at 208px 8px,#fff,transparent),radial-gradient(1px 1px at 262px 54px,#fff,transparent),radial-gradient(1.5px 1.5px at 312px 24px,#fff,transparent)";
 
   var CSS = ".us{position:relative;margin:14px -16px;font-family:Inter,system-ui,sans-serif;color:var(--fg,#f0ede8)}" +
+    ".us-podglad{margin:10px 0;border-radius:12px;overflow:hidden;pointer-events:none}.us-podglad .us-mur{top:28px}.us-cegla--nowa{outline:2px solid #ffe07a;outline-offset:1px;z-index:1}" +
     ".us-tytul{padding:0 16px 8px;font:400 24px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.04em}" +
     ".us-proba{display:inline-block;margin-left:8px;padding:2px 6px;border-radius:6px;background:#e8561e;color:#fff;font:600 10px/1.3 Inter,sans-serif;letter-spacing:.1em;vertical-align:middle}" +
     ".us-okno{position:relative;height:" + WYS + "px;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none;contain:layout paint;isolation:isolate;cursor:grab;outline-offset:-3px}" +
@@ -180,6 +181,106 @@
   }
 
   /* ── SCENA ──────────────────────────────────────────────────────────────────────── */
+  /* ── BUDYNEK FIRMY I CEGŁA W MURZE: jedna funkcja dla Ulicy i dla podglądów (formularz firmy na stronie akcji, wpis w murze w panelu trenera),
+     więc podgląd wygląda tak, jak potem stoi na Ulicy (blizna-188). laduj(im, adres) decyduje, kiedy obraz dostaje adres: Ulica leniwie, podgląd od razu. ── */
+  function obrazZeSpadkiem(U, nazwa, rodzic, obrazy) {
+    obrazy[0].onerror = function () {
+      obrazy.forEach(function (i) { if (i.parentNode) i.parentNode.removeChild(i); });
+      U.ksztalt(nazwa, "us-ksztalt", rodzic);
+    };
+  }
+  /* Szyld firmy: logo, gdy jest i się wczytało; inaczej nazwa. Deska z logo jest większa niż namalowana, żeby logo dało się odczytać na telefonie. Oddaje dół szyldu w px. */
+  function szyldNazwyFirmy(U, sz, f, szer, wys) {
+    var dop = U.dopasujSzyld(f.nazwa, szer - 4, wys, function (t, roz) { return U.mierzTekst(t, roz, 700); }, { maks: 13, min: 7 });
+    sz.style.fontSize = dop.rozmiar + "px";
+    dop.linie.forEach(function (l) { el("span", "", sz, l); });
+  }
+  function szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo) {
+    var sz = el("div", "us-szyld", b), sw = r[2] * w, sh = r[3] * h0;
+    function naDesce(lewo, gora, szer, wys) { sz.style.left = lewo + "px"; sz.style.top = gora + "px"; sz.style.width = szer + "px"; sz.style.height = wys + "px"; }
+    naDesce(r[0] * w, r[1] * h0, sw, sh);
+    if (!f.logo) { szyldNazwyFirmy(U, sz, f, sw, sh); return (r[1] * h0) + sh; }
+    var pw = U.BUDYNKI_POPRZEDNICH[f.rodzaj] ? sw : Math.max(sw, w * LOGO_SZER), ph = Math.max(sh, LOGO_WYS * Math.min(1, w / 118)), gora = r[1] * h0 + sh / 2 - ph / 2;
+    naDesce(r[0] * w + sw / 2 - pw / 2, gora, pw, ph);
+    sz.className += " us-szyld--logo";
+    var im = el("img", "us-logo", sz);
+    im.setAttribute("crossorigin", "anonymous");   // odczyt jasności logo; magazyn publiczny oddaje CORS dla każdego
+    im.onload = function () { var ciemny = U.jasneLogo(im); if (ciemny) sz.classList.add("us-szyld--ciemny"); if (naLogo) naLogo(im, ciemny); };
+    im.onerror = function () {
+      sz.className = "us-szyld"; naDesce(r[0] * w, r[1] * h0, sw, sh);
+      if (im.parentNode) im.parentNode.removeChild(im);
+      szyldNazwyFirmy(U, sz, f, sw, sh);
+      if (naLogo) naLogo(null, false);
+    };
+    laduj(im, f.logo);
+    return gora + ph;
+  }
+  /** Budynek firmy: obraz z kształtem na wypadek braku pliku, szyld, plakat na billboardzie, „Partner akcji”. → { el, h0, dolSzyldu } */
+  function budynekFirmy(U, rodzic, f, wyb, xb, baza, w, nr, laduj, naLogo) {
+    var def = U.SZYLDY[wyb.nazwa], h0 = w / def.proporcja;
+    var b = el("button", "us-btn us-domek", rodzic);
+    b.setAttribute("type", "button"); b.setAttribute("data-u", "domek"); b.setAttribute("data-i", String(nr)); b.setAttribute("aria-label", "Firma: " + f.nazwa + (f.partner ? ", Partner akcji" : ""));
+    obok(b, xb, baza - h0, w, h0);
+    var oprawa = el("div", "us-cz" + (wyb.lustro ? " us-lustro" : ""), b);
+    var obrazB = el("img", "us-cz", oprawa);
+    laduj(obrazB, U.sciezkaObrazu(wyb.nazwa));
+    obrazZeSpadkiem(U, wyb.nazwa, oprawa, [obrazB]);
+    var r = U.szyldNaDomku(def.szyld, wyb.lustro), dolSzyldu = szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo);
+    /* Plakat na billboardzie przy fabryce: adres z bazy, tylko po zgodzie firmy. Awaria pliku = pusta tablica. */
+    if (def.plakat && f.plakat) {
+      var pk = el("img", "us-plakat", b); pk.setAttribute("alt", ""); pk.setAttribute("crossorigin", "anonymous"); pk.onerror = function () { if (pk.parentNode) pk.parentNode.removeChild(pk); };
+      pk.style.left = def.plakat[0] * w + "px"; pk.style.top = def.plakat[1] * h0 + "px"; pk.style.width = def.plakat[2] * w + "px"; pk.style.height = def.plakat[3] * h0 + "px";
+      pk.setAttribute("src", f.plakat);
+    }
+    if (f.partner) { var pod = el("div", "us-partner", b, "Partner akcji"); pod.style.top = (dolSzyldu + 2) + "px"; }
+    return { el: b, h0: h0, dolSzyldu: dolSzyldu };
+  }
+  /** Cegła w murze: imię tylko przy zgodzie (baza), przycisk tylko dla imiennej. */
+  function ceglaMuru(mur, imie, i, kol) {
+    var c = el(imie ? "button" : "div", "us-cegla" + (imie ? "" : " us-cegla--pusta"), mur, imie || null);
+    c.style.left = (4 + (i % kol) * 56 + (Math.floor(i / kol) % 2 ? 0 : 1)) + "px";
+    c.style.top = (6 + Math.floor(i / kol) * 18.5) + "px";
+    if (imie) {
+      c.setAttribute("type", "button"); c.setAttribute("data-u", "cegla"); c.setAttribute("data-i", String(i));
+      c.setAttribute("aria-label", "Wpis w murze: " + imie);
+    }
+    return c;
+  }
+  function odRazu(im, adres) { im.setAttribute("alt", ""); im.setAttribute("decoding", "async"); im.setAttribute("draggable", "false"); im.setAttribute("src", adres); return im; }
+  /* Podgląd w kadrze Ulicy: niebo w dzień, łąka i droga, pierwszy rząd w tej samej skali. */
+  function kadrPodgladu(kontener, U, wys) {
+    wstrzyknijCss(); wyczysc(kontener);
+    var korzen = el("div", "us us--dzien us-podglad", kontener), okno = el("div", "us-okno", korzen);
+    okno.setAttribute("aria-hidden", "true"); okno.style.height = wys + "px"; okno.style.cursor = "default";
+    el("div", "us-tlo", okno).style.background = U.tloNieba("dzien");
+    el("div", "us-laka", okno);
+    var ulica = el("div", "us-warstwa", okno); ulica.style.width = "100%"; ulica.style.height = wys + "px";
+    return { korzen: korzen, okno: okno, ulica: ulica };
+  }
+  /** Podgląd budynku firmy przed wysłaniem formularza. f = { nazwa, logo (adres w przeglądarce), rodzaj }. naLogo(im, ciemnySzyld) po wczytaniu logo. */
+  function podgladFirmy(kontener, f, naLogo) {
+    var U = g.BM_ULICA;
+    if (!U || !kontener) return null;
+    var k = kadrPodgladu(kontener, U, 286), szer = kontener.clientWidth || 340, wiez = f.rodzaj === "wiezowiec", w = wiez ? 118 : 160;
+    var droga = el("div", "us-droga", k.ulica); droga.style.left = "0"; droga.style.width = "100%"; droga.style.backgroundImage = "url(" + U.sciezkaObrazu("droga") + ")";
+    var xb = Math.round(szer / 2 - w / 2 + 30);
+    budynekFirmy(U, k.ulica, { nazwa: "BiegaMy", rodzaj: "domek" }, U.domekNaMiejscu(2, "BiegaMy"), xb - 172, POZIOM_DOMKU, 160, -1, odRazu);   // sąsiad
+    var b = budynekFirmy(U, k.ulica, f, wiez ? { nazwa: "wiezowiec", lustro: false } : U.domekNaMiejscu(0, f.nazwa || ""), xb, wiez ? POZIOM_DOMKU - ZA_DROGA : POZIOM_DOMKU, w, 0, odRazu, naLogo);
+    b.el.setAttribute("tabindex", "-1");
+    return b;
+  }
+  /** Podgląd wpisu w murze: kawałek muru z Ulicy, nowa cegła tak, jak stanie (zgoda: z imieniem, bez zgody: bez imienia). */
+  function podgladCegly(kontener, imie, zgoda) {
+    var U = g.BM_ULICA;
+    if (!U || !kontener) return null;
+    var k = kadrPodgladu(kontener, U, 116), kol = 5, mur = el("div", "us-mur", k.ulica);
+    obok(mur, 12, 28, kol * 56 + 8); mur.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
+    var nowa = null;
+    for (var i = 0; i < kol * 3; i++) { var c = ceglaMuru(mur, i === 7 && zgoda && imie ? imie : "", i, kol); if (i === 7) nowa = c; }
+    nowa.classList.add("us-cegla--nowa");
+    return nowa;
+  }
+
   function zamontuj(kontener, licznik, opcje) {
     var U = g.BM_ULICA;
     if (!U || !kontener) return null;
@@ -280,31 +381,6 @@
         if (blisko && !b.zaladowane) { b.zaladowane = true; b.obrazy.forEach(function (o) { o[0].setAttribute("src", o[1]); }); }
       });
     }
-    /* Szyld firmy: logo, gdy jest i się wczytało; inaczej nazwa. Deska z logo jest większa niż namalowana, żeby logo dało się odczytać na telefonie. Oddaje dół szyldu w px. */
-    function szyldNazwa(sz, f, szer, wys) {
-      var dop = U.dopasujSzyld(f.nazwa, szer - 4, wys, function (t, roz) { return U.mierzTekst(t, roz, 700); }, { maks: 13, min: 7 });
-      sz.style.fontSize = dop.rozmiar + "px";
-      dop.linie.forEach(function (l) { el("span", "", sz, l); });
-    }
-    function szyldFirmy(b, f, r, w, h0, rekord) {
-      var sz = el("div", "us-szyld", b), sw = r[2] * w, sh = r[3] * h0;
-      function naDesce(lewo, gora, szer, wys) { sz.style.left = lewo + "px"; sz.style.top = gora + "px"; sz.style.width = szer + "px"; sz.style.height = wys + "px"; }
-      naDesce(r[0] * w, r[1] * h0, sw, sh);
-      if (!f.logo) { szyldNazwa(sz, f, sw, sh); return (r[1] * h0) + sh; }
-      var pw = U.BUDYNKI_POPRZEDNICH[f.rodzaj] ? sw : Math.max(sw, w * LOGO_SZER), ph = Math.max(sh, LOGO_WYS * Math.min(1, w / 118)), gora = r[1] * h0 + sh / 2 - ph / 2;
-      naDesce(r[0] * w + sw / 2 - pw / 2, gora, pw, ph);
-      sz.className += " us-szyld--logo";
-      var im = el("img", "us-logo", sz);
-      im.setAttribute("crossorigin", "anonymous");   // odczyt jasności logo; magazyn publiczny oddaje CORS dla każdego
-      leniwy(im, f.logo, rekord);
-      im.onload = function () { if (U.jasneLogo(im)) sz.classList.add("us-szyld--ciemny"); };
-      im.onerror = function () {
-        sz.className = "us-szyld"; naDesce(r[0] * w, r[1] * h0, sw, sh);
-        if (im.parentNode) im.parentNode.removeChild(im);
-        szyldNazwa(sz, f, sw, sh);
-      };
-      return gora + ph;
-    }
     /* Park z grafiki; brak pliku = pięć drzew, jak dotąd. */
     function rysujPark(xp) {
       var pk = el("div", "us-sprite", ulica), im = sprite("park", pk);
@@ -318,12 +394,7 @@
         });
       };
     }
-    function zeSpadkiem(nazwa, rodzic, obrazy) {
-      obrazy[0].onerror = function () {
-        obrazy.forEach(function (i) { if (i.parentNode) i.parentNode.removeChild(i); });
-        U.ksztalt(nazwa, "us-ksztalt", rodzic);
-      };
-    }
+    function zeSpadkiem(nazwa, rodzic, obrazy) { obrazZeSpadkiem(U, nazwa, rodzic, obrazy); }
     /* warstwa środkowa: wzór powtarzany co OKRES_SRODKA, więc warstwa jest krótka, a przewijanie bez końca */
     (function budujSrodek() {
       var plot = el("div", "us-sprite", srodek);
@@ -437,16 +508,7 @@
         var mur = el("div", "us-mur", ulica);
         obok(mur, x, POZIOM_DOMKU - 62, szer);
         mur.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
-        for (var i = 0; i < pokaz; i++) {
-          var imie = i < dod.imiona.length ? dod.imiona[i] : "";
-          var c = el(imie ? "button" : "div", "us-cegla" + (imie ? "" : " us-cegla--pusta"), mur, imie || null);
-          c.style.left = (4 + (i % kol) * 56 + (Math.floor(i / kol) % 2 ? 0 : 1)) + "px";
-          c.style.top = (6 + Math.floor(i / kol) * 18.5) + "px";
-          if (imie) {
-            c.setAttribute("type", "button"); c.setAttribute("data-u", "cegla"); c.setAttribute("data-i", String(i));
-            c.setAttribute("aria-label", "Wpis w murze: " + imie);
-          }
-        }
+        for (var i = 0; i < pokaz; i++) ceglaMuru(mur, i < dod.imiona.length ? dod.imiona[i] : "", i, kol);
         x += szer + 24;
       }
       if (dod.odblokowane.indexOf("plac_zabaw") >= 0) {
@@ -486,23 +548,9 @@
           }
           return;
         }
-        var f = m.f, def = U.SZYLDY[m.wyb.nazwa], w = m.w, h0 = w / def.proporcja, xb = m.x, rekord = { lewo: xb, prawo: xb + w, el: null, swiatla: [], obrazy: [], zaladowane: false, widok: "" };
-        var b = el("button", "us-btn us-domek", ulica);
-        b.setAttribute("type", "button"); b.setAttribute("data-u", "domek"); b.setAttribute("data-i", String(m.nr)); b.setAttribute("aria-label", "Firma: " + f.nazwa + (f.partner ? ", Partner akcji" : ""));
-        obok(b, xb, m.baza - h0, w, h0);
+        var f = m.f, w = m.w, xb = m.x, rekord = { lewo: xb, prawo: xb + w, el: null, swiatla: [], obrazy: [], zaladowane: false, widok: "" };
+        var bud = budynekFirmy(U, ulica, f, m.wyb, xb, m.baza, w, m.nr, function (im, adres) { return leniwy(im, adres, rekord); }), b = bud.el, h0 = bud.h0;
         rekord.el = b;
-        var oprawa = el("div", "us-cz" + (m.wyb.lustro ? " us-lustro" : ""), b);
-        var obrazB = el("img", "us-cz", oprawa);
-        leniwy(obrazB, U.sciezkaObrazu(m.wyb.nazwa), rekord);
-        zeSpadkiem(m.wyb.nazwa, oprawa, [obrazB]);
-        var r = U.szyldNaDomku(def.szyld, m.wyb.lustro), dolSzyldu = szyldFirmy(b, f, r, w, h0, rekord);
-        /* Plakat na billboardzie przy fabryce: adres z bazy, tylko po zgodzie firmy. Awaria pliku = pusta tablica. */
-        if (def.plakat && f.plakat) {
-          var pk = el("img", "us-plakat", b); pk.setAttribute("alt", ""); pk.setAttribute("crossorigin", "anonymous"); pk.onerror = function () { if (pk.parentNode) pk.parentNode.removeChild(pk); };
-          pk.style.left = def.plakat[0] * w + "px"; pk.style.top = def.plakat[1] * h0 + "px"; pk.style.width = def.plakat[2] * w + "px"; pk.style.height = def.plakat[3] * h0 + "px";
-          pk.setAttribute("src", f.plakat);
-        }
-        if (f.partner) { var pod = el("div", "us-partner", b, "Partner akcji"); pod.style.top = (dolSzyldu + 2) + "px"; }
         if (!m.wiez && m.nrRz === 0) {
           [0.25, 0.75].forEach(function (fx) {
             var sw = el("div", "us-swiatlo", ulica);
@@ -1049,5 +1097,5 @@
     return { aktualizuj: aktualizuj, zniszcz: zniszcz, obrazek: obrazek, stan: function () { return stan; }, kamera: function () { return kam.x; }, pora: function () { return pora; }, swietuj: swietuj };
   }
 
-  g.BM_ULICA_SCENA = { zamontuj: zamontuj, MAX_CZASTEK: MAX_CZASTEK, PARALAKSA: PARALAKSA, ODC: ODC };
+  g.BM_ULICA_SCENA = { budynekFirmy: budynekFirmy, ceglaMuru: ceglaMuru, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, zamontuj: zamontuj, MAX_CZASTEK: MAX_CZASTEK, PARALAKSA: PARALAKSA, ODC: ODC };
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -191,6 +191,31 @@
       return n > 0 && przezr > 0 && suma / n >= 225;
     } catch (e) { return false; }
   }
+  /** Podpowiedź do logo w podglądzie formularza firmy: bez blokowania wysyłki. ciemnySzyld = jasneLogo (wtedy deska ciemna). → [] albo teksty. */
+  function ocenaLogo(im, ciemnySzyld) {
+    var w = [];
+    try {
+      var nw = im.naturalWidth || 1, nh = im.naturalHeight || 1;
+      if (nw / nh > 3.2) w.push("Logo bardzo szerokie: na szyldzie wyjdzie małe. Lepiej wersja bardziej kwadratowa.");
+      var k = g.document.createElement("canvas"); k.width = 32; k.height = 32;
+      var c = k.getContext("2d"); c.drawImage(im, 0, 0, 32, 32);
+      var d = c.getImageData(0, 0, 32, 32).data, n = 0, przezr = 0, blisko = 0, tlo = ciemnySzyld ? 40 : 240;   // jasność deski: #2b2230 albo #fbf3df
+      for (var i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 40) { przezr++; continue; }
+        n++; var l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+        if (Math.abs(l - tlo) < 38) blisko++;
+      }
+      if (n > 0 && blisko / n > 0.85) w.push("Logo słabo widać na szyldzie: wyślij wersję na przezroczystym tle albo w mocniejszym kolorze.");
+      else if (n > 0 && przezr === 0 && !ciemnySzyld) {
+        var rog = c.getImageData(0, 0, 1, 1).data, lr = 0.3 * rog[0] + 0.59 * rog[1] + 0.11 * rog[2];
+        if (lr < 60) w.push("Logo na ciemnym prostokącie: na jasnym szyldzie wyjdzie jak czarna tabliczka. Lepiej wersja na przezroczystym tle.");
+      }
+    } catch (e) {}
+    return w;
+  }
+  /* Podglądy w formularzach: ta sama scena, co Ulica (js/ulica-scena.mjs), ładowana dopiero tutaj. */
+  function podgladFirmy(kontener, f, naLogo) { return ladujScene().then(function (S) { return S.podgladFirmy(kontener, f, naLogo); }); }
+  function podgladCegly(kontener, imie, zgoda) { return ladujScene().then(function (S) { return S.podgladCegly(kontener, imie, zgoda); }); }
   /** Prostokąt deski po odbiciu domku: deska zamienia strony, a napis stoi poza odbitym obrazem, więc lustrzany nie będzie. */
   function szyldNaDomku(rect, lustro) {
     return lustro ? [Math.round((1 - rect[0] - rect[2]) * 10000) / 10000, rect[1], rect[2], rect[3]] : rect.slice();
@@ -653,6 +678,14 @@
     var iImie = pole(fc, "ulica-imie", "Imię (jedno słowo, może być z łącznikiem)", { maxlength: "20" });
     var iZgoda = przelacznik(fc, "ulica-zgoda", "Osoba zgodziła się na imię w murze");
     var iPotw = przelacznik(fc, "ulica-potwierdzenie", "Potwierdzenie wpłaty widziane: tak");
+    /* Podgląd cegły (zgłoszenie 6.11): kawałek muru z Ulicy z tym wpisem, tak jak stanie. Nic nie idzie do bazy przed „Dodaj wpis”. */
+    var podCegly = h("div", "", fc), opisCegly = h("div", "", fc); opisCegly.setAttribute("style", "font-size:11px;color:var(--muted);");
+    function odswiezCegle() {
+      var im = iImie.value.trim(), ok = RE_IMIE.test(im);
+      podgladCegly(podCegly, ok ? im : "", iZgoda.checked).catch(function () {});
+      opisCegly.textContent = !im ? "Podgląd: nowa cegła w żółtej ramce." : !ok ? "Podgląd: imię jeszcze nie spełnia zasad, cegła bez imienia." : iZgoda.checked ? "Podgląd: tak stanie w murze." : "Bez zgody: cegła stanie bez imienia.";
+    }
+    iImie.addEventListener("input", odswiezCegle); iZgoda.addEventListener("change", odswiezCegle);
     var blC = h("div", "", fc); blC.setAttribute("role", "alert"); blC.setAttribute("style", "font-size:13px;line-height:1.4;color:var(--red);");
     var zC = h("button", "btn btn-p", fc, "Dodaj wpis"); zC.setAttribute("type", "submit");
     var lista = h("div", "", det); lista.setAttribute("style", "margin-top:14px;");
@@ -698,6 +731,7 @@
       wczytano = true;
       wczytajKwote().catch(function (e) { blK.textContent = komunikatBledu(e); });
       wczytajCegielki().catch(function (e) { lista.textContent = komunikatBledu(e); });
+      odswiezCegle();
     });
     fk.addEventListener("submit", async function (e) {
       e.preventDefault(); blK.textContent = "";
@@ -719,14 +753,14 @@
       try {
         var r = await sb.from("akcja_cegielki").insert(p.wiersz);
         if (r.error) throw r.error;
-        fc.reset();
+        fc.reset(); odswiezCegle();
         await wczytajCegielki();
       } catch (err) { blC.textContent = "Nie udało się zapisać: " + komunikatBledu(err); } finally { zC.disabled = false; }
     });
     return true;
   }
 
-  g.BM_ULICA = { naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
+  g.BM_ULICA = { ocenaLogo: ocenaLogo, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
     BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,

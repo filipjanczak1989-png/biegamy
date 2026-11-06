@@ -148,7 +148,7 @@ test('domek deterministyczny 1–7 z odbiciem; deska zamienia strony, napis poza
   assert.deepEqual(U.szyldNaDomku([0.2, 0.36, 0.4, 0.1], true), [0.4, 0.36, 0.4, 0.1]);
   assert.deepEqual(U.SZYLDY, JSON.parse(czytaj('assets/ulica/szyldy.json')), 'stała w kodzie zgodna z narzędziem');
   const sc = bezKomentarzy(czytaj('js/ulica-scena.mjs'));
-  assert.match(sc, /var oprawa = el\("div", "us-cz" \+ \(m\.wyb\.lustro \? " us-lustro" : ""\), b\);/, 'odbicie tylko na oprawie obrazu');
+  assert.match(sc, /var oprawa = el\("div", "us-cz" \+ \(wyb\.lustro \? " us-lustro" : ""\), b\);/, 'odbicie tylko na oprawie obrazu (budynekFirmy, blizna-188)');
   assert.match(sc, /sz = el\("div", "us-szyld", b\)/, 'szyld jest dzieckiem przycisku, poza oprawą');
   assert.match(sc, /el\("span", "", sz, l\)/, 'linie szyldu przez textContent');
 });
