@@ -95,20 +95,22 @@
     ".us-bilbord-logo{display:block;width:100%;height:100%;object-fit:contain}" +
     ".us-szyld--deska{box-sizing:border-box;padding:0 3px;border:1.5px solid #5a2e0e;border-radius:3px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 60%,#e9993a 100%);box-shadow:0 1px 2px rgba(40,20,0,.35)}" +
     ".us-bilbord-slupek{position:absolute;box-sizing:border-box;border:1px solid #5a2e0e;border-radius:1px;background:linear-gradient(90deg,#c97a30,#e9a04a 50%,#b56a26);pointer-events:none}" +
-    "@media (max-width:480px){.us-mur-graczy{max-width:190px}}" +
+    /* NAKŁADKA (Filip 6.11 wieczór): licznik km i Mur graczy w jednym niskim pasku u góry, kończy się na y ≈ 28 px (głośnik 30 px), a najwyższa tablica firmy (domek-1) zaczyna się na y ≈ 32,5 px:
+       żadna tablica ani szyld nie jest zasłonięty przy żadnym położeniu kamery. Głośnik mniejszy z tego samego powodu. */
+    ".us-hud{position:absolute;left:8px;top:4px;right:42px;display:flex;align-items:flex-start;gap:6px;pointer-events:none}" +
     ".us-plakat{position:absolute;object-fit:contain;background:#fffdf7;pointer-events:none}" +
     ".us-mur{position:absolute;top:" + (POZIOM_DOMKU - 62) + "px;height:62px;background-repeat:repeat-x;background-size:auto 62px;background-color:#d9694e;pointer-events:none}" +
     ".us-cegla{position:absolute;display:block;margin:0;padding:0 2px;height:17px;width:54px;box-sizing:border-box;border-radius:3px;border:1.2px solid #4a2408;background:#ef7a2a;color:#fff;font:700 9px/15px Inter,system-ui,sans-serif;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;touch-action:pan-y}" +
     ".us-cegla::after{content:'';position:absolute;left:-2px;right:-2px;top:-14px;bottom:-14px}.us-cegla--pusta{background:#d9694e;cursor:default;pointer-events:none}" +
     ".us-swiatlo{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,236,160,1) 0 16%,rgba(255,214,100,.55) 38%,transparent 70%);pointer-events:none}.us--dzien .us-swiatlo{display:none}" +
-    ".us-licznik{position:absolute;left:12px;top:10px;padding:5px 11px;border-radius:12px;background:rgba(10,12,22,.68);color:#fff;font-family:Inter,system-ui,sans-serif;pointer-events:none}" +
-    ".us-licznik b{font:400 28px/1 'Bebas Neue',Inter,sans-serif;letter-spacing:.03em}.us-licznik span{margin-left:6px;font-size:11px;opacity:.82}" +
+    ".us-licznik{position:relative;flex:none;padding:2px 8px;border-radius:9px;background:rgba(10,12,22,.62);color:#fff;font-family:Inter,system-ui,sans-serif;line-height:1;white-space:nowrap;pointer-events:none}" +
+    ".us-licznik b{font:400 19px/1 'Bebas Neue',Inter,sans-serif;letter-spacing:.03em}.us-licznik span{margin-left:4px;font-size:10px;opacity:.82}" +
     ".us-rysunek{position:absolute;left:-2%;bottom:-2%;width:92%;height:auto;pointer-events:none;transform-origin:50% 100%}.us--gra .us-rysunek{animation:us-rysunek 1.5s ease-in-out infinite}@keyframes us-rysunek{0%,100%{transform:rotate(-.8deg)}50%{transform:rotate(1deg) translateY(-1.5%)}}" +
     ".us--gra .us-wjazd{animation:us-wjazd 2.4s cubic-bezier(.2,.75,.3,1) both}@keyframes us-wjazd{from{transform:translateX(-340px)}to{transform:translateX(0)}}" +
     ".us-rowerzysta{position:absolute;left:0;bottom:6px;height:88px;width:auto;opacity:0;pointer-events:none}.us--gra .us-rowerzysta{opacity:1;will-change:transform;animation:us-rower 30s linear infinite}@keyframes us-rower{0%{transform:translateX(-110px)}34%,100%{transform:translateX(var(--koniec,600px))}}" +
-    ".us-mur-pasek{display:block;height:7px;border-radius:4px;background:rgba(0,0,0,.45);overflow:hidden}.us-mur-pasek i{display:block;height:100%;border-radius:4px;background:#ffd23d}.us-zdanie a{margin-left:6px;color:#ff8a3d;font-weight:700;white-space:nowrap}" +
-    ".us-mur-graczy{position:absolute;left:12px;top:58px;display:flex;flex-direction:column;justify-content:center;gap:4px;min-height:44px;padding:4px 12px;border-radius:8px;border:2px solid rgba(255,255,255,.8);color:#fff;font:700 13px/1.2 Inter,system-ui,sans-serif;text-decoration:none;text-shadow:0 1px 2px rgba(0,0,0,.85);background-color:#a6492c;background-image:linear-gradient(rgba(60,24,12,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(60,24,12,.5) 1px,transparent 1px);background-size:24px 11px,24px 22px}" +
-    ".us-glosnik{position:absolute;right:10px;top:10px;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:rgba(10,12,22,.68);color:#fff;cursor:pointer}.us-glosnik svg{display:block;width:22px;height:22px;margin:auto}" +
+    ".us-mur-pasek{display:block;height:3px;border-radius:2px;background:rgba(0,0,0,.45);overflow:hidden}.us-mur-pasek i{display:block;height:100%;border-radius:2px;background:#ffd23d}.us-mur-tekst{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.us-zdanie a{margin-left:6px;color:#ff8a3d;font-weight:700;white-space:nowrap}" +
+    ".us-mur-graczy{position:relative;flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;padding:2px 8px 3px;border-radius:9px;border:1px solid rgba(255,255,255,.6);color:#fff;font:700 11px/1.1 Inter,system-ui,sans-serif;text-decoration:none;text-shadow:0 1px 2px rgba(0,0,0,.85);background-color:rgba(166,73,44,.8);background-image:linear-gradient(rgba(60,24,12,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(60,24,12,.35) 1px,transparent 1px);background-size:24px 11px,24px 22px;pointer-events:auto}" +
+    ".us-glosnik{position:absolute;right:8px;top:2px;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:rgba(10,12,22,.62);color:#fff;cursor:pointer}.us-glosnik svg{display:block;width:17px;height:17px;margin:auto}" +
     ".us-podpowiedz{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:4px 10px;border-radius:10px;background:rgba(10,12,22,.62);color:#fff;font-size:11px;white-space:nowrap;pointer-events:none}.us--gra .us-podpowiedz{animation:us-gasnij 6s forwards}@keyframes us-gasnij{0%,80%{opacity:1}100%{opacity:0}}" +
     ".us-baner{position:absolute;left:50%;top:84px;padding:8px 16px;border-radius:14px;background:#e8561e;color:#fff;font:400 30px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.03em;white-space:nowrap;pointer-events:none;transform:translateX(-50%);animation:us-baner 3.2s ease-out forwards}" +
     "@keyframes us-baner{0%{opacity:0;transform:translateX(-50%) scale(.6)}12%{opacity:1;transform:translateX(-50%) scale(1.08)}20%,82%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}" +
@@ -423,7 +425,7 @@
     var canvas = el("canvas", "us-czastki", okno);
     canvas.setAttribute("aria-hidden", "true");
     var ui = el("div", "us-ui", okno);
-    var opis = null, przyciskUdost = null, elGlosnik = null, dymekEl = null, podpowiedz = null, elCzolo = null;
+    var opis = null, przyciskUdost = null, elGlosnik = null, dymekEl = null, podpowiedz = null, elCzolo = null, hud = null;
 
     function ustawPore(p) {
       pora = p;
@@ -681,7 +683,8 @@
     function budujUi() {
       if (o.kafel) return;
       if (!przed) {
-        var l = el("div", "us-licznik", ui);
+        hud = el("div", "us-hud", ui);
+        var l = el("div", "us-licznik", hud);
         licz.el = el("b", "", l, U.formatKm(licz.cel));
         el("span", "", l, "z " + U.formatKm(dane.cel_km || 12500) + " km");
         elGlosnik = el("button", "us-glosnik", ui);
@@ -1133,9 +1136,9 @@
           if (d.aktywna !== true) return;
           var t = U.tekstMuru(d.mur, d.mur_cel);
           if (!t) return;
-          var m = el("a", "us-mur-graczy", ui);
-          el("span", "", m, t);
-          if (d.pierwsze_cegly != null) el("span", "", m, "Pierwsze cegły: Szef");
+          var m = el("a", "us-mur-graczy", hud || ui);
+          el("span", "us-mur-tekst", m, U.tekstMuruKrotko(d.mur, d.mur_cel));
+          m.setAttribute("title", t);
           if (Number(d.mur_cel) > 0) { var pm = el("span", "us-mur-pasek", m), im = el("i", "", pm); im.style.width = U.procentMuru(d.mur, d.mur_cel) + "%"; }
           m.setAttribute("href", "gra-cegielki.html"); m.setAttribute("aria-label", t + ". Zagraj w Cegiełki.");
           /* Zdanie o zbiórce zaraz pod sceną: cegły z gry nie są pieniędzmi. Link tylko przez sito z js/akcja.mjs. */
@@ -1143,6 +1146,8 @@
           var lz = g.BM_AKCJA && g.BM_AKCJA.linkZbiorki ? g.BM_AKCJA.linkZbiorki(licznik) : "";
           if (lz) { var az = el("a", "", zd, "Zbiórka ›"); az.setAttribute("href", lz); az.setAttribute("target", "_blank"); az.setAttribute("rel", "noopener noreferrer"); }
           if (przyciskUdost && przyciskUdost.parentNode === korzen) korzen.insertBefore(zd, przyciskUdost);
+          /* „Pierwsze cegły: Szef” pod sceną: w jednej linii nakładki się nie mieści, a nad tablicami firm nic nie może wisieć. */
+          if (d.pierwsze_cegly != null) { var ps = el("p", "us-opis us-mur-szef", korzen); el("span", "", ps, "Pierwsze cegły: Szef"); korzen.insertBefore(ps, zd); }
         }).catch(function () {});
     }
 

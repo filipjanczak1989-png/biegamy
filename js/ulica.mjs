@@ -117,6 +117,18 @@
     var r10 = n % 10, r100 = n % 100, slowo = n === 1 ? "cegła" : (r10 >= 2 && r10 <= 4 && !(r100 >= 12 && r100 <= 14)) ? "cegły" : "cegieł";
     return "Mur graczy: " + n.toLocaleString("pl-PL") + " " + slowo;
   }
+  /** Mur graczy w jednej linii nakładki Ulicy (Filip 6.11): „Mur: 40 000 / 1,25 mln”. Pełne zdanie (tekstMuru) zostaje w aria-label i w grze. */
+  function liczbaKrotko(x) {
+    if (x >= 1e6) return (Math.round(x / 1e4) / 100).toLocaleString("pl-PL") + " mln";
+    return x.toLocaleString("pl-PL");
+  }
+  function tekstMuruKrotko(ile, cel) {
+    var n = Math.floor(Number(ile)), c = Math.floor(Number(cel));
+    if (!(n > 0)) return "";
+    if (c > 0) return "Mur: " + liczbaKrotko(n) + " / " + liczbaKrotko(c);
+    var r10 = n % 10, r100 = n % 100, slowo = n === 1 ? "cegła" : (r10 >= 2 && r10 <= 4 && !(r100 >= 12 && r100 <= 14)) ? "cegły" : "cegieł";
+    return "Mur: " + liczbaKrotko(n) + " " + slowo;
+  }
   function procentMuru(ile, cel) {
     var i = Number(ile) || 0, c = Number(cel) || 0;
     if (!(i > 0) || !(c > 0)) return 0;
@@ -803,7 +815,7 @@
 
   g.BM_ULICA = { poprawneImie: function (t) { return RE_IMIE.test(String(t || "").trim()); }, ocenaLogo: ocenaLogo, ciemnaMata: ciemnaMata, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
-    BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
+    BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, tekstMuruKrotko: tekstMuruKrotko, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,
     WARSTWY: WARSTWY, ELEMENTY: ELEMENTY, SZYLDY: SZYLDY, KOLORY_NIEBA: KOLORY_NIEBA, NAZWY_ELEMENTOW: NAZWY_ELEMENTOW, KM_NA_ODCINEK: KM_NA_ODCINEK, ODCINKOW: ODCINKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

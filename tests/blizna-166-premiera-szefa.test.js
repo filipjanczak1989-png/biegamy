@@ -43,7 +43,8 @@ test('gra: tylko ze znacznikiem, bez konta, rankingu, plansz i rekordu; próba n
   assert.match(s, /\|\| !K \|\| K\.premiera\(\)\) return rusz\(\);/);
   assert.match(s, /if \(nowy && !\(window\.BM_CEGIELKI_KONTO && window\.BM_CEGIELKI_KONTO\.premiera\(\)\)\) schowek\.zapisz\("cegielki_rekord"/);
   assert.match(h, /body\.w-premierze #menu, body\.w-premierze #koniec/);
-  assert.match(czytaj('js/ulica-scena.mjs'), /d\.pierwsze_cegly != null\) el\("span", "", m, "Pierwsze cegły: Szef"\)/);
+  /* od blizny 195 pod sceną, nie w nakładce: nakładka ma jedną linię i nie może wisieć nad tablicami firm */
+  assert.match(czytaj('js/ulica-scena.mjs'), /d\.pierwsze_cegly != null\) \{ var ps = el\("p", "us-opis us-mur-szef", korzen\); el\("span", "", ps, "Pierwsze cegły: Szef"\);/);
 });
 
 test('baza: osobna funkcja poza gra_, tylko startujący, po starcie, przy zgodzie, raz, z limitem; mur w cegłach', { skip: !jest(MIG) && 'migracja poza commitem' }, () => {
