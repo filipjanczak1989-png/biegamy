@@ -9,7 +9,7 @@
   var POZYCJE = ["premiera", "menu1", "menu2", "rower", "noc", "mur", "final", "magazyn"];
   var ROZDZIALY = { r10: "rower", r11: "noc" };
   var GLOS = { tlo: 0.4, magazyn: 0.5, pozycja: 0.8, gorka: 0.5, dzingiel: 0.9 };
-  var NAZWA_CACHE = "bm-muzyka-1", PRZERWA_AWANSU_S = 1.4;
+  var NAZWA_CACHE = "bm-muzyka-2", STARE_CACHE = ["bm-muzyka-1"], PRZERWA_AWANSU_S = 1.4;   // nowa nazwa przy zmianie pliku: stara fanfara trwała 26 s
 
   /** Tylko znane pozycje i tylko podpisane adresy MP3 z prywatnego kubełka. Obcy adres po prostu nie gra. */
   function adresyZLicznika(m) {
@@ -49,7 +49,10 @@
     bajty[adres] = p.then(function (r) { return r.arrayBuffer(); }).catch(function () { delete bajty[adres]; return null; });
     return bajty[adres];
   }
-  function przygotuj(adresy, doCache) { return Promise.all((adresy || []).map(function (a) { return pobierz(a, doCache); })); }
+  function przygotuj(adresy, doCache) {
+    if (doCache && g.caches) STARE_CACHE.forEach(function (n) { g.caches.delete(n).catch(function () {}); });
+    return Promise.all((adresy || []).map(function (a) { return pobierz(a, doCache); }));
+  }
   function bufor(adres) {
     if (gotowe[adres]) return Promise.resolve(gotowe[adres]);
     if (dekodowanie[adres]) return dekodowanie[adres];

@@ -109,9 +109,18 @@
   main[data-stan="zapisane"] #slowo { font-size: clamp(30px, 9vw, 52px); }
   @keyframes puls { 0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(232,86,30,.35); } 50% { transform: scale(1.025); box-shadow: 0 0 80px rgba(232,86,30,.55); } }
   @media (prefers-reduced-motion: reduce) { main[data-stan="uzbrojony"] #krag { animation: none; } }
-  #guzik-dzwiek { display: none; position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 14px; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; background: rgba(16,19,36,.72); cursor: pointer; align-items: center; justify-content: center; z-index: 5; touch-action: manipulation; }
+  #guzik-dzwiek { display: none; position: absolute; top: calc(58px + env(safe-area-inset-top)); right: 14px; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; background: rgba(16,19,36,.72); cursor: pointer; align-items: center; justify-content: center; z-index: 5; touch-action: manipulation; }
   #guzik-dzwiek svg { width: 32px; height: 32px; color: #fff; }
   main[data-stan="uzbrojony"] #guzik-dzwiek, main[data-stan="nacisniety"] #guzik-dzwiek, main[data-stan="zapisane"] #guzik-dzwiek { display: flex; }
+  #funkcja-proby { font-size: 12px; line-height: 1.35; color: var(--muted); text-align: center; max-width: 34ch; }
+  #funkcja-proby:empty { display: none; }
+  /* Niski ekran telefonu: ekran nie przewija się, więc przycisk Szefa musi się zmieścić razem z rysunkiem. */
+  @media (max-height: 760px) {
+    main[data-stan="zapisane"] { gap: 10px; }
+    main[data-stan="zapisane"] #krag.otwarty { width: min(62vw, 34vh); }
+    main[data-stan="zapisane"] #slowo { font-size: clamp(24px, 7.5vw, 38px); }
+    #zagraj-szef { margin-top: 4px; min-height: 64px; padding: 12px 20px; }
+  }
 </style>
 </head>
 <body>
@@ -126,6 +135,7 @@
   <div id="licznik"></div>
   <div id="status"></div>
   <div id="premiera-miejsce"></div>
+  <div id="funkcja-proby"></div>
   <button id="reset" hidden>Resetuj próbę</button>
   <button id="wiecej" hidden aria-label="Więcej" aria-expanded="false">⋯</button>
   <div id="panel" hidden>
@@ -176,11 +186,26 @@
   }
 
   /* MUZYKA GUZIKA (Filip 6.11): puls i fanfara pobierane od razu, do własnego cache, żeby wybuch nie czekał na sieć. Grają po dotknięciu głośnika, bo telefon inaczej nie pozwoli: trzymany palec dźwięku nie odblokowuje. Bez głośnika guzik działa cicho, jak dotąd. */
-  var MUZ = window.BM_MUZYKA, PRZYSPIESZENIE_PULSU = 1.5, dzwiekGuzika = false, muzykaPobrana = false;
+  var MUZ = window.BM_MUZYKA, PRZYSPIESZENIE_PULSU = 1.5, dzwiekGuzika = false, muzykaPobrana = false, fanfaraMinela = false, adresPiosenki = '', piosenkaGra = false, ostatniLicznik = null;
   function muzykaUzbrojona() {
     if (!MUZ) return;
+    fanfaraMinela = false; adresPiosenki = ''; piosenkaGra = false; ostatniLicznik = null;
     if (!muzykaPobrana) { muzykaPobrana = true; MUZ.przygotuj([MUZ.PLIKI.puls, MUZ.PLIKI.fanfara], true); }
     if (dzwiekGuzika) MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
+  }
+  /* Piosenka zaraz po fanfarze. Adres dopiero po naciśnięciu: próba bierze go z funkcji, prawdziwa akcja z licznika, a przed startem nikt go nie zna. */
+  function szykujPiosenke(d) {
+    if (!MUZ || !dzwiekGuzika || adresPiosenki) return;
+    var zrodlo = PROBA ? (AKC.wizerunekProby ? AKC.wizerunekProby(window.sb) : Promise.resolve(null)) : Promise.resolve(d);
+    zrodlo.then(function (x) {
+      var a = MUZ.adresyZLicznika(x && x.muzyka).premiera;
+      if (!a || !dzwiekGuzika) return;
+      adresPiosenki = a; MUZ.bufor(a); grajPiosenke();
+    });
+  }
+  function grajPiosenke() {
+    if (!MUZ || !dzwiekGuzika || !fanfaraMinela || !adresPiosenki || piosenkaGra) return;
+    piosenkaGra = true; MUZ.graj(adresPiosenki, { glos: 1, przenikanie: 0.05 });
   }
   /* Głośnik powstaje tu, nie w HTML: bez modułu muzyki nie ma czego włączać i ekran zostaje z samym guzikiem. Ikona bez pliku, bo ten ekran ma działać offline. Stoi w rogu, z dala od guzika, i niczego nie uruchamia. */
   function rysujGlosnikGuzika() {
@@ -195,11 +220,12 @@
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path class="fale" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     b.addEventListener('click', function () {
       dzwiekGuzika = !dzwiekGuzika; rysujGlosnikGuzika();
-      if (!dzwiekGuzika) { MUZ.zatrzymaj(0.1); return; }
+      if (!dzwiekGuzika) { piosenkaGra = false; MUZ.zatrzymaj(0.1); return; }
       MUZ.odblokuj(); MUZ.bufor(MUZ.PLIKI.fanfara);
       if (stan === 'uzbrojony') MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
+      else if (ostatniLicznik) { fanfaraMinela = true; szykujPiosenke(ostatniLicznik); grajPiosenke(); }   // głośnik dotknięty już po wybuchu
     });
-    ekran.appendChild(b); rysujGlosnikGuzika();
+    ekran.insertBefore(b, $('premiera-miejsce')); rysujGlosnikGuzika();   // przed panelami: otwarty panel ma leżeć nad głośnikiem
   }
 
   /* ── pamięć naciśnięcia: localStorage + IndexedDB, każde w try/catch (prywatne okno, zablokowane dane) ── */
@@ -374,6 +400,7 @@
 
   function pokazZapisane(d, potwierdzone) {
     if (potwierdzone) odslon(d);
+    if (potwierdzone) { ostatniLicznik = d; szykujPiosenke(d); }
     var zostalo = stan === 'nacisniety' ? 1800 - (performance.now() - nacisnietoO) : 0;   // iskry i napis zostają min. 1,8 s
     if (zostalo > 0) { setTimeout(function () { pokazZapisane(d, potwierdzone); }, zostalo); return; }
     var t = d && d.wystartowala_at;
@@ -389,17 +416,27 @@
   var KLUCZ_PREMIERY = 'cegielki_premiera';
   function znacznikPremiery() { try { return JSON.parse(localStorage.getItem(KLUCZ_PREMIERY) || 'null'); } catch (e) { return null; } }
   function zapiszZnacznikPremiery() { try { localStorage.setItem(KLUCZ_PREMIERY, JSON.stringify({ slug: SLUG, sciezka: SCIEZKA })); } catch (e) {} }
-  function wyczyscPremiere() { try { localStorage.removeItem(KLUCZ_PREMIERY); } catch (e) {} $('premiera-miejsce').textContent = ''; }
+  function wyczyscPremiere() { try { localStorage.removeItem(KLUCZ_PREMIERY); } catch (e) {} $('premiera-miejsce').textContent = ''; $('funkcja-proby').textContent = ''; }
   /* Postęp rund próby na tym urządzeniu. Na innym telefonie czyści go sama gra: porównuje chwilę startu próby z funkcji akcja-proba-wizerunek. */
   function wyczyscPostepGry() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('cegielki_proba_') === 0) localStorage.removeItem(k); }); } catch (e) {} }
-  async function przyciskPremiery(d) {
+  /* Tylko w ścieżce trenera: co naprawdę oddała funkcja próby na tym telefonie. Same liczby, bez adresów. */
+  function pokazFunkcjeProby() {
+    var e = $('funkcja-proby'); if (!AKC.wizerunekProby) return;
+    e.textContent = 'Funkcja próby: czekam…';
+    AKC.wizerunekProby(window.sb).then(function (w) {
+      var sek = ((performance.now() - nacisnietoO) / 1000).toFixed(1).replace('.', ',');
+      if (!w) { e.textContent = 'Funkcja próby: błąd ' + (AKC.bladWizerunku ? AKC.bladWizerunku() : '') + ', ' + sek + ' s od guzika. Premiera może się nie wczytać.'; return; }
+      var znak = function (x) { return x ? '✓' : 'BRAK'; };
+      e.textContent = 'Funkcja próby: arkusz ' + znak(ADRES_RYSUNKU.test(w.koparka_arkusz_url || '')) + ', rysunek ' + znak(ADRES_RYSUNKU.test(w.koparka_url || '')) + ', piosenka ' + znak(MUZ && MUZ.adresyZLicznika(w.muzyka).premiera) + ', muzyka ' + (MUZ ? Object.keys(MUZ.adresyZLicznika(w.muzyka)).length : 0) + '/8, ' + sek + ' s od guzika';
+    });
+  }
+  function przyciskPremiery(d) {
     var z = znacznikPremiery();
     if (!d || !d.wystartowala || !z || z.slug !== SLUG || z.zagrana) { $('premiera-miejsce').textContent = ''; return; }
-    var ark = '';
-    if (PROBA) { var w = AKC.wizerunekProby ? await AKC.wizerunekProby(window.sb) : null; ark = w && w.koparka_arkusz_url; }   // próba: tylko trener i konto testowe; odmowa = nie ma przycisku
-    else ark = d.koparka_arkusz_url;                                                                                        // prawdziwa akcja: adres z licznika, wyłącznie przy zgodzie
     var miejsce = $('premiera-miejsce'); miejsce.textContent = '';
-    if (typeof ark !== 'string' || !ADRES_RYSUNKU.test(ark)) return;
+    /* Prawdziwa akcja: adres z licznika, wyłącznie przy zgodzie. Próba: przycisk od razu przy „zapisane ✓”, bez czekania na funkcję. Nacisnąć guzik może tylko konto z listy, a premiera sama pobiera arkusz i przy odmowie mówi, co się stało. */
+    if (!PROBA) { var ark = d.koparka_arkusz_url; if (typeof ark !== 'string' || !ADRES_RYSUNKU.test(ark)) return; }
+    if (PROBA && SCIEZKA) pokazFunkcjeProby();
     var b = document.createElement('button'); b.id = 'zagraj-szef'; b.type = 'button'; b.textContent = 'Zagraj jako Szef';
     b.addEventListener('click', function () { location.href = 'gra-cegielki.html?premiera=1'; });
     miejsce.appendChild(b);
@@ -441,7 +478,7 @@
     krag.classList.add('czeka'); rysujPierscien(0);
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { var bl = $('blysk'); bl.classList.remove('teraz'); void bl.offsetWidth; bl.classList.add('teraz'); }
     try { navigator.vibrate && navigator.vibrate([60, 40, 120]); } catch (e) {}
-    if (MUZ && dzwiekGuzika) MUZ.graj(MUZ.PLIKI.fanfara, { glos: 1, przenikanie: 0.03 });
+    if (MUZ && dzwiekGuzika) MUZ.graj(MUZ.PLIKI.fanfara, { glos: 1, przenikanie: 0.03, koniec: function () { fanfaraMinela = true; grajPiosenke(); } });
     iskry();
     wyslij();
     setTimeout(function () {

@@ -64,17 +64,23 @@
     return { id: "film-akcja", mp4: u, dzwiek: true, pozycje: [{ od: 0, pos: "50% 45%" }, { od: 10, pos: "50% 50%", fit: "contain" }], plakat: pl, plakat_od: 10, zbiorka: zb };
   }
   /* ŚCIEŻKA FABIANKA: licznik nigdy nie oddaje rysunku ani filmu dla próby. Trener i konto testowe dostają je osobną funkcją, na 15 minut. Odmowa = bez adresów, reszta próby działa. */
-  var _wizerunekProby = null, _wizerunekT = 0;
+  var _wizerunekProby = null, _wizerunekT = 0, _bladWizerunku = "";
   function wizerunekProby(sb) {
     var teraz = Date.now();
     if (_wizerunekProby && teraz - _wizerunekT < 600000) return _wizerunekProby;
     _wizerunekT = teraz;
     _wizerunekProby = Promise.resolve().then(function () {
       if (!sb || !sb.functions) return null;
-      return sb.functions.invoke("akcja-proba-wizerunek", { body: {} }).then(function (r) { return r.data && r.data.ok ? r.data : null; }, function () { return null; });
-    }).catch(function () { return null; });
+      return sb.functions.invoke("akcja-proba-wizerunek", { body: {} }).then(function (r) {
+        if (r.data && r.data.ok) { _bladWizerunku = ""; return r.data; }
+        /* Nieudana odpowiedź nie zostaje na 10 minut: jeden chwilowy błąd zabierał rysunek, piosenkę i przycisk premiery. */
+        _bladWizerunku = String((r.error && r.error.context && r.error.context.status) || "bez odpowiedzi"); _wizerunekProby = null;
+        return null;
+      }, function () { _bladWizerunku = "bez odpowiedzi"; _wizerunekProby = null; return null; });
+    }).catch(function () { _wizerunekProby = null; return null; });
     return _wizerunekProby;
   }
+  function bladWizerunku() { return _bladWizerunku; }
   /* Próba ma wyglądać jak sobota: adresy i dane prawdziwej akcji dochodzą do licznika tylko z osobnej funkcji, wyłącznie dla trenera i konta testowego. */
   function scalProbe(d, w) {
     if (!d || !w) return d;
@@ -179,7 +185,7 @@
     return { tekst: ROTACJA[dniMiedzy(START_ROTACJI, d) % ROTACJA.length], zrodlo: ZRODLO };
   }
 
-  g.BM_AKCJA_CYTATY = { scalProbe: scalProbe, wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
+  g.BM_AKCJA_CYTATY = { bladWizerunku: bladWizerunku, scalProbe: scalProbe, wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
     odswiezStan: odswiezStan, slugDla: slugDla, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
     ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,
