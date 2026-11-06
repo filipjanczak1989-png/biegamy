@@ -28,8 +28,9 @@
   .postac .tor { display:block; animation:wyprzedza var(--tor,5.3s) ease-in-out infinite; }
   .postac .fala { display:block; animation:fala var(--fala,.71s) ease-in-out infinite; }
   .postac i { display:block; width:var(--w,99px); height:var(--h,160px); background-repeat:no-repeat; background-size:calc(var(--w,99px)*6) var(--h,160px); animation:bieg var(--krok,.62s) steps(6) infinite; animation-delay:var(--faza,0s); }
-  .postac[data-postac="kasia"] { --krok:.58s; --faza:-.29s; --fala:.83s; --tor:6.7s; --kier:-1; }
+  .postac[data-postac="kasia"] { --krok:.62s; --faza:-.31s; --fala:.83s; --tor:6.7s; --kier:-1; }
   .postac[data-postac="filip"] { --krok:.62s; --faza:0s; --fala:.71s; --tor:5.3s; --kier:1; }
+  .postac[data-postac="rowerzysta"] { --krok:.56s; }   /* tempo 1.1 z cegielki-logika: klatki szybciej o tyle, o ile szybciej jedzie */
   @keyframes bieg { to { background-position-x:calc(var(--w,99px)*-6); } }
   @keyframes fala { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
   @keyframes wyprzedza { 0%,100% { transform:translateX(calc(var(--kier,1)*-7px)); } 50% { transform:translateX(calc(var(--kier,1)*7px)); } }

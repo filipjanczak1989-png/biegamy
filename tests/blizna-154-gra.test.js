@@ -415,13 +415,14 @@ test('odmiana cegieł', () => {
 });
 
 /* Balans roweru (Filip 4.11: „Sławkiem praktycznie nie da się zdobyć złotej cegły”). Wysokości liczone z fizyki wybranej postaci, jedno źródło dla silnika i przedmiotów. */
-test('wysokości przedmiotów z fizyki postaci: złota 90% najmocniejszego ruchu, łuki w zasięgu zwykłego skoku, koparka przy ziemi łyżką', () => {
+test('wysokości przedmiotów z fizyki postaci: złota w zasięgu zwykłego podwójnego skoku, łuki w zasięgu zwykłego skoku, koparka przy ziemi łyżką', () => {
   const K = L.zasiegPostaci('kasia'), R = L.zasiegPostaci('rowerzysta'), F = L.FIZYKA;
   assert.ok(Math.abs(R.ruch - K.ruch) < 0.5, 'skok + podbicie = skok + salto biegacza');
   assert.ok(R.skok < K.skok, 'sam skok roweru zostaje niższy');
   for (const p of ['kasia', 'filip', 'rowerzysta']) {
     const z = L.zasiegPostaci(p), h = L.wysokoscZlotej(p, false);
-    assert.ok(Math.abs(h - z.maks * 0.9) < 1e-9, p + ': 90% zasięgu');
+    assert.ok(Math.abs(h - (L.zasiegPodwojnego(p) - L.ZAPAS_ZLOTEJ)) < 1e-9, p + ': zwykły podwójny skok minus zapas (zgłoszenie testera 6.11)');
+    assert.ok(L.zasiegPodwojnego(p) < z.maks, p + ': nie trzeba salta w samym szczycie');
     assert.ok(h > z.zwykly, p + ': złota wymaga drugiego ruchu');
     for (const i of [-2, -1, 0, 1, 2]) assert.ok(L.lukCegiel(p, i) < z.zwykly, p + ': łuk w zasięgu zwykłego skoku');
   }

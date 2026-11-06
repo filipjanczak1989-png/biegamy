@@ -84,7 +84,7 @@ test('gra: podgląd postaci tylko po zgodzie funkcji, bez zapisu rundy i bez wym
   assert.match(k, /if \(stan\.podglad \|\| premiera\) return;/, 'przed rundą bez numeru rundy');
   const poRundzie = k.slice(k.indexOf('if (stan.podglad) {', k.indexOf('async function poRundzie')), k.indexOf('/* Bez konta suma'));
   assert.ok(poRundzie && !/gra_zapisz_wynik|sb\.rpc/.test(poRundzie) && /info\(TEKST_PROBY\)/.test(poRundzie), 'po rundzie bez zapisu do bazy (postęp tylko lokalnie, blizna-183)');
-  assert.match(k, /var w = r && r\.data && r\.data\.ok \? r\.data : null;\s+if \(!w\) return;/, 'odmowa = bez przełącznika');
+  assert.match(k, /var w = r && r\.data && r\.data\.ok \? r\.data : null;\s+if \(!w\) \{ [^\n]*return false; \}/, 'odmowa = bez przełącznika (konto testowe: kasuje też znacznik, blizna-187)');
   const m = czytaj('supabase/migrations/20261105_akcja_sciezka.sql');
   assert.doesNotMatch(m.replace(/--[^\n]*/g, ''), /akcja_slug = 'dla-fabianka'|slug = 'dla-fabianka' and testowa/, 'funkcje próby nie sięgają prawdziwej akcji');
   assert.match(m, /check \(proba_sym_km is null or \(testowa and proba_sym_km >= 0\)\)/, 'symulacja tylko na akcji testowej');

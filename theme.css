@@ -169,6 +169,15 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
    Stary lokalny nav miał .bottom-nav{z-index:50} (klasa) przebijający body>* → własny kontekst 50.
    Podniesienie kontekstu wrappera do 50 przywraca stary porządek: nav NAD sekcjami, POD sheetami/modalami (300+). */
 #nav-mount{ position:relative; z-index:50; }
+/* PASEK ZAWSZE (zgłoszenie testera 6.11): okno Logu (.modal-bg) i arkusze (.add-overlay) zasłaniały dolny pasek. Na stronach z paskiem
+   kończą się nad nim, a na czas otwartego okna pasek stoi nad nakładką (wystający guzik Log też). Pasek chowa się tylko pod klawiaturą (system).
+   Bez :has() zostaje dawny układ. Pełnoekranowe przebiegi (wprowadzenie, slajdy rekordów) chowają pasek same i tak zostaje. */
+body:has(#nav-mount .bottom-nav) .modal-bg,
+body:has(#nav-mount .bottom-nav) .add-overlay{ bottom:calc(89px + env(safe-area-inset-bottom, 0px)); }
+body:has(#nav-mount .bottom-nav) .modal-bg .modal{ max-height:calc(90vh - 89px - env(safe-area-inset-bottom, 0px)); }   /* góra okna tam, gdzie była */
+body:has(#nav-mount .bottom-nav) .add-overlay .add-sheet{ max-height:calc(100dvh - 109px - env(safe-area-inset-bottom, 0px)); }
+body:has(.modal-bg.open) #nav-mount,
+body:has(.add-overlay.open) #nav-mount{ z-index:310; }
 
 /* === UTIL — .no-scrollbar: ukrycie paska przewijania w POZIOMYCH scrollerach UI
    (heatmapy, tygodniowe paski, karuzele filtrów). NIE na pionowych funkcjonalnych

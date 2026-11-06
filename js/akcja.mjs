@@ -126,7 +126,7 @@
   /* LINK DO GRY: pokazany dopiero, gdy gra-ranking potwierdzi włączony przełącznik. Karta rysuje się od razu, link odkrywa się po odpowiedzi; gra nie opóźnia licznika i go nie dotyka. */
   var graWlaczona = false, pytanieOGre = null;
   function sprawdzGre() {
-    if (!g.document || !g.fetch) return null;
+    if (!g.document || !g.fetch || !g.SB_URL) return null;   // karta z pamięci rysuje się przed sb.js: bez adresu bazy nie pytamy
     if (!pytanieOGre) {
       pytanieOGre = g.fetch((g.SB_URL || "") + "/functions/v1/gra-ranking", { headers: { Accept: "application/json" } })
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -142,7 +142,7 @@
   /* Konto testowe zostaje na próbie także na kolejnych stronach. Przełącznik gry dotyczy prawdziwej akcji, więc próba wchodzi przez ?sciezka=1 (zamkiem jest funkcja akcja-proba-wizerunek). */
   function czyProba(d) { return !!(d && d.testowa === true); }
   function adresStrony(d, kotwica) { return "dla-fabianka.html" + (czyProba(d) ? "?proba=1" : "") + (kotwica || ""); }
-  function linkGry(d) { return czyProba(d) ? "gra-cegielki.html?sciezka=1&podglad=1" : "gra-cegielki.html"; }
+  function linkGry(d) { return czyProba(d) ? "gra-cegielki.html?sciezka=1&podglad=1&proba=1" : "gra-cegielki.html"; }   // proba=1: gra zapamiętuje konto testowe (js/cegielki-konto.js)
   function graWidoczna(d) { sprawdzGre(); return czyProba(d) || graWlaczona; }
   function linkGryHtml() {
     sprawdzGre();
@@ -363,8 +363,42 @@
     k.parentNode.removeChild(k);
     b.classList.remove("akcja-baner");
   }
-  function kartaDzisHtml(d, wklad, teraz) {
+  /* KARTA Z PAMIĘCI (zgłoszenie testera 6.11): Dziś pokazuje kafel i kartę akcji od pierwszego obrazu, z ostatniego stanu tego konta, a dane z bazy
+     podmieniają je w tym samym miejscu. Bez adresów plików na 15 minut (rysunek, arkusz, film, muzyka; na próbie także plakat). Plakat prawdziwej akcji
+     ma adres roczny, więc zostaje. Do tego ostatnia wysokość karty jako szkielet: nic nie doskakuje, zanim dojdą obrazki. Stan inny niż „trwa” kasuje pamięć. */
+  var KLUCZ_KARTY = "bm_akcja_ostatnia_karta", BEZ_ADRESOW = ["koparka_url", "koparka_arkusz_url", "film_akcji_url", "wizerunek", "muzyka"], WAZNOSC_KARTY_MS = 24 * 3600 * 1000;
+  function kontoSesji() {
+    try { var s = JSON.parse(g.localStorage.getItem("sb-afqojgkaveykxbltxzwm-auth-token") || "null"); return (s && s.user && s.user.id) || null; } catch (e) { return null; }
+  }
+  function zapamietajKarte(d, wklad, s) {
+    var uid = kontoSesji(); if (!uid || !g.localStorage) return;
+    try {
+      if (s !== "trwa") { g.localStorage.removeItem(KLUCZ_KARTY); return; }
+      var bez = {}; Object.keys(d).forEach(function (k) { if (BEZ_ADRESOW.indexOf(k) < 0 && !(k === "plakat_url" && d.testowa === true)) bez[k] = d[k]; });
+      var el = g.document && g.document.getElementById && g.document.getElementById("akcja-karta"), stara = null;
+      try { stara = JSON.parse(g.localStorage.getItem(KLUCZ_KARTY) || "null"); } catch (e) { stara = null; }
+      var zapis = { uid: uid, t: Date.now(), d: bez, wklad: wklad || null, wys: stara && stara.uid === uid ? stara.wys : 0 };
+      g.localStorage.setItem(KLUCZ_KARTY, JSON.stringify(zapis));
+      if (el) {
+        el.style.minHeight = "";   // dane z bazy: szkielet niepotrzebny
+        /* Wysokość po wstawieniu karty i dojściu obrazków: szkielet na następne wejście. */
+        if (g.setTimeout) g.setTimeout(function () { try { var h = el.offsetHeight; if (h > 0) { zapis.wys = h; g.localStorage.setItem(KLUCZ_KARTY, JSON.stringify(zapis)); } } catch (e) {} }, 4000);
+      }
+    } catch (e) {}
+  }
+  function kartaZPamieci() {
+    var el = g.document && g.document.getElementById && g.document.getElementById("akcja-karta");
+    if (!el || el.innerHTML || !banerDzis()) return false;
+    var o = null; try { o = JSON.parse(g.localStorage.getItem(KLUCZ_KARTY) || "null"); } catch (e) { o = null; }
+    if (!o || !o.d || o.uid !== kontoSesji() || !(Date.now() - o.t < WAZNOSC_KARTY_MS) || stanKarty(o.d) !== "trwa") return false;
+    el.innerHTML = kartaDzisHtml(o.d, o.wklad, undefined, true);
+    el.style.display = el.innerHTML ? "" : "none";
+    if (o.wys > 0) el.style.minHeight = o.wys + "px";
+    return true;
+  }
+  function kartaDzisHtml(d, wklad, teraz, zPamieci) {
     var s = stanKarty(d, teraz);
+    if (!zPamieci && d) zapamietajKarte(d, wklad, s);
     if (s === "trwa") wstawKafel(d, wklad); else zdejmijKafel();
     if (s === "brak") return "";
     wstrzyknijCss();
@@ -486,6 +520,8 @@
     firmyHtml: firmyHtml, tytulFirm: tytulFirm, celownik: celownik, linkFirmy: linkFirmy, logoFirmy: logoFirmy, firmaDoZapisu: firmaDoZapisu, firmaDoEdycji: firmaDoEdycji, logoDoWgrania: logoDoWgrania,
     TEKST_FIRM: TEKST_FIRM, BUCKET_LOGO: BUCKET_LOGO,
     CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
-  g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy;
+  g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy; g.BM_AKCJA.kartaZPamieci = kartaZPamieci; g.BM_AKCJA.KLUCZ_KARTY = KLUCZ_KARTY;
+  /* Skrypt stoi pod znacznikami Dziś, więc karta z pamięci wchodzi przed pierwszym obrazem. Gdzie indziej (index, trener, strona akcji) nie ma #akcja-karta i nic się nie dzieje. */
+  try { if (g.document && g.document.getElementById) { if (!kartaZPamieci() && g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", kartaZPamieci); } } catch (e) {}
   g.BM_AKCJA.zdejmijKafel = zdejmijKafel; g.BM_AKCJA.daneKaflaHtml = daneKaflaHtml; g.BM_AKCJA.liczbyKaflaHtml = liczbyKaflaHtml; g.BM_AKCJA.adresStrony = adresStrony; g.BM_AKCJA.linkGry = linkGry;
 })(typeof globalThis !== "undefined" ? globalThis : this);

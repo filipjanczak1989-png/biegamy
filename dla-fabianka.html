@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
     $('trasa').hidden = !A.linkTrasy(d);   // mapa śladu wyprawy (komenda Filipa 4.11)
     if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
+    if (A.linkGry) { $('gra').href = A.linkGry(d); if (d.testowa === true) $('gra').hidden = false; }   // próba: do gry na próbie, jak z kafla na Dziś
     $('jak').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
     $('sponsor').hidden = zamknieta;

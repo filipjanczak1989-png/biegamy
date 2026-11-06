@@ -51,10 +51,10 @@ test('kafel: obce adresy odpadają, nazwa nie wchodzi do HTML surowa', () => {
 test('linki: konto testowe zostaje na próbie, prawdziwa akcja bez parametrów', () => {
   assert.equal(A.adresStrony(LICZNIK, '#ulica-po'), 'dla-fabianka.html#ulica-po');
   assert.equal(A.adresStrony(PROBA, '#ulica-po'), 'dla-fabianka.html?proba=1#ulica-po');
-  assert.equal(A.linkGry(LICZNIK), 'gra-cegielki.html'); assert.equal(A.linkGry(PROBA), 'gra-cegielki.html?sciezka=1&podglad=1');
+  assert.equal(A.linkGry(LICZNIK), 'gra-cegielki.html'); assert.equal(A.linkGry(PROBA), 'gra-cegielki.html?sciezka=1&podglad=1&proba=1');   // proba=1: gra zapamiętuje konto testowe (blizna-187)
   assert.equal(A.linkTrasy(LICZNIK), 'mapa-wyprawy.html'); assert.equal(A.linkTrasy(PROBA), 'mapa-wyprawy.html?slug=proba');
   const dane = A.daneKaflaHtml(PROBA);
-  assert.match(dane, /data-gra-link href="gra-cegielki\.html\?sciezka=1&podglad=1">Gra/, 'próba: Gra widoczna mimo wyłączonego przełącznika prawdziwej akcji');
+  assert.match(dane, /data-gra-link href="gra-cegielki\.html\?sciezka=1&podglad=1&proba=1">Gra/, 'próba: Gra widoczna mimo wyłączonego przełącznika prawdziwej akcji');
   const karta = A.kartaDzisHtml({ ...PROBA, firmy_zgloszenia: true }, { km: 1 });
   assert.match(karta, /href="dla-fabianka\.html\?proba=1">Szczegóły/); assert.match(karta, /href="dla-fabianka\.html\?proba=1#firma"/);
   const realna = A.kartaDzisHtml({ ...LICZNIK, firmy_zgloszenia: true }, { km: 1 });

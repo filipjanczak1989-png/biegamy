@@ -20,19 +20,20 @@
   function czytajJson(k, zapas) { try { var w = JSON.parse(localStorage.getItem(kluczProby(k))); return w == null ? zapas : w; } catch (e) { return zapas; } }
   function zapiszJson(k, w) { try { localStorage.setItem(kluczProby(k), JSON.stringify(w)); } catch (e) {} }
   /* PRÓBA (Filip 6.11): rundy w podglądzie liczą postęp tylko na tym urządzeniu, pod własnymi kluczami. Prawdziwy stan gracza na tym samym telefonie zostaje nietknięty. */
-  var PREFIKS_PROBY = "cegielki_proba_", KLUCZE_PROBY = /^cegielki_(suma|plansze|kartka1|kupione|stroje|rekord|odznaki|wyzwanie_.+)$/, TEKST_PROBY = "Próba: postęp tylko na tym urządzeniu, bez zapisu i bez rankingu.";
+  var PREFIKS_PROBY = "cegielki_proba_", KLUCZE_PROBY = /^cegielki_(suma|saldo|plansze|kartka1|kupione|stroje|rekord|odznaki|wyzwanie_.+)$/, TEKST_PROBY = "Próba: postęp tylko na tym urządzeniu, bez zapisu i bez rankingu.";
   function kluczProby(k) { return stan && stan.podglad && KLUCZE_PROBY.test(k) ? PREFIKS_PROBY + k.slice("cegielki_".length) : k; }
   /* „Od zera” naciska trener, zwykle na innym telefonie: gra porównuje chwilę startu próby z funkcji i sama czyści stary postęp. Starsza funkcja bez tego pola: bez porównania. */
   function wczytajPostepProby(od) {
     if (od !== undefined) {
       try {
-        if (localStorage.getItem(PREFIKS_PROBY + "od") !== String(od)) {
-          Object.keys(localStorage).forEach(function (k) { if (k.indexOf(PREFIKS_PROBY) === 0) localStorage.removeItem(k); });
-          localStorage.setItem(PREFIKS_PROBY + "od", String(od));
-        }
+        var bylo = localStorage.getItem(PREFIKS_PROBY + "od");
+        /* Kasuje tylko zmiana chwili startu (Od zera). Pierwsza odpowiedź na tym urządzeniu zapisuje ją bez kasowania: rundy sprzed odpowiedzi zostają. */
+        if (bylo !== null && bylo !== String(od)) Object.keys(localStorage).forEach(function (k) { if (k.indexOf(PREFIKS_PROBY) === 0) localStorage.removeItem(k); });
+        localStorage.setItem(PREFIKS_PROBY + "od", String(od));
       } catch (e) {}
     }
     stan.cegly = Number(czytajJson("cegielki_suma", 0)) || 0;
+    ustawKonto(Number(czytajJson("cegielki_saldo", 0)) || 0);
     var kup = czytajJson("cegielki_kupione", []), str = czytajJson("cegielki_stroje", null);
     if (Array.isArray(kup)) stan.kupione = stan.kupione.concat(kup.filter(function (x) { return stan.kupione.indexOf(x) < 0; }));
     if (str) { stan.stroje = L.stroje(str); kartyWStrojach(); }
@@ -41,7 +42,26 @@
     if (typeof saldo === "number") stan.saldo = saldo;
     if (Array.isArray(kupione)) { stan.kupione = kupione; zapiszJson("cegielki_kupione", kupione); }
     var e = $("m-saldo"); if (e) e.textContent = stan.saldo == null ? "" : String(stan.saldo);
+    zapamietajStan();
   }
+  /* OSTATNI STAN (zgłoszenie testera 6.11): menu od pierwszego obrazu pokazuje ostatnie znane cegły i złote tego konta, potem odświeża. Bez konta suma i tak jest na urządzeniu. */
+  var KLUCZ_STANU = "cegielki_ostatni_stan";
+  function kontoZSesji() { try { var s = JSON.parse(localStorage.getItem(KLUCZ_SESJI) || "null"); return (s && s.user && s.user.id) || null; } catch (e) { return null; } }
+  function zapamietajStan() {
+    if (!stan.zalogowany || przyklad) return;
+    var uid = kontoZSesji(); if (!uid) return;
+    try { localStorage.setItem(KLUCZ_STANU, JSON.stringify({ uid: uid, cegly: stan.cegly, saldo: stan.saldo, proba: !!stan.podglad })); } catch (e) {}
+  }
+  function ostatniStan() {
+    var uid = kontoZSesji(); if (!uid || przyklad) return;
+    try { var o = JSON.parse(localStorage.getItem(KLUCZ_STANU) || "null"); if (o && o.uid === uid) { stan.cegly = Number(o.cegly) || 0; if (typeof o.saldo === "number") stan.saldo = o.saldo; if (o.proba) stan.kontoProby = true; } } catch (e) {}   // konto próby: gra otwarta od razu, funkcja tylko potwierdza
+  }
+  /* Konto testowe akcji: kafel próby na Dziś daje ?proba=1 (js/akcja.mjs linkGry). Po zgodzie funkcji akcja-proba-wizerunek gra zapamiętuje to konto na tym
+     urządzeniu i każde następne wejście, także bez parametrów, jest na próbie. Gra nie czyta athletes (blizna-154), trener ze ścieżki nie dostaje znacznika. */
+  var KLUCZ_KONTA_PROBY = "cegielki_konto_proby";
+  function kontoProbyZPamieci(uid) { try { return !!uid && localStorage.getItem(KLUCZ_KONTA_PROBY) === uid; } catch (e) { return false; } }
+  /* Na próbie mur pokazuje wspólną sumę i cegły z tego urządzenia, raz. */
+  function murProby(d) { return stan.podglad && d && !d._proba ? Object.assign({}, d, { mur: (Number(d.mur) || 0) + (stan.cegly || 0), _proba: true }) : d; }
   var gotowe = Promise.resolve();
   /* PREMIERA SZEFA (Filip 5.11): pierwsza runda na świecie, zaraz po guziku. Znacznik zapisuje strona guzika przy naciśnięciu, więc tylko na tym urządzeniu; po rundzie jest zagrany, więc raz. Bez gra_konto, bez rankingu, bez plansz. Cegły do muru tylko na prawdziwej akcji: pilnuje premiera_szefa_zapisz. */
   var KLUCZ_PREMIERY = "cegielki_premiera";
@@ -81,15 +101,26 @@
     if (po && !po.error && po.data) { stan.plecakJest = !!po.data.plecak; stan.plecak = po.data.plecak || {}; if (!premiera && po.data.bonus_trening === true) $("m-bonus").hidden = false; }
     /* Z kontem poziom liczy serwer. Bez odpowiedzi poziom 1, nie suma z urządzenia: runda z poziomem wyższym niż na koncie to dla serwera oszustwo. */
     stan.cegly = po && !po.error && po.data && typeof po.data.cegly === "number" ? po.data.cegly : 0;
-    podpowiedzImie(); rysujPostacie();
-    if (parametry.get("sciezka") === "1") await sciezkaGry();
+    podpowiedzImie(); rysujPostacie(); zapamietajStan();
+    if (parametry.get("proba") === "1") try { localStorage.setItem(KLUCZ_KONTA_PROBY, sesja.user.id); } catch (e) {}   // odmowa funkcji niżej go kasuje
+    if (kontoProbyZPamieci(sesja.user.id)) {
+      /* Od razu na próbie: runda zaczęta, zanim odpowie funkcja, też liczy się lokalnie. Funkcja potwierdza; odmowa = zwykłe konto z bazy. */
+      var ceglySerwera = stan.cegly;
+      stan.podglad = true; stan.kontoProby = true; document.body.classList.remove("gra-zamknieta"); wczytajPostepProby(); rysujPostacie();
+      if (!(await sciezkaGry(true, sesja.user.id))) { stan.podglad = false; stan.kontoProby = false; stan.cegly = ceglySerwera; rysujPostacie(); }
+    }
+    else if (parametry.get("sciezka") === "1") await sciezkaGry();
   }
   /* ŚCIEŻKA FABIANKA: przełącznik „Podgląd postaci” tylko dla trenera i konta testowego (zamkiem jest funkcja, odmowa = nie ma przełącznika). Tylko to urządzenie, bez zapisu do gra_konto i bez rankingu. */
-  async function sciezkaGry() {
+  async function sciezkaGry(kontoTestowe, uid) {
     var r = await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} });
     var w = r && r.data && r.data.ok ? r.data : null;
-    if (!w) return;
+    if (!w) { if (kontoTestowe && r && r.error && r.error.context && r.error.context.status === 403) try { localStorage.removeItem(KLUCZ_KONTA_PROBY); } catch (e) {} return false; }
+    stan.kontoProby = true;
+    if (kontoTestowe && uid) try { localStorage.setItem(KLUCZ_KONTA_PROBY, uid); } catch (e) {}
     document.body.classList.remove("gra-zamknieta");
+    /* Konto testowe bez ścieżki: próba zawsze, bez przełącznika (inaczej po odznaczeniu wróciłoby 0 cegieł z bazy). */
+    if (kontoTestowe) { ustawPodglad(w); return true; }
     var etyk = $("m-podglad"), pole = $("m-podglad-pole"); if (!etyk || !pole) return;
     /* Z kafla próby od razu z postaciami i pasem Ulicy, jak w sobotę. Raz odznaczone zostaje odznaczone. */
     if (parametry.get("podglad") === "1" && czytajJson("cegielki_podglad", null) === null) zapiszJson("cegielki_podglad", true);
@@ -101,6 +132,8 @@
     var GR = window.BM_CEGIELKI_GRA;
     stan.podglad = true;
     wczytajPostepProby(w.proba_od);
+    if (stan.ranking) { stan.ranking = murProby(stan.ranking); rysujMur(); }
+    zapamietajStan();
     if (window.BM_MUZYKA) window.BM_MUZYKA.ustawAdresy(w.proba_od ? w.muzyka : null);   // przed guzikiem próby tło bez słów, jak przed startem akcji
     if (GR) { GR.wlaczRowerzyste(); if (w.koparka_url) GR.ustawKoparke(w.koparka_url); }
     wlaczPostacRoweru("");
@@ -157,7 +190,9 @@
     if (w.maly) { await odswiezRanking(); return; }   // Mały budowniczy: lista do obejrzenia, zapisu nie ma
     if (stan.podglad) {
       var przedProba = L.poziom(stan.cegly);
-      stan.cegly += w.cegly; zapiszJson("cegielki_suma", stan.cegly); nagrodyNaUrzadzeniu(); rysujPostacie(przedProba);
+      stan.cegly += w.cegly; zapiszJson("cegielki_suma", stan.cegly);
+      ustawKonto((stan.saldo || 0) + ((w.st && w.st.zlote) || 0)); zapiszJson("cegielki_saldo", stan.saldo);   // złote na próbie: na urządzeniu, jak suma
+      nagrodyNaUrzadzeniu(); rysujPostacie(przedProba);
       info(TEKST_PROBY); await odswiezRanking(); info(TEKST_PROBY); return;
     }
     /* Bez konta suma żyje tylko na tym urządzeniu. Z kontem liczy ją serwer z przyjętych rund. */
@@ -203,7 +238,7 @@
   }
   async function odswiezRanking() {
     await gotowe;
-    try { stan.ranking = await pobierzRanking(); } catch (e) { stan.ranking = null; }
+    try { stan.ranking = murProby(await pobierzRanking()); } catch (e) { stan.ranking = null; }
     rysuj(); rysujMur(); rysujPostacie();
   }
 
@@ -589,10 +624,11 @@
       rysujSklep(); return;
     }
     if (stan.potwierdz !== p.id) { stan.potwierdz = p.id; rysujSklep(true); przymierzalnia(); if (!stan.zalogowany) sinfo("To przymiarka. Wymiana złotych cegieł wymaga logowania."); else if ((stan.saldo || 0) < p.cena) sinfo(brakuje(p.cena - (stan.saldo || 0))); return; }
-    if (!stan.zalogowany || stan.podglad) { sinfo(stan.podglad ? "Podgląd postaci: bez wymiany." : "To przymiarka. Wymiana złotych cegieł wymaga logowania."); return; }
-    if (przyklad) {
-      if (stan.saldo < p.cena) { sinfo(brakuje(p.cena - stan.saldo)); return; }
+    if (!stan.zalogowany) { sinfo("To przymiarka. Wymiana złotych cegieł wymaga logowania."); return; }
+    if (przyklad || stan.podglad) {   // próba: wymiana na tym urządzeniu, za złote z próby
+      if ((stan.saldo || 0) < p.cena) { sinfo(brakuje(p.cena - (stan.saldo || 0))); return; }
       ustawKonto(stan.saldo - p.cena, stan.kupione.concat([p.id]));
+      if (stan.podglad) zapiszJson("cegielki_saldo", stan.saldo);
     } else {
       sinfo("Wymieniam…");
       var r = await window.sb.rpc("gra_kup", { p_przedmiot: p.id });
@@ -752,8 +788,8 @@
       var f = await fetch(BAZA + "/functions/v1/gra-ranking" + (t ? "?t=" + encodeURIComponent(t) : ""), { headers: { Accept: "application/json" } });
       if (!f.ok) return;
       var d = await f.json();
-      if (stan.ranking === undefined) { stan.ranking = d; rysujMur(); }
-      if (d.aktywna === false && !d.prywatny && parametry.get("sciezka") !== "1" && !premiera) document.body.classList.add("gra-zamknieta");
+      if (stan.ranking === undefined) { stan.ranking = murProby(d); rysujMur(); }
+      if (d.aktywna === false && !d.prywatny && parametry.get("sciezka") !== "1" && !premiera && !stan.kontoProby) document.body.classList.add("gra-zamknieta");
       if (d.rowerzysta === true && window.BM_CEGIELKI_GRA) { window.BM_CEGIELKI_GRA.wlaczRowerzyste(); wlaczPostacRoweru(d.rowerzysta_opis); }
       if (d.postac_koparki === true) { stan.koparkaWlaczona = true; rysujPostacie(); }
     } catch (e) {}
@@ -866,6 +902,7 @@
   if (przyklad && parametry.get("plansza")) gotowe.then(planszaPodgladu);
   if (premiera) gotowe.then(uruchomPremiere);
   else window.BM_CEGIELKI_GRA.gotowa.then(kartyWStrojach);
+  ostatniStan(); if (stan.saldo != null) { var es = $("m-saldo"); if (es) es.textContent = String(stan.saldo); }
   $("f-dalej").addEventListener("click", function () { $("final").hidden = true; if (window.BM_MUZYKA) window.BM_MUZYKA.scena("menu"); });
   $("nowa").addEventListener("click", function () { $("nowa").hidden = true; });
   rysujPostacie();

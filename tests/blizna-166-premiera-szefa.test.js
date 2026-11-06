@@ -31,7 +31,7 @@ test('gra: tylko ze znacznikiem, bez konta, rankingu, plansz i rekordu; próba n
   assert.match(k, /if \(stan\.podglad \|\| premiera\) return;/, 'bez gra_start_rundy');
   assert.match(k, /async function poRundzie\(w\) \{\n\s+if \(premiera\) \{ koniecPremiery\(w\); return; \}/, 'bez gra_zapisz_wynik i bez sumy na urządzeniu');
   assert.match(k, /function poziomGracza\(\) \{ return premiera \? 1 : L\.poziom\(stan\.cegly\); \}/, 'poziom 1, ×1');
-  assert.match(k, /&& !premiera\) document\.body\.classList\.add\("gra-zamknieta"\)/, 'guzik działa, zanim gra jest publiczna');
+  assert.match(k, /&& !premiera && !stan\.kontoProby\) document\.body\.classList\.add\("gra-zamknieta"\)/, 'guzik działa, zanim gra jest publiczna (konto testowe też, blizna-187)');
   assert.match(k, /if \(premiera\.zagrana\) \{ pokazKoniecPremiery\(\); return; \}/, 'raz: po rundzie ekran końcowy, nie druga runda');
   assert.match(k, /premiera\.zapisane = premieraNaProbie\(\);/);
   assert.match(k, /if \(premieraNaProbie\(\)\) \{ \$\("pr-info"\)\.textContent = "Próba: te cegły nie trafiają do muru\."; return; \}/, 'na próbie bez zapisu');

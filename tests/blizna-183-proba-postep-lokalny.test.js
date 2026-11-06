@@ -31,7 +31,7 @@ test('runda na próbie: suma lokalnie, nagrody, awans i dziennik; bez rundy na s
   const po = K.slice(K.indexOf('async function poRundzie'), K.indexOf('async function pobierzRanking'));
   const blok = po.slice(po.indexOf('if (stan.podglad) {'), po.indexOf('/* Bez konta suma'));
   assert.ok(blok, 'gałąź próby przed zapisem na serwer');
-  assert.match(blok, /stan\.cegly \+= w\.cegly; zapiszJson\("cegielki_suma", stan\.cegly\); nagrodyNaUrzadzeniu\(\); rysujPostacie\(przedProba\);/);
+  assert.match(blok, /stan\.cegly \+= w\.cegly; zapiszJson\("cegielki_suma", stan\.cegly\);\n[^\n]*zapiszJson\("cegielki_saldo", stan\.saldo\);[^\n]*\n\s*nagrodyNaUrzadzeniu\(\); rysujPostacie\(przedProba\);/, 'złote też lokalnie (blizna-187)');
   assert.match(blok, /return;\n\s*\}$/m, 'bez dalszej drogi do gra_zapisz_wynik');
   assert.doesNotMatch(blok, /gra_zapisz_wynik|gra_start_rundy/);
   assert.ok(po.indexOf('if (w.maly)') < po.indexOf('if (stan.podglad) {'), 'Mały budowniczy dalej bez postępu');
@@ -45,7 +45,7 @@ test('Od zera: to urządzenie od razu, inne przez chwilę startu próby', async 
   assert.match(S, /await wyczyscLokalnie\(\); wyczyscPremiere\(\); wyczyscPostepGry\(\);/);
   assert.match(S, /k\.indexOf\('cegielki_proba_'\) === 0\) localStorage\.removeItem\(k\)/);
   const f = K.slice(K.indexOf('function wczytajPostepProby'), K.indexOf('function czyJestSesja') > 0 ? K.indexOf('var gotowe = Promise') : undefined);
-  assert.match(f, /localStorage\.getItem\(PREFIKS_PROBY \+ "od"\) !== String\(od\)/);
+  assert.match(f, /var bylo = localStorage\.getItem\(PREFIKS_PROBY \+ "od"\);\n[^\n]*\n\s*if \(bylo !== null && bylo !== String\(od\)\)/, 'kasuje zmiana chwili startu; pierwsza odpowiedź tylko ją zapisuje (blizna-187)');
   assert.match(f, /if \(od !== undefined\) \{/, 'starsza funkcja bez pola nie kasuje postępu');
   const W = await import(pathToFileURL(path.join(KORZEN, 'supabase/functions/_shared/proba-wizerunek.mjs')).href);
   const sb = (wyst) => ({ from: (t) => { const q = {}; const b = { select: () => b, eq: (k, v) => { q[k] = v; return b; }, maybeSingle: async () => ({ data: t === 'coaches' ? { id: 1 } : t === 'akcje' ? { nazwa: 'x' } : null }) }; return b; }, storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: 'u' } }) }) }, rpc: async () => ({ data: { wystartowala_at: wyst, firmy: [] } }) });

@@ -148,6 +148,7 @@
       if (sz && wy) { x.drawImage(o, 0, 0, sz, wy, 0, 0, sz, wy); x.drawImage(o, 0, 0, sz, wy, 0, 0, sz * SK, wy * SK); }
     });
     Object.keys(PODPIS_BONUSU).map(function (k) { return PODPIS_BONUSU[k]; }).concat(["Kask uratował!", "Oj!", "Ślizg!", "+1 złota", "Wyzwanie dnia!", "Szybciej!"]).forEach(function (s) { tekst(s, 20, 60, 24, "#fff"); tekst(s, 20, 60, 26, "#fff"); });
+    rozgrzejNapisy();
     return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); });
   }
   /* Przemalowany arkusz to canvas, a pierwszy rysunek canvasu na canvas kosztuje na telefonie kopię do pamięci karty. Bitmapa ma to zrobione przed rundą. */
@@ -940,10 +941,39 @@
     var sz = o.width * wys / o.height, xx = -(przes % sz);
     for (; xx < W; xx += sz) x.drawImage(o, xx, y, sz + 0.6, wys);
   }
+  /* NAPISY Z PAMIĘCI (zgłoszenie testera 6.11, „muli po skokach”): obrys tekstu (strokeText, okrągłe łączenia) rysował się od nowa w każdej klatce,
+     a „Salto!”, „+1 złota”, „Combo” wchodzą właśnie przy skoku i lądowaniu. Każdy napis raz do małego płótna w rozdzielczości ekranu, potem tylko drawImage.
+     Stan kontekstu (font, wyrównanie) ustawiony jak dawniej, bo dalsze rysowanie z niego korzysta (measureText wyzwania dnia). */
+  var NAPISY = new Map(), MAKS_NAPISOW = 160, rozgrzewka = false;
+  /* Napisy, które wchodzą przy skoku, salcie, lądowaniu i bonusach: przygotowane na ekranie ładowania, żeby pierwsze pojawienie się nie kosztowało klatki. */
+  function rozgrzejNapisy() {
+    rozgrzewka = true;
+    var lista = [["+1 złota", 24, "#ffe07a"], ["Ślizg!", 24, "#9df0a8"], ["Oj!", 26, "#ffb0a0"], ["Za późno!", 26, "#ffb0a0"], ["Kask uratował!", 26, "#ffe07a"], ["Szybciej!", 34, "#ffe07a"], ["Wyzwanie dnia!", 34, "#ffe07a"]];
+    L.NAZWY_TRIKOW.concat(["Salto", "Podbicie"]).forEach(function (n) { for (var k = 1; k <= L.COMBO_MAKS; k++) lista.push([(k > 1 ? "Combo ×" + k + ": " : "") + n + "!", 26, "#9df0a8"]); });
+    for (var m = 1; m <= 6; m++) lista.push(["+" + m, 18, "#ffd9a0"], ["Bum! +" + m, 24, "#ffe07a"], ["Trach! +" + m, 24, "#ffe07a"]);
+    Object.keys(PODPIS_BONUSU).forEach(function (k) { lista.push([PODPIS_BONUSU[k], 24, "#fff"]); });
+    lista.forEach(function (n) { tekst(n[0], -9999, -9999, n[1], n[2], "center"); });
+    rozgrzewka = false;
+  }
   function tekst(t, xs, ys, roz, kol, wyr) {
-    x.font = "800 " + roz + 'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
-    x.textAlign = wyr || "left"; x.textBaseline = "middle"; x.lineJoin = "round"; x.lineWidth = Math.max(3, roz / 5); x.strokeStyle = "rgba(18,20,40,.88)";
-    x.strokeText(t, xs, ys); x.fillStyle = kol; x.fillText(t, xs, ys);
+    var font = "800 " + roz + 'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif', lw = Math.max(3, roz / 5), f = skala * dpr, klucz = t + "|" + roz + "|" + kol + "|" + f;
+    x.font = font; x.textAlign = wyr || "left"; x.textBaseline = "middle"; x.lineJoin = "round"; x.lineWidth = lw; x.strokeStyle = "rgba(18,20,40,.88)"; x.fillStyle = kol;
+    var o = NAPISY.get(klucz);
+    /* Liczby (wynik, czas, seria) zmieniają się co chwilę: rysowane wprost, jak dawniej. Z pamięci tylko teksty bez cyfr i napisy przygotowane przed rundą. */
+    if (!o && (/[0-9]/.test(t) && !rozgrzewka)) { x.strokeText(t, xs, ys); x.fillText(t, xs, ys); return; }
+    if (!o) {
+      var stary = NAPISY.size >= MAKS_NAPISOW ? NAPISY.keys().next().value : null, cv = stary ? NAPISY.get(stary).cv : document.createElement("canvas");
+      if (stary) NAPISY.delete(stary);   // płótno najdawniej użytego napisu idzie pod nowy: bez tworzenia elementu w trakcie rundy
+      var k2 = cv.getContext("2d"), pad = lw + 2;
+      k2.setTransform(1, 0, 0, 1, 0, 0); k2.font = font; var w = Math.ceil(k2.measureText(t).width + pad * 2), h = Math.ceil(roz * 1.5 + pad * 2);
+      cv.width = Math.max(1, Math.ceil(w * f)); cv.height = Math.max(1, Math.ceil(h * f));
+      k2.scale(f, f); k2.font = font; k2.textAlign = "left"; k2.textBaseline = "middle"; k2.lineJoin = "round"; k2.lineWidth = lw; k2.strokeStyle = "rgba(18,20,40,.88)";
+      k2.strokeText(t, pad, h / 2); k2.fillStyle = kol; k2.fillText(t, pad, h / 2);
+      o = { cv: cv, w: w, h: h, pad: pad };
+      NAPISY.set(klucz, o);
+    } else { NAPISY.delete(klucz); NAPISY.set(klucz, o); }   // najdawniej używany wypada pierwszy
+    var x0 = wyr === "center" ? xs - o.w / 2 : wyr === "right" ? xs - o.w + o.pad : xs - o.pad;
+    x.drawImage(o.cv, x0, ys - o.h / 2, o.w, o.h);
   }
   /* Pion: pas pod drogą, trawa z tym samym ruchem co droga. Tu nic się nie dzieje, palec gracza nie zasłania akcji. */
   function rysujPasPodDroga() {
