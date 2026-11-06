@@ -19,7 +19,7 @@ f9dcab18c36745df  akcja_firmy_wpusc
 6ca6244c439139ce  akcja_firmy_zgloszenia_lista
 7cbf7a2e860277f5  akcja_firmy_zgloszenie_dodaj
 076fd7e52aadb4f3  akcja_km_okna
-4641bd30e05b94f5  akcja_licznik
+299278380a6e2caa  akcja_licznik
 dababab37ec22ea4  akcja_moj_wklad
 79db87b2e609476a  akcja_moje_dni
 19cd0ba1e00c4608  akcja_proba_firmy
