@@ -10,13 +10,16 @@
 <meta property="og:description" content="Biegniemy i idziemy razem. Każdy krok się liczy.">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon-32.png">
+<!-- Wydajność 6.11: fonty nie blokują pierwszego obrazu (do czasu pobrania tekst w foncie systemowym), skrypty z defer, strona rusza po DOMContentLoaded. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="vendor/supabase-js-2.112.4.min.js"></script>
-<script src="sb.js"></script>
-<script src="js/akcja.mjs"></script>
-<script src="js/moderacja.mjs"></script>
-<script src="js/firma-formularz.mjs"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap"></noscript>
+<script defer src="vendor/supabase-js-2.112.4.min.js"></script>
+<script defer src="sb.js"></script>
+<script defer src="js/akcja.mjs"></script>
+<script defer src="js/moderacja.mjs"></script>
+<script defer src="js/firma-formularz.mjs"></script>
 <!-- scena ulicy: pobierana od razu, ładowana po liczniku (js/akcja.mjs zUlica); brak pliku nic nie psuje -->
 <link rel="preload" href="js/ulica.mjs" as="script"><link rel="preload" href="js/ulica-scena.mjs" as="script">
 <!--
@@ -96,7 +99,7 @@
   <p class="stopka-prawna"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Polityka prywatności</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Regulamin</a> · <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
 </main>
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   var A = window.BM_AKCJA, $ = function (id) { return document.getElementById(id); };
   function dzisWaw() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
@@ -156,7 +159,7 @@
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
   odswiez();
   setInterval(function () { if (document.visibilityState === 'visible' && dzisWaw() === DZIEN_STARTU && (!ostatniStan || !JSON.parse(ostatniStan) || !JSON.parse(ostatniStan).wystartowala)) odswiez(); }, 5000);   // w dniu startu strona otwarta przed guzikiem sama przechodzi na akcję
-})();
+});
 </script>
 </body>
 </html>

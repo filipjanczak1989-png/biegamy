@@ -184,9 +184,11 @@
       })();
     });
   }
+  var wTrakcie = {};   // ten sam plik w drodze: drugi chętny czeka na pierwsze pobranie, nie pobiera drugi raz
   function wczytajObrazy(nazwy) {
     return Promise.all(nazwy.map(function (n) {
-      return new Promise(function (ok) {
+      if (wTrakcie[n]) return wTrakcie[n];
+      return (wTrakcie[n] = new Promise(function (ok) {
         if (OBR[n] || !A[n]) return ok();
         var i = new Image();
         /* ImageBitmap trzyma obraz zdekodowany: przeglądarka nie zdekoduje arkusza od nowa przy pierwszym rysunku w trakcie rundy. Stąd brała się klatka 633 ms przy przemianie. */
@@ -197,7 +199,7 @@
         };
         i.onerror = function () { ok(); };
         i.src = KAT + A[n].src + "?v=" + WERSJA;
-      });
+      }).then(function () { delete wTrakcie[n]; }));
     }));
   }
 
@@ -525,7 +527,7 @@
     if (L.ulepszenieDla("rakieta", postac) && KONTO && KONTO.plecak && L.mozeUzyc(KONTO.plecak(), [], "rakieta")) naz.push("rakieta_rower");   // arkusz tylko dla tych, którzy mają rakietę
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
     var t0Startu = performance.now();
-    wczytajObrazy(naz).then(function () {
+    grafikiRundy.then(function () { return wczytajObrazy(naz); }).then(function () {
       /* Strój to tylko wygląd: gdy przeróbka się nie uda, gra rusza w oryginale. */
       try { if (STROJ) STROJ.zastosuj(OBR, A, postac, ubior); } catch (e) {}
       return bitmapyPostaci(naz).then(function () { return D.przygotuj(); }).then(rozgrzejObrazy).then(function () { return probaPrzemiany(postac); });
@@ -1324,6 +1326,8 @@
   $("k-znow").addEventListener("click", function () { start(ostatniaPostac); });
   $("k-zmien").addEventListener("click", function () { $("koniec").hidden = true; odswiezGraj(); $("menu").hidden = false; G = nowyStan(ostatniaPostac); stan = "menu"; planujDekor(); });
   var gotowaOk, gotowa = new Promise(function (ok) { gotowaOk = ok; });
+  /* Grafiki rundy (Wydajność 6.11): menu staje po samych kartach postaci, reszta rundy dochodzi w tle. Runda na nie czeka, więc gra wygląda tak samo. */
+  var GRAFIKI_MENU = ["kasia_bieg", "filip_bieg"], grafikiRundy = Promise.resolve();
   /* Premiera Szefa: dźwięk włączony na tę jedną rundę, bez zapisu ustawienia. */
   function wlaczDzwiek() { D.wlaczony = true; odswiezGlosnik(); if (window.BM_MUZYKA) window.BM_MUZYKA.wlacz(true); }
   window.BM_CEGIELKI_GRA = { wlaczDzwiek: wlaczDzwiek, scenaMuru: scenaMuru, odswiezGraj: odswiezGraj, odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
@@ -1358,8 +1362,9 @@
       var r = await fetch(KAT + "atlas.json?v=" + WERSJA);
       Object.assign(A, await r.json());
       var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek|rakieta|mur)_/.test(k) && k !== "druzyna" && k !== "gorka" && k !== "trawa_pod_droga"; }).concat(["kasia_bieg", "filip_bieg"]);
-      await wczytajObrazy(wspolne);
-      if (pion) wczytajObrazy(["trawa_pod_droga"]);
+      await wczytajObrazy(GRAFIKI_MENU);
+      grafikiRundy = wczytajObrazy(wspolne);
+      if (pion) grafikiRundy.then(function () { wczytajObrazy(["trawa_pod_droga"]); });
     } catch (e) { $("ladowanie").textContent = "Nie udało się wczytać grafik. Odśwież stronę."; return; }
     G = nowyStan("kasia"); planujDekor();
     stan = "menu";

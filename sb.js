@@ -92,9 +92,15 @@
   // W buckecie Supabase klient pisze WYŁĄCZNIE pod avatars/{athletes.id}.{ext}; wszystko inne
   // (banery, karty, ikony, portrety) czytamy stąd, z GH Pages. Grep po „biegamy-assets" łapie oba.
   // Użycie: assetUrl('banner1.webp') → https://filipjanczak1989-png.github.io/biegamy-assets/banner1.webp
+  // WYDAJNOŚĆ (6.11.2026): zdjęcia planu tygodnia, banery typów, logo menu i ikony kafli mają w biegamy-assets/m/
+  // kopie w rozmiarze wyświetlania (WebP, ok. 2× karty 380–412 px, ikony 3×). Tylko pliki z tej listy, każda inna ścieżka
+  // bez zmian. Lista = zawartość m/ (bramka: tests/blizna-186-male-obrazy.test.js). Parametr ?v=N zostaje.
+  window.MALE_OBRAZY = /^(run([1-9]|[1-6][0-9]|7[0-7])\.webp|typ-(interwaly|odpoczynek|regeneracja|spokojny|start|tempo|wybieganie|wzmacniajacy|zastepczy)\.jpg|bm-nav\.webp|ikona-(cialo|czat|dzwonek|odznaki|radio|starty|ustawienia|wyzwania)\.png)(\?.*)?$/;
   window.assetUrl = function(path) {
     if (!path) return '';
-    const clean = String(path).replace(/^\/+/, '');
+    let clean = String(path).replace(/^\/+/, '');
+    const m = window.MALE_OBRAZY.exec(clean);
+    if (m) clean = 'm/' + m[1].replace(/\.(webp|jpg|png)$/, '.webp') + (m[5] || '');
     return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
 

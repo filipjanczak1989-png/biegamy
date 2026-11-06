@@ -96,7 +96,7 @@ test('logo: wyłącznie plik z naszego bucketu; obce hosty z listy safeUrlAttr t
 
 function strona(Aatrapa) {
   const el = {};
-  const dok = { title: '', visibilityState: 'visible', addEventListener() {}, getElementById: (id) => (el[id] = el[id] || { hidden: false, textContent: '', innerHTML: '', href: '' }) };
+  const dok = { title: '', visibilityState: 'visible', addEventListener(n, f) { if (n === 'DOMContentLoaded') f(); }, getElementById: (id) => (el[id] = el[id] || { hidden: false, textContent: '', innerHTML: '', href: '' }) };
   const kod = blokiSkryptow('dla-fabianka.html').join('\n');
   vm.runInNewContext(kod, { window: { BM_AKCJA: Aatrapa }, document: dok, Intl, Date, String, Number, JSON, location: { hash: '', search: '' }, setInterval: () => 0 });
   return el;
