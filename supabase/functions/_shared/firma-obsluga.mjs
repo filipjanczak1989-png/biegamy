@@ -1,5 +1,5 @@
 // Obsługa zgłoszeń firm bez Deno: te same funkcje wołają EF i testy (blizna-159). Klient bazy, push i mail są wstrzykiwane, więc przepływ da się sprawdzić bez sieci.
-import { KOMPLET_MAKS, LOGO_BOK, ROZSZERZENIE, sprawdzPlik, sprawdzZgloszenie, wymiaryObrazu } from "./firma-zgloszenie.mjs";
+import { KOMPLET_MAKS, LOGO_BOK, ROZSZERZENIE, sprawdzCegielke, sprawdzPlik, sprawdzZgloszenie, wymiaryObrazu } from "./firma-zgloszenie.mjs";
 
 export const KUBELEK = "firmy-zgloszenia", PUBLICZNY = "akcja-firmy-logo", WAZNOSC_S = 600;
 const TYPY = { png: "image/png", jpg: "image/jpeg", webp: "image/webp" };
@@ -9,6 +9,7 @@ const nazwaBudynku = (r) => (r === "wiezowiec" ? "wieżowiec" : "domek");
 
 /** Treść pushu do Filipa. Kwota z formularza idzie tylko tutaj, publicznie wyłącznie za zgodą firmy. */
 export function trescPushu(w, slug, id) {
+  if (w.rodzaj === "cegielka") return { title: `${slug === "proba" ? "[próba] " : ""}Nowa cegiełka: ${w.nazwa}${w.zgoda_imie ? "" : " · bez imienia w murze"}`, body: "Dotknij, żeby zatwierdzić albo odrzucić.", url: `/trener.html#firma-zgloszenie=${id}`, type: "akcja", tag: `firma-${id}` };
   return { title: `${slug === "proba" ? "[próba] " : ""}Nowa firma: ${w.nazwa} · ${nazwaBudynku(w.rodzaj)} · ${zl(w.kwota_gr)}`, body: "Dotknij, żeby zatwierdzić albo odrzucić.", url: `/trener.html#firma-zgloszenie=${id}`, type: "akcja", tag: `firma-${id}` };
 }
 
@@ -21,6 +22,7 @@ export async function przyjmijZgloszenie(d) {
   const { data: wpusc, error: bladWpusc } = await sb.rpc("akcja_firmy_wpusc", { p_ip: d.ipSkrot, p_slug: slug });
   if (bladWpusc || !wpusc) { console.error("firma-zgloszenie wpusc:", bladWpusc && bladWpusc.message); return J(500, { ok: false, blad: "Nie udało się. Spróbuj za chwilę." }); }
   if (!wpusc.ok) return wpusc.powod === "limit" ? J(429, { ok: false, blad: "Za dużo zgłoszeń z tego adresu. Spróbuj za godzinę." }) : J(403, { ok: false, blad: "Zgłoszenia są teraz wyłączone." });
+  if (f.get("rodzaj") === "cegielka") return przyjmijCegielke(d, slug);
 
   const p = sprawdzZgloszenie({ rodzaj: f.get("rodzaj"), nazwa: f.get("nazwa"), link: f.get("link"), email: f.get("email"), zgoda: f.get("zgoda"), kwota: f.get("kwota"), zgoda_kwota: f.get("zgoda_kwota") }, d.moderacja, wpusc);
   if (p.blad) return J(400, { ok: false, blad: p.blad });
@@ -52,6 +54,29 @@ export async function przyjmijZgloszenie(d) {
   if (bladZapisu) { console.error("firma-zgloszenie zapis:", bladZapisu.message); await sprzatnij(); return J(400, { ok: false, blad: "Nie udało się zapisać zgłoszenia. Sprawdź dane." }); }
 
   try { await d.powiadom(trescPushu(wiersz, slug, id)); } catch (e) { console.error("firma-zgloszenie push:", String(e)); }
+  return J(200, { ok: true, id });
+}
+
+/* Cegiełka od osoby prywatnej (20261107_akcja_cegielka_zgloszenia): te same drzwi co firmy (przełącznik, limit 3/h, pułapka, push), ale tylko imię, zgoda na imię,
+   zrzut wpłaty i opcjonalny e-mail. Zapis prosto do tabeli kluczem serwisowym: anon i zalogowani nie mają do niej dostępu, a CHECK-i w bazie są zamkiem. Zrzut zostaje prywatny. */
+async function przyjmijCegielke(d, slug) {
+  const f = d.dane, sb = d.sb, J = (status, body) => ({ status, body });
+  const p = sprawdzCegielke({ imie: f.get("imie"), zgoda_imie: f.get("zgoda_imie"), email: f.get("email") }, d.moderacja);
+  if (p.blad) return J(400, { ok: false, blad: p.blad });
+  const plikZrzut = f.get("zrzut");
+  const zrzut = plikZrzut && plikZrzut.arrayBuffer ? new Uint8Array(await plikZrzut.arrayBuffer()) : null;
+  const zz = sprawdzPlik(zrzut, "zrzut wpłaty");
+  if (zz.blad) return J(400, { ok: false, blad: zz.blad });
+  const id = (d.noweId || (() => crypto.randomUUID()))(), sciezkaZrzut = `${id}/zrzut.${zz.rozszerzenie}`;
+  const up = await sb.storage.from(KUBELEK).upload(sciezkaZrzut, zrzut, { contentType: zz.typ, upsert: false });
+  if (up.error) { console.error("firma-zgloszenie upload cegiełki:", up.error.message); return J(500, { ok: false, blad: "Nie udało się zapisać pliku. Spróbuj za chwilę." }); }
+  const { error } = await sb.from("akcja_firmy_zgloszenia").insert({ id, akcja_slug: slug, rodzaj: "cegielka", nazwa: p.wiersz.nazwa, email: p.wiersz.email, zrzut_sciezka: sciezkaZrzut, zgoda_na_wymienienie: p.wiersz.zgoda_imie });
+  if (error) {
+    console.error("firma-zgloszenie zapis cegiełki:", error.message);
+    try { await sb.storage.from(KUBELEK).remove([sciezkaZrzut]); } catch (_) { /* zostanie sprzątanie nocne */ }
+    return J(400, { ok: false, blad: "Nie udało się zapisać zgłoszenia. Sprawdź dane." });
+  }
+  try { await d.powiadom(trescPushu(p.wiersz, slug, id)); } catch (e) { console.error("firma-zgloszenie push:", String(e)); }
   return J(200, { ok: true, id });
 }
 
@@ -116,7 +141,8 @@ export async function akcjaPanelu(d) {
     const r = await sb.storage.from(KUBELEK).remove(data.pliki || []);
     if (r.error) console.error("firma-panel kasowanie:", r.error.message);
     /* Podziękowanie: mail nie może zepsuć zatwierdzenia. */
-    if (data.email && d.wyslijMaila) { try { await d.wyslijMaila(data.email, "Dziękujemy, logo jest na Ulicy", "Dziękujemy za wsparcie zbiórki. Logo Twojej firmy jest już na Ulicy. Pojawi się na stronie akcji w ciągu 2 minut: https://biegamy.run/dla-fabianka.html"); } catch (e) { console.error("firma-panel mail:", String(e)); } }
+    if (data.email && d.wyslijMaila && data.cegla) { try { await d.wyslijMaila(data.email, "Dziękujemy, Twoja cegiełka jest w murze", "Dziękujemy za wpłatę na zbiórkę. Twoja cegiełka stoi już w murze na Ulicy. Pojawi się na stronie akcji w ciągu 2 minut: https://biegamy.run/dla-fabianka.html"); } catch (e) { console.error("firma-panel mail:", String(e)); } }
+    else if (data.email && d.wyslijMaila) { try { await d.wyslijMaila(data.email, "Dziękujemy, logo jest na Ulicy", "Dziękujemy za wsparcie zbiórki. Logo Twojej firmy jest już na Ulicy. Pojawi się na stronie akcji w ciągu 2 minut: https://biegamy.run/dla-fabianka.html"); } catch (e) { console.error("firma-panel mail:", String(e)); } }
     return J(200, { ok: true });
   }
   return J(400, { ok: false, blad: "Nieznana akcja." });

@@ -1,4 +1,4 @@
-// firma-zgloszenie: formularz „Twoja firma na Ulicy” ze strony akcji, bez logowania. Logika w _shared/firma-obsluga.mjs (testy bez sieci, blizna-159).
+// firma-zgloszenie: formularz „Twoja firma lub cegiełka na Ulicy” ze strony akcji, bez logowania: firma (budynek z logo) albo osoba prywatna (cegiełka z imieniem w murze, 20261107_akcja_cegielka_zgloszenia). Logika w _shared/firma-obsluga.mjs (testy bez sieci, blizna-159).
 //   * przełącznik akcje.firmy_zgloszenia i limit 3/h na IP sprawdza baza, zanim cokolwiek zostanie wgrane; pole-pułapka dla botów;
 //   * pliki sprawdzane po bajtach, tylko PNG, JPG, WebP do 2 MB, SVG odpada; wyłącznie do PRYWATNEGO kubełka firmy-zgloszenia;
 //   * logo ≤ 400 px skaluje przeglądarka. Większe PNG i JPG skaluje tu biblioteka ładowana dopiero wtedy, żeby zwykłe zgłoszenie od niej nie zależało. Zapis wtedy w PNG, bo biblioteka nie zapisuje WebP;
