@@ -160,11 +160,23 @@
       hop: function (t) { ton("sine", 320, 720, t, 0.17, 0.14); },
       fanfara: function (t) { ton("triangle", 523, 0, t, 0.18, 0.13); ton("triangle", 659, 0, t + 0.16, 0.18, 0.13); ton("triangle", 784, 0, t + 0.32, 0.32, 0.15); },
     };
-    return { graj: function (nazwa) {
+    function zKodu(nazwa) {
       var a = kontekst();
       if (!a || !GRAJ[nazwa]) return;
       try { if (a.state === "suspended") a.resume(); GRAJ[nazwa](a.currentTime + 0.01); } catch (e) {}
-    } };
+    }
+    return { graj: zKodu,
+      /* Plik pobierany dopiero tu, czyli po włączeniu głośnika. Brak pliku albo błąd: ten sam dźwięk z kodu. */
+      plik: function (adres, zapas) {
+        var a = kontekst();
+        if (!a || !g.fetch) { zKodu(zapas); return; }
+        g.fetch(adres).then(function (r) { if (!r.ok) throw new Error("http"); return r.arrayBuffer(); }).then(function (b) {
+          return new Promise(function (ok, nie) { a.decodeAudioData(b, ok, nie); });
+        }).then(function (b) {
+          if (a.state === "suspended") a.resume();
+          var s = a.createBufferSource(); s.buffer = b; s.connect(a.destination); s.start();
+        }).catch(function () { zKodu(zapas); });
+      } };
   }
 
   /* ── SCENA ──────────────────────────────────────────────────────────────────────── */
@@ -861,7 +873,8 @@
         zKlasa(elBudowniczy, "us-skok", 950);
         konfetti(xs, 240, 28);
         [[0.3, 90, 0], [0.7, 60, 420], [0.5, 110, 860]].forEach(function (f) { zegary.push(g.setTimeout(function () { if (!zniszczona) fajerwerk(cw * f[0], f[1]); }, f[2])); });
-        graj("fanfara");
+        if (stan.faza === "pelna" && glosno) dzwiek.plik("assets/gra/dzwieki/ul_fanfara.mp3", "fanfara");
+        else graj("fanfara");
       } else {
         konfetti(xs, 240, 22);
         graj("hop");

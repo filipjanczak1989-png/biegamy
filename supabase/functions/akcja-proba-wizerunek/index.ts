@@ -4,6 +4,7 @@
 //   * adresy podpisane na 15 minut, bez pamięci po stronie przeglądarki i pośredników. Dane pozostają w prywatnym kubełku akcja-wizerunek;
 //   * firmy próby dla podglądu w grze: gra nie woła licznika akcji sama (blizna-154);
 //   * nazwa, imię i adres zbiórki prawdziwej akcji: próba ma wyglądać jak sobota, a w wierszu próby ich nie ma, bo licznik próby woła każdy zalogowany;
+//   * muzyka: adresy na 15 minut, te same pliki co w sobotę, bo licznik nie oddaje ich dla próby;
 //   * proba_od: chwila startu próby. Gra czyści nią lokalny postęp po „Od zera” także na innym telefonie.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";

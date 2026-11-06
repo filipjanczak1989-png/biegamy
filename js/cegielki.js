@@ -489,6 +489,7 @@
     var e = $("plansza");
     if (!e) return Promise.resolve();
     $("pl-tytul").textContent = pl.tytul; $("pl-tekst").textContent = pl.tekst;
+    if (window.BM_MUZYKA) window.BM_MUZYKA.rozdzial(pl.id);
     return rysujPlansze($("pl-obraz"), pl).catch(function () {}).then(function () {
       $("menu").hidden = true; $("koniec").hidden = true; e.hidden = false;
       return new Promise(function (ok) { var b = $("pl-dalej"), dalej = function () { b.removeEventListener("click", dalej); e.hidden = true; ok(); }; b.addEventListener("click", dalej); });
@@ -544,6 +545,7 @@
       $("menu").hidden = true; $("koniec").hidden = true;
       stan = "gra"; pauza = false;
       planujDekor();
+      if (window.BM_MUZYKA && !(window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.premiera())) window.BM_MUZYKA.scena("runda");
       if (!trybMaly && window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.przedRunda) window.BM_CEGIELKI_KONTO.przedRunda();
       odswiezPlecak();
     });
@@ -736,6 +738,7 @@
     g.katDrogi += (L.katGorki(g.gorkaFaza) - g.katDrogi) * Math.min(1, dt * 4);
     if (g.gorkaFaza && !g.gorkaPowiedziana && g.gorkaFaza.faza === "podjazd" && g.gorkaFaza.p > 0.1) {
       g.gorkaPowiedziana = true;
+      if (window.BM_MUZYKA) window.BM_MUZYKA.gorka();
       var KG = window.BM_CEGIELKI_KONTO, naRowerze = KG && KG.rowerNa ? KG.rowerNa() : null;
       if (g.postac === "kasia" || g.postac === "filip") dodajNapis(L.TEKST_GORKI, graczX() + 30, stopy() - 170, "#fff", 22);
       /* Rowerzysta mija gracza w połowie podjazdu, tylko gdy jest włączony. */
@@ -853,7 +856,11 @@
   function koniecRundy() {
     stan = "koniec";
     odswiezPlecak();
-    var g = G; g.st.koniec = true; sprawdzWyzwanie(true); D.graj("meta");
+    var g = G; g.st.koniec = true; sprawdzWyzwanie(true);
+    /* W premierze gra piosenka, więc bez dżingla i bez tła menu. Plik niegotowy: dźwięk z kodu. */
+    var MZ = window.BM_MUZYKA, wPremierze = !!(window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.premiera());
+    if (!(MZ && !wPremierze && MZ.dzingiel("koniec"))) D.graj("meta");
+    if (MZ && !wPremierze) MZ.scena("menu");
     /* W rankingu liczą się punkty: cegły razy mnożnik poziomu. Mur i poziom rosną od zebranych cegieł. */
     g.punkty = L.punktyRundy(g.cegly, g.poziom);
     ostatniWynik = g.punkty; pozaKonca = Math.floor(Math.random() * (A[nz("I")] ? A[nz("I")].n : 1));
@@ -1317,10 +1324,12 @@
   $("k-znow").addEventListener("click", function () { start(ostatniaPostac); });
   $("k-zmien").addEventListener("click", function () { $("koniec").hidden = true; odswiezGraj(); $("menu").hidden = false; G = nowyStan(ostatniaPostac); stan = "menu"; planujDekor(); });
   var gotowaOk, gotowa = new Promise(function (ok) { gotowaOk = ok; });
-  window.BM_CEGIELKI_GRA = { scenaMuru: scenaMuru, odswiezGraj: odswiezGraj, odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
+  /* Premiera Szefa: dźwięk włączony na tę jedną rundę, bez zapisu ustawienia. */
+  function wlaczDzwiek() { D.wlaczony = true; odswiezGlosnik(); if (window.BM_MUZYKA) window.BM_MUZYKA.wlacz(true); }
+  window.BM_CEGIELKI_GRA = { wlaczDzwiek: wlaczDzwiek, scenaMuru: scenaMuru, odswiezGraj: odswiezGraj, odswiezPlecak: odswiezPlecak, start: start, gotowa: gotowa, rysujPlansze: rysujPlansze, pokazPlansze: pokazPlansze, ustawKoparke: ustawKoparke, ustawFirmy: function (l) { firmyZProby = true; firmy = l; wczytajLogotypy(); }, OBR: OBR, A: A, wlaczRowerzyste: wlaczRowerzyste, wczytajObrazy: wczytajObrazy, wczytajArkuszKoparki: wczytajArkuszKoparki, kartaPostaci: kartaPostaci };
   $("k-udostepnij").addEventListener("click", udostepnijWynik);
   $("k-wyzwij").addEventListener("click", wyzwijZnajomego);
-  $("glosnik").addEventListener("click", function () { D.wlaczony = !D.wlaczony; schowek.zapisz("cegielki_dzwiek", D.wlaczony ? "1" : "0"); if (D.wlaczony) { D.start(); D.graj("cegla"); } odswiezGlosnik(); });
+  $("glosnik").addEventListener("click", function () { D.wlaczony = !D.wlaczony; schowek.zapisz("cegielki_dzwiek", D.wlaczony ? "1" : "0"); if (D.wlaczony) { D.start(); D.graj("cegla"); } odswiezGlosnik(); if (window.BM_MUZYKA) window.BM_MUZYKA.wlacz(D.wlaczony); });
   /* AudioContext dopiero po geście (iOS): zapisany stan „włączony” budzi się przy pierwszym dotknięciu */
   addEventListener("pointerdown", function () { if (D.wlaczony && !D.ctx) D.start(); });
 
@@ -1333,6 +1342,7 @@
   }
   function obrazekOdznaki() { var im = document.createElement("img"); im.className = "odznaka-mini"; im.src = KAT + "odznaka.webp"; im.alt = "Odznaka"; return im; }
   function pokazMenu() {
+    if (window.BM_MUZYKA && !(window.BM_CEGIELKI_KONTO && window.BM_CEGIELKI_KONTO.premiera())) window.BM_MUZYKA.scena("menu");
     $("m-wyzwanie").textContent = "Wyzwanie dnia: " + ZASADA_WYZWANIA.opis;
     var odz = Number(schowek.czytaj("cegielki_odznaki", "0")) || 0; $("m-odznaki").textContent = odz ? "× " + odz : ""; if (odz) $("m-odznaki").prepend(obrazekOdznaki()); $("m-odznaki").hidden = !odz;
     if (wzywa) { $("m-znajomy").hidden = false; $("m-znajomy").textContent = (wzywa.od ? wzywa.od + " rzuca" : "Znajomy rzuca") + " Ci wyzwanie: pobij " + wzywa.wynik + " " + L.odmianaPunktow(wzywa.wynik) + "!"; }
@@ -1354,7 +1364,7 @@
     G = nowyStan("kasia"); planujDekor();
     stan = "menu";
     $("ladowanie").hidden = true;
-    odswiezGlosnik(); pokazMenu(); gotowaOk();
+    odswiezGlosnik(); if (window.BM_MUZYKA) window.BM_MUZYKA.wlacz(D.wlaczony); pokazMenu(); gotowaOk();
     if (parametry.has("test")) { window.__gra = function () { return G; }; window.__krok = krok; window.__uzyj = uzyjZPlecaka; }
     /* Podgląd ułożenia bez rysunku, poza produkcją: wywrotka na miejscu koparki. */
     if (parametry.get("koparka") === "przyklad" && location.hostname !== "biegamy.run" && location.hostname !== "run.biegamy.app") ustawKoparke(KAT + "wywrotka.webp");

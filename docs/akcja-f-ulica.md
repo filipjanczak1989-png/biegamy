@@ -2,6 +2,8 @@
 
 Pełna scena tylko na `dla-fabianka.html` (`js/ulica-scena.mjs`). Karty na Dziś i w Okienku dostają nieruchomą miniaturę z `js/ulica.mjs` z linkiem do pełnej ulicy. Awaria sceny albo brak pliku: miniatura; awaria miniatury: sekcji nie ma, reszta strony bez zmian.
 
+**Wyjątek (Filip 6.11):** gotowa ulica gra dżingiel z pliku `assets/gra/dzwieki/ul_fanfara.mp3`, pobierany dopiero wtedy, a przy błędzie ten sam dźwięk z kodu.
+
 **Dźwięki są generowane w kodzie** (WebAudio: oscylatory i szum w `js/ulica-scena.mjs`). Nie ma plików dźwiękowych, więc nie ma cudzych źródeł ani licencji do pilnowania. Domyślnie wyciszone; `AudioContext` powstaje dopiero po geście, stan głośnika tylko w `localStorage` (`bm_ulica_dzwiek`).
 
 **Grafiki:** `assets/ulica/*.webp` i `szyldy.json` robi `tools/ulica-grafiki.py` z PNG Filipa. Rozmiar pliku = 2 x wyświetlanie w scenie (stała `ROZMIARY`). Przy zmianie `szyldy.json` zaktualizuj stałą `SZYLDY` w `js/ulica.mjs` (pilnuje blizna-151).

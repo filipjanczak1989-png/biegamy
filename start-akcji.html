@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <script src="vendor/supabase-js-2.112.4.min.js"></script>
 <script src="sb.js"></script>
+<script src="js/muzyka.js"></script>
 <script src="js/akcja-cytaty.mjs"></script><!-- DZIEN_STARTU / OKNO_STARTU — data startu w jednym miejscu -->
 <!--
   START AKCJI (projekt F, spec v3 pkt 1) — guzik, który w dniu startu (sobota 7.11) naciska Fabianek na telefonie Filipa.
@@ -108,6 +109,9 @@
   main[data-stan="zapisane"] #slowo { font-size: clamp(30px, 9vw, 52px); }
   @keyframes puls { 0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(232,86,30,.35); } 50% { transform: scale(1.025); box-shadow: 0 0 80px rgba(232,86,30,.55); } }
   @media (prefers-reduced-motion: reduce) { main[data-stan="uzbrojony"] #krag { animation: none; } }
+  #guzik-dzwiek { display: none; position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 14px; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; background: rgba(16,19,36,.72); cursor: pointer; align-items: center; justify-content: center; z-index: 5; touch-action: manipulation; }
+  #guzik-dzwiek svg { width: 32px; height: 32px; color: #fff; }
+  main[data-stan="uzbrojony"] #guzik-dzwiek, main[data-stan="nacisniety"] #guzik-dzwiek, main[data-stan="zapisane"] #guzik-dzwiek { display: flex; }
 </style>
 </head>
 <body>
@@ -168,7 +172,34 @@
     $('licznik').textContent = o.licznik || '';
     $('status').textContent = o.status || '';
     $('reset').hidden = !(PROBA && !SCIEZKA && nowy === 'zapisane');
-    if (nowy === 'uzbrojony') wakeLock();
+    if (nowy === 'uzbrojony') { wakeLock(); muzykaUzbrojona(); }
+  }
+
+  /* MUZYKA GUZIKA (Filip 6.11): puls i fanfara pobierane od razu, do własnego cache, żeby wybuch nie czekał na sieć. Grają po dotknięciu głośnika, bo telefon inaczej nie pozwoli: trzymany palec dźwięku nie odblokowuje. Bez głośnika guzik działa cicho, jak dotąd. */
+  var MUZ = window.BM_MUZYKA, PRZYSPIESZENIE_PULSU = 1.5, dzwiekGuzika = false, muzykaPobrana = false;
+  function muzykaUzbrojona() {
+    if (!MUZ) return;
+    if (!muzykaPobrana) { muzykaPobrana = true; MUZ.przygotuj([MUZ.PLIKI.puls, MUZ.PLIKI.fanfara], true); }
+    if (dzwiekGuzika) MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
+  }
+  /* Głośnik powstaje tu, nie w HTML: bez modułu muzyki nie ma czego włączać i ekran zostaje z samym guzikiem. Ikona bez pliku, bo ten ekran ma działać offline. Stoi w rogu, z dala od guzika, i niczego nie uruchamia. */
+  function rysujGlosnikGuzika() {
+    var b = $('guzik-dzwiek'); if (!b) return;
+    b.setAttribute('aria-pressed', dzwiekGuzika ? 'true' : 'false'); b.setAttribute('aria-label', dzwiekGuzika ? 'Wyłącz muzykę' : 'Włącz muzykę');
+    b.querySelector('.fale').setAttribute('d', dzwiekGuzika ? 'M16 8a5 5 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13' : 'M16 9l5 6M21 9l-5 6');
+  }
+  function zbudujGlosnikGuzika() {
+    if (!MUZ) return;
+    var b = document.createElement('button');
+    b.id = 'guzik-dzwiek'; b.type = 'button';
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path class="fale" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    b.addEventListener('click', function () {
+      dzwiekGuzika = !dzwiekGuzika; rysujGlosnikGuzika();
+      if (!dzwiekGuzika) { MUZ.zatrzymaj(0.1); return; }
+      MUZ.odblokuj(); MUZ.bufor(MUZ.PLIKI.fanfara);
+      if (stan === 'uzbrojony') MUZ.graj(MUZ.PLIKI.puls, { petla: true, glos: 0.85 });
+    });
+    ekran.appendChild(b); rysujGlosnikGuzika();
   }
 
   /* ── pamięć naciśnięcia: localStorage + IndexedDB, każde w try/catch (prywatne okno, zablokowane dane) ── */
@@ -378,6 +409,7 @@
   function rysujPierscien(f) { postep.style.strokeDashoffset = String(OBWOD * (1 - Math.max(0, Math.min(1, f)))); }
   function przerwij() {
     cancelAnimationFrame(rafId); trzymanieOd = 0; krag.classList.remove('trzymam'); rysujPierscien(0);
+    if (MUZ && dzwiekGuzika) MUZ.tempo(1, 0.15);
   }
   function klatka() {
     if (!trzymanieOd) return;
@@ -391,11 +423,13 @@
     e.preventDefault();
     try { krag.setPointerCapture(e.pointerId); } catch (x) {}
     trzymanieOd = performance.now(); krag.classList.add('trzymam'); rafId = requestAnimationFrame(klatka);
+    if (MUZ && dzwiekGuzika) MUZ.tempo(PRZYSPIESZENIE_PULSU, PRZYTRZYMAJ_MS / 1000);
   });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (n) {
     krag.addEventListener(n, function () { if (trzymanieOd) przerwij(); });
   });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  zbudujGlosnikGuzika();
 
   async function nacisnij() {
     if (stan !== 'uzbrojony') return;
@@ -407,6 +441,7 @@
     krag.classList.add('czeka'); rysujPierscien(0);
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { var bl = $('blysk'); bl.classList.remove('teraz'); void bl.offsetWidth; bl.classList.add('teraz'); }
     try { navigator.vibrate && navigator.vibrate([60, 40, 120]); } catch (e) {}
+    if (MUZ && dzwiekGuzika) MUZ.graj(MUZ.PLIKI.fanfara, { glos: 1, przenikanie: 0.03 });
     iskry();
     wyslij();
     setTimeout(function () {

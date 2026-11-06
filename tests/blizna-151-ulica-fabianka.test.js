@@ -341,7 +341,9 @@ test('dźwięk: tylko WebAudio, po geście, domyślnie wyciszony; stan głośnik
   assert.match(czysty, /function czytajDzwiek\(\) \{ try \{ return g\.localStorage\.getItem\(KLUCZ_DZWIEKU\) === "1"; \} catch \(e\) \{ return false; \} \}/, 'domyślnie wyciszone');
   assert.match(czysty, /function zapiszDzwiek\(v\) \{ try \{/);
   assert.match(czysty, /function graj\(n\) \{ if \(glosno\) dzwiek\.graj\(n\); \}/);
-  assert.doesNotMatch(czysty, /new (g\.)?Audio\(|\.mp3|\.ogg|\.wav/, 'żadnych plików');
+  assert.doesNotMatch(czysty, /new (g\.)?Audio\(|\.ogg|\.wav/, 'żadnych innych plików');
+  assert.deepEqual(czysty.match(/[\w/-]+\.mp3/g), ['assets/gra/dzwieki/ul_fanfara.mp3'], 'jeden plik: dżingiel gotowej ulicy (Filip 6.11), przy błędzie ten sam dźwięk z kodu');
+  assert.match(czysty, /if \(stan\.faza === "pelna" && glosno\) dzwiek\.plik\("assets\/gra\/dzwieki\/ul_fanfara\.mp3", "fanfara"\);/);
   assert.match(czytaj('docs/akcja-f-ulica.md'), /generowane w kodzie/);
 });
 

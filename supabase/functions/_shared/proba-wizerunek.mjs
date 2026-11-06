@@ -1,6 +1,7 @@
 // Rysunek, arkusz, film, plakat, nazwa, imię i adres zbiórki na akcji próbnej (Ścieżka Fabianka): kto dostaje i co. Bez Deno: to samo wołają EF i test (blizna-161).
 // Nazwa, imię i zbiórka nie są w wierszu próby, bo licznik próby może wywołać każdy zalogowany, a przed startem to tajemnica.
 export const KUBELEK = "akcja-wizerunek", WAZNOSC_S = 900;
+export const PLIKI_MUZYKI = { premiera: "muzyka-premiera.mp3", menu1: "muzyka-menu-1.mp3", menu2: "muzyka-menu-2.mp3", rower: "muzyka-rower.mp3", noc: "muzyka-noc.mp3", mur: "muzyka-mur.mp3", final: "muzyka-final.mp3", magazyn: "muzyka-magazyn.mp3" };
 export const PLIKI = { koparka_url: "fabianek-koparka.webp", koparka_arkusz_url: "fabianek-koparka-arkusz.webp", film_akcji_url: "film-akcja.mp4", plakat_url: "plakat-akcji.webp" };
 
 /** Trener albo konto z listy testowej akcji proba. Każdy inny: false. */
@@ -22,7 +23,12 @@ export async function odpowiedzWizerunku(sb, user) {
     const s = await sb.storage.from(KUBELEK).createSignedUrl(plik, WAZNOSC_S);
     wynik[pole] = (s.data && s.data.signedUrl) || null;
   }
+  const muzyka = {};
+  for (const [pole, plik] of Object.entries(PLIKI_MUZYKI)) {
+    const s = await sb.storage.from(KUBELEK).createSignedUrl(plik, WAZNOSC_S);
+    if (s.data && s.data.signedUrl) muzyka[pole] = s.data.signedUrl;
+  }
   const { data: licznik } = await sb.rpc("akcja_licznik", { p_slug: "proba" });
   const { data: prawdziwa } = await sb.from("akcje").select("nazwa, imie_zbiorki, url_zbiorki").eq("slug", "dla-fabianka").maybeSingle();
-  return { status: 200, body: { ok: true, ...wynik, nazwa: (prawdziwa && prawdziwa.nazwa) || null, imie: (prawdziwa && prawdziwa.imie_zbiorki) || null, url_zbiorki: (prawdziwa && prawdziwa.url_zbiorki) || null, proba_od: (licznik && licznik.wystartowala_at) || null, firmy: (licznik && licznik.firmy) || [] } };
+  return { status: 200, body: { ok: true, ...wynik, muzyka, nazwa: (prawdziwa && prawdziwa.nazwa) || null, imie: (prawdziwa && prawdziwa.imie_zbiorki) || null, url_zbiorki: (prawdziwa && prawdziwa.url_zbiorki) || null, proba_od: (licznik && licznik.wystartowala_at) || null, firmy: (licznik && licznik.firmy) || [] } };
 }

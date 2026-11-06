@@ -101,6 +101,7 @@
     var GR = window.BM_CEGIELKI_GRA;
     stan.podglad = true;
     wczytajPostepProby(w.proba_od);
+    if (window.BM_MUZYKA) window.BM_MUZYKA.ustawAdresy(w.proba_od ? w.muzyka : null);   // przed guzikiem próby tło bez słów, jak przed startem akcji
     if (GR) { GR.wlaczRowerzyste(); if (w.koparka_url) GR.ustawKoparke(w.koparka_url); }
     wlaczPostacRoweru("");
     stan.koparkaWlaczona = true; stan.arkuszKoparki = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: w.koparka_arkusz_url }) || stan.arkuszKoparki;
@@ -233,7 +234,7 @@
     rysujKarte("rowerzysta", stan.rower, L.imieZPodpisu(stan.podpisRoweru) || "Rowerzysta", stan.rowerGotowy);
     rysujKarte("koparka", stan.koparka, stan.imie || "Koparka", stan.koparka);
     var e = $("k-awans");
-    if (e && poziomPrzed) { var teraz = L.poziom(stan.cegly); e.hidden = teraz <= poziomPrzed; e.textContent = L.tekstAwansu(poziomPrzed, teraz, opcjeRozdzialu()); pokazKartke(poziomPrzed, teraz); }
+    if (e && poziomPrzed) { var teraz = L.poziom(stan.cegly); e.hidden = teraz <= poziomPrzed; e.textContent = L.tekstAwansu(poziomPrzed, teraz, opcjeRozdzialu()); pokazKartke(poziomPrzed, teraz); if (teraz > poziomPrzed && window.BM_MUZYKA) window.BM_MUZYKA.dzingiel("awans"); }
     if (window.BM_CEGIELKI_GRA && window.BM_CEGIELKI_GRA.odswiezGraj) window.BM_CEGIELKI_GRA.odswiezGraj();
     pokazFinal();
   }
@@ -317,6 +318,7 @@
     $("f-tytul").textContent = pl.tytul;
     $("f-tekst").textContent = (mur ? "Wspólny mur: " + liczba(d.mur) + " cegieł. " : "") + "Koparka jest teraz dla wszystkich.";
     f.hidden = false;
+    if (window.BM_MUZYKA) window.BM_MUZYKA.jednorazowo("final");
     window.BM_CEGIELKI_GRA.rysujPlansze($("f-plansza"), pl);
   }
 
@@ -430,6 +432,7 @@
     if (przyklad && parametry.get("ulica") === "przyklad") d = LICZNIK_PODGLADU;
     if (!d) return;
     stan.licznik = d;
+    if (window.BM_MUZYKA && !stan.podglad) window.BM_MUZYKA.ustawAdresy(d.wystartowala === true ? d.muzyka : null);
     stan.imie = typeof d.imie === "string" ? d.imie : "";
     stan.urlZbiorki = L.linkZbiorki(d.url_zbiorki);
     stan.arkuszKoparki = L.arkuszKoparki(d) || stan.arkuszKoparki;
@@ -655,11 +658,12 @@
     sklepSkad = skad; stan.potwierdz = null;
     sinfo("");
     $(skad).hidden = true; $("sklep").hidden = false; $("sklep").scrollTop = 0;
+    if (window.BM_MUZYKA) window.BM_MUZYKA.scena("magazyn");
     document.body.classList.add("w-sklepie");
     gotowe.then(function () { if (!$("sklep").hidden) rysujSklep(); });
     rysujSklep();
   }
-  function zamknijSklep() { stan.potwierdz = null; $("sklep").hidden = true; $(sklepSkad).hidden = false; document.body.classList.remove("w-sklepie"); kartyWStrojach(); }
+  function zamknijSklep() { stan.potwierdz = null; $("sklep").hidden = true; $(sklepSkad).hidden = false; document.body.classList.remove("w-sklepie"); kartyWStrojach(); if (window.BM_MUZYKA) window.BM_MUZYKA.scena("menu"); }
   function podepnijSklep() {
     $("m-sklep").addEventListener("click", function () { otworzSklep("menu"); });
     $("k-sklep").addEventListener("click", function () { otworzSklep("koniec"); });
@@ -671,7 +675,7 @@
   /* ── menu główne: Rankingi, Mur i Dziennik bez rozgrywania rundy. Ranking to ten sam blok co po rundzie, przenoszony między ekranami, żeby nie było dwóch kopii tych samych identyfikatorów. ── */
   function otworzPodmenu(id) { $("menu").hidden = true; $(id).hidden = false; $(id).scrollTop = 0; document.body.classList.add("w-sklepie"); }
   function zamknijPodmenu(id) {
-    if (id === "e-mur") { if (stopMuru) stopMuru(); stopMuru = null; murNaScenie = null; }
+    if (id === "e-mur") { if (stopMuru) stopMuru(); stopMuru = null; murNaScenie = null; if (window.BM_MUZYKA) window.BM_MUZYKA.scena("menu"); }
     $(id).hidden = true; $("menu").hidden = false; document.body.classList.remove("w-sklepie");
     if (id === "e-rankingi") $("k-ranking-miejsce").appendChild($("k-ranking"));
     kartyWStrojach();
@@ -701,7 +705,15 @@
     zdanie(t);
     $("e-mur-moje").textContent = stan.zalogowany && stan.cegly > 0 ? "Twoje cegły w murze: " + liczba(stan.cegly) : "";
   }
-  function otworzMur() { otworzPodmenu("e-mur"); rysujEkranMuru(); odswiezRanking().then(function () { if (!$("e-mur").hidden) rysujEkranMuru(); }); }
+  function otworzMur() {
+    otworzPodmenu("e-mur"); rysujEkranMuru();
+    odswiezRanking().then(function () {
+      if ($("e-mur").hidden) return;
+      rysujEkranMuru();
+      var d = stan.ranking, cel = d && Number(d.mur_cel);
+      if (window.BM_MUZYKA && cel > 0 && Number(d.mur) >= cel) window.BM_MUZYKA.jednorazowo("mur");   // „Mur stoi!”
+    });
+  }
   function otworzDziennik() {
     otworzPodmenu("e-dziennik");
     var n = poziomGracza(), karty = L.zebraneKartki(n, czytajJson("cegielki_kartka1", false) === true), lista = $("e-dz-lista"), wszystkich = L.KARTKI.length;
@@ -760,21 +772,25 @@
     await GR.gotowa;
     if (premiera.zagrana) { pokazKoniecPremiery(); return; }
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
-    var adres = "";
+    var adres = "", M = window.BM_MUZYKA, piosenka = "";
     try {
       if (premiera.podglad) { adres = ARKUSZ_PODGLADU; stan.imie = "Fabianek"; }
       else if (premieraNaProbie()) {
         var r = window.sb ? await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} }) : null;
         adres = L.arkuszKoparki({ wystartowala: true, koparka_arkusz_url: r && r.data && r.data.ok ? r.data.koparka_arkusz_url : "" });
+        if (M && r && r.data && r.data.ok) piosenka = M.adresyZLicznika(r.data.muzyka).premiera || "";
         stan.imie = "Fabianek";
       } else {
         var f = await fetch(BAZA + "/functions/v1/akcja-licznik?slug=dla-fabianka", { headers: { Accept: "application/json" } });
         var d = f.ok ? await f.json() : null;
         adres = L.arkuszKoparki(d);
         if (d && typeof d.imie === "string") stan.imie = d.imie;
+        if (M && d) piosenka = M.adresyZLicznika(d.muzyka).premiera || "";
       }
     } catch (e) { adres = ""; }
     if (!adres || !(await GR.wczytajArkuszKoparki(adres))) { bladPremiery(); return; }
+    /* Piosenka pod rundą Szefa. Bez niej albo po 6 s oczekiwania runda rusza sama: muzyka nie może zatrzymać premiery. */
+    if (piosenka) { await Promise.race([M.bufor(piosenka), new Promise(function (ok) { setTimeout(ok, 6000); })]); GR.wlaczDzwiek(); M.graj(piosenka, { glos: 1 }); }
     GR.start("koparka");
   }
   function koniecPremiery(w) {
@@ -826,7 +842,7 @@
   if (przyklad && parametry.get("plansza")) gotowe.then(planszaPodgladu);
   if (premiera) gotowe.then(uruchomPremiere);
   else window.BM_CEGIELKI_GRA.gotowa.then(kartyWStrojach);
-  $("f-dalej").addEventListener("click", function () { $("final").hidden = true; });
+  $("f-dalej").addEventListener("click", function () { $("final").hidden = true; if (window.BM_MUZYKA) window.BM_MUZYKA.scena("menu"); });
   $("nowa").addEventListener("click", function () { $("nowa").hidden = true; });
   rysujPostacie();
   window.BM_CEGIELKI_KONTO = { kluczProby: kluczProby, grupyDruzyny: function () { var d = stan.ranking; return L.grupyDruzyny(d && d.mur, d && d.mur_cel); }, rowerNa: function () { return stan.rower ? L.rowerZPodpisu(stan.podpisRoweru) : null; }, latarnie: function (po) { return L.latarnieZapalone(po, poziomGracza(), !!stan.rower); }, premiera: function () { return !!premiera; }, plecak: function () { return premiera || stan.podglad || !stan.plecakJest ? null : stan.plecak; }, zuzyjZPlecaka: function (typ) { stan.plecak[typ] = Math.max(0, (Number(stan.plecak[typ]) || 0) - 1); }, przedRunda: przedRunda, poRundzie: poRundzie, wybor: wybor, ustawAkcje: ustawAkcje, poziom: poziomGracza, rozdzial: rozdzialGracza, planszeDoPokazania: planszeDoPokazania, pseudonimKibica: pseudonimKibica };
