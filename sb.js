@@ -92,17 +92,34 @@
   // W buckecie Supabase klient pisze WYŁĄCZNIE pod avatars/{athletes.id}.{ext}; wszystko inne
   // (banery, karty, ikony, portrety) czytamy stąd, z GH Pages. Grep po „biegamy-assets" łapie oba.
   // Użycie: assetUrl('banner1.webp') → https://filipjanczak1989-png.github.io/biegamy-assets/banner1.webp
-  // WYDAJNOŚĆ (6.11.2026): zdjęcia planu tygodnia, banery typów, logo menu i ikony kafli mają w biegamy-assets/m/
-  // kopie w rozmiarze wyświetlania (WebP, ok. 2× karty 380–412 px, ikony 3×). Tylko pliki z tej listy, każda inna ścieżka
-  // bez zmian. Lista = zawartość m/ (bramka: tests/blizna-186-male-obrazy.test.js). Parametr ?v=N zostaje.
-  window.MALE_OBRAZY = /^(run([1-9]|[1-6][0-9]|7[0-7])\.webp|typ-(interwaly|odpoczynek|regeneracja|spokojny|start|tempo|wybieganie|wzmacniajacy|zastepczy)\.jpg|bm-nav\.webp|ikona-(cialo|czat|dzwonek|odznaki|radio|starty|ustawienia|wyzwania)\.png)(\?.*)?$/;
+  // WYDAJNOŚĆ (6.11.2026): zdjęcia planu tygodnia, banery typów i ikony kafli mają w biegamy-assets/m/ kopie w rozmiarze
+  // wyświetlania (WebP, ok. 2× karty 380–412 px, ikony 3×). Tylko pliki z tej listy, każda inna ścieżka bez zmian.
+  // Lista ⊂ zawartość m/ (tools/male-obrazy-m.txt, bramka: tests/blizna-190-male-obrazy-sonda.test.js). Parametr ?v=N zostaje.
+  // !! 6.11 wdrożenie biegamy-assets padło („Deploy to GitHub Pages” failure), m/ dawało 95 × 404, a logo LOG było puste.
+  //    Dlatego: logo LOG (bm-nav.webp) zawsze z oryginału, a reszta małych kopii dopiero, gdy sonda potwierdziła, że m/ jest
+  //    pod adresem (MALE_OBRAZY_TAK z poprzedniego wejścia). Bez potwierdzenia oryginały: nic nie znika.
+  window.MALE_OBRAZY = /^(run([1-9]|[1-6][0-9]|7[0-7])\.webp|typ-(interwaly|odpoczynek|regeneracja|spokojny|start|tempo|wybieganie|wzmacniajacy|zastepczy)\.jpg|ikona-(cialo|czat|dzwonek|odznaki|radio|starty|ustawienia|wyzwania)\.png)(\?.*)?$/;
+  window.MALE_OBRAZY_SONDA = 'm/ikona-czat.webp';
+  window.MALE_OBRAZY_TAK = (function () { try { return window.localStorage.getItem('bm_male_obrazy') === '1'; } catch (e) { return false; } })();
   window.assetUrl = function(path) {
     if (!path) return '';
     let clean = String(path).replace(/^\/+/, '');
-    const m = window.MALE_OBRAZY.exec(clean);
+    const m = window.MALE_OBRAZY_TAK === true ? window.MALE_OBRAZY.exec(clean) : null;
     if (m) clean = 'm/' + m[1].replace(/\.(webp|jpg|png)$/, '.webp') + (m[5] || '');
     return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
+  /* Sonda małych kopii: raz dziennie jedna ikona (ok. 1 KB). Wynik działa od następnego wejścia, więc w trakcie strony adresy się nie zmieniają.
+     Bez sieci wyniku nie ruszamy: offline nie wolno przełączyć na oryginały, których w pamięci telefonu może nie być. */
+  (function sondaMalychObrazow() {
+    try {
+      if (typeof Image === 'undefined') return;
+      const d = new Date(), dzien = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+      const im = new Image();
+      im.onload = function () { try { window.localStorage.setItem('bm_male_obrazy', '1'); } catch (e) {} };
+      im.onerror = function () { try { if (navigator.onLine !== false) window.localStorage.removeItem('bm_male_obrazy'); } catch (e) {} };
+      im.src = 'https://filipjanczak1989-png.github.io/biegamy-assets/' + window.MALE_OBRAZY_SONDA + '?d=' + dzien;
+    } catch (e) {}
+  })();
 
   // ─── Ukryj przełączniki karuzel globalnie (strzałki ‹ › + kropki) ──────────
   // Auto-rotacja zostaje — chowamy tylko manualny switcher.

@@ -38,7 +38,7 @@ test('każdy slug mapy ma obraz w puli generatora i odwrotnie (9 typów)', () =>
   assert.equal(SLUGI_PULI.length, 9, JSON.stringify(SLUGI_PULI));
   assert.deepEqual(slugiMapy, [...SLUGI_PULI].sort());
   for (const t of TYPY_PLANU) assert.ok(ctx.TRAINING_TYPE_BANNERS[t], `typ ${t} bez banera`);
-  for (const t of TYPY_PLANU) assert.match(ctx.trainingTypeBannerUrl(t), /\/biegamy-assets\/m\/typ-[a-z]+\.webp$/, t);   // mała kopia z m/ (blizna-186)
+  for (const t of TYPY_PLANU) assert.match(ctx.trainingTypeBannerUrl(t), /\/biegamy-assets\/typ-[a-z]+\.jpg$/, t);   // bez potwierdzonej sondy oryginał (blizna-190)
 });
 
 test('Interwały ≠ Tempo, Spokojny ≠ Wybieganie; Bieg spokojny = Spokojny', () => {
@@ -58,9 +58,9 @@ test('nieznany typ → obraz Odpoczynku (jak dotąd banner-odpoczynek jako zapas
 
 test('zapas: błąd typ-*.jpg → banner-<slug>.webp; błąd obu → tło końcowe', () => {
   const el = () => ({ style: {} });
-  { const { ctx } = swiat(); const e = el(); assert.equal(ctx.ustawTloTypu(e, 'Tempo'), true); assert.match(e.style.backgroundImage, /m\/typ-tempo\.webp/); }
-  { const { ctx } = swiat([/typ-tempo\.webp/]); const e = el(); ctx.ustawTloTypu(e, 'Tempo', 'GRADIENT'); assert.match(e.style.backgroundImage, /banner-tempo\.webp/); }
-  { const { ctx } = swiat([/typ-tempo\.webp/, /banner-tempo\.webp/]); const e = el(); ctx.ustawTloTypu(e, 'Tempo', 'GRADIENT'); assert.equal(e.style.backgroundImage, 'GRADIENT'); }
+  { const { ctx } = swiat(); const e = el(); assert.equal(ctx.ustawTloTypu(e, 'Tempo'), true); assert.match(e.style.backgroundImage, /typ-tempo\.jpg/); }
+  { const { ctx } = swiat([/typ-tempo\.jpg/]); const e = el(); ctx.ustawTloTypu(e, 'Tempo', 'GRADIENT'); assert.match(e.style.backgroundImage, /banner-tempo\.webp/); }
+  { const { ctx } = swiat([/typ-tempo\.jpg/, /banner-tempo\.webp/]); const e = el(); ctx.ustawTloTypu(e, 'Tempo', 'GRADIENT'); assert.equal(e.style.backgroundImage, 'GRADIENT'); }
 });
 
 test('zawodnik.html: pasek tygodnia i miniatura biorą obraz z obrazTypu — bez własnej mapy', () => {

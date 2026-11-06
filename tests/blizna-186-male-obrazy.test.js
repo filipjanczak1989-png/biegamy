@@ -17,13 +17,14 @@ const BAZA = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 function assetUrl() {
   const i = SB.indexOf('window.MALE_OBRAZY'), j = SB.indexOf('};', SB.indexOf('window.assetUrl = function', i)) + 2;
   const w = {}; vm.runInNewContext(SB.slice(i, j), { window: w });
+  w.MALE_OBRAZY_TAK = true;   // sonda potwierdziła m/ (blizna-190); bez niej oryginały
   return { u: (p) => w.assetUrl(p).replace(BAZA, ''), re: w.MALE_OBRAZY };
 }
 
 test('assetUrl: małe kopie tylko dla plików z listy, parametr zostaje, reszta bez zmian', () => {
   const { u } = assetUrl();
   assert.equal(u('run1.webp'), 'm/run1.webp'); assert.equal(u('run77.webp'), 'm/run77.webp'); assert.equal(u('/run5.webp'), 'm/run5.webp');
-  assert.equal(u('typ-spokojny.jpg'), 'm/typ-spokojny.webp'); assert.equal(u('bm-nav.webp'), 'm/bm-nav.webp');
+  assert.equal(u('typ-spokojny.jpg'), 'm/typ-spokojny.webp'); assert.equal(u('bm-nav.webp'), 'bm-nav.webp', 'logo LOG zawsze z oryginału (blizna-190)');
   assert.equal(u('ikona-odznaki.png?v=3'), 'm/ikona-odznaki.webp?v=3');
   for (const x of ['run0.webp', 'run78.webp', 'run7.jpg', 'typ-nowy.jpg', 'ikona-nowa.png', 'icon-nav-medal.webp', 'kalendarz/typ-tempo.webp', 'kadr-36.jpg', 'filmy/film-06-poster.jpg', 'm/run1.webp', 'xrun1.webp'])
     assert.equal(u(x), x.replace(/^\/+/, ''), x);
