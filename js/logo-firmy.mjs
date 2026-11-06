@@ -4,7 +4,7 @@
 // PDF rysuje pdf.js w przeglądarce trenera, tylko gdy ktoś wybierze PDF (vendor/pdfjs-4.10.38). Przezroczyste tło: strona bez koloru tła, a białe tło namalowane w pliku jest wycinane od krawędzi. Margines strony jest przycinany, żeby logo wypełniło szyld.
 (function (g) {
   "use strict";
-  var BOK = 400, WEJSCIE_MAKS = 25 * 1024 * 1024, ETAP_BOK = 1600, SVG_BOK = 800, PDF_BOK = 1600, KAT_PDF = "vendor/pdfjs-4.10.38/", JAKOSC = 0.92, PROG_BIELI = 245, PROG_ALFA = 8;
+  var BOK = 400, WEJSCIE_MAKS = 25 * 1024 * 1024, ETAP_BOK = 1600, ZRZUT_BOK = 1600, ZRZUT_MAKS = 2 * 1024 * 1024 - 64 * 1024, SVG_BOK = 800, PDF_BOK = 1600, KAT_PDF = "vendor/pdfjs-4.10.38/", JAKOSC = 0.92, PROG_BIELI = 245, PROG_ALFA = 8;
   var PROSBA = "Wyślij logo jako PNG lub JPG.";
   var HEIF = /^(heic|heix|hevc|hevx|heim|heis|hevm|hevs|mif1|msf1)$/;
 
@@ -103,7 +103,7 @@
 
   /* Obraz rysuje przeglądarka (z obrotem EXIF, jak w <img>) od razu w mniejszym canvasie: zdjęcie 48 Mpx nie robi canvasu, którego telefon nie uniesie.
      SVG rysowany w docelowej wielkości, więc ostry. Błąd = przeglądarka nie zna formatu. */
-  function obrazNaCanvas(plik, bajty, rodzaj) {
+  function obrazNaCanvas(plik, bajty, rodzaj, bok) {
     return new Promise(function (ok, zle) {
       var svg = rodzaj === "svg", zrodlo = svg ? new Blob([bajty], { type: "image/svg+xml" }) : plik, u = URL.createObjectURL(zrodlo), im = new Image();
       im.onerror = function () { URL.revokeObjectURL(u); zle(new Error("dekodowanie")); };
@@ -111,7 +111,7 @@
         try {
           var sw = im.naturalWidth, sh = im.naturalHeight, sk;
           if (svg) { var p = proporcjeSvg(new TextDecoder().decode(bajty.subarray(0, 65536))); sw = p[0]; sh = p[1]; sk = SVG_BOK / Math.max(sw, sh); }
-          else sk = Math.min(1, ETAP_BOK / Math.max(sw, sh));
+          else sk = Math.min(1, (bok || ETAP_BOK) / Math.max(sw, sh));
           if (!(sw > 0 && sh > 0)) throw new Error("dekodowanie");
           var k = nowyCanvas(sw * sk, sh * sk), c = k.getContext("2d");
           if (!c) throw new Error("pamięć");
@@ -161,5 +161,26 @@
     if (!blob) throw new Error("Logo: nie udało się przygotować obrazu. " + PROSBA);
     return { blob: blob, szer: k.width, wys: k.height, zPdf: rodzaj === "pdf" };
   }
-  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, rodzajPoBajtach: rodzajPoBajtach, PROSBA: PROSBA };
+  /* Zrzut albo zdjęcie potwierdzenia wpłaty (formularz na stronie akcji, firma i osoba): do 1600 px na białym tle, bez przycinania (to dokument, nie logo),
+     WebP poniżej 2 MB, czyli limitu funkcji firma-zgloszenie. Kolejne próby jakości, na końcu JPG (Safari bez zapisu WebP oddaje PNG, który bywa za duży). */
+  var PROSBA_ZRZUT = "Zrób zrzut ekranu potwierdzenia (PNG albo JPG).";
+  function doBloba(k, typ, jakosc) { return new Promise(function (ok) { try { k.toBlob(ok, typ, jakosc); } catch (e) { ok(null); } }); }
+  async function przygotujZrzut(plik) {
+    if (!plik || !(plik.size > 0)) throw new Error("Zrzut wpłaty: wybierz plik.");
+    if (plik.size > WEJSCIE_MAKS) throw new Error("Zrzut wpłaty: plik ma ponad 25 MB. " + PROSBA_ZRZUT);
+    var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
+    if (rodzaj === "pdf") throw new Error("Zrzut wpłaty: to plik PDF. " + PROSBA_ZRZUT);
+    try { k = await obrazNaCanvas(plik, bajty, rodzaj, ZRZUT_BOK); } catch (e) {
+      throw new Error(rodzaj === "heic" ? "Zrzut wpłaty: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT : "Zrzut wpłaty: tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT);
+    }
+    var b = nowyCanvas(k.width, k.height), c = b.getContext("2d");
+    c.fillStyle = "#fff"; c.fillRect(0, 0, b.width, b.height); c.drawImage(k, 0, 0);
+    var proby = [["image/webp", 0.85], ["image/webp", 0.7], ["image/webp", 0.55], ["image/jpeg", 0.8], ["image/jpeg", 0.6]];
+    for (var i = 0; i < proby.length; i++) {
+      var w = await doBloba(b, proby[i][0], proby[i][1]);
+      if (w && w.size <= ZRZUT_MAKS && /^image\/(webp|jpeg|png)$/.test(w.type)) return w;
+    }
+    throw new Error("Zrzut wpłaty: nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT);
+  }
+  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, rodzajPoBajtach: rodzajPoBajtach, PROSBA: PROSBA };
 })(globalThis);

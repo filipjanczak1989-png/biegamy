@@ -27,7 +27,7 @@ test('jedna funkcja rysuje budynek firmy i cegłę na Ulicy i w podglądzie', ()
 });
 
 test('formularz firmy: podgląd nad „Wyślij”, logo jak do wysyłki, nic na serwer przed wysłaniem, podpowiedź nie blokuje', () => {
-  const p = F.slice(F.indexOf('var podglad = el("div", "ff-podglad", f)'), F.indexOf('var wyslij = el("button", "ff-wyslij", f, "Wyślij zgłoszenie")'));
+  const p = F.slice(F.indexOf('var podglad = el("div", "ff-podglad", firma)'), F.indexOf('var wyslij = el("button", "ff-wyslij", f, "Wyślij zgłoszenie")'));
   assert.ok(p.length > 200, 'podgląd stoi przed przyciskiem');
   assert.match(p, /logoDoWyslania\(plikLogo\)\.then\(function \(b\) \{ return g\.URL\.createObjectURL\(b\); \}/, 'to samo przygotowanie logo co przy wysyłce, adres tylko w przeglądarce');
   assert.doesNotMatch(p, /fetch|FormData|sb\.|rpc|storage/, 'podgląd niczego nie wysyła');

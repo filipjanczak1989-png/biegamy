@@ -54,7 +54,7 @@ test('kilka zgłoszeń: osobne pushe; progi i pułapka', async () => { await S.k
 test('panel: dotknięcie pushu otwiera to jedno zgłoszenie, licznik do sprawdzenia, PRÓBA; EF cienkie, sekrety z env', () => {
   const p = czytaj('js/firmy-panel.mjs');
   assert.match(p, /if \(m\) otworzNakladke\(m\[1\]\)/);
-  assert.match(p, /"Firmy do sprawdzenia: " \+ n/);
+  assert.match(p, /"Zgłoszenia do sprawdzenia \(firmy i cegiełki\): " \+ n/);   // od blizny 192 także cegiełki od osób prywatnych
   assert.match(p, /"PRÓBA"/);
   assert.doesNotMatch(p.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n'), /innerHTML/);
   const z = czytaj('supabase/functions/firma-zgloszenie/index.ts'), pn = czytaj('supabase/functions/firma-panel/index.ts');

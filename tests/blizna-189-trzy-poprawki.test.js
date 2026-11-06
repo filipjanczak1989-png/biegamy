@@ -31,13 +31,13 @@ test('cegiełka w sekcji firm: podgląd tą samą funkcją co mur, nic nie wysy�
 
 test('edycja po zatwierdzeniu: firma przez istniejący edytor, wpis w murze bez migracji', () => {
   const P = czytaj('js/firmy-panel.mjs'), T = czytaj('trener.html'), U = czytaj('js/ulica.mjs');
-  assert.match(P, /if \(z\.status === "zatwierdzone"\) \{[\s\S]{0,1200}g\.BM_EDYTUJ_FIRME\(z\.nazwa, !!z\.proba\)/, 'z próby też (blizna-191)');
+  assert.match(P, /if \(z\.status === "zatwierdzone" && !cegla\) \{[\s\S]{0,1200}g\.BM_EDYTUJ_FIRME\(z\.nazwa, !!z\.proba\)/, 'z próby też (blizna-191); cegiełka ma własną gałąź (blizna-192)');
   assert.match(T, /window\.BM_EDYTUJ_FIRME = async function \(nazwa, proba\) \{[\s\S]{0,300}zacznijEdycje\(f\);/);
   assert.match(T, /const r = await sb\.from\('akcja_firmy'\)\.update\(\{ zgoda_na_kwote: pokazKwote \}\)\.eq\('id', edycja\.id\)/, 'pokazanie kwoty osobno');
   assert.doesNotMatch(czytaj('js/akcja.mjs').slice(czytaj('js/akcja.mjs').indexOf('function firmaDoEdycji')), /zgoda_na_kwote: w\./, 'główna edycja bez pola, którego baza może jeszcze nie przyjąć');
   const w = U.slice(U.indexOf('function wierszCegielki'), U.indexOf('async function wczytajCegielki'));
   assert.doesNotMatch(w, /ukryta|\.update\(/, 'baza nie daje trenerowi UPDATE na wpisach w murze ani kolumny ukryta');
-  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\("id,imie,zgoda,dodano"\)/);
+  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\("id,akcja_slug,imie,zgoda,dodano"\)\.in\("akcja_slug", \[SLUG_PANELU, "proba"\]\)/, 'mur prawdziwej akcji i próby (blizna-192)');
   assert.match(w, /cegielkaDoZapisu\(\{ imie: x\.imie, zgoda: x\.zgoda, potwierdzenie: true \}\)\.blad/, 'te same zasady i filtr imion co przy dodawaniu');
 });
 

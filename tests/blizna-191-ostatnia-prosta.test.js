@@ -67,7 +67,7 @@ test('logo: każdy odrzucony plik mówi, co zrobić; formularz nie przyjmuje PDF
   const s = czytaj('js/logo-firmy.mjs');
   assert.match(s, /BOK = 400/, '400 px: więcej funkcja firma-zgloszenie nie przyjmie w WebP');
   assert.match(s, /WEJSCIE_MAKS = 25 \* 1024 \* 1024/, 'zdjęcie z telefonu 5–15 MB wchodzi');
-  assert.match(s, /sk = Math\.min\(1, ETAP_BOK \/ Math\.max\(sw, sh\)\)/, 'duże zdjęcie od razu do mniejszego canvasu (pamięć telefonu)');
+  assert.match(s, /sk = Math\.min\(1, \(bok \|\| ETAP_BOK\) \/ Math\.max\(sw, sh\)\)/, 'duże zdjęcie od razu do mniejszego canvasu (pamięć telefonu)');
   assert.match(s, /"Logo: zdjęcia HEIC ta przeglądarka nie otworzy\. " \+ PROSBA \+ " Wystarczy zrzut ekranu z logo\."/);
   assert.match(s, /"Logo: tego pliku nie da się otworzyć jako obrazu\. " \+ PROSBA/);
   for (const n of ['przezroczyste.png', 'obrot-exif.jpg', 'logo.svg', 'zly.pdf', 'zly-tekst.png', 'heic-naglowek.heic']) assert.ok(plik(n).length < 4096, n + ': mały plik w repo');
@@ -92,12 +92,12 @@ test('formularz: prawdziwy powód zamiast „nie da się odczytać”, pole przy
   const F = czytaj('js/firma-formularz.mjs'), H = czytaj('dla-fabianka.html');
   assert.doesNotMatch(F, /Tego logo nie da się odczytać/);
   assert.doesNotMatch(F, /plik\.type\)\) return zle|Logo: plik do 2 MB/, 'bez blokady po typie i 2 MB przed przygotowaniem');
-  assert.match(F, /pole\("ff-logo", "Logo: PNG, JPG, WebP, SVG albo zdjęcie z telefonu", "file", \{ accept: "image\/\*" \}\)/);
+  assert.match(F, /pole\("ff-logo", "Logo: PNG, JPG, WebP, SVG albo zdjęcie z telefonu", "file", \{ accept: "image\/\*" \}, firma\)/);
   assert.match(F, /podRada\.textContent = bladLogo;/, 'błąd logo widać od razu, także bez sceny Ulicy');
   assert.match(F, /"Podgląd logo się nie wyświetlił, ale zgłoszenie możesz wysłać: organizator zobaczy plik\."/, 'awaria samego podglądu nie blokuje');
   assert.ok(H.indexOf('<script defer src="js/logo-firmy.mjs"></script>') > 0 && H.indexOf('<script defer src="js/logo-firmy.mjs"></script>') < H.indexOf('<script defer src="js/firma-formularz.mjs"></script>'));
   const sub = F.slice(F.indexOf('f.addEventListener("submit"'));
-  assert.match(sub, /e2\.message && \/\^Logo\/\.test\(e2\.message\) \? e2\.message/, 'przy wysyłce ten sam komunikat');
+  assert.match(sub, /e2\.message && \/\^\(Logo\|Zrzut\)\/\.test\(e2\.message\) \? e2\.message/, 'przy wysyłce ten sam komunikat (logo i zrzut, blizna-192)');
 });
 
 test('panel trenera: własne okienko zamiast window.confirm i prompt (firmy, zgłoszenia, mur)', () => {
@@ -126,10 +126,10 @@ test('Usuń z Ulicy i Edytuj: firmy obu akcji, zatwierdzone z próby, wpisy w mu
   assert.doesNotMatch(us, /rpc\(|akcje|licznik|training_logs/, 'tylko tabela firm i plik logo');
   assert.match(T, /window\.BM_USUN_FIRME = async function \(nazwa, proba\)/);
   assert.match(T, /if \(pasujace\.length > 1\)/, 'kilka firm o tej nazwie: nic nie zgadujemy');
-  assert.match(P, /if \(z\.status === "zatwierdzone"\) \{/, 'z próby też');
+  assert.match(P, /if \(z\.status === "zatwierdzone" && !cegla\) \{/, 'z próby też; cegiełka osobno (blizna-192)');
   assert.match(P, /g\.BM_USUN_FIRME\(z\.nazwa, !!z\.proba\)/);
   const w = U.slice(U.indexOf('function wierszCegielki'), U.indexOf('async function wczytajCegielki'));
-  const ins = w.indexOf('sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: SLUG_PANELU }, p.wiersz)).select("id")'), del = w.indexOf('sb.from("akcja_cegielki").delete().eq("id", c.id).select("id")');
+  const ins = w.indexOf('sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: c.akcja_slug || SLUG_PANELU }, p.wiersz)).select("id")'), del = w.indexOf('sb.from("akcja_cegielki").delete().eq("id", c.id).select("id")');
   assert.ok(ins > 0 && del > ins, 'edycja: najpierw nowy wpis, potem skasowanie starego (awaria w środku nie gubi wpisu)');
   assert.match(w, /Licznik kilometrów akcji się nie zmienia\./);
   assert.doesNotMatch(w, /\.update\(|ukryta/, 'baza nie daje trenerowi UPDATE ani kolumny ukryta');

@@ -18,15 +18,28 @@
   function wierszZgloszenia(kont, z, poDecyzji) {
     var ramka = el("div", "padding:12px 0;border-top:1px solid var(--border);", kont);
     ramka.id = "zgl-" + z.id;
-    if (z.proba) el("div", "display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;color:#17120e;background:#ff8a3c;border-radius:6px;padding:2px 8px;margin-bottom:6px;", ramka, "PRÓBA");
-    el("div", "font-size:16px;font-weight:800;color:var(--fg);overflow-wrap:anywhere;", ramka, z.nazwa + " · " + (z.rodzaj === "wiezowiec" ? "wieżowiec" : "domek"));
+    /* Cegiełka od osoby prywatnej (20261107_akcja_cegielka_zgloszenia): imię zamiast nazwy firmy, zgoda na imię w murze, tylko zrzut wpłaty. „Zatwierdź” = wpis w murze tej akcji. */
+    var cegla = z.rodzaj === "cegielka";
+    if (z.proba) el("div", "display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;color:#17120e;border-radius:6px;padding:2px 8px;margin:0 6px 6px 0;background:#ff8a3c;", ramka, "PRÓBA");
+    if (cegla) el("div", "display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;color:#17120e;border-radius:6px;padding:2px 8px;margin:0 6px 6px 0;background:#e8c39e;", ramka, "CEGIEŁKA");
+    el("div", "font-size:16px;font-weight:800;color:var(--fg);overflow-wrap:anywhere;", ramka, z.nazwa + " · " + (cegla ? "cegiełka w murze" : z.rodzaj === "wiezowiec" ? "wieżowiec" : "domek"));
+    if (cegla) el("div", "font-size:14px;font-weight:700;color:var(--fg);", ramka, z.zgoda_na_wymienienie ? "Imię w murze: tak, osoba się zgodziła" : "Bez zgody na imię: cegła stanie bez imienia");
     if (z.kwota_gr != null) el("div", "font-size:14px;font-weight:700;color:var(--fg);", ramka, "Wpłata: " + zl(z.kwota_gr) + (z.zgoda_na_kwote ? " · można pokazać" : " · bez pokazywania"));
     var link = bezpiecznyLink(z.link);
     if (link) { var a = el("a", "font-size:13px;display:block;overflow-wrap:anywhere;", ramka, link); a.href = link; a.target = "_blank"; a.rel = "noopener noreferrer nofollow"; }
     if (z.email) el("div", "font-size:13px;color:var(--muted);overflow-wrap:anywhere;", ramka, z.email);
     el("div", "font-size:11px;color:var(--muted);", ramka, new Date(z.utworzono).toLocaleString("pl-PL") + " · " + ({ nowe: "czeka na decyzję", zatwierdzone: "zatwierdzone", odrzucone: "odrzucone" }[z.status] || z.status) + (z.powod ? ": " + z.powod : ""));
     /* Zatwierdzona firma, z próby też (6.11): „Edytuj” otwiera edytor firm w trener.html, „Usuń z Ulicy” pyta we własnym okienku i kasuje firmę z Ulicy (zgłoszenie zostaje w historii). */
-    if (z.status === "zatwierdzone") {
+    if (z.status === "zatwierdzone" && cegla) {
+      var doMuru = el("button", PRZYCISK + "margin-top:8px;background:none;color:var(--fg);border:1px solid var(--border);", ramka, "W murze: pokaż wpisy"); doMuru.type = "button";
+      el("div", "font-size:12px;color:var(--muted);", ramka, "Zmiana imienia i usunięcie: sekcja „Ulica akcji”, przy wpisie.");
+      doMuru.addEventListener("click", function () {
+        var n = g.document.getElementById("firma-nakladka"); if (n) n.remove();
+        var u = g.document.getElementById("ulica-sec"); if (!u) return;
+        u.open = true; u.scrollIntoView({ block: "start", behavior: "smooth" });
+      });
+    }
+    if (z.status === "zatwierdzone" && !cegla) {
       var rzad = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;", ramka), edInfo = el("div", "font-size:12px;color:var(--muted);", ramka);
       var ed = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--fg);border:1px solid var(--border);", rzad, "Edytuj"); ed.type = "button";
       var us = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--red);border:1px solid var(--border);", rzad, "Usuń z Ulicy"); us.type = "button";
@@ -46,7 +59,7 @@
     }
     if (z.status !== "nowe") return;
     var obrazy = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;", ramka);
-    [["Logo", z.logo_adres, "background:#fbf3df;padding:6px;box-sizing:border-box;"], ["Zrzut wpłaty (adres ważny 10 min)", z.zrzut_adres, ""]].forEach(function (w) {
+    (cegla ? [] : [["Logo", z.logo_adres, "background:#fbf3df;padding:6px;box-sizing:border-box;"]]).concat([["Zrzut wpłaty (adres ważny 10 min)", z.zrzut_adres, ""]]).forEach(function (w) {
       var b = el("div", "flex:1 1 140px;min-width:0;", obrazy);
       el("div", "font-size:11px;color:var(--muted);margin-bottom:4px;", b, w[0]);
       if (!w[1]) { el("div", "font-size:12px;color:var(--muted);", b, "Plik usunięty."); return; }
@@ -84,7 +97,7 @@
         pierwszy.parentNode.insertBefore(licznikEl, pierwszy);
         licznikEl.addEventListener("click", function () { otworzNakladke(null); });
       }
-      licznikEl.textContent = "Firmy do sprawdzenia: " + n;
+      licznikEl.textContent = "Zgłoszenia do sprawdzenia (firmy i cegiełki): " + n;
       licznikEl.style.display = n > 0 ? "block" : "none";
     }
     function odswiezLicznik() { return wolaj({ akcja: "licznik" }).then(function (d) { pokazLicznik(d.nowe || 0); }).catch(function () {}); }
@@ -94,9 +107,9 @@
     function otworzNakladke(idZgl) {
       zamknijNakladke();
       nakladka = el("div", "position:fixed;inset:0;z-index:400;overflow-y:auto;background:var(--card,#14141c);padding:16px;box-sizing:border-box;", g.document.body);
-      nakladka.id = "firma-nakladka"; nakladka.setAttribute("role", "dialog"); nakladka.setAttribute("aria-label", "Zgłoszenie firmy");
+      nakladka.id = "firma-nakladka"; nakladka.setAttribute("role", "dialog"); nakladka.setAttribute("aria-label", "Zgłoszenie");
       var gora = el("div", "display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;", nakladka);
-      var tyt = el("div", "font-size:18px;font-weight:800;color:var(--fg);", gora, "Zgłoszenia firm");
+      var tyt = el("div", "font-size:18px;font-weight:800;color:var(--fg);", gora, "Zgłoszenia firm i cegiełek");
       var x = el("button", "font:inherit;font-size:14px;padding:8px 14px;border-radius:10px;background:none;color:var(--fg);border:1px solid var(--border);cursor:pointer;", gora, "Zamknij"); x.type = "button";
       x.addEventListener("click", zamknijNakladke);
       var tresc = el("div", "", nakladka, "Wczytuję…");
@@ -105,7 +118,7 @@
         var nowe = d.zgloszenia.filter(function (z) { return z.status === "nowe"; });
         var jedno = idZgl ? d.zgloszenia.filter(function (z) { return z.id === idZgl; }) : [];
         var lista = jedno.length ? jedno : nowe;
-        tyt.textContent = jedno.length ? "Zgłoszenie firmy" : "Kolejka: " + nowe.length;
+        tyt.textContent = jedno.length ? (jedno[0].rodzaj === "cegielka" ? "Zgłoszenie cegiełki" : "Zgłoszenie firmy") : "Kolejka: " + nowe.length;
         if (!lista.length) { el("div", "font-size:14px;color:var(--muted);padding:12px 0;", tresc, "Nie ma zgłoszeń do sprawdzenia."); }
         lista.forEach(function (z) { wierszZgloszenia(tresc, z, function () { odswiezLicznik(); if (wczytane) odswiez(); otworzNakladke(null); }); });
         var reszta = nowe.filter(function (z) { return z.id !== idZgl; }).length;

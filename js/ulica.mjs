@@ -708,7 +708,7 @@
     function wierszCegielki(c) {
       var w = h("div", "", lista); w.setAttribute("style", "display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);");
       var op = h("div", "", w); op.setAttribute("style", "flex:1 1 150px;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:var(--fg);");
-      h("div", "", op, c.imie);
+      h("div", "", op, (c.akcja_slug === "proba" ? "PRÓBA · " : "") + c.imie);
       h("div", "", op, (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL")).setAttribute("style", "font-size:11px;color:var(--muted);");
       var styl = "flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;";
       var ed = h("button", "", w, "Edytuj"); ed.setAttribute("type", "button"); ed.setAttribute("style", styl + "color:var(--fg);");
@@ -722,7 +722,7 @@
         var p = cegielkaDoZapisu({ imie: v.imie, zgoda: v.zgoda, potwierdzenie: true });
         if (p.blad) { blC.textContent = p.blad; return; }
         ed.disabled = true;
-        var r = await sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: SLUG_PANELU }, p.wiersz)).select("id");
+        var r = await sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: c.akcja_slug || SLUG_PANELU }, p.wiersz)).select("id");
         if (r.error || !r.data || !r.data.length) { ed.disabled = false; blC.textContent = "Nie udało się zapisać: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
         var s2 = await sb.from("akcja_cegielki").delete().eq("id", c.id).select("id");
         if (s2.error || !s2.data || !s2.data.length) blC.textContent = "Nowy wpis zapisany, ale starego baza nie skasowała: usuń „" + c.imie + "” z listy.";
@@ -741,7 +741,8 @@
       });
     }
     async function wczytajCegielki() {
-      var r = await sb.from("akcja_cegielki").select("id,imie,zgoda,dodano").eq("akcja_slug", SLUG_PANELU).order("dodano").order("id");
+      /* Mur prawdziwej akcji i próby (PRÓBA): cegiełkę zatwierdzoną na próbie (blizna-192) da się tu sprawdzić i usunąć. Nowy wpis z formularza wyżej idzie do prawdziwej akcji. */
+      var r = await sb.from("akcja_cegielki").select("id,akcja_slug,imie,zgoda,dodano").in("akcja_slug", [SLUG_PANELU, "proba"]).order("akcja_slug").order("dodano").order("id");
       wyczysc(lista);
       if (r.error) { lista.textContent = "Nie udało się wczytać wpisów: " + komunikatBledu(r.error); return; }
       if (!r.data || !r.data.length) { h("div", "", lista, "Na razie bez wpisów: muru na rysunku nie widać.").setAttribute("style", "font-size:12px;color:var(--muted);"); return; }
