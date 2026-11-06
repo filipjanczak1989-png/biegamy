@@ -5,7 +5,7 @@
   var EF = "/functions/v1/firma-zgloszenie", PLIK_MAKS = 2 * 1024 * 1024, LOGO_BOK = 400;
   function el(tag, klasa, rodzic, tekst) { var e = g.document.createElement(tag); if (klasa) e.className = klasa; if (tekst != null) e.textContent = tekst; if (rodzic) rodzic.appendChild(e); return e; }
   function zl(n) { return Number(n || 0).toLocaleString("pl-PL") + " zł"; }
-  var CSS = ".ff{max-width:560px;margin:18px auto;padding:18px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);text-align:left;color:inherit}.ff h2{margin:0 0 8px;font-size:22px;letter-spacing:0;text-transform:none;color:inherit}.ff p{margin:6px 0;font-size:14px;line-height:1.45}.ff ol{margin:8px 0;padding-left:20px;font-size:14px;line-height:1.5}.ff-pole{display:block;margin:10px 0;font-size:13px;font-weight:700}.ff-pole input,.ff-pole select{display:block;box-sizing:border-box;width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:inherit;font:inherit;font-weight:400}.ff-pole select option{color:#111}.ff-zgoda{display:flex;gap:8px;align-items:flex-start;font-size:13px;font-weight:400;line-height:1.4;margin:10px 0}.ff-zgoda input{width:20px;height:20px;flex:none;margin:0}.ff-rodo{font-size:12px;opacity:.8}.ff-rodo a{color:inherit;text-decoration:underline}.ff-pulapka{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.ff-wyslij{width:100%;padding:12px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer;background:#ff8a3c;color:#1b1420}.ff-wyslij:disabled{opacity:.6}.ff-info{margin-top:10px;font-size:14px;font-weight:700}.ff-podglad-nazwa{margin:2px 0 0;text-align:center;font-size:14px;font-weight:700}.ff-rada{margin:4px 0 10px;font-size:13px;line-height:1.4;color:#ffd9a0}.ff-podglad-nazwa:empty,.ff-rada:empty{display:none}";
+  var CSS = ".ff{max-width:560px;margin:18px auto;padding:18px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);text-align:left;color:inherit}.ff h2{margin:0 0 8px;font-size:22px;letter-spacing:0;text-transform:none;color:inherit}.ff p{margin:6px 0;font-size:14px;line-height:1.45}.ff ol{margin:8px 0;padding-left:20px;font-size:14px;line-height:1.5}.ff-pole{display:block;margin:10px 0;font-size:13px;font-weight:700}.ff-pole input,.ff-pole select{display:block;box-sizing:border-box;width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:inherit;font:inherit;font-weight:400}.ff-pole select option{color:#111}.ff-zgoda{display:flex;gap:8px;align-items:flex-start;font-size:13px;font-weight:400;line-height:1.4;margin:10px 0}.ff-zgoda input{width:20px;height:20px;flex:none;margin:0}.ff-rodo{font-size:12px;opacity:.8}.ff-rodo a{color:inherit;text-decoration:underline}.ff-pulapka{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.ff-wyslij{width:100%;padding:12px;border:0;border-radius:12px;font:inherit;font-weight:800;cursor:pointer;background:#ff8a3c;color:#1b1420}.ff-wyslij:disabled{opacity:.6}.ff-info{margin-top:10px;font-size:14px;font-weight:700}.ff-podglad-nazwa{margin:2px 0 0;text-align:center;font-size:14px;font-weight:700}.ff-rada{margin:4px 0 10px;font-size:13px;line-height:1.4;color:#ffd9a0}.ff-podglad-nazwa:empty,.ff-rada:empty{display:none}.ff-cegielka{margin-top:20px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14)}.ff-cegielka h3{margin:0 0 6px;font-size:17px}";
   function css() { if (g.document.getElementById("ff-css")) return; var s = el("style", "", g.document.head, CSS); s.id = "ff-css"; }
 
   /** Logo w przeglądarce: najdłuższy bok ≤ 400 px. Canvas przekodowuje plik, więc znikają też metadane. Safari nie zapisuje WebP i oddaje PNG. */
@@ -104,6 +104,28 @@
     });
   }
 
+  /* CEGIEŁKA W MURZE (zgłoszenie 6.11): osoba wpisuje imię i od razu widzi cegłę tak, jak stanie w murze (ta sama funkcja co Ulica).
+     Wpis dodaje trener po potwierdzeniu wpłaty (panel w trener.html), więc tu nic nie idzie na serwer. */
+  function cegielka(s, adres) {
+    var k = el("div", "ff-cegielka", s);
+    el("h3", "", k, "Cegiełka z imieniem w murze");
+    el("p", "", k, adres ? "Wpłać dowolną kwotę na zbiórkę i wyślij potwierdzenie wpłaty z imieniem na adres " + adres + ". Imię stanie w murze po sprawdzeniu i tylko za Twoją zgodą." : "Wpłać dowolną kwotę na zbiórkę i przekaż organizatorowi potwierdzenie wpłaty z imieniem. Imię stanie w murze po sprawdzeniu i tylko za Twoją zgodą.");
+    var l = el("label", "ff-pole", k, "Imię do muru (podgląd, nic nie wysyłamy)"), i = el("input", "", l); i.id = "ff-imie"; i.type = "text"; i.maxLength = 20; i.autocomplete = "given-name";
+    var pod = el("div", "ff-podglad-cegly", k), op = el("p", "ff-rada", k), zegar = 0;
+    function rysuj() {
+      var A = g.BM_AKCJA, im = i.value.trim();
+      if (!A || !A.zUlica) return;
+      A.zUlica(function (U) {
+        if (!U.podgladCegly) return;
+        var ok = !im || (U.poprawneImie && U.poprawneImie(im));
+        U.podgladCegly(pod, ok ? im : "", true).catch(function () {});
+        op.textContent = ok ? "" : "Imię do muru: jedno słowo, same litery, od 2 do 20 znaków, najwyżej jeden łącznik. Bez nazwiska.";
+      });
+    }
+    i.addEventListener("input", function () { clearTimeout(zegar); zegar = setTimeout(rysuj, 150); });
+    rysuj();
+  }
+
   /** Rysuje sekcję w kontenerze. Przed startem, bez przełącznika i bez adresu nie ma nic. */
   function zamontuj(s, d) {
     if (!s) return false;
@@ -126,6 +148,7 @@
     el("li", "", ol, "Logo pojawi się na budynku po sprawdzeniu.");
     el("p", "", s, "To podziękowanie, nie reklama. BiegaMy nie pośredniczy w pieniądzach.");
     if (wlaczone) formularz(s, d);
+    cegielka(s, adres);
     return true;
   }
   g.BM_FIRMA_FORMULARZ = { zamontuj: zamontuj, logoDoWyslania: logoDoWyslania };

@@ -48,6 +48,7 @@
   .przyciski { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
   .przycisk { display: block; text-align: center; padding: 15px; border-radius: 14px; font-weight: 600; font-size: 15px; text-decoration: none; }
   .przycisk--glowny { background: var(--akcent); color: #fff; } .przycisk--zbiorka { border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
+  .przycisk--firma { margin: -6px 0 14px; font-size: 16px; border-width: 2px; }
   .drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin-top: 18px; }
   .stopka-prawna { font-size: 12px; color: var(--fg2); text-align: center; margin: 22px 0 0; } .stopka-prawna a { color: inherit; display: inline-block; padding: 8px 2px; }
   [hidden] { display: none !important; }
@@ -66,6 +67,7 @@
 
   <div id="pelna" hidden>
     <h1 id="nazwa"></h1>
+    <a class="przycisk przycisk--zbiorka przycisk--firma" id="do-firmy" href="#firma" hidden>Twoja firma lub cegiełka na Ulicy ›</a>
     <section aria-label="Licznik">
       <div class="duze-liczby" id="duze"></div>
       <div id="pasek"></div>
@@ -146,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('firmy').innerHTML = firmy; $('firmy').hidden = !firmy;
     try {   // awaria formularza nie psuje strony
       if (window.BM_FIRMA_FORMULARZ) window.BM_FIRMA_FORMULARZ.zamontuj($('firma'), d);
+      $('do-firmy').hidden = $('firma').hidden || zamknieta;   // wyraźnie na górze, nie tylko pod plakatem
       if (location.hash === '#firma' && !$('firma').hidden && !window._firmaPrzewinieta) { window._firmaPrzewinieta = true; $('firma').scrollIntoView({ block: 'start' }); }
     } catch (e) {}
   }

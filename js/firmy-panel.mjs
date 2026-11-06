@@ -25,6 +25,13 @@
     if (link) { var a = el("a", "font-size:13px;display:block;overflow-wrap:anywhere;", ramka, link); a.href = link; a.target = "_blank"; a.rel = "noopener noreferrer nofollow"; }
     if (z.email) el("div", "font-size:13px;color:var(--muted);overflow-wrap:anywhere;", ramka, z.email);
     el("div", "font-size:11px;color:var(--muted);", ramka, new Date(z.utworzono).toLocaleString("pl-PL") + " · " + ({ nowe: "czeka na decyzję", zatwierdzone: "zatwierdzone", odrzucone: "odrzucone" }[z.status] || z.status) + (z.powod ? ": " + z.powod : ""));
+    if (z.status === "zatwierdzone" && !z.proba) {
+      var ed = el("button", PRZYCISK + "margin-top:8px;background:none;color:var(--fg);border:1px solid var(--border);", ramka, "Edytuj na Ulicy"), edInfo = el("div", "font-size:12px;color:var(--muted);", ramka); ed.type = "button";
+      ed.addEventListener("click", function () {
+        if (!g.BM_EDYTUJ_FIRME) { edInfo.textContent = "Edytor firm się nie wczytał. Odśwież stronę."; return; }
+        g.BM_EDYTUJ_FIRME(z.nazwa).then(function (ok) { edInfo.textContent = ok ? "" : "Tej firmy nie ma na liście firm akcji (zmieniona nazwa albo usunięta)."; });
+      });
+    }
     if (z.status !== "nowe") return;
     var obrazy = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;", ramka);
     [["Logo", z.logo_adres, "background:#fbf3df;padding:6px;box-sizing:border-box;"], ["Zrzut wpłaty (adres ważny 10 min)", z.zrzut_adres, ""]].forEach(function (w) {

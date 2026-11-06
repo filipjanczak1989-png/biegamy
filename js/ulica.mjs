@@ -707,7 +707,29 @@
       var w = h("div", "", lista); w.setAttribute("style", "display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border);");
       var op = h("div", "", w); op.setAttribute("style", "flex:1;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:var(--fg);");
       h("div", "", op, c.imie);
-      var dalej = h("div", "", op, (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL"));
+      var dalej = h("div", "", op, (c.ukryta ? "UKRYTY · " : "") + (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL"));
+      if (c.ukryta) w.style.opacity = ".6";
+      /* Zmiana imienia i ukrywanie po migracji 20261106_akcja_edycja (kolumna ukryta + prawo zmiany dla trenera). Wcześniej przycisków nie ma. */
+      if ("ukryta" in c) {
+        var styl = "flex:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:11px;padding:6px 10px;cursor:pointer;";
+        var zm = h("button", "", w, "Zmień imię"); zm.setAttribute("type", "button"); zm.setAttribute("style", styl);
+        zm.addEventListener("click", async function () {
+          var nowe = g.prompt("Nowe imię (jedno słowo, może być z łącznikiem):", c.imie); if (nowe == null) return;
+          nowe = nowe.trim(); if (!RE_IMIE.test(nowe)) { blC.textContent = "Imię: jedno słowo, same litery, od 2 do 20 znaków, najwyżej jeden łącznik."; return; }
+          var M = g.BM_MODERACJA; if (!M || !M.sprawdz(nowe, { rodzaj: "imie" }).ok) { blC.textContent = "To imię nie pójdzie na zbiórkę."; return; }
+          zm.disabled = true;
+          var r = await sb.from("akcja_cegielki").update({ imie: nowe }).eq("id", c.id).select("id");
+          if (r.error || !r.data || !r.data.length) { zm.disabled = false; blC.textContent = "Nie udało się zmienić: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
+          await wczytajCegielki();
+        });
+        var uk = h("button", "", w, c.ukryta ? "Pokaż" : "Ukryj"); uk.setAttribute("type", "button"); uk.setAttribute("style", styl);
+        uk.addEventListener("click", async function () {
+          uk.disabled = true;
+          var r = await sb.from("akcja_cegielki").update({ ukryta: !c.ukryta }).eq("id", c.id).select("id");
+          if (r.error || !r.data || !r.data.length) { uk.disabled = false; blC.textContent = "Nie udało się: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
+          await wczytajCegielki();
+        });
+      }
       dalej.setAttribute("style", "font-size:11px;color:var(--muted);");
       var us = h("button", "", w, "Usuń"); us.setAttribute("type", "button");
       us.setAttribute("style", "flex:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:11px;padding:6px 10px;cursor:pointer;");
@@ -720,7 +742,7 @@
       });
     }
     async function wczytajCegielki() {
-      var r = await sb.from("akcja_cegielki").select("id,imie,zgoda,dodano").eq("akcja_slug", SLUG_PANELU).order("dodano").order("id");
+      var r = await sb.from("akcja_cegielki").select("*").eq("akcja_slug", SLUG_PANELU).order("dodano").order("id");   // * : kolumna ukryta dochodzi migracją, bez niej lista działa jak dotąd
       wyczysc(lista);
       if (r.error) { lista.textContent = "Nie udało się wczytać wpisów: " + komunikatBledu(r.error); return; }
       if (!r.data || !r.data.length) { h("div", "", lista, "Na razie bez wpisów: muru na rysunku nie widać.").setAttribute("style", "font-size:12px;color:var(--muted);"); return; }
@@ -760,7 +782,7 @@
     return true;
   }
 
-  g.BM_ULICA = { ocenaLogo: ocenaLogo, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
+  g.BM_ULICA = { poprawneImie: function (t) { return RE_IMIE.test(String(t || "").trim()); }, ocenaLogo: ocenaLogo, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
     BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
     kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,

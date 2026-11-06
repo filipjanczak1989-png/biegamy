@@ -8,6 +8,9 @@
   var CEL_PX = 125 * ODC, SWIAT = START_X + CEL_PX + KONIEC_SWIATA, PARALAKSA = { daleko: 0.18, srodek: 0.55, przod: 1.25 };
   var LOGO_SZER = 0.8, LOGO_WYS = 40, ZA_DROGA = 20, POZIOM_DOMKU = 258, POZIOM_MASZYN = 286, POZIOM_DZWIGU = 262, POZIOM_BUDOWNICZEGO = 304, POZIOM_SRODKA = 238;
   var ROZMIAR = { koparka: [124, 85.5], walec: [104, 83.5], dzwig: [130, 90.5], budowniczy: [39, 74] };
+  /* Koła walca (zgłoszenie 6.11, „jajowate”): opony na assets/ulica/walec.webp są owalne (ok. 23 × 29 px pliku, środki 25 i 71,5 na 135,5). Wycinek owalny w tym miejscu,
+     a obrót z kompensacją owalu (ściśnij do koła, obróć, rozciągnij z powrotem): bieżnik się kręci, kształt opony zostaje jak na rysunku. Wartości w px pudełka (plik × 0,5). */
+  var KOLA_WALCA = { srodki: [[12.5, 67.75], [35.75, 67.75]], rx: 11.1, ry: 14.2 };   // owal odrobinę w opony: bez błotnika w obrocie
   /* Maszyny to jedna grafika: ruchoma część to ta sama grafika z innym przycięciem. Oba przycięcia dzielą granicę, ruchoma wchodzi lekko na korpus, żeby nie było szczeliny. */
   var KLIPY = {
     koparka: [["korpus", "polygon(0 0,56% 0,56% 8%,50% 30%,50% 64%,56% 62%,66% 72%,66% 100%,0 100%)"], ["ramie", "polygon(56% 0,100% 0,100% 100%,66% 100%,66% 72%,56% 62%,49% 64%,49% 30%,55% 8%)"]],
@@ -75,7 +78,7 @@
     ".us-lina{position:absolute;left:86.4%;top:15%;width:1.6px;height:30%;background:#23252b;opacity:0;pointer-events:none}.us-klade .us-lina{opacity:1}" +
     ".us--gra .us-walec{will-change:transform;animation:us-jazda 3s ease-in-out infinite alternate}@keyframes us-jazda{from{transform:translate3d(-8px,0,0)}to{transform:translate3d(8px,0,0)}}" +
     ".us--gra .us-walec.us-jedzie{animation:us-przejazd 1.9s ease-in-out}@keyframes us-przejazd{0%,100%{transform:translate3d(0,0,0)}45%,55%{transform:translate3d(46px,0,0)}}" +
-    ".us-kolo{transform-origin:var(--ox) var(--oy)}.us--gra .us-kolo{will-change:transform;animation:us-kolo 1.5s linear infinite}.us--gra .us-jedzie .us-kolo{animation-duration:.5s}@keyframes us-kolo{to{transform:rotate(360deg)}}" +
+    ".us-kolo{transform-origin:var(--ox) var(--oy)}.us--gra .us-kolo{will-change:transform;animation:us-kolo 1.5s linear infinite}.us--gra .us-jedzie .us-kolo{animation-duration:.5s}@keyframes us-kolo{from{transform:scaleY(var(--sy,1)) rotate(0deg) scaleY(var(--sy1,1))}to{transform:scaleY(var(--sy,1)) rotate(360deg) scaleY(var(--sy1,1))}}" +
     ".us-beben{position:absolute;left:53%;top:51%;width:41%;height:17%;overflow:hidden;pointer-events:none;clip-path:ellipse(50% 100% at 50% 100%)}" +
     ".us-beben i{position:absolute;left:0;right:0;top:-10px;height:200%;background:repeating-linear-gradient(180deg,rgba(255,255,255,.28) 0 2px,transparent 2px 10px)}" +
     ".us--gra .us-beben i{will-change:transform;animation:us-beben .6s linear infinite}@keyframes us-beben{to{transform:translate3d(0,10px,0)}}" +
@@ -468,12 +471,12 @@
       obok(stos, 200, POZIOM_DZWIGU - 8, 50, 8);
       elKoparka = maszyna("koparka", "Koparka: kop mocniej", 4, POZIOM_MASZYN);
       elWalec = maszyna("walec", "Walec: przejedź kawałek", -96, POZIOM_MASZYN + 2);
-      var promienKola = 12.6;
       var beben = el("div", "us-beben", elWalec); el("i", "", beben);
-      [[14.2, 66.6], [35.6, 66.6]].forEach(function (k) {
+      KOLA_WALCA.srodki.forEach(function (k) {
         var im = sprite("walec", elWalec, "us-cz us-kolo");
-        im.style.clipPath = "circle(" + promienKola + "px at " + k[0] + "px " + k[1] + "px)"; im.style.webkitClipPath = im.style.clipPath;
+        im.style.clipPath = "ellipse(" + KOLA_WALCA.rx + "px " + KOLA_WALCA.ry + "px at " + k[0] + "px " + k[1] + "px)"; im.style.webkitClipPath = im.style.clipPath;
         im.style.setProperty("--ox", k[0] + "px"); im.style.setProperty("--oy", k[1] + "px");
+        im.style.setProperty("--sy", String(KOLA_WALCA.ry / KOLA_WALCA.rx)); im.style.setProperty("--sy1", String(KOLA_WALCA.rx / KOLA_WALCA.ry));
         im.onerror = function () {
           if (im.parentNode) im.parentNode.removeChild(im);
           if (beben.parentNode) beben.parentNode.removeChild(beben);

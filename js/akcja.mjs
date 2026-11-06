@@ -141,6 +141,8 @@
   }
   /* Konto testowe zostaje na próbie także na kolejnych stronach. Przełącznik gry dotyczy prawdziwej akcji, więc próba wchodzi przez ?sciezka=1 (zamkiem jest funkcja akcja-proba-wizerunek). */
   function czyProba(d) { return !!(d && d.testowa === true); }
+  /* Sekcja firm i cegiełek na stronie akcji: po starcie, przy włączonym formularzu albo adresie kontaktu (js/firma-formularz.mjs zamontuj). */
+  function formularzFirm(d) { return !!(d && d.wystartowala && (d.firmy_zgloszenia === true || (typeof d.kontakt_firmy === "string" && d.kontakt_firmy))); }
   function adresStrony(d, kotwica) { return "dla-fabianka.html" + (czyProba(d) ? "?proba=1" : "") + (kotwica || ""); }
   function linkGry(d) { return czyProba(d) ? "gra-cegielki.html?sciezka=1&podglad=1&proba=1" : "gra-cegielki.html"; }   // proba=1: gra zapamiętuje konto testowe (js/cegielki-konto.js)
   function graWidoczna(d) { sprawdzGre(); return czyProba(d) || graWlaczona; }
@@ -195,7 +197,7 @@
     ".akcja-dzis-filip{margin-top:6px;font-size:12px;line-height:1.45;color:rgba(255,255,255,.82)}" +
     ".akcja-dzis-przyciski{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}" +
     ".akcja-dzis-przycisk{display:flex;align-items:center;justify-content:center;min-height:56px;padding:8px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;font-size:16px;font-weight:800;line-height:1.15;text-align:center;text-decoration:none;cursor:pointer}" +
-    ".akcja-dzis-przycisk[hidden]{display:none}.akcja-dzis-przycisk--zbiorka{background:#e8561e;border-color:transparent}";
+    ".akcja-dzis-przycisk[hidden]{display:none}.akcja-dzis-przycisk--zbiorka{background:#e8561e;border-color:transparent}.akcja-dzis-przycisk--ulica{grid-column:1/-1;border-color:rgba(255,138,61,.75);color:#ffd3b0}";
   function wstrzyknijCss() {
     try {
       if (!g.document || g.document.getElementById("bm-akcja-css")) return;
@@ -337,7 +339,8 @@
       (pl ? '<a class="akcja-dzis-przycisk" href="' + pl + '" data-plakat="' + pl + '"' + (zb ? ' data-zbiorka="' + zb + '"' : "") + ' target="_blank" rel="noopener noreferrer">Plakat</a>' : "") +
       '<a class="akcja-dzis-przycisk" data-gra-link href="' + linkGry(d) + '"' + (graWidoczna(d) ? "" : " hidden") + ">Gra</a>" +
       (trasa ? '<a class="akcja-dzis-przycisk" href="' + trasa + '">Mapa wyprawy</a>' : "") +
-      (zb ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--zbiorka" href="' + zb + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") + "</div>";
+      (zb ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--zbiorka" href="' + zb + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") +
+      (formularzFirm(d) ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' + adresStrony(d, "#firma") + '">Twoja firma lub cegiełka na Ulicy</a>' : "") + "</div>";
   }
   var _ostatniWklad = null;   // zapytanie o wkład nie przeszło (tłok, brak sieci): ostatnia znana liczba, nie „0 km”
   function wstawKafel(d, wklad) {
@@ -520,7 +523,7 @@
     firmyHtml: firmyHtml, tytulFirm: tytulFirm, celownik: celownik, linkFirmy: linkFirmy, logoFirmy: logoFirmy, firmaDoZapisu: firmaDoZapisu, firmaDoEdycji: firmaDoEdycji, logoDoWgrania: logoDoWgrania,
     TEKST_FIRM: TEKST_FIRM, BUCKET_LOGO: BUCKET_LOGO,
     CACHE_MS: CACHE_MS, DNI_KARTY_PO_ZAMKNIECIU: DNI_KARTY_PO_ZAMKNIECIU, EF: EF };
-  g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy; g.BM_AKCJA.kartaZPamieci = kartaZPamieci; g.BM_AKCJA.KLUCZ_KARTY = KLUCZ_KARTY;
+  g.BM_AKCJA.formularzFirm = formularzFirm; g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy; g.BM_AKCJA.kartaZPamieci = kartaZPamieci; g.BM_AKCJA.KLUCZ_KARTY = KLUCZ_KARTY;
   /* Skrypt stoi pod znacznikami Dziś, więc karta z pamięci wchodzi przed pierwszym obrazem. Gdzie indziej (index, trener, strona akcji) nie ma #akcja-karta i nic się nie dzieje. */
   try { if (g.document && g.document.getElementById) { if (!kartaZPamieci() && g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", kartaZPamieci); } } catch (e) {}
   g.BM_AKCJA.zdejmijKafel = zdejmijKafel; g.BM_AKCJA.daneKaflaHtml = daneKaflaHtml; g.BM_AKCJA.liczbyKaflaHtml = liczbyKaflaHtml; g.BM_AKCJA.adresStrony = adresStrony; g.BM_AKCJA.linkGry = linkGry;

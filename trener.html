@@ -396,6 +396,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-wymienienie" required style="margin-top:2px;">Firma zgodziła się na wymienienie</label>
     <label id="firma-potwierdzenie-rzad" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-potwierdzenie" style="margin-top:2px;"><span id="firma-potwierdzenie-tekst">Wpłata powyżej progu potwierdzona</span></label>
     <div id="firmy-blad" role="alert" style="display:none;font-size:13px;line-height:1.4;color:var(--red);"></div>
+    <label id="firma-kwota-pokaz-rzad" hidden style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--fg);"><input type="checkbox" id="firma-kwota-pokaz" style="margin-top:2px;">Pokaż kwotę przy firmie (tylko za zgodą firmy)</label>
     <button type="submit" class="btn btn-p" id="firmy-zapisz">Dodaj firmę</button>
     <button type="button" class="btn" id="firmy-anuluj" hidden>Anuluj edycję</button>
   </form>
@@ -9035,7 +9036,7 @@ document.addEventListener('keydown', (e) => {
   function czyscLogo() { logo = null; podglad.textContent = ''; }
   function czyscFormularz() {
     form.reset(); czyscLogo(); edycja = null;
-    zapisz.textContent = 'Dodaj firmę'; anuluj.hidden = true; $('firma-kwota-blok').hidden = false;
+    zapisz.textContent = 'Dodaj firmę'; anuluj.hidden = true; $('firma-kwota-blok').hidden = false; $('firma-kwota-pokaz-rzad').hidden = true;
     $('firma-sprawdzona-rzad').hidden = true; $('firma-sprawdzona-rzad').style.display = '';
     pokazBlad(''); ustawWsparcie();
   }
@@ -9059,12 +9060,21 @@ document.addEventListener('keydown', (e) => {
     wczytano = true; firmy = data || [];
     lista.innerHTML = firmy.length ? firmy.map(wiersz).join('') : '<div style="font-size:12px;color:var(--muted);">Lista pusta: na stronie akcji sekcji firm nie widać.</div>';
   }
+  /* Wejście z panelu zgłoszeń (js/firmy-panel.mjs): „Edytuj na Ulicy” przy zatwierdzonej firmie otwiera ten sam edytor. */
+  window.BM_EDYTUJ_FIRME = async function (nazwa) {
+    if (!wczytano) await wczytaj();
+    const k = String(nazwa || '').trim().toLowerCase(), f = firmy.find((x) => String(x.nazwa || '').trim().toLowerCase() === k);
+    if (!f) return false;
+    sekcja.open = true; zacznijEdycje(f); form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    return true;
+  };
   function zacznijEdycje(f) {
     czyscFormularz(); edycja = f;
     $('firma-nazwa').value = f.nazwa; $('firma-link').value = f.link; $('firma-rodzaj').value = f.rodzaj; $('firma-wsparcie').value = f.wsparcie;
     $('firma-logo-zgoda').checked = f.logo_zgoda === true; $('firma-plakat-tekst').value = f.plakat_tekst || '';
     $('firma-wymienienie').checked = true; $('firma-potwierdzenie').checked = f.wsparcie === 'wplata';   // CHECK w bazie: wpłata w tabeli ma potwierdzenie
     $('firma-kwota-blok').hidden = true; zapisz.textContent = 'Zapisz zmiany'; anuluj.hidden = false;
+    $('firma-kwota-pokaz-rzad').hidden = f.kwota_gr == null; $('firma-kwota-pokaz').checked = f.zgoda_na_kwote === true;
     if (A.logoFirmy(f)) podglad.textContent = 'Bez nowego pliku logo zostaje.';
     ustawWsparcie(); form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -9119,6 +9129,12 @@ document.addEventListener('keydown', (e) => {
         if (!data || !data.length) throw new Error('baza odmówiła zapisu.');
         const stary = wgrany ? plikLogo(edycja.logo_url) : '';
         if (stary) { try { await sb.storage.from(A.BUCKET_LOGO).remove([stary]); } catch (_) {} }
+        /* Pokazanie kwoty osobno: przed migracją 20261106_akcja_edycja baza nie pozwala go zmienić, a reszta zmian i tak musi przejść. */
+        const pokazKwote = $('firma-kwota-pokaz').checked;
+        if (edycja.kwota_gr != null && pokazKwote !== (edycja.zgoda_na_kwote === true)) {
+          const r = await sb.from('akcja_firmy').update({ zgoda_na_kwote: pokazKwote }).eq('id', edycja.id).select('id');
+          if (r.error || !r.data || !r.data.length) window.showToast('Zmiany zapisane, ale pokazania kwoty baza jeszcze nie pozwala zmienić (migracja 20261106_akcja_edycja).', 'warn');
+        }
       } else {
         const { error } = await sb.from('akcja_firmy').insert(p.wiersz);
         if (error) throw error;
