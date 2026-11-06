@@ -115,7 +115,13 @@
   async function sciezkaGry(kontoTestowe, uid) {
     var r = await window.sb.functions.invoke("akcja-proba-wizerunek", { body: {} });
     var w = r && r.data && r.data.ok ? r.data : null;
-    if (!w) { if (kontoTestowe && r && r.error && r.error.context && r.error.context.status === 403) try { localStorage.removeItem(KLUCZ_KONTA_PROBY); } catch (e) {} return false; }
+    if (!w) {
+      var odmowa = !!(r && r.error && r.error.context && r.error.context.status === 403);
+      if (kontoTestowe && odmowa) try { localStorage.removeItem(KLUCZ_KONTA_PROBY); } catch (e) {}
+      /* Konto testowe z pamięci: awaria funkcji (401 przy wygasłej sesji, 5xx, brak sieci) zostawia próbę na tym telefonie. Wcześniej gra zostawała otwarta jak zwykłe konto
+         przed startem, runda szła do bazy, baza odmawiała („wylaczona”) i złote przepadały bez słowa (zgłoszenie Maćka 6.11). Tylko odmowa 403 = zwykłe konto. */
+      return !!kontoTestowe && !odmowa;
+    }
     stan.kontoProby = true;
     if (kontoTestowe && uid) try { localStorage.setItem(KLUCZ_KONTA_PROBY, uid); } catch (e) {}
     document.body.classList.remove("gra-zamknieta");
@@ -205,7 +211,7 @@
     info("Zapisuję wynik…");
     await runda.gotowa;
     if (!runda.numer) {
-      info(runda.powod === "wylaczona" ? "" : runda.powod === "za_czesto" ? "Za dużo rund w minucie: ta runda bez rankingu." : runda.powod === "brak_profilu" ? "To konto nie ma profilu zawodnika, więc nie ma go w rankingu." : "Ta runda bez rankingu: słabe łącze na starcie.");
+      info(runda.powod === "wylaczona" ? "Gra rusza razem z akcją: ta runda się nie liczy." : runda.powod === "za_czesto" ? "Za dużo rund w minucie: ta runda bez rankingu." : runda.powod === "brak_profilu" ? "To konto nie ma profilu zawodnika, więc nie ma go w rankingu." : "Ta runda bez rankingu: słabe łącze na starcie.");
       await odswiezRanking(); return;
     }
     var odp = null;

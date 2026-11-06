@@ -77,7 +77,7 @@ test('gra: konto testowe na próbie z każdego wejścia, złote i mur z próby, 
   assert.ok(p.indexOf('stan.podglad = true;') >= 0 && p.indexOf('stan.podglad = true;') < p.indexOf('await sciezkaGry(true'), 'na próbie przed odpowiedzią funkcji: wczesna runda liczy się lokalnie');
   assert.match(p, /if \(!\(await sciezkaGry\(true, sesja\.user\.id\)\)\) \{ stan\.podglad = false; stan\.kontoProby = false; stan\.cegly = ceglySerwera;/, 'odmowa funkcji: z powrotem zwykłe konto');
   assert.match(K, /if \(bylo !== null && bylo !== String\(od\)\) Object\.keys\(localStorage\)/, 'kasuje tylko zmiana chwili startu (Od zera), nie pierwsza odpowiedź');
-  assert.match(K, /status === 403\) try \{ localStorage\.removeItem\(KLUCZ_KONTA_PROBY\); \}/, 'odmowa funkcji kasuje znacznik');
+  assert.match(K, /var odmowa = !!\(r && r\.error && r\.error\.context && r\.error\.context\.status === 403\);\n\s+if \(kontoTestowe && odmowa\) try \{ localStorage\.removeItem\(KLUCZ_KONTA_PROBY\); \}/, 'odmowa funkcji (403) kasuje znacznik; awaria funkcji zostawia próbę (blizna-196)');
   assert.doesNotMatch(K, /from\("athletes"\)/, 'gra nie czyta athletes (blizna-154)');
   assert.match(A, /czyProba\(d\) \? "gra-cegielki\.html\?sciezka=1&podglad=1&proba=1"/, 'kafel konta testowego');
   assert.match(czytaj('start-akcji.html'), /\['gra-cegielki\.html\?sciezka=1', 'Gra ›'\]/, 'trener ze ścieżki bez znacznika próby');
