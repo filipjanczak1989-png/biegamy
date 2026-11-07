@@ -30,8 +30,8 @@
   var MIESIACE_D = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
   var DATA_KROTKA = Number(DZIEN_STARTU.slice(8, 10)) + "." + DZIEN_STARTU.slice(5, 7);                        // „7.11"
   var DATA_SLOWNIE = Number(DZIEN_STARTU.slice(8, 10)) + " " + MIESIACE_D[Number(DZIEN_STARTU.slice(5, 7)) - 1];  // „7 listopada"
-  /* Okno guzika = akcje.okno_startu_od/do: dzień startu 06:00–23:59:59 Europe/Warsaw. Listopad = CET (UTC+1), bez zmiany czasu. */
-  var OKNO_STARTU = { od: Date.parse(DZIEN_STARTU + "T06:00:00+01:00"), do: Date.parse(DZIEN_STARTU + "T23:59:59+01:00") };
+  /* Okno guzika = akcje.okno_startu_od/do: dzień startu 04:00–23:59:59 Europe/Warsaw. Listopad = CET (UTC+1), bez zmiany czasu. */
+  var OKNO_STARTU = { od: Date.parse(DZIEN_STARTU + "T04:00:00+01:00"), do: Date.parse(DZIEN_STARTU + "T23:59:59+01:00") };
   /* STAN AKCJI — JEDNO miejsce podłączenia (projekt F, guzik Fabianka): odczyt stanu z bazy przez RPC akcji woła
      ustawStan({ ruszyla, zamknieta, zamknietaOd }). Do tego czasu nikt go nie woła → akcja „nie ruszyła". */
   var STAN = { ruszyla: false, zamknieta: ZAMKNIETA, zamknietaOd: ZAMKNIETA_OD, proba: false };
