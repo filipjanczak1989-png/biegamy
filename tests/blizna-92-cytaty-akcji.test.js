@@ -50,7 +50,9 @@ test('7.11 (dzień startu): przed naciśnięciem „Dziś. Jedno kliknięcie…"
   assert.equal(A.DZIEN_STARTU, '2026-11-07');
   assert.ok(czytaj('supabase/migrations/20261102_akcja_start_7_11.sql').includes("set start = date '2026-11-07'"));
   assert.equal(A.START_ROTACJI, '2026-11-08');
-  assert.equal(new Date(A.OKNO_STARTU.od).toISOString(), '2026-11-07T05:00:00.000Z', '7.11 06:00 Warszawa');
+  // 7.11 w nocy Filip przesunął okno na 04:00 (d5c48160 w tym pliku, okno_startu_od w bazie ręcznie); akcja wystartowała w tym oknie
+  assert.equal(new Date(A.OKNO_STARTU.od).toISOString(), '2026-11-07T03:00:00.000Z', '7.11 04:00 Warszawa');
+  assert.match(czytaj('js/akcja-cytaty.mjs'), /dzień startu 04:00–23:59:59 Europe\/Warsaw/, 'komentarz okna zgodny ze stałą');
   assert.equal(new Date(A.OKNO_STARTU.do).toISOString(), '2026-11-07T22:59:59.000Z', '7.11 23:59:59 Warszawa');
   assert.match(czytaj('js/akcja-cytaty.mjs'), /var START_ROTACJI = dodajDni\(DZIEN_STARTU, 1\);/);
   assert.ok(!A.ZAGADKI.some((z) => /\d{1,2}\.\d{2}/.test(z)), 'zagadki BEZ dnia (3.11, blizna-118: data na zapowiedzi 8.11 ≠ start 7.11 — żadna zagadka nie zdradza żadnej)');
