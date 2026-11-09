@@ -289,7 +289,8 @@
     return t + ". Seria: " + o.seria + " " + (o.seria === 1 ? "dzień" : "dni") + ".";
   }
   /* DRUŻYNA ZA GRACZEM (Filip 5.11): rozdział „Wszyscy razem”, poziomy 15–19. Tłum rośnie ze wspólnym murem: 1 grupa do 25%, 2 od 25%, 3 od 75%. Tylko obraz: nie jest przeszkodą, niczego nie zbiera. */
-  var DRUZYNA = { od: 15, doo: 19, sk: 130 / 240 };
+  /* lustro: druzyna.webp patrzy w lewo, a drużyna biegnie z graczem w prawo (jak Kasia i Filip). Bez odbicia wyglądała na biegaczy z naprzeciwka (zgłoszenie 9.11). */
+  var DRUZYNA = { od: 15, doo: 19, sk: 130 / 240, lustro: true };
   function druzynaWRundzie(poziom, maly) { return !maly && poziom >= DRUZYNA.od && poziom <= DRUZYNA.doo; }
   function grupyDruzyny(mur, cel) { var p = Number(cel) > 0 ? (Number(mur) || 0) / Number(cel) : 0; return p >= 0.75 ? 3 : p >= 0.25 ? 2 : 1; }
   /* GÓRKA WOJTASZAKA (Filip 5.11): odcinek w rundzie. Podjazd: tempo −25%, cegły wyżej. Zjazd: +30% i łuk cegieł przy każdej przeszkodzie. Droga się przechyla, kolizje liczą dalej po ziemi. Mały budowniczy i pierwsze poziomy bez górki. */

@@ -1223,7 +1223,8 @@
     for (var i = ile - 1; i >= 0; i--) {
       var xx = graczX() - w * (0.62 + i * 0.86) - 14 + Math.sin(czasGlobalny * 1.3 + i) * 7, yy = stopy() - h - 6 - i * 7 + Math.abs(Math.sin(czasGlobalny * 8 + i * 1.7)) * -3, kl = Math.floor(g.anim / 2 + i) % a.n;
       if (xx + w < 0) continue;
-      x.drawImage(o, kl * a.cw, 0, a.cw, a.ch, xx, yy, w, h);
+      if (L.DRUZYNA.lustro) { x.save(); x.translate(xx + w, yy); x.scale(-1, 1); x.drawImage(o, kl * a.cw, 0, a.cw, a.ch, 0, 0, w, h); x.restore(); }   // twarzą tam, dokąd biegnie gracz; ten sam prostokąt
+      else x.drawImage(o, kl * a.cw, 0, a.cw, a.ch, xx, yy, w, h);
     }
   }
   function rysujTowarzysza() {
