@@ -286,11 +286,12 @@
   function planujTrase() {
     while (G.nastPrzeszkoda < G.s + W + 300) {
       var przedmiotyOd = G.przedmioty.length, fazaXp = L.fazaGorki(G.nastPrzeszkoda, G.gorka);
-      /* Sekwencje: fala gęstych przeszkód, potem luz bez przeszkód. Górka ma własne tempo, więc na niej zwykła trasa, a za nią od nowa z luzu. */
+      /* Sekwencje: fala gęstych przeszkód, potem luz bez przeszkód. Górka ma własne tempo, więc na niej zwykła trasa, a za nią od nowa z luzu.
+         Luz 3–5 s liczony od ostatniej przeszkody, na starcie rundy od startu. Liczony od miejsca na następną przeszkodę był o cały odstęp dłuższy, a pierwszy doklejał się do 900 px rozbiegu (blizna-197). */
       if (G.fala) {
         if (fazaXp) { koniecSekwencji(); G.fala.doX = 0; }
         else {
-          if (G.nastPrzeszkoda >= G.fala.doX) { koniecSekwencji(); G.fala = L.nastepnaFala(G.fala, G.poziom, G.predBaza, G.nastPrzeszkoda, Math.random()); }
+          if (G.nastPrzeszkoda >= G.fala.doX) { koniecSekwencji(); G.fala = L.nastepnaFala(G.fala, G.poziom, G.predBaza, G.fala.sek ? Math.max(0, G.nastPrzeszkoda - G.ostPrzerwa) : G.nastPrzeszkoda, Math.random()); }
           if (!G.fala.sek) { rzedyLuzu(G.nastPrzeszkoda, G.fala.doX - G.nastPrzeszkoda); G.nastPrzeszkoda = G.fala.doX; G.ostPrzerwa = G.predBaza * 2; continue; }
         }
       }

@@ -140,8 +140,9 @@
     }
     return v * 0.95 + 22;
   }
-  /* SEKWENCJE (Filip 5.11). Od poziomu 5 trasa idzie falami: sekwencja gęstych przeszkód 8–12 s, potem luz 3–5 s bez przeszkód. Wyższy poziom: dłuższa i gęstsza. Poziomy 1–4, koparka i Mały bez sekwencji. */
-  var SEKWENCJE = { poziom_od: 5, dlugosc_s: [8, 12], luz_s: [3, 5], odstep_s: [1.15, 0.9], zapas_s: 0.12, min_px: 280, czysto: 5, rzad_co_s: 1.5, zlota_w_luzie: 0.6, rzad_w_sekwencji: 0.5 };
+  /* SEKWENCJE (Filip 5.11). Od poziomu 5 trasa idzie falami: sekwencja gęstych przeszkód 8–12 s, potem luz 3–5 s bez przeszkód. Wyższy poziom: dłuższa i gęstsza. Poziomy 1–4, koparka i Mały bez sekwencji.
+     Odstęp na poziomie 5 krótszy niż był (1,15 s): fala z luzem dawała mniej przeszkód na minutę niż zwykła trasa poziomu 4, od 42,6 spadało do 34,8 (blizna-197). Poziom 20 bez zmian. */
+  var SEKWENCJE = { poziom_od: 5, dlugosc_s: [8, 12], luz_s: [3, 5], odstep_s: [0.95, 0.9], zapas_s: 0.12, min_px: 280, czysto: 5, rzad_co_s: 1.5, zlota_w_luzie: 0.6, rzad_w_sekwencji: 0.5 };
   function sekwencjeWRundzie(poziom, maly, postac) { return !maly && poziom >= SEKWENCJE.poziom_od && (POSTACIE[postac] || {}).skacze !== false; }
   function postepSekwencji(n) { return Math.min(1, Math.max(0, (n - SEKWENCJE.poziom_od) / (20 - SEKWENCJE.poziom_od))); }
   function dlugoscSekwencji(n, los) { var d = SEKWENCJE.dlugosc_s, s = d[0] + (d[1] - d[0]) * postepSekwencji(n) + ((los == null ? 0.5 : los) - 0.5); return Math.min(d[1], Math.max(d[0], s)); }
