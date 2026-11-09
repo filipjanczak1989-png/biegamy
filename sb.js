@@ -729,6 +729,8 @@
         z dźwiękiem (play() synchronicznie w handlerze kliknięcia). Autostart: zawsze wyciszony, play() po canplaythrough. */
     function start(baner, teraz, opcje) {
       if (!baner || baner.querySelector('.film-dzis')) return null;
+      /* Kafel akcji zwinięty do paska (9.11): 44 px to nie miejsce na film; film akcji czeka, aż konto rozwinie kafel („▶ Zobacz film startu”). */
+      if (baner.classList && typeof baner.classList.contains === 'function' && baner.classList.contains('akcja-baner--zwiniety')) { baner.dataset.film = 'akcja-zwinieta'; return null; }
       var recznie = !!(opcje && opcje.recznie);
       var powod = recznie ? (moznaPowtorzyc() ? null : 'brak-powtorki') : powodBlokady(teraz), film = filmDnia(teraz);
       if (powod || !film) {

@@ -181,7 +181,7 @@ test('Ukryj: krzyżyk chowa kafel od razu, zapis w profilu (akcja_kafel_ukryj), 
   await czekaj();
   assert.equal(JSON.stringify(s.wolania), JSON.stringify([['akcja_kafel_ukryj', { p_slug: 'dla-fabianka', p_ukryj: true }]]), 'tylko zapis w profilu: pushe i km bez zmian');
   assert.equal(s.magazyn[KLUCZ], '1');
-  assert.match(s.tosty[0], /Pokaż akcję Marka/);
+  assert.match(s.tosty[0], /Kafel akcji zwinięty\. Dotknij paska, żeby go rozwinąć\./, '9.11 po wdrożeniu: krzyżyk zwija do paska (blizna-203)');
   s.ctx.BM_AKCJA.kartaDzisHtml(D, { km: 3 });
   assert.equal(s.kafel(), null, 'kolejne odświeżenie nie przywraca');
 });

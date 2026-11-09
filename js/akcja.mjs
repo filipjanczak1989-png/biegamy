@@ -186,6 +186,9 @@
     ".akcja-firmy-uwaga{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--fg2,rgba(240,237,232,.72))}" +
     "#daily-motivation.akcja-baner{padding:0!important;overflow:hidden}#daily-motivation.akcja-baner>div:first-child,#daily-motivation.akcja-baner>#motiv-content{display:none!important}" +
     "#daily-motivation.akcja-baner>.film-powtorz{position:absolute!important;z-index:4!important;top:6px;right:50px;bottom:auto}" +
+    "#daily-motivation.akcja-baner--zwiniety{min-height:0!important;height:auto!important}#daily-motivation.akcja-baner--zwiniety>.film-powtorz{display:none!important}" +
+    ".akcja-dzis-zwiniety{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;margin:0;padding:10px 14px;box-sizing:border-box;border:0;border-radius:inherit;background:linear-gradient(90deg,rgba(166,73,44,.95),rgba(39,64,95,.95));color:#fff;font:700 14px/1.2 Inter,system-ui,sans-serif;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}" +
+    ".akcja-dzis-zwiniety-tekst{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.akcja-dzis-zwiniety-pokaz{flex:none;color:#ffd3b0;white-space:nowrap}" +
     ".akcja-dzis{color:#fff;font-family:Inter,system-ui,sans-serif}" +
     ".akcja-dzis-scena{position:relative;height:284px;overflow:hidden;background:#27405f}.akcja-dzis-tlo{position:absolute;left:0;right:0;top:-56px}.akcja-dzis-tlo .us{margin:0}.akcja-dzis-tlo .um{margin:56px 12px 0}" +
     ".akcja-dzis-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
@@ -346,35 +349,66 @@
       /* Film startu raz na konto (9.11): po nim baner już go nie gra sam, więc tu można wrócić. Odtwarza ta sama nakładka co „Zobacz film” w karcie. */
       (g.BM_AKCJA_CYTATY && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika(d) ? '<button type="button" class="akcja-dzis-film" data-film-akcji="1">▶ Zobacz film startu</button>' : "");
   }
-  /* UKRYJ KAFEL (Filip 9.11): krzyżyk chowa kafel dla tego konta. Wybór w profilu (akcja_kafel_ukryj, tabela akcja_ukryte); w telefonie tylko kopia, żeby kafel
-     nie mignął przed odpowiedzią bazy. „Pokaż akcję …” (imię z bazy) w Ustawieniach (profil.html) przywraca, także z innego telefonu. Karta akcji, pushe i km bez zmian. */
+  /* ZWIŃ KAFEL (Filip 9.11, po wdrożeniu 73d95ab1): krzyżyk nie usuwa akcji z Dziś, tylko ZWIJA kafel do jednego niskiego paska (ok. 44 px) w tym samym miejscu:
+     „🧱 Ulica <imię z bazy> · <km z licznika> km · Pokaż ›”. Dotknięcie paska rozwija kafel i zapisuje to w profilu (akcja_kafel_ukryj(slug, false), jak „Pokaż”
+     w Ustawieniach profilu, które zostają drugą drogą). Pasek nie ma krzyżyka: bardziej schować się nie da. Zwinięcie w profilu (akcja_ukryte), w telefonie kopia,
+     żeby nic nie mignęło przed odpowiedzią bazy: "1" zwinięty, "czeka" zwinięty bez sieci, "pokaz-czeka" rozwinięty bez sieci. Mała karta przy zwiniętym kaflu nie stoi. */
   var KLUCZ_UKRYCIA = "bm_akcja_ukryta_", _ukrycieSprawdzone = {};
   function slugKafla(d) { return czyProba(d) ? "proba" : "dla-fabianka"; }
   function kluczUkrycia(slug) { var uid = kontoSesji(); return uid ? KLUCZ_UKRYCIA + slug + "_" + uid : ""; }
   function czytajUkrycie(slug) { try { var k = kluczUkrycia(slug); return k ? g.localStorage.getItem(k) : null; } catch (e) { return null; } }
   function zapiszUkrycie(slug, v) { try { var k = kluczUkrycia(slug); if (!k) return; if (v) g.localStorage.setItem(k, v); else g.localStorage.removeItem(k); } catch (e) {} }
+  function zwiniety(slug) { var v = czytajUkrycie(slug); return v === "1" || v === "czeka"; }
   function rpcUkryj(slug) {
     return Promise.resolve(g.sb.rpc("akcja_kafel_ukryj", { p_slug: slug, p_ukryj: true })).then(function (r) { if (r && !r.error) zapiszUkrycie(slug, "1"); }, function () {});
+  }
+  function rpcPokaz(slug) {
+    return Promise.resolve(g.sb.rpc("akcja_kafel_ukryj", { p_slug: slug, p_ukryj: false })).then(function (r) { if (r && !r.error) zapiszUkrycie(slug, ""); }, function () {});
   }
   function sprawdzUkrycie(slug, d, wklad) {
     if (_ukrycieSprawdzone[slug] || !g.sb || typeof g.sb.rpc !== "function" || !kontoSesji()) return;
     _ukrycieSprawdzone[slug] = true;
     var lok = czytajUkrycie(slug);
-    if (lok === "czeka") { rpcUkryj(slug); return; }   // ukryty bez sieci: dopisz do profilu
+    if (lok === "czeka") { rpcUkryj(slug); return; }   // zwinięty bez sieci: dopisz do profilu
+    if (lok === "pokaz-czeka") { rpcPokaz(slug); return; }   // rozwinięty bez sieci: dopisz do profilu
     Promise.resolve(g.sb.rpc("akcja_kafel_ukryty", { p_slug: slug })).then(function (r) {
       if (!r || r.error || typeof r.data !== "boolean") return;   // baza bez migracji albo błąd: zostaje kopia z telefonu
-      if (r.data && !lok) { zapiszUkrycie(slug, "1"); zdejmijKafel(); }
-      else if (!r.data && lok) { zapiszUkrycie(slug, ""); wstawKafel(d, wklad); }   // przywrócony w ustawieniach
+      if (r.data && !lok) { zapiszUkrycie(slug, "1"); wstawKafel(d, wklad); }   // zwinięty na innym telefonie: tu pasek
+      else if (!r.data && lok) { zapiszUkrycie(slug, ""); wstawKafel(d, wklad); }   // rozwinięty w Ustawieniach albo na innym telefonie
     }, function () {});
   }
   /* Napis przycisku w Ustawieniach z imieniem z bazy (w kodzie imienia nie ma, blizna-150): zapisany, gdy kafel był widoczny. */
   var KLUCZ_ETYKIETY = "bm_akcja_etykieta_pokaz";
   function etykietaPokaz(d) { var im = dopelniacz(d && d.imie); return im ? "Pokaż akcję " + im : "Pokaż kafel akcji"; }
   function ukryjKafel(slug) {
-    zapiszUkrycie(slug, "czeka"); zdejmijKafel();
-    var et = "Pokaż kafel akcji"; try { et = g.localStorage.getItem(KLUCZ_ETYKIETY) || et; } catch (e) {}
-    if (g.showToast) g.showToast("Kafel akcji ukryty. Wróci po „" + et + "” w Ustawieniach profilu.");
+    zapiszUkrycie(slug, "czeka");
+    if (_kafelDane) wstawKafel(_kafelDane[0], _kafelDane[1]); else zdejmijKafel();   // ten sam licznik: od razu pasek
+    if (g.showToast) g.showToast("Kafel akcji zwinięty. Dotknij paska, żeby go rozwinąć.");
     if (g.sb && typeof g.sb.rpc === "function") rpcUkryj(slug);
+  }
+  function rozwinKafel(slug) {
+    zapiszUkrycie(slug, "pokaz-czeka");
+    if (_kafelDane) wstawKafel(_kafelDane[0], _kafelDane[1]);
+    if (g.sb && typeof g.sb.rpc === "function") rpcPokaz(slug);
+  }
+  /** Napis paska: imię w dopełniaczu z bazy (licznik), km z licznika. Bez imienia: „Ulica akcji”. */
+  function tekstPaska(d) { var im = dopelniacz(d && d.imie); return "🧱 " + (im ? "Ulica " + im : "Ulica akcji") + " · " + km(d && d.suma_km) + " km"; }
+  function wstawPasek(b, d) {
+    var p = null;
+    for (var i = 0; b.children && i < b.children.length; i++) if (b.children[i].className === "akcja-dzis-zwiniety") p = b.children[i];
+    if (!p) {
+      p = g.document.createElement("button"); p.className = "akcja-dzis-zwiniety"; p.setAttribute("type", "button"); p.setAttribute("aria-expanded", "false");
+      p.addEventListener("click", function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); rozwinKafel(p.getAttribute("data-slug") || "dla-fabianka"); });
+      b.appendChild(p);
+    }
+    p.setAttribute("data-slug", slugKafla(d));
+    p.setAttribute("aria-label", tekstPaska(d).replace(/^🧱 /, "") + ". Pokaż kafel akcji");
+    p.innerHTML = '<span class="akcja-dzis-zwiniety-tekst">' + esc(tekstPaska(d)) + '</span><span class="akcja-dzis-zwiniety-pokaz">Pokaż ›</span>';
+    b.classList.add("akcja-baner"); b.classList.add("akcja-baner--zwiniety");
+  }
+  function zdejmijPasek(b) {
+    for (var i = (b.children ? b.children.length : 0) - 1; i >= 0; i--) if (b.children[i].className === "akcja-dzis-zwiniety") b.removeChild(b.children[i]);
+    b.classList.remove("akcja-baner--zwiniety");
   }
   /** Kafel ma murek darczyńców (pas na dole sceny): napis „Zobacz ulicę” idzie nad niego. */
   function maMurek(d) {
@@ -382,14 +416,16 @@
     if (!u || typeof u !== "object") return false;
     return Number(u.cegly_n) > 0 || (Array.isArray(u.imiona) && u.imiona.length > 0) || Number(u.bez_imienia) > 0 || (Array.isArray(d.firmy) && d.firmy.some(function (f) { return f && f.rodzaj === "cegielka"; }));
   }
-  var _ostatniWklad = null;   // zapytanie o wkład nie przeszło (tłok, brak sieci): ostatnia znana liczba, nie „0 km”
+  var _ostatniWklad = null, _kafelDane = null;   // zapytanie o wkład nie przeszło (tłok, brak sieci): ostatnia znana liczba, nie „0 km”
   function wstawKafel(d, wklad) {
     var b = banerDzis();
     if (!b) return;
     var slug = slugKafla(d);
+    _kafelDane = [d, wklad];
     sprawdzUkrycie(slug, d, wklad);
-    if (czytajUkrycie(slug)) { zdejmijKafel(); return; }
     wstrzyknijCss();
+    if (zwiniety(slug)) { zdejmijSamKafel(b); wstawPasek(b, d); return; }
+    zdejmijPasek(b);
     if (wklad) _ostatniWklad = wklad;
     var k = b.querySelector(".akcja-dzis");
     if (!k) {
@@ -406,11 +442,17 @@
     k.querySelector(".akcja-dzis-dane").innerHTML = daneKaflaHtml(d);
     zUlica(function (U) { U.naKaflu(k.querySelector(".akcja-dzis-tlo"), d); });
   }
-  function zdejmijKafel() {
-    var b = banerDzis(), k = b && b.querySelector(".akcja-dzis");
+  function zdejmijSamKafel(b) {
+    var k = b.querySelector(".akcja-dzis");
     if (!k) return;
     if (g.BM_ULICA && g.BM_ULICA.usun) g.BM_ULICA.usun(k.querySelector(".akcja-dzis-tlo"));
     k.parentNode.removeChild(k);
+  }
+  /** Koniec akcji, „od zera” na próbie: kafel i pasek znikają, wraca cytat. */
+  function zdejmijKafel() {
+    var b = banerDzis();
+    if (!b) return;
+    zdejmijSamKafel(b); zdejmijPasek(b);
     b.classList.remove("akcja-baner");
   }
   /* KARTA Z PAMIĘCI (zgłoszenie testera 6.11): Dziś pokazuje kafel i kartę akcji od pierwszego obrazu, z ostatniego stanu tego konta, a dane z bazy
@@ -596,6 +638,7 @@
   g.BM_AKCJA.formularzFirm = formularzFirm; g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy; g.BM_AKCJA.kartaZPamieci = kartaZPamieci; g.BM_AKCJA.KLUCZ_KARTY = KLUCZ_KARTY;
   /* Skrypt stoi pod znacznikami Dziś, więc karta z pamięci wchodzi przed pierwszym obrazem. Gdzie indziej (index, trener, strona akcji) nie ma #akcja-karta i nic się nie dzieje. */
   try { if (g.document && g.document.getElementById) { if (!kartaZPamieci() && g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", kartaZPamieci); } } catch (e) {}
+  g.BM_AKCJA.rozwinKafel = rozwinKafel; g.BM_AKCJA.tekstPaska = tekstPaska;
   g.BM_AKCJA.ukryjKafel = ukryjKafel; g.BM_AKCJA.maMurek = maMurek; g.BM_AKCJA.KLUCZ_UKRYCIA = KLUCZ_UKRYCIA; g.BM_AKCJA.etykietaPokaz = etykietaPokaz;
   g.BM_AKCJA.zdejmijKafel = zdejmijKafel; g.BM_AKCJA.daneKaflaHtml = daneKaflaHtml; g.BM_AKCJA.liczbyKaflaHtml = liczbyKaflaHtml; g.BM_AKCJA.adresStrony = adresStrony; g.BM_AKCJA.linkGry = linkGry;
 })(typeof globalThis !== "undefined" ? globalThis : this);
