@@ -20,19 +20,20 @@ test('jedna funkcja rysuje budynek firmy i cegłę na Ulicy i w podglądzie', ()
   /* 9.11: na Ulicy murek darczyńców przypięty do widoku (blizna-200); ceglaMuru zostaje tylko w podglądzie cegły (panel, formularz) */
   assert.doesNotMatch(z.slice(0, z.indexOf('function podgladFirmy(') > 0 ? z.indexOf('function podgladFirmy(') : undefined), /ceglaMuru\(/, 'na Ulicy bez starego muru');
   const pf = S.slice(S.indexOf('function podgladFirmy('), S.indexOf('function podgladCegly('));
-  assert.match(pf, /budynekFirmy\(U, k\.ulica, f, wiez \? \{ nazwa: "wiezowiec", lustro: false \} : U\.domekNaMiejscu\(0, f\.nazwa \|\| ""\)/, 'ten sam wybór budynku co pierwszy domek na Ulicy');
+  /* 9.11 (blizna-205): bez logo podgląd dostaje pustą tablicę (fp), wybór budynku bez zmian */
+  assert.match(pf, /budynekFirmy\(U, k\.ulica, fp, wiez \? \{ nazwa: "wiezowiec", lustro: false \} : U\.domekNaMiejscu\(0, f\.nazwa \|\| ""\)/, 'ten sam wybór budynku co pierwszy domek na Ulicy');
   assert.match(pf, /wiez \? POZIOM_DOMKU - ZA_DROGA : POZIOM_DOMKU, w,/, 'wieżowiec głębiej, jak na Ulicy');
   assert.match(S, /var bud = budynekFirmy[^\n]*\n[\s\S]{0,40}rekord\.el = b;/);
   assert.match(S.slice(S.indexOf('function podgladCegly(')), /ceglaMuru\(mur, i === 7 && zgoda && imie \? imie : "", i, kol\)/, 'bez zgody cegła bez imienia');
   assert.match(S, /g\.BM_ULICA_SCENA = \{ budynekFirmy: budynekFirmy, ceglaMuru: ceglaMuru, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly,/);
 });
 
-test('formularz firmy: podgląd nad „Wyślij”, logo jak do wysyłki, nic na serwer przed wysłaniem, podpowiedź nie blokuje', () => {
+test('formularz firmy: podgląd przed „Wyślij” (od 9.11 zaraz pod wyborem budynku, blizna-205), logo jak do wysyłki, nic na serwer przed wysłaniem, podpowiedź nie blokuje', () => {
   const p = F.slice(F.indexOf('var podglad = el("div", "ff-podglad", firma)'), F.indexOf('var wyslij = el("button", "ff-wyslij", f, "Wyślij zgłoszenie")'));
   assert.ok(p.length > 200, 'podgląd stoi przed przyciskiem');
   assert.match(p, /logoDoWyslania\(plikLogo\)\.then\(function \(b\) \{ return g\.URL\.createObjectURL\(b\); \}/, 'to samo przygotowanie logo co przy wysyłce, adres tylko w przeglądarce');
   assert.doesNotMatch(p, /fetch|FormData|sb\.|rpc|storage/, 'podgląd niczego nie wysyła');
-  assert.match(p, /nazwa\.addEventListener\("input"[^\n]*\n\s*rodzaj\.addEventListener\("change", rysujPodglad\); logo\.addEventListener\("change", rysujPodglad\);/, 'zmiana nazwy, budynku albo logo: nowy podgląd');
+  assert.match(p, /nazwa\.addEventListener\("input"[^\n]*\n\s*rodzaj\.addEventListener\("change", function \(\) \{ rysujPodglad\(\); \}\);\n\s*logo\.addEventListener\("change", function \(\) \{ rysujPodglad\(\{ pokaz: true \}\); \}\);/, 'zmiana nazwy, budynku albo logo: nowy podgląd');
   assert.match(p, /if \(moj !== nrPodgladu\)/, 'spóźniony podgląd nie nadpisze nowszego');
   assert.match(p, /g\.URL\.revokeObjectURL\(adresLogo\)/, 'stary adres logo zwolniony');
   assert.match(p, /U\.ocenaLogo\(im, ciemny\)\.join\(" "\)/);

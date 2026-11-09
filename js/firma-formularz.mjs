@@ -76,6 +76,9 @@
     var lr = el("label", "ff-pole", firma, "Budynek"), rodzaj = el("select", "", lr); rodzaj.id = "ff-rodzaj"; rodzaj.name = "rodzaj";
     var o1 = el("option", "", rodzaj, "Domek z logo, od " + zl(d.prog_domku_zl)); o1.value = "domek";
     var o2 = el("option", "", rodzaj, "Wieżowiec z logo, od " + zl(d.prog_wiezowca_zl)); o2.value = "wiezowiec";
+    /* PODGLĄD ZARAZ POD WYBOREM BUDYNKU (9.11): widać go od razu po „Firma” i po zmianie budynku, bez nazwy i bez logo (szyld „Twoja firma”, pusta tablica).
+       Wcześniej stał na dole formularza, pod zgodami, i pojawiał się dopiero po nazwie albo logo: na telefonie wyglądało to, jakby go nie było. */
+    var podglad = el("div", "ff-podglad", firma), podPodpis = el("p", "ff-podglad-nazwa", firma), podRada = el("p", "ff-rada", firma), adresLogo = "", nrPodgladu = 0, zegarP = 0;
     var nazwa = pole("ff-nazwa", "Nazwa firmy", "text", { maxlength: "120", autocomplete: "organization" }, firma);
     var link = pole("ff-link", "Strona firmy", "url", { maxlength: "500", placeholder: "https://firma.pl", autocomplete: "url" }, firma);
     var email = pole("ff-email", "E-mail kontaktowy (nie jest publiczny)", "email", { maxlength: "120", autocomplete: "email" }, firma);
@@ -83,14 +86,13 @@
     var logo = pole("ff-logo", "Logo: PNG, JPG, WebP, SVG albo zdjęcie z telefonu", "file", { accept: "image/*" }, firma);
     var lk = el("label", "ff-zgoda", firma), zk = el("input", "", lk); zk.type = "checkbox"; zk.id = "ff-zgoda-kwota"; el("span", "", lk, "Można pokazać kwotę przy firmie. Bez zaznaczenia kwotę widzi tylko organizator.");
     var lz = el("label", "ff-zgoda", firma), z = el("input", "", lz); z.type = "checkbox"; z.id = "ff-zgoda"; el("span", "", lz, "Zgadzam się na wymienienie firmy, jej logo i linku na stronach akcji. Mam prawo używać tego logo.");
-    /* PODGLĄD NA ULICY (zgłoszenie 6.11): nad „Wyślij” budynek z logo i nazwą z tej samej funkcji, która rysuje Ulicę (js/ulica-scena.mjs budynekFirmy),
+    /* PODGLĄD NA ULICY (zgłoszenie 6.11; od 9.11 pod wyborem budynku): budynek z logo i nazwą z tej samej funkcji, która rysuje Ulicę (js/ulica-scena.mjs budynekFirmy),
        a logo przygotowane tak samo jak do wysyłki. Wszystko w przeglądarce: nic nie idzie na serwer przed „Wyślij”. Podpowiedź do logo nie blokuje wysyłki.
        Komunikat mówi, co zrobić (np. „Wyślij logo jako PNG lub JPG”), a gdy nie wyświetli się sam podgląd na budynku, zgłoszenie i tak przejdzie (zgłoszenie 6.11 wieczór). */
-    var podglad = el("div", "ff-podglad", firma), podPodpis = el("p", "ff-podglad-nazwa", firma), podRada = el("p", "ff-rada", firma), adresLogo = "", nrPodgladu = 0, zegarP = 0;
     podglad.hidden = true;
-    function rysujPodglad() {
-      var A = g.BM_AKCJA, n = nazwa.value.trim(), plikLogo = logo.files && logo.files[0], moj = ++nrPodgladu;
-      if (!plikLogo && !n) { podglad.hidden = true; podPodpis.textContent = ""; podRada.textContent = ""; return; }
+    function rysujPodglad(opcje) {
+      var A = g.BM_AKCJA, n = nazwa.value.trim(), plikLogo = logo.files && logo.files[0], moj = ++nrPodgladu, pokaz = opcje && opcje.pokaz;
+      if (firma.hidden) return;
       var bladLogo = "";
       (plikLogo ? logoDoWyslania(plikLogo).then(function (b) { return g.URL.createObjectURL(b); }, function (e) { bladLogo = e && /^Logo/.test(e.message || "") ? e.message : "Logo: " + PROSBA; return ""; }) : Promise.resolve("")).then(function (u) {
         if (moj !== nrPodgladu) { if (u) g.URL.revokeObjectURL(u); return; }
@@ -105,12 +107,16 @@
           U.podgladFirmy(podglad, { nazwa: n || "Twoja firma", logo: u || null, rodzaj: rodzaj.value }, function (im, ciemny) {
             if (moj !== nrPodgladu) return;
             podRada.textContent = im ? U.ocenaLogo(im, ciemny).join(" ") : bladLogo || (plikLogo ? "Podgląd logo się nie wyświetlił, ale zgłoszenie możesz wysłać: organizator zobaczy plik." : "");
-          }).catch(function () { podglad.hidden = true; });
+          }).then(function () {
+            /* Po wyborze logo podgląd stoi wyżej niż pole logo: przewiń do niego, żeby było widać tablicę z logo. */
+            if (pokaz && moj === nrPodgladu && podglad.scrollIntoView) { try { podglad.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+          }, function () { podglad.hidden = true; });
         });
       });
     }
     nazwa.addEventListener("input", function () { clearTimeout(zegarP); zegarP = setTimeout(rysujPodglad, 200); });
-    rodzaj.addEventListener("change", rysujPodglad); logo.addEventListener("change", rysujPodglad);
+    rodzaj.addEventListener("change", function () { rysujPodglad(); });
+    logo.addEventListener("change", function () { rysujPodglad({ pokaz: true }); });
 
     /* WSPÓLNE: zrzut wpłaty (zostaje prywatny, kasowany po decyzji), pułapka na boty, informacja o danych. */
     var zrzut = pole("ff-zrzut", "Zrzut albo zdjęcie potwierdzenia wpłaty. Zamaż numer konta.", "file", { accept: "image/*" });

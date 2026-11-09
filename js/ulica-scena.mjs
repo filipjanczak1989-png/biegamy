@@ -94,6 +94,7 @@
     ".us-bilbord{position:absolute;box-sizing:border-box;padding:4px;border:1.5px solid #5a2e0e;border-radius:5px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 55%,#df8f2e 100%);box-shadow:0 2px 4px rgba(40,20,0,.38),inset 0 1px 0 rgba(255,240,200,.65);pointer-events:none}" +
     ".us-bilbord-mata{width:100%;height:100%;box-sizing:border-box;padding:10%;border-radius:2px;background:#f6f1e7;box-shadow:inset 0 0 0 1px rgba(90,46,14,.6)}.us-bilbord-mata--ciemna{background:#2a2a2a}" +
     ".us-bilbord-logo{display:block;width:100%;height:100%;object-fit:contain}" +
+    ".us-bilbord-puste{display:flex;align-items:center;justify-content:center;width:100%;height:100%;box-sizing:border-box;padding:2px;border:1.5px dashed rgba(90,46,14,.6);border-radius:2px;color:#5a2e0e;font:800 10px/1.15 Inter,system-ui,sans-serif;text-align:center;overflow-wrap:anywhere}" +
     ".us-szyld--deska{box-sizing:border-box;padding:0 3px;border:1.5px solid #5a2e0e;border-radius:3px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 60%,#e9993a 100%);box-shadow:0 1px 2px rgba(40,20,0,.35)}" +
     ".us-bilbord-slupek{position:absolute;box-sizing:border-box;border:1px solid #5a2e0e;border-radius:1px;background:linear-gradient(90deg,#c97a30,#e9a04a 50%,#b56a26);pointer-events:none}" +
     /* NAKŁADKA (Filip 6.11 wieczór): licznik km i Mur graczy w jednym niskim pasku u góry, kończy się na y ≈ 28 px (głośnik 30 px), a najwyższa tablica firmy (domek-1) zaczyna się na y ≈ 32,5 px:
@@ -284,7 +285,10 @@
     }
     var t = el("div", "us-bilbord" + (wiez ? " us-bilbord--wiez" : ""), b);
     t.style.left = (w - bok) / 2 + "px"; t.style.top = gora + "px"; t.style.width = bok + "px"; t.style.height = bok + "px";
-    var mata = el("div", "us-bilbord-mata", t), im = el("img", "us-bilbord-logo", mata);
+    var mata = el("div", "us-bilbord-mata", t);
+    /* Podgląd w formularzu bez logo (9.11): ta sama tablica w tym samym miejscu, w środku „Tu będzie Twoje logo”. Na Ulicy firma bez logo tablicy nie ma. */
+    if (!f.logo) { el("span", "us-bilbord-puste", mata, "Tu będzie Twoje logo"); return t; }
+    var im = el("img", "us-bilbord-logo", mata);
     im.setAttribute("crossorigin", "anonymous");   // odczyt jasności logo; magazyn publiczny oddaje CORS dla każdego
     im.onload = function () { var ciemna = U.ciemnaMata(im); if (ciemna) mata.classList.add("us-bilbord-mata--ciemna"); if (naLogo) naLogo(im, ciemna); };
     im.onerror = function () {
@@ -308,8 +312,8 @@
     if (poprz) dolSzyldu = szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo);
     else {
       dolSzyldu = szyldZNazwa(U, b, f, r, w, wyb.nazwa === "wiezowiec", h0);
-      if (f.logo) tablicaZLogo(U, b, oprawa, f, w, h0, wyb.nazwa === "wiezowiec", laduj, naLogo);
-      else if (naLogo) naLogo(null, false);
+      if (f.logo || f.pustaTablica) tablicaZLogo(U, b, oprawa, f, w, h0, wyb.nazwa === "wiezowiec", laduj, naLogo);
+      if (!f.logo && naLogo) naLogo(null, false);
     }
     /* Plakat na billboardzie przy fabryce: adres z bazy, tylko po zgodzie firmy. Awaria pliku = pusta tablica. */
     if (def.plakat && f.plakat) {
@@ -350,7 +354,8 @@
     var droga = el("div", "us-droga", k.ulica); droga.style.left = "0"; droga.style.width = "100%"; droga.style.backgroundImage = "url(" + U.sciezkaObrazu("droga") + ")";
     var xb = Math.round(szer / 2 - w / 2 + 30);
     budynekFirmy(U, k.ulica, { nazwa: "BiegaMy", rodzaj: "domek" }, U.domekNaMiejscu(2, "BiegaMy"), xb - 172, POZIOM_DOMKU, 160, -1, odRazu);   // sąsiad
-    var b = budynekFirmy(U, k.ulica, f, wiez ? { nazwa: "wiezowiec", lustro: false } : U.domekNaMiejscu(0, f.nazwa || ""), xb, wiez ? POZIOM_DOMKU - ZA_DROGA : POZIOM_DOMKU, w, 0, odRazu, naLogo);
+    var fp = f.logo ? f : Object.assign({}, f, { pustaTablica: true });   // bez logo: pusta tablica „Tu będzie Twoje logo”
+    var b = budynekFirmy(U, k.ulica, fp, wiez ? { nazwa: "wiezowiec", lustro: false } : U.domekNaMiejscu(0, f.nazwa || ""), xb, wiez ? POZIOM_DOMKU - ZA_DROGA : POZIOM_DOMKU, w, 0, odRazu, naLogo);
     b.el.setAttribute("tabindex", "-1");
     return b;
   }

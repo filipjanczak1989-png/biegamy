@@ -45,7 +45,9 @@ test('budynek firmy: szyld = nazwa, logo tylko na tablicy; partnerzy i dymek bez
   const b = S.slice(S.indexOf('function budynekFirmy('), S.indexOf('/** Cegła w murze'));
   assert.match(b, /poprz = !!U\.BUDYNKI_POPRZEDNICH\[f\.rodzaj\]/);
   assert.match(b, /if \(poprz\) dolSzyldu = szyldFirmyNaBudynku\(U, b, f, r, w, h0, laduj, naLogo\);/, 'osiedle, galeria, fabryka jak dotąd');
-  assert.match(b, /dolSzyldu = szyldZNazwa\(U, b, f, r, w, wyb\.nazwa === "wiezowiec", h0\);\n\s+if \(f\.logo\) tablicaZLogo\(U, b, oprawa, f, w, h0, wyb\.nazwa === "wiezowiec", laduj, naLogo\);/);
+  /* 9.11 (blizna-205): pusta tablica tylko z flagą pustaTablica, którą ustawia wyłącznie podgląd w formularzu; Ulica bez logo dalej bez tablicy */
+  assert.match(b, /dolSzyldu = szyldZNazwa\(U, b, f, r, w, wyb\.nazwa === "wiezowiec", h0\);\n\s+if \(f\.logo \|\| f\.pustaTablica\) tablicaZLogo\(U, b, oprawa, f, w, h0, wyb\.nazwa === "wiezowiec", laduj, naLogo\);/);
+  assert.equal(S.split('pustaTablica: true').length - 1, 1, 'pustą tablicę włącza tylko podgląd');
   const sz = S.slice(S.indexOf('function szyldZNazwa('), S.indexOf('/* TABLICA Z LOGO'));
   assert.doesNotMatch(sz, /img|logo/i, 'na szyldzie nigdy logo');
   assert.match(S, /function dymek\(nad, tytul, link, karta\)/); assert.match(S, /if \(karta && karta\.plakatTekst\) el\("span", "", b, karta\.plakatTekst\);/, 'plakat w dymku bez zmian');
@@ -69,7 +71,7 @@ test('tablica: domek nad dachem na słupkach za kalenicą, wieżowiec na elewacj
   assert.match(css('us-bilbord-mata'), /padding:10%;[\s\S]*background:#f6f1e7/);
   assert.match(css('us-bilbord-mata--ciemna'), /background:#2a2a2a/);
   assert.match(css('us-bilbord-logo'), /object-fit:contain/); assert.doesNotMatch(css('us-bilbord-logo'), /cover|fill/);
-  assert.match(S, /function podgladFirmy\(kontener, f, naLogo\) \{[\s\S]{0,900}budynekFirmy\(U, k\.ulica, f, wiez/, 'podgląd w formularzu: ta sama funkcja');
+  assert.match(S, /function podgladFirmy\(kontener, f, naLogo\) \{[\s\S]{0,1100}budynekFirmy\(U, k\.ulica, fp, wiez/, 'podgląd w formularzu: ta sama funkcja');
   assert.match(S, /budynekFirmy\(U, k\.ulica, \{ nazwa: "BiegaMy", rodzaj: "domek" \}/, 'sąsiad BiegaMy bez logo, więc bez tablicy');
 });
 
