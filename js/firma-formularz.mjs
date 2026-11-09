@@ -61,6 +61,8 @@
     var lzi = el("label", "ff-zgoda", osoba), zgodaImie = el("input", "", lzi); zgodaImie.type = "checkbox"; zgodaImie.id = "ff-zgoda-imie"; el("span", "", lzi, "Zgadzam się na moje imię w murze. Bez zaznaczenia cegła stanie bez imienia.");
     var podCegly = el("div", "ff-podglad-cegly", osoba), radaImie = el("p", "ff-rada", osoba), zegarC = 0;
     var emailOsoby = pole("ff-email-osoby", "E-mail (nieobowiązkowy, tylko do podziękowania, nie jest publiczny)", "email", { maxlength: "120", autocomplete: "email" }, osoba);
+    /* Kwota (9.11): nieobowiązkowa, nigdy publicznie. Od 100 zł cegła w murze jest złota; decyduje i tak trener przy zatwierdzaniu. */
+    var kwotaOsoby = pole("ff-kwota-osoby", "Kwota wpłaty, zł (nieobowiązkowa, nie jest publiczna; od 100 zł złota cegła)", "text", { maxlength: "12", inputmode: "decimal" }, osoba);
     function rysujCegle() {
       var A = g.BM_AKCJA, im = imie.value.trim(), ok = !im || poprawneImie(im);
       radaImie.textContent = ok ? "" : TEKST_IMIE;
@@ -131,11 +133,13 @@
         if (!M) { info.textContent = "Filtr imion się nie wczytał. Odśwież stronę."; return; }
         if (!M.sprawdz(im, { rodzaj: "imie" }).ok) { info.textContent = "Tego imienia nie możemy przyjąć."; return; }
         if (em && !/^\S+@\S+\.\S+$/.test(em)) { info.textContent = "Podaj poprawny adres e-mail albo zostaw pole puste."; return; }
+        var kw = kwotaOsoby.value.replace(/[\s\u00a0]/g, "").replace(/zł$/i, "");
+        if (kw && !/^\d{1,7}([.,]\d{1,2})?$/.test(kw)) { info.textContent = "Kwota: podaj liczbę złotych (np. 100) albo zostaw pole puste."; return; }
         if (!zrzut.files[0]) { info.textContent = "Dodaj zrzut potwierdzenia wpłaty."; return; }
         wyslij.disabled = true; info.textContent = "Wysyłam…";
         zadanie = zrzutDoWyslania(zrzut.files[0]).then(function (zb) {
           var dane = new g.FormData();
-          dane.append("slug", slug); dane.append("rodzaj", "cegielka"); dane.append("imie", im); if (zgodaImie.checked) dane.append("zgoda_imie", "tak"); if (em) dane.append("email", em);
+          dane.append("slug", slug); dane.append("rodzaj", "cegielka"); dane.append("imie", im); if (zgodaImie.checked) dane.append("zgoda_imie", "tak"); if (em) dane.append("email", em); if (kw) dane.append("kwota", kw);
           dane.append("strona_www", pp.value); dane.append("zrzut", zb, "zrzut");
           return dane;
         });

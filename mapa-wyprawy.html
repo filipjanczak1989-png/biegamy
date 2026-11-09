@@ -1,110 +1,18 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#07070a">
-<title>Trasa wyprawy · BiegaMy</title>
-<!-- WYPRAWA — mapa śladu (komenda Filipa 4.11, pkt D). Strona publiczna, poza zamrożeniem. Dane WYŁĄCZNIE z EF akcja-wyprawa-slad
-     (po strefach prywatności: 2 000 m od startu na zawsze, 2 000 m przed/po noclegu, 500 m końcówek dopóki trwa); bez punktu „teraz”,
-     bez znacznika celu do dotarcia — cel jest tajny i przychodzi z bazy dopiero po „Dotarliśmy”. Leaflet 1.9.4 z WŁASNEGO originu
-     (vendor/, jak supabase-js — bramka-cdn), kafle OpenStreetMap z atrybucją. -->
-<link rel="icon" href="favicon-32.png">
-<link rel="stylesheet" href="vendor/leaflet-1.9.4.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root { --bg:#07070a; --fg:#f0ede8; --fg2:rgba(240,237,232,.72); --accent:#e8561e; --card:#0f0f14; --border:rgba(255,255,255,.1); }
-  * { box-sizing:border-box; }
-  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,sans-serif; }
-  body { display:flex; flex-direction:column; min-height:100dvh; }
-  header { padding:14px 16px 10px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
-  h1 { margin:0; font:400 26px/1 'Bebas Neue',Inter,sans-serif; letter-spacing:.05em; }
-  .powrot { color:var(--fg2); text-decoration:none; font-size:13px; }
-  #mapa { flex:1; min-height:60vh; background:#111; }
-  .pod { padding:12px 16px 4px; font-size:13px; color:var(--fg2); line-height:1.5; }
-  .pod b { color:var(--fg); }
-  .pod .pytanie { font-size:15px; color:var(--fg); margin:4px 0 6px; }
-  .stopka-prawna { margin:0; padding:0 16px calc(env(safe-area-inset-bottom) + 8px); font-size:12px; color:var(--fg2); text-align:center; } .stopka-prawna a { color:inherit; display:inline-block; padding:8px 2px; }
-  .leaflet-container { background:#1a1a1f; }
-  .leaflet-control-attribution { background:rgba(7,7,10,.75) !important; color:#bbb !important; font-size:10px; }
-  .leaflet-control-attribution a { color:#ff8a3d !important; }
-</style>
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=dla-fabianka.html">
+<title>BiegaMy</title>
+<!-- NAGROBEK (9.11.2026): tu stała publiczna mapa śladu GPS wyprawy Filipa i Kasi (Leaflet, kafle OSM).
+     Wyłączona decyzją Filipa po starcie akcji: wyprawa idzie etapami, mapy nie chcemy, a ślad GPS nie jest publiczny.
+     Funkcja akcja-wyprawa-slad oddaje na każdy odczyt 410; zapisany ślad służy tylko do km wyprawy w liczniku (sama suma).
+     Plik zostaje jako PRZEKIEROWANIE na stronę akcji, bo link mógł trafić do mediów i zakładek. Leaflet usunięty z vendor/ w tym samym commicie. -->
+<script>location.replace("dla-fabianka.html");</script>
 </head>
-<body>
-<header><h1 id="tytul">Trasa wyprawy</h1><a class="powrot" href="dla-fabianka.html">‹ Akcja</a></header>
-<div id="mapa" role="img" aria-label="Mapa trasy wyprawy"></div>
-<div class="pod" id="pod">Ładuję ślad…</div>
-<p class="stopka-prawna"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Polityka prywatności</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Regulamin</a> · <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a></p>
-<script src="vendor/leaflet-1.9.4.min.js"></script>
-<script src="vendor/supabase-js-2.112.4.min.js"></script>
-<script src="sb.js"></script>
-<script>
-(function () {
-  'use strict';
-  var EF = '/functions/v1/akcja-wyprawa-slad';
-  var slug = /^[a-z0-9-]{1,40}$/.test(new URLSearchParams(location.search).get('slug') || '') ? new URLSearchParams(location.search).get('slug') : 'dla-fabianka';
-  var pod = document.getElementById('pod');
-  var mapa = null, warstwa = null, znacznik = null, rower = null, rysunekNr = 0;
-  var IKONA_ROWERU = 'assets/akcja/rowerzysta.webp';   // bez pliku zostaje kropka
-  function esc(s) { return window.escapeHtml ? window.escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
-  function godzina(iso) { if (!iso) return ''; var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' }); }
-  function km(x) { var n = Number(x) || 0; return String(Math.round(n * 10) / 10).replace('.', ','); }
-  function zalozMape() {
-    if (mapa) return mapa;
-    mapa = L.map('mapa', { zoomControl: true, attributionControl: true }).setView([52.0, 19.0], 6);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' }).addTo(mapa);
-    return mapa;
-  }
-  function rysuj(d) {
-    var m = zalozMape();
-    if (warstwa) { warstwa.remove(); warstwa = null; }
-    if (znacznik) { znacznik.remove(); znacznik = null; }
-    if (rower) { rower.remove(); rower = null; }
-    var segmenty = Array.isArray(d.segmenty) ? d.segmenty.filter(function (s) { return Array.isArray(s) && s.length > 1; }) : [];
-    if (segmenty.length) {
-      warstwa = L.featureGroup(segmenty.map(function (s) { return L.polyline(s, { color: '#e8561e', weight: 4, opacity: .95, lineJoin: 'round' }); })).addTo(m);
-      m.fitBounds(warstwa.getBounds().pad(0.15));
-    }
-    if (d.cel && d.cel.pozycja) {   // po dotarciu: znacznik celu (bez ikon z obcego originu — kółko)
-      znacznik = L.circleMarker(d.cel.pozycja, { radius: 9, color: '#fff', weight: 2, fillColor: '#e8561e', fillOpacity: 1 }).addTo(m);
-      if (d.cel.nazwa) znacznik.bindPopup(esc(d.cel.nazwa)).openPopup();
-    }
-    /* Rowerzysta przy grupie: tylko gdy serwer go poda, czyli po włączeniu przełącznika. Rower nie liczy się do kilometrów. Ikona z naszego originu, bez pliku zostaje kropka. */
-    var nr = ++rysunekNr;
-    if (d.rowerzysta && Array.isArray(d.rowerzysta.pozycja)) {
-      var postaw = function (zIkona) {
-        if (nr !== rysunekNr) return;   // w międzyczasie przyszło nowsze odświeżenie
-        rower = zIkona
-          ? L.marker(d.rowerzysta.pozycja, { zIndexOffset: 200, icon: L.icon({ iconUrl: IKONA_ROWERU, iconSize: [38, 53], iconAnchor: [-4, 46] }) }).addTo(m)
-          : L.circleMarker(d.rowerzysta.pozycja, { radius: 8, color: '#14121a', weight: 2, fillColor: '#ffd23d', fillOpacity: 1 }).addTo(m);
-        if (d.rowerzysta.opis) rower.bindPopup(esc(d.rowerzysta.opis));
-      };
-      var proba = new Image();
-      proba.onload = function () { postaw(true); };
-      proba.onerror = function () { postaw(false); };
-      proba.src = IKONA_ROWERU;
-    }
-  }
-  function opis(d) {
-    if (!d || d.start === false) return '<p class="pytanie">Wyprawa jeszcze nie ruszyła.</p>Ślad pojawi się po starcie akcji.';
-    var ost = d.ostatnia_aktualizacja ? ' · ostatnia aktualizacja ' + godzina(d.ostatnia_aktualizacja) : '';
-    if (d.cel) return '<p class="pytanie">Dotarli: <b>' + esc(d.cel.nazwa || 'na miejsce') + '</b> ✓</p><b>' + km(d.km) + ' km</b> śladu' + esc(ost) + '. Fragmenty przy domu i noclegu pozostają ukryte.';
-    return '<p class="pytanie">Dokąd biegną? Zobaczysz na końcu.</p>Filip i Kasia: <b>' + km(d.km) + ' km</b> śladu' + esc(ost) + '. Trasa uzupełnia się po każdym odcinku. Mapa pokazuje trasę do końca ostatniego wgranego odcinka, bez aktualnej pozycji.';
-  }
-  async function odswiez() {
-    try {
-      var r = await fetch((window.SB_URL || '') + EF + '?slug=' + encodeURIComponent(slug), { headers: { Accept: 'application/json' } });   // bez no-store: odpowiedź ma 60 s cache w przeglądarce, odświeżenie strony nie idzie do bazy
-      var d = await r.json();
-      if (!r.ok) throw new Error('ef');
-      pod.innerHTML = opis(d);
-      if (d.start !== false) rysuj(d); else zalozMape();
-    } catch (e) { pod.innerHTML = 'Nie udało się pobrać śladu — spróbuj za chwilę.'; zalozMape(); }
-  }
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
-  setInterval(odswiez, 5 * 60000);
-  odswiez();
-})();
-</script>
+<body style="margin:0;background:#07070a;color:#f0ede8;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+<p>Mapy wyprawy już nie ma. <a href="dla-fabianka.html" style="color:#e8561e;">Przejdź do akcji →</a></p>
 </body>
 </html>

@@ -83,15 +83,16 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   globalThis.escapeHtml = (s) => String(s);
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja.mjs')).href);
   const A = globalThis.BM_AKCJA;
-  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: true, wyprawa_km: 12 }).replace(/ /g, ' '), 'Wyprawa · Filip i Kasia: 12 km · cel: tajemnica');
-  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x', wyprawa_cel_nazwa: 'Z bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Z bazy ✓ · 240 km');
-  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x' }).replace(/ /g, ' '), 'Wyprawa · dotarli: na miejsce ✓ · 240 km', 'bez nazwy z bazy — bez zgadywania');
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: true, wyprawa_km: 12 }).replace(/ /g, ' '), 'Wyprawa etapami · Filip i Kasia: 12 km (już w liczniku) · cel: tajemnica');
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x', wyprawa_cel_nazwa: 'Z bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Z bazy ✓ · 240 km (już w liczniku)');
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 240, wyprawa_dotarla_at: 'x' }).replace(/ /g, ' '), 'Wyprawa · dotarli: na miejsce ✓ · 240 km (już w liczniku)', 'bez nazwy z bazy — bez zgadywania');
   assert.match(czytaj('start-akcji.html'), /tekst\.textContent = 'Przytrzymaj 2 s: Dotarliśmy';/);
   const karta = A.kartaDzisHtml({ wystartowala: true, nazwa: 'A', suma_km: 1, cel_km: 10, wyprawa_trwa: true, wyprawa_km: 3, stawka_gr_filip: 10, filip_gr: 10, filip_max_gr: 100 }, { km: 0 }, new Date());
-  assert.match(karta, /href="mapa-wyprawy\.html">Mapa wyprawy/, 'kafel w Centrum Akcji na Dziś po starcie');
-  assert.doesNotMatch(A.kartaDzisHtml({ wystartowala: true, nazwa: 'A', suma_km: 1, cel_km: 10, wyprawa_trwa: false, stawka_gr_filip: 10, filip_gr: 10, filip_max_gr: 100 }, { km: 0 }, new Date()), /mapa-wyprawy/, 'akcja bez wyprawy — bez linku');
+  /* 9.11: mapy wyprawy nie ma (wyprawa etapami): ani kafla w Centrum Akcji, ani linku na stronie akcji (blizna-200) */
+  assert.doesNotMatch(karta, /mapa-wyprawy|Mapa wyprawy/, 'bez kafla mapy także w trakcie wyprawy');
+  assert.match(karta, /Wyprawa etapami · Filip i Kasia/, 'linia z km zostaje');
   const df = czytaj('dla-fabianka.html');
-  assert.match(df, /<a class="przycisk przycisk--zbiorka" id="trasa" href="mapa-wyprawy\.html" hidden>Zobacz trasę ›<\/a>/); assert.match(df, /\$\('trasa'\)\.hidden = !A\.linkTrasy\(d\);/);
+  assert.doesNotMatch(df, /mapa-wyprawy|id="trasa"|linkTrasy/);
 });
 
 const P = (lat, lon) => [lat, lon];
@@ -183,13 +184,10 @@ test('B) EF akcja-wyprawa-slad: od 9.11 bez odczytu (mapa wyłączona, blizna-19
   assert.match(czytaj('supabase/config.toml'), /\[functions\.akcja-wyprawa-slad\]\s*\nverify_jwt = false/);
 });
 
-test('D) mapa-wyprawy.html: Leaflet z vendor (nie CDN), OSM z atrybucją, linia pomarańczowa, znacznik celu tylko z d.cel, teksty', () => {
-  const h = czytaj('mapa-wyprawy.html');
-  assert.match(h, /<link rel="stylesheet" href="vendor\/leaflet-1\.9\.4\.css">/); assert.match(h, /<script src="vendor\/leaflet-1\.9\.4\.min\.js"><\/script>/);
-  assert.doesNotMatch(h, /unpkg|cdnjs|jsdelivr/, 'bez obcego CDN');
-  assert.match(h, /tile\.openstreetmap\.org\/\{z\}\/\{x\}\/\{y\}\.png/); assert.match(h, /openstreetmap\.org\/copyright/);
-  assert.match(h, /color: '#e8561e', weight: 4/); assert.match(h, /if \(d\.cel && d\.cel\.pozycja\)/); assert.match(h, /Dokąd biegną\? Zobaczysz na końcu\./);
-  assert.match(h, /ostatnia aktualizacja/); assert.doesNotMatch(h, /L\.marker\((?![^\n]*icon: L\.icon\(\{ iconUrl: IKONA_ROWERU)/, 'bez ikon markera z obcego originu');
-  assert.ok(fs.statSync(path.join(KORZEN, 'vendor/leaflet-1.9.4.min.js')).size > 100000);
-  assert.match(czytaj('.gitattributes'), /vendor\//, 'vendor bez autocrlf (suma kontrolna)');
+test('D) mapa-wyprawy.html od 9.11 to nagrobek: przekierowanie na stronę akcji, bez śladu, bez Leaflet i bez wołania funkcji śladu', () => {
+  const h = czytaj('mapa-wyprawy.html').replace(/<!--[\s\S]*?-->/g, '');
+  assert.match(h, /<meta http-equiv="refresh" content="0; url=dla-fabianka\.html">/); assert.match(h, /location\.replace\("dla-fabianka\.html"\)/);
+  assert.match(h, /<meta name="robots" content="noindex">/);
+  assert.doesNotMatch(h, /leaflet|akcja-wyprawa-slad|fetch\(|openstreetmap|<script src=/i);
+  assert.ok(!fs.existsSync(path.join(KORZEN, 'vendor/leaflet-1.9.4.min.js')) && !fs.existsSync(path.join(KORZEN, 'vendor/leaflet-1.9.4.css')), 'Leaflet usunięty');
 });

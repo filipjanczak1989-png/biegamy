@@ -27,7 +27,7 @@ test.before(async () => {
   A = globalThis.BM_AKCJA; C = globalThis.BM_AKCJA_CYTATY; O = globalThis.BM_ODZNAKI_AKCJI;
 });
 
-test('kafel: licznik, wkład, pasek, procent, zdanie o kwocie i 4 przyciski', () => {
+test('kafel: licznik, wkład, pasek, procent, zdanie o kwocie i 4 przyciski (9.11: bez mapy wyprawy)', () => {
   const l = A.liczbyKaflaHtml(LICZNIK, { km: 1 }), dane = A.daneKaflaHtml(LICZNIK).replace(/ /g, ' ');
   assert.match(l.replace(/ /g, ' '), /<b>3 050<\/b>z 12 500 km/);
   assert.match(l, /Twój wkład: <b>1 km<\/b>/);
@@ -36,7 +36,8 @@ test('kafel: licznik, wkład, pasek, procent, zdanie o kwocie i 4 przyciski', ()
   assert.match(dane, /24,4% celu|24% celu/);
   assert.match(dane, /BiegaMy, czyli Filip i Kasia, dokłada 10 gr za każdy kilometr biegu i spaceru · dotąd 305 zł z 1 250 zł/);
   assert.match(dane, /data-plakat="[^"]+plakat-akcji\.webp[^"]*" data-zbiorka="https:\/\/www\.siepomaga\.pl\/atrapa"/, 'plakat na pełny ekran z przyciskiem Zbiórka');
-  assert.match(dane, />Gra</); assert.match(dane, />Mapa wyprawy</); assert.match(dane, />Zbiórka</);
+  assert.match(dane, />Gra</); assert.doesNotMatch(dane, /Mapa wyprawy|mapa-wyprawy/, 'mapy nie ma także w trakcie wyprawy'); assert.match(dane, />Zbiórka</);
+  assert.equal((A.daneKaflaHtml({ ...LICZNIK, firmy_zgloszenia: true }).match(/class="akcja-dzis-przycisk[ "]/g) || []).length, 4, 'Plakat, Gra, Zbiórka, Twoja firma lub cegiełka');
   assert.match(dane, /data-gra-link href="gra-cegielki\.html" hidden/, 'prawdziwa akcja: Gra dopiero po potwierdzeniu przełącznika');
 });
 
@@ -45,14 +46,14 @@ test('kafel: obce adresy odpadają, nazwa nie wchodzi do HTML surowa', () => {
   assert.doesNotMatch(zly, /javascript:/);
   assert.doesNotMatch(zly, /Plakat</, 'bez adresu plakatu nie ma przycisku');
   assert.doesNotMatch(zly, />Zbiórka</, 'bez adresu zbiórki nie ma przycisku');
-  assert.doesNotMatch(A.daneKaflaHtml({ ...LICZNIK, wyprawa_trwa: false, wyprawa_dotarla_at: null }), /Mapa wyprawy/);
+  assert.doesNotMatch(A.daneKaflaHtml({ ...LICZNIK, wyprawa_trwa: false, wyprawa_dotarla_at: null }), /Mapa wyprawy/);   // i bez wyprawy też
 });
 
 test('linki: konto testowe zostaje na próbie, prawdziwa akcja bez parametrów', () => {
   assert.equal(A.adresStrony(LICZNIK, '#ulica-po'), 'dla-fabianka.html#ulica-po');
   assert.equal(A.adresStrony(PROBA, '#ulica-po'), 'dla-fabianka.html?proba=1#ulica-po');
   assert.equal(A.linkGry(LICZNIK), 'gra-cegielki.html'); assert.equal(A.linkGry(PROBA), 'gra-cegielki.html?sciezka=1&podglad=1&proba=1');   // proba=1: gra zapamiętuje konto testowe (blizna-187)
-  assert.equal(A.linkTrasy(LICZNIK), 'mapa-wyprawy.html'); assert.equal(A.linkTrasy(PROBA), 'mapa-wyprawy.html?slug=proba');
+  assert.equal(A.linkTrasy, undefined, '9.11: bez linku do mapy, także na próbie');
   const dane = A.daneKaflaHtml(PROBA);
   assert.match(dane, /data-gra-link href="gra-cegielki\.html\?sciezka=1&podglad=1&proba=1">Gra/, 'próba: Gra widoczna mimo wyłączonego przełącznika prawdziwej akcji');
   const karta = A.kartaDzisHtml({ ...PROBA, firmy_zgloszenia: true }, { km: 1 });
@@ -138,7 +139,7 @@ test('licznik próby: migracja, wycofanie i test po skutku istnieją, bez starej
 
 test('stan przed startem: krótka pamięć, po naciśnięciu Dziś pokazuje akcję od razu', async () => {
   const rpc = []; let wynik = { wystartowala: false, start: '2026-11-07', cel_km: 12500 };
-  const sb = { rpc: async (n) => { rpc.push(n); return { data: wynik }; } }, ss = new Map();
+  const sb = { rpc: async (n) => { if (n === 'akcja_licznik') rpc.push(n); return { data: n === 'akcja_licznik' ? wynik : null }; } }, ss = new Map();   // 9.11: akcja_filmy_konta osobno (blizna-201)
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: (k) => (ss.has(k) ? ss.get(k) : null), setItem: (k, v) => ss.set(k, v), removeItem: (k) => ss.delete(k) } });
   try {
     const t0 = 1800000000000, ATH = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';

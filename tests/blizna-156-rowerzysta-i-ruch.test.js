@@ -40,16 +40,15 @@ test('plik rowerzysty: prawdziwy WebP, lekki', () => {
 });
 
 test('bez przełącznika strony nie proszą nawet o plik', () => {
-  const m = czytaj('mapa-wyprawy.html');
-  assert.ok(m.indexOf('if (d.rowerzysta && Array.isArray(d.rowerzysta.pozycja))') < m.indexOf('proba.src = IKONA_ROWERU'), 'mapa pobiera ikonę dopiero po włączeniu');
+  assert.doesNotMatch(czytaj('mapa-wyprawy.html'), /rowerzysta/, '9.11: mapy nie ma (nagrobek), więc ani postaci, ani pliku');
   const sc = czytaj('js/ulica-scena.mjs');
   assert.ok(sc.indexOf('d.rowerzysta === true && ruch') < sc.indexOf('assets/akcja/rowerzysta.webp'), 'ulica pobiera plik dopiero po włączeniu');
 });
 
-test('mapa: postać tylko z odpowiedzi serwera, z naszego originu, podpis przez escape', () => {
+test('mapa (9.11 nagrobek): postaci i podpisu nie ma, funkcja śladu nie oddaje pozycji roweru', () => {
   const m = czytaj('mapa-wyprawy.html');
-  assert.match(m, /if \(d\.rowerzysta && Array\.isArray\(d\.rowerzysta\.pozycja\)\)/);
-  assert.match(m, /rower\.bindPopup\(esc\(d\.rowerzysta\.opis\)\)/);
+  assert.doesNotMatch(m, /rower|bindPopup/);
+  assert.doesNotMatch(czytaj(EF), /rowerzysta_opis/);
 });
 
 test('ruch: odczyt śladu wyłączony 9.11, więc wejście na starą mapę nie sięga do bazy', () => {

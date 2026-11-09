@@ -462,6 +462,13 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     </div>
     </div>
 
+    <!-- Akcja (9.11.2026): krzyżyk „Ukryj” na kaflu akcji chowa go dla konta (akcja_kafel_ukryj, zapis w profilu). Tu wraca. Widać tylko, gdy kafel jest ukryty. -->
+    <div class="st-group" id="akcja-ukryta-section" style="display:none;">
+      <div class="st-label">Akcja</div>
+      <button id="akcja-pokaz-btn" type="button" onclick="pokazAkcje()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg2);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:.06em;cursor:pointer;">Pokaż kafel akcji</button>
+      <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-top:5px;padding:0 3px;">Kafel akcji wróci na Dziś. Kilometry liczą się cały czas, także gdy kafel jest ukryty.</div>
+    </div>
+
     <!-- Hasło (1.11.2026) — pierwsza w aplikacji ścieżka zmiany hasła; tylko własny profil (openSettings). supabase.auth.updateUser. -->
     <div class="st-group" id="haslo-section" style="display:none;scroll-margin-top:12px;">
       <div class="st-label">Hasło</div>
@@ -1894,7 +1901,33 @@ function openSettings() {
   if (_dz) _dz.style.display = (!_isCoach && _isOwnProfile) ? 'block' : 'none';
   const _hs = document.getElementById('haslo-section');
   if (_hs) _hs.style.display = _isOwnProfile ? 'block' : 'none';
+  sprawdzUkrytaAkcje();
   return checkIntervalsStatus();   // intervals.icu — pokaż/odśwież stan połączenia (promise → scroll po finalnej wysokości)
+}
+// AKCJA UKRYTA (9.11.2026): kafel akcji na Dziś ukryty krzyżykiem (js/akcja.mjs ukryjKafel → akcja_kafel_ukryj). Stan z profilu konta, nie z telefonu.
+const SLUGI_AKCJI = ['dla-fabianka', 'proba'];
+function sprawdzUkrytaAkcje() {
+  const s = document.getElementById('akcja-ukryta-section');
+  if (!s) return;
+  s.style.display = 'none';
+  if (!_isOwnProfile || !window.sb) return;
+  Promise.all(SLUGI_AKCJI.map(function (slug) { return Promise.resolve(window.sb.rpc('akcja_kafel_ukryty', { p_slug: slug })).then(function (r) { return !r.error && r.data === true; }, function () { return false; }); }))
+    .then(function (w) {
+      s.style.display = w.some(Boolean) ? 'block' : 'none';
+      /* napis z imieniem z bazy, zapisany przez kafel (js/akcja.mjs etykietaPokaz); w kodzie imienia nie ma */
+      try { const et = localStorage.getItem('bm_akcja_etykieta_pokaz'); if (et && /^Pokaż (akcję|kafel)/.test(et)) document.getElementById('akcja-pokaz-btn').textContent = et.slice(0, 60); } catch (e) {}
+    });
+}
+async function pokazAkcje() {
+  const b = document.getElementById('akcja-pokaz-btn');
+  if (!window.sb) return;
+  b.disabled = true;
+  const w = await Promise.all(SLUGI_AKCJI.map(function (slug) { return Promise.resolve(window.sb.rpc('akcja_kafel_ukryj', { p_slug: slug, p_ukryj: false })).then(function (r) { return !r.error; }, function () { return false; }); }));
+  b.disabled = false;
+  if (!w[0]) { showToast('Nie udało się. Spróbuj za chwilę.'); return; }
+  try { Object.keys(localStorage).filter(function (k) { return k.indexOf('bm_akcja_ukryta_') === 0; }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+  document.getElementById('akcja-ukryta-section').style.display = 'none';
+  showToast('Kafel akcji wróci na Dziś.');
 }
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('open');

@@ -625,17 +625,34 @@
   window.FILM_AKCJI = null;
   window.FILM_DZIS = (function () {
     var KLUCZ = 'film_dzis', KLUCZ_AKCJI = 'film_akcji', CZEKAJ_MS = 4000;
-    function filmAkcjiTeraz() {
+    /* FILMY AKCJI RAZ NA KONTO (Filip 9.11): w czasie akcji baner gra sam tylko film, którego to konto jeszcze nie widziało: film startu, potem filmy
+       kamieni milowych po przekroczeniu progu (window.FILMY_AKCJI z js/akcja-cytaty.mjs). „Widziane” w profilu (akcja_filmy_obejrzane) i kopia w telefonie.
+       Wszystko widziane = baner nic nie gra sam (wcześniej film startu grał codziennie). ▶ i „Zobacz film startu” na kaflu dalej działają. */
+    function akcjaRuszyla() { var A = window.BM_AKCJA_CYTATY; return !!(A && typeof A.czyAkcjaRuszyla === 'function' && A.czyAkcjaRuszyla()); }
+    function okresAkcji(teraz) {
       var A = window.BM_AKCJA_CYTATY;
-      return !!(window.FILM_AKCJI && A && typeof A.czyAkcjaRuszyla === 'function' && A.czyAkcjaRuszyla());
+      if (!A || !A.DZIEN_STARTU || (typeof A.czyAkcjaZamknieta === 'function' && A.czyAkcjaZamknieta())) return false;
+      return dzis(teraz) >= A.DZIEN_STARTU;   // od dnia startu promo już nie gra, także zanim przyjdzie stan z bazy
     }
+    function filmyAkcji() { return Array.isArray(window.FILMY_AKCJI) && window.FILMY_AKCJI.length ? window.FILMY_AKCJI : (window.FILM_AKCJI ? [window.FILM_AKCJI] : []); }
     function filmAkcjiByl() { try { return window.localStorage.getItem(KLUCZ_AKCJI) === '1'; } catch (e) { return false; } }
-    /** Czy film akcji czeka na pierwsze odtworzenie (akcja ruszyła, plik jest, jeszcze nie grał u tej osoby). */
-    function czekaFilmAkcji() { return filmAkcjiTeraz() && !filmAkcjiByl(); }
+    function widziany(f) {
+      var A = window.BM_AKCJA_CYTATY, id = (f && f.id) || 'film-akcja';
+      if (A && typeof A.filmWidziany === 'function') return A.filmWidziany(id);
+      return id === 'film-akcja' && filmAkcjiByl();
+    }
+    function filmAkcjiDoObejrzenia() { if (!akcjaRuszyla()) return null; var l = filmyAkcji(); for (var i = 0; i < l.length; i++) if (!widziany(l[i])) return l[i]; return null; }
+    function filmAkcjiTeraz() { return akcjaRuszyla() && filmyAkcji().length > 0; }
+    /** Czy film akcji czeka na pierwsze odtworzenie u tego konta (start albo kamień milowy). */
+    function czekaFilmAkcji() { return !!filmAkcjiDoObejrzenia(); }
     function dzis(teraz) { var d = teraz || new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
     function czytaj() { try { return window.localStorage.getItem(KLUCZ); } catch (e) { return null; } }
-    function oznacz(teraz) {
-      try { window.localStorage.setItem(KLUCZ, dzis(teraz)); if (filmAkcjiTeraz()) window.localStorage.setItem(KLUCZ_AKCJI, '1'); } catch (e) {}
+    function oznacz(teraz, film) {
+      try { window.localStorage.setItem(KLUCZ, dzis(teraz)); } catch (e) {}
+      if (!film || !filmAkcjiTeraz() || filmyAkcji().indexOf(film) < 0) return;
+      var A = window.BM_AKCJA_CYTATY;
+      if (A && typeof A.oznaczFilm === 'function') A.oznaczFilm(film.id || 'film-akcja');
+      else if ((film.id || 'film-akcja') === 'film-akcja') { try { window.localStorage.setItem(KLUCZ_AKCJI, '1'); } catch (e) {} }
     }
     function wymuszony() { try { return new URLSearchParams(window.location.search || '').get('film') === '1'; } catch (e) { return false; } }
     /** Powód, dla którego film NIE gra (albo null = grać). Kolejność: preferencje człowieka, potem sieć, potem „już był". */
@@ -644,10 +661,11 @@
       var c = window.navigator && window.navigator.connection;
       if (c && c.saveData) return 'save-data';
       if (window.navigator && window.navigator.onLine === false) return 'offline';
-      if (czytaj() === dzis(teraz) && !wymuszony() && !czekaFilmAkcji()) return 'juz-dzis';   // ?film=1 — test; film akcji raz u każdego
+      if (!wymuszony() && (akcjaRuszyla() || okresAkcji(teraz))) return filmAkcjiDoObejrzenia() ? null : 'akcja-widziana';   // w akcji: tylko niewidziane, raz na konto
+      if (czytaj() === dzis(teraz) && !wymuszony()) return 'juz-dzis';   // ?film=1 — test
       return null;
     }
-    function filmDnia(teraz) { if (filmAkcjiTeraz()) return window.FILM_AKCJI;
+    function filmDnia(teraz) { if (akcjaRuszyla() || okresAkcji(teraz)) return filmAkcjiDoObejrzenia() || window.FILM_AKCJI || null;
       var f = window.FILMY_PROMO || []; if (!f.length) return null;
       var d = dzis(teraz), mapa = window.FILMY_DNI || {}, id = mapa[d];
       var zId = function (x) { for (var i = 0; i < f.length; i++) if (f[i].id === x) return f[i]; return null; };
@@ -715,7 +733,7 @@
       var powod = recznie ? (moznaPowtorzyc() ? null : 'brak-powtorki') : powodBlokady(teraz), film = filmDnia(teraz);
       if (powod || !film) {
         baner.dataset.film = powod || 'brak';
-        if (film && (powod === 'juz-dzis' || powod === 'reduced-motion')) pokazPowtorke(baner, teraz);
+        if (film && (powod === 'juz-dzis' || powod === 'reduced-motion' || powod === 'akcja-widziana')) pokazPowtorke(baner, teraz);
         return null;
       }
       zdejmijPowtorke(baner);
@@ -777,7 +795,7 @@
         baner.dataset.film = 'koniec';
       }
       v.addEventListener('timeupdate', function () { if (film.plakat && film.plakat_od != null && (v.currentTime || 0) >= film.plakat_od) pokazPlansze(); var p = pozycja(film, v.currentTime || 0), f = dopasowanie(film, v.currentTime || 0); if (v.style.objectPosition !== p) v.style.objectPosition = p; if (v.style.objectFit !== f) v.style.objectFit = f; });
-      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } pomin.style.opacity = '1'; pomin.style.pointerEvents = 'auto'; if (!recznie) oznacz(teraz); baner.dataset.film = 'gra'; }, { once: true });
+      v.addEventListener('playing', function () { if (koniec) return; v.style.opacity = '1'; if (glosnik) { glosnik.style.opacity = '1'; glosnik.style.pointerEvents = 'auto'; } pomin.style.opacity = '1'; pomin.style.pointerEvents = 'auto'; if (!recznie) oznacz(teraz, film); baner.dataset.film = 'gra'; }, { once: true });
       v.addEventListener('canplaythrough', function () {
         if (koniec || gotowy) return; gotowy = true;
         try { var pr = v.play(); if (pr && typeof pr.catch === 'function') pr.catch(zakoncz); } catch (e) { zakoncz(); }   // autoplay zablokowany → cytat
@@ -827,7 +845,7 @@
       setTimeout(function () { if (!gotowy && !koniec) { zakoncz(); baner.dataset.film = 'za-wolno'; } }, CZEKAJ_MS);   // 4 s bez gotowości → dziś bez filmu
       return v;
     }
-    return { czekaFilmAkcji: czekaFilmAkcji,  start: start, pokazPowtorke: pokazPowtorke, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
+    return { czekaFilmAkcji: czekaFilmAkcji, filmAkcjiDoObejrzenia: filmAkcjiDoObejrzenia, start: start, pokazPowtorke: pokazPowtorke, powodBlokady: powodBlokady, pozycja: pozycja, filmDnia: filmDnia, KLUCZ: KLUCZ, CZEKAJ_MS: CZEKAJ_MS, _dzis: dzis };
   })();
 
   window.escapeHtml = function(s) {

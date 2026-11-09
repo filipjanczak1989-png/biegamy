@@ -175,10 +175,11 @@ test('Centrum Akcji na Dziś: bez pełnej sceny, kafle, film dopiero po dotknię
   const a = bezKomJs(czytaj('js/akcja.mjs'));
   const karta = a.slice(a.indexOf('function kartaDzisHtml'), a.indexOf('var kafle ='));
   assert.doesNotMatch(karta, /ulica-scena/, 'Dziś bez pełnej sceny');
-  for (const tekst of ['Mapa wyprawy', 'Zagraj w Cegiełki', 'Wpłać na zbiórkę', 'Twoja firma na ulicy', 'Zobacz film', 'Twój wkład']) assert.ok(a.includes(tekst), tekst);
+  for (const tekst of ['Zagraj w Cegiełki', 'Wpłać na zbiórkę', 'Twoja firma na ulicy', 'Zobacz film', 'Twój wkład']) assert.ok(a.includes(tekst), tekst);
+  assert.ok(!a.includes('Mapa wyprawy'), '9.11: kafla mapy wyprawy nie ma');
   assert.match(a, /var f = _filmKarty; if \(!f \|\| !f\.mp4\) return;/);
   assert.match(a, /v\.src = f\.mp4/);
-  for (const [plik, slowa] of [['privacy.html', ['id="firmy"', '14 dniach', '30 dni po zakończeniu akcji', 'Z telefonu nie zbieramy dokładnej lokalizacji GPS', 'wyłącznie u uczestników wyprawy']], ['privacy-en.html', ['id="firmy"', '14 days', '30 days after the campaign ends', "We don't collect precise GPS location from your phone", 'only for expedition participants']]]) {
+  for (const [plik, slowa] of [['privacy.html', ['id="firmy"', '14 dniach', '30 dni po zakończeniu akcji', 'Z telefonu nie zbieramy dokładnej lokalizacji GPS', 'wyłącznie u uczestników wyprawy, tylko do policzenia kilometrów, i nie jest publiczny']], ['privacy-en.html', ['id="firmy"', '14 days', '30 days after the campaign ends', "We don't collect precise GPS location from your phone", 'only for expedition participants, only to count kilometres, and it is not public']]]) {
     const t = czytaj(plik);
     for (const s of slowa) assert.ok(t.includes(s), plik + ': ' + s);
     assert.doesNotMatch(t, /Nie zbieramy dokładnej lokalizacji GPS|No GPS\./, plik + ': stare zdanie przeczyło mapie wyprawy');

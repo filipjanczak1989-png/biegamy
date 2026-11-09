@@ -252,18 +252,19 @@ test('scena po starcie: maszyny jako przyciski, tekst z bazy przez textContent, 
   assert.equal(wezly.filter((n) => (n.atr.class || '').includes('us-domek')).length, 2, 'puste i nietekstowe nazwy bez domku');
   const szyld = wezly.find((n) => n.atr.class === 'us-szyld');
   assert.ok(szyld.textContent.startsWith('<'), 'surowy tekst na desce');
-  const cegly = wezly.filter((n) => (n.atr.class || '').includes('us-cegla'));
+  /* 9.11: murek darczyńców przypięty do widoku (blizna-200), cegły us-mc */
+  const cegly = wezly.filter((n) => (n.atr.class || '').split(' ').includes('us-mc'));
   assert.equal(cegly.length, 4, 'dwie imienne (po filtrze) + dwie bez imienia');
   assert.equal(cegly.filter((c) => c.tag === 'button').length, 2, 'przycisk tylko dla imiennej');
-  assert.equal(cegly.find((c) => c.tag === 'button')._tekst, wrogie, 'imię surowym tekstem');
+  assert.ok(cegly.some((c) => c.tag === 'button' && c._tekst === wrogie), 'imię surowym tekstem');
   const zapis = JSON.stringify(wezly.map((n) => [n.atr, n._tekst]));
   assert.doesNotMatch(zapis, /987654321|zlosliwe/, 'kwota i nieznany element nie wchodzą');
   assert.equal(U.linkFirmy('https://firma.example.pl/a'), 'https://firma.example.pl/a');
   assert.equal(U.linkFirmy('javascript:alert(1)'), '');
   assert.equal(U.linkFirmy('http://firma.example.pl'), '', 'tylko https');
   assert.equal(U.linkFirmy(''), '');
-  assert.deepEqual(U.dodatkiBezpieczne({ odblokowane: ['park', 'x'], imiona: ['Ola', 3], bez_imienia: -4, kwota_zl: 5 }), { odblokowane: ['park'], imiona: ['Ola'], bez_imienia: 0 });
-  assert.deepEqual(U.dodatkiBezpieczne(null), { odblokowane: [], imiona: [], bez_imienia: 0 }, 'brak migracji = sama droga');
+  assert.deepEqual(U.dodatkiBezpieczne({ odblokowane: ['park', 'x'], imiona: ['Ola', 3], bez_imienia: -4, kwota_zl: 5 }), { odblokowane: ['park'], imiona: ['Ola'], bez_imienia: 0, cegly: [{ imie: 'Ola', zlota: false }], cegly_n: 1 });
+  assert.deepEqual(U.dodatkiBezpieczne(null), { odblokowane: [], imiona: [], bez_imienia: 0, cegly: [], cegly_n: 0 }, 'brak migracji = sama droga');
   const teraz = new Wezel('div'), bez = zamontuj(S, teraz, TRWA);
   assert.ok(bez, 'bez firm i cegiełek scena wstaje');
   assert.equal(teraz.wszystkie().filter((n) => (n.atr.class || '').includes('us-cegla') || (n.atr.class || '').includes('us-domek')).length, 0);

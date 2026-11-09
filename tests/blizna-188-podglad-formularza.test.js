@@ -17,7 +17,8 @@ test('jedna funkcja rysuje budynek firmy i cegłę na Ulicy i w podglądzie', ()
   const z = S.slice(S.indexOf('function zamontuj(kontener, licznik, opcje)'));
   assert.doesNotMatch(z, /function szyldFirmy\(|function szyldNazwa\(|el\("button", "us-btn us-domek"|"us-cegla" \+/, 'w scenie nie ma drugiej kopii');
   assert.match(z, /var bud = budynekFirmy\(U, ulica, f, m\.wyb, xb, m\.baza, w, m\.nr, function \(im, adres\) \{ return leniwy\(im, adres, rekord\); \}\)/, 'Ulica: leniwie');
-  assert.match(z, /for \(var i = 0; i < pokaz; i\+\+\) ceglaMuru\(mur, i < dod\.imiona\.length \? dod\.imiona\[i\] : "", i, kol\);/);
+  /* 9.11: na Ulicy murek darczyńców przypięty do widoku (blizna-200); ceglaMuru zostaje tylko w podglądzie cegły (panel, formularz) */
+  assert.doesNotMatch(z.slice(0, z.indexOf('function podgladFirmy(') > 0 ? z.indexOf('function podgladFirmy(') : undefined), /ceglaMuru\(/, 'na Ulicy bez starego muru');
   const pf = S.slice(S.indexOf('function podgladFirmy('), S.indexOf('function podgladCegly('));
   assert.match(pf, /budynekFirmy\(U, k\.ulica, f, wiez \? \{ nazwa: "wiezowiec", lustro: false \} : U\.domekNaMiejscu\(0, f\.nazwa \|\| ""\)/, 'ten sam wybór budynku co pierwszy domek na Ulicy');
   assert.match(pf, /wiez \? POZIOM_DOMKU - ZA_DROGA : POZIOM_DOMKU, w,/, 'wieżowiec głębiej, jak na Ulicy');

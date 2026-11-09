@@ -43,6 +43,7 @@
     if (s.zamknietaOd != null) STAN.zamknietaOd = /^\d{4}-\d{2}-\d{2}$/.test(String(s.zamknietaOd)) ? String(s.zamknietaOd) : null;
   }
   function czyAkcjaRuszyla() { return STAN.ruszyla === true; }
+  function czyAkcjaZamknieta() { return STAN.zamknieta === true; }
 
   /* PODPIĘCIE STANU (projekt F dzień 2, 3.11.2026): jedno źródło prawdy = akcje.wystartowala_at przez RPC akcja_licznik
      (zalogowani; authenticated ma EXECUTE). Cache 60 s w sessionStorage (try/catch — prywatne okno, Deno w okienku).
@@ -62,6 +63,42 @@
     var pl = d.plakat_url && g.safeUrlAttr && g.safeUrlAttr(d.plakat_url) ? d.plakat_url : "";
     var zb = g.BM_AKCJA && g.BM_AKCJA.linkZbiorki ? g.BM_AKCJA.linkZbiorki(d) : "";
     return { id: "film-akcja", mp4: u, dzwiek: true, pozycje: [{ od: 0, pos: "50% 45%" }, { od: 10, pos: "50% 50%", fit: "contain" }], plakat: pl, plakat_od: 10, zbiorka: zb };
+  }
+  /* FILMY KAMIENI MILOWYCH (Filip 9.11, 20261109_akcja_filmy): [{id, km | pct, url}], z bazy (akcja_filmy_konta) albo na próbie z funkcji próby (adres na 15 min).
+     Film wchodzi do kolejki dopiero po przekroczeniu progu (suma km albo procent celu z licznika). Ten sam kubełek i ta sama zgoda na wizerunek co film startu. */
+  var RE_ID_FILMU = /^[a-z0-9][a-z0-9-]{0,39}$/;
+  function filmyProgow(d, progi) {
+    if (!d || !d.wystartowala || !Array.isArray(progi)) return [];
+    var km = Number(d.suma_km) || 0, pct = Number(d.pct) || 0;
+    return progi.filter(function (p) {
+      return p && RE_ID_FILMU.test(String(p.id || "")) && typeof p.url === "string" && ADRES_FILMU.test(p.url) &&
+        ((typeof p.km === "number" && km >= p.km) || (typeof p.pct === "number" && pct >= p.pct));
+    }).map(function (p) { return { id: p.id, mp4: p.url, dzwiek: true, pozycje: [{ od: 0, pos: "50% 50%" }] }; });
+  }
+  /* Widziane filmy: profil (akcja_filmy_konta.obejrzane) + kopia w telefonie (konto i akcja). Stary znacznik „film_akcji” = film startu widziany na tym telefonie. */
+  var _filmy = { slug: "", baza: null, sb: null };
+  function kluczFilmow() { var uid = null; try { var s = JSON.parse(g.localStorage.getItem("sb-afqojgkaveykxbltxzwm-auth-token") || "null"); uid = s && s.user && s.user.id; } catch (e) {} return uid ? "bm_filmy_akcji_" + _filmy.slug + "_" + uid : ""; }
+  function lokalneFilmy() {
+    var l = []; try { var k = kluczFilmow(); l = k ? JSON.parse(g.localStorage.getItem(k) || "[]") : []; if (_filmy.slug !== "proba" && g.localStorage.getItem("film_akcji") === "1" && l.indexOf("film-akcja") < 0) l.push("film-akcja"); } catch (e) { l = []; }
+    return Array.isArray(l) ? l.filter(function (x) { return RE_ID_FILMU.test(String(x)); }) : [];
+  }
+  function filmWidziany(id) { return lokalneFilmy().indexOf(id) >= 0 || (Array.isArray(_filmy.baza) && _filmy.baza.indexOf(id) >= 0); }
+  function oznaczFilm(id) {
+    if (!RE_ID_FILMU.test(String(id || ""))) return;
+    try { var k = kluczFilmow(), l = lokalneFilmy(); if (k && l.indexOf(id) < 0) { l.push(id); g.localStorage.setItem(k, JSON.stringify(l)); } if (id === "film-akcja" && _filmy.slug !== "proba") g.localStorage.setItem("film_akcji", "1"); } catch (e) {}
+    if (_filmy.sb && _filmy.slug) Promise.resolve(_filmy.sb.rpc("akcja_film_obejrzany", { p_slug: _filmy.slug, p_film: id })).then(function () {}, function () {});
+  }
+  /** Profil konta: progi i widziane. Lokalnie widziane, a w profilu nie (bez sieci, stary znacznik): dopisz do profilu. Błąd / stara baza = tylko telefon. */
+  async function filmyKonta(sb, slug, d) {
+    _filmy.slug = slug; _filmy.sb = sb && typeof sb.rpc === "function" ? sb : null;
+    if (!_filmy.sb || !d || !d.wystartowala) return [];
+    try {
+      var r = await _filmy.sb.rpc("akcja_filmy_konta", { p_slug: slug });
+      if (r.error || !r.data) return [];
+      _filmy.baza = Array.isArray(r.data.obejrzane) ? r.data.obejrzane : [];
+      lokalneFilmy().forEach(function (id) { if (_filmy.baza.indexOf(id) < 0) oznaczFilm(id); });
+      return Array.isArray(r.data.progi) ? r.data.progi : [];
+    } catch (e) { return []; }
   }
   /* ŚCIEŻKA FABIANKA: licznik nigdy nie oddaje rysunku ani filmu dla próby. Trener i konto testowe dostają je osobną funkcją, na 15 minut. Odmowa = bez adresów, reszta próby działa. */
   var _wizerunekProby = null, _wizerunekT = 0, _bladWizerunku = "";
@@ -85,6 +122,7 @@
   function scalProbe(d, w) {
     if (!d || !w) return d;
     ["koparka_url", "koparka_arkusz_url", "film_akcji_url", "plakat_url"].forEach(function (k) { d[k] = w[k]; });
+    if (Array.isArray(w.filmy_progow)) d.filmy_progow = w.filmy_progow;   // filmy kamieni milowych próby (20261109_akcja_filmy), adresy na 15 min
     ["nazwa", "imie", "url_zbiorki"].forEach(function (k) { if (w[k]) d[k] = w[k]; });
     return d;
   }
@@ -93,8 +131,11 @@
     if (g.BM_AKCJA && g.BM_AKCJA.zdejmijKafel && g.BM_AKCJA.stanKarty(d) !== "trwa") g.BM_AKCJA.zdejmijKafel();
     var film = filmAkcjiZLicznika(d);
     if (film) g.FILM_AKCJI = film;
-    /* Próba od zera: film akcji ma zagrać jeszcze raz, tak jak zagra każdemu pierwszy raz. */
-    else if (slug === "proba" && d && !d.wystartowala) { g.FILM_AKCJI = null; try { g.localStorage.removeItem("film_akcji"); g.sessionStorage.removeItem("bm_ulica_wjazd"); } catch (e) {} }
+    /* Próba od zera: film akcji ma zagrać jeszcze raz, tak jak zagra każdemu pierwszy raz (także kopia „widziane” w telefonie; profil liczy od nowego naciśnięcia). */
+    else if (slug === "proba" && d && !d.wystartowala) { g.FILM_AKCJI = null; try { g.localStorage.removeItem("film_akcji"); g.sessionStorage.removeItem("bm_ulica_wjazd"); _filmy.slug = slug; var kf = kluczFilmow(); if (kf) g.localStorage.removeItem(kf); } catch (e) {} }
+    /* kolejka filmów akcji: start, potem kamienie milowe po progu (progi z profilu; na próbie adresy z funkcji próby) */
+    var progi = slug === "proba" ? d && d.filmy_progow : d && d._progi_filmow;
+    g.FILMY_AKCJI = (film ? [film] : []).concat(filmyProgow(d, progi));
     ustawStan({ ruszyla: !!(d && d.wystartowala), zamknieta: !!(d && d.koniec), zamknietaOd: d && d.koniec ? String(d.koniec) : null,
                 proba: slug === "proba" });
   }
@@ -112,6 +153,7 @@
         var w = await wizerunekProby(sb);
         scalProbe(d, w);
       }
+      if (d && d.wystartowala && athleteId) { var progi = await filmyKonta(sb, slug, d); if (slug !== "proba") d._progi_filmow = progi; }
       try { if (ss) ss.setItem(klucz, JSON.stringify({ t: teraz, d: d })); } catch (e) {}
       _zastosuj(slug, d);
       return d;
@@ -186,7 +228,7 @@
   }
 
   g.BM_AKCJA_CYTATY = { bladWizerunku: bladWizerunku, scalProbe: scalProbe, wizerunekProby: wizerunekProby, filmAkcjiZLicznika: filmAkcjiZLicznika, cytat: cytat, dzienWaw: dzienWaw, czyAkcjaRuszyla: czyAkcjaRuszyla, ustawStan: ustawStan, ZRODLO: ZRODLO, TEASER: TEASER,
-    odswiezStan: odswiezStan, slugDla: slugDla, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
+    odswiezStan: odswiezStan, slugDla: slugDla, czyAkcjaZamknieta: czyAkcjaZamknieta, filmyProgow: filmyProgow, filmWidziany: filmWidziany, oznaczFilm: oznaczFilm, filmyKonta: filmyKonta, PROBA_KONTA: PROBA_KONTA, CACHE_MS: CACHE_MS,
     ZAGADKI: ZAGADKI, PO_STARCIE: PO_STARCIE, odpowiedzZagadki: odpowiedzZagadki,
     ROTACJA: ROTACJA, PRZED_STARTEM: PRZED_STARTEM, W_DNIU_STARTU: W_DNIU_STARTU, DZIEN_STARTU: DZIEN_STARTU, PO_ZAMKNIECIU: PO_ZAMKNIECIU,
     START_ROTACJI: START_ROTACJI, DNI_PO_ZAMKNIECIU: DNI_PO_ZAMKNIECIU, ZAMKNIETA: ZAMKNIETA,

@@ -65,6 +65,13 @@
       if (!w[1]) { el("div", "font-size:12px;color:var(--muted);", b, "Plik usunięty."); return; }
       var im = el("img", "max-width:100%;max-height:260px;border-radius:8px;" + w[2], b); im.src = w[1]; im.alt = w[0];
     });
+    /* Złota cegła (9.11): przy cegiełce przełącznik, domyślnie zaznaczony od 100 zł wpłaty. Kwota zostaje tutaj, publicznie wychodzi tylko złota cegła. */
+    var zlota = null;
+    if (cegla) {
+      var lz = el("label", "display:flex;gap:8px;align-items:center;margin:4px 0 2px;font-size:14px;font-weight:700;color:var(--fg);cursor:pointer;", ramka);
+      zlota = el("input", "width:20px;height:20px;accent-color:#e3a514;", lz); zlota.type = "checkbox"; zlota.checked = z.kwota_gr != null && z.kwota_gr >= 10000;
+      el("span", "", lz, "Złota cegła" + (z.kwota_gr == null ? " (bez kwoty w zgłoszeniu: sprawdź zrzut)" : z.kwota_gr >= 10000 ? " (wpłata od 100 zł)" : " (wpłata poniżej 100 zł)"));
+    }
     var info = el("div", "font-size:13px;color:var(--red);", ramka);
     var guziki = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;", ramka);
     var tak = el("button", PRZYCISK + "flex:1 1 130px;background:var(--accent,#ff8a3c);color:#111;border:0;", guziki, "Zatwierdź"); tak.type = "button";
@@ -75,7 +82,7 @@
       tak.disabled = nie.disabled = true; info.textContent = "";
       wolaj(body).then(poDecyzji).catch(function (e) { tak.disabled = nie.disabled = false; info.textContent = e.message; });
     }
-    tak.addEventListener("click", function () { dzialaj({ akcja: "zatwierdz", id: z.id }); });
+    tak.addEventListener("click", function () { dzialaj(zlota ? { akcja: "zatwierdz", id: z.id, zlota: zlota.checked } : { akcja: "zatwierdz", id: z.id }); });
     nie.addEventListener("click", function () {
       if (powod.style.display === "none") { powod.style.display = "block"; powod.focus(); nie.textContent = "Odrzuć z tym powodem"; return; }
       if (!powod.value.trim()) { info.textContent = "Wpisz powód."; return; }

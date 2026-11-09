@@ -185,7 +185,7 @@
     ".akcja-firma-kwota{margin-top:2px;font-size:12px;color:var(--fg2,rgba(240,237,232,.72))}" +
     ".akcja-firmy-uwaga{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--fg2,rgba(240,237,232,.72))}" +
     "#daily-motivation.akcja-baner{padding:0!important;overflow:hidden}#daily-motivation.akcja-baner>div:first-child,#daily-motivation.akcja-baner>#motiv-content{display:none!important}" +
-    "#daily-motivation.akcja-baner>.film-powtorz{position:absolute!important;z-index:4!important;top:6px;right:6px;bottom:auto}" +
+    "#daily-motivation.akcja-baner>.film-powtorz{position:absolute!important;z-index:4!important;top:6px;right:50px;bottom:auto}" +
     ".akcja-dzis{color:#fff;font-family:Inter,system-ui,sans-serif}" +
     ".akcja-dzis-scena{position:relative;height:284px;overflow:hidden;background:#27405f}.akcja-dzis-tlo{position:absolute;left:0;right:0;top:-56px}.akcja-dzis-tlo .us{margin:0}.akcja-dzis-tlo .um{margin:56px 12px 0}" +
     ".akcja-dzis-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
@@ -193,6 +193,9 @@
     ".akcja-dzis-km{font-size:13px;line-height:1;white-space:nowrap}.akcja-dzis-km b{font:400 50px/.95 'Bebas Neue',Inter,sans-serif;letter-spacing:.02em;margin-right:6px}" +
     ".akcja-dzis-wklad{margin-top:5px;font-size:14px;font-weight:600}.akcja-dzis-wklad b{color:#ffb27d;font-weight:800}" +
     ".akcja-dzis-zobacz{position:absolute;right:10px;bottom:10px;z-index:3;padding:5px 10px;border-radius:10px;background:rgba(10,12,22,.68);font-size:12px;font-weight:700;pointer-events:none}" +
+    ".akcja-dzis-scena--murek .akcja-dzis-zobacz{bottom:44px}" +
+    ".akcja-dzis-film{display:block;width:100%;margin-top:8px;min-height:44px;padding:8px;border-radius:12px;border:1px dashed rgba(255,255,255,.3);background:transparent;color:#ffd3b0;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}" +
+    ".akcja-dzis-ukryj{position:absolute;top:8px;right:8px;z-index:5;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:rgba(10,12,22,.72);color:#fff;font:600 22px/34px Inter,system-ui,sans-serif;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}.akcja-dzis-ukryj::after{content:'';position:absolute;inset:-6px}" +
     ".akcja-dzis-dane{padding:12px}.akcja-dzis-dane .akcja-liczby{margin-top:6px;color:#fff;font-size:13px;font-weight:700}" +
     ".akcja-dzis-filip{margin-top:6px;font-size:12px;line-height:1.45;color:rgba(255,255,255,.82)}" +
     ".akcja-dzis-przyciski{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}" +
@@ -331,29 +334,73 @@
     return '<div class="akcja-dzis-km"><b>' + km(d.suma_km) + "</b>z " + km(d.cel_km) + ' km</div><div class="akcja-dzis-wklad">Twój wkład: <b>' + km(wklad && wklad.km) + " km</b></div>";
   }
   function daneKaflaHtml(d) {
-    var p = pct(d), pl = plakatUrl(d), zb = linkZbiorki(d), trasa = linkTrasy(d);
+    var p = pct(d), pl = plakatUrl(d), zb = linkZbiorki(d);
     return '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '"><div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
       '<div class="akcja-liczby">' + liczba(p, p < 10 ? 1 : 0) + "% celu</div>" +
       '<div class="akcja-dzis-filip">' + esc(tekstFilipa(d)) + "</div>" +
       '<div class="akcja-dzis-przyciski">' +
       (pl ? '<a class="akcja-dzis-przycisk" href="' + pl + '" data-plakat="' + pl + '"' + (zb ? ' data-zbiorka="' + zb + '"' : "") + ' target="_blank" rel="noopener noreferrer">Plakat</a>' : "") +
       '<a class="akcja-dzis-przycisk" data-gra-link href="' + linkGry(d) + '"' + (graWidoczna(d) ? "" : " hidden") + ">Gra</a>" +
-      (trasa ? '<a class="akcja-dzis-przycisk" href="' + trasa + '">Mapa wyprawy</a>' : "") +
       (zb ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--zbiorka" href="' + zb + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") +
-      (formularzFirm(d) ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' + adresStrony(d, "#firma") + '">Twoja firma lub cegiełka na Ulicy</a>' : "") + "</div>";
+      (formularzFirm(d) ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' + adresStrony(d, "#firma") + '">Twoja firma lub cegiełka na Ulicy</a>' : "") + "</div>" +
+      /* Film startu raz na konto (9.11): po nim baner już go nie gra sam, więc tu można wrócić. Odtwarza ta sama nakładka co „Zobacz film” w karcie. */
+      (g.BM_AKCJA_CYTATY && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika(d) ? '<button type="button" class="akcja-dzis-film" data-film-akcji="1">▶ Zobacz film startu</button>' : "");
+  }
+  /* UKRYJ KAFEL (Filip 9.11): krzyżyk chowa kafel dla tego konta. Wybór w profilu (akcja_kafel_ukryj, tabela akcja_ukryte); w telefonie tylko kopia, żeby kafel
+     nie mignął przed odpowiedzią bazy. „Pokaż akcję …” (imię z bazy) w Ustawieniach (profil.html) przywraca, także z innego telefonu. Karta akcji, pushe i km bez zmian. */
+  var KLUCZ_UKRYCIA = "bm_akcja_ukryta_", _ukrycieSprawdzone = {};
+  function slugKafla(d) { return czyProba(d) ? "proba" : "dla-fabianka"; }
+  function kluczUkrycia(slug) { var uid = kontoSesji(); return uid ? KLUCZ_UKRYCIA + slug + "_" + uid : ""; }
+  function czytajUkrycie(slug) { try { var k = kluczUkrycia(slug); return k ? g.localStorage.getItem(k) : null; } catch (e) { return null; } }
+  function zapiszUkrycie(slug, v) { try { var k = kluczUkrycia(slug); if (!k) return; if (v) g.localStorage.setItem(k, v); else g.localStorage.removeItem(k); } catch (e) {} }
+  function rpcUkryj(slug) {
+    return Promise.resolve(g.sb.rpc("akcja_kafel_ukryj", { p_slug: slug, p_ukryj: true })).then(function (r) { if (r && !r.error) zapiszUkrycie(slug, "1"); }, function () {});
+  }
+  function sprawdzUkrycie(slug, d, wklad) {
+    if (_ukrycieSprawdzone[slug] || !g.sb || typeof g.sb.rpc !== "function" || !kontoSesji()) return;
+    _ukrycieSprawdzone[slug] = true;
+    var lok = czytajUkrycie(slug);
+    if (lok === "czeka") { rpcUkryj(slug); return; }   // ukryty bez sieci: dopisz do profilu
+    Promise.resolve(g.sb.rpc("akcja_kafel_ukryty", { p_slug: slug })).then(function (r) {
+      if (!r || r.error || typeof r.data !== "boolean") return;   // baza bez migracji albo błąd: zostaje kopia z telefonu
+      if (r.data && !lok) { zapiszUkrycie(slug, "1"); zdejmijKafel(); }
+      else if (!r.data && lok) { zapiszUkrycie(slug, ""); wstawKafel(d, wklad); }   // przywrócony w ustawieniach
+    }, function () {});
+  }
+  /* Napis przycisku w Ustawieniach z imieniem z bazy (w kodzie imienia nie ma, blizna-150): zapisany, gdy kafel był widoczny. */
+  var KLUCZ_ETYKIETY = "bm_akcja_etykieta_pokaz";
+  function etykietaPokaz(d) { var im = dopelniacz(d && d.imie); return im ? "Pokaż akcję " + im : "Pokaż kafel akcji"; }
+  function ukryjKafel(slug) {
+    zapiszUkrycie(slug, "czeka"); zdejmijKafel();
+    var et = "Pokaż kafel akcji"; try { et = g.localStorage.getItem(KLUCZ_ETYKIETY) || et; } catch (e) {}
+    if (g.showToast) g.showToast("Kafel akcji ukryty. Wróci po „" + et + "” w Ustawieniach profilu.");
+    if (g.sb && typeof g.sb.rpc === "function") rpcUkryj(slug);
+  }
+  /** Kafel ma murek darczyńców (pas na dole sceny): napis „Zobacz ulicę” idzie nad niego. */
+  function maMurek(d) {
+    var u = d && d.ulica;
+    if (!u || typeof u !== "object") return false;
+    return Number(u.cegly_n) > 0 || (Array.isArray(u.imiona) && u.imiona.length > 0) || Number(u.bez_imienia) > 0 || (Array.isArray(d.firmy) && d.firmy.some(function (f) { return f && f.rodzaj === "cegielka"; }));
   }
   var _ostatniWklad = null;   // zapytanie o wkład nie przeszło (tłok, brak sieci): ostatnia znana liczba, nie „0 km”
   function wstawKafel(d, wklad) {
     var b = banerDzis();
     if (!b) return;
+    var slug = slugKafla(d);
+    sprawdzUkrycie(slug, d, wklad);
+    if (czytajUkrycie(slug)) { zdejmijKafel(); return; }
     wstrzyknijCss();
     if (wklad) _ostatniWklad = wklad;
     var k = b.querySelector(".akcja-dzis");
     if (!k) {
       k = g.document.createElement("div"); k.className = "akcja-dzis";
-      k.innerHTML = '<div class="akcja-dzis-scena"><div class="akcja-dzis-tlo"></div><a class="akcja-dzis-link" aria-label="Zobacz całą Ulicę"></a><div class="akcja-dzis-liczby"></div><span class="akcja-dzis-zobacz" aria-hidden="true">Zobacz ulicę ›</span></div><div class="akcja-dzis-dane"></div>';
+      k.innerHTML = '<div class="akcja-dzis-scena"><div class="akcja-dzis-tlo"></div><a class="akcja-dzis-link" aria-label="Zobacz całą Ulicę"></a><div class="akcja-dzis-liczby"></div><span class="akcja-dzis-zobacz" aria-hidden="true">Zobacz ulicę ›</span><button type="button" class="akcja-dzis-ukryj" aria-label="Ukryj kafel akcji" title="Ukryj">×</button></div><div class="akcja-dzis-dane"></div>';
+      k.querySelector(".akcja-dzis-ukryj").addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); ukryjKafel(k.getAttribute("data-slug") || "dla-fabianka"); });
       b.appendChild(k); b.classList.add("akcja-baner");
     }
+    k.setAttribute("data-slug", slug);
+    try { g.localStorage.setItem(KLUCZ_ETYKIETY, etykietaPokaz(d)); } catch (e) {}
+    k.querySelector(".akcja-dzis-scena").setAttribute("class", "akcja-dzis-scena" + (maMurek(d) ? " akcja-dzis-scena--murek" : ""));
     k.querySelector(".akcja-dzis-link").setAttribute("href", adresStrony(d, "#ulica-po"));
     k.querySelector(".akcja-dzis-liczby").innerHTML = liczbyKaflaHtml(d, wklad || _ostatniWklad);
     k.querySelector(".akcja-dzis-dane").innerHTML = daneKaflaHtml(d);
@@ -399,13 +446,38 @@
     if (o.wys > 0) el.style.minHeight = o.wys + "px";
     return true;
   }
+  /* JEDNA WERSJA NA DZIŚ (Filip 9.11): kafel u góry i karta „Centrum Akcji” niżej pokazywały to samo (Ulica, licznik, pasek, wkład, Gra, Zbiórka, Firma, plakat, film).
+     Gdy stoi kafel, karta zostaje tylko z tym, czego kafel nie ma: nazwa, „Zostań sponsorem kilometrów” (formularz musi być w #akcja-karta, obsługa w zawodnik.html)
+     i „Więcej o akcji”. Kafel ukryty krzyżykiem = akcja znika z Dziś także z karty. Bez banera (inne strony) karta pełna jak dotąd. */
+  function kafelNaDzis(d) { var b = banerDzis(); return !!(b && b.querySelector && b.querySelector(".akcja-dzis")); }
+  /* Karta poza Dziś (8a, zgłoszenie 9.11): zawodnik.html chowa .fade-in przy zmianie zakładki, ale render karty przychodzi później (po RPC) i odsłania ją
+     na Społeczności. Po każdym renderze: gdy bieżąca sekcja to nie Dziś (window._currentSection z showSection), karta wraca do ukrycia. */
+  function pilnujSekcji() {
+    if (!g.setTimeout || !g.document || !g.document.getElementById) return;
+    g.setTimeout(function () { try { var el = g.document.getElementById("akcja-karta"); if (el && g._currentSection && g._currentSection !== "home") el.style.display = "none"; } catch (e) {} }, 0);
+  }
   function kartaDzisHtml(d, wklad, teraz, zPamieci) {
     var s = stanKarty(d, teraz);
     if (!zPamieci && d) zapamietajKarte(d, wklad, s);
     if (s === "trwa") wstawKafel(d, wklad); else zdejmijKafel();
     if (s === "brak") return "";
     wstrzyknijCss();
+    pilnujSekcji();
     var link = linkZbiorki(d), mojeKm = wklad && wklad.km != null ? km(wklad.km) : "0";
+    if (s === "trwa" && banerDzis()) {
+      if (!kafelNaDzis(d)) return "";   // kafel ukryty przez konto: bez karty
+      var film0 = g.BM_AKCJA_CYTATY && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika ? g.BM_AKCJA_CYTATY.filmAkcjiZLicznika(d) : null;
+      _filmKarty = film0;
+      sprawdzFirmyDoSprawdzenia();
+      return '<div class="akcja-karta akcja-centrum akcja-centrum--waska"><a class="akcja-kafel akcja-kafel--wplata" data-firmy-czekaja href="trener.html#firmy-sec" hidden></a><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' +
+        sponsorHtml(wklad, d) +
+        '<details class="akcja-wiecej-blok"><summary>Więcej o akcji</summary>' +
+        '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
+        (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
+        (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
+        '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
+        (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
+    }
     if (s === "zamknieta") {
       return '<div class="akcja-karta akcja-karta--koniec"><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' +
         punktUlicy(d) +
@@ -416,8 +488,7 @@
     var film = g.BM_AKCJA_CYTATY && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika ? g.BM_AKCJA_CYTATY.filmAkcjiZLicznika(d) : null;
     _filmKarty = film;
     var kafel = function (html, tytul) { return html.replace("{T}", esc(tytul)); };
-    var kafle = (linkTrasy(d) ? kafel('<a class="akcja-kafel" href="' + linkTrasy(d) + '">{T}</a>', "Mapa wyprawy") : "") +
-      '<a class="akcja-kafel" data-gra-link href="' + linkGry(d) + '"' + (graWidoczna(d) ? "" : " hidden") + ">Zagraj w Cegiełki</a>" +
+    var kafle = '<a class="akcja-kafel" data-gra-link href="' + linkGry(d) + '"' + (graWidoczna(d) ? "" : " hidden") + ">Zagraj w Cegiełki</a>" +
       (link ? kafel('<a class="akcja-kafel akcja-kafel--wplata" href="' + link + '" target="_blank" rel="noopener noreferrer">{T}</a>', "Wpłać na zbiórkę") : "") +
       (d.firmy_zgloszenia === true || d.kontakt_firmy ? kafel('<a class="akcja-kafel" href="' + adresStrony(d, "#firma") + '">{T}</a>', "Twoja firma na ulicy") : "") +
       (film ? '<button type="button" class="akcja-kafel" data-film-akcji="1">Zobacz film</button>' : "");
@@ -462,14 +533,13 @@
   });
 
   /** Wyprawa (komenda Filipa 4.11, SEKRET CELU): cel wyprawy żyje TYLKO w bazie — licznik oddaje wyprawa_cel_nazwa/wyprawa_cel_km
-   *  dopiero po „Dotarliśmy”; przed tym tylko wyprawa_km + wyprawa_trwa. W kodzie nie ma nazwy celu (blizna-116). */
+   *  dopiero po „Dotarliśmy”; przed tym tylko wyprawa_km + wyprawa_trwa. W kodzie nie ma nazwy celu (blizna-116).
+   *  9.11 (wyprawa etapami, bez mapy): km wyprawy są już w liczniku akcji (biegi Filipa i Kasi liczą się jak każde), linia tylko je pokazuje, więc „już w liczniku”. */
   function tekstWyprawy(d) {
     if (!d || !d.wystartowala || !(d.wyprawa_trwa || d.wyprawa_dotarla_at)) return "";
-    if (d.wyprawa_dotarla_at) return "Wyprawa · dotarli: " + (d.wyprawa_cel_nazwa || "na miejsce") + " ✓ · " + km(d.wyprawa_km) + " km";
-    return "Wyprawa · Filip i Kasia: " + km(d.wyprawa_km) + " km · cel: tajemnica";
+    if (d.wyprawa_dotarla_at) return "Wyprawa · dotarli: " + (d.wyprawa_cel_nazwa || "na miejsce") + " ✓ · " + km(d.wyprawa_km) + " km (już w liczniku)";
+    return "Wyprawa etapami · Filip i Kasia: " + km(d.wyprawa_km) + " km (już w liczniku) · cel: tajemnica";
   }
-  /** Link do mapy śladu (mapa-wyprawy.html) — tylko po starcie, gdy akcja ma wyprawę. */
-  function linkTrasy(d) { return d && d.wystartowala && (d.wyprawa_trwa || d.wyprawa_dotarla_at) ? "mapa-wyprawy.html" + (czyProba(d) ? "?slug=proba" : "") : ""; }
 
   /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj" albo „Zostań sponsorem" z formularzem.
    *  Przyciski przez data-akcja (handler w zawodnik.html), bez danych użytkownika w atrybutach JS. */
@@ -517,7 +587,7 @@
   }
 
   g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
-    tekstWyprawy: tekstWyprawy, linkTrasy: linkTrasy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
+    tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
     plakatUrl: plakatUrl, plakatHtml: plakatHtml, pokazPlakat: pokazPlakat,
     firmyHtml: firmyHtml, tytulFirm: tytulFirm, celownik: celownik, linkFirmy: linkFirmy, logoFirmy: logoFirmy, firmaDoZapisu: firmaDoZapisu, firmaDoEdycji: firmaDoEdycji, logoDoWgrania: logoDoWgrania,
@@ -526,5 +596,6 @@
   g.BM_AKCJA.formularzFirm = formularzFirm; g.BM_AKCJA.zUlica = zUlica; g.BM_AKCJA.punktUlicy = punktUlicy; g.BM_AKCJA.kartaZPamieci = kartaZPamieci; g.BM_AKCJA.KLUCZ_KARTY = KLUCZ_KARTY;
   /* Skrypt stoi pod znacznikami Dziś, więc karta z pamięci wchodzi przed pierwszym obrazem. Gdzie indziej (index, trener, strona akcji) nie ma #akcja-karta i nic się nie dzieje. */
   try { if (g.document && g.document.getElementById) { if (!kartaZPamieci() && g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", kartaZPamieci); } } catch (e) {}
+  g.BM_AKCJA.ukryjKafel = ukryjKafel; g.BM_AKCJA.maMurek = maMurek; g.BM_AKCJA.KLUCZ_UKRYCIA = KLUCZ_UKRYCIA; g.BM_AKCJA.etykietaPokaz = etykietaPokaz;
   g.BM_AKCJA.zdejmijKafel = zdejmijKafel; g.BM_AKCJA.daneKaflaHtml = daneKaflaHtml; g.BM_AKCJA.liczbyKaflaHtml = liczbyKaflaHtml; g.BM_AKCJA.adresStrony = adresStrony; g.BM_AKCJA.linkGry = linkGry;
 })(typeof globalThis !== "undefined" ? globalThis : this);

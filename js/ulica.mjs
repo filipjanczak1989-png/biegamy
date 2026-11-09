@@ -12,7 +12,8 @@
   var WARSTWY = ["droga", "koparka", "walec", "dzwig", "budowniczy", "domek-1", "domek-2", "domek-3", "domek-4", "domek-5", "domek-6", "domek-7", "mur", "plac-zabaw", "latarnia", "drzewo", "plac-budowy"];
   var ELEMENTY = ["plac_zabaw", "park", "latarnie"];
   var NAZWY_ELEMENTOW = { plac_zabaw: "plac zabaw", park: "park", latarnie: "latarnie" };
-  var PUSTE_DODATKI = { odblokowane: [], imiona: [], bez_imienia: 0 };
+  var PUSTE_DODATKI = { odblokowane: [], imiona: [], bez_imienia: 0, cegly: [], cegly_n: 0 };
+  var MAKS_CEGIEL = 500;   // tyle oddaje baza (akcja_ulica_publiczna); reszta tylko w cegly_n
   /* Deska (ułamki obrazu) i proporcja: kopia assets/ulica/szyldy.json (tools/ulica-grafiki.py). Stała zamiast pobierania: bez dodatkowego żądania i bez stanu „jeszcze nie wiem”. Zgodność pilnuje blizna-151. */
   var SZYLDY = {
     "wiezowiec": { szyld: [0.2, 0.175, 0.6, 0.08], proporcja: 0.5 },
@@ -76,15 +77,40 @@
   /** Firma poniżej progu: nazwa na cegiełce w murze, bez budynku. Firmy idą przed imionami, żeby nie wypadły poza widoczną część muru. */
   function zFirmamiNaMurze(dod, dane) {
     var nazwy = (dane && dane.firmy || []).filter(function (f) { return f.rodzaj === "cegielka"; }).map(function (f) { return f.nazwa; });
-    return nazwy.length ? { odblokowane: dod.odblokowane, imiona: nazwy.concat(dod.imiona), bez_imienia: dod.bez_imienia } : dod;
+    if (!nazwy.length) return dod;
+    /* Murek darczyńców (9.11): złote z przodu, za nimi cegły firm, potem najnowsze wpisy osób. */
+    var cegly = dod.cegly || [], firmy = nazwy.map(function (n) { return { imie: n, zlota: false, firma: true }; });
+    return { odblokowane: dod.odblokowane, imiona: nazwy.concat(dod.imiona), bez_imienia: dod.bez_imienia,
+      cegly: cegly.filter(function (c) { return c.zlota; }).concat(firmy, cegly.filter(function (c) { return !c.zlota; })), cegly_n: (dod.cegly_n || 0) + nazwy.length };
+  }
+  /** Imię w murze do wyświetlenia: z wielkiej litery, reszta mała, także po łączniku (PATRYK → Patryk, anna-maria → Anna-Maria). Zapis w bazie bez zmian. */
+  function ladneImie(t) {
+    return String(t == null ? "" : t).trim().split("-").map(function (cz) { return cz ? cz.charAt(0).toLocaleUpperCase("pl-PL") + cz.slice(1).toLocaleLowerCase("pl-PL") : cz; }).join("-");
+  }
+  /** Cegły murku do narysowania: tekst (osoba: ładne imię, firma: nazwa jak w bazie, bez zgody: pusto), złota, firma. Kolejność jak w dod.cegly. */
+  function ceglyMurku(dod) {
+    return ((dod && dod.cegly) || []).map(function (c) { return { tekst: c.imie ? (c.firma ? c.imie : ladneImie(c.imie)) : "", zlota: c.zlota === true, firma: c.firma === true }; });
+  }
+  /** 1 cegła, 2–4 cegły, 5–21 cegieł, 22–24 cegły… */
+  function odmianaCegly(n) {
+    var j = n % 10, d = n % 100;
+    return n === 1 ? "cegła" : j >= 2 && j <= 4 && (d < 12 || d > 14) ? "cegły" : "cegieł";
   }
   /** Pole licznika „ulica” (akcja_ulica_publiczna) przepuszczone przez listę dozwolonych wartości. */
   function dodatkiBezpieczne(j) {
     if (!j || typeof j !== "object") return PUSTE_DODATKI;
+    var imiona = (Array.isArray(j.imiona) ? j.imiona : []).filter(function (x) { return typeof x === "string" && x.trim(); });
+    var bez = Math.max(0, Math.floor(Number(j.bez_imienia) || 0));
+    /* cegly (20261109_akcja_po_starcie): { i: imię albo null, z: złota }, najpierw złote, potem najnowsze. Stara baza (bez cegly): z imion od najnowszych i pustych. */
+    var cegly = Array.isArray(j.cegly)
+      ? j.cegly.slice(0, MAKS_CEGIEL).filter(function (c) { return c && typeof c === "object"; }).map(function (c) { return { imie: typeof c.i === "string" ? c.i.trim().slice(0, 40) : "", zlota: c.z === true }; })
+      : imiona.slice().reverse().map(function (x) { return { imie: x.trim(), zlota: false }; }).concat(Array.from({ length: Math.max(0, Math.min(bez, MAKS_CEGIEL - imiona.length)) }, function () { return { imie: "", zlota: false }; }));
     return {
       odblokowane: (Array.isArray(j.odblokowane) ? j.odblokowane : []).filter(function (x) { return ELEMENTY.indexOf(x) >= 0; }),
-      imiona: (Array.isArray(j.imiona) ? j.imiona : []).filter(function (x) { return typeof x === "string" && x.trim(); }),
-      bez_imienia: Math.max(0, Math.floor(Number(j.bez_imienia) || 0)),
+      imiona: imiona,
+      bez_imienia: bez,
+      cegly: cegly,
+      cegly_n: Array.isArray(j.cegly) ? Math.max(cegly.length, Math.floor(Number(j.cegly_n) || 0)) : imiona.length + bez,
     };
   }
   function sciezkaObrazu(nazwa) { return KATALOG + nazwa + ".webp"; }
@@ -709,6 +735,7 @@
     var iImie = pole(fc, "ulica-imie", "Imię (jedno słowo, może być z łącznikiem)", { maxlength: "20" });
     var iZgoda = przelacznik(fc, "ulica-zgoda", "Osoba zgodziła się na imię w murze");
     var iPotw = przelacznik(fc, "ulica-potwierdzenie", "Potwierdzenie wpłaty widziane: tak");
+    var iZlota = przelacznik(fc, "ulica-zlota", "Złota cegła (wpłata od 100 zł; kwota nie pojawia się publicznie)");
     /* Podgląd cegły (zgłoszenie 6.11): kawałek muru z Ulicy z tym wpisem, tak jak stanie. Nic nie idzie do bazy przed „Dodaj wpis”. */
     var podCegly = h("div", "", fc), opisCegly = h("div", "", fc); opisCegly.setAttribute("style", "font-size:11px;color:var(--muted);");
     function odswiezCegle() {
@@ -739,14 +766,27 @@
     function wierszCegielki(c) {
       var w = h("div", "", lista); w.setAttribute("style", "display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);");
       var op = h("div", "", w); op.setAttribute("style", "flex:1 1 150px;min-width:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere;color:var(--fg);");
-      h("div", "", op, (c.akcja_slug === "proba" ? "PRÓBA · " : "") + c.imie);
+      h("div", "", op, (c.akcja_slug === "proba" ? "PRÓBA · " : "") + c.imie + (ladneImie(c.imie) !== c.imie ? " (na Ulicy: " + ladneImie(c.imie) + ")" : ""));
       h("div", "", op, (c.zgoda ? "imię w murze" : "bez zgody: wpis bez imienia") + " · dodano " + new Date(c.dodano).toLocaleDateString("pl-PL")).setAttribute("style", "font-size:11px;color:var(--muted);");
       var styl = "flex:none;background:none;border:1px solid var(--border);border-radius:8px;font-size:11px;padding:6px 10px;cursor:pointer;";
+      /* Złota cegła (9.11): przełącznik przy wpisie. Zapis tylko przez akcja_cegla_zlota (trener); kwota nigdy publicznie. Bez migracji (stara baza) przełącznika nie ma. */
+      if (!bezZlotej) {
+        var zl = h("label", "ulica-panel-zgoda", w), zi = h("input", "", zl);
+        zl.setAttribute("style", "flex:none;margin:0;font-size:11px;");
+        zi.setAttribute("type", "checkbox"); zi.checked = c.zlota === true; h("span", "", zl, "Złota cegła");
+        zi.addEventListener("change", async function () {
+          blC.textContent = ""; zi.disabled = true;
+          var r = await sb.rpc("akcja_cegla_zlota", { p_id: c.id, p_zlota: zi.checked });
+          zi.disabled = false;
+          if (r.error || r.data !== true) { zi.checked = !zi.checked; blC.textContent = "Nie udało się zmienić złotej cegły: " + (r.error ? komunikatBledu(r.error) : "nie ma już tego wpisu, odśwież listę."); return; }
+          c.zlota = zi.checked;
+        });
+      }
       var ed = h("button", "", w, "Edytuj"); ed.setAttribute("type", "button"); ed.setAttribute("style", styl + "color:var(--fg);");
       ed.addEventListener("click", async function () {
         blC.textContent = "";
         if (!g.BM_OKIENKO) { blC.textContent = "Okienko edycji się nie wczytało. Odśwież stronę."; return; }
-        var v = await g.BM_OKIENKO({ tytul: "Edytuj wpis w murze", tekst: "Po zapisie cegła przechodzi na koniec muru.", tak: "Zapisz",
+        var v = await g.BM_OKIENKO({ tytul: "Edytuj wpis w murze", tekst: "Po zapisie wpis liczy się jako najnowszy. Złota cegła zostaje złota.", tak: "Zapisz",
           pola: [{ klucz: "imie", etykieta: "Imię (jedno słowo, może być z łącznikiem)", wartosc: c.imie, maks: 20 }, { klucz: "zgoda", typ: "checkbox", etykieta: "Osoba zgodziła się na imię w murze", wartosc: c.zgoda }],
           sprawdz: function (x) { return cegielkaDoZapisu({ imie: x.imie, zgoda: x.zgoda, potwierdzenie: true }).blad || ""; } });
         if (!v || (v.imie === c.imie && v.zgoda === c.zgoda)) return;
@@ -755,6 +795,10 @@
         ed.disabled = true;
         var r = await sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: c.akcja_slug || SLUG_PANELU }, p.wiersz)).select("id");
         if (r.error || !r.data || !r.data.length) { ed.disabled = false; blC.textContent = "Nie udało się zapisać: " + (r.error ? komunikatBledu(r.error) : "baza odmówiła."); return; }
+        if (c.zlota === true) {
+          var zz = await sb.rpc("akcja_cegla_zlota", { p_id: r.data[0].id, p_zlota: true });
+          if (zz.error || zz.data !== true) blC.textContent = "Wpis zapisany, ale bez złotej cegły: zaznacz „Złota cegła” jeszcze raz.";
+        }
         var s2 = await sb.from("akcja_cegielki").delete().eq("id", c.id).select("id");
         if (s2.error || !s2.data || !s2.data.length) blC.textContent = "Nowy wpis zapisany, ale starego baza nie skasowała: usuń „" + c.imie + "” z listy.";
         await wczytajCegielki();
@@ -771,9 +815,13 @@
         await wczytajCegielki();
       });
     }
+    var bezZlotej = false;
     async function wczytajCegielki() {
       /* Mur prawdziwej akcji i próby (PRÓBA): cegiełkę zatwierdzoną na próbie (blizna-192) da się tu sprawdzić i usunąć. Nowy wpis z formularza wyżej idzie do prawdziwej akcji. */
-      var r = await sb.from("akcja_cegielki").select("id,akcja_slug,imie,zgoda,dodano").in("akcja_slug", [SLUG_PANELU, "proba"]).order("akcja_slug").order("dodano").order("id");
+      var zapytaj = function (kol) { return sb.from("akcja_cegielki").select(kol).in("akcja_slug", [SLUG_PANELU, "proba"]).order("akcja_slug").order("dodano").order("id"); };
+      var r = await zapytaj("id,akcja_slug,imie,zgoda,dodano,zlota");
+      bezZlotej = false;
+      if (r.error && /zlota/.test(String(r.error.message || ""))) { bezZlotej = true; r = await zapytaj("id,akcja_slug,imie,zgoda,dodano"); }   // baza bez migracji 20261109
       wyczysc(lista);
       if (r.error) { lista.textContent = "Nie udało się wczytać wpisów: " + komunikatBledu(r.error); return; }
       if (!r.data || !r.data.length) { h("div", "", lista, "Na razie bez wpisów: muru na rysunku nie widać.").setAttribute("style", "font-size:12px;color:var(--muted);"); return; }
@@ -804,8 +852,12 @@
       if (p.blad) { blC.textContent = p.blad; return; }
       zC.disabled = true;
       try {
-        var r = await sb.from("akcja_cegielki").insert(p.wiersz);
+        var r = await sb.from("akcja_cegielki").insert(p.wiersz).select("id");
         if (r.error) throw r.error;
+        if (iZlota.checked && r.data && r.data[0]) {
+          var zz = await sb.rpc("akcja_cegla_zlota", { p_id: r.data[0].id, p_zlota: true });
+          if (zz.error || zz.data !== true) blC.textContent = "Wpis dodany, ale bez złotej cegły: zaznacz „Złota cegła” przy wpisie na liście.";
+        }
         fc.reset(); odswiezCegle();
         await wczytajCegielki();
       } catch (err) { blC.textContent = "Nie udało się zapisać: " + komunikatBledu(err); } finally { zC.disabled = false; }
@@ -816,6 +868,6 @@
   g.BM_ULICA = { poprawneImie: function (t) { return RE_IMIE.test(String(t || "").trim()); }, ocenaLogo: ocenaLogo, ciemnaMata: ciemnaMata, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, naKaflu: naKaflu, usun: usun, pasGry: pasGry, licznikProby: licznikProby, czyParametrProby: czyParametrProby, stanUlicy: stanUlicy, doNastepnego: doNastepnego, coSwietowac: coSwietowac, zamontuj: zamontuj, naStronie: naStronie, panelTrenera: panelTrenera,
     poraDnia: poraDnia, wschodZachod: wschodZachod, zFirmamiNaMurze: zFirmamiNaMurze, jasneLogo: jasneLogo, domekNaMiejscu: domekNaMiejscu, domekDla: domekDla, szyldNaDomku: szyldNaDomku, dopasujSzyld: dopasujSzyld, mierzTekst: mierzTekst, linkFirmy: linkFirmy, tloNieba: tloNieba,
     BUDYNKI_POPRZEDNICH: BUDYNKI_POPRZEDNICH, sciezkaObrazu: sciezkaObrazu, ksztalt: ksztalt, formatKm: formatKm, tytulUlicy: tytulUlicy, tekstPostepu: tekstPostepu, tekstMuru: tekstMuru, tekstMuruKrotko: tekstMuruKrotko, procentMuru: procentMuru, zdanieOZbiorce: zdanieOZbiorce, rysunekKoparki: rysunekKoparki, opisDlaCzytnika: opisDlaCzytnika, daneScenyZLicznika: daneScenyZLicznika, dodatkiBezpieczne: dodatkiBezpieczne,
-    kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,
+    kwotaICelDoZapisu: kwotaICelDoZapisu, PROCENT_PROGU: PROCENT_PROGU, ladneImie: ladneImie, ceglyMurku: ceglyMurku, odmianaCegly: odmianaCegly, MAKS_CEGIEL: MAKS_CEGIEL, cegielkaDoZapisu: cegielkaDoZapisu, kwotaZTekstu: kwotaZTekstu, odblokowane: odblokowane,
     WARSTWY: WARSTWY, ELEMENTY: ELEMENTY, SZYLDY: SZYLDY, KOLORY_NIEBA: KOLORY_NIEBA, NAZWY_ELEMENTOW: NAZWY_ELEMENTOW, KM_NA_ODCINEK: KM_NA_ODCINEK, ODCINKOW: ODCINKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

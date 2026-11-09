@@ -32,7 +32,8 @@ test('formularz: osoba albo firma; osoba wysyła imię, zgodę i zrzut, bez logo
   assert.match(F, /opcja\("osoba", "Osoba prywatna: cegiełka w murze"\), kFirma = opcja\("firma", "Firma: budynek na Ulicy"\);\n\s+kOsoba\.checked = true;/);
   const os = F.slice(F.indexOf('if (kOsoba.checked) {\n        var im'), F.indexOf('} else {\n        var n = nazwa'));
   assert.match(os, /dane\.append\("rodzaj", "cegielka"\); dane\.append\("imie", im\); if \(zgodaImie\.checked\) dane\.append\("zgoda_imie", "tak"\);/);
-  assert.doesNotMatch(os, /"logo"|"link"|"kwota"|prog/, 'osoba bez logo, linku i progu');
+  assert.doesNotMatch(os, /"logo"|"link"|prog/, 'osoba bez logo, linku i progu');
+  assert.match(os, /if \(kw\) dane\.append\("kwota", kw\);/, '9.11: kwota osoby nieobowiązkowa (złota cegła od 100 zł, blizna-200)');
   assert.match(os, /M\.sprawdz\(im, \{ rodzaj: "imie" \}\)/, 'filtr imion jak w panelu');
   assert.match(os, /zrzutDoWyslania\(zrzut\.files\[0\]\)/);
   assert.match(F, /pole\("ff-zrzut", "Zrzut albo zdjęcie potwierdzenia wpłaty\. Zamaż numer konta\.", "file", \{ accept: "image\/\*" \}\)/);

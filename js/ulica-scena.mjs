@@ -18,6 +18,7 @@
     budowniczy: [["korpus", "polygon(28% 0,100% 0,100% 100%,0 100%,0 22%,20% 34%,34% 34%,34% 25%,30% 14%)"], ["reka", "polygon(0 0,29% 0,31% 14%,35% 25%,35% 36%,20% 36%,0 23%)"]],
   };
   var MAX_CZASTEK = 110;
+  var MUREK_H = 34, ODSTEP_CEGIEL = 4, CEGLA_MIN = 40, CEGLA_MAKS = 104, CEGLA_ZLOTA_MAKS = 120, MIEJSCE_NA_RESZTE = 50;
 
   function svgUrl(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
   var LISC = "M0-9 2-4 7-6 5-1 9 1 4 3 5 8 0 5-5 8-4 3-9 1-5-1-7-6-2-4Z";
@@ -99,6 +100,17 @@
        żadna tablica ani szyld nie jest zasłonięty przy żadnym położeniu kamery. Głośnik mniejszy z tego samego powodu. */
     ".us-hud{position:absolute;left:8px;top:4px;right:42px;display:flex;align-items:flex-start;gap:6px;pointer-events:none}" +
     ".us-plakat{position:absolute;object-fit:contain;background:#fffdf7;pointer-events:none}" +
+    /* MUREK DARCZYŃCÓW (Filip 9.11): stały pas na pierwszym planie, przypięty do widoku: kamera go nie przesuwa, więc przy każdej rozbudowie ulicy cegły widać od razu.
+       Wysokość 34 px: kończy się pod stopami budowniczego (y 304) i pod maszynami (y 286), nie zasłania tablic, szyldów ani nakładki u góry. */
+    ".us-murek{position:absolute;left:0;right:0;bottom:0;height:" + MUREK_H + "px;display:flex;align-items:center;gap:" + ODSTEP_CEGIEL + "px;padding:0 6px;box-sizing:border-box;overflow:hidden;background:#b4563c;background-repeat:repeat-x;background-size:auto " + MUREK_H + "px;border-top:4px solid #a39b8f;box-shadow:0 -2px 5px rgba(0,0,0,.28);pointer-events:auto}" +
+    ".us--noc .us-murek,.us--zmierzch .us-murek{box-shadow:inset 0 0 0 999px rgba(10,18,50,.3),0 -2px 5px rgba(0,0,0,.35)}.us--noc .us-murek{border-top-color:#6f6a63}" +
+    ".us-mc{position:relative;flex:0 0 auto;display:block;margin:0;height:22px;padding:0 7px;box-sizing:border-box;border-radius:3px;border:1.2px solid #4a2408;background:#ef7a2a;color:#fff;font:700 11px/19.6px Inter,system-ui,sans-serif;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(74,36,8,.55);cursor:pointer;touch-action:pan-y}" +
+    ".us-mc::after{content:'';position:absolute;left:-2px;right:-2px;top:-9px;bottom:-6px}.us-mc--pusta{background:#d9694e;cursor:default;pointer-events:none}" +
+    ".us-mc--zlota{height:26px;padding:0 9px;border-color:#7a4c00;background:linear-gradient(180deg,#fff3b0 0%,#ffd23d 46%,#e3a514 100%);color:#3d2400;font-size:12px;line-height:23.6px;text-shadow:0 1px 0 rgba(255,250,225,.75);box-shadow:0 0 7px rgba(255,214,70,.85)}" +
+    ".us-mc-wiecej{background:#2b2230;border-color:#ffd23d;color:#ffd23d;font-size:12px;text-shadow:none}" +
+    ".us-okno--murek .us-czolo,.us-okno--murek .us-podpowiedz{bottom:" + (MUREK_H + 8) + "px}" +
+    ".us-dymek .us-dymek-zlota{display:block;margin-top:2px;color:#9a6400;font-size:12px;font-weight:700}" +
+    ".us-murek-lista{left:8px;right:8px;width:auto;max-height:" + (WYS - MUREK_H - 76) + "px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}.us-murek-lista p{margin:6px 0 0}.us-murek-lista i{display:block;font-style:normal;font-size:11px;font-weight:800;color:#9a6400}.us-murek-lista .us-ml-bez{color:#6b6f7a;font-size:12px}" +
     ".us-mur{position:absolute;top:" + (POZIOM_DOMKU - 62) + "px;height:62px;background-repeat:repeat-x;background-size:auto 62px;background-color:#d9694e;pointer-events:none}" +
     ".us-cegla{position:absolute;display:block;margin:0;padding:0 2px;height:17px;width:54px;box-sizing:border-box;border-radius:3px;border:1.2px solid #4a2408;background:#ef7a2a;color:#fff;font:700 9px/15px Inter,system-ui,sans-serif;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;touch-action:pan-y}" +
     ".us-cegla::after{content:'';position:absolute;left:-2px;right:-2px;top:-14px;bottom:-14px}.us-cegla--pusta{background:#d9694e;cursor:default;pointer-events:none}" +
@@ -558,10 +570,63 @@
       if (droga) droga.style.width = (n * ODC) + "px";
       if (maszyny && stan.faza !== "pelna") przesun(maszyny, polozenieMaszyn(n));
     }
+    /* MUREK DARCZYŃCÓW (Filip 9.11): najpierw złote, potem cegły firm, potem najnowsze wpisy. Mieści się tyle, ile wejdzie w szerokość okna; reszta pod „+N” z listą.
+       Szerokość cegły z miary tekstu, więc układ nie zależy od tego, czy przeglądarka już narysowała okno. Imię tylko przy zgodzie (baza); bez zgody cegła bez imienia. */
+    var murek = null, kluczMurka = "", ceglyNaMurku = [];
+    function szerCegly(c) {
+      if (!c.tekst) return CEGLA_MIN - 6;
+      /* +8 px zapasu: miara z kanwy bywa liczona fontem zastępczym, zanim wczyta się Inter (bez zapasu „Zenek” wychodził „Zen…”). */
+      var w = Math.ceil(U.mierzTekst ? U.mierzTekst(c.tekst, c.zlota ? 12 : 11, 700) * 1.06 : c.tekst.length * 7) + (c.zlota ? 21 : 17) + 8;
+      return Math.max(CEGLA_MIN, Math.min(c.zlota ? CEGLA_ZLOTA_MAKS : CEGLA_MAKS, w));
+    }
+    function rysujMurek() {
+      var cegly = przed || !U.ceglyMurku ? [] : U.ceglyMurku(dod), n = przed ? 0 : Math.max(cegly.length, Number(dod.cegly_n) || 0);
+      var klucz = szerOkna + "|" + n + "|" + JSON.stringify(cegly);
+      if (klucz === kluczMurka) return;
+      kluczMurka = klucz;
+      if (murek && murek.parentNode) murek.parentNode.removeChild(murek);
+      murek = null; ceglyNaMurku = cegly;
+      okno.setAttribute("class", "us-okno" + (n > 0 ? " us-okno--murek" : ""));
+      if (!n) return;
+      murek = el("div", "us-murek", null);
+      ui.insertBefore(murek, ui.firstChild);   // pod dymkiem i nakładką
+      murek.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
+      murek.setAttribute("role", "group"); murek.setAttribute("aria-label", "Mur darczyńców: " + n + " " + U.odmianaCegly(n));
+      var dostepne = szerOkna - 12, uzyte = 0, pokazane = 0;
+      for (var i = 0; i < cegly.length; i++) {
+        var c = cegly[i], w = szerCegly(c), zostanie = n - i - 1;
+        if (uzyte + w + (zostanie > 0 ? ODSTEP_CEGIEL + MIEJSCE_NA_RESZTE : 0) > dostepne) break;
+        var b = el(c.tekst ? "button" : "div", "us-mc" + (c.zlota ? " us-mc--zlota" : "") + (c.tekst ? "" : " us-mc--pusta"), murek, c.tekst || null);
+        b.style.width = w + "px";
+        if (c.tekst) { b.setAttribute("type", "button"); b.setAttribute("data-u", "cegla"); b.setAttribute("data-i", String(i)); b.setAttribute("aria-label", (c.zlota ? "Złota cegła: " : "Wpis w murze: ") + c.tekst); }
+        else b.setAttribute("aria-hidden", "true");
+        uzyte += w + ODSTEP_CEGIEL; pokazane++;
+      }
+      if (pokazane < n) {
+        var r = el("button", "us-mc us-mc-wiecej", murek, "+" + (n - pokazane));
+        r.setAttribute("type", "button"); r.setAttribute("data-u", "murek"); r.setAttribute("aria-label", "Pokaż cały mur darczyńców: " + n + " " + U.odmianaCegly(n));
+      }
+    }
+    function listaMurku() {
+      zamknijDymek();
+      var cegly = ceglyNaMurku, n = Math.max(cegly.length, Number(dod.cegly_n) || 0);
+      var b = el("div", "us-dymek us-murek-lista", ui);
+      b.setAttribute("role", "dialog"); b.setAttribute("aria-label", "Mur darczyńców");
+      el("b", "", b, "Mur darczyńców · " + n + " " + U.odmianaCegly(n));
+      var zlote = cegly.filter(function (c) { return c.zlota && c.tekst; }).map(function (c) { return c.tekst; });
+      var reszta = cegly.filter(function (c) { return !c.zlota && c.tekst; }).map(function (c) { return c.tekst; });
+      if (zlote.length) { var pz = el("p", "", b); el("i", "", pz, "Złote cegły · dziękujemy"); el("span", "", pz, zlote.join(", ")); }
+      if (reszta.length) el("p", "", b, reszta.join(", "));
+      var bez = n - zlote.length - reszta.length;
+      if (bez > 0) el("p", "us-ml-bez", b, (zlote.length + reszta.length ? "I jeszcze " : "") + bez + " " + U.odmianaCegly(bez) + " bez imienia. Dziękujemy!");
+      b.style.bottom = (MUREK_H + 8) + "px";
+      dymekEl = b;
+    }
     function budujUlice() {
       wyczysc(ulica); domki = []; budynki = []; ostatnieWidoczne = -99999;
       maszyny = elKoparka = elDzwig = elWalec = elBudowniczy = droga = null;
       KLUCZ_UKLADU = linkujDanymi();
+      rysujMurek();
       if (przed) { budujPlac(); return; }
       el("div", "us-grunt", ulica);
       droga = el("div", "us-droga", ulica);
@@ -574,16 +639,7 @@
       var meta = el("div", "us-tablica us-meta", ulica, (U.formatKm(dane.cel_km || 12500)) + " km");
       obok(meta, START_X + CEL_PX + 110, DROGA_Y - 40);
       var x = START_X + 14;
-      /* mur z cegiełek: imię tylko przy zgodzie (baza), przycisk tylko dla imiennej */
-      var razem = dod.imiona.length + dod.bez_imienia;
-      if (razem > 0) {
-        var pokaz = Math.min(razem, 60), kol = Math.max(3, Math.ceil(pokaz / 3)), szer = kol * 56 + 8;
-        var mur = el("div", "us-mur", ulica);
-        obok(mur, x, POZIOM_DOMKU - 62, szer);
-        mur.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
-        for (var i = 0; i < pokaz; i++) ceglaMuru(mur, i < dod.imiona.length ? dod.imiona[i] : "", i, kol);
-        x += szer + 24;
-      }
+      /* Mur z cegiełek nie stoi już na początku ulicy (kamera tam nie zagląda): murek darczyńców jest przypięty do widoku (rysujMurek). */
       if (dod.odblokowane.indexOf("plac_zabaw") >= 0) {
         var pz = el("div", "us-sprite", ulica);
         obok(pz, x, POZIOM_DOMKU - 112, 230, 112);
@@ -721,6 +777,7 @@
     /* kamera */
     function zmierz() {
       szerOkna = okno.clientWidth || szerOkna;
+      rysujMurek();
       kam.maks = Math.max(0, (przed ? 1200 : SWIAT) - szerOkna);
       kam.x = Math.max(0, Math.min(kam.maks, kam.x));
       kam.brudna = true;
@@ -897,6 +954,7 @@
       if (karta && karta.partner) el("i", "", b, "Partner akcji");
       if (karta && karta.poprzedni) el("i", "", b, "Partner poprzednich wyzwań");
       el("b", "", b, tytul);
+      if (karta && karta.podpis) el("span", "us-dymek-zlota", b, karta.podpis);
       if (karta && karta.plakatTekst) el("span", "", b, karta.plakatTekst);
       if (link) {
         var a = el("a", "", b, "Strona firmy ›");
@@ -925,9 +983,14 @@
         return;
       }
       if (co === "cegla") {
-        var imie = dod.imiona[Number(b.getAttribute("data-i"))];
-        if (imie) dymek(b, imie, "");
+        var c = ceglyNaMurku[Number(b.getAttribute("data-i"))];
+        if (c && c.tekst) {
+          dymek(b, c.tekst, "", c.zlota ? { podpis: "Złota cegła · dziękujemy" } : null);
+          if (dymekEl) { dymekEl.style.top = "auto"; dymekEl.style.bottom = (MUREK_H + 8) + "px"; }   // nad murkiem, nie na nim
+        }
+        return;
       }
+      if (co === "murek") listaMurku();
     }
     var dotyk = null, blokujKlik = false;
     function naDol(e) {

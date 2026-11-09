@@ -8,8 +8,8 @@ const czytaj = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8').rep
 
 test('polityka po polsku i angielsku: sekcja 13, zdanie o GPS prowadzi do niej, wiek 16, bez imienia dziecka', () => {
   for (const [plik, slowa] of [
-    ['privacy.html', ['<a href="#akcja">sekcja 13</a>', 'Akcja charytatywna i gra Cegiełki', 'Swój wkład widzisz wyłącznie Ty', 'ślad GPS wyłącznie dwóch uczestników wyprawy', 'Odcinki w pobliżu miejsc startu i noclegów są ukrywane', 'bez wartości pieniężnej', 'Dane gry kasujemy razem z kontem', 'BiegaMy w nich nie pośredniczy', 'w przypadku dziecka za zgodą rodzica', 'ukończyła 16 lat']],
-    ['privacy-en.html', ['<a href="#akcja">section 13</a>', 'The charity campaign and the Cegiełki game', 'visible only to you', 'GPS track of the two expedition participants only', 'Sections near start and overnight locations are hidden', 'no monetary value', 'deleted together with your account', 'BiegaMy does not handle it', "for a child with a parent's consent", 'turned 16']],
+    ['privacy.html', ['<a href="#akcja">sekcja 13</a>', 'Akcja charytatywna i gra Cegiełki', 'Swój wkład widzisz wyłącznie Ty', 'Ślad GPS dwóch uczestników wyprawy', 'Nie jest publiczny: nie pokazujemy go na mapie ani w żadnej odpowiedzi serwera', 'bez wartości pieniężnej', 'Dane gry kasujemy razem z kontem', 'BiegaMy w nich nie pośredniczy', 'w przypadku dziecka za zgodą rodzica', 'ukończyła 16 lat']],
+    ['privacy-en.html', ['<a href="#akcja">section 13</a>', 'The charity campaign and the Cegiełki game', 'visible only to you', 'GPS track of the two expedition participants', 'It is not public: we do not show it on a map or in any server response', 'no monetary value', 'deleted together with your account', 'BiegaMy does not handle it', "for a child with a parent's consent", 'turned 16']],
   ]) {
     const t = czytaj(plik);
     assert.match(t, /<div class="section" id="akcja">\s*<div class="section-num">13<\/div>/, plik);
@@ -34,8 +34,8 @@ test('regulamin: wiek 16, bezpłatna gra bez wypłat, jeden adres kontaktowy, in
   for (const a of ['usuwanie', 'retencja']) { assert.ok(t.includes(`privacy.html#${a}`), a); assert.ok(czytaj('privacy.html').includes(`id="${a}"`), a); }
 });
 
-test('stopka na grze, stronie akcji i mapie; podpowiedź przy pseudonimie jest w formularzu, więc znika razem z nim', () => {
-  for (const p of ['gra-cegielki.html', 'dla-fabianka.html', 'mapa-wyprawy.html']) {
+test('stopka na grze i stronie akcji (mapa od 9.11 to przekierowanie); podpowiedź przy pseudonimie jest w formularzu, więc znika razem z nim', () => {
+  for (const p of ['gra-cegielki.html', 'dla-fabianka.html']) {
     const t = czytaj(p);
     assert.match(t, /<p class="stopka-prawna"><a href="privacy\.html"[^>]*>Polityka prywatności<\/a> · <a href="terms\.html"[^>]*>Regulamin<\/a> · <a href="mailto:biegamy\.run@gmail\.com">biegamy\.run@gmail\.com<\/a><\/p>/, p);
   }

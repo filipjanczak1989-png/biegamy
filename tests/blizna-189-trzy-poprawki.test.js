@@ -37,7 +37,8 @@ test('edycja po zatwierdzeniu: firma przez istniejący edytor, wpis w murze bez 
   assert.doesNotMatch(czytaj('js/akcja.mjs').slice(czytaj('js/akcja.mjs').indexOf('function firmaDoEdycji')), /zgoda_na_kwote: w\./, 'główna edycja bez pola, którego baza może jeszcze nie przyjąć');
   const w = U.slice(U.indexOf('function wierszCegielki'), U.indexOf('async function wczytajCegielki'));
   assert.doesNotMatch(w, /ukryta|\.update\(/, 'baza nie daje trenerowi UPDATE na wpisach w murze ani kolumny ukryta');
-  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\("id,akcja_slug,imie,zgoda,dodano"\)\.in\("akcja_slug", \[SLUG_PANELU, "proba"\]\)/, 'mur prawdziwej akcji i próby (blizna-192)');
+  assert.match(U, /sb\.from\("akcja_cegielki"\)\.select\(kol\)\.in\("akcja_slug", \[SLUG_PANELU, "proba"\]\)/, 'mur prawdziwej akcji i próby (blizna-192)');
+  assert.match(U, /zapytaj\("id,akcja_slug,imie,zgoda,dodano,zlota"\)/, '9.11: ze złotą cegłą (blizna-200)');
   assert.match(w, /cegielkaDoZapisu\(\{ imie: x\.imie, zgoda: x\.zgoda, potwierdzenie: true \}\)\.blad/, 'te same zasady i filtr imion co przy dodawaniu');
 });
 

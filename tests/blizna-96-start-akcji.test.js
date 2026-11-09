@@ -44,14 +44,16 @@ test('odswiezStan: RPC akcja_licznik, cache 60 s, wymus, brak sieci → stan ses
     const sb = sbFake({ data: { wystartowala: true, koniec: null, suma_km: 3 }, error: null });
     const d = await A.odswiezStan(sb, 'ktos', { teraz: 1_000_000 });
     assert.equal(d.wystartowala, true);
-    assert.deepEqual(sb.wolania, [['akcja_licznik', { p_slug: 'dla-fabianka' }]]);
+    const licz = () => sb.wolania.filter((w) => w[0] === 'akcja_licznik');
+    assert.deepEqual(licz(), [['akcja_licznik', { p_slug: 'dla-fabianka' }]]);
+    assert.deepEqual(sb.wolania.filter((w) => w[0] !== 'akcja_licznik'), [['akcja_filmy_konta', { p_slug: 'dla-fabianka' }]], '9.11: po starcie także filmy konta (blizna-201), nic więcej');
     assert.equal(A.czyAkcjaRuszyla(), true);
     await A.odswiezStan(sb, 'ktos', { teraz: 1_000_000 + 59_000 });
-    assert.equal(sb.wolania.length, 1, 'w 60 s drugi raz do bazy');
+    assert.equal(licz().length, 1, 'w 60 s drugi raz do bazy');
     await A.odswiezStan(sb, 'ktos', { teraz: 1_000_000 + 61_000 });
-    assert.equal(sb.wolania.length, 2, 'po 60 s bez odświeżenia');
+    assert.equal(licz().length, 2, 'po 60 s bez odświeżenia');
     await A.odswiezStan(sb, 'ktos', { teraz: 1_000_000 + 61_500, wymus: true });
-    assert.equal(sb.wolania.length, 3);
+    assert.equal(licz().length, 3);
     // brak sieci przy przeterminowanym cache → stan z sesji (nie cofa startu)
     await A.odswiezStan(sbFake(new Error('offline')), 'ktos', { teraz: 1_000_000 + 999_000 });
     assert.equal(A.czyAkcjaRuszyla(), true);

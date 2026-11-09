@@ -19,9 +19,10 @@ const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/
 test('film akcji: domyślnie null, po starcie wybierany i grany raz (znacznik film_akcji), omija „raz dziennie"', () => {
   const sb = czytaj('sb.js');
   assert.match(sb, /window\.FILM_AKCJI = null;/);
-  assert.match(sb, /function filmDnia\(teraz\) \{ if \(filmAkcjiTeraz\(\)\) return window\.FILM_AKCJI;/);
-  assert.match(sb, /if \(czytaj\(\) === dzis\(teraz\) && !wymuszony\(\) && !czekaFilmAkcji\(\)\) return 'juz-dzis';/);
-  assert.match(sb, /if \(filmAkcjiTeraz\(\)\) window\.localStorage\.setItem\(KLUCZ_AKCJI, '1'\);/);
+  /* 9.11 (blizna-201): film akcji raz na KONTO, nie raz dziennie; w czasie akcji promo nie gra */
+  assert.match(sb, /function filmDnia\(teraz\) \{ if \(akcjaRuszyla\(\) \|\| okresAkcji\(teraz\)\) return filmAkcjiDoObejrzenia\(\) \|\| window\.FILM_AKCJI \|\| null;/);
+  assert.match(sb, /if \(!wymuszony\(\) && \(akcjaRuszyla\(\) \|\| okresAkcji\(teraz\)\)\) return filmAkcjiDoObejrzenia\(\) \? null : 'akcja-widziana';/);
+  assert.match(sb, /if \(A && typeof A\.oznaczFilm === 'function'\) A\.oznaczFilm\(film\.id \|\| 'film-akcja'\);\s+else if \(\(film\.id \|\| 'film-akcja'\) === 'film-akcja'\) \{ try \{ window\.localStorage\.setItem\(KLUCZ_AKCJI, '1'\); \} catch \(e\) \{\} \}/);
   assert.match(sb, /A\.czyAkcjaRuszyla\(\)/, 'stan akcji z jednego źródła (js/akcja-cytaty.mjs)');
   const z = czytaj('zawodnik.html');
   assert.match(z, /if \(window\.FILM_DZIS && window\.FILM_DZIS\.czekaFilmAkcji && window\.FILM_DZIS\.czekaFilmAkcji\(\)\) \{/);
@@ -35,9 +36,9 @@ test('wyprawa: tylko z celem; tekst bez imienia; dla-fabianka i karta Dziś', as
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_dotarla_at: null }), '', 'akcja bez wyprawy');
   assert.equal(A.tekstWyprawy({ wystartowala: false, wyprawa_trwa: true }), '', 'przed startem nic');
   const t = A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: true, wyprawa_km: 42.4, wyprawa_dotarla_at: null }).replace(/ /g, ' ');
-  assert.equal(t, 'Wyprawa · Filip i Kasia: 42 km · cel: tajemnica');
-  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 241, wyprawa_dotarla_at: '2026-11-08T16:00:00Z', wyprawa_cel_nazwa: 'Cel Z Bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Cel Z Bazy ✓ · 241 km');
-  assert.equal(A.linkTrasy({ wystartowala: true, wyprawa_trwa: true }), 'mapa-wyprawy.html'); assert.equal(A.linkTrasy({ wystartowala: false, wyprawa_trwa: true }), '');
+  assert.equal(t, 'Wyprawa etapami · Filip i Kasia: 42 km (już w liczniku) · cel: tajemnica');
+  assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 241, wyprawa_dotarla_at: '2026-11-08T16:00:00Z', wyprawa_cel_nazwa: 'Cel Z Bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Cel Z Bazy ✓ · 241 km (już w liczniku)');
+  assert.equal(A.linkTrasy, undefined, '9.11: mapy wyprawy nie ma (blizna-200)');
   assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, 'imię poza nazwą pliku strony');
   assert.match(czytaj('dla-fabianka.html'), /var wy = A\.tekstWyprawy\(d\);/);
 });

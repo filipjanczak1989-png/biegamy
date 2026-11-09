@@ -92,7 +92,6 @@
            zalogowany → index.html ma sesję → od razu zawodnik.html#sponsor (blizna-106). -->
       <a class="przycisk przycisk--zbiorka" id="sponsor" href="index.html#sponsor">Zostań sponsorem kilometrów</a>
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
-      <a class="przycisk przycisk--zbiorka" id="trasa" href="mapa-wyprawy.html" hidden>Zobacz trasę ›</a>
       <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›</a>
     </div>
     <div id="firmy" hidden></div>
@@ -136,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('filip').textContent = A.tekstFilipa(d);
     var sp = A.tekstSponsorow(d); $('sponsorzy').hidden = !sp; $('sponsorzy').textContent = sp;
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
-    $('trasa').hidden = !A.linkTrasy(d);   // mapa śladu wyprawy (komenda Filipa 4.11)
     if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
     if (A.linkGry) { $('gra').href = A.linkGry(d); if (d.testowa === true) $('gra').hidden = false; }   // próba: do gry na próbie, jak z kafla na Dziś
     $('jak').hidden = zamknieta;

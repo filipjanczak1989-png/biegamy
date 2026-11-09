@@ -75,10 +75,11 @@
   #reset { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 18px); background: transparent; color: var(--muted);
     border: 1px solid var(--szary); border-radius: 12px; padding: 10px 16px; font: 500 12px Inter, sans-serif; letter-spacing: .06em; }
   /* „⋯" (Filip 2.11 19:00): po starcie — podmiana linku zbiórki (zbiórka kończy się 27.11) bez wdrożenia; RPC akcja_url_zbiorki */
-  #wiecej { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px; background: transparent; color: var(--muted);
+  /* 9.11: „⋯” i panel nad rysunkiem koparki (img#postac ma z-index 2, rozbłysk 4): wcześniej koparka zasłaniała „Dotarliśmy”. */
+  #wiecej { position: absolute; z-index: 6; top: calc(env(safe-area-inset-top) + 10px); right: 14px; background: transparent; color: var(--muted);
     border: 1px solid var(--szary); border-radius: 999px; width: 38px; height: 38px; font: 600 18px/1 Inter, sans-serif; }
-  #panel { position: absolute; left: 16px; right: 16px; top: calc(env(safe-area-inset-top) + 56px); background: #15141b; border: 1px solid var(--szary);
-    border-radius: 14px; padding: 14px; box-sizing: border-box; }
+  #panel { position: absolute; z-index: 6; left: 16px; right: 16px; top: calc(env(safe-area-inset-top) + 56px); background: #15141b; border: 1px solid var(--szary);
+    border-radius: 14px; padding: 14px; box-sizing: border-box; max-height: calc(100% - env(safe-area-inset-top) - 72px); overflow-y: auto; touch-action: pan-y; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
   #panel label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
   #panel input { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid var(--szary); background: var(--tlo); color: var(--fg); font: 14px Inter, sans-serif; }
   #panel button { margin-top: 10px; background: var(--akcent); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: 600 13px Inter, sans-serif; }
