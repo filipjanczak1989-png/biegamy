@@ -43,11 +43,12 @@ test('próba: ten sam startujący; konto testowe nie jest trenerem ani startują
   assert.notEqual(t[0].athlete_id, glowny, 'konto testowe = główne konto (błąd z 2.11)');
 });
 
-test('migawka = poprawka = klient (PROBA_KONTA)', async () => {
+test('migawka = klient (PROBA_KONTA); poprawka z rolami zamiast UUID (9.11, blizna-204)', async () => {
   const glowny = wiersz('dla-fabianka', 'startujacy')[0].athlete_id;
   const testowe = wiersz('proba', 'konto_testowe')[0].athlete_id;
-  assert.match(POPRAWKA, new RegExp(`set athlete_id = '${glowny}'`));
-  assert.match(POPRAWKA, new RegExp(`set konta_testowe = array\\['${testowe}'::uuid\\]`));
+  assert.notEqual(glowny, testowe);
+  assert.match(POPRAWKA, /set athlete_id = '<KONTO STARTUJĄCE: wartość poza repo>'/);
+  assert.match(POPRAWKA, /set konta_testowe = array\['<KONTO TESTOWE PRÓBY: wartość poza repo>'::uuid\]/);
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja-cytaty.mjs')).href);
   assert.deepEqual(globalThis.BM_AKCJA_CYTATY.PROBA_KONTA, [testowe]);
 });

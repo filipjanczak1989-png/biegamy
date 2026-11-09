@@ -30,7 +30,9 @@ begin
   update public.akcje set wyprawa_dotarla_at = now() where slug = 'dla-fabianka';
   j := public.akcja_licznik('dla-fabianka');
   if (j->>'wyprawa_trwa')::boolean is not false then raise exception 'FAIL 1d: wyprawa_trwa po dotarciu'; end if;
-  if j->>'wyprawa_cel_nazwa' <> 'Jasna Góra' or (j->>'wyprawa_cel_km')::numeric <> 240 then raise exception 'FAIL 1e: cel po dotarciu (%/%)', j->>'wyprawa_cel_nazwa', j->>'wyprawa_cel_km'; end if;
+  -- cel porównany z bazą, nie z wpisaną nazwą (9.11: cel tajny do „Dotarliśmy”, repo publiczne); w komunikacie bez wartości
+  if j->>'wyprawa_cel_nazwa' is null or j->>'wyprawa_cel_nazwa' is distinct from (select wyprawa_cel_nazwa from public.akcje where slug = 'dla-fabianka')
+     or (j->>'wyprawa_cel_km')::numeric is distinct from (select wyprawa_cel_km from public.akcje where slug = 'dla-fabianka') then raise exception 'FAIL 1e: cel po dotarciu inny niż w bazie'; end if;
   n := n + 5;
 
   -- 2. próba: to samo
@@ -39,7 +41,7 @@ begin
   if j->>'wyprawa_cel_nazwa' is not null then raise exception 'FAIL 2a: próba zdradza cel przed dotarciem'; end if;
   update public.akcje set wyprawa_dotarla_at = now() where slug = 'proba';
   j := public.akcja_licznik('proba');
-  if j->>'wyprawa_cel_nazwa' <> 'Jasna Góra' then raise exception 'FAIL 2b: próba bez celu po dotarciu'; end if;
+  if j->>'wyprawa_cel_nazwa' is null or j->>'wyprawa_cel_nazwa' is distinct from (select wyprawa_cel_nazwa from public.akcje where slug = 'proba') then raise exception 'FAIL 2b: próba bez celu po dotarciu'; end if;
   n := n + 2;
 
   -- 3. ślad: anon/authenticated nic; service pisze; CHECK-i

@@ -70,7 +70,8 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   // A0 (Filip 4.11): wyprawa_km = dystans trasy z JEDNEGO konta per dzień (główny, zapas gdy brak), ślad przed logami; cel 240
   assert.match(m, /v_glowny := a\.wyprawa_athlete_ids\[1\]; v_zapas := a\.wyprawa_athlete_ids\[2\];/);
   assert.equal((m.match(/coalesce\(nullif\(d\.km_glowny, 0\), d\.km_zapas\)/g) || []).length, 2, 'ta sama reguła dla śladu i dla logów');
-  assert.match(m, /wyprawa_cel_km = 240 where slug in \('dla-fabianka', 'proba'\)/);
+  /* 9.11 (blizna-204): cel i km poza repo; w migracji placeholder, który przerwie ponowne uruchomienie */
+  assert.match(m, /wyprawa_cel_km = '<km celu: ustawione ręcznie, poza repo>'::numeric where slug in \('dla-fabianka', 'proba'\)/);
   assert.ok(m.indexOf('create table public.akcja_wyprawa_slad') < m.indexOf('create or replace function public.akcja_licznik'), 'tabela śladu przed licznikiem, który z niej czyta');
 
   assert.match(m, /revoke all on public\.akcja_wyprawa_slad from public, anon, authenticated;/); assert.doesNotMatch(m, /create policy[^\n]*akcja_wyprawa_slad/);

@@ -32,10 +32,9 @@ test('slugDla: konto testowe → proba, reszta (także główne konto Filipa) �
   assert.equal(A.slugDla(TESTOWE), 'proba');
   assert.equal(A.slugDla(GLOWNE), 'dla-fabianka', 'główne konto Filipa nie może czytać próby (błąd z 2.11)');
   assert.equal(A.slugDla(null), 'dla-fabianka');
-  const m = czytaj('supabase/migrations/20261102_akcje_startujacy_poprawka.sql').match(/set konta_testowe = array\[([^\]]*)\]/);
-  assert.ok(m, 'brak konta_testowe w poprawce');
-  const zPoprawki = [...m[1].matchAll(/'([0-9a-f-]{36})'/g)].map((x) => x[1]);
-  assert.deepEqual(A.PROBA_KONTA, zPoprawki);
+  /* 9.11 (blizna-204): poprawka ma rolę zamiast UUID; zgodność klienta z bazą pilnuje migawka (blizna-97) */
+  assert.match(czytaj('supabase/migrations/20261102_akcje_startujacy_poprawka.sql'), /set konta_testowe = array\['<KONTO TESTOWE PRÓBY: wartość poza repo>'::uuid\]/);
+  assert.deepEqual(A.PROBA_KONTA, [TESTOWE]);
 });
 
 test('odswiezStan: RPC akcja_licznik, cache 60 s, wymus, brak sieci → stan sesji albo false', async () => {

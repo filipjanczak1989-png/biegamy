@@ -117,8 +117,9 @@ test('wiersze (stan PIERWOTNEJ migracji — konta zamienione, poprawione w 20261
   assert.deepEqual([fab[1], fab[2], fab[3]].map((x) => x.trim()), ['null', 'null', 'null']);
   assert.match(bezKomentarzy, /date '2026-11-08', 12500, 10,/);
   assert.match(bezKomentarzy, /timestamp '2026-11-08 06:00:00' at time zone 'Europe\/Warsaw'/);
-  assert.ok(bezKomentarzy.includes("values ('proba', 'Próba guzika', date '2026-11-02', 12500, 10, true, array['56092926-2cf1-44b6-952f-38614497fdc2'::uuid])"), 'próba: konto testowe');
-  assert.match(bezKomentarzy, /t\.id = '9c2df65c-6a46-410e-ad5f-474e5d973ec9'/);
+  /* 9.11 (blizna-204): UUID kont usunięte z repo publicznego; w pliku rola, wartość w notatce Filipa poza repo */
+  assert.ok(bezKomentarzy.includes("values ('proba', 'Próba guzika', date '2026-11-02', 12500, 10, true, array['<KONTO TESTOWE PRÓBY: wartość poza repo>'::uuid])"), 'próba: konto testowe (rola)');
+  assert.match(bezKomentarzy, /t\.id = '<KONTO STARTUJĄCE: wartość poza repo>'/);
   assert.doesNotMatch(bezKomentarzy, /zrzutka|siepomaga|pomagam\.pl/i, 'wymyślony link zbiórki');
 });
 

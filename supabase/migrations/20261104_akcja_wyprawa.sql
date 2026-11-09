@@ -2,7 +2,7 @@
 --   A0) wyprawa_km = DYSTANS TRASY, nie suma kont (Filip 4.11): per dzień warszawski km PIERWSZEGO konta z wyprawa_athlete_ids (Filip),
 --       a gdy tego dnia nie ma jego aktywności — drugiego (Kasia, zapas); suma po dniach. Źródło: akcja_wyprawa_slad (dystans z intervals,
 --       niezależny od synchronizacji logów), a gdy ślad pusty (cron jeszcze nie ruszył) — training_logs tą samą regułą. Suma AKCJI
---       bez zmian (oba konta). Test: obaj po 100 km tego samego dnia → wyprawa 100, akcja +200. wyprawa_cel_km = 240.
+--       bez zmian (oba konta). Test: obaj po 100 km tego samego dnia → wyprawa 100, akcja +200. Cel (nazwa i km) ustawiony ręcznie w bazie.
 --   Z) DATA NA ZAPOWIEDZI ≠ DATA STARTU (Filip 3.11 03:31): teaser (index.html, dla-fabianka.html) pokazuje data_zapowiedzi (8.11) do
 --      zapowiedz_zmiana_at (5.11 20:00 Europe/Warsaw), potem data_zapowiedzi_po (7.11). Prawdziwy start (akcje.start, okno guzika, licznik,
 --      odznaki, cytaty dnia) BEZ ZMIAN = 7.11. Licznik przed startem oddaje `data_zapowiedzi` według now(). Godzinę zmienia jeden UPDATE:
@@ -15,10 +15,12 @@
 --   Cron akcja-wyprawa-slad co 15 min → EF {rodzaj:'odswiez'} z sekretem z vault (jak akcja-push); intervals-webhook woła to samo po imporcie.
 -- Test po skutku: tools/akcja-wyprawa-test.sh (transakcja z rollbackiem: licznik bez celu przed dotarciem, z celem po; próba to samo; RLS).
 -- Wycofanie: 20261104_WYCOFANIE_akcja_wyprawa.sql.
+-- ⚠️ 9.11.2026: nazwa i km celu wyprawy usunięte z repo (cel tajny do „Dotarliśmy”, repo publiczne). Wartości ustawione ręcznie w bazie,
+--    zapisane w notatce Filipa poza repo. Migracja wykonana; tego pliku NIE uruchamiać ponownie (placeholdery celowo przerywają).
 begin;
 
 alter table public.akcje add column wyprawa_cel_nazwa text check (wyprawa_cel_nazwa is null or char_length(wyprawa_cel_nazwa) between 1 and 60);
-update public.akcje set wyprawa_cel_nazwa = 'Jasna Góra', wyprawa_cel_km = 240 where slug in ('dla-fabianka', 'proba');
+update public.akcje set wyprawa_cel_nazwa = '<CEL WYPRAWY: ustawiony ręcznie w bazie, wartość poza repo, pliku nie uruchamiać>', wyprawa_cel_km = '<km celu: ustawione ręcznie, poza repo>'::numeric where slug in ('dla-fabianka', 'proba');
 alter table public.akcje add column data_zapowiedzi date, add column zapowiedz_zmiana_at timestamptz default ('2026-11-05 20:00' at time zone 'Europe/Warsaw'), add column data_zapowiedzi_po date;
 update public.akcje set data_zapowiedzi = '2026-11-08', data_zapowiedzi_po = '2026-11-07', zapowiedz_zmiana_at = ('2026-11-05 20:00' at time zone 'Europe/Warsaw') where slug in ('dla-fabianka', 'proba');
 
@@ -133,7 +135,7 @@ begin
     raise exception 'akcja_wyprawa_slad: dostęp z przeglądarki — nie wdrażamy';
   end if;
   if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'akcja_wyprawa_slad') then raise exception 'akcja_wyprawa_slad: polityka na tabeli bez grantów'; end if;
-  if (select count(*) from public.akcje where wyprawa_cel_nazwa is not null and wyprawa_cel_km = 240) < 2 then raise exception 'wyprawa_cel_nazwa/km: brak na akcji i próbie'; end if;
+  if (select count(*) from public.akcje where wyprawa_cel_nazwa is not null and wyprawa_cel_km is not null) < 2 then raise exception 'wyprawa_cel_nazwa/km: brak na akcji i próbie'; end if;
   if not exists (select 1 from cron.job where jobname = 'akcja-wyprawa-slad') then raise exception 'brak crona akcja-wyprawa-slad'; end if;
   -- licznik akcji, która nie wystartowała, nie zdradza niczego o wyprawie
   j := public.akcja_licznik('dla-fabianka');

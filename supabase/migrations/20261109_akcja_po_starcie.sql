@@ -5,7 +5,7 @@
 --   akcja_cegla_zlota(id, zlota): przełącznik w panelu przy wpisie w murze, tylko trener (auth_is_coach). Polityki RLS akcja_cegielki bez zmian (3), granty tabeli bez zmian.
 --   akcja_firmy_zatwierdz: cegiełka ze zgłoszenia z kwotą od 100 zł wchodzi do muru jako złota (panel może to zmienić tym samym przełącznikiem). Firmy bez zmian.
 --   akcja_ulica_publiczna: dochodzi lista 'cegly' (najpierw złote, potem najnowsze; imię tylko przy zgodzie, bez kwoty) i 'cegly_n'. 'imiona' i 'bez_imienia' zostają dla starego frontu.
---   Patryk (wpis z 9.11 10:05, 150 zł): złota cegła.
+--   Wpis Patryka w murze dla-fabianka: złota cegła (decyzja Filipa).
 --   akcja_ukryte: „Ukryj” kafla akcji na koncie (nie tylko w telefonie). RLS bez polityk i bez grantów dla anon/authenticated: czyta i pisze tylko
 --     akcja_kafel_ukryj / akcja_kafel_ukryty dla własnego konta (auth.uid()). Pushe i liczenie km nie czytają tej tabeli.
 --   Licznik km bez zmian: akcja_licznik i akcja_km_okna nietknięte.
@@ -102,7 +102,7 @@ exception when others then
   return jsonb_build_object('odblokowane', '[]'::jsonb, 'imiona', '[]'::jsonb, 'bez_imienia', 0, 'cegly', '[]'::jsonb, 'cegly_n', 0);
 end $function$;
 
--- Patryk (9.11 10:05, 150 zł) — po id wpisu; gdy Filip zdążył go edytować (Edytuj = nowy wpis), po imieniu, ale tylko gdy jest dokładnie jeden.
+-- Wpis Patryka — po id wpisu; gdy Filip zdążył go edytować (Edytuj = nowy wpis), po imieniu, ale tylko gdy jest dokładnie jeden.
 do $$
 declare k integer;
 begin

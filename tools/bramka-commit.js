@@ -46,6 +46,9 @@
 
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
+/* DANE OSÓB (9.11.2026): e-mail, kwota w zł przy imieniu, UUID konta — w plikach .sql cała linia, w kodzie komentarz.
+   Twarda blokada (hook i CI), trailer jej NIE zdejmuje: repo jest publiczne, a wpis w historii zostaje na zawsze. Szczegóły i granice: bramka-dane-osob.js. */
+const DANE_OSOB = require('./bramka-dane-osob.js');
 
 // ── REGUŁY ───────────────────────────────────────────────────────────────────
 
@@ -301,6 +304,13 @@ function sprawdz(zmiana, tryb, zatwierdzenie) {
       }
     }
   }
+  /* Dane osób: reguła patrzy na PLIK (cała linia .sql, sam komentarz w kodzie), więc potrzebuje dodanych linii z nazwą pliku.
+     Treści nie drukujemy — to byłoby powtórzenie wycieku w logu CI. */
+  for (const t of DANE_OSOB.sprawdzDodane(zmiana.wPlikach)) {
+    blokady.push({ gdzie: t.plik + ' (dodana linia ' + t.nr + ' w tym pliku)', opis: 'dane osoby: ' + t.regula, ciBlokada: true, daneOsob: true,
+      czemu: 'Repo jest publiczne, a historia gita zostaje na zawsze. Zamiast wartości wpisz rolę („konto startujące”, „wpis darczyńcy”),\n'
+           + '     a wartość trzymaj poza repo (notatka Filipa, SQL wykonywany ręcznie). Atrapy: example.*, *.invalid, UUID 11111111-…' });
+  }
   if (przykladow > MAX_PRZYKLADOW) {
     blokady.push({
       gdzie: przykladow + ' linii ze znacznikiem bramka:przyklad (limit ' + MAX_PRZYKLADOW + ')',
@@ -317,18 +327,31 @@ function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 }
 
+/* Dodane linie z nazwą pliku (nagłówki `+++ b/<plik>`), dla reguł zależnych od rodzaju pliku. */
+function dodaneWPlikach(diff) {
+  const wyn = [];
+  let biezacy = null;
+  for (const l of diff.split('\n')) {
+    if (l.startsWith('+++ ')) { const p = l.slice(4).replace(/^b\//, ''); biezacy = p === '/dev/null' ? null : { plik: p, linie: [] }; if (biezacy) wyn.push(biezacy); continue; }
+    if (biezacy && l.startsWith('+')) biezacy.linie.push(l.slice(1).replace(/\r$/, ''));
+  }
+  return wyn.filter((x) => x.linie.length);
+}
+
 function zeStage() {
   const pliki = git(['diff', '--cached', '--name-only']).split('\n').filter(Boolean);
-  const dodane = git(['diff', '--cached', '--unified=0'])
+  const diff = git(['diff', '--cached', '--unified=0']);
+  const dodane = diff
     .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
-  return { pliki, dodane };
+  return { pliki, dodane, wPlikach: dodaneWPlikach(diff) };
 }
 
 function zZakresu(zakres) {
   const pliki = git(['diff', '--name-only', zakres]).split('\n').filter(Boolean);
-  const dodane = git(['diff', '--unified=0', zakres])
+  const diff = git(['diff', '--unified=0', zakres]);
+  const dodane = diff
     .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
-  return { pliki, dodane };
+  return { pliki, dodane, wPlikach: dodaneWPlikach(diff) };
 }
 
 // ── WYDRUK ───────────────────────────────────────────────────────────────────
@@ -595,6 +618,34 @@ function samokontrola() {
     try { fs.unlinkSync(tmp); } catch (_) {}
   }
 
+  /* 12) DANE OSÓB (9.11.2026) — OBIE strony. Wartości składane z kawałków, żeby bramka nie zatrzymała samej siebie. */
+  {
+    console.log('\n  12) DANE OSÓB w migracjach i komentarzach — prawdziwy kształt PADA, sąsiedni nie-dane PRZECHODZI');
+    const D = (plik, linie, tryb, powod) => sprawdz({ pliki: [], dodane: linie, wPlikach: [{ plik, linie }] }, tryb || 'hook', powod);
+    const osoby = (w) => w.blokady.filter((b) => b.daneOsob).length;
+    const MIG = 'supabase/migrations/20261201_x.sql';
+    const mail = 'jan.kowalski' + '@' + 'gmail.com', uuid = '5609' + '2926-2cf1-44b6-952f-38614497fdc2';
+    ok(osoby(D(MIG, ['-- startujący: konto trenera (' + mail + ')'])) === 1, 'e-mail w komentarzu migracji BLOKUJE');
+    ok(osoby(D(MIG, ['-- startujący: konto trenera (' + mail + ')'], 'ci')) === 1, '...także w CI');
+    ok(osoby(D(MIG, ['-- startujący: konto trenera (' + mail + ')'], 'hook', 'migracja na zlecenie Filipa, test zielony')) === 1, '...i trailer tego NIE zdejmuje');
+    ok(osoby(D('tools/x-test.sql', ["insert into z (email) values ('ola' + '@' + 'example.pl');".replace("' + '@' + '", '@')])) === 0, 'adres testowy example.pl PRZECHODZI');
+    ok(osoby(D('tools/x-test.sql', ["values ('a' || '@' || 'a.pl')".replace("' || '@' || '", '@')])) === 0, 'atrapa a@a.pl PRZECHODZI');
+    ok(osoby(D('js/x.js', ['const NADAWCA = "' + mail + '";'])) === 0, 'e-mail w KODZIE (nie komentarz) w .js PRZECHODZI — reguła pilnuje migracji i komentarzy');
+    ok(osoby(D('js/x.js', ['const x = 1; /' + '/ kontakt: ' + mail])) === 1, 'e-mail w komentarzu .js BLOKUJE');
+    ok(osoby(D('js/x.js', ['fetch("https://x.example.pl/a"); /' + '/ ikona@2x.png'])) === 0, 'plik @2x.png to nie e-mail');
+    ok(osoby(D(MIG, ['-- Pat' + 'ryk (wpis z 9.11, 1' + '50 zł): złota cegła.'])) === 1, 'kwota w zł przy imieniu BLOKUJE (przypadek z 9.11)');
+    ok(osoby(D(MIG, ["update m set zlota = true where upper(imie) = 'PAT" + "RYK'; -- 1" + '50 zł'])) === 1, 'imię WERSALIKAMI przy kwocie BLOKUJE');
+    ok(osoby(D(MIG, ['-- Wpis Pat' + 'ryka: złota cegła (decyzja Filipa).'])) === 0, 'imię BEZ kwoty PRZECHODZI (tak ma wyglądać poprawka)');
+    ok(osoby(D(MIG, ['-- Domek od 1' + '00 zł, wieżowiec od 1' + '000 zł.'])) === 0, 'próg w zł bez imienia PRZECHODZI');
+    ok(osoby(D(MIG, ['-- Publicznie tylko flaga złotej cegły (od 1' + '00 zł), kwota nigdy.'])) === 0, 'zwykłe słowo z wielkiej litery przy kwocie PRZECHODZI');
+    ok(osoby(D(MIG, ["update akcje set konta_testowe = array['" + uuid + "'::uuid];"])) === 1, 'UUID przy koncie BLOKUJE');
+    ok(osoby(D(MIG, ['insert into public.akcja_startujacy (akcja_id, athlete_id)', 'select a.id, t.id from akcje a, athletes t', "where t.id = '" + uuid + "';"])) === 1, '...także gdy słowo o koncie stoi 2 linie wyżej');
+    ok(osoby(D(MIG, ["update public.akcja_cegielki set zlota = true where id = '" + 'd4b8' + "37fd-a4e9-488d-9586-b87a7491dfe3';"])) === 0, 'UUID wiersza (nie konta) PRZECHODZI');
+    ok(osoby(D('tools/x-test.sql', ["zw uuid := '1111" + "1111-1111-4111-8111-111111111111'; -- konto zawodnika w teście"])) === 0, 'UUID-atrapa 11111111-… PRZECHODZI');
+    ok(osoby(D(MIG, ["where t.id = '<KONTO STARTUJĄCE: wartość poza repo>';"])) === 0, 'opis roli zamiast wartości PRZECHODZI');
+    ok(osoby(D(MIG, ['-- konto ' + uuid + '   -- bramka:przyklad'])) === 0, 'znacznik bramka:przyklad działa jak dla innych reguł');
+  }
+
   console.log('\n  ' + (bledy
     ? '✖ ' + bledy + ' asercji padło — BRAMCE NIE MOŻNA UFAĆ'
     : '✅ Bramka blokuje to, co trzeba, i przepuszcza resztę.') + '\n');
@@ -646,5 +697,5 @@ function main() {
   return w.blokady.length ? 1 : 0;
 }
 
-module.exports = { sprawdz, BLOKADY_SCIEZEK, OSTRZEZENIA_SCIEZEK, BLOKADY_TRESCI };
+module.exports = { sprawdz, dodaneWPlikach, BLOKADY_SCIEZEK, OSTRZEZENIA_SCIEZEK, BLOKADY_TRESCI };
 if (require.main === module) process.exit(main());

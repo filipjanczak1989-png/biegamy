@@ -278,14 +278,16 @@ insert into public.akcje (slug, nazwa, imie_zbiorki, url_zbiorki, start, cel_km,
 values ('dla-fabianka', null, null, null, date '2026-11-08', 12500, 10,
         timestamp '2026-11-08 06:00:00' at time zone 'Europe/Warsaw',
         timestamp '2026-11-08 23:59:59' at time zone 'Europe/Warsaw');
--- proba: guzik w dowolnej chwili, start = dzień naciśnięcia, liczy wyłącznie konta_testowe: persona zawodnika Filipa
--- (filipjanczak1989@gmail.com — konto, na którym testowano okienko M3b; decyzja Filipa 2.11).
+-- ⚠️ 9.11.2026: e-maile i UUID kont usunięte z repo (repo jest publiczne). W ich miejscu opis roli; wartości w notatce Filipa poza repo.
+--    Migracja wykonana na bazie; tego pliku NIE uruchamiać ponownie (placeholdery celowo przerywają ponowne uruchomienie).
+-- proba: guzik w dowolnej chwili, start = dzień naciśnięcia, liczy wyłącznie konta_testowe: konto testowe próby
+-- (wybór Filipa 2.11; role kont poprawione tego samego dnia w 20261102_akcje_startujacy_poprawka.sql).
 insert into public.akcje (slug, nazwa, start, cel_km, stawka_gr_filip, testowa, konta_testowe)
-values ('proba', 'Próba guzika', date '2026-11-02', 12500, 10, true, array['56092926-2cf1-44b6-952f-38614497fdc2'::uuid]);
--- startujący: konto trenera Filipa (biegamy.run@gmail.com) — jeden wpis na akcję.
+values ('proba', 'Próba guzika', date '2026-11-02', 12500, 10, true, array['<KONTO TESTOWE PRÓBY: wartość poza repo>'::uuid]);
+-- startujący: konto startujące (prowadzący akcję) — jeden wpis na akcję.
 insert into public.akcja_startujacy (akcja_id, athlete_id)
 select a.id, t.id from public.akcje a cross join public.athletes t
- where a.slug in ('dla-fabianka', 'proba') and t.id = '9c2df65c-6a46-410e-ad5f-474e5d973ec9';
+ where a.slug in ('dla-fabianka', 'proba') and t.id = '<KONTO STARTUJĄCE: wartość poza repo>';
 
 -- ── asercje (nie zostawiają nic: błąd = cała migracja wycofana) ─────────────────────────────────────────────
 do $$
@@ -311,7 +313,7 @@ begin
   if v is not null then raise exception 'akcje: anon ma EXECUTE na %', v; end if;
   if not has_function_privilege('service_role', 'public.akcja_licznik(text)', 'execute') then raise exception 'akcje: service_role bez licznika'; end if;
   if not has_function_privilege('authenticated', 'public.akcja_licznik(text)', 'execute') then raise exception 'akcje: authenticated bez licznika'; end if;
-  if (select konta_testowe from public.akcje where slug = 'proba') is distinct from array['56092926-2cf1-44b6-952f-38614497fdc2'::uuid] then
+  if (select konta_testowe from public.akcje where slug = 'proba') is distinct from array['<KONTO TESTOWE PRÓBY: wartość poza repo>'::uuid] then
     raise exception 'akcje: konta_testowe próby'; end if;
   if has_function_privilege('authenticated', 'public.akcja_km_okna(uuid,date,date,uuid[])', 'execute') then
     raise exception 'akcje: akcja_km_okna wystawiona'; end if;
