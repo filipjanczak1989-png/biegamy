@@ -7,3 +7,4 @@ Kolumny: ławka v2 (% wierszy z oczekiwanym śladem, cel 95 %), czas odpowiedzi 
 | data | ławka | p50 / p90 | 👎 | koszt | do poprawy |
 |---|---|---|---|---|---|
 | 2026-11-03 | 94.1 % (240/255, atrapy) | — | — (kciuki od 4.11) | — | — |
+| 2026-11-09 | 95.3 % | — / — ms | — | 0.000 USD/dobę | 0 |
