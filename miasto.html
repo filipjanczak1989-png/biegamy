@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<meta name="robots" content="noindex, nofollow">
+<title>Miasto Dobra · BiegaMy</title>
+<meta name="description" content="Prototyp Miasta Dobra: każda zbiórka ma swoją ulicę, kilometry ludzi ją budują.">
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="js/akcja.mjs"></script>
+<script src="js/miasto.mjs"></script>
+<!--
+  MIASTO DOBRA, PROTOTYP DO POKAZANIA (9.11.2026). Strona poza nawigacją aplikacji, noindex; zbudowana tak, jakby mógł ją zobaczyć każdy.
+  Jedna ulica prawdziwa: liczby WYŁĄCZNIE z publicznego licznika akcji (EF akcja-licznik przez js/akcja.mjs), „Wejdź” prowadzi na stronę akcji.
+  Cztery ulice przykładowe: dane wymyślone (js/miasto.mjs PRZYKLADY), oznaczone PRZYKŁAD na mapie, na karcie i przy każdej liczbie; nie wchodzą do sumy miasta.
+  Kreator „Załóż ulicę” to atrapa: nic nie zapisuje, nic nie wysyła. Jedyny zapis: ostatni znany stan prawdziwej ulicy (localStorage), żeby bez sieci
+  strona wyglądała tak samo, z dopiskiem „stan z …”. Grafiki tylko z assets/ulica i assets/gra (te same co Ulica), reszta to CSS i SVG.
+  Imię bohatera prawdziwej ulicy przychodzi z licznika; w tym pliku go nie ma.
+-->
+<style>
+  :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent2: #ff8a3d; --ramka: rgba(255,255,255,.1); --drewno: #5a2e0e; --kremowy: #fff7e6; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+  main { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 12px calc(env(safe-area-inset-bottom) + 36px); }
+  .md-marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
+  h1 { font: 400 clamp(38px, 10vw, 52px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 8px 0 6px; }
+  .md-suma { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 6px; }
+  .md-suma b { font: 400 clamp(34px, 9vw, 44px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; color: var(--akcent2); }
+  .md-suma span { font-size: 13px; line-height: 1.35; color: var(--fg2); }
+  .md-zdanie { font-size: 14px; line-height: 1.45; color: var(--fg); margin: 0 0 10px; font-weight: 600; }
+  .md-stan-naglowka { font-size: 12px; color: var(--fg2); margin: -4px 0 8px; }
+
+  /* ── MAPA Z LOTU PTAKA (szkic A wybrany 9.11): droga wije się przez jesienne pola, każda ulica to działka przy drodze ── */
+  .md-mapa { position: relative; width: 100%; aspect-ratio: 388 / 640; border-radius: 18px; overflow: hidden; background: #9fb050; box-shadow: 0 12px 34px rgba(0,0,0,.55); user-select: none; -webkit-user-select: none; }
+  .md-mapa > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .md-ozdoba { position: absolute; pointer-events: none; }
+  .dz { position: absolute; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: center; cursor: pointer; border-radius: 16px; -webkit-tap-highlight-color: transparent; transition: background .15s, box-shadow .15s; touch-action: manipulation; }
+  .dz:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .dz.wybrana, .dz:active { background: rgba(255,247,230,.28); box-shadow: inset 0 0 0 3px #fff7e6, 0 0 0 3px rgba(90,46,14,.35); }
+  .dz-grafiki { position: absolute; left: 0; right: 0; top: 4%; height: 58%; display: flex; align-items: flex-end; justify-content: center; gap: 1.5%; padding: 0 3%; }
+  .dz-grafiki img { display: block; height: auto; filter: drop-shadow(0 3px 2px rgba(60,30,0,.35)); pointer-events: none; }
+  .dz-et { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); max-width: 96%; background: var(--kremowy); color: #4a2408; border: 2px solid var(--drewno); border-radius: 10px; padding: 4px 8px 5px; font: 800 clamp(9px, 2.7vw, 12px)/1.15 Inter, sans-serif; white-space: nowrap; box-shadow: 0 2px 0 var(--drewno); }
+  .dz-et small { display: block; font-weight: 600; color: #7a4a1e; font-size: .86em; margin-top: 1px; white-space: normal; }
+  .dz-et .dz-tytul { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .dz--przyklad .dz-et::before { content: "PRZYKŁAD"; position: absolute; top: -9px; right: -6px; background: var(--akcent); color: #fff; font: 800 7.5px/1 Inter, sans-serif; letter-spacing: .12em; padding: 3px 5px; border-radius: 5px; transform: rotate(5deg); }
+  /* prawdziwa: największa, w środku, z obwódką i znaczkiem TRWA; widoczna na pierwszym ekranie telefonu */
+  .dz--prawdziwa { background: rgba(255,205,106,.22); box-shadow: inset 0 0 0 3px #ffcd6a, 0 0 0 2px rgba(90,46,14,.5), 0 0 26px rgba(255,170,60,.45); }
+  .dz--prawdziwa.wybrana, .dz--prawdziwa:active { background: rgba(255,205,106,.36); box-shadow: inset 0 0 0 3px #fff7e6, 0 0 0 3px #ffcd6a, 0 0 30px rgba(255,170,60,.6); }
+  .dz--prawdziwa .dz-grafiki { top: 6%; height: 56%; }
+  .dz--prawdziwa .dz-et { background: #ffcd6a; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 10px 6px; }
+  .dz-znaczek { position: absolute; left: 50%; top: -10px; transform: translateX(-50%); background: var(--akcent); color: #fff; font: 800 9px/1 Inter, sans-serif; letter-spacing: .14em; padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 0 var(--drewno); }
+  .dz-znaczek--koniec { background: #2f6b3a; }
+  .dz-znaczek--wkrotce { background: #6b6b7a; }
+  /* bieg: brama start/meta z dwóch słupków i transparentu (z istniejących grafik) */
+  .dz-brama { position: relative; width: 44%; display: flex; justify-content: space-between; align-items: flex-end; }
+  .dz-brama img { width: 30%; }
+  .dz-brama b { position: absolute; left: 6%; right: 6%; top: 6%; padding: 8% 0; background: linear-gradient(#ff8a3d, #e8561e); color: #fff; border: 2px solid var(--drewno); border-radius: 6px; font: 800 clamp(7px, 2vw, 10px)/1 Inter, sans-serif; letter-spacing: .12em; text-align: center; box-shadow: 0 2px 0 var(--drewno); }
+  .dz-brama b::after { content: ""; position: absolute; left: -4%; right: -4%; top: -2px; height: 2px; background: var(--drewno); }
+  /* urodzinowa: baloniki w SVG */
+  .dz-balony { position: absolute; right: 8%; top: 0; width: 26%; height: 50%; pointer-events: none; }
+  /* pamięci: zbudowana i zadbana; latarnie świecą */
+  .dz-latarnia { position: relative; width: 7%; }
+  .dz-latarnia::before { content: ""; position: absolute; left: 50%; top: 10%; width: 300%; height: 60%; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(255,214,120,.95), rgba(255,200,90,.35) 55%, transparent); pointer-events: none; }
+  .dz-latarnia img { position: relative; width: 100%; }
+  .dz--pamieci .dz-grafiki { align-items: flex-end; }
+  .dz--pamieci .dz-et { background: linear-gradient(#f8e3a8, #d9b56b); border-color: #6b4a12; color: #3f2a05; }
+  /* wolna działka: tabliczka na kreską */
+  .dz--wolna .dz-et { border-style: dashed; background: rgba(255,247,230,.92); }
+  .dz--wolna .dz-grafiki { opacity: .95; }
+
+  /* ── KARTA ULICY: na telefonie panel od dołu, na laptopie stała kolumna obok mapy ── */
+  .md-zaslona { position: fixed; inset: 0; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; }
+  .md-zaslona.widac { opacity: 1; pointer-events: auto; }
+  .md-panel { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow: auto; background: var(--karta); border: 1px solid var(--ramka); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom) + 18px); transform: translateY(104%); transition: transform .25s; z-index: 21; box-shadow: 0 -10px 40px rgba(0,0,0,.5); }
+  .md-panel.otwarty { transform: none; }
+  .md-uchwyt { width: 44px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.25); margin: 0 auto 6px; }
+  .md-zamknij { position: absolute; right: 10px; top: 10px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: var(--fg); font-size: 20px; cursor: pointer; }
+  .md-podpowiedz { font-size: 12px; color: var(--fg2); margin: 10px 2px 0; }
+  .md-karta h2 { font: 400 34px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 6px 0 2px; padding-right: 48px; }
+  .md-chipy { display: flex; gap: 6px; flex-wrap: wrap; }
+  .md-chip { display: inline-block; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: .14em; padding: 5px 8px; border-radius: 6px; color: #fff; background: #6b6b7a; }
+  .md-chip--trwa { background: var(--akcent); } .md-chip--przyklad { background: #b8520f; } .md-chip--koniec { background: #2f6b3a; } .md-chip--wolna { background: #3d5a99; } .md-chip--wkrotce { background: #6b6b7a; }
+  .md-forma { margin: 0 0 10px; font-size: 13px; color: var(--fg2); }
+  .md-liczby { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .md-liczba { position: relative; background: rgba(255,255,255,.05); border: 1px solid var(--ramka); border-radius: 12px; padding: 10px 10px 8px; }
+  .md-liczba b { display: block; font: 400 30px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; }
+  .md-liczba span { display: block; font-size: 12px; color: var(--fg2); margin-top: 3px; }
+  .md-przyklad { position: absolute; top: 6px; right: 6px; font: 800 7.5px/1 Inter, sans-serif; font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: #fff; background: #b8520f; padding: 3px 5px; border-radius: 4px; }
+  .md-pasek { height: 10px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; margin: 10px 0 4px; }
+  .md-pasek i { display: block; height: 100%; background: linear-gradient(90deg, var(--akcent), var(--akcent2)); border-radius: 5px; min-width: 2px; }
+  .md-uwaga { margin: 8px 0 0; font-size: 12px; color: #ffb27a; font-weight: 600; }
+  .md-opis { font-size: 14px; line-height: 1.5; color: var(--fg2); margin: 10px 0 0; }
+  .md-podsumowanie { margin: 10px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+  .md-stan { font-size: 12px; color: var(--fg2); margin: 10px 0 0; }
+  .md-przycisk { display: block; width: 100%; margin-top: 14px; padding: 15px; border: 0; border-radius: 14px; background: var(--akcent); color: #fff; font: 600 15px/1 Inter, sans-serif; text-align: center; text-decoration: none; cursor: pointer; }
+  .md-przycisk--przyklad { background: transparent; border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
+  .md-przycisk--cichy { background: rgba(255,255,255,.08); color: var(--fg); }
+  .md-przycisk[disabled] { opacity: .5; cursor: default; }
+  .md-stopka { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 14px 2px 0; }
+  .md-stopka a { color: var(--fg2); }
+  .md-zaloz { display: inline-block; margin-top: 10px; padding: 11px 16px; border: 1px solid rgba(232,86,30,.55); border-radius: 12px; background: transparent; color: var(--akcent2); font: 600 14px/1 Inter, sans-serif; cursor: pointer; }
+
+  /* ── OKNA: kreator i podgląd przykładowej ulicy ── */
+  dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
+  dialog::backdrop { background: rgba(0,0,0,.65); }
+  dialog h3 { font: 400 26px/1.05 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 8px 0 6px; padding-right: 40px; }
+  .md-kroki { display: flex; gap: 6px; }
+  .md-kroki span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 800 12px/1 Inter, sans-serif; background: rgba(255,255,255,.08); color: var(--fg2); }
+  .md-kroki .md-krok--tu { background: var(--akcent); color: #fff; } .md-kroki .md-krok--byl { background: rgba(232,86,30,.35); color: #fff; }
+  .md-pole { display: block; margin-top: 12px; } .md-pole span { display: block; font-size: 13px; color: var(--fg2); margin-bottom: 5px; }
+  .md-pole input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 500 15px/1.2 Inter, sans-serif; }
+  .md-wybor { display: grid; gap: 8px; margin-top: 12px; } .md-wybor label, .md-zgoda { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--ramka); border-radius: 12px; font-size: 14px; }
+  .md-zgoda { margin-top: 10px; }
+  .md-plik { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding: 11px 12px; border: 1px dashed rgba(255,255,255,.25); border-radius: 12px; font-size: 14px; } .md-plik b { font-size: 12px; color: var(--fg2); font-weight: 600; }
+  /* świat gry: kafelki, zaznaczony z obwódką w akcencie */
+  .md-pytanie { margin: 16px 0 8px; font-weight: 600; font-size: 15px; }
+  .md-swiaty { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .md-swiat { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 9px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); text-align: center; cursor: pointer; }
+  .md-swiat input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .md-swiat:has(input:checked) { border-color: var(--akcent2); background: rgba(232,86,30,.14); box-shadow: 0 0 0 2px rgba(255,138,61,.45); }
+  .md-swiat img, .md-emoji { width: 44px; height: 44px; object-fit: contain; display: grid; place-items: center; font-size: 32px; line-height: 1; }
+  .md-swiat img { filter: drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+  .md-swiat b { font-size: 13px; } .md-swiat small { font-size: 10.5px; color: var(--fg2); line-height: 1.25; }
+  .md-swiat--bez { grid-column: span 3; flex-direction: row; justify-content: center; gap: 10px; text-align: left; } .md-swiat--bez small { display: block; }
+  .md-dopisek { margin: 8px 0 0; font-size: 12px; color: var(--fg2); }
+  .md-kreator-stopka { display: flex; gap: 10px; } .md-kreator-stopka .md-przycisk { flex: 1; }
+  .md-wkrotce { margin: 12px 0 0; font-size: 13px; color: var(--fg2); line-height: 1.5; }
+  .md-mini { position: relative; height: 190px; border-radius: 14px; overflow: hidden; background: linear-gradient(#bfe0f5 0, #e9f3fa 40%, #9fb050 40%); margin-top: 12px; }
+  .md-mini img { position: absolute; display: block; }
+  .md-mini .mini-wzg { left: 0; width: 100%; top: 22%; } .md-mini .mini-dr { left: 0; width: 100%; height: 34%; bottom: 0; background: url(assets/ulica/droga.webp) repeat-x bottom / auto 100%; position: absolute; }
+  .md-mini .mini-bud { position: absolute; left: 0; right: 0; bottom: 30%; height: 44%; display: flex; align-items: flex-end; justify-content: center; gap: 1.5%; padding: 0 4%; }
+  .md-mini .mini-bud img { position: static; height: auto; filter: drop-shadow(0 3px 2px rgba(60,30,0,.35)); }
+  .md-mini .mini-chip { position: absolute; left: 10px; top: 10px; }
+
+  /* ── LAPTOP: mapa obok stałej kolumny z kartą ── */
+  @media (min-width: 900px) {
+    main { max-width: 1040px; padding-top: 28px; }
+    .md-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+    .md-mapa { width: min(100%, calc(84vh * 388 / 640)); margin: 0 auto; }
+    .md-zaslona { display: none; }
+    .md-panel { position: sticky; top: 20px; max-height: none; transform: none; border-radius: 20px; border-bottom: 1px solid var(--ramka); box-shadow: none; padding: 14px 18px 18px; }
+    .md-uchwyt, .md-panel .md-zamknij { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="md-marka">BiegaMy · Miasto Dobra</div>
+  <h1>Miasto Dobra</h1>
+  <div class="md-suma"><b id="md-km">— km</b><span id="md-podpis">zbudowane przez ludzi</span></div>
+  <p class="md-zdanie">Pieniądze idą prosto do organizacji prowadzących zbiórki. BiegaMy nic nie przyjmuje.</p>
+  <p class="md-stan-naglowka" id="md-stan" hidden></p>
+
+  <div class="md-uklad">
+    <div class="md-mapa" id="md-mapa" aria-label="Mapa Miasta Dobra">
+      <svg viewBox="0 0 388 640" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <pattern id="pole" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)"><rect width="22" height="22" fill="#b89a45"/><rect width="22" height="11" fill="#c9a94f"/></pattern>
+          <pattern id="laka" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(14)"><rect width="18" height="18" fill="#8da24a"/><rect width="18" height="9" fill="#98ad52"/></pattern>
+          <pattern id="rzepa" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(-40)"><rect width="20" height="20" fill="#c8862e"/><rect width="20" height="10" fill="#d6963b"/></pattern>
+        </defs>
+        <rect width="388" height="640" fill="#9fb050"/>
+        <polygon points="0,0 160,0 190,70 120,150 0,165" fill="url(#pole)"/>
+        <polygon points="230,0 388,0 388,150 270,140 215,70" fill="url(#laka)"/>
+        <polygon points="0,350 160,330 175,480 0,500" fill="url(#rzepa)"/>
+        <polygon points="388,320 388,500 215,490 230,345" fill="url(#pole)"/>
+        <polygon points="0,560 120,520 90,640 0,640" fill="url(#laka)"/>
+        <polygon points="300,520 388,520 388,640 320,640" fill="url(#rzepa)"/>
+        <ellipse cx="52" cy="598" rx="34" ry="18" fill="#5aa0c8" stroke="#3f7fa3" stroke-width="3"/>
+        <ellipse cx="46" cy="594" rx="12" ry="5" fill="rgba(255,255,255,.35)"/>
+        <!-- droga główna: od dołu, między działkami, znika za działką prawdziwej ulicy i wychodzi u góry -->
+        <path id="droga" d="M194 640 C 170 600, 222 560, 194 520 S 168 440, 194 400 S 218 250, 194 200 S 176 80, 194 0" fill="none" stroke="#3b3b47" stroke-width="30" stroke-linecap="round"/>
+        <path d="M194 640 C 170 600, 222 560, 194 520 S 168 440, 194 400 S 218 250, 194 200 S 176 80, 194 0" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="10 12" opacity=".85"/>
+        <!-- odnogi do działek -->
+        <g stroke="#3b3b47" stroke-width="18" stroke-linecap="round" fill="none">
+          <path d="M194 112 L 156 118"/><path d="M194 112 L 232 118"/>
+          <path d="M190 548 L 150 536"/><path d="M190 548 L 236 536"/>
+        </g>
+      </svg>
+      <img class="md-ozdoba" src="assets/gra/slonce.webp" alt="" style="right:3%;top:1.2%;width:9%;opacity:.95">
+      <img class="md-ozdoba" src="assets/ulica/drzewo.webp" alt="" style="left:45%;top:85%;width:9%">
+      <img class="md-ozdoba" src="assets/ulica/drzewo.webp" alt="" style="left:88%;top:52%;width:8%">
+
+      <!-- Bieg Wirtualny: góra lewo -->
+      <button type="button" class="dz dz--przyklad" data-id="bieg" aria-label="Bieg Wirtualny, przykład" style="left:3%;top:2.5%;width:43%;height:19%">
+        <div class="dz-grafiki"><img src="assets/gra/barierka.webp" alt="" style="width:20%"><div class="dz-brama"><img src="assets/ulica/slupek.webp" alt=""><b>START · META</b><img src="assets/ulica/slupek.webp" alt=""></div><img src="assets/ulica/drzewo.webp" alt="" style="width:26%"></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+      <!-- Ulica Szkolna: góra prawo -->
+      <button type="button" class="dz dz--przyklad" data-id="szkolna" aria-label="Ulica Szkolna, przykład" style="left:54%;top:2.5%;width:43%;height:19%">
+        <div class="dz-grafiki"><img src="assets/ulica/osiedle.webp" alt="" style="width:56%"><img src="assets/ulica/plac-zabaw.webp" alt="" style="width:38%"></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+      <!-- PRAWDZIWA ULICA: środek, największa; nazwa i liczby z licznika -->
+      <button type="button" class="dz dz--prawdziwa" data-id="prawdziwa" aria-label="Prawdziwa ulica akcji" style="left:5%;top:23.5%;width:90%;height:29%">
+        <span class="dz-znaczek" id="md-znaczek">TRWA</span>
+        <div class="dz-grafiki"><img src="assets/ulica/dzwig.webp" alt="" style="width:23%"><img src="assets/ulica/domek-3.webp" alt="" style="width:22%"><img src="assets/ulica/plac-budowy.webp" alt="" style="width:24%"><img src="assets/ulica/domek-6.webp" alt="" style="width:22%"><img src="assets/ulica/budowniczy.webp" alt="" style="width:6%"></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+      <!-- Ulica Urodzinowa: dół lewo -->
+      <button type="button" class="dz dz--przyklad" data-id="urodzinowa" aria-label="Ulica Urodzinowa, przykład" style="left:3%;top:56%;width:43%;height:19%">
+        <svg class="dz-balony" viewBox="0 0 40 60" aria-hidden="true"><g stroke="#5a2e0e" stroke-width="1.6"><path d="M12 24 Q 14 40 20 58" fill="none"/><path d="M26 22 Q 24 40 20 58" fill="none"/><path d="M20 28 L 20 58" fill="none"/><ellipse cx="12" cy="14" rx="8" ry="10" fill="#e8561e"/><ellipse cx="27" cy="12" rx="8" ry="10" fill="#f2c230"/><ellipse cx="20" cy="18" rx="7.5" ry="9.5" fill="#5aa0c8"/></g></svg>
+        <div class="dz-grafiki"><img src="assets/ulica/drzewo.webp" alt="" style="width:26%"><img src="assets/ulica/domek-1.webp" alt="" style="width:42%"><img src="assets/ulica/latarnia.webp" alt="" style="width:7%"></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+      <!-- Ulica Pamięci: dół prawo; zbudowana i zadbana, latarnie świecą -->
+      <button type="button" class="dz dz--przyklad dz--pamieci" data-id="pamieci" aria-label="Ulica Pamięci, przykład, zakończona" style="left:54%;top:56%;width:43%;height:19%">
+        <span class="dz-znaczek dz-znaczek--koniec">ZBUDOWANA</span>
+        <div class="dz-grafiki"><span class="dz-latarnia"><img src="assets/ulica/latarnia.webp" alt=""></span><img src="assets/ulica/park.webp" alt="" style="width:68%"><span class="dz-latarnia"><img src="assets/ulica/latarnia.webp" alt=""></span></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+      <!-- Wolna działka: wejście do kreatora -->
+      <button type="button" class="dz dz--wolna" data-id="wolna" aria-label="Wolna działka, załóż ulicę" style="left:22%;top:78.5%;width:56%;height:17%">
+        <div class="dz-grafiki"><img src="assets/ulica/plac-budowy.webp" alt="" style="width:58%"></div>
+        <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
+      </button>
+    </div>
+
+    <aside class="md-panel" id="md-panel" role="dialog" aria-label="Karta ulicy" aria-modal="false">
+      <div class="md-uchwyt"></div>
+      <button type="button" class="md-zamknij" id="md-zamknij" aria-label="Zamknij kartę">×</button>
+      <div id="md-karta"></div>
+    </aside>
+  </div>
+  <div class="md-zaslona" id="md-zaslona"></div>
+
+  <p class="md-podpowiedz">Dotknij ulicy na mapie, żeby zobaczyć jej kartę.</p>
+  <button type="button" class="md-zaloz" id="md-zaloz">Załóż ulicę ›</button>
+  <p class="md-stopka">Prototyp Miasta Dobra. Prawdziwa jest jedna ulica: jej liczby pochodzą z publicznego licznika akcji i tylko one wchodzą do licznika miasta. Pozostałe ulice są przykładami z wymyślonymi danymi. Aplikacja tylko liczy kilometry; wpłaty idą zawsze bezpośrednio na oficjalną zbiórkę organizacji. <a href="privacy.html">Polityka prywatności</a></p>
+</main>
+
+<dialog id="md-kreator" aria-label="Załóż ulicę"><button type="button" class="md-zamknij" data-zamknij aria-label="Zamknij">×</button><div id="md-kreator-tresc"></div></dialog>
+<dialog id="md-podglad" aria-label="Podgląd przykładowej ulicy"><button type="button" class="md-zamknij" data-zamknij aria-label="Zamknij">×</button><div id="md-podglad-tresc"></div></dialog>
+
+<script>
+(function () {
+  'use strict';
+  var M = window.BM_MIASTO, $ = function (id) { return document.getElementById(id); };
+  var MAPA = $('md-mapa'), PANEL = $('md-panel'), KARTA = $('md-karta'), ZASLONA = $('md-zaslona');
+  var prawdziwa = M.ulicaZLicznika(null), czasPamieci = null, wybrana = 'prawdziwa', laptop = function () { return window.matchMedia('(min-width: 900px)').matches; };
+  var GRAFIKI_PODGLADU = { bieg: ['assets/gra/barierka.webp', 'assets/ulica/slupek.webp', 'assets/ulica/drzewo.webp', 'assets/ulica/domek-2.webp'], szkolna: ['assets/ulica/osiedle.webp', 'assets/ulica/plac-zabaw.webp', 'assets/ulica/domek-4.webp'],
+    urodzinowa: ['assets/ulica/drzewo.webp', 'assets/ulica/domek-1.webp', 'assets/ulica/latarnia.webp', 'assets/ulica/mur.webp'], pamieci: ['assets/ulica/latarnia.webp', 'assets/ulica/park.webp', 'assets/ulica/domek-5.webp', 'assets/ulica/mur.webp'] };
+
+  function lista() { return M.ulice(prawdziwa).concat([M.WOLNA]); }
+  function ulica(id) { return lista().filter(function (u) { return u.id === id; })[0] || null; }
+
+  function rysujMape() {
+    lista().forEach(function (u) {
+      var dz = MAPA.querySelector('.dz[data-id="' + u.id + '"]'); if (!dz) return;
+      var e = M.etykietaMapy(u);
+      dz.querySelector('.dz-tytul').textContent = e.tytul; dz.querySelector('small').textContent = e.podpis;
+      dz.classList.toggle('wybrana', u.id === wybrana);
+    });
+    var zn = $('md-znaczek');
+    zn.textContent = prawdziwa.status === 'trwa' ? 'TRWA' : prawdziwa.status === 'zakonczona' ? 'ZAKOŃCZONA' : prawdziwa.status === 'przed' ? 'WKRÓTCE' : 'LICZNIK NIEDOSTĘPNY';
+    zn.className = 'dz-znaczek' + (prawdziwa.status === 'zakonczona' ? ' dz-znaczek--koniec' : prawdziwa.status === 'trwa' ? '' : ' dz-znaczek--wkrotce');
+    var s = M.sumaMiasta(lista());
+    $('md-km').textContent = (s.prawdziwe_n ? M.km(s.km) : '—') + ' km';
+    $('md-podpis').textContent = 'zbudowane przez ludzi · ' + M.podpisSumy(s);
+    $('md-stan').hidden = !czasPamieci; $('md-stan').textContent = czasPamieci ? 'Licznik chwilowo niedostępny: ' + M.stanZ(czasPamieci) + '.' : '';
+  }
+  function rysujKarte() {
+    var u = ulica(wybrana); if (!u) return;
+    KARTA.innerHTML = M.kartaHtml(u, { stanZ: czasPamieci });   // kartaHtml escapuje wszystko, co przychodzi z licznika (nazwa, imię)
+  }
+  function otworz(id) {
+    wybrana = id; rysujMape(); rysujKarte();
+    if (!laptop()) { PANEL.classList.add('otwarty'); ZASLONA.classList.add('widac'); }
+    PANEL.scrollTop = 0;
+  }
+  function zamknij() { PANEL.classList.remove('otwarty'); ZASLONA.classList.remove('widac'); }
+  MAPA.addEventListener('click', function (e) { var dz = e.target.closest('.dz'); if (!dz) return; if (dz.dataset.id === 'wolna') { wybrana = 'wolna'; rysujMape(); rysujKarte(); if (laptop()) return; } otworz(dz.dataset.id); });
+  $('md-zamknij').addEventListener('click', zamknij); ZASLONA.addEventListener('click', zamknij);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') zamknij(); });
+
+  /* kreator: atrapa, stan tylko w pamięci strony */
+  var krok = 0, KREATOR = $('md-kreator'), PODGLAD = $('md-podglad');
+  function pokazOkno(d) { if (d.open) return; if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function schowajOkno(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  function rysujKreator() { $('md-kreator-tresc').innerHTML = M.kreatorHtml(krok); }
+  function otworzKreator() { krok = 0; rysujKreator(); pokazOkno(KREATOR); }
+  KREATOR.addEventListener('click', function (e) {
+    if (e.target.closest('[data-krok-dalej]')) { krok = Math.min(M.KROKI.length - 1, krok + 1); rysujKreator(); }
+    else if (e.target.closest('[data-krok-wstecz]')) { krok = Math.max(0, krok - 1); rysujKreator(); }
+    else if (e.target.closest('[data-zamknij]')) schowajOkno(KREATOR);
+  });
+  KREATOR.addEventListener('submit', function (e) { e.preventDefault(); });
+  $('md-zaloz').addEventListener('click', otworzKreator);
+  document.addEventListener('click', function (e) { if (e.target.closest('[data-kreator]')) otworzKreator(); });
+
+  /* podgląd przykładowej ulicy: mini scena z tych samych grafik, bez imion */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-podglad]'); if (!b) return;
+    var u = ulica(b.getAttribute('data-podglad')); if (!u || !u.przyklad) return;
+    var t = $('md-podglad-tresc'); t.textContent = '';
+    var h3 = document.createElement('h3'); h3.textContent = u.nazwa; t.appendChild(h3);
+    var mini = document.createElement('div'); mini.className = 'md-mini';
+    var wzg = document.createElement('img'); wzg.className = 'mini-wzg'; wzg.src = 'assets/ulica/wzgorza.webp'; wzg.alt = ''; mini.appendChild(wzg);
+    var dr = document.createElement('div'); dr.className = 'mini-dr'; mini.appendChild(dr);
+    var bud = document.createElement('div'); bud.className = 'mini-bud';
+    (GRAFIKI_PODGLADU[u.id] || []).forEach(function (src) { var im = document.createElement('img'); im.src = src; im.alt = ''; im.style.width = /latarnia|slupek/.test(src) ? '6%' : /park|mur/.test(src) ? '34%' : '22%'; bud.appendChild(im); });
+    mini.appendChild(bud);
+    var chip = document.createElement('span'); chip.className = 'md-chip md-chip--przyklad mini-chip'; chip.textContent = 'PRZYKŁAD'; mini.appendChild(chip);
+    t.appendChild(mini);
+    var p = document.createElement('p'); p.className = 'md-opis'; p.textContent = 'Tak wyglądałaby strona tej ulicy: licznik kilometrów, droga rosnąca z każdym treningiem, mur z cegłami darczyńców, domki firm i link do oficjalnej zbiórki organizacji. ' + u.opis; t.appendChild(p);
+    var uw = document.createElement('p'); uw.className = 'md-uwaga'; uw.textContent = 'Przykład z wymyślonymi danymi.'; t.appendChild(uw);
+    pokazOkno(PODGLAD);
+  });
+  PODGLAD.addEventListener('click', function (e) { if (e.target.closest('[data-zamknij]')) schowajOkno(PODGLAD); });
+
+  /* GRAFIKI BEZ SIECI: sw.js (zamrożony) trzyma w cache strony i skrypty, ale nie własne .webp. Strona sama trzyma grafiki mapy w Cache API (cache-first):
+     po pierwszym wczytaniu mapa wygląda tak samo bez internetu. Bez Cache API (stary WebView) obrazki idą zwykłą drogą. Tylko własne pliki assets/. */
+  (function grafikiZCache() {
+    if (!window.caches || !window.fetch) return;
+    var obrazy = Array.prototype.slice.call(document.querySelectorAll('.md-mapa img, .md-mini img'));
+    window.caches.open('bm-miasto-grafiki-v1').then(function (c) {
+      obrazy.forEach(function (im) {
+        var url = im.getAttribute('src'); if (!url || !/^assets\//.test(url)) return;
+        c.match(url).then(function (r) { return r || fetch(url).then(function (odp) { if (odp && odp.ok) c.put(url, odp.clone()); return odp; }); })
+          .then(function (r) { if (!r || !r.ok) return; return r.blob().then(function (b) { if (im.complete && im.naturalWidth > 0) return; im.src = URL.createObjectURL(b); }); })
+          .catch(function () {});
+      });
+    }).catch(function () {});
+  })();
+
+  /* licznik: najpierw pamięć (żeby bez sieci nic nie było puste), potem sieć */
+  var pam = M.odczytaj();
+  if (pam) { prawdziwa = pam.u; czasPamieci = pam.t; }
+  rysujMape(); rysujKarte();
+  function odswiez() {
+    M.pobierzPrawdziwa().then(function (u) {
+      if (u && u.status !== 'brak') { prawdziwa = u; czasPamieci = null; M.zapamietaj(u, Date.now()); }
+      else if (pam) { prawdziwa = pam.u; czasPamieci = pam.t; }
+      rysujMape(); rysujKarte();
+    });
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
+  odswiez();
+})();
+</script>
+</body>
+</html>
