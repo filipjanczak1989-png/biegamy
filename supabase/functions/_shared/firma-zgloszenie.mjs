@@ -68,14 +68,17 @@ export function sprawdzZgloszenie(p, M, progi) {
 /* Cegiełka od osoby prywatnej (20261107_akcja_cegielka_zgloszenia): imię jak CHECK w akcja_cegielki i RE_IMIE w js/ulica.mjs (jedno słowo, najwyżej jeden łącznik).
    Te same trzy kopie pilnuje blizna-192. */
 export const RE_IMIE = /^(?=.{2,20}$)[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]+(?:-[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]+)?$/;
-/** Pola cegiełki: imię, zgoda na imię w murze (bez niej cegła bez imienia), e-mail opcjonalnie (tylko podziękowanie). Bez linku, logo i progu. → { blad } | { wiersz }. */
+/** Pola cegiełki: imię, zgoda na imię w murze (bez niej cegła bez imienia), e-mail opcjonalnie (tylko podziękowanie), kwota opcjonalnie (od 100 zł złota cegła, 20261109_akcja_po_starcie;
+    kwota zostaje w zgłoszeniu dla panelu, publicznie nigdy). Bez linku, logo i progu. → { blad } | { wiersz }. */
 export function sprawdzCegielke(p, M) {
   const o = p || {}, imie = String(o.imie || "").trim(), email = String(o.email || "").trim();
   if (!RE_IMIE.test(imie)) return { blad: "Imię: jedno słowo, same litery, od 2 do 20 znaków, najwyżej jeden łącznik (Anna-Maria). Bez nazwiska." };
   if (!M) return { blad: "Filtr imion niedostępny. Spróbuj później." };
   if (!M.sprawdz(imie, { rodzaj: "imie" }).ok) return { blad: "Tego imienia nie możemy przyjąć." };
   if (email && (email.length > 120 || !RE_EMAIL.test(email))) return { blad: "Podaj poprawny adres e-mail albo zostaw pole puste." };
-  return { wiersz: { rodzaj: "cegielka", nazwa: imie, email: email || null, zgoda_imie: o.zgoda_imie === "tak" } };
+  const kwota = String(o.kwota == null ? "" : o.kwota).trim(), kwota_gr = kwota ? kwotaNaGrosze(kwota) : null;
+  if (kwota && kwota_gr == null) return { blad: "Kwota: podaj liczbę złotych (np. 100) albo zostaw pole puste." };
+  return { wiersz: { rodzaj: "cegielka", nazwa: imie, email: email || null, zgoda_imie: o.zgoda_imie === "tak", kwota_gr } };
 }
 
 /** Plik z formularza: rozmiar i typ po bajtach. → { blad } | { typ, rozszerzenie }. */

@@ -132,7 +132,7 @@ verify_jwt = false       # serwer intervals.icu, sekret w ciele (index.ts:84-87)
 verify_jwt = false       # cron + wyzwalacz akcje_push_start (pg_net); sekret x-push-secret obowiązkowy
 
 [functions.akcja-wyprawa-slad]
-verify_jwt = false       # WYPRAWA: GET ?slug= publiczny (mapa-wyprawy.html, po strefach prywatności); POST odswiez tylko z x-push-secret (cron, intervals-webhook)
+verify_jwt = false       # WYPRAWA: mapa wyłączona 9.11, każdy odczyt śladu = 410; POST odswiez tylko z x-push-secret (cron, intervals-webhook), do km wyprawy
 
 [functions.akcja-proba-wizerunek]
 verify_jwt = false       # Ścieżka Fabianka: wymagajUsera + coaches albo konto testowe próby, adresy podpisane na 15 min

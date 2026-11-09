@@ -61,7 +61,7 @@ export async function przyjmijZgloszenie(d) {
    zrzut wpłaty i opcjonalny e-mail. Zapis prosto do tabeli kluczem serwisowym: anon i zalogowani nie mają do niej dostępu, a CHECK-i w bazie są zamkiem. Zrzut zostaje prywatny. */
 async function przyjmijCegielke(d, slug) {
   const f = d.dane, sb = d.sb, J = (status, body) => ({ status, body });
-  const p = sprawdzCegielke({ imie: f.get("imie"), zgoda_imie: f.get("zgoda_imie"), email: f.get("email") }, d.moderacja);
+  const p = sprawdzCegielke({ imie: f.get("imie"), zgoda_imie: f.get("zgoda_imie"), email: f.get("email"), kwota: f.get("kwota") }, d.moderacja);
   if (p.blad) return J(400, { ok: false, blad: p.blad });
   const plikZrzut = f.get("zrzut");
   const zrzut = plikZrzut && plikZrzut.arrayBuffer ? new Uint8Array(await plikZrzut.arrayBuffer()) : null;
@@ -70,7 +70,7 @@ async function przyjmijCegielke(d, slug) {
   const id = (d.noweId || (() => crypto.randomUUID()))(), sciezkaZrzut = `${id}/zrzut.${zz.rozszerzenie}`;
   const up = await sb.storage.from(KUBELEK).upload(sciezkaZrzut, zrzut, { contentType: zz.typ, upsert: false });
   if (up.error) { console.error("firma-zgloszenie upload cegiełki:", up.error.message); return J(500, { ok: false, blad: "Nie udało się zapisać pliku. Spróbuj za chwilę." }); }
-  const { error } = await sb.from("akcja_firmy_zgloszenia").insert({ id, akcja_slug: slug, rodzaj: "cegielka", nazwa: p.wiersz.nazwa, email: p.wiersz.email, zrzut_sciezka: sciezkaZrzut, zgoda_na_wymienienie: p.wiersz.zgoda_imie });
+  const { error } = await sb.from("akcja_firmy_zgloszenia").insert({ id, akcja_slug: slug, rodzaj: "cegielka", nazwa: p.wiersz.nazwa, email: p.wiersz.email, zrzut_sciezka: sciezkaZrzut, zgoda_na_wymienienie: p.wiersz.zgoda_imie, kwota_gr: p.wiersz.kwota_gr });
   if (error) {
     console.error("firma-zgloszenie zapis cegiełki:", error.message);
     try { await sb.storage.from(KUBELEK).remove([sciezkaZrzut]); } catch (_) { /* zostanie sprzątanie nocne */ }
@@ -137,6 +137,11 @@ export async function akcjaPanelu(d) {
       console.error("firma-panel zatwierdz:", (error && error.message) || (data && data.powod));
       if (nowy) { try { await sb.storage.from(PUBLICZNY).remove([nowy]); } catch (_) { /* osierocony plik logo jest niegroźny */ } }
       return J(error ? 500 : 409, { ok: false, blad: error ? "Nie udało się zapisać." : "Decyzja już zapadła." });
+    }
+    /* Złota cegła (20261109_akcja_po_starcie): baza ustawia ją z kwoty (od 100 zł), przełącznik w panelu może to zmienić. Błąd nie cofa zatwierdzenia: trener poprawi przy wpisie w murze. */
+    if (data.cegla && typeof body.zlota === "boolean" && body.zlota !== data.zlota) {
+      const z = await sb.from("akcja_cegielki").update({ zlota: body.zlota }).eq("id", data.cegla);
+      if (z.error) console.error("firma-panel złota cegła:", z.error.message);
     }
     const r = await sb.storage.from(KUBELEK).remove(data.pliki || []);
     if (r.error) console.error("firma-panel kasowanie:", r.error.message);

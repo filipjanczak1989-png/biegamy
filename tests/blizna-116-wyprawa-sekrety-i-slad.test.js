@@ -133,7 +133,7 @@ test('ślad: kształt strumienia z intervals, dwa konta i pętla nie odsłaniaj�
   assert.ok(Math.min(...u3.segmenty.flat().map((p) => S.odleglosc(p, kraniec))) >= 2000, 'nocleg: 2 km w linii prostej');
   const ef = fs.readFileSync(path.join(KORZEN, 'supabase/functions/akcja-wyprawa-slad/index.ts'), 'utf8');
   assert.match(ef, /uprosc\(paryLatLng\(latlng\)\)/);
-  assert.match(ef, /jednoKontoNaDzien\(/);
+  assert.doesNotMatch(ef, /jednoKontoNaDzien\(|ukryj\(/, 'mapa wyłączona 9.11 (blizna-199): funkcja nie składa śladu do odczytu');
   assert.match(ef, /console\.error\("akcja-wyprawa-slad:"/, 'awaria śladu ma być widać w logach');
 });
 
@@ -169,11 +169,11 @@ test('B/C) slad.mjs — uproszczenie ≤ 1 pkt/50 m; strefy: start 2 000 m na za
   assert.ok(S.TYPY_SLADU.has('Run') && S.TYPY_SLADU.has('Walk') && !S.TYPY_SLADU.has('VirtualRun') && !S.TYPY_SLADU.has('Ride'));
 });
 
-test('B) EF akcja-wyprawa-slad: odczyt po starcie przez strefy, surowe punkty nie wychodzą, odświeżanie tylko z sekretem, cel po dotarciu; webhook woła; config', () => {
+test('B) EF akcja-wyprawa-slad: od 9.11 bez odczytu (mapa wyłączona, blizna-199), odświeżanie tylko z sekretem; webhook woła; config', () => {
   const ef = czytaj('supabase/functions/akcja-wyprawa-slad/index.ts');
-  assert.match(ef, /if \(!a\.wystartowala_at \|\| !a\.wyprawa_athlete_ids\?\.length\) return \{ start: false, trwa: false, segmenty: \[\] \};/, 'przed startem nic');
-  assert.match(ef, /const u = ukryj\(wiersze\.map/); assert.match(ef, /segmenty: u\.segmenty/); assert.doesNotMatch(ef, /punkty: wiersze|punkty: data|wiersze\.map\(\(r\) => r\.punkty\)/, 'surowe punkty nie wychodzą');
-  assert.match(ef, /cel: dotarla \? \{ nazwa: a\.wyprawa_cel_nazwa, pozycja: u\.ostatni, km: a\.wyprawa_cel_km \} : null/);
+  assert.match(ef, /if \(req\.method !== "POST" \|\| body\.rodzaj !== "odswiez"\) return J\(410/, 'ślad nie wychodzi do nikogo');
+  assert.doesNotMatch(ef, /segmenty|punkty: wiersze|punkty: data/, 'ani surowe punkty, ani segmenty');
+  assert.match(ef, /if \(!a\.wystartowala_at \|\| !a\.wyprawa_athlete_ids\?\.length\) return raport;/, 'przed startem nic nie pobiera');
   assert.match(ef, /if \(!SEKRET \|\| \(req\.headers\.get\("x-push-secret"\) \|\| ""\) !== SEKRET\) return J\(401/);
   assert.match(ef, /const odIso = od && a\.testowa \? od \+ "T00:00:00Z" : a\.wystartowala_at;/, '`od` tylko dla próby');
   assert.match(ef, /TYPY_SLADU\.has\(String\(x\.type\)\)/); assert.doesNotMatch(ef, /access_token[^\n]*J\(|api_key[^\n]*J\(/, 'poświadczenia nigdy w odpowiedzi');

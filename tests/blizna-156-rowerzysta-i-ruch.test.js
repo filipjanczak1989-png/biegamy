@@ -21,11 +21,8 @@ test('rowerzysta: domyślnie wyłączony, niczego nie włącza migracja', () => 
 test('rowerzysta: nie liczy się do kilometrów', () => {
   const m = bezSql(czytaj(MIG));
   assert.doesNotMatch(m, /create (or replace )?function/i, 'migracja nie rusza licznika');
-  const ef = czytaj(EF);
-  assert.match(ef, /rowerzysta: rower\?\.rowerzysta_wlaczony === true && u\.ostatni \? \{ pozycja: u\.ostatni, opis: rower\.rowerzysta_opis \|\| "" \} : null/, 'kropka tylko po włączeniu, pozycja z widocznego śladu');
-  const km = ef.slice(ef.indexOf('km: Math.round(u.dlugosc_m'), ef.indexOf('segmenty: u.segmenty'));
-  assert.doesNotMatch(km, /rower/, 'dystans bez roweru');
-  assert.doesNotMatch(ef.slice(ef.indexOf('async function odswiez'), ef.indexOf('async function slad')), /rower/i, 'odświeżanie śladu nie pobiera roweru');
+  /* 9.11: mapa wyłączona (blizna-199): funkcja śladu nie oddaje ani śladu, ani pozycji roweru i nie czyta jego danych przy pobieraniu */
+  assert.doesNotMatch(czytaj(EF), /rower/i);
 });
 
 test('rowerzysta: imię, nazwisko i nazwa roweru tylko w bazie', () => {
@@ -55,14 +52,10 @@ test('mapa: postać tylko z odpowiedzi serwera, z naszego originu, podpis przez 
   assert.match(m, /rower\.bindPopup\(esc\(d\.rowerzysta\.opis\)\)/);
 });
 
-test('ruch: mapa nie omija cache i ma pamięć w funkcji', () => {
+test('ruch: odczyt śladu wyłączony 9.11, więc wejście na starą mapę nie sięga do bazy', () => {
   assert.doesNotMatch(czytaj('mapa-wyprawy.html'), /cache: 'no-store'/);
   const ef = czytaj(EF);
-  assert.match(ef, /CACHE_SLADU_MS = 120_000/);
-  assert.match(ef, /sladWTrakcie\.get\(slug\)/, 'jedno wspólne zapytanie przy naporze');
-  assert.match(ef, /if \(error\) throw error;/, 'błąd bazy nie trafia do pamięci jako pusty ślad');
-  const odczyt = ef.slice(ef.indexOf('if (rodzaj !== "slad")'));
-  assert.ok(odczyt.indexOf('pamiecSladu.get(slug)') < odczyt.indexOf('sb.from("akcje")'), 'najpierw pamięć, potem baza');
+  assert.ok(ef.indexOf('return J(410') > 0 && ef.indexOf('return J(410') < ef.indexOf('createClient(SB_URL'), '410 przed klientem bazy');
 });
 
 test('ruch: licznik czeka na jedno zapytanie, scena nie odpytuje co 30 s', () => {

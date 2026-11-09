@@ -68,7 +68,7 @@ test('funkcja: cegiełka tymi samymi drzwiami, zrzut prywatny, bez logo i linku,
   const pushe = [];
   const w = await O.przyjmijZgloszenie({ dane: cegielka({ logo: plik(PNG()), link: 'https://zly.example.pl', nazwa: 'Firma Udawana' }), ipSkrot: 'ip-1', sb: a.sb, moderacja: M, powiadom: async (p) => { pushe.push(p); }, noweId: () => '33333333-3333-4333-8333-333333333333' });
   assert.equal(w.status, 200, JSON.stringify(w.body));
-  assert.deepEqual(a.wstawione, [{ id: '33333333-3333-4333-8333-333333333333', akcja_slug: 'proba', rodzaj: 'cegielka', nazwa: 'Anna-Maria', email: null, zrzut_sciezka: '33333333-3333-4333-8333-333333333333/zrzut.png', zgoda_na_wymienienie: true }], 'bez linku i logo, nawet gdy ktoś je dośle');
+  assert.deepEqual(a.wstawione, [{ id: '33333333-3333-4333-8333-333333333333', akcja_slug: 'proba', rodzaj: 'cegielka', nazwa: 'Anna-Maria', email: null, zrzut_sciezka: '33333333-3333-4333-8333-333333333333/zrzut.png', zgoda_na_wymienienie: true, kwota_gr: null }], 'bez linku i logo, nawet gdy ktoś je dośle');
   assert.deepEqual(a.prywatne(), ['33333333-3333-4333-8333-333333333333/zrzut.png'], 'tylko zrzut, w prywatnym kubełku');
   assert.deepEqual(a.publiczne(), []);
   assert.equal(pushe.length, 1);

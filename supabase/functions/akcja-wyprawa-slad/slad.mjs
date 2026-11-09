@@ -1,4 +1,6 @@
 // WYPRAWA — ślad GPS (projekt F, komenda Filipa 4.11): czysta logika bez Deno — ładuje ją EF akcja-wyprawa-slad i testy (blizna-116).
+// 9.11 mapa wyłączona: EF używa już tylko paryLatLng/uprosc/TYPY_SLADU (pobieranie do km). ukryj/jednoKontoNaDzien zostają z testami
+// na wypadek powrotu mapy; nic ich nie woła, a powrót odczytu to decyzja Filipa (ślad nie jest publiczny).
 //   uprosc(latlng, krok)      — ≤ 1 punkt / 50 m (pierwszy i ostatni zawsze), z dystansem narastającym w metrach;
 //   ukryj(aktywnosci, opcje)  — PRYWATNOŚĆ (twarde, komenda C): pierwsze 2 000 m wyprawy ukryte NA ZAWSZE (dom dziecka);
 //                               2 000 m przed i po każdej przerwie > 3 h (nocleg) ukryte na zawsze; ostatnie 500 m każdej aktywności
