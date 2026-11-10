@@ -27,7 +27,7 @@
     "plac-budowy": { szyld: [0.3072, 0.1992, 0.3878, 0.2175], proporcja: 2.1094 },
     /* tablica (B2, Filip 10.11): kotwica tablicy z logo u partnerów poprzednich wyzwań: x = środek (ułamek szerokości) nad namalowanym szyldem, bok (ułamek szerokości:
        55 % jak u domku byłoby większe od niskiej, szerokiej bryły), wDach = dokąd sięgają słupki (ułamek wysokości, za parapetem albo dachem), nadDachem = prześwit nad bryłą. */
-    "osiedle": { szyld: [0.3305, 0.0804, 0.3483, 0.119], proporcja: 1.4973, tablica: { x: 0.5, bok: 0.42, wDach: 0.22, nadDachem: 0.03 } },
+    "osiedle": { szyld: [0.3305, 0.0804, 0.3483, 0.119], proporcja: 1.4973, tablica: { x: 0.5, bok: 0.37, wDach: 0.22, nadDachem: 0.03 } },   // 0,37: przy 0,42 tablica w pierwszym rzędzie wchodziła pod nakładkę licznika (y 23 < 28, pomiar 10.11)
     "galeria": { szyld: [0.3131, 0.1368, 0.376, 0.2149], proporcja: 2.1563, tablica: { x: 0.5, bok: 0.33, wDach: 0.3, nadDachem: 0.03 } },
     "fabryka": { szyld: [0.2378, 0.4482, 0.3103, 0.1412], proporcja: 2.0792, plakat: [0.7905, 0.4576, 0.1665, 0.3435], tablica: { x: 0.39, bok: 0.28, wDach: 0.33, nadDachem: -0.05 } }   // fabryka: dach niski, komin z dymem sięga góry obrazu, więc tablica schodzi w pole obrazu nad szczyty dachu
   };
