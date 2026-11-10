@@ -35,7 +35,7 @@ test('formularz: osoba albo firma; osoba wysyła imię, zgodę i zrzut, bez logo
   assert.doesNotMatch(os, /"logo"|"link"|prog/, 'osoba bez logo, linku i progu');
   assert.match(os, /if \(kw\) dane\.append\("kwota", kw\);/, '9.11: kwota osoby nieobowiązkowa (złota cegła od 100 zł, blizna-200)');
   assert.match(os, /M\.sprawdz\(im, \{ rodzaj: "imie" \}\)/, 'filtr imion jak w panelu');
-  assert.match(os, /zrzutDoWyslania\(zrzut\.files\[0\]\)/);
+  assert.match(os, /przygotowany\("zrzut", zrzut\.files\[0\], zrzutDoWyslania\)/);   // od A2 (10.11, blizna-208): przez bramkę przygotowany()
   assert.match(F, /pole\("ff-zrzut", "Zrzut albo zdjęcie potwierdzenia wpłaty\. Zamaż numer konta\.", "file", \{ accept: "image\/\*" \}\)/);
   assert.doesNotMatch(F, /Zrzut wpłaty: plik do 2 MB|zrzut\.files\[0\]\.type/, 'bez blokady 2 MB i typu przed przygotowaniem');
   assert.match(F, /U\.podgladCegly\(podCegly, ok \? im : "", zgodaImie\.checked\)/, 'podgląd cegły: bez zgody cegła bez imienia, jak w murze');

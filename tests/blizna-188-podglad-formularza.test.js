@@ -31,9 +31,10 @@ test('jedna funkcja rysuje budynek firmy i cegłę na Ulicy i w podglądzie', ()
 test('formularz firmy: podgląd przed „Wyślij” (od 9.11 zaraz pod wyborem budynku, blizna-205), logo jak do wysyłki, nic na serwer przed wysłaniem, podpowiedź nie blokuje', () => {
   const p = F.slice(F.indexOf('var podglad = el("div", "ff-podglad", firma)'), F.indexOf('var wyslij = el("button", "ff-wyslij", f, "Wyślij zgłoszenie")'));
   assert.ok(p.length > 200, 'podgląd stoi przed przyciskiem');
-  assert.match(p, /logoDoWyslania\(plikLogo\)\.then\(function \(b\) \{ return g\.URL\.createObjectURL\(b\); \}/, 'to samo przygotowanie logo co przy wysyłce, adres tylko w przeglądarce');
+  /* od A2 (10.11, blizna-208): przez przygotowany(), czyli ten sam blob, który potem idzie w wysyłce */
+  assert.match(p, /przygotowany\("logo", plikLogo, logoDoWyslania\)\.then\(function \(b\) \{ return g\.URL\.createObjectURL\(b\); \}/, 'to samo przygotowanie logo co przy wysyłce, adres tylko w przeglądarce');
   assert.doesNotMatch(p, /fetch|FormData|sb\.|rpc|storage/, 'podgląd niczego nie wysyła');
-  assert.match(p, /nazwa\.addEventListener\("input"[^\n]*\n\s*rodzaj\.addEventListener\("change", function \(\) \{ rysujPodglad\(\); \}\);\n\s*logo\.addEventListener\("change", function \(\) \{ rysujPodglad\(\{ pokaz: true \}\); \}\);/, 'zmiana nazwy, budynku albo logo: nowy podgląd');
+  assert.match(p, /nazwa\.addEventListener\("input"[^\n]*\n\s*rodzaj\.addEventListener\("change", function \(\) \{ rysujPodglad\(\); \}\);\n\s*logo\.addEventListener\("change", function \(\) \{[^\n]*rysujPodglad\(\{ pokaz: true \}\); \}\);/, 'zmiana nazwy, budynku albo logo: nowy podgląd');
   assert.match(p, /if \(moj !== nrPodgladu\)/, 'spóźniony podgląd nie nadpisze nowszego');
   assert.match(p, /g\.URL\.revokeObjectURL\(adresLogo\)/, 'stary adres logo zwolniony');
   assert.match(p, /U\.ocenaLogo\(im, ciemny\)\.join\(" "\)/);

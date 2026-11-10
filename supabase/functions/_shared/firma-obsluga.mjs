@@ -36,6 +36,27 @@ export async function minutyBlokady(sb, ipSkrot, teraz) {
 export function komunikatLimitu(minuty) {
   return minuty ? `Za dużo zgłoszeń z tego adresu. Spróbuj za ${minuty} min.` : "Za dużo zgłoszeń z tego adresu. Spróbuj za godzinę.";
 }
+/* DIAGNOSTYKA PLIKÓW (Filip 10.11, A2): gdy przeglądarka nie przygotuje logo albo zrzutu, formularz przysyła sam opis awarii, bez pliku: nazwa i treść błędu, przyczyna,
+   rozmiar, typ, rozszerzenie, wymiary z nagłówka, do tego przeglądarka z nagłówka żądania. Trafia do client_errors (kind firma-plik, bez user_id: nadawca jest anonimowy),
+   żeby było wiadomo, co robi dany telefon. To nie zgłoszenie: bez RPC limitu i bez wpisu w akcja_firmy_proby; krótkie pola, odpowiedź zawsze 200. Dwa sita (Filip 10.11):
+   najwyżej 5 wpisów na godzinę z adresu w pamięci tej instancji funkcji, a przed insertem count(*) wpisów kind firma-plik z ostatniej godziny w bazie: od 50 nic nie zapisuje
+   (odczyt padł = też nic: sufit ma trzymać także wtedy). Przegląd po zakończeniu akcji: co przyniosło; jeśli nic, ścieżka wylatuje. */
+const DIAG_OSTATNIE = new Map(), DIAG_NA_GODZINE = 5, DIAG_SUFIT_BAZY = 50;
+export async function zapiszDiagnostyke(d) {
+  const f = d.dane, t = d.teraz || Date.now(), ok = { status: 200, body: { ok: true } };
+  const lista = (DIAG_OSTATNIE.get(d.ipSkrot) || []).filter((x) => t - x < 3600000);
+  if (lista.length >= DIAG_NA_GODZINE) return ok;
+  lista.push(t); DIAG_OSTATNIE.set(d.ipSkrot, lista);
+  const pole = (k, n) => String(f.get(k) || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, n);
+  const opis = { pole: pole("pole", 10), blad: pole("blad", 300), przyczyna: pole("przyczyna", 200), rozmiar: Number(pole("rozmiar", 12)) || 0, typ: pole("typ", 60), rozszerzenie: pole("rozszerzenie", 10), rodzaj_pliku: pole("rodzaj_pliku", 10), wymiary: pole("wymiary", 20) };
+  try {
+    const licz = await d.sb.from("client_errors").select("id", { count: "exact", head: true }).eq("kind", "firma-plik").gt("created_at", new Date(t - 3600000).toISOString());
+    if (!licz || licz.error || typeof licz.count !== "number" || licz.count >= DIAG_SUFIT_BAZY) { if (licz && licz.error) console.error("firma-zgloszenie diagnostyka licznik:", licz.error.message); return ok; }
+    const { error } = await d.sb.from("client_errors").insert({ user_id: null, url: "/dla-fabianka.html#firma", kind: "firma-plik", message: JSON.stringify(opis).slice(0, 1900), source: "js/firma-formularz.mjs", stack: null, user_agent: String(d.userAgent || "").slice(0, 500), app_version: null });
+    if (error) console.error("firma-zgloszenie diagnostyka:", error.message);
+  } catch (e) { console.error("firma-zgloszenie diagnostyka:", String(e)); }
+  return ok;
+}
 /** Przepuszczenie przez bazę: przełącznik akcji i limit na adres. → { status, body } przy odmowie, { wpusc } przy zgodzie. */
 async function wpuscPrzezBaze(d, slug) {
   const sb = d.sb, J = (status, body) => ({ status, body });
@@ -51,6 +72,7 @@ export async function przyjmijZgloszenie(d) {
   // Pułapka: pole niewidoczne dla człowieka. Bot dostaje „ok” i nic się nie dzieje.
   if (String(f.get("strona_www") || "").trim()) return J(200, { ok: true });
   const slug = f.get("slug") === "proba" ? "proba" : "dla-fabianka";
+  if (f.get("rodzaj") === "diagnostyka") return zapiszDiagnostyke(d);
   if (f.get("rodzaj") === "cegielka") return przyjmijCegielke(d, slug);
 
   const pola = { rodzaj: f.get("rodzaj"), nazwa: f.get("nazwa"), link: f.get("link"), email: f.get("email"), zgoda: f.get("zgoda"), kwota: f.get("kwota"), zgoda_kwota: f.get("zgoda_kwota") };

@@ -9,6 +9,17 @@ Audyt prywatności (F1–F5) zamknięty w lipcu 2026.
 
 ---
 
+## Anonimowe ścieżki zapisu (pozycja audytu miesięcznego)
+
+Każda droga, którą ktoś bez konta zapisuje cokolwiek w bazie. Co miesiąc: czy lista jest kompletna, czy sita trzymają, czy wpisy do czegoś służą.
+
+| ścieżka | co zapisuje | sita | przegląd |
+|---|---|---|---|
+| EF `firma-zgloszenie` → `client_errors` (kind `firma-plik`), od 10.11.2026 (A2, decyzja Filipa i Klaudiusza) | opis awarii przygotowania pliku w formularzu firmy: błąd, przyczyna, rozmiar, typ, rozszerzenie, rodzaj po bajtach, wymiary, user-agent; `user_id` NULL, bez pliku i bez nazwy pliku, pola przycięte | 5/h z adresu w pamięci instancji funkcji; `count(*)` kind `firma-plik` z ostatniej godziny przed insertem: od 50 nic (odczyt padł = nic); odpowiedź zawsze 200 | po zakończeniu akcji „Kilometry dla…”: `select created_at, message, user_agent from public.client_errors where kind = 'firma-plik' order by created_at desc;` jeśli nic nie przyniosło, ścieżka wylatuje (blok `zapiszDiagnostyke` w `_shared/firma-obsluga.mjs` i `diagnostyka()` w `js/firma-formularz.mjs`) |
+| EF `firma-zgloszenie` → `firmy-zgloszenia` (kubełek prywatny) + `akcja_firmy_zgloszenia` | zgłoszenie firmy albo cegiełki z plikami | pułapka na boty, 413 (5 MB), walidacja po bajtach, `akcja_firmy_wpusc` 3/h z adresu (od A1 liczone dopiero po walidacji) | panel trenera: każde zgłoszenie ma decyzję |
+
+`client_errors.message` nikt nie renderuje w HTML: czytają je `tools/przeglad-bledow.js` (terminal) i `tools/ledger.js` (markdown do pliku). Gdyby kiedyś trafiło na stronę, treść jest od nadawcy: tylko przez `textContent`.
+
 ## ⚠️ `intervals_activities.raw_data` trzyma PEŁNE tętno, niezależnie od `hr_public`
 
 **Znalezione:** 8 sierpnia 2026, przy opisywaniu wariantu „dane" karty treningu.

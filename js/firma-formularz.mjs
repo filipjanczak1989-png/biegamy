@@ -94,7 +94,7 @@
       var A = g.BM_AKCJA, n = nazwa.value.trim(), plikLogo = logo.files && logo.files[0], moj = ++nrPodgladu, pokaz = opcje && opcje.pokaz;
       if (firma.hidden) return;
       var bladLogo = "";
-      (plikLogo ? logoDoWyslania(plikLogo).then(function (b) { return g.URL.createObjectURL(b); }, function (e) { bladLogo = e && /^Logo/.test(e.message || "") ? e.message : "Logo: " + PROSBA; return ""; }) : Promise.resolve("")).then(function (u) {
+      (plikLogo ? przygotowany("logo", plikLogo, logoDoWyslania).then(function (b) { return g.URL.createObjectURL(b); }, function (e) { bladLogo = e && /^Logo/.test(e.message || "") ? e.message : "Logo: " + PROSBA; return ""; }) : Promise.resolve("")).then(function (u) {
         if (moj !== nrPodgladu) { if (u) g.URL.revokeObjectURL(u); return; }
         if (adresLogo) g.URL.revokeObjectURL(adresLogo);
         adresLogo = u;
@@ -116,7 +116,7 @@
     }
     nazwa.addEventListener("input", function () { clearTimeout(zegarP); zegarP = setTimeout(rysujPodglad, 200); });
     rodzaj.addEventListener("change", function () { rysujPodglad(); });
-    logo.addEventListener("change", function () { rysujPodglad({ pokaz: true }); });
+    logo.addEventListener("change", function () { if (!logo.files[0]) { bledyPlikow.logo = ""; odblokuj(); } rysujPodglad({ pokaz: true }); });
 
     /* WSPÓLNE: zrzut wpłaty (zostaje prywatny, kasowany po decyzji), pułapka na boty, informacja o danych. */
     var zrzut = pole("ff-zrzut", "Zrzut albo zdjęcie potwierdzenia wpłaty. Zamaż numer konta.", "file", { accept: "image/*" });
@@ -126,12 +126,56 @@
     var a = s.querySelector(".ff-rodo"); if (a) { var pr = el("a", "", a, " Polityka prywatności ›"); pr.href = "privacy.html#firmy"; }
     var wyslij = el("button", "ff-wyslij", f, "Wyślij zgłoszenie"); wyslij.type = "submit";
     var info = el("p", "ff-info", f); info.setAttribute("role", "status");
-    function ustawKto() { var o = kOsoba.checked; osoba.hidden = !o; firma.hidden = o; info.textContent = ""; if (o) rysujCegle(); else rysujPodglad(); }
+
+    /* PLIKI PRZYGOTOWANE PRZY WYBORZE (Filip 10.11, A2): logo i zrzut przechodzą przez logoDoWyslania/zrzutDoWyslania zaraz po wybraniu, a wynik czeka na „Wyślij”
+       (podgląd i wysyłka używają tego samego bloba). Gdy przygotowanie padnie, przycisk jest zablokowany z komunikatem, aż ktoś wybierze inny plik: do sieci nigdy nie idzie
+       plik, który nie przeszedł przez tę bramkę (oryginał tylko wtedy, gdy bramka go przepuści: PNG/JPG/WebP po bajtach do 2 MB). Awaria idzie do diagnostyki, bez pliku. */
+    var gotowe = { logo: null, zrzut: null }, bledyPlikow = { logo: "", zrzut: "" };
+    function przygotowany(pole, plik, fn) {
+      var w = gotowe[pole];
+      if (w && w.plik === plik) return w.obietnica;
+      var obietnica = fn(plik).then(function (b) {
+        if (gotowe[pole] && gotowe[pole].plik === plik) { bledyPlikow[pole] = ""; odblokuj(); }
+        return b;
+      }, function (e) {
+        if (gotowe[pole] && gotowe[pole].plik === plik) { bledyPlikow[pole] = (e && e.message) || (pole === "logo" ? "Logo: " + PROSBA : "Zrzut wpłaty: nie udało się przygotować pliku."); diagnostyka(pole, plik, e); odblokuj(); }
+        throw e;
+      });
+      gotowe[pole] = { plik: plik, obietnica: obietnica };
+      return obietnica;
+    }
+    /** Przycisk „Wyślij” zablokowany, póki wybrany plik nie przeszedł bramki; komunikat o pliku stoi w info, dopóki ktoś nie wybierze innego. */
+    function odblokuj() {
+      var blad = (kOsoba.checked ? "" : bledyPlikow.logo) || bledyPlikow.zrzut;
+      wyslij.disabled = !!blad;
+      if (blad) info.textContent = blad; else if (/^(Logo|Zrzut wpłaty)/.test(info.textContent)) info.textContent = "";
+    }
+    /* Diagnostyka awarii przygotowania (bez pliku, bez danych osoby): nazwa i treść błędu, przyczyna, rozmiar, typ, rozszerzenie, wymiary z nagłówka. Funkcja firma-zgloszenie
+       zapisuje to do client_errors (kind firma-plik); nadawca jest anonimowy, więc nie idzie przez _logKlienta (tylko zalogowani). Raz na plik, najwyżej 5 na stronę. */
+    var zgloszone = {};
+    function diagnostyka(pole, plik, e) {
+      try {
+        var klucz = pole + ":" + (plik.name || "") + ":" + plik.size;
+        if (zgloszone[klucz] || Object.keys(zgloszone).length >= 5 || !g.fetch) return;
+        zgloszone[klucz] = true;
+        var d = (e && e.diag) || {}, dane = new g.FormData();
+        dane.append("rodzaj", "diagnostyka"); dane.append("pole", pole); dane.append("blad", ((e && e.name) || "Error") + ": " + ((e && e.message) || ""));
+        dane.append("przyczyna", String(d.przyczyna || "")); dane.append("rozmiar", String(plik.size || 0)); dane.append("typ", String(plik.type || ""));
+        dane.append("rozszerzenie", String(d.rozszerzenie || "")); dane.append("rodzaj_pliku", String(d.rodzaj || "")); dane.append("wymiary", d.wymiary ? d.wymiary.w + "x" + d.wymiary.h : "");
+        dane.append("strona_www", "");
+        g.fetch((g.SB_URL || "") + EF, { method: "POST", body: dane, headers: g.SB_KEY ? { apikey: g.SB_KEY } : {}, keepalive: true }).catch(function () {});
+      } catch (e2) {}
+    }
+    zrzut.addEventListener("change", function () { if (zrzut.files[0]) przygotowany("zrzut", zrzut.files[0], zrzutDoWyslania).catch(function () {}); else { bledyPlikow.zrzut = ""; odblokuj(); } });
+
+    function ustawKto() { var o = kOsoba.checked; osoba.hidden = !o; firma.hidden = o; info.textContent = ""; if (o) rysujCegle(); else rysujPodglad(); odblokuj(); }
     kOsoba.addEventListener("change", ustawKto); kFirma.addEventListener("change", ustawKto);
     ustawKto();
 
     f.addEventListener("submit", function (e) {
-      e.preventDefault(); info.textContent = "";
+      e.preventDefault();
+      if (wyslij.disabled) return;   // plik nie przeszedł bramki (albo wysyłka trwa): Enter w polu też nic nie wysyła
+      info.textContent = "";
       var M = g.BM_MODERACJA, slug = d.testowa === true ? "proba" : "dla-fabianka", zadanie;
       if (kOsoba.checked) {
         var im = imie.value.trim(), em = emailOsoby.value.trim();
@@ -143,7 +187,7 @@
         if (kw && !/^\d{1,7}([.,]\d{1,2})?$/.test(kw)) { info.textContent = "Kwota: podaj liczbę złotych (np. 100) albo zostaw pole puste."; return; }
         if (!zrzut.files[0]) { info.textContent = "Dodaj zrzut potwierdzenia wpłaty."; return; }
         wyslij.disabled = true; info.textContent = "Wysyłam…";
-        zadanie = zrzutDoWyslania(zrzut.files[0]).then(function (zb) {
+        zadanie = przygotowany("zrzut", zrzut.files[0], zrzutDoWyslania).then(function (zb) {
           var dane = new g.FormData();
           dane.append("slug", slug); dane.append("rodzaj", "cegielka"); dane.append("imie", im); if (zgodaImie.checked) dane.append("zgoda_imie", "tak"); if (em) dane.append("email", em); if (kw) dane.append("kwota", kw);
           dane.append("strona_www", pp.value); dane.append("zrzut", zb, "zrzut");
@@ -161,7 +205,7 @@
         if (!zrzut.files[0]) { info.textContent = "Dodaj zrzut potwierdzenia wpłaty."; return; }
         if (!z.checked) { info.textContent = "Zaznacz zgodę na wymienienie firmy."; return; }
         wyslij.disabled = true; info.textContent = "Wysyłam…";
-        zadanie = Promise.all([logoDoWyslania(logo.files[0]), zrzutDoWyslania(zrzut.files[0])]).then(function (w) {
+        zadanie = Promise.all([przygotowany("logo", logo.files[0], logoDoWyslania), przygotowany("zrzut", zrzut.files[0], zrzutDoWyslania)]).then(function (w) {
           var dane = new g.FormData();
           dane.append("slug", slug); dane.append("rodzaj", rodzaj.value); dane.append("nazwa", n); dane.append("link", link.value.trim()); dane.append("email", email.value.trim()); dane.append("zgoda", "tak"); dane.append("kwota", kwota.value.trim()); if (zk.checked) dane.append("zgoda_kwota", "tak");
           dane.append("strona_www", pp.value); dane.append("logo", w[0], "logo"); dane.append("zrzut", w[1], "zrzut");
@@ -189,7 +233,7 @@
       }).catch(function (e2) {
         wyslij.disabled = false;
         var tresc = (e2 && e2.message) || "", opis = ((e2 && e2.name) || "Error") + (tresc ? ": " + tresc : "");
-        if (/^(Logo|Zrzut)/.test(tresc)) { info.textContent = tresc; return; }
+        if (/^(Logo|Zrzut)/.test(tresc)) { info.textContent = tresc; odblokuj(); return; }   // plik nie przeszedł bramki: przycisk zostaje zablokowany do zmiany pliku
         info.textContent = etap === "wysylka" ? "Nie udało się wysłać: brak połączenia z serwerem (" + opis + "). Sprawdź internet i spróbuj jeszcze raz."
           : etap === "odpowiedz" ? "Nie udało się odczytać odpowiedzi serwera (" + opis + "). Spróbuj jeszcze raz."
           : "Nie udało się przygotować plików (" + opis + "). Wybierz pliki jeszcze raz albo zrób zrzut ekranu potwierdzenia.";

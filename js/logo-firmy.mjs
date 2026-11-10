@@ -31,6 +31,39 @@
     return "";
   }
   function nowyCanvas(s, w) { var k = g.document.createElement("canvas"); k.width = Math.max(1, Math.round(s)); k.height = Math.max(1, Math.round(w)); return k; }
+  /** Szerokość i wysokość z nagłówka pliku (PNG, JPEG, WebP) bez dekodowania: do zmniejszania już przy dekodowaniu i do diagnostyki. null = nie wiadomo. */
+  function wymiaryZNaglowka(b) {
+    if (!b || b.length < 24) return null;
+    var u16 = function (i) { return (b[i] << 8) | b[i + 1]; }, u32 = function (i) { return (b[i] * 16777216) + (b[i + 1] << 16) + (b[i + 2] << 8) + b[i + 3]; }, u24le = function (i) { return b[i] | (b[i + 1] << 8) | (b[i + 2] << 16); };
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return { w: u32(16), h: u32(20) };
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) {
+      var i = 2;
+      while (i + 9 < b.length) {
+        if (b[i] !== 0xff) { i++; continue; }
+        var m = b[i + 1];
+        if (m === 0xff) { i++; continue; }
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { w: u16(i + 7), h: u16(i + 5) };
+        if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) { i += 2; continue; }
+        i += 2 + u16(i + 2);
+      }
+      return null;
+    }
+    if (ascii(b, 0, 4) === "RIFF" && ascii(b, 8, 4) === "WEBP" && b.length >= 30) {
+      var cz = ascii(b, 12, 4);
+      if (cz === "VP8X") return { w: u24le(24) + 1, h: u24le(27) + 1 };
+      if (cz === "VP8 ") return { w: (b[26] | (b[27] << 8)) & 0x3fff, h: (b[28] | (b[29] << 8)) & 0x3fff };
+      if (cz === "VP8L") { var v = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] * 16777216); return { w: (v & 0x3fff) + 1, h: ((v >>> 14) & 0x3fff) + 1 }; }
+    }
+    return null;
+  }
+  /** Opis pliku do diagnostyki (bez pliku): rozmiar, typ z przeglądarki, rozszerzenie, rodzaj po bajtach, wymiary z nagłówka, przyczyna. Doklejany do błędu jako e.diag. */
+  function zDiagnostyka(e, plik, rodzaj, bajty, przyczyna) {
+    try {
+      e.diag = { rodzaj: rodzaj || "", rozmiar: plik && plik.size || 0, typ: String(plik && plik.type || ""), rozszerzenie: ((/\.([a-z0-9]{1,5})$/i.exec(String(plik && plik.name || "")) || [])[1] || "").toLowerCase(),
+        wymiary: wymiaryZNaglowka(bajty), przyczyna: String(przyczyna && przyczyna.message || przyczyna || "") };
+    } catch (_) {}
+    return e;
+  }
 
   async function pdfNaCanvas(bajty) {
     var pdfjs = await import(new URL(KAT_PDF + "pdf.min.mjs", g.location.href).href);
@@ -101,9 +134,36 @@
     return [1, 1];
   }
 
-  /* Obraz rysuje przeglądarka (z obrotem EXIF, jak w <img>) od razu w mniejszym canvasie: zdjęcie 48 Mpx nie robi canvasu, którego telefon nie uniesie.
-     SVG rysowany w docelowej wielkości, więc ostry. Błąd = przeglądarka nie zna formatu. */
+  /* DUŻE ZDJĘCIA Z TELEFONU (Filip 10.11, A2): createImageBitmap zmniejsza już przy dekodowaniu (resizeWidth/resizeHeight), więc zdjęcie 48 Mpx nie potrzebuje ani
+     pełnej bitmapy, ani canvasu, którego telefon nie uniesie; imageOrientation 'from-image' obraca po EXIF jak <img>. Zmniejszenie liczone z nagłówka pliku po dłuższym
+     boku (przy obrocie o 90° proporcja zostaje, dokładny rozmiar i tak ustawia drawImage). Gdy createImageBitmap rzuci albo go nie ma (stare Safari, nieznany format),
+     stara droga przez Image. SVG zawsze przez Image (ostry w docelowej wielkości). */
+  function bitmapaNaCanvas(plik, bajty, bok) {
+    if (typeof g.createImageBitmap !== "function") return Promise.reject(new Error("brak createImageBitmap"));
+    var wym = wymiaryZNaglowka(bajty), opcje = { imageOrientation: "from-image", resizeQuality: "high" };
+    if (wym && wym.w > 0 && wym.h > 0 && Math.max(wym.w, wym.h) > bok) {
+      var sk = bok / Math.max(wym.w, wym.h);
+      if (wym.w >= wym.h) opcje.resizeWidth = Math.max(1, Math.round(wym.w * sk)); else opcje.resizeHeight = Math.max(1, Math.round(wym.h * sk));
+    }
+    return g.createImageBitmap(plik, opcje).then(function (bm) {
+      try {
+        var sw = bm.width, sh = bm.height, sk2 = Math.min(1, bok / Math.max(sw, sh));
+        if (!(sw > 0 && sh > 0)) throw new Error("dekodowanie");
+        var k = nowyCanvas(sw * sk2, sh * sk2), c = k.getContext("2d");
+        if (!c) throw new Error("pamięć");
+        c.imageSmoothingQuality = "high";
+        c.drawImage(bm, 0, 0, k.width, k.height);
+        k.droga = "bitmapa";
+        return k;
+      } finally { if (bm.close) { try { bm.close(); } catch (_) {} } }
+    });
+  }
   function obrazNaCanvas(plik, bajty, rodzaj, bok) {
+    if (rodzaj === "svg") return obrazPrzezImage(plik, bajty, rodzaj, bok);
+    return bitmapaNaCanvas(plik, bajty, bok || ETAP_BOK).catch(function () { return obrazPrzezImage(plik, bajty, rodzaj, bok); });
+  }
+  /* Obraz rysuje przeglądarka (z obrotem EXIF, jak w <img>) od razu w mniejszym canvasie. SVG rysowany w docelowej wielkości, więc ostry. Błąd = przeglądarka nie zna formatu. */
+  function obrazPrzezImage(plik, bajty, rodzaj, bok) {
     return new Promise(function (ok, zle) {
       var svg = rodzaj === "svg", zrodlo = svg ? new Blob([bajty], { type: "image/svg+xml" }) : plik, u = URL.createObjectURL(zrodlo), im = new Image();
       im.onerror = function () { URL.revokeObjectURL(u); zle(new Error("dekodowanie")); };
@@ -117,6 +177,7 @@
           if (!c) throw new Error("pamięć");
           c.imageSmoothingQuality = "high";
           c.drawImage(im, 0, 0, k.width, k.height);
+          k.droga = "obraz";
           ok(k);
         } catch (e) { zle(e); } finally { URL.revokeObjectURL(u); }
       };
@@ -145,21 +206,21 @@
     if (plik.size > WEJSCIE_MAKS) throw new Error("Logo: plik ma ponad 25 MB. " + PROSBA);
     var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
     if (rodzaj === "pdf") {
-      if (o.pdf === false) throw new Error("Logo: to plik PDF. " + PROSBA);
-      try { k = await pdfNaCanvas(bajty); } catch (e) { throw new Error("Logo: nie udało się odczytać PDF. " + PROSBA); }
+      if (o.pdf === false) throw zDiagnostyka(new Error("Logo: to plik PDF. " + PROSBA), plik, rodzaj, bajty);
+      try { k = await pdfNaCanvas(bajty); } catch (e) { throw zDiagnostyka(new Error("Logo: nie udało się odczytać PDF. " + PROSBA), plik, rodzaj, bajty, e); }
       bezBialegoTla(k);
       k = przytnij(k);
     } else {
       try { k = await obrazNaCanvas(plik, bajty, rodzaj); } catch (e) {
-        throw new Error(rodzaj === "heic" ? "Logo: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA + " Wystarczy zrzut ekranu z logo." : "Logo: tego pliku nie da się otworzyć jako obrazu. " + PROSBA);
+        throw zDiagnostyka(new Error(rodzaj === "heic" ? "Logo: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA + " Wystarczy zrzut ekranu z logo." : "Logo: tego pliku nie da się otworzyć jako obrazu. " + PROSBA), plik, rodzaj, bajty, e);
       }
       try { k = bezPustegoMarginesu(k); } catch (e) {}   // canvas, którego nie wolno czytać (stare Safari i SVG): logo bez przycięcia
     }
     k = przeskaluj(k);
     var blob = null;
     try { blob = await new Promise(function (ok) { k.toBlob(ok, "image/webp", JAKOSC); }); } catch (e) { blob = null; }
-    if (!blob) throw new Error("Logo: nie udało się przygotować obrazu. " + PROSBA);
-    return { blob: blob, szer: k.width, wys: k.height, zPdf: rodzaj === "pdf" };
+    if (!blob) throw zDiagnostyka(new Error("Logo: nie udało się przygotować obrazu. " + PROSBA), plik, rodzaj, bajty, "toBlob");
+    return { blob: blob, szer: k.width, wys: k.height, zPdf: rodzaj === "pdf", droga: k.droga || "" };
   }
   /* Zrzut albo zdjęcie potwierdzenia wpłaty (formularz na stronie akcji, firma i osoba): do 1600 px na białym tle, bez przycinania (to dokument, nie logo),
      WebP poniżej 2 MB, czyli limitu funkcji firma-zgloszenie. Kolejne próby jakości, na końcu JPG (Safari bez zapisu WebP oddaje PNG, który bywa za duży). */
@@ -169,9 +230,9 @@
     if (!plik || !(plik.size > 0)) throw new Error("Zrzut wpłaty: wybierz plik.");
     if (plik.size > WEJSCIE_MAKS) throw new Error("Zrzut wpłaty: plik ma ponad 25 MB. " + PROSBA_ZRZUT);
     var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
-    if (rodzaj === "pdf") throw new Error("Zrzut wpłaty: to plik PDF. " + PROSBA_ZRZUT);
+    if (rodzaj === "pdf") throw zDiagnostyka(new Error("Zrzut wpłaty: to plik PDF. " + PROSBA_ZRZUT), plik, rodzaj, bajty);
     try { k = await obrazNaCanvas(plik, bajty, rodzaj, ZRZUT_BOK); } catch (e) {
-      throw new Error(rodzaj === "heic" ? "Zrzut wpłaty: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT : "Zrzut wpłaty: tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT);
+      throw zDiagnostyka(new Error(rodzaj === "heic" ? "Zrzut wpłaty: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT : "Zrzut wpłaty: tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT), plik, rodzaj, bajty, e);
     }
     var b = nowyCanvas(k.width, k.height), c = b.getContext("2d");
     c.fillStyle = "#fff"; c.fillRect(0, 0, b.width, b.height); c.drawImage(k, 0, 0);
@@ -180,7 +241,7 @@
       var w = await doBloba(b, proby[i][0], proby[i][1]);
       if (w && w.size <= ZRZUT_MAKS && /^image\/(webp|jpeg|png)$/.test(w.type)) return w;
     }
-    throw new Error("Zrzut wpłaty: nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT);
+    throw zDiagnostyka(new Error("Zrzut wpłaty: nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT), plik, rodzaj, bajty, "toBlob za duży");
   }
-  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, rodzajPoBajtach: rodzajPoBajtach, PROSBA: PROSBA };
+  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, rodzajPoBajtach: rodzajPoBajtach, wymiaryZNaglowka: wymiaryZNaglowka, obrazNaCanvas: obrazNaCanvas, PROSBA: PROSBA };
 })(globalThis);

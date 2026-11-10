@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   try { f = await req.formData(); } catch { return J(400, { ok: false, blad: "Nie udało się odczytać formularza." }); }
   const sb = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
   const w = await przyjmijZgloszenie({
-    dane: f, ipSkrot: await skrotIp(req), sb, moderacja: MODERACJA, przeskaluj: przeskalujLogo,
+    dane: f, ipSkrot: await skrotIp(req), sb, moderacja: MODERACJA, przeskaluj: przeskalujLogo, userAgent: req.headers.get("user-agent") || "",
     // Brak subskrypcji albo wygasła: send-push kończy bez wysyłki, zgłoszenie czeka w panelu i w liczniku „Firmy do sprawdzenia”.
     powiadom: (p: Record<string, string>) => fetch(`${SB_URL}/functions/v1/send-push`, { method: "POST", headers: { "Content-Type": "application/json", "x-push-secret": SEKRET }, body: JSON.stringify({ athlete_id: KONTO_FILIPA, ...p }) }),
   });
