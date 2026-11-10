@@ -1,7 +1,7 @@
 /* BLIZNA 206 / MIASTO DOBRA, PROTOTYP NA POKAZ (9.11.2026). miasto.html + js/miasto.mjs.
    Pilnuje tego, co przy fundacji kosztuje zaufanie: (1) suma miasta liczy tylko ulice prawdziwe, przykłady są oznaczone na mapie, na karcie i przy każdej
    liczbie; (2) bez danych osobowych, nazwisk, imion w kodzie, logo i nazw prawdziwych organizacji, bez „partner”; (3) strona czyta wyłącznie publiczny licznik
-   (przez js/akcja.mjs) i niczego nie wysyła, kreator też; (4) działa bez licznika: ostatni stan z pamięci ze „stan z …”, bez pustych kart;
+   (przez js/akcja.mjs) i niczego nie wysyła, kreator też; (4) działa bez licznika: ostatni zapisany stan ze „stan z …”, bez pustych kart;
    (5) noindex i żadna strona ani skrypt aplikacji nie linkuje do miasto.html; sw.js (zamrożony) nietknięty. */
 'use strict';
 const test = require('node:test');
@@ -58,12 +58,14 @@ test('(2) bez danych osób: imię z licznika, nie z kodu; bez nazwisk, e-maili, 
     assert.doesNotMatch(t, /siepomaga|zrzutka|pomagam\.pl|fundacj[aeiy] [A-ZŁŚŻ]/, n + ': bez nazw serwisów zbiórek i organizacji');
     assert.doesNotMatch(t, /partner|współprac|we współpracy|patronat/i, n + ': żadnej sugestii partnerstwa');
     assert.doesNotMatch(t, /logo_url|akcja-firmy-logo|logo\.(png|jpg|webp|svg)|(?<!favicon-32)\.(png|jpg)"/, n + ': bez logo firm (jedyny png to favicon)'); assert.doesNotMatch(t, /chor(ob|y|uje)|diagnoz|nowotw|szpital|leczeni|rehabilitac|niepełnospraw/i, n + ': bez diagnoz');
-    assert.doesNotMatch(t, /zmar[łl]|śmier|pogrzeb|odszed|odeszł/i, n + ': ulica pamięci bez sugestii śmierci');
+    assert.doesNotMatch(t, /zmar[łl]|śmier|pogrzeb|odszed|odeszł/i, n + ': ulica zbudowana bez sugestii śmierci');
+    /* Filip 10.11: ukończona ulica to sukces i święto, nie upamiętnienie (przy zbiórkach na leczenie dzieci „pamięci” kojarzy się z kimś, kto odszedł) */
+    assert.doesNotMatch(t, /pamięci|pomnik|wieniec|tablica pamiątkowa|pamiątk|upamiętni/i, n + ': nic, co wygląda jak upamiętnienie');
   }
   assert.match(MJS, /u\.nazwa = im \? "Ulica " \+ im : \(d\.nazwa \? String\(d\.nazwa\) : u\.nazwa\);/, 'nazwa ulicy z imienia z licznika (dopełniacz z akcja.mjs)');
   const { M } = modul();
   for (const p of M.PRZYKLADY) assert.match(p.nazwa, /^(Ulica [A-ZŚŻŁ][a-ząęółśżźćń]+|Bieg Wirtualny)$/, p.id + ': nazwa neutralna');
-  assert.deepEqual([...M.PRZYKLADY].map((p) => p.nazwa), ['Bieg Wirtualny', 'Ulica Szkolna', 'Ulica Urodzinowa', 'Ulica Pamięci']);
+  assert.deepEqual([...M.PRZYKLADY].map((p) => p.nazwa), ['Bieg Wirtualny', 'Ulica Szkolna', 'Ulica Urodzinowa', 'Ulica Słoneczna']);
   const tekst = JSON.stringify(M.PRZYKLADY) + JSON.stringify(M.KROKI);
   assert.doesNotMatch(tekst, /\b[A-ZŁŚŻ][a-ząęółśżźćń]+ [A-ZŁŚŻ][a-ząęółśżźćń]+(ski|cka|wicz|czyk|ak)\b/, 'bez imion i nazwisk');
   assert.match(tekst, /organizacj[aieę] prowadząc/, 'w tekstach: „organizacja prowadząca zbiórkę”');
@@ -71,6 +73,16 @@ test('(2) bez danych osób: imię z licznika, nie z kodu; bez nazwisk, e-maili, 
   const grafiki = [...HTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]).concat([...HTML.matchAll(/'(assets\/[^']+\.webp)'/g)].map((m) => m[1]));
   assert.ok(grafiki.length >= 20); for (const g of new Set(grafiki)) { assert.ok(fs.existsSync(path.join(KORZEN, g)), g + ' istnieje'); assert.doesNotMatch(g, /fabian|kasia|filip|rowerzysta|koparka-postac|arkusz/i, g + ': tylko grafiki ogólne'); }
   assert.doesNotMatch(HTML, /supabase\.co\/storage|akcja-wizerunek|share-assets/, 'nic z kubełków');
+  /* assets/miasto (10.11, API obrazów ze wzorcem domek-1): dokładnie pliki, których strona albo moduł używa; ≤ 60 kB (tło mapy ≤ 150 kB); nazwy bez imion */
+  const uzyte = new Set(grafiki.concat([...MJS.matchAll(/"(assets\/[^"]+\.webp)"/g)].map((m) => m[1])).filter((g) => g.startsWith('assets/miasto/')));
+  const wKatalogu = fs.readdirSync(path.join(KORZEN, 'assets/miasto')).map((f) => 'assets/miasto/' + f);
+  assert.deepEqual(wKatalogu.sort(), [...uzyte].sort(), 'assets/miasto: dokładnie te pliki, których używa strona');
+  assert.equal(wKatalogu.length, 11, 'tło, brama, szkoła, domek urodzinowy, ulica zbudowana, staw, 5 ikon światów');
+  for (const g of wKatalogu) {
+    const kb = fs.statSync(path.join(KORZEN, g)).size / 1000;
+    assert.ok(kb <= (/tlo-mapy/.test(g) ? 150 : 60), g + ': ' + kb.toFixed(1) + ' kB (limit 60, tło 150)');
+    assert.match(g, /^assets\/miasto\/[a-z0-9-]+\.webp$/, g + ': nazwa neutralna'); assert.doesNotMatch(g, /fabian|kasia|filip|pamiec|pomnik/i, g + ': bez imion i upamiętnień');
+  }
 });
 
 test('(3) czyta tylko publiczny licznik przez js/akcja.mjs; nic nie wysyła; kreator niczego nie zapisuje; licznik czytany tylko w polach z listy', async () => {

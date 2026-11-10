@@ -22,10 +22,10 @@
     { id: "urodzinowa", przyklad: true, status: "trwa", nazwa: "Ulica Urodzinowa", forma: "Osobista zbiórka urodzinowa",
       opis: "Zamiast prezentów: „30 km na urodziny” i link do zbiórki. Znajomi dokładają kilometry i cegły z imieniem w murze. Mała ulica na kilka dni.",
       cel_km: 30, suma_km: 19, osoby_n: 11, cegly_n: 11, firmy_n: 0, etykieta: "30 km na urodziny" },
-    { id: "pamieci", przyklad: true, status: "zakonczona", nazwa: "Ulica Pamięci", forma: "Ulica zakończona",
-      opis: "Cel osiągnięty. Ulica zostaje w mieście jako pamiątka: z murem imion, domkami firm i podsumowaniem tego, co się udało.",
+    { id: "sloneczna", przyklad: true, status: "zakonczona", nazwa: "Ulica Słoneczna", forma: "Ulica zbudowana: cel osiągnięty",
+      opis: "Cel osiągnięty, ulica otwarta. Zostaje w mieście na stałe: z murem imion, domkami firm i podsumowaniem tego, co się udało. Sukces, który widać na mapie.",
       cel_km: 10000, suma_km: 10000, osoby_n: 1240, cegly_n: 420, firmy_n: 12, dni_n: 41, etykieta: "zbudowana",
-      podsumowanie: ["10 000 km w 41 dni", "1 240 osób, 420 cegieł w murze, 12 firm na ulicy", "Zbiórka organizacji zamknięta. Ulica zostaje jako pamiątka."] }
+      podsumowanie: ["10 000 km w 41 dni", "1 240 osób, 420 cegieł w murze, 12 firm na ulicy", "Zbiórka organizacji zakończona sukcesem. Ulica zostaje w mieście."] }
   ];
   var WOLNA = { id: "wolna", wolna: true, nazwa: "Wolna działka", etykieta: "tu może stanąć Twoja ulica" };
 
@@ -74,7 +74,7 @@
     var p = function (x) { return String(x).padStart(2, "0"); };
     return "stan z " + d.getDate() + "." + p(d.getMonth() + 1) + ", " + p(d.getHours()) + ":" + p(d.getMinutes());
   }
-  /** Publiczny licznik przez js/akcja.mjs (EF akcja-licznik, sesja 60 s). Bez BM_AKCJA → null (strona rysuje się z pamięci). */
+  /** Publiczny licznik przez js/akcja.mjs (EF akcja-licznik, sesja 60 s). Bez BM_AKCJA → null (strona rysuje się z zapisanego stanu). */
   function pobierzPrawdziwa() {
     var A = g.BM_AKCJA;
     if (!A || !A.pobierzPubliczny) return Promise.resolve(null);
@@ -116,7 +116,7 @@
       (u.druzyny_n != null ? liczbaHtml(liczba(u.druzyny_n), forma(u.druzyny_n, ["drużyna", "drużyny", "drużyn"]), p) : "") +
       '</div><div class="md-pasek" role="img" aria-label="' + esc(liczba(pct, 1)) + ' % celu"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div>';
   }
-  /** Karta ulicy: tytuł, znaczki, liczby (przykład przy każdej), opis, podsumowanie, stan, przycisk. opcje.stanZ: czas pamięci (ms) przy braku sieci. */
+  /** Karta ulicy: tytuł, znaczki, liczby (przykład przy każdej), opis, podsumowanie, stan, przycisk. opcje.stanZ: czas zapisu (ms) przy braku sieci. */
   function kartaHtml(u, opcje) {
     var o = opcje || {}, h = '<div class="md-karta" data-ulica="' + esc(u.id) + '">' + '<div class="md-chipy">' + chip(u) + '</div>' + '<h2>' + esc(u.nazwa) + '</h2>';
     if (u.wolna) {
@@ -143,9 +143,9 @@
     if (u.status === "brak") return { tytul: u.nazwa, podpis: "licznik chwilowo niedostępny" };
     if (u.status === "przed") return { tytul: u.nazwa, podpis: "wkrótce" };
     var pct = u.pct != null ? Number(u.pct) : procent(u), cegly = odmiana(u.cegly_n, ["cegła", "cegły", "cegieł"]), firmy = odmiana(u.firmy_n, ["firma", "firmy", "firm"]);
-    /* prawdziwa: km w tytule (szeroka działka); przykłady: km w podpisie, który może się łamać, żeby na 360 px nic nie było ucięte */
+    /* prawdziwa: km w tytule (szeroka działka), pełny podpis; przykłady: km w podpisie, bez firm (najwyżej 2 linie na 360 px, firmy są na karcie) */
     if (u.prawdziwa) return { tytul: u.nazwa + " · " + km(u.suma_km) + " km", podpis: u.status === "zakonczona" ? "zbudowana · " + cegly : liczba(pct, 1) + " % celu · " + cegly + " · " + firmy };
-    return { tytul: u.nazwa, podpis: km(u.suma_km) + " km · " + (u.status === "zakonczona" ? "zbudowana · " + cegly : liczba(pct, 1) + " % celu · " + cegly + " · " + firmy) };
+    return { tytul: u.nazwa, podpis: km(u.suma_km) + " km · " + (u.status === "zakonczona" ? "zbudowana · " + cegly : liczba(pct, 1) + " % celu · " + cegly) };   // twarde spacje: liczba nie rozstaje się z jednostką
   }
 
   /* ── KREATOR (atrapa: nic nie zapisuje, nic nie wysyła) ───────────────────────────────────── */
@@ -156,12 +156,12 @@
       wybor: ["Wspólne kilometry dla jednej zbiórki", "Wirtualny bieg charytatywny (5 lub 10 km)", "Wyzwanie szkół lub firm (ranking drużyn)", "Osobista zbiórka (np. urodzinowa)"],
       pola: [{ etykieta: "Cel w kilometrach", typ: "number", przyklad: "np. 5 000" }, { etykieta: "Start", typ: "date" }, { etykieta: "Koniec", typ: "date" }] },
     { tytul: "Bohater i grafiki", opis: "Imię bohatera tylko za zgodą opiekuna. Rysunek, plakat i film wgrywa organizacja, a my sprawdzamy je przed publikacją.",
-      pola: [{ etykieta: "Nazwa ulicy", typ: "text", przyklad: "np. Ulica Słoneczna" }, { etykieta: "Imię bohatera (opcjonalnie, za zgodą)", typ: "text" }],
-      /* Świat gry (decyzja 9.11): ten sam bieg, inny świat. Ikony z istniejących grafik albo emoji; brakujące na liście grafik z promptami. */
+      pola: [{ etykieta: "Nazwa ulicy", typ: "text", przyklad: "np. Ulica Tęczowa" }, { etykieta: "Imię bohatera (opcjonalnie, za zgodą)", typ: "text" }],
+      /* Świat gry (decyzja 9.11): ten sam bieg, inny świat. Ikony: koparka z Ulicy, reszta z assets/miasto (10.11, API obrazów ze wzorcem domek-1); emoji zostaje jako zapas, gdy obrazu brak. */
       pytanieSwiata: "Co kocha bohater tej ulicy?", dopisekSwiata: "Ten sam bieg, inny świat: zmieniają się tylko grafiki na ulicy i w grze.",
-      swiaty: [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", emoji: "🚀" },
-        { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", emoji: "🦖" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", emoji: "⚽" },
-        { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", emoji: "🐾" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/ulica/tablica-start.webp" }],
+      swiaty: [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", obraz: "assets/miasto/swiat-kosmos.webp", emoji: "🚀" },
+        { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", obraz: "assets/miasto/swiat-dinozaury.webp", emoji: "🦖" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", obraz: "assets/miasto/swiat-pilka.webp", emoji: "⚽" },
+        { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", obraz: "assets/miasto/swiat-zwierzeta.webp", emoji: "🐾" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/miasto/swiat-miasto.webp" }],
       zgody: ["Mam zgodę opiekuna na imię bohatera na ulicy", "Mam prawa do grafik, które wgram"], pliki: ["Rysunek bohatera", "Plakat akcji"] }
   ];
   function kreatorHtml(nr) {
