@@ -56,12 +56,15 @@ test('pola zgłoszenia: moderacja nazwy, https, e-mail, zgoda, rodzaj tylko dome
 test('zgłoszenie: pułapka i limit przed plikami, tylko prywatny kubełek, push tylko do Filipa, bez publicznego zapisu', () => {
   const k = bezKomJs(czytaj('supabase/functions/_shared/firma-obsluga.mjs'));
   const z = k.slice(k.indexOf('export async function przyjmijZgloszenie'), k.indexOf('export async function akcjaPanelu'));
-  const pulapka = z.indexOf('strona_www'), limit = z.indexOf('akcja_firmy_wpusc'), wgrywanie = z.indexOf('.upload(');
-  assert.ok(pulapka > 0 && pulapka < limit && limit < wgrywanie, 'kolejność: pułapka, limit, dopiero wgrywanie');
+  /* Od A1 (10.11): limit (akcja_firmy_wpusc przez wpuscPrzezBaze) dopiero po walidacji pól i plików, bo każde wywołanie RPC to wpis do akcja_firmy_proby (blizna-207). */
+  const pulapka = z.indexOf('strona_www'), walidacja = z.indexOf('sprawdzPlik('), limit = z.indexOf('await wpuscPrzezBaze('), wgrywanie = z.indexOf('.upload(');
+  assert.ok(pulapka > 0 && pulapka < walidacja && walidacja < limit && limit < wgrywanie, 'kolejność: pułapka, walidacja, limit, dopiero wgrywanie');
+  assert.ok(k.indexOf('sb.rpc("akcja_firmy_wpusc"') > 0 && k.indexOf('sb.rpc("akcja_firmy_wpusc"') < k.indexOf('export async function przyjmijZgloszenie'), 'RPC limitu tylko w wpuscPrzezBaze');
   assert.match(z, /if \(String\(f\.get\("strona_www"\) \|\| ""\)\.trim\(\)\) return J\(200, \{ ok: true \}\)/, 'bot dostaje ok i nic się nie dzieje');
   assert.match(k, /KUBELEK = "firmy-zgloszenia"/);
   assert.doesNotMatch(z, /PUBLICZNY|share-assets|getPublicUrl|\.from\("akcja_firmy"\)/, 'zgłoszenie nie dotyka niczego publicznego');
-  assert.deepEqual([...z.matchAll(/\.rpc\(\s*"([^"]+)/g)].map((m) => m[1]), ['akcja_firmy_wpusc', 'akcja_firmy_zgloszenie_dodaj'], 'klucz serwisowy tylko do dwóch funkcji');
+  const zg = k.slice(k.indexOf('async function wpuscPrzezBaze'), k.indexOf('export async function akcjaPanelu'));
+  assert.deepEqual([...zg.matchAll(/\.rpc\(\s*"([^"]+)/g)].map((m) => m[1]), ['akcja_firmy_wpusc', 'akcja_firmy_zgloszenie_dodaj'], 'klucz serwisowy tylko do dwóch funkcji');
   const ef = czytaj('supabase/functions/firma-zgloszenie/index.ts');
   assert.match(ef, /athlete_id: KONTO_FILIPA/);
   assert.match(k, /Nowa firma: \$\{w\.nazwa\} · /, 'tytuł pushu z komendy');

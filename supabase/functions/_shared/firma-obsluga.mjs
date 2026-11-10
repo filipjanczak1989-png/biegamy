@@ -13,18 +13,49 @@ export function trescPushu(w, slug, id) {
   return { title: `${slug === "proba" ? "[próba] " : ""}Nowa firma: ${w.nazwa} · ${nazwaBudynku(w.rodzaj)} · ${zl(w.kwota_gr)}`, body: "Dotknij, żeby zatwierdzić albo odrzucić.", url: `/trener.html#firma-zgloszenie=${id}`, type: "akcja", tag: `firma-${id}` };
 }
 
+/* LIMIT PO WALIDACJI (Filip 10.11, A1): akcja_firmy_wpusc zapisuje próbę do akcja_firmy_proby (3 na godzinę z adresu), więc woła się ją dopiero wtedy, gdy zgłoszenie
+   jest formalnie poprawne: pola, pliki po bajtach, wymiary i skalowanie logo są sprawdzone wcześniej. Trzy literówki nie blokują adresu na godzinę. Pułapka na boty
+   i limit 5 MB (EF) zostają przed wszystkim. Progi do sprawdzenia kwoty czyta się z `akcje` przed RPC; gdy ten odczyt padnie, próg sprawdza się po RPC z jej odpowiedzi
+   (wtedy jedna próba może pójść na zbyt niską kwotę, ale klient i tak odrzuca ją przed wysłaniem). */
+async function progiAkcji(sb, slug) {
+  try {
+    const r = await sb.from("akcje").select("prog_domku_zl, prog_wiezowca_zl").eq("slug", slug).maybeSingle();
+    return r && r.data && (r.data.prog_domku_zl != null || r.data.prog_wiezowca_zl != null) ? r.data : null;
+  } catch (_) { return null; }
+}
+/** Ile minut do końca godzinnej blokady: najstarsza próba z ostatniej godziny (odczyt kluczem serwisowym). Brak odczytu → null (komunikat bez minut). */
+export async function minutyBlokady(sb, ipSkrot, teraz) {
+  try {
+    const t = teraz || Date.now(), od = new Date(t - 3600000).toISOString();
+    const r = await sb.from("akcja_firmy_proby").select("kiedy").eq("ip_skrot", ipSkrot).gt("kiedy", od).order("kiedy", { ascending: true }).limit(1);
+    const k = r && r.data && r.data[0] && Date.parse(r.data[0].kiedy);
+    if (!k) return null;
+    return Math.max(1, Math.ceil((k + 3600000 - t) / 60000));
+  } catch (_) { return null; }
+}
+export function komunikatLimitu(minuty) {
+  return minuty ? `Za dużo zgłoszeń z tego adresu. Spróbuj za ${minuty} min.` : "Za dużo zgłoszeń z tego adresu. Spróbuj za godzinę.";
+}
+/** Przepuszczenie przez bazę: przełącznik akcji i limit na adres. → { status, body } przy odmowie, { wpusc } przy zgodzie. */
+async function wpuscPrzezBaze(d, slug) {
+  const sb = d.sb, J = (status, body) => ({ status, body });
+  const { data: wpusc, error: bladWpusc } = await sb.rpc("akcja_firmy_wpusc", { p_ip: d.ipSkrot, p_slug: slug });
+  if (bladWpusc || !wpusc) { console.error("firma-zgloszenie wpusc:", bladWpusc && bladWpusc.message); return J(500, { ok: false, blad: "Nie udało się. Spróbuj za chwilę." }); }
+  if (!wpusc.ok) return wpusc.powod === "limit" ? J(429, { ok: false, blad: komunikatLimitu(await minutyBlokady(sb, d.ipSkrot, d.teraz)) }) : J(403, { ok: false, blad: "Zgłoszenia są teraz wyłączone." });
+  return { wpusc };
+}
+
 /** Formularz ze strony akcji. d: { dane: FormData-podobne (get), ipSkrot, sb, moderacja, powiadom(payload), przeskaluj?(bytes) }. → { status, body }. Awaria pushu nie psuje zgłoszenia: lista czeka w panelu. */
 export async function przyjmijZgloszenie(d) {
   const f = d.dane, sb = d.sb, J = (status, body) => ({ status, body });
   // Pułapka: pole niewidoczne dla człowieka. Bot dostaje „ok” i nic się nie dzieje.
   if (String(f.get("strona_www") || "").trim()) return J(200, { ok: true });
   const slug = f.get("slug") === "proba" ? "proba" : "dla-fabianka";
-  const { data: wpusc, error: bladWpusc } = await sb.rpc("akcja_firmy_wpusc", { p_ip: d.ipSkrot, p_slug: slug });
-  if (bladWpusc || !wpusc) { console.error("firma-zgloszenie wpusc:", bladWpusc && bladWpusc.message); return J(500, { ok: false, blad: "Nie udało się. Spróbuj za chwilę." }); }
-  if (!wpusc.ok) return wpusc.powod === "limit" ? J(429, { ok: false, blad: "Za dużo zgłoszeń z tego adresu. Spróbuj za godzinę." }) : J(403, { ok: false, blad: "Zgłoszenia są teraz wyłączone." });
   if (f.get("rodzaj") === "cegielka") return przyjmijCegielke(d, slug);
 
-  const p = sprawdzZgloszenie({ rodzaj: f.get("rodzaj"), nazwa: f.get("nazwa"), link: f.get("link"), email: f.get("email"), zgoda: f.get("zgoda"), kwota: f.get("kwota"), zgoda_kwota: f.get("zgoda_kwota") }, d.moderacja, wpusc);
+  const pola = { rodzaj: f.get("rodzaj"), nazwa: f.get("nazwa"), link: f.get("link"), email: f.get("email"), zgoda: f.get("zgoda"), kwota: f.get("kwota"), zgoda_kwota: f.get("zgoda_kwota") };
+  const progi = await progiAkcji(sb, slug);
+  const p = sprawdzZgloszenie(pola, d.moderacja, progi);
   if (p.blad) return J(400, { ok: false, blad: p.blad });
   const wiersz = p.wiersz;
   const plikLogo = f.get("logo"), plikZrzut = f.get("zrzut");
@@ -38,8 +69,19 @@ export async function przyjmijZgloszenie(d) {
   let typLogo = zlg.typ;
   const wym = wymiaryObrazu(logo, typLogo);
   if (!wym || wym.w < 1 || wym.h < 1) return J(400, { ok: false, blad: "Logo: nie udało się odczytać obrazu." });
-  if (Math.max(wym.w, wym.h) > LOGO_BOK) {
-    if (typLogo === "image/webp" || !d.przeskaluj) return J(400, { ok: false, blad: "Logo może mieć najwyżej 400 px na dłuższym boku. Wyślij PNG albo JPG." });
+  const zaDuze = Math.max(wym.w, wym.h) > LOGO_BOK;
+  if (zaDuze && (typLogo === "image/webp" || !d.przeskaluj)) return J(400, { ok: false, blad: "Logo może mieć najwyżej 400 px na dłuższym boku. Wyślij PNG albo JPG." });
+
+  /* Dopiero teraz baza: przełącznik i limit. Progi z odpowiedzi RPC są rozstrzygające (odczyt z `akcje` mógł paść albo próg mógł się zmienić). */
+  const w = await wpuscPrzezBaze(d, slug);
+  if (!w.wpusc) return w;
+  if (!progi || progi.prog_domku_zl !== w.wpusc.prog_domku_zl || progi.prog_wiezowca_zl !== w.wpusc.prog_wiezowca_zl) {
+    const p2 = sprawdzZgloszenie(pola, d.moderacja, w.wpusc);
+    if (p2.blad) return J(400, { ok: false, blad: p2.blad });
+  }
+  /* Drogie dopiero za limitem (Filip 10.11): dekodowanie i skalowanie PNG/JPG > 400 px w czystym JS zostaje chronione limiterem jak dotąd. Przed limitem tylko tanie:
+     pola, bajty, rozmiar, wymiary z nagłówka. Po A2 klient wysyła ≤ 400 px WebP, więc ta ścieżka jest rzadka (oryginał z drogi awaryjnej). */
+  if (zaDuze) {
     try { logo = await d.przeskaluj(logo); typLogo = "image/png"; }
     catch (e) { console.error("firma-zgloszenie skalowanie:", String(e)); return J(400, { ok: false, blad: "Logo jest za duże: najwyżej 400 px na dłuższym boku." }); }
   }
@@ -67,6 +109,8 @@ async function przyjmijCegielke(d, slug) {
   const zrzut = plikZrzut && plikZrzut.arrayBuffer ? new Uint8Array(await plikZrzut.arrayBuffer()) : null;
   const zz = sprawdzPlik(zrzut, "zrzut wpłaty");
   if (zz.blad) return J(400, { ok: false, blad: zz.blad });
+  const w = await wpuscPrzezBaze(d, slug);   // limit dopiero po walidacji (A1)
+  if (!w.wpusc) return w;
   const id = (d.noweId || (() => crypto.randomUUID()))(), sciezkaZrzut = `${id}/zrzut.${zz.rozszerzenie}`;
   const up = await sb.storage.from(KUBELEK).upload(sciezkaZrzut, zrzut, { contentType: zz.typ, upsert: false });
   if (up.error) { console.error("firma-zgloszenie upload cegiełki:", up.error.message); return J(500, { ok: false, blad: "Nie udało się zapisać pliku. Spróbuj za chwilę." }); }
