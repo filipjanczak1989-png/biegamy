@@ -113,7 +113,7 @@ test('formularz: „Firma” od razu rysuje podgląd (bez nazwy i logo), zmiana 
   rodzaj.value = 'wiezowiec'; rodzaj.dispatch('change'); await F.czekaj();
   assert.equal(ost(F.wolania).rodzaj, 'wiezowiec', 'zmiana budynku od razu zmienia podgląd'); assert.equal(ost(F.wolania).logo, null);
   const logo = F.znajdz('ff-logo');
-  logo.files = [{ name: 'logo.png', size: 1000, type: 'image/png' }]; logo.dispatch('change'); await F.czekaj(); await F.czekaj();
+  logo.files = [{ name: 'logo.png', size: 1000, type: 'image/png', arrayBuffer: async () => new Uint8Array(16).buffer }]; logo.dispatch('change'); await F.czekaj(); await F.czekaj(); await F.czekaj();
   assert.equal(JSON.stringify(ost(F.wolania)), JSON.stringify({ nazwa: 'Twoja firma', logo: 'blob:podglad-logo', rodzaj: 'wiezowiec' }), 'logo przygotowane jak do wysyłki trafia na tablicę');
   assert.equal(F.podglad().przewinieto, 1, 'po wyborze logo przewinięcie do podglądu');
   const nazwa = F.znajdz('ff-nazwa');

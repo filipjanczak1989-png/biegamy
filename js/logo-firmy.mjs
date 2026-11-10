@@ -57,12 +57,30 @@
     return null;
   }
   /** Opis pliku do diagnostyki (bez pliku): rozmiar, typ z przeglądarki, rozszerzenie, rodzaj po bajtach, wymiary z nagłówka, przyczyna. Doklejany do błędu jako e.diag. */
-  function zDiagnostyka(e, plik, rodzaj, bajty, przyczyna) {
+  function zDiagnostyka(e, plik, rodzaj, bajty, przyczyna, etap) {
     try {
-      e.diag = { rodzaj: rodzaj || "", rozmiar: plik && plik.size || 0, typ: String(plik && plik.type || ""), rozszerzenie: ((/\.([a-z0-9]{1,5})$/i.exec(String(plik && plik.name || "")) || [])[1] || "").toLowerCase(),
-        wymiary: wymiaryZNaglowka(bajty), przyczyna: String(przyczyna && przyczyna.message || przyczyna || "") };
+      e.diag = { etap: etap || (bajty ? "dekodowanie" : "odczyt"), rodzaj: rodzaj || "", rozmiar: plik && plik.size || 0, typ: String(plik && plik.type || ""), rozszerzenie: ((/\.([a-z0-9]{1,5})$/i.exec(String(plik && plik.name || "")) || [])[1] || "").toLowerCase(),
+        wymiary: wymiaryZNaglowka(bajty), przyczyna: przyczyna && przyczyna.name && przyczyna.name !== "Error" && przyczyna.message ? przyczyna.name + ": " + przyczyna.message : String(przyczyna && przyczyna.message || przyczyna || "") };
     } catch (_) {}
     return e;
+  }
+
+  /* JEDEN ODCZYT PLIKU (zgłoszenie z produkcji 10.11, Samsung, Chrome): plik z galerii bywa czytelny tylko przez chwilę po wybraniu; drugi odczyt (fetch z oryginałem,
+     Image z adresem pliku) kończył się NotReadableError albo „Failed to fetch”. Bajty czyta się raz, od razu po wybraniu, z jedną automatyczną ponowną próbą po 300 ms,
+     a dekodowanie, podgląd i wysyłka pracują na kopii w pamięci. Odmowa odczytu dostaje instrukcję po polsku zamiast surowego tekstu przeglądarki. */
+  var BLEDY_ODCZYTU = /^(NotReadableError|NotFoundError|SecurityError)$/;
+  var TELEFON_NIE_POZWOLIL = "Telefon nie pozwolił odczytać tego pliku. Wybierz go jeszcze raz z Galerii albo Moich plików (nie z „Ostatnie” ani z chmury). Jeśli dalej nie działa, zrób zrzut ekranu tego zdjęcia i wybierz zrzut.";
+  function czekaj(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+  /** Plik → Uint8Array (kopia w pamięci). prefiks: „Logo” albo „Zrzut wpłaty”. Druga próba po `odstep` ms (domyślnie 300), potem błąd z instrukcją. */
+  async function czytajBajty(plik, prefiks, odstep) {
+    var e1;
+    try { return new Uint8Array(await plik.arrayBuffer()); } catch (e) { e1 = e; }
+    await czekaj(odstep == null ? 300 : odstep);
+    try { return new Uint8Array(await plik.arrayBuffer()); } catch (e2) {
+      var nazwa = String((e2 && e2.name) || (e1 && e1.name) || "");
+      var tresc = BLEDY_ODCZYTU.test(nazwa) ? TELEFON_NIE_POZWOLIL : "nie udało się odczytać pliku. " + (prefiks === "Logo" ? PROSBA : PROSBA_ZRZUT);
+      throw zDiagnostyka(new Error(prefiks + ": " + tresc), plik, "", null, e2 || e1, "odczyt");
+    }
   }
 
   async function pdfNaCanvas(bajty) {
@@ -145,7 +163,7 @@
       var sk = bok / Math.max(wym.w, wym.h);
       if (wym.w >= wym.h) opcje.resizeWidth = Math.max(1, Math.round(wym.w * sk)); else opcje.resizeHeight = Math.max(1, Math.round(wym.h * sk));
     }
-    return g.createImageBitmap(plik, opcje).then(function (bm) {
+    return g.createImageBitmap(new Blob([bajty], { type: String(plik && plik.type || "") }), opcje).then(function (bm) {   // z kopii w pamięci, nie z pliku na dysku
       try {
         var sw = bm.width, sh = bm.height, sk2 = Math.min(1, bok / Math.max(sw, sh));
         if (!(sw > 0 && sh > 0)) throw new Error("dekodowanie");
@@ -165,7 +183,7 @@
   /* Obraz rysuje przeglądarka (z obrotem EXIF, jak w <img>) od razu w mniejszym canvasie. SVG rysowany w docelowej wielkości, więc ostry. Błąd = przeglądarka nie zna formatu. */
   function obrazPrzezImage(plik, bajty, rodzaj, bok) {
     return new Promise(function (ok, zle) {
-      var svg = rodzaj === "svg", zrodlo = svg ? new Blob([bajty], { type: "image/svg+xml" }) : plik, u = URL.createObjectURL(zrodlo), im = new Image();
+      var svg = rodzaj === "svg", zrodlo = svg ? new Blob([bajty], { type: "image/svg+xml" }) : new Blob([bajty], { type: String(plik && plik.type || "") }), u = URL.createObjectURL(zrodlo), im = new Image();   // zawsze kopia z pamięci, nigdy plik z dysku
       im.onerror = function () { URL.revokeObjectURL(u); zle(new Error("dekodowanie")); };
       im.onload = function () {
         try {
@@ -199,12 +217,12 @@
     return n;
   }
 
-  /** Plik → { blob, szer, wys, zPdf }. opcje.pdf === false: PDF odrzucany (formularz na stronie akcji, bez pdf.js). Błędy po polsku w Error.message, zawsze z tym, co zrobić. */
+  /** Plik → { blob, szer, wys, zPdf }. opcje.pdf === false: PDF odrzucany (formularz na stronie akcji, bez pdf.js); opcje.bajty: bajty już odczytane (jeden odczyt pliku). Błędy po polsku w Error.message, zawsze z tym, co zrobić. */
   async function przygotuj(plik, opcje) {
     var o = opcje || {};
     if (!plik || !(plik.size > 0)) throw new Error("Logo: wybierz plik.");
     if (plik.size > WEJSCIE_MAKS) throw new Error("Logo: plik ma ponad 25 MB. " + PROSBA);
-    var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
+    var bajty = o.bajty instanceof Uint8Array ? o.bajty : await czytajBajty(plik, "Logo"), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
     if (rodzaj === "pdf") {
       if (o.pdf === false) throw zDiagnostyka(new Error("Logo: to plik PDF. " + PROSBA), plik, rodzaj, bajty);
       try { k = await pdfNaCanvas(bajty); } catch (e) { throw zDiagnostyka(new Error("Logo: nie udało się odczytać PDF. " + PROSBA), plik, rodzaj, bajty, e); }
@@ -226,10 +244,11 @@
      WebP poniżej 2 MB, czyli limitu funkcji firma-zgloszenie. Kolejne próby jakości, na końcu JPG (Safari bez zapisu WebP oddaje PNG, który bywa za duży). */
   var PROSBA_ZRZUT = "Zrób zrzut ekranu potwierdzenia (PNG albo JPG).";
   function doBloba(k, typ, jakosc) { return new Promise(function (ok) { try { k.toBlob(ok, typ, jakosc); } catch (e) { ok(null); } }); }
-  async function przygotujZrzut(plik) {
+  async function przygotujZrzut(plik, opcje) {
+    var o = opcje || {};
     if (!plik || !(plik.size > 0)) throw new Error("Zrzut wpłaty: wybierz plik.");
     if (plik.size > WEJSCIE_MAKS) throw new Error("Zrzut wpłaty: plik ma ponad 25 MB. " + PROSBA_ZRZUT);
-    var bajty = new Uint8Array(await plik.arrayBuffer()), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
+    var bajty = o.bajty instanceof Uint8Array ? o.bajty : await czytajBajty(plik, "Zrzut wpłaty"), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
     if (rodzaj === "pdf") throw zDiagnostyka(new Error("Zrzut wpłaty: to plik PDF. " + PROSBA_ZRZUT), plik, rodzaj, bajty);
     try { k = await obrazNaCanvas(plik, bajty, rodzaj, ZRZUT_BOK); } catch (e) {
       throw zDiagnostyka(new Error(rodzaj === "heic" ? "Zrzut wpłaty: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT : "Zrzut wpłaty: tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT), plik, rodzaj, bajty, e);
@@ -243,5 +262,5 @@
     }
     throw zDiagnostyka(new Error("Zrzut wpłaty: nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT), plik, rodzaj, bajty, "toBlob za duży");
   }
-  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, rodzajPoBajtach: rodzajPoBajtach, wymiaryZNaglowka: wymiaryZNaglowka, obrazNaCanvas: obrazNaCanvas, PROSBA: PROSBA };
+  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, czytajBajty: czytajBajty, rodzajPoBajtach: rodzajPoBajtach, wymiaryZNaglowka: wymiaryZNaglowka, obrazNaCanvas: obrazNaCanvas, PROSBA: PROSBA, TELEFON_NIE_POZWOLIL: TELEFON_NIE_POZWOLIL };
 })(globalThis);

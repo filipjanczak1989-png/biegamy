@@ -13,31 +13,42 @@
   function css() { if (g.document.getElementById("ff-css")) return; var s = el("style", "", g.document.head, CSS); s.id = "ff-css"; }
 
   /** PNG, JPG albo WebP po pierwszych bajtach (te przyjmuje funkcja firma-zgloszenie). → typ albo "". */
-  function typSurowy(plik) {
-    return plik.slice(0, 12).arrayBuffer().then(function (a) {
-      var b = new Uint8Array(a);
-      if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
-      if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
-      if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
-      return "";
-    }, function () { return ""; });
+  function typZBajtow(b) {
+    if (!b || b.length < 12) return "";
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+    if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+    return "";
   }
+  /* JEDEN ODCZYT PLIKU (produkcja 10.11, Samsung): plik z galerii czytamy raz, od razu po wybraniu (js/logo-firmy.mjs czytajBajty, z ponowną próbą po 300 ms),
+     a przygotowanie, podgląd i droga awaryjna pracują na kopii w pamięci. Oryginału z dysku nie dotyka już nic: drugi odczyt kończył się NotReadableError. */
   /** Logo do wysyłki: to samo przygotowanie co w panelu trenera (js/logo-firmy.mjs, bez PDF): PNG, JPG, WebP, SVG, zdjęcie z telefonu → WebP najwyżej 400 px.
-      Gdy przygotowanie w przeglądarce padnie, a plik i tak jest PNG, JPG albo WebP do 2 MB, idzie oryginał: funkcja na serwerze sama go sprawdzi i zmniejszy, a trener zobaczy plik. */
+      Gdy przygotowanie w przeglądarce padnie, a bajty to PNG, JPG albo WebP do 2 MB, idzie ich kopia: funkcja na serwerze sama ją sprawdzi i zmniejszy, a trener zobaczy plik. */
+  /** Bajty pliku przez logo-firmy.mjs (ponowna próba, komunikat); gdy pamięć podręczna podała starszą wersję modułu bez czytajBajty, zwykły jeden odczyt. */
+  function bajtyPliku(L, plik, prefiks) {
+    if (L && typeof L.czytajBajty === "function") return L.czytajBajty(plik, prefiks);
+    return Promise.resolve().then(function () { return plik.arrayBuffer(); }).then(function (a) { return new Uint8Array(a); });
+  }
   function logoDoWyslania(plik) {
     var L = g.BM_LOGO_FIRMY;
-    var przygotowane = L ? L.przygotuj(plik, { pdf: false }).then(function (w) { return w.blob; }) : Promise.reject(new Error("Logo: nie udało się przygotować pliku. " + PROSBA));
-    return przygotowane.catch(function (e) {
-      return typSurowy(plik).then(function (typ) { if (typ && plik.size <= PLIK_MAKS) return plik; throw e; });
+    if (!L || !L.przygotuj) return Promise.reject(new Error("Logo: nie udało się przygotować pliku. " + PROSBA));
+    return bajtyPliku(L, plik, "Logo").then(function (bajty) {
+      return L.przygotuj(plik, { pdf: false, bajty: bajty }).then(function (w) { return w.blob; }).catch(function (e) {
+        var typ = typZBajtow(bajty); if (typ && plik.size <= PLIK_MAKS) return new Blob([bajty], { type: typ });
+        throw e;
+      });
     });
   }
   /** Zrzut wpłaty (firma i osoba): zdjęcie z aparatu albo duży zrzut → WebP do 1600 px w przeglądarce (js/logo-firmy.mjs przygotujZrzut), żeby limit 2 MB funkcji
-      nie odrzucał zdjęć. Gdy przygotowanie padnie, PNG/JPG/WebP do 2 MB idzie jako oryginał. */
+      nie odrzucał zdjęć. Gdy przygotowanie padnie, kopia bajtów PNG/JPG/WebP do 2 MB idzie dalej. */
   function zrzutDoWyslania(plik) {
     var L = g.BM_LOGO_FIRMY;
-    var przygotowany = L && L.przygotujZrzut ? L.przygotujZrzut(plik) : Promise.reject(new Error("Zrzut wpłaty: nie udało się przygotować pliku. Zrób zrzut ekranu potwierdzenia (PNG albo JPG)."));
-    return przygotowany.catch(function (e) {
-      return typSurowy(plik).then(function (typ) { if (typ && plik.size <= PLIK_MAKS) return plik; throw e; });
+    if (!L || !L.przygotujZrzut) return Promise.reject(new Error("Zrzut wpłaty: nie udało się przygotować pliku. Zrób zrzut ekranu potwierdzenia (PNG albo JPG)."));
+    return bajtyPliku(L, plik, "Zrzut wpłaty").then(function (bajty) {
+      return L.przygotujZrzut(plik, { bajty: bajty }).catch(function (e) {
+        var typ = typZBajtow(bajty); if (typ && plik.size <= PLIK_MAKS) return new Blob([bajty], { type: typ });
+        throw e;
+      });
     });
   }
   function poprawneImie(t) { return RE_IMIE.test(String(t || "").trim()); }
@@ -159,7 +170,7 @@
         if (zgloszone[klucz] || Object.keys(zgloszone).length >= 5 || !g.fetch) return;
         zgloszone[klucz] = true;
         var d = (e && e.diag) || {}, dane = new g.FormData();
-        dane.append("rodzaj", "diagnostyka"); dane.append("pole", pole); dane.append("blad", ((e && e.name) || "Error") + ": " + ((e && e.message) || ""));
+        dane.append("rodzaj", "diagnostyka"); dane.append("pole", pole); dane.append("blad", ((e && e.name) || "Error") + ": " + ((e && e.message) || "")); dane.append("etap", String(d.etap || ""));
         dane.append("przyczyna", String(d.przyczyna || "")); dane.append("rozmiar", String(plik.size || 0)); dane.append("typ", String(plik.type || ""));
         dane.append("rozszerzenie", String(d.rozszerzenie || "")); dane.append("rodzaj_pliku", String(d.rodzaj || "")); dane.append("wymiary", d.wymiary ? d.wymiary.w + "x" + d.wymiary.h : "");
         dane.append("strona_www", "");

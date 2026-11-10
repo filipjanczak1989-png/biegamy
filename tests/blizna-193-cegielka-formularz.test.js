@@ -40,13 +40,14 @@ test('formularz: osoba albo firma; osoba wysyła imię, zgodę i zrzut, bez logo
   assert.doesNotMatch(F, /Zrzut wpłaty: plik do 2 MB|zrzut\.files\[0\]\.type/, 'bez blokady 2 MB i typu przed przygotowaniem');
   assert.match(F, /U\.podgladCegly\(podCegly, ok \? im : "", zgodaImie\.checked\)/, 'podgląd cegły: bez zgody cegła bez imienia, jak w murze');
   assert.match(F, /if \(wlaczone\) formularz\(s, d\); else cegielka\(s, adres\);/, 'osobny podgląd cegiełki tylko bez formularza');
-  /* zrzutDoWyslania: przygotowanie, a gdy padnie, oryginał PNG/JPG/WebP do 2 MB */
-  const uruchom = (L) => { const c = { Promise, Uint8Array, BM_LOGO_FIRMY: L }; c.globalThis = c; vm.createContext(c); vm.runInContext(czytaj('js/firma-formularz.mjs'), c); return c.BM_FIRMA_FORMULARZ; };
-  const png = PNG(), p = { size: png.length, slice: (x, y) => ({ arrayBuffer: () => Promise.resolve(png.slice(x, y).buffer) }) };
+  /* zrzutDoWyslania: przygotowanie, a gdy padnie, kopia bajtów PNG/JPG/WebP do 2 MB (nigdy plik z dysku, blizna-212) */
+  const uruchom = (L) => { const c = { Promise, Uint8Array, Blob, BM_LOGO_FIRMY: L }; c.globalThis = c; vm.createContext(c); vm.runInContext(czytaj('js/firma-formularz.mjs'), c); return c.BM_FIRMA_FORMULARZ; };
+  const png = PNG(), p = { size: png.length, arrayBuffer: () => Promise.resolve(png.buffer.slice(0)) };
   assert.equal(await uruchom({ przygotujZrzut: () => Promise.resolve('WEBP') }).zrzutDoWyslania(p), 'WEBP');
-  assert.equal(await uruchom({ przygotujZrzut: () => Promise.reject(new Error('Zrzut wpłaty: x')) }).zrzutDoWyslania(p), p);
+  const kopia = await uruchom({ przygotujZrzut: () => Promise.reject(new Error('Zrzut wpłaty: x')) }).zrzutDoWyslania(p);
+  assert.notEqual(kopia, p, 'droga awaryjna: kopia w pamięci'); assert.equal(kopia.type, 'image/png'); assert.equal(kopia.size, png.length);
   await assert.rejects(uruchom({ przygotujZrzut: () => Promise.reject(new Error('Zrzut wpłaty: x')) }).zrzutDoWyslania({ ...p, size: 3 * 1024 * 1024 }), /Zrzut wpłaty: x/);
-  await assert.rejects(uruchom(undefined).zrzutDoWyslania({ size: 5, slice: () => ({ arrayBuffer: () => Promise.resolve(new Uint8Array(5).buffer) }) }), /Zrób zrzut ekranu/);
+  await assert.rejects(uruchom(undefined).zrzutDoWyslania({ size: 5, arrayBuffer: () => Promise.resolve(new Uint8Array(5).buffer) }), /Zrób zrzut ekranu/);
   assert.equal(uruchom(undefined).poprawneImie('Anna-Maria'), true);
 });
 

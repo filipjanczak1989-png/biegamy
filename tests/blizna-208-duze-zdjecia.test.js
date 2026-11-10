@@ -74,7 +74,7 @@ test('awaria przygotowania niesie diagnostykę bez pliku: rodzaj, rozmiar, typ, 
   const { L } = piaskownica({ szer: 1, wys: 1, bitmapa: 'pada', obrazPada: true });
   const e = await L.przygotuj(plik(HEIC(), 'IMG_0001.HEIC', 'image/heic', 3400000), { pdf: false }).catch((x) => x);
   assert.match(e.message, /^Logo: zdjęcia HEIC ta przeglądarka nie otworzy/);
-  assert.deepEqual({ ...e.diag, wymiary: e.diag.wymiary }, { rodzaj: 'heic', rozmiar: 3400000, typ: 'image/heic', rozszerzenie: 'heic', wymiary: null, przyczyna: 'dekodowanie' });
+  assert.deepEqual({ ...e.diag, wymiary: e.diag.wymiary }, { etap: 'dekodowanie', rodzaj: 'heic', rozmiar: 3400000, typ: 'image/heic', rozszerzenie: 'heic', wymiary: null, przyczyna: 'dekodowanie' });
   const e2 = await L.przygotujZrzut(plik(JPEG(4000, 3000), 'zdjecie.jpg', 'image/jpeg', 4100000)).catch((x) => x);
   assert.match(e2.message, /^Zrzut wpłaty: tego pliku nie da się otworzyć/); assert.deepEqual({ ...e2.diag.wymiary }, { w: 4000, h: 3000 }); assert.equal(e2.diag.rozszerzenie, 'jpg');
   const e3 = await L.przygotujZrzut(plik(new TextEncoder().encode('%PDF-1.4 x'), 'p.pdf', 'application/pdf')).catch((x) => x);
@@ -96,13 +96,13 @@ test('formularz: pliki przez bramkę przy wyborze, „Wyślij” zablokowane po 
   const dg = fo.slice(fo.indexOf('function diagnostyka(pole, plik, e)'), fo.indexOf('zrzut.addEventListener("change"'));
   assert.match(dg, /dane\.append\("rodzaj", "diagnostyka"\)/); assert.match(dg, /keepalive: true/);
   assert.doesNotMatch(dg, /append\("(logo|zrzut|nazwa|name)"|append\([^)]*plik\.name|arrayBuffer/, 'diagnostyka bez pliku i bez nazwy pliku (nazwa służy tylko jako klucz „raz na plik” w przeglądarce)');
-  for (const p of ['pole', 'blad', 'przyczyna', 'rozmiar', 'typ', 'rozszerzenie', 'rodzaj_pliku', 'wymiary']) assert.match(dg, new RegExp('dane\\.append\\("' + p + '"'));
+  for (const p of ['pole', 'etap', 'blad', 'przyczyna', 'rozmiar', 'typ', 'rozszerzenie', 'rodzaj_pliku', 'wymiary']) assert.match(dg, new RegExp('dane\\.append\\("' + p + '"'));
   assert.match(dg, /Object\.keys\(zgloszone\)\.length >= 5/, 'najwyżej 5 zgłoszeń diagnostyki na stronę');
   /* zachowanie bramki w piaskownicy: przygotowanie pada → odblokuj() blokuje przycisk, diagnostyka idzie raz, inny plik odblokowuje */
   const wyslane = [], c = { Promise, Uint8Array, Object, String, Number, Math, Error, RegExp, JSON, console, setTimeout, clearTimeout, SB_URL: 'https://sb', SB_KEY: 'k',
     fetch: (u, o) => { wyslane.push([u, o]); return Promise.resolve({ ok: true, status: 200, text: async () => '{"ok":true}' }); },
     FormData: class { constructor() { this.p = []; } append(k, v) { this.p.push([k, v]); } }, URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} },
-    BM_LOGO_FIRMY: { przygotuj: () => Promise.reject(Object.assign(new Error('Logo: tego pliku nie da się otworzyć jako obrazu. Wyślij logo jako PNG lub JPG.'), { diag: { rodzaj: 'obraz', rozmiar: 4100000, typ: 'image/jpeg', rozszerzenie: 'jpg', wymiary: { w: 4000, h: 3000 }, przyczyna: 'dekodowanie' } })), przygotujZrzut: () => Promise.resolve({ size: 10, type: 'image/webp' }) },
+    BM_LOGO_FIRMY: { przygotuj: () => Promise.reject(Object.assign(new Error('Logo: tego pliku nie da się otworzyć jako obrazu. Wyślij logo jako PNG lub JPG.'), { diag: { etap: 'dekodowanie', rodzaj: 'obraz', rozmiar: 4100000, typ: 'image/jpeg', rozszerzenie: 'jpg', wymiary: { w: 4000, h: 3000 }, przyczyna: 'dekodowanie' } })), przygotujZrzut: () => Promise.resolve({ size: 10, type: 'image/webp' }) },
     BM_AKCJA: { zUlica: () => {}, dopelniacz: (x) => x }, BM_MODERACJA: { sprawdz: () => ({ ok: true }), komunikat: () => '' } };
   const el = (tag) => { const e = { tag, children: [], attrs: {}, style: {}, files: [], value: '', hidden: false, disabled: false, textContent: '', listeners: {}, appendChild(x) { this.children.push(x); return x; }, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); }, querySelector() { return null; }, removeChild() {}, scrollIntoView() {} }; Object.defineProperty(e, 'firstChild', { get() { return null; } }); return e; };
   c.document = { createElement: el, getElementById: () => null, head: el('head') };
@@ -113,12 +113,12 @@ test('formularz: pliki przez bramkę przy wyborze, „Wyślij” zablokowane po 
   const logo = wszystkie.find((e) => e.name === 'ff-logo'), wyslij = wszystkie.find((e) => e.tag === 'button' && e.type === 'submit'), info = wszystkie.find((e) => e.className === 'ff-info'), kFirma = wszystkie.find((e) => e.value === 'firma'), kOsoba = wszystkie.find((e) => e.value === 'osoba');
   assert.ok(logo && wyslij && info && kFirma && kOsoba, 'pola formularza');
   kOsoba.checked = false; kFirma.checked = true; kFirma.listeners.change.forEach((f) => f());   // jak prawdziwe radio: jedno zaznaczone
-  const zly = { name: 'IMG.jpg', size: 4100000, type: 'image/jpeg', slice: () => ({ arrayBuffer: async () => new Uint8Array(12).buffer }) }; logo.files = [zly];   // bajty nieznane → droga awaryjna też odmawia
+  const zly = { name: 'IMG.jpg', size: 4100000, type: 'image/jpeg', arrayBuffer: async () => new Uint8Array(12).buffer }; logo.files = [zly];   // bajty nieznane → droga awaryjna też odmawia
   return new Promise((r) => setTimeout(r, 5)).then(() => { logo.listeners.change.forEach((f) => f()); return new Promise((r) => setTimeout(r, 10)); }).then(() => {
     assert.equal(wyslij.disabled, true, 'awaria przygotowania logo = przycisk zablokowany'); assert.match(info.textContent, /^Logo: tego pliku nie da się otworzyć/);
     assert.equal(wyslane.length, 1, 'jedna diagnostyka'); assert.equal(wyslane[0][0], 'https://sb/functions/v1/firma-zgloszenie');
     const pola = Object.fromEntries(wyslane[0][1].body.p);
-    assert.deepEqual(pola, { rodzaj: 'diagnostyka', pole: 'logo', blad: 'Error: Logo: tego pliku nie da się otworzyć jako obrazu. Wyślij logo jako PNG lub JPG.', przyczyna: 'dekodowanie', rozmiar: '4100000', typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000', strona_www: '' });
+    assert.deepEqual(pola, { rodzaj: 'diagnostyka', pole: 'logo', etap: 'dekodowanie', blad: 'Error: Logo: tego pliku nie da się otworzyć jako obrazu. Wyślij logo jako PNG lub JPG.', przyczyna: 'dekodowanie', rozmiar: '4100000', typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000', strona_www: '' });
     logo.listeners.change.forEach((f) => f()); return new Promise((r) => setTimeout(r, 10));
   }).then(() => {
     assert.equal(wyslane.length, 1, 'ten sam plik drugi raz: bez drugiej diagnostyki i bez drugiego przygotowania');
@@ -134,14 +134,14 @@ test('funkcja: diagnostyka do client_errors bez RPC limitu, bez user_id, krótki
     insert: async (w) => { wpisy.push([t, w]); wBazie++; return { error: null }; },
     select: (kol, o) => ({ eq: (k, v) => ({ gt: async (k2, od) => { liczniki.push([t, kol, o, k, v, k2, od]); return licznikPada ? { error: { message: 'brak' }, count: null } : { count: wBazie, error: null }; } }) }),
   }) };
-  const dane = (nad) => { const m = new Map(Object.entries({ rodzaj: 'diagnostyka', pole: 'logo', blad: 'Error: Logo: x', przyczyna: 'dekodowanie', rozmiar: '4100000', typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000', strona_www: '', ...nad })); return { get: (k) => (m.has(k) ? m.get(k) : null) }; };
+  const dane = (nad) => { const m = new Map(Object.entries({ rodzaj: 'diagnostyka', pole: 'logo', etap: 'dekodowanie', blad: 'Error: Logo: x', przyczyna: 'dekodowanie', rozmiar: '4100000', typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000', strona_www: '', ...nad })); return { get: (k) => (m.has(k) ? m.get(k) : null) }; };
   const t0 = Date.UTC(2026, 10, 10, 12, 0);
   const w = await O.przyjmijZgloszenie({ dane: dane(), ipSkrot: 'ip-d', sb, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S911B) Samsung', teraz: t0 });
   assert.deepEqual(w, { status: 200, body: { ok: true } }); assert.deepEqual(rpc, [], 'bez akcja_firmy_wpusc: diagnostyka nie zużywa limitu');
   assert.equal(wpisy.length, 1); assert.equal(wpisy[0][0], 'client_errors');
   const z = wpisy[0][1];
   assert.equal(z.user_id, null); assert.equal(z.kind, 'firma-plik'); assert.equal(z.url, '/dla-fabianka.html#firma'); assert.match(z.user_agent, /SM-S911B/);
-  assert.deepEqual(JSON.parse(z.message), { pole: 'logo', blad: 'Error: Logo: x', przyczyna: 'dekodowanie', rozmiar: 4100000, typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000' });
+  assert.deepEqual(JSON.parse(z.message), { pole: 'logo', etap: 'dekodowanie', blad: 'Error: Logo: x', przyczyna: 'dekodowanie', rozmiar: 4100000, typ: 'image/jpeg', rozszerzenie: 'jpg', rodzaj_pliku: 'obraz', wymiary: '4000x3000' });
   const dlugi = await O.przyjmijZgloszenie({ dane: dane({ blad: 'x'.repeat(2000), typ: 'y'.repeat(200), pole: 'z'.repeat(50) }), ipSkrot: 'ip-e', sb, teraz: t0 });
   assert.equal(dlugi.status, 200); const o2 = JSON.parse(wpisy[1][1].message); assert.equal(o2.blad.length, 300); assert.equal(o2.typ.length, 60); assert.equal(o2.pole.length, 10);
   for (let i = 0; i < 6; i++) await O.przyjmijZgloszenie({ dane: dane(), ipSkrot: 'ip-f', sb, teraz: t0 + i * 60000 });

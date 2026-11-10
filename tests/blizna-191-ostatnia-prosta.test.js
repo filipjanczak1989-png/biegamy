@@ -28,7 +28,7 @@ function udawanyPlik(bajty, typ, rozmiar) {
   return { type: typ || '', name: 'logo', size: rozmiar == null ? bajty.length : rozmiar, arrayBuffer: () => Promise.resolve(bajty.buffer.slice(bajty.byteOffset, bajty.byteOffset + bajty.length)), slice: (a, b) => ({ arrayBuffer: () => Promise.resolve(bajty.slice(a, b).buffer) }) };
 }
 function formularz(przygotuj) {
-  const c = { Promise, Uint8Array, BM_LOGO_FIRMY: przygotuj ? { przygotuj } : undefined }; c.globalThis = c; vm.createContext(c);
+  const c = { Promise, Uint8Array, Blob, BM_LOGO_FIRMY: przygotuj ? { przygotuj } : undefined }; c.globalThis = c; vm.createContext(c);
   vm.runInContext(czytaj('js/firma-formularz.mjs'), c);
   return c.BM_FIRMA_FORMULARZ;
 }
@@ -73,15 +73,17 @@ test('logo: każdy odrzucony plik mówi, co zrobić; formularz nie przyjmuje PDF
   for (const n of ['przezroczyste.png', 'obrot-exif.jpg', 'logo.svg', 'zly.pdf', 'zly-tekst.png', 'heic-naglowek.heic']) assert.ok(plik(n).length < 4096, n + ': mały plik w repo');
 });
 
-test('formularz: to samo przygotowanie co panel; gdy padnie, oryginał PNG/JPG/WebP do 2 MB idzie dalej', async () => {
+test('formularz: to samo przygotowanie co panel; gdy padnie, kopia bajtów PNG/JPG/WebP do 2 MB idzie dalej (nigdy plik z dysku, blizna-212)', async () => {
   const wynik = { blob: 'WEBP' };
   assert.equal(await formularz(() => Promise.resolve(wynik)).logoDoWyslania(udawanyPlik(plik('przezroczyste.png'), 'image/png')), 'WEBP');
   let opcje = null;
   await formularz((p, o) => { opcje = o; return Promise.resolve(wynik); }).logoDoWyslania(udawanyPlik(plik('logo.svg'), 'image/svg+xml'));
-  assert.deepEqual(JSON.parse(JSON.stringify(opcje)), { pdf: false }, 'bez PDF na stronie akcji');
+  assert.deepEqual(Object.keys(opcje).sort(), ['bajty', 'pdf'], 'bez PDF na stronie akcji, bajty odczytane raz, przed przygotowaniem'); assert.equal(opcje.pdf, false);
+  assert.equal(Buffer.from(opcje.bajty).toString(), Buffer.from(plik('logo.svg')).toString());
   const pada = () => Promise.reject(new Error('Logo: awaria canvasu.'));
   const png = udawanyPlik(plik('przezroczyste.png'), '');
-  assert.equal(await formularz(pada).logoDoWyslania(png), png, 'PNG bez typu z telefonu: oryginał');
+  const kopia = await formularz(pada).logoDoWyslania(png);
+  assert.notEqual(kopia, png, 'PNG bez typu z telefonu: kopia bajtów, nie plik z dysku'); assert.equal(kopia.type, 'image/png'); assert.equal(kopia.size, png.size);
   assert.equal(await formularz(pada).logoDoWyslania(udawanyPlik(plik('obrot-exif.jpg'), 'image/jpeg')).then((x) => x.type), 'image/jpeg');
   await assert.rejects(formularz(pada).logoDoWyslania(udawanyPlik(plik('przezroczyste.png'), 'image/png', 3 * 1024 * 1024)), /awaria canvasu/, 'ponad 2 MB serwer nie przyjmie');
   await assert.rejects(formularz(pada).logoDoWyslania(udawanyPlik(plik('zly.pdf'), 'application/pdf')), /awaria canvasu/);
