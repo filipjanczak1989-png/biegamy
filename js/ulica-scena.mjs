@@ -19,6 +19,7 @@
   };
   var MAX_CZASTEK = 110;
   var MUREK_H = 34, ODSTEP_CEGIEL = 4, CEGLA_MIN = 40, CEGLA_MAKS = 104, CEGLA_ZLOTA_MAKS = 120, MIEJSCE_NA_RESZTE = 50;
+  var DYMEK_SZER = 200, DYMEK_WYS_ZAPAS = 90;   // wizytówka po tapie (C, Filip 10.11): ≥ 160 px, logo na macie jak na tablicy; zapas wysokości, gdy nie da się zmierzyć
 
   function svgUrl(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
   var LISC = "M0-9 2-4 7-6 5-1 9 1 4 3 5 8 0 5-5 8-4 3-9 1-5-1-7-6-2-4Z";
@@ -87,7 +88,7 @@
     ".us--gra .us-skok{animation:us-skok .95s ease-out}@keyframes us-skok{0%,100%{transform:translate3d(0,0,0)}25%{transform:translate3d(0,-28px,0)}50%{transform:translate3d(0,0,0)}70%{transform:translate3d(0,-13px,0)}}" +
     ".us--gra .us-skok .us-cz-reka{animation-duration:.22s}" +
     ".us-stos{position:absolute;pointer-events:none}.us-stos i{position:absolute;width:15px;height:7px;border-radius:1.5px;background:#ef7a2a;border:1.2px solid #4a2408}" +
-    ".us-czolo[hidden]{display:none}.us-czolo{position:absolute;right:10px;bottom:10px;padding:7px 12px;border:0;border-radius:999px;background:rgba(20,16,28,.72);color:#fff;font:700 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer}.us-zjazd{translate:900px 0;transition:translate 5.5s ease-in}.us-dymek img{display:block;max-width:150px;max-height:52px;object-fit:contain;background:#fbf3df;border-radius:6px;padding:4px;margin-bottom:5px}.us-dymek i{display:block;font-style:normal;font-size:11px;font-weight:800;color:#ffb35c;margin-bottom:3px}" +
+    ".us-czolo[hidden]{display:none}.us-czolo{position:absolute;right:10px;bottom:10px;padding:7px 12px;border:0;border-radius:999px;background:rgba(20,16,28,.72);color:#fff;font:700 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer}.us-zjazd{translate:900px 0;transition:translate 5.5s ease-in}.us-dymek-mata{width:100%;height:64px;box-sizing:border-box;padding:6px;border-radius:8px;background:#f6f1e7;box-shadow:inset 0 0 0 1px rgba(90,46,14,.35);margin-bottom:6px}.us-dymek-mata--ciemna{background:#2a2a2a}.us-dymek-mata img{display:block;width:100%;height:100%;object-fit:contain}.us-dymek-kwota{display:block;margin-top:2px;color:#4a2408;font-size:12px;font-weight:600}.us-dymek i{display:block;font-style:normal;font-size:11px;font-weight:800;color:#ffb35c;margin-bottom:3px}" +
     ".us-partner{position:absolute;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#3a2410;color:#fff;font:800 9px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
     ".us-szyld{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:#4a2408;font-family:Inter,system-ui,sans-serif;font-weight:700;line-height:1.08;text-align:center;pointer-events:none}.us-szyld span{display:block;white-space:nowrap}" +
     ".us-lustro{transform:scaleX(-1)}" +
@@ -127,8 +128,8 @@
     ".us-podpowiedz{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:4px 10px;border-radius:10px;background:rgba(10,12,22,.62);color:#fff;font-size:11px;white-space:nowrap;pointer-events:none}.us--gra .us-podpowiedz{animation:us-gasnij 6s forwards}@keyframes us-gasnij{0%,80%{opacity:1}100%{opacity:0}}" +
     ".us-baner{position:absolute;left:50%;top:84px;padding:8px 16px;border-radius:14px;background:#e8561e;color:#fff;font:400 30px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.03em;white-space:nowrap;pointer-events:none;transform:translateX(-50%);animation:us-baner 3.2s ease-out forwards}" +
     "@keyframes us-baner{0%{opacity:0;transform:translateX(-50%) scale(.6)}12%{opacity:1;transform:translateX(-50%) scale(1.08)}20%,82%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}" +
-    ".us-dymek{position:absolute;width:180px;box-sizing:border-box;padding:9px 11px;border-radius:12px;background:#fff;color:#23252b;font-size:13px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.35);overflow-wrap:anywhere}" +
-    ".us-dymek b{display:block;font-weight:700}.us-dymek a{display:inline-block;margin-top:5px;padding:6px 0;color:#c2410c;font-weight:600}" +
+    ".us-dymek{position:absolute;width:" + DYMEK_SZER + "px;box-sizing:border-box;padding:9px 11px;border-radius:12px;background:#fff;color:#23252b;font-size:13px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.35);overflow-wrap:anywhere}" +
+    ".us-dymek b{display:block;font-weight:700}.us-dymek>span{display:block;margin-top:2px}.us-dymek a{display:inline-block;margin-top:5px;padding:6px 0;color:#c2410c;font-weight:600}" +
     ".us-opis{margin:8px 0 0;padding:0 16px;font-size:12px;line-height:1.45;color:var(--fg2,rgba(240,237,232,.72))}" +
     ".us-udostepnij{display:block;margin:10px 16px 0;min-height:44px;width:calc(100% - 32px);border-radius:12px;border:1px solid rgba(232,86,30,.55);background:transparent;color:#ff8a3d;font:600 14px Inter,system-ui,sans-serif;cursor:pointer}" +
     "@media (prefers-reduced-motion:reduce){.us *{animation:none !important;transition:none !important}.us-podpowiedz{display:none}}";
@@ -936,14 +937,25 @@
       }, 800));
     }
     function zamknijDymek() { if (dymekEl && dymekEl.parentNode) dymekEl.parentNode.removeChild(dymekEl); dymekEl = null; }
+    /* WIZYTÓWKA PO TAPIE (C, Filip 10.11): istniejący dymek rozbudowany, nie przepisany. Logo na macie z tą samą regułą co tablica (U.ciemnaMata: jasne → ciemna, ciemne → kremowa),
+       nazwa, „Wpłata: … zł” tylko gdy licznik oddał kwota_gr (czyli tylko za zgodą firmy), podpis partnera, plakat, „Strona firmy ›”. Zamykanie: tap w tło, Esc, przesunięcie kamery
+       (już było), więc okno modalne niepotrzebne. Logo się nie wczyta: mata znika, reszta zostaje. */
+    function zl(gr) { return Math.round(Number(gr) / 100).toLocaleString("pl-PL") + " zł"; }
     function dymek(nad, tytul, link, karta) {
       zamknijDymek();
       var b = el("div", "us-dymek", ui);
       b.setAttribute("role", "status");
-      if (karta && karta.logo) { var lg = el("img", "", b); lg.setAttribute("alt", ""); lg.setAttribute("crossorigin", "anonymous"); lg.onload = function () { if (U.jasneLogo(lg)) lg.style.background = "#2b2230"; }; lg.onerror = function () { if (lg.parentNode) lg.parentNode.removeChild(lg); }; lg.setAttribute("src", karta.logo); }
+      if (karta && karta.logo) {
+        var mata = el("div", "us-dymek-mata", b), lg = el("img", "", mata);
+        lg.setAttribute("alt", ""); lg.setAttribute("crossorigin", "anonymous");
+        lg.onload = function () { if (U.ciemnaMata(lg)) mata.classList.add("us-dymek-mata--ciemna"); };
+        lg.onerror = function () { if (mata.parentNode) mata.parentNode.removeChild(mata); };
+        lg.setAttribute("src", karta.logo);
+      }
       if (karta && karta.partner) el("i", "", b, "Partner akcji");
       if (karta && karta.poprzedni) el("i", "", b, "Partner poprzednich wyzwań");
       el("b", "", b, tytul);
+      if (karta && karta.kwota_gr > 0) el("span", "us-dymek-kwota", b, "Wpłata: " + zl(karta.kwota_gr));
       if (karta && karta.podpis) el("span", "us-dymek-zlota", b, karta.podpis);
       if (karta && karta.plakatTekst) el("span", "", b, karta.plakatTekst);
       if (link) {
@@ -951,8 +963,10 @@
         a.setAttribute("href", link); a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer nofollow");
       }
       var r = nad.getBoundingClientRect(), ro = okno.getBoundingClientRect();
-      b.style.left = Math.max(8, Math.min(ro.width - 188, r.left - ro.left + r.width / 2 - 90)) + "px";
-      b.style.top = Math.max(58, Math.min(WYS - 90, r.top - ro.top + 6)) + "px";
+      b.style.left = Math.max(8, Math.min(ro.width - DYMEK_SZER - 8, r.left - ro.left + r.width / 2 - DYMEK_SZER / 2)) + "px";
+      /* Dymek jest teraz wyższy (mata, kwota, podpis, plakat, link): dół liczony z jego faktycznej wysokości, nie ze stałej, i nad murkiem darczyńców, gdy ten jest. Góra: pod nakładką licznika (58). */
+      var wys = Number(b.offsetHeight) > 0 ? Number(b.offsetHeight) : DYMEK_WYS_ZAPAS, dolOkna = WYS - 8 - (okno.classList.contains("us-okno--murek") ? MUREK_H : 0);
+      b.style.top = Math.max(58, Math.min(dolOkna - wys, r.top - ro.top + 6)) + "px";
       dymekEl = b;
     }
     function reakcja(b) {

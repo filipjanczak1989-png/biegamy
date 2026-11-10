@@ -70,7 +70,9 @@
         var A = g.BM_AKCJA;
         return { nazwa: nazwa, link: typeof f.link === "string" ? f.link : "", logo: A && A.logoFirmy ? A.logoFirmy(f) : "",
           rodzaj: f.rodzaj === "wiezowiec" || f.rodzaj === "cegielka" || BUDYNKI_POPRZEDNICH[f.rodzaj] ? f.rodzaj : "domek", partner: f.wsparcie === "rzeczowe", poprzedni: f.wsparcie === "poprzednie",
-          plakat: A && A.logoFirmy ? A.logoFirmy({ logo_url: f.plakat_url }) : "", plakatTekst: typeof f.plakat_tekst === "string" ? f.plakat_tekst : "" };
+          plakat: A && A.logoFirmy ? A.logoFirmy({ logo_url: f.plakat_url }) : "", plakatTekst: typeof f.plakat_tekst === "string" ? f.plakat_tekst : "",
+          /* kwota (C, Filip 10.11): licznik oddaje kwota_gr WYŁĄCZNIE przy zgoda_na_kwote (akcja_licznik: case when f.zgoda_na_kwote, sprawdzone na prod 10.11); tu tylko liczba > 0 albo null */
+          kwota_gr: Number(f.kwota_gr) > 0 ? Number(f.kwota_gr) : null };
       }).filter(Boolean).map(function (f, i) { return [f, i]; }).sort(function (a, b) { return rangaFirmy(a[0]) - rangaFirmy(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; }),
     };
   }
