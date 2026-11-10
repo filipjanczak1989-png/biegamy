@@ -146,6 +146,13 @@ async function przyjmijCegielke(d, slug) {
   return J(200, { ok: true, id });
 }
 
+/** Powód błędu magazynu po ludzku, do komunikatu w panelu: komunikat Supabase Storage przycięty, bez pustki. */
+export function powodMagazynu(e) {
+  const m = String((e && (e.message || e.error)) || "").replace(/\s+/g, " ").trim().slice(0, 160);
+  if (/exceeded the maximum allowed size|Payload too large|too large/i.test(m)) return "plik większy niż limit kubełka (1 MB)";
+  if (/mime type|not supported|invalid_mime/i.test(m)) return "typ pliku odrzucony przez kubełek: " + m;
+  return m ? "błąd magazynu: " + m : "magazyn nie podał powodu";
+}
 /** Decyzje i lista w panelu trenera. Kontrola konta jest wcześniej, w EF. d: { sb, user, body, wyslijMaila?(do, temat, tresc) }. → { status, body }. */
 export async function akcjaPanelu(d) {
   const sb = d.sb, user = d.user, body = d.body || {}, J = (status, b) => ({ status, body: b });
@@ -192,10 +199,15 @@ export async function akcjaPanelu(d) {
     if (wiersz.logo_sciezka) {
       const rozsz = String(wiersz.logo_sciezka).split(".").pop() || "webp";
       const pob = await sb.storage.from(KUBELEK).download(wiersz.logo_sciezka);
-      if (pob.error || !pob.data) { console.error("firma-panel pobranie logo:", pob.error && pob.error.message); return J(500, { ok: false, blad: "Nie udało się pobrać logo." }); }
+      /* D (Filip 10.11): powód błędu idzie do panelu (js/firmy-panel.mjs pokazuje `blad` przez textContent), nie tylko do logów funkcji. */
+      if (pob.error || !pob.data) { console.error("firma-panel pobranie logo:", pob.error && pob.error.message); return J(500, { ok: false, blad: "Nie udało się pobrać logo ze zgłoszenia (" + wiersz.logo_sciezka + "): " + powodMagazynu(pob.error) + "." }); }
       nowy = `${(d.noweId || (() => crypto.randomUUID()))()}.${rozsz}`;
       const up = await sb.storage.from(PUBLICZNY).upload(nowy, pob.data, { contentType: TYPY[rozsz] || "image/webp", upsert: false, cacheControl: "31536000" });
-      if (up.error) { console.error("firma-panel kopia logo:", up.error.message); return J(500, { ok: false, blad: "Nie udało się skopiować logo." }); }
+      if (up.error) {
+        console.error("firma-panel kopia logo:", up.error.message);
+        const kb = Math.round(Number(pob.data.size || 0) / 1024);
+        return J(500, { ok: false, blad: "Nie udało się skopiować logo do publicznego kubełka (plik " + kb + " KB, " + rozsz.toUpperCase() + "; kubełek przyjmuje PNG, JPG i WebP do 1 MB): " + powodMagazynu(up.error) + ". Zgłoszenie czeka dalej: popraw logo w panelu albo poproś firmę o mniejszy plik." });
+      }
       logoUrl = sb.storage.from(PUBLICZNY).getPublicUrl(nowy).data.publicUrl;
     }
     const { data, error } = await sb.rpc("akcja_firmy_zatwierdz", { p_id: id, p_logo_url: logoUrl, p_kto: user.id });
