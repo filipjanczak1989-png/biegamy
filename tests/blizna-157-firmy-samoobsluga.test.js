@@ -149,8 +149,9 @@ test('logo w panelu: PDF po bajtach, pdf.js dopiero po wybraniu i bez eval, bibl
 
 test('szyld: logo, a bez niego nazwa; podpis Partner akcji; żadnego innerHTML z danych firmy; wieżowiec głębiej', () => {
   const s = bezKomJs(czytaj('js/ulica-scena.mjs'));
-  assert.match(s, /if \(!f\.logo\) \{ szyldNazwyFirmy\(U, sz, f, sw, sh\);/);   // jedna funkcja dla Ulicy i podglądu (blizna-188)
-  assert.match(s, /im\.onerror = function \(\) \{[\s\S]{0,260}szyldNazwyFirmy\(U, sz, f, sw, sh\)/, 'logo się nie wczyta: nazwa');
+  /* od B2 (10.11, blizna-209): partnerzy poprzednich wyzwań jak sponsorzy: nazwa przez szyldZNazwa, logo na tablicy wg kotwicy; logo się nie wczyta = tablicy nie ma, nazwa stoi */
+  assert.match(s, /if \(poprz\) \{\n\s*dolSzyldu = szyldZNazwa\(U, b, f, r, w, false, h0, 0\.5\);/);
+  assert.match(s, /im\.onerror = function \(\) \{\n\s*slupki\.concat\(\[t\]\)\.forEach/, 'logo się nie wczyta: tablica znika, nazwa zostaje');
   assert.match(s, /el\("div", "us-partner", b, "Partner akcji"\)/);
   assert.match(s, /baza: wiez \? rz\.baza - ZA_DROGA : rz\.baza/, 'za drogą, wyżej niż domki');
   assert.match(s, /el\("button", "us-czolo", ui, "Do czoła budowy"\)/);

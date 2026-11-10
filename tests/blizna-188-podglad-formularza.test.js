@@ -13,7 +13,8 @@ const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/
 const S = czytaj('js/ulica-scena.mjs'), U = czytaj('js/ulica.mjs'), F = czytaj('js/firma-formularz.mjs');
 
 test('jedna funkcja rysuje budynek firmy i cegłę na Ulicy i w podglądzie', () => {
-  for (const f of ['function budynekFirmy(', 'function szyldFirmyNaBudynku(', 'function szyldNazwyFirmy(', 'function ceglaMuru(']) assert.equal(S.split(f).length - 1, 1, f + ': dokładnie raz');
+  for (const f of ['function budynekFirmy(', 'function szyldZNazwa(', 'function tablicaZLogo(', 'function ceglaMuru(']) assert.equal(S.split(f).length - 1, 1, f + ': dokładnie raz');
+  assert.doesNotMatch(S, /szyldFirmyNaBudynku|szyldNazwyFirmy|us-szyld--logo/, 'od B2 (10.11) jedna droga dla każdego budynku firmy, bez logo na szyldzie (blizna-209)');
   const z = S.slice(S.indexOf('function zamontuj(kontener, licznik, opcje)'));
   assert.doesNotMatch(z, /function szyldFirmy\(|function szyldNazwa\(|el\("button", "us-btn us-domek"|"us-cegla" \+/, 'w scenie nie ma drugiej kopii');
   assert.match(z, /var bud = budynekFirmy\(U, ulica, f, m\.wyb, xb, m\.baza, w, m\.nr, function \(im, adres\) \{ return leniwy\(im, adres, rekord\); \}\)/, 'Ulica: leniwie');

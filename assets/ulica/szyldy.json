@@ -87,7 +87,13 @@
       0.3483,
       0.119
     ],
-    "proporcja": 1.4973
+    "proporcja": 1.4973,
+    "tablica": {
+      "x": 0.5,
+      "bok": 0.42,
+      "wDach": 0.22,
+      "nadDachem": 0.03
+    }
   },
   "galeria": {
     "szyld": [
@@ -96,7 +102,13 @@
       0.376,
       0.2149
     ],
-    "proporcja": 2.1563
+    "proporcja": 2.1563,
+    "tablica": {
+      "x": 0.5,
+      "bok": 0.33,
+      "wDach": 0.3,
+      "nadDachem": 0.03
+    }
   },
   "fabryka": {
     "szyld": [
@@ -111,6 +123,12 @@
       0.4576,
       0.1665,
       0.3435
-    ]
+    ],
+    "tablica": {
+      "x": 0.39,
+      "bok": 0.28,
+      "wDach": 0.33,
+      "nadDachem": -0.05
+    }
   }
 }

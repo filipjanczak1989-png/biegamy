@@ -44,7 +44,7 @@ test('mata: jasne logo na ciemnej, ciemne na kremowej, JPG wg brzegu, awaria odc
 test('budynek firmy: szyld = nazwa, logo tylko na tablicy; partnerzy i dymek bez zmian', () => {
   const b = S.slice(S.indexOf('function budynekFirmy('), S.indexOf('/** Cegła w murze'));
   assert.match(b, /poprz = !!U\.BUDYNKI_POPRZEDNICH\[f\.rodzaj\]/);
-  assert.match(b, /if \(poprz\) dolSzyldu = szyldFirmyNaBudynku\(U, b, f, r, w, h0, laduj, naLogo\);/, 'osiedle, galeria, fabryka jak dotąd');
+  assert.match(b, /if \(poprz\) \{\n\s*dolSzyldu = szyldZNazwa\(U, b, f, r, w, false, h0, 0\.5\);\n\s*if \(f\.logo \|\| f\.pustaTablica\) tablicaZLogo\(U, b, oprawa, f, w, h0, false, laduj, naLogo, def\.tablica\);/, 'od B2 (10.11): osiedle, galeria, fabryka z tą samą tablicą, kotwica z SZYLDY (blizna-209)');
   /* 9.11 (blizna-205): pusta tablica tylko z flagą pustaTablica, którą ustawia wyłącznie podgląd w formularzu; Ulica bez logo dalej bez tablicy */
   assert.match(b, /dolSzyldu = szyldZNazwa\(U, b, f, r, w, wyb\.nazwa === "wiezowiec", h0\);\n\s+if \(f\.logo \|\| f\.pustaTablica\) tablicaZLogo\(U, b, oprawa, f, w, h0, wyb\.nazwa === "wiezowiec", laduj, naLogo\);/);
   assert.equal(S.split('pustaTablica: true').length - 1, 1, 'pustą tablicę włącza tylko podgląd');
@@ -61,7 +61,9 @@ test('budynek firmy: szyld = nazwa, logo tylko na tablicy; partnerzy i dymek bez
 test('tablica: domek nad dachem na słupkach za kalenicą, wieżowiec na elewacji; ramka, mata, margines 10 %, contain', () => {
   assert.match(S, /var TABLICA = \{ bok: 0\.55, nadDachem: 0\.04, slupek: 0\.035, rozstaw: 0\.6, wDach: 0\.28, wiezBok: 0\.64, wiezGora: 0\.282 \};/);
   const t = S.slice(S.indexOf('function tablicaZLogo('), S.indexOf('/** Budynek firmy:'));
-  assert.match(t, /gora = wiez \? h0 \* TABLICA\.wiezGora : -\(bok \+ w \* TABLICA\.nadDachem\)/, 'domek: nad dachem; wieżowiec: na elewacji');
+  const geo = S.slice(S.indexOf('function geometriaTablicy('), S.indexOf('function tablicaZLogo('));   // od B2 (10.11): geometria w czystej funkcji (blizna-209)
+  assert.match(geo, /if \(wiez\) \{ var bw = Math\.round\(w \* TABLICA\.wiezBok\); return \{ bok: bw, lewo: \(w - bw\) \/ 2, gora: h0 \* TABLICA\.wiezGora, slupki: \[\] \}; \}/, 'wieżowiec: na elewacji, bez słupków');
+  assert.match(geo, /gora = -\(bok \+ w \* \(k\.nadDachem == null \? TABLICA\.nadDachem : k\.nadDachem\)\)/, 'domek: nad dachem');
   assert.match(t, /b\.insertBefore\(sl, oprawa\);/, 'słupki przed obrazem budynku: dach zasłania ich dół');
   assert.match(t, /im\.setAttribute\("crossorigin", "anonymous"\);[\s\S]*laduj\(im, f\.logo\);/, 'crossOrigin przed adresem');
   assert.match(t, /im\.onerror = function \(\) \{\n\s+slupki\.concat\(\[t\]\)\.forEach/, 'logo się nie wczyta: tablicy nie ma');
@@ -88,7 +90,7 @@ test('szyld z nazwą: jedna linia, dwie linie, bardzo długa z wielokropkiem', (
   assert.equal(bdl.linie.length, 2); assert.equal(bdl.rozmiar, 7); assert.ok(bdl.linie.some((l) => l.endsWith('…')) && bdl.linie.every((l) => miara(l, 7) <= 96), JSON.stringify(bdl));
   const sz = S.slice(S.indexOf('function szyldZNazwa('), S.indexOf('/* TABLICA Z LOGO'));
   assert.match(sz, /U\.dopasujSzyld\(t, sw - 4, sh, miara, \{ maks: 13, min: 8 \}\)/, 'najpierw namalowana deska, od 8 px');
-  assert.match(sz, /maks = w \* \(wiez \? 0\.82 : 0\.66\)/, 'większa deska: do 66 % domku, 82 % wieżowca');
+  assert.match(sz, /maks = w \* \(maksDeski \|\| \(wiez \? 0\.82 : 0\.66\)\)/, 'większa deska: do 66 % domku, 82 % wieżowca (od B2 partner podaje własny ułamek, blizna-209)');
   assert.match(sz, /sz\.className \+= " us-szyld--deska";/);
 });
 

@@ -6,7 +6,7 @@
   "use strict";
   var WYS = 340, ODC = 30.25, START_X = 70, DROGA_Y = 240, DROGA_H = 72, KAFEL_DROGI = 242, KONIEC_SWIATA = 300, OKRES_SRODKA = 1400, KAFEL_DALEKO = 700, KAFEL_PRZOD = 380;
   var CEL_PX = 125 * ODC, SWIAT = START_X + CEL_PX + KONIEC_SWIATA, PARALAKSA = { daleko: 0.18, srodek: 0.55, przod: 1.25 };
-  var LOGO_SZER = 0.8, LOGO_WYS = 40, ZA_DROGA = 20, POZIOM_DOMKU = 258, POZIOM_MASZYN = 286, POZIOM_DZWIGU = 262, POZIOM_BUDOWNICZEGO = 304, POZIOM_SRODKA = 238;
+  var ZA_DROGA = 20, POZIOM_DOMKU = 258, POZIOM_MASZYN = 286, POZIOM_DZWIGU = 262, POZIOM_BUDOWNICZEGO = 304, POZIOM_SRODKA = 238;
   var ROZMIAR = { koparka: [124, 85.5], walec: [104, 83.5], dzwig: [130, 90.5], budowniczy: [39, 74] };
   /* Koła walca (zgłoszenie 6.11, „jajowate”): opony na assets/ulica/walec.webp są owalne (ok. 23 × 29 px pliku, środki 25 i 71,5 na 135,5). Wycinek owalny w tym miejscu,
      a obrót z kompensacją owalu (ściśnij do koła, obróć, rozciągnij z powrotem): bieżnik się kręci, kształt opony zostaje jak na rysunku. Wartości w px pudełka (plik × 0,5). */
@@ -88,7 +88,7 @@
     ".us--gra .us-skok .us-cz-reka{animation-duration:.22s}" +
     ".us-stos{position:absolute;pointer-events:none}.us-stos i{position:absolute;width:15px;height:7px;border-radius:1.5px;background:#ef7a2a;border:1.2px solid #4a2408}" +
     ".us-czolo[hidden]{display:none}.us-czolo{position:absolute;right:10px;bottom:10px;padding:7px 12px;border:0;border-radius:999px;background:rgba(20,16,28,.72);color:#fff;font:700 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer}.us-zjazd{translate:900px 0;transition:translate 5.5s ease-in}.us-dymek img{display:block;max-width:150px;max-height:52px;object-fit:contain;background:#fbf3df;border-radius:6px;padding:4px;margin-bottom:5px}.us-dymek i{display:block;font-style:normal;font-size:11px;font-weight:800;color:#ffb35c;margin-bottom:3px}" +
-    ".us-szyld--ciemny{background:#2b2230}.us-szyld--logo{background:#fbf3df;border:2px solid #7a4a1c;border-radius:6px;box-shadow:0 2px 4px rgba(40,20,0,.35);padding:3px;box-sizing:border-box}.us-szyld--logo.us-szyld--ciemny{background:#2b2230}.us-logo{display:block;width:100%;height:100%;object-fit:contain}.us-partner{position:absolute;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#3a2410;color:#fff;font:800 9px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
+    ".us-partner{position:absolute;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:6px;background:#3a2410;color:#fff;font:800 9px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
     ".us-szyld{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:#4a2408;font-family:Inter,system-ui,sans-serif;font-weight:700;line-height:1.08;text-align:center;pointer-events:none}.us-szyld span{display:block;white-space:nowrap}" +
     ".us-lustro{transform:scaleX(-1)}" +
     ".us-bilbord{position:absolute;box-sizing:border-box;padding:4px;border:1.5px solid #5a2e0e;border-radius:5px;background:linear-gradient(180deg,#ffcd6a 0%,#f7ad44 55%,#df8f2e 100%);box-shadow:0 2px 4px rgba(40,20,0,.38),inset 0 1px 0 rgba(255,240,200,.65);pointer-events:none}" +
@@ -212,34 +212,10 @@
       U.ksztalt(nazwa, "us-ksztalt", rodzic);
     };
   }
-  /* Szyld firmy: logo, gdy jest i się wczytało; inaczej nazwa. Deska z logo jest większa niż namalowana, żeby logo dało się odczytać na telefonie. Oddaje dół szyldu w px. */
-  function szyldNazwyFirmy(U, sz, f, szer, wys) {
-    var dop = U.dopasujSzyld(f.nazwa, szer - 4, wys, function (t, roz) { return U.mierzTekst(t, roz, 700); }, { maks: 13, min: 7 });
-    sz.style.fontSize = dop.rozmiar + "px";
-    dop.linie.forEach(function (l) { el("span", "", sz, l); });
-  }
-  function szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo) {
-    var sz = el("div", "us-szyld", b), sw = r[2] * w, sh = r[3] * h0;
-    function naDesce(lewo, gora, szer, wys) { sz.style.left = lewo + "px"; sz.style.top = gora + "px"; sz.style.width = szer + "px"; sz.style.height = wys + "px"; }
-    naDesce(r[0] * w, r[1] * h0, sw, sh);
-    if (!f.logo) { szyldNazwyFirmy(U, sz, f, sw, sh); return (r[1] * h0) + sh; }
-    var pw = U.BUDYNKI_POPRZEDNICH[f.rodzaj] ? sw : Math.max(sw, w * LOGO_SZER), ph = Math.max(sh, LOGO_WYS * Math.min(1, w / 118)), gora = r[1] * h0 + sh / 2 - ph / 2;
-    naDesce(r[0] * w + sw / 2 - pw / 2, gora, pw, ph);
-    sz.className += " us-szyld--logo";
-    var im = el("img", "us-logo", sz);
-    im.setAttribute("crossorigin", "anonymous");   // odczyt jasności logo; magazyn publiczny oddaje CORS dla każdego
-    im.onload = function () { var ciemny = U.jasneLogo(im); if (ciemny) sz.classList.add("us-szyld--ciemny"); if (naLogo) naLogo(im, ciemny); };
-    im.onerror = function () {
-      sz.className = "us-szyld"; naDesce(r[0] * w, r[1] * h0, sw, sh);
-      if (im.parentNode) im.parentNode.removeChild(im);
-      szyldNazwyFirmy(U, sz, f, sw, sh);
-      if (naLogo) naLogo(null, false);
-    };
-    laduj(im, f.logo);
-    return gora + ph;
-  }
-  /* SZYLD Z NAZWĄ (domek, wieżowiec; Filip 6.11 wieczór): napis na namalowanej desce, jedna albo dwie linie od 8 px. Gdy się nie mieści, większa drewniana deska
-     w tym samym miejscu (do 66 % szerokości domku, 82 % wieżowca) i dwie linie; bardzo długa nazwa: dwie linie z wielokropkiem. → dół szyldu w px. */
+  /* Do 10.11 (B2) partnerzy poprzednich wyzwań mieli tu osobną drogę: logo w jasnym prostokącie na szyldzie. Teraz każdy budynek firmy rysuje się tak samo:
+     nazwa na szyldzie (szyldZNazwa), logo na tablicy (tablicaZLogo). */
+  /* SZYLD Z NAZWĄ (domek, wieżowiec, od B2 także osiedle/galeria/fabryka; Filip 6.11 wieczór): napis na namalowanej desce, jedna albo dwie linie od 8 px. Gdy się nie mieści,
+     większa drewniana deska w tym samym miejscu (do 66 % szerokości domku, 82 % wieżowca, 50 % szerokiej bryły partnera) i dwie linie; bardzo długa nazwa: dwie linie z wielokropkiem. → dół szyldu w px. */
   function napisDeski(t, szer, miara) {
     var r, i, slowa = t.split(" "), najl = null;
     for (r = 9.5; r >= 7; r -= 0.5) if (miara(t, r) <= szer) return { rozmiar: r, linie: [t] };
@@ -251,7 +227,7 @@
     function utnij(x) { var zn = Array.from(x); if (miara(x, 7) <= szer) return x; while (zn.length > 1 && miara(zn.join("") + "…", 7) > szer) zn.pop(); return zn.join("") + "…"; }
     return { rozmiar: 7, linie: najl ? [utnij(najl.a), utnij(najl.b)] : [utnij(t)] };
   }
-  function szyldZNazwa(U, b, f, r, w, wiez, h0) {
+  function szyldZNazwa(U, b, f, r, w, wiez, h0, maksDeski) {
     var sx = r[0] * w, sy = r[1] * h0, sw = r[2] * w, sh = r[3] * h0, t = String(f.nazwa || "").replace(/\s+/g, " ").trim(), sz = el("div", "us-szyld", b);
     var miara = function (x, roz) { return U.mierzTekst(x, roz, 700); };
     function naDesce(lewo, gora, szer, wys, nap) {
@@ -260,7 +236,7 @@
     }
     var na = U.dopasujSzyld(t, sw - 4, sh, miara, { maks: 13, min: 8 });
     if (na.linie.join(" ") === t) { naDesce(sx, sy, sw, sh, na); return sy + sh; }
-    var maks = w * (wiez ? 0.82 : 0.66), nap = napisDeski(t, maks - 10, miara);
+    var maks = w * (maksDeski || (wiez ? 0.82 : 0.66)), nap = napisDeski(t, maks - 10, miara);
     var szer = Math.max(sw, Math.min(maks, Math.max.apply(null, nap.linie.map(function (l) { return miara(l, nap.rozmiar); })) + 12)), wys = Math.max(sh, nap.linie.length * nap.rozmiar * 1.12 + 6);
     sz.className += " us-szyld--deska";
     naDesce(sx + sw / 2 - szer / 2, sy + sh / 2 - wys / 2, szer, wys, nap);
@@ -271,20 +247,25 @@
      w środku mata dobrana do jasności logo (U.ciemnaMata: jasne → #2a2a2a, ciemne → #f6f1e7, awaria odczytu → kremowa), logo z marginesem 10 % i contain.
      Logo się nie wczyta: tablicy nie ma, nazwa i tak stoi na szyldzie. */
   var TABLICA = { bok: 0.55, nadDachem: 0.04, slupek: 0.035, rozstaw: 0.6, wDach: 0.28, wiezBok: 0.64, wiezGora: 0.282 };
-  function tablicaZLogo(U, b, oprawa, f, w, h0, wiez, laduj, naLogo) {
-    var bok = Math.round(w * (wiez ? TABLICA.wiezBok : TABLICA.bok)), gora = wiez ? h0 * TABLICA.wiezGora : -(bok + w * TABLICA.nadDachem), slupki = [];
-    if (!wiez) {
-      var gr = Math.max(3, w * TABLICA.slupek), odSz = gora + bok - 2;
-      [-1, 1].forEach(function (s) {
-        var sl = el("div", "us-bilbord-slupek");
-        b.insertBefore(sl, oprawa);   // przed obrazem budynku: dach zasłania dół słupka
-        sl.style.left = (w / 2 + s * bok * TABLICA.rozstaw / 2 - gr / 2) + "px"; sl.style.top = odSz + "px";
-        sl.style.width = gr + "px"; sl.style.height = (h0 * TABLICA.wDach - odSz) + "px";
-        slupki.push(sl);
-      });
-    }
+  /** Geometria tablicy (czysta funkcja, blizna-209): domek nad kalenicą wg TABLICA; wieżowiec na elewacji; partner poprzednich wyzwań (B2, Filip 10.11) wg kotwicy
+      SZYLDY[budynek].tablica: środek nad namalowanym szyldem, mniejszy bok (55 % szerokości byłoby większe od niskiej, szerokiej bryły), słupki do parapetu albo dachu.
+      → { bok, lewo, gora, slupki: [{ lewo, gora, szer, wys }] } w px względem lewego górnego rogu budynku (ujemne gora = nad dachem). */
+  function geometriaTablicy(w, h0, wiez, kotwica) {
+    if (wiez) { var bw = Math.round(w * TABLICA.wiezBok); return { bok: bw, lewo: (w - bw) / 2, gora: h0 * TABLICA.wiezGora, slupki: [] }; }
+    var k = kotwica || {}, bok = Math.round(w * (k.bok || TABLICA.bok)), srodek = w * (k.x == null ? 0.5 : k.x), gora = -(bok + w * (k.nadDachem == null ? TABLICA.nadDachem : k.nadDachem));
+    var gr = Math.max(3, w * TABLICA.slupek), odSz = gora + bok - 2, doDachu = h0 * (k.wDach == null ? TABLICA.wDach : k.wDach);
+    return { bok: bok, lewo: srodek - bok / 2, gora: gora, slupki: [-1, 1].map(function (s) { return { lewo: srodek + s * bok * TABLICA.rozstaw / 2 - gr / 2, gora: odSz, szer: gr, wys: doDachu - odSz }; }) };
+  }
+  function tablicaZLogo(U, b, oprawa, f, w, h0, wiez, laduj, naLogo, kotwica) {
+    var geo = geometriaTablicy(w, h0, wiez, kotwica), bok = geo.bok, slupki = [];
+    geo.slupki.forEach(function (gs) {
+      var sl = el("div", "us-bilbord-slupek");
+      b.insertBefore(sl, oprawa);   // przed obrazem budynku: dach zasłania dół słupka
+      sl.style.left = gs.lewo + "px"; sl.style.top = gs.gora + "px"; sl.style.width = gs.szer + "px"; sl.style.height = gs.wys + "px";
+      slupki.push(sl);
+    });
     var t = el("div", "us-bilbord" + (wiez ? " us-bilbord--wiez" : ""), b);
-    t.style.left = (w - bok) / 2 + "px"; t.style.top = gora + "px"; t.style.width = bok + "px"; t.style.height = bok + "px";
+    t.style.left = geo.lewo + "px"; t.style.top = geo.gora + "px"; t.style.width = bok + "px"; t.style.height = bok + "px";
     var mata = el("div", "us-bilbord-mata", t);
     /* Podgląd w formularzu bez logo (9.11): ta sama tablica w tym samym miejscu, w środku „Tu będzie Twoje logo”. Na Ulicy firma bez logo tablicy nie ma. */
     if (!f.logo) { el("span", "us-bilbord-puste", mata, "Tu będzie Twoje logo"); return t; }
@@ -309,8 +290,12 @@
     laduj(obrazB, U.sciezkaObrazu(wyb.nazwa));
     obrazZeSpadkiem(U, wyb.nazwa, oprawa, [obrazB]);
     var r = U.szyldNaDomku(def.szyld, wyb.lustro), poprz = !!U.BUDYNKI_POPRZEDNICH[f.rodzaj], dolSzyldu;
-    if (poprz) dolSzyldu = szyldFirmyNaBudynku(U, b, f, r, w, h0, laduj, naLogo);
-    else {
+    /* B2 (Filip 10.11): osiedle, galeria i fabryka jak sponsorzy: nazwa na szyldzie, logo na tablicy nad dachem wg kotwicy z SZYLDY; bez białego prostokąta na elewacji. */
+    if (poprz) {
+      dolSzyldu = szyldZNazwa(U, b, f, r, w, false, h0, 0.5);
+      if (f.logo || f.pustaTablica) tablicaZLogo(U, b, oprawa, f, w, h0, false, laduj, naLogo, def.tablica);
+      if (!f.logo && naLogo) naLogo(null, false);
+    } else {
       dolSzyldu = szyldZNazwa(U, b, f, r, w, wyb.nazwa === "wiezowiec", h0);
       if (f.logo || f.pustaTablica) tablicaZLogo(U, b, oprawa, f, w, h0, wyb.nazwa === "wiezowiec", laduj, naLogo);
       if (!f.logo && naLogo) naLogo(null, false);
@@ -1241,5 +1226,5 @@
     return { aktualizuj: aktualizuj, zniszcz: zniszcz, obrazek: obrazek, stan: function () { return stan; }, kamera: function () { return kam.x; }, pora: function () { return pora; }, swietuj: swietuj };
   }
 
-  g.BM_ULICA_SCENA = { budynekFirmy: budynekFirmy, ceglaMuru: ceglaMuru, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, zamontuj: zamontuj, MAX_CZASTEK: MAX_CZASTEK, PARALAKSA: PARALAKSA, ODC: ODC };
+  g.BM_ULICA_SCENA = { budynekFirmy: budynekFirmy, ceglaMuru: ceglaMuru, podgladFirmy: podgladFirmy, podgladCegly: podgladCegly, zamontuj: zamontuj, MAX_CZASTEK: MAX_CZASTEK, PARALAKSA: PARALAKSA, ODC: ODC, geometriaTablicy: geometriaTablicy, TABLICA: TABLICA };
 })(typeof globalThis !== "undefined" ? globalThis : this);
