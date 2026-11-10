@@ -18,13 +18,13 @@
       cel_km: 5000, suma_km: 1840, osoby_n: 312, cegly_n: 180, firmy_n: 3, etykieta: "5 i 10 km w weekend" },
     { id: "szkolna", przyklad: true, status: "trwa", nazwa: "Ulica Szkolna", forma: "Wyzwanie szkół i firm",
       opis: "Klasy albo zespoły z firm zbierają kilometry jako drużyny. Na ulicy stoi ranking drużyn, a każdy kilometr buduje tę samą drogę. Firmy mogą postawić domek z logo.",
-      cel_km: 8000, suma_km: 3210, osoby_n: 260, druzyny_n: 14, cegly_n: 95, firmy_n: 4, etykieta: "ranking drużyn" },
+      cel_km: 8000, suma_km: 3210, osoby_n: 260, druzyny_n: 14, cegly_n: 95, firmy_n: 4, etykieta: "ranking klas" },
     { id: "urodzinowa", przyklad: true, status: "trwa", nazwa: "Ulica Urodzinowa", forma: "Osobista zbiórka urodzinowa",
       opis: "Zamiast prezentów: „30 km na urodziny” i link do zbiórki. Znajomi dokładają kilometry i cegły z imieniem w murze. Mała ulica na kilka dni.",
       cel_km: 30, suma_km: 19, osoby_n: 11, cegly_n: 11, firmy_n: 0, etykieta: "30 km na urodziny" },
     { id: "sloneczna", przyklad: true, status: "zakonczona", nazwa: "Ulica Słoneczna", forma: "Ulica zbudowana: cel osiągnięty",
       opis: "Cel osiągnięty, ulica otwarta. Zostaje w mieście na stałe: z murem imion, domkami firm i podsumowaniem tego, co się udało. Sukces, który widać na mapie.",
-      cel_km: 10000, suma_km: 10000, osoby_n: 1240, cegly_n: 420, firmy_n: 12, dni_n: 41, etykieta: "zbudowana",
+      cel_km: 10000, suma_km: 10000, osoby_n: 1240, cegly_n: 420, firmy_n: 12, dni_n: 41, etykieta: "cel osiągnięty",
       podsumowanie: ["10 000 km w 41 dni", "1 240 osób, 420 cegieł w murze, 12 firm na ulicy", "Zbiórka organizacji zakończona sukcesem. Ulica zostaje w mieście."] }
   ];
   var WOLNA = { id: "wolna", wolna: true, nazwa: "Wolna działka", etykieta: "tu może stanąć Twoja ulica" };
@@ -99,8 +99,9 @@
   /* ── KARTA ULICY ──────────────────────────────────────────────────────────────────────────── */
   function chip(u) {
     if (u.wolna) return '<span class="md-chip md-chip--wolna">WOLNA DZIAŁKA</span>';
-    if (u.przyklad) return '<span class="md-chip md-chip--przyklad">PRZYKŁAD</span>' + (u.status === "zakonczona" ? '<span class="md-chip md-chip--koniec">ZAKOŃCZONA</span>' : "");
-    if (u.status === "zakonczona") return '<span class="md-chip md-chip--koniec">ZAKOŃCZONA</span>';
+    /* jedno słowo wszędzie (decyzja 10.11): ZBUDOWANA na mapie, na karcie i w narzędziu, nie „zakończona” */
+    if (u.przyklad) return '<span class="md-chip md-chip--przyklad">PRZYKŁAD</span>' + (u.status === "zakonczona" ? '<span class="md-chip md-chip--koniec">ZBUDOWANA</span>' : "");
+    if (u.status === "zakonczona") return '<span class="md-chip md-chip--koniec">ZBUDOWANA</span>';
     if (u.status === "trwa") return '<span class="md-chip md-chip--trwa">TRWA</span>';
     return '<span class="md-chip md-chip--wkrotce">' + (u.status === "przed" ? "WKRÓTCE" : "LICZNIK NIEDOSTĘPNY") + '</span>';
   }
@@ -142,10 +143,13 @@
     if (u.wolna) return { tytul: u.nazwa, podpis: u.etykieta };
     if (u.status === "brak") return { tytul: u.nazwa, podpis: "licznik chwilowo niedostępny" };
     if (u.status === "przed") return { tytul: u.nazwa, podpis: "wkrótce" };
-    var pct = u.pct != null ? Number(u.pct) : procent(u), cegly = odmiana(u.cegly_n, ["cegła", "cegły", "cegieł"]), firmy = odmiana(u.firmy_n, ["firma", "firmy", "firm"]);
-    /* prawdziwa: km w tytule (szeroka działka), pełny podpis; przykłady: km w podpisie, bez firm (najwyżej 2 linie na 360 px, firmy są na karcie) */
-    if (u.prawdziwa) return { tytul: u.nazwa + " · " + km(u.suma_km) + " km", podpis: u.status === "zakonczona" ? "zbudowana · " + cegly : liczba(pct, 1) + " % celu · " + cegly + " · " + firmy };
-    return { tytul: u.nazwa, podpis: km(u.suma_km) + " km · " + (u.status === "zakonczona" ? "zbudowana · " + cegly : liczba(pct, 1) + " % celu · " + cegly) };   // twarde spacje: liczba nie rozstaje się z jednostką
+    /* Przykłady (decyzja 10.11): nazwa + jedna krótka linia o formie akcji, bez liczb; liczby przykładów tylko na karcie. */
+    if (u.przyklad) return { tytul: u.nazwa, podpis: u.etykieta || "" };
+    /* Prawdziwa: km w tytule (szeroka działka); w podpisie wartości zerowe pomijane („5,8 % celu · 1 cegła”, bez „0 firm”); na karcie zero zostaje. */
+    var pct = u.pct != null ? Number(u.pct) : procent(u), czesci = [u.status === "zakonczona" ? "zbudowana" : liczba(pct, 1) + " % celu"];
+    if (Number(u.cegly_n) > 0) czesci.push(odmiana(u.cegly_n, ["cegła", "cegły", "cegieł"]));
+    if (Number(u.firmy_n) > 0) czesci.push(odmiana(u.firmy_n, ["firma", "firmy", "firm"]));
+    return { tytul: u.nazwa + " · " + km(u.suma_km) + " km", podpis: czesci.join(" · ") };
   }
 
   /* ── KREATOR (atrapa: nic nie zapisuje, nic nie wysyła) ───────────────────────────────────── */

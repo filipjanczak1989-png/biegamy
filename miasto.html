@@ -48,12 +48,17 @@
   .dz-et { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); max-width: 96%; background: var(--kremowy); color: #4a2408; border: 2px solid var(--drewno); border-radius: 10px; padding: 4px 8px 5px; font: 800 clamp(9px, 2.7vw, 12px)/1.15 Inter, sans-serif; white-space: nowrap; box-shadow: 0 2px 0 var(--drewno); }
   .dz-et small { display: block; font-weight: 600; color: #7a4a1e; font-size: .86em; margin-top: 1px; white-space: normal; }
   .dz-et .dz-tytul { display: block; overflow: hidden; text-overflow: ellipsis; }
-  .dz--przyklad .dz-grafiki { top: 0; height: 54%; }   /* wyżej niż na prawdziwej: etykieta (2 linie) nie zasłania budynków na 360 px */
+  /* etykieta nie zasłania grafiki własnej działki (decyzja 10.11): grafiki w górnej części działki, etykieta (nazwa + jedna krótka linia) pod nimi; narzędzie Chrome to mierzy */
+  .dz--przyklad .dz-grafiki { top: 0; height: 56%; }
+  .dz--przyklad .dz-et small { white-space: nowrap; }   /* krótka fraza w jednej linii, bez łamania w połowie */
+  .dz--wolna .dz-grafiki { top: 0; height: 50%; }
   .dz--przyklad .dz-et::before { content: "PRZYKŁAD"; position: absolute; top: -9px; right: -6px; background: var(--akcent); color: #fff; font: 800 7.5px/1 Inter, sans-serif; letter-spacing: .12em; padding: 3px 5px; border-radius: 5px; transform: rotate(5deg); }
   /* prawdziwa: największa, w środku, z obwódką i znaczkiem TRWA; widoczna na pierwszym ekranie telefonu */
   .dz--prawdziwa { background: rgba(255,205,106,.22); box-shadow: inset 0 0 0 3px #ffcd6a, 0 0 0 2px rgba(90,46,14,.5), 0 0 26px rgba(255,170,60,.45); }
   .dz--prawdziwa.wybrana, .dz--prawdziwa:active { background: rgba(255,205,106,.36); box-shadow: inset 0 0 0 3px #fff7e6, 0 0 0 3px #ffcd6a, 0 0 30px rgba(255,170,60,.6); }
-  .dz--prawdziwa .dz-grafiki { top: 6%; height: 56%; }
+  /* prawdziwa (decyzja 10.11): dwa plany, żeby grafiki wypełniały ramkę: z tyłu dźwig i plac budowy, z przodu domki, fragment muru (gdy jest cegła) i budowniczy */
+  .dz--prawdziwa .dz-tyl { top: 1%; height: 50%; justify-content: space-around; padding: 0 8%; }
+  .dz--prawdziwa .dz-przod { top: 12%; height: 58%; }
   .dz--prawdziwa .dz-et { background: #ffcd6a; font-size: clamp(11px, 3.3vw, 14px); padding: 5px 10px 6px; }
   .dz-znaczek { position: absolute; z-index: 1; left: 50%; top: -10px; transform: translateX(-50%); background: var(--akcent); color: #fff; font: 800 9px/1 Inter, sans-serif; letter-spacing: .14em; padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 0 var(--drewno); }
   .dz-znaczek--koniec { background: #2f6b3a; }
@@ -99,7 +104,7 @@
 
   /* ── OKNA: kreator i podgląd przykładowej ulicy ── */
   dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
-  dialog::backdrop { background: rgba(0,0,0,.65); }
+  dialog::backdrop { background: rgba(7,7,10,.92); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }   /* tekst strony pod oknem ma być nieczytelny (decyzja 10.11) */
   dialog h3 { font: 400 26px/1.05 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 8px 0 6px; padding-right: 40px; }
   .md-kroki { display: flex; gap: 6px; }
   .md-kroki span { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 800 12px/1 Inter, sans-serif; background: rgba(255,255,255,.08); color: var(--fg2); }
@@ -174,7 +179,8 @@
       <!-- PRAWDZIWA ULICA: środek, największa; nazwa i liczby z licznika -->
       <button type="button" class="dz dz--prawdziwa" data-id="prawdziwa" aria-label="Prawdziwa ulica akcji" style="left:5%;top:23.5%;width:90%;height:29%">
         <span class="dz-znaczek" id="md-znaczek">TRWA</span>
-        <div class="dz-grafiki"><img src="assets/ulica/dzwig.webp" alt="" style="width:23%"><img src="assets/ulica/domek-3.webp" alt="" style="width:22%"><img src="assets/ulica/plac-budowy.webp" alt="" style="width:24%"><img src="assets/ulica/domek-6.webp" alt="" style="width:22%"><img src="assets/ulica/budowniczy.webp" alt="" style="width:6%"></div>
+        <div class="dz-grafiki dz-tyl"><img src="assets/ulica/dzwig.webp" alt="" style="width:30%"><img src="assets/ulica/plac-budowy.webp" alt="" style="width:36%"></div>
+        <div class="dz-grafiki dz-przod"><img src="assets/ulica/domek-3.webp" alt="" style="width:32%"><img id="md-mur" src="assets/ulica/mur.webp" alt="" style="width:22%" hidden><img src="assets/ulica/domek-6.webp" alt="" style="width:32%"><img src="assets/ulica/budowniczy.webp" alt="" style="width:7%"></div>
         <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
       </button>
       <!-- Ulica Urodzinowa: dół lewo -->
@@ -185,7 +191,7 @@
       <!-- Ulica Słoneczna: dół prawo; zbudowana i zadbana, dzień otwarcia, latarnie świecą -->
       <button type="button" class="dz dz--przyklad dz--sloneczna" data-id="sloneczna" aria-label="Ulica Słoneczna, przykład, zbudowana" style="left:54%;top:56%;width:43%;height:19%">
         <span class="dz-znaczek dz-znaczek--koniec">ZBUDOWANA</span>
-        <div class="dz-grafiki"><img src="assets/miasto/ulica-zbudowana.webp" alt="" style="width:84%"></div>
+        <div class="dz-grafiki"><img src="assets/miasto/ulica-zbudowana.webp" alt="" style="width:72%"></div>
         <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
       </button>
       <!-- Wolna działka: wejście do kreatora -->
@@ -232,8 +238,9 @@
       dz.classList.toggle('wybrana', u.id === wybrana);
     });
     var zn = $('md-znaczek');
-    zn.textContent = prawdziwa.status === 'trwa' ? 'TRWA' : prawdziwa.status === 'zakonczona' ? 'ZAKOŃCZONA' : prawdziwa.status === 'przed' ? 'WKRÓTCE' : 'LICZNIK NIEDOSTĘPNY';
+    zn.textContent = prawdziwa.status === 'trwa' ? 'TRWA' : prawdziwa.status === 'zakonczona' ? 'ZBUDOWANA' : prawdziwa.status === 'przed' ? 'WKRÓTCE' : 'LICZNIK NIEDOSTĘPNY';
     zn.className = 'dz-znaczek' + (prawdziwa.status === 'zakonczona' ? ' dz-znaczek--koniec' : prawdziwa.status === 'trwa' ? '' : ' dz-znaczek--wkrotce');
+    $('md-mur').hidden = !(Number(prawdziwa.cegly_n) > 0);   // fragment muru z cegłą, gdy ulica ma co najmniej jedną cegłę
     var s = M.sumaMiasta(lista());
     $('md-km').textContent = (s.prawdziwe_n ? M.km(s.km) : '—') + ' km';
     $('md-podpis').textContent = 'zbudowane przez ludzi · ' + M.podpisSumy(s);

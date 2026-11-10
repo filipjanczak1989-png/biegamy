@@ -39,14 +39,22 @@ test('(1) suma miasta: tylko prawdziwe ulice; przykłady oznaczone na mapie, na 
     assert.ok(liczb >= 4 && znaczkow === liczb, p.id + ': znaczek „przykład” przy każdej z ' + liczb + ' liczb (jest ' + znaczkow + ')');
     assert.match(k, /md-chip--przyklad">PRZYKŁAD</); assert.match(k, /Dane wymyślone na potrzeby pokazu\. Nie wchodzą do licznika miasta\./);
     assert.doesNotMatch(k, /href="dla-fabianka/, 'przykład nie prowadzi na prawdziwą ulicę'); assert.match(k, /data-podglad="/);
-    assert.ok(M.etykietaMapy(p).tytul.startsWith(p.nazwa), 'etykieta mapy z nazwą');
+    /* mapa (Filip 10.11): nazwa + jedna krótka linia o formie akcji, bez liczb przykładu (te tylko na karcie) */
+    const e = M.etykietaMapy(p); assert.equal(e.tytul, p.nazwa); assert.equal(e.podpis, p.etykieta); assert.doesNotMatch(e.podpis, /km ·|% celu|cegie|cegł|firm|·/, p.id + ': podpis bez liczb przykładu i bez kropek');
   }
-  assert.match(M.kartaHtml(M.PRZYKLADY[3]), /md-chip--koniec">ZAKOŃCZONA<[\s\S]*100 %[\s\S]*<ul class="md-podsumowanie">/, 'zakończona: 100 % i podsumowanie');
+  assert.deepEqual([...M.PRZYKLADY].map((p) => p.etykieta), ['5 i 10 km w weekend', 'ranking klas', '30 km na urodziny', 'cel osiągnięty']);
+  assert.match(M.kartaHtml(M.PRZYKLADY[3]), /md-chip--koniec">ZBUDOWANA<[\s\S]*100 %[\s\S]*<ul class="md-podsumowanie">/, 'zbudowana: 100 % i podsumowanie; jedno słowo ZBUDOWANA jak na mapie');
+  assert.doesNotMatch(HTML + MJS, /ZAKOŃCZONA/, 'nigdzie „zakończona” wielkimi literami: wszędzie ZBUDOWANA');
+  assert.match(HTML, /\$\('md-mur'\)\.hidden = !\(Number\(prawdziwa\.cegly_n\) > 0\);/, 'fragment muru tylko przy ≥ 1 cegle');
+  assert.match(HTML, /dialog::backdrop \{ background: rgba\(7,7,10,\.92\); backdrop-filter: blur\(6px\)/, 'tło za oknem nieczytelne');
+  assert.match(HTML, /\.dz--przyklad \.dz-et small \{ white-space: nowrap; \}/, 'krótka fraza w jednej linii');
   assert.match(HTML, /\.dz--przyklad \.dz-et::before \{ content: "PRZYKŁAD";/, 'znaczek PRZYKŁAD na mapie z CSS');
   assert.equal((HTML.match(/class="dz dz--przyklad/g) || []).length, 4, '4 działki przykładowe'); assert.equal((HTML.match(/class="dz dz--prawdziwa"/g) || []).length, 1);
   const kp = M.kartaHtml(u);
   assert.doesNotMatch(kp, /przykład/i, 'prawdziwa bez słowa przykład'); assert.match(kp, /md-chip--trwa">TRWA<[\s\S]*<h2>Ulica Marka<\/h2>[\s\S]*<b>721 km<\/b><span>z 12 500 km celu[\s\S]*<b>5,8 %<\/b>[\s\S]*<b>1<\/b><span>cegła w murze[\s\S]*<b>0<\/b><span>firm na ulicy[\s\S]*href="dla-fabianka\.html">Wejdź na ulicę/);
-  assert.deepEqual({ ...M.etykietaMapy(u) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 1 cegła · 0 firm' });
+  assert.deepEqual({ ...M.etykietaMapy(u) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 1 cegła' }, 'zero firm pominięte na mapie (na karcie zostaje)');
+  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, firmy: [{ nazwa: 'A' }, { nazwa: 'B' }], ulica: { cegly_n: 0 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 2 firmy' });
+  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, koniec: '2026-12-01', ulica: { cegly_n: 420 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: 'zbudowana · 420 cegieł' });
   assert.equal(M.procent({ suma_km: 1840, cel_km: 5000 }), 36.8); assert.equal(M.procent({ suma_km: 10000, cel_km: 10000 }), 100); assert.equal(M.procent({ suma_km: 5, cel_km: 0 }), 0);
   assert.deepEqual([2, 4, 5, 12, 22, 0].map((n) => M.forma(n, ['firma', 'firmy', 'firm'])), ['firmy', 'firmy', 'firm', 'firm', 'firmy', 'firm']);
 });
