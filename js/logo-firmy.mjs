@@ -59,7 +59,7 @@
   /** Opis pliku do diagnostyki (bez pliku): rozmiar, typ z przeglądarki, rozszerzenie, rodzaj po bajtach, wymiary z nagłówka, przyczyna. Doklejany do błędu jako e.diag. */
   function zDiagnostyka(e, plik, rodzaj, bajty, przyczyna, etap) {
     try {
-      e.diag = { etap: etap || (bajty ? "dekodowanie" : "odczyt"), rodzaj: rodzaj || "", rozmiar: plik && plik.size || 0, typ: String(plik && plik.type || ""), rozszerzenie: ((/\.([a-z0-9]{1,5})$/i.exec(String(plik && plik.name || "")) || [])[1] || "").toLowerCase(),
+      e.diag = { etap: etap || (bajty ? "dekodowanie" : "odczyt"), rodzaj: rodzaj || "", rozmiar: plik && plik.size || 0, odczytano: bajty ? bajty.length : 0, typ: String(plik && plik.type || ""), rozszerzenie: ((/\.([a-z0-9]{1,5})$/i.exec(String(plik && plik.name || "")) || [])[1] || "").toLowerCase(),
         wymiary: wymiaryZNaglowka(bajty), przyczyna: przyczyna && przyczyna.name && przyczyna.name !== "Error" && przyczyna.message ? przyczyna.name + ": " + przyczyna.message : String(przyczyna && przyczyna.message || przyczyna || "") };
     } catch (_) {}
     return e;
@@ -69,18 +69,45 @@
      Image z adresem pliku) kończył się NotReadableError albo „Failed to fetch”. Bajty czyta się raz, od razu po wybraniu, z jedną automatyczną ponowną próbą po 300 ms,
      a dekodowanie, podgląd i wysyłka pracują na kopii w pamięci. Odmowa odczytu dostaje instrukcję po polsku zamiast surowego tekstu przeglądarki. */
   var BLEDY_ODCZYTU = /^(NotReadableError|NotFoundError|SecurityError)$/;
+  var ODSTEP_PONOWIENIA = 500;   // ms między pierwszym a drugim odczytem (było 300; zmierzone 10–11.11: telefon zwalniał uchwyt po dłuższej chwili)
+  /* Wyjście awaryjne (decyzja 12.11): każdy komunikat „Zrzut wpłaty: …” kończy się zdaniem z adresem akcji, żeby człowiek z telefonem, który nie
+     pozwala czytać plików, nie został sam. Adres daje strona (window.BM_EMAIL_AKCJI); bez adresu zdania nie ma. */
+  function emailAkcji() { return String(g.BM_EMAIL_AKCJI || "").trim(); }
+  function wyjscieAwaryjne(prefiks) { var e = emailAkcji(); return prefiks === "Zrzut wpłaty" && e ? " Nie działa? Wyślij zrzut i nazwę firmy na " + e + " — dopiszemy ręcznie." : ""; }
+  function bladZrzutu(tresc) { return new Error("Zrzut wpłaty: " + tresc + wyjscieAwaryjne("Zrzut wpłaty")); }
+  /** Drugi odczyt inną drogą: FileReader.readAsArrayBuffer (inny uchwyt niż Blob.arrayBuffer; na starszych Androidach bywa, że tylko on działa). */
+  function przezFileReader(plik) {
+    return new Promise(function (ok, zle) {
+      var r = new g.FileReader();
+      r.onload = function () { ok(new Uint8Array(r.result)); };
+      r.onerror = function () { zle(r.error || new Error("FileReader")); };
+      r.readAsArrayBuffer(plik);
+    });
+  }
   var TELEFON_NIE_POZWOLIL = "Telefon nie pozwolił odczytać tego pliku. Wybierz go jeszcze raz z Galerii albo Moich plików (nie z „Ostatnie” ani z chmury). Jeśli dalej nie działa, zrób zrzut ekranu tego zdjęcia i wybierz zrzut.";
   function czekaj(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
-  /** Plik → Uint8Array (kopia w pamięci). prefiks: „Logo” albo „Zrzut wpłaty”. Druga próba po `odstep` ms (domyślnie 300), potem błąd z instrukcją. */
+  /** Plik → Uint8Array (kopia w pamięci). prefiks: „Logo” albo „Zrzut wpłaty”. Pierwszy odczyt Blob.arrayBuffer; przy błędzie albo odczycie UCIĘTYM
+      (mniej bajtów niż plik.size: nie dekodować, ponowić) druga próba po `odstep` ms (domyślnie 500) przez FileReader; dalej nie = błąd z instrukcją
+      „Wybierz plik jeszcze raz” (formularz czyści pole, żeby następny wybór dał nowy uchwyt). Błąd niesie `odczytPadl` i `diag.odczytano`. */
   async function czytajBajty(plik, prefiks, odstep) {
-    var e1;
-    try { return new Uint8Array(await plik.arrayBuffer()); } catch (e) { e1 = e; }
-    await czekaj(odstep == null ? 300 : odstep);
-    try { return new Uint8Array(await plik.arrayBuffer()); } catch (e2) {
-      var nazwa = String((e2 && e2.name) || (e1 && e1.name) || "");
-      var tresc = BLEDY_ODCZYTU.test(nazwa) ? TELEFON_NIE_POZWOLIL : "nie udało się odczytać pliku. " + (prefiks === "Logo" ? PROSBA : PROSBA_ZRZUT);
-      throw zDiagnostyka(new Error(prefiks + ": " + tresc), plik, "", null, e2 || e1, "odczyt");
-    }
+    var e1, e2, bajty, odczytano = 0, rozmiar = Number(plik && plik.size) || 0;
+    var uciety = function (b) { return rozmiar > 0 && b.length < rozmiar; };
+    var bladUciety = function (b) { var x = new Error("odczyt ucięty: " + b.length + " z " + rozmiar + " B"); x.name = "TruncatedRead"; return x; };
+    try { bajty = new Uint8Array(await plik.arrayBuffer()); if (!uciety(bajty)) return bajty; odczytano = bajty.length; e1 = bladUciety(bajty); } catch (e) { e1 = e; }
+    await czekaj(odstep == null ? ODSTEP_PONOWIENIA : odstep);
+    try {
+      bajty = typeof g.FileReader === "function" ? await przezFileReader(plik) : new Uint8Array(await plik.arrayBuffer());
+      /* dwa odczyty tej samej, krótszej długości = plik naprawdę ma tyle bajtów (rozmiar z metadanych bywa inny); idzie dalej, dekodowanie powie resztę */
+      if (!uciety(bajty) || (e1 && e1.name === "TruncatedRead" && bajty.length === odczytano)) return bajty;
+      odczytano = bajty.length; e2 = bladUciety(bajty);
+    } catch (e) { e2 = e; }
+    var nazwa = String((e2 && e2.name) || (e1 && e1.name) || "");
+    var tresc = BLEDY_ODCZYTU.test(nazwa) ? TELEFON_NIE_POZWOLIL
+      : nazwa === "TruncatedRead" ? "odczyt pliku urwał się w połowie. Wybierz plik jeszcze raz."
+      : "nie udało się odczytać pliku. Wybierz plik jeszcze raz. " + (prefiks === "Logo" ? PROSBA : PROSBA_ZRZUT);
+    var err = zDiagnostyka(new Error(prefiks + ": " + tresc + wyjscieAwaryjne(prefiks)), plik, "", null, e2 || e1, "odczyt");
+    err.odczytPadl = true; if (err.diag) err.diag.odczytano = odczytano;
+    throw err;
   }
 
   async function pdfNaCanvas(bajty) {
@@ -246,12 +273,12 @@
   function doBloba(k, typ, jakosc) { return new Promise(function (ok) { try { k.toBlob(ok, typ, jakosc); } catch (e) { ok(null); } }); }
   async function przygotujZrzut(plik, opcje) {
     var o = opcje || {};
-    if (!plik || !(plik.size > 0)) throw new Error("Zrzut wpłaty: wybierz plik.");
-    if (plik.size > WEJSCIE_MAKS) throw new Error("Zrzut wpłaty: plik ma ponad 25 MB. " + PROSBA_ZRZUT);
+    if (!plik || !(plik.size > 0)) throw bladZrzutu("wybierz plik.");
+    if (plik.size > WEJSCIE_MAKS) throw bladZrzutu("plik ma ponad 25 MB. " + PROSBA_ZRZUT);
     var bajty = o.bajty instanceof Uint8Array ? o.bajty : await czytajBajty(plik, "Zrzut wpłaty"), rodzaj = rodzajPoBajtach(bajty) || rodzajPoNazwie(plik), k;
-    if (rodzaj === "pdf") throw zDiagnostyka(new Error("Zrzut wpłaty: to plik PDF. " + PROSBA_ZRZUT), plik, rodzaj, bajty);
+    if (rodzaj === "pdf") throw zDiagnostyka(bladZrzutu("to plik PDF. " + PROSBA_ZRZUT), plik, rodzaj, bajty);
     try { k = await obrazNaCanvas(plik, bajty, rodzaj, ZRZUT_BOK); } catch (e) {
-      throw zDiagnostyka(new Error(rodzaj === "heic" ? "Zrzut wpłaty: zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT : "Zrzut wpłaty: tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT), plik, rodzaj, bajty, e);
+      throw zDiagnostyka(rodzaj === "heic" ? bladZrzutu("zdjęcia HEIC ta przeglądarka nie otworzy. " + PROSBA_ZRZUT) : bladZrzutu("tego pliku nie da się otworzyć jako obrazu. " + PROSBA_ZRZUT), plik, rodzaj, bajty, e);
     }
     var b = nowyCanvas(k.width, k.height), c = b.getContext("2d");
     c.fillStyle = "#fff"; c.fillRect(0, 0, b.width, b.height); c.drawImage(k, 0, 0);
@@ -260,7 +287,7 @@
       var w = await doBloba(b, proby[i][0], proby[i][1]);
       if (w && w.size <= ZRZUT_MAKS && /^image\/(webp|jpeg|png)$/.test(w.type)) return w;
     }
-    throw zDiagnostyka(new Error("Zrzut wpłaty: nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT), plik, rodzaj, bajty, "toBlob za duży");
+    throw zDiagnostyka(bladZrzutu("nie udało się zmniejszyć pliku. " + PROSBA_ZRZUT), plik, rodzaj, bajty, "toBlob za duży");
   }
-  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, czytajBajty: czytajBajty, rodzajPoBajtach: rodzajPoBajtach, wymiaryZNaglowka: wymiaryZNaglowka, obrazNaCanvas: obrazNaCanvas, PROSBA: PROSBA, TELEFON_NIE_POZWOLIL: TELEFON_NIE_POZWOLIL };
+  g.BM_LOGO_FIRMY = { przygotuj: przygotuj, przygotujZrzut: przygotujZrzut, czytajBajty: czytajBajty, wyjscieAwaryjne: wyjscieAwaryjne, ODSTEP_PONOWIENIA: ODSTEP_PONOWIENIA, rodzajPoBajtach: rodzajPoBajtach, wymiaryZNaglowka: wymiaryZNaglowka, obrazNaCanvas: obrazNaCanvas, PROSBA: PROSBA, TELEFON_NIE_POZWOLIL: TELEFON_NIE_POZWOLIL };
 })(globalThis);

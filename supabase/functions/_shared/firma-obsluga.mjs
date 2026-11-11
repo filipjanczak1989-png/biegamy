@@ -48,7 +48,7 @@ export async function zapiszDiagnostyke(d) {
   if (lista.length >= DIAG_NA_GODZINE) return ok;
   lista.push(t); DIAG_OSTATNIE.set(d.ipSkrot, lista);
   const pole = (k, n) => String(f.get(k) || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, n);
-  const opis = { pole: pole("pole", 10), etap: pole("etap", 12), blad: pole("blad", 300), przyczyna: pole("przyczyna", 200), rozmiar: Number(pole("rozmiar", 12)) || 0, typ: pole("typ", 60), rozszerzenie: pole("rozszerzenie", 10), rodzaj_pliku: pole("rodzaj_pliku", 10), wymiary: pole("wymiary", 20) };
+  const opis = { pole: pole("pole", 10), etap: pole("etap", 12), blad: pole("blad", 300), przyczyna: pole("przyczyna", 200), rozmiar: Number(pole("rozmiar", 12)) || 0, odczytano: Number(pole("odczytano", 12)) || 0, typ: pole("typ", 60), rozszerzenie: pole("rozszerzenie", 10), rodzaj_pliku: pole("rodzaj_pliku", 10), wymiary: pole("wymiary", 20) };
   try {
     const licz = await d.sb.from("client_errors").select("id", { count: "exact", head: true }).eq("kind", "firma-plik").gt("created_at", new Date(t - 3600000).toISOString());
     if (!licz || licz.error || typeof licz.count !== "number" || licz.count >= DIAG_SUFIT_BAZY) { if (licz && licz.error) console.error("firma-zgloszenie diagnostyka licznik:", licz.error.message); return ok; }

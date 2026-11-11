@@ -29,10 +29,13 @@
     if (L && typeof L.czytajBajty === "function") return L.czytajBajty(plik, prefiks);
     return Promise.resolve().then(function () { return plik.arrayBuffer(); }).then(function (a) { return new Uint8Array(a); });
   }
+  /* Rozjazd rozmiaru (decyzja 12.11): dwa zgodne krótsze odczyty idą dalej, ale liczba odczytanych bajtów zostaje przy pliku, żeby telemetria powiedziała, jak często size kłamie. */
+  function zapamietajOdczyt(plik, bajty) { try { plik._bmOdczytano = bajty.length; } catch (_) {} }
   function logoDoWyslania(plik) {
     var L = g.BM_LOGO_FIRMY;
     if (!L || !L.przygotuj) return Promise.reject(new Error("Logo: nie udało się przygotować pliku. " + PROSBA));
     return bajtyPliku(L, plik, "Logo").then(function (bajty) {
+      zapamietajOdczyt(plik, bajty);
       return L.przygotuj(plik, { pdf: false, bajty: bajty }).then(function (w) { return w.blob; }).catch(function (e) {
         var typ = typZBajtow(bajty); if (typ && plik.size <= PLIK_MAKS) return new Blob([bajty], { type: typ });
         throw e;
@@ -43,14 +46,17 @@
       nie odrzucał zdjęć. Gdy przygotowanie padnie, kopia bajtów PNG/JPG/WebP do 2 MB idzie dalej. */
   function zrzutDoWyslania(plik) {
     var L = g.BM_LOGO_FIRMY;
-    if (!L || !L.przygotujZrzut) return Promise.reject(new Error("Zrzut wpłaty: nie udało się przygotować pliku. Zrób zrzut ekranu potwierdzenia (PNG albo JPG)."));
+    if (!L || !L.przygotujZrzut) return Promise.reject(new Error("Zrzut wpłaty: nie udało się przygotować pliku. Zrób zrzut ekranu potwierdzenia (PNG albo JPG)." + awaryjne()));
     return bajtyPliku(L, plik, "Zrzut wpłaty").then(function (bajty) {
+      zapamietajOdczyt(plik, bajty);
       return L.przygotujZrzut(plik, { bajty: bajty }).catch(function (e) {
         var typ = typZBajtow(bajty); if (typ && plik.size <= PLIK_MAKS) return new Blob([bajty], { type: typ });
         throw e;
       });
     });
   }
+  /** Zdanie z wyjściem awaryjnym dla komunikatów „Zrzut wpłaty” budowanych tutaj (reszta powstaje w logo-firmy.mjs). */
+  function awaryjne() { var L = g.BM_LOGO_FIRMY; return L && L.wyjscieAwaryjne ? L.wyjscieAwaryjne("Zrzut wpłaty") : ""; }
   function poprawneImie(t) { return RE_IMIE.test(String(t || "").trim()); }
 
   function formularz(s, d) {
@@ -147,9 +153,16 @@
       if (w && w.plik === plik) return w.obietnica;
       var obietnica = fn(plik).then(function (b) {
         if (gotowe[pole] && gotowe[pole].plik === plik) { bledyPlikow[pole] = ""; odblokuj(); }
+        /* udany odczyt krótszy niż plik.size: sama telemetria (etap odczyt, odczytano), bez komunikatu dla człowieka */
+        if (plik._bmOdczytano != null && plik.size > 0 && plik._bmOdczytano !== plik.size) diagnostyka(pole, plik, { name: "OdczytKrotszy", message: "odczytano " + plik._bmOdczytano + " z " + plik.size + " B", diag: { etap: "odczyt", odczytano: plik._bmOdczytano } });
         return b;
       }, function (e) {
-        if (gotowe[pole] && gotowe[pole].plik === plik) { bledyPlikow[pole] = (e && e.message) || (pole === "logo" ? "Logo: " + PROSBA : "Zrzut wpłaty: nie udało się przygotować pliku."); diagnostyka(pole, plik, e); odblokuj(); }
+        if (gotowe[pole] && gotowe[pole].plik === plik) {
+          bledyPlikow[pole] = (e && e.message) || (pole === "logo" ? "Logo: " + PROSBA : "Zrzut wpłaty: nie udało się przygotować pliku." + awaryjne());
+          diagnostyka(pole, plik, e); odblokuj();
+          /* odczyt padł dwa razy: pole wyczyszczone, żeby następny wybór dał NOWY uchwyt pliku (ten sam uchwyt na starszym Androidzie nie wraca do życia) */
+          if (e && e.odczytPadl) { try { var inp = pole === "logo" ? logo : zrzut; if (inp) inp.value = ""; } catch (_) {} gotowe[pole] = null; }
+        }
         throw e;
       });
       gotowe[pole] = { plik: plik, obietnica: obietnica };
@@ -166,12 +179,12 @@
     var zgloszone = {};
     function diagnostyka(pole, plik, e) {
       try {
-        var klucz = pole + ":" + (plik.name || "") + ":" + plik.size;
+        var klucz = pole + ":" + (plik.name || "") + ":" + plik.size + (e && e.name === "OdczytKrotszy" ? ":krotszy" : "");   // krótszy odczyt nie zjada zgłoszenia o późniejszej awarii tego samego pliku
         if (zgloszone[klucz] || Object.keys(zgloszone).length >= 5 || !g.fetch) return;
         zgloszone[klucz] = true;
         var d = (e && e.diag) || {}, dane = new g.FormData();
         dane.append("rodzaj", "diagnostyka"); dane.append("pole", pole); dane.append("blad", ((e && e.name) || "Error") + ": " + ((e && e.message) || "")); dane.append("etap", String(d.etap || ""));
-        dane.append("przyczyna", String(d.przyczyna || "")); dane.append("rozmiar", String(plik.size || 0)); dane.append("typ", String(plik.type || ""));
+        dane.append("przyczyna", String(d.przyczyna || "")); dane.append("rozmiar", String(plik.size || 0)); dane.append("odczytano", String(d.odczytano || 0)); dane.append("typ", String(plik.type || ""));
         dane.append("rozszerzenie", String(d.rozszerzenie || "")); dane.append("rodzaj_pliku", String(d.rodzaj || "")); dane.append("wymiary", d.wymiary ? d.wymiary.w + "x" + d.wymiary.h : "");
         dane.append("strona_www", "");
         g.fetch((g.SB_URL || "") + EF, { method: "POST", body: dane, headers: g.SB_KEY ? { apikey: g.SB_KEY } : {}, keepalive: true }).catch(function () {});

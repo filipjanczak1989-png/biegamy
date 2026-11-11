@@ -1,7 +1,7 @@
 /* BLIZNA 212 / JEDEN ODCZYT PLIKU Z TELEFONU (produkcja 10.11, Samsung, Chrome 157, Android 10). Po wybraniu zrzutu wpłaty formularz cegiełki pokazał surowe
    „NotReadableError: The requested file could not be read…”; diagnostyka (kind firma-plik) pokazała dwa wzorce: odczyt bajtów pada od razu albo bajty wchodzą,
    a dekodowanie przez Image pada, bo adres z URL.createObjectURL(plik) czytał plik z dysku drugi raz. Reguły:
-   - bajty czyta się raz, od razu po wybraniu (czytajBajty), z jedną automatyczną ponowną próbą po 300 ms; przygotowanie, podgląd i droga awaryjna pracują na kopii w pamięci;
+   - bajty czyta się raz, od razu po wybraniu (czytajBajty), z jedną automatyczną ponowną próbą (300 ms do 12.11, od F: 500 ms przez FileReader); przygotowanie, podgląd i droga awaryjna pracują na kopii w pamięci;
    - NotReadableError, NotFoundError i SecurityError z odczytu = komunikat po polsku z instrukcją, z przedrostkiem „Logo:” albo „Zrzut wpłaty:”, w firmie i w cegiełce;
    - dekodowanie (createImageBitmap i Image) dostaje Blob z bajtów, nigdy plik;
    - diagnostyka niesie etap (odczyt / dekodowanie) i nazwę błędu przeglądarki;
@@ -42,7 +42,7 @@ function piaskownica(o) {
 test('czytajBajty: pierwszy odczyt pada, drugi po przerwie wchodzi; dwa razy pada = komunikat po polsku z przedrostkiem i etapem odczyt', async () => {
   const { L } = piaskownica({ szer: 1, wys: 1 });
   const s = czytaj('js/logo-firmy.mjs');
-  assert.match(s, /await czekaj\(odstep == null \? 300 : odstep\);/, 'ponowna próba po 300 ms');
+  assert.match(s, /await czekaj\(odstep == null \? ODSTEP_PONOWIENIA : odstep\);/, 'ponowna próba po ODSTEP_PONOWIENIA (500 ms od F, 12.11; było 300)');
   assert.equal(L.TELEFON_NIE_POZWOLIL, TELEFON);
   const p = plik(JPEG(10, 10), ['NotReadableError', 'ok']);
   const b = await L.czytajBajty(p, 'Logo', 0);
@@ -55,7 +55,7 @@ test('czytajBajty: pierwszy odczyt pada, drugi po przerwie wchodzi; dwa razy pad
     assert.equal(e.diag.rozmiar, 64); assert.equal(e.diag.rozszerzenie, 'jpg'); assert.equal(e.diag.wymiary, null, 'bez bajtów nie ma wymiarów');
   }
   const inny = await L.czytajBajty(plik(JPEG(10, 10), ['TypeError', 'TypeError']), 'Zrzut wpłaty', 0).catch((x) => x);
-  assert.equal(inny.message, 'Zrzut wpłaty: nie udało się odczytać pliku. Zrób zrzut ekranu potwierdzenia (PNG albo JPG).', 'inny błąd odczytu: zwykła prośba, bo instrukcja o Galerii by nie pomogła');
+  assert.equal(inny.message, 'Zrzut wpłaty: nie udało się odczytać pliku. Wybierz plik jeszcze raz. Zrób zrzut ekranu potwierdzenia (PNG albo JPG).', 'inny błąd odczytu: zwykła prośba z „Wybierz plik jeszcze raz” (F, 12.11), bo instrukcja o Galerii by nie pomogła');
   assert.equal(inny.diag.przyczyna, 'TypeError: x');
 });
 
@@ -105,8 +105,8 @@ test('formularz: logo i zrzut czytane raz, kopia zamiast pliku; po odmowie komun
   /* cegiełka (osoba): zrzut z galerii, którego telefon nie daje odczytać */
   kOsoba.checked = true; kFirma.checked = false; kOsoba.listeners.change.forEach((f) => f());
   const zly = plik(JPEG(720, 1600), ['NotReadableError', 'NotReadableError'], 'Screenshot_1.jpg');
-  const t0 = Date.now(); zmiana(zrzut, zly); await odczekaj(380);
-  assert.equal(zly.odczyty, 2, 'odczyt + jedna ponowna próba'); assert.ok(Date.now() - t0 >= 300);
+  const t0 = Date.now(); zmiana(zrzut, zly); await odczekaj(620);
+  assert.equal(zly.odczyty, 2, 'odczyt + jedna ponowna próba (bez FileReadera w piaskownicy: arrayBuffer)'); assert.ok(Date.now() - t0 >= 500);
   assert.equal(wyslij.disabled, true, 'odmowa odczytu zrzutu = „Wyślij” zablokowany'); assert.equal(info.textContent, 'Zrzut wpłaty: ' + TELEFON);
   assert.equal(wyslane.length, 1, 'diagnostyka raz');
   assert.equal(wyslane[0].pole, 'zrzut'); assert.equal(wyslane[0].etap, 'odczyt'); assert.match(wyslane[0].przyczyna, /^NotReadableError: The requested file could not be read/); assert.equal(wyslane[0].wymiary, '', 'bez bajtów nie ma wymiarów');
@@ -116,14 +116,14 @@ test('formularz: logo i zrzut czytane raz, kopia zamiast pliku; po odmowie komun
   zmiana(zrzut, dobry); await odczekaj(20);
   assert.equal(dobry.odczyty, 1, 'dobry plik: dokładnie jeden odczyt'); assert.equal(wyslij.disabled, false, 'inny plik = „Wyślij” wraca'); assert.equal(info.textContent, '', 'komunikat znika');
   assert.equal(wyslane.length, 1, 'bez diagnostyki przy powodzeniu');
-  /* firma: logo, odczyt pada pierwszy raz, druga próba po 300 ms wchodzi; przygotuj dostaje te same bajty, pliku nie czyta */
+  /* firma: logo, odczyt pada pierwszy raz, druga próba po 500 ms wchodzi; przygotuj dostaje te same bajty, pliku nie czyta */
   kOsoba.checked = false; kFirma.checked = true; kFirma.listeners.change.forEach((f) => f());
   const chwiejne = plik(JPEG(300, 120), ['NotReadableError', 'ok'], 'logo.jpg');
-  zmiana(logo, chwiejne); await odczekaj(380);
+  zmiana(logo, chwiejne); await odczekaj(620);
   assert.equal(chwiejne.odczyty, 2); assert.equal(wyslij.disabled, false, 'druga próba wystarczyła: bez komunikatu'); assert.equal(info.textContent, ''); assert.equal(wyslane.length, 1);
   /* firma: logo, którego nie da się odczytać; potem inne logo */
   const zleLogo = plik(JPEG(300, 120), ['NotFoundError', 'NotFoundError'], 'logo2.jpg');
-  zmiana(logo, zleLogo); await odczekaj(380);
+  zmiana(logo, zleLogo); await odczekaj(620);
   assert.equal(wyslij.disabled, true); assert.equal(info.textContent, 'Logo: ' + TELEFON); assert.equal(wyslane.length, 2); assert.equal(wyslane[1].pole, 'logo'); assert.equal(wyslane[1].etap, 'odczyt'); assert.equal(wyslane[1].przyczyna, 'NotFoundError: x');
   zmiana(logo, plik(JPEG(300, 120), [], 'logo3.jpg')); await odczekaj(20);
   assert.equal(wyslij.disabled, false); assert.equal(info.textContent, '');
