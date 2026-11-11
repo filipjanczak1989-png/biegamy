@@ -153,7 +153,7 @@
 
   /* Style kart — wstrzykiwane raz (jak WATCH._injectCss w sb.js), żeby trzy strony nie trzymały kopii. Kolory z tokenów theme.css
      z wartościami awaryjnymi (index.html i dla-fabianka.html mogą nie ładować theme.css). */
-  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
+  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wklad--zero{line-height:1.5}.akcja-pierwszy{display:inline-block;margin:6px 0 0;padding:10px 14px;min-height:40px;border:0;border-radius:10px;background:var(--accent,#ff8a3c);color:#17120e;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.akcja-dzieki{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(47,107,58,.25);border:1px solid rgba(47,107,58,.6);font-size:13px;font-weight:700}.akcja-dzis-liczby .akcja-pierwszy{pointer-events:auto;position:relative;z-index:4}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
     ".akcja-karta{background:var(--card,#0f0f14);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:16px;padding:14px;color:var(--fg,#f0ede8);font-family:Inter,system-ui,sans-serif}" +
     ".akcja-nazwa{font:400 22px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.04em;margin-bottom:10px}" +
     ".akcja-pasek{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}" +
@@ -333,8 +333,25 @@
   }
   /* KAFEL AKCJI NA DZIŚ (Filip 5.11): gdy akcja trwa, duży kafel z cytatem ustępuje żywej Ulicy z licznikiem i czterema przyciskami. zawodnik.html jest zamrożony, więc podmiana idzie stąd, w tym samym banerze: film akcji gra nad kaflem jak dotąd, a cytat czeka pod klasą i wraca po zdjęciu kafla. Licznik i wkład z tych samych danych co karta, bez nowego odpytywania. */
   function banerDzis() { return g.document && g.document.getElementById ? g.document.getElementById("daily-motivation") : null; }
+  /* PIERWSZY KILOMETR (11.11; stan 10.11: 75 kont od 7.11, 62 bez żadnej aktywności): gdy własny wkład to 0 km, zamiast „Twój wkład: 0 km” jedno zdanie i przycisk,
+     który prowadzi najkrótszą drogą do dodania aktywności (formularz treningu na Dziś z ustawionym typem „Spacer”). Po pierwszym kilometrze wraca zwykły wkład
+     i jednorazowe podziękowanie (10 minut od pierwszego pokazania, potem nigdy). Flaga w localStorage, żadnych nowych zapytań: wkład przychodzi jak dotąd z akcja_moj_wklad. */
+  var KLUCZ_PIERWSZY = "bm_akcja_pierwszy_km_", DZIEKI_MS = 10 * 60 * 1000;
+  function flagaPierwszego(slug, wartosc) { try { if (wartosc === undefined) return g.localStorage.getItem(KLUCZ_PIERWSZY + slug); if (wartosc === null) g.localStorage.removeItem(KLUCZ_PIERWSZY + slug); else g.localStorage.setItem(KLUCZ_PIERWSZY + slug, wartosc); } catch (e) {} return null; }
+  /** Wiersz wkładu na kaflu i w karcie: zero → zdanie i przycisk; więcej → „Twój wkład: X km”, przycisk „Pokaż mój wkład” i (raz) podziękowanie. teraz = czas (test). */
+  function wkladHtml(d, wklad, klasa, teraz) {
+    var slug = slugKafla(d), kmW = Number(wklad && wklad.km) || 0, t = teraz || Date.now();
+    if (wklad && !(kmW > 0)) {
+      if (flagaPierwszego(slug) == null) flagaPierwszego(slug, "0");
+      return '<div class="' + klasa + ' akcja-wklad--zero">Spacer też buduje ulicę. <button type="button" class="akcja-pierwszy" data-pierwszy-km>Dodaj pierwszy kilometr ›</button></div>';
+    }
+    var dzieki = "", f = flagaPierwszego(slug);
+    if (kmW > 0 && f === "0") { flagaPierwszego(slug, "1:" + t); f = "1:" + t; }
+    if (kmW > 0 && f && f.indexOf("1:") === 0) { if (t - Number(f.slice(2)) < DZIEKI_MS) dzieki = '<div class="akcja-dzieki">Pierwszy kilometr na ulicy. Dziękujemy.</div>'; else flagaPierwszego(slug, "2"); }
+    return '<div class="' + klasa + '">Twój wkład: <b>' + km(kmW) + ' km</b>' + '</div>' + dzieki;
+  }
   function liczbyKaflaHtml(d, wklad) {
-    return '<div class="akcja-dzis-km"><b>' + km(d.suma_km) + "</b>z " + km(d.cel_km) + ' km</div><div class="akcja-dzis-wklad">Twój wkład: <b>' + km(wklad && wklad.km) + " km</b></div>";
+    return '<div class="akcja-dzis-km"><b>' + km(d.suma_km) + "</b>z " + km(d.cel_km) + ' km</div>' + wkladHtml(d, wklad, "akcja-dzis-wklad");
   }
   function daneKaflaHtml(d) {
     var p = pct(d), pl = plakatUrl(d), zb = linkZbiorki(d);
@@ -536,7 +553,7 @@
       (film ? '<button type="button" class="akcja-kafel" data-film-akcji="1">Zobacz film</button>' : "");
     sprawdzFirmyDoSprawdzenia();
     return '<div class="akcja-karta akcja-centrum"><a class="akcja-kafel akcja-kafel--wplata" data-firmy-czekaja href="trener.html#firmy-sec" hidden></a><div class="akcja-nazwa">' + esc(d.nazwa) + '</div>' + punktUlicy(d) + plakatHtml(d, "akcja-plakat--dzis") + pasekHtml(d) +
-      '<div class="akcja-ja">Twój wkład: <b>' + mojeKm + ' km</b></div>' +
+      wkladHtml(d, wklad, "akcja-ja") +
       '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
       '<div class="akcja-kafle">' + kafle + '</div>' +
       sponsorHtml(wklad, d) +
@@ -547,6 +564,30 @@
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
       (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
   }
+  /* Pierwszy kilometr: najkrótsza droga do dodania spaceru. Na Dziś formularz treningu jest na stronie (openModal + selType z zamrożonego zawodnik.html, wołane
+     przez window): otwieramy go, zaznaczamy „Spacer” i stawiamy kursor w dystansie. Gdzie formularza nie ma, link na Dziś z #log. */
+  function otworzPierwszyKm() {
+    if (typeof g.openModal === "function") {
+      /* openModal jest asynchroniczny i po otwarciu dopisuje typ z dzisiejszego planu: Spacer wybieramy dopiero, gdy skończy (sprawdzone na prawdziwym zawodnik.html 11.11) */
+      var otwarcie = null; try { otwarcie = g.openModal(); } catch (e) {}
+      Promise.resolve(otwarcie).catch(function () {}).then(function () {
+        g.setTimeout(function () {
+          try {
+            var pill = null; (g.document.querySelectorAll(".type-pill[onclick]") || []).forEach(function (p) { if (!pill && /selType\(this,\s*'Spacer'\)/.test(p.getAttribute("onclick") || "")) pill = p; });
+            if (pill && typeof g.selType === "function") g.selType(pill, "Spacer");
+            var dist = g.document.getElementById("l-dist"); if (dist && dist.focus) dist.focus();
+          } catch (e) {}
+        }, 80);
+      });
+      return true;
+    }
+    if (g.location) g.location.href = "zawodnik.html#log";
+    return false;
+  }
+  if (g.document) g.document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-pierwszy-km]") : null; if (!b) return;
+    e.preventDefault(); otworzPierwszyKm();
+  });
   /* Film akcji z kafla: w nakładce, adres z licznika, plik dopiero po dotknięciu. */
   if (g.document) g.document.addEventListener("click", function (e) {
     var b = e.target && e.target.closest ? e.target.closest("[data-film-akcji]") : null; if (!b) return;
@@ -628,7 +669,7 @@
       zamknieta: !!d.zamknieta, url_zbiorki: d.url_zbiorki || null } };
   }
 
-  g.BM_AKCJA = { km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  g.BM_AKCJA = { wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
     plakatUrl: plakatUrl, plakatHtml: plakatHtml, pokazPlakat: pokazPlakat,
