@@ -108,9 +108,9 @@ async function loadDuels() {
     const otherId = isChallenger ? d.opponent_id : d.challenger_id;
     const other = athMap[otherId] || { full_name: 'Biegacz' };
     const typeName = TYPE_LABELS[d.type] || d.type;
-    const ini = (other.full_name || '?').split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2);
-    const av = other.avatar_url
-      ? '<img src="' + other.avatar_url + '" style="width:100%;height:100%;object-fit:cover;">'
+    const ini = escapeHtml((other.full_name || '?').split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2));
+    const av = other.avatar_url && safeUrlAttr(other.avatar_url)
+      ? '<img src="' + safeUrlAttr(other.avatar_url) + '" style="width:100%;height:100%;object-fit:cover;">'
       : ini;
 
     let statusBadge = '';
@@ -141,8 +141,8 @@ async function loadDuels() {
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
         + '<div onclick="openProfile(\'' + otherId + '\')" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av + '</div>'
         + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (other.full_name || 'Biegacz') + '</div>'
-          + '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:2px;">' + typeName + ' · ' + d.duration_days + ' dni</div>'
+          + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(other.full_name || 'Biegacz') + '</div>'
+          + '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:2px;">' + escapeHtml(typeName) + ' · ' + escapeHtml(String(d.duration_days)) + ' dni</div>'
         + '</div>'
         + '<div style="flex-shrink:0;">' + statusBadge + '</div>'
       + '</div>'

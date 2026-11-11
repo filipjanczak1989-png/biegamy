@@ -923,7 +923,7 @@ function renderPBs(ath) {
   document.getElementById('pbs-grid').innerHTML = pbs.map(function(pb) {
     return '<div class="pb-card"' + (canEdit ? ' onclick="editPB(\''+pb.key+'\',\''+pb.dist+'\',\''+( pb.val||'')+'\')" style="cursor:pointer;"' : '') + '>'
       + '<div class="pb-dist">' + pb.dist + '</div>'
-      + (pb.val ? '<div class="pb-time">' + pb.val + '</div>'
+      + (pb.val ? '<div class="pb-time">' + escHtml(pb.val) + '</div>'
                 : '<div class="pb-empty">' + (canEdit ? '<span style="font-size:11px;color:var(--accent);">+ Dodaj</span>' : '—') + '</div>')
       + (canEdit ? '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">✎ edytuj</div>' : '')
       + '</div>';
@@ -1230,14 +1230,14 @@ function renderGoals(ath) {
     // Klik: jeśli cel powiązany z race_id → showParticipants po race_id; inaczej openRaceDetails po nazwie
     const clickHandler = linked
       ? 'showRaceDetailsById(\'' + g.race_id + '\')'
-      : 'openRaceDetails(\'' + escHtml(g.name).replace(/'/g,"\\'") + '\')';
+      : 'openRaceDetails(this.dataset.raceName)';   /* nazwa w data-*, nie w kodzie JS atrybutu (CLAUDE.md: anty-wzorzec JS-in-attr) */
     const ctaLine = linked
       ? '<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;margin-top:2px;display:flex;align-items:center;gap:4px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>z kalendarza · zobacz uczestników</div>'
       : '<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;">👥 Kto bierze udział?</div>';
     const linkBtn = (_isOwnProfile && !linked)
       ? '<button onclick="event.stopPropagation();openLinkGoalModal('+i+')" title="Powiąż z kalendarzem" style="background:none;border:1px solid rgba(91,140,255,0.35);color:#5b8cff;font-size:10px;padding:3px 6px;border-radius:6px;cursor:pointer;font-family:DM Mono,monospace;">' + window.icHtml('act-link',12) + '</button>'
       : '';
-    return '<div class="goal-item" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    return '<div class="goal-item" data-race-name="' + escHtml(g.name) + '" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div class="goal-date-badge"><div class="goal-date-day">'+day+'</div><div class="goal-date-mon">'+mon+'</div></div>'
       + '<div class="goal-name">'+escHtml(g.name)+ctaLine+'</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
@@ -1300,7 +1300,7 @@ async function loadBadges() {
   const badgesList = document.getElementById('badges-list');
   badgesList.innerHTML = logs.map(l => {
     const b = badgeMap[l.training_type] || { icon: '⭐', label: l.training_type.replace('__badge__','') };
-    return `<div class="badge-item"><span class="badge-icon">${b.icon}</span>${b.label}</div>`;
+    return `<div class="badge-item"><span class="badge-icon">${b.icon}</span>${escHtml(b.label)}</div>`;
   }).join('');
 }
 
@@ -3000,7 +3000,7 @@ async function openRaceDetails(raceName) {
   let html = '<div style="width:100%;max-width:480px;background:rgba(22,18,30,0.99);border-radius:24px 24px 0 0;padding:0 0 env(safe-area-inset-bottom,24px);max-height:80vh;overflow-y:auto;">';
   html += '<div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;"></div>';
   html += '<div style="padding:0 20px 16px;">';
-  html += '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.04em;color:var(--fg);margin-bottom:4px;">'+raceName+'</div>';
+  html += '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.04em;color:var(--fg);margin-bottom:4px;">'+escHtml(raceName)+'</div>';
 
   if (race) {
     html += '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:12px;">'
@@ -3318,7 +3318,7 @@ function renderTr(filter){
   mk.forEach(function(k){var m=months[k];html+='<div style="font-size:9px;text-transform:uppercase;color:var(--muted);padding:12px 0 6px;display:flex;justify-content:space-between;"><span>'+m.label+'</span>'+(m.km>0?'<span style="color:var(--accent);">'+m.km.toFixed(1)+' km</span>':'')+'</div>';
     m.items.forEach(function(l){var d=new Date(l.logged_at);var day=d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});var km=parseFloat(l.distance_km)||0;var col=TC[l.training_type]||'#66636e';var imgs=l.attachment_url?l.attachment_url.split(',').filter(Boolean):[];
       html+='<div onclick="_openTrainingDetail(\''+l.id+'\')" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;"><span style="font-size:9px;text-transform:uppercase;color:'+col+';font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'+(FL[l.feel]||'')+'<span style="font-size:10px;color:var(--muted);margin-left:auto;">'+day+'</span></div>';
-      if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
+      if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;">'+escHtml(l.pace)+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
       if(l.comment)html+='<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
       if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){var _a=window._spImgSrc(u);if(_a)html+='<img '+_a+' onclick="event.stopPropagation();openLightbox(this.dataset.sp || this.src)" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.opacity=0">';});html+='</div>';}
       html+='</div>';});});

@@ -2411,7 +2411,7 @@ async function openCopyToAthleteDialog(workouts, kind) {
 
         <div style="margin-bottom:14px;max-height:280px;overflow-y:auto;">
           ${others.map(a => `
-            <button onclick="doCopyToAthlete('${a.id}', '${escapeHtml(a.full_name || '')}', ${JSON.stringify(workouts.map(w=>w.id)).replace(/"/g,'&quot;')})" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+            <button data-name="${escapeHtml(a.full_name || '')}" onclick="doCopyToAthlete('${a.id}', this.dataset.name, ${JSON.stringify(workouts.map(w=>w.id)).replace(/"/g,'&quot;')})" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
               <span>${escapeHtml(a.full_name || 'Bez imienia')}</span>
               <span style="color:#22c55e;font-size:14px;">→</span>
             </button>`).join('')}
@@ -3215,17 +3215,17 @@ async function loadFreshFeedbacks() {
       + 'border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;gap:12px;align-items:flex-start;" '
       + 'onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.5)\';this.style.transform=\'translateX(2px)\'" '
       + 'onmouseout="this.style.borderColor=\'rgba(var(--accent-rgb),0.25)\';this.style.transform=\'\'">'
-      + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + initials + '</div>'
+      + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + escapeHtml(initials) + '</div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'
-          + '<span style="font-size:13px;color:var(--fg);font-weight:600;">' + athName + '</span>'
+          + '<span style="font-size:13px;color:var(--fg);font-weight:600;">' + escapeHtml(athName) + '</span>'
           + (reactionIcon ? '<span style="font-size:14px;color:' + reactionColor + ';">' + reactionIcon + '</span>' : '')
           + '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;">' + typeLabel + '</span>'
           + '<span style="background:var(--accent);color:#fff;border-radius:5px;padding:1px 6px;font-size:8px;font-family:DM Mono,monospace;letter-spacing:0.1em;font-weight:700;">NOWE</span>'
           + '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;flex-shrink:0;">' + feedbackDate + '</span>'
         + '</div>'
         + '<div style="font-size:12.5px;color:rgba(240,237,232,0.85);line-height:1.5;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
-          + (r.athlete_feedback ? '"' + feedbackText.replace(/</g,'&lt;') + (r.athlete_feedback.length > 140 ? '..."' : '"') : '<span style="color:var(--muted);font-style:normal;">(tylko reakcja, brak komentarza)</span>')
+          + (r.athlete_feedback ? '"' + escapeHtml(feedbackText) + (r.athlete_feedback.length > 140 ? '..."' : '"') : '<span style="color:var(--muted);font-style:normal;">(tylko reakcja, brak komentarza)</span>')
         + '</div>'
       + '</div>'
     + '</div>';
@@ -3624,16 +3624,16 @@ function renderLogs_db(logs) {
         ? `kalendarz.html?role=coach&athlete=${athleteId}&date=${dateIso}` 
         : '';
       const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
-      const pace = l.pace ? l.pace + '/km' : '';
-      const gap = l.gap_pace ? 'GAP ' + l.gap_pace : '';   /* E2-UI parytet trenera */
+      const pace = l.pace ? escapeHtml(l.pace) + '/km' : '';
+      const gap = l.gap_pace ? 'GAP ' + escapeHtml(l.gap_pace) : '';   /* E2-UI parytet trenera */
       const _kadT = window.kadencjaSpm ? window.kadencjaSpm(l.cadence, l.training_type) : null;   /* zapis = RPM jednej nogi; przeliczenie i bramka na typ w sb.js */
       const kad = _kadT ? '👣 ' + _kadT : '';
-      const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
+      const hr = l.heart_rate ? '♥ ' + escapeHtml(l.heart_rate) : '';
       const watch = (l.source === 'intervals' && l.external_id)
         ? `<span onclick="event.stopPropagation();openCoachIcuModal('${l.id}')" style="color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">⌚ wykresy</span>`
         : '';
       const det = [dist, pace, gap, hr, kad, watch].filter(Boolean).join(' · ');
-      const reaction = l.athlete_reaction ? `<span style="font-size:18px;">${l.athlete_reaction}</span>` : '';
+      const reaction = l.athlete_reaction ? `<span style="font-size:18px;">${escapeHtml(l.athlete_reaction)}</span>` : '';
       return `<div style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:12px;background:var(--card2);border-radius:8px;overflow:hidden;">
         <div style="padding:12px 14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -3651,10 +3651,10 @@ function renderLogs_db(logs) {
           ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${escapeHtml(l.comment)}"</div>` : ''}
           ${l.attachment_url ? `<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px;">${l.attachment_url.split(',').map(url => `<img ${window._spImgSrc(url)} style="width:calc(50% - 2px);max-height:140px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(this.src,'_blank')" onerror="this.style.display='none'">`).join('')}</div>` : ''}
           ${l.strava_link ? `<a href="${safeExternalHref(l.strava_link)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;margin-bottom:6px;display:block;">↗ Strava/Garmin</a>` : ''}
-          ${l.coach_gif ? `<div style="margin-bottom:6px;"><img src="${l.coach_gif}" style="max-width:100%;max-height:160px;border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
+          ${l.coach_gif && safeUrlAttr(l.coach_gif) ? `<div style="margin-bottom:6px;"><img src="${safeUrlAttr(l.coach_gif)}" style="max-width:100%;max-height:160px;border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
           ${l.coach_comment ? `<div style="background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;">
             <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;">T</div>
-            <div style="font-size:12px;line-height:1.5;">${l.coach_comment}</div>
+            <div style="font-size:12px;line-height:1.5;">${escapeHtml(l.coach_comment)}</div>
           </div>` : ''}
         </div>
         <div style="border-top:1px solid rgba(255,255,255,0.05);padding:8px 12px;background:rgba(0,0,0,0.1);display:flex;gap:6px;align-items:center;">
@@ -4645,10 +4645,10 @@ async function _renderNotifPanel(panel) {
         : date.toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
       const dot = isToday ? '#3db870' : isThisWeek ? '#5090e0' : 'var(--muted)';
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);">'
-        + '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:12px;flex-shrink:0;">' + ini + '</div>'
+        + '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:12px;flex-shrink:0;">' + escapeHtml(ini) + '</div>'
         + '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:13px;font-weight:500;">' + name + '</div>'
-        + (a.goal ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal + '</div>' : '')
+        + '<div style="font-size:13px;font-weight:500;">' + escapeHtml(name) + '</div>'
+        + (a.goal ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(a.goal) + '</div>' : '')
         + '</div>'
         + '<div style="text-align:right;flex-shrink:0;">'
         + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;">' + timeStr + '</div>'
@@ -4665,8 +4665,8 @@ async function _renderNotifPanel(panel) {
       + _coachNotifications.map(function(n) {
         const ini = n.name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
         return '<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(61,184,112,0.06);">'
-          + '<div style="width:28px;height:28px;border-radius:50%;background:#3db870;display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:11px;flex-shrink:0;">' + ini + '</div>'
-          + '<div style="flex:1;font-size:12px;">' + n.name + '</div>'
+          + '<div style="width:28px;height:28px;border-radius:50%;background:#3db870;display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:11px;flex-shrink:0;">' + escapeHtml(ini) + '</div>'
+          + '<div style="flex:1;font-size:12px;">' + escapeHtml(n.name) + '</div>'
           + '<div style="font-size:9px;color:#3db870;font-family:\'DM Mono\',monospace;">' + n.ts + '</div>'
           + '</div>';
       }).join('');
@@ -4776,13 +4776,13 @@ async function loadCoachSocialFeed() {
       +'</div>';
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+name+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+escapeHtml(ini)+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+escapeHtml(name)+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +(typeof window.renderTypePill === 'function' ? window.renderTypePill(type, {size:'sm'}) : '<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+(window.escapeHtml||String)(type)+'</span>')
       +'</div>'
       +(dist?'<div style="display:flex;gap:16px;align-items:baseline;margin-top:10px;">'
         +'<div><span style="font-family:Bebas Neue,sans-serif;font-size:28px;line-height:1;">'+dist+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">KM</span></div>'
-        +(l.pace?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;line-height:1;">'+l.pace+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
+        +(l.pace?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;line-height:1;">'+escapeHtml(l.pace)+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
         +(l.elevation_gain?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;color:#3db870;">&#x25B2;'+l.elevation_gain+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:2px;">m</span></div>':'')
         +(feelEmoji?'<div style="margin-left:auto;font-size:20px;">'+feelEmoji+'</div>':'')
         +'</div>':'')
@@ -5269,7 +5269,7 @@ async function zaladujPoranek() {
     }
     alerty.sort((x, y) => y.waga - x.waga);
     el.innerHTML = zegarkiBtn + agregatHtml + alerty.map(x =>
-      '<div onclick="openAthleteProfile(\'' + x.a.id + '\', \'' + esc(x.a.full_name).replace(/'/g, '') + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
+      '<div data-id="' + x.a.id + '" data-name="' + esc(x.a.full_name) + '" onclick="openAthleteProfile(this.dataset.id, this.dataset.name)" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;background:var(--card);border:1px solid rgba(232,86,30,0.25);border-radius:10px;cursor:pointer;">'
       + '<span style="font-size:12.5px;font-weight:600;">' + esc(x.a.full_name) + '</span>'
       + '<span style="font-size:10.5px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.65);text-align:right;">' + x.sig.join(' \u00b7 ') + '</span></div>'
     ).join('') + startyHtml;
@@ -5717,7 +5717,7 @@ async function loadAnalytics() {
       const totalSess = a.sessions||1;
       const typeBar = Object.entries(a.typeCounts).map(([t,n])=>{
         const pct=Math.round(n/totalSess*100);
-        return `<div style="height:4px;width:${pct}%;background:${typeColors2[t]||'#66636e'};border-radius:2px;" title="${t}: ${n}"></div>`;
+        return `<div style="height:4px;width:${pct}%;background:${typeColors2[t]||'#66636e'};border-radius:2px;" title="${escapeHtml(t)}: ${n}"></div>`;
       }).join('');
       // PB row
       const pbs = [

@@ -1665,11 +1665,11 @@ function render() {
                    onclick="openModal('${ds}',${i})">
         <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
         ${_urlRole==='coach'?`<button class="card-copy" onclick="openCopyModalFromCard(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
-        <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
+        <div class="card-type ${tc}">${escapeHtml(t.type.toUpperCase())}</div>
         ${displayDist>0
           ? `<div class="card-main">${displayDist} km</div>`
           : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
-        ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?displayPace+'/km':''} ${displayHr?'· ♥ '+displayHr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
+        ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?escapeHtml(displayPace)+'/km':''} ${displayHr?'· ♥ '+escapeHtml(displayHr):''}${t.time?'· '+escapeHtml(t.time)+' min':''}</div>`:''}
         ${t.desc?`<div class="card-desc">${escapeHtml(t.desc)}</div>`:''}
         ${cwBtn}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
@@ -1708,11 +1708,11 @@ function render() {
       
       return `<div class="training-card done ${type==='Odpoczynek'?'rest-card':''}" style="border-left:3px solid rgba(61,184,112,0.5);background:rgba(61,184,112,0.04);">
         <div class="card-type ${tc}" style="display:flex;align-items:center;justify-content:space-between;">
-          <span>${type.toUpperCase()}</span>
+          <span>${escapeHtml(type.toUpperCase())}</span>
           ${feelIcon ? `<span style="font-size:13px;">${feelIcon}</span>` : ''}
         </div>
         ${dist ? `<div class="card-main">${dist} km</div>` : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
-        ${(pace || hr || dur) ? `<div class="card-pace">${pace?pace+'/km':''} ${hr?'· ♥ '+hr:''} ${dur?'· '+dur+' min':''}</div>` : ''}
+        ${(pace || hr || dur) ? `<div class="card-pace">${pace?escapeHtml(pace)+'/km':''} ${hr?'· ♥ '+escapeHtml(hr):''} ${dur?'· '+escapeHtml(dur)+' min':''}</div>` : ''}
         <div class="card-status done" style="background:rgba(61,184,112,0.15);color:rgba(61,184,112,1);font-size:9px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;">✓ Wykonany (bez planu)</div>
       </div>`;
     }).join('');
@@ -1722,7 +1722,7 @@ function render() {
       return l.attachment_url.split(',').map((url, urlIdx) =>
         `<div style="position:relative;width:calc(50% - 2px);">
           <img ${window._spImgSrc(url)} style="width:100%;max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open(this.src,'_blank')" onerror="this.style.display='none'">
-          <button onclick="event.stopPropagation();openMoveScreenModal('${logId}','${url}','${ds}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;border-radius:4px;color:#fff;font-size:9px;padding:2px 5px;cursor:pointer;font-family:'DM Mono',monospace;" title="Przesuń na inny dzień">↔</button>
+          <button data-url="${escapeHtml(url)}" onclick="event.stopPropagation();openMoveScreenModal('${logId}',this.dataset.url,'${ds}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;border-radius:4px;color:#fff;font-size:9px;padding:2px 5px;cursor:pointer;font-family:'DM Mono',monospace;" title="Przesuń na inny dzień">↔</button>
         </div>`
       ).join('');
     }).join('');
@@ -1751,9 +1751,9 @@ function render() {
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
           <span style="color:#FC4C02;font-family:'DM Mono',monospace;font-weight:600;">${km} km</span>
-          <span style="color:var(--muted);font-family:'DM Mono',monospace;">${pace}/km${hr}</span>
+          <span style="color:var(--muted);font-family:'DM Mono',monospace;">${escapeHtml(pace)}/km${escapeHtml(hr)}</span>
         </div>
-        <div style="color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+        <div style="color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.name)}</div>
         ${compareHtml}
       </div>`;
     }).join('');
@@ -3406,7 +3406,7 @@ function renderGoals() {
     const borderColor = isVeryClose ? 'rgba(232,184,64,0.8)' : isClose ? 'rgba(61,184,112,0.7)' : 'rgba(61,184,112,0.3)';
     const bg = isVeryClose ? 'rgba(232,184,64,0.12)' : 'rgba(61,184,112,0.08)';
     const dayColor = isVeryClose ? 'var(--yellow)' : isClose ? 'var(--green)' : 'var(--muted)';
-    const athleteStr = (_urlRole === 'coach' && g.athlete_name) ? `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.athlete_name.split(' ')[0]}</span>` : '';
+    const athleteStr = (_urlRole === 'coach' && g.athlete_name) ? `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(g.athlete_name.split(' ')[0])}</span>` : '';
     return `<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${borderColor};border-radius:6px;padding:6px 10px;cursor:pointer;transition:all 0.15s;" onclick="openGoalModal('${g.id}','${g.date}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${borderColor}'">
       <span style="font-size:13px;">🏁</span>
       ${athleteStr}
@@ -3999,13 +3999,13 @@ function openMoveScreenModal(logId, url, currentDs) {
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:360px;padding:24px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:6px;">Przesuń screenshot</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Wybierz dzień na który przenieść zdjęcie</div>
-      <img src="${url}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-bottom:16px;" onerror="this.style.display='none'">
+      <img src="${safeUrlAttr(url)}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-bottom:16px;" onerror="this.style.display='none'">
       <select id="move-screen-date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;margin-bottom:16px;">
         ${options.join('')}
       </select>
       <div style="display:flex;gap:8px;">
         <button onclick="document.getElementById('move-screen-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
-        <button onclick="executeMoveScreen('${logId}','${url}','${currentDs}')" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Przenieś →</button>
+        <button data-url="${escapeHtml(url)}" onclick="executeMoveScreen('${logId}',this.dataset.url,'${currentDs}')" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Przenieś →</button>
       </div>
     </div>`;
   modal.onclick = e => { if (e.target === modal) modal.remove(); };
@@ -5545,10 +5545,10 @@ function renderTiles() {
       <div class="tile-info">
         ${km > 0
           ? `<div class="tile-km">${km % 1 === 0 ? km.toFixed(0) : km.toFixed(1)}<span class="tile-km-unit"> km</span></div>
-             <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${typeLabel||''}</span></div>`
+             <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${escapeHtml(typeLabel||'')}</span></div>`
           : (hasPlanned
               ? `<div class="tile-km" style="font-size:clamp(8px,2vw,10px);color:rgba(255,107,44,0.8);">—</div>
-                 <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${typeLabel||''}</span></div>`
+                 <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${escapeHtml(typeLabel||'')}</span></div>`
               : `<div class="tile-km" style="color:rgba(255,255,255,0.12);">—</div><div class="tile-type"><span style="color:rgba(255,255,255,0.15);">REST</span></div>`)
         }
       </div>
@@ -5720,8 +5720,8 @@ function _openDayScreen(ds) {
   // Meta: tempo + tętno pod KM
   const heroMeta = document.getElementById('ds-hero-meta');
   const metaHtml = [];
-  if (pace) metaHtml.push(`<span style="color:rgba(255,255,255,0.82);font-family:'DM Mono',monospace;font-size:12px;background:rgba(0,0,0,0.45);padding:3px 9px;border-radius:8px;backdrop-filter:blur(4px);">⏱ ${pace}/km</span>`);
-  if (hr)   metaHtml.push(`<span style="color:rgba(255,255,255,0.82);font-family:'DM Mono',monospace;font-size:12px;background:rgba(0,0,0,0.45);padding:3px 9px;border-radius:8px;backdrop-filter:blur(4px);">♥ ${hr} bpm</span>`);
+  if (pace) metaHtml.push(`<span style="color:rgba(255,255,255,0.82);font-family:'DM Mono',monospace;font-size:12px;background:rgba(0,0,0,0.45);padding:3px 9px;border-radius:8px;backdrop-filter:blur(4px);">⏱ ${escapeHtml(pace)}/km</span>`);
+  if (hr)   metaHtml.push(`<span style="color:rgba(255,255,255,0.82);font-family:'DM Mono',monospace;font-size:12px;background:rgba(0,0,0,0.45);padding:3px 9px;border-radius:8px;backdrop-filter:blur(4px);">♥ ${escapeHtml(hr)} bpm</span>`);
   heroMeta.innerHTML = metaHtml.join('');
 
   // ── KARTA: Dane 2x2 ───────────────────────────────────────────────
@@ -5741,7 +5741,7 @@ function _openDayScreen(ds) {
       `<div class="ds-stat-cell">
         <div class="ds-stat-label">${c.label}</div>
         <div style="display:flex;align-items:baseline;gap:3px;">
-          <span class="ds-stat-val">${c.val}</span>
+          <span class="ds-stat-val">${escapeHtml(c.val)}</span>
           ${c.unit ? `<span class="ds-stat-unit">${c.unit}</span>` : ''}
         </div>
       </div>`
@@ -5769,9 +5769,9 @@ function _openDayScreen(ds) {
   if (planItem && (planItem.desc || planItem.description || planItem.dist || planItem.pace)) {
     coachCard.style.display = 'block';
     const rows = [];
-    if (planItem.type && planItem.dist) rows.push(`<strong style="color:#fff;">${planItem.type}</strong> &mdash; ${planItem.dist} km`);
-    else if (planItem.type) rows.push(`<strong style="color:#fff;">${planItem.type}</strong>`);
-    if (planItem.pace) rows.push(`Tempo: <span style="color:#fff;">${planItem.pace}/km</span>`);
+    if (planItem.type && planItem.dist) rows.push(`<strong style="color:#fff;">${escapeHtml(planItem.type)}</strong> &mdash; ${escapeHtml(planItem.dist)} km`);
+    else if (planItem.type) rows.push(`<strong style="color:#fff;">${escapeHtml(planItem.type)}</strong>`);
+    if (planItem.pace) rows.push(`Tempo: <span style="color:#fff;">${escapeHtml(planItem.pace)}/km</span>`);
     if (planItem.desc || planItem.description) rows.push(`<span style="color:rgba(240,237,232,0.6);">${escapeHtml(planItem.desc||planItem.description)}</span>`);
     coachText.innerHTML = rows.join('<br>');
   } else {
@@ -5784,7 +5784,7 @@ function _openDayScreen(ds) {
   if (screens.length) {
     screensCard.style.display = 'block';
     screensScroll.innerHTML = screens.map(url =>
-      `<img src="${url}" onclick="_openDsPhoto('${url}')"
+      `<img src="${safeUrlAttr(url)}" data-url="${escapeHtml(url)}" onclick="_openDsPhoto(this.dataset.url)"
         style="height:140px;width:140px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,0.09);"
         onerror="this.style.display='none'">`
     ).join('');
@@ -5807,7 +5807,7 @@ function _openDayScreen(ds) {
   const stravaCard = document.getElementById('ds-strava-card');
   const stravaLink = document.getElementById('ds-strava-link');
   const sv = logs[0] && logs[0].strava_link;
-  if (sv) { stravaCard.style.display = 'block'; stravaLink.href = sv; }
+  if (sv && safeExternalHref(sv)) { stravaCard.style.display = 'block'; stravaLink.href = safeExternalHref(sv); }   /* tylko http(s): javascript: po dotknięciu to też XSS */
   else      stravaCard.style.display = 'none';
 
   // ── STICKY CTA ────────────────────────────────────────────────────

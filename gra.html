@@ -1547,7 +1547,7 @@ async function loadGlobalLeaderboard() {
       const rankStyle = i === 0 ? 'color:var(--gold);' : i === 1 ? 'color:#cbd5e1;' : i === 2 ? 'color:#cd7f32;' : 'color:var(--muted);';
       return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);${isMe ? 'background:rgba(var(--accent-rgb),0.08);margin:0 -8px;padding:8px;border-radius:8px;border-bottom:none;' : ''}">
         <div style="font-family:Bebas Neue,sans-serif;font-size:20px;width:24px;text-align:center;${rankStyle}">${i+1}</div>
-        <div style="flex:1;font-size:13px;color:var(--fg);">${name}${isMe ? ' (Ty)' : ''}</div>
+        <div style="flex:1;font-size:13px;color:var(--fg);">${escapeHtml(name)}${isMe ? ' (Ty)' : ''}</div>
         <div style="font-family:DM Mono,monospace;font-size:13px;color:var(--accent);font-weight:600;">${s.score}</div>
       </div>`;
     }).join('');
@@ -1596,7 +1596,7 @@ async function loadFriendsLeaderboard() {
     const rankStyle = i === 0 ? 'color:var(--gold);' : i === 1 ? 'color:#cbd5e1;' : i === 2 ? 'color:#cd7f32;' : 'color:var(--muted);';
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);${isMe ? 'background:rgba(var(--accent-rgb),0.08);margin:0 -8px;padding:8px;border-radius:8px;border-bottom:none;' : ''}">
       <div style="font-family:Bebas Neue,sans-serif;font-size:20px;width:24px;text-align:center;${rankStyle}">${i+1}</div>
-      <div style="flex:1;font-size:13px;color:var(--fg);">${name}${isMe ? ' (Ty)' : ''}</div>
+      <div style="flex:1;font-size:13px;color:var(--fg);">${escapeHtml(name)}${isMe ? ' (Ty)' : ''}</div>
       <div style="font-family:DM Mono,monospace;font-size:13px;color:var(--accent);font-weight:600;">${s.score}</div>
     </div>`;
   }).join('');
