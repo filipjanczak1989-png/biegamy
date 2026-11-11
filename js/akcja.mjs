@@ -153,7 +153,7 @@
 
   /* Style kart — wstrzykiwane raz (jak WATCH._injectCss w sb.js), żeby trzy strony nie trzymały kopii. Kolory z tokenów theme.css
      z wartościami awaryjnymi (index.html i dla-fabianka.html mogą nie ładować theme.css). */
-  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wklad--zero{line-height:1.5}.akcja-pierwszy{display:inline-block;margin:6px 0 0;padding:10px 14px;min-height:40px;border:0;border-radius:10px;background:var(--accent,#ff8a3c);color:#17120e;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.akcja-dzieki{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(47,107,58,.25);border:1px solid rgba(47,107,58,.6);font-size:13px;font-weight:700}.akcja-dzis-liczby .akcja-pierwszy{pointer-events:auto;position:relative;z-index:4}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
+  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wklad--zero{line-height:1.5}.akcja-pierwszy{display:inline-block;margin:6px 0 0;padding:10px 14px;min-height:40px;border:0;border-radius:10px;background:var(--accent,#ff8a3c);color:#17120e;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.akcja-dzieki{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(47,107,58,.25);border:1px solid rgba(47,107,58,.6);font-size:13px;font-weight:700}.akcja-moj-wklad{margin-left:8px;font-size:12px;background:transparent;cursor:pointer;font-family:inherit}.akcja-dzis-liczby .akcja-pierwszy,.akcja-dzis-liczby .akcja-moj-wklad{pointer-events:auto;position:relative;z-index:4}.akcja-dzis-liczby .akcja-moj-wklad{display:block;margin:6px 0 0;padding:6px 10px}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
     ".akcja-karta{background:var(--card,#0f0f14);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:16px;padding:14px;color:var(--fg,#f0ede8);font-family:Inter,system-ui,sans-serif}" +
     ".akcja-nazwa{font:400 22px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.04em;margin-bottom:10px}" +
     ".akcja-pasek{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}" +
@@ -348,7 +348,7 @@
     var dzieki = "", f = flagaPierwszego(slug);
     if (kmW > 0 && f === "0") { flagaPierwszego(slug, "1:" + t); f = "1:" + t; }
     if (kmW > 0 && f && f.indexOf("1:") === 0) { if (t - Number(f.slice(2)) < DZIEKI_MS) dzieki = '<div class="akcja-dzieki">Pierwszy kilometr na ulicy. Dziękujemy.</div>'; else flagaPierwszego(slug, "2"); }
-    return '<div class="' + klasa + '">Twój wkład: <b>' + km(kmW) + ' km</b>' + '</div>' + dzieki;
+    return '<div class="' + klasa + '">Twój wkład: <b>' + km(kmW) + ' km</b>' + (wklad && kmW > 0 ? ' <button type="button" class="akcja-link akcja-moj-wklad" data-moj-wklad>Pokaż mój wkład</button>' : "") + '</div>' + dzieki;
   }
   function liczbyKaflaHtml(d, wklad) {
     return '<div class="akcja-dzis-km"><b>' + km(d.suma_km) + "</b>z " + km(d.cel_km) + ' km</div>' + wkladHtml(d, wklad, "akcja-dzis-wklad");
@@ -587,6 +587,15 @@
   if (g.document) g.document.addEventListener("click", function (e) {
     var b = e.target && e.target.closest ? e.target.closest("[data-pierwszy-km]") : null; if (!b) return;
     e.preventDefault(); otworzPierwszyKm();
+  });
+  /* Karta „Mój wkład” (11.11, część 4): moduł js/akcja-wklad-karta.mjs dociągany dopiero po dotknięciu; dostaje tylko dane klikającego (licznik, wkład, adres strony). */
+  if (g.document) g.document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-moj-wklad]") : null; if (!b) return;
+    e.preventDefault();
+    var d = _kafelDane && _kafelDane[0], wklad = (_kafelDane && _kafelDane[1]) || _ostatniWklad, pokaz = function () { if (g.BM_WKLAD_KARTA) g.BM_WKLAD_KARTA.zKafla(d, wklad, adresStrony(d)); };
+    if (g.BM_WKLAD_KARTA) return pokaz();
+    var el = g.document.createElement("script"); el.src = "js/akcja-wklad-karta.mjs"; el.async = true; el.onload = pokaz;
+    g.document.head.appendChild(el);
   });
   /* Film akcji z kafla: w nakładce, adres z licznika, plik dopiero po dotknięciu. */
   if (g.document) g.document.addEventListener("click", function (e) {
