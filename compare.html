@@ -281,8 +281,8 @@ async function renderPicker() {
   listEl.innerHTML = (friends || []).map(f => {
     const initials = (f.full_name || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
     const nameEsc = escapeHtml(f.full_name || 'Bez imienia');
-    const avatarHtml = f.avatar_url
-      ? '<img src="' + escapeHtml(f.avatar_url) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+    const avatarHtml = f.avatar_url && safeUrlAttr(f.avatar_url)
+      ? '<img src="' + safeUrlAttr(f.avatar_url) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
       : '<span style="width:40px;height:40px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:13px;color:var(--accent);flex-shrink:0;">' + initials + '</span>';
     return '<a class="picker-tile" href="compare.html?friend=' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--fg);">'
       + avatarHtml
@@ -503,8 +503,8 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
   const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" class="info-dot info-dot-sm">i</button>' : '';
   const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" class="info-dot info-dot-sm">i</button>' : '';
 
-  const avatarHtml = profile.avatar_url
-    ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
+  const avatarHtml = profile.avatar_url && safeUrlAttr(profile.avatar_url)
+    ? '<img src="' + safeUrlAttr(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
     : '<span style="width:48px;height:48px;border-radius:50%;background:' + accentColor + '22;border:2px solid ' + accentColor + ';display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:15px;color:' + accentColor + ';">' + initials + '</span>';
 
   const raceHtml = race

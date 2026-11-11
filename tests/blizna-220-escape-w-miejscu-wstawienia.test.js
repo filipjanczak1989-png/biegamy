@@ -79,3 +79,67 @@ test('wyzwania.html, gra.html, profil.html: imię przeciwnika i gracza, avatar, 
   assert.ok(p.includes("'<div class=\"pb-time\">' + escHtml(pb.val) + '</div>'") && p.includes("'openRaceDetails(this.dataset.raceName)'") && p.includes("data-race-name=\"' + escHtml(g.name) + '\"") && p.includes("${escHtml(b.label)}</div>") && p.includes("'+escHtml(raceName)+'</div>'") && p.includes("'+escHtml(l.pace)+'/km</span>'"));
   assert.doesNotMatch(p, /openRaceDetails\(\\'' \+ escHtml\(g\.name\)\.replace/);
 });
+
+/* RUNDA 2 (12.11.2026, audyt 11.2026 poz. 3 i 10–15): baner pojedynków, cele startowe w atrybucie, tempo i ból w panelu trenera, typ posiłku,
+   liczby briefu, avatary innych osób przez safeUrlAttr (dataset do onerror), karta odznaki w feedzie, stary format zdjęcia w czacie,
+   obrazki jedzenia w url() przez helper https + percent-encode (safeCssUrl z sb.js odciąłby Unsplash). Bramka tools/bramka-escape.js
+   pilnuje, żeby te wzorce nie wróciły. */
+test('runda 2: zawodnik.html — baner pojedynków, avatary przez safeUrlAttr + data-ini, odznaka w feedzie', () => {
+  const z = czytaj('zawodnik.html');
+  for (const w of [
+    "+ escapeHtml(firstName) + ' wyzwał Cię na pojedynek'",
+    "(ath.avatar_url&&safeUrlAttr(ath.avatar_url)?('<img src=\"'+safeUrlAttr(ath.avatar_url)+'\" data-ini=\"'+escapeHtml(ini)+'\"",
+    "const avInner=av&&safeUrlAttr(av)?'<img src=\"'+safeUrlAttr(av)+'\" data-ini=\"'+iniSafe+'\"",
+    "const avInner = a.avatar_url && safeUrlAttr(a.avatar_url)",
+    "var av = a.avatar_url && safeUrlAttr(a.avatar_url)",
+    "if (avatarUrl && safeUrlAttr(avatarUrl)) {",
+    "if (data?.avatar_url && safeUrlAttr(data.avatar_url)) {",
+    "font-size:13px;flex-shrink:0;\">${escapeHtml(ini)}</div>",
+    "<div style=\"font-size:12px;font-weight:600;\">${escapeHtml(name)}</div>",
+  ]) assert.ok(z.includes(w), 'brak: ' + w.slice(0, 80));
+  for (const zle of [
+    "+ firstName + ' wyzwał",
+    "'<img src=\"'+escapeHtml(av)+'\"", "'<img src=\"'+escapeHtml(a.avatar_url)+'\"", "'<img src=\"'+escapeHtml(ath.avatar_url)+'\"",
+    "this.parentElement.textContent=\\''+iniSafe+'\\'", "this.outerHTML=\\''+escapeHtml(ini)+'\\'",
+    "img.src=avatarUrl;", "img.src = data.avatar_url;",
+    "flex-shrink:0;\">${ini}</div>", "font-weight:600;\">${name}</div>",
+  ]) assert.ok(!z.includes(zle), 'wrócił stary wzorzec: ' + zle.slice(0, 80));
+});
+
+test('runda 2: trener.html — data celu w atrybucie, tempo, ból, typ posiłku i liczby briefu przez escape/Number', () => {
+  const t = czytaj('trener.html');
+  for (const w of [
+    "data-date=\"${escapeHtml(g.date || '')}\" data-type=\"${escapeHtml(raceType)}\"",
+    "const pace=l.pace?escapeHtml(l.pace)+'/km':'';",
+    "${escapeHtml(window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom)}, ${escapeHtml(window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce)}",
+    "🩹 ${escapeHtml(window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból')}",
+    "const typeLabel = escapeHtml(typeLabels[m.meal_type] || m.meal_type || '');",
+    "Wszystko OK · ${Number(brief.ok_count)||0}",
+    "${Number(s.km_week)||0}", "${Number(s.regularity_pct)||0}%", "${Number(s.pending_intakes)||0}",
+  ]) assert.ok(t.includes(w), 'brak: ' + w.slice(0, 80));
+  assert.ok(!t.includes("data-date=\"${g.date || ''}\""));
+  assert.ok(!t.includes("const pace=l.pace?l.pace+'/km':'';"));
+});
+
+test('runda 2: sb.js stary format zdjęcia w czacie otwiera this.src, nie adres wpisany w onclick', () => {
+  assert.ok(SB.includes("onclick=\"window.open(this.src,\\'_blank\\')\""));
+  assert.ok(!SB.includes("onclick=\"window.open(\\'' + safe + '\\'"));
+});
+
+test('runda 2: nutrition.html obrazki jedzenia w url() przez cssUrlJedzenia (https/http + percent-encode); races i compare avatary przez safeUrlAttr', () => {
+  const n = czytaj('nutrition.html');
+  assert.ok(n.includes('function cssUrlJedzenia(u)'));
+  assert.equal((n.match(/url\('\$\{cssUrlJedzenia\((?:initImg|initialImg)\)\}'\)/g) || []).length, 3);
+  assert.ok(!/url\('\$\{initImg\}'\)|url\('\$\{initialImg\}'\)/.test(n));
+  /* helper wycięty z pliku i uruchomiony: apostrof i nawias nie wychodzą z url('…'), javascript: odpada, Unsplash przechodzi */
+  const kod = n.slice(n.indexOf('function cssUrlJedzenia(u)'), n.indexOf('function getFoodImageSync'));
+  const ctx = { URL, encodeURIComponent }; vm.runInNewContext(kod + '\nthis.f = cssUrlJedzenia;', ctx);
+  assert.equal(ctx.f("javascript:alert(1)"), '');
+  assert.match(ctx.f("https://images.unsplash.com/photo-1?x='),url(\"javascript:alert(1)\")"), /^https:\/\/images\.unsplash\.com\//);
+  assert.doesNotMatch(ctx.f("https://images.unsplash.com/photo-1?x='),url(\"javascript:alert(1)\")"), /['"()<>]/);
+  const r = czytaj('races.html'), c = czytaj('compare.html');
+  assert.ok(r.includes("const inner = a.avatar_url && safeUrlAttr(a.avatar_url)") && r.includes("data-ini=\"${escapeHtml(ini)}\"") && r.includes("this.parentElement.textContent=this.dataset.ini"));
+  assert.ok(!r.includes("escAttr(a.avatar_url)"));
+  assert.ok(c.includes("f.avatar_url && safeUrlAttr(f.avatar_url)") && c.includes("profile.avatar_url && safeUrlAttr(profile.avatar_url)"));
+  assert.ok(!c.includes("escapeHtml(f.avatar_url)") && !c.includes("escapeHtml(profile.avatar_url)"));
+});

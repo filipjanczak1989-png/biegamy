@@ -1515,7 +1515,7 @@ async function loadAthleteGoalsIntoModal() {
       const raceType = guessRaceType(g.name);
       const dateStr = g.date ? new Date(g.date).toLocaleDateString('pl', { day: 'numeric', month: 'short', year: 'numeric' }) : 'bez daty';
       // Sugerowany cel czasowy z PB jeśli jest
-      const dataAttr = `data-name="${escapeHtml(g.name || '')}" data-date="${g.date || ''}" data-type="${raceType}"`;
+      const dataAttr = `data-name="${escapeHtml(g.name || '')}" data-date="${escapeHtml(g.date || '')}" data-type="${escapeHtml(raceType)}"`;
       return `
         <button onclick="selectAthleteGoal(this)" ${dataAttr} type="button" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="flex:1;text-align:left;">${escapeHtml(g.name || 'Bez nazwy')}</span>
@@ -2774,7 +2774,7 @@ async function loadPanelStats() {
       const color=typeColors2[type]||'#66636e';
       const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
       const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
-      const pace=l.pace?l.pace+'/km':'';
+      const pace=l.pace?escapeHtml(l.pace)+'/km':'';
       const feel=window.feelEmoji(l.feel);   /* SSOT: window.feelEmoji (sb.js). Brak oceny -> pusty napis, NIE neutralna mina. */
       return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
         <div style="width:3px;height:32px;background:${color};border-radius:2px;flex-shrink:0;"></div>
@@ -3365,7 +3365,7 @@ async function renderDbAthletes(list) {
         })()}
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-${a.bol ? `<div data-badge="bol" onclick="event.stopPropagation();openNotesModal('${sid}','kontuzja')" title="Zawodnik zgłosił ból — ${window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom}, ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce}. Klik: dopisz notatkę." style="background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.55);color:var(--yellow,#e8b840);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🩹 ${window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból'}</div>` : ''}
+${a.bol ? `<div data-badge="bol" onclick="event.stopPropagation();openNotesModal('${sid}','kontuzja')" title="Zawodnik zgłosił ból — ${escapeHtml(window.BOL ? BOL.nazwaPoziomu(a.bol.poziom) : a.bol.poziom)}, ${escapeHtml(window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : a.bol.miejsce)}. Klik: dopisz notatkę." style="background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.55);color:var(--yellow,#e8b840);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🩹 ${escapeHtml(window.BOL ? BOL.nazwaMiejsca(a.bol.miejsce) : 'ból')}</div>` : ''}
                 ${a.hasMissed
           ? `<div data-badge="missed" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
           : a.newLogs > 0
@@ -8063,7 +8063,7 @@ async function loadPanelDiet() {
           ${todayData.meals.map((m, i) => {
             const time = new Date(m.eaten_at).toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
             const typeLabels = {breakfast:'śniadanie', lunch:'obiad', dinner:'kolacja', snack:'przekąska', supper:'podwieczorek'};
-            const typeLabel = typeLabels[m.meal_type] || m.meal_type || '';
+            const typeLabel = escapeHtml(typeLabels[m.meal_type] || m.meal_type || '');
             return `
               <div style="padding:8px 12px;${i < todayData.meals.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
                 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
@@ -8301,9 +8301,9 @@ document.addEventListener('keydown', (e) => {
 
     // OK
     if (brief.ok_chips?.length || brief.ok_count){
-      const extras = Math.max(0, (brief.ok_count||0) - (brief.ok_chips?.length||0));
+      const extras = Math.max(0, (Number(brief.ok_count)||0) - (brief.ok_chips?.length||0));
       html += `<div class="kb-block">
-        <div class="kb-block-hdr green"><span class="dot"></span>Wszystko OK · ${brief.ok_count||0}</div>
+        <div class="kb-block-hdr green"><span class="dot"></span>Wszystko OK · ${Number(brief.ok_count)||0}</div>
         <div class="kb-green-list">`;
       for (const name of (brief.ok_chips||[])){
         html += `<span class="kb-chip" data-athlete-name="${kbEscape(name)}" onclick="kbChipClick(this)">${kbEscape(name)}</span>`;
@@ -8315,9 +8315,9 @@ document.addEventListener('keydown', (e) => {
     // STATS
     const s = brief.stats||{};
     html += `<div class="kb-stats">
-      <div class="kb-stat"><div class="kb-stat-val">${s.km_week||0}</div><div class="kb-stat-lbl">KM tydzień</div></div>
-      <div class="kb-stat"><div class="kb-stat-val">${s.regularity_pct||0}%</div><div class="kb-stat-lbl">Regularność</div></div>
-      <div class="kb-stat"><div class="kb-stat-val">${s.pending_intakes||0}</div><div class="kb-stat-lbl">Ankiety</div></div>
+      <div class="kb-stat"><div class="kb-stat-val">${Number(s.km_week)||0}</div><div class="kb-stat-lbl">KM tydzień</div></div>
+      <div class="kb-stat"><div class="kb-stat-val">${Number(s.regularity_pct)||0}%</div><div class="kb-stat-lbl">Regularność</div></div>
+      <div class="kb-stat"><div class="kb-stat-val">${Number(s.pending_intakes)||0}</div><div class="kb-stat-lbl">Ankiety</div></div>
     </div>`;
 
     // AKCJE

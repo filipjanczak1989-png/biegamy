@@ -4568,6 +4568,13 @@ async function getFoodImageForName(name) {
 
 // Synchroniczna wersja — zwraca URL z cache (już znany) lub fallback
 // Używana w renderach żeby nie blokować UI
+/* Adres obrazka do CSS url('…'): tylko https/http i bez znaków, które wychodzą z url() albo z atrybutu style
+   (ten sam wzorzec co w wyszukiwarce niżej); cache obrazków jest współdzielony między kontami (pisze EF), więc to dane obce. */
+function cssUrlJedzenia(u) {
+  if (!u || typeof u !== 'string') return '';
+  /* encodeURIComponent zostawia apostrof i nawiasy bez zmian, więc kody wpisane wprost */
+  try { const x = new URL(u); if (x.protocol !== 'https:' && x.protocol !== 'http:') return ''; return x.href.replace(/['"()\\<>]/g, (c) => ({ "'": '%27', '"': '%22', '(': '%28', ')': '%29', '\\': '%5C', '<': '%3C', '>': '%3E' })[c]); } catch (_) { return ''; }
+}
 function getFoodImageSync(name) {
   const key = normalizeFoodName(name);
   if (window._foodImageCache[key]) return window._foodImageCache[key];
@@ -5372,7 +5379,7 @@ async function loadQuickAdd() {
     return `
       <div class="quick-card" onclick="quickAddMeal(${i})">
         <div class="qc-count">×${g.count}</div>
-        <div class="quick-card-thumb" data-quick-name="${escapeHtml(g.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${initImg}');background-size:cover;background-position:center;"></div>
+        <div class="quick-card-thumb" data-quick-name="${escapeHtml(g.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${cssUrlJedzenia(initImg)}');background-size:cover;background-position:center;"></div>
         <div class="qc-info">
           <div class="qc-name">${escapeHtml(g.name)}</div>
           <div class="qc-meta">${Math.round(median.kcal)} kcal${median.weight_g ? ' · ' + Math.round(median.weight_g) + 'g' : ''}</div>
@@ -6014,7 +6021,7 @@ function renderMealSlots() {
         const initImg = getFoodImageSync(m.name);
         itemsHtml += `
           <div class="meal-slot-item" onclick="event.stopPropagation();openMealActions(window._mealsById['${m.id}'])">
-            <div class="meal-slot-item-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${initImg}');"></div>
+            <div class="meal-slot-item-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${cssUrlJedzenia(initImg)}');"></div>
             <div class="meal-slot-item-info">
               <div class="meal-slot-item-name">${escapeHtml(m.name)}</div>
               <div class="meal-slot-item-meta">${meta}</div>
@@ -6102,7 +6109,7 @@ function renderMealsList() {
     const initialImg = getFoodImageSync(m.name);
     return `
       <div class="meal-item" onclick="openMealActions(window._mealsById['${m.id}'])">
-        <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(15,15,20,0.25)),url('${initialImg}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.3);position:relative;color:transparent;">
+        <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(15,15,20,0.25)),url('${cssUrlJedzenia(initialImg)}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.3);position:relative;color:transparent;">
           <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${mealIcHtml(m.meal_type, 12)}</span>
         </div>
         <div class="meal-info">
@@ -7535,15 +7542,7 @@ async function doSearch(q) {
       // Walidacja URL dla CSS background-image (anti-XSS):
       // - parsowanie przez URL() odrzuca malformed/javascript:/data:
       // - percent-encode znaków które mogą wyłamać CSS url() lub style attr
-      let safeImg = '';
-      if (food.image_url) {
-        try {
-          const u = new URL(food.image_url);
-          if (u.protocol === 'https:' || u.protocol === 'http:') {
-            safeImg = u.href.replace(/['"()\\<>]/g, encodeURIComponent);
-          }
-        } catch {}
-      }
+      const safeImg = cssUrlJedzenia(food.image_url);   // ten sam helper co miniatury (encodeURIComponent zostawiał apostrof)
       const imgHtml = safeImg
         ? `<div class="sr-thumb" style="background-image:url('${safeImg}')"></div>`
         : `<div class="sr-thumb sr-thumb-placeholder">🍽</div>`;

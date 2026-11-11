@@ -958,9 +958,9 @@ function renderRaceCard(race) {
   if (parts.length > 0) {
     const avList = parts.map((a, idx) => {
       const ini = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      const inner = a.avatar_url
-        ? `<img src="${escAttr(a.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${ini}'">`
-        : ini;
+      const inner = a.avatar_url && safeUrlAttr(a.avatar_url)
+        ? `<img src="${safeUrlAttr(a.avatar_url)}" data-ini="${escapeHtml(ini)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent=this.dataset.ini">`
+        : escapeHtml(ini);
       return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
     }).join('');
     const moreCount = totalCount - parts.length;

@@ -1242,7 +1242,8 @@
   }
   function _renderImgTag(url) {
     const safe = window.escapeHtml(url);
-    return '<img src="' + safe + '" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open(\'' + safe + '\',\'_blank\')" />';
+    /* onclick z this.src zamiast adresu w kodzie: przeglądarka dekoduje encje przed parserem JS, więc apostrof w ścieżce z dozwolonego hosta wychodził z napisu */
+    return '<img src="' + safe + '" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open(this.src,\'_blank\')" />';
   }
   window.renderMessageBody = function(rawBody) {
     if (!rawBody) return '';
@@ -1339,7 +1340,8 @@
     let u;
     try { u = new URL(url); } catch (_) { return ''; }
     if (u.protocol !== 'https:' || !_isSafeMediaUrl(u.href)) return '';
-    return u.href.replace(/['"()\\<>]/g, encodeURIComponent);
+    /* encodeURIComponent zostawia ' ( ) bez zmian — apostrof zamykał url('…') w atrybucie style; kody wpisane wprost (runda 2, 12.11.2026) */
+    return u.href.replace(/['"()\\<>]/g, (c) => ({ "'": '%27', '"': '%22', '(': '%28', ')': '%29', '\\': '%5C', '<': '%3C', '>': '%3E' })[c]);
   };
 
   // ─── SAFE EXTERNAL HREF (anti-XSS dla <a href> do linków zewnętrznych) ──
