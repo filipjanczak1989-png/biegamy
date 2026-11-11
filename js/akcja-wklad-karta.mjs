@@ -52,8 +52,15 @@
     prost(c, px, yp, pw, 26, 13); c.fillStyle = "rgba(255,255,255,.1)"; c.fill();
     prost(c, px, yp, Math.max(26, pw * Math.min(100, u.pct) / 100), 26, 13); var gr = c.createLinearGradient(px, 0, px + pw, 0); gr.addColorStop(0, "#e8561e"); gr.addColorStop(1, "#ff8a3d"); c.fillStyle = gr; c.fill();
     c.fillStyle = "#f0ede8"; c.font = "600 30px " + FONT_TEKST; c.fillText("cała ulica: " + km(u.suma_km) + " z " + km(u.cel_km) + " km · " + liczba(u.pct, 1) + " %", W / 2, yp + 72);
-    /* pas Ulicy z grafik: niebo, wzgórza, łąka, droga, domki, drzewa, budowniczy, pierwszy plan */
-    var sh = story ? 600 : 320, sy = H - sh - 100;
+    rysujPasUlicy(c, W, H, story ? 600 : 320, o);
+    /* stopka */
+    c.textAlign = "left"; c.fillStyle = "#f0ede8"; c.font = "600 30px " + FONT_TEKST; c.fillText("BiegaMy", 70, H - 40);
+    c.textAlign = "right"; c.fillStyle = "rgba(240,237,232,.72)"; c.font = "500 26px " + FONT_TEKST; tekstWSzer(c, String(dane.adres || ""), W - 70, H - 40, 700, FONT_TEKST, 26, 500);
+    return k;
+  }
+  /** Pas Ulicy z grafik u dołu obrazu: niebo, wzgórza, łąka, droga, domki, drzewa, budowniczy, pierwszy plan. sh = wysokość pasa. */
+  function rysujPasUlicy(c, W, H, sh, o) {
+    var sy = H - sh - 100;
     var niebo = c.createLinearGradient(0, sy, 0, sy + sh * 0.6); niebo.addColorStop(0, "#9fd0ee"); niebo.addColorStop(1, "#dceefb"); c.fillStyle = niebo; c.fillRect(0, sy, W, sh * 0.6);
     c.fillStyle = "#86ad55"; c.fillRect(0, sy + sh * 0.6, W, sh * 0.4);
     if (o.wzgorza && o.wzgorza.naturalWidth) { var wh = sh * 0.34, ww = wh * (o.wzgorza.naturalWidth / o.wzgorza.naturalHeight); for (var xx = 0; xx < W; xx += ww) c.drawImage(o.wzgorza, xx, sy + sh * 0.6 - wh, ww, wh); }
@@ -67,10 +74,6 @@
     rysujObraz(c, o.budowniczy, 880, pod - sh * 0.3, sh * 0.16, sh * 0.3);
     rysujObraz(c, o.drzewo, 960, pod - sh * 0.36, sh * 0.3, sh * 0.36);
     if (o["pierwszy-plan"] && o["pierwszy-plan"].naturalWidth) { var ph = sh * 0.12, pw2 = ph * (o["pierwszy-plan"].naturalWidth / o["pierwszy-plan"].naturalHeight); for (var x3 = 0; x3 < W; x3 += pw2) c.drawImage(o["pierwszy-plan"], x3, sy + sh - ph, pw2, ph); }
-    /* stopka */
-    c.textAlign = "left"; c.fillStyle = "#f0ede8"; c.font = "600 30px " + FONT_TEKST; c.fillText("BiegaMy", 70, H - 40);
-    c.textAlign = "right"; c.fillStyle = "rgba(240,237,232,.72)"; c.font = "500 26px " + FONT_TEKST; tekstWSzer(c, String(dane.adres || ""), W - 70, H - 40, 700, FONT_TEKST, 26, 500);
-    return k;
   }
   function wczytaj(src) { return new Promise(function (ok) { try { var im = new g.Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = src; } catch (e) { ok(null); } }); }
   function fonty() { try { return g.document.fonts && g.document.fonts.load ? Promise.race([Promise.all([g.document.fonts.load("40px 'Bebas Neue'"), g.document.fonts.load("600 20px Inter")]), new Promise(function (ok) { g.setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
@@ -112,6 +115,44 @@
     if (typeof o.dni === "function") Promise.resolve(o.dni()).then(function (d) { if (d != null) { dane.dni = d; if (kanwa) rysuj(); } }, function () {});
     return n;
   }
+  /** GRAFIKA PROGU 1080×1350 (część 9): „X KM RAZEM”, nazwa ulicy z licznika, data, pas Ulicy, adres strony. Bez osób, bez kwot. */
+  function obrazProgu(d, prog, adres, obrazy) {
+    var u = daneUlicy(d), W = 1080, H = 1350, k = nowyCanvas(W, H), c = k.getContext("2d"), o = obrazy || {}, cel = Number(d && d.cel_km) || 0, dz = new Date();
+    var M = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+    var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#07070a"); tlo.addColorStop(1, "#2a1410"); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
+    c.textAlign = "center"; c.textBaseline = "alphabetic";
+    c.fillStyle = "rgba(240,237,232,.72)"; c.font = "600 28px " + FONT_TEKST; c.fillText(("BIEGAMY · " + u.ulica).toUpperCase(), W / 2, 110);
+    c.fillStyle = "#f0ede8"; c.font = "300px " + FONT_NAGL; tekstWSzer(c, km(prog), W / 2, 450, W - 160, FONT_NAGL, 300);
+    c.fillStyle = "#ff8a3d"; c.font = "150px " + FONT_NAGL; c.fillText(prog === cel && cel ? "KM. CEL OSIĄGNIĘTY" : "KM RAZEM", W / 2, 600);
+    c.fillStyle = "#f0ede8"; c.font = "600 36px " + FONT_TEKST; c.fillText("bieg i spacer dla jednej zbiórki · " + dz.getDate() + " " + M[dz.getMonth()] + " " + dz.getFullYear(), W / 2, 670);
+    var yp = 740, px = 90, pw = W - 180;
+    prost(c, px, yp, pw, 26, 13); c.fillStyle = "rgba(255,255,255,.1)"; c.fill();
+    prost(c, px, yp, Math.max(26, pw * Math.min(100, u.pct) / 100), 26, 13); var gr = c.createLinearGradient(px, 0, px + pw, 0); gr.addColorStop(0, "#e8561e"); gr.addColorStop(1, "#ff8a3d"); c.fillStyle = gr; c.fill();
+    c.fillStyle = "#f0ede8"; c.font = "600 30px " + FONT_TEKST; c.fillText("cała ulica: " + km(u.suma_km) + " z " + km(u.cel_km) + " km · " + liczba(u.pct, 1) + " %", W / 2, yp + 72);
+    rysujPasUlicy(c, W, H, 320, o);
+    c.textAlign = "left"; c.fillStyle = "#f0ede8"; c.font = "600 30px " + FONT_TEKST; c.fillText("BiegaMy", 70, H - 40);
+    c.textAlign = "right"; c.fillStyle = "rgba(240,237,232,.72)"; tekstWSzer(c, String(adres || ""), W - 70, H - 40, 700, FONT_TEKST, 26, 500);
+    return k;
+  }
+  /** Nakładka progu: ta sama co karta „Mój wkład”, bez przełącznika formatu i bez liczby dni. */
+  function pokazProg(d, prog, adres) {
+    wstrzyknijCss();
+    var obrazy = {}, kanwa = null, n = g.document.createElement("div"); n.className = "wk-nakladka"; n.setAttribute("role", "dialog"); n.setAttribute("aria-label", "Próg kilometrów");
+    var im = g.document.createElement("img"); im.alt = km(prog) + " km razem"; n.appendChild(im);
+    var p = g.document.createElement("div"); p.className = "wk-przyciski"; p.innerHTML = '<button type="button" data-udostepnij>Udostępnij</button><button type="button" class="wk-cichy" data-pobierz>Pobierz PNG</button><button type="button" class="wk-cichy" data-zamknij>Zamknij</button>'; n.appendChild(p);
+    var info = g.document.createElement("div"); info.className = "wk-info"; info.textContent = "Grafika powstaje w Twojej przeglądarce: tylko liczby ulicy, bez osób i bez kwot. Nic nie idzie na serwer."; n.appendChild(info);
+    function rysuj() { kanwa = obrazProgu(d, prog, "biegamy.run/" + String(adres || "dla-fabianka.html"), obrazy); im.src = kanwa.toDataURL("image/png"); }
+    n.addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("button") : null; if (!b) return;
+      if (b.hasAttribute("data-zamknij")) { n.remove(); return; }
+      if (!kanwa) return;
+      if (b.hasAttribute("data-udostepnij")) udostepnij(kanwa, "ulica-" + prog + "-km.png");
+      if (b.hasAttribute("data-pobierz")) doBloba(kanwa).then(function (bl) { pobierz(bl, "ulica-" + prog + "-km.png"); });
+    });
+    g.document.body.appendChild(n);
+    Promise.all(GRAFIKI.map(function (s) { return wczytaj(s).then(function (x) { obrazy[s.split("/").pop().replace(".webp", "")] = x; }); }).concat([fonty()])).then(rysuj);
+    return n;
+  }
   /** Imię z migawki Dziś (DzisOffline, część „zawodnik”): tylko pierwsze słowo, bez nazwiska; bez migawki pusto (karta pokaże „Ja”). */
   function imieZMigawki() {
     try { var O = g.DzisOffline, m = O && O._userIdCache ? O.odczytaj(O._userIdCache) : null, z = m && m.czesci && m.czesci.zawodnik; return z && z.full_name ? String(z.full_name).trim().split(/\s+/)[0] : ""; } catch (e) { return ""; }
@@ -125,5 +166,5 @@
   }
   /** Zaczep z kafla (js/akcja.mjs): licznik, wkład klikającego i adres strony akcji; reszta (imię, dni) z pamięci strony i z istniejącego RPC. */
   function zKafla(d, wklad, adres) { return pokaz({ imie: imieZMigawki(), km: Number(wklad && wklad.km) || 0, licznik: d, adres: "biegamy.run/" + String(adres || "dla-fabianka.html"), dni: policzMojeDni }); }
-  g.BM_WKLAD_KARTA = { obraz: obraz, pokaz: pokaz, zKafla: zKafla, daneUlicy: daneUlicy, imieZ: imieZ, imieZMigawki: imieZMigawki, km: km, tekstWSzer: tekstWSzer, GRAFIKI: GRAFIKI };
+  g.BM_WKLAD_KARTA = { obraz: obraz, pokaz: pokaz, zKafla: zKafla, obrazProgu: obrazProgu, pokazProg: pokazProg, daneUlicy: daneUlicy, imieZ: imieZ, imieZMigawki: imieZMigawki, km: km, tekstWSzer: tekstWSzer, GRAFIKI: GRAFIKI };
 })(typeof globalThis !== "undefined" ? globalThis : window);

@@ -153,7 +153,7 @@
 
   /* Style kart — wstrzykiwane raz (jak WATCH._injectCss w sb.js), żeby trzy strony nie trzymały kopii. Kolory z tokenów theme.css
      z wartościami awaryjnymi (index.html i dla-fabianka.html mogą nie ładować theme.css). */
-  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wklad--zero{line-height:1.5}.akcja-pierwszy{display:inline-block;margin:6px 0 0;padding:10px 14px;min-height:40px;border:0;border-radius:10px;background:var(--accent,#ff8a3c);color:#17120e;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.akcja-dzieki{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(47,107,58,.25);border:1px solid rgba(47,107,58,.6);font-size:13px;font-weight:700}.akcja-moj-wklad{margin-left:8px;font-size:12px;background:transparent;cursor:pointer;font-family:inherit}.akcja-dzis-liczby .akcja-pierwszy,.akcja-dzis-liczby .akcja-moj-wklad{pointer-events:auto;position:relative;z-index:4}.akcja-dzis-liczby .akcja-moj-wklad{display:block;margin:6px 0 0;padding:6px 10px}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
+  var CSS = ".akcja-kafle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.akcja-kafel{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.14));background:rgba(255,255,255,.05);color:var(--fg,#f0ede8);font:inherit;font-size:14px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer}.akcja-kafel[hidden]{display:none}.akcja-kafel--wplata{background:var(--accent,#ff8a3c);border-color:transparent;color:#17120e}.akcja-wiecej-blok{margin-top:10px;font-size:13px}.akcja-wklad--zero{line-height:1.5}.akcja-pierwszy{display:inline-block;margin:6px 0 0;padding:10px 14px;min-height:40px;border:0;border-radius:10px;background:var(--accent,#ff8a3c);color:#17120e;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.akcja-dzieki{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(47,107,58,.25);border:1px solid rgba(47,107,58,.6);font-size:13px;font-weight:700}.akcja-moj-wklad{margin-left:8px;font-size:12px;background:transparent;cursor:pointer;font-family:inherit}.akcja-prog{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(232,86,30,.28),rgba(242,179,42,.22));border:1px solid rgba(255,178,122,.6);color:#fff}.akcja-prog b{font:400 22px/1 'Bebas Neue',Inter,sans-serif;letter-spacing:.03em;color:#ffd3b0}.akcja-prog span{flex:1 1 120px;font-size:12px;color:rgba(255,255,255,.85)}.akcja-prog .akcja-prog-udostepnij{margin:0;padding:7px 10px;font-size:12px;background:transparent;cursor:pointer;font-family:inherit;pointer-events:auto}.akcja-dzis-liczby .akcja-pierwszy,.akcja-dzis-liczby .akcja-moj-wklad{pointer-events:auto;position:relative;z-index:4}.akcja-dzis-liczby .akcja-moj-wklad{display:block;margin:6px 0 0;padding:6px 10px}.akcja-wiecej-blok summary{cursor:pointer;font-weight:700}.akcja-film-nakladka{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:rgba(0,0,0,.92)}.akcja-film-nakladka video{max-width:100%;max-height:80vh;border-radius:12px}.akcja-film-nakladka button{padding:10px 20px;border:0;border-radius:10px;background:#fff;color:#111;font:inherit;font-weight:700;cursor:pointer}" +
     ".akcja-karta{background:var(--card,#0f0f14);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:16px;padding:14px;color:var(--fg,#f0ede8);font-family:Inter,system-ui,sans-serif}" +
     ".akcja-nazwa{font:400 22px/1.1 'Bebas Neue',Inter,sans-serif;letter-spacing:.04em;margin-bottom:10px}" +
     ".akcja-pasek{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}" +
@@ -311,10 +311,61 @@
   }
 
   /** Pasek celu (HTML) — wspólny dla Dziś, index i dla-fabianka. */
+  /* PRÓG KILOMETRÓW RAZEM (11.11, część 9): licznik minął 1 000 km bez żadnego znaku (filmy progów prawdziwej akcji: 0; odznaki 1000 km zdjęte 2.11; push tylko start, niedziela,
+     zamknięcie). Dla każdego progu z PROGI_KM (i dla celu) jednorazowe świętowanie bez filmu: baner „X km razem” w kaflu akcji i na stronie akcji przez 48 h od pierwszego
+     zobaczenia na tym urządzeniu (licznik nie oddaje chwili przekroczenia), konfetti RAZ na konto/urządzenie (prefers-reduced-motion: bez ruchu), „Udostępnij” z gotową grafiką
+     (js/akcja-wklad-karta.mjs, po dotknięciu). Film progu, gdy się pojawi, ma pierwszeństwo: konfetti ustępuje czekającemu filmowi, baner zostaje jako dodatek. Zero zapytań. */
+  var PROGI_KM = [1000, 2500, 5000, 7500, 10000], BANER_PROGU_MS = 48 * 3600 * 1000, KLUCZ_PROGU = "bm_akcja_prog_";
+  function progiAkcji(d) { var cel = Number(d && d.cel_km) || 0; return PROGI_KM.filter(function (p) { return !cel || p < cel; }).concat(cel ? [cel] : []); }
+  /** Najwyższy próg nieprzekraczający sumy kilometrów (null poniżej pierwszego). */
+  function progPrzekroczony(d) { var s = Number(d && d.suma_km) || 0, w = null; progiAkcji(d).forEach(function (p) { if (s >= p) w = p; }); return w; }
+  function klucz(slug, p, co) { return KLUCZ_PROGU + slug + "_" + p + (co ? "_" + co : ""); }
+  function pamiec(k, v) { try { if (v === undefined) return g.localStorage.getItem(k); g.localStorage.setItem(k, v); } catch (e) {} return null; }
+  function tekstProgu(p, d) { var cel = Number(d && d.cel_km) || 0; return p === cel && cel ? km(p) + " km. Cel osiągnięty razem." : km(p) + " km razem"; }
+  /** Baner progu (albo ""): zapamiętuje pierwsze pokazanie i pokazuje przez 48 h. teraz = czas (test). */
+  function banerProguHtml(d, teraz) {
+    if (!d || !d.wystartowala) return "";
+    var p = progPrzekroczony(d); if (!p) return "";
+    var slug = slugKafla(d), t = teraz || Date.now(), k = klucz(slug, p), od = Number(pamiec(k));
+    if (!od) { od = t; pamiec(k, String(t)); }
+    if (t - od >= BANER_PROGU_MS) return "";
+    g.setTimeout(function () { konfettiProgu(slug, p); }, 0);
+    return '<div class="akcja-prog" role="status"><b>' + esc(tekstProgu(p, d)) + '</b><span>Razem, krok po kroku. Dziękujemy.</span><button type="button" class="akcja-link akcja-prog-udostepnij" data-prog-udostepnij="' + p + '">Udostępnij</button></div>';
+  }
+  function bezRuchu() { try { return !!(g.matchMedia && g.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; } }
+  function filmCzeka() { try { return !!(g.FILM_DZIS && g.FILM_DZIS.czekaFilmAkcji && g.FILM_DZIS.czekaFilmAkcji()); } catch (e) { return false; } }
+  /** Konfetti raz na konto i urządzenie; bez ruchu przy reduced-motion; ustępuje czekającemu filmowi akcji (film ma pierwszeństwo, baner zostaje). */
+  function konfettiProgu(slug, p) {
+    if (!g.document || !g.document.body) return false;
+    var k = klucz(slug, p, "konfetti"); if (pamiec(k)) return false;
+    if (filmCzeka()) return false;
+    pamiec(k, String(Date.now()));
+    if (bezRuchu() || !g.requestAnimationFrame) return false;
+    var c = g.document.createElement("canvas"); c.id = "bm-akcja-konfetti"; c.setAttribute("aria-hidden", "true"); c.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1200";
+    c.width = g.innerWidth || 360; c.height = g.innerHeight || 640; g.document.body.appendChild(c);
+    var x = c.getContext && c.getContext("2d"); if (!x) { c.remove(); return false; }
+    var kolory = ["#e8561e", "#f2b32a", "#6f9e3e", "#d9482b", "#ff8a3d", "#3d5a99", "#fff7e6"], cz = [], start = null;
+    for (var i = 0; i < 120; i++) cz.push({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * 0.5, vx: (Math.random() - 0.5) * 1.6, vy: 2 + Math.random() * 3, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.2, w: 6 + Math.random() * 8, h: 4 + Math.random() * 4, kol: kolory[i % kolory.length] });
+    g.requestAnimationFrame(function klatka(t) {
+      if (start == null) start = t; var dt = t - start; x.clearRect(0, 0, c.width, c.height);
+      cz.forEach(function (q) { q.x += q.vx; q.y += q.vy; q.r += q.vr; x.save(); x.translate(q.x, q.y); x.rotate(q.r); x.fillStyle = q.kol; x.globalAlpha = Math.max(0, 1 - Math.max(0, dt - 1800) / 900); x.fillRect(-q.w / 2, -q.h / 2, q.w, q.h); x.restore(); });
+      if (dt < 2700) g.requestAnimationFrame(klatka); else c.remove();
+    });
+    return true;
+  }
+  if (g.document) g.document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-prog-udostepnij]") : null; if (!b) return;
+    e.preventDefault();
+    var d = (_kafelDane && _kafelDane[0]) || _ostatniLicznikProgu, p = Number(b.getAttribute("data-prog-udostepnij")) || progPrzekroczony(d), pokaz = function () { if (g.BM_WKLAD_KARTA && g.BM_WKLAD_KARTA.pokazProg) g.BM_WKLAD_KARTA.pokazProg(d, p, adresStrony(d)); };
+    if (g.BM_WKLAD_KARTA) return pokaz();
+    var el = g.document.createElement("script"); el.src = "js/akcja-wklad-karta.mjs"; el.async = true; el.onload = pokaz;
+    g.document.head.appendChild(el);
+  });
+  var _ostatniLicznikProgu = null;
   function pasekHtml(d) {
     wstrzyknijCss();
-    var p = pct(d);
-    return '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '">' +
+    var p = pct(d); _ostatniLicznikProgu = d;
+    return banerProguHtml(d) + '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '">' +
       '<div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
       '<div class="akcja-liczby"><b>' + km(d.suma_km) + '</b> z ' + km(d.cel_km) + ' km · ' + liczba(p, p < 10 ? 1 : 0) + '%</div>';
   }
@@ -355,7 +406,7 @@
   }
   function daneKaflaHtml(d) {
     var p = pct(d), pl = plakatUrl(d), zb = linkZbiorki(d);
-    return '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '"><div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
+    return banerProguHtml(d) + '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '"><div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
       '<div class="akcja-liczby">' + liczba(p, p < 10 ? 1 : 0) + "% celu</div>" +
       '<div class="akcja-dzis-filip">' + esc(tekstFilipa(d)) + "</div>" +
       '<div class="akcja-dzis-przyciski">' +
@@ -678,7 +729,7 @@
       zamknieta: !!d.zamknieta, url_zbiorki: d.url_zbiorki || null } };
   }
 
-  g.BM_AKCJA = { wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  g.BM_AKCJA = { PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
     plakatUrl: plakatUrl, plakatHtml: plakatHtml, pokazPlakat: pokazPlakat,
