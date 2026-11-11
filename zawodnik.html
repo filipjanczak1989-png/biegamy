@@ -5220,8 +5220,8 @@ window._renderComparePicker = function(friends) {
   const list = friends.map(function(f) {
     const initials = ((f.full_name || '?').slice(0,2)).toUpperCase();
     const nameEsc = escapeHtml(f.full_name || 'Bez imienia');
-    return '<button onclick="window._runCompareWith(\'' + f.id + '\', \'' + (f.full_name || '?').replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\');document.getElementById(\'compare-picker-modal\')?.remove();" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:10px 12px;border-radius:10px;text-align:left;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\'">'
-      + '<span style="width:32px;height:32px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);font-family:DM Mono,monospace;flex-shrink:0;">' + initials + '</span>'
+    return '<button data-id="' + f.id + '" data-name="' + nameEsc + '" onclick="window._runCompareWith(this.dataset.id, this.dataset.name);document.getElementById(\'compare-picker-modal\')?.remove();" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:10px 12px;border-radius:10px;text-align:left;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\'">'
+      + '<span style="width:32px;height:32px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);font-family:DM Mono,monospace;flex-shrink:0;">' + escapeHtml(initials) + '</span>'
       + '<span>' + nameEsc + '</span>'
       + '</button>';
   }).join('');
@@ -7937,7 +7937,7 @@ async function loadWeekPlan() {
           </div>
           ${t.pace?`<div style="flex:1;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;">
             <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Tempo</div>
-            <div style="font-size:18px;font-family:DM Mono,monospace;color:var(--fg);margin-top:2px;">${t.pace}</div>
+            <div style="font-size:18px;font-family:DM Mono,monospace;color:var(--fg);margin-top:2px;">${escapeHtml(t.pace)}</div>
           </div>`:''}
         </div>`:''}
         ${t.description?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${escapeHtml(t.description)}</div>`:''}
@@ -8318,8 +8318,8 @@ async function loadTodayTraining() {
   if (data.type === 'Start') _okladkaStartu(data.date);
 
   const metaItems = [
-    `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
-    `<div class="today-meta-item"><div class="today-meta-lbl">Tętno</div><div class="today-meta-val">${data.heart_rate || '—'}</div></div>`,
+    `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? escapeHtml(data.pace)+' /km' : '—'}</div></div>`,
+    `<div class="today-meta-item"><div class="today-meta-lbl">Tętno</div><div class="today-meta-val">${escapeHtml(data.heart_rate || '—')}</div></div>`,
     data.duration_min ? `<div class="today-meta-item"><div class="today-meta-lbl">Czas</div><div class="today-meta-val">~${data.duration_min} min</div></div>` : '',
   ].filter(Boolean).join('');
   
@@ -10262,13 +10262,13 @@ async function loadSocialFeed(compact) {
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
       +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;">'+(ath.avatar_url?('<img src="'+escapeHtml(ath.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+escapeHtml(ini)+'\'">'):escapeHtml(ini))+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':escapeHtml(name))+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +'<span style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 7px;border-radius:6px;border:1px solid '+col+'55;flex-shrink:0;">'+escapeHtml(type)+'</span>'
       +editBtns+'</div>'
       +(dist
         ?'<div style="display:flex;gap:10px;align-items:center;margin-bottom:3px;">'
         +'<span style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+dist+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">KM</span></span>'
-        +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+l.pace+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
+        +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+escapeHtml(l.pace)+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
         +(feelEmoji?'<div style="margin-left:auto;">'+feelEmoji+'</div>':'')+'</div>':'')
       +(l.comment?'<div style="font-size:11px;color:rgba(255,255,255,0.75);font-family:DM Sans,sans-serif;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"'+escapeHtml(l.comment)+'"</div>':'')
       +(screensHtml?'<div style="margin-top:6px;">'+screensHtml+'</div>':'')
@@ -10928,9 +10928,9 @@ async function loadFriends() {
     var a = athMap[id]||{};
     var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
-    var avInner = a.avatar_url
-      ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
-      : ini;
+    var avInner = a.avatar_url && safeUrlAttr(a.avatar_url)
+      ? '<img src="'+safeUrlAttr(a.avatar_url)+'" alt="'+escapeHtml(ini)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent=this.alt">'
+      : escapeHtml(ini);
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">'
       +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">'+avInner+'</div>'
       +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">'+nm+'</div></div>'
@@ -11230,6 +11230,7 @@ async function openNotifications() {
           notifClick = "location.href='odznaki.html';";
         } else if (n.type==='ai_report') {
           var rid = n.related_id || n.report_id || n.entity_id || null;
+          if (rid && !/^[0-9a-f-]{36}$/i.test(String(rid))) rid = null;   /* identyfikator idzie do kodu w atrybucie onclick: tylko UUID */
           if (rid) {
             notifClick = "window.location.href='raporty.html?report_id=" + rid + "';";
           } else {
@@ -12644,15 +12645,15 @@ async function loadDuelsToContainer() {
 
 function _duelTypeLabel(d) {
   const t = DUEL_TYPES[d.type] || {};
-  return (t.icon || '') + ' ' + (t.label || d.type) + ' · ' + d.duration_days + ' dni';
+  return (t.icon || '') + ' ' + (t.label || escapeHtml(d.type)) + ' · ' + escapeHtml(String(d.duration_days)) + ' dni';
 }
 
 function _duelAvatar(athl, size) {
   size = size || 36;
   const ini = (athl?.full_name || '?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  const inner = athl?.avatar_url
-    ? '<img src="' + athl.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.parentElement.textContent=\'' + ini + '\'">'
-    : ini;
+  const inner = athl?.avatar_url && safeUrlAttr(athl.avatar_url)
+    ? '<img src="' + safeUrlAttr(athl.avatar_url) + '" alt="' + escapeHtml(ini) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.parentElement.textContent=this.alt">'
+    : escapeHtml(ini);
   return '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:' + Math.round(size*0.36) + 'px;flex-shrink:0;overflow:hidden;cursor:pointer;" onclick="location.href=\'profil.html?id=' + (athl?.id || '') + '\'">' + inner + '</div>';
 }
 
@@ -12662,7 +12663,7 @@ function _duelCardIncoming(d, challenger) {
     + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
     + _duelAvatar(challenger, 40)
     + '<div style="flex:1;min-width:0;cursor:pointer;" onclick="location.href=\'profil.html?id=' + (challenger?.id || '') + '\'">'
-    + '<div style="font-size:13px;font-weight:600;">' + (challenger?.full_name || 'Biegacz') + '</div>'
+    + '<div style="font-size:13px;font-weight:600;">' + escapeHtml(challenger?.full_name || 'Biegacz') + '</div>'
     + '<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;letter-spacing:0.05em;margin-top:1px;">wyzywa Cię na pojedynek</div>'
     + '</div></div>'
     + '<div style="background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'
@@ -12711,7 +12712,7 @@ function _duelCardActive(d, opponent) {
     + '</div>'
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;color:var(--muted);">vs</div>'
     + '<div style="flex:1;text-align:center;padding:10px;background:' + (!winningMe&&!tying?'rgba(255,80,80,0.05)':'var(--card2)') + ';border-radius:10px;border:1px solid var(--border);cursor:pointer;" onclick="location.href=\'profil.html?id=' + (opponent?.id || '') + '\'">'
-    + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (opponent?.full_name || 'Biegacz').toUpperCase() + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml((opponent?.full_name || 'Biegacz').toUpperCase()) + '</div>'
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:24px;color:var(--fg);line-height:1;">' + fmtScore(oppScore) + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">' + (t.unit || '') + '</span></div>'
     + '</div></div></div>';
 }
@@ -12720,7 +12721,7 @@ function _duelCardOutgoing(d, opponent) {
   return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">'
     + _duelAvatar(opponent, 36)
     + '<div style="flex:1;min-width:0;cursor:pointer;" onclick="location.href=\'profil.html?id=' + (opponent?.id || '') + '\'">'
-    + '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (opponent?.full_name || 'Biegacz') + '</div>'
+    + '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(opponent?.full_name || 'Biegacz') + '</div>'
     + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">' + _duelTypeLabel(d) + '</div>'
     + '</div>'
     + '<button onclick="cancelDuel(\'' + d.id + '\')" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:5px 10px;border-radius:8px;font-family:DM Mono,monospace;cursor:pointer;">Anuluj</button>'
@@ -12748,7 +12749,7 @@ function _duelCardFinished(d, opponent) {
   return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:0.85;">'
     + _duelAvatar(opponent, 32)
     + '<div style="flex:1;min-width:0;">'
-    + '<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ' + (opponent?.full_name || 'Biegacz') + '</div>'
+    + '<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ' + escapeHtml(opponent?.full_name || 'Biegacz') + '</div>'
     + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">' + (t.label || '') + ' · ' + fmtScore(myScore) + ' vs ' + fmtScore(oppScore) + '</div>'
     + '</div>'
     + '<div style="font-size:10px;font-family:DM Mono,monospace;color:' + statusColor + ';white-space:nowrap;">' + status + '</div>'
