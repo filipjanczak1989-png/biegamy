@@ -626,7 +626,8 @@
           try {
             var pill = null; (g.document.querySelectorAll(".type-pill[onclick]") || []).forEach(function (p) { if (!pill && /selType\(this,\s*'Spacer'\)/.test(p.getAttribute("onclick") || "")) pill = p; });
             if (pill && typeof g.selType === "function") g.selType(pill, "Spacer");
-            var dist = g.document.getElementById("l-dist"); if (dist && dist.focus) dist.focus();
+            /* prefill wpisuje dystans i tempo z dzisiejszego planu; dla spaceru to cudze liczby, więc dystans czyścimy (decyzja 12.11), kursor w pustym polu */
+            var dist = g.document.getElementById("l-dist"); if (dist) { dist.value = ""; if (dist.focus) dist.focus(); }
           } catch (e) {}
         }, 80);
       });

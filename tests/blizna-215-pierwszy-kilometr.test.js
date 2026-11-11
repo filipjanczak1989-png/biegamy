@@ -61,7 +61,8 @@ test('najkrótsza droga: openModal → selType(pigułka Spacer) → kursor w dys
   const zdarzenia = [];
   const pill = { getAttribute: () => "selType(this,'Spacer')", textContent: '🚶 Spacer' };
   const obca = { getAttribute: () => "genSelDystans(this,'5k')", textContent: '5 km' };
-  globalThis.document = { querySelectorAll: () => [obca, pill], getElementById: (id) => (id === 'l-dist' ? { focus: () => zdarzenia.push('focus') } : null) };
+  globalThis.document = { querySelectorAll: () => [obca, pill], getElementById: (id) => (id === 'l-dist' ? dystans : null) };
+  const dystans = { value: '8', focus: () => zdarzenia.push('focus') };   // prefill z planu: po otwarciu ze spacerem pole ma być puste
   globalThis.openModal = () => zdarzenia.push('openModal');
   globalThis.selType = (el, t) => zdarzenia.push('selType:' + t + ':' + (el === pill));
   const timery = []; const st = globalThis.setTimeout; globalThis.setTimeout = (f) => timery.push(f);
@@ -70,6 +71,7 @@ test('najkrótsza droga: openModal → selType(pigułka Spacer) → kursor w dys
     await new Promise((r) => setImmediate(r));   // openModal może być asynchroniczny: wybór Spaceru dopiero po jego zakończeniu
     timery.forEach((f) => f());
     assert.deepEqual(zdarzenia, ['openModal', 'selType:Spacer:true', 'focus']);
+    assert.equal(dystans.value, '', 'dystans z planu wyczyszczony przed kursorem');
     delete globalThis.openModal;
     const loc = { href: '' }; globalThis.location = loc;
     assert.equal(A.otworzPierwszyKm(), false);
