@@ -19,7 +19,9 @@ function cors(req: Request) {
   return h;
 }
 async function skrotIp(req: Request) {
-  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("x-real-ip") || "brak";
+  /* ostatni element x-forwarded-for: ten dopisuje brama, pierwszy może dopisać klient (limit na IP byłby do obejścia nagłówkiem) */
+  const xff = (req.headers.get("x-forwarded-for") || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const ip = xff[xff.length - 1] || req.headers.get("x-real-ip") || "brak";
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + "|" + SERVICE.slice(0, 16)));
   return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }

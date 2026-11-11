@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
   //    Verify JWT jest OFF → to jedyna bramka autoryzacji.
   //    ⚠️ secret = plaintext w body (nie HMAC-nad-treścią): chroni przed losowym ruchem, NIE przed kimś
   //    kto zna sekret. To model webhooków intervals.icu, nie nasz wybór. HTTPS + secret server-side.
-  if (!body || typeof body.secret !== 'string' || body.secret !== HOOK_SECRET) {
+  //    Pusty albo nieustawiony sekret w env = brak sekretu = odmowa (11.11): bez tego pusta wartość w panelu otwierałaby webhook na {secret:""}.
+  if (!HOOK_SECRET || HOOK_SECRET.length < 16 || !body || typeof body.secret !== 'string' || !body.secret || body.secret !== HOOK_SECRET) {
     return J(401, { ok: false, error: 'bad_secret' });            // 401 TYLKO tutaj
   }
 

@@ -99,6 +99,8 @@ Deno.serve(async (req)=>{
     const athlete_id=body.athlete_id, activity_id=body.activity_id;
     const refresh = body.refresh===true || url.searchParams.get('refresh')==='1';
     if(!athlete_id||!activity_id) return J(400,{ok:false,error:'missing athlete_id/activity_id'});
+    /* activity_id wchodzi do adresu intervals.icu: tylko kształt identyfikatora (np. i12345678), nic z ukośnikiem ani zapytaniem */
+    if(typeof activity_id!=='string' || !/^[A-Za-z]?\d{1,14}$/.test(activity_id)) return J(400,{ok:false,error:'bad activity_id'});
 
     const jwt=(req.headers.get('Authorization')||'').replace('Bearer ','');
     const u=createClient(SB_URL,ANON,{global:{headers:{Authorization:`Bearer ${jwt}`}}});
@@ -109,11 +111,13 @@ Deno.serve(async (req)=>{
     const isOwner = !!ath && ath.user_id===user.id;
     const isCoach = !!ath && ath.coach_id===user.id;
     if(!ath || (!isOwner && !isCoach && !ath.is_public)) return J(403,{ok:false,error:'forbidden'});   // owner ∨ trener-TEGO-zawodnika ∨ publiczny profil (is_public)
+    /* odświeżenie z intervals (nowe wywołanie API cudzym tokenem) tylko dla właściciela i jego trenera; publiczny widz dostaje cache */
+    const refreshOk = refresh && (isOwner || isCoach);
     const canSeeHr = isOwner || isCoach || !!ath.hr_public;   // HR domyślnie PRYWATNY (hr_public=false) — publiczny widz bez hr_public → stripHr na WYJŚCIU
 
     const { data: cached }=await svc.from('intervals_activities')
       .select('id,raw_data').eq('athlete_id',athlete_id).eq('intervals_activity_id',activity_id).maybeSingle();
-    if(cached?.raw_data && cached.raw_data.v===PAYLOAD_V && !refresh){
+    if(cached?.raw_data && cached.raw_data.v===PAYLOAD_V && !refreshOk){
       const out={ ...cached.raw_data, cached:true };
       return J(200, canSeeHr ? out : stripHr(out));   // cache w bazie NIETKNIĘTY (pełny); strip TYLKO na wyjściu
     }

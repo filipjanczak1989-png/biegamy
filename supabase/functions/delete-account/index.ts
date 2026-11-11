@@ -77,16 +77,16 @@ Deno.serve(async (req) => {
   const { data: ath } = await admin.from('athletes')
     .select('id, avatar_url').eq('user_id', uid).maybeSingle();
   const athleteId = ath?.id || null;
-  if (ath?.avatar_url) refs.push({ raw: ath.avatar_url, hint: 'biegamy-assets' });     // pełny URL
+  if (ath?.avatar_url) refs.push({ raw: ath.avatar_url, hint: 'biegamy-assets', wlasne: true });     // pełny URL; adres ustawia użytkownik → ścieżka musi należeć do konta
 
   if (athleteId) {
     const { data: logs } = await admin.from('training_logs')
       .select('attachment_url').eq('athlete_id', athleteId).not('attachment_url', 'is', null);
-    (logs || []).forEach((l: any) => l.attachment_url && refs.push({ raw: l.attachment_url, hint: 'training-screenshots' })); // bare-path
+    (logs || []).forEach((l: any) => l.attachment_url && refs.push({ raw: l.attachment_url, hint: 'training-screenshots', wlasne: true })); // bare-path
 
     const { data: posts } = await admin.from('profile_posts')
       .select('image_url').eq('athlete_id', athleteId).not('image_url', 'is', null);
-    (posts || []).forEach((p: any) => p.image_url && refs.push({ raw: p.image_url, hint: 'profile-posts' }));                  // pełny URL (bucket dziś nie istnieje)
+    (posts || []).forEach((p: any) => p.image_url && refs.push({ raw: p.image_url, hint: 'profile-posts', wlasne: true }));                  // pełny URL (bucket dziś nie istnieje)
   }
 
   // intake (badania medyczne!): 2 osobne .eq() + dedup (unik parsowania .or() dla maili ze znakami specjalnymi)
@@ -103,8 +103,19 @@ Deno.serve(async (req) => {
   }
   [...new Set(bloodPaths)].forEach(p => refs.push({ raw: p, hint: 'training-screenshots' }));   // bare-path
 
+  /* Kolumny avatar_url / attachment_url / image_url zapisuje sam użytkownik, więc mogą wskazywać CUDZY plik — service role
+     usunąłby go bez pytania (audyt 11.2026, poz. 2). Z takich adresów kasujemy tylko ścieżki z PREFIKSEM konta (decyzja 11.11):
+     `<athleteId>/…` (training-screenshots), `<uid>/…` (profile-posts) albo dokładnie `avatars/<athleteId>.<ext>` (jedyny plik konta
+     poza własnym folderem; patrz upload w zawodnik.html i profil.html). Id gdziekolwiek dalej w ścieżce NIE wystarcza.
+     Ścieżki z ankiet (blood) nie są zapisywane przez użytkownika i mają własny prefiks intake_blood/. */
+  const nalezyDoKonta = (path: string) => {
+    const p = path.replace(/^\/+/, '');
+    if (p.startsWith(athleteId + '/') || p.startsWith(uid + '/')) return true;
+    const av = 'avatars/' + athleteId + '.';   // id to UUID (hex i myślniki), bez znaków specjalnych regexu
+    return p.startsWith(av) && /^[A-Za-z0-9]{1,5}$/.test(p.slice(av.length));
+  };
   const objects = refs
-    .map(r => parseStorageRef(r.raw, r.hint))
+    .map(r => { const o = parseStorageRef(r.raw, r.hint); return o && (!r.wlasne || nalezyDoKonta(o.path)) ? o : null; })
     .filter(Boolean) as Array<{ bucket: string; path: string }>;
 
   // ── 4) RPC (klient z JWT USERA -> auth.uid() = ten user). ATOMOWA BRAMKA — nieodwracalny rdzeń. ──

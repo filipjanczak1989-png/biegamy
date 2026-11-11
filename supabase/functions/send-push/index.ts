@@ -101,6 +101,9 @@ Deno.serve(async (req) => {
     let requireInteraction = false;
 
     if (body.notification_id) {
+      // 🔒 ścieżka A (odtworzenie powiadomienia po id) — tylko system (x-push-secret): jedynym wołającym jest trigger bazy trigger_send_push;
+      //    zalogowany użytkownik mógłby inaczej wysyłać cudze powiadomienie dowolnie często (11.11)
+      if (!_isSystem) return await _reject("notification_id_requires_hook");
       const { data: notif, error } = await supabase
         .from("notifications")
         .select("athlete_id, type, message, from_athlete_id")
