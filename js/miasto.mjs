@@ -13,10 +13,12 @@
 
   /* ── ULICE PRZYKŁADOWE (wymyślone; nazwy neutralne, bez osób) ─────────────────────────────── */
   var PRZYKLADY = [
-    { id: "bieg", przyklad: true, status: "trwa", nazwa: "Bieg Wirtualny", forma: "Wirtualny bieg charytatywny",
-      opis: "W jeden weekend każdy biegnie 5 albo 10 km tam, gdzie mieszka, i zapisuje trening w BiegaMy. Wpisowe to wpłata prosto na zbiórkę organizacji. Od BiegaMy: odznaka w aplikacji i e-dyplom.",
+    /* pokaz od A do Z: miasto-bieg.html (strona: wejście tylko z tej karty); udział bezpłatny, wpłata dobrowolna i tylko u organizacji, bez słowa o opłacie za udział (decyzja 10.11) */
+    { id: "bieg", przyklad: true, status: "trwa", nazwa: "Bieg Wirtualny", forma: "Wirtualny bieg charytatywny", strona: "miasto-bieg.html",
+      opis: "W jeden weekend każdy biegnie albo idzie 5 lub 10 km tam, gdzie mieszka, i zapisuje trening w BiegaMy. Udział jest bezpłatny; kto chce, wspiera zbiórkę bezpośrednio u organizacji. Od BiegaMy: numer startowy, dyplom i odznaka.",
       cel_km: 5000, suma_km: 1840, osoby_n: 312, cegly_n: 180, firmy_n: 3, etykieta: "5 i 10 km w weekend" },
-    { id: "szkolna", przyklad: true, status: "trwa", nazwa: "Ulica Szkolna", forma: "Wyzwanie szkół i firm",
+    /* pokaz od A do Z: miasto-druzyny.html (11.11; wejście tylko z tej karty): klasy bez kont i bez danych dzieci, firmy z kontami, ranking razem i na osobę */
+    { id: "szkolna", przyklad: true, status: "trwa", nazwa: "Ulica Szkolna", forma: "Wyzwanie szkół i firm", strona: "miasto-druzyny.html", przycisk: "Zobacz wyzwanie ›",
       opis: "Klasy albo zespoły z firm zbierają kilometry jako drużyny. Na ulicy stoi ranking drużyn, a każdy kilometr buduje tę samą drogę. Firmy mogą postawić domek z logo.",
       cel_km: 8000, suma_km: 3210, osoby_n: 260, druzyny_n: 14, cegly_n: 95, firmy_n: 4, etykieta: "ranking klas" },
     { id: "urodzinowa", przyklad: true, status: "trwa", nazwa: "Ulica Urodzinowa", forma: "Osobista zbiórka urodzinowa",
@@ -135,6 +137,7 @@
     }
     if (u.prawdziwa && o.stanZ) h += '<p class="md-stan">' + esc(stanZ(o.stanZ)) + ' · licznik chwilowo niedostępny</p>';
     if (u.prawdziwa) h += '<a class="md-przycisk" href="' + esc(u.strona || STRONA_PRAWDZIWEJ) + '">Wejdź na ulicę ›</a>';
+    else if (u.strona) h += '<a class="md-przycisk" href="' + esc(u.strona) + '">' + esc(u.przycisk || "Zobacz bieg ›") + '</a>';   // pełny pokaz przykładu (bieg, drużyny): osobna strona, też oznaczona PRZYKŁAD
     else h += '<button type="button" class="md-przycisk md-przycisk--przyklad" data-podglad="' + esc(u.id) + '">Zobacz, jak wyglądałaby ulica ›</button>';
     return h + '</div>';
   }
@@ -158,7 +161,10 @@
       pola: [{ etykieta: "Nazwa organizacji (fundacja, stowarzyszenie, szkoła, klub)", typ: "text", przyklad: "np. Stowarzyszenie Przykładowe" }, { etykieta: "Link do oficjalnej zbiórki", typ: "url", przyklad: "https://…" }, { etykieta: "E-mail kontaktowy", typ: "email", przyklad: "kontakt@…" }] },
     { tytul: "Forma akcji i cel", opis: "Jedna droga, wiele form. Kilometry zawsze liczy aplikacja, pieniądze zawsze idą prosto do organizacji.",
       wybor: ["Wspólne kilometry dla jednej zbiórki", "Wirtualny bieg charytatywny (5 lub 10 km)", "Wyzwanie szkół lub firm (ranking drużyn)", "Osobista zbiórka (np. urodzinowa)"],
-      pola: [{ etykieta: "Cel w kilometrach", typ: "number", przyklad: "np. 5 000" }, { etykieta: "Start", typ: "date" }, { etykieta: "Koniec", typ: "date" }] },
+      pola: [{ etykieta: "Cel w kilometrach", typ: "number", przyklad: "np. 5 000" }, { etykieta: "Start", typ: "date" }, { etykieta: "Koniec", typ: "date" }],
+      /* pola biegu (B10, 10.11): widoczne tylko przy formie „Wirtualny bieg charytatywny”; dalej atrapa jak reszta kreatora */
+      polaBiegu: { tytul: "Ustawienia biegu", dystanse: ["5 km", "10 km", "Twój dystans (spacer, marsz, nordic walking, wózek)"],
+        pola: [{ etykieta: "Okno biegu: od", typ: "date" }, { etykieta: "Okno biegu: do", typ: "date" }, { etykieta: "Limit miejsc", typ: "number", przyklad: "np. 500" }], zgody: ["Lista wyników publiczna (imię i numer, bez nazwisk)"] } },
     { tytul: "Bohater i grafiki", opis: "Imię bohatera tylko za zgodą opiekuna. Rysunek, plakat i film wgrywa organizacja, a my sprawdzamy je przed publikacją.",
       pola: [{ etykieta: "Nazwa ulicy", typ: "text", przyklad: "np. Ulica Tęczowa" }, { etykieta: "Imię bohatera (opcjonalnie, za zgodą)", typ: "text" }],
       /* Świat gry (decyzja 9.11): ten sam bieg, inny świat. Ikony: koparka z Ulicy, reszta z assets/miasto (10.11, API obrazów ze wzorcem domek-1); emoji zostaje jako zapas, gdy obrazu brak. */
@@ -172,8 +178,16 @@
     var i = Math.max(0, Math.min(KROKI.length - 1, Number(nr) || 0)), k = KROKI[i], h = '<div class="md-kreator-krok" data-krok="' + i + '">';
     h += '<div class="md-kroki">' + KROKI.map(function (x, j) { return '<span class="' + (j === i ? "md-krok--tu" : j < i ? "md-krok--byl" : "") + '">' + (j + 1) + '</span>'; }).join("") + '</div>';
     h += '<h3>Krok ' + (i + 1) + ' z ' + KROKI.length + ': ' + esc(k.tytul) + '</h3><p class="md-opis">' + esc(k.opis) + '</p>';
-    if (k.wybor) h += '<div class="md-wybor">' + k.wybor.map(function (w, j) { return '<label><input type="radio" name="md-forma"' + (j === 0 ? " checked" : "") + '> <span>' + esc(w) + '</span></label>'; }).join("") + '</div>';
-    (k.pola || []).forEach(function (p, j) { var id = "md-pole-" + i + "-" + j; h += '<label class="md-pole" for="' + id + '"><span>' + esc(p.etykieta) + '</span><input id="' + id + '" type="' + esc(p.typ) + '" autocomplete="off"' + (p.przyklad ? ' placeholder="' + esc(p.przyklad) + '"' : "") + '></label>'; });
+    if (k.wybor) h += '<div class="md-wybor">' + k.wybor.map(function (w, j) { return '<label><input type="radio" name="md-forma" value="' + j + '"' + (/bieg/i.test(w) ? ' data-bieg' : "") + (j === 0 ? " checked" : "") + '> <span>' + esc(w) + '</span></label>'; }).join("") + '</div>';
+    function poleHtml(p, id) { return '<label class="md-pole" for="' + id + '"><span>' + esc(p.etykieta) + '</span><input id="' + id + '" type="' + esc(p.typ) + '" autocomplete="off"' + (p.przyklad ? ' placeholder="' + esc(p.przyklad) + '"' : "") + '></label>'; }
+    (k.pola || []).forEach(function (p, j) { h += poleHtml(p, "md-pole-" + i + "-" + j); });
+    if (k.polaBiegu) {
+      var b = k.polaBiegu;
+      h += '<div class="md-pola-biegu" data-pola-biegu hidden><p class="md-pytanie">' + esc(b.tytul) + '</p><div class="md-dystanse">' + b.dystanse.map(function (d, j) { return '<label class="md-zgoda"><input type="checkbox"' + (j < 2 ? " checked" : "") + '> <span>' + esc(d) + '</span></label>'; }).join("") + '</div>';
+      (b.pola || []).forEach(function (p, j) { h += poleHtml(p, "md-pole-bieg-" + j); });
+      (b.zgody || []).forEach(function (z) { h += '<label class="md-zgoda"><input type="checkbox" checked> <span>' + esc(z) + '</span></label>'; });
+      h += '</div>';
+    }
     if (k.swiaty) {
       h += '<p class="md-pytanie">' + esc(k.pytanieSwiata) + '</p><div class="md-swiaty">' + k.swiaty.map(function (s, j) {
         var ikona = s.obraz ? '<img src="' + esc(s.obraz) + '" alt="">' : '<span class="md-emoji" aria-hidden="true">' + esc(s.emoji) + '</span>';

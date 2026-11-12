@@ -38,7 +38,11 @@ test('(1) suma miasta: tylko prawdziwe ulice; przykłady oznaczone na mapie, na 
     const k = M.kartaHtml(p), liczb = (k.match(/class="md-liczba"/g) || []).length, znaczkow = (k.match(/class="md-przyklad"/g) || []).length;
     assert.ok(liczb >= 4 && znaczkow === liczb, p.id + ': znaczek „przykład” przy każdej z ' + liczb + ' liczb (jest ' + znaczkow + ')');
     assert.match(k, /md-chip--przyklad">PRZYKŁAD</); assert.match(k, /Dane wymyślone na potrzeby pokazu\. Nie wchodzą do licznika miasta\./);
-    assert.doesNotMatch(k, /href="dla-fabianka/, 'przykład nie prowadzi na prawdziwą ulicę'); assert.match(k, /data-podglad="/);
+    assert.doesNotMatch(k, /href="dla-fabianka/, 'przykład nie prowadzi na prawdziwą ulicę');
+    /* bieg (10.11): pełny pokaz na osobnej stronie miasto-bieg.html („Zobacz bieg”), reszta: podgląd w oknie */
+    if (p.id === 'bieg') assert.match(k, /<a class="md-przycisk" href="miasto-bieg\.html">Zobacz bieg ›<\/a>/);
+    else if (p.id === 'szkolna') assert.match(k, /<a class="md-przycisk" href="miasto-druzyny\.html">Zobacz wyzwanie ›<\/a>/);   // drużyny (11.11): pełny pokaz na osobnej stronie
+    else assert.match(k, /data-podglad="/);
     /* mapa (Filip 10.11): nazwa + jedna krótka linia o formie akcji, bez liczb przykładu (te tylko na karcie) */
     const e = M.etykietaMapy(p); assert.equal(e.tytul, p.nazwa); assert.equal(e.podpis, p.etykieta); assert.doesNotMatch(e.podpis, /km ·|% celu|cegie|cegł|firm|·/, p.id + ': podpis bez liczb przykładu i bez kropek');
   }
@@ -81,15 +85,16 @@ test('(2) bez danych osób: imię z licznika, nie z kodu; bez nazwisk, e-maili, 
   const grafiki = [...HTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]).concat([...HTML.matchAll(/'(assets\/[^']+\.webp)'/g)].map((m) => m[1]));
   assert.ok(grafiki.length >= 20); for (const g of new Set(grafiki)) { assert.ok(fs.existsSync(path.join(KORZEN, g)), g + ' istnieje'); assert.doesNotMatch(g, /fabian|kasia|filip|rowerzysta|koparka-postac|arkusz/i, g + ': tylko grafiki ogólne'); }
   assert.doesNotMatch(HTML, /supabase\.co\/storage|akcja-wizerunek|share-assets/, 'nic z kubełków');
-  /* assets/miasto (10.11, API obrazów ze wzorcem domek-1): dokładnie pliki, których strona albo moduł używa; ≤ 60 kB (tło mapy ≤ 150 kB); nazwy bez imion */
-  const uzyte = new Set(grafiki.concat([...MJS.matchAll(/"(assets\/[^"]+\.webp)"/g)].map((m) => m[1])).filter((g) => g.startsWith('assets/miasto/')));
+  /* assets/miasto (10.11, API obrazów ze wzorcem domek-1; bieg-*.svg ręcznie, blizna-213): dokładnie pliki, których używają miasto.html/miasto.mjs i miasto-bieg.html/miasto-bieg.mjs; ≤ 60 kB (tło mapy ≤ 150 kB); nazwy bez imion */
+  const BIEG = czytaj('miasto-bieg.html') + czytaj('js/miasto-bieg.mjs');
+  const uzyte = new Set(grafiki.concat([...MJS.matchAll(/"(assets\/[^"]+\.webp)"/g)].map((m) => m[1]), [...BIEG.matchAll(/["'](assets\/miasto\/[^"']+\.svg)["']/g)].map((m) => m[1])).filter((g) => g.startsWith('assets/miasto/')));
   const wKatalogu = fs.readdirSync(path.join(KORZEN, 'assets/miasto')).map((f) => 'assets/miasto/' + f);
-  assert.deepEqual(wKatalogu.sort(), [...uzyte].sort(), 'assets/miasto: dokładnie te pliki, których używa strona');
-  assert.equal(wKatalogu.length, 11, 'tło, brama, szkoła, domek urodzinowy, ulica zbudowana, staw, 5 ikon światów');
+  assert.deepEqual(wKatalogu.sort(), [...uzyte].sort(), 'assets/miasto: dokładnie te pliki, których używają strony miasta');
+  assert.equal(wKatalogu.length, 21, '11 webp miasta (tło, brama, szkoła, domek urodzinowy, ulica zbudowana, staw, 5 ikon światów) + 10 svg biegu (brama, kibice, medal, 3 dystanse, 4 kroki)');
   for (const g of wKatalogu) {
     const kb = fs.statSync(path.join(KORZEN, g)).size / 1000;
     assert.ok(kb <= (/tlo-mapy/.test(g) ? 150 : 60), g + ': ' + kb.toFixed(1) + ' kB (limit 60, tło 150)');
-    assert.match(g, /^assets\/miasto\/[a-z0-9-]+\.webp$/, g + ': nazwa neutralna'); assert.doesNotMatch(g, /fabian|kasia|filip|pamiec|pomnik/i, g + ': bez imion i upamiętnień');
+    assert.match(g, /^assets\/miasto\/[a-z0-9-]+\.(webp|svg)$/, g + ': nazwa neutralna'); assert.doesNotMatch(g, /fabian|kasia|filip|pamiec|pomnik|logo/i, g + ': bez imion, upamiętnień i logo');
   }
 });
 
@@ -161,7 +166,7 @@ test('(5) noindex; żadna strona ani skrypt aplikacji nie linkuje do miasto.html
       if (['.git', 'node_modules', 'vendor', 'assets', 'tests', 'tools', 'docs', 'supabase'].includes(w.name)) continue;
       const p = path.join(kat, w.name);
       if (w.isDirectory()) szukaj(p);
-      else if (/\.(html|m?js|json|webmanifest)$/.test(w.name) && !/^miasto\.(html|mjs)$/.test(w.name) && /miasto\.html/.test(fs.readFileSync(p, 'utf8'))) linkuja.push(path.relative(KORZEN, p));
+      else if (/\.(html|m?js|json|webmanifest)$/.test(w.name) && !/^miasto(-bieg|-firmy|-druzyny|-pokaz)?\.(html|mjs)$/.test(w.name) && /miasto\.html/.test(fs.readFileSync(p, 'utf8'))) linkuja.push(path.relative(KORZEN, p));   // miasto-bieg, miasto-firmy, miasto-druzyny i miasto-pokaz to rodzeństwo pokazu (wracają do miasta)
     }
   })(KORZEN);
   assert.deepEqual(linkuja, [], 'link do miasto.html tylko od Filipa, nie z aplikacji');

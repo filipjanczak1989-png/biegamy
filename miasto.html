@@ -9,9 +9,11 @@
 <meta name="description" content="Prototyp Miasta Dobra: każda zbiórka ma swoją ulicę, kilometry ludzi ją budują.">
 <link rel="icon" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>/* font nagłówków z repo (SIL OFL 1.1, assets/fonty/OFL-BebasNeue.txt): bez sieci nagłówki nie spadają na inny krój */@font-face { font-family: 'Bebas Neue'; font-style: normal; font-weight: 400; font-display: swap; src: local('Bebas Neue'), local('BebasNeue-Regular'), url(assets/fonty/BebasNeue-Regular.ttf) format('truetype'); }</style>
 <script src="js/akcja.mjs"></script>
 <script src="js/miasto.mjs"></script>
+<script src="js/miasto-pokaz.mjs" defer></script>   <!-- tryb pokazu (?pokaz=1) i gotowość (?pokaz=gotowosc); bez parametru nic nie robi -->
 <!--
   MIASTO DOBRA, PROTOTYP DO POKAZANIA (9.11.2026). Strona poza nawigacją aplikacji, noindex; zbudowana tak, jakby mógł ją zobaczyć każdy.
   Jedna ulica prawdziwa: liczby WYŁĄCZNIE z publicznego licznika akcji (EF akcja-licznik przez js/akcja.mjs), „Wejdź” prowadzi na stronę akcji.
@@ -26,13 +28,16 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
   [hidden] { display: none !important; }
-  main { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 12px calc(env(safe-area-inset-bottom) + 36px); }
+  main { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 36px); }
   .md-marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
-  h1 { font: 400 clamp(38px, 10vw, 52px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 8px 0 6px; }
-  .md-suma { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 6px; }
-  .md-suma b { font: 400 clamp(34px, 9vw, 44px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; color: var(--akcent2); }
-  .md-suma span { font-size: 13px; line-height: 1.35; color: var(--fg2); }
-  .md-zdanie { font-size: 14px; line-height: 1.45; color: var(--fg); margin: 0 0 10px; font-weight: 600; }
+  /* KOLOR NAJPIERW (10.11): nagłówek zwarty w jednym rzędzie (nazwa po lewej, suma po prawej), mapa zaczyna się zaraz pod nim; zdanie o pieniądzach pod mapą */
+  .md-naglowek { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; margin: 0 0 8px; }
+  .md-naglowek .md-marka { white-space: nowrap; }
+  h1 { font: 400 clamp(30px, 8vw, 40px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 4px 0 0; }
+  .md-suma { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 2px; margin: 0; flex-shrink: 1; min-width: 0; max-width: 52%; }
+  .md-suma b { font: 400 clamp(28px, 7.5vw, 36px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; color: var(--akcent2); }
+  .md-suma span { font-size: 11.5px; line-height: 1.3; color: var(--fg2); }
+  .md-zdanie { font-size: 14px; line-height: 1.45; color: var(--fg); margin: 10px 2px 0; font-weight: 600; }
   .md-stan-naglowka { font-size: 12px; color: var(--fg2); margin: -4px 0 8px; }
 
   /* ── MAPA Z LOTU PTAKA (szkic A wybrany 9.11): droga wije się przez jesienne pola, każda ulica to działka przy drodze ── */
@@ -51,7 +56,7 @@
   /* etykieta nie zasłania grafiki własnej działki (decyzja 10.11): grafiki w górnej części działki, etykieta (nazwa + jedna krótka linia) pod nimi; narzędzie Chrome to mierzy */
   .dz--przyklad .dz-grafiki { top: 0; height: 56%; }
   .dz--przyklad .dz-et small { white-space: nowrap; }   /* krótka fraza w jednej linii, bez łamania w połowie */
-  .dz--wolna .dz-grafiki { top: 0; height: 50%; }
+  .dz--wolna .dz-grafiki { top: 0; height: 47%; }   /* 47 %: przy mniejszej mapie laptopa (78vh) plac budowy nie wchodzi pod tabliczkę (pomiar 10.11) */
   .dz--przyklad .dz-et::before { content: "PRZYKŁAD"; position: absolute; top: -9px; right: -6px; background: var(--akcent); color: #fff; font: 800 7.5px/1 Inter, sans-serif; letter-spacing: .12em; padding: 3px 5px; border-radius: 5px; transform: rotate(5deg); }
   /* prawdziwa: największa, w środku, z obwódką i znaczkiem TRWA; widoczna na pierwszym ekranie telefonu */
   .dz--prawdziwa { background: rgba(255,205,106,.22); box-shadow: inset 0 0 0 3px #ffcd6a, 0 0 0 2px rgba(90,46,14,.5), 0 0 26px rgba(255,170,60,.45); }
@@ -138,7 +143,7 @@
   @media (min-width: 900px) {
     main { max-width: 1040px; padding-top: 28px; }
     .md-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
-    .md-mapa { width: min(100%, calc(84vh * 388 / 640)); margin: 0 auto; }
+    .md-mapa { width: min(100%, calc(78vh * 388 / 640)); margin: 0 auto; }   /* 78vh: mapa i zdanie o pieniądzach mieszczą się na pierwszym ekranie laptopa */
     .md-zaslona { display: none; }
     .md-panel { position: sticky; top: 20px; max-height: none; transform: none; border-radius: 20px; border-bottom: 1px solid var(--ramka); box-shadow: none; padding: 14px 18px 18px; }
     .md-uchwyt, .md-panel .md-zamknij { display: none; }
@@ -147,13 +152,14 @@
 </head>
 <body>
 <main>
-  <div class="md-marka">BiegaMy · Miasto Dobra</div>
-  <h1>Miasto Dobra</h1>
-  <div class="md-suma"><b id="md-km">— km</b><span id="md-podpis">zbudowane przez ludzi</span></div>
-  <p class="md-zdanie">Pieniądze idą prosto do organizacji prowadzących zbiórki. BiegaMy nic nie przyjmuje.</p>
+  <div class="md-naglowek">
+    <div><div class="md-marka">BiegaMy · Miasto Dobra</div><h1>Miasto Dobra</h1></div>
+    <div class="md-suma"><b id="md-km">— km</b><span id="md-podpis">zbudowane przez ludzi</span></div>
+  </div>
   <p class="md-stan-naglowka" id="md-stan" hidden></p>
 
   <div class="md-uklad">
+    <div class="md-lewa">
     <div class="md-mapa" id="md-mapa" aria-label="Mapa Miasta Dobra">
       <img class="md-ozdoba md-tlo" src="assets/miasto/tlo-mapy.webp" alt="">
       <svg viewBox="0 0 388 640" preserveAspectRatio="none" aria-hidden="true">
@@ -200,6 +206,8 @@
         <div class="dz-et"><span class="dz-tytul"></span><small></small></div>
       </button>
     </div>
+    <p class="md-zdanie">Pieniądze idą prosto do organizacji prowadzących zbiórki. BiegaMy nic nie przyjmuje.</p>
+    </div>
 
     <aside class="md-panel" id="md-panel" role="dialog" aria-label="Karta ulicy" aria-modal="false">
       <div class="md-uchwyt"></div>
@@ -211,6 +219,7 @@
 
   <p class="md-podpowiedz">Dotknij ulicy na mapie, żeby zobaczyć jej kartę.</p>
   <button type="button" class="md-zaloz" id="md-zaloz">Załóż ulicę ›</button>
+  <a class="md-zaloz" href="miasto-firmy.html" style="margin-left:8px;text-decoration:none">Dla firm ›</a>
   <p class="md-stopka">Prototyp Miasta Dobra. Prawdziwa jest jedna ulica: jej liczby pochodzą z publicznego licznika akcji i tylko one wchodzą do licznika miasta. Pozostałe ulice są przykładami z wymyślonymi danymi. Aplikacja tylko liczy kilometry; wpłaty idą zawsze bezpośrednio na oficjalną zbiórkę organizacji. <a href="privacy.html">Polityka prywatności</a></p>
 </main>
 
@@ -272,6 +281,8 @@
     else if (e.target.closest('[data-zamknij]')) schowajOkno(KREATOR);
   });
   KREATOR.addEventListener('submit', function (e) { e.preventDefault(); });
+  /* forma „Wirtualny bieg charytatywny” odsłania pola biegu (dystanse, okno, limit, publiczna lista); dalej atrapa */
+  KREATOR.addEventListener('change', function (e) { if (e.target.name !== 'md-forma') return; var p = KREATOR.querySelector('[data-pola-biegu]'); if (p) p.hidden = !e.target.hasAttribute('data-bieg'); });
   $('md-zaloz').addEventListener('click', otworzKreator);
   document.addEventListener('click', function (e) { if (e.target.closest('[data-kreator]')) otworzKreator(); });
 
