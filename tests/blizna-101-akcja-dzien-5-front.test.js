@@ -40,7 +40,7 @@ test('wyprawa: tylko z celem; tekst bez imienia; dla-fabianka i karta Dziś', as
   assert.equal(A.tekstWyprawy({ wystartowala: true, wyprawa_trwa: false, wyprawa_km: 241, wyprawa_dotarla_at: '2026-11-08T16:00:00Z', wyprawa_cel_nazwa: 'Cel Z Bazy' }).replace(/ /g, ' '), 'Wyprawa · dotarli: Cel Z Bazy ✓ · 241 km (już w liczniku)');
   assert.equal(A.linkTrasy, undefined, '9.11: mapy wyprawy nie ma (blizna-200)');
   assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, 'imię poza nazwą pliku strony');
-  assert.match(czytaj('dla-fabianka.html'), /var wy = A\.tekstWyprawy\(d\);/);
+  assert.doesNotMatch(czytaj('dla-fabianka.html'), /tekstWyprawy|id="wyprawa"/, '12.11 (punkt 5): linijki o wyprawie nie ma na stronie akcji; km wyprawy zostają w liczniku');
 });
 
 test('karta akcji: przycisk tylko z wkładem > 0, EF share-card {akcja} — liczby z bazy, plik z dniem i liczbami', () => {

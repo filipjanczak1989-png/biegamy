@@ -24,6 +24,8 @@
 <script defer src="js/firma-formularz.mjs"></script>
 <!-- scena ulicy: pobierana od razu, ładowana po liczniku (js/akcja.mjs zUlica); brak pliku nic nie psuje -->
 <link rel="preload" href="js/ulica.mjs" as="script"><link rel="preload" href="js/ulica-scena.mjs" as="script">
+<!-- scena stoi na górze strony (kolor najpierw, 10.11): jej największa warstwa (wzgórza) i droga pobierane od razu, żeby były gotowe w chwili montażu, a nie dopiero po nim -->
+<link rel="preload" href="assets/ulica/wzgorza.webp" as="image"><link rel="preload" href="assets/ulica/droga.webp" as="image">
 <!--
   STRONA AKCJI (projekt F, spec v3 pkt 2, v2 pkt 3.2) — publiczna, bez logowania; link do grup biegowych.
   Dane WYŁĄCZNIE z akcja_licznik przez EF akcja-licznik (rola anonimowa nie ma uprawnień do bazy).
@@ -37,28 +39,75 @@
 <style>
   :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent2: #ff8a3d; --ramka: rgba(255,255,255,.1); }
   html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
-  main { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 28px) 16px calc(env(safe-area-inset-bottom) + 40px); box-sizing: border-box; }
-  .marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
-  h1 { font: 400 clamp(40px, 12vw, 64px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 14px 0 18px; }
+  main { max-width: 560px; margin: 0 auto; padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 40px); box-sizing: border-box; display: flex; flex-direction: column; min-height: calc(100vh + 120px); }
+  .stopka-prawna { margin-top: auto; }   /* stopka pod krawędzią ekranu, zanim wejdzie treść: nie skacze w kadrze (CLS) */
+  /* KOLOR NAJPIERW, MNIEJ TREŚCI (decyzja 10.11, kolejność 11.11, punkt 5 z 12.11). Pierwszy ekran 360×800 od góry: jedna mała linijka z nazwą akcji, scena Ulicy
+     z licznikiem km na obrazku (JEDYNE miejsce z liczbą km), wąski pasek progu km pod sceną (gdy próg minięty), pasek postępu i „% celu” w jednej linii, trzy przyciski
+     (Dołącz i biegnij, Oficjalna zbiórka, Twoja firma lub cegiełka). Niżej podpis sceny (nazwa ulicy, Udostępnij, odcinki, zdanie o cegiełkach), zwinięte „O akcji”
+     (zdanie o 10 gr i zasady), plakat, gra, firmy. Bez ruszania drzewa (testy pilnują kolejności w DOM): #scena-gora, #ulica-po, korzeń sceny .us i #pelna są
+     przezroczyste dla układu (display: contents), a kolejność nadaje `order` w kolumnie flex <main>.
+     Miejsce na scenę zarezerwowane od pierwszego rysowania przez ::before pustego #ulica-po (340 px, tyle co okno sceny); znika w zapowiedzi i przy awarii licznika (bez-sceny). */
+  #scena-gora, #scena-gora #ulica-po, #scena-gora .us, #pelna { display: contents; }
+  #scena-gora #ulica-po:empty::before { content: ""; display: block; order: -10; height: 340px; margin: 0 -16px; }
+  #scena-gora #ulica-po:empty::after { content: ""; display: block; order: -4; height: 126px; }   /* miejsce na podpis sceny (nazwa, Udostępnij, odcinki, zdanie) dokładnie tam, gdzie podpis stanie: pod przyciskami */
+  #scena-gora.bez-sceny #ulica-po:empty::before, #scena-gora.bez-sceny #ulica-po:empty::after { display: none; }
+  /* w czasie ładowania (pełny widok jeszcze ukryty, bez klasy bez-sceny) miejsce na pasek z procentem i trzy przyciski, żeby podpis sceny i reszta nie zjechały, gdy licznik odpowie */
+  main:has(#pelna[hidden]) #scena-gora:not(.bez-sceny)::before { content: ""; display: block; order: -8; height: 214px; }
+  .linijka { order: -11; display: flex; align-items: baseline; gap: 6px; margin: 12px 0 10px; min-height: 17px; font: 600 12px/1.4 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); white-space: nowrap; overflow: hidden; }
+  .linijka h1 { display: inline; margin: 0; font: inherit; letter-spacing: inherit; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
+  .linijka h1:not(:empty)::before { content: "· "; color: var(--fg2); }
+  #scena-gora .us-okno { order: -10; margin: 0 -16px; }
+  #prog { order: -9; margin: 0 -16px; }
+  #prog:empty { display: none; }
+  #prog .akcja-prog { margin: 0; padding: 0 16px; height: 44px; box-sizing: border-box; border-radius: 0; border-width: 1px 0; flex-wrap: nowrap; align-items: center; gap: 10px; }   /* baner progu jako wąski pasek pod sceną; stała wysokość: font z sieci nie przesuwa treści (CLS) */
+  #prog .akcja-prog b { flex: none; font-size: 16px; white-space: nowrap; } #prog .akcja-prog span { flex: 1 1 auto; font-size: 11px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
+  #prog .akcja-prog .akcja-prog-udostepnij { min-height: 44px; padding: 0 8px; margin: -10px 0; font-size: 11px; }   /* cel dotyku 44 px w niskim pasku */
+  .pasek-linia { order: -8; display: flex; align-items: center; gap: 10px; margin: 12px 0 0; min-height: 20px; }
+  .pasek-linia #pasek { flex: 1; min-width: 0; } .pasek-linia #pasek .akcja-pasek { margin: 0; }
+  .pasek-linia #procent { flex: none; font: 600 13px/1 Inter, sans-serif; color: var(--fg2); white-space: nowrap; }
+  .przyciski--gora { order: -7; margin-top: 12px; gap: 8px; }
+  .przyciski--gora .przycisk { margin: 0; }
+  #scena-gora .us-tytul { order: -6; padding: 0; margin: 10px 0 0; font-size: 22px; line-height: 44px; }
+  #scena-gora .us-udostepnij { order: -6; width: auto; align-self: flex-end; margin: -44px 0 0; padding: 0 14px; min-height: 44px; font-size: 13px; }   /* w jednym wierszu z nazwą ulicy, cel dotyku 44 px */
+  #scena-gora .us-opis { order: -5; margin: 6px 0 0; padding: 0; }
+  #scena-gora .us-zdanie a { display: inline-block; padding: 14px 4px; margin: -14px 0; }
+  #mur-cegielek { order: -3; }   /* mur cegiełek z licznika: pod podpisem sceny, nad „O akcji”; na stronie cały, „Zwiń do ostatnich 5” (punkt 2c) */
+  #mur-cegielek:empty { display: none; }
+  /* „O akcji” zwinięte: zdanie o dokładaniu 10 gr i zasady; otwiera się dotknięciem, nic nie ładuje */
+  .o-akcji { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 0 16px; margin: 14px 0 0; }
+  .o-akcji summary { display: flex; justify-content: space-between; align-items: center; min-height: 48px; cursor: pointer; list-style: none; font: 600 12px/1.4 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); }
+  .o-akcji summary::-webkit-details-marker { display: none; } .o-akcji summary::after { content: "+"; font-size: 18px; } .o-akcji[open] summary::after { content: "–"; }
+  .o-akcji .drobne { margin: 0 0 12px; font-size: 13px; color: var(--fg); } .o-akcji ol { margin: 0 0 16px; }
+  /* plakietka „Mur: … / 1,25 mln” (decyzja 12.11): domyślnie przy wejściu do gry, nie w nakładce sceny; tekst przepisany z nakładki (murPrzyGrze). ?mur=scena pokazuje starą wersję do porównania */
+  #gra .mur-gra { display: none; margin-left: 8px; padding: 3px 8px; border-radius: 8px; background: rgba(255,210,61,.14); border: 1px solid rgba(255,210,61,.5); color: #ffd23d; font-size: 12px; font-weight: 600; vertical-align: middle; }
+  body:not(.mur-w-scenie) #ulica-po .us-mur-graczy { display: none; }
+  body:not(.mur-w-scenie) #gra .mur-gra:not(:empty) { display: inline-block; }
+  /* podpis sceny (decyzja 12.11): pod nagłówkiem ulicy zostaje tylko nazwa i „Udostępnij”; linijka o odcinkach idzie do „O akcji”, zdanie o cegiełkach z gry staje przy „Zagraj w Cegiełki”,
+     „Pierwsze cegły: …” znika (jest mur cegiełek). Przenosi uporzadkujPodpis() po zmontowaniu sceny; style sceny nadpisane tu */
+  .o-akcji .us-opis, .przyciski .us-zdanie { margin: 0 0 12px; padding: 0; font: 400 13px/1.5 Inter, system-ui, sans-serif; color: var(--fg2); }
+  .przyciski .us-zdanie { margin: -2px 0 0; text-align: center; } .przyciski .us-zdanie a { color: var(--akcent2); display: inline-block; padding: 14px 4px; margin: -14px 0; }
+  #gra[hidden] + .us-zdanie { display: none; }
+  /* cele dotyku ≥ 44 px bez zmiany wyglądu: większe pole dotyku linków i pól (ten sam układ) */
+  .akcja-wiecej.akcja-wplac { padding-top: 15px; padding-bottom: 15px; }
+  a.akcja-firma-nazwa, #firma a { display: inline-block; padding: 14px 0; margin: -14px 0; }
+  #firma input:not([type=checkbox]):not([type=radio]) { min-height: 44px; box-sizing: border-box; }
   .wielka-data { font: 400 clamp(96px, 34vw, 180px)/.9 'Bebas Neue', Inter, sans-serif; color: var(--akcent); margin: 28px 0 10px; }
   .lead { font-size: 17px; line-height: 1.5; color: var(--fg2); margin: 0 0 22px; }
   section { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 16px; margin: 14px 0; }
   section h2 { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); margin: 0 0 12px; }
   ol { margin: 0; padding-left: 20px; line-height: 1.6; font-size: 15px; } li + li { margin-top: 6px; }
-  .duze-liczby { font: 400 44px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin-bottom: 10px; }
-  .duze-liczby span { font-size: 22px; color: var(--fg2); }
   .przyciski { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
   .przycisk { display: block; text-align: center; padding: 15px; border-radius: 14px; font-weight: 600; font-size: 15px; text-decoration: none; }
   .przycisk--glowny { background: var(--akcent); color: #fff; } .przycisk--zbiorka { border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
-  .przycisk--firma { margin: -6px 0 14px; font-size: 16px; border-width: 2px; }
   .drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin-top: 18px; }
-  .stopka-prawna { font-size: 12px; color: var(--fg2); text-align: center; margin: 22px 0 0; } .stopka-prawna a { color: inherit; display: inline-block; padding: 8px 2px; }
+  .stopka-prawna { font-size: 12px; color: var(--fg2); text-align: center; margin: auto 0 0; padding-top: 22px; }   /* margin-top: auto (pin pod krawędzią ekranu) musi stać TU, bo ta reguła jest później niż ta z linii 42 i ją nadpisywała */ .stopka-prawna a { color: inherit; display: inline-block; padding: 15px 2px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
-  <div class="marka">BiegaMy</div>
+  <div class="linijka"><span class="marka">BiegaMy</span><h1 id="nazwa"></h1></div>
+  <div id="scena-gora"><div id="ulica-po"></div></div>
 
   <div id="teaser">
     <div class="wielka-data" id="wielka-data"></div>
@@ -68,30 +117,29 @@
   </div>
 
   <div id="pelna" hidden>
-    <h1 id="nazwa"></h1>
-    <a class="przycisk przycisk--zbiorka przycisk--firma" id="do-firmy" href="#firma" hidden>Twoja firma lub cegiełka na Ulicy ›</a>
-    <section aria-label="Licznik">
-      <div class="duze-liczby" id="duze"></div>
-      <div id="pasek"></div>
+    <div id="prog" role="status"></div>
+    <div class="pasek-linia"><div id="pasek"></div><span id="procent"></span></div>
+    <div class="przyciski przyciski--gora">
+      <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
+      <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
+      <a class="przycisk przycisk--zbiorka" id="do-firmy" href="#firma" hidden>Twoja firma lub cegiełka na Ulicy ›</a>
+    </div>
+    <div id="mur-cegielek"></div>
+    <details class="o-akcji" id="o-akcji">
+      <summary>O akcji</summary>
       <p class="drobne" id="filip"></p>
-      <!-- zdanie o sponsorach kilometrów (suma stawek z licznika) zdjęte 12.11: deklaracje bez potwierdzenia nie wychodzą publicznie, do czasu wersji z potwierdzeniem -->
-      <p class="drobne" id="wyprawa" hidden></p>
-    </section>
-    <div id="ulica-po"></div>
-    <div id="plakat"></div>
-    <section id="jak">
-      <h2>Jak to działa</h2>
-      <ol>
+      <!-- zdanie o sponsorach kilometrów (suma stawek z licznika) zdjęte 12.11: deklaracje bez potwierdzenia nie wychodzą publicznie, do czasu wersji z potwierdzeniem.
+           Linijka o wyprawie zdjęta 12.11 (punkt 5) ze strony i z karty na Dziś: km wyprawy są w liczniku jak każde. -->
+      <ol id="zasady">
         <li>Liczy się bieg i spacer. Rower nie. Każdy taki kilometr zapisany w BiegaMy wchodzi do wspólnej puli.</li>
         <li>Cel to 12 500 km. Akcja kończy się w dniu, w którym razem go osiągniemy.</li>
         <li>Aplikacja tylko liczy. Pieniądze wpłacasz bezpośrednio na oficjalną zbiórkę.</li>
       </ol>
-    </section>
+    </details>
+    <div id="plakat"></div>
     <div class="przyciski">
-      <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
       <!-- wejście sponsora kilometrów (index.html#sponsor → zawodnik.html#sponsor) schowane 12.11 do czasu wersji z potwierdzeniem stawki; ścieżka w index.html i zawodnik.html zostaje (blizna-106) -->
-      <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
-      <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›</a>
+      <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›<span class="mur-gra"></span></a>
     </div>
     <div id="firmy" hidden></div>
     <section id="firma" hidden></section>
@@ -111,8 +159,24 @@ document.addEventListener('DOMContentLoaded', function () {
   function ulica(d) { try { A.zUlica(function (U) { U.naStronie(d, { przed: $('ulica-przed'), po: $('ulica-po'), pokaz: pokaz }); }); } catch (e) {} }
   var ostatniStan = null;
   var DZIEN_STARTU = '2026-11-07';
+  function procentCelu(d) { var p = A.pct(d), z = Math.round(p * 10) / 10; return (z > 0 && z < 10 ? z.toFixed(1).replace('.', ',') : String(Math.round(p))) + ' % celu'; }   // 5,8 % · 10 % (9,98 zaokrągla do 10, nie „10,0”)
+  /* plakietka muru graczy przy „Zagraj w Cegiełki” (decyzja 12.11): tekst przepisany z nakładki sceny (tam schowana w CSS), bez nowego zapytania; ?mur=scena = stara wersja do porównania */
+  if (/[?&]mur=scena/.test(location.search || '')) document.body.classList.add('mur-w-scenie');
+  function murPrzyGrze() { var z = document.querySelector('#ulica-po .us-mur-tekst'), m = $('gra') && $('gra').querySelector('.mur-gra'); if (m) m.textContent = z ? z.textContent : ''; }
+  /* podpis sceny: odcinki → „O akcji” (po zdaniu o 10 gr), zdanie o cegiełkach z gry → za „Zagraj w Cegiełki”, „Pierwsze cegły” → nic. Idempotentne: przy ponownym montażu sceny stara kopia ustępuje nowej. */
+  function uporzadkujPodpis() {
+    var ko = $('ulica-po'); if (!ko) return;
+    var op = ko.querySelector('.us-opis:not(.us-zdanie):not(.us-mur-szef)'), stary = document.querySelector('#o-akcji .us-opis');
+    if (op && $('filip')) { if (stary && stary !== op) stary.remove(); $('filip').insertAdjacentElement('afterend', op); }
+    ko.querySelectorAll('.us-mur-szef').forEach(function (e) { e.remove(); });
+    var zd = ko.querySelector('.us-zdanie'), stareZd = document.querySelector('.przyciski .us-zdanie');
+    if (zd && $('gra')) { if (stareZd && stareZd !== zd) stareZd.remove(); $('gra').insertAdjacentElement('afterend', zd); }
+    murPrzyGrze();
+  }
+  try { new MutationObserver(function () { uporzadkujPodpis(); }).observe($('ulica-po'), { childList: true, subtree: true }); } catch (e) {}
   function pokaz(d) {
     ulica(d);
+    var sg = $('scena-gora'); if (sg && sg.classList) sg.classList.toggle('bez-sceny', !(d && d.wystartowala));   // miejsce na scenę u góry jest od pierwszego rysowania (CSS); znika tylko w zapowiedzi i przy awarii licznika
     var sygn = JSON.stringify(d);   // licznik wraca co 30 s: bez zmiany danych strony nie przepisujemy
     if (sygn === ostatniStan) return;
     ostatniStan = sygn;
@@ -129,13 +193,16 @@ document.addEventListener('DOMContentLoaded', function () {
     $('nazwa').textContent = zamknieta ? 'Zrobiliśmy to' : (d.nazwa || 'BiegaMy');
     $('plakat').innerHTML = A.plakatHtml(d);   // plakat na całą szerokość + „Zbiórka”; bez plakatu pusty (bez dziury)
     document.title = (d.nazwa || 'BiegaMy') + ' · BiegaMy';
-    $('duze').innerHTML = '<b>' + A.km(d.suma_km) + '</b> <span>/ ' + A.km(d.cel_km) + ' km</span>';
-    $('pasek').innerHTML = A.pasekHtml(d);
+    /* liczba km tylko w scenie (nakładka .us-licznik); tu pasek progu, pasek postępu i procent (punkt 5, 12.11) */
+    $('prog').innerHTML = A.banerProguHtml(d);
+    $('pasek').innerHTML = A.pasekHtml(d, { krotko: true });
+    $('procent').textContent = procentCelu(d);
+    $('mur-cegielek').innerHTML = A.murCegielekHtml ? A.murCegielekHtml(d, { tryb: 'strona' }) : '';
     $('filip').textContent = A.tekstFilipa(d);
-    var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
     if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
     if (A.linkGry) { $('gra').href = A.linkGry(d); if (d.testowa === true) $('gra').hidden = false; }   // próba: do gry na próbie, jak z kafla na Dziś
-    $('jak').hidden = zamknieta;
+    setTimeout(uporzadkujPodpis, 1500); setTimeout(uporzadkujPodpis, 4500);   // scena montuje się po liczniku i po gra-ranking (obserwator łapie resztę)
+    $('zasady').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;

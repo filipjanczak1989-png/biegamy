@@ -248,7 +248,7 @@ test('guzik: „⋯” i panel z „Dotarliśmy” nad koparką; guzik startu be
   assert.match(s, /var PRZYTRZYMAJ_MS = 1000, PONOW_MS = 5000, OBWOD = 314\.16;/, 'guzik startu bez zmian');
   const f = czytaj('dla-fabianka.html');
   assert.doesNotMatch(f, /mapa-wyprawy|linkTrasy|id="trasa"/);
-  assert.match(f, /var wy = A\.tekstWyprawy\(d\); \$\('wyprawa'\)\.hidden = !wy;/, 'linia wyprawy z km zostaje');
+  assert.doesNotMatch(f, /tekstWyprawy|id="wyprawa"/, '12.11 (punkt 5): linijka wyprawy zdjęta ze strony akcji w całości');
   for (const p of ['privacy.html', 'privacy-en.html']) assert.doesNotMatch(czytaj(p), /publiczn\w* map|public map/i, p);
 });
 

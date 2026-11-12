@@ -98,7 +98,7 @@ function strona(Aatrapa) {
   const el = {};
   const dok = { title: '', visibilityState: 'visible', addEventListener(n, f) { if (n === 'DOMContentLoaded') f(); }, getElementById: (id) => (el[id] = el[id] || { hidden: false, textContent: '', innerHTML: '', href: '' }) };
   const kod = blokiSkryptow('dla-fabianka.html').join('\n');
-  vm.runInNewContext(kod, { window: { BM_AKCJA: Aatrapa }, document: dok, Intl, Date, String, Number, JSON, location: { hash: '', search: '' }, setInterval: () => 0 });
+  vm.runInNewContext(kod, { window: { BM_AKCJA: Aatrapa }, document: dok, Intl, Date, String, Number, JSON, Math, location: { hash: '', search: '' }, setInterval: () => 0, setTimeout: () => 0 });   // 12.11: strona odkłada przepisanie plakietki muru przez setTimeout
   return el;
 }
 const pokazana = async (Aatrapa) => { const el = strona(Aatrapa); await new Promise(setImmediate); return el; };

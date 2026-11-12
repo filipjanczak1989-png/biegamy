@@ -167,7 +167,6 @@
     ".akcja-wiecej,.akcja-link{cursor:pointer;font-family:inherit}button.akcja-link{background:transparent}" +
     ".akcja-sponsor{margin-top:10px;font-size:13px}.akcja-tekstowy{background:none;border:0;color:#ff8a3d;font:inherit;text-decoration:underline;cursor:pointer;padding:0}" +
     ".akcja-form{margin-top:10px}.akcja-form label{font-size:13px}.akcja-stawka{width:72px;margin:0 6px;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font:inherit}" +
-    ".akcja-wyprawa{margin-top:8px;font-size:12px;color:var(--fg,#f0ede8)}" +
     ".akcja-uwaga{font-size:12px;color:var(--fg2,rgba(240,237,232,.7));margin:8px 0 10px;line-height:1.45}" +
     ".akcja-plakat{margin:10px 0}.akcja-plakat a[data-plakat]{display:block}.akcja-plakat img{display:block;width:100%;height:auto;border-radius:12px;cursor:zoom-in}" +
     ".akcja-plakat--mini img{max-height:220px;object-fit:cover}.akcja-plakat--dzis img{max-height:340px;object-fit:contain}.akcja-wplac{display:block;text-align:center;margin-top:8px}" +
@@ -203,7 +202,7 @@
     ".akcja-dzis-filip{margin-top:6px;font-size:12px;line-height:1.45;color:rgba(255,255,255,.82)}" +
     ".akcja-dzis-przyciski{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}" +
     ".akcja-dzis-przycisk{display:flex;align-items:center;justify-content:center;min-height:56px;padding:8px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;font-size:16px;font-weight:800;line-height:1.15;text-align:center;text-decoration:none;cursor:pointer}" +
-    ".akcja-dzis-przycisk[hidden]{display:none}.akcja-dzis-przycisk--zbiorka{background:#e8561e;border-color:transparent}.akcja-dzis-przycisk--ulica{grid-column:1/-1;border-color:rgba(255,138,61,.75);color:#ffd3b0}";
+    ".akcja-dzis-przycisk[hidden]{display:none}.akcja-dzis-przycisk--zbiorka{background:#e8561e;border-color:transparent;grid-column:1/-1}.akcja-mur{margin-top:12px}.akcja-mur-tytul{font:800 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.8);margin-bottom:6px}.akcja-mur-tytul span{margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.12);letter-spacing:0}.akcja-mur-cegly{display:flex;flex-wrap:wrap;gap:4px}.akcja-mur-cegla{display:inline-flex;align-items:center;min-width:44px;max-width:100%;min-height:26px;padding:3px 9px;box-sizing:border-box;border-radius:4px;background:#b4563c;border:1px solid #8a3f2a;color:#fff;font:700 12px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.akcja-mur-cegla--zlota{background:#e3b23c;border-color:#9a6400;color:#3b2800}.akcja-mur-cegla--bez{background:#9c4b35;opacity:.75}.akcja-mur-reszta{align-self:center;font-size:12px;color:rgba(255,255,255,.75)}.akcja-mur-przycisk{display:inline-block;margin-top:6px;min-height:44px;padding:10px 12px;background:transparent;cursor:pointer;font-family:inherit;font-weight:700}.akcja-dzis-przycisk--ulica{grid-column:1/-1;border-color:rgba(255,138,61,.75);color:#ffd3b0}";
   function wstrzyknijCss() {
     try {
       if (!g.document || g.document.getElementById("bm-akcja-css")) return;
@@ -362,12 +361,14 @@
     g.document.head.appendChild(el);
   });
   var _ostatniLicznikProgu = null;
-  function pasekHtml(d) {
+  function pasekHtml(d, opcje) {
     wstrzyknijCss();
-    var p = pct(d); _ostatniLicznikProgu = d;
-    return banerProguHtml(d) + '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '">' +
-      '<div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>' +
-      '<div class="akcja-liczby"><b>' + km(d.suma_km) + '</b> z ' + km(d.cel_km) + ' km · ' + liczba(p, p < 10 ? 1 : 0) + '%</div>';
+    var p = pct(d), o = opcje || {}; _ostatniLicznikProgu = d;
+    var pasek = '<div class="akcja-pasek" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '">' +
+      '<div class="akcja-pasek-wypelnienie" style="width:' + p + '%"></div></div>';
+    /* strona akcji (12.11, punkt 5): sam pasek; liczba km jest tylko w scenie, procent obok paska, baner progu osobno pod sceną (banerProguHtml) */
+    if (o.krotko) return pasek;
+    return banerProguHtml(d) + pasek + '<div class="akcja-liczby"><b>' + km(d.suma_km) + '</b> z ' + km(d.cel_km) + ' km · ' + liczba(p, p < 10 ? 1 : 0) + '%</div>';
   }
 
   /** Karta na Dziś (zalogowani). wklad = akcja_moj_wklad. */
@@ -413,10 +414,53 @@
       (pl ? '<a class="akcja-dzis-przycisk" href="' + pl + '" data-plakat="' + pl + '"' + (zb ? ' data-zbiorka="' + zb + '"' : "") + ' target="_blank" rel="noopener noreferrer">Plakat</a>' : "") +
       '<a class="akcja-dzis-przycisk" data-gra-link href="' + linkGry(d) + '"' + (graWidoczna(d) ? "" : " hidden") + ">Gra</a>" +
       (zb ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--zbiorka" href="' + zb + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") +
+      przyciskBieguHtml(d) +
       (formularzFirm(d) ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' + adresStrony(d, "#firma") + '">Twoja firma lub cegiełka na Ulicy</a>' : "") + "</div>" +
-      /* Film startu raz na konto (9.11): po nim baner już go nie gra sam, więc tu można wrócić. Odtwarza ta sama nakładka co „Zobacz film” w karcie. */
-      (g.BM_AKCJA_CYTATY && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika && g.BM_AKCJA_CYTATY.filmAkcjiZLicznika(d) ? '<button type="button" class="akcja-dzis-film" data-film-akcji="1">▶ Zobacz film startu</button>' : "");
+      /* „▶ Zobacz film startu” zdjęty z kafla 12.11 (punkt 2a): pliki filmu, kolejka filmów (akcja-cytaty) i nakładka „Zobacz film” w karcie bez zmian. */
+      murCegielekHtml(d, { tryb: "dzis" });
   }
+  /* MIEJSCE NA PRZYCISK „BIEG WIRTUALNY” (po 18.11): jedyne miejsce w siatce kafla, w wierszu po „Zbiórka”. Dziś pusta funkcja, a „Zbiórka” zajmuje cały wiersz
+     (CSS .akcja-dzis-przycisk--zbiorka). Gdy bieg ruszy: zwrócić '<a class="akcja-dzis-przycisk" href="…">Bieg wirtualny</a>' i zdjąć grid-column ze „Zbiórki”. */
+  function przyciskBieguHtml(d) { return ""; }
+  /* MUR CEGIEŁEK (12.11, punkt 2c): lista cegieł z publicznego licznika (ulica.cegly: złote najpierw, potem najnowsze; imię tylko za zgodą, bez zgody pusta cegła).
+     Na Dziś domyślnie 5 pierwszych i „Cały mur (N)” rozwijany w miejscu, potem „Zwiń”; na stronie ulicy cały mur, „Zwiń do ostatnich 5”. Wybór w localStorage
+     (try/catch), osobno dla Dziś i strony. Zero zapytań: te same dane co kafel. Pasek murku w pełnej scenie Ulicy zostaje bez zmian. */
+  var MUR_KROTKO = 5, KLUCZ_MURU = "bm_akcja_mur_", _murDane = {};
+  function ladneImieMuru(t) { return String(t == null ? "" : t).trim().split("-").map(function (cz) { return cz ? cz.charAt(0).toLocaleUpperCase("pl-PL") + cz.slice(1).toLocaleLowerCase("pl-PL") : cz; }).join("-"); }
+  /* licznik oddaje cegły jako {i, z} (imię za zgodą, złota); po js/ulica.mjs ta sama lista ma już {imie, zlota}: czytamy obie postaci, najwyżej 500 */
+  function cegielkiMuru(d) {
+    var u = d && d.ulica, lista = (u && Array.isArray(u.cegly) ? u.cegly : []).slice(0, 500);
+    return lista.filter(function (c) { return c && typeof c === "object"; }).map(function (c) {
+      var im = typeof c.i === "string" ? c.i : typeof c.imie === "string" ? c.imie : "";
+      return { imie: im ? ladneImieMuru(im.trim().slice(0, 40)) : "", zlota: c.z === true || c.zlota === true };
+    });
+  }
+  function liczbaCegielek(d) { var u = d && d.ulica; return Math.max(cegielkiMuru(d).length, Number(u && u.cegly_n) || 0); }
+  function murRozwiniety(tryb) { try { var z = g.localStorage.getItem(KLUCZ_MURU + tryb); if (z === "1") return true; if (z === "0") return false; } catch (e) {} return tryb === "strona"; }
+  function zapiszMur(tryb, roz) { try { g.localStorage.setItem(KLUCZ_MURU + tryb, roz ? "1" : "0"); } catch (e) {} }
+  function odmianaCegielek(n) { var j = n % 10, dd = n % 100; return n === 1 ? "cegiełka" : j >= 2 && j <= 4 && (dd < 12 || dd > 14) ? "cegiełki" : "cegiełek"; }
+  function murCegielekHtml(d, opcje) {
+    var o = opcje || {}, tryb = o.tryb === "strona" ? "strona" : "dzis", n = liczbaCegielek(d);
+    if (!n) return "";
+    _murDane[tryb] = d;
+    var roz = o.rozwiniety != null ? !!o.rozwiniety : murRozwiniety(tryb), wszystkie = cegielkiMuru(d), lista = roz ? wszystkie : wszystkie.slice(0, MUR_KROTKO), poza = n - wszystkie.length;
+    var h = '<div class="akcja-mur akcja-mur--' + tryb + (roz ? " akcja-mur--pelny" : "") + '" data-mur-tryb="' + tryb + '" role="group" aria-label="Mur cegiełek: ' + n + ' ' + odmianaCegielek(n) + '">' +
+      '<div class="akcja-mur-tytul">Mur cegiełek <span>' + n + '</span></div><div class="akcja-mur-cegly">';
+    lista.forEach(function (c) { h += '<span class="akcja-mur-cegla' + (c.zlota ? " akcja-mur-cegla--zlota" : "") + (c.imie ? "" : " akcja-mur-cegla--bez") + '"' + (c.imie ? "" : ' aria-label="cegiełka bez imienia"') + '>' + (c.imie ? esc(c.imie) : "") + '</span>'; });
+    if (roz && poza > 0) h += '<span class="akcja-mur-reszta">i jeszcze ' + poza + ' ' + odmianaCegielek(poza) + '</span>';
+    h += '</div>';
+    if (n > MUR_KROTKO) h += '<button type="button" class="akcja-link akcja-mur-przycisk" data-mur-rozwin="' + (roz ? "0" : "1") + '">' + (roz ? (tryb === "strona" ? "Zwiń do ostatnich 5" : "Zwiń") : "Cały mur (" + n + ")") + '</button>';
+    return h + '</div>';
+  }
+  if (g.document) g.document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-mur-rozwin]") : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var blok = b.closest(".akcja-mur"), tryb = (blok && blok.getAttribute("data-mur-tryb")) || "dzis", roz = b.getAttribute("data-mur-rozwin") === "1", d = _murDane[tryb];
+    zapiszMur(tryb, roz);
+    if (!blok || !d) return;
+    var t = g.document.createElement("div"); t.innerHTML = murCegielekHtml(d, { tryb: tryb, rozwiniety: roz });
+    if (t.firstChild) blok.parentNode.replaceChild(t.firstChild, blok);
+  });
   /* ZWIŃ KAFEL (Filip 9.11, po wdrożeniu 73d95ab1): krzyżyk nie usuwa akcji z Dziś, tylko ZWIJA kafel do jednego niskiego paska (ok. 44 px) w tym samym miejscu:
      „🧱 Ulica <imię z bazy> · <km z licznika> km · Pokaż ›”. Dotknięcie paska rozwija kafel i zapisuje to w profilu (akcja_kafel_ukryj(slug, false), jak „Pokaż”
      w Ustawieniach profilu, które zostają drugą drogą). Pasek nie ma krzyżyka: bardziej schować się nie da. Zwinięcie w profilu (akcja_ukryte), w telefonie kopia,
@@ -583,7 +627,6 @@
         sponsorHtml(wklad, d) +
         '<details class="akcja-wiecej-blok"><summary>Więcej o akcji</summary>' +
         '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
-        (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
         '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
         (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
     }
@@ -609,7 +652,6 @@
       sponsorHtml(wklad, d) +
       '<details class="akcja-wiecej-blok"><summary>Więcej o akcji</summary>' +
       '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
-      (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
       (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
   }
@@ -727,6 +769,7 @@
 
   g.BM_AKCJA = { PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
+    murCegielekHtml: murCegielekHtml, cegielkiMuru: cegielkiMuru, liczbaCegielek: liczbaCegielek, MUR_KROTKO: MUR_KROTKO, KLUCZ_MURU: KLUCZ_MURU, przyciskBieguHtml: przyciskBieguHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
     plakatUrl: plakatUrl, plakatHtml: plakatHtml, pokazPlakat: pokazPlakat,
     firmyHtml: firmyHtml, tytulFirm: tytulFirm, celownik: celownik, linkFirmy: linkFirmy, logoFirmy: logoFirmy, firmaDoZapisu: firmaDoZapisu, firmaDoEdycji: firmaDoEdycji, logoDoWgrania: logoDoWgrania,

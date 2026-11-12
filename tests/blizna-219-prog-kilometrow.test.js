@@ -50,8 +50,11 @@ test('kafel (daneKaflaHtml) i strona/centrum (pasekHtml) dostają baner tylko po
   const A = await modul();
   assert.match(A.pasekHtml(D(1117.76)), /^<div class="akcja-prog"/); assert.doesNotMatch(A.pasekHtml(D(900)), /akcja-prog/);
   assert.match(A.daneKaflaHtml(D(1117.76)), /^<div class="akcja-prog"/); assert.doesNotMatch(A.daneKaflaHtml(D(900)), /akcja-prog/);
-  assert.match(czytaj('dla-fabianka.html'), /\$\('pasek'\)\.innerHTML = A\.pasekHtml\(d\);/, 'strona akcji bierze pasek z modułu: baner wchodzi bez zmiany strony');
-  assert.doesNotMatch(czytaj('dla-fabianka.html'), /akcja-prog|progPrzekroczony/); assert.doesNotMatch(czytaj('zawodnik.html'), /akcja-prog|progPrzekroczony/); assert.doesNotMatch(czytaj('sw.js'), /akcja-prog/);
+  assert.match(czytaj('dla-fabianka.html'), /\$\('pasek'\)\.innerHTML = A\.pasekHtml\(d, \{ krotko: true \}\);/, 'strona akcji bierze sam pasek z modułu (12.11, punkt 5: liczby km tylko w scenie)');
+  assert.match(czytaj('dla-fabianka.html'), /\$\('prog'\)\.innerHTML = A\.banerProguHtml\(d\);/, 'baner progu z modułu jako wąski pasek pod sceną');
+  assert.ok(czytaj('dla-fabianka.html').indexOf('id="prog"') < czytaj('dla-fabianka.html').indexOf('id="pasek"'), 'pasek progu nad paskiem postępu');
+  /* 12.11 (punkt 5): strona akcji ma własny wąski pasek progu pod sceną (banerProguHtml + CSS .akcja-prog), ale logika progów zostaje w module */
+  assert.doesNotMatch(czytaj('dla-fabianka.html'), /progPrzekroczony|PROGI_KM|KLUCZ_PROGU/); assert.doesNotMatch(czytaj('zawodnik.html'), /akcja-prog|progPrzekroczony/); assert.doesNotMatch(czytaj('sw.js'), /akcja-prog/);
 });
 
 test('konfetti: raz na urządzenie, nic przy reduced-motion, ustępuje czekającemu filmowi; udostępnianie ładuje moduł karty po dotknięciu', async () => {

@@ -125,7 +125,8 @@ test('kafel: „▶ Zobacz film startu” tylko z filmem; ta sama nakładka co w
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja.mjs')).href);
   const A = globalThis.BM_AKCJA;
   const d = { wystartowala: true, nazwa: 'A', suma_km: 10, cel_km: 100, url_zbiorki: 'https://www.siepomaga.pl/x', firmy: [] };
-  assert.match(A.daneKaflaHtml({ ...d, film_akcji_url: ADR('film-akcja') }), /<button type="button" class="akcja-dzis-film" data-film-akcji="1">▶ Zobacz film startu<\/button>/);
+  /* 12.11 (punkt 2a): „▶ Zobacz film startu” zdjęty z kafla także przy filmie; pliki filmu i kolejka filmów bez zmian */
+  assert.doesNotMatch(A.daneKaflaHtml({ ...d, film_akcji_url: ADR('film-akcja') }), /Zobacz film startu|akcja-dzis-film|data-film-akcji/, 'kafel bez przycisku filmu');
   assert.doesNotMatch(A.daneKaflaHtml(d), /Zobacz film startu/, 'bez filmu bez przycisku');
   const cyt = czytaj('js/akcja-cytaty.mjs');
   assert.match(cyt, /g\.FILMY_AKCJI = \(film \? \[film\] : \[\]\)\.concat\(filmyProgow\(d, progi\)\);/);

@@ -91,7 +91,7 @@ test('A) cel tylko z bazy: migracja (kolumna, licznik po dotarciu), tekstWyprawy
   const karta = A.kartaDzisHtml({ wystartowala: true, nazwa: 'A', suma_km: 1, cel_km: 10, wyprawa_trwa: true, wyprawa_km: 3, stawka_gr_filip: 10, filip_gr: 10, filip_max_gr: 100 }, { km: 0 }, new Date());
   /* 9.11: mapy wyprawy nie ma (wyprawa etapami): ani kafla w Centrum Akcji, ani linku na stronie akcji (blizna-200) */
   assert.doesNotMatch(karta, /mapa-wyprawy|Mapa wyprawy/, 'bez kafla mapy także w trakcie wyprawy');
-  assert.match(karta, /Wyprawa etapami · Filip i Kasia/, 'linia z km zostaje');
+  assert.doesNotMatch(karta, /Wyprawa etapami|akcja-wyprawa/, '12.11 (punkt 5): linijki o wyprawie nie ma w karcie na Dziś; km wyprawy zostają w liczniku');
   const df = czytaj('dla-fabianka.html');
   assert.doesNotMatch(df, /mapa-wyprawy|id="trasa"|linkTrasy/);
 });

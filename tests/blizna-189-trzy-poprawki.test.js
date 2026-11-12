@@ -16,7 +16,7 @@ test('kafel Dziś i strona akcji: przycisk do firm i cegiełek', () => {
   assert.match(A, /\(formularzFirm\(d\) \? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' \+ adresStrony\(d, "#firma"\) \+ '">Twoja firma lub cegiełka na Ulicy<\/a>' : ""\)/);
   assert.match(A, /\.akcja-dzis-przycisk--ulica\{grid-column:1\/-1;/, 'na całą szerokość pod czterema');
   assert.match(A, /function formularzFirm\(d\) \{ return !!\(d && d\.wystartowala && \(d\.firmy_zgloszenia === true \|\| \(typeof d\.kontakt_firmy === "string" && d\.kontakt_firmy\)\)\); \}/, 'te same warunki co sekcja na stronie akcji');
-  assert.ok(F.indexOf('id="do-firmy"') > F.indexOf('<h1 id="nazwa">') && F.indexOf('id="do-firmy"') < F.indexOf('aria-label="Licznik"'), 'na górze, nad licznikiem');
+  assert.ok(F.indexOf('id="do-firmy"') > F.indexOf('<h1 id="nazwa">') && F.indexOf('id="do-firmy"') < F.indexOf('id="o-akcji"'), 'na górze, w grupie przycisków nad zwiniętym „O akcji” (12.11, punkt 5)');
   assert.match(F, /\$\('do-firmy'\)\.hidden = \$\('firma'\)\.hidden \|\| zamknieta;/);
 });
 
