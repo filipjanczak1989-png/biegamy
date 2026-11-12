@@ -60,9 +60,13 @@ test('intervals-activity-detail: activity_id tylko w kształcie identyfikatora; 
   assert.doesNotMatch(s, /PAYLOAD_V && !refresh\)/, 'stary warunek bez roli zniknął');
 });
 
-test('firma-zgloszenie: IP z ostatniego elementu x-forwarded-for', () => {
+test('firma-zgloszenie: IP z x-forwarded-for licząc od końca (pomiar 12.11: 3 elementy, brama zastępuje nagłówek klienta), nigdy wprost z pierwszego', () => {
   const s = czytaj('supabase/functions/firma-zgloszenie/index.ts');
+  assert.match(s, /const POSREDNIKOW_XFF = 3;/);
   assert.match(s, /const xff = \(req\.headers\.get\("x-forwarded-for"\) \|\| ""\)\.split\(","\)\.map\(\(s\) => s\.trim\(\)\)\.filter\(Boolean\);/);
-  assert.match(s, /const ip = xff\[xff\.length - 1\] \|\| req\.headers\.get\("x-real-ip"\) \|\| "brak";/);
-  assert.doesNotMatch(s, /split\(","\)\[0\]/);
+  assert.match(s, /const ip = xff\[Math\.max\(0, xff\.length - POSREDNIKOW_XFF\)\] \|\| req\.headers\.get\("x-real-ip"\) \|\| "brak";/);
+  assert.doesNotMatch(s, /split\(","\)\[0\]|xff\[0\]|xff\[xff\.length - 1\]/, 'ani pierwszy wprost, ani ostatni (pośrednik)');
+  /* ta sama reguła na danych: 3 elementy → pierwszy; 4 (dodatkowy pośrednik) → drugi; 1 → ten jeden */
+  const regula = (naglowek) => { const xff = naglowek.split(',').map((x) => x.trim()).filter(Boolean); return xff[Math.max(0, xff.length - 3)] || 'brak'; };
+  assert.equal(regula('5.6.7.8, 10.0.0.1, 10.0.0.2'), '5.6.7.8'); assert.equal(regula('1.2.3.4, 5.6.7.8, 10.0.0.1, 10.0.0.2'), '5.6.7.8'); assert.equal(regula('9.9.9.9'), '9.9.9.9'); assert.equal(regula(''), 'brak');
 });

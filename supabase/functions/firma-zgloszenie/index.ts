@@ -19,9 +19,12 @@ function cors(req: Request) {
   return h;
 }
 async function skrotIp(req: Request) {
-  /* ostatni element x-forwarded-for: ten dopisuje brama, pierwszy może dopisać klient (limit na IP byłby do obejścia nagłówkiem) */
+  /* Pomiar 12.11 08:52 (odpowiedź z xff_n, bez adresów): nagłówek ma 3 elementy bez względu na to, czy klient dopisał własny (brama go zastępuje). Ostatnie dwa to
+     pośrednicy wspólni dla wszystkich, więc limit 3/h z ostatniego elementu byłby wspólny dla wielu osób. Adres klienta = element o indeksie długość − POSREDNIKOW_XFF;
+     gdy nagłówek krótszy, pierwszy element; gdy dłuższy (dodatkowy pośrednik po drodze), nadal ten sam licząc od końca. */
+  const POSREDNIKOW_XFF = 3;
   const xff = (req.headers.get("x-forwarded-for") || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const ip = xff[xff.length - 1] || req.headers.get("x-real-ip") || "brak";
+  const ip = xff[Math.max(0, xff.length - POSREDNIKOW_XFF)] || req.headers.get("x-real-ip") || "brak";
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + "|" + SERVICE.slice(0, 16)));
   return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
