@@ -404,6 +404,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="firmy-zgloszenia" style="margin-top:14px;"></div>
 </details>
 
+<!-- Bieg wirtualny (20261126_akcja_bieg_wyniki): uczestnicy (imię, numer, stan; bez czasów, kont i e-maili) i ręczne zaliczenie; bramka trenera w bazie (akcja_bieg_panel). -->
+<details class="fi" id="bieg-sec" style="margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 18px;">
+  <summary style="cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--fg);">Bieg wirtualny: uczestnicy</summary>
+  <div id="bieg-panel" style="margin-top:12px;"></div>
+</details>
+
 <!-- Pasek statystyk aplikacji -->
 <div id="app-stats-bar" class="fi" style="margin:0 16px 16px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);"></div>
 <!-- Ulica akcji: kwota, progi, cegiełki (js/ulica.mjs panelTrenera, migracja 20261104_akcja_ulica). Zamkiem jest baza: RLS auth_is_coach, CHECK-i. -->
@@ -838,7 +844,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <script src="vendor/supabase-js-2.112.4.min.js"></script><!-- D4 SELF-HOST: SDK z wlasnego originu, wiec wstaje takze offline i gdy CDN pada -->
 <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script><!-- D4: CDN juz tylko fallback -->
 <script src="sb.js"></script><script src="js/moderacja.mjs"></script><!-- filtr imion i nazw przy zbiórce (Filip 4.11) --><script src="js/dzis-offline.js"></script><!-- PAKA 5: DzisOffline.czyBladSieci = jedyne kryterium błędu sieci (sb.js bmBladSieci) -->
-<script src="js/okienko-panelu.js"></script><!-- okienko potwierdzenia i edycji zamiast window.confirm (6.11) --><script src="js/firmy-panel.mjs" defer></script><script src="js/logo-firmy.mjs"></script><script src="js/akcja.mjs"></script><!-- firmy wspierające akcję: walidacja formularza i helpery listy (BM_AKCJA) -->
+<script src="js/okienko-panelu.js"></script><!-- okienko potwierdzenia i edycji zamiast window.confirm (6.11) --><script src="js/firmy-panel.mjs" defer></script><script src="js/bieg-panel.mjs" defer></script><script src="js/logo-firmy.mjs"></script><script src="js/akcja.mjs"></script><!-- firmy wspierające akcję: walidacja formularza i helpery listy (BM_AKCJA) -->
 <script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
 <script src="js/wiedza-panel.mjs"></script><!-- baza wiedzy Okienka: panel kandydatów (Filip 3.11) -->

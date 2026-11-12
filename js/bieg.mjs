@@ -237,7 +237,75 @@
       '<rect x="22" y="126" width="76" height="18" rx="5" fill="' + kolor2 + '" stroke="#3a1d0a" stroke-width="2.5"/><text x="60" y="139" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="10" letter-spacing="1.5" fill="#fff7e6">' + esc(podpis) + '</text></svg>';
   }
 
+  /* ── ETAP 2: WYNIK W KARCIE UCZESTNIKA (20261126_akcja_bieg_wyniki) ──
+     „ja”: wynik z treningu (automat przy wejściu na stronę i z crona; „Wskaż inny trening” z listy treningów z weekendu; wpis ręczny = trening z formularza na Dziś).
+     Dziecko: rodzic wpisuje „swój dystans”, bez czasu. Po wyniku: dyplom (telefon i A4) i odznaka. Czas widać tylko tutaj, na własnym dyplomie. */
+  var ADRES_DZIS = "zawodnik.html#log";
+  /** 'przed' (wynik jeszcze nie), 'brak' (można dopisać), 'gotowy' (ukończony), 'zamkniety' (po terminie, bez wyniku). */
+  function stanWyniku(u, bieg) {
+    if (u && u.ukonczony_at) return "gotowy";
+    var f = faza(bieg);
+    return f === "trwa" || f === "wyniki" ? "brak" : f === "zakonczony" ? "zamkniety" : "przed";
+  }
+  /** „10 km · 58:00 · 5:48 /km” (dorosły z czasem), „10 km” (bez czasu), „1,5 km · swój dystans” (dziecko). */
+  function wynikOpis(u) {
+    if (u.rodzaj === "dziecko") return km(u.dystans_wlasny_km) + " km · swój dystans";
+    var d = Number(u.wynik_dystans_km || u.dystans_km) || 0, s = Number(u.wynik_s) || 0;
+    return km(d) + " km" + (s ? " · " + czas(s) + " · " + tempo(s, d) : "");
+  }
+  /** Dystans dziecka z pola: „1,5” albo „1.5” → 1.5; poza 0,1–100 km albo śmieci → null. */
+  function kmZPola(t) {
+    var s = String(t == null ? "" : t).trim().replace(",", ".");
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(s)) return null;
+    var n = Number(s);
+    return n >= 0.1 && n <= 100 ? n : null;
+  }
+  /** Blok wyniku pod numerem (bez obrazów: dyplom rysuje strona na canvasie). info.brakTreningu = automat nie znalazł treningu. */
+  function wynikHtml(u, bieg, info) {
+    var st = stanWyniku(u, bieg), dziecko = u.rodzaj === "dziecko", id = esc(u.id), o = info || {}, h = '<div class="bw-wynik" data-wynik-stan="' + st + '">';
+    if (st === "gotowy") {
+      h += '<p class="bw-wynik-tytul">' + (dziecko ? "Ukończone" : "Ukończony") + ': <b>' + esc(wynikOpis(u)) + '</b></p>';
+      h += '<img class="bw-obraz" data-dyplom="' + id + '" alt="Dyplom ' + esc(u.imie) + '">';
+      h += '<div class="bw-wiersze"><button type="button" class="bw-przycisk" data-dyplom-udostepnij="' + id + '">Udostępnij dyplom</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-dyplom-a4="' + id + '">Dyplom A4</button></div>';
+      h += '<div class="bw-wynik-odznaka">' + odznakaSvg(u.odznaka === "zlota" ? "zlota" : "zwykla", { nazwa: bieg && bieg.nazwa, rozmiar: 64 }) + '<span>Odznaka biegu jest już w ' + (dziecko ? "Twojej kolekcji (odznaka dziecka)" : "Twojej kolekcji") + '.</span></div>';
+      if (faza(bieg) === "trwa" || faza(bieg) === "wyniki") h += dziecko ? '<a href="#" class="bw-link-maly" data-dziecko-popraw="' + id + '">Popraw dystans</a>' : '<a href="#" class="bw-link-maly" data-wskaz="' + id + '">Wskaż inny trening</a>';
+      if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
+      return h + '</div>';
+    }
+    if (st === "przed") return h + '<p class="bw-opis">' + (dziecko ? "Po biegu wpiszesz tu, ile " + esc(u.imie) + " przeszło lub przebiegło." : "Po biegu wynik wejdzie tu sam z zegarka albo z treningu dopisanego na Dziś.") + '</p></div>';
+    if (st === "zamkniety") return h + '<p class="bw-opis">Bieg zakończony bez wyniku. Jeśli to pomyłka, napisz do organizatora.</p></div>';
+    if (dziecko) {
+      return h + '<p class="bw-wynik-tytul">Ile ' + esc(u.imie) + ' przeszło lub przebiegło?</p>' +
+        '<label class="bw-pole bw-pole--km"><span>Swój dystans w km (np. 1,5)</span><input type="text" inputmode="decimal" maxlength="6" data-dziecko-km="' + id + '" placeholder="1,5"></label>' +
+        '<button type="button" class="bw-przycisk" data-dziecko-zapisz="' + id + '">Zapisz dystans i odbierz dyplom ›</button><p class="bw-blad" data-dziecko-blad="' + id + '"></p></div>';
+    }
+    var dni = zakresDni(bieg && bieg.dzien_od, bieg && bieg.dzien_do);
+    h += '<p class="bw-wynik-tytul">' + (o.brakTreningu ? "Nie widzimy jeszcze treningu z " + esc(dni) + " na co najmniej " + esc(km(u.dystans_km)) + " km." : "Szukamy Twojego treningu z weekendu biegu…") + '</p>';
+    h += '<p class="bw-drobne">Trening z zegarka wejdzie sam. Bez zegarka dopisz bieg albo marsz na Dziś, z datą z weekendu biegu, i wróć tutaj.</p>';
+    h += '<a class="bw-przycisk" href="' + ADRES_DZIS + '">Dopisz trening na Dziś ›</a>';
+    h += '<div class="bw-wiersze"><button type="button" class="bw-przycisk bw-przycisk--cichy" data-wskaz="' + id + '">Wskaż trening</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-sprawdz="' + id + '">Sprawdź jeszcze raz</button></div>';
+    return h + '<p class="bw-blad" data-wynik-blad="' + id + '"></p></div>';
+  }
+  /** Lista treningów z weekendu do „Wskaż trening”: data, km, czas, który dystans zalicza; za krótkie bez guzika. */
+  function treningiHtml(lista, u) {
+    var l = Array.isArray(lista) ? lista : [];
+    if (!l.length) return '<p class="bw-opis">W weekendzie biegu nie ma Twoich treningów biegu ani marszu. Dopisz trening na Dziś albo poczekaj, aż wejdzie z zegarka.</p><a class="bw-przycisk" href="' + ADRES_DZIS + '">Dopisz trening na Dziś ›</a>';
+    return '<ul class="bw-lista">' + l.map(function (t) {
+      var zalicza = Number(t.zalicza_km) >= Number(u && u.dystans_km);
+      return '<li class="bw-trening"><span><b>' + esc(liczba(t.km, 2)) + ' km</b>'   /* dokładnie (10,2), nie zaokrąglone jak w liczbach strony: obok „Zalicz 10 km” */ + (t.czas_s ? ' · ' + esc(czas(t.czas_s)) : "") + '<small>' + esc(dataPolska(dataZIso(t.dzien))) + (t.typ ? ' · ' + esc(t.typ) : "") + '</small></span>' +
+        (zalicza ? '<button type="button" class="bw-przycisk bw-przycisk--maly" data-wybierz-trening="' + esc(t.id) + '">Zalicz ' + esc(km(t.zalicza_km)) + ' km</button>' : '<em>za krótki na ' + esc(km(u && u.dystans_km)) + ' km</em>') + '</li>';
+    }).join("") + '</ul>';
+  }
+  function komunikatWyniku(r) {
+    var p = r && r.powod;
+    return p === "brak_treningu" ? "Ten trening nie zalicza dystansu albo nie jest z weekendu biegu." : p === "poza_oknem" ? "Wyniki przyjmujemy od weekendu biegu do końca dopisywania wyników." :
+      p === "dystans" ? "Wpisz dystans od 0,1 do 100 km." : p === "nie_twoj" ? "To nie jest Twój zapis." : "Nie udało się: " + (r && r.blad ? r.blad : "spróbuj za chwilę.");
+  }
+  /** Rezygnacja z e-maila z linku: ?rezygnacja=<uuid> → token albo "". */
+  function tokenRezygnacji(search) { var m = /[?&]rezygnacja=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:&|$)/i.exec(String(search || "")); return m ? m[1].toLowerCase() : ""; }
+
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY,
+    stanWyniku: stanWyniku, wynikOpis: wynikOpis, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     MIEJSCE_REGULAMIN: MIEJSCE_REGULAMIN, MIEJSCE_OSWIADCZENIE: MIEJSCE_OSWIADCZENIE, MIEJSCE_ZGODA_IMIE: MIEJSCE_ZGODA_IMIE, MIEJSCE_ZGODA_IMIE_DZIECKA: MIEJSCE_ZGODA_IMIE_DZIECKA, MIEJSCE_ZGODA_EMAIL: MIEJSCE_ZGODA_EMAIL, MIEJSCE_POLITYKA: MIEJSCE_POLITYKA,
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,

@@ -6,7 +6,7 @@
 do $T$
 declare
   n int := 0; j jsonb; k jsonb; j0 jsonb; zw uuid; zw2 uuid; zwa uuid; b uuid; u1 uuid; dz uuid; dz2 uuid; zg uuid; x record; i int; v text;
-  W constant text := '2026-11-v1';
+  W constant text := '2026-11-v1'; DZIS constant date := (now() at time zone 'Europe/Warsaw')::date;   -- doba warszawska jak w akcja_bieg_faza (data bazy jest w UTC: między 0:00 a 1:00 w Polsce dawała wczoraj i test fazy padał)
 begin
   select a.user_id into zw from public.athletes a where a.user_id is not null and a.full_name is not null and btrim(a.full_name) ~ '^[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]{2,20}( |$)'
     and not exists (select 1 from public.coaches c where c.id = a.user_id) order by a.created_at limit 1;
@@ -14,10 +14,10 @@ begin
   if zw is null or zw2 is null then raise exception 'FAIL 0: brak kont do testu'; end if;
   select a.id into zwa from public.athletes a where a.user_id = zw;
   insert into public.akcje (slug, nazwa, imie_zbiorki, start, cel_km, stawka_gr_filip, testowa, wystartowala_at)
-    values ('proba', 'Próba', 'Janek', current_date, 100, 10, true, now()) on conflict (slug) do update set wystartowala_at = coalesce(public.akcje.wystartowala_at, now()), koniec = null;
+    values ('proba', 'Próba', 'Janek', DZIS, 100, 10, true, now()) on conflict (slug) do update set wystartowala_at = coalesce(public.akcje.wystartowala_at, now()), koniec = null;
   delete from public.akcja_biegi where akcja_slug = 'proba';
   insert into public.akcja_biegi (akcja_slug, slug, nazwa, dzien_od, dzien_do, wynik_do, termin_zapasowy_od, dystanse_km, status, regulamin_wersja)
-    values ('proba', 'proba-bieg', 'Bieg próbny', current_date + 2, current_date + 3, current_date + 6, current_date + 9, '{5,10}', 'otwarty', W) returning id into b;
+    values ('proba', 'proba-bieg', 'Bieg próbny', DZIS + 2, DZIS + 3, DZIS + 6, DZIS + 9, '{5,10}', 'otwarty', W) returning id into b;
 
   -- 0. strażnik licznika: prawdziwa ulica przed migracją (temp z .sh, jako service_role) i po niej, tą samą rolą: identyczne poza kluczem bieg; akcja_licznik jest SECURITY DEFINER
   if not (select prosecdef from pg_proc where oid = 'public.akcja_licznik(text)'::regprocedure) then raise exception 'FAIL 0a: akcja_licznik nie jest SECURITY DEFINER'; end if;
@@ -166,16 +166,16 @@ begin
   n := n + 6;
 
   -- 8. fazy z dat i statusu: zapis także w „wyniki” (do wynik_do), po wynik_do zamknięte; szkic niewidoczny; CHECK weekendu
-  update public.akcja_biegi set dzien_od = current_date, dzien_do = current_date + 1, wynik_do = current_date + 3 where id = b;
+  update public.akcja_biegi set dzien_od = DZIS, dzien_do = DZIS + 1, wynik_do = DZIS + 3 where id = b;
   if public.akcja_licznik('proba')->'bieg'->>'faza' <> 'trwa' then raise exception 'FAIL 8a: faza trwa'; end if;
-  update public.akcja_biegi set dzien_od = current_date - 3, dzien_do = current_date - 2, wynik_do = current_date where id = b;
+  update public.akcja_biegi set dzien_od = DZIS - 3, dzien_do = DZIS - 2, wynik_do = DZIS where id = b;
   if public.akcja_licznik('proba')->'bieg'->>'faza' <> 'wyniki' then raise exception 'FAIL 8b: faza wyniki'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', zw2, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   j := public.akcja_bieg_dopisz_dziecko('proba-bieg', 'Ala', false, true, W);
   if not (j->>'ok')::boolean then raise exception 'FAIL 8c: zapis w fazie wyniki ma przejść: %', j; end if;
   execute 'reset role';
-  update public.akcja_biegi set wynik_do = current_date - 1 where id = b;
+  update public.akcja_biegi set wynik_do = DZIS - 1 where id = b;
   if public.akcja_licznik('proba')->'bieg'->>'faza' <> 'zakonczony' then raise exception 'FAIL 8d: faza zakonczony'; end if;
   execute 'set local role authenticated';
   j := public.akcja_bieg_dopisz_dziecko('proba-bieg', 'Ela', false, true, W);
@@ -183,9 +183,9 @@ begin
   execute 'reset role';
   update public.akcja_biegi set status = 'szkic' where id = b;
   if public.akcja_licznik('proba')->'bieg' is not null and public.akcja_licznik('proba')->'bieg' <> 'null'::jsonb then raise exception 'FAIL 8f: szkic widoczny'; end if;
-  update public.akcja_biegi set status = 'otwarty', dzien_od = current_date + 2, dzien_do = current_date + 3, wynik_do = current_date + 6 where id = b;
+  update public.akcja_biegi set status = 'otwarty', dzien_od = DZIS + 2, dzien_do = DZIS + 3, wynik_do = DZIS + 6 where id = b;
   begin
-    update public.akcja_biegi set dzien_do = current_date + 5 where id = b;
+    update public.akcja_biegi set dzien_do = DZIS + 5 where id = b;
     raise exception 'FAIL 8g: weekend dłuższy niż 2 dni przeszedł';
   exception when check_violation then null;
   end;

@@ -21,11 +21,26 @@
     { id: "akcja-sponsor",    name: "Sponsor kilometrów", desc: "Deklaracja stawki za kilometr w czasie akcji",                   rarity: "rare",      znak: "gr" },
   ].map(function (b) { b.cat = "Akcja"; return b; });
   var KATALOG_PLIKOW = "assets/odznaki/";
+  /* ODZNAKI BIEGU WIRTUALNEGO (20261126_akcja_bieg_wyniki): przyznaje je baza po ukończeniu biegu; id 'bieg-<slug>' (konto) albo 'bieg-<slug>-dziecko-<numer>' (dziecko w kolekcji
+     rodzica). W katalogu tylko zdobyte (window._earnedBadges z zawodnik.html), kategoria akcji. Nazwa biegu z pamięci telefonu (bieg.html zapisuje ją przy wejściu), bez niej „Bieg wirtualny”. */
+  var RE_BIEG = /^bieg-([a-z0-9]+(?:-[a-z0-9]+)*?)(?:-dziecko-(\d+))?$/;
+  function biegDef(id) {
+    var m = RE_BIEG.exec(String(id || "")); if (!m) return null;
+    var n = null; try { n = g.localStorage ? g.localStorage.getItem("bm_bieg_nazwa_" + m[1]) : null; } catch (e) { n = null; }
+    n = n ? String(n).slice(0, 80) : "Bieg wirtualny";
+    return { id: id, name: m[2] ? n + " · dziecko nr " + m[2] : n, desc: m[2] ? "Dziecko z Twojego konta ukończyło bieg wirtualny (numer " + m[2] + ")" : "Ukończony bieg wirtualny ulicy", rarity: "rare", znak: "BIEG", cat: "Akcja", bieg: true };
+  }
+  /** Katalog akcji: stała lista i zdobyte odznaki biegów (bez zdobytych: ta sama tablica LISTA). */
+  function listaZBiegami() {
+    var zd = g._earnedBadges, extra = [];
+    if (zd && typeof zd.forEach === "function") zd.forEach(function (id) { var d = biegDef(id); if (d) extra.push(d); });
+    return extra.length ? LISTA.concat(extra) : LISTA;
+  }
 
-  function czyAkcyjna(id) { return typeof id === "string" && id.indexOf("akcja-") === 0; }
-  function znajdz(id) { for (var i = 0; i < LISTA.length; i++) if (LISTA[i].id === id) return LISTA[i]; return null; }
+  function czyAkcyjna(id) { return typeof id === "string" && (id.indexOf("akcja-") === 0 || RE_BIEG.test(id)); }
+  function znajdz(id) { for (var i = 0; i < LISTA.length; i++) if (LISTA[i].id === id) return LISTA[i]; return biegDef(id); }
   function nazwa(id) { var b = znajdz(id); return b ? b.name : null; }
-  function src(id, duzy) { return KATALOG_PLIKOW + id + (duzy ? "-512" : "") + ".webp"; }
+  function src(id, duzy) { return RE_BIEG.test(String(id || "")) ? zaslepka(id) : KATALOG_PLIKOW + id + (duzy ? "-512" : "") + ".webp"; }   // odznaka biegu: grafika z kodu, bez pliku
   /** Zaślepka do czasu grafiki od Filipa: pomarańczowe koło + znak, kwadratowy SVG (skaluje się do rozmiaru <img>). */
   function zaslepka(id) {
     var b = znajdz(id), z = b ? b.znak : "?", fs = z.length >= 4 ? 30 : z.length === 3 ? 36 : 44;
@@ -130,7 +145,7 @@
     return nowe;
   }
 
-  g.BM_ODZNAKI_AKCJI = { przyznajPoLogu: przyznajPoLogu, LISTA: LISTA, czyAkcyjna: czyAkcyjna, znajdz: znajdz, nazwa: nazwa, src: src, zaslepka: zaslepka, onerrorAttr: onerrorAttr,
+  g.BM_ODZNAKI_AKCJI = { przyznajPoLogu: przyznajPoLogu, get LISTA() { return listaZBiegami(); }, czyAkcyjna: czyAkcyjna, znajdz: znajdz, nazwa: nazwa, src: src, zaslepka: zaslepka, onerrorAttr: onerrorAttr, biegDef: biegDef,
     ustawObraz: ustawObraz, oknoOtwarte: oknoOtwarte, katalogWidoczny: katalogWidoczny, seria7: seria7,
     doPrzyznania: doPrzyznania, dzienWaw: dzienWaw, KATALOG_PLIKOW: KATALOG_PLIKOW };
 })(typeof globalThis !== "undefined" ? globalThis : this);

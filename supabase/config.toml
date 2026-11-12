@@ -155,5 +155,11 @@ verify_jwt = false       # publiczny licznik akcji (landing, wylogowani); klucz 
 [functions.bieg-ukonczyli]
 verify_jwt = false       # publiczna lista „ukończyli” biegu (bieg.html, wylogowani); klucz serwisowy tylko do RPC akcja_bieg_ukonczyli (imię za zgodą, numer, dystans; bez czasów)
 
+[functions.bieg-przypomnienie]
+verify_jwt = false       # cron (20261128) z x-push-secret; klucz serwisowy tylko do RPC akcja_bieg_do_przypomnienia i akcja_bieg_mail_zapisz; ?test=1 bez wysyłki
+
+[functions.bieg-rezygnacja]
+verify_jwt = false       # rezygnacja z e-maila o biegu bez logowania (bieg.html?rezygnacja=, List-Unsubscribe-Post); klucz serwisowy tylko do RPC akcja_bieg_rezygnacja(token)
+
 # Skasowane 06.10.2026 (paczka 1b), nie wracają: generate-image (0 wołających, 401 z `_debug`
 # o sekrecie), hyper-processor (fragment bez Deno.serve, identyczny na prod, bliźniak intervals-push).

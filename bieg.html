@@ -94,6 +94,15 @@
   .bw-role { display: grid; gap: 8px; } .bw-rola { padding: 10px 12px; border: 1px solid var(--ramka); border-radius: 12px; font-size: 13px; line-height: 1.45; } .bw-rola b { display: block; font-size: 14px; }
   .bw-odznaki { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; } .bw-odznaki figure { margin: 0; text-align: center; font-size: 12px; color: var(--fg2); }
   .bw-stopka { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 14px 2px 0; } .bw-stopka a { color: var(--fg2); }
+  /* 20261126: wynik w karcie uczestnika, wybór treningu, zgoda konta, rezygnacja z e-maila */
+  .bw-wynik { margin-top: 10px; } .bw-wynik-tytul { margin: 4px 0 8px; font-size: 15px; line-height: 1.4; } .bw-wynik-tytul b { color: var(--akcent2); }
+  .bw-wynik .bw-obraz + .bw-wiersze { margin-top: 2px; }
+  .bw-wynik-odznaka { display: flex; gap: 12px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--fg2); line-height: 1.4; } .bw-wynik-odznaka svg { flex: none; }
+  .bw-pole--km input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 600 18px/1.2 Inter, sans-serif; }
+  .bw-trening { display: flex; gap: 10px; align-items: center; justify-content: space-between; min-height: 52px; padding: 6px 2px; border-top: 1px solid var(--ramka); font-size: 14px; }
+  .bw-trening small { display: block; font-size: 11.5px; color: var(--fg2); } .bw-trening em { font-style: normal; font-size: 12px; color: var(--fg2); text-align: right; }
+  .bw-przycisk--maly { width: auto; flex: none; margin: 0; padding: 12px 14px; font-size: 13px; }
+  .bw-baner { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(61,90,153,.25); border: 1px solid rgba(120,150,220,.45); font-size: 14px; line-height: 1.45; }
   dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
   dialog::backdrop { background: rgba(7,7,10,.92); }
   dialog h3 { font: 400 28px/1.05 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 6px 0 6px; padding-right: 40px; }
@@ -114,6 +123,7 @@
     <p class="bw-pod">Bieg i marsz dla jednej zbiórki. Pobiegnij albo przejdź swój dystans tam, gdzie mieszkasz. Udział bezpłatny.</p>
     <p class="bw-termin" id="bw-termin" hidden><b id="bw-termin-daty"></b><span id="bw-termin-opis"></span></p>
     <p class="bw-opis" id="bw-faza-zdanie"></p>
+    <p class="bw-baner" id="bw-rezygnacja" role="status" hidden></p>
   </div>
 
   <div class="bw-uklad">
@@ -158,6 +168,8 @@
     <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-dziecko">Dopisz dziecko ›</button>
     <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-zapisz-siebie" hidden>Zapisz też siebie ›</button>
     <p class="bw-drobne" id="bw-dzieci-info"></p>
+    <label class="bw-zgoda" id="bw-zgoda-konto-pole" hidden><input type="checkbox" id="bw-zgoda-konto"> <span id="bw-zgoda-konto-tekst"></span></label>
+    <p class="bw-drobne" id="bw-zgoda-konto-stan" role="status"></p>
   </section>
 
   <section class="bw-sekcja" aria-label="Wesprzyj zbiórkę" id="bw-wsparcie-sekcja">
@@ -229,8 +241,17 @@
   <label class="bw-zgoda bw-zgoda--wymagana"><input type="checkbox" id="bw-oswiadczenie"> <span id="bw-oswiadczenie-tekst"></span></label>
   <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-imie-dziecka"> <span id="bw-zgoda-imie-dziecka-tekst"></span></label>
   <label class="bw-zgoda bw-zgoda--wymagana" id="bw-dziecko-regulamin-pole" hidden><input type="checkbox" id="bw-dziecko-regulamin"> <span id="bw-dziecko-regulamin-tekst"></span></label>
+  <label class="bw-zgoda" id="bw-dziecko-email-pole" hidden><input type="checkbox" id="bw-dziecko-email"> <span id="bw-dziecko-email-tekst"></span></label>
   <p class="bw-blad" id="bw-dziecko-blad"></p>
   <button type="button" class="bw-przycisk" id="bw-dziecko-ok">Dopisz dziecko i daj numer ›</button>
+</dialog>
+
+<dialog id="bw-okno-treningi" aria-label="Wskaż trening">
+  <button type="button" class="bw-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Wskaż trening z weekendu biegu</h3>
+  <p class="bw-opis">Twoje biegi i marsze z weekendu biegu. Wybrany trening trafia na dyplom; czas widzisz tylko Ty.</p>
+  <div id="bw-treningi-lista"></div>
+  <p class="bw-blad" id="bw-treningi-blad"></p>
 </dialog>
 
 <dialog id="bw-okno-regulamin" aria-label="Regulamin biegu">
@@ -246,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var A = window.BM_AKCJA, B = window.BM_BIEG_REAL, $ = function (id) { return document.getElementById(id); };
   var PROBA = /[?&]proba=1/.test(location.search || ''), PODGLAD = /[?&]podglad=1/.test(location.search || ''), SLUG_AKCJI = PROBA ? 'proba' : 'dla-fabianka';
   var licznik = null, bieg = null, sesja = null, moi = [], stan = null, kanwy = {}, obrazy = {};
+  var zgodaKonta = null, brakTreningu = {}, probowane = {}, popraw = {}, kanwyDyplomu = {}, wskazywany = null;   // wyniki (20261126): zgoda konta, wynik automatem, poprawka dystansu dziecka, dyplomy
 
   /* ── TEKSTY: miejsca oznaczone (od Filipa po 18.11) ── */
   function miejsce(t) { return '<span class="bw-miejsce">' + B.esc(t) + '</span>'; }
@@ -259,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('bw-oswiadczenie-tekst').innerHTML = B.esc(B.TEKSTY.oswiadczenie_pole) + '<small>' + B.esc(B.MIEJSCE_OSWIADCZENIE) + '</small>';
   $('bw-zgoda-imie-dziecka-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_imie_dziecka_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_IMIE_DZIECKA) + '</small>';
   $('bw-dziecko-regulamin-tekst').innerHTML = B.esc(B.TEKSTY.regulamin_pole) + ' <a href="#" data-regulamin>czytaj ›</a>';
+  $('bw-zgoda-konto-tekst').innerHTML = $('bw-dziecko-email-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_email_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_EMAIL) + '</small>';
   $('bw-zapis-opis').textContent = 'Wybierz dystans. Imię trafi na numer startowy i dyplom; na listę „ukończyli” tylko za Twoją zgodą. Nic nie jest zaznaczone z góry.';
   $('bw-dziecko-opis').textContent = 'Dziecko dostaje własny numer i dyplom bez czasu, biegnie albo idzie swój dystans. Bez konta dziecka, bez nazwiska. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
   $('bw-stopka').innerHTML = 'Wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi; BiegaMy niczego nie przyjmuje. Czasy są prywatne, lista „ukończyli” pokazuje imię tylko za zgodą. <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
@@ -289,7 +312,10 @@ document.addEventListener('DOMContentLoaded', function () {
     $('bw-nazwa').textContent = bieg ? bieg.nazwa : (licznik && licznik.nazwa ? 'Bieg wirtualny' : '');
     document.title = (bieg ? bieg.nazwa : 'Bieg wirtualny') + ' · BiegaMy';
     $('bw-faza-zdanie').textContent = f.zdanie;
-    if (bieg) { $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = 'sobota–niedziela · wynik do ' + B.zakresDni(bieg.wynik_do, bieg.wynik_do); }
+    if (bieg) {
+      $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = 'sobota–niedziela · wynik do ' + B.zakresDni(bieg.wynik_do, bieg.wynik_do);
+      try { localStorage.setItem('bm_bieg_nazwa_' + bieg.slug, String(bieg.nazwa || '').slice(0, 80)); } catch (e) {}   // nazwa odznaki biegu w kolekcji (js/odznaki-akcji.mjs)
+    }
     else $('bw-termin').hidden = true;
   }
   function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.liczbyHtml(bieg) : ''; }
@@ -311,28 +337,42 @@ document.addEventListener('DOMContentLoaded', function () {
   function obrazek(url) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = url; }); }
   function fonty() { try { return document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("40px 'Bebas Neue'"), document.fonts.load("600 20px Inter")]).catch(function () {}), new Promise(function (ok) { setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
   var gotoweGrafiki = Promise.all([obrazek('assets/bieg/bieg-brama.svg'), obrazek('assets/bieg/bieg-medal.svg'), fonty()]).then(function (o) { obrazy = { brama: o[0], medal: o[1] }; });
+  function mojZapis(id) { return moi.filter(function (u) { return u.id === id; })[0] || null; }
   function uczestnikHtml(u) {
     var dziecko = u.rodzaj === 'dziecko', h = '<div class="bw-uczestnik" data-uczestnik="' + B.esc(u.id) + '"><h3>' + B.esc(u.imie) + '<small>numer ' + B.esc(u.numer) + ' · ' + (dziecko ? 'dziecko · swój dystans' : B.esc(B.km(u.dystans_km)) + ' km') + '</small></h3>';
-    h += '<img class="bw-obraz" data-numer="' + B.esc(u.id) + '" alt="Numer startowy ' + B.esc(u.numer) + '">';
-    h += '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-udostepnij="' + B.esc(u.id) + '">Udostępnij numer</button>';
-    if (u.ukonczony_at) h += '<p class="bw-opis">Ukończony. Dyplom i odznaka pojawią się tutaj po dopisaniu wyniku.</p>';
-    else if (B.zapisyOtwarte(bieg)) h += '<p class="bw-opis">' + (dziecko ? 'Po biegu wpiszesz tu, ile ' + B.esc(u.imie) + ' przeszło lub przebiegło.' : 'Po biegu dopiszesz tu wynik: z zegarka albo ręcznie.') + '</p>';
+    var widok = popraw[u.id] ? Object.assign({}, u, { ukonczony_at: null }) : u, gotowy = B.stanWyniku(widok, bieg) === 'gotowy';   // „Popraw dystans” dziecka: formularz zamiast dyplomu
+    if (!gotowy) {
+      h += '<img class="bw-obraz" data-numer="' + B.esc(u.id) + '" alt="Numer startowy ' + B.esc(u.numer) + '">';
+      h += '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-udostepnij="' + B.esc(u.id) + '">Udostępnij numer</button>';
+    }
+    h += B.wynikHtml(widok, bieg, { brakTreningu: !!brakTreningu[u.id] });   // 20261126: wynik, dyplom i odznaka albo droga do wyniku
+    if (gotowy) h += '<a href="#" class="bw-link-maly" data-udostepnij="' + B.esc(u.id) + '">Numer startowy (obraz)</a>';
     if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += '<a href="#" class="bw-link-maly" data-wycofaj="' + B.esc(u.id) + '">Wycofaj ' + (dziecko ? 'zapis dziecka' : 'mój zapis') + '</a>';
     return h + '</div>';
   }
-  /* „Udostępnij numer”: PNG przez systemowe okno telefonu (Web Share z plikiem), bez niego pobranie pliku */
+  /* „Udostępnij numer” i dyplom: PNG przez systemowe okno telefonu (Web Share z plikiem), bez niego pobranie pliku */
   function doBloba(k) { return new Promise(function (ok) { k.toBlob(function (b) { ok(b); }, 'image/png'); }); }
   function pobierzPlik(blob, nazwa) { var u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nazwa; document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 2000); }
-  function udostepnijNumer(id) {
-    var k = kanwy[id]; if (!k) return Promise.resolve('brak');
-    var nazwa = 'numer-startowy-' + id.slice(0, 8) + '.png';
+  function udostepnijObraz(k, nazwa, tytul) {
+    if (!k) return Promise.resolve('brak');
     return doBloba(k).then(function (blob) {
       var plik = null; try { plik = new File([blob], nazwa, { type: 'image/png' }); } catch (e) {}
-      if (plik && navigator.share && navigator.canShare && navigator.canShare({ files: [plik] })) return navigator.share({ files: [plik], title: 'Mój numer startowy', text: (bieg && bieg.nazwa) || 'Bieg wirtualny' }).then(function () { return 'udostępnione'; }, function (e) { if (e && e.name === 'AbortError') return 'anulowane'; pobierzPlik(blob, nazwa); return 'pobrane'; });
+      if (plik && navigator.share && navigator.canShare && navigator.canShare({ files: [plik] })) return navigator.share({ files: [plik], title: tytul, text: (bieg && bieg.nazwa) || 'Bieg wirtualny' }).then(function () { return 'udostępnione'; }, function (e) { if (e && e.name === 'AbortError') return 'anulowane'; pobierzPlik(blob, nazwa); return 'pobrane'; });
       pobierzPlik(blob, nazwa); return 'pobrane';
     });
   }
-  document.addEventListener('click', function (e) { var u = e.target.closest('[data-udostepnij]'); if (!u) return; udostepnijNumer(u.getAttribute('data-udostepnij')); });
+  function udostepnijNumer(id) {
+    var u = mojZapis(id);
+    if (!kanwy[id] && u) { try { kanwy[id] = B.numerStartowy(u, bieg, obrazy, ADRES_STRONY); } catch (e) {} }   // po ukończeniu numer nie jest narysowany na stronie
+    return udostepnijObraz(kanwy[id], 'numer-startowy-' + id.slice(0, 8) + '.png', 'Mój numer startowy');
+  }
+  document.addEventListener('click', function (e) { var u = e.target.closest('[data-udostepnij]'); if (!u) return; e.preventDefault(); udostepnijNumer(u.getAttribute('data-udostepnij')); });
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-dyplom-udostepnij]'); if (t) { var id = t.getAttribute('data-dyplom-udostepnij'); udostepnijObraz(kanwyDyplomu[id], 'dyplom-' + id.slice(0, 8) + '.png', 'Mój dyplom'); return; }
+    var a4 = e.target.closest('[data-dyplom-a4]'); if (!a4) return;
+    var u = mojZapis(a4.getAttribute('data-dyplom-a4')); if (!u) return;
+    try { doBloba(B.dyplom(u, bieg, 'a4', obrazy)).then(function (blob) { pobierzPlik(blob, 'dyplom-a4-' + u.id.slice(0, 8) + '.png'); }); } catch (er) {}
+  });
   function rysujMoj() {
     var s = $('bw-moj'), t = $('bw-moj-tresc');
     if (!stan || (!stan.ja && !stan.dzieci.length)) { s.hidden = true; t.innerHTML = ''; return; }
@@ -343,8 +383,42 @@ document.addEventListener('DOMContentLoaded', function () {
     $('bw-zapisz-siebie').hidden = !!stan.ja || !B.zapisyOtwarte(bieg);
     $('bw-dzieci-info').textContent = stan.dzieci.length ? 'Dzieci: ' + stan.dzieci.length + ' z ' + B.ZASADY.limit_dzieci + '. Każde ma własny numer; dyplomy dzieci są bez czasu.' : 'Dziecko dopisujesz samym imieniem, z oświadczeniem rodzica. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
     gotoweGrafiki.then(function () {
-      lista.forEach(function (u) { var im = t.querySelector('img[data-numer="' + u.id + '"]'); if (!im) return; try { kanwy[u.id] = B.numerStartowy(u, bieg, obrazy, ADRES_STRONY); im.src = kanwy[u.id].toDataURL('image/png'); } catch (e) {} });
+      lista.forEach(function (u) {
+        var im = t.querySelector('img[data-numer="' + u.id + '"]'); if (im) { try { kanwy[u.id] = B.numerStartowy(u, bieg, obrazy, ADRES_STRONY); im.src = kanwy[u.id].toDataURL('image/png'); } catch (e) {} }
+        var dy = t.querySelector('img[data-dyplom="' + u.id + '"]'); if (dy) { try { kanwyDyplomu[u.id] = B.dyplom(u, bieg, 'telefon', obrazy); dy.src = kanwyDyplomu[u.id].toDataURL('image/png'); } catch (e) {} }
+      });
     });
+    rysujZgode();
+  }
+  /* zgoda na e-mail na poziomie konta: także rodzic z samymi dziećmi; tylko przed biegiem, bo e-mail idzie dzień przed */
+  function rysujZgode() {
+    var pole = $('bw-zgoda-konto-pole'), ma = !!(stan && (stan.ja || stan.dzieci.length));
+    pole.hidden = !(ma && B.faza(bieg) === 'zapisy' && zgodaKonta && typeof zgodaKonta.zgoda_email === 'boolean');
+    if (!pole.hidden) $('bw-zgoda-konto').checked = zgodaKonta.zgoda_email;
+  }
+  $('bw-zgoda-konto').addEventListener('change', function () {
+    var ch = this.checked, st = $('bw-zgoda-konto-stan'); st.textContent = 'Zapisuję…';
+    rpc('akcja_bieg_zgoda_email', { p_slug: bieg.slug, p_zgoda: ch }).then(function (r) {
+      if (!r.ok) { $('bw-zgoda-konto').checked = !ch; st.textContent = 'Nie udało się zapisać zgody. Spróbuj za chwilę.'; return; }
+      zgodaKonta = { zgoda_email: ch, ma_zapis: true }; st.textContent = ch ? 'Wyślemy jeden e-mail dzień przed biegiem.' : 'Nie wyślemy e-maila o tym biegu.';
+    });
+  });
+  function pobierzZgode() {
+    if (!sesja || !bieg || !window.sb || !window.sb.rpc || !moi.length) { zgodaKonta = null; return Promise.resolve(); }
+    return rpc('akcja_bieg_moja_zgoda', { p_slug: bieg.slug }).then(function (r) { zgodaKonta = r && typeof r.zgoda_email === 'boolean' ? r : null; });
+  }
+  /* wynik „ja” automatem: raz na wejście w fazie trwa/wyniki; brak treningu = droga przez Dziś albo „Wskaż trening” */
+  function ustalWynik(id, log) {
+    return rpc('akcja_bieg_wynik_ustal', { p_id: id, p_log_id: log || null }).then(function (r) {
+      if (r.ok) { brakTreningu[id] = false; return odswiez().then(function () { return r; }); }
+      brakTreningu[id] = r.powod === 'brak_treningu'; rysujMoj();
+      var b = document.querySelector('[data-wynik-blad="' + id + '"]'); if (b && r.powod !== 'brak_treningu') b.textContent = B.komunikatWyniku(r);
+      return r;
+    });
+  }
+  function automat() {
+    var ja = stan && stan.ja; if (!ja || B.stanWyniku(ja, bieg) !== 'brak' || probowane[ja.id]) return;
+    probowane[ja.id] = true; ustalWynik(ja.id, null);
   }
   function rysujWszystko() {
     stan = B.stanStrony(bieg, sesja, moi);
@@ -356,7 +430,35 @@ document.addEventListener('DOMContentLoaded', function () {
     return Promise.all([pobierzLicznik(), pobierzSesje()]).then(function (r) {
       licznik = r[0]; bieg = licznik && licznik.bieg && typeof licznik.bieg === 'object' ? licznik.bieg : null; sesja = r[1];
       return pobierzMoich();
-    }).then(function (m) { moi = m; rysujWszystko(); return odswiezUkonczyli(); }, function () { rysujWszystko(); });
+    }).then(function (m) { moi = m; return pobierzZgode(); }).then(function () { rysujWszystko(); automat(); return odswiezUkonczyli(); }, function () { rysujWszystko(); });
+  }
+  /* „Sprawdź jeszcze raz”, „Wskaż trening”, dystans dziecka */
+  document.addEventListener('click', function (e) {
+    var s = e.target.closest('[data-sprawdz]');
+    if (s) { s.disabled = true; ustalWynik(s.getAttribute('data-sprawdz'), null).then(function () { s.disabled = false; }); return; }
+    var w = e.target.closest('[data-wskaz]');
+    if (w) { e.preventDefault(); otworzTreningi(w.getAttribute('data-wskaz')); return; }
+    var wt = e.target.closest('[data-wybierz-trening]');
+    if (wt && wskazywany) {
+      wt.disabled = true; $('bw-treningi-blad').textContent = '';
+      ustalWynik(wskazywany.id, wt.getAttribute('data-wybierz-trening')).then(function (r) { wt.disabled = false; if (r && r.ok) schowajOkno($('bw-okno-treningi')); else $('bw-treningi-blad').textContent = B.komunikatWyniku(r); });
+      return;
+    }
+    var dp = e.target.closest('[data-dziecko-popraw]');
+    if (dp) { e.preventDefault(); popraw[dp.getAttribute('data-dziecko-popraw')] = true; rysujMoj(); return; }
+    var dz = e.target.closest('[data-dziecko-zapisz]'); if (!dz) return;
+    var id = dz.getAttribute('data-dziecko-zapisz'), pole = document.querySelector('[data-dziecko-km="' + id + '"]'), blad = document.querySelector('[data-dziecko-blad="' + id + '"]'), kmD = B.kmZPola(pole && pole.value);
+    if (kmD == null) { blad.textContent = 'Wpisz dystans od 0,1 do 100 km, np. 1,5.'; return; }
+    dz.disabled = true; blad.textContent = '';
+    rpc('akcja_bieg_dziecko_ukoncz', { p_id: id, p_dystans_km: kmD }).then(function (r) { dz.disabled = false; if (!r.ok) { blad.textContent = B.komunikatWyniku(r); return; } popraw[id] = false; odswiez(); });
+  });
+  function otworzTreningi(id) {
+    wskazywany = stan && stan.ja && stan.ja.id === id ? stan.ja : null; if (!wskazywany) return;
+    var okno = $('bw-okno-treningi'); $('bw-treningi-blad').textContent = ''; $('bw-treningi-lista').innerHTML = '<p class="bw-opis">Wczytuję treningi…</p>'; pokazOkno(okno);
+    Promise.resolve(window.sb.rpc('akcja_bieg_treningi_z_okna', { p_slug: bieg.slug })).then(function (r) {
+      if (!r || r.error) { $('bw-treningi-lista').innerHTML = ''; $('bw-treningi-blad').textContent = 'Nie udało się wczytać treningów. Spróbuj za chwilę.'; return; }
+      $('bw-treningi-lista').innerHTML = B.treningiHtml(r.data, wskazywany);
+    }, function () { $('bw-treningi-lista').innerHTML = ''; $('bw-treningi-blad').textContent = 'Nie udało się wczytać treningów. Spróbuj za chwilę.'; });
   }
 
   /* ── OKNA ── */
@@ -386,6 +488,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function otworzDziecko() {
     $('bw-dziecko-blad').textContent = ''; $('bw-dziecko-imie').value = ''; $('bw-oswiadczenie').checked = false; $('bw-zgoda-imie-dziecka').checked = false; $('bw-dziecko-regulamin').checked = false;
     $('bw-dziecko-regulamin-pole').hidden = !!(stan && stan.ja);   // regulamin raz na konto: przy samych dzieciach rodzic akceptuje go tutaj
+    $('bw-dziecko-email').checked = false;   // zgoda na e-mail konta: rodzic bez własnego zapisu daje ją tutaj; nic z góry
+    $('bw-dziecko-email-pole').hidden = !!(stan && stan.ja) || B.faza(bieg) !== 'zapisy' || !!(zgodaKonta && zgodaKonta.zgoda_email);
     pokazOkno(OKNO_DZIECKO); setTimeout(function () { $('bw-dziecko-imie').focus(); }, 50);
   }
   $('bw-dziecko').addEventListener('click', otworzDziecko); $('bw-dziecko-od-razu').addEventListener('click', otworzDziecko);
@@ -398,7 +502,8 @@ document.addEventListener('DOMContentLoaded', function () {
     rpc('akcja_bieg_dopisz_dziecko', { p_slug: bieg.slug, p_imie: imie, p_zgoda_imie: $('bw-zgoda-imie-dziecka').checked, p_oswiadczenie: true, p_regulamin_wersja: bieg.regulamin_wersja }).then(function (r) {
       $('bw-dziecko-ok').disabled = false;
       if (!r.ok) { blad.textContent = komunikat(r); return; }
-      schowajOkno(OKNO_DZIECKO); odswiez().then(function () { $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' }); });
+      var zgoda = !$('bw-dziecko-email-pole').hidden && $('bw-dziecko-email').checked ? rpc('akcja_bieg_zgoda_email', { p_slug: bieg.slug, p_zgoda: true }) : Promise.resolve();
+      schowajOkno(OKNO_DZIECKO); zgoda.then(odswiez).then(function () { $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' }); });
     });
   });
   document.addEventListener('click', function (e) {
@@ -410,7 +515,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function komunikat(r) {
     var p = r && r.powod;
     return p === 'zamkniete' ? 'Zapisy są już zamknięte.' : p === 'regulamin' ? 'Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.' : p === 'dystans' ? 'Wybierz 5 albo 10 km.' : p === 'imie' ? 'Imię: jedno słowo, 2–20 liter.'
-      : p === 'juz_zapisany' ? 'Już masz zapis w tym biegu (numer ' + (r.numer || '') + ').' : p === 'oswiadczenie' ? 'Potrzebne oświadczenie rodzica.' : p === 'limit' ? 'Limit dzieci na konto: ' + (r.limit || B.ZASADY.limit_dzieci) + '.' : p === 'nie_ma' ? 'Nie ma takiego biegu.' : 'Nie udało się: ' + (r && r.blad ? r.blad : 'spróbuj za chwilę.');
+      : p === 'juz_zapisany' ? 'Już masz zapis w tym biegu (numer ' + (r.numer || '') + ').' : p === 'oswiadczenie' ? 'Potrzebne oświadczenie rodzica.' : p === 'limit' ? 'Limit dzieci na konto: ' + (r.limit || B.ZASADY.limit_dzieci) + '.' : p === 'nie_ma' ? 'Nie ma takiego biegu.'
+      : p === 'limit_zapisow' ? 'Limit zapisów na to konto w tym biegu został wykorzystany.' : 'Nie udało się: ' + (r && r.blad ? r.blad : 'spróbuj za chwilę.');
   }
 
   /* ── PODGLĄD GRAFIK (?podglad=1): numer i dyplom w dwóch wersjach, odznaki ── */
@@ -427,8 +533,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /* rezygnacja z e-maila z linku w wiadomości: ?rezygnacja=<token> → EF bieg-rezygnacja; token od razu znika z adresu (nie wycieknie przy udostępnianiu) */
+  var TOKEN = B.tokenRezygnacji(location.search);
+  if (TOKEN) {
+    try { history.replaceState(null, '', location.pathname + (PROBA ? '?proba=1' : '')); } catch (e) {}
+    var baner = $('bw-rezygnacja'); baner.hidden = false; baner.textContent = 'Wyłączam e-maile o tym biegu…';
+    fetch(window.SB_URL + '/functions/v1/bieg-rezygnacja', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: TOKEN }) })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (d) { baner.textContent = d && d.ok ? 'Gotowe. Nie wyślemy już e-maili o biegu „' + (d.nazwa || '') + '”.' : 'Ten link jest nieaktualny albo już użyty. Zgodę zmienisz też po zalogowaniu, w sekcji „Twój bieg”.'; },
+            function () { baner.textContent = 'Nie udało się połączyć. Odśwież stronę za chwilę.'; });
+  }
   odswiez().then(podglad);
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') odswiez(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { probowane = {}; odswiez(); } });   // powrót z Dziś po dopisaniu treningu: automat próbuje jeszcze raz
 });
 </script>
 </body>
