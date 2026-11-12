@@ -57,6 +57,7 @@
   .linijka h1 { display: inline; margin: 0; font: inherit; letter-spacing: inherit; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
   .linijka h1:not(:empty)::before { content: "· "; color: var(--fg2); }
   #scena-gora .us-okno { order: -10; margin: 0 -16px; }
+  #scena-gora .us-mur-dol { order: -10; margin: 0 -16px; }   /* mur rośnie w dół zaraz pod oknem sceny (ta sama kolejność, dalszy w DOM) */
   #prog { order: -9; margin: 0 -16px; }
   #prog:empty { display: none; }
   #prog .akcja-prog { margin: 0; padding: 0 16px; height: 44px; box-sizing: border-box; border-radius: 0; border-width: 1px 0; flex-wrap: nowrap; align-items: center; gap: 10px; }   /* baner progu jako wąski pasek pod sceną; stała wysokość: font z sieci nie przesuwa treści (CLS) */

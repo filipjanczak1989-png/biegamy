@@ -18,7 +18,7 @@
     budowniczy: [["korpus", "polygon(28% 0,100% 0,100% 100%,0 100%,0 22%,20% 34%,34% 34%,34% 25%,30% 14%)"], ["reka", "polygon(0 0,29% 0,31% 14%,35% 25%,35% 36%,20% 36%,0 23%)"]],
   };
   var MAX_CZASTEK = 110;
-  var MUREK_H = 34, ODSTEP_CEGIEL = 4, CEGLA_MIN = 40, CEGLA_MAKS = 104, CEGLA_ZLOTA_MAKS = 120, MIEJSCE_NA_RESZTE = 50;
+  var MUREK_H = 34, ODSTEP_CEGIEL = 4, CEGLA_MIN = 40, CEGLA_MAKS = 104, CEGLA_ZLOTA_MAKS = 120;
   var DYMEK_SZER = 200, DYMEK_WYS_ZAPAS = 90;   // wizytówka po tapie (C, Filip 10.11): ≥ 160 px, logo na macie jak na tablicy; zapas wysokości, gdy nie da się zmierzyć
 
   function svgUrl(svg) { return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'; }
@@ -112,7 +112,12 @@
     ".us-mc-wiecej{background:#2b2230;border-color:#ffd23d;color:#ffd23d;font-size:12px;text-shadow:none}" +
     ".us-okno--murek .us-czolo,.us-okno--murek .us-podpowiedz{bottom:" + (MUREK_H + 8) + "px}" +
     ".us-dymek .us-dymek-zlota{display:block;margin-top:2px;color:#9a6400;font-size:12px;font-weight:700}" +
-    ".us-murek-lista{left:8px;right:8px;width:auto;max-height:" + (WYS - MUREK_H - 76) + "px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}.us-murek-lista p{margin:6px 0 0}.us-murek-lista i{display:block;font-style:normal;font-size:11px;font-weight:800;color:#9a6400}.us-murek-lista .us-ml-bez{color:#6b6f7a;font-size:12px}" +
+    /* MUR ROŚNIE W DÓŁ (Filip 12.11): pod oknem kolejne rzędy w tym samym stylu i pasek z przyciskiem „Cały mur (N)” / „Zwiń”; na kaflu Dziś blok stoi poza oknem sceny (kontener z karty). */
+    ".us-mur-dol{position:relative;margin:0;padding:0 6px;box-sizing:border-box;background:#b4563c;background-repeat:repeat;background-size:auto " + MUREK_H + "px;box-shadow:inset 0 3px 5px rgba(0,0,0,.22);font-family:Inter,system-ui,sans-serif}" +
+    ".us-mur-dol--noc,.us-mur-dol--zmierzch{box-shadow:inset 0 0 0 999px rgba(10,18,50,.3),inset 0 3px 5px rgba(0,0,0,.22)}" +
+    ".us-mur-rzad{display:flex;align-items:center;gap:" + ODSTEP_CEGIEL + "px;height:" + MUREK_H + "px}.us-mur-rzad .us-mc{cursor:default}" +
+    ".us-mur-stopka{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:36px}.us-mur-reszta{flex:1;font:600 11px/1.2 Inter,system-ui,sans-serif;color:#fff;text-shadow:0 1px 1px rgba(74,36,8,.55)}" +
+    ".us-mur-przelacz{height:28px;padding:0 11px;line-height:25.6px}" +
     ".us-mur{position:absolute;top:" + (POZIOM_DOMKU - 62) + "px;height:62px;background-repeat:repeat-x;background-size:auto 62px;background-color:#d9694e;pointer-events:none}" +
     ".us-cegla{position:absolute;display:block;margin:0;padding:0 2px;height:17px;width:54px;box-sizing:border-box;border-radius:3px;border:1.2px solid #4a2408;background:#ef7a2a;color:#fff;font:700 9px/15px Inter,system-ui,sans-serif;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;touch-action:pan-y}" +
     ".us-cegla::after{content:'';position:absolute;left:-2px;right:-2px;top:-14px;bottom:-14px}.us-cegla--pusta{background:#d9694e;cursor:default;pointer-events:none}" +
@@ -155,6 +160,10 @@
   var KLUCZ_DZWIEKU = "bm_ulica_dzwiek";
   function czytajDzwiek() { try { return g.localStorage.getItem(KLUCZ_DZWIEKU) === "1"; } catch (e) { return false; } }
   function zapiszDzwiek(v) { try { g.localStorage.setItem(KLUCZ_DZWIEKU, v ? "1" : "0"); } catch (e) {} }
+  /* Mur pod sceną rozwinięty czy zwinięty (Filip 12.11): osobno dla kafla na Dziś (domyślnie zwinięty) i strony akcji (domyślnie rozwinięty). Brak pamięci = wartość domyślna. */
+  var KLUCZ_MURU = "bm_akcja_mur_";
+  function czytajMur(tryb) { try { var z = g.localStorage.getItem(KLUCZ_MURU + tryb); if (z === "1") return true; if (z === "0") return false; } catch (e) {} return tryb === "strona"; }
+  function zapiszMur(tryb, roz) { try { g.localStorage.setItem(KLUCZ_MURU + tryb, roz ? "1" : "0"); } catch (e) {} }
   function noweAudio() {
     var ac = null;
     function kontekst() {
@@ -433,6 +442,7 @@
     function ustawPore(p) {
       pora = p;
       korzen.setAttribute("class", "us us--" + p + (ruch && aktywna() ? " us--gra" : ""));
+      if (murDol) murDol.setAttribute("class", klasaMuruDol());   // na kaflu blok stoi poza korzeniem: pora dnia wprost na nim
       niebo.style.background = U.tloNieba(p);
     }
     function aktywna() { return ruch && naEkranie && kartaWidoczna && !zniszczona; }
@@ -561,57 +571,68 @@
       if (droga) droga.style.width = (n * ODC) + "px";
       if (maszyny && stan.faza !== "pelna") przesun(maszyny, polozenieMaszyn(n));
     }
-    /* MUREK DARCZYŃCÓW (Filip 9.11): najpierw złote, potem cegły firm, potem najnowsze wpisy. Mieści się tyle, ile wejdzie w szerokość okna; reszta pod „+N” z listą.
+    /* MUREK DARCZYŃCÓW (Filip 9.11, rośnie w dół 12.11): najpierw złote, potem cegły firm, potem najnowsze wpisy. Pasek pod sceną mieści jeden rząd (tyle, ile wejdzie w szerokość okna).
+       Gdy cegieł jest więcej, pod oknem staje pasek z „Cały mur (N)”: rozwinięty dokłada kolejne rzędy w tym samym stylu i „Zwiń”. Na kaflu Dziś domyślnie zwinięty, na stronie rozwinięty.
        Szerokość cegły z miary tekstu, więc układ nie zależy od tego, czy przeglądarka już narysowała okno. Imię tylko przy zgodzie (baza); bez zgody cegła bez imienia. */
-    var murek = null, kluczMurka = "", ceglyNaMurku = [];
+    var murek = null, murDol = null, kluczMurka = "", ceglyNaMurku = [], trybMuru = o.kafel ? "dzis" : "strona", murRozwiniety = czytajMur(trybMuru);
+    function klasaMuruDol() { return "us-mur-dol us-mur-dol--" + pora + (murRozwiniety ? " us-mur-dol--pelny" : ""); }
     function szerCegly(c) {
       if (!c.tekst) return CEGLA_MIN - 6;
       /* +8 px zapasu: miara z kanwy bywa liczona fontem zastępczym, zanim wczyta się Inter (bez zapasu „Zenek” wychodził „Zen…”). */
       var w = Math.ceil(U.mierzTekst ? U.mierzTekst(c.tekst, c.zlota ? 12 : 11, 700) * 1.06 : c.tekst.length * 7) + (c.zlota ? 21 : 17) + 8;
       return Math.max(CEGLA_MIN, Math.min(c.zlota ? CEGLA_ZLOTA_MAKS : CEGLA_MAKS, w));
     }
+    /* Cegła w pasku (przycisk z dymkiem) albo w rzędzie pod oknem (bez dymka: pełne imię w title). */
+    function ceglaMurku(c, i, rodzic, zDymkiem) {
+      var w = szerCegly(c);
+      var b = el(c.tekst && zDymkiem ? "button" : "div", "us-mc" + (c.zlota ? " us-mc--zlota" : "") + (c.tekst ? "" : " us-mc--pusta"), rodzic, c.tekst || null);
+      b.style.width = w + "px";
+      if (!c.tekst) b.setAttribute("aria-hidden", "true");
+      else if (zDymkiem) { b.setAttribute("type", "button"); b.setAttribute("data-u", "cegla"); b.setAttribute("data-i", String(i)); b.setAttribute("aria-label", (c.zlota ? "Złota cegła: " : "Wpis w murze: ") + c.tekst); }
+      else b.setAttribute("title", (c.zlota ? "Złota cegła: " : "") + c.tekst);
+      return w;
+    }
     function rysujMurek() {
       var cegly = przed || !U.ceglyMurku ? [] : U.ceglyMurku(dod), n = przed ? 0 : Math.max(cegly.length, Number(dod.cegly_n) || 0);
-      var klucz = szerOkna + "|" + n + "|" + JSON.stringify(cegly);
+      var klucz = szerOkna + "|" + n + "|" + (murRozwiniety ? 1 : 0) + "|" + JSON.stringify(cegly);
       if (klucz === kluczMurka) return;
       kluczMurka = klucz;
       if (murek && murek.parentNode) murek.parentNode.removeChild(murek);
-      murek = null; ceglyNaMurku = cegly;
+      if (murDol && murDol.parentNode) murDol.parentNode.removeChild(murDol);
+      murek = null; murDol = null; ceglyNaMurku = cegly;
       okno.setAttribute("class", "us-okno" + (n > 0 ? " us-okno--murek" : ""));
       if (!n) return;
       murek = el("div", "us-murek", null);
       ui.insertBefore(murek, ui.firstChild);   // pod dymkiem i nakładką
       murek.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
       murek.setAttribute("role", "group"); murek.setAttribute("aria-label", "Mur darczyńców: " + n + " " + U.odmianaCegly(n));
-      var dostepne = szerOkna - 12, uzyte = 0, pokazane = 0;
-      for (var i = 0; i < cegly.length; i++) {
-        var c = cegly[i], w = szerCegly(c), zostanie = n - i - 1;
-        if (uzyte + w + (zostanie > 0 ? ODSTEP_CEGIEL + MIEJSCE_NA_RESZTE : 0) > dostepne) break;
-        var b = el(c.tekst ? "button" : "div", "us-mc" + (c.zlota ? " us-mc--zlota" : "") + (c.tekst ? "" : " us-mc--pusta"), murek, c.tekst || null);
-        b.style.width = w + "px";
-        if (c.tekst) { b.setAttribute("type", "button"); b.setAttribute("data-u", "cegla"); b.setAttribute("data-i", String(i)); b.setAttribute("aria-label", (c.zlota ? "Złota cegła: " : "Wpis w murze: ") + c.tekst); }
-        else b.setAttribute("aria-hidden", "true");
-        uzyte += w + ODSTEP_CEGIEL; pokazane++;
+      var dostepne = szerOkna - 12, uzyte = 0, i = 0;
+      for (; i < cegly.length; i++) {
+        var w = szerCegly(cegly[i]);
+        if (uzyte + w > dostepne) break;
+        ceglaMurku(cegly[i], i, murek, true);
+        uzyte += w + ODSTEP_CEGIEL;
       }
-      if (pokazane < n) {
-        var r = el("button", "us-mc us-mc-wiecej", murek, "+" + (n - pokazane));
-        r.setAttribute("type", "button"); r.setAttribute("data-u", "murek"); r.setAttribute("aria-label", "Pokaż cały mur darczyńców: " + n + " " + U.odmianaCegly(n));
+      if (n <= i) return;   // wszystko w jednym rzędzie: bez przycisku i bez rzędów pod oknem
+      murDol = el("div", klasaMuruDol());
+      murDol.style.backgroundImage = "url(" + U.sciezkaObrazu("mur") + ")";
+      murDol.setAttribute("role", "group"); murDol.setAttribute("aria-label", "Dalsza część muru darczyńców");
+      if (murRozwiniety) {
+        var rzad = null; uzyte = 0;
+        for (; i < cegly.length; i++) {
+          var w2 = szerCegly(cegly[i]);
+          if (!rzad || uzyte + w2 > dostepne) { rzad = el("div", "us-mur-rzad", murDol); uzyte = 0; }
+          ceglaMurku(cegly[i], i, rzad, false);
+          uzyte += w2 + ODSTEP_CEGIEL;
+        }
       }
-    }
-    function listaMurku() {
-      zamknijDymek();
-      var cegly = ceglyNaMurku, n = Math.max(cegly.length, Number(dod.cegly_n) || 0);
-      var b = el("div", "us-dymek us-murek-lista", ui);
-      b.setAttribute("role", "dialog"); b.setAttribute("aria-label", "Mur darczyńców");
-      el("b", "", b, "Mur darczyńców · " + n + " " + U.odmianaCegly(n));
-      var zlote = cegly.filter(function (c) { return c.zlota && c.tekst; }).map(function (c) { return c.tekst; });
-      var reszta = cegly.filter(function (c) { return !c.zlota && c.tekst; }).map(function (c) { return c.tekst; });
-      if (zlote.length) { var pz = el("p", "", b); el("i", "", pz, "Złote cegły · dziękujemy"); el("span", "", pz, zlote.join(", ")); }
-      if (reszta.length) el("p", "", b, reszta.join(", "));
-      var bez = n - zlote.length - reszta.length;
-      if (bez > 0) el("p", "us-ml-bez", b, (zlote.length + reszta.length ? "I jeszcze " : "") + bez + " " + U.odmianaCegly(bez) + " bez imienia. Dziękujemy!");
-      b.style.bottom = (MUREK_H + 8) + "px";
-      dymekEl = b;
+      var stopka = el("div", "us-mur-stopka", murDol), bez = n - cegly.length;
+      if (murRozwiniety && bez > 0) el("span", "us-mur-reszta", stopka, "i jeszcze " + bez + " " + U.odmianaCegly(bez));   // licznik oddaje najwyżej 500 cegieł
+      var p = el("button", "us-mc us-mc-wiecej us-mur-przelacz", stopka, murRozwiniety ? "Zwiń" : "Cały mur (" + n + ")");
+      p.setAttribute("type", "button"); p.setAttribute("aria-expanded", murRozwiniety ? "true" : "false");
+      p.setAttribute("aria-label", murRozwiniety ? "Zwiń mur darczyńców do jednego rzędu" : "Pokaż cały mur darczyńców: " + n + " " + U.odmianaCegly(n));
+      p.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); murRozwiniety = !murRozwiniety; zapiszMur(trybMuru, murRozwiniety); rysujMurek(); });
+      if (o.murDol) o.murDol.appendChild(murDol); else korzen.insertBefore(murDol, okno.nextSibling);
     }
     function budujUlice() {
       wyczysc(ulica); domki = []; budynki = []; ostatnieWidoczne = -99999;
@@ -994,7 +1015,6 @@
         }
         return;
       }
-      if (co === "murek") listaMurku();
     }
     var dotyk = null, blokujKlik = false;
     function naDol(e) {
@@ -1235,6 +1255,7 @@
       zegary.forEach(function (z) { g.clearTimeout(z); });
       g.document.removeEventListener("visibilitychange", naWidocznosc);
       g.removeEventListener("resize", naRozmiar);
+      if (murDol && murDol.parentNode) murDol.parentNode.removeChild(murDol);   // na kaflu stoi poza korzeniem
       if (korzen.parentNode) korzen.parentNode.removeChild(korzen);
     }
     return { aktualizuj: aktualizuj, zniszcz: zniszcz, obrazek: obrazek, stan: function () { return stan; }, kamera: function () { return kam.x; }, pora: function () { return pora; }, swietuj: swietuj };

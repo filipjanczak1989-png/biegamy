@@ -633,7 +633,7 @@
     }).catch(awaryjnie);
   }
   /** Kafel na Dziś: ta sama scena co na stronie akcji, bez gestów i przycisków. Kolejne wywołania tylko przesuwają licznik. Brak pliku albo awaria = miniatura. */
-  function naKaflu(tu, d) {
+  function naKaflu(tu, d, opcje) {
     if (!tu) return false;
     if (tu._bmScena) { tu._bmScena.aktualizuj(d); return true; }
     if (tu._bmCzeka) { tu._bmCzeka = d; return true; }
@@ -642,7 +642,8 @@
       var ost = tu._bmCzeka;
       if (!ost) return false;   // kafel zdjęty w trakcie ładowania
       tu._bmCzeka = null;
-      var kontroler = S.zamontuj(tu, ost, { kafel: true });
+      /* murDol: miejsce poza oknem sceny (okno kafla ma stałą wysokość), gdzie mur rośnie w dół po „Cały mur (N)” */
+      var kontroler = S.zamontuj(tu, ost, { kafel: true, murDol: (opcje && opcje.murDol) || null });
       if (!kontroler) throw new Error("scena nie wstała");
       tu._bmScena = kontroler;
       return true;

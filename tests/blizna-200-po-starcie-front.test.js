@@ -92,31 +92,78 @@ test('murek: Patryk złoty, z wielkiej litery, przypięty do okna (warstwa inter
   assert.match(css, /\.us-okno--murek \.us-czolo,\.us-okno--murek \.us-podpowiedz\{bottom:" \+ \(MUREK_H \+ 8\) \+ "px\}/);
 });
 
-test('murek: 10, 60 i 300 cegieł mieszczą się w szerokości okna, złote z przodu, reszta pod „+N” z listą; bez zgody bez imienia; kwota nigdy', async () => {
+/* mur rośnie w dół (Filip 12.11): pasek pod sceną = jeden rząd; reszta w rzędach pod oknem po „Cały mur (N)”, „Zwiń” chowa; bez „+N” i listy w dymku */
+const szerRzedu = (r) => r.dzieci.filter((c) => c.klasy().includes('us-mc')).reduce((s, c) => s + parseFloat(c.style.width) + 4, 0);
+const klik = (b) => { for (const f of b.sl.click || []) f({ preventDefault() {}, stopPropagation() {} }); };
+test('murek: 10, 60 i 300 cegieł: jeden rząd w pasku, złote z przodu, reszta rośnie w dół pod oknem (strona: domyślnie rozwinięty, „Zwiń” chowa rzędy); bez zgody bez imienia; kwota nigdy', async () => {
   const { S } = await modulSceny();
   for (const n of [10, 60, 300]) {
     const lista = cegly(n, 2, 0).concat([]);
     lista[5] = { i: null, z: false, kwota_gr: 987654 };
     const k = scena(S, { imiona: [], bez_imienia: 0, cegly: lista, cegly_n: n });
-    const mc = klasa(k, 'us-mc').filter((c) => !c.klasy().includes('us-mc-wiecej'));
-    const szer = mc.reduce((s, c) => s + parseFloat(c.style.width) + 4, 0) + (klasa(k, 'us-mc-wiecej').length ? 54 : 0);
-    assert.ok(szer <= 390 - 12 + 4, n + ': cegły mieszczą się w oknie (' + szer + ' px)');
+    const murek = klasa(k, 'us-murek')[0], mc = murek.dzieci.filter((c) => c.klasy().includes('us-mc'));
+    assert.ok(szerRzedu(murek) <= 390 - 12 + 4, n + ': rząd w pasku mieści się w oknie (' + szerRzedu(murek) + ' px)');
+    assert.ok(mc.length < n, n + ': pasek nie mieści wszystkich'); assert.equal(klasa(k, 'us-mc-wiecej').filter((c) => !c.klasy().includes('us-mur-przelacz')).length, 0, 'bez „+N” w pasku');
     assert.ok(mc[0].klasy().includes('us-mc--zlota') && mc[1].klasy().includes('us-mc--zlota') && !mc[2].klasy().includes('us-mc--zlota'), n + ': złote z przodu');
-    const wiecej = klasa(k, 'us-mc-wiecej')[0];
-    assert.ok(wiecej, n + ': „+N”'); assert.equal(wiecej._tekst, '+' + (n - mc.length));
     assert.doesNotMatch(JSON.stringify(k.wszystkie().map((w) => [w.atr, w._tekst])), /987654|kwota/i, 'kwota nie wchodzi do sceny');
-    dotknij(k, wiecej);
-    const l = klasa(k, 'us-murek-lista')[0];
-    assert.ok(l, n + ': lista po dotknięciu „+N”');
-    assert.equal(l.dzieci[0]._tekst, 'Mur darczyńców · ' + n + ' ' + (n === 10 ? 'cegieł' : n === 60 ? 'cegieł' : 'cegieł'));
-    assert.match(l.textContent, /Złote cegły · dziękujemy/);
-    assert.match(l.textContent, /I jeszcze 1 cegła bez imienia\. Dziękujemy!/);
-    assert.equal(l.style.bottom, '42px');
+    const korzen = k.dzieci[0], okno = klasa(k, 'us-okno')[0], dol = klasa(k, 'us-mur-dol')[0];
+    assert.ok(dol, n + ': blok pod oknem'); assert.equal(korzen.dzieci[korzen.dzieci.indexOf(okno) + 1], dol, 'zaraz pod oknem sceny'); assert.ok(dol.klasy().includes('us-mur-dol--pelny'), 'strona: domyślnie rozwinięty');
+    const rzedy = klasa(dol, 'us-mur-rzad');
+    assert.ok(rzedy.length >= 1, n + ': rzędy pod oknem'); rzedy.forEach((r) => assert.ok(szerRzedu(r) <= 390 - 12 + 4, n + ': rząd mieści się w szerokości (' + szerRzedu(r) + ' px)'));
+    assert.equal(mc.length + rzedy.reduce((s, r) => s + r.dzieci.length, 0), n, n + ': wszystkie cegły: pasek + rzędy');
+    const wRzedach = rzedy.flatMap((r) => r.dzieci);
+    assert.ok(wRzedach.every((c) => c.tag === 'div' && !c.atr['data-u']), 'cegły w rzędach bez dymka'); assert.ok(wRzedach.some((c) => c.atr.title && /^IMIE/i.test(c.atr.title)), 'pełne imię w title');
+    const pusta = wRzedach.concat(mc).find((c) => c.klasy().includes('us-mc--pusta'));
+    assert.ok(pusta && pusta.tag === 'div' && pusta.atr['aria-hidden'] === 'true', n + ': bez zgody cegła bez imienia');
+    const p = klasa(dol, 'us-mur-przelacz')[0];
+    assert.equal(p._tekst, 'Zwiń'); assert.equal(p.atr['aria-expanded'], 'true'); assert.ok(p.klasy().includes('us-mc') && p.klasy().includes('us-mc-wiecej'), 'przycisk w stylu cegły');
+    assert.equal(klasa(dol, 'us-mur-reszta').length, 0, 'lista pełna: bez „i jeszcze”');
+    klik(p);
+    const dol2 = klasa(k, 'us-mur-dol')[0], p2 = klasa(dol2, 'us-mur-przelacz')[0];
+    assert.ok(dol2 && dol2 !== dol && !dol2.klasy().includes('us-mur-dol--pelny'), n + ': po „Zwiń” blok narysowany od nowa, zwinięty'); assert.equal(klasa(k, 'us-mur-dol').length, 1, 'jeden blok');
+    assert.equal(klasa(dol2, 'us-mur-rzad').length, 0, 'zwinięty: bez rzędów'); assert.equal(p2._tekst, 'Cały mur (' + n + ')'); assert.equal(p2.atr['aria-expanded'], 'false');
+    assert.equal(klasa(k, 'us-murek')[0].dzieci.filter((c) => c.klasy().includes('us-mc')).length, mc.length, 'pasek bez zmian');
+    klik(p2);
+    assert.ok(klasa(k, 'us-mur-dol')[0].klasy().includes('us-mur-dol--pelny'), 'i z powrotem rozwinięty');
   }
   const k2 = scena(S, { imiona: [], bez_imienia: 0, cegly: [{ i: null, z: false }, { i: 'ola', z: false }], cegly_n: 2 });
   const mc2 = klasa(k2, 'us-mc');
   assert.equal(mc2[0].tag, 'div'); assert.equal(mc2[0]._tekst, ''); assert.equal(mc2[0].atr['aria-hidden'], 'true', 'bez zgody: cegła bez imienia, nieklikalna');
-  assert.equal(mc2[1]._tekst, 'Ola');
+  assert.equal(mc2[1]._tekst, 'Ola'); assert.equal(klasa(k2, 'us-mur-dol').length, 0, 'wszystko w jednym rzędzie: bez przycisku i bez bloku');
+  const k3 = scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(4, 1, 0), cegly_n: 9 });
+  const p3 = klasa(k3, 'us-mur-przelacz')[0];
+  assert.equal(p3._tekst, 'Zwiń'); assert.equal(klasa(k3, 'us-mur-reszta')[0]._tekst, 'i jeszcze 5 cegieł', 'licznik oddał mniej cegieł niż liczy: reszta liczbą');
+});
+
+test('murek na kaflu Dziś: blok rośnie poza oknem sceny (kontener z karty), domyślnie zwinięty, wybór w localStorage w try/catch, zniszcz sprząta blok', async () => {
+  const { S } = await modulSceny();
+  const pam = {};
+  globalThis.localStorage = { getItem: (k) => (k in pam ? pam[k] : null), setItem: (k, v) => { pam[k] = String(v); } };
+  try {
+    const poza = new Wezel('div'), k = scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(60, 1, 0), cegly_n: 60 }, { kafel: true, murDol: poza });
+    assert.equal(klasa(k, 'us-mur-dol').length, 0, 'w oknie kafla nic nie rośnie'); assert.equal(poza.dzieci.length, 1, 'blok w kontenerze karty');
+    const dol = poza.dzieci[0], p = klasa(dol, 'us-mur-przelacz')[0];
+    assert.ok(dol.klasy().includes('us-mur-dol') && !dol.klasy().includes('us-mur-dol--pelny'), 'Dziś: domyślnie zwinięty'); assert.equal(klasa(dol, 'us-mur-rzad').length, 0);
+    assert.equal(p._tekst, 'Cały mur (60)'); assert.equal(p.atr['aria-label'], 'Pokaż cały mur darczyńców: 60 cegieł');
+    assert.match(dol.atr.class, /us-mur-dol--(dzien|swit|zmierzch|noc)/, 'pora dnia wprost na bloku (stoi poza korzeniem sceny)');
+    klik(p);
+    assert.equal(pam.bm_akcja_mur_dzis, '1', 'wybór zapisany pod kluczem Dziś'); assert.ok(klasa(poza, 'us-mur-rzad').length >= 1, 'po dotknięciu rzędy w kontenerze karty');
+    klik(klasa(poza, 'us-mur-przelacz')[0]);
+    assert.equal(pam.bm_akcja_mur_dzis, '0'); assert.equal(klasa(poza, 'us-mur-rzad').length, 0);
+    pam.bm_akcja_mur_dzis = '1';
+    const poza2 = new Wezel('div'); scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(60, 1, 0), cegly_n: 60 }, { kafel: true, murDol: poza2 });
+    assert.ok(klasa(poza2, 'us-mur-rzad').length >= 1, 'zapamiętane rozwinięcie wraca przy następnym montażu');
+    pam.bm_akcja_mur_strona = '0';
+    const ks = scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(60, 1, 0), cegly_n: 60 });
+    assert.equal(klasa(ks, 'us-mur-rzad').length, 0, 'strona zapamiętała zwinięcie (klucz osobno)');
+    globalThis.localStorage = { getItem: () => { throw new Error('brak zgody'); }, setItem: () => { throw new Error('brak zgody'); } };
+    const kb = scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(60, 1, 0), cegly_n: 60 });
+    assert.ok(klasa(kb, 'us-mur-rzad').length >= 1, 'pamięć rzuca: domyślne dla strony'); klik(klasa(kb, 'us-mur-przelacz')[0]); assert.equal(klasa(kb, 'us-mur-rzad').length, 0, 'przełącznik działa bez pamięci');
+    const poza3 = new Wezel('div'); scena(S, { imiona: [], bez_imienia: 0, cegly: cegly(60, 1, 0), cegly_n: 60 }, { kafel: true, murDol: poza3 });
+    assert.equal(poza3.dzieci.length, 1);
+    zamontowane.pop().zniszcz();
+    assert.equal(poza3.dzieci.length, 0, 'zniszcz zdejmuje blok z kontenera karty');
+  } finally { delete globalThis.localStorage; }
 });
 
 test('murek: długie imię ucięte w cegle (pełne w dymku), stara baza bez „cegly” = najnowsze imiona z przodu, pusty mur = bez murku, kafel też ma murek', async () => {

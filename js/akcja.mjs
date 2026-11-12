@@ -195,7 +195,7 @@
     ".akcja-dzis-km{font-size:13px;line-height:1;white-space:nowrap}.akcja-dzis-km b{font:400 50px/.95 'Bebas Neue',Inter,sans-serif;letter-spacing:.02em;margin-right:6px}" +
     ".akcja-dzis-wklad{margin-top:5px;font-size:14px;font-weight:600}.akcja-dzis-wklad b{color:#ffb27d;font-weight:800}" +
     ".akcja-dzis-zobacz{position:absolute;right:10px;bottom:10px;z-index:3;padding:5px 10px;border-radius:10px;background:rgba(10,12,22,.68);font-size:12px;font-weight:700;pointer-events:none}" +
-    ".akcja-dzis-scena--murek .akcja-dzis-zobacz{bottom:44px}" +
+    ".akcja-dzis-scena--murek .akcja-dzis-zobacz{bottom:44px}.akcja-dzis-mur:empty{display:none}" +
     ".akcja-dzis-film{display:block;width:100%;margin-top:8px;min-height:44px;padding:8px;border-radius:12px;border:1px dashed rgba(255,255,255,.3);background:transparent;color:#ffd3b0;font:700 14px Inter,system-ui,sans-serif;cursor:pointer}" +
     ".akcja-dzis-ukryj{position:absolute;top:8px;right:8px;z-index:5;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:rgba(10,12,22,.72);color:#fff;font:600 22px/34px Inter,system-ui,sans-serif;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}.akcja-dzis-ukryj::after{content:'';position:absolute;inset:-6px}" +
     ".akcja-dzis-dane{padding:12px}.akcja-dzis-dane .akcja-liczby{margin-top:6px;color:#fff;font-size:13px;font-weight:700}" +
@@ -543,7 +543,7 @@
     var k = b.querySelector(".akcja-dzis");
     if (!k) {
       k = g.document.createElement("div"); k.className = "akcja-dzis";
-      k.innerHTML = '<div class="akcja-dzis-scena"><div class="akcja-dzis-tlo"></div><a class="akcja-dzis-link" aria-label="Zobacz całą Ulicę"></a><div class="akcja-dzis-liczby"></div><span class="akcja-dzis-zobacz" aria-hidden="true">Zobacz ulicę ›</span><button type="button" class="akcja-dzis-ukryj" aria-label="Ukryj kafel akcji" title="Ukryj">×</button></div><div class="akcja-dzis-dane"></div>';
+      k.innerHTML = '<div class="akcja-dzis-scena"><div class="akcja-dzis-tlo"></div><a class="akcja-dzis-link" aria-label="Zobacz całą Ulicę"></a><div class="akcja-dzis-liczby"></div><span class="akcja-dzis-zobacz" aria-hidden="true">Zobacz ulicę ›</span><button type="button" class="akcja-dzis-ukryj" aria-label="Ukryj kafel akcji" title="Ukryj">×</button></div><div class="akcja-dzis-mur"></div><div class="akcja-dzis-dane"></div>';
       k.querySelector(".akcja-dzis-ukryj").addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); ukryjKafel(k.getAttribute("data-slug") || "dla-fabianka"); });
       b.appendChild(k); b.classList.add("akcja-baner");
     }
@@ -553,7 +553,8 @@
     k.querySelector(".akcja-dzis-link").setAttribute("href", adresStrony(d, "#ulica-po"));
     k.querySelector(".akcja-dzis-liczby").innerHTML = liczbyKaflaHtml(d, wklad || _ostatniWklad);
     k.querySelector(".akcja-dzis-dane").innerHTML = daneKaflaHtml(d);
-    zUlica(function (U) { U.naKaflu(k.querySelector(".akcja-dzis-tlo"), d); });
+    /* .akcja-dzis-mur: pod oknem sceny (stała wysokość, bez gestów) mur rośnie w dół po „Cały mur (N)”; scena sama go tam stawia */
+    zUlica(function (U) { U.naKaflu(k.querySelector(".akcja-dzis-tlo"), d, { murDol: k.querySelector(".akcja-dzis-mur") }); });
   }
   function zdejmijSamKafel(b) {
     var k = b.querySelector(".akcja-dzis");

@@ -81,7 +81,7 @@ test('scena na kaflu: cicha, bez gestów, bez nowego odpytywania, wjazd zostaje 
   assert.match(s, /if \(o\.kafel\) \{ okno\.removeAttribute\("role"\); okno\.removeAttribute\("tabindex"\);[^\n]*okno\.style\.pointerEvents = "none"; \}/);
   assert.match(s, /if \(o\.kafel \|\| przed \|\| !elKoparka/);
   assert.match(s, /if \(!przed && !o\.kafel && g\.SB_URL && g\.fetch\)/, 'bez drugiego pytania o grę z każdego Dziś');
-  assert.match(u, /S\.zamontuj\(tu, ost, \{ kafel: true \}\)/, 'kafel bez o.pokaz, czyli bez zegara licznika');
+  assert.match(u, /S\.zamontuj\(tu, ost, \{ kafel: true, murDol: \(opcje && opcje\.murDol\) \|\| null \}\)/, 'kafel bez o.pokaz, czyli bez zegara licznika (murDol: miejsce na mur rosnący w dół, 12.11)');
   assert.doesNotMatch(u.slice(u.indexOf('function naKaflu'), u.indexOf('function naStronie')), /pokaz/);
   assert.match(u, /if \(!ost\) return false;/, 'kafel zdjęty w trakcie ładowania nie zostawia działającej sceny');
 });
