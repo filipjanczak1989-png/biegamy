@@ -1,7 +1,7 @@
 /* BLIZNA 224 (12.11.2026, audyt 11.2026 poz. 2, 5, 7, 8): funkcje Edge po rundzie 2 — testy na źródle (Deno nie uruchamiamy w Node).
    - delete-account: adresy wpisywane przez użytkownika (avatar_url, attachment_url, image_url) kasują wyłącznie ścieżki należące do konta;
    - send-push: notification_id tylko z nagłówkiem systemowym (hook);
-   - intervals-webhook: pusty albo krótki sekret = odrzucenie, nie „otwarte”;
+   - intervals-webhook: pusty sekret = odrzucenie, nie „otwarte” (wymóg długości zdjęty 12.11, blizna-232);
    - intervals-activity-detail: activity_id w kształcie identyfikatora, odświeżenie z intervals tylko dla właściciela i trenera;
    - firma-zgloszenie: IP do limitu z OSTATNIEGO elementu x-forwarded-for (pierwszy dopisuje klient). */
 'use strict';
@@ -42,9 +42,11 @@ test('send-push: notification_id honorowane tylko z nagłówkiem systemowym', ()
   assert.match(s, /if \(!_isSystem\) return await _reject\("notification_id_requires_hook"\);/);
 });
 
-test('intervals-webhook: brak / krótki sekret w env = 401, porównanie dopiero przy ustawionym', () => {
+test('intervals-webhook: sekret sprawdzany jedną czystą funkcją (pusty = 401), BEZ wymogu długości (12.11: ≥ 16 znaków odrzucało prawdziwe wywołania)', () => {
   const s = czytaj('supabase/functions/intervals-webhook/index.ts');
-  assert.match(s, /!HOOK_SECRET \|\| HOOK_SECRET\.length < 16 \|\| !body \|\| typeof body\.secret !== 'string' \|\| !body\.secret \|\| body\.secret !== HOOK_SECRET/);
+  assert.match(s, /import \{ sekretWebhookaOk \} from '\.\.\/_shared\/sekret-webhooka\.mjs';/);
+  assert.match(s, /if \(!sekretWebhookaOk\(HOOK_SECRET, body\)\) \{\n\s*return J\(401, \{ ok: false, error: 'bad_secret' \}\);/);
+  assert.doesNotMatch(s, /HOOK_SECRET\.length/, 'żadnego wymogu długości sekretu (blizna-232)');
 });
 
 test('intervals-activity-detail: activity_id tylko w kształcie identyfikatora; refresh tylko właściciel/trener', () => {

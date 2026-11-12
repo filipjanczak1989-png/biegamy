@@ -19,6 +19,7 @@ import { czyWydmuszka, wierszWydmuszki } from '../_shared/wydmuszka.mjs';   // p
 //    każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. secToClock/paceStr/kształt wiersza nadal lokalnie.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
+import { sekretWebhookaOk } from '../_shared/sekret-webhooka.mjs';   // 12.11: jedna czysta funkcja, testowana w Node
 function secToClock(sec: number): string {
   sec = Math.round(sec);
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -76,8 +77,9 @@ Deno.serve(async (req) => {
   //    Verify JWT jest OFF → to jedyna bramka autoryzacji.
   //    ⚠️ secret = plaintext w body (nie HMAC-nad-treścią): chroni przed losowym ruchem, NIE przed kimś
   //    kto zna sekret. To model webhooków intervals.icu, nie nasz wybór. HTTPS + secret server-side.
-  //    Pusty albo nieustawiony sekret w env = brak sekretu = odmowa (11.11): bez tego pusta wartość w panelu otwierałaby webhook na {secret:""}.
-  if (!HOOK_SECRET || HOOK_SECRET.length < 16 || !body || typeof body.secret !== 'string' || !body.secret || body.secret !== HOOK_SECRET) {
+  //    Pusty albo nieustawiony sekret po naszej stronie = odmowa, pusty sekret w treści = odmowa (11.11). BEZ wymogu długości (12.11): sekret ustawia
+  //    intervals.icu, warunek „≥ 16 znaków” odrzucał wszystkie prawdziwe wywołania przez 53 minuty. Warunek w ../_shared/sekret-webhooka.mjs.
+  if (!sekretWebhookaOk(HOOK_SECRET, body)) {
     return J(401, { ok: false, error: 'bad_secret' });            // 401 TYLKO tutaj
   }
 
