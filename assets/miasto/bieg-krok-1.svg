@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- krok 1: zapis. Kartka z ptaszkiem i ołówek -->
+  <rect x="24" y="18" width="62" height="84" rx="8" fill="#fff7e6" stroke="#3a1d0a" stroke-width="4"/>
+  <path d="M36 40 h38 M36 54 h38 M36 68 h24" stroke="#c9b9a0" stroke-width="5" stroke-linecap="round"/>
+  <path d="M40 86 l8 8 l16-18" fill="none" stroke="#6f9e3e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="rotate(35 92 60)" stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round">
+    <rect x="86" y="22" width="14" height="60" fill="#f2b32a"/><path d="M86 82 l7 16 l7-16z" fill="#fbe3b2"/><path d="M91 93 l2 5 l2-5z" fill="#3a1d0a"/><rect x="86" y="18" width="14" height="10" fill="#e8561e"/>
+  </g>
+</svg>

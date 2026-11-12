@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<meta name="robots" content="noindex, nofollow">
+<title>Bieg Wirtualny · Miasto Dobra</title>
+<meta name="description" content="Pokaz biegu wirtualnego w Mieście Dobra: od zapisu do dyplomu.">
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>/* font nagłówków z repo (SIL OFL 1.1, assets/fonty/OFL-BebasNeue.txt): bez sieci nagłówki nie spadają na inny krój */@font-face { font-family: 'Bebas Neue'; font-style: normal; font-weight: 400; font-display: swap; src: local('Bebas Neue'), local('BebasNeue-Regular'), url(assets/fonty/BebasNeue-Regular.ttf) format('truetype'); }</style>
+<script src="js/miasto-bieg.mjs"></script>
+<script src="js/miasto-pokaz.mjs" defer></script>   <!-- tryb pokazu (?pokaz=1) i gotowość (?pokaz=gotowosc); bez parametru nic nie robi -->
+<!--
+  BIEG WIRTUALNY, POKAZ OD A DO Z (10.11.2026, na spotkanie 18.11). Strona poza nawigacją aplikacji, noindex; wejście tylko z karty przykładu na miasto.html.
+  Atrapa: nic nie zapisuje w bazie i nic nie wysyła. Naprawdę działa to, co da się zrobić uczciwie w przeglądarce: numer startowy, dyplom (telefon i A4 do druku),
+  odznaka, plakat, grafika do mediów, kod QR (własny koder w js/miasto-bieg.mjs), udostępnianie przez Web Share z zapasowym „Pobierz”.
+  Dane uczestników wymyślone (imiona bez nazwisk), oznaczone PRZYKŁAD przy każdej liczbie. Jedyny zapis: stan pokazu w localStorage (imię na dyplom zostaje w telefonie).
+  Grafiki: assets/ulica i assets/gra (te same co Ulica) oraz assets/miasto/bieg-*.svg (ręcznie, w stylu domku wzorcowego); wszystko trzymane w Cache API strony, żeby po jednym
+  otwarciu z internetem cała ścieżka działała w trybie samolotowym. Pieniądze idą wyłącznie przez organizację prowadzącą zbiórkę; BiegaMy nic nie przyjmuje.
+-->
+<style>
+  /* --akcent-tlo: pomarańcz pod białym tekstem (przyciski, znaczki) ciemniejszy niż na mapie miasta, żeby biały tekst miał kontrast AA (4,9 zamiast 3,6); paski i ozdoby zostają w --akcent */
+  :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent-tlo: #c9440f; --akcent2: #ff8a3d; --ramka: rgba(255,255,255,.1); --drewno: #5a2e0e; --kremowy: #fff7e6; --ziel: #2f6b3a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+  button { font: inherit; }
+  main { max-width: 560px; margin: 0 auto; padding: 0 12px calc(env(safe-area-inset-bottom) + 36px); }
+  /* KOLOR NAJPIERW: scena od pierwszego piksela, zarezerwowana wysokość (bez skoku), nad nią tylko cienki pasek powrotu */
+  .bw-hero { position: relative; margin: 0 -12px; height: 250px; background: linear-gradient(#9fd0ee, #dceefb 58%, #86ad55 58%, #5f8a3a); }
+  .bw-hero > div { height: 100%; }
+  .bw-wroc { position: absolute; left: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 10px; background: rgba(7,7,10,.72); color: var(--kremowy); font: 600 12px/1 Inter, sans-serif; text-decoration: none; backdrop-filter: blur(4px); }
+  .bw-naglowek { padding: 14px 2px 0; }
+  .bw-marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
+  .bw-chipy { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
+  .bw-chip { display: inline-block; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: .14em; padding: 5px 8px; border-radius: 6px; color: #fff; background: #6b6b7a; }
+  .bw-chip--przyklad { background: #b8520f; } .bw-chip--trwa { background: var(--akcent-tlo); } .bw-chip--koniec { background: var(--ziel); }
+  h1 { font: 400 clamp(40px, 11vw, 56px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 2px 0 4px; }
+  .bw-pod { margin: 0; font-size: 15px; color: var(--fg2); line-height: 1.4; }
+  .bw-termin { margin: 10px 0 0; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .bw-termin b { font: 400 clamp(24px, 7.4vw, 30px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; color: var(--akcent2); white-space: nowrap; }
+  section.bw-sekcja { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 16px; margin: 14px 0; }
+  section.bw-sekcja h2 { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); margin: 0 0 12px; }
+  .bw-dystanse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .bw-dystans { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 10px 6px 9px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); }
+  .bw-dystans img { width: 54px; height: 54px; }
+  .bw-dystans b { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-dystans small { font-size: 10.5px; color: var(--fg2); line-height: 1.25; }
+  .bw-liczby { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .bw-liczba { position: relative; background: rgba(255,255,255,.05); border: 1px solid var(--ramka); border-radius: 12px; padding: 10px 8px 8px; }
+  .bw-liczba b { display: block; font: 400 28px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; }
+  .bw-liczba span { display: block; font-size: 11.5px; color: var(--fg2); margin-top: 3px; }
+  .bw-przyklad { position: absolute; top: 5px; right: 5px; font: 800 7px/1 Inter, sans-serif; font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: #fff; background: #b8520f; padding: 3px 4px; border-radius: 4px; }
+  .bw-pasek { height: 10px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; margin: 10px 0 4px; }
+  .bw-pasek i { display: block; height: 100%; background: linear-gradient(90deg, var(--akcent), var(--akcent2)); border-radius: 5px; min-width: 2px; }
+  .bw-uwaga { margin: 8px 0 0; font-size: 12px; color: #ffb27a; font-weight: 600; }
+  .bw-przycisk { display: block; width: 100%; margin-top: 12px; padding: 15px; border: 0; border-radius: 14px; background: var(--akcent-tlo); color: #fff; font: 600 15px/1 Inter, sans-serif; text-align: center; text-decoration: none; cursor: pointer; }
+  .bw-przycisk--cichy { background: rgba(255,255,255,.08); color: var(--fg); }
+  .bw-przycisk--obrys { background: transparent; border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); }
+  .bw-przycisk--ziel { background: var(--ziel); }
+  .bw-przycisk[disabled] { opacity: .5; cursor: default; }
+  .bw-cta { margin: 14px 0; } .bw-cta .bw-przycisk { margin-top: 10px; }
+  .bw-cta p { margin: 6px 2px 0; font-size: 12px; color: var(--fg2); line-height: 1.45; }
+  .bw-wiersze { display: flex; gap: 10px; } .bw-wiersze .bw-przycisk { flex: 1; }
+  .bw-kroki { display: grid; gap: 10px; }
+  .bw-krok { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; }
+  .bw-krok img { width: 56px; height: 56px; }
+  .bw-krok b { display: block; font-size: 15px; margin-bottom: 2px; } .bw-krok span { font-size: 13px; color: var(--fg2); line-height: 1.45; }
+  .bw-krok i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--akcent-tlo); color: #fff; font: 800 11px/1 Inter, sans-serif; font-style: normal; margin-right: 6px; vertical-align: 2px; }
+  .bw-liczby--dwie { grid-template-columns: repeat(2, 1fr); }
+  .bw-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .bw-obraz--mala { max-width: 300px; margin: 0 auto; }
+  .bw-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; }
+  .bw-pole { display: block; margin-top: 12px; } .bw-pole > span { display: block; font-size: 13px; color: var(--fg2); margin-bottom: 5px; }
+  .bw-pole input[type=text], .bw-pole input[type=file] { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 500 15px/1.2 Inter, sans-serif; }
+  .bw-wybor { display: grid; gap: 8px; margin-top: 10px; }
+  .bw-wybor label, .bw-zgoda { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--ramka); border-radius: 12px; font-size: 14px; min-height: 44px; cursor: pointer; }
+  .bw-wybor label:has(input:checked) { border-color: var(--akcent2); background: rgba(232,86,30,.14); }
+  .bw-wybor label img { width: 34px; height: 34px; } .bw-wybor label small { display: block; font-size: 11px; color: var(--fg2); }
+  .bw-zgoda { margin-top: 8px; } .bw-zgoda input { width: 20px; height: 20px; }
+  .bw-blad { margin: 8px 0 0; font-size: 13px; color: #ffb27a; font-weight: 600; min-height: 1em; }
+  /* lista wyników */
+  .bw-filtry { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .bw-filtr { min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 600 12px/1 Inter, sans-serif; cursor: pointer; }
+  .bw-filtr[aria-pressed=true] { background: var(--akcent-tlo); border-color: var(--akcent-tlo); color: #fff; }
+  .bw-lista { list-style: none; margin: 0; padding: 0; }
+  .bw-wiersz { display: grid; grid-template-columns: 40px 1fr auto auto; gap: 8px; align-items: center; min-height: 40px; padding: 4px 6px; border-top: 1px solid var(--ramka); font-size: 14px; }
+  .bw-wiersz--ty { background: rgba(232,86,30,.14); border-radius: 10px; border-top-color: transparent; }
+  .bw-nr { font: 400 18px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg2); } .bw-imie i { font-style: normal; font-size: 11px; color: var(--akcent2); font-weight: 800; }
+  .bw-dyst { font-size: 12px; color: var(--fg2); } .bw-czas { text-align: right; font-weight: 600; } .bw-czas small { display: block; font-weight: 400; font-size: 11px; color: var(--fg2); }
+  .bw-wiecej { margin-top: 8px; }
+  /* ulica biegu */
+  .bw-ulica { position: relative; margin: 0 -16px; height: 240px; border-radius: 0; }
+  .bw-przelacznik { display: flex; gap: 6px; margin: 0 0 10px; }
+  /* profil: tak odznaka wygląda w aplikacji */
+  .bw-profil { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); margin-top: 10px; }
+  .bw-profil img { width: 64px; height: 83px; } .bw-profil b { display: block; font-size: 14px; } .bw-profil span { font-size: 12px; color: var(--fg2); }
+  .bw-odznaki-rzad { display: flex; gap: 8px; margin-top: 8px; } .bw-odznaki-rzad i { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.08); border: 1px dashed rgba(255,255,255,.25); }
+  .bw-odznaki-rzad i.bw-nowa { background: #f2b32a; border-style: solid; border-color: #3a1d0a; box-shadow: 0 0 0 3px rgba(242,179,42,.35); }
+  .bw-stopka { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 14px 2px 0; } .bw-stopka a { color: var(--fg2); }
+  /* okna */
+  dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
+  dialog::backdrop { background: rgba(7,7,10,.92); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  dialog h3 { font: 400 28px/1.05 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 6px 0 6px; padding-right: 40px; }
+  .bw-zamknij { position: absolute; right: 10px; top: 10px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: var(--fg); font-size: 20px; cursor: pointer; }
+  .bw-opis { font-size: 14px; line-height: 1.5; color: var(--fg2); margin: 8px 0 0; }
+  .bw-zegarek { position: relative; height: 92px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid var(--ramka); margin-top: 12px; overflow: hidden; display: grid; place-items: center; text-align: center; }
+  .bw-zegarek b { font: 400 30px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-zegarek span { display: block; font-size: 12px; color: var(--fg2); }
+  .bw-zegarek i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(232,86,30,.22); transition: width 1.6s ease-out; }
+  .bw-zegarek--gotowe i { width: 100%; }
+  @media (prefers-reduced-motion: reduce) { .bw-zegarek i { transition: none; } }
+  /* ekran organizacji: osobny, pełny */
+  .bw-ekran { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 36px); }
+  .bw-ekran h1 { font-size: clamp(34px, 9vw, 44px); }
+  .bw-zdanie { font-size: 15px; line-height: 1.45; font-weight: 600; margin: 8px 0 0; padding: 12px; border-radius: 12px; background: rgba(47,107,58,.25); border: 1px solid rgba(47,107,58,.6); }
+  .bw-material { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--ramka); }
+  .bw-material:first-of-type { border-top: 0; }
+  .bw-material img, .bw-material svg { width: 96px; height: 96px; border-radius: 10px; background: var(--kremowy); object-fit: cover; display: block; }
+  .bw-material b { display: block; font-size: 14px; } .bw-material span { font-size: 12px; color: var(--fg2); line-height: 1.4; display: block; }
+  .bw-material .bw-przycisk { margin-top: 8px; padding: 10px; font-size: 13px; }
+  .bw-lista-prosta { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.55; } .bw-lista-prosta li + li { margin-top: 4px; }
+  .bw-check { list-style: none; margin: 0; padding: 0; } .bw-check li { display: flex; gap: 10px; align-items: center; min-height: 44px; border-top: 1px solid var(--ramka); font-size: 14px; } .bw-check li:first-child { border-top: 0; }
+  .bw-check input { flex: 0 0 22px; width: 22px; height: 22px; margin: 0; accent-color: var(--akcent-tlo); }   /* jedna wielkość pól niezależnie od długości etykiety (flex-shrink zmniejszał je przy dwóch liniach) */
+  .bw-check label { flex: 1; padding: 8px 0; cursor: pointer; }
+  .bw-tabela { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; } .bw-tabela th, .bw-tabela td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--ramka); } .bw-tabela th { color: var(--fg2); font-weight: 600; }
+  /* konfetti i druk */
+  .bw-konfetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  .bw-druk { display: none; }
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    body > *:not(.bw-druk) { display: none !important; }
+    .bw-druk { display: block; width: 297mm; height: 210mm; } .bw-druk img { width: 297mm; height: 210mm; display: block; }
+  }
+  @media (min-width: 900px) {
+    main { max-width: 1040px; }
+    .bw-hero { height: 340px; border-radius: 0 0 22px 22px; overflow: hidden; }
+    .bw-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+    .bw-ulica { height: 320px; margin: 0; border-radius: 14px; overflow: hidden; }
+    .bw-ekran { max-width: 1040px; }
+    .bw-ekran .bw-uklad { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<main id="bw-main">
+  <div class="bw-hero"><div id="bw-scena" aria-label="Scena biegu: brama start i meta, trasa, kibice"></div><a class="bw-wroc" href="miasto.html">‹ Miasto Dobra</a></div>
+
+  <div class="bw-naglowek">
+    <div class="bw-marka">BiegaMy · Miasto Dobra</div>
+    <div class="bw-chipy"><span class="bw-chip bw-chip--przyklad">PRZYKŁAD</span><span class="bw-chip bw-chip--trwa" id="bw-chip-stan">TRWA</span></div>
+    <h1>Bieg Wirtualny</h1>
+    <p class="bw-pod">Bieg i spacer dla jednej zbiórki. Pobiegnij albo przejdź swój dystans tam, gdzie mieszkasz.</p>
+    <p class="bw-termin"><b>21–22.11</b><span>sobota–niedziela, cały weekend<br><small style="color:var(--fg2);font-weight:600">okno biegu · przykład</small></span></p>
+  </div>
+
+  <div class="bw-uklad">
+  <div>
+  <div class="bw-cta">
+    <button type="button" class="bw-przycisk" id="bw-zapisz">Zapisz się, udział jest bezpłatny ›</button>
+    <button type="button" class="bw-przycisk bw-przycisk--obrys" id="bw-wesprzyj">Wesprzyj zbiórkę u organizacji ›</button>
+    <p>Wpłaty idą wyłącznie przez organizację prowadzącą zbiórkę. BiegaMy nic nie przyjmuje i nie widzi wpłat.</p>
+  </div>
+
+  <section class="bw-sekcja" aria-label="Dystanse">
+    <h2>Dystanse</h2>
+    <div class="bw-dystanse" id="bw-dystanse"></div>
+  </section>
+
+  <section class="bw-sekcja" aria-label="Licznik biegu">
+    <h2>Razem</h2>
+    <div class="bw-liczby" id="bw-liczby"></div>
+    <div class="bw-pasek" id="bw-pasek" role="img"><i></i></div>
+    <p class="bw-uwaga">Dane wymyślone na potrzeby pokazu. Nie wchodzą do licznika miasta.</p>
+  </section>
+
+  <section class="bw-sekcja" id="bw-moj" hidden aria-label="Twój bieg">
+    <h2>Twój bieg</h2>
+    <div id="bw-moj-tresc"></div>
+  </section>
+
+  <section class="bw-sekcja" aria-label="Jak to działa">
+    <h2>Jak to działa</h2>
+    <div class="bw-kroki" id="bw-kroki"></div>
+  </section>
+  </div>
+
+  <div>
+  <section class="bw-sekcja" aria-label="Uczestnicy i wyniki">
+    <h2>Uczestnicy i wyniki <span class="bw-chip bw-chip--przyklad" style="vertical-align:middle">PRZYKŁAD</span></h2>
+    <div class="bw-filtry" id="bw-filtr-dystans"><button type="button" class="bw-filtr" data-filtr="wszyscy" aria-pressed="true">wszyscy</button><button type="button" class="bw-filtr" data-filtr="5">5 km</button><button type="button" class="bw-filtr" data-filtr="10">10 km</button><button type="button" class="bw-filtr" data-filtr="twoj">Twój dystans</button></div>
+    <div class="bw-filtry" id="bw-filtr-kolejnosc"><button type="button" class="bw-filtr" data-kolejnosc="czas" aria-pressed="true">według czasu</button><button type="button" class="bw-filtr" data-kolejnosc="imie">alfabetycznie</button></div>
+    <ol class="bw-lista" id="bw-lista"></ol>
+    <button type="button" class="bw-przycisk bw-przycisk--cichy bw-wiecej" id="bw-wiecej">Pokaż więcej</button>
+    <p class="bw-drobne">Lista pokazuje imię i numer, bez nazwisk. „Twój dystans” nie ma czasu: liczy się ukończenie, nie tempo.</p>
+  </section>
+
+  <section class="bw-sekcja" aria-label="Ulica biegu">
+    <h2>Ulica biegu w Mieście Dobra</h2>
+    <div class="bw-przelacznik"><button type="button" class="bw-filtr" data-faza="trakcie" aria-pressed="true">w trakcie</button><button type="button" class="bw-filtr" data-faza="po">po biegu</button></div>
+    <div class="bw-ulica" id="bw-ulica"></div>
+    <p class="bw-drobne">Kilometry uczestników budują drogę, darczyńcy mają cegły w murze, firmy domki. Po biegu ulica zostaje w mieście jako ZBUDOWANA.</p>
+  </section>
+
+  <section class="bw-sekcja" aria-label="Widok organizacji">
+    <h2>Dla organizacji prowadzącej zbiórkę</h2>
+    <p class="bw-opis" style="margin-top:0">Co dostaje organizacja i czego BiegaMy nie dotyka: liczby, materiały do pobrania, lista zgód, checklista przed startem.</p>
+    <a class="bw-przycisk bw-przycisk--ziel" href="#organizacja" id="bw-do-org">Zobacz widok organizacji ›</a>
+  </section>
+  </div>
+  </div>
+
+  <p class="bw-stopka">Pokaz Biegu Wirtualnego w Mieście Dobra. Wszystkie dane są wymyślone, nic nie jest zapisywane poza Twoją przeglądarką i nic nie jest wysyłane. Udział w prawdziwym biegu będzie bezpłatny; wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi. <a href="privacy.html">Polityka prywatności</a></p>
+  <button type="button" class="bw-filtr" id="bw-od-nowa" style="margin-top:10px;min-height:40px">Zacznij pokaz od nowa</button>
+</main>
+
+<section id="bw-org" class="bw-ekran" hidden aria-label="Widok organizacji">
+  <div class="bw-marka">BiegaMy · Miasto Dobra · widok organizacji</div>
+  <div class="bw-chipy"><span class="bw-chip bw-chip--przyklad">PRZYKŁAD</span><span class="bw-chip">ATRAPA</span></div>
+  <h1>Bieg Wirtualny: panel organizacji</h1>
+  <p class="bw-zdanie">Pieniądze idą wyłącznie przez organizację prowadzącą zbiórkę. BiegaMy ich nie widzi i nie dotyka: liczymy kilometry, zapisy i kliknięcia.</p>
+  <a class="bw-przycisk bw-przycisk--cichy" href="#" id="bw-z-org">‹ Wróć do strony biegu</a>
+  <div class="bw-uklad">
+  <div>
+  <section class="bw-sekcja" aria-label="Liczby dla organizacji">
+    <h2>Liczby</h2>
+    <div class="bw-liczby bw-liczby--dwie" id="bw-org-liczby"></div>
+    <p class="bw-drobne"><b>Kliknięcia, nie wpłaty.</b> Liczymy wejścia w link „Wesprzyj zbiórkę”. Ile osób wpłaciło i ile, wie tylko organizacja: wpłaty nie przechodzą przez BiegaMy.</p>
+  </section>
+  <section class="bw-sekcja" aria-label="Czego BiegaMy nie dotyka">
+    <h2>Czego BiegaMy nie dotyka</h2>
+    <ul class="bw-lista-prosta"><li>Wpłat, danych płatniczych i faktur.</li><li>Regulaminu zbiórki i rozliczeń z darczyńcami.</li><li>Kontaktu z darczyńcami.</li><li>Danych uczestników ponad to, na co się zgodzili (imię na dyplom, kontakt od organizacji, jeśli zaznaczyli).</li></ul>
+  </section>
+  <section class="bw-sekcja" aria-label="Co organizacja zatwierdza przed startem">
+    <h2>Co organizacja zatwierdza przed startem</h2>
+    <ul class="bw-check" id="bw-check"></ul>
+    <p class="bw-drobne">Zaznaczenia zostają tylko w tej przeglądarce. W prawdziwym biegu zatwierdza osoba z organizacji w swoim panelu.</p>
+  </section>
+  </div>
+  <div>
+  <section class="bw-sekcja" aria-label="Materiały do pobrania">
+    <h2>Materiały do pobrania (generowane w przeglądarce)</h2>
+    <div id="bw-materialy"></div>
+  </section>
+  <section class="bw-sekcja" aria-label="Zgody uczestników">
+    <h2>Zgody uczestników na kontakt (przykład eksportu)</h2>
+    <p class="bw-opis" style="margin-top:0">Organizacja dostaje tylko osoby, które zaznaczyły zgodę na kontakt. W pokazie adresy są ukryte.</p>
+    <table class="bw-tabela" id="bw-zgody"></table>
+    <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-csv">Pobierz przykład eksportu (CSV)</button>
+  </section>
+  </div>
+  </div>
+</section>
+
+<dialog id="bw-okno-zapis" aria-label="Zapis na bieg">
+  <button type="button" class="bw-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Zapisz się na bieg</h3>
+  <p class="bw-opis">Udział jest bezpłatny. Imię trafi na numer startowy i dyplom; w pokazie zostaje tylko w Twojej przeglądarce.</p>
+  <div class="bw-wybor" id="bw-zapis-dystanse"></div>
+  <label class="bw-pole" for="bw-imie"><span>Imię na dyplom</span><input id="bw-imie" type="text" autocomplete="off" maxlength="24" placeholder="np. Ola"></label>
+  <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-lista" checked> <span>Pokaż moje imię i numer na liście uczestników</span></label>
+  <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-kontakt"> <span>Organizacja prowadząca zbiórkę może się ze mną skontaktować</span></label>
+  <p class="bw-blad" id="bw-zapis-blad"></p>
+  <button type="button" class="bw-przycisk" id="bw-zapis-ok">Zapisz mnie i daj numer ›</button>
+</dialog>
+
+<dialog id="bw-okno-wynik" aria-label="Dodaj wynik">
+  <button type="button" class="bw-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Dodaj swój wynik</h3>
+  <p class="bw-opis">Dwie drogi, obie w pokazie: z zegarka (udawane pobranie treningu) albo wpisz sam.</p>
+  <div class="bw-wiersze"><button type="button" class="bw-przycisk" id="bw-wynik-zegarek">Z zegarka</button><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-wynik-recznie">Wpisuję sam</button></div>
+  <div id="bw-wynik-zegarek-pole" hidden><div class="bw-zegarek" id="bw-zegarek"><i></i><div><b id="bw-zegarek-tekst">szukam treningu…</b><span id="bw-zegarek-pod">z weekendu biegu</span></div></div></div>
+  <div id="bw-wynik-recznie-pole" hidden>
+    <label class="bw-pole" for="bw-czas"><span>Czas (mm:ss albo h:mm:ss)</span><input id="bw-czas" type="text" inputmode="numeric" autocomplete="off" placeholder="np. 29:31"></label>
+    <label class="bw-pole" for="bw-zrzut"><span>Zrzut z aplikacji albo zdjęcie zegarka (nieobowiązkowe, w pokazie nigdzie nie idzie)</span><input id="bw-zrzut" type="file" accept="image/*"></label>
+  </div>
+  <p class="bw-blad" id="bw-wynik-blad"></p>
+  <button type="button" class="bw-przycisk" id="bw-wynik-ok" hidden>Zapisz wynik i odbierz dyplom ›</button>
+</dialog>
+
+<dialog id="bw-okno-wesprzyj" aria-label="Wesprzyj zbiórkę">
+  <button type="button" class="bw-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Tu otworzy się strona zbiórki</h3>
+  <p class="bw-opis">W prawdziwym biegu ten przycisk prowadzi na oficjalną stronę zbiórki organizacji, poza BiegaMy. Wpłata jest dobrowolna i idzie w całości do organizacji. My widzimy tylko, że ktoś kliknął; nie widzimy, czy i ile wpłacił.</p>
+  <p class="bw-opis">W pokazie link nigdzie nie prowadzi. Kliknięcie zostało policzone w widoku organizacji.</p>
+  <button type="button" class="bw-przycisk" data-zamknij>Rozumiem</button>
+</dialog>
+
+<canvas class="bw-konfetti" id="bw-konfetti" hidden aria-hidden="true"></canvas>
+<div class="bw-druk" aria-hidden="true"><img id="bw-druk-obraz" alt=""></div>
+
+<script>
+(function () {
+  'use strict';
+  var B = window.BM_BIEG, $ = function (id) { return document.getElementById(id); };
+  var stan = B.odczytaj(), filtr = 'wszyscy', kolejnosc = 'czas', pokazane = 25, faza = 'trakcie', obrazy = {}, adresy = {}, laptop = function () { return window.matchMedia('(min-width: 900px)').matches; };
+  var ZASOBY = ['assets/gra/slonce.webp', 'assets/gra/chmura1.webp', 'assets/ulica/wzgorza.webp', 'assets/ulica/droga.webp', 'assets/ulica/pierwszy-plan.webp', 'assets/ulica/drzewo.webp', 'assets/ulica/latarnia.webp', 'assets/ulica/wiezowiec.webp',
+    'assets/ulica/domek-1.webp', 'assets/ulica/domek-2.webp', 'assets/ulica/domek-3.webp',
+    'assets/miasto/bieg-brama.svg', 'assets/miasto/bieg-kibice.svg', 'assets/miasto/bieg-medal.svg', 'assets/miasto/bieg-dystans-5.svg', 'assets/miasto/bieg-dystans-10.svg', 'assets/miasto/bieg-dystans-twoj.svg',
+    'assets/miasto/bieg-krok-1.svg', 'assets/miasto/bieg-krok-2.svg', 'assets/miasto/bieg-krok-3.svg', 'assets/miasto/bieg-krok-4.svg'];
+  var ADRES_STRONY = location.origin + location.pathname;
+
+  /* GRAFIKI JEDNĄ DROGĄ I BEZ SIECI: każdy plik idzie z sieci dokładnie raz, przez Cache API strony (cache-first), i trafia na stronę jako adres blob:.
+     sw.js (zamrożony) nie trzyma własnych .webp, więc strona trzyma wszystko sama: po jednym otwarciu z internetem cała ścieżka (scena, numer, dyplom, plakat)
+     działa w trybie samolotowym. Tylko własne pliki assets/. Bez Cache API albo gdy pobranie padnie: zwykły adres pliku. */
+  var zapytane = {};
+  function zasob(url) {
+    if (adresy[url]) return Promise.resolve(adresy[url]);
+    if (zapytane[url]) return zapytane[url];
+    if (!url || !/^assets\//.test(url) || !window.fetch) return Promise.resolve(url);
+    var zCache = window.caches ? window.caches.open('bm-miasto-grafiki-v1').catch(function () { return null; }) : Promise.resolve(null);
+    zapytane[url] = zCache.then(function (c) {
+      var zCacheOdp = c ? c.match(url) : Promise.resolve(null);
+      return zCacheOdp.then(function (r) { return r || fetch(url).then(function (odp) { if (odp && odp.ok && c) c.put(url, odp.clone()).catch(function () {}); return odp; }); })
+        .then(function (r) { if (!r || !r.ok) return url; return r.blob().then(function (b) { adresy[url] = URL.createObjectURL(b); return adresy[url]; }); });
+    }).catch(function () { return url; });
+    return zapytane[url];
+  }
+  function zrodlo(url) { return adresy[url] || url; }
+  function obrazek(url) { return zasob(url).then(function (u) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = u; }); }); }
+  function podmienAdresy(korzen) {
+    (korzen || document).querySelectorAll('img[data-src]').forEach(function (im) { var src = im.getAttribute('data-src'); zasob(src).then(function (u) { im.src = u; }); });
+  }
+  /* najpierw to, czego potrzebuje scena u góry (kolor najpierw), dopiero potem domki ulicy biegu i ikony */
+  var HERO = ZASOBY.filter(function (u) { return !/domek|wiezowiec|bieg-dystans|bieg-krok|bieg-medal/.test(u); });
+  var gotoweHero = Promise.all(HERO.map(zasob));
+  var gotoweZasoby = gotoweHero.then(function () { return Promise.all(ZASOBY.map(zasob)); }).then(function () {
+    return Promise.all([obrazek('assets/miasto/bieg-brama.svg'), obrazek('assets/miasto/bieg-medal.svg'), obrazek('assets/miasto/bieg-kibice.svg')]).then(function (o) { obrazy = { brama: o[0], medal: o[1], kibice: o[2] }; });
+  });
+  /* bez sieci document.fonts.load ODRZUCA (Bebas z repo od części 7: @font-face jest, pliku nie ma), a odrzucony Promise.all przewraca race i generowanie grafik nigdy nie rusza; catch = rysujemy czcionką zapasową (pomiar 11.11) */
+  function fonty() { try { return document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("40px 'Bebas Neue'"), document.fonts.load("600 20px Inter")]).catch(function () {}), new Promise(function (ok) { setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
+
+  /* ── STRONA BIEGU ── */
+  function liczbaHtml(duze, male) { return '<div class="bw-liczba"><b>' + B.esc(duze) + '</b><span>' + B.esc(male) + '</span><i class="bw-przyklad">przykład</i></div>'; }
+  function rysujHero() { gotoweHero.then(function () { B.scena($('bw-scena'), { tryb: 'hero', wysokosc: laptop() ? 340 : 250, zrodlo: zrodlo }); }); }
+  function rysujUlice() { gotoweZasoby.then(function () { B.scena($('bw-ulica'), { tryb: 'ulica', faza: faza, suma_km: B.BIEG.suma_km, cel_km: B.BIEG.cel_km, cegly_n: B.BIEG.cegly_n, wysokosc: laptop() ? 320 : 240, zrodlo: zrodlo }); }); }
+  function rysujStale() {
+    $('bw-dystanse').innerHTML = B.DYSTANSE.map(function (d) { return '<div class="bw-dystans"><img data-src="' + d.ikona + '" alt=""><b>' + B.esc(d.nazwa) + '</b><small>' + B.esc(d.opis) + '</small></div>'; }).join('');
+    $('bw-kroki').innerHTML = B.JAK.map(function (k, i) { return '<div class="bw-krok"><img data-src="' + k.ikona + '" alt=""><div><b><i>' + (i + 1) + '</i>' + B.esc(k.tytul) + '</b><span>' + B.esc(k.opis) + '</span></div></div>'; }).join('');
+    $('bw-zapis-dystanse').innerHTML = B.DYSTANSE.map(function (d, i) { return '<label><input type="radio" name="bw-dystans" value="' + d.id + '"' + (i === 0 ? ' checked' : '') + '><img data-src="' + d.ikona + '" alt=""><span><b>' + B.esc(d.nazwa) + '</b><small>' + B.esc(d.opis) + '</small></span></label>'; }).join('');
+    podmienAdresy();
+  }
+  function rysujLiczby() {
+    var osoby = B.BIEG.osoby_n + (stan.zapis ? 1 : 0), km = B.BIEG.suma_km + (stan.wynik ? stan.wynik.km : 0), pct = B.procent(km, B.BIEG.cel_km);
+    $('bw-liczby').innerHTML = liczbaHtml(B.liczba(osoby), B.forma(osoby, ['uczestnik', 'uczestników', 'uczestników'])) + liczbaHtml(B.km(km) + ' km', 'z ' + B.km(B.BIEG.cel_km) + ' km celu') + liczbaHtml(B.liczba(pct, 1) + ' %', 'ulicy biegu');
+    $('bw-pasek').setAttribute('aria-label', B.liczba(pct, 1) + ' % celu'); $('bw-pasek').firstChild.style.width = pct + '%';
+  }
+  function rysujListe() {
+    var l = B.listaWynikow(filtr, kolejnosc, stan.zapis && stan.zapis.zgody && stan.zapis.zgody.lista ? B.wlasnyWiersz(stan) : null);
+    $('bw-lista').innerHTML = l.slice(0, pokazane).map(B.wierszWyniku).join('');
+    $('bw-wiecej').hidden = l.length <= pokazane; $('bw-wiecej').textContent = 'Pokaż więcej (' + (l.length - Math.min(pokazane, l.length)) + ')';
+  }
+  function wcisnij(kontener, atr, wartosc) { kontener.querySelectorAll('[' + atr + ']').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute(atr) === wartosc ? 'true' : 'false'); }); }
+
+  /* Twój bieg: numer po zapisie, dyplom i odznaka po wyniku. Canvasy rysowane po wczytaniu grafik i fontów; obraz <img> z toDataURL, żeby długie przytrzymanie dawało „zapisz obraz”. */
+  var kanwy = { numer: null, dyplom: null, dyplomA4: null };
+  function rysujMoj() {
+    var s = $('bw-moj'), t = $('bw-moj-tresc');
+    if (!stan.zapis) { s.hidden = true; t.innerHTML = ''; return; }
+    s.hidden = false;
+    var d = B.dystans(stan.zapis.dystans), h = '<p class="bw-opis" style="margin:0 0 10px"><b style="color:var(--fg)">' + B.esc(stan.zapis.imie) + '</b>, numer <b style="color:var(--fg)">' + stan.zapis.nr + '</b>, ' + B.esc(d.nazwa) + '. Twój numer startowy:</p>';
+    h += '<img class="bw-obraz" id="bw-numer-obraz" alt="Numer startowy ' + stan.zapis.nr + '"><div class="bw-wiersze"><button type="button" class="bw-przycisk" data-udostepnij="numer">Udostępnij</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-pobierz="numer">Pobierz PNG</button></div>';
+    if (!stan.wynik) {
+      h += '<p class="bw-opis">Po biegu dodaj wynik: z zegarka albo wpisz sam. Potem odbierzesz dyplom i odznakę.</p><button type="button" class="bw-przycisk bw-przycisk--ziel" id="bw-dodaj-wynik">Dodaj wynik ›</button>';
+    } else {
+      var w = stan.wynik;
+      h += '<p class="bw-opis" style="margin-top:14px">Wynik: <b style="color:var(--fg)">' + (w.czas_s ? B.esc(B.czas(w.czas_s)) + (d.km ? ' (' + B.esc(B.tempo(w.czas_s, d.km)) + ')' : '') : 'ukończono, ' + B.km(w.km) + ' km') + '</b> · ' + (w.zrodlo === 'zegarek' ? 'z zegarka' : 'wpisany ręcznie') + '. Twój dyplom:</p>';
+      h += '<img class="bw-obraz" id="bw-dyplom-obraz" alt="Dyplom"><div class="bw-wiersze"><button type="button" class="bw-przycisk" data-udostepnij="dyplom">Udostępnij</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-pobierz="dyplom">Pobierz</button><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-drukuj">Drukuj A4</button></div>';
+      h += '<p class="bw-opis" style="margin-top:16px">Twoja odznaka biegu. Tak będzie wyglądać w Twoim profilu:</p>';
+      h += '<div class="bw-profil"><img data-src="assets/miasto/bieg-medal.svg" alt=""><div><b>' + B.esc(stan.zapis.imie) + '</b><span>Bieg Wirtualny · ' + B.esc(d.nazwa) + ' · ' + B.esc(B.dataPolska(new Date(w.data))) + '</span><div class="bw-odznaki-rzad"><i></i><i></i><i class="bw-nowa"></i><i></i><i></i></div></div></div>';
+      h += '<p class="bw-drobne">W prawdziwym biegu odznaka trafia do profilu w aplikacji po zatwierdzeniu wyniku.</p>';
+    }
+    h += '<p class="bw-drobne">Udostępnianie przez systemowe okno telefonu; gdy przeglądarka go nie ma, plik się pobiera.</p>';
+    t.innerHTML = h; podmienAdresy(t);
+    Promise.all([gotoweZasoby, fonty()]).then(function () {
+      kanwy.numer = B.numerStartowy(stan.zapis, obrazy); var ni = $('bw-numer-obraz'); if (ni) ni.src = kanwy.numer.toDataURL('image/png');
+      if (stan.wynik) { kanwy.dyplom = B.dyplom(stan, 'telefon', obrazy); kanwy.dyplomA4 = B.dyplom(stan, 'a4', obrazy); var di = $('bw-dyplom-obraz'); if (di) di.src = kanwy.dyplom.toDataURL('image/png'); $('bw-druk-obraz').src = kanwy.dyplomA4.toDataURL('image/png'); }
+    });
+  }
+  function doBloba(k) { return new Promise(function (ok) { k.toBlob(function (b) { ok(b); }, 'image/png'); }); }
+  function pobierz(blob, nazwa) { var u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nazwa; document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 2000); }
+  function udostepnij(k, nazwa, tytul, tekst) {
+    if (!k) return Promise.resolve('brak');
+    return doBloba(k).then(function (blob) {
+      var plik = null; try { plik = new File([blob], nazwa, { type: 'image/png' }); } catch (e) {}
+      if (plik && navigator.share && navigator.canShare && navigator.canShare({ files: [plik] })) {
+        return navigator.share({ files: [plik], title: tytul, text: tekst }).then(function () { return 'udostępnione'; }, function (e) { if (e && e.name === 'AbortError') return 'anulowane'; pobierz(blob, nazwa); return 'pobrane'; });
+      }
+      pobierz(blob, nazwa); return 'pobrane';
+    });
+  }
+  var nazwaPliku = function (co) { return 'bieg-wirtualny-' + co + '-' + (stan.zapis ? stan.zapis.nr : 0) + '.png'; };
+
+  /* konfetti: krótka radość przy dyplomie; przy prefers-reduced-motion nic się nie rusza */
+  function konfetti() {
+    if (B.bezRuchu()) return;
+    var k = $('bw-konfetti'), c = k.getContext('2d'); if (!c) return;
+    k.hidden = false; k.width = innerWidth; k.height = innerHeight;
+    var kolory = ['#e8561e', '#f2b32a', '#6f9e3e', '#d9482b', '#ff8a3d', '#3d5a99', '#fff7e6'], cz = [], start = performance.now();
+    for (var i = 0; i < 140; i++) cz.push({ x: Math.random() * k.width, y: -20 - Math.random() * k.height * 0.5, vx: (Math.random() - 0.5) * 1.6, vy: 2 + Math.random() * 3, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.2, w: 6 + Math.random() * 8, h: 4 + Math.random() * 4, kol: kolory[i % kolory.length] });
+    (function klatka(t) {
+      var dt = t - start; c.clearRect(0, 0, k.width, k.height);
+      cz.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.r += p.vr; c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.kol; c.globalAlpha = Math.max(0, 1 - Math.max(0, dt - 1800) / 900); c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); c.restore(); });
+      if (dt < 2700) requestAnimationFrame(klatka); else { k.hidden = true; c.clearRect(0, 0, k.width, k.height); }
+    })(start);
+  }
+
+  /* ── OKNA ── */
+  function pokazOkno(d) { if (d.open) return; if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function schowajOkno(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  document.querySelectorAll('dialog').forEach(function (d) { d.addEventListener('click', function (e) { if (e.target.closest('[data-zamknij]')) schowajOkno(d); }); d.addEventListener('submit', function (e) { e.preventDefault(); }); });
+  var OKNO_ZAPIS = $('bw-okno-zapis'), OKNO_WYNIK = $('bw-okno-wynik'), OKNO_WESPRZYJ = $('bw-okno-wesprzyj');
+  $('bw-zapisz').addEventListener('click', function () { if (stan.zapis) { $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' }); return; } $('bw-zapis-blad').textContent = ''; pokazOkno(OKNO_ZAPIS); setTimeout(function () { $('bw-imie').focus(); }, 50); });
+  $('bw-zapis-ok').addEventListener('click', function () {
+    var d = (OKNO_ZAPIS.querySelector('input[name="bw-dystans"]:checked') || {}).value, z = B.nowyZapis($('bw-imie').value, d, { lista: $('bw-zgoda-lista').checked, kontakt: $('bw-zgoda-kontakt').checked });
+    if (!z) { $('bw-zapis-blad').textContent = 'Wpisz imię: same litery, do 24 znaków.'; return; }
+    stan.zapis = z; stan.wynik = null; B.zapisz(stan); schowajOkno(OKNO_ZAPIS);
+    rysujLiczby(); rysujListe(); rysujMoj(); $('bw-zapisz').textContent = 'Twój numer startowy ›';
+    $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' });
+  });
+  $('bw-imie').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('bw-zapis-ok').click(); } });
+  var drogaWyniku = null;
+  function otworzWynik() { drogaWyniku = null; $('bw-wynik-zegarek-pole').hidden = true; $('bw-wynik-recznie-pole').hidden = true; $('bw-wynik-ok').hidden = true; $('bw-wynik-blad').textContent = ''; $('bw-czas').value = ''; $('bw-zegarek').classList.remove('bw-zegarek--gotowe'); pokazOkno(OKNO_WYNIK); }
+  document.addEventListener('click', function (e) { if (e.target.closest('#bw-dodaj-wynik')) otworzWynik(); });
+  $('bw-wynik-zegarek').addEventListener('click', function () {
+    drogaWyniku = 'zegarek'; $('bw-wynik-recznie-pole').hidden = true; $('bw-wynik-zegarek-pole').hidden = false; $('bw-wynik-ok').hidden = true; $('bw-wynik-blad').textContent = '';
+    var w = B.nowyWynik(stan.zapis, 'zegarek'), d = B.dystans(stan.zapis.dystans); $('bw-zegarek-tekst').textContent = 'szukam treningu…'; $('bw-zegarek-pod').textContent = 'z weekendu biegu'; $('bw-zegarek').classList.remove('bw-zegarek--gotowe');
+    requestAnimationFrame(function () { $('bw-zegarek').classList.add('bw-zegarek--gotowe'); });
+    setTimeout(function () { if (drogaWyniku !== 'zegarek') return; $('bw-zegarek-tekst').textContent = w.czas_s ? B.czas(w.czas_s) + ' · ' + d.nazwa : B.km(w.km) + ' km · ' + d.nazwa; $('bw-zegarek-pod').textContent = 'trening z soboty, 21.11, pobrany z zegarka (pokaz)'; $('bw-wynik-ok').hidden = false; }, B.bezRuchu() ? 50 : 1700);
+  });
+  $('bw-wynik-recznie').addEventListener('click', function () { drogaWyniku = 'recznie'; $('bw-wynik-zegarek-pole').hidden = true; var tw = B.dystans(stan.zapis.dystans).id === 'twoj'; $('bw-wynik-recznie-pole').hidden = tw; $('bw-wynik-ok').hidden = false; $('bw-wynik-blad').textContent = tw ? '' : ''; if (!tw) setTimeout(function () { $('bw-czas').focus(); }, 50); });
+  $('bw-czas').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('bw-wynik-ok').click(); } });
+  $('bw-wynik-ok').addEventListener('click', function () {
+    var w = B.nowyWynik(stan.zapis, drogaWyniku, $('bw-czas').value);
+    if (!w) { $('bw-wynik-blad').textContent = 'Wpisz czas jak 29:31 albo 1:02:05.'; return; }
+    stan.wynik = w; B.zapisz(stan); schowajOkno(OKNO_WYNIK);
+    rysujLiczby(); rysujListe(); rysujMoj(); konfetti();
+    $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' });
+  });
+  $('bw-wesprzyj').addEventListener('click', function () { stan.klikniecia = (stan.klikniecia || 0) + 1; B.zapisz(stan); pokazOkno(OKNO_WESPRZYJ); });
+  document.addEventListener('click', function (e) {
+    var u = e.target.closest('[data-udostepnij]'), p = e.target.closest('[data-pobierz]');
+    if (u) { var co = u.getAttribute('data-udostepnij'); udostepnij(co === 'numer' ? kanwy.numer : kanwy.dyplom, nazwaPliku(co), co === 'numer' ? 'Mój numer startowy' : 'Mój dyplom', 'Bieg Wirtualny w Mieście Dobra'); }
+    if (p) { var co2 = p.getAttribute('data-pobierz'), k = co2 === 'numer' ? kanwy.numer : kanwy.dyplom; if (k) doBloba(k).then(function (b) { pobierz(b, nazwaPliku(co2)); }); }
+    if (e.target.closest('#bw-drukuj')) { if (kanwy.dyplomA4) { $('bw-druk-obraz').src = kanwy.dyplomA4.toDataURL('image/png'); setTimeout(function () { window.print(); }, 60); } }
+  });
+  $('bw-filtr-dystans').addEventListener('click', function (e) { var b = e.target.closest('[data-filtr]'); if (!b) return; filtr = b.getAttribute('data-filtr'); pokazane = 25; wcisnij($('bw-filtr-dystans'), 'data-filtr', filtr); rysujListe(); });
+  $('bw-filtr-kolejnosc').addEventListener('click', function (e) { var b = e.target.closest('[data-kolejnosc]'); if (!b) return; kolejnosc = b.getAttribute('data-kolejnosc'); wcisnij($('bw-filtr-kolejnosc'), 'data-kolejnosc', kolejnosc); rysujListe(); });
+  $('bw-wiecej').addEventListener('click', function () { pokazane += 50; rysujListe(); });
+  document.querySelector('.bw-przelacznik').addEventListener('click', function (e) { var b = e.target.closest('[data-faza]'); if (!b) return; faza = b.getAttribute('data-faza'); wcisnij(b.parentNode, 'data-faza', faza); $('bw-chip-stan').textContent = faza === 'po' ? 'ZBUDOWANA' : 'TRWA'; $('bw-chip-stan').className = 'bw-chip ' + (faza === 'po' ? 'bw-chip--koniec' : 'bw-chip--trwa'); rysujUlice(); });
+  $('bw-od-nowa').addEventListener('click', function () { B.wyczysc(); stan = {}; kanwy = { numer: null, dyplom: null, dyplomA4: null }; $('bw-zapisz').textContent = 'Zapisz się, udział jest bezpłatny ›'; rysujLiczby(); rysujListe(); rysujMoj(); rysujOrg(); window.scrollTo(0, 0); });
+
+  /* ── WIDOK ORGANIZACJI (#organizacja) ── */
+  var materialy = {};
+  function rysujOrg() {
+    var zap = B.BIEG.osoby_n + (stan.zapis ? 1 : 0), km = B.BIEG.suma_km + (stan.wynik ? stan.wynik.km : 0), kl = B.BIEG.wesprzyj_n + (stan.klikniecia || 0), zg = B.uczestnicy().filter(function (u) { return u.zgoda_kontakt; }).length + (stan.zapis && stan.zapis.zgody && stan.zapis.zgody.kontakt ? 1 : 0);
+    $('bw-org-liczby').innerHTML = liczbaHtml(B.liczba(zap), 'zapisanych z ' + B.liczba(B.BIEG.limit_n) + ' miejsc') + liczbaHtml(B.km(km) + ' km', 'przebiegnięte i przejście') + liczbaHtml(B.liczba(kl), 'kliknięć „Wesprzyj zbiórkę”') + liczbaHtml(B.liczba(B.uczestnicy().filter(function (u) { return u.ukonczyl; }).length + (stan.wynik ? 1 : 0)), 'z wynikiem') + liczbaHtml(B.liczba(zg), 'zgód na kontakt') + liczbaHtml('3', 'firmy na ulicy biegu');
+    $('bw-check').innerHTML = B.CHECKLISTA.map(function (c, i) { return '<li><input type="checkbox" id="bw-ch-' + i + '"' + (stan.check && stan.check[i] ? ' checked' : '') + '><label for="bw-ch-' + i + '">' + B.esc(c) + '</label></li>'; }).join('');
+    var z = B.uczestnicy().filter(function (u) { return u.zgoda_kontakt; }).slice(0, 6);
+    $('bw-zgody').innerHTML = '<tr><th>nr</th><th>imię</th><th>dystans</th><th>zgoda na kontakt</th><th>adres</th></tr>' + z.map(function (u) { return '<tr><td>' + u.nr + '</td><td>' + B.esc(u.imie) + '</td><td>' + B.esc(B.dystans(u.dystans).nazwa) + '</td><td>tak</td><td>ukryty w pokazie</td></tr>'; }).join('');
+    if (!$('bw-materialy').firstChild) {
+      $('bw-materialy').innerHTML = [['plakat', 'Plakat biegu (1080×1350)', 'Nazwa, okno, dystanse, kod QR do tej strony, zdanie o wpłatach. Miejsce na znak organizacji.'], ['social', 'Grafika do mediów społecznościowych (1080×1080)', 'Do wpisu organizacji i uczestników.'], ['qr', 'Kod QR do strony biegu', 'Wygenerowany w przeglądarce, bez zewnętrznych usług. Plik SVG, ostry w każdym rozmiarze.']]
+        .map(function (m) { return '<div class="bw-material" data-material="' + m[0] + '"><div class="bw-material-obraz"></div><div><b>' + m[1] + '</b><span>' + m[2] + '</span><button type="button" class="bw-przycisk bw-przycisk--cichy" data-pobierz-material="' + m[0] + '">Pobierz</button></div></div>'; }).join('');
+      var qr = B.qrSvg(ADRES_STRONY); $('bw-materialy').querySelector('[data-material="qr"] .bw-material-obraz').innerHTML = qr;
+      Promise.all([gotoweZasoby, fonty()]).then(function () {
+        materialy.plakat = B.plakat(ADRES_STRONY, obrazy); materialy.social = B.grafikaSocial(obrazy);
+        ['plakat', 'social'].forEach(function (n) { var im = document.createElement('img'); im.alt = ''; im.src = materialy[n].toDataURL('image/png'); $('bw-materialy').querySelector('[data-material="' + n + '"] .bw-material-obraz').appendChild(im); });
+      });
+    }
+  }
+  $('bw-org').addEventListener('change', function (e) { var m = /^bw-ch-(\d+)$/.exec(e.target.id || ''); if (!m) return; stan.check = stan.check || {}; stan.check[m[1]] = e.target.checked; B.zapisz(stan); });
+  $('bw-org').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pobierz-material]'); if (!b) return;
+    var n = b.getAttribute('data-pobierz-material');
+    if (n === 'qr') { pobierz(new Blob([B.qrSvg(ADRES_STRONY)], { type: 'image/svg+xml' }), 'bieg-wirtualny-qr.svg'); return; }
+    if (materialy[n]) doBloba(materialy[n]).then(function (bl) { pobierz(bl, 'bieg-wirtualny-' + n + '.png'); });
+  });
+  $('bw-csv').addEventListener('click', function () { pobierz(new Blob(['﻿' + B.csvZgod()], { type: 'text/csv;charset=utf-8' }), 'bieg-wirtualny-zgody-przyklad.csv'); });
+  function trasa() { var org = location.hash === '#organizacja'; $('bw-org').hidden = !org; $('bw-main').hidden = org; if (org) { rysujOrg(); window.scrollTo(0, 0); } }
+  window.addEventListener('hashchange', trasa);
+
+  /* start: scena od razu (kolor najpierw), reszta zaraz po niej */
+  rysujHero(); rysujStale(); rysujLiczby(); rysujListe(); rysujMoj(); rysujUlice(); trasa();
+  if (stan.zapis) $('bw-zapisz').textContent = 'Twój numer startowy ›';
+  var ostatniaSzer = laptop(); window.addEventListener('resize', function () { if (laptop() !== ostatniaSzer) { ostatniaSzer = laptop(); rysujHero(); rysujUlice(); } });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- krok 3: pobiegnij albo przejdź gdziekolwiek. Pinezka na drodze i but -->
+  <path d="M10 96 q30-30 50-14 q20 16 50-10" fill="none" stroke="#3b3b47" stroke-width="10" stroke-linecap="round"/>
+  <path d="M10 96 q30-30 50-14 q20 16 50-10" fill="none" stroke="#fff7e6" stroke-width="2.5" stroke-dasharray="6 7" stroke-linecap="round"/>
+  <path d="M60 14 c-14 0-24 10-24 24 c0 18 24 42 24 42 s24-24 24-42 c0-14-10-24-24-24z" fill="#e8561e" stroke="#3a1d0a" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="60" cy="38" r="9" fill="#fff7e6" stroke="#3a1d0a" stroke-width="3"/>
+  <g stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round" transform="translate(74 70) rotate(-20) scale(.75)">
+    <path d="M0 24 q6-20 24-28 q10 8 22 12 q16 2 26 16 v8 H0z" fill="#f2b32a"/><path d="M0 32 h72 v8 q-36 6-72 0z" fill="#3b3b47"/>
+  </g>
+</svg>
