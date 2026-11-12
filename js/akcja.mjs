@@ -583,7 +583,6 @@
         sponsorHtml(wklad, d) +
         '<details class="akcja-wiecej-blok"><summary>Więcej o akcji</summary>' +
         '<div class="akcja-typy">' + TEKST_TYPOW + '</div>' +
-        (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
         (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
         '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
         (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
@@ -610,7 +609,6 @@
       sponsorHtml(wklad, d) +
       '<details class="akcja-wiecej-blok"><summary>Więcej o akcji</summary>' +
       '<div class="akcja-filip">' + esc(tekstFilipa(d)) + '</div>' +
-      (tekstSponsorow(d) ? '<div class="akcja-sponsorzy">' + esc(tekstSponsorow(d)) + '</div>' : "") +
       (tekstWyprawy(d) ? '<div class="akcja-wyprawa">' + esc(tekstWyprawy(d)) + '</div>' : "") +
       '<div class="akcja-przyciski"><a class="akcja-wiecej" href="' + adresStrony(d) + '">Szczegóły ›</a>' +
       (wklad && Number(wklad.km) > 0 ? '<button type="button" class="akcja-link" data-akcja="udostepnij">Udostępnij</button>' : "") + "</div>" + firmyHtml(d) + "</details></div>";
@@ -685,20 +683,17 @@
     return "Wyprawa etapami · Filip i Kasia: " + km(d.wyprawa_km) + " km (już w liczniku) · cel: tajemnica";
   }
 
-  /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj" albo „Zostań sponsorem" z formularzem.
+  /** Blok sponsora na karcie Dziś (tylko gdy DEKLARACJE_GOTOWE): moja stawka + „Wycofaj". Wejście „Zostań sponsorem kilometrów" dla osób bez deklaracji
+   *  schowane (decyzja 12.11: do czasu wersji z potwierdzeniem stawki nikt nowy nie deklaruje; istniejące deklaracje i odznaki zostają, RPC bez zmian).
    *  Przyciski przez data-akcja (handler w zawodnik.html), bez danych użytkownika w atrybutach JS. */
   function sponsorHtml(wklad, d) {
     if (!DEKLARACJE_GOTOWE) return "";
-    var link = linkZbiorki(d);
     var st = wklad && wklad.stawka_gr != null ? Number(wklad.stawka_gr) : null;
     if (st) {
       return '<div class="akcja-sponsor">Twoja stawka: <b>' + liczba(st) + ' gr</b> za każdy kilometr · ' +
         '<button type="button" class="akcja-tekstowy" data-akcja="wycofaj">Wycofaj</button></div>';
     }
-    return '<div class="akcja-sponsor"><button type="button" class="akcja-link" data-akcja="sponsor">Zostań sponsorem kilometrów</button>' +
-      '<div class="akcja-form" hidden><label>Twoja stawka: <input type="number" inputmode="numeric" min="1" max="10000" step="1" value="10" class="akcja-stawka"> gr za każdy kilometr</label>' +
-      '<p class="akcja-uwaga">' + esc(tekstDeklaracji(d)) + (link ? ' <a class="akcja-tekstowy" href="' + link + '" target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>' : "") + '</p>' +
-      '<button type="button" class="akcja-wiecej" data-akcja="zapisz">Zapisz</button></div></div>';
+    return "";
   }
 
   /* ULICA (js/ulica.mjs): moduł dociągany przy pierwszym użyciu. zawodnik.html i sw.js są zamrożone do 8.11, więc plik nie ma <script> ani miejsca w precache;

@@ -48,8 +48,8 @@ test('B: plakat tylko po starcie (baza), tylko z białej listy (front), układ b
 
 test('C: sponsor z zewnątrz — dla-fabianka → index.html#sponsor → zawodnik.html#sponsor → formularz otwarty', () => {
   const f = czytaj('dla-fabianka.html');
-  assert.match(f, /<a class="przycisk przycisk--zbiorka" id="sponsor" href="index\.html#sponsor">Zostań sponsorem kilometrów<\/a>/);
-  assert.match(f, /\$\('sponsor'\)\.hidden = zamknieta;/, 'po zamknięciu bez przycisku');
+  /* 12.11 (blizna-231): wejście ze strony akcji schowane do czasu wersji z potwierdzeniem stawki; ścieżka index.html → zawodnik.html#sponsor zostaje (zamrożone pliki) */
+  assert.doesNotMatch(f, /id="sponsor"|Zostań sponsorem kilometrów|\$\('sponsor'\)/, 'bez wejścia sponsora na stronie akcji');
   const ix = czytaj('index.html');
   assert.match(ix, /location\.hash === '#sponsor'/, 'hash omija hero');
   assert.match(ix, /function celZawodnika\(onboarding\) \{[\s\S]*?location\.hash === '#sponsor'[\s\S]*?'zawodnik\.html'[\s\S]*?'#sponsor'/);
@@ -78,6 +78,7 @@ test('D: podmiana linku zbiórki — RPC tylko startujący, tylko siepomaga http
   assert.equal(A.tekstDeklaracji(null), 'Po zakończeniu akcji wpłacasz sam na zbiórkę — aktualny link będzie zawsze tutaj. Aplikacja tylko liczy.');
   globalThis.safeExternalHref = (u) => (/^https:\/\//.test(u) ? u : '');
   const s = A.sponsorHtml({ km: 0, stawka_gr: null }, { imie: 'Marek', url_zbiorki: 'https://www.siepomaga.pl/x' });
-  assert.match(s, /zbiórkę Marka — aktualny link będzie zawsze tutaj/); assert.match(s, /href="https:\/\/www\.siepomaga\.pl\/x"[^>]*>Oficjalna zbiórka ›/, 'link w formularzu');
+  assert.equal(s, '', 'bez deklaracji: wejście schowane (12.11, blizna-231)');
+  assert.match(A.sponsorHtml({ km: 0, stawka_gr: 6 }, { imie: 'Marek' }), /Twoja stawka: <b>6 gr<\/b> za każdy kilometr · <button type="button" class="akcja-tekstowy" data-akcja="wycofaj">Wycofaj<\/button>/, 'z deklaracją jak dotąd');
   assert.doesNotMatch(czytaj('js/akcja.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, 'imienia nie ma w kodzie');
 });

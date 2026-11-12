@@ -73,7 +73,7 @@
       <div class="duze-liczby" id="duze"></div>
       <div id="pasek"></div>
       <p class="drobne" id="filip"></p>
-      <p class="drobne" id="sponsorzy" hidden></p>
+      <!-- zdanie o sponsorach kilometrów (suma stawek z licznika) zdjęte 12.11: deklaracje bez potwierdzenia nie wychodzą publicznie, do czasu wersji z potwierdzeniem -->
       <p class="drobne" id="wyprawa" hidden></p>
     </section>
     <div id="ulica-po"></div>
@@ -88,9 +88,7 @@
     </section>
     <div class="przyciski">
       <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
-      <!-- Sponsor z zewnątrz (Filip 2.11 19:00): niezalogowany → logowanie/rejestracja → prosto do formularza sponsora na Dziś;
-           zalogowany → index.html ma sesję → od razu zawodnik.html#sponsor (blizna-106). -->
-      <a class="przycisk przycisk--zbiorka" id="sponsor" href="index.html#sponsor">Zostań sponsorem kilometrów</a>
+      <!-- wejście sponsora kilometrów (index.html#sponsor → zawodnik.html#sponsor) schowane 12.11 do czasu wersji z potwierdzeniem stawki; ścieżka w index.html i zawodnik.html zostaje (blizna-106) -->
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
       <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›</a>
     </div>
@@ -133,13 +131,11 @@ document.addEventListener('DOMContentLoaded', function () {
     $('duze').innerHTML = '<b>' + A.km(d.suma_km) + '</b> <span>/ ' + A.km(d.cel_km) + ' km</span>';
     $('pasek').innerHTML = A.pasekHtml(d);
     $('filip').textContent = A.tekstFilipa(d);
-    var sp = A.tekstSponsorow(d); $('sponsorzy').hidden = !sp; $('sponsorzy').textContent = sp;
     var wy = A.tekstWyprawy(d); $('wyprawa').hidden = !wy; $('wyprawa').textContent = wy;
     if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
     if (A.linkGry) { $('gra').href = A.linkGry(d); if (d.testowa === true) $('gra').hidden = false; }   // próba: do gry na próbie, jak z kafla na Dziś
     $('jak').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
-    $('sponsor').hidden = zamknieta;
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;
     if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }

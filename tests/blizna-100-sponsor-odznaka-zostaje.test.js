@@ -34,7 +34,7 @@ test('formularz: tekst Filipa bez zmian, za przełącznikiem włączanym razem z
   assert.equal(A.TEKST_DEKLARACJI, 'Wpłacasz sam na oficjalną zbiórkę po zakończeniu akcji. Aplikacja tylko liczy.');
   const kod = czytaj('js/akcja.mjs');
   assert.match(kod, /var DEKLARACJE_GOTOWE = (true|false);/);
-  assert.match(kod, /data-akcja="zapisz"/);
+  assert.doesNotMatch(kod, /data-akcja="zapisz"/, 'od 12.11 (blizna-231) formularz nowej deklaracji schowany; wraca w wersji z potwierdzeniem');
   assert.match(kod, /data-akcja="wycofaj"/);
   const z = czytaj('zawodnik.html');
   assert.match(z, /sb\.rpc\('akcja_deklaruj', \{ p_slug: slug, p_stawka_gr: st \}\)/);
