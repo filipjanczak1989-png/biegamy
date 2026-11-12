@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" width="360" height="120">
+  <!-- kibice z daleka, widziani od tyłu i z boku: bez twarzy, czapki i kaptury, uniesione ręce z chorągiewkami, szaliki, transparent bez liter (serce), dziecko na barana; obrys i paleta jak domek wzorcowy -->
+  <defs>
+    <linearGradient id="k1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8692f"/><stop offset="1" stop-color="#c8553d"/></linearGradient>
+    <linearGradient id="k2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd05a"/><stop offset="1" stop-color="#f2b32a"/></linearGradient>
+    <linearGradient id="k3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb04a"/><stop offset="1" stop-color="#5f8a3a"/></linearGradient>
+    <linearGradient id="k4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a78b8"/><stop offset="1" stop-color="#3d5a99"/></linearGradient>
+  </defs>
+  <g stroke="#3a1d0a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <!-- transparent na dwóch kijach, z sercem zamiast liter -->
+    <rect x="114" y="18" width="6" height="94" rx="2" fill="#7a5230"/><rect x="240" y="18" width="6" height="94" rx="2" fill="#7a5230"/>
+    <path d="M118 26 h124 v34 q-62 8 -124 0z" fill="#fff7e6"/>
+    <path d="M180 52 c-7-9 -20-4 -15 6 c3 6 15 12 15 12 s12-6 15-12 c5-10 -8-15 -15-6z" fill="#d9482b"/>
+    <!-- lewa grupa -->
+    <g fill="url(#k1)"><path d="M14 118 V 90 q0-20 16-20 q16 0 16 20 V 118z"/></g><circle cx="30" cy="60" r="12" fill="#f3c89a"/><path d="M18 58 q12-16 24 0 l-2 4 h-20z" fill="#f2b32a"/><path d="M8 86 q-6-18 6-30" fill="none" stroke-width="5"/><path d="M8 86 q-6-18 6-30" fill="none" stroke="#f3c89a" stroke-width="2.5"/>
+    <path d="M6 54 l-2-24 l14 7z" fill="#6f9e3e"/>
+    <g fill="url(#k2)"><path d="M52 118 V 94 q0-16 14-16 q14 0 14 16 V 118z"/></g><circle cx="66" cy="66" r="11" fill="#f3c89a"/><path d="M55 64 q11-14 22 0 l-1 3 h-20z" fill="#3d5a99"/><path d="M56 86 h20" stroke="#d9482b" stroke-width="6"/>
+    <path d="M78 84 l10-32" fill="none" stroke-width="5"/><path d="M78 84 l10-32" fill="none" stroke="#f3c89a" stroke-width="2.5"/><path d="M88 52 l14 4 l-12 12z" fill="#d9482b"/>
+    <g fill="url(#k3)"><path d="M86 118 V 96 q0-14 12-14 q12 0 12 14 V 118z"/></g><circle cx="98" cy="68" r="10" fill="#f3c89a"/><path d="M88 66 q10-12 20 0 v3 h-20z" fill="#e8692f"/>
+    <!-- środek: rodzic z dzieckiem na barana -->
+    <g fill="url(#k4)"><path d="M164 118 V 88 q0-20 16-20 q16 0 16 20 V 118z"/></g><circle cx="180" cy="58" r="12" fill="#f3c89a"/><path d="M168 56 q12-14 24 0 v3 h-24z" fill="#2a2c31"/>
+    <g fill="url(#k2)"><path d="M172 46 V 36 q0-8 8-8 q8 0 8 8 V 46z"/></g><circle cx="180" cy="22" r="7" fill="#f3c89a"/><path d="M173 20 q7-9 14 0 v2 h-14z" fill="#d9482b"/>
+    <path d="M188 40 l8-14" fill="none" stroke-width="4.5"/><path d="M188 40 l8-14" fill="none" stroke="#f3c89a" stroke-width="2"/><ellipse cx="200" cy="16" rx="8" ry="10" fill="#6f9e3e"/><path d="M196 26 l4-1" fill="none"/>
+    <!-- prawa grupa -->
+    <g fill="url(#k1)"><path d="M248 118 V 94 q0-16 14-16 q14 0 14 16 V 118z"/></g><circle cx="262" cy="66" r="11" fill="#f3c89a"/><path d="M251 64 q11-14 22 0 v3 h-22z" fill="#f2b32a"/>
+    <path d="M276 82 l6-30" fill="none" stroke-width="5"/><path d="M276 82 l6-30" fill="none" stroke="#f3c89a" stroke-width="2.5"/><path d="M282 52 l14 6 l-12 10z" fill="#f2b32a"/>
+    <g fill="url(#k3)"><path d="M284 118 V 90 q0-18 16-18 q16 0 16 18 V 118z"/></g><circle cx="300" cy="60" r="12" fill="#f3c89a"/><path d="M288 58 q12-16 24 0 l-2 4 h-20z" fill="#ff8a3d"/><path d="M288 82 h24" stroke="#fff7e6" stroke-width="6"/>
+    <path d="M318 84 l8-30" fill="none" stroke-width="5"/><path d="M318 84 l8-30" fill="none" stroke="#f3c89a" stroke-width="2.5"/><path d="M326 54 l14 6 l-12 10z" fill="#d9482b"/>
+    <g fill="url(#k4)"><path d="M324 118 V 96 q0-14 12-14 q12 0 12 14 V 118z"/></g><circle cx="336" cy="70" r="10" fill="#f3c89a"/><path d="M326 68 q10-12 20 0 v3 h-20z" fill="#6f9e3e"/>
+    <!-- balon przy dziecku po lewej -->
+    <path d="M44 76 q6-14 2-26" fill="none"/><ellipse cx="46" cy="40" rx="9" ry="11" fill="#d9482b"/><ellipse cx="43" cy="36" rx="2.5" ry="4" fill="#fff" opacity=".45" stroke="none"/>
+  </g>
+</svg>

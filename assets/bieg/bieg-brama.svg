@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" width="420" height="260">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#e8561e"/></linearGradient>
+    <linearGradient id="s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8c6d3f"/><stop offset=".5" stop-color="#b08a52"/><stop offset="1" stop-color="#7a5230"/></linearGradient>
+  </defs>
+  <!-- słupy -->
+  <rect x="26" y="78" width="26" height="176" rx="6" fill="url(#s)" stroke="#3a1d0a" stroke-width="3"/>
+  <rect x="368" y="78" width="26" height="176" rx="6" fill="url(#s)" stroke="#3a1d0a" stroke-width="3"/>
+  <rect x="14" y="246" width="50" height="12" rx="4" fill="#5a2e0e" stroke="#3a1d0a" stroke-width="3"/>
+  <rect x="356" y="246" width="50" height="12" rx="4" fill="#5a2e0e" stroke="#3a1d0a" stroke-width="3"/>
+  <!-- łuk z baneru -->
+  <path d="M22 96 C 60 34, 360 34, 398 96 L 398 130 C 360 68, 60 68, 22 130 Z" fill="url(#b)" stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M40 104 C 80 60, 340 60, 380 104" fill="none" stroke="#fff7e6" stroke-width="3" stroke-dasharray="10 9" opacity=".9"/>
+  <!-- napis -->
+  <text x="210" y="86" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="30" fill="#fff7e6" stroke="#3a1d0a" stroke-width="1.5" letter-spacing="4">START · META</text>
+  <!-- chorągiewki -->
+  <path d="M40 118 L 60 130 L 80 118 L 100 130 L 120 118 L 140 130 L 160 118 L 180 130 L 200 118 L 220 130 L 240 118 L 260 130 L 280 118 L 300 130 L 320 118 L 340 130 L 360 118 L 380 130" fill="none" stroke="#3a1d0a" stroke-width="2.5"/>
+  <g stroke="#3a1d0a" stroke-width="2" stroke-linejoin="round">
+    <path d="M52 124 l8 20 l8-20z" fill="#f2b32a"/><path d="M92 124 l8 20 l8-20z" fill="#d9482b"/><path d="M132 124 l8 20 l8-20z" fill="#6f9e3e"/><path d="M172 124 l8 20 l8-20z" fill="#f2b32a"/>
+    <path d="M212 124 l8 20 l8-20z" fill="#d9482b"/><path d="M252 124 l8 20 l8-20z" fill="#6f9e3e"/><path d="M292 124 l8 20 l8-20z" fill="#f2b32a"/><path d="M332 124 l8 20 l8-20z" fill="#d9482b"/>
+  </g>
+  <!-- balony -->
+  <g stroke="#3a1d0a" stroke-width="2.5">
+    <path d="M30 76 q0 10 4 20" fill="none"/><ellipse cx="30" cy="62" rx="14" ry="17" fill="#d9482b"/><ellipse cx="25" cy="56" rx="4" ry="6" fill="#fff" opacity=".45" stroke="none"/>
+    <path d="M18 60 q-4 12 2 22" fill="none"/><ellipse cx="14" cy="46" rx="12" ry="15" fill="#f2b32a"/>
+    <path d="M390 76 q0 10 -4 20" fill="none"/><ellipse cx="390" cy="62" rx="14" ry="17" fill="#6f9e3e"/><ellipse cx="385" cy="56" rx="4" ry="6" fill="#fff" opacity=".45" stroke="none"/>
+    <path d="M402 60 q4 12 -2 22" fill="none"/><ellipse cx="406" cy="46" rx="12" ry="15" fill="#ff8a3d"/>
+  </g>
+  <!-- mata startowa -->
+  <rect x="64" y="236" width="292" height="22" rx="5" fill="#3b3b47" stroke="#3a1d0a" stroke-width="3"/>
+  <g fill="#fff7e6"><rect x="72" y="240" width="14" height="14"/><rect x="100" y="240" width="14" height="14"/><rect x="128" y="240" width="14" height="14"/><rect x="156" y="240" width="14" height="14"/><rect x="184" y="240" width="14" height="14"/><rect x="212" y="240" width="14" height="14"/><rect x="240" y="240" width="14" height="14"/><rect x="268" y="240" width="14" height="14"/><rect x="296" y="240" width="14" height="14"/><rect x="324" y="240" width="14" height="14"/></g>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <circle cx="60" cy="60" r="54" fill="#e8561e" stroke="#3a1d0a" stroke-width="4"/>
+  <circle cx="60" cy="60" r="44" fill="#fff7e6" stroke="#8a3a12" stroke-width="2"/>
+  <!-- dłuższa, kręta trasa z dwoma wzniesieniami -->
+  <path d="M20 84 q10-30 26-22 q10 6 12-14 q4-22 18-10 q10 10 24 -4" fill="none" stroke="#3b3b47" stroke-width="7" stroke-linecap="round"/>
+  <path d="M20 84 q10-30 26-22 q10 6 12-14 q4-22 18-10 q10 10 24 -4" fill="none" stroke="#fff7e6" stroke-width="2" stroke-dasharray="5 6" stroke-linecap="round"/>
+  <circle cx="22" cy="84" r="6" fill="#6f9e3e" stroke="#3a1d0a" stroke-width="2"/>
+  <path d="M100 42 l0-24 l16 6 l-16 8" fill="#f2b32a" stroke="#3a1d0a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M100 18 v24" stroke="#3a1d0a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M62 100 l8-12 l6 8 M50 100 l6-9 l4 6" fill="none" stroke="#6f9e3e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

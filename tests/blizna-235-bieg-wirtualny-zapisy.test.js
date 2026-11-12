@@ -1,0 +1,108 @@
+/* blizna-235 (12.11, etap 1 biegu wirtualnego z prawdziwymi zapisami): migracja 20261120_akcja_bieg (tabele bez dostępu z przeglądarki, funkcje tylko dla authenticated,
+   nigdy dla anon, kolumna w zgłoszeniach cegiełek, pole bieg w liczniku, WYCOFANIE i test po skutku), js/bieg.mjs (stan strony, zgody, teksty-miejsca, imię jak CHECK w bazie,
+   lista „ukończyli” bez czasów, wsparcie jako linki), bieg.html (nic niezaznaczone z góry, regulamin wymagany, oświadczenie wymagane, bez imienia dziecka w kodzie). */
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const path = require('path');
+const { pathToFileURL } = require('url');
+const KORZEN = path.join(__dirname, '..');
+const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8');
+const MIG = 'supabase/migrations/20261120_akcja_bieg.sql', WYC = 'supabase/migrations/20261120_WYCOFANIE_akcja_bieg.sql';
+
+test('migracja: dwie tabele z RLS i odebranym dostępem, funkcje tylko dla authenticated, nigdy anon; kolumna bieg_uczestnik_id w zgłoszeniach; licznik z polem bieg; WYCOFANIE i test po skutku', () => {
+  const m = czytaj(MIG), w = czytaj(WYC);
+  assert.match(m, /create table public\.akcja_biegi \(/); assert.match(m, /create table public\.akcja_bieg_uczestnicy \(/);
+  assert.match(m, /rodzaj\s+text not null check \(rodzaj in \('ja', 'dziecko'\)\)/, 'uczestnik ≠ konto: ja albo dziecko');
+  assert.match(m, /konto_id\s+uuid not null references public\.athletes\(id\)/);
+  assert.match(m, /\(rodzaj = 'dziecko' and dystans_km is null and oswiadczenie_rodzica_at is not null\)/, 'dziecko: oświadczenie wymagane, bez dystansu z listy');
+  assert.match(m, /create unique index akcja_bieg_jeden_zapis on public\.akcja_bieg_uczestnicy \(bieg_id, konto_id\) where rodzaj = 'ja' and wycofany_at is null/);
+  assert.match(m, /constraint akcja_bieg_numer unique \(bieg_id, numer\)/);
+  assert.match(m, /alter table public\.akcja_firmy_zgloszenia add column bieg_uczestnik_id uuid references public\.akcja_bieg_uczestnicy\(id\) on delete set null/, 'złota odznaka wstecznie');
+  assert.match(m, /alter table public\.akcja_biegi enable row level security;\s*\nalter table public\.akcja_bieg_uczestnicy enable row level security;/);
+  assert.match(m, /revoke all on public\.akcja_biegi, public\.akcja_bieg_uczestnicy from public, anon, authenticated;/);
+  assert.doesNotMatch(m, /create policy/i, 'tabele bez polityk: dostęp wyłącznie przez funkcje');
+  for (const f of ['akcja_bieg_zapisz(text, integer, boolean, boolean, text, text)', 'akcja_bieg_dopisz_dziecko(text, text, boolean, boolean, text)', 'akcja_bieg_wycofaj(uuid)', 'akcja_bieg_moi(text)']) {
+    assert.ok(m.includes('grant execute on function public.' + f + ' to authenticated;'), f + ': grant dla authenticated');
+    assert.ok(m.includes('revoke all on function public.' + f + ' from public, anon;'), f + ': revoke dla anon');
+  }
+  assert.match(m, /revoke all on function public\.akcja_bieg_publiczny\(text\) from public, anon, authenticated, service_role;/, 'publiczna tylko przez licznik');
+  assert.doesNotMatch(m, /\bto\s+anon\b/i, 'nic dla anon');
+  assert.equal((m.match(/security definer/g) || []).length, 5, 'pięć funkcji security definer (publiczny, zapisz, dziecko, wycofaj, moi)');
+  assert.equal((m.match(/set search_path to 'public', 'pg_temp'/g) || []).length, 6, 'search_path w każdej funkcji (6 z fazą)');
+  assert.match(m, /perform pg_advisory_xact_lock\(hashtext\('akcja_bieg:' \|\| b\.id::text\)\);/, 'numer bez wyścigu');
+  assert.match(m, /if v_faza not in \('zapisy', 'trwa'\) then return jsonb_build_object\('ok', false, 'powod', 'zamkniete'/);
+  assert.match(m, /if p_regulamin_wersja is distinct from b\.regulamin_wersja then return jsonb_build_object\('ok', false, 'powod', 'regulamin'/);
+  assert.match(m, /if p_oswiadczenie is distinct from true then return jsonb_build_object\('ok', false, 'powod', 'oswiadczenie'\)/);
+  assert.match(m, /if v_ile >= b\.limit_dzieci then return jsonb_build_object\('ok', false, 'powod', 'limit'/);
+  assert.match(m, /'imie', case when u\.zgoda_imie then u\.imie end, 'numer', u\.numer/, 'lista ukończyli: imię tylko za zgodą');
+  const publ = m.slice(m.indexOf('function public.akcja_bieg_publiczny'), m.indexOf('function public.akcja_bieg_zapisz'));
+  assert.ok(publ.length > 500); assert.doesNotMatch(publ, /wynik_s|konto_id|email|oswiadczenie_rodzica_at|regulamin_at/, 'publiczna funkcja: bez czasów, kont, e-maili, oświadczeń');
+  assert.match(m, /v_kotwica text := \$k\$'firmy_zgloszenia', a\.firmy_zgloszenia,\$k\$/); assert.match(m, /if v_n <> 1 then raise exception/, 'kotwica licznika dokładnie raz');
+  assert.match(m, /notify pgrst, 'reload schema';\s*\ncommit;\s*$/);
+  for (const t of ['drop function if exists public.akcja_bieg_moi(text);', 'drop function if exists public.akcja_bieg_zapisz(text, integer, boolean, boolean, text, text);', 'alter table public.akcja_firmy_zgloszenia drop column if exists bieg_uczestnik_id;', 'drop table if exists public.akcja_bieg_uczestnicy;', 'drop table if exists public.akcja_biegi;']) assert.ok(w.includes(t), 'WYCOFANIE: ' + t);
+  assert.ok(w.indexOf('drop table if exists public.akcja_bieg_uczestnicy;') < w.indexOf('drop table if exists public.akcja_biegi;'), 'kolejność: uczestnicy przed biegami');
+  const sh = czytaj('tools/akcja-bieg-test.sh'), sql = czytaj('tools/akcja-bieg-test.sql');
+  assert.match(sh, /AKCJA_BIEG_Z_MIGRACJA/); assert.match(sh, /20261120_akcja_bieg\.sql/); assert.match(sh, /echo 'rollback;'/, 'zawsze wycofana');
+  assert.match(sql, /raise exception 'TESTY BIEGU ZIELONE: % sprawdzeń', n;/); assert.match(sql, /set local role anon/); assert.match(sql, /'proba-bieg'/);
+  for (const f of [MIG, WYC, 'tools/akcja-bieg-test.sql']) assert.doesNotMatch(czytaj(f).replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, f + ': imię dziecka tylko z bazy');
+});
+
+async function modul() {
+  globalThis.escapeHtml = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  globalThis.safeExternalHref = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
+  await import(pathToFileURL(path.join(KORZEN, 'js/bieg.mjs')).href);
+  return globalThis.BM_BIEG_REAL;
+}
+const BIEG = { slug: 'x', nazwa: 'Bieg', dzien_od: '2026-12-05', dzien_do: '2026-12-06', wynik_do: '2026-12-08', dystanse_km: [5, 10], faza: 'zapisy', regulamin_wersja: 'v1', wsparcie_kwoty_zl: [20, 30, 50], limit_dzieci: 6, zapisani: 3, zapisani_na: { '5': 1, '10': 1 }, dzieci: 1, ukonczyli_n: 2, ukonczyli: [{ imie: 'Ola', numer: 1, dystans_km: 10, dziecko: false }, { imie: null, numer: 3, dystans_km: 1.5, dziecko: true }] };
+
+test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dni, imię jak CHECK w bazie, role i zasady', async () => {
+  const B = await modul();
+  assert.equal(B.stanStrony(null, { user: {} }, []).stan, 'wkrotce'); assert.equal(B.stanStrony(BIEG, null, []).stan, 'niezalogowany'); assert.equal(B.stanStrony(BIEG, { user: {} }, []).stan, 'przed');
+  assert.equal(B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'ja', numer: 1 }]).stan, 'po');
+  const sd = B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'dziecko', numer: 2 }]); assert.equal(sd.stan, 'dzieci'); assert.equal(sd.ja, null); assert.equal(sd.dzieci.length, 1, 'same dzieci bez zapisu rodzica też dają stan z dziećmi');
+  assert.equal(B.stanStrony({ ...BIEG, faza: 'wyniki' }, { user: {} }, []).stan, 'zamkniete'); assert.equal(B.stanStrony({ ...BIEG, faza: 'trwa' }, { user: {} }, []).stan, 'przed');
+  assert.equal(B.mozeDopisacDziecko(BIEG, new Array(6)), false); assert.equal(B.mozeDopisacDziecko(BIEG, new Array(5)), true); assert.equal(B.mozeDopisacDziecko({ ...BIEG, faza: 'zakonczony' }, []), false);
+  assert.equal(B.zakresDni('2026-12-05', '2026-12-06'), '5–6.12.2026'); assert.equal(B.zakresDni('2026-11-30', '2026-12-01'), '30.11–1.12.2026'); assert.equal(B.zakresDni('2026-12-08', '2026-12-08'), '8.12.2026'); assert.equal(B.zakresDni('zle'), '');
+  assert.equal(B.ladneImie('ola'), 'Ola'); assert.equal(B.ladneImie('anna-maria'), 'Anna-Maria'); assert.equal(B.ladneImie('Jan Kowalski'), ''); assert.equal(B.ladneImie('O'), ''); assert.equal(B.ladneImie('<b>x</b>'), ''); assert.equal(B.imieZProfilu('Anna Przykładowa'), 'Anna');
+  assert.equal(B.ROLE.inicjator, 'Inicjator'); assert.equal(B.ROLE.operator, 'Operator'); assert.equal(B.ZASADY.wiek_konta, 16); assert.equal(B.ZASADY.limit_dzieci, 6); assert.deepEqual([...B.ZASADY.dystanse], [5, 10]);
+  assert.equal(B.FAZY.zapisy.chip, 'ZAPISY OTWARTE'); assert.equal(B.faza({ faza: 'cokolwiek' }), 'szkic');
+});
+
+test('bieg.mjs: miejsca na teksty oznaczone i nieudawane; lista ukończyli bez czasów; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
+  const B = await modul();
+  for (const k of ['MIEJSCE_REGULAMIN', 'MIEJSCE_OSWIADCZENIE', 'MIEJSCE_ZGODA_IMIE', 'MIEJSCE_ZGODA_IMIE_DZIECKA', 'MIEJSCE_ZGODA_EMAIL', 'MIEJSCE_POLITYKA']) assert.match(B[k], /^\[MIEJSCE NA TEKST: /, k);
+  assert.equal(B.TEKSTY_GOTOWE, false, 'do czasu tekstów od Filipa');
+  assert.match(B.TEKSTY.regulamin_pole, /\(wymagane\)/); assert.match(B.TEKSTY.oswiadczenie_pole, /\(wymagane\)/); for (const k of ['zgoda_imie_pole', 'zgoda_email_pole', 'zgoda_imie_dziecka_pole']) assert.match(B.TEKSTY[k], /\(dobrowolne\)/, k);
+  const u = B.ukonczyliHtml(BIEG, [1]);
+  assert.match(u, /bw-wiersz bw-wiersz--ty"><span class="bw-nr">1<\/span><span class="bw-imie">Ola <i>Ty<\/i><\/span><span class="bw-dyst">10 km<\/span>/);
+  assert.match(u, /<i class="bw-bez">bez imienia<\/i> <small>dziecko<\/small>/); assert.doesNotMatch(u, /\d:\d\d|tempo|wynik_s/);
+  assert.match(B.ukonczyliHtml({ ...BIEG, ukonczyli: [] }), /Jeszcze nikt nie dopisał wyniku/);
+  const w = B.wsparcieHtml(BIEG, 'https://www.siepomaga.pl/x');
+  assert.equal((w.match(/class="bw-kwota/g) || []).length, 4); assert.match(w, /bw-kwota bw-kwota--glowna" href="https:\/\/www\.siepomaga\.pl\/x" target="_blank" rel="noopener noreferrer" data-kwota="20"><b>20 zł<\/b><small>podpowiedź<\/small>/);
+  assert.equal(B.wsparcieHtml(BIEG, 'javascript:alert(1)'), ''); assert.equal(B.wsparcieHtml(BIEG, ''), ''); assert.match(w, /Kwoty nie sprawdzamy i nigdzie nie pokazujemy/);
+  const l = B.liczbyHtml(BIEG); assert.match(l, /<b>3<\/b><span>zapisane osoby<\/span>/); assert.match(l, /5 km: 1 · 10 km: 1 · dzieci: swój dystans/);
+  for (const r of ['zwykla', 'zlota']) { const s = B.odznakaSvg(r, { nazwa: 'Bieg <x>' }); assert.match(s, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 120 156"/); assert.doesNotMatch(s, /<script|onload|<x>/); assert.match(s, /aria-label="Bieg &lt;x&gt;/); }
+  assert.match(B.odznakaSvg('zlota'), /stop-color="#f2b32a"/); assert.match(B.odznakaSvg('zwykla'), /stop-color="#c8553d"/);
+  assert.equal(typeof B.numerStartowy, 'function'); assert.equal(typeof B.dyplom, 'function');
+  assert.doesNotMatch(czytaj('js/bieg.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian|Kasia|Filip\b/, 'bez imion w module');
+});
+
+test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadczenie wymagane, wsparcie i lista z modułu, ?proba=1, bez imienia dziecka', () => {
+  const h = czytaj('bieg.html');
+  for (const s of ['vendor/supabase-js-2.112.4.min.js', 'sb.js', 'js/akcja.mjs', 'js/bieg.mjs']) assert.ok(h.includes('<script defer src="' + s + '"></script>'), s);
+  for (const st of ['niezalogowany', 'przed', 'po dzieci', 'zamkniete', 'wkrotce']) assert.ok(h.includes('data-stan="' + st + '"'), 'stan ' + st);
+  assert.doesNotMatch(h, /<input type="checkbox"[^>]*\bchecked\b/, 'żadna zgoda zaznaczona z góry'); assert.doesNotMatch(h, /<input type="radio"[^>]*\bchecked\b/);
+  assert.match(h, /if \(!\$\('bw-regulamin'\)\.checked\) \{ blad\.textContent = 'Zapis wymaga akceptacji regulaminu\.'; return; \}/);
+  assert.match(h, /if \(!\$\('bw-oswiadczenie'\)\.checked\) \{ blad\.textContent = 'Dopisanie dziecka wymaga oświadczenia rodzica lub opiekuna\.'; return; \}/);
+  assert.match(h, /\$\('bw-regulamin'\)\.checked = false; \$\('bw-zgoda-imie'\)\.checked = false; \$\('bw-zgoda-email'\)\.checked = false;/, 'okno zapisu czyści pola przy każdym otwarciu');
+  assert.match(h, /rpc\('akcja_bieg_zapisz', \{ p_slug: bieg\.slug, p_dystans: Number\(d\), p_zgoda_imie: \$\('bw-zgoda-imie'\)\.checked, p_zgoda_email: \$\('bw-zgoda-email'\)\.checked, p_regulamin_wersja: bieg\.regulamin_wersja, p_imie: imie \|\| null \}\)/);
+  assert.match(h, /rpc\('akcja_bieg_dopisz_dziecko', \{ p_slug: bieg\.slug, p_imie: imie, p_zgoda_imie: \$\('bw-zgoda-imie-dziecka'\)\.checked, p_oswiadczenie: true, p_regulamin_wersja: bieg\.regulamin_wersja \}\)/);
+  assert.match(h, /B\.wsparcieHtml\(bieg, A\.linkZbiorki\(licznik\)\)/, 'link do zbiórki tylko przez sito z akcja.mjs'); assert.match(h, /B\.ukonczyliHtml\(bieg, moi\.map/);
+  assert.match(h, /SLUG_AKCJI = PROBA \? 'proba' : 'dla-fabianka'/); assert.match(h, /U\.licznikProby\(\)/);
+  assert.match(h, /miejsce\(B\.MIEJSCE_REGULAMIN\)/); assert.match(h, /miejsce\(B\.MIEJSCE_OSWIADCZENIE\)/); assert.match(h, /B\.esc\(B\.MIEJSCE_ZGODA_EMAIL\)/);
+  assert.doesNotMatch(h, /\.from\(|createClient\(/, 'strona nie czyta tabel wprost'); assert.doesNotMatch(h, /rpc\('akcja_bieg_publiczny'/, 'publicznej funkcji nie woła przeglądarka (tylko licznik)');
+  assert.doesNotMatch(h.replace(/dla-fabianka(\.html)?/g, ''), /fabian|Kasia|Filip\b/, 'imię dziecka tylko z bazy');
+  assert.doesNotMatch(h, /\son[a-z]+="/i, 'bez JS w atrybutach');
+  assert.match(h, /<meta name="description" content="[^"]*Udział bezpłatny/);
+});

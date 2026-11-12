@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <circle cx="60" cy="60" r="54" fill="#f2b32a" stroke="#3a1d0a" stroke-width="4"/>
+  <circle cx="60" cy="60" r="44" fill="#fff7e6" stroke="#8a5a0e" stroke-width="2"/>
+  <!-- ślady butów, kijki i kółko wózka: spacer, marsz, nordic, wózek -->
+  <g fill="#3b3b47">
+    <ellipse cx="38" cy="62" rx="6" ry="9" transform="rotate(-15 38 62)"/><ellipse cx="36" cy="49" rx="4" ry="3.5"/>
+    <ellipse cx="56" cy="74" rx="6" ry="9" transform="rotate(15 56 74)"/><ellipse cx="59" cy="61" rx="4" ry="3.5"/>
+    <ellipse cx="72" cy="52" rx="6" ry="9" transform="rotate(-15 72 52)"/><ellipse cx="70" cy="39" rx="4" ry="3.5"/>
+  </g>
+  <path d="M84 36 l10 44 M98 30 l-2 50" stroke="#7a5230" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="94" cy="82" r="4" fill="#e8561e" stroke="#3a1d0a" stroke-width="2"/><circle cx="96" cy="82" r="4" fill="#e8561e" stroke="#3a1d0a" stroke-width="2"/>
+  <circle cx="30" cy="86" r="10" fill="#fff7e6" stroke="#3a1d0a" stroke-width="4"/><circle cx="30" cy="86" r="3" fill="#3a1d0a"/>
+  <path d="M30 76 v-14 h16" fill="none" stroke="#3a1d0a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M20 42 q10-14 20 0" fill="#d9482b" stroke="#3a1d0a" stroke-width="2"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- krok 2: wsparcie prosto u organizacji. Serce w dłoni, strzałka na zewnątrz -->
+  <path d="M26 92 q-10-20 6-30 l28 6 q18 2 20 14 l-30 4" fill="#fbe3b2" stroke="#3a1d0a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M30 70 q6-18 26-14" fill="none" stroke="#3a1d0a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M62 52 c-8-14 -30-6 -22 12 c6 12 22 20 22 20 s16-8 22-20 c8-18 -14-26 -22-12z" fill="#d9482b" stroke="#3a1d0a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M84 28 h20 v20" fill="none" stroke="#6f9e3e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M104 28 l-20 20" stroke="#6f9e3e" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- krok 4: numer, dyplom, odznaka; kilometry budują ulicę. Dyplom ze wstęgą i cegła -->
+  <rect x="18" y="20" width="64" height="48" rx="6" fill="#fff7e6" stroke="#3a1d0a" stroke-width="4"/>
+  <path d="M30 34 h40 M30 44 h40 M30 54 h22" stroke="#c9b9a0" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="74" cy="66" r="12" fill="#f2b32a" stroke="#3a1d0a" stroke-width="3"/>
+  <path d="M68 76 l-4 20 l10-6 l10 6 l-4-20" fill="#e8561e" stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round"/>
+  <g stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round">
+    <rect x="22" y="80" width="34" height="18" rx="3" fill="#c8553d"/><rect x="40" y="98" width="34" height="18" rx="3" fill="#d9482b"/><rect x="6" y="98" width="30" height="18" rx="3" fill="#c8553d"/>
+  </g>
+  <path d="M94 24 l4 10 l10 1 l-8 7 l3 10 l-9-6 l-9 6 l3-10 l-8-7 l10-1z" fill="#ffe07a" stroke="#3a1d0a" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>
