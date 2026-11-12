@@ -205,7 +205,7 @@ test('panel trenera: pole plik, nie adres; potwierdzenie; dane w dataset, bez JS
   assert.match(h, /<script src="js\/akcja\.mjs"><\/script>/);
   const start = h.indexOf('/* Firmy wspierające akcję: jeden formularz'), k = h.slice(start, h.indexOf('</script>', start));
   assert.match(k, /sb\.from\('akcja_firmy'\)\.insert\(p\.wiersz\)/);
-  assert.match(k, /sb\.from\('akcja_firmy'\)\.delete\(\)\.eq\('id', f\.id\)\.select\('id'\)/, 'RLS daje 0 wierszy bez błędu: bez select skasowanie „udałoby się” po cichu');
+  assert.match(k, /sb\.rpc\('akcja_firmy_usun', \{ p_id: f\.id \}\)/, 'od blizny 228 usunięcie miękkie przez RPC (odpowiedź sprawdzana po data.ok), nie DELETE z przeglądarki');
   assert.match(k, /crypto\.randomUUID\(\) \+ '\.' \+ lg\.rozszerzenie/); assert.match(k, /upsert: false/);
   assert.match(k, /window\.escapeHtml\(f\.nazwa\)/); assert.match(k, /A\.linkFirmy\(f\)/); assert.match(k, /A\.logoFirmy\(f\)/);
   assert.doesNotMatch(k, /onclick=|onerror=|onload=/, 'bez JS w atrybutach');

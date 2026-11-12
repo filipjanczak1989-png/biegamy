@@ -9023,7 +9023,17 @@ document.addEventListener('keydown', (e) => {
     const kod = e && (e.code || e.statusCode);
     if (kod === '42501' || kod === '403' || kod === 403) return 'baza odmówiła: to konto nie ma uprawnień trenera.';
     if (kod === '23514') return 'baza odrzuciła dane: sprawdź link, kwotę i potwierdzenie wpłaty.';
+    if (kod === 'PGRST202') return 'baza jeszcze nie zna usuwania firm (migracja 20261113_akcja_firmy_usuniecie).';
     return (e && e.message) || 'błąd połączenia.';
+  }
+  /** Plik z kubełka wolno skasować tylko wtedy, gdy żaden inny wiersz go nie używa (firmy próby wskazywały kiedyś logo prawdziwej firmy). Wątpliwość = nie kasować. */
+  async function plikWolny(adres, pozaId) {
+    if (!adres) return false;
+    for (const kolumna of ['logo_url', 'plakat_url']) {
+      const r = await sb.from('akcja_firmy').select('id').eq(kolumna, adres).neq('id', pozaId).limit(1);
+      if (r.error || (r.data && r.data.length)) return false;
+    }
+    return true;
   }
   function ustawWsparcie() {
     const poprzedni = POPRZEDNI.includes($('firma-rodzaj').value), rzeczowe = poprzedni || $('firma-wsparcie').value === 'rzeczowe';
@@ -9056,7 +9066,10 @@ document.addEventListener('keydown', (e) => {
       '<button type="button" data-firma-usun="' + nr + '" style="' + guzik + 'color:var(--red);">Usuń z Ulicy</button></div>';
   }
   async function wczytaj() {
-    const { data, error } = await sb.from('akcja_firmy').select('id,akcja_slug,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta,logo_zgoda,plakat_url,plakat_tekst').in('akcja_slug', SLUGI).order('akcja_slug').order('dodano').order('id');
+    /* Usunięte miękko (20261113_akcja_firmy_usuniecie) zostają w bazie do rozliczenia, w panelu ich nie ma; przed migracją kolumny nie ma (42703), wtedy lista bez filtru. */
+    const zapytanie = (zFiltrem) => { let q = sb.from('akcja_firmy').select('id,akcja_slug,nazwa,link,logo_url,kwota_gr,zgoda_na_kwote,dodano,rodzaj,wsparcie,ukryta,logo_zgoda,plakat_url,plakat_tekst').in('akcja_slug', SLUGI); if (zFiltrem) q = q.is('usunieta_at', null); return q.order('akcja_slug').order('dodano').order('id'); };
+    let { data, error } = await zapytanie(true);
+    if (error && error.code === '42703') ({ data, error } = await zapytanie(false));
     if (error) { lista.textContent = 'Nie udało się wczytać listy: ' + komunikat(error); return; }
     wczytano = true; firmy = data || [];
     lista.innerHTML = firmy.length ? firmy.map(wiersz).join('') : '<div style="font-size:12px;color:var(--muted);">Lista pusta: na stronie akcji sekcji firm nie widać.</div>';
@@ -9073,23 +9086,31 @@ document.addEventListener('keydown', (e) => {
     sekcja.open = true; zacznijEdycje(f); form.scrollIntoView({ block: 'start', behavior: 'smooth' });
     return true;
   };
-  /** → 'usunieta' | 'anulowano' | 'brak' | 'blad'. Kilka firm o tej nazwie: nic nie zgadujemy, usuwa się z listy. */
-  window.BM_USUN_FIRME = async function (nazwa, proba) {
+  /** → 'usunieta' | 'anulowano' | 'brak' | 'blad'. Z id firmy (lista zgłoszeń po 20261113) celujemy wprost; po nazwie tylko bez id, a kilka firm o tej nazwie: nic nie zgadujemy, usuwa się z listy. */
+  window.BM_USUN_FIRME = async function (nazwa, proba, firmaId) {
     await wczytaj();
-    const pasujace = znajdz(nazwa, proba);
+    const poId = firmaId ? firmy.filter((x) => x.id === firmaId) : [];
+    const pasujace = poId.length ? poId : znajdz(nazwa, proba);
     if (!pasujace.length) return 'brak';
     if (pasujace.length > 1) { window.showToast('Kilka firm o tej nazwie: usuń właściwą z listy „Firmy wspierające akcję”.', 'warn'); return 'blad'; }
     return usunFirme(pasujace[0]);
   };
-  /* Usunięcie z Ulicy: własne okienko (window.confirm w PWA bywa zablokowane), wpis z tabeli firm i plik logo. Licznik kilometrów liczy treningi, nie firmy, więc się nie zmienia. */
+  /* Usunięcie z Ulicy (20261113_akcja_firmy_usuniecie): własne okienko (window.confirm w PWA bywa zablokowane), potem RPC akcja_firmy_usun — wiersz zostaje do rozliczenia (kwota),
+     nazwa, link, logo i plakat znikają z bazy od razu. Pliki z kubełka kasuje przeglądarka z listy w odpowiedzi: tylko te, których żaden inny wiersz nie używa (logo bywało wspólne
+     z firmami próby, plakat nie był kasowany nigdy). Licznik kilometrów liczy treningi, nie firmy, więc się nie zmienia. */
   async function usunFirme(f) {
     if (!window.BM_OKIENKO) { window.showToast('Okienko potwierdzenia się nie wczytało. Odśwież stronę.', 'error'); return 'blad'; }
-    const tak = await window.BM_OKIENKO({ tytul: 'Usunąć z Ulicy?', tekst: '„' + f.nazwa + '”' + (f.akcja_slug === 'proba' ? ' (próba)' : '') + ' zniknie z Ulicy i z listy firm na stronie akcji, najpóźniej po 2 minutach. Licznik kilometrów się nie zmienia.', tak: 'Usuń z Ulicy', grozne: true });
+    const tak = await window.BM_OKIENKO({ tytul: 'Usunąć z Ulicy?', tekst: '„' + f.nazwa + '”' + (f.akcja_slug === 'proba' ? ' (próba)' : '') + ' zniknie z Ulicy i z listy firm na stronie akcji, najpóźniej po 2 minutach. Nazwa, link, logo i plakat znikną z bazy od razu; do rozliczenia zostaje tylko kwota. Licznik kilometrów się nie zmienia.', tak: 'Usuń z Ulicy', grozne: true });
     if (!tak) return 'anulowano';
-    const { data, error } = await sb.from('akcja_firmy').delete().eq('id', f.id).select('id');
-    if (error || !data || !data.length) { window.showToast('Nie udało się usunąć: ' + (error ? komunikat(error) : 'baza odmówiła.'), 'error'); return 'blad'; }
-    const plik = plikLogo(f.logo_url);
-    if (plik) { try { const r = await sb.storage.from(A.BUCKET_LOGO).remove([plik]); if (r.error) throw r.error; } catch (_) { window.showToast('Wpis usunięty, plik logo został w Storage.', 'warn'); } }
+    const { data, error } = await sb.rpc('akcja_firmy_usun', { p_id: f.id });
+    if (error || !data || data.ok !== true) {
+      const powod = data && data.powod;
+      window.showToast('Nie udało się usunąć: ' + (error ? komunikat(error) : powod === 'juz_usunieta' ? 'ta firma jest już usunięta.' : powod === 'nie_ma' ? 'tej firmy już nie ma.' : 'baza odmówiła.'), 'error');
+      if (powod) await wczytaj();
+      return 'blad';
+    }
+    const pliki = (Array.isArray(data.pliki) ? data.pliki : []).filter((p) => typeof p === 'string' && /^[0-9a-f-]{36}\.(png|jpg|webp)$/.test(p));
+    if (pliki.length) { try { const r = await sb.storage.from(A.BUCKET_LOGO).remove(pliki); if (r.error) throw r.error; } catch (_) { window.showToast('Firma usunięta, plik logo albo plakatu został w Storage.', 'warn'); } }
     if (edycja && edycja.id === f.id) czyscFormularz();
     window.showToast('Usunięto z Ulicy. Ze strony akcji zniknie najpóźniej po 2 minutach.');
     await wczytaj();
@@ -9154,8 +9175,11 @@ document.addEventListener('keydown', (e) => {
         const { data, error } = await sb.from('akcja_firmy').update(A.firmaDoEdycji(p.wiersz)).eq('id', edycja.id).select('id');
         if (error) throw error;
         if (!data || !data.length) throw new Error('baza odmówiła zapisu.');
-        const stary = wgrany ? plikLogo(edycja.logo_url) : '';
-        if (stary) { try { await sb.storage.from(A.BUCKET_LOGO).remove([stary]); } catch (_) {} }
+        /* Stare logo i stary plakat (gdy wgrano nowe) do kasacji tylko wtedy, gdy nikt inny ich nie używa (20261113: plik wspólny z próbą zostaje, plakat też jest sprzątany). */
+        for (const [adres, nowy] of [[edycja.logo_url, wgrany], [edycja.plakat_url, p.wiersz.plakat_url ? plikLogo(p.wiersz.plakat_url) : '']]) {
+          const plik = nowy ? plikLogo(adres) : '';
+          if (plik && plik !== nowy && await plikWolny(adres, edycja.id)) { try { await sb.storage.from(A.BUCKET_LOGO).remove([plik]); } catch (_) {} }
+        }
         /* Pokazanie kwoty osobno: przed migracją 20261106_akcja_edycja baza nie pozwala go zmienić, a reszta zmian i tak musi przejść. */
         const pokazKwote = $('firma-kwota-pokaz').checked;
         if (edycja.kwota_gr != null && pokazKwote !== (edycja.zgoda_na_kwote === true)) {

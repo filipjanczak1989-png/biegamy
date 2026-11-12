@@ -126,5 +126,6 @@ test('film akcji nie gra w zwiniętym pasku; Ustawienia zostają drugą drogą; 
   const a = czytaj('js/akcja.mjs');
   assert.match(a, /"#daily-motivation\.akcja-baner--zwiniety\{min-height:0!important;height:auto!important\}/);
   assert.match(a, /\.akcja-dzis-zwiniety\{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;/, 'pasek ok. 44 px');
-  assert.ok(!fs.readdirSync(path.join(KORZEN, 'supabase/migrations')).some((f) => /^2026111|^20261109_akcja_pasek/.test(f)), 'bez nowej migracji');
+  /* „bez nowej migracji” dotyczy zwiniętego kafla, nie całego listopada: wzorzec po dacie blokował każdą późniejszą migrację (12.11) */
+  assert.ok(!fs.readdirSync(path.join(KORZEN, 'supabase/migrations')).some((f) => /^20261109_akcja_pasek|kafel_zwini|zwiniety_kafel/.test(f)), 'bez nowej migracji dla zwiniętego kafla');
 });

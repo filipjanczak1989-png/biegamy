@@ -663,7 +663,18 @@
     }
     $('sz-km').addEventListener('input', opisSuwakow); $('sz-kwota').addEventListener('input', opisSuwakow);
     $('sz-km').addEventListener('change', zmienSuwak); $('sz-kwota').addEventListener('change', zmienSuwak);
-    $('sz-firmy-dodaj').addEventListener('click', function () { sciezkaRpc('akcja_proba_firmy', { p_dodaj: true }, 'Dodaję firmy próby…'); });
+    /* Firmy próby dostają własny plik zastępczy (20261113_akcja_firmy_usuniecie): stała nazwa, rysowany tutaj, nigdy logo prawdziwej firmy (usunięcie firmy próby kasowało cudzy plik).
+       Wgranie „już istnieje” to nie błąd; bez pliku firmy próby i tak powstają (obrazek nie wczyta się, reszta działa). */
+    var LOGO_PROBY = 'aaaaaaaa-0000-4000-8000-00000000f1f1.png';
+    async function wgrajLogoProby() {
+      try {
+        var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d');
+        x.fillStyle = '#ff8a3c'; x.fillRect(0, 0, 256, 256); x.fillStyle = '#17120e'; x.font = '800 54px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('PRÓBA', 128, 128);
+        var blob = await new Promise(function (ok) { c.toBlob(ok, 'image/png'); });
+        if (blob) await window.sb.storage.from('akcja-firmy-logo').upload(LOGO_PROBY, blob, { contentType: 'image/png', upsert: false, cacheControl: '3600' });
+      } catch (e) {}
+    }
+    $('sz-firmy-dodaj').addEventListener('click', async function () { await wgrajLogoProby(); sciezkaRpc('akcja_proba_firmy', { p_dodaj: true }, 'Dodaję firmy próby…'); });
     $('sz-firmy-usun').addEventListener('click', async function () {
       var w = await sciezkaRpc('akcja_proba_firmy', { p_dodaj: false }, 'Usuwam firmy próby…');
       if (w && w.pliki && w.pliki.length) { try { await window.sb.storage.from('akcja-firmy-logo').remove(w.pliki); } catch (e) {} }

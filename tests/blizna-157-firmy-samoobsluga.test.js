@@ -124,7 +124,8 @@ test('panel ręczny: wpłata wymaga potwierdzenia, Partner akcji bez progu; edyc
   const start = h.indexOf('/* Firmy wspierające akcję: jeden formularz'), k = h.slice(start, h.indexOf('</script>', start));
   assert.match(k, /\.update\(A\.firmaDoEdycji\(p\.wiersz\)\)\.eq\('id', edycja\.id\)\.select\('id'\)/, 'RLS daje 0 wierszy bez błędu: bez select zapis „udałby się” po cichu');
   assert.match(k, /\.update\(\{ ukryta: !f\.ukryta \}\)\.eq\('id', f\.id\)\.select\('id'\)/);
-  assert.match(k, /const stary = wgrany \? plikLogo\(edycja\.logo_url\) : ''/, 'podmiana logo kasuje stary plik dopiero po zapisie');
+  const zapis = k.indexOf(".update(A.firmaDoEdycji(p.wiersz)).eq('id', edycja.id)"), kasacja = k.indexOf("for (const [adres, nowy] of [[edycja.logo_url, wgrany]");
+  assert.ok(zapis > 0 && kasacja > zapis, 'podmiana logo kasuje stary plik dopiero po zapisie (od blizny 228: tylko gdy nikt inny go nie używa, plakat też)');
   assert.doesNotMatch(k, /onclick=|onerror=|onload=/, 'bez JS w atrybutach');
 });
 

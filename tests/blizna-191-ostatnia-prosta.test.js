@@ -119,17 +119,19 @@ test('panel trenera: własne okienko zamiast window.confirm i prompt (firmy, zg�
 test('Usuń z Ulicy i Edytuj: firmy obu akcji, zatwierdzone z próby, wpisy w murze bez migracji', () => {
   const T = czytaj('trener.html'), U = czytaj('js/ulica.mjs'), P = czytaj('js/firmy-panel.mjs');
   assert.match(T, /SLUGI = \['dla-fabianka', 'proba'\]/);
-  assert.match(T, /\.in\('akcja_slug', SLUGI\)\.order\('akcja_slug'\)/);
+  assert.match(T, /\.in\('akcja_slug', SLUGI\); if \(zFiltrem\) q = q\.is\('usunieta_at', null\); return q\.order\('akcja_slug'\)/);   // filtr usuniętych od blizny 228
   assert.match(T, /f\.akcja_slug === 'proba' \? 'PRÓBA' : ''/);
   const us = T.slice(T.indexOf('async function usunFirme(f)'), T.indexOf("return 'usunieta';", T.indexOf('async function usunFirme(f)')));
-  assert.match(us, /window\.BM_OKIENKO\(\{ tytul: 'Usunąć z Ulicy\?'[\s\S]{0,300}Licznik kilometrów się nie zmienia\.', tak: 'Usuń z Ulicy', grozne: true \}\)/);
-  assert.match(us, /sb\.from\('akcja_firmy'\)\.delete\(\)\.eq\('id', f\.id\)\.select\('id'\)/, 'RLS daje 0 wierszy bez błędu: bez select „udałoby się” po cichu');
-  assert.match(us, /sb\.storage\.from\(A\.BUCKET_LOGO\)\.remove\(\[plik\]\)/);
-  assert.doesNotMatch(us, /rpc\(|akcje|licznik|training_logs/, 'tylko tabela firm i plik logo');
-  assert.match(T, /window\.BM_USUN_FIRME = async function \(nazwa, proba\)/);
+  assert.match(us, /window\.BM_OKIENKO\(\{ tytul: 'Usunąć z Ulicy\?'[\s\S]{0,400}Licznik kilometrów się nie zmienia\.', tak: 'Usuń z Ulicy', grozne: true \}\)/);
+  /* od blizny 228 (20261113_akcja_firmy_usuniecie): miękkie usunięcie przez RPC zamiast DELETE z przeglądarki; pliki z odpowiedzi, nie z wiersza */
+  assert.match(us, /sb\.rpc\('akcja_firmy_usun', \{ p_id: f\.id \}\)/);
+  assert.doesNotMatch(us, /\.delete\(\)/, 'DELETE z przeglądarki odebrany (blizna-228)');
+  assert.match(us, /sb\.storage\.from\(A\.BUCKET_LOGO\)\.remove\(pliki\)/);
+  assert.doesNotMatch(us, /akcje|licznik|training_logs/, 'tylko firma i jej pliki');
+  assert.match(T, /window\.BM_USUN_FIRME = async function \(nazwa, proba, firmaId\)/);
   assert.match(T, /if \(pasujace\.length > 1\)/, 'kilka firm o tej nazwie: nic nie zgadujemy');
   assert.match(P, /if \(z\.status === "zatwierdzone" && !cegla\) \{/, 'z próby też; cegiełka osobno (blizna-192)');
-  assert.match(P, /g\.BM_USUN_FIRME\(z\.nazwa, !!z\.proba\)/);
+  assert.match(P, /g\.BM_USUN_FIRME\(z\.nazwa, !!z\.proba, z\.firma_id \|\| null\)/);
   const w = U.slice(U.indexOf('function wierszCegielki'), U.indexOf('async function wczytajCegielki'));
   const ins = w.indexOf('sb.from("akcja_cegielki").insert(Object.assign({ akcja_slug: c.akcja_slug || SLUG_PANELU }, p.wiersz)).select("id")'), del = w.indexOf('sb.from("akcja_cegielki").delete().eq("id", c.id).select("id")');
   assert.ok(ins > 0 && del > ins, 'edycja: najpierw nowy wpis, potem skasowanie starego (awaria w środku nie gubi wpisu)');

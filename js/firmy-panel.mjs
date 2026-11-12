@@ -40,6 +40,8 @@
       });
     }
     if (z.status === "zatwierdzone" && !cegla) {
+      /* Usunięta miękko (20261113_akcja_firmy_usuniecie): lista zna firma_usunieta, nazwa w zgłoszeniu to już „[usunięta]”; bez guzików, bo nie ma czego edytować ani usuwać. */
+      if (z.firma_usunieta) { el("div", "font-size:12px;color:var(--muted);margin-top:8px;", ramka, "Usunięta z Ulicy."); return; }
       var rzad = el("div", "display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;", ramka), edInfo = el("div", "font-size:12px;color:var(--muted);", ramka);
       var ed = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--fg);border:1px solid var(--border);", rzad, "Edytuj"); ed.type = "button";
       var us = el("button", PRZYCISK + "flex:1 1 130px;background:none;color:var(--red);border:1px solid var(--border);", rzad, "Usuń z Ulicy"); us.type = "button";
@@ -51,7 +53,7 @@
       us.addEventListener("click", function () {
         if (!g.BM_USUN_FIRME) { edInfo.textContent = "Edytor firm się nie wczytał. Odśwież stronę."; return; }
         us.disabled = true; edInfo.textContent = "";
-        g.BM_USUN_FIRME(z.nazwa, !!z.proba).then(function (w) {
+        g.BM_USUN_FIRME(z.nazwa, !!z.proba, z.firma_id || null).then(function (w) {
           if (w === "usunieta" || w === "brak") { ed.disabled = true; edInfo.textContent = w === "usunieta" ? "Usunięta z Ulicy." : "Tej firmy nie ma już na Ulicy."; return; }
           us.disabled = false;
         }, function () { us.disabled = false; edInfo.textContent = "Nie udało się. Sprawdź łącze."; });

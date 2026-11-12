@@ -113,6 +113,7 @@ test('bramka: zdanie pustego stanu w loaderze BEZ obsługi sieci tylko z zatwier
     "trener.html | loadAthleteDetailStats | Brak": "komentarz",
     "trener.html | saveCoachNote | Brak sesji": "wyjątek akcji (brak sesji)",
     "ankieta.html | saveDraft | jeszcze nie": "komunikat zapisu szkicu",
+    "trener.html | komunikat | baza jeszcze nie zna usuwania firm (migracja 20261113_akcja_firmy_usuniecie).": "tłumaczenie kodu PGRST202 z bazy (blizna-228), nie pusty stan",
   };
   const teraz = zwiad().filter((x) => (x.czytaZBazy || x.wolanyPrzez) && !x.obslugaSieci).map((x) => x.strona + ' | ' + x.funkcja + ' | ' + x.zdanie);
   const nowe = teraz.filter((k) => !(k in ZATWIERDZONE));
