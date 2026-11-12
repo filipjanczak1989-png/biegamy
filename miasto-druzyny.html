@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<meta name="robots" content="noindex, nofollow">
+<title>Ulica Szkolna · Miasto Dobra</title>
+<meta name="description" content="Pokaz wyzwania szkół i firm w Mieście Dobra: drużyny, ranking razem i na osobę, plakat i dyplom drużyny.">
+<link rel="icon" href="favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>/* font nagłówków z repo (SIL OFL 1.1, assets/fonty/OFL-BebasNeue.txt): bez sieci nagłówki nie spadają na inny krój */@font-face { font-family: 'Bebas Neue'; font-style: normal; font-weight: 400; font-display: swap; src: local('Bebas Neue'), local('BebasNeue-Regular'), url(assets/fonty/BebasNeue-Regular.ttf) format('truetype'); }</style>
+<script src="js/miasto-bieg.mjs"></script>
+<script src="js/miasto-druzyny.mjs"></script>
+<script src="js/miasto-pokaz.mjs" defer></script>   <!-- tryb pokazu (?pokaz=1) i gotowość (?pokaz=gotowosc); bez parametru nic nie robi -->
+<!--
+  WYZWANIE FIRM I SZKÓŁ: POKAZ DRUŻYN (11.11.2026, na spotkanie 18.11). Strona poza nawigacją aplikacji, noindex; wejście tylko z karty „Ulica Szkolna” na miasto.html.
+  Atrapa: nic nie zapisuje w bazie i nic nie wysyła. Naprawdę działa w przeglądarce: założenie drużyny z kodem i QR, plakat drużyny A4, ranking w dwóch widokach,
+  dyplom drużyny (telefon i A4), plakat wyzwania i kartki dla nauczyciela i firmy. Dane wymyślone, oznaczone PRZYKŁAD przy każdej liczbie; klasy bez nazw szkół i bez
+  danych dzieci. Jedyny zapis: stan pokazu w localStorage. Grafiki z assets/ulica, assets/gra i assets/miasto (szkoła) w Cache API strony: po jednym otwarciu z internetem
+  wszystko działa w trybie samolotowym. Pieniądze idą wyłącznie przez organizację prowadzącą zbiórkę; BiegaMy nic nie przyjmuje.
+-->
+<style>
+  :root { --tlo: #07070a; --karta: #0f0f14; --fg: #f0ede8; --fg2: rgba(240,237,232,.72); --akcent: #e8561e; --akcent-tlo: #c9440f; --akcent2: #ff8a3d; --nieb: #3d5a99; --nieb2: #9fb3e6; --ramka: rgba(255,255,255,.1); --kremowy: #fff7e6; --ziel: #2f6b3a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--tlo); color: var(--fg); font-family: Inter, system-ui, sans-serif; }
+  [hidden] { display: none !important; }
+  button { font: inherit; }
+  main { max-width: 560px; margin: 0 auto; padding: 0 12px calc(env(safe-area-inset-bottom) + 36px); }
+  .dr-hero { position: relative; margin: 0 -12px; height: 250px; background: linear-gradient(#9fd0ee, #dceefb 58%, #86ad55 58%, #5f8a3a); }
+  .dr-hero > div { height: 100%; }
+  .dr-wroc { position: absolute; left: 10px; bottom: 10px; z-index: 2; display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 10px; background: rgba(7,7,10,.72); color: var(--kremowy); font: 600 12px/1 Inter, sans-serif; text-decoration: none; backdrop-filter: blur(4px); }
+  .dr-naglowek { padding: 14px 2px 0; }
+  .dr-marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
+  .dr-chipy { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 6px; }
+  .dr-chip { display: inline-block; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: .14em; padding: 5px 8px; border-radius: 6px; color: #fff; background: #6b6b7a; }
+  .dr-chip--przyklad { background: #b8520f; } .dr-chip--trwa { background: var(--akcent-tlo); } .dr-chip--klasa { background: var(--nieb); } .dr-chip--firma { background: var(--akcent-tlo); }
+  h1 { font: 400 clamp(40px, 11vw, 56px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 2px 0 4px; }
+  .dr-pod { margin: 0; font-size: 15px; color: var(--fg2); line-height: 1.4; }
+  .dr-termin { margin: 10px 0 0; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .dr-termin b { font: 400 clamp(24px, 7.4vw, 30px)/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; color: var(--akcent2); white-space: nowrap; }
+  section.dr-sekcja { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 16px; margin: 14px 0; }
+  section.dr-sekcja h2 { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); margin: 0 0 12px; }
+  .dr-liczby { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; } .dr-liczby--dwie { grid-template-columns: repeat(2, 1fr); }
+  .dr-liczba { position: relative; background: rgba(255,255,255,.05); border: 1px solid var(--ramka); border-radius: 12px; padding: 10px 8px 8px; }
+  .dr-liczba b { display: block; font: 400 28px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; } .dr-liczba span { display: block; font-size: 11.5px; color: var(--fg2); margin-top: 3px; }
+  .dr-przyklad { position: absolute; top: 5px; right: 5px; font: 800 7px/1 Inter, sans-serif; font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: #fff; background: #b8520f; padding: 3px 4px; border-radius: 4px; }
+  .dr-pasek { height: 10px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; margin: 10px 0 4px; } .dr-pasek i { display: block; height: 100%; background: linear-gradient(90deg, var(--akcent), var(--akcent2)); border-radius: 5px; min-width: 2px; }
+  .dr-pasek--nieb i { background: linear-gradient(90deg, var(--nieb), var(--nieb2)); }
+  .dr-uwaga { margin: 8px 0 0; font-size: 12px; color: #ffb27a; font-weight: 600; }
+  .dr-przycisk { display: block; width: 100%; margin-top: 12px; padding: 15px; border: 0; border-radius: 14px; background: var(--akcent-tlo); color: #fff; font: 600 15px/1 Inter, sans-serif; text-align: center; text-decoration: none; cursor: pointer; }
+  .dr-przycisk--cichy { background: rgba(255,255,255,.08); color: var(--fg); } .dr-przycisk--obrys { background: transparent; border: 1px solid rgba(232,86,30,.55); color: var(--akcent2); } .dr-przycisk--ziel { background: var(--ziel); } .dr-przycisk--nieb { background: var(--nieb); }
+  .dr-przycisk[disabled] { opacity: .5; cursor: default; }
+  .dr-cta { margin: 14px 0; } .dr-cta .dr-przycisk { margin-top: 10px; } .dr-cta p { margin: 6px 2px 0; font-size: 12px; color: var(--fg2); line-height: 1.45; }
+  .dr-wiersze { display: flex; gap: 10px; flex-wrap: wrap; } .dr-wiersze .dr-przycisk { flex: 1; min-width: 120px; }
+  .dr-kroki { display: grid; gap: 10px; } .dr-krok { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; } .dr-krok img { width: 56px; height: 56px; object-fit: contain; }
+  .dr-krok b { display: block; font-size: 15px; margin-bottom: 2px; } .dr-krok span { font-size: 13px; color: var(--fg2); line-height: 1.45; }
+  .dr-krok i { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--akcent-tlo); color: #fff; font: 800 11px/1 Inter, sans-serif; font-style: normal; margin-right: 6px; vertical-align: 2px; }
+  .dr-rodzaje { display: grid; gap: 10px; } .dr-rodzaj { padding: 12px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); }
+  .dr-rodzaj--klasa { border-color: rgba(61,90,153,.7); } .dr-rodzaj--firma { border-color: rgba(232,86,30,.55); }
+  .dr-rodzaj b { display: block; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .dr-rodzaj small { display: block; font-size: 11.5px; color: var(--fg2); margin: 2px 0 6px; } .dr-rodzaj p { margin: 0; font-size: 13px; color: var(--fg2); line-height: 1.45; }
+  .dr-filtry { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .dr-filtr { min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 600 12px/1 Inter, sans-serif; cursor: pointer; } .dr-filtr[aria-pressed=true] { background: var(--akcent-tlo); border-color: var(--akcent-tlo); color: #fff; }
+  .dr-lista { list-style: none; margin: 0; padding: 0; }
+  .dr-wiersz { display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center; min-height: 44px; padding: 6px 6px; border-top: 1px solid var(--ramka); font-size: 14px; } .dr-wiersz--ty { background: rgba(242,179,42,.16); border-radius: 10px; border-top-color: transparent; }
+  .dr-nr { font: 400 20px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg2); } .dr-nazwa i { font-style: normal; font-size: 11px; color: #f2b32a; font-weight: 800; } .dr-nazwa small, .dr-wart small { display: block; font-weight: 400; font-size: 11px; color: var(--fg2); } .dr-wart { text-align: right; font-weight: 600; white-space: nowrap; }
+  .dr-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .dr-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; } .dr-opis { font-size: 14px; line-height: 1.5; color: var(--fg2); margin: 8px 0 0; }
+  .dr-pole { display: block; margin-top: 12px; } .dr-pole > span { display: block; font-size: 13px; color: var(--fg2); margin-bottom: 5px; }
+  .dr-pole input[type=text], .dr-pole input[type=number] { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 500 15px/1.2 Inter, sans-serif; }
+  .dr-wybor { display: grid; gap: 8px; margin-top: 10px; grid-template-columns: 1fr 1fr; } .dr-wybor label { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--ramka); border-radius: 12px; font-size: 14px; min-height: 44px; cursor: pointer; }
+  .dr-wybor label:has(input:checked) { border-color: var(--akcent2); background: rgba(232,86,30,.14); } .dr-wybor label small { display: block; font-size: 11px; color: var(--fg2); }
+  .dr-blad { margin: 8px 0 0; font-size: 13px; color: #ffb27a; font-weight: 600; min-height: 1em; }
+  .dr-karta-druzyny { display: grid; grid-template-columns: 1fr 112px; gap: 12px; align-items: start; } .dr-qr { width: 112px; height: 112px; border-radius: 10px; overflow: hidden; background: #fff; } .dr-qr svg { display: block; width: 100%; height: 100%; }
+  .dr-kod { font: 400 34px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .08em; color: var(--akcent2); } .dr-link { font-size: 12px; color: var(--fg2); word-break: break-all; }
+  .dr-miejsce { display: flex; gap: 8px; margin-top: 10px; } .dr-miejsce div { flex: 1; padding: 8px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid var(--ramka); } .dr-miejsce b { display: block; font: 400 26px/1 'Bebas Neue', Inter, sans-serif; } .dr-miejsce span { font-size: 11px; color: var(--fg2); }
+  .dr-stopka { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 14px 2px 0; } .dr-stopka a { color: var(--fg2); }
+  dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
+  dialog::backdrop { background: rgba(7,7,10,.92); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  dialog h3 { font: 400 28px/1.05 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; margin: 6px 0 6px; padding-right: 40px; }
+  .dr-zamknij { position: absolute; right: 10px; top: 10px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: var(--fg); font-size: 20px; cursor: pointer; }
+  .dr-ekran { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 36px); } .dr-ekran h1 { font-size: clamp(34px, 9vw, 44px); }
+  .dr-zdanie { font-size: 15px; line-height: 1.45; font-weight: 600; margin: 8px 0 0; padding: 12px; border-radius: 12px; background: rgba(47,107,58,.25); border: 1px solid rgba(47,107,58,.6); }
+  .dr-material { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--ramka); } .dr-material:first-child { border-top: 0; }
+  .dr-material b { display: block; font-size: 14px; } .dr-material span { font-size: 12px; color: var(--fg2); line-height: 1.4; display: block; } .dr-material .dr-przycisk { margin-top: 0; padding: 10px 12px; font-size: 13px; width: auto; }
+  .dr-lista-prosta { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.55; } .dr-lista-prosta li + li { margin-top: 4px; }
+  .dr-check { list-style: none; margin: 0; padding: 0; } .dr-check li { display: flex; gap: 10px; align-items: center; min-height: 44px; border-top: 1px solid var(--ramka); font-size: 14px; } .dr-check li:first-child { border-top: 0; }
+  .dr-check input { flex: 0 0 22px; width: 22px; height: 22px; margin: 0; accent-color: var(--akcent-tlo); } .dr-check label { flex: 1; padding: 8px 0; cursor: pointer; }
+  .dr-konfetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  /* druk: obraz A4 pion (plakat albo dyplom) albo kartka tekstowa */
+  .dr-druk { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 0; }
+    body > *:not(.dr-druk) { display: none !important; }
+    body.druk-obraz .dr-druk--obraz { display: block; width: 210mm; height: 297mm; } .dr-druk--obraz img { width: 210mm; height: 297mm; display: block; }
+    body.druk-kartka .dr-druk--kartka { display: block; width: 210mm; min-height: 297mm; padding: 16mm 18mm; color: #000; background: #fff; font: 12pt/1.45 Inter, Arial, sans-serif; }
+    .dr-druk--kartka h1 { font: 400 30pt/1 'Bebas Neue', Impact, sans-serif; color: #000; margin: 0 0 4mm; } .dr-druk--kartka h2 { font: 700 13pt/1.2 Inter, Arial, sans-serif; margin: 8mm 0 2mm; } .dr-druk--kartka ol, .dr-druk--kartka ul { margin: 0; padding-left: 6mm; } .dr-druk--kartka .dr-druk-stopka { margin-top: 10mm; font-size: 9.5pt; color: #333; border-top: 1px solid #999; padding-top: 3mm; }
+  }
+  @media (min-width: 900px) {
+    main { max-width: 1040px; } .dr-hero { height: 340px; border-radius: 0 0 22px 22px; overflow: hidden; }
+    .dr-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; } .dr-ekran { max-width: 1040px; } .dr-ekran .dr-uklad { grid-template-columns: 1fr 1fr; } .dr-rodzaje { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<main id="dr-main">
+  <div class="dr-hero"><div id="dr-scena" aria-label="Scena Ulicy Szkolnej: szkoła, plac zabaw, droga z kilometrów drużyn, domki drużyn"></div><a class="dr-wroc" href="miasto.html">‹ Miasto Dobra</a></div>
+
+  <div class="dr-naglowek">
+    <div class="dr-marka">BiegaMy · Miasto Dobra</div>
+    <div class="dr-chipy"><span class="dr-chip dr-chip--przyklad">PRZYKŁAD</span><span class="dr-chip dr-chip--trwa" id="dr-chip-stan">TRWA</span></div>
+    <h1>Ulica Szkolna</h1>
+    <p class="dr-pod">Wyzwanie szkół i firm. Klasy i zespoły z firm zbierają kilometry jako drużyny; każdy kilometr buduje tę samą drogę.</p>
+    <p class="dr-termin"><b>3–30.11</b><span>cztery tygodnie<br><small style="color:var(--fg2);font-weight:600">czas trwania · przykład</small></span></p>
+  </div>
+
+  <div class="dr-uklad">
+  <div>
+  <div class="dr-cta">
+    <button type="button" class="dr-przycisk" id="dr-zaloz">Załóż drużynę: klasę albo firmę ›</button>
+    <button type="button" class="dr-przycisk dr-przycisk--obrys" id="dr-wesprzyj">Wesprzyj zbiórkę u organizacji ›</button>
+    <p>Udział jest bezpłatny. Wpłaty idą wyłącznie przez organizację prowadzącą zbiórkę. BiegaMy nic nie przyjmuje i nie widzi wpłat.</p>
+  </div>
+
+  <section class="dr-sekcja" aria-label="Licznik wyzwania">
+    <h2>Razem</h2>
+    <div class="dr-liczby" id="dr-liczby"></div>
+    <div class="dr-pasek" id="dr-pasek" role="img"><i></i></div>
+    <p class="dr-uwaga">Dane wymyślone na potrzeby pokazu. Nie wchodzą do licznika miasta.</p>
+  </section>
+
+  <section class="dr-sekcja" id="dr-moja" hidden aria-label="Twoja drużyna">
+    <h2>Twoja drużyna <span class="dr-chip dr-chip--przyklad" style="vertical-align:middle">PRZYKŁAD</span></h2>
+    <div id="dr-moja-tresc"></div>
+  </section>
+
+  <section class="dr-sekcja" aria-label="Jak to działa">
+    <h2>Jak to działa</h2>
+    <div class="dr-kroki" id="dr-kroki"></div>
+  </section>
+
+  <section class="dr-sekcja" aria-label="Dwa rodzaje drużyn">
+    <h2>Dwa rodzaje drużyn na jednej ulicy</h2>
+    <div class="dr-rodzaje" id="dr-rodzaje"></div>
+    <p class="dr-drobne">W BiegaMy nie ma żadnych danych dzieci: klasa to nazwa, liczba osób i suma kilometrów wpisana przez nauczyciela.</p>
+  </section>
+  </div>
+
+  <div>
+  <section class="dr-sekcja" aria-label="Ranking drużyn">
+    <h2>Ranking drużyn <span class="dr-chip dr-chip--przyklad" style="vertical-align:middle">PRZYKŁAD</span></h2>
+    <div class="dr-filtry" id="dr-widok"><button type="button" class="dr-filtr" data-widok="razem" aria-pressed="true">kilometry razem</button><button type="button" class="dr-filtr" data-widok="osoba" aria-pressed="false">kilometry na osobę</button></div>
+    <ol class="dr-lista" id="dr-ranking"></ol>
+    <p class="dr-drobne" id="dr-ranking-opis">Dwa widoki, żeby mała klasa mogła wygrać z dużą firmą. Rankingu osób nie ma: liczą się drużyny.</p>
+  </section>
+
+  <section class="dr-sekcja" aria-label="Widok organizacji">
+    <h2>Dla organizacji prowadzącej zbiórkę</h2>
+    <p class="dr-opis" style="margin-top:0">Liczby wyzwania, kliknięcia w link zbiórki, materiały dla szkół i firm do pobrania, checklista przed startem.</p>
+    <a class="dr-przycisk dr-przycisk--ziel" href="#organizacja" id="dr-do-org">Zobacz widok organizacji ›</a>
+  </section>
+  </div>
+  </div>
+
+  <p class="dr-stopka">Pokaz wyzwania szkół i firm w Mieście Dobra. Wszystkie dane są wymyślone, nic nie jest zapisywane poza Twoją przeglądarką i nic nie jest wysyłane. Udział w prawdziwym wyzwaniu będzie bezpłatny; wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi. <a href="privacy.html">Polityka prywatności</a></p>
+  <button type="button" class="dr-filtr" id="dr-od-nowa" style="margin-top:10px;min-height:40px">Zacznij pokaz od nowa</button>
+</main>
+
+<section id="dr-org" class="dr-ekran" hidden aria-label="Widok organizacji">
+  <div class="dr-marka">BiegaMy · Miasto Dobra · widok organizacji</div>
+  <div class="dr-chipy"><span class="dr-chip dr-chip--przyklad">PRZYKŁAD</span><span class="dr-chip">ATRAPA</span></div>
+  <h1>Ulica Szkolna: panel organizacji</h1>
+  <p class="dr-zdanie">Pieniądze idą wyłącznie przez organizację prowadzącą zbiórkę. BiegaMy ich nie widzi i nie dotyka: liczymy drużyny, kilometry i kliknięcia.</p>
+  <a class="dr-przycisk dr-przycisk--cichy" href="#" id="dr-z-org">‹ Wróć do strony wyzwania</a>
+  <div class="dr-uklad">
+  <div>
+  <section class="dr-sekcja" aria-label="Liczby dla organizacji">
+    <h2>Liczby</h2>
+    <div class="dr-liczby dr-liczby--dwie" id="dr-org-liczby"></div>
+    <p class="dr-drobne"><b>Kliknięcia, nie wpłaty.</b> Liczymy wejścia w link „Wesprzyj zbiórkę”. Ile osób wpłaciło i ile, wie tylko organizacja: wpłaty nie przechodzą przez BiegaMy. Stawki firm za kilometry też rozlicza firma z organizacją.</p>
+  </section>
+  <section class="dr-sekcja" aria-label="Czego BiegaMy nie dotyka">
+    <h2>Czego BiegaMy nie dotyka</h2>
+    <ul class="dr-lista-prosta"><li>Wpłat, danych płatniczych, faktur i stawek firm.</li><li>Danych uczniów: klasa to nazwa, liczba osób i suma kilometrów od nauczyciela.</li><li>Regulaminu zbiórki i rozliczeń z darczyńcami.</li><li>Kontaktu ze szkołami i firmami ponad to, na co się zgodziły.</li></ul>
+  </section>
+  <section class="dr-sekcja" aria-label="Co organizacja zatwierdza przed startem">
+    <h2>Co organizacja zatwierdza przed startem</h2>
+    <ul class="dr-check" id="dr-check"></ul>
+    <p class="dr-drobne">Zaznaczenia zostają tylko w tej przeglądarce. W prawdziwym wyzwaniu zatwierdza osoba z organizacji w swoim panelu.</p>
+  </section>
+  </div>
+  <div>
+  <section class="dr-sekcja" aria-label="Materiały dla szkół i firm">
+    <h2>Materiały dla szkół i firm (generowane w przeglądarce)</h2>
+    <div id="dr-materialy"></div>
+    <img class="dr-obraz" id="dr-plakat-wyzwania" alt="Plakat wyzwania" style="margin-top:12px" hidden>
+  </section>
+  <section class="dr-sekcja" aria-label="Drużyny">
+    <h2>Drużyny w wyzwaniu</h2>
+    <ol class="dr-lista" id="dr-org-ranking"></ol>
+  </section>
+  </div>
+  </div>
+</section>
+
+<dialog id="dr-okno-zaloz" aria-label="Załóż drużynę">
+  <button type="button" class="dr-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Załóż drużynę</h3>
+  <p class="dr-opis">Nazwa, rodzaj i liczba osób. Dostaniesz link zaproszenia, kod QR i plakat. W pokazie wszystko zostaje w Twojej przeglądarce.</p>
+  <div class="dr-wybor" id="dr-rodzaj-wybor">
+    <label><input type="radio" name="dr-rodzaj" value="klasa" checked><span><b>Klasa</b><small>zakłada nauczyciel, uczniowie bez kont</small></span></label>
+    <label><input type="radio" name="dr-rodzaj" value="firma"><span><b>Firma</b><small>pracownicy z własnymi kontami</small></span></label>
+  </div>
+  <label class="dr-pole" for="dr-nazwa"><span>Nazwa drużyny</span><input id="dr-nazwa" type="text" autocomplete="off" maxlength="32" placeholder="np. Klasa 5a albo Piekarnia na Rogu"></label>
+  <label class="dr-pole" for="dr-osoby"><span>Liczba osób w drużynie</span><input id="dr-osoby" type="number" inputmode="numeric" min="1" max="500" placeholder="np. 24"></label>
+  <label class="dr-pole" for="dr-stawka" id="dr-stawka-pole" hidden><span>Stawka firmy za każdy kilometr drużyny (grosze, nieobowiązkowo; idzie prosto na zbiórkę organizacji)</span><input id="dr-stawka" type="number" inputmode="numeric" min="0" max="500" placeholder="np. 20"></label>
+  <p class="dr-blad" id="dr-zaloz-blad"></p>
+  <button type="button" class="dr-przycisk" id="dr-zaloz-ok">Załóż drużynę i daj link ›</button>
+</dialog>
+
+<dialog id="dr-okno-km" aria-label="Dopisz kilometry">
+  <button type="button" class="dr-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3 id="dr-km-tytul">Dopisz kilometry klasy</h3>
+  <p class="dr-opis" id="dr-km-opis"></p>
+  <label class="dr-pole" for="dr-km"><span>Kilometry</span><input id="dr-km" type="number" inputmode="decimal" min="0.1" max="5000" step="0.1" placeholder="np. 42,5"></label>
+  <p class="dr-blad" id="dr-km-blad"></p>
+  <button type="button" class="dr-przycisk" id="dr-km-ok">Dopisz ›</button>
+</dialog>
+
+<dialog id="dr-okno-dyplom" aria-label="Dyplom drużyny">
+  <button type="button" class="dr-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Dyplom drużyny</h3>
+  <p class="dr-opis">Na koniec wyzwania każda drużyna dostaje dyplom: na telefon i A4 do druku, z miejscem na znak organizacji. W pokazie generujemy go od razu.</p>
+  <img class="dr-obraz" id="dr-dyplom-obraz" alt="Dyplom drużyny">
+  <div class="dr-wiersze"><button type="button" class="dr-przycisk" data-udostepnij="dyplom">Udostępnij</button><button type="button" class="dr-przycisk dr-przycisk--cichy" data-pobierz="dyplom">Pobierz</button><button type="button" class="dr-przycisk dr-przycisk--cichy" data-drukuj="dyplom">Drukuj A4</button></div>
+</dialog>
+
+<dialog id="dr-okno-wesprzyj" aria-label="Wesprzyj zbiórkę">
+  <button type="button" class="dr-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <h3>Tu otworzy się strona zbiórki</h3>
+  <p class="dr-opis">W prawdziwym wyzwaniu ten przycisk prowadzi na oficjalną stronę zbiórki organizacji, poza BiegaMy. Wpłata jest dobrowolna i idzie w całości do organizacji. My widzimy tylko, że ktoś kliknął; nie widzimy, czy i ile wpłacił.</p>
+  <p class="dr-opis">W pokazie link nigdzie nie prowadzi. Kliknięcie zostało policzone w widoku organizacji.</p>
+  <button type="button" class="dr-przycisk" data-zamknij>Rozumiem</button>
+</dialog>
+
+<dialog id="dr-okno-kartka" aria-label="Kartka do druku">
+  <button type="button" class="dr-zamknij" data-zamknij aria-label="Zamknij">×</button>
+  <div id="dr-kartka-podglad"></div>
+  <button type="button" class="dr-przycisk" id="dr-kartka-drukuj">Drukuj A4</button>
+</dialog>
+
+<canvas class="dr-konfetti" id="dr-konfetti" hidden aria-hidden="true"></canvas>
+<div class="dr-druk dr-druk--obraz" aria-hidden="true"><img id="dr-druk-obraz" alt=""></div>
+<div class="dr-druk dr-druk--kartka" id="dr-druk-kartka" aria-hidden="true"></div>
+
+<script>
+(function () {
+  'use strict';
+  var D = window.BM_DRUZYNY, B = window.BM_BIEG, $ = function (id) { return document.getElementById(id); };
+  var stan = D.odczytaj() || {}, widok = 'razem', obrazy = {}, adresy = {}, laptop = function () { return window.matchMedia('(min-width: 900px)').matches; };
+  var ZASOBY = ['assets/gra/slonce.webp', 'assets/gra/chmura1.webp', 'assets/ulica/wzgorza.webp', 'assets/ulica/droga.webp', 'assets/ulica/pierwszy-plan.webp', 'assets/ulica/drzewo.webp', 'assets/ulica/latarnia.webp', 'assets/miasto/szkola.webp', 'assets/ulica/plac-zabaw.webp',
+    'assets/ulica/domek-1.webp', 'assets/ulica/domek-2.webp', 'assets/ulica/domek-3.webp', 'assets/ulica/domek-4.webp', 'assets/ulica/domek-5.webp', 'assets/ulica/domek-6.webp', 'assets/ulica/domek-7.webp', 'assets/ulica/tablica-start.webp', 'assets/ulica/budowniczy.webp'];
+  var ADRES_STRONY = location.origin + location.pathname;
+
+  /* GRAFIKI JEDNĄ DROGĄ I BEZ SIECI: ten sam cache co bieg i miasto (bm-miasto-grafiki-v1), cache-first, adresy blob:. Tylko własne pliki assets/. */
+  var zapytane = {};
+  function zasob(url) {
+    if (adresy[url]) return Promise.resolve(adresy[url]);
+    if (zapytane[url]) return zapytane[url];
+    if (!url || !/^assets\//.test(url) || !window.fetch) return Promise.resolve(url);
+    var zCache = window.caches ? window.caches.open('bm-miasto-grafiki-v1').catch(function () { return null; }) : Promise.resolve(null);
+    zapytane[url] = zCache.then(function (c) {
+      var zCacheOdp = c ? c.match(url) : Promise.resolve(null);
+      return zCacheOdp.then(function (r) { return r || fetch(url).then(function (odp) { if (odp && odp.ok && c) c.put(url, odp.clone()).catch(function () {}); return odp; }); })
+        .then(function (r) { if (!r || !r.ok) return url; return r.blob().then(function (b) { adresy[url] = URL.createObjectURL(b); return adresy[url]; }); });
+    }).catch(function () { return url; });
+    return zapytane[url];
+  }
+  function zrodlo(url) { return adresy[url] || url; }
+  function obrazek(url) { return zasob(url).then(function (u) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = u; }); }); }
+  function podmienAdresy(korzen) { (korzen || document).querySelectorAll('img[data-src]').forEach(function (im) { var src = im.getAttribute('data-src'); zasob(src).then(function (u) { im.src = u; }); }); }
+  var HERO = ZASOBY.filter(function (u) { return !/tablica-start|budowniczy/.test(u); });
+  var gotoweHero = Promise.all(HERO.map(zasob));
+  var gotoweZasoby = gotoweHero.then(function () { return Promise.all(ZASOBY.map(zasob)); }).then(function () {
+    return Promise.all([obrazek('assets/ulica/domek-3.webp'), obrazek('assets/miasto/szkola.webp'), obrazek('assets/ulica/plac-zabaw.webp')]).then(function (o) { obrazy = { domek: o[0], szkola: o[1], plac: o[2] }; });
+  });
+  /* bez sieci document.fonts.load ODRZUCA (Bebas z repo od części 7: @font-face jest, pliku nie ma), a odrzucony Promise.all przewraca race i generowanie grafik nigdy nie rusza; catch = rysujemy czcionką zapasową (pomiar 11.11) */
+  function fonty() { try { return document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("40px 'Bebas Neue'"), document.fonts.load("600 20px Inter")]).catch(function () {}), new Promise(function (ok) { setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
+
+  function liczbaHtml(duze, male) { return '<div class="dr-liczba"><b>' + D.esc(duze) + '</b><span>' + D.esc(male) + '</span><i class="dr-przyklad">przykład</i></div>'; }
+  function rysujHero() { gotoweHero.then(function () { D.scena($('dr-scena'), { wysokosc: laptop() ? 340 : 250, wlasna: stan.druzyna || null, zrodlo: zrodlo }); }); }
+  function rysujStale() {
+    $('dr-kroki').innerHTML = D.JAK.map(function (k, i) { return '<div class="dr-krok"><img data-src="' + k.obraz + '" alt=""><div><b><i>' + (i + 1) + '</i>' + D.esc(k.tytul) + '</b><span>' + D.esc(k.opis) + '</span></div></div>'; }).join('');
+    $('dr-rodzaje').innerHTML = ['klasa', 'firma'].map(function (r) { var x = D.RODZAJE[r]; return '<div class="dr-rodzaj dr-rodzaj--' + r + '"><b>' + D.esc(x.nazwa) + '</b><small>' + D.esc(x.kto) + '</small><p>' + D.esc(x.jak) + '</p></div>'; }).join('');
+    podmienAdresy();
+  }
+  function rysujLiczby() {
+    var w = D.WYZWANIE, dr = w.druzyny_n + (stan.druzyna && stan.druzyna.km > 0 ? 1 : 0), os = w.osoby_n + (stan.druzyna ? stan.druzyna.osoby_n : 0), km = w.suma_km + (stan.druzyna ? stan.druzyna.km : 0), pct = D.procent(km, w.cel_km);
+    $('dr-liczby').innerHTML = liczbaHtml(D.liczba(dr), D.forma(dr, ['drużyna', 'drużyny', 'drużyn'])) + liczbaHtml(D.liczba(os), D.forma(os, ['osoba', 'osoby', 'osób'])) + liczbaHtml(D.km(km) + ' km', 'z ' + D.km(w.cel_km) + ' km celu');
+    $('dr-pasek').setAttribute('aria-label', D.liczba(pct, 1) + ' % celu'); $('dr-pasek').firstChild.style.width = pct + '%';
+  }
+  function rysujRanking() {
+    var l = D.ranking(widok, stan.druzyna || null);
+    $('dr-ranking').innerHTML = l.map(function (d) { return D.wierszRankingu(d, widok); }).join('');
+    $('dr-ranking-opis').textContent = widok === 'osoba' ? 'Kilometry na osobę: mała klasa może wygrać z dużą firmą. Rankingu osób nie ma: liczą się drużyny.' : 'Kilometry razem. Przełącz na „na osobę”, żeby zobaczyć, jak mała klasa wygrywa z dużą firmą.';
+    document.querySelectorAll('#dr-widok [data-widok]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-widok') === widok ? 'true' : 'false'); });
+  }
+  /* Twoja drużyna: karta z linkiem, kodem QR, miejscem w obu widokach, paskiem do następnej drużyny; plakat i dyplom z canvasu */
+  var kanwy = { plakat: null, dyplom: null, dyplomA4: null, plakatWyzwania: null };
+  function rysujMoja() {
+    var s = $('dr-moja'), t = $('dr-moja-tresc'), d = stan.druzyna;
+    if (!d) { s.hidden = true; t.innerHTML = ''; return; }
+    s.hidden = false;
+    var r = D.RODZAJE[d.rodzaj], k = D.kartaDruzyny(d), adres = ADRES_STRONY + '#d=' + d.kod, h = '';
+    h += '<div class="dr-karta-druzyny"><div><span class="dr-chip dr-chip--' + d.rodzaj + '">' + D.esc(r.nazwa.toUpperCase()) + '</span><div style="font:400 30px/1.1 \'Bebas Neue\',Inter,sans-serif;margin-top:6px">' + D.esc(d.nazwa) + '</div><div class="dr-drobne" style="margin-top:4px">' + D.esc(D.odmiana(d.osoby_n, ['osoba', 'osoby', 'osób'])) + (d.rodzaj === 'firma' && d.stawka_gr > 0 ? ' · firma dokłada ' + d.stawka_gr + ' gr/km na zbiórkę' : '') + '</div><div class="dr-kod" style="margin-top:8px">' + D.esc(d.kod) + '</div><div class="dr-link">' + D.esc(adres) + '</div></div><div class="dr-qr" aria-label="Kod QR z linkiem zaproszenia">' + B.qrSvg(adres) + '</div></div>';
+    h += '<div class="dr-miejsce"><div><b>' + D.km(d.km) + ' km</b><span>kilometry drużyny</span></div><div><b>' + (k.miejsce_razem ? k.miejsce_razem + '.' : '—') + '</b><span>miejsce razem' + (k.miejsce_razem ? ' z ' + k.druzyn_n : '') + '</span></div><div><b>' + (k.miejsce_osoba ? k.miejsce_osoba + '.' : '—') + '</b><span>miejsce na osobę</span></div></div>';
+    if (d.km > 0 && k.nastepna) h += '<div class="dr-pasek dr-pasek--nieb" role="img" aria-label="do następnej drużyny"><i style="width:' + k.pct_do_nastepnej + '%"></i></div><p class="dr-drobne" style="margin-top:4px">Do drużyny „' + D.esc(k.nastepna) + '” brakuje ' + D.km(k.do_nastepnej_km) + ' km.</p>';
+    else if (d.km > 0) h += '<p class="dr-drobne">Pierwsze miejsce. Przewaga nad drugą drużyną: ' + D.km(k.przewaga_km) + ' km.</p>';
+    else h += '<p class="dr-drobne">Drużyna wejdzie do rankingu po pierwszych kilometrach.</p>';
+    if (d.rodzaj === 'firma' && d.stawka_gr > 0 && d.km > 0) h += '<p class="dr-drobne">Dopłata firmy przy ' + D.km(d.km) + ' km: <b style="color:var(--fg)">' + D.esc(D.zl(D.doplataFirmy(d))) + '</b>, prosto na zbiórkę organizacji (BiegaMy tego nie widzi).</p>';
+    h += '<div class="dr-wiersze"><button type="button" class="dr-przycisk dr-przycisk--nieb" id="dr-dopisz">' + D.esc(r.przycisk) + '</button><button type="button" class="dr-przycisk dr-przycisk--cichy" id="dr-plakat-druzyny">Plakat drużyny (A4)</button></div>';
+    h += '<img class="dr-obraz" id="dr-plakat-obraz" alt="Plakat drużyny" style="margin-top:12px" hidden><div class="dr-wiersze" id="dr-plakat-przyciski" hidden><button type="button" class="dr-przycisk" data-udostepnij="plakat">Udostępnij</button><button type="button" class="dr-przycisk dr-przycisk--cichy" data-pobierz="plakat">Pobierz</button><button type="button" class="dr-przycisk dr-przycisk--cichy" data-drukuj="plakat">Drukuj A4</button></div>';
+    h += '<button type="button" class="dr-przycisk dr-przycisk--ziel" id="dr-dyplom"' + (d.km > 0 ? '' : ' disabled') + '>Zakończ wyzwanie i odbierz dyplom drużyny (pokaz) ›</button>';
+    h += '<p class="dr-drobne">Link i kod prowadzą do tej strony; w prawdziwym wyzwaniu dołączają przez nie uczniowie (bez kont) i pracownicy (z kontami). Udostępnianie przez systemowe okno telefonu; gdy przeglądarka go nie ma, plik się pobiera.</p>';
+    t.innerHTML = h;
+  }
+  function doBloba(k) { return new Promise(function (ok) { k.toBlob(function (b) { ok(b); }, 'image/png'); }); }
+  function pobierz(blob, nazwa) { var u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nazwa; document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 2000); }
+  function udostepnij(k, nazwa, tytul, tekst) {
+    if (!k) return Promise.resolve('brak');
+    return doBloba(k).then(function (blob) {
+      var plik = null; try { plik = new File([blob], nazwa, { type: 'image/png' }); } catch (e) {}
+      if (plik && navigator.share && navigator.canShare && navigator.canShare({ files: [plik] })) return navigator.share({ files: [plik], title: tytul, text: tekst }).then(function () { return 'udostępnione'; }, function (e) { if (e && e.name === 'AbortError') return 'anulowane'; pobierz(blob, nazwa); return 'pobrane'; });
+      pobierz(blob, nazwa); return 'pobrane';
+    });
+  }
+  function drukujObraz(k) { if (!k) return; $('dr-druk-obraz').src = k.toDataURL('image/png'); document.body.classList.remove('druk-kartka'); document.body.classList.add('druk-obraz'); setTimeout(function () { window.print(); }, 60); }
+  function konfetti() {
+    if (D.bezRuchu()) return;
+    var k = $('dr-konfetti'), c = k.getContext('2d'); if (!c) return;
+    k.hidden = false; k.width = innerWidth; k.height = innerHeight;
+    var kolory = ['#e8561e', '#f2b32a', '#6f9e3e', '#d9482b', '#3d5a99', '#9fb3e6', '#fff7e6'], cz = [], start = performance.now();
+    for (var i = 0; i < 140; i++) cz.push({ x: Math.random() * k.width, y: -20 - Math.random() * k.height * 0.5, vx: (Math.random() - 0.5) * 1.6, vy: 2 + Math.random() * 3, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.2, w: 6 + Math.random() * 8, h: 4 + Math.random() * 4, kol: kolory[i % kolory.length] });
+    (function klatka(t) { var dt = t - start; c.clearRect(0, 0, k.width, k.height); cz.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.r += p.vr; c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillStyle = p.kol; c.globalAlpha = Math.max(0, 1 - Math.max(0, dt - 1800) / 900); c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); c.restore(); }); if (dt < 2700) requestAnimationFrame(klatka); else { k.hidden = true; c.clearRect(0, 0, k.width, k.height); } })(start);
+  }
+
+  /* ── OKNA ── */
+  function pokazOkno(d) { if (d.open) return; if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function schowajOkno(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  document.querySelectorAll('dialog').forEach(function (d) { d.addEventListener('click', function (e) { if (e.target.closest('[data-zamknij]')) schowajOkno(d); }); d.addEventListener('submit', function (e) { e.preventDefault(); }); });
+  var OKNO_ZALOZ = $('dr-okno-zaloz'), OKNO_KM = $('dr-okno-km'), OKNO_DYPLOM = $('dr-okno-dyplom'), OKNO_WESPRZYJ = $('dr-okno-wesprzyj'), OKNO_KARTKA = $('dr-okno-kartka');
+  $('dr-zaloz').addEventListener('click', function () { if (stan.druzyna) { $('dr-moja').scrollIntoView({ block: 'start', behavior: D.bezRuchu() ? 'auto' : 'smooth' }); return; } $('dr-zaloz-blad').textContent = ''; pokazOkno(OKNO_ZALOZ); setTimeout(function () { $('dr-nazwa').focus(); }, 50); });
+  $('dr-rodzaj-wybor').addEventListener('change', function () { $('dr-stawka-pole').hidden = (OKNO_ZALOZ.querySelector('input[name="dr-rodzaj"]:checked') || {}).value !== 'firma'; });
+  $('dr-zaloz-ok').addEventListener('click', function () {
+    var r = (OKNO_ZALOZ.querySelector('input[name="dr-rodzaj"]:checked') || {}).value, n = Number($('dr-osoby').value);
+    if (!$('dr-nazwa').value.trim()) { $('dr-zaloz-blad').textContent = 'Wpisz nazwę drużyny.'; return; }
+    if (!(n >= 1 && n <= 500)) { $('dr-zaloz-blad').textContent = 'Podaj liczbę osób od 1 do 500.'; return; }
+    stan = { druzyna: D.zalozDruzyne($('dr-nazwa').value, r, n, $('dr-stawka').value), klikniecia: stan.klikniecia || 0, check: stan.check || {} }; D.zapisz(stan); schowajOkno(OKNO_ZALOZ);
+    odswiez(); $('dr-zaloz').textContent = 'Twoja drużyna ›';
+    $('dr-moja').scrollIntoView({ block: 'start', behavior: D.bezRuchu() ? 'auto' : 'smooth' });
+  });
+  $('dr-nazwa').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('dr-osoby').focus(); } });
+  $('dr-osoby').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('dr-zaloz-ok').click(); } });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#dr-dopisz')) { var d = stan.druzyna; $('dr-km-tytul').textContent = D.RODZAJE[d.rodzaj].przycisk; $('dr-km-opis').textContent = d.rodzaj === 'klasa' ? 'Suma kilometrów klasy z tego tygodnia (spacery, biegi, marsze). Bez nazwisk uczniów: tylko liczba.' : 'W prawdziwym wyzwaniu trening zapisujesz jak zwykle w BiegaMy i sam dolicza się do firmy. W pokazie wpisz kilometry.'; $('dr-km').value = ''; $('dr-km-blad').textContent = ''; pokazOkno(OKNO_KM); setTimeout(function () { $('dr-km').focus(); }, 50); }
+    if (e.target.closest('#dr-plakat-druzyny')) { Promise.all([gotoweZasoby, fonty()]).then(function () { kanwy.plakat = D.plakatDruzyny(stan.druzyna, ADRES_STRONY + '#d=' + stan.druzyna.kod, obrazy); $('dr-plakat-obraz').src = kanwy.plakat.toDataURL('image/png'); $('dr-plakat-obraz').hidden = false; $('dr-plakat-przyciski').hidden = false; $('dr-plakat-obraz').scrollIntoView({ block: 'center', behavior: D.bezRuchu() ? 'auto' : 'smooth' }); }); }
+    if (e.target.closest('#dr-dyplom')) { Promise.all([gotoweZasoby, fonty()]).then(function () { var w = Object.assign({ data: Date.now() }, D.kartaDruzyny(stan.druzyna)); kanwy.dyplom = D.dyplomDruzyny(stan.druzyna, w, 'telefon', obrazy); kanwy.dyplomA4 = D.dyplomDruzyny(stan.druzyna, w, 'a4', obrazy); $('dr-dyplom-obraz').src = kanwy.dyplom.toDataURL('image/png'); pokazOkno(OKNO_DYPLOM); konfetti(); }); }
+    var u = e.target.closest('[data-udostepnij]'), p = e.target.closest('[data-pobierz]'), dr = e.target.closest('[data-drukuj]');
+    if (u) { var co = u.getAttribute('data-udostepnij'); udostepnij(kanwy[co], 'ulica-szkolna-' + co + '.png', co === 'plakat' ? 'Plakat drużyny' : 'Dyplom drużyny', 'Ulica Szkolna w Mieście Dobra'); }
+    if (p) { var co2 = p.getAttribute('data-pobierz'), k = kanwy[co2]; if (k) doBloba(k).then(function (b) { pobierz(b, 'ulica-szkolna-' + co2 + '.png'); }); }
+    if (dr) { var co3 = dr.getAttribute('data-drukuj'); drukujObraz(co3 === 'dyplom' ? kanwy.dyplomA4 : kanwy[co3]); }
+  });
+  $('dr-km').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('dr-km-ok').click(); } });
+  $('dr-km-ok').addEventListener('click', function () {
+    var x = Number(String($('dr-km').value).replace(',', '.'));
+    if (!(x > 0 && x <= 5000)) { $('dr-km-blad').textContent = 'Wpisz kilometry, np. 42,5.'; return; }
+    stan.druzyna = D.dopiszKm(stan.druzyna, x, stan.druzyna.rodzaj === 'klasa' ? 'suma klasy' : 'trening'); D.zapisz(stan); schowajOkno(OKNO_KM);
+    odswiez();
+  });
+  $('dr-wesprzyj').addEventListener('click', function () { stan.klikniecia = (stan.klikniecia || 0) + 1; D.zapisz(stan); pokazOkno(OKNO_WESPRZYJ); });
+  $('dr-widok').addEventListener('click', function (e) { var b = e.target.closest('[data-widok]'); if (!b) return; widok = b.getAttribute('data-widok'); rysujRanking(); });
+  $('dr-od-nowa').addEventListener('click', function () { D.wyczysc(); stan = {}; kanwy = { plakat: null, dyplom: null, dyplomA4: null, plakatWyzwania: null }; $('dr-zaloz').textContent = 'Załóż drużynę: klasę albo firmę ›'; odswiez(); window.scrollTo(0, 0); });
+
+  /* ── WIDOK ORGANIZACJI (#organizacja) ── */
+  function kartkaHtml(rodzaj) {
+    var w = D.WYZWANIE, h = '<h1>' + D.esc(w.nazwa) + ': ' + (rodzaj === 'nauczyciel' ? 'kartka dla nauczyciela' : 'kartka dla firmy') + '</h1><p><b>' + D.esc(w.forma) + ' · ' + D.esc(w.okres.opis) + ' · PRZYKŁAD</b></p>';
+    if (rodzaj === 'nauczyciel') {
+      h += '<h2>Jak założyć klasę</h2><ol><li>Wejdź na stronę wyzwania (kod QR na plakacie) i dotknij „Załóż drużynę”.</li><li>Wybierz „Klasa”, wpisz nazwę (np. „Klasa 5a”) i liczbę uczniów.</li><li>Dostaniesz link, kod i plakat drużyny na drzwi klasy.</li></ol>';
+      h += '<h2>Jak liczyć kilometry bez danych dzieci</h2><ul><li>Uczniowie nie zakładają kont. Kilometry zbierasz u siebie: dzienniczek, kartka na tablicy, zegarek rodzica, spacer całą klasą.</li><li>Raz w tygodniu dotykasz „Dopisz kilometry klasy” i wpisujesz jedną liczbę: sumę.</li><li>W BiegaMy jest tylko nazwa klasy, liczba osób i suma kilometrów. Żadnych imion, nazwisk ani wyników pojedynczych dzieci.</li></ul>';
+      h += '<h2>Co powiedzieć rodzicom</h2><ul><li>To wspólne kilometry klasy dla jednej zbiórki prowadzonej przez organizację; udział jest bezpłatny.</li><li>Nikt nie zbiera danych dzieci; liczy się suma klasy, nie wynik dziecka.</li><li>Kto chce wesprzeć zbiórkę, robi to bezpośrednio u organizacji, która ją prowadzi. BiegaMy nic nie przyjmuje.</li></ul>';
+      h += '<h2>Ranking</h2><p>Dwa widoki: kilometry razem i kilometry na osobę. Mała klasa może wygrać z dużą firmą. Rankingu dzieci nie ma.</p>';
+    } else {
+      h += '<h2>Jak założyć drużynę firmową</h2><ol><li>Wejdź na stronę wyzwania (kod QR na plakacie) i dotknij „Załóż drużynę”.</li><li>Wybierz „Firma”, wpisz nazwę i liczbę osób; nieobowiązkowo stawkę za kilometr.</li><li>Link i kod drużyny powieś w kuchni; pracownicy dołączają ze swoich kont w BiegaMy.</li></ol>';
+      h += '<h2>Jak działa stawka za kilometr</h2><ul><li>Firma deklaruje, ile groszy dokłada za każdy kilometr swojej drużyny (np. 20 gr).</li><li>Po wyzwaniu firma wpłaca tę kwotę bezpośrednio na zbiórkę organizacji. BiegaMy nie pośredniczy, nie wystawia faktur i nie widzi wpłaty.</li><li>Na stronie drużyny widać tylko przeliczenie: kilometry × stawka.</li></ul>';
+      h += '<h2>Co dostaje firma</h2><ul><li>Domek drużyny na Ulicy Szkolnej, miejsce w rankingu razem i na osobę, dyplom drużyny na koniec.</li><li>Zdjęcie zespołu z dyplomem jest Wasze. Firma jest w wyzwaniu drużyną i, jeśli chce, darczyńcą organizacji prowadzącej zbiórkę; niczego od organizacji nie kupuje.</li></ul>';
+    }
+    return h + '<div class="dr-druk-stopka">BiegaMy, aplikacja, która liczy kilometry. Pieniądze idą wyłącznie przez organizację prowadzącą zbiórkę. Kartka z pokazu: dane wymyślone, przed użyciem do zatwierdzenia przez organizację. Miejsce na znak organizacji: ____________________</div>';
+  }
+  function rysujOrg() {
+    var w = D.WYZWANIE, dr = w.druzyny_n + (stan.druzyna && stan.druzyna.km > 0 ? 1 : 0), os = w.osoby_n + (stan.druzyna ? stan.druzyna.osoby_n : 0), km = w.suma_km + (stan.druzyna ? stan.druzyna.km : 0), kl = w.klikniecia_n + (stan.klikniecia || 0);
+    var klasy = D.DRUZYNY.filter(function (d) { return d.rodzaj === 'klasa'; }).length + (stan.druzyna && stan.druzyna.rodzaj === 'klasa' && stan.druzyna.km > 0 ? 1 : 0), firmy = dr - klasy, zeStawka = D.DRUZYNY.filter(function (d) { return d.stawka_gr > 0; }).length + (stan.druzyna && stan.druzyna.stawka_gr > 0 && stan.druzyna.km > 0 ? 1 : 0);
+    $('dr-org-liczby').innerHTML = liczbaHtml(D.liczba(dr), D.forma(dr, ['drużyna', 'drużyny', 'drużyn']) + ': ' + klasy + ' klas, ' + firmy + ' firm') + liczbaHtml(D.liczba(os), 'osób w drużynach') + liczbaHtml(D.km(km) + ' km', 'z ' + D.km(w.cel_km) + ' km celu') + liczbaHtml(D.liczba(kl), 'kliknięć „Wesprzyj zbiórkę”') + liczbaHtml(D.liczba(zeStawka), 'firm ze stawką za km (rozliczają się z organizacją)') + liczbaHtml(D.liczba(w.cegly_n), 'cegieł w murze');
+    $('dr-check').innerHTML = D.CHECKLISTA.map(function (c, i) { return '<li><input type="checkbox" id="dr-ch-' + i + '"' + (stan.check && stan.check[i] ? ' checked' : '') + '><label for="dr-ch-' + i + '">' + D.esc(c) + '</label></li>'; }).join('');
+    $('dr-org-ranking').innerHTML = D.ranking('razem', stan.druzyna || null).map(function (d) { return D.wierszRankingu(d, 'razem'); }).join('');
+    if (!$('dr-materialy').firstChild) $('dr-materialy').innerHTML = D.MATERIALY.map(function (m) { return '<div class="dr-material"><div><b>' + D.esc(m.tytul) + '</b><span>' + D.esc(m.opis) + '</span></div><button type="button" class="dr-przycisk dr-przycisk--cichy" data-material="' + m.id + '">' + D.esc(m.przycisk) + '</button></div>'; }).join('');
+  }
+  $('dr-check').addEventListener('change', function (e) { var i = e.target.id.replace('dr-ch-', ''); stan.check = stan.check || {}; stan.check[i] = e.target.checked; D.zapisz(stan); });
+  $('dr-materialy').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-material]'); if (!b) return; var id = b.getAttribute('data-material');
+    if (id === 'plakat') Promise.all([gotoweZasoby, fonty()]).then(function () { kanwy.plakatWyzwania = D.plakatWyzwania(ADRES_STRONY, obrazy); $('dr-plakat-wyzwania').src = kanwy.plakatWyzwania.toDataURL('image/png'); $('dr-plakat-wyzwania').hidden = false; doBloba(kanwy.plakatWyzwania).then(function (bl) { pobierz(bl, 'ulica-szkolna-plakat-wyzwania.png'); }); });
+    if (id === 'csv') { var blob = new Blob(['﻿' + D.csvDruzyn(stan.druzyna || null)], { type: 'text/csv;charset=utf-8' }); pobierz(blob, 'ulica-szkolna-druzyny-przyklad.csv'); }
+    if (id === 'nauczyciel' || id === 'firma') { $('dr-kartka-podglad').innerHTML = kartkaHtml(id); $('dr-druk-kartka').innerHTML = kartkaHtml(id); pokazOkno(OKNO_KARTKA); }
+  });
+  $('dr-kartka-drukuj').addEventListener('click', function () { document.body.classList.remove('druk-obraz'); document.body.classList.add('druk-kartka'); setTimeout(function () { window.print(); }, 60); });
+  window.addEventListener('afterprint', function () { document.body.classList.remove('druk-obraz', 'druk-kartka'); });
+  function trasa() { var org = location.hash === '#organizacja'; $('dr-org').hidden = !org; $('dr-main').hidden = org; if (org) { rysujOrg(); window.scrollTo(0, 0); } }
+  $('dr-z-org').addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', location.pathname); trasa(); window.scrollTo(0, 0); });
+  window.addEventListener('hashchange', trasa);
+  /* link zaproszenia #d=KOD: pokaz drużyny z kodem (ta sama przeglądarka) albo informacja, że link prowadzi do drużyny */
+  function odswiez() { rysujHero(); rysujLiczby(); rysujRanking(); rysujMoja(); if (location.hash === '#organizacja') rysujOrg(); }
+  rysujStale(); odswiez(); if (stan.druzyna) $('dr-zaloz').textContent = 'Twoja drużyna ›'; trasa();
+  window.addEventListener('resize', function () { clearTimeout(window._drT); window._drT = setTimeout(rysujHero, 200); });
+})();
+</script>
+</body>
+</html>
