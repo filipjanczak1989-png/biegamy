@@ -6,8 +6,8 @@
 // oznaczone zaślepki i blokuje zapis na produkcji, dopóki `regulamin_wersja` biegu nie ma tekstu (TEKSTY_GOTOWE = false).
 (function (g) {
   "use strict";
-  var ROLE = { inicjator: "Inicjator", inicjator_opis: "opiekun dziecka albo organizacja w jego imieniu: zakłada bieg i odpowiada za regulamin", operator: "Operator", operator_opis: "BiegaMy: liczy kilometry, prowadzi zapisy, generuje numery i dyplomy, nie przyjmuje żadnych wpłat" };
-  var ZASADY = { wiek_konta: 16, limit_dzieci: 6, dystanse: [5, 10], wynik_do_dni: 2 };
+  var ROLE = { inicjator: "Inicjator", inicjator_opis: "opiekun dziecka albo organizacja w jego imieniu. Bieg odbywa się z jego inicjatywy i za jego zgodą.", operator: "Operator", operator_opis: "BiegaMy. Prowadzi zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat." };
+  var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, dystanse: [5, 10], wynik_do_dni: 2, ukonczyli_na_strone: 50 };
   /* ── MIEJSCA NA TEKSTY (od Filipa po 18.11) ── każde zaczyna się od „[MIEJSCE NA TEKST”, test blizna-235 pilnuje, że strona je pokazuje, a nie udaje gotowych treści */
   var MIEJSCE_REGULAMIN = "[MIEJSCE NA TEKST: regulamin biegu, od Filipa po 18.11. Role: Inicjator (opiekun) i Operator (BiegaMy). Własne konto od 16 lat. Bez wpisowego. Czasy prywatne. Nic fizycznego.]";
   var MIEJSCE_OSWIADCZENIE = "[MIEJSCE NA TEKST: oświadczenie rodzica lub opiekuna przy dopisaniu dziecka, od Filipa po 18.11.]";
@@ -67,14 +67,15 @@
   /* ── FAZA I STAN STRONY ── */
   var FAZY = {
     szkic: { chip: "WKRÓTCE", klasa: "bw-chip--wkrotce", zdanie: "Zapisy ruszą niebawem. Wróć tutaj za kilka dni." },
-    zapisy: { chip: "ZAPISY OTWARTE", klasa: "bw-chip--trwa", zdanie: "Zapisz się teraz: udział jest bezpłatny." },
+    zapisy: { chip: "ZAPISY OTWARTE", klasa: "bw-chip--trwa", zdanie: "Zapisy trwają. Dołącz, zanim ruszy weekend biegu." },
     trwa: { chip: "BIEG TRWA", klasa: "bw-chip--trwa", zdanie: "Weekend biegu. Możesz się jeszcze zapisać i pobiec dziś." },
-    wyniki: { chip: "DOPISYWANIE WYNIKÓW", klasa: "bw-chip--wyniki", zdanie: "Bieg za nami. Zapisani mogą jeszcze dopisać wynik." },
+    wyniki: { chip: "DOPISYWANIE WYNIKÓW", klasa: "bw-chip--wyniki", zdanie: "Weekend biegu za nami. Wyniki i spóźnione zapisy przyjmujemy jeszcze przez dwa dni." },
     zakonczony: { chip: "ZAKOŃCZONY", klasa: "bw-chip--koniec", zdanie: "Bieg zakończony. Dziękujemy wszystkim, którzy pobiegli i poszli." }
   };
   function faza(bieg) { return bieg && FAZY[bieg.faza] ? bieg.faza : "szkic"; }
   function fazaInfo(bieg) { return FAZY[faza(bieg)]; }
-  function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa"; }
+  /** Zapisy (siebie i dzieci) otwarte w fazach zapisy, trwa i wyniki, czyli do wynik_do (przegląd 12.11). */
+  function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa" || f === "wyniki"; }
   /**
    * Stan strony: 'wkrotce' (brak biegu w liczniku), 'niezalogowany', 'przed' (konto bez zapisu), 'po' (zapisany), 'dzieci' (zapisany z dziećmi albo same dzieci), 'zamkniete' (po zapisach, bez zapisu).
    * moi = odpowiedź akcja_bieg_moi (własne wiersze, bez wycofanych). Zwraca też ja i dzieci.
@@ -102,10 +103,12 @@
     var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)";
     return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + '"><span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + esc(dyst) + '</span></li>';
   }
-  function ukonczyliHtml(bieg, mojeNumery) {
-    var l = Array.isArray(bieg && bieg.ukonczyli) ? bieg.ukonczyli : [], moje = mojeNumery || [];
+  /** Lista z osobnej funkcji (EF bieg-ukonczyli, ta sama droga co licznik): dane = { razem, od, lista }, strona dokleja kolejne porcje; „Pokaż więcej” rysuje strona. */
+  function ukonczyliHtml(dane, mojeNumery) {
+    var l = Array.isArray(dane && dane.lista) ? dane.lista : [], moje = mojeNumery || [], razem = Number(dane && dane.razem) || l.length;
     if (!l.length) return '<p class="bw-drobne">Jeszcze nikt nie dopisał wyniku. Lista zapełni się po weekendzie biegu.</p>';
-    return '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0); }).join("") + '</ol>';
+    return '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0); }).join("") + '</ol>' +
+      (razem > l.length ? '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-ukonczyli-wiecej="' + l.length + '">Pokaż więcej (' + esc(liczba(razem - l.length)) + ')</button>' : "");
   }
   /** „Wesprzyj zbiórkę”: trzy podpowiedzi (pierwsza wyróżniona), każda jest zwykłym linkiem do oficjalnej zbiórki. Link przez safeExternalHref; bez linku nic. */
   function wsparcieHtml(bieg, link) {
@@ -158,8 +161,8 @@
     c.beginPath(); c.arc(cx, cy, r * 0.72, 0, Math.PI * 2); c.strokeStyle = zlota ? "#fff2c2" : "#fff7e6"; c.lineWidth = Math.max(1, r * 0.05); c.stroke();
     c.restore();
   }
-  /** NUMER STARTOWY 1200×900. u: { imie, numer, rodzaj: 'ja'|'dziecko', dystans_km }, bieg: { nazwa, dzien_od, dzien_do }. obrazy: { brama }. Dziecko: „SWÓJ DYSTANS”. */
-  function numerStartowy(u, bieg, obrazy) {
+  /** NUMER STARTOWY 1200×900. u: { imie, numer, rodzaj: 'ja'|'dziecko', dystans_km }, bieg: { nazwa, dzien_od, dzien_do }. obrazy: { brama }. adres: strona biegu (u dołu). Dziecko: „SWÓJ DYSTANS”. */
+  function numerStartowy(u, bieg, obrazy, adres) {
     var W = 1200, H = 900, k = nowyCanvas(W, H), c = k.getContext("2d"), los = losowy(Number(u.numer) || 1), dziecko = u.rodzaj === "dziecko";
     c.fillStyle = "#fff7e6"; prost(c, 0, 0, W, H, 40); c.fill();
     c.fillStyle = "#f6e9cc"; c.globalAlpha = 0.5; for (var i = 0; i < 60; i++) c.fillRect(los() * W, los() * H, 3, 3); c.globalAlpha = 1;
@@ -174,9 +177,9 @@
     c.fillStyle = "#fff7e6"; for (var x = 90; x < W - 90; x += 52) c.fillRect(x, 772, 26, 46);
     c.fillStyle = dziecko ? "#3d5a99" : "#e8561e"; for (var x2 = 116; x2 < W - 90; x2 += 52) c.fillRect(x2, 772, 26, 46);
     if (!rysujObraz(c, obrazy && obrazy.brama, 870, 165, 280, 173)) { c.fillStyle = "#ff8a3d"; c.font = "40px " + FONT_NAGL; c.textAlign = "right"; c.fillText("START · META", W - 70, 230); }
-    c.textAlign = "left"; c.fillStyle = "#3a1d0a"; c.font = "600 22px " + FONT_TEKST; c.fillText("bieg i marsz dla jednej zbiórki · udział bezpłatny", 100, 200);
+    c.textAlign = "left"; c.fillStyle = "#3a1d0a"; c.font = "600 22px " + FONT_TEKST; c.fillText("bieg i marsz dla jednej zbiórki", 100, 200);   // zdanie o braku opłat tylko w tekście strony (najwyżej dwa razy): numer powtarza się przy każdym uczestniku
     c.font = "500 22px " + FONT_TEKST; c.fillText("wpłaty wyłącznie u organizacji prowadzącej zbiórkę", 100, 236);
-    znakBiegamy(c, 100, 880, 28, "#3a1d0a"); c.fillStyle = "#7a4a1e"; c.font = "500 20px " + FONT_TEKST; c.textAlign = "right"; c.fillText("numer wygenerowany w telefonie", W - 100, 880);
+    znakBiegamy(c, 100, 880, 28, "#3a1d0a"); c.fillStyle = "#7a4a1e"; c.textAlign = "right"; tekstWSzer(c, String(adres || "biegamy.run").replace(/^https?:\/\//, ""), W - 100, 880, 700, FONT_TEKST, 22, 500);
     return k;
   }
   /** DYPLOM 'telefon' 1080×1350 albo 'a4' 1754×1240. u: { imie, numer, rodzaj, wynik_s, wynik_dystans_km, dystans_km, dystans_wlasny_km, ukonczony_at, odznaka }. Dziecko: bez czasu, „swój dystans”. */
@@ -212,22 +215,25 @@
     c.textAlign = "left"; c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(22 * sx) + "px " + FONT_TEKST;
     c.fillText("Data: " + dataPolska(u.ukonczony_at ? new Date(u.ukonczony_at) : new Date()), a4 ? 160 : 110, H - (a4 ? 440 : 420));
     c.fillText("Numer startowy: " + u.numer, a4 ? 160 : 110, H - (a4 ? 404 : 384));
-    znakBiegamy(c, a4 ? 160 : 110, H - (a4 ? 330 : 300), Math.round(34 * sx), "#07070a"); c.fillStyle = "#7a4a1e"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText("Operator: aplikacja, która liczy kilometry", a4 ? 160 : 110, H - (a4 ? 302 : 270));
+    znakBiegamy(c, a4 ? 160 : 110, H - (a4 ? 330 : 300), Math.round(34 * sx), "#07070a"); c.fillStyle = "#7a4a1e"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText(ROLE.operator + ": BiegaMy", a4 ? 160 : 110, H - (a4 ? 302 : 270));   // ta sama rola co na stronie (ROLE), bez własnego opisu
     var pole = a4 ? [W - 160 - 290, H - 470, 290, 160] : [W - 110 - 270, H - 520, 270, 160];
     c.setLineDash([12, 10]); c.strokeStyle = "#b08a52"; c.lineWidth = 3; prost(c, pole[0], pole[1], pole[2], pole[3], 16); c.stroke(); c.setLineDash([]);
     c.fillStyle = "#7a4a1e"; c.textAlign = "center"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText("tu znak Inicjatora", pole[0] + pole[2] / 2, pole[1] + pole[3] / 2 + 8);
     return k;
   }
-  /** ODZNAKA jako SVG (szkic): 'zwykla' (ceglasty medal z pomarańczową wstążką) albo 'zlota' (złoty medal z gwiazdą). Czysty tekst SVG, bez obrazów, nazwa biegu z bazy (escapowana). */
+  /** ODZNAKA jako SVG (szkic): 'zwykla' (ceglasty medal) albo 'zlota' (złoty medal z gwiazdkami). W środku IKONA ŚWIATA ULICY (dla tej ulicy koparka, assets/ulica/koparka.webp),
+   *  żeby odznaki z różnych ulic różniły się od siebie (przegląd 12.11). Ikona tylko z assets/, nazwa biegu z bazy (escapowana). */
+  var IKONA_SWIATA = "assets/ulica/koparka.webp";
   function odznakaSvg(rodzaj, opcje) {
     var o = opcje || {}, zlota = rodzaj === "zlota", kolor = zlota ? "#f2b32a" : "#c8553d", kolor2 = zlota ? "#d89a12" : "#9a3b27", podpis = o.podpis || (zlota ? "ZŁOTA" : "BIEG"), rozmiar = Number(o.rozmiar) || 120;
+    var ikona = typeof o.ikona === "string" && /^assets\/[a-z0-9\/_-]+\.(webp|png|svg)$/i.test(o.ikona) ? o.ikona : IKONA_SWIATA, id = "bo-" + rodzaj + "-" + Math.abs(String(o.nazwa || "").length + (zlota ? 1 : 0));
     var tytul = esc(o.nazwa || "Odznaka biegu") + (zlota ? " (złota)" : "");
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 156" width="' + rozmiar + '" height="' + Math.round(rozmiar * 1.3) + '" role="img" aria-label="' + tytul + '">' +
-      '<defs><linearGradient id="bo-' + rodzaj + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + (zlota ? "#ffe08a" : "#e07a5f") + '"/><stop offset="1" stop-color="' + kolor + '"/></linearGradient></defs>' +
+    return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 120 156" width="' + rozmiar + '" height="' + Math.round(rozmiar * 1.3) + '" role="img" aria-label="' + tytul + '">' +
+      '<defs><linearGradient id="' + id + '-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + (zlota ? "#ffe08a" : "#e07a5f") + '"/><stop offset="1" stop-color="' + kolor + '"/></linearGradient><clipPath id="' + id + '-c"><circle cx="60" cy="100" r="33"/></clipPath></defs>' +
       '<path d="M38 2h18l-6 56H44z" fill="#e8561e" stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round"/><path d="M64 2h18L72 58H60z" fill="#3d5a99" stroke="#3a1d0a" stroke-width="3" stroke-linejoin="round"/>' +
-      '<circle cx="60" cy="100" r="50" fill="url(#bo-' + rodzaj + ')" stroke="#3a1d0a" stroke-width="4"/><circle cx="60" cy="100" r="38" fill="none" stroke="' + (zlota ? "#fff2c2" : "#fff7e6") + '" stroke-width="3" stroke-dasharray="6 5"/>' +
-      (zlota ? '<path d="M60 70l8.8 18.4 20.2 2.6-14.8 14 3.8 20-18-9.8-18 9.8 3.8-20-14.8-14 20.2-2.6z" fill="#fff2c2" stroke="#7a5a10" stroke-width="2.5" stroke-linejoin="round"/>'
-             : '<path d="M40 112c6-14 12-22 20-22s14 8 20 22" fill="none" stroke="#fff7e6" stroke-width="5" stroke-linecap="round"/><circle cx="60" cy="84" r="7" fill="#fff7e6"/>') +
+      '<circle cx="60" cy="100" r="50" fill="url(#' + id + '-g)" stroke="#3a1d0a" stroke-width="4"/><circle cx="60" cy="100" r="40" fill="' + (zlota ? "#fff6d6" : "#fff7e6") + '" stroke="' + (zlota ? "#b8860b" : "#9a3b27") + '" stroke-width="2.5"/>' +
+      '<image href="' + esc(ikona) + '" x="27" y="67" width="66" height="66" preserveAspectRatio="xMidYMid meet" clip-path="url(#' + id + '-c)"/>' +
+      (zlota ? '<path d="M60 52l2.6 5.4 6 .8-4.3 4.1 1.1 5.9-5.4-2.9-5.4 2.9 1.1-5.9-4.3-4.1 6-.8z" fill="#fff2c2" stroke="#7a5a10" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 92l1.8 3.7 4 .5-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.5z" fill="#fff2c2" stroke="#7a5a10" stroke-width="1.2"/><path d="M98 92l1.8 3.7 4 .5-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.5z" fill="#fff2c2" stroke="#7a5a10" stroke-width="1.2"/>' : "") +
       '<rect x="22" y="126" width="76" height="18" rx="5" fill="' + kolor2 + '" stroke="#3a1d0a" stroke-width="2.5"/><text x="60" y="139" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="10" letter-spacing="1.5" fill="#fff7e6">' + esc(podpis) + '</text></svg>';
   }
 
@@ -236,5 +242,5 @@
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
     liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, wsparcieHtml: wsparcieHtml,
-    numerStartowy: numerStartowy, dyplom: dyplom, odznakaSvg: odznakaSvg, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
+    numerStartowy: numerStartowy, dyplom: dyplom, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
 })(typeof globalThis !== "undefined" ? globalThis : window);

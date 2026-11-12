@@ -11,6 +11,7 @@ drop function if exists public.akcja_bieg_moi(text);
 drop function if exists public.akcja_bieg_wycofaj(uuid);
 drop function if exists public.akcja_bieg_dopisz_dziecko(text, text, boolean, boolean, text);
 drop function if exists public.akcja_bieg_zapisz(text, integer, boolean, boolean, text, text);
+drop function if exists public.akcja_bieg_ukonczyli(text, integer, integer);
 drop function if exists public.akcja_bieg_publiczny(text);
 alter table public.akcja_firmy_zgloszenia drop column if exists bieg_uczestnik_id;
 drop table if exists public.akcja_bieg_uczestnicy;

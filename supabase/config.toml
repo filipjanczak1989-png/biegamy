@@ -152,5 +152,8 @@ verify_jwt = true        # gra-cegielki.html, js/cegielki-konto.js; guard getUse
 [functions.akcja-licznik]
 verify_jwt = false       # publiczny licznik akcji (landing, wylogowani); klucz serwisowy tylko do RPC akcja_licznik
 
+[functions.bieg-ukonczyli]
+verify_jwt = false       # publiczna lista „ukończyli” biegu (bieg.html, wylogowani); klucz serwisowy tylko do RPC akcja_bieg_ukonczyli (imię za zgodą, numer, dystans; bez czasów)
+
 # Skasowane 06.10.2026 (paczka 1b), nie wracają: generate-image (0 wołających, 401 z `_debug`
 # o sekrecie), hyper-processor (fragment bez Deno.serve, identyczny na prod, bliźniak intervals-push).

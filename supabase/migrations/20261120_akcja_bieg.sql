@@ -92,39 +92,54 @@ as $function$
 $function$;
 revoke all on function public.akcja_bieg_faza(public.akcja_biegi, date) from public, anon, authenticated;
 
--- publiczna część biegu dla licznika: liczby zbiorcze i lista „ukończyli” (imię za zgodą, numer, dystans). Żadnych kont, czasów, e-maili, oświadczeń.
+-- publiczna część biegu dla licznika: TYLKO liczby zbiorcze (przegląd 12.11). Żadnych kont, czasów, e-maili, oświadczeń; termin zapasowy nie wychodzi. Lista „ukończyli” osobno (akcja_bieg_ukonczyli).
 create or replace function public.akcja_bieg_publiczny(p_akcja_slug text)
  returns jsonb
  language plpgsql
  stable security definer
  set search_path to 'public', 'pg_temp'
 as $function$
-declare b public.akcja_biegi; v_dzis date := (now() at time zone 'Europe/Warsaw')::date; v_na jsonb; v_ukonczyli jsonb;
+declare b public.akcja_biegi; v_dzis date := (now() at time zone 'Europe/Warsaw')::date; v_na jsonb;
 begin
   select * into b from public.akcja_biegi where akcja_slug = p_akcja_slug and status <> 'szkic' order by dzien_od desc, utworzono desc limit 1;
   if not found then return null; end if;
   select coalesce(jsonb_object_agg(d::text, n), '{}'::jsonb) into v_na
     from (select u.dystans_km d, count(*) n from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.rodzaj = 'ja' group by 1) x;
-  select coalesce(jsonb_agg(jsonb_build_object('imie', case when u.zgoda_imie then u.imie end, 'numer', u.numer,
-                                               'dystans_km', coalesce(u.wynik_dystans_km::numeric, u.dystans_wlasny_km), 'dziecko', u.rodzaj = 'dziecko')
-                            order by u.ukonczony_at desc, u.numer), '[]'::jsonb)
-    into v_ukonczyli
-    from (select * from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.ukonczony_at is not null order by u.ukonczony_at desc limit 500) u;
   return jsonb_build_object(
-    'slug', b.slug, 'nazwa', b.nazwa, 'dzien_od', b.dzien_od, 'dzien_do', b.dzien_do, 'wynik_do', b.wynik_do, 'termin_zapasowy_od', b.termin_zapasowy_od,
+    'slug', b.slug, 'nazwa', b.nazwa, 'dzien_od', b.dzien_od, 'dzien_do', b.dzien_do, 'wynik_do', b.wynik_do,
     'dystanse_km', to_jsonb(b.dystanse_km), 'faza', public.akcja_bieg_faza(b, v_dzis), 'regulamin_wersja', b.regulamin_wersja,
     'organizator_rodzaj', b.organizator_rodzaj, 'wsparcie_kwoty_zl', to_jsonb(b.wsparcie_kwoty_zl), 'limit_dzieci', b.limit_dzieci,
     'zapisani', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null),
     'zapisani_na', v_na,
     'dzieci', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.rodzaj = 'dziecko'),
     'ukonczyli_n', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.ukonczony_at is not null),
-    'zlote', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.odznaka = 'zlota'),
-    'ukonczyli', v_ukonczyli);
+    'zlote', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.odznaka = 'zlota'));
 end $function$;
 revoke all on function public.akcja_bieg_publiczny(text) from public, anon, authenticated, service_role;
 
--- zapis siebie: raz na bieg (częściowy unikalny indeks + blokada doradcza na numer), tylko w fazie zapisy/trwa, dystans z listy biegu, regulamin w bieżącej wersji;
--- imię: podane albo pierwsze słowo full_name; numer = max+1 w biegu (nie wraca po wycofaniu).
+-- lista „ukończyli” ze stronicowaniem: imię za zgodą, numer, dystans, dziecko; bez czasów i kont. Tylko rola serwisowa (EF bieg-ukonczyli, ta sama droga co licznik), nigdy anon ani przeglądarka.
+create or replace function public.akcja_bieg_ukonczyli(p_slug text, p_od integer default 0, p_ile integer default 50)
+ returns jsonb
+ language plpgsql
+ stable security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare b public.akcja_biegi; v_od integer := greatest(0, coalesce(p_od, 0)); v_ile integer := least(100, greatest(1, coalesce(p_ile, 50))); v_razem integer; v_lista jsonb;
+begin
+  select * into b from public.akcja_biegi where slug = p_slug and status <> 'szkic';
+  if not found then return null; end if;
+  select count(*) into v_razem from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.ukonczony_at is not null;
+  select coalesce(jsonb_agg(jsonb_build_object('imie', case when u.zgoda_imie then u.imie end, 'numer', u.numer,
+                                               'dystans_km', coalesce(u.wynik_dystans_km::numeric, u.dystans_wlasny_km), 'dziecko', u.rodzaj = 'dziecko') order by u.ukonczony_at desc, u.numer), '[]'::jsonb)
+    into v_lista
+    from (select * from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.ukonczony_at is not null order by u.ukonczony_at desc, u.numer offset v_od limit v_ile) u;
+  return jsonb_build_object('slug', b.slug, 'razem', v_razem, 'od', v_od, 'ile', v_ile, 'lista', v_lista);
+end $function$;
+revoke all on function public.akcja_bieg_ukonczyli(text, integer, integer) from public, anon, authenticated;
+grant execute on function public.akcja_bieg_ukonczyli(text, integer, integer) to service_role;
+
+-- zapis siebie: raz na bieg (częściowy unikalny indeks + blokada doradcza na numer), w fazie zapisy/trwa/wyniki (do wynik_do), dystans z listy biegu, regulamin w bieżącej wersji;
+-- imię: podane albo pierwsze słowo full_name; numer = max+1 w biegu (nie wraca po wycofaniu). Nabijanie numerów: najwyżej 3 zapisy „ja” na konto i bieg łącznie z wycofanymi.
 create or replace function public.akcja_bieg_zapisz(p_slug text, p_dystans integer, p_zgoda_imie boolean, p_zgoda_email boolean, p_regulamin_wersja text, p_imie text default null)
  returns jsonb
  language plpgsql
@@ -137,7 +152,7 @@ begin
   select * into b from public.akcja_biegi where slug = p_slug;
   if not found then return jsonb_build_object('ok', false, 'powod', 'nie_ma'); end if;
   v_faza := public.akcja_bieg_faza(b);
-  if v_faza not in ('zapisy', 'trwa') then return jsonb_build_object('ok', false, 'powod', 'zamkniete', 'faza', v_faza); end if;
+  if v_faza not in ('zapisy', 'trwa', 'wyniki') then return jsonb_build_object('ok', false, 'powod', 'zamkniete', 'faza', v_faza); end if;
   if p_regulamin_wersja is distinct from b.regulamin_wersja then return jsonb_build_object('ok', false, 'powod', 'regulamin', 'regulamin_wersja', b.regulamin_wersja); end if;
   if p_dystans is null or not (p_dystans = any(b.dystanse_km)) then return jsonb_build_object('ok', false, 'powod', 'dystans'); end if;
   v_imie := coalesce(nullif(btrim(p_imie), ''), (select split_part(btrim(a.full_name), ' ', 1) from public.athletes a where a.id = v_ja));
@@ -145,6 +160,7 @@ begin
   perform pg_advisory_xact_lock(hashtext('akcja_bieg:' || b.id::text));
   select * into v_stary from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.konto_id = v_ja and u.rodzaj = 'ja' and u.wycofany_at is null;
   if found then return jsonb_build_object('ok', false, 'powod', 'juz_zapisany', 'id', v_stary.id, 'numer', v_stary.numer); end if;
+  if (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.konto_id = v_ja and u.rodzaj = 'ja') >= 3 then return jsonb_build_object('ok', false, 'powod', 'limit_zapisow'); end if;
   select coalesce(max(numer), 0) + 1 into v_numer from public.akcja_bieg_uczestnicy where bieg_id = b.id;
   insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, zgoda_imie, numer, dystans_km, regulamin_wersja, zgoda_email)
     values (b.id, v_ja, 'ja', v_imie, coalesce(p_zgoda_imie, false), v_numer, p_dystans, b.regulamin_wersja, coalesce(p_zgoda_email, false))
@@ -167,13 +183,15 @@ begin
   select * into b from public.akcja_biegi where slug = p_slug;
   if not found then return jsonb_build_object('ok', false, 'powod', 'nie_ma'); end if;
   v_faza := public.akcja_bieg_faza(b);
-  if v_faza not in ('zapisy', 'trwa') then return jsonb_build_object('ok', false, 'powod', 'zamkniete', 'faza', v_faza); end if;
+  if v_faza not in ('zapisy', 'trwa', 'wyniki') then return jsonb_build_object('ok', false, 'powod', 'zamkniete', 'faza', v_faza); end if;
   if p_regulamin_wersja is distinct from b.regulamin_wersja then return jsonb_build_object('ok', false, 'powod', 'regulamin', 'regulamin_wersja', b.regulamin_wersja); end if;
   if p_oswiadczenie is distinct from true then return jsonb_build_object('ok', false, 'powod', 'oswiadczenie'); end if;
   if char_length(v_imie) not between 2 and 20 or v_imie !~ '^[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]+(-[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]+)?$' then return jsonb_build_object('ok', false, 'powod', 'imie'); end if;
   perform pg_advisory_xact_lock(hashtext('akcja_bieg:' || b.id::text));
   select count(*) into v_ile from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.konto_id = v_ja and u.rodzaj = 'dziecko' and u.wycofany_at is null;
   if v_ile >= b.limit_dzieci then return jsonb_build_object('ok', false, 'powod', 'limit', 'limit', b.limit_dzieci); end if;
+  -- nabijanie numerów: dzieci łącznie z wycofanymi najwyżej 3 × limit
+  if (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.konto_id = v_ja and u.rodzaj = 'dziecko') >= 3 * b.limit_dzieci then return jsonb_build_object('ok', false, 'powod', 'limit', 'limit', b.limit_dzieci); end if;
   select coalesce(max(numer), 0) + 1 into v_numer from public.akcja_bieg_uczestnicy where bieg_id = b.id;
   insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, zgoda_imie, numer, oswiadczenie_rodzica_at, regulamin_wersja)
     values (b.id, v_ja, 'dziecko', v_imie, coalesce(p_zgoda_imie, false), v_numer, now(), b.regulamin_wersja)

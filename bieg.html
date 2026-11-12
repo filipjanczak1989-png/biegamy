@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07070a">
 <title>Bieg wirtualny · BiegaMy</title>
-<meta name="description" content="Bieg i marsz dla jednej zbiórki: zapisz się, pobiegnij u siebie, odbierz numer i dyplom. Udział bezpłatny.">
+<meta name="description" content="Bieg i marsz dla jednej zbiórki: zapisz się, pobiegnij u siebie, odbierz numer i dyplom. Bez wpisowego.">
 <link rel="icon" href="favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,9 +71,11 @@
   .bw-pole { display: block; margin-top: 12px; } .bw-pole > span { display: block; font-size: 13px; color: var(--fg2); margin-bottom: 5px; }
   .bw-pole input[type=text] { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 500 15px/1.2 Inter, sans-serif; }
   .bw-wybor { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  @media (max-width: 420px) { .bw-wybor { grid-template-columns: 1fr; } }   /* na 360 „10 km” w jednej linii: każdy dystans w swoim wierszu */
   .bw-wybor label, .bw-zgoda { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--ramka); border-radius: 12px; font-size: 14px; min-height: 44px; cursor: pointer; }
   .bw-wybor label:has(input:checked) { border-color: var(--akcent2); background: rgba(232,86,30,.14); }
-  .bw-wybor label img { width: 34px; height: 34px; } .bw-wybor label small { display: block; font-size: 11px; color: var(--fg2); }
+  .bw-wybor label img { width: 34px; height: 34px; } .bw-wybor label b { white-space: nowrap; } .bw-wybor label small { display: block; font-size: 11px; color: var(--fg2); }
+  .bw-link-maly { display: inline-block; margin-top: 8px; padding: 10px 2px; font-size: 12px; color: var(--fg2); text-decoration: underline; }   /* „Wycofaj”: mały link z potwierdzeniem, nie przycisk */
   .bw-zgoda { margin-top: 8px; align-items: flex-start; line-height: 1.35; } .bw-zgoda input { flex: 0 0 22px; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--akcent-tlo); }
   .bw-zgoda--wymagana { border-color: rgba(255,178,122,.5); }
   .bw-zgoda a, .bw-tekst a { color: var(--akcent2); } .bw-zgoda small { display: block; font-size: 11px; color: var(--fg2); }
@@ -120,11 +122,11 @@
     <!-- stan: niezalogowany -->
     <div data-stan="niezalogowany" hidden>
       <a class="bw-przycisk" id="bw-zaloguj" href="index.html#dolacz">Zaloguj się, żeby się zapisać ›</a>
-      <p>Zapis wymaga konta BiegaMy (własne konto od 16 lat). Dziecko dopisuje rodzic z własnego konta, samym imieniem. Udział jest bezpłatny.</p>
+      <p>Zapis wymaga konta BiegaMy (własne konto od 16 lat). Dziecko dopisuje rodzic z własnego konta, samym imieniem.</p>
     </div>
     <!-- stan: przed zapisem -->
     <div data-stan="przed" hidden>
-      <button type="button" class="bw-przycisk" id="bw-zapisz">Zapisz się, udział jest bezpłatny ›</button>
+      <button type="button" class="bw-przycisk" id="bw-zapisz">Zapisz się na bieg ›</button>
       <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-dziecko-od-razu">Dopisz dziecko ›</button>
       <p id="bw-bez-wpisowego"></p>
     </div>
@@ -147,7 +149,7 @@
       <div class="bw-dystans"><img src="assets/bieg/bieg-dystans-10.svg" alt=""><b>10 km</b><small>dla tych, którzy lubią dłużej</small></div>
       <div class="bw-dystans"><img src="assets/bieg/bieg-dystans-twoj.svg" alt=""><b>Dzieci</b><small>swój dystans, bez czasu</small></div>
     </div>
-    <p class="bw-drobne">Zapis na 5 km, a zrobione 10? Dyplom na 10. Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po biegu.</p>
+    <p class="bw-drobne">Zapis na 5 km, a zrobione 10? Dyplom na 10. Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po biegu. Zapisać można się też jeszcze w tym czasie.</p>
   </section>
 
   <section class="bw-sekcja" id="bw-moj" hidden aria-label="Twój bieg">
@@ -259,7 +261,8 @@ document.addEventListener('DOMContentLoaded', function () {
   $('bw-dziecko-regulamin-tekst').innerHTML = B.esc(B.TEKSTY.regulamin_pole) + ' <a href="#" data-regulamin>czytaj ›</a>';
   $('bw-zapis-opis').textContent = 'Wybierz dystans. Imię trafi na numer startowy i dyplom; na listę „ukończyli” tylko za Twoją zgodą. Nic nie jest zaznaczone z góry.';
   $('bw-dziecko-opis').textContent = 'Dziecko dostaje własny numer i dyplom bez czasu, biegnie albo idzie swój dystans. Bez konta dziecka, bez nazwiska. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
-  $('bw-stopka').innerHTML = 'Udział w biegu jest bezpłatny. Wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi; BiegaMy niczego nie przyjmuje. Czasy są prywatne, lista „ukończyli” pokazuje imię tylko za zgodą. <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
+  $('bw-stopka').innerHTML = 'Wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi; BiegaMy niczego nie przyjmuje. Czasy są prywatne, lista „ukończyli” pokazuje imię tylko za zgodą. <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
+  var ADRES_STRONY = location.origin + location.pathname + (PROBA ? '?proba=1' : '');
   $('bw-zapis-dystanse').innerHTML = B.ZASADY.dystanse.map(function (d) { return '<label><input type="radio" name="bw-dystans" value="' + d + '"><img src="assets/bieg/bieg-dystans-' + d + '.svg" alt=""><span><b>' + d + ' km</b><small>bieg albo marsz</small></span></label>'; }).join('');
   if (PROBA) { $('bw-chip-proba').hidden = false; $('bw-wroc').href = 'dla-fabianka.html?proba=1'; }
 
@@ -290,7 +293,20 @@ document.addEventListener('DOMContentLoaded', function () {
     else $('bw-termin').hidden = true;
   }
   function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.liczbyHtml(bieg) : ''; }
-  function rysujUkonczyli() { $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(bieg, moi.map(function (u) { return Number(u.numer); })) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'; }
+  /* lista „ukończyli” osobną funkcją (EF bieg-ukonczyli), tą samą drogą co licznik; porcje po 50, „Pokaż więcej” dokleja */
+  var ukonczyli = { razem: 0, lista: [] };
+  function pobierzUkonczyli(od) {
+    if (!bieg || !window.SB_URL || !window.fetch) return Promise.resolve(null);
+    return fetch(window.SB_URL + '/functions/v1/bieg-ukonczyli?slug=' + encodeURIComponent(bieg.slug) + '&od=' + (od || 0), { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
+  function rysujUkonczyli() { $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(ukonczyli, moi.map(function (u) { return Number(u.numer); })) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'; }
+  function odswiezUkonczyli() { return pobierzUkonczyli(0).then(function (d) { ukonczyli = d && Array.isArray(d.lista) ? { razem: Number(d.razem) || d.lista.length, lista: d.lista } : { razem: 0, lista: [] }; rysujUkonczyli(); }); }
+  document.addEventListener('click', function (e) {
+    var w = e.target.closest('[data-ukonczyli-wiecej]'); if (!w) return;
+    w.disabled = true;
+    pobierzUkonczyli(Number(w.getAttribute('data-ukonczyli-wiecej')) || 0).then(function (d) { if (d && Array.isArray(d.lista)) { ukonczyli.lista = ukonczyli.lista.concat(d.lista); ukonczyli.razem = Number(d.razem) || ukonczyli.razem; } rysujUkonczyli(); });
+  });
   function rysujWsparcie() { var h = bieg ? B.wsparcieHtml(bieg, A.linkZbiorki(licznik)) : ''; $('bw-wsparcie').innerHTML = h; $('bw-wsparcie-sekcja').hidden = !h; }
   function obrazek(url) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = url; }); }
   function fonty() { try { return document.fonts && document.fonts.load ? Promise.race([Promise.all([document.fonts.load("40px 'Bebas Neue'"), document.fonts.load("600 20px Inter")]).catch(function () {}), new Promise(function (ok) { setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
@@ -298,11 +314,25 @@ document.addEventListener('DOMContentLoaded', function () {
   function uczestnikHtml(u) {
     var dziecko = u.rodzaj === 'dziecko', h = '<div class="bw-uczestnik" data-uczestnik="' + B.esc(u.id) + '"><h3>' + B.esc(u.imie) + '<small>numer ' + B.esc(u.numer) + ' · ' + (dziecko ? 'dziecko · swój dystans' : B.esc(B.km(u.dystans_km)) + ' km') + '</small></h3>';
     h += '<img class="bw-obraz" data-numer="' + B.esc(u.id) + '" alt="Numer startowy ' + B.esc(u.numer) + '">';
-    if (u.ukonczony_at) h += '<p class="bw-opis">Ukończony. Dyplom i odznaka pojawią się tu w etapie 2.</p>';
-    else if (B.zapisyOtwarte(bieg) || B.faza(bieg) === 'wyniki') h += '<p class="bw-opis">' + (dziecko ? 'Po biegu wpiszesz, ile ' + B.esc(u.imie) + ' przeszło lub przebiegło (etap 2).' : 'Po biegu dopiszesz wynik: z zegarka albo ręcznie (etap 2).') + '</p>';
-    if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-wycofaj="' + B.esc(u.id) + '">Wycofaj ' + (dziecko ? 'zapis dziecka' : 'mój zapis') + '</button>';
+    h += '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-udostepnij="' + B.esc(u.id) + '">Udostępnij numer</button>';
+    if (u.ukonczony_at) h += '<p class="bw-opis">Ukończony. Dyplom i odznaka pojawią się tutaj po dopisaniu wyniku.</p>';
+    else if (B.zapisyOtwarte(bieg)) h += '<p class="bw-opis">' + (dziecko ? 'Po biegu wpiszesz tu, ile ' + B.esc(u.imie) + ' przeszło lub przebiegło.' : 'Po biegu dopiszesz tu wynik: z zegarka albo ręcznie.') + '</p>';
+    if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += '<a href="#" class="bw-link-maly" data-wycofaj="' + B.esc(u.id) + '">Wycofaj ' + (dziecko ? 'zapis dziecka' : 'mój zapis') + '</a>';
     return h + '</div>';
   }
+  /* „Udostępnij numer”: PNG przez systemowe okno telefonu (Web Share z plikiem), bez niego pobranie pliku */
+  function doBloba(k) { return new Promise(function (ok) { k.toBlob(function (b) { ok(b); }, 'image/png'); }); }
+  function pobierzPlik(blob, nazwa) { var u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nazwa; document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 2000); }
+  function udostepnijNumer(id) {
+    var k = kanwy[id]; if (!k) return Promise.resolve('brak');
+    var nazwa = 'numer-startowy-' + id.slice(0, 8) + '.png';
+    return doBloba(k).then(function (blob) {
+      var plik = null; try { plik = new File([blob], nazwa, { type: 'image/png' }); } catch (e) {}
+      if (plik && navigator.share && navigator.canShare && navigator.canShare({ files: [plik] })) return navigator.share({ files: [plik], title: 'Mój numer startowy', text: (bieg && bieg.nazwa) || 'Bieg wirtualny' }).then(function () { return 'udostępnione'; }, function (e) { if (e && e.name === 'AbortError') return 'anulowane'; pobierzPlik(blob, nazwa); return 'pobrane'; });
+      pobierzPlik(blob, nazwa); return 'pobrane';
+    });
+  }
+  document.addEventListener('click', function (e) { var u = e.target.closest('[data-udostepnij]'); if (!u) return; udostepnijNumer(u.getAttribute('data-udostepnij')); });
   function rysujMoj() {
     var s = $('bw-moj'), t = $('bw-moj-tresc');
     if (!stan || (!stan.ja && !stan.dzieci.length)) { s.hidden = true; t.innerHTML = ''; return; }
@@ -313,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('bw-zapisz-siebie').hidden = !!stan.ja || !B.zapisyOtwarte(bieg);
     $('bw-dzieci-info').textContent = stan.dzieci.length ? 'Dzieci: ' + stan.dzieci.length + ' z ' + B.ZASADY.limit_dzieci + '. Każde ma własny numer; dyplomy dzieci są bez czasu.' : 'Dziecko dopisujesz samym imieniem, z oświadczeniem rodzica. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
     gotoweGrafiki.then(function () {
-      lista.forEach(function (u) { var im = t.querySelector('img[data-numer="' + u.id + '"]'); if (!im) return; try { kanwy[u.id] = B.numerStartowy(u, bieg, obrazy); im.src = kanwy[u.id].toDataURL('image/png'); } catch (e) {} });
+      lista.forEach(function (u) { var im = t.querySelector('img[data-numer="' + u.id + '"]'); if (!im) return; try { kanwy[u.id] = B.numerStartowy(u, bieg, obrazy, ADRES_STRONY); im.src = kanwy[u.id].toDataURL('image/png'); } catch (e) {} });
     });
   }
   function rysujWszystko() {
@@ -326,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return Promise.all([pobierzLicznik(), pobierzSesje()]).then(function (r) {
       licznik = r[0]; bieg = licznik && licznik.bieg && typeof licznik.bieg === 'object' ? licznik.bieg : null; sesja = r[1];
       return pobierzMoich();
-    }).then(function (m) { moi = m; rysujWszystko(); }, function () { rysujWszystko(); });
+    }).then(function (m) { moi = m; rysujWszystko(); return odswiezUkonczyli(); }, function () { rysujWszystko(); });
   }
 
   /* ── OKNA ── */
@@ -373,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   document.addEventListener('click', function (e) {
     var w = e.target.closest('[data-wycofaj]'); if (!w) return;
+    e.preventDefault();
     if (!window.confirm('Wycofać ten zapis? Numer startowy przepada.')) return;
     rpc('akcja_bieg_wycofaj', { p_id: w.getAttribute('data-wycofaj') }).then(function (r) { if (!r.ok) { alert(komunikat(r)); return; } odswiez(); });
   });
@@ -390,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var ja = { id: 'pg1', imie: 'Ola', numer: 12, rodzaj: 'ja', dystans_km: 10, wynik_s: 3412, wynik_dystans_km: 10, ukonczony_at: '2026-12-06T10:00:00Z', odznaka: 'zwykla' };
     var dz = { id: 'pg2', imie: 'Zosia', numer: 13, rodzaj: 'dziecko', dystans_wlasny_km: 1.5, ukonczony_at: '2026-12-06T10:00:00Z', odznaka: 'zlota' };
     gotoweGrafiki.then(function () {
-      $('bw-pg-numer-ja').src = B.numerStartowy(ja, b, obrazy).toDataURL('image/png'); $('bw-pg-numer-dziecko').src = B.numerStartowy(dz, b, obrazy).toDataURL('image/png');
+      $('bw-pg-numer-ja').src = B.numerStartowy(ja, b, obrazy, ADRES_STRONY).toDataURL('image/png'); $('bw-pg-numer-dziecko').src = B.numerStartowy(dz, b, obrazy, ADRES_STRONY).toDataURL('image/png');
       $('bw-pg-dyplom-ja').src = B.dyplom(ja, b, 'telefon', obrazy).toDataURL('image/png'); $('bw-pg-dyplom-dziecko').src = B.dyplom(dz, b, 'telefon', obrazy).toDataURL('image/png');
       $('bw-pg-odznaki').innerHTML = '<figure>' + B.odznakaSvg('zwykla', { nazwa: b.nazwa }) + '<figcaption>odznaka biegu</figcaption></figure><figure>' + B.odznakaSvg('zlota', { nazwa: b.nazwa }) + '<figcaption>złota: po potwierdzonym wsparciu</figcaption></figure>';
     });
