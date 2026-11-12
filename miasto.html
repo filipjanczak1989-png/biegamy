@@ -353,7 +353,7 @@
     if (!p) { p = document.createElement('p'); p.className = 'md-dopisek md-historia-info'; p.textContent = 'Na prawdziwej ulicy ten przycisk prowadzi na stronę organizacji prowadzącej zbiórkę. W pokazie nic nie otwiera.'; b.insertAdjacentElement('afterend', p); }
   });
   /* ekran „Tak będzie w aplikacji”: trzy stany do przełączenia; dołączenie i potwierdzenie przełączają na kafel z ulicą; nic nie zapisuje */
-  var aplStan = 'a', aplWybrana = 'bieg';
+  var aplStan = 'a', aplWybrana = null;   // bez wyboru stan „z ulicą” pokazuje ulicę wzorcową (decyzja 12.11)
   function rysujAplikacje() { $('md-apl-tresc').innerHTML = M.aplikacjaHtml(aplStan, lista(), aplWybrana); grafikiZCache($('md-apl-tresc').querySelectorAll('img')); APL.scrollTop = 0; }
   function otworzAplikacje(stan) { aplStan = stan || 'a'; rysujAplikacje(); pokazOkno(APL); }
   APL.addEventListener('click', function (e) {

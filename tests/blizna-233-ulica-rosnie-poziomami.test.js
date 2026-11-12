@@ -83,6 +83,15 @@ test('(3) kreator od nowa i podgląd; (4) dopiski o poziomie na stronach firm i 
   assert.match(a, /Wybierz ulicę, dla której biegasz/); assert.equal((a.match(/data-apl-dolacz="/g) || []).length, M.trwajace(lista).length, 'lista trwających ulic'); assert.doesNotMatch(a, /data-apl-dolacz="(sloneczna|wolna)"/, 'zbudowana i wolna nie do wyboru');
   assert.match(a, /md-apl-avatar/); assert.match(a, /poziom 1 z 5 · 36,8 % celu/);
   assert.match(b, /Bieg Wirtualny/); assert.match(b, /Twój wkład · 4 dni <i class="md-przyklad">przykład<\/i>/); assert.match(b, /data-apl="a">Zmień ulicę ›/); assert.match(b, /md-apl-scena/);
+  const b0 = M.aplikacjaHtml('b', lista);
+  assert.match(b0, new RegExp('<div class="md-apl-tytul">' + u.nazwa.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</div>'), 'bez wyboru stan „z ulicą” pokazuje ulicę wzorcową (prawdziwą), nie przykład');
+  assert.doesNotMatch(b0, /md-apl-tytul">[^<]*<i class="md-przyklad"/, 'wzorcowa bez znacznika przykładu');
+  /* tytuł podglądu i plakatu z nazwy postaci, termin jako zakres weekendu (decyzja 12.11) */
+  const pk = M.podgladBieguHtml({ swiat: 'kosmos', termin: '2026-11-14', link: 'https://zbiorka.example.pl/x' }, '<svg></svg>');
+  assert.match(pk, /<h3>Bieg Małego Kosmonauty<\/h3>/); assert.match(pk, /<b>Bieg Małego Kosmonauty<\/b>/, 'plakat z tym samym tytułem'); assert.doesNotMatch(pk, /ze świata|Bieg: Kosmos/);
+  assert.match(pk, /5 i 10 km, u siebie · 14–15\.11\.2026/);
+  assert.equal(M.zakresWeekendu('2026-11-28'), '28–29.11.2026'); assert.equal(M.zakresWeekendu('2026-11-30'), '30.11–1.12.2026'); assert.equal(M.zakresWeekendu('2027-12-31'), '31.12.2027–1.1.2028'); assert.equal(M.zakresWeekendu('zle'), '');
+  for (const s of M.SWIATY) if (s.id !== 'bez') { assert.match(s.postac, /^Mały /); assert.match(s.dopelniacz, /^Małego /); assert.doesNotMatch(s.postac + s.dopelniacz, /Kasia|Filip|fabian/i); }
   assert.match(c, /Wejście z linku ulicy/); assert.match(c, /md-apl-ulica--tu" data-apl-dolacz="urodzinowa"/); assert.match(c, /data-apl-potwierdz="urodzinowa">Biegam dla tej ulicy ›/);
   for (const h of [a, b, c]) { assert.match(h, /Jedna ulica naraz, kilometry liczą się od chwili wyboru, bez wyboru nie liczą się nigdzie\./); assert.match(h, /Atrapa ekranu aplikacji/); assert.doesNotMatch(h, /<form|fetch\(|\.from\(/); }
   assert.match(HTML, /<dialog id="md-apl" aria-label="Tak będzie w aplikacji">/); assert.match(HTML, /id="md-aplikacja"[^>]*>Tak będzie w aplikacji ›/);

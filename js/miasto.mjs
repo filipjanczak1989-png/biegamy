@@ -27,9 +27,10 @@
   var ZASADA_POZIOMOW = "Poziom odblokowuje aktywność ludzi i potwierdzenie organizacji, nigdy opłata.";
   var ZASADA_WYBORU = "Jedna ulica naraz, kilometry liczą się od chwili wyboru, bez wyboru nie liczą się nigdzie.";
   /* Świat gry = avatar bohatera (rysunkowa postać ze świata, bez zdjęć i podobizn). Ikony: koparka z Ulicy, reszta z assets/miasto (10.11); emoji jako zapas, gdy obrazu brak. */
-  var SWIATY = [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", obraz: "assets/miasto/swiat-kosmos.webp", emoji: "🚀" },
-    { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", obraz: "assets/miasto/swiat-dinozaury.webp", emoji: "🦖" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", obraz: "assets/miasto/swiat-pilka.webp", emoji: "⚽" },
-    { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", obraz: "assets/miasto/swiat-zwierzeta.webp", emoji: "🐾" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/miasto/swiat-miasto.webp" }];
+  /* postac = rysunkowy bohater świata (bez imienia dziecka), dopelniacz do tytułu biegu („Bieg Małego Kosmonauty”, decyzja 12.11) */
+  var SWIATY = [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp", postac: "Mały Budowniczy", dopelniacz: "Małego Budowniczego" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", obraz: "assets/miasto/swiat-kosmos.webp", emoji: "🚀", postac: "Mały Kosmonauta", dopelniacz: "Małego Kosmonauty" },
+    { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", obraz: "assets/miasto/swiat-dinozaury.webp", emoji: "🦖", postac: "Mały Odkrywca", dopelniacz: "Małego Odkrywcy" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", obraz: "assets/miasto/swiat-pilka.webp", emoji: "⚽", postac: "Mały Piłkarz", dopelniacz: "Małego Piłkarza" },
+    { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", obraz: "assets/miasto/swiat-zwierzeta.webp", emoji: "🐾", postac: "Mały Przyjaciel Zwierząt", dopelniacz: "Małego Przyjaciela Zwierząt" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/miasto/swiat-miasto.webp" }];
   function swiat(id) { for (var i = 0; i < SWIATY.length; i++) if (SWIATY[i].id === id) return SWIATY[i]; return SWIATY[0]; }
   /* Jedno neutralne zdanie o celu we wszystkich przykładach (decyzja 12.11): bez nazw chorób, oznaczone „od organizacji”. Na prawdziwej ulicy zdania nie ma, bo nie ma go w liczniku. */
   var CEL_PRZYKLADU = "Zbieramy na leczenie i rehabilitację.";
@@ -246,12 +247,22 @@
     return h;
   }
   /** Podgląd po zatwierdzeniu: strona biegu z bramą (ta sama grafika co na mapie), plakat i kod QR (koder z js/miasto-bieg.mjs, gdy wczytany), komunikat o potwierdzeniu. */
+  /** Weekend biegu z soboty: „14–15.11.2026”; na przełomie miesiąca „30.11–1.12.2026”, roku „31.12.2026–1.01.2027”. Zły termin → "". */
+  function zakresWeekendu(termin) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(termin || "")); if (!m) return "";
+    var a = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12), b = new Date(a.getTime() + 86400000);
+    if (isNaN(a.getTime())) return "";
+    var mies = function (x) { return (x.getMonth() + 1) + "." + x.getFullYear(); };
+    if (a.getFullYear() !== b.getFullYear()) return a.getDate() + "." + mies(a) + "–" + b.getDate() + "." + mies(b);
+    if (a.getMonth() !== b.getMonth()) return a.getDate() + "." + (a.getMonth() + 1) + "–" + b.getDate() + "." + mies(b);
+    return a.getDate() + "–" + b.getDate() + "." + mies(a);
+  }
   function podgladBieguHtml(dane, qrSvg) {
-    var d = dane || {}, s = swiat(d.swiat), bohater = s.id === "bez" ? "" : s.nazwa, tytul = bohater ? "Bieg dla bohatera ze świata: " + bohater : "Bieg przez Miasto Dobra";
-    var termin = d.termin ? String(d.termin) : "", link = d.link && /^https:\/\//.test(String(d.link)) ? String(d.link) : "";
+    var d = dane || {}, s = swiat(d.swiat), tytul = s.dopelniacz ? "Bieg " + s.dopelniacz : "Bieg przez Miasto Dobra";   // tytuł z nazwy postaci (decyzja 12.11)
+    var termin = zakresWeekendu(d.termin), link = d.link && /^https:\/\//.test(String(d.link)) ? String(d.link) : "";
     var h = '<div class="md-podglad-biegu" data-podglad-biegu><div class="md-chipy"><span class="md-chip md-chip--przyklad">PODGLĄD</span><span class="md-chip md-chip--poziom">POZIOM 1 Z 5</span></div><h3>' + esc(tytul) + '</h3>';
     h += '<div class="md-brama"><img class="md-brama-tlo" src="assets/ulica/wzgorza.webp" alt=""><img class="md-brama-znak" src="assets/miasto/brama-start-meta.webp" alt=""><div class="md-brama-droga"></div>' + (s.obraz ? '<img class="md-brama-bohater" src="' + esc(s.obraz) + '" alt="">' : "") + '</div>';
-    h += '<div class="md-plakat"><div class="md-plakat-karta"><small>BiegaMy · Miasto Dobra</small><b>' + esc(bohater ? "Bieg: " + bohater : "Bieg wirtualny") + '</b><span>5 i 10 km, u siebie' + (termin ? ' · ' + esc(termin) : "") + '</span><span>Udział bezpłatny. Wpłata tylko u organizacji.</span>' + (link ? '<em>' + esc(link.replace(/^https:\/\//, "")) + '</em>' : "") + '</div>' +
+    h += '<div class="md-plakat"><div class="md-plakat-karta"><small>BiegaMy · Miasto Dobra</small><b>' + esc(tytul) + '</b><span>5 i 10 km, u siebie' + (termin ? ' · ' + esc(termin) : "") + '</span><span>Udział bezpłatny. Wpłata tylko u organizacji.</span>' + (link ? '<em>' + esc(link.replace(/^https:\/\//, "")) + '</em>' : "") + '</div>' +
       '<div class="md-qr">' + (qrSvg || '<span class="md-qr-puste">kod QR</span>') + '<small>plakat i kod QR do strony biegu</small></div></div>';
     h += '<p class="md-potwierdzenie">' + esc(KREATOR.potwierdzenie) + '</p><p class="md-wkrotce">To prototyp: niczego nie zapisuje i nie wysyła.</p>';
     h += '<a class="md-przycisk md-przycisk--przyklad" href="miasto-bieg.html">Zobacz przykład gotowego biegu ›</a></div>';
@@ -274,7 +285,9 @@
       '<span class="md-apl-dolacz">' + (zaznaczona ? "✓" : "Dołącz") + '</span></button>';
   }
   function aplikacjaHtml(stan, lista, wybranaId) {
-    var L = trwajace(lista), w = null; L.forEach(function (u) { if (u.id === wybranaId) w = u; }); if (!w) w = L[0];
+    var L = trwajace(lista), w = null; L.forEach(function (u) { if (u.id === wybranaId) w = u; });
+    if (!w) { L.forEach(function (u) { if (!w && u.prawdziwa) w = u; }); }   // bez wyboru: ulica wzorcowa (prawdziwa), nie przykład (decyzja 12.11)
+    if (!w) w = L[0];
     var h = '<div class="md-apl" data-apl-stan="' + esc(stan) + '">';
     h += '<div class="md-apl-naglowek"><div class="md-marka">BiegaMy · Dziś</div><div class="md-apl-przelacznik" role="tablist" aria-label="Stan kafla">' +
       [["a", "bez ulicy"], ["b", "z ulicą"], ["c", "z linku"]].map(function (x) { return '<button type="button" role="tab" data-apl="' + x[0] + '" aria-selected="' + (x[0] === stan ? "true" : "false") + '">' + x[1] + '</button>'; }).join("") + '</div></div>';
@@ -299,5 +312,5 @@
     POZIOMY: POZIOMY, ZASADA_POZIOMOW: ZASADA_POZIOMOW, ZASADA_WYBORU: ZASADA_WYBORU, SWIATY: SWIATY, CEL_PRZYKLADU: CEL_PRZYKLADU, KREATOR: KREATOR, WKLAD_PRZYKLADU: WKLAD_PRZYKLADU,
     esc: esc, liczba: liczba, km: km, procent: procent, forma: forma, odmiana: odmiana, ulicaZLicznika: ulicaZLicznika, zapamietaj: zapamietaj, odczytaj: odczytaj, stanZ: stanZ, pobierzPrawdziwa: pobierzPrawdziwa,
     ulice: ulice, sumaMiasta: sumaMiasta, podpisSumy: podpisSumy, kartaHtml: kartaHtml, etykietaMapy: etykietaMapy, poziomUlicy: poziomUlicy, poziom: poziom, swiat: swiat, drabinkaHtml: drabinkaHtml, bohaterHtml: bohaterHtml,
-    kreatorHtml: kreatorHtml, najblizszyWeekend: najblizszyWeekend, podgladBieguHtml: podgladBieguHtml, aplikacjaHtml: aplikacjaHtml, trwajace: trwajace };
+    kreatorHtml: kreatorHtml, najblizszyWeekend: najblizszyWeekend, zakresWeekendu: zakresWeekendu, podgladBieguHtml: podgladBieguHtml, aplikacjaHtml: aplikacjaHtml, trwajace: trwajace };
 })(typeof globalThis !== "undefined" ? globalThis : window);
