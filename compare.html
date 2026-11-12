@@ -270,7 +270,7 @@ async function renderPicker() {
   }
 
   const friendIds = friendships.map(f => f.requester_id === _myAthleteId ? f.addressee_id : f.requester_id);
-  const { data: friends, error: fErr } = await _sb.from('athletes')
+  const { data: friends, error: fErr } = await _sb.from('public_athletes')
     .select('id, full_name, avatar_url')
     .in('id', friendIds)
     .order('full_name', { ascending: true });
@@ -300,7 +300,7 @@ async function renderCompare() {
 
   const [meProf, friendProf, myLogs, friendLogs, myWeight, friendWeight] = await Promise.all([
     _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _myAthleteId).maybeSingle().then(r => r.data),
-    _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _friendId).maybeSingle().then(r => { if (r.error && window.bmBladSieci && window.bmBladSieci(r.error)) return { __offline: true }; return r.data; }),
+    _sb.from('public_athletes').select('full_name,avatar_url,race_goals').eq('id', _friendId).maybeSingle().then(r => { if (r.error && window.bmBladSieci && window.bmBladSieci(r.error)) return { __offline: true }; return r.data; }),
     _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _myAthleteId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
     _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _friendId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
     _sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _myAthleteId).maybeSingle().then(r => r.data?.weight_kg || 0).catch(() => 0),

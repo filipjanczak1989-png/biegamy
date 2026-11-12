@@ -727,6 +727,15 @@ function imprezyStopka(wynik) {
   _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';
 
   // Pobierz athlete
+  /* Cudze profile tylko przez widok (12.11.2026): public_athletes, a kogo tam nie ma (podopieczny z profilem prywatnym), z tabeli po RLS. */
+  async function _osobyPoId(ids, kolumny) {
+    if (!ids || !ids.length) return [];
+    const w = await _sb.from('public_athletes').select(kolumny).in('id', ids);
+    const mapa = {}; (w.data || []).forEach(a => { mapa[a.id] = a; });
+    const nieznani = ids.filter(id => !mapa[id]);
+    if (nieznani.length) { const t = await _sb.from('athletes').select(kolumny).in('id', nieznani); (t.data || []).forEach(a => { mapa[a.id] = a; }); }
+    return ids.map(id => mapa[id]).filter(Boolean);
+  }
   const { data: ath } = await _sb.from('athletes')
     .select('id,race_goals')
     .eq('user_id', _user.id)
@@ -782,7 +791,7 @@ async function loadRaces() {
   if (_isCoach) {
     const ids = [...new Set(_allRaces.filter(r => r.status === 'pending' && r.added_by).map(r => r.added_by))];
     if (ids.length) {
-      const { data: subs } = await _sb.from('athletes').select('id, full_name').in('id', ids);
+      const subs = await _osobyPoId(ids, 'id, full_name');
       (subs || []).forEach(a => { window._raceSubmitters[a.id] = a.full_name || ''; });
     }
   }
@@ -851,9 +860,7 @@ async function loadRaceParticipantsAvatars() {
   const friendIds = [...new Set(Object.values(friendsByRace).flat())];
   const allAthleteIds = [...new Set([...Object.values(byRace).flat(), ...friendIds])];
   if (!allAthleteIds.length) return;
-  const { data: athletes } = await _sb.from('athletes')
-    .select('id,full_name,avatar_url')
-    .in('id', allAthleteIds);
+  const athletes = await _osobyPoId(allAthleteIds, 'id,full_name,avatar_url');
 
   const athMap = {};
   (athletes||[]).forEach(a => { athMap[a.id] = a; });

@@ -730,11 +730,15 @@ function _profilOffline() {
        („Ty oraz Twój trener") i nagrobek w races.html. */
     var _rcTile = document.getElementById('p-tile-races');
     if (_rcTile) _rcTile.style.display = 'none';
-    const { data: privCheck } = await sb.from('athletes')
-      .select('is_public,full_name,coach_id')
-      .eq('id', _targetId)
-      .maybeSingle();
-    _canSeeFull = (privCheck?.coach_id === _myUserId); // F5: trener-TEGO-zawodnika; own już = true (deklaracja)
+    /* cudzy profil tylko przez widok (12.11.2026): wiersz w public_athletes = profil publiczny; trenera poznajemy po tym, że tabela
+       (RLS: własny wiersz i podopieczni) oddaje ten id z coach_id = ja. Profil prywatny nie-podopiecznego = null, jak dotąd. */
+    const [{ data: pubRow }, { data: podRow }] = await Promise.all([
+      sb.from('public_athletes').select('id,full_name').eq('id', _targetId).maybeSingle(),
+      sb.from('athletes').select('id,full_name,coach_id').eq('id', _targetId).eq('coach_id', _myUserId).maybeSingle()
+    ]);
+    const privCheck = pubRow ? { is_public: true, full_name: pubRow.full_name, coach_id: podRow ? _myUserId : null }
+      : (podRow ? { is_public: false, full_name: podRow.full_name, coach_id: _myUserId } : null);
+    _canSeeFull = !!podRow; // F5: trener-TEGO-zawodnika; own już = true (deklaracja)
     if (privCheck && !privCheck.is_public) {
       const initials = (privCheck.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       document.getElementById('profile-name').textContent = privCheck.full_name || 'Biegacz';
@@ -860,10 +864,18 @@ async function initPublicView(id) {
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
-  const { data: ath, error: athErr } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,hr_public,date_of_birth,coach_id,city,gender')
-    .eq('id', _targetId)
-    .maybeSingle();
+  let ath, athErr;
+  if (_isOwnProfile || _canSeeFull) {
+    ({ data: ath, error: athErr } = await sb.from('athletes')
+      .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,hr_public,date_of_birth,coach_id,city,gender')
+      .eq('id', _targetId)
+      .maybeSingle());
+  } else {
+    /* cudzy: widok public_athletes; target_date, hr_public i city dochodzą do widoku migracją 20261112 — do tego czasu zapas na stary zestaw kolumn */
+    let r = await sb.from('public_athletes').select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,hr_public,city').eq('id', _targetId).maybeSingle();
+    if (r.error && /42703|column/i.test(String(r.error.code || '') + ' ' + String(r.error.message || ''))) r = await sb.from('public_athletes').select('id,full_name,goal,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url').eq('id', _targetId).maybeSingle();
+    ath = r.data ? Object.assign({ is_public: true }, r.data) : null; athErr = r.error;
+  }
   if (window.bmBladSieci(athErr)) { _profilOffline(); return; }
   if (!ath) return;
   _profileData = ath;
@@ -2224,7 +2236,7 @@ async function loadProfileFriends() {
     el.appendChild(inHdr);
 
     var inIds = pendingIn.map(function(r){ return r.requester_id; });
-    var inAthRes = await sb.from('athletes').select('id,full_name,goal,avatar_url').in('id', inIds);
+    var inAthRes = await sb.from('public_athletes').select('id,full_name,goal,avatar_url').in('id', inIds);
     var inMap = {};
     (inAthRes.data || []).forEach(function(a){ inMap[a.id] = a; });
 
@@ -2314,7 +2326,7 @@ async function loadProfileFriends() {
     el.appendChild(outHdr);
 
     var outIds = pendingOut.map(function(r){ return r.addressee_id; });
-    var outAthRes = await sb.from('athletes').select('id,full_name,goal,avatar_url').in('id', outIds);
+    var outAthRes = await sb.from('public_athletes').select('id,full_name,goal,avatar_url').in('id', outIds);
     var outMap = {};
     (outAthRes.data || []).forEach(function(a){ outMap[a.id] = a; });
 
@@ -2382,7 +2394,7 @@ async function loadProfileFriends() {
   if (!rows.length) return;
 
   var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
-  var athRes = await sb.from('athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
+  var athRes = await sb.from('public_athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
 
   var myStatuses = {};
   if (_myId && ids.length) {
@@ -2455,8 +2467,8 @@ function profileSearch(q) {
 
 async function _doProfileSearch(q) {
   var el = document.getElementById('profile-search-results');
-  var res = await sb.from('athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
-    .eq('is_public', true).ilike('full_name', '%' + q + '%').limit(20);
+  var res = await sb.from('public_athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
+    .ilike('full_name', '%' + q + '%').limit(20);
   if (window.bmOfflineGdy(res.error, el, 'wyników wyszukiwania')) return;
   var results = (res.data||[]).filter(function(a){ return a.id !== _myId; });
   el.innerHTML = '';
@@ -3042,7 +3054,7 @@ function markTheme(n){
 async function _openPeerChat(tid,tn){
   if(document.getElementById('pc-ov'))return;
   // Pobierz avatar znajomego
-  var avRes = await sb.from('athletes').select('avatar_url').eq('id',tid).maybeSingle();
+  var avRes = await sb.from('public_athletes').select('avatar_url').eq('id',tid).maybeSingle();
   var avUrl = avRes && avRes.data && avRes.data.avatar_url || '';
   var ini = (tn||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
 
@@ -3266,7 +3278,7 @@ async function openFollowersList(){
   if(!ids.length){
     var empty=document.createElement('div');empty.style.cssText='text-align:center;padding:24px;color:var(--muted);';empty.textContent='Brak obserwujących';li.appendChild(empty);return;
   }
-  var ar=await sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
+  var ar=await sb.from('public_athletes').select('id,full_name,avatar_url,goal').in('id',ids);
   (ar.data||[]).forEach(function(a){
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';

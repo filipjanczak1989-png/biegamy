@@ -3932,10 +3932,10 @@ async function saveAthlete() {
   }
 
   // Sprawdź czy zawodnik z tym mailem już istnieje
-  const { data: existingArr } = await sb.from('athletes')
-    .select('id, coach_id')
-    .ilike('email', email)
-    .limit(1);
+  /* po zdjęciu athletes_read_public cudzy wiersz nie jest widoczny z tabeli: funkcja znajdz_zawodnika_po_emailu (tylko trener, migracja 20261112); do jej wejścia tabela */
+  let existingArr = null;
+  { const r = await sb.rpc('znajdz_zawodnika_po_emailu', { p_email: email }); if (r && !r.error && r.data && r.data.length) existingArr = r.data; }
+  if (!existingArr) { const t = await sb.from('athletes').select('id, coach_id').ilike('email', email).limit(1); existingArr = t.data; }
   const existing = existingArr && existingArr[0];
 
   if (existing) {
@@ -4598,10 +4598,10 @@ async function _renderNotifPanel(panel) {
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
 
-  const { data: recent, error: recentErr } = await sb.from('athletes')
-    .select('id,full_name,created_at,goal')
-    .order('created_at', { ascending: false })
-    .limit(10);
+  let recent = null, recentErr = null;
+  { const r = await sb.rpc('nowe_konta_trenera'); if (r && !r.error && Array.isArray(r.data)) recent = r.data; }   // funkcja z migracji 20261112 (rola trenera, kolumny minimalne)
+  if (!recent) { const r = await sb.from('public_athletes').select('id,full_name,created_at,goal').order('created_at', { ascending: false }).limit(10); if (!r.error) recent = r.data; }
+  if (!recent) ({ data: recent, error: recentErr } = await sb.from('athletes').select('id,full_name,created_at,goal').order('created_at', { ascending: false }).limit(10));
   if (window.bmOfflineGdy(recentErr, panel, 'powiadomień')) return;
 
   const todayCount = (recent||[]).filter(a => new Date(a.created_at) >= todayStart).length;
@@ -4738,6 +4738,7 @@ async function loadCoachSocialFeed() {
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)').not('training_type','like','__badge__%')
     .order('logged_at', { ascending: false }).limit(60);
   if (_trOffline(feedErr, feedEl, 'aktywności')) return;
+  await _dopiszPublicznych(logs);
   if (!logs || !logs.length) {
     feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
@@ -4850,8 +4851,9 @@ async function openCoachComments(logId) {
 async function _loadCComments(logId) {
   const el=document.getElementById('cc-list');if(!el)return;
   try {
-    const {data,error}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data,error}=await sb.from('log_comments').select('id,body,created_at,athlete_id').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
     if(_trOffline(error,el,'komentarzy'))return;
+    await _dopiszPublicznych(data);
     if(!data||!data.length){el.innerHTML= PUSTKA.dekoruj('wiadomosci', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>');return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
@@ -4885,7 +4887,7 @@ function coachSocialSearch(q) {
 async function _coachDoSearch(q) {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz is_public + coach_id, filtruj client-side: publiczni LUB swoi
-  const {data,error}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
+  const {data,error}=await _publiczniIPodopieczni('id,full_name,pb_marathon,goal', q);
   if(window.bmOfflineGdy(error,el,'wyników wyszukiwania'))return;
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
@@ -4898,10 +4900,30 @@ async function _coachDoSearch(q) {
       +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+escapeHtml(nm)+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+escapeHtml(a.pb_marathon)+'</div>':'')+'</div></div>';
   }).join('');
 }
+/* Cudze profile tylko przez widok (12.11.2026). Trener widzi publicznych (public_athletes, wiersz = is_public) i swoich podopiecznych
+   (tabela po RLS). Wpisy z atrybutami is_public/coach_id, żeby filtry niżej zostały bez zmian. */
+async function _publiczniIPodopieczni(kolumny, q) {
+  let w = sb.from('public_athletes').select(kolumny).limit(30); if (q) w = w.ilike('full_name', '%' + q + '%');
+  let t = sb.from('athletes').select(kolumny + ',coach_id').eq('coach_id', _coachId).limit(30); if (q) t = t.ilike('full_name', '%' + q + '%');
+  const [rw, rt] = await Promise.all([w, t]);
+  if (rw.error && rt.error) return { data: null, error: rw.error };
+  const mapa = {};
+  (rw.data || []).forEach(function (a) { a.is_public = true; mapa[a.id] = a; });
+  (rt.data || []).forEach(function (a) { if (mapa[a.id]) mapa[a.id].coach_id = a.coach_id; else { a.is_public = a.is_public === true; mapa[a.id] = a; } });
+  return { data: Object.values(mapa), error: null };
+}
+/* Do logów/komentarzy ze złączeniem athletes(...): po migracji złączenie oddaje tylko podopiecznych; publicznych dopisujemy z widoku. */
+async function _dopiszPublicznych(lista) {
+  const nieznani = [...new Set((lista || []).filter(function (l) { return !l.athletes && l.athlete_id; }).map(function (l) { return l.athlete_id; }))];
+  if (!nieznani.length) return;
+  const w = await sb.from('public_athletes').select('id,full_name').in('id', nieznani);
+  const mapa = {}; (w.data || []).forEach(function (a) { mapa[a.id] = { id: a.id, full_name: a.full_name, is_public: true, coach_id: null }; });
+  (lista || []).forEach(function (l) { if (!l.athletes && mapa[l.athlete_id]) l.athletes = mapa[l.athlete_id]; });
+}
 async function loadCoachSuggestedProfiles() {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz więcej, filtruj client-side: publiczni LUB swoi
-  const {data,error}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
+  const {data,error}=await _publiczniIPodopieczni('id,full_name,pb_marathon', null);
   if(window.bmOfflineGdy(error,el,'profili'))return;
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
@@ -4921,6 +4943,7 @@ async function loadCoachRanking() {
   // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
   const {data:logs,error:rankErr}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').not('training_type','like','__badge__%').gte('logged_at',wS.toISOString());
   if(_trOffline(rankErr,el,'rankingu'))return;
+  await _dopiszPublicznych(logs);
   const km={};const elev={};const nm={};
   (logs||[]).forEach(function(l){
     if(!l.athletes) return;
@@ -6555,11 +6578,9 @@ async function searchAthleteByEmail() {
 
   // Szukaj zawodnika po emailu — Supabase przechowuje email w auth.users
   // Używamy widoku users_with_email jeśli istnieje, lub szukamy przez athlete email kolumnę
-  const { data, error } = await sb
-    .from('athletes')
-    .select('id, full_name, coach_id, user_id, email')
-    .ilike('email', email)
-    .maybeSingle();
+  let { data, error } = { data: null, error: null };
+  { const r = await sb.rpc('znajdz_zawodnika_po_emailu', { p_email: email }); if (r && !r.error && r.data && r.data.length) data = r.data[0]; }
+  if (!data) ({ data, error } = await sb.from('athletes').select('id, full_name, coach_id, user_id, email').ilike('email', email).maybeSingle());   // zapas do czasu migracji 20261112
 
   if (window.bmOfflineGdy(error, res, 'wyszukiwania zawodnika')) return;   // bez tego: „Nie znaleziono zawodnika"
   if (!data) {

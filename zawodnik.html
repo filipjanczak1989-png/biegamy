@@ -4194,7 +4194,8 @@ async function _origSendMessageFn() {
   try {
     const { data: me } = await sb.from('athletes').select('coach_id,full_name').eq('id', _athleteId).maybeSingle();
     if (me?.coach_id) {
-      const { data: coachAth } = await sb.from('athletes').select('id').eq('user_id', me.coach_id).maybeSingle();
+      let { data: coachAth } = await sb.from('athletes').select('id').eq('user_id', me.coach_id).maybeSingle();
+      if (!coachAth) { const r = await sb.rpc('moj_trener_id'); if (r && !r.error && r.data) coachAth = { id: r.data }; }   // po zdjęciu athletes_read_public wiersz trenera nie jest widoczny z tabeli: funkcja z migracji 20261112
       if (coachAth?.id) {
         const preview = body.replace(/<[^>]+>/g,'').trim().slice(0,57);
         sb.from('notifications').insert({
@@ -5200,7 +5201,7 @@ window.openCompareModal = async function() {
   }
 
   const friendIds = friendships.map(f => f.requester_id === _athleteId ? f.addressee_id : f.requester_id);
-  const { data: friends } = await sb.from('athletes')
+  const { data: friends } = await sb.from('public_athletes')
     .select('id, full_name, avatar_url')
     .in('id', friendIds)
     .order('full_name', { ascending: true });
@@ -10134,10 +10135,10 @@ async function loadSocialFeed(compact) {
   // Pobierz zawodników:
   // 1. Publicznych (is_public = true)
   // 2. Swoich zawodników jeśli jesteśmy trenerem (niezależnie od is_public)
-  const { data: publicAthletes } = await sb.from('athletes')
-    .select('id,full_name,is_public,avatar_url')
-    .eq('is_public', true)
+  const { data: publicAthletes0 } = await sb.from('public_athletes')
+    .select('id,full_name,avatar_url')
     .limit(100);
+  const publicAthletes = (publicAthletes0 || []).map(function (a) { a.is_public = true; return a; });   // wiersz w widoku = profil publiczny
 
   // Pobierz zawodników trenera (coach_id = własne ID) - omijamy filtr is_public
   let coachAthletes = [];
@@ -10504,7 +10505,8 @@ async function sendCommentGif(url) {
 async function _loadComments(logId) {
   const el=document.getElementById('comments-list');if(!el)return;
   try {
-    const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name,avatar_url)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    await _dopiszAutorow(data);
     if(!data||!data.length){el.innerHTML= PUSTKA.dekoruj('wiadomosci', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>');return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
@@ -10721,7 +10723,7 @@ async function loadFollowing() {
 
   // Krok 2: pobierz dane tych zawodników
   const ids = followRows.map(f => f.following_id);
-  const { data: athletes } = await sb.from('athletes')
+  const { data: athletes } = await sb.from('public_athletes')
     .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,avatar_url')
     .in('id', ids);
 
@@ -10772,9 +10774,8 @@ async function loadSuggestedProfiles() {
   if (!el) return;
   el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>';
 
-  const { data } = await sb.from('athletes')
+  const { data } = await sb.from('public_athletes')
     .select('id,full_name,pb_marathon,goal,avatar_url')
-    .eq('is_public', true)
     .neq('id', _athleteId)
     .limit(6);
 
@@ -10792,8 +10793,8 @@ async function _doSearch(q) {
   const el = document.getElementById('social-search-results');
   if (!el) return;
   // Pokazujemy też prywatne profile - Filip prosił
-  const { data, error } = await sb.from('athletes')
-    .select('id,full_name,pb_marathon,goal,avatar_url,is_public')
+  const { data, error } = await sb.from('public_athletes')
+    .select('id,full_name,pb_marathon,goal,avatar_url')
     .ilike('full_name', '%' + q + '%')
     .limit(20);
   const results = (data || []).filter(a => a.id !== _athleteId);
@@ -10806,6 +10807,20 @@ async function _doSearch(q) {
   await loadFriendStatusesForSearch(results.map(function(a){return a.id;}));
   el.innerHTML = _buildAthleteCards(results, fSet);
 }
+
+/* Autorzy komentarzy: imię i avatar z public_athletes (cudze profile tylko przez widok, 12.11.2026); kogo w widoku nie ma
+   (profil prywatny), dobieramy z tabeli, która po RLS oddaje własny wiersz i podopiecznych trenera. Reszta = „Biegacz”. */
+async function _dopiszAutorow(lista) {
+  const ids = [...new Set((lista || []).map(function (c) { return c.athlete_id; }).filter(Boolean))];
+  if (!ids.length) return;
+  const mapa = {};
+  const w = await sb.from('public_athletes').select('id,full_name,avatar_url').in('id', ids);
+  (w.data || []).forEach(function (a) { mapa[a.id] = a; });
+  const nieznani = ids.filter(function (id) { return !mapa[id]; });
+  if (nieznani.length) { const t = await sb.from('athletes').select('id,full_name,avatar_url').in('id', nieznani); (t.data || []).forEach(function (a) { mapa[a.id] = a; }); }
+  (lista || []).forEach(function (c) { c.athletes = mapa[c.athlete_id] || null; });
+}
+window._dopiszAutorow = _dopiszAutorow;
 
 function _buildAthleteCards(athletes, fSet) {
   return athletes.map(function(a) {
@@ -10920,7 +10935,7 @@ async function loadFriends() {
   var allIds = rows.map(function(r){return r.requester_id===_athleteId?r.addressee_id:r.requester_id;});
   allIds = allIds.filter(function(v,i,a){return a.indexOf(v)===i;});
 
-  var athRes = await sb.from('athletes').select('id,full_name,avatar_url').in('id',allIds);
+  var athRes = await sb.from('public_athletes').select('id,full_name,avatar_url').in('id',allIds);
   var athMap = {};
   (athRes.data||[]).forEach(function(a){athMap[a.id]=a;});
 
@@ -11330,7 +11345,7 @@ async function loadChatConvList() {
 
   var athMap = {};
   if (friendIds.length) {
-    var ar = await sb.from('athletes').select('id,full_name,avatar_url').in('id',friendIds);
+    var ar = await sb.from('public_athletes').select('id,full_name,avatar_url').in('id',friendIds);
     (ar.data||[]).forEach(function(a){ athMap[a.id]=a; });
   }
 
@@ -11549,7 +11564,7 @@ async function openChatThread(mode, pid, name) {
     if (mode === 'peer' && pid) {
       const ini = (name||'').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
       avEl.textContent = ini;
-      sb.from('athletes').select('avatar_url').eq('id', pid).maybeSingle().then(({data}) => {
+      sb.from('public_athletes').select('avatar_url').eq('id', pid).maybeSingle().then(({data}) => {
         if (data?.avatar_url && safeUrlAttr(data.avatar_url)) {
           avEl.innerHTML = '';
           var img = document.createElement('img');
@@ -12513,7 +12528,7 @@ async function loadPendingDuelsBanner() {
     if (pending && pending.length) {
       // Imiona challengerów
       const ids = pending.map(p => p.challenger_id);
-      const { data: athletes } = await sb.from('athletes').select('id,full_name').in('id', ids);
+      const { data: athletes } = await sb.from('public_athletes').select('id,full_name').in('id', ids);
       const nameMap = {};
       (athletes || []).forEach(a => nameMap[a.id] = a.full_name || 'Biegacz');
       const firstName = nameMap[pending[0].challenger_id] || 'Biegacz';
@@ -12586,7 +12601,7 @@ async function loadDuelsToContainer() {
 
   // Pobierz dane przeciwników
   const otherIds = [...new Set(duels.map(d => d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id))];
-  const { data: athletes } = await sb.from('athletes')
+  const { data: athletes } = await sb.from('public_athletes')
     .select('id,full_name,avatar_url')
     .in('id', otherIds);
   const athMap = {};

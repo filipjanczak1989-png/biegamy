@@ -93,7 +93,7 @@ async function loadDuels() {
 
   // Pobierz dane przeciwników
   const otherIds = [...new Set(duels.map(d => d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id))];
-  const { data: athletes } = await sb.from('athletes')
+  const { data: athletes } = await sb.from('public_athletes')
     .select('id,full_name,avatar_url').in('id', otherIds);
   const athMap = {};
   (athletes || []).forEach(a => athMap[a.id] = a);
