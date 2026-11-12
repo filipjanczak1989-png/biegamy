@@ -56,7 +56,14 @@ test('(2) scenariusz: 12 kroków pełnych, 7 skróconych; strony i selektory ist
     const h = HTML[k.strona];
     if (k.przewin) { const id = k.przewin.replace('#', ''); assert.match(h, new RegExp('id="' + id + '"'), k.co + ': element ' + k.przewin + ' istnieje'); }
     if (k.hash) assert.match(h, new RegExp("location\\.hash === '" + k.hash + "'"), k.co + ': strona obsługuje ' + k.hash);
-    if (k.klik) { const sel = k.klik.replace(/^\[|\]$/g, '').replace(/^\./, ''); const atr = /^(data-[a-z-]+)="([^"]+)"$/.exec(sel) || /\[(data-[a-z-]+)="([^"]+)"\]/.exec(k.klik); if (atr) assert.ok(h.includes(atr[1] + '="' + atr[2] + '"') || h.includes(atr[1] + '="\' + ') || new RegExp(atr[1] + '="\\\'? ?\\+?').test(h) || czytaj('js/' + k.strona.replace('.html', '.mjs')).includes(atr[1]), k.co + ': ' + k.klik); else assert.ok(h.includes('class="dz'), k.co); }
+    /* od 12.11 klik może być listą selektorów (po kolei): każdy selektor po id musi istnieć w stronie, selektor po data-* w stronie albo module strony */
+    for (const klik of [].concat(k.klik || [])) {
+      const id = /^#([a-z-]+)(\s|$)/.exec(klik); if (id) { assert.match(h, new RegExp('id="' + id[1] + '"'), k.co + ': element ' + klik + ' istnieje'); continue; }
+      const sel = klik.replace(/^\[|\]$/g, '').replace(/^\./, ''); const atr = /^(data-[a-z-]+)="([^"]+)"$/.exec(sel) || /\[(data-[a-z-]+)="([^"]+)"\]/.exec(klik) || /^\[(data-[a-z-]+)\]$/.exec(klik);
+      if (atr && atr[2]) assert.ok(h.includes(atr[1] + '="' + atr[2] + '"') || h.includes(atr[1] + '="\' + ') || new RegExp(atr[1] + '="\\\'? ?\\+?').test(h) || czytaj('js/' + k.strona.replace('.html', '.mjs')).includes(atr[1]), k.co + ': ' + klik);
+      else if (atr) assert.ok(h.includes(atr[1]) || czytaj('js/' + k.strona.replace('.html', '.mjs')).includes(atr[1]), k.co + ': ' + klik);
+      else assert.ok(h.includes('class="dz'), k.co);
+    }
     assert.doesNotMatch(k.zdanie + k.co, /fabian|partner|zł|\b[A-ZŁŚŻ][a-ząęółśżźćń]+ [A-ZŁŚŻ][a-ząęółśżźćń]+(ski|cka|wicz|czyk)\b/i, k.co + ': bez imienia, „partner”, kwot i nazwisk');
   }
   assert.ok(P.KROKI.some((k) => /Kliknięcia, nie wpłaty/.test(k.zdanie)) && P.KROKI.some((k) => /BiegaMy nic nie przyjmuje/.test(k.zdanie)));

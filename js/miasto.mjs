@@ -11,25 +11,62 @@
   /** Jedyne pola licznika, które miasto czyta. Nic z wizerunku, plików, pieniędzy ani wyprawy. */
   var POLA_LICZNIKA = ["wystartowala", "nazwa", "imie", "cel_km", "suma_km", "pct", "koniec", "zamknieta", "firmy", "ulica"];
 
-  /* ── ULICE PRZYKŁADOWE (wymyślone; nazwy neutralne, bez osób) ─────────────────────────────── */
+  /* ── JEDNA DROGA, PIĘĆ POZIOMÓW (decyzja 12.11): każda ulica zaczyna od biegu wirtualnego i rośnie. Poziom odblokowuje aktywność ludzi i potwierdzenie
+     organizacji, NIGDY opłata. „odblokowuje” = co otwiera NASTĘPNY poziom (zdanie przy następnym szczeblu na drabince). ── */
+  var POZIOMY = [
+    { nr: 1, nazwa: "Bieg", krotko: "bieg wirtualny", opis: "Jeden weekend, każdy biegnie albo idzie 5 lub 10 km u siebie. Nic nie kosztuje, bez sponsora, od ręki.",
+      odblokowuje: "zapisy i pierwsze kilometry na biegu oraz potwierdzenie organizacji, że chce ulicy z celem kilometrowym" },
+    { nr: 2, nazwa: "Ulica", krotko: "cel km, mur cegieł", opis: "Ulica z celem w kilometrach i murem, w którym stają cegły darczyńców. Droga rośnie z każdym treningiem.",
+      odblokowuje: "pierwsze cegły darczyńców w murze i zgoda organizacji na firmy na ulicy" },
+    { nr: 3, nazwa: "Firmy", krotko: "domki i sponsorzy", opis: "Firmy stawiają domki, sponsorują kilometry albo opiekują się odcinkiem drogi. Każda droga kończy się wpłatą u organizacji.",
+      odblokowuje: "kilka firm na ulicy i potwierdzenie organizacji, że chce wyzwania klas i zespołów" },
+    { nr: 4, nazwa: "Drużyny", krotko: "klasy i firmy", opis: "Klasy i zespoły z firm zbierają kilometry jako drużyny. Ranking razem i na osobę, bez rankingu dzieci.",
+      odblokowuje: "osiągnięcie celu kilometrowego; ulicę zamyka organizacja" },
+    { nr: 5, nazwa: "Zbudowana", krotko: "cel osiągnięty", opis: "Cel osiągnięty, ulica otwarta. Zostaje w mieście na stałe z murem imion i domkami firm.", odblokowuje: "" }
+  ];
+  var ZASADA_POZIOMOW = "Poziom odblokowuje aktywność ludzi i potwierdzenie organizacji, nigdy opłata.";
+  var ZASADA_WYBORU = "Jedna ulica naraz, kilometry liczą się od chwili wyboru, bez wyboru nie liczą się nigdzie.";
+  /* Świat gry = avatar bohatera (rysunkowa postać ze świata, bez zdjęć i podobizn). Ikony: koparka z Ulicy, reszta z assets/miasto (10.11); emoji jako zapas, gdy obrazu brak. */
+  var SWIATY = [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", obraz: "assets/miasto/swiat-kosmos.webp", emoji: "🚀" },
+    { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", obraz: "assets/miasto/swiat-dinozaury.webp", emoji: "🦖" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", obraz: "assets/miasto/swiat-pilka.webp", emoji: "⚽" },
+    { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", obraz: "assets/miasto/swiat-zwierzeta.webp", emoji: "🐾" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/miasto/swiat-miasto.webp" }];
+  function swiat(id) { for (var i = 0; i < SWIATY.length; i++) if (SWIATY[i].id === id) return SWIATY[i]; return SWIATY[0]; }
+  /* Jedno neutralne zdanie o celu we wszystkich przykładach (decyzja 12.11): bez nazw chorób, oznaczone „od organizacji”. Na prawdziwej ulicy zdania nie ma, bo nie ma go w liczniku. */
+  var CEL_PRZYKLADU = "Zbieramy na leczenie i rehabilitację.";
+
+  /* ── ULICE PRZYKŁADOWE (wymyślone; nazwy neutralne, bez osób; bohaterowie jako postacie ze świata, nie dzieci) ─────────────────────────────── */
   var PRZYKLADY = [
-    /* pokaz od A do Z: miasto-bieg.html (strona: wejście tylko z tej karty); udział bezpłatny, wpłata dobrowolna i tylko u organizacji, bez słowa o opłacie za udział (decyzja 10.11) */
-    { id: "bieg", przyklad: true, status: "trwa", nazwa: "Bieg Wirtualny", forma: "Wirtualny bieg charytatywny", strona: "miasto-bieg.html",
+    /* poziom 1: pokaz od A do Z na miasto-bieg.html (wejście tylko z tej karty); udział bezpłatny, wpłata dobrowolna i tylko u organizacji (decyzja 10.11) */
+    { id: "bieg", przyklad: true, status: "trwa", poziom: 1, nazwa: "Bieg Wirtualny", forma: "Wirtualny bieg charytatywny", strona: "miasto-bieg.html",
+      bohater: { swiat: "kosmos", postac: "Mały Kosmonauta" },
       opis: "W jeden weekend każdy biegnie albo idzie 5 lub 10 km tam, gdzie mieszka, i zapisuje trening w BiegaMy. Udział jest bezpłatny; kto chce, wspiera zbiórkę bezpośrednio u organizacji. Od BiegaMy: numer startowy, dyplom i odznaka.",
       cel_km: 5000, suma_km: 1840, osoby_n: 312, cegly_n: 180, firmy_n: 3, etykieta: "5 i 10 km w weekend" },
-    /* pokaz od A do Z: miasto-druzyny.html (11.11; wejście tylko z tej karty): klasy bez kont i bez danych dzieci, firmy z kontami, ranking razem i na osobę */
-    { id: "szkolna", przyklad: true, status: "trwa", nazwa: "Ulica Szkolna", forma: "Wyzwanie szkół i firm", strona: "miasto-druzyny.html", przycisk: "Zobacz wyzwanie ›",
+    /* poziom 4: pokaz od A do Z na miasto-druzyny.html (11.11): klasy bez kont i bez danych dzieci, firmy z kontami, ranking razem i na osobę */
+    { id: "szkolna", przyklad: true, status: "trwa", poziom: 4, nazwa: "Ulica Szkolna", forma: "Wyzwanie szkół i firm", strona: "miasto-druzyny.html", przycisk: "Zobacz wyzwanie ›",
+      bohater: { swiat: "pilka", postac: "Mały Piłkarz" },
       opis: "Klasy albo zespoły z firm zbierają kilometry jako drużyny. Na ulicy stoi ranking drużyn, a każdy kilometr buduje tę samą drogę. Firmy mogą postawić domek z logo.",
       cel_km: 8000, suma_km: 3210, osoby_n: 260, druzyny_n: 14, cegly_n: 95, firmy_n: 4, etykieta: "ranking klas" },
-    { id: "urodzinowa", przyklad: true, status: "trwa", nazwa: "Ulica Urodzinowa", forma: "Osobista zbiórka urodzinowa",
+    { id: "urodzinowa", przyklad: true, status: "trwa", poziom: 2, nazwa: "Ulica Urodzinowa", forma: "Osobista zbiórka urodzinowa",
+      bohater: { swiat: "zwierzeta", postac: "Mały Przyjaciel Zwierząt" },
       opis: "Zamiast prezentów: „30 km na urodziny” i link do zbiórki. Znajomi dokładają kilometry i cegły z imieniem w murze. Mała ulica na kilka dni.",
       cel_km: 30, suma_km: 19, osoby_n: 11, cegly_n: 11, firmy_n: 0, etykieta: "30 km na urodziny" },
-    { id: "sloneczna", przyklad: true, status: "zakonczona", nazwa: "Ulica Słoneczna", forma: "Ulica zbudowana: cel osiągnięty",
+    { id: "sloneczna", przyklad: true, status: "zakonczona", poziom: 5, nazwa: "Ulica Słoneczna", forma: "Ulica zbudowana: cel osiągnięty",
+      bohater: { swiat: "dinozaury", postac: "Mały Odkrywca" },
       opis: "Cel osiągnięty, ulica otwarta. Zostaje w mieście na stałe: z murem imion, domkami firm i podsumowaniem tego, co się udało. Sukces, który widać na mapie.",
       cel_km: 10000, suma_km: 10000, osoby_n: 1240, cegly_n: 420, firmy_n: 12, dni_n: 41, etykieta: "cel osiągnięty",
       podsumowanie: ["10 000 km w 41 dni", "1 240 osób, 420 cegieł w murze, 12 firm na ulicy", "Zbiórka organizacji zakończona sukcesem. Ulica zostaje w mieście."] }
   ];
-  var WOLNA = { id: "wolna", wolna: true, nazwa: "Wolna działka", etykieta: "tu może stanąć Twoja ulica" };
+  var WOLNA = { id: "wolna", wolna: true, nazwa: "Wolna działka", etykieta: "zacznij od biegu" };
+  /** Poziom ulicy: przykład ma wpisany; prawdziwa (wzorcowa) wyliczony z licznika: zbudowana → 5, firmy na ulicy → 3, cel i mur → 2. Bez licznika → null. */
+  function poziomUlicy(u) {
+    if (!u || u.wolna) return null;
+    if (u.przyklad) return u.poziom || 1;
+    if (u.status === "zakonczona") return 5;
+    if (u.status !== "trwa") return null;
+    if (Number(u.firmy_n) > 0) return 3;
+    return Number(u.cel_km) > 0 ? 2 : 1;
+  }
+  function poziom(nr) { return POZIOMY[Math.max(1, Math.min(5, Number(nr) || 1)) - 1]; }
 
   /* ── POMOCNICZE ───────────────────────────────────────────────────────────────────────────── */
   function esc(s) { return g.escapeHtml ? g.escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
@@ -99,13 +136,36 @@
   }
 
   /* ── KARTA ULICY ──────────────────────────────────────────────────────────────────────────── */
+  function chipPoziomu(u) { var p = poziomUlicy(u); return p ? '<span class="md-chip md-chip--poziom">POZIOM ' + p + ' Z 5</span>' : ""; }
   function chip(u) {
     if (u.wolna) return '<span class="md-chip md-chip--wolna">WOLNA DZIAŁKA</span>';
     /* jedno słowo wszędzie (decyzja 10.11): ZBUDOWANA na mapie, na karcie i w narzędziu, nie „zakończona” */
-    if (u.przyklad) return '<span class="md-chip md-chip--przyklad">PRZYKŁAD</span>' + (u.status === "zakonczona" ? '<span class="md-chip md-chip--koniec">ZBUDOWANA</span>' : "");
-    if (u.status === "zakonczona") return '<span class="md-chip md-chip--koniec">ZBUDOWANA</span>';
-    if (u.status === "trwa") return '<span class="md-chip md-chip--trwa">TRWA</span>';
+    if (u.przyklad) return '<span class="md-chip md-chip--przyklad">PRZYKŁAD</span>' + (u.status === "zakonczona" ? '<span class="md-chip md-chip--koniec">ZBUDOWANA</span>' : "") + chipPoziomu(u);
+    /* prawdziwa = ULICA WZORCOWA (decyzja 12.11): „tak może wyglądać Twoja” */
+    if (u.status === "zakonczona") return '<span class="md-chip md-chip--koniec">ZBUDOWANA</span><span class="md-chip md-chip--wzor">WZORCOWA</span>' + chipPoziomu(u);
+    if (u.status === "trwa") return '<span class="md-chip md-chip--trwa">TRWA</span><span class="md-chip md-chip--wzor">WZORCOWA</span>' + chipPoziomu(u);
     return '<span class="md-chip md-chip--wkrotce">' + (u.status === "przed" ? "WKRÓTCE" : "LICZNIK NIEDOSTĘPNY") + '</span>';
+  }
+  /** Drabinka ulicy: pięć szczebli, obecny zaznaczony, przy następnym jedno zdanie, co go odblokowuje; pod spodem zasada bez opłat. */
+  function drabinkaHtml(u) {
+    var tu = poziomUlicy(u); if (!tu) return "";
+    var h = '<ol class="md-drabinka" aria-label="Drabinka ulicy: poziom ' + tu + ' z 5">';
+    POZIOMY.forEach(function (p) {
+      var kl = p.nr < tu ? "md-szczebel--byl" : p.nr === tu ? "md-szczebel--tu" : "md-szczebel--dalej";
+      h += '<li class="md-szczebel ' + kl + '"' + (p.nr === tu ? ' aria-current="step"' : "") + '><b>' + p.nr + '</b><span>' + esc(p.nazwa) + '</span><small>' + esc(p.krotko) + '</small></li>';
+    });
+    h += '</ol>';
+    if (tu < 5) h += '<p class="md-odblokuj">Następny poziom, <b>' + esc(poziom(tu + 1).nazwa) + '</b>, odblokowuje: ' + esc(poziom(tu).odblokowuje) + '.</p>';
+    else h += '<p class="md-odblokuj">Najwyższy poziom: ulica zbudowana zostaje w mieście na stałe.</p>';
+    return h + '<p class="md-zasada">' + esc(ZASADA_POZIOMOW) + '</p>';
+  }
+  /** Bohater ulicy (tylko przykłady): avatar ze świata, postać bez imienia, jedno zdanie o celu oznaczone „od organizacji”, przycisk do historii u organizacji (atrapa).
+   *  Na prawdziwej ulicy nic: w publicznym liczniku nie ma ani zdania o celu, ani świata; niczego nie dopisujemy od siebie. */
+  function bohaterHtml(u) {
+    if (!u || !u.przyklad || !u.bohater) return "";
+    var s = swiat(u.bohater.swiat), ikona = s.obraz ? '<img src="' + esc(s.obraz) + '" alt="">' : '<span class="md-emoji" aria-hidden="true">' + esc(s.emoji || "") + '</span>';
+    return '<div class="md-bohater">' + ikona + '<div><b>' + esc(u.bohater.postac) + '</b><p class="md-cel"><span class="md-od-org">od organizacji</span> ' + esc(CEL_PRZYKLADU) + '</p></div></div>' +
+      '<button type="button" class="md-przycisk md-przycisk--cichy md-historia" data-historia>Poznaj historię u organizacji ›</button>';
   }
   function liczbaHtml(duze, male, przyklad) { return '<div class="md-liczba"><b>' + esc(duze) + '</b><span>' + esc(male) + '</span>' + (przyklad ? '<i class="md-przyklad">przykład</i>' : "") + '</div>'; }
   function liczbyHtml(u) {
@@ -123,17 +183,20 @@
   function kartaHtml(u, opcje) {
     var o = opcje || {}, h = '<div class="md-karta" data-ulica="' + esc(u.id) + '">' + '<div class="md-chipy">' + chip(u) + '</div>' + '<h2>' + esc(u.nazwa) + '</h2>';
     if (u.wolna) {
-      return h + '<p class="md-forma">Każda zbiórka może mieć swoją ulicę</p><p class="md-opis">Organizacja prowadząca zbiórkę zakłada ulicę, ludzie budują ją kilometrami, a pieniądze idą prosto do niej. BiegaMy nic nie przyjmuje.</p>' +
-        '<button type="button" class="md-przycisk" data-kreator>Załóż ulicę ›</button></div>';
+      return h + '<p class="md-forma">Każda ulica zaczyna od biegu wirtualnego</p><p class="md-opis">Bieg nic nie kosztuje, nie potrzebuje sponsora i rusza od ręki. Potem ulica rośnie poziomami: cel i mur cegieł, firmy, drużyny, aż do zbudowania. Pieniądze idą prosto do organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</p>' +
+        '<button type="button" class="md-przycisk" data-kreator>Załóż bieg w minutę ›</button></div>';
     }
     h += '<p class="md-forma">' + esc(u.forma || "") + (u.tytul && u.tytul !== u.nazwa ? ' · ' + esc(u.tytul) : "") + '</p>';
+    h += bohaterHtml(u);
     if (u.status === "brak" || u.status === "przed") {
       h += '<p class="md-opis">' + (u.status === "przed" ? "Ulica w przygotowaniu. Liczby pojawią się po starcie akcji." : "Licznik chwilowo nie odpowiada. Liczby pojawią się, gdy wróci internet.") + '</p>';
     } else {
       h += liczbyHtml(u);
       if (u.przyklad) h += '<p class="md-uwaga">Dane wymyślone na potrzeby pokazu. Nie wchodzą do licznika miasta.</p>';
+      if (u.prawdziwa) h += '<p class="md-wzor">Ulica wzorcowa: prawdziwa zbiórka, prawdziwe kilometry. Tak może wyglądać Twoja.</p>';
       if (u.opis) h += '<p class="md-opis">' + esc(u.opis) + '</p>';
       if (u.podsumowanie && u.podsumowanie.length) h += '<ul class="md-podsumowanie">' + u.podsumowanie.map(function (z) { return '<li>' + esc(z) + '</li>'; }).join("") + '</ul>';
+      h += drabinkaHtml(u);
     }
     if (u.prawdziwa && o.stanZ) h += '<p class="md-stan">' + esc(stanZ(o.stanZ)) + ' · licznik chwilowo niedostępny</p>';
     if (u.prawdziwa) h += '<a class="md-przycisk" href="' + esc(u.strona || STRONA_PRAWDZIWEJ) + '">Wejdź na ulicę ›</a>';
@@ -141,68 +204,100 @@
     else h += '<button type="button" class="md-przycisk md-przycisk--przyklad" data-podglad="' + esc(u.id) + '">Zobacz, jak wyglądałaby ulica ›</button>';
     return h + '</div>';
   }
-  /** Etykieta na mapie: dwie linie, bez imion w kodzie; przykład dostaje znaczek w CSS. */
+  /** Etykieta na mapie: dwie linie, bez imion w kodzie; przykład dostaje znaczek w CSS; `poziom` = tekst znaczka poziomu („poziom 1 z 5”, prawdziwa: „wzorcowa · poziom 2 z 5”). */
   function etykietaMapy(u) {
-    if (u.wolna) return { tytul: u.nazwa, podpis: u.etykieta };
-    if (u.status === "brak") return { tytul: u.nazwa, podpis: "licznik chwilowo niedostępny" };
-    if (u.status === "przed") return { tytul: u.nazwa, podpis: "wkrótce" };
+    var p = poziomUlicy(u), zn = p ? (u.prawdziwa ? "wzorcowa · " : "") + "poziom " + p + " z 5" : "";
+    if (u.wolna) return { tytul: u.nazwa, podpis: u.etykieta, poziom: "" };
+    if (u.status === "brak") return { tytul: u.nazwa, podpis: "licznik chwilowo niedostępny", poziom: "" };
+    if (u.status === "przed") return { tytul: u.nazwa, podpis: "wkrótce", poziom: "" };
     /* Przykłady (decyzja 10.11): nazwa + jedna krótka linia o formie akcji, bez liczb; liczby przykładów tylko na karcie. */
-    if (u.przyklad) return { tytul: u.nazwa, podpis: u.etykieta || "" };
+    if (u.przyklad) return { tytul: u.nazwa, podpis: u.etykieta || "", poziom: zn };
     /* Prawdziwa: km w tytule (szeroka działka); w podpisie wartości zerowe pomijane („5,8 % celu · 1 cegła”, bez „0 firm”); na karcie zero zostaje. */
     var pct = u.pct != null ? Number(u.pct) : procent(u), czesci = [u.status === "zakonczona" ? "zbudowana" : liczba(pct, 1) + " % celu"];
     if (Number(u.cegly_n) > 0) czesci.push(odmiana(u.cegly_n, ["cegła", "cegły", "cegieł"]));
     if (Number(u.firmy_n) > 0) czesci.push(odmiana(u.firmy_n, ["firma", "firmy", "firm"]));
-    return { tytul: u.nazwa + " · " + km(u.suma_km) + " km", podpis: czesci.join(" · ") };
+    return { tytul: u.nazwa + " · " + km(u.suma_km) + " km", podpis: czesci.join(" · "), poziom: zn };
   }
 
-  /* ── KREATOR (atrapa: nic nie zapisuje, nic nie wysyła) ───────────────────────────────────── */
-  var KROKI = [
-    { tytul: "Organizacja i zbiórka", opis: "Ulicę zakłada organizacja prowadząca oficjalną zbiórkę. Sprawdzamy link i organizację, zanim ulica się otworzy.",
-      pola: [{ etykieta: "Nazwa organizacji (fundacja, stowarzyszenie, szkoła, klub)", typ: "text", przyklad: "np. Stowarzyszenie Przykładowe" }, { etykieta: "Link do oficjalnej zbiórki", typ: "url", przyklad: "https://…" }, { etykieta: "E-mail kontaktowy", typ: "email", przyklad: "kontakt@…" }] },
-    { tytul: "Forma akcji i cel", opis: "Jedna droga, wiele form. Kilometry zawsze liczy aplikacja, pieniądze zawsze idą prosto do organizacji.",
-      wybor: ["Wspólne kilometry dla jednej zbiórki", "Wirtualny bieg charytatywny (5 lub 10 km)", "Wyzwanie szkół lub firm (ranking drużyn)", "Osobista zbiórka (np. urodzinowa)"],
-      pola: [{ etykieta: "Cel w kilometrach", typ: "number", przyklad: "np. 5 000" }, { etykieta: "Start", typ: "date" }, { etykieta: "Koniec", typ: "date" }],
-      /* pola biegu (B10, 10.11): widoczne tylko przy formie „Wirtualny bieg charytatywny”; dalej atrapa jak reszta kreatora */
-      polaBiegu: { tytul: "Ustawienia biegu", dystanse: ["5 km", "10 km", "Twój dystans (spacer, marsz, nordic walking, wózek)"],
-        pola: [{ etykieta: "Okno biegu: od", typ: "date" }, { etykieta: "Okno biegu: do", typ: "date" }, { etykieta: "Limit miejsc", typ: "number", przyklad: "np. 500" }], zgody: ["Lista wyników publiczna (imię i numer, bez nazwisk)"] } },
-    { tytul: "Bohater i grafiki", opis: "Imię bohatera tylko za zgodą opiekuna. Rysunek, plakat i film wgrywa organizacja, a my sprawdzamy je przed publikacją.",
-      pola: [{ etykieta: "Nazwa ulicy", typ: "text", przyklad: "np. Ulica Tęczowa" }, { etykieta: "Imię bohatera (opcjonalnie, za zgodą)", typ: "text" }],
-      /* Świat gry (decyzja 9.11): ten sam bieg, inny świat. Ikony: koparka z Ulicy, reszta z assets/miasto (10.11, API obrazów ze wzorcem domek-1); emoji zostaje jako zapas, gdy obrazu brak. */
-      pytanieSwiata: "Co kocha bohater tej ulicy?", dopisekSwiata: "Ten sam bieg, inny świat: zmieniają się tylko grafiki na ulicy i w grze.",
-      swiaty: [{ id: "budowa", nazwa: "Budowa", opis: "koparki, dźwigi, cegły", obraz: "assets/ulica/koparka.webp" }, { id: "kosmos", nazwa: "Kosmos", opis: "rakiety i planety", obraz: "assets/miasto/swiat-kosmos.webp", emoji: "🚀" },
-        { id: "dinozaury", nazwa: "Dinozaury", opis: "ślady i wulkany", obraz: "assets/miasto/swiat-dinozaury.webp", emoji: "🦖" }, { id: "pilka", nazwa: "Piłka", opis: "boisko i bramki", obraz: "assets/miasto/swiat-pilka.webp", emoji: "⚽" },
-        { id: "zwierzeta", nazwa: "Zwierzęta", opis: "łąka i zagroda", obraz: "assets/miasto/swiat-zwierzeta.webp", emoji: "🐾" }, { id: "bez", nazwa: "Bez bohatera", opis: "bieg przez Miasto Dobra", obraz: "assets/miasto/swiat-miasto.webp" }],
-      zgody: ["Mam zgodę opiekuna na imię bohatera na ulicy", "Mam prawa do grafik, które wgram"], pliki: ["Rysunek bohatera", "Plakat akcji"] }
-  ];
-  function kreatorHtml(nr) {
-    var i = Math.max(0, Math.min(KROKI.length - 1, Number(nr) || 0)), k = KROKI[i], h = '<div class="md-kreator-krok" data-krok="' + i + '">';
-    h += '<div class="md-kroki">' + KROKI.map(function (x, j) { return '<span class="' + (j === i ? "md-krok--tu" : j < i ? "md-krok--byl" : "") + '">' + (j + 1) + '</span>'; }).join("") + '</div>';
-    h += '<h3>Krok ' + (i + 1) + ' z ' + KROKI.length + ': ' + esc(k.tytul) + '</h3><p class="md-opis">' + esc(k.opis) + '</p>';
-    if (k.wybor) h += '<div class="md-wybor">' + k.wybor.map(function (w, j) { return '<label><input type="radio" name="md-forma" value="' + j + '"' + (/bieg/i.test(w) ? ' data-bieg' : "") + (j === 0 ? " checked" : "") + '> <span>' + esc(w) + '</span></label>'; }).join("") + '</div>';
-    function poleHtml(p, id) { return '<label class="md-pole" for="' + id + '"><span>' + esc(p.etykieta) + '</span><input id="' + id + '" type="' + esc(p.typ) + '" autocomplete="off"' + (p.przyklad ? ' placeholder="' + esc(p.przyklad) + '"' : "") + '></label>'; }
-    (k.pola || []).forEach(function (p, j) { h += poleHtml(p, "md-pole-" + i + "-" + j); });
-    if (k.polaBiegu) {
-      var b = k.polaBiegu;
-      h += '<div class="md-pola-biegu" data-pola-biegu hidden><p class="md-pytanie">' + esc(b.tytul) + '</p><div class="md-dystanse">' + b.dystanse.map(function (d, j) { return '<label class="md-zgoda"><input type="checkbox"' + (j < 2 ? " checked" : "") + '> <span>' + esc(d) + '</span></label>'; }).join("") + '</div>';
-      (b.pola || []).forEach(function (p, j) { h += poleHtml(p, "md-pole-bieg-" + j); });
-      (b.zgody || []).forEach(function (z) { h += '<label class="md-zgoda"><input type="checkbox" checked> <span>' + esc(z) + '</span></label>'; });
-      h += '</div>';
-    }
-    if (k.swiaty) {
-      h += '<p class="md-pytanie">' + esc(k.pytanieSwiata) + '</p><div class="md-swiaty">' + k.swiaty.map(function (s, j) {
-        var ikona = s.obraz ? '<img src="' + esc(s.obraz) + '" alt="">' : '<span class="md-emoji" aria-hidden="true">' + esc(s.emoji) + '</span>';
-        return '<label class="md-swiat' + (s.id === "bez" ? " md-swiat--bez" : "") + '"><input type="radio" name="md-swiat" value="' + esc(s.id) + '"' + (j === 0 ? " checked" : "") + '>' + ikona + '<b>' + esc(s.nazwa) + '</b><small>' + esc(s.opis) + '</small></label>';
-      }).join("") + '</div><p class="md-dopisek">' + esc(k.dopisekSwiata) + '</p>';
-    }
-    (k.zgody || []).forEach(function (z) { h += '<label class="md-zgoda"><input type="checkbox"> <span>' + esc(z) + '</span></label>'; });
-    (k.pliki || []).forEach(function (p) { h += '<div class="md-plik"><span>' + esc(p) + '</span><b>Wgrasz tu później</b></div>'; });
-    h += '<div class="md-kreator-stopka">' + (i > 0 ? '<button type="button" class="md-przycisk md-przycisk--cichy" data-krok-wstecz>‹ Wstecz</button>' : "");
-    h += i < KROKI.length - 1 ? '<button type="button" class="md-przycisk" data-krok-dalej>Dalej ›</button>' : '<button type="button" class="md-przycisk" disabled>Wyślij do weryfikacji</button>';
-    h += '</div>' + (i === KROKI.length - 1 ? '<p class="md-wkrotce"><b>Wkrótce.</b> To prototyp: niczego nie zapisuje i nie wysyła.</p>' : "") + '</div>';
+  /* ── KREATOR „ZAŁÓŻ BIEG W MINUTĘ” (decyzja 12.11; atrapa: nic nie zapisuje, nic nie wysyła). Jeden ekran: link do zbiórki, termin (domyślnie najbliższy weekend),
+     bohater (świat i avatar albo „bez bohatera”). Stary kreator z listą form zniknął: formy to poziomy na drabince. ── */
+  var KREATOR = { tytul: "Załóż bieg w minutę", opis: "Pierwszy poziom każdej ulicy: nic nie kosztuje, nie potrzebuje sponsora i rusza od ręki. Udział bezpłatny; wpłaty tylko u organizacji prowadzącej zbiórkę.",
+    pytanieSwiata: "Kto jest bohaterem tego biegu?", dopisekSwiata: "Ten sam bieg, inny świat: zmieniają się tylko grafiki na ulicy i w grze. Rysunkowa postać, bez zdjęć.",
+    zgoda: "Organizacja prowadząca zbiórkę wie o tym biegu i go potwierdzi.", potwierdzenie: "Bieg będzie widoczny dla wszystkich po potwierdzeniu przez opiekuna albo organizację." };
+  /** Najbliższy weekend: sobota ≥ jutro (ISO YYYY-MM-DD w czasie lokalnym, jak kalendarz telefonu). */
+  function najblizszyWeekend(teraz) {
+    var d = new Date(teraz || Date.now()); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 1);
+    while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+    var p = function (x) { return String(x).padStart(2, "0"); };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function kreatorHtml(opcje) {
+    var o = opcje || {}, termin = o.termin || najblizszyWeekend(o.teraz), h = '<div class="md-kreator-krok" data-kreator-ekran>';
+    h += '<h3>' + esc(KREATOR.tytul) + '</h3><p class="md-opis">' + esc(KREATOR.opis) + '</p>';
+    h += '<label class="md-pole" for="md-pole-link"><span>Link do oficjalnej zbiórki</span><input id="md-pole-link" type="url" autocomplete="off" inputmode="url" placeholder="https://…"></label>';
+    h += '<label class="md-pole" for="md-pole-termin"><span>Termin (weekend biegu)</span><input id="md-pole-termin" type="date" value="' + esc(termin) + '"></label>';
+    h += '<p class="md-pytanie">' + esc(KREATOR.pytanieSwiata) + '</p><div class="md-swiaty">' + SWIATY.map(function (s, j) {
+      var ikona = s.obraz ? '<img src="' + esc(s.obraz) + '" alt="">' : '<span class="md-emoji" aria-hidden="true">' + esc(s.emoji) + '</span>';
+      return '<label class="md-swiat' + (s.id === "bez" ? " md-swiat--bez" : "") + '"><input type="radio" name="md-swiat" value="' + esc(s.id) + '"' + (j === 0 ? " checked" : "") + '>' + ikona + '<b>' + esc(s.nazwa) + '</b><small>' + esc(s.opis) + '</small></label>';
+    }).join("") + '</div><p class="md-dopisek">' + esc(KREATOR.dopisekSwiata) + '</p>';
+    h += '<label class="md-zgoda"><input type="checkbox" id="md-zgoda-org"> <span>' + esc(KREATOR.zgoda) + '</span></label>';
+    h += '<div class="md-kreator-stopka"><button type="button" class="md-przycisk" data-zatwierdz>Załóż bieg ›</button></div>';
+    h += '<p class="md-wkrotce">To prototyp: niczego nie zapisuje i nie wysyła.</p></div>';
+    return h;
+  }
+  /** Podgląd po zatwierdzeniu: strona biegu z bramą (ta sama grafika co na mapie), plakat i kod QR (koder z js/miasto-bieg.mjs, gdy wczytany), komunikat o potwierdzeniu. */
+  function podgladBieguHtml(dane, qrSvg) {
+    var d = dane || {}, s = swiat(d.swiat), bohater = s.id === "bez" ? "" : s.nazwa, tytul = bohater ? "Bieg dla bohatera ze świata: " + bohater : "Bieg przez Miasto Dobra";
+    var termin = d.termin ? String(d.termin) : "", link = d.link && /^https:\/\//.test(String(d.link)) ? String(d.link) : "";
+    var h = '<div class="md-podglad-biegu" data-podglad-biegu><div class="md-chipy"><span class="md-chip md-chip--przyklad">PODGLĄD</span><span class="md-chip md-chip--poziom">POZIOM 1 Z 5</span></div><h3>' + esc(tytul) + '</h3>';
+    h += '<div class="md-brama"><img class="md-brama-tlo" src="assets/ulica/wzgorza.webp" alt=""><img class="md-brama-znak" src="assets/miasto/brama-start-meta.webp" alt=""><div class="md-brama-droga"></div>' + (s.obraz ? '<img class="md-brama-bohater" src="' + esc(s.obraz) + '" alt="">' : "") + '</div>';
+    h += '<div class="md-plakat"><div class="md-plakat-karta"><small>BiegaMy · Miasto Dobra</small><b>' + esc(bohater ? "Bieg: " + bohater : "Bieg wirtualny") + '</b><span>5 i 10 km, u siebie' + (termin ? ' · ' + esc(termin) : "") + '</span><span>Udział bezpłatny. Wpłata tylko u organizacji.</span>' + (link ? '<em>' + esc(link.replace(/^https:\/\//, "")) + '</em>' : "") + '</div>' +
+      '<div class="md-qr">' + (qrSvg || '<span class="md-qr-puste">kod QR</span>') + '<small>plakat i kod QR do strony biegu</small></div></div>';
+    h += '<p class="md-potwierdzenie">' + esc(KREATOR.potwierdzenie) + '</p><p class="md-wkrotce">To prototyp: niczego nie zapisuje i nie wysyła.</p>';
+    h += '<a class="md-przycisk md-przycisk--przyklad" href="miasto-bieg.html">Zobacz przykład gotowego biegu ›</a></div>';
     return h;
   }
 
-  g.BM_MIASTO = { BAZA: BAZA, SLUG_PRAWDZIWEJ: SLUG_PRAWDZIWEJ, STRONA_PRAWDZIWEJ: STRONA_PRAWDZIWEJ, KLUCZ_PAMIECI: KLUCZ_PAMIECI, POLA_LICZNIKA: POLA_LICZNIKA, PRZYKLADY: PRZYKLADY, WOLNA: WOLNA, KROKI: KROKI,
+  /* ── EKRAN „TAK BĘDZIE W APLIKACJI” (decyzja 12.11): atrapa pierwszej strony aplikacji z kaflem Miasta Dobra w trzech stanach. a) bez ulicy: „Wybierz ulicę, dla której biegasz”
+     (lista trwających: avatar bohatera, nazwa, poziom, postęp; jedno dotknięcie = dołączenie); b) z wybraną: kafel ze sceną, licznikiem, „Twój wkład” i „Zmień ulicę”; c) wejście z linku:
+     ta ulica zaznaczona, „Biegam dla tej ulicy” do potwierdzenia. Zasada pod spodem: ZASADA_WYBORU. Dane przykładowe, własny wkład wymyślony (oznaczony). ── */
+  var WKLAD_PRZYKLADU = { km: 12.4, dni: 4 };
+  function trwajace(lista) { return (lista || []).filter(function (u) { return !u.wolna && (u.status === "trwa"); }); }
+  function avatarHtml(u) {
+    if (u.przyklad && u.bohater) { var s = swiat(u.bohater.swiat); return s.obraz ? '<img class="md-apl-avatar" src="' + esc(s.obraz) + '" alt="">' : '<span class="md-apl-avatar md-emoji">' + esc(s.emoji || "") + '</span>'; }
+    return '<img class="md-apl-avatar" src="assets/ulica/koparka.webp" alt="">';   // prawdziwa: ikona świata Ulicy (budowa), bez wizerunku
+  }
+  function wierszUlicyHtml(u, zaznaczona) {
+    var p = poziomUlicy(u), pct = u.pct != null ? Number(u.pct) : procent(u);
+    return '<button type="button" class="md-apl-ulica' + (zaznaczona ? " md-apl-ulica--tu" : "") + '" data-apl-dolacz="' + esc(u.id) + '">' + avatarHtml(u) +
+      '<span class="md-apl-tekst"><b>' + esc(u.nazwa) + (u.przyklad ? ' <i class="md-przyklad">przykład</i>' : "") + '</b><small>' + (p ? "poziom " + p + " z 5 · " : "") + esc(liczba(pct, 1)) + ' % celu</small><span class="md-pasek md-pasek--maly"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></span></span>' +
+      '<span class="md-apl-dolacz">' + (zaznaczona ? "✓" : "Dołącz") + '</span></button>';
+  }
+  function aplikacjaHtml(stan, lista, wybranaId) {
+    var L = trwajace(lista), w = null; L.forEach(function (u) { if (u.id === wybranaId) w = u; }); if (!w) w = L[0];
+    var h = '<div class="md-apl" data-apl-stan="' + esc(stan) + '">';
+    h += '<div class="md-apl-naglowek"><div class="md-marka">BiegaMy · Dziś</div><div class="md-apl-przelacznik" role="tablist" aria-label="Stan kafla">' +
+      [["a", "bez ulicy"], ["b", "z ulicą"], ["c", "z linku"]].map(function (x) { return '<button type="button" role="tab" data-apl="' + x[0] + '" aria-selected="' + (x[0] === stan ? "true" : "false") + '">' + x[1] + '</button>'; }).join("") + '</div></div>';
+    h += '<div class="md-apl-telefon"><div class="md-apl-pasek"><span>Dziś</span><span>Treningi</span><span>Społeczność</span></div>';
+    if (stan === "a") {
+      h += '<div class="md-apl-kafel"><div class="md-apl-tytul">Miasto Dobra</div><p class="md-apl-pyt">Wybierz ulicę, dla której biegasz</p>' + L.map(function (u) { return wierszUlicyHtml(u, false); }).join("") + '</div>';
+    } else if (stan === "b" && w) {
+      var p = poziomUlicy(w), pct = w.pct != null ? Number(w.pct) : procent(w);
+      h += '<div class="md-apl-kafel md-apl-kafel--ulica"><div class="md-apl-scena"><img src="assets/ulica/wzgorza.webp" alt="" class="md-apl-scena-tlo"><img src="assets/ulica/domek-3.webp" alt="" class="md-apl-scena-domek"><img src="assets/miasto/brama-start-meta.webp" alt="" class="md-apl-scena-brama"></div>' +
+        '<div class="md-apl-tytul">' + esc(w.nazwa) + (w.przyklad ? ' <i class="md-przyklad">przykład</i>' : "") + '</div><small class="md-apl-poziom">' + (p ? "poziom " + p + " z 5" : "") + '</small>' +
+        '<div class="md-apl-liczby"><div><b>' + esc(km(w.suma_km)) + ' km</b><span>razem · ' + esc(liczba(pct, 1)) + ' % celu</span></div><div><b>' + esc(km(WKLAD_PRZYKLADU.km)) + ' km</b><span>Twój wkład · ' + WKLAD_PRZYKLADU.dni + ' dni <i class="md-przyklad">przykład</i></span></div></div>' +
+        '<div class="md-pasek"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div><button type="button" class="md-apl-zmien" data-apl="a">Zmień ulicę ›</button></div>';
+    } else if (w) {
+      h += '<div class="md-apl-kafel"><div class="md-apl-tytul">Miasto Dobra</div><p class="md-apl-pyt">Wejście z linku ulicy</p>' + wierszUlicyHtml(w, true) +
+        '<button type="button" class="md-przycisk md-apl-potwierdz" data-apl-potwierdz="' + esc(w.id) + '">Biegam dla tej ulicy ›</button><p class="md-dopisek">Do potwierdzenia: bez dotknięcia nic się nie zmienia.</p></div>';
+    }
+    h += '</div><p class="md-zasada md-zasada--apl">' + esc(ZASADA_WYBORU) + '</p><p class="md-uwaga">Atrapa ekranu aplikacji. Ulice i wkład wymyślone, oznaczone „przykład”.</p></div>';
+    return h;
+  }
+
+  g.BM_MIASTO = { BAZA: BAZA, SLUG_PRAWDZIWEJ: SLUG_PRAWDZIWEJ, STRONA_PRAWDZIWEJ: STRONA_PRAWDZIWEJ, KLUCZ_PAMIECI: KLUCZ_PAMIECI, POLA_LICZNIKA: POLA_LICZNIKA, PRZYKLADY: PRZYKLADY, WOLNA: WOLNA,
+    POZIOMY: POZIOMY, ZASADA_POZIOMOW: ZASADA_POZIOMOW, ZASADA_WYBORU: ZASADA_WYBORU, SWIATY: SWIATY, CEL_PRZYKLADU: CEL_PRZYKLADU, KREATOR: KREATOR, WKLAD_PRZYKLADU: WKLAD_PRZYKLADU,
     esc: esc, liczba: liczba, km: km, procent: procent, forma: forma, odmiana: odmiana, ulicaZLicznika: ulicaZLicznika, zapamietaj: zapamietaj, odczytaj: odczytaj, stanZ: stanZ, pobierzPrawdziwa: pobierzPrawdziwa,
-    ulice: ulice, sumaMiasta: sumaMiasta, podpisSumy: podpisSumy, kartaHtml: kartaHtml, etykietaMapy: etykietaMapy, kreatorHtml: kreatorHtml };
+    ulice: ulice, sumaMiasta: sumaMiasta, podpisSumy: podpisSumy, kartaHtml: kartaHtml, etykietaMapy: etykietaMapy, poziomUlicy: poziomUlicy, poziom: poziom, swiat: swiat, drabinkaHtml: drabinkaHtml, bohaterHtml: bohaterHtml,
+    kreatorHtml: kreatorHtml, najblizszyWeekend: najblizszyWeekend, podgladBieguHtml: podgladBieguHtml, aplikacjaHtml: aplikacjaHtml, trwajace: trwajace };
 })(typeof globalThis !== "undefined" ? globalThis : window);

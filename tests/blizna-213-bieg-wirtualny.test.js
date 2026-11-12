@@ -224,17 +224,17 @@ test('(7) wejście tylko z karty przykładu na miasto.html; kreator ma pola bieg
       else if (/\.(html|m?js|json|webmanifest)$/.test(w.name) && !/^miasto-bieg\.(html|mjs)$/.test(w.name) && /miasto-bieg\.html/.test(fs.readFileSync(p, 'utf8'))) linkuja.push(path.relative(KORZEN, p).replace(/\\/g, '/'));
     }
   })(KORZEN);
-  assert.deepEqual(linkuja.sort(), ['js/miasto-pokaz.mjs', 'js/miasto.mjs'], 'link do strony biegu tylko z karty przykładu na mapie miasta i ze scenariusza pokazu (QR bierze adres z location, nie ze stałej)');
+  assert.deepEqual(linkuja.sort(), ['js/miasto-pokaz.mjs', 'js/miasto.mjs', 'miasto.html'], 'link do strony biegu tylko z karty przykładu, ze scenariusza pokazu i z kodu QR w podglądzie kreatora (12.11; adres z location, nie ze stałej)');
   assert.match(MIASTO_MJS, /else if \(u\.strona\) h \+= '<a class="md-przycisk" href="' \+ esc\(u\.strona\) \+ '">' \+ esc\(u\.przycisk \|\| "Zobacz bieg ›"\) \+ '<\/a>';/);   // 11.11: etykieta z ulicy (drużyny: „Zobacz wyzwanie ›”)
   assert.match(HTML, /<a class="bw-wroc" href="miasto\.html">‹ Miasto Dobra<\/a>/, 'powrót do miasta');
   assert.doesNotMatch(czytaj('sw.js'), /miasto|bm-miasto|bieg-wirtualny|bieg-brama/i, 'sw.js zamrożony: bez precache stron pokazu'); assert.doesNotMatch(czytaj('dla-fabianka.html'), /miasto/, 'strona akcji nietknięta'); assert.doesNotMatch(czytaj('js/akcja.mjs'), /miasto/, 'akcja.mjs nietknięty');
   const M = (() => { const c = { console, Promise, JSON, Math, Number, String, Object, Array, Date, RegExp, isFinite }; c.globalThis = c; vm.runInNewContext(MIASTO_MJS, c); return c.BM_MIASTO; })();
-  const k2 = M.kreatorHtml(1);
-  assert.match(k2, /<input type="radio" name="md-forma" value="1" data-bieg> <span>Wirtualny bieg charytatywny/, 'forma biegu oznaczona'); assert.equal((k2.match(/data-bieg/g) || []).length, 1);
-  assert.match(k2, /<div class="md-pola-biegu" data-pola-biegu hidden><p class="md-pytanie">Ustawienia biegu<\/p>/, 'pola biegu ukryte, dopóki forma to nie bieg');
-  for (const t of ['5 km', '10 km', 'Twój dystans (spacer, marsz, nordic walking, wózek)', 'Okno biegu: od', 'Okno biegu: do', 'Limit miejsc', 'Lista wyników publiczna (imię i numer, bez nazwisk)']) assert.ok(k2.includes(t), 'kreator: ' + t);
-  assert.doesNotMatch(k2, /<form|type="submit"/);
-  assert.match(MIASTO, /KREATOR\.addEventListener\('change', function \(e\) \{ if \(e\.target\.name !== 'md-forma'\) return; var p = KREATOR\.querySelector\('\[data-pola-biegu\]'\); if \(p\) p\.hidden = !e\.target\.hasAttribute\('data-bieg'\); \}\);/);
+  /* 12.11 (blizna-233): kreator to jeden ekran „Załóż bieg w minutę” (bieg = poziom 1 każdej ulicy); stary wybór form i pola biegu zniknęły, formy to poziomy na drabince */
+  const k2 = M.kreatorHtml({ teraz: new Date('2026-11-12T10:00:00') });
+  assert.doesNotMatch(k2, /md-forma|data-pola-biegu|Wirtualny bieg charytatywny|Krok \d z/, 'bez listy form i bez kroków');
+  assert.match(k2, /<h3>Załóż bieg w minutę<\/h3>/); assert.match(k2, /data-zatwierdz>Załóż bieg ›/); assert.doesNotMatch(k2, /<form|type="submit"/);
+  assert.match(M.podgladBieguHtml({ swiat: 'kosmos', termin: '2026-11-14' }, ''), /href="miasto-bieg\.html">Zobacz przykład gotowego biegu ›/, 'podgląd prowadzi do przykładu biegu');
+  assert.match(MIASTO, /function zatwierdzBieg\(\) \{/); assert.ok(MIASTO.includes("window.BM_BIEG.qrSvg(location.origin + location.pathname.replace(/[^\\/]*$/, '') + 'miasto-bieg.html'"), 'QR z adresu strony, nie ze stałej');
   /* bez sieci: każda grafika sceny, ikon i canvasów jest na liście ZASOBY (Cache API strony), scena rysowana dopiero z adresami z cache */
   const lista = [...HTML.matchAll(/'(assets\/[^']+)'/g)].map((m) => m[1]).filter((u, i, a) => a.indexOf(u) === i);
   for (const u of [...new Set((MJS.match(/assets\/[a-z]+\/[a-z0-9-]+\.(webp|svg)/g) || []))]) { if (/domek-[4-7]/.test(u)) continue; assert.ok(lista.includes(u), u + ' na liście zasobów do cache'); }

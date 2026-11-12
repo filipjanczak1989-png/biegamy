@@ -1,7 +1,7 @@
 // MIASTO DOBRA · TRYB POKAZU I GOTOWOŚĆ NA 18.11 (11.11.2026). Plik BEZ import/export (globalThis.BM_POKAZ), dołączany przez miasto.html, miasto-bieg.html,
 // miasto-firmy.html i miasto-druzyny.html. Bez parametru ?pokaz=… nie robi NIC (strony wyglądają jak dotąd). Z ?pokaz=1: wąski pasek na dole „Pokaz 3/12 · co teraz
 // pokazać · Dalej ›” prowadzi po scenariuszu przez cztery strony (stan kroku w localStorage), jedno zdanie do powiedzenia małym tekstem; wersja pełna ≈ 6 minut
-// (12 kroków), skrócona ≈ 3 minuty (7 kroków). Z ?pokaz=gotowosc (miasto.html): ekran „Gotowość pokazu”: jeden przycisk pobiera do pamięci przeglądarki wszystkie
+// (12 kroków), skrócona ≈ 3 minuty (7 kroków). Opowieść od 12.11: jedna droga, pięć poziomów (bieg → ulica → firmy → drużyny → zbudowana), ekran „Tak będzie w aplikacji” zaraz po mapie. Z ?pokaz=gotowosc (miasto.html): ekran „Gotowość pokazu”: jeden przycisk pobiera do pamięci przeglądarki wszystkie
 // strony, moduły, font i grafiki pokazu (strony i skrypty przez Service Workera aplikacji do jego cache statycznego, grafiki do cache stron bm-miasto-grafiki-v1),
 // lista z zielonym znaczkiem, stan licznika prawdziwej ulicy z datą, wynik „GOTOWE DO TRYBU SAMOLOTOWEGO” albo lista braków, „Wyczyść pokaz i zacznij od nowa”.
 // Nic nie idzie do produkcji poza tym, co strony i tak pobierają (licznik akcji). Imię bohatera: nigdzie w tym pliku (nazwa ulicy przychodzi z licznika).
@@ -12,19 +12,21 @@
   /* Klucze stanu pokazu na czterech stronach (zapis po stronie klikającego, nic na serwer). */
   var KLUCZE_STANU = ["bm_pokaz", "bm_bieg_pokaz", "bm_druzyny_pokaz", "bm_firmy_miasto"];
   /* Scenariusz: strona, co teraz pokazać (nagłówek paska), jedno zdanie do powiedzenia, akcja po wejściu (hash, przewinięcie, dotknięcie); skrot = w wersji 3-minutowej. */
+  /* Nowa opowieść (decyzja 12.11): jedna droga, pięć poziomów. mapa i ulica wzorcowa → „tak będzie w aplikacji” → drabinka → zacznij od biegu (kreator w minutę) → bieg → drabinka
+     poziom 2 → firmy (3) → drużyny (4) → widok organizacji → koniec na mapie. 12 kroków, skrót 7 (3 minuty). `klik` może być listą selektorów (po kolei, co 250 ms). */
   var KROKI = [
-    { strona: "miasto.html", co: "Mapa miasta", skrot: true, zdanie: "To jest Miasto Dobra: każda zbiórka ma swoją ulicę, a budują ją kilometry zwykłych ludzi. Ta jedna ulica jest prawdziwa, reszta to podpisane przykłady." },
-    { strona: "miasto.html", klik: '.dz[data-id="prawdziwa"]', co: "Karta prawdziwej ulicy", skrot: true, zdanie: "Nazwa, kilometry, procent celu, cegły darczyńców i firmy biorą się z publicznego licznika. Pieniądze nie przechodzą przez nas: link prowadzi prosto na zbiórkę organizacji." },
-    { strona: "miasto-bieg.html", co: "Bieg Wirtualny: scena", skrot: true, zdanie: "Tak wygląda bieg jako ulica: w jeden weekend każdy biegnie albo idzie 5 lub 10 km tam, gdzie mieszka. Udział bezpłatny; od nas numer, dyplom i odznaka." },
-    { strona: "miasto-bieg.html", przewin: "#bw-kroki", co: "Bieg: jak to działa", zdanie: "Cztery kroki: zapis, bieg u siebie, wynik z zegarka albo wpisany, dyplom od razu w telefonie. Kto chce, wspiera zbiórkę bezpośrednio u Was." },
-    { strona: "miasto-bieg.html", hash: "#organizacja", co: "Bieg: widok organizacji", skrot: true, zdanie: "To Wasz ekran: zapisani, kilometry, kliknięcia w link zbiórki, plakat, kod QR, zgody, checklista. Kliknięcia, nie wpłaty: ile wpłynęło, wiecie tylko Wy." },
-    { strona: "miasto-druzyny.html", co: "Ulica Szkolna: scena", skrot: true, zdanie: "Druga forma: klasy i zespoły z firm zbierają kilometry jako drużyny. Suma drużyn buduje tę samą drogę, a domki drużyn stoją na ulicy." },
-    { strona: "miasto-druzyny.html", przewin: "#dr-ranking", klik: '[data-widok="osoba"]', co: "Drużyny: ranking na osobę", zdanie: "Ranking ma dwa widoki: razem i na osobę, żeby mała klasa mogła wygrać z dużą firmą. Rankingu dzieci nie ma, liczą się drużyny." },
-    { strona: "miasto-druzyny.html", przewin: "#dr-rodzaje", co: "Drużyny: klasy i firmy", zdanie: "Klasa to nazwa, liczba osób i suma kilometrów od nauczyciela, bez kont i bez danych dzieci. Firma gra kontami pracowników i może dołożyć stawkę za kilometr prosto na zbiórkę." },
-    { strona: "miasto-firmy.html", co: "Dla firm: cztery sposoby", skrot: true, zdanie: "Firma ma cztery drogi na ulicę: sponsor kilometrów, opiekun odcinka, domek albo wieżowiec, własna drużyna. Każda kończy się wpłatą u organizacji, nie u nas." },
-    { strona: "miasto-firmy.html", przewin: "#fm-sposob-sponsor", klik: '[data-stawka="20"]', co: "Sponsor kilometrów: 20 groszy", zdanie: "Firma deklaruje stawkę za kilometr całej ulicy, widzi limit i transze przy 25, 50 i 100 procentach celu, a deklarację drukuje jako wzór do przejrzenia przez prawnika." },
-    { strona: "miasto-firmy.html", przewin: "#fm-odmowa", co: "Kogo nie przyjmujemy", zdanie: "Granice są spisane: kogo nie wpuszczamy na ulicę i czego firma nie kupuje. Imię bohatera i grafiki zawsze za zgodą opiekuna." },
-    { strona: "miasto.html", co: "Zakończenie na mapie", skrot: true, zdanie: "Wasza rola: prowadzicie zbiórkę i opowiadacie o ulicy. Liczenie, grafiki, aplikacja i weryfikacja są po naszej stronie. BiegaMy nic nie przyjmuje." }
+    { strona: "miasto.html", co: "Mapa: jedna droga, pięć poziomów", skrot: true, zdanie: "Każda zbiórka ma swoją ulicę i każda zaczyna od biegu wirtualnego, a potem rośnie poziomami: ulica, firmy, drużyny, zbudowana. Ta jedna ulica jest prawdziwa i wzorcowa: tak może wyglądać Wasza. Reszta to podpisane przykłady." },
+    { strona: "miasto.html", klik: "#md-aplikacja", co: "Tak będzie w aplikacji", zdanie: "Na pierwszej stronie aplikacji biegacz wybiera ulicę, dla której biegnie. Jedna ulica naraz, kilometry liczą się od chwili wyboru, bez wyboru nie liczą się nigdzie. Wejście z linku ulicy prosi o jedno potwierdzenie." },
+    { strona: "miasto.html", klik: ["#md-apl [data-zamknij]", '.dz[data-id="prawdziwa"]'], co: "Ulica wzorcowa i drabinka", skrot: true, zdanie: "Liczby z publicznego licznika: kilometry, procent celu, cegły, firmy. Pod spodem drabinka pięciu poziomów z zaznaczonym obecnym. Poziom odblokowuje aktywność ludzi i potwierdzenie organizacji, nigdy opłata." },
+    { strona: "miasto.html", klik: ["#md-zamknij", "#md-zaloz"], co: "Zacznij od biegu: kreator w minutę", zdanie: "Trzy rzeczy: link do zbiórki, termin, bohater jako rysunkowa postać ze świata. Bieg nic nie kosztuje, nie potrzebuje sponsora i rusza od ręki." },
+    { strona: "miasto.html", klik: ["#md-zaloz", "[data-zatwierdz]"], co: "Po zatwierdzeniu: brama, plakat, kod QR", skrot: true, zdanie: "Od razu podgląd strony biegu z bramą, plakat i kod QR do rozdania. Bieg będzie widoczny dla wszystkich po potwierdzeniu przez opiekuna albo organizację." },
+    { strona: "miasto-bieg.html", co: "Poziom 1: bieg jako ulica", skrot: true, zdanie: "Tak wygląda gotowy bieg: w jeden weekend każdy biegnie albo idzie 5 lub 10 km tam, gdzie mieszka. Udział bezpłatny; od nas numer, dyplom i odznaka. Kto chce, wspiera zbiórkę bezpośrednio u Was." },
+    { strona: "miasto-bieg.html", przewin: "#bw-kroki", co: "Bieg: jak to działa", zdanie: "Cztery kroki: zapis, bieg u siebie, wynik z zegarka albo wpisany, dyplom od razu w telefonie. Zapisy i pierwsze kilometry otwierają drugi poziom: ulicę z celem." },
+    { strona: "miasto.html", klik: '.dz[data-id="urodzinowa"]', co: "Poziom 2: ulica z celem i murem", zdanie: "Mała ulica urodzinowa: cel w kilometrach i mur, w którym stają cegły darczyńców. Pierwsze cegły i zgoda organizacji otwierają trzeci poziom: firmy." },
+    { strona: "miasto-firmy.html", co: "Poziom 3: firmy na ulicy", skrot: true, zdanie: "Od trzeciego poziomu firma ma drogi na ulicę: sponsor kilometrów, opiekun odcinka, domek albo wieżowiec. Każda kończy się wpłatą u organizacji, nie u nas." },
+    { strona: "miasto-druzyny.html", co: "Poziom 4: drużyny", skrot: true, zdanie: "Klasy i zespoły z firm zbierają kilometry jako drużyny, ranking razem i na osobę, bez rankingu dzieci. Osiągnięty cel to poziom piąty: ulica zbudowana zostaje w mieście." },
+    { strona: "miasto-bieg.html", hash: "#organizacja", co: "Widok organizacji", zdanie: "To Wasz ekran: zapisani, kilometry, kliknięcia w link zbiórki, plakat, kod QR, zgody, checklista. Kliknięcia, nie wpłaty: ile wpłynęło, wiecie tylko Wy." },
+    { strona: "miasto.html", co: "Zakończenie na mapie", skrot: true, zdanie: "Wasza rola: prowadzicie zbiórkę, potwierdzacie bieg i opowiadacie o ulicy. Liczenie, grafiki, aplikacja i weryfikacja są po naszej stronie. BiegaMy nic nie przyjmuje." }
   ];
   var CSS = ".pk-pasek{position:fixed;left:0;right:0;bottom:0;z-index:900;display:grid;grid-template-columns:auto 1fr;grid-template-areas:'nr co' 'zd zd' 'p p';gap:4px 8px;align-items:center;padding:6px 8px calc(env(safe-area-inset-bottom) + 6px);background:rgba(7,7,10,.94);color:#f0ede8;border-top:1px solid rgba(255,255,255,.14);font:600 12px/1.2 Inter,system-ui,sans-serif;backdrop-filter:blur(6px)}" +
     ".pk-nr{font:400 20px/1 'Bebas Neue',Impact,sans-serif;letter-spacing:.04em;color:#ffb27a;white-space:nowrap}.pk-nr small{display:block;font:600 9px/1 Inter,sans-serif;letter-spacing:.12em;color:rgba(240,237,232,.6);margin-top:2px}" +
@@ -59,7 +61,9 @@
       try {
         if (k.przewin) { var cel = g.document.querySelector(k.przewin); if (cel) { var y = cel.getBoundingClientRect().top + (g.pageYOffset || 0) - 8; g.scrollTo({ top: y, behavior: "auto" }); } }
         else if (!k.hash) g.scrollTo(0, 0);
-        if (k.klik) { var b = g.document.querySelector(k.klik); if (b && b.click) b.click(); }
+        /* lista selektorów (12.11): kolejne dotknięcia co 250 ms, np. zamknięcie okna i otwarcie karty albo kreator → zatwierdzenie */
+        var sel = Array.isArray(k.klik) ? k.klik.slice() : (k.klik ? [k.klik] : []);
+        (function nast() { if (!sel.length) return; var s = sel.shift(); try { var b = g.document.querySelector(s); if (b && b.click) b.click(); } catch (e2) {} if (sel.length) g.setTimeout(nast, 250); })();
       } catch (e) {}
     }, 350);
   }

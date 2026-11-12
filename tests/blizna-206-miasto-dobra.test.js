@@ -56,9 +56,10 @@ test('(1) suma miasta: tylko prawdziwe ulice; przykłady oznaczone na mapie, na 
   assert.equal((HTML.match(/class="dz dz--przyklad/g) || []).length, 4, '4 działki przykładowe'); assert.equal((HTML.match(/class="dz dz--prawdziwa"/g) || []).length, 1);
   const kp = M.kartaHtml(u);
   assert.doesNotMatch(kp, /przykład/i, 'prawdziwa bez słowa przykład'); assert.match(kp, /md-chip--trwa">TRWA<[\s\S]*<h2>Ulica Marka<\/h2>[\s\S]*<b>721 km<\/b><span>z 12 500 km celu[\s\S]*<b>5,8 %<\/b>[\s\S]*<b>1<\/b><span>cegła w murze[\s\S]*<b>0<\/b><span>firm na ulicy[\s\S]*href="dla-fabianka\.html">Wejdź na ulicę/);
-  assert.deepEqual({ ...M.etykietaMapy(u) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 1 cegła' }, 'zero firm pominięte na mapie (na karcie zostaje)');
-  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, firmy: [{ nazwa: 'A' }, { nazwa: 'B' }], ulica: { cegly_n: 0 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 2 firmy' });
-  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, koniec: '2026-12-01', ulica: { cegly_n: 420 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: 'zbudowana · 420 cegieł' });
+  /* od 12.11 (blizna-233) etykieta niesie też znaczek poziomu: prawdziwa = wzorcowa, poziom wyliczony z licznika (cel i mur → 2, firmy → 3, zbudowana → 5) */
+  assert.deepEqual({ ...M.etykietaMapy(u) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 1 cegła', poziom: 'wzorcowa · poziom 2 z 5' }, 'zero firm pominięte na mapie (na karcie zostaje)');
+  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, firmy: [{ nazwa: 'A' }, { nazwa: 'B' }], ulica: { cegly_n: 0 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: '5,8 % celu · 2 firmy', poziom: 'wzorcowa · poziom 3 z 5' });
+  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika({ ...LICZNIK, koniec: '2026-12-01', ulica: { cegly_n: 420 } })) }, { tytul: 'Ulica Marka · 721 km', podpis: 'zbudowana · 420 cegieł', poziom: 'wzorcowa · poziom 5 z 5' });
   assert.equal(M.procent({ suma_km: 1840, cel_km: 5000 }), 36.8); assert.equal(M.procent({ suma_km: 10000, cel_km: 10000 }), 100); assert.equal(M.procent({ suma_km: 5, cel_km: 0 }), 0);
   assert.deepEqual([2, 4, 5, 12, 22, 0].map((n) => M.forma(n, ['firma', 'firmy', 'firm'])), ['firmy', 'firmy', 'firm', 'firm', 'firmy', 'firm']);
 });
@@ -69,7 +70,8 @@ test('(2) bez danych osób: imię z licznika, nie z kodu; bez nazwisk, e-maili, 
     assert.doesNotMatch(t, /[\w.+-]+@[\w-]+\.[\w.]+/, n + ': bez e-maili'); assert.doesNotMatch(t, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, n + ': bez UUID');
     assert.doesNotMatch(t, /siepomaga|zrzutka|pomagam\.pl|fundacj[aeiy] [A-ZŁŚŻ]/, n + ': bez nazw serwisów zbiórek i organizacji');
     assert.doesNotMatch(t, /partner|współprac|we współpracy|patronat/i, n + ': żadnej sugestii partnerstwa');
-    assert.doesNotMatch(t, /logo_url|akcja-firmy-logo|logo\.(png|jpg|webp|svg)|(?<!favicon-32)\.(png|jpg)"/, n + ': bez logo firm (jedyny png to favicon)'); assert.doesNotMatch(t, /chor(ob|y|uje)|diagnoz|nowotw|szpital|leczeni|rehabilitac|niepełnospraw/i, n + ': bez diagnoz');
+    /* 12.11: jedno neutralne zdanie o celu „Zbieramy na leczenie i rehabilitację.” (decyzja Filipa) jest dozwolone; nazw chorób i diagnoz dalej nie ma */
+    assert.doesNotMatch(t, /logo_url|akcja-firmy-logo|logo\.(png|jpg|webp|svg)|(?<!favicon-32)\.(png|jpg)"/, n + ': bez logo firm (jedyny png to favicon)'); assert.doesNotMatch(t, /chor(ob|y|uje)|diagnoz|nowotw|szpital|niepełnospraw|onkolog|porażeni|autyz/i, n + ': bez diagnoz');
     assert.doesNotMatch(t, /zmar[łl]|śmier|pogrzeb|odszed|odeszł/i, n + ': ulica zbudowana bez sugestii śmierci');
     /* Filip 10.11: ukończona ulica to sukces i święto, nie upamiętnienie (przy zbiórkach na leczenie dzieci „pamięci” kojarzy się z kimś, kto odszedł) */
     assert.doesNotMatch(t, /pamięci|pomnik|wieniec|tablica pamiątkowa|pamiątk|upamiętni/i, n + ': nic, co wygląda jak upamiętnienie');
@@ -78,7 +80,7 @@ test('(2) bez danych osób: imię z licznika, nie z kodu; bez nazwisk, e-maili, 
   const { M } = modul();
   for (const p of M.PRZYKLADY) assert.match(p.nazwa, /^(Ulica [A-ZŚŻŁ][a-ząęółśżźćń]+|Bieg Wirtualny)$/, p.id + ': nazwa neutralna');
   assert.deepEqual([...M.PRZYKLADY].map((p) => p.nazwa), ['Bieg Wirtualny', 'Ulica Szkolna', 'Ulica Urodzinowa', 'Ulica Słoneczna']);
-  const tekst = JSON.stringify(M.PRZYKLADY) + JSON.stringify(M.KROKI);
+  const tekst = JSON.stringify(M.PRZYKLADY) + JSON.stringify(M.KREATOR) + JSON.stringify(M.POZIOMY);
   assert.doesNotMatch(tekst, /\b[A-ZŁŚŻ][a-ząęółśżźćń]+ [A-ZŁŚŻ][a-ząęółśżźćń]+(ski|cka|wicz|czyk|ak)\b/, 'bez imion i nazwisk');
   assert.match(tekst, /organizacj[aieę] prowadząc/, 'w tekstach: „organizacja prowadząca zbiórkę”');
   assert.match(HTML, /Pieniądze idą prosto do organizacji prowadzących zbiórki\. BiegaMy nic nie przyjmuje\./);
@@ -115,14 +117,19 @@ test('(3) czyta tylko publiczny licznik przez js/akcja.mjs; nic nie wysyła; kre
   assert.match(MJS, /setItem\(KLUCZ_PAMIECI, JSON\.stringify\(\{ t: teraz \|\| Date\.now\(\), u: u \}\)\)/);
   assert.match(HTML, /KREATOR\.addEventListener\('submit', function \(e\) \{ e\.preventDefault\(\); \}\);/);
   const { M } = modul();
-  for (let i = 0; i < M.KROKI.length; i++) { const k = M.kreatorHtml(i); assert.doesNotMatch(k, /<form|type="submit"|action=/); assert.match(k, new RegExp('Krok ' + (i + 1) + ' z 3')); }
-  assert.match(M.kreatorHtml(2), /<button type="button" class="md-przycisk" disabled>Wyślij do weryfikacji<\/button>[\s\S]*<b>Wkrótce\.<\/b> To prototyp: niczego nie zapisuje i nie wysyła\./);
-  assert.match(M.kreatorHtml(0), /Link do oficjalnej zbiórki/); assert.match(M.kreatorHtml(1), /Wirtualny bieg charytatywny/); assert.match(M.kreatorHtml(2), /za zgodą opiekuna/);
-  /* świat gry (Filip 9.11): pytanie, 6 kafelków, „Bez bohatera” na końcu, dopisek; ikony tylko z assets/ albo emoji */
-  const k3 = M.kreatorHtml(2);
-  assert.match(k3, /<p class="md-pytanie">Co kocha bohater tej ulicy\?<\/p>/); assert.equal((k3.match(/class="md-swiat[" ]/g) || []).length, 6);
-  assert.deepEqual([...M.KROKI[2].swiaty].map((s) => s.nazwa), ['Budowa', 'Kosmos', 'Dinozaury', 'Piłka', 'Zwierzęta', 'Bez bohatera']);
-  for (const s of M.KROKI[2].swiaty) { assert.ok((s.obraz && /^assets\//.test(s.obraz) && fs.existsSync(path.join(KORZEN, s.obraz))) || s.emoji, s.id + ': ikona z assets/ albo emoji'); }
+  /* kreator od 12.11 (blizna-233): jeden ekran „Załóż bieg w minutę”: link do zbiórki, termin (najbliższy weekend), bohater (świat albo „bez bohatera”); po zatwierdzeniu podgląd; dalej atrapa */
+  const k = M.kreatorHtml({ teraz: new Date('2026-11-12T10:00:00') });
+  assert.doesNotMatch(k, /<form|type="submit"|action=|Krok \d z/); assert.match(k, /<h3>Załóż bieg w minutę<\/h3>/);
+  assert.match(k, /Link do oficjalnej zbiórki/); assert.match(k, /id="md-pole-termin" type="date" value="2026-11-14"/, 'termin domyślnie najbliższy weekend (sobota)');
+  assert.match(k, /data-zatwierdz>Załóż bieg ›<\/button>[\s\S]*To prototyp: niczego nie zapisuje i nie wysyła\./);
+  assert.equal(M.najblizszyWeekend(new Date('2026-11-14T09:00:00')), '2026-11-21', 'w sobotę domyślny termin to następna sobota');
+  const pg = M.podgladBieguHtml({ swiat: 'kosmos', termin: '2026-11-14', link: 'https://zbiorka.example.pl/x' }, '<svg></svg>');
+  assert.match(pg, /Bieg będzie widoczny dla wszystkich po potwierdzeniu przez opiekuna albo organizację\./); assert.match(pg, /brama-start-meta\.webp/); assert.match(pg, /<svg><\/svg>/); assert.doesNotMatch(pg, /<form|type="submit"/);
+  /* świat gry (Filip 9.11, od 12.11 także avatar bohatera): pytanie, 6 kafelków, „Bez bohatera” na końcu, dopisek; ikony tylko z assets/ albo emoji */
+  const k3 = k;
+  assert.match(k3, /<p class="md-pytanie">Kto jest bohaterem tego biegu\?<\/p>/); assert.equal((k3.match(/class="md-swiat[" ]/g) || []).length, 6);
+  assert.deepEqual([...M.SWIATY].map((s) => s.nazwa), ['Budowa', 'Kosmos', 'Dinozaury', 'Piłka', 'Zwierzęta', 'Bez bohatera']);
+  for (const s of M.SWIATY) { assert.ok((s.obraz && /^assets\//.test(s.obraz) && fs.existsSync(path.join(KORZEN, s.obraz))) || s.emoji, s.id + ': ikona z assets/ albo emoji'); }
   assert.match(k3, /md-swiat md-swiat--bez"><input type="radio" name="md-swiat" value="bez">[\s\S]*<b>Bez bohatera<\/b><small>bieg przez Miasto Dobra<\/small>/);
   assert.match(k3, /<p class="md-dopisek">Ten sam bieg, inny świat/); assert.match(k3, /value="budowa" checked/);
 
@@ -147,7 +154,7 @@ test('(4) bez licznika: ostatni stan z pamięci ze „stan z …”, bez pustych
   assert.equal(M.zapamietaj(M.ulicaZLicznika(null), t), false, 'stanu „brak” nie zapisujemy');
   const brak = M.kartaHtml(M.ulicaZLicznika(null));
   assert.match(brak, /LICZNIK NIEDOSTĘPNY[\s\S]*<h2>Ulica akcji BiegaMy<\/h2>[\s\S]*Licznik chwilowo nie odpowiada[\s\S]*Wejdź na ulicę/); assert.doesNotMatch(brak, /md-liczba|NaN|undefined/, 'bez pustych liczb');
-  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika(null)) }, { tytul: 'Ulica akcji BiegaMy', podpis: 'licznik chwilowo niedostępny' });
+  assert.deepEqual({ ...M.etykietaMapy(M.ulicaZLicznika(null)) }, { tytul: 'Ulica akcji BiegaMy', podpis: 'licznik chwilowo niedostępny', poziom: '' });
   assert.match(M.kartaHtml(M.ulicaZLicznika({ wystartowala: false })), /WKRÓTCE[\s\S]*Ulica w przygotowaniu/);
   const bez = modul({ bezPamieci: true }).M; assert.equal(bez.odczytaj(), null); assert.equal(bez.zapamietaj(u, t), false);
   const pada = modul({ pamiecPada: true }).M; assert.equal(pada.zapamietaj(u, t), false, 'brak zgody na zapis = false, bez wyjątku');

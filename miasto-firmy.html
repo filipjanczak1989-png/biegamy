@@ -110,6 +110,7 @@
 
   <div class="fm-marka">BiegaMy · Miasto Dobra</div>
   <h1>Dla firm</h1>
+  <p class="fm-poziom" style="margin:0 0 8px;padding:8px 12px;border-radius:10px;background:rgba(61,90,153,.22);border:1px solid rgba(61,90,153,.6);font-size:13px;line-height:1.4">Dostępne od <b style="color:#ffcd6a">poziomu 3</b> ulicy („Firmy”). Każda ulica zaczyna od biegu wirtualnego, potem zbiera cel i mur cegieł, a na trzecim poziomie wchodzą firmy.</p>
   <p class="fm-pod">Cztery sposoby, żeby firma stanęła na ulicy zbiórki. Pieniądze zawsze idą prosto do organizacji prowadzącej zbiórkę; my liczymy kilometry.</p>
   <p class="fm-ulica"><span id="fm-chip-stan" class="fm-chip">LICZNIK</span><span id="fm-ulica-nazwa">Ulica akcji BiegaMy</span><span id="fm-stan" hidden></span></p>
   <label class="fm-pole" for="fm-firma"><span>Nazwa Twojej firmy (tylko do podglądu na tej stronie)</span><input id="fm-firma" type="text" maxlength="40" autocomplete="organization" placeholder="np. Piekarnia na Rogu"></label>
@@ -224,7 +225,8 @@
 <script>
 (function () {
   'use strict';
-  var F = window.BM_FIRMY_MIASTO, $ = function (id) { return document.getElementById(id); }, laptop = function () { return window.matchMedia('(min-width: 900px)').matches; };
+  var F = window.BM_FIRMY_MIASTO, $ = function (id) { return document.getElementById(id); };
+  function laptop() { return window.matchMedia('(min-width: 900px)').matches; }
   var ulica = F.ULICA_PRZYKLAD, czasPamieci = null, stawka = 10, format = 'pion', obrazy = {}, adresy = {}, zapytane = {}, kanwa = null;
   var ZASOBY = ['assets/ulica/wzgorza.webp', 'assets/ulica/droga.webp', 'assets/ulica/pierwszy-plan.webp', 'assets/ulica/drzewo.webp', 'assets/ulica/latarnia.webp', 'assets/ulica/wiezowiec.webp', 'assets/ulica/domek-1.webp', 'assets/ulica/domek-2.webp', 'assets/ulica/domek-3.webp', 'assets/ulica/domek-4.webp'];
   /* grafiki jedną drogą przez Cache API (cache-first, każdy plik z sieci raz), jak na stronie biegu; bez Cache API zwykłe adresy */
