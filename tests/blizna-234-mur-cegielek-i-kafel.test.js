@@ -25,7 +25,7 @@ test('kafel: bez przycisku filmu, Zbiórka na cały wiersz, jedno miejsce na „
   assert.match(czytaj('js/akcja.mjs'), /\.akcja-dzis-przycisk--zbiorka\{[^}]*grid-column:1\/-1/, 'Zbiórka na całą szerokość wiersza');
   assert.equal(A.przyciskBieguHtml(D(3)), '', 'miejsce na przycisk biegu: dziś puste');
   assert.match(czytaj('js/akcja.mjs'), /noreferrer">Zbiórka<\/a>' : ""\) \+\r?\n\s+przyciskBieguHtml\(d\) \+/, 'jedno oczywiste miejsce: zaraz po „Zbiórka”');
-  assert.match(k, /class="akcja-mur akcja-mur--dzis"/, 'mur cegiełek w kaflu');
+  assert.doesNotMatch(k, /akcja-mur/, 'jeden mur na Dziś: ten pod sceną; blok „Mur cegiełek” zdjęty z kafla (12.11 wieczór)');
 });
 
 test('mur cegiełek: Dziś 5 + „Cały mur (N)”, strona cały + „Zwiń do ostatnich 5”, imiona ładnie, bez zgody pusta cegła, 0 cegieł = nic', async () => {
@@ -68,10 +68,8 @@ test('wybór w localStorage w try/catch: brak pamięci nie psuje, zapis odczytyw
 
 test('strona akcji: mur cegiełek z licznika pod podpisem sceny, nad „O akcji”; kafel na Dziś: mur po przyciskach', () => {
   const h = czytaj('dla-fabianka.html');
-  assert.match(h, /\$\('mur-cegielek'\)\.innerHTML = A\.murCegielekHtml \? A\.murCegielekHtml\(d, \{ tryb: 'strona' \}\) : '';/);
-  assert.ok(h.indexOf('id="mur-cegielek"') < h.indexOf('id="o-akcji"'));
-  assert.match(h, /#mur-cegielek \{ order: -3; \}/);
+  assert.doesNotMatch(h, /mur-cegielek|murCegielekHtml/, 'strona ulicy bez bloku „Mur cegiełek”: jeden mur, ten pod sceną');
   const a = czytaj('js/akcja.mjs');
-  assert.match(a, /murCegielekHtml\(d, \{ tryb: "dzis" \}\);\r?\n  \}/, 'kafel: mur na końcu daneKaflaHtml');
+  assert.doesNotMatch(a, /murCegielekHtml\(d, \{ tryb: "dzis" \}\)/, 'kafel bez bloku muru'); assert.match(a, /murCegielekHtml: murCegielekHtml/, 'funkcja zostaje w module');
   assert.doesNotMatch(a.replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, 'imię dziecka tylko z bazy');
 });

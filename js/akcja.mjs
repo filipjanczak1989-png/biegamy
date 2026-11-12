@@ -416,8 +416,9 @@
       (zb ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--zbiorka" href="' + zb + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") +
       przyciskBieguHtml(d) +
       (formularzFirm(d) ? '<a class="akcja-dzis-przycisk akcja-dzis-przycisk--ulica" href="' + adresStrony(d, "#firma") + '">Twoja firma lub cegiełka na Ulicy</a>' : "") + "</div>" +
-      /* „▶ Zobacz film startu” zdjęty z kafla 12.11 (punkt 2a): pliki filmu, kolejka filmów (akcja-cytaty) i nakładka „Zobacz film” w karcie bez zmian. */
-      murCegielekHtml(d, { tryb: "dzis" });
+      /* „▶ Zobacz film startu” zdjęty z kafla 12.11 (punkt 2a): pliki filmu, kolejka filmów (akcja-cytaty) i nakładka „Zobacz film” w karcie bez zmian.
+         Blok „Mur cegiełek” zdjęty 12.11 wieczór (decyzja: jeden mur, ten pod sceną); murCegielekHtml zostaje w module. */
+      "";
   }
   /* MIEJSCE NA PRZYCISK „BIEG WIRTUALNY” (po 18.11): jedyne miejsce w siatce kafla, w wierszu po „Zbiórka”. Dziś pusta funkcja, a „Zbiórka” zajmuje cały wiersz
      (CSS .akcja-dzis-przycisk--zbiorka). Gdy bieg ruszy: zwrócić '<a class="akcja-dzis-przycisk" href="…">Bieg wirtualny</a>' i zdjąć grid-column ze „Zbiórki”. */

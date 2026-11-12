@@ -71,8 +71,6 @@
   #scena-gora .us-udostepnij { order: -6; width: auto; align-self: flex-end; margin: -44px 0 0; padding: 0 14px; min-height: 44px; font-size: 13px; }   /* w jednym wierszu z nazwą ulicy, cel dotyku 44 px */
   #scena-gora .us-opis { order: -5; margin: 6px 0 0; padding: 0; }
   #scena-gora .us-zdanie a { display: inline-block; padding: 14px 4px; margin: -14px 0; }
-  #mur-cegielek { order: -3; }   /* mur cegiełek z licznika: pod podpisem sceny, nad „O akcji”; na stronie cały, „Zwiń do ostatnich 5” (punkt 2c) */
-  #mur-cegielek:empty { display: none; }
   /* „O akcji” zwinięte: zdanie o dokładaniu 10 gr i zasady; otwiera się dotknięciem, nic nie ładuje */
   .o-akcji { background: var(--karta); border: 1px solid var(--ramka); border-radius: 18px; padding: 0 16px; margin: 14px 0 0; }
   .o-akcji summary { display: flex; justify-content: space-between; align-items: center; min-height: 48px; cursor: pointer; list-style: none; font: 600 12px/1.4 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); }
@@ -124,7 +122,6 @@
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
       <a class="przycisk przycisk--zbiorka" id="do-firmy" href="#firma" hidden>Twoja firma lub cegiełka na Ulicy ›</a>
     </div>
-    <div id="mur-cegielek"></div>
     <details class="o-akcji" id="o-akcji">
       <summary>O akcji</summary>
       <p class="drobne" id="filip"></p>
@@ -197,7 +194,6 @@ document.addEventListener('DOMContentLoaded', function () {
     $('prog').innerHTML = A.banerProguHtml(d);
     $('pasek').innerHTML = A.pasekHtml(d, { krotko: true });
     $('procent').textContent = procentCelu(d);
-    $('mur-cegielek').innerHTML = A.murCegielekHtml ? A.murCegielekHtml(d, { tryb: 'strona' }) : '';
     $('filip').textContent = A.tekstFilipa(d);
     if (A.sprawdzGre) A.sprawdzGre();      // link do gry dopiero, gdy przełącznik włączony
     if (A.linkGry) { $('gra').href = A.linkGry(d); if (d.testowa === true) $('gra').hidden = false; }   // próba: do gry na próbie, jak z kafla na Dziś
