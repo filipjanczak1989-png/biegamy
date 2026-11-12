@@ -281,12 +281,33 @@ function sprawdz(zmiana, tryb, zatwierdzenie) {
     return !new RegExp('\\bREVOKE\\b[^;]*\\bON\\s+(?:TABLE\\s+)?(?:public\\.)?"?' + nazwa + '"?\\b[^;]*\\bFROM\\s+anon\\b', 'i').test(calosc);
   };
 
+  /* ZAWĘŻENIE DLA ANON (12.11.2026, decyzja Filipa). Grant kolumnowy `SELECT (kolumny) ON x` dla roli anon w pliku migracji,
+     który WYŻEJ odebrał anonowi SELECT na x (revoke), daje anonowi MNIEJ niż miał (widok dostał nowe kolumny, anon zostaje przy
+     starych). Tylko ten kształt schodzi do blokady miękkiej (trailer): kolumnowy, wyłącznie SELECT, ten sam obiekt,
+     REVOKE wyżej w TYM SAMYM pliku migracji. Każdy inny GRANT dla anon (cały obiekt, inne prawo, inny obiekt, bez
+     REVOKE, poza migracją, REVOKE poniżej) zostaje TWARDY — także w CI, bo to ta sama funkcja. */
+  const zawezenia = new Set();
+  const RE_GRANT_KOLUMNOWY = /^\s*GRANT\s+SELECT\s*\(([^)]+)\)\s+ON\s+(?:TABLE\s+)?(?:public\.)?("?[a-z_][\w]*"?)\s+TO\s+anon\s*;?\s*$/i;
+  for (const w of (zmiana.wPlikach || [])) {
+    if (!/^supabase\/migrations\//.test(w.plik)) continue;
+    w.linie.forEach((l, i) => {
+      const m = RE_GRANT_KOLUMNOWY.exec(l); if (!m) return;
+      const obiekt = m[2].replace(/"/g, ''), wyzej = w.linie.slice(0, i).join('\n');
+      if (new RegExp('\\bREVOKE\\s+SELECT\\s+ON\\s+(?:TABLE\\s+)?(?:public\\.)?"?' + obiekt + '"?\\s+FROM\\s+anon\\b', 'i').test(wyzej)) zawezenia.add(l.trim());
+    });
+  }
+
   for (const linia of dodane) {
     if (ZNACZNIK.test(linia)) { przykladow++; continue; }
     for (const r of BLOKADY_TRESCI) {
       const m = r.re.exec(linia);
       if (m) {
         if (r.obiektAnon && !bezRevoke(m[1])) break;   // para domknięta w tym samym diffie
+        if (r.opis === 'GRANT dla roli anon' && zawezenia.has(linia.trim())) {
+          miekkaDo({ gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', opis: 'GRANT kolumnowy SELECT dla anon po REVOKE (zawężenie)',
+            czemu: 'Anon dostaje PODZBIÓR kolumn obiektu, któremu ten sam plik wyżej odebrał SELECT. Zawężenie, nie nowy dostęp — ale to nadal uprawnienie dla niezalogowanego: powód do historii.' });
+          break;
+        }
         // treści nie drukujemy — mogłaby zawierać sam sekret
         const wpis = { gdzie: 'dodana linia (' + linia.trim().slice(0, 24).replace(/\S/g, '·') + '…)', ...r };
         if (r.obiektAnon) wpis.gdzie = 'obiekt ' + m[1];
@@ -644,6 +665,26 @@ function samokontrola() {
     ok(osoby(D('tools/x-test.sql', ["zw uuid := '1111" + "1111-1111-4111-8111-111111111111'; -- konto zawodnika w teście"])) === 0, 'UUID-atrapa 11111111-… PRZECHODZI');
     ok(osoby(D(MIG, ["where t.id = '<KONTO STARTUJĄCE: wartość poza repo>';"])) === 0, 'opis roli zamiast wartości PRZECHODZI');
     ok(osoby(D(MIG, ['-- konto ' + uuid + '   -- bramka:przyklad'])) === 0, 'znacznik bramka:przyklad działa jak dla innych reguł');
+  }
+
+  /* 13) ZAWĘŻENIE DLA ANON (12.11.2026): kolumnowy grant (SELECT) po odebraniu SELECT w tym samym pliku migracji → MIĘKKA; każdy inny kształt → TWARDA, także z trailerem i w CI. */
+  {
+    console.log('\n  13) grant kolumnowy (SELECT) dla anon po odebraniu SELECT w tym samym pliku migracji → MIĘKKA; reszta → TWARDA');
+    const D = (plik, linie, tryb, powod) => sprawdz({ pliki: [], dodane: linie, wPlikach: [{ plik, linie }] }, tryb || 'hook', powod);
+    const MIG = 'supabase/migrations/20261201_x.sql', POW = 'migracja wykonana na prod, test zielony, zatwierdzil Filip';
+    const rev = 'rev' + 'oke select on public.widok_x from anon;', kol = 'gra' + 'nt select (id, full_name) on public.widok_x to anon;';
+    const twarda = (w) => w.blokady.some((b) => b.ciBlokada && /GRANT dla roli anon/.test(b.opis));
+    const miekka = (w) => w.blokady.concat(w.ostrzezenia).some((b) => /zawężenie/.test(b.opis));
+    ok(miekka(D(MIG, [rev, kol])) && !twarda(D(MIG, [rev, kol])) && D(MIG, [rev, kol]).blokady.length >= 1, '1) revoke + grant kolumnowy, bez trailera → blokada MIĘKKA (hook blokuje, nie twardo)');
+    ok(D(MIG, [rev, kol], 'hook', POW).blokady.length === 0, '   ...z trailerem → PRZECHODZI');
+    ok(D(MIG, [rev, kol], 'ci').blokady.length === 0 && miekka(D(MIG, [rev, kol], 'ci')), '   ...w CI ostrzeżenie, nie czerwony run');
+    ok(twarda(D(MIG, [kol], 'hook', POW)), '2) grant kolumnowy BEZ revoke → TWARDA mimo trailera');
+    ok(twarda(D(MIG, [rev, 'gra' + 'nt select on public.widok_x to anon;'], 'hook', POW)), '3) grant na CAŁY obiekt po revoke → TWARDA');
+    ok(twarda(D(MIG, ['rev' + 'oke select on public.inny_widok from anon;', kol], 'hook', POW)), '4) revoke na INNYM obiekcie → TWARDA');
+    ok(twarda(D(MIG, [rev, 'gra' + 'nt update (id) on public.widok_x to anon;'], 'hook', POW)), '5) grant inny niż SELECT → TWARDA');
+    ok(twarda(D(MIG, [kol, rev], 'hook', POW)), '   revoke PONIŻEJ grantu → TWARDA (kolejność w pliku)');
+    ok(twarda(D('tools/x-test.sql', [rev, kol], 'hook', POW)), '   poza plikiem migracji → TWARDA');
+    ok(twarda(D(MIG, [kol], 'ci')), '   w CI grant kolumnowy bez revoke → nadal TWARDA (czerwony run)');
   }
 
   console.log('\n  ' + (bledy
