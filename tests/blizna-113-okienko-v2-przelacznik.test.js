@@ -18,7 +18,6 @@ const { atrapa, JA } = require('./_okienko-atrapy.js');
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (...p) => fs.readFileSync(path.join(KORZEN, ...p), 'utf8').replace(/\r/g, '');
 const OKN = czytaj('js', 'okienko.js');
-const FILIP = '56092926-2cf1-44b6-952f-38614497fdc2', TEST = '9c2df65c-6a46-410e-ad5f-474e5d973ec9';
 
 function swiat(rpc, naglowek) {
   const ctx = zaladujSb();
@@ -48,7 +47,8 @@ test('1) migracja: cztery tabele z jawnym revoke, log v2 z ms/intencja/pewnosc/o
   assert.match(m, /k\.athlete_id = public\.auth_my_athlete_id\(\)/, 'konto z sesji, nie z parametru');
   assert.match(m, /revoke all on function public\.okienko_wersja\(\) from public, anon, authenticated;\s*grant execute on function public\.okienko_wersja\(\) to authenticated;/);
   assert.match(m, /\('v2_wlaczone', 'true'\), \('v2_dla_wszystkich', 'false'\)/, 'start: v2 włączone tylko dla listy');
-  assert.ok(m.includes(`('${FILIP}', 'Filip — konto główne')`) && m.includes(`('${TEST}', 'konto testowe (próba akcji)')`), 'Filip + konto testowe (Filip 3.11)');
+  assert.ok(m.includes("('<KONTO GŁÓWNE: wartość poza repo>', 'Filip — konto główne')") && m.includes("('<KONTO TESTOWE PRÓBY: wartość poza repo>', 'konto testowe (próba akcji)')"), 'Filip + konto testowe (Filip 3.11); UUID poza repo od 13.11');
+  assert.doesNotMatch(m, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/, 'w migracji nie ma UUID kont (repo publiczne)');
   assert.match(m, /tryb\s+text not null check \(tryb in \('router', 'flash', 'siec', 'siec-cache', 'osoba', 'impreza', 'limit', 'blad', 'budzet80', 'v2', 'v2-awaria', 'v2-niepewne'\)\)/);
   for (const k of ['intencja', 'pewnosc', 'plan', 'ms', 'samosprawdzenie', 'ocena']) assert.match(m, new RegExp(`^  ${k}\\s`, 'm'), 'kolumna ' + k);
   assert.match(m, /ocena\s+smallint check \(ocena is null or ocena in \(-1, 1\)\)/);

@@ -12,6 +12,7 @@
 -- KONTO: athlete_id → athletes ON DELETE CASCADE — delete_my_account kasuje athletes, wpisy znikają bez zmiany funkcji.
 -- Test po skutku (RLS, RPC dla trzech kont, w transakcji z rollbackiem): tools/okienko-v2-test.sh.
 -- Wycofanie: 20261105_WYCOFANIE_okienko_v2_przelacznik.sql.
+-- ⚠️ 13.11.2026: UUID kont usunięte z repo (repo jest publiczne); w ich miejscu opis roli, wartości poza repo. Migracja wykonana na produkcji, baza bez zmian; pliku nie uruchamiać ponownie.
 
 begin;
 
@@ -30,8 +31,8 @@ create table if not exists public.okienko_v2_konta (
   kto         text not null check (char_length(kto) between 1 and 60)
 );
 insert into public.okienko_v2_konta (athlete_id, kto) values
-  ('56092926-2cf1-44b6-952f-38614497fdc2', 'Filip — konto główne'),
-  ('9c2df65c-6a46-410e-ad5f-474e5d973ec9', 'konto testowe (próba akcji)')
+  ('<KONTO GŁÓWNE: wartość poza repo>', 'Filip — konto główne'),
+  ('<KONTO TESTOWE PRÓBY: wartość poza repo>', 'konto testowe (próba akcji)')
   on conflict (athlete_id) do nothing;
 
 alter table public.okienko_ustawienia enable row level security;

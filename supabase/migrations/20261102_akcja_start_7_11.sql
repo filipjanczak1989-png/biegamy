@@ -6,6 +6,7 @@
 -- treningi z intervals: osobne konto intervals, 0 wspólnych aktywności z Filipem) od naciśnięcia guzika do „Dotarliśmy";
 -- cel (wyprawa_cel_km) poda Filip. Próba: wyprawa = konto testowe.
 -- Przed zmianą: żadna akcja nie wystartowała (asercja).
+-- ⚠️ 13.11.2026: UUID kont usunięte z repo (repo jest publiczne); w ich miejscu opis roli, wartości poza repo. Migracja wykonana na produkcji, baza bez zmian; pliku nie uruchamiać ponownie.
 begin;
 
 do $$ begin
@@ -17,7 +18,7 @@ update public.akcje
    set start = date '2026-11-07',
        okno_startu_od = timestamp '2026-11-07 06:00:00' at time zone 'Europe/Warsaw',
        okno_startu_do = timestamp '2026-11-07 23:59:59' at time zone 'Europe/Warsaw',
-       wyprawa_athlete_ids = array['56092926-2cf1-44b6-952f-38614497fdc2'::uuid, '2dd9206b-d2f0-4bdc-a1ef-4d7765e446b8'::uuid]
+       wyprawa_athlete_ids = array['<KONTO STARTUJĄCE: wartość poza repo>'::uuid, '<KONTO WSPÓŁTRENERKI: wartość poza repo>'::uuid]
  where slug = 'dla-fabianka';
 update public.akcje
    set start = date '2026-11-07', wyprawa_athlete_ids = konta_testowe
