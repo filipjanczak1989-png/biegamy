@@ -748,11 +748,20 @@
     if (g.BM_ULICA) { try { cb(g.BM_ULICA); } catch (e) {} return; }
     if (_ulicaCzeka) { _ulicaCzeka.push(cb); return; }
     _ulicaCzeka = [cb];
-    var el = g.document.createElement("script");
-    el.src = "js/ulica.mjs"; el.async = true;
-    el.onload = function () { var q = _ulicaCzeka || []; _ulicaCzeka = null; q.forEach(function (f) { try { if (g.BM_ULICA) f(g.BM_ULICA); } catch (e) {} }); };
-    el.onerror = function () { _ulicaCzeka = null; };
-    g.document.head.appendChild(el);
+    /* Najpierw sezon (js/sezon.mjs): scena czyta go przy wczytaniu. Jego brak albo błąd = jesień, ulica i tak się ładuje. */
+    zSezonem(function () {
+      var el = g.document.createElement("script");
+      el.src = "js/ulica.mjs"; el.async = true;
+      el.onload = function () { var q = _ulicaCzeka || []; _ulicaCzeka = null; q.forEach(function (f) { try { if (g.BM_ULICA) f(g.BM_ULICA); } catch (e) {} }); };
+      el.onerror = function () { _ulicaCzeka = null; };
+      g.document.head.appendChild(el);
+    });
+  }
+  function zSezonem(dalej) {
+    if (g.BM_SEZON) return dalej();
+    var s = g.document.createElement("script"), raz = false, idz = function () { if (!raz) { raz = true; dalej(); } };
+    s.src = "js/sezon.mjs"; s.async = true; s.onload = idz; s.onerror = idz;
+    g.document.head.appendChild(s);
   }
   /** Kontener ulicy w karcie (Dziś, Okienko): licznik to ten sam obiekt, z którego karta bierze pasek. Pusty div nie zajmuje miejsca. */
   function punktUlicy(d, opcje) {

@@ -110,7 +110,7 @@
   function podziekowanie(dane, format, obrazy) {
     var kw = format === "kwadrat", W = 1080, H = kw ? 1080 : 1350, k = nowyCanvas(W, H), c = k.getContext("2d"), u = dane.ulica || ULICA_PRZYKLAD, firma = nazwaFirmy(dane.firma);
     var niebo = c.createLinearGradient(0, 0, 0, H * 0.58); niebo.addColorStop(0, "#9fd0ee"); niebo.addColorStop(1, "#dceefb"); c.fillStyle = niebo; c.fillRect(0, 0, W, H * 0.58);
-    c.fillStyle = "#86ad55"; c.fillRect(0, H * 0.58, W, H * 0.42);
+    c.fillStyle = K("#86ad55"); c.fillRect(0, H * 0.58, W, H * 0.42);
     /* droga niżej (0,78–0,87 H), budynki większe: dolna część grafiki nie jest pustą zielenią (uwaga z przeglądu 11.11); pod drogą zostaje miejsce na dwa wiersze zdania i podpis */
     var yDroga = H * 0.78, wysDrogi = H * 0.09;
     c.fillStyle = "#3b3b47"; c.fillRect(0, yDroga, W, wysDrogi); c.strokeStyle = "#fff7e6"; c.lineWidth = 6; c.setLineDash([40, 30]); c.beginPath(); c.moveTo(0, yDroga + wysDrogi / 2); c.lineTo(W, yDroga + wysDrogi / 2); c.stroke(); c.setLineDash([]);
@@ -159,10 +159,11 @@
     ".fs-hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}.fs-chip{background:rgba(7,7,10,.78);color:#fff7e6;border-radius:10px;padding:6px 9px;font:600 12px/1.15 Inter,sans-serif;backdrop-filter:blur(4px)}.fs-chip b{font:400 20px/1 'Bebas Neue',Impact,sans-serif;letter-spacing:.03em;display:block;color:#ffb27a}" +
     ".fs-chip--sponsor{background:#2f6b3a;color:#fff;font:700 12px/1.15 Inter,sans-serif;align-self:flex-start}.fs-chip--przyklad{background:#b8520f;color:#fff;font:800 9px/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 8px;align-self:flex-start}" +
     ".fs-wskaz{position:absolute;right:10px;bottom:10px;color:#fff7e6;font:600 11px/1 Inter,sans-serif;background:rgba(7,7,10,.6);padding:7px 9px;border-radius:8px;pointer-events:none}";
-  function wstrzyknijCss() { if (g.document.getElementById("bm-firmy-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-firmy-scena-css"; st.textContent = CSS; g.document.head.appendChild(st); }
+  function wstrzyknijCss() { if (g.document.getElementById("bm-firmy-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-firmy-scena-css"; st.textContent = K(CSS); g.document.head.appendChild(st); }
   function el(tag, klasa, rodzic, tekst) { var n = g.document.createElement(tag); if (klasa) n.className = klasa; if (tekst != null) n.textContent = tekst; if (rodzic) rodzic.appendChild(n); return n; }
   var _zrodlo = null;
-  function adres(src) { return _zrodlo ? (_zrodlo(src) || src) : src; }
+  function adres(src) { var s = g.BM_SEZON ? g.BM_SEZON.adres(src) : src; return _zrodlo ? (_zrodlo(s) || s) : s; }   // sezon (js/sezon.mjs): plik motywu, gdy go ma
+  function K(k) { return g.BM_SEZON ? g.BM_SEZON.kolory(k) : k; }   // kolory łąki w motywie (js/sezon.mjs); jesień bez zmian
   function obraz(src, klasa, rodzic, lewo, szer) { var im = el("img", klasa, rodzic); im.alt = ""; im.decoding = "async"; im.draggable = false; im.setAttribute("data-plik", src); im.src = adres(src); im.style.left = lewo + "px"; im.style.width = szer + "px"; return im; }
   function tlo(n, src) { n.style.backgroundImage = "url(\"" + adres(src) + "\")"; return n; }
   var IMIONA = ["Ania", "Bartek", "Ewa", "Franek", "Gosia", "Igor", "Kuba", "Lena", "Olek", "Tosia", "Wojtek", "Zosia"];

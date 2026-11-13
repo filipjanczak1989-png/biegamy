@@ -182,7 +182,7 @@
   /** PLAKAT WYZWANIA A4 pion (dla organizacji, do pobrania): nazwa, okres, cztery kroki, QR do strony. */
   function plakatWyzwania(adres, obrazy) {
     var W = 1240, H = 1754, k = nowyCanvas(W, H), c = k.getContext("2d"), los = losowy(5);
-    var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#9fd0ee"); tlo.addColorStop(0.42, "#dceefb"); tlo.addColorStop(0.42, "#86ad55"); tlo.addColorStop(1, "#4f7a33"); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
+    var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#9fd0ee"); tlo.addColorStop(0.42, "#dceefb"); tlo.addColorStop(0.42, K("#86ad55")); tlo.addColorStop(1, K("#4f7a33")); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
     c.fillStyle = "#3b3b47"; c.fillRect(0, 700, W, 130); c.strokeStyle = "#fff7e6"; c.lineWidth = 6; c.setLineDash([40, 30]); c.beginPath(); c.moveTo(0, 765); c.lineTo(W, 765); c.stroke(); c.setLineDash([]);
     rysujObraz(c, obrazy && obrazy.szkola, 80, 420, 420, 280); rysujObraz(c, obrazy && obrazy.domek, 600, 520, 180, 180); rysujObraz(c, obrazy && obrazy.domek, 820, 500, 200, 200); rysujObraz(c, obrazy && obrazy.plac, 1030, 560, 150, 140);
     konfetti(c, W, 420, 40, los, [[60, 90, 1120, 160], [80, 280, 1080, 120], [W - 300, 400, 260, 80]]);
@@ -222,10 +222,11 @@
     ".ds-hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}.ds-chip{background:rgba(7,7,10,.78);color:#fff7e6;border-radius:10px;padding:6px 9px;font:600 12px/1.15 Inter,sans-serif;backdrop-filter:blur(4px)}" +
     ".ds-chip b{font:400 20px/1 'Bebas Neue',Impact,sans-serif;letter-spacing:.03em;display:block;color:#ffb27a}.ds-chip--przyklad{background:#b8520f;color:#fff;font:800 9px/1 Inter,sans-serif;letter-spacing:.14em;padding:7px 8px;align-self:flex-start}" +
     ".ds-wskaz{position:absolute;right:10px;bottom:10px;color:#fff7e6;font:600 11px/1 Inter,sans-serif;background:rgba(7,7,10,.6);padding:7px 9px;border-radius:8px;pointer-events:none}";
-  function wstrzyknijCssSceny() { if (g.document.getElementById("bm-druzyny-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-druzyny-scena-css"; st.textContent = CSS_SCENY; g.document.head.appendChild(st); }
+  function wstrzyknijCssSceny() { if (g.document.getElementById("bm-druzyny-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-druzyny-scena-css"; st.textContent = K(CSS_SCENY); g.document.head.appendChild(st); }
   function el(tag, klasa, rodzic, tekst) { var n = g.document.createElement(tag); if (klasa) n.className = klasa; if (tekst != null) n.textContent = tekst; if (rodzic) rodzic.appendChild(n); return n; }
   var _zrodlo = null;
-  function adres(src) { return _zrodlo ? (_zrodlo(src) || src) : src; }
+  function adres(src) { var s = g.BM_SEZON ? g.BM_SEZON.adres(src) : src; return _zrodlo ? (_zrodlo(s) || s) : s; }   // sezon (js/sezon.mjs): plik motywu, gdy go ma
+  function K(k) { return g.BM_SEZON ? g.BM_SEZON.kolory(k) : k; }   // kolory łąki w motywie (js/sezon.mjs); jesień bez zmian
   function obraz(src, klasa, rodzic, lewo, szer) { var im = el("img", klasa, rodzic); im.alt = ""; im.decoding = "async"; im.draggable = false; im.setAttribute("data-plik", src); im.src = adres(src); im.style.left = lewo + "px"; im.style.width = szer + "px"; return im; }
   function tlo(n, src) { n.style.backgroundImage = "url(\"" + adres(src) + "\")"; return n; }
   /** Scena w kontenerze. opcje: { wysokosc, wlasna (drużyna pokazu), zrodlo, hud }. Szkoła na początku, plac zabaw, droga z % celu, domki pierwszych 8 drużyn rankingu (własna zawsze, złoty szyld). */

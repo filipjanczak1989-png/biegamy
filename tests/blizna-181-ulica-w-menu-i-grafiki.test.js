@@ -80,7 +80,7 @@ test('gra: grafiki z przeglądu, kształt zostaje przy braku pliku, duże pliki 
     assert.ok(a[n], n); assert.ok(fs.existsSync(path.join(KORZEN, 'assets/gra', n + '.webp')), n);
   }
   for (const n of ['ikona_dziennik', 'ikona_magazyn', 'ikona_rankingi', 'ikona_mur', 'glosnik_wl', 'glosnik_wyl', 'obroc_telefon', 'medal_1', 'medal_2', 'medal_3']) assert.ok(fs.existsSync(path.join(KORZEN, 'assets/gra', n + '.webp')), n);
-  assert.match(s, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\|rakieta\|mur\)_\/\.test\(k\)/, 'mur i rakieta poza ładowaniem startowym');
+  assert.match(s, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\|rakieta\|mur\)_\|\^mikolaj\/\.test\(k\)/, 'mur i rakieta poza ładowaniem startowym');
   assert.match(s, /if \(oc\) \{ var wc = 112 \* z/); assert.match(s, /x\.beginPath\(\); x\.ellipse\(cx, cy, 58 \* z/, 'chmura z kodu zostaje');
   assert.match(s, /if \(seg && pom\) \{/); assert.match(s, /c\.lineCap = "round"; c\.strokeStyle = "#2b1c10"/, 'rusztowanie z kodu zostaje');
   assert.match(s, /if \(gr\) \{\n\s+\/\* Trzy części/); assert.match(s, /c\.fillText\(t, x - 8 \+ lw \+ 4, ty\)/, 'napis na fladze w kodzie');
@@ -90,9 +90,9 @@ test('gra: grafiki z przeglądu, kształt zostaje przy braku pliku, duże pliki 
 
 test('ulica: warstwy z plików, kształt z kodu do czasu wczytania, ciężar w granicach', () => {
   const s = czytaj('js/ulica-scena.mjs');
-  assert.match(s, /daleko\.style\.backgroundImage = svgUrl\(SVG_DALEKO\);[^\n]*\n\s+zPliku\(daleko, "assets\/ulica\/wzgorza\.webp"/);
-  assert.match(s, /przod\.style\.backgroundImage = svgUrl\(SVG_PRZOD\);[^\n]*\n\s+zPliku\(przod, "assets\/ulica\/pierwszy-plan\.webp"/);
-  assert.match(s, /zPliku\(plot, "assets\/ulica\/plot\.webp"/); assert.match(s, /function rysujPark\(xp\)/); assert.match(s, /im\.onerror = function \(\) \{/, 'park: bez pliku drzewa jak dotąd');
+  assert.match(s, /daleko\.style\.backgroundImage = svgUrl\(poZimowemu\(SVG_DALEKO\)\);[^\n]*\n\s+zPliku\(daleko, A\("assets\/ulica\/wzgorza\.webp"\)/);
+  assert.match(s, /przod\.style\.backgroundImage = svgUrl\(poZimowemu\(SVG_PRZOD\)\);[^\n]*\n\s+zPliku\(przod, A\("assets\/ulica\/pierwszy-plan\.webp"\)/);
+  assert.match(s, /zPliku\(plot, A\("assets\/ulica\/plot\.webp"\)/); assert.match(s, /function rysujPark\(xp\)/); assert.match(s, /im\.onerror = function \(\) \{/, 'park: bez pliku drzewa jak dotąd');
   let razem = 0;
   for (const n of ['wzgorza', 'plot', 'pierwszy-plan', 'slupek', 'tablica-start', 'tablica-meta', 'park']) { const st = fs.statSync(path.join(KORZEN, 'assets/ulica', n + '.webp')); assert.ok(st.size < 100 * 1024, n); razem += st.size; }
   assert.ok(razem < 260 * 1024, 'razem ' + razem);

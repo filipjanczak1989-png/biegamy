@@ -34,7 +34,7 @@ test('stroje osobno: zapis na postać, kupione wspólne, stary zapis raz, kopark
   assert.match(k, /stan\.stroje\[kto\] = teraz; zapiszStroje\(\);/); assert.match(k, /stan\.stroje\[komu\] = po; zapiszStroje\(\);/);
   assert.match(k, /window\.sb\.rpc\("gra_zapisz_stroje", \{ p_stroje: stan\.stroje \}\)/);
   assert.match(k, /\.from\("gra_konto"\)\.select\("stroje"\)\.maybeSingle\(\)/, 'osobne zapytanie: baza bez kolumny nie zabiera salda');
-  assert.match(s, /ubior = KONTO \? L\.strojPostaci\(KONTO\.wybor\(postac\), postac\) : null;/, 'runda w stroju tej postaci');
+  assert.match(s, /ubior = KONTO && !skora \? L\.strojPostaci\(KONTO\.wybor\(postac\), postac\) : null;/, 'runda w stroju tej postaci (zimą Mikołaj bez stroju z Magazynu)');
   assert.match(k, /function kartyWStrojach\(\)/, 'karty wyboru w strojach');
 });
 

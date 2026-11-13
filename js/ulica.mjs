@@ -117,7 +117,9 @@
       cegly_n: Array.isArray(j.cegly) ? Math.max(cegly.length, Math.floor(Number(j.cegly_n) || 0)) : imiona.length + bez,
     };
   }
-  function sciezkaObrazu(nazwa) { return KATALOG + nazwa + ".webp"; }
+  /* Sezon (js/sezon.mjs): ten sam plik z katalogu motywu, gdy go ma; jesień i brak modułu = ścieżka jak dotąd. */
+  function sezonZima() { return !!(g.BM_SEZON && g.BM_SEZON.zima()); }
+  function sciezkaObrazu(nazwa) { var p = KATALOG + nazwa + ".webp"; return g.BM_SEZON ? g.BM_SEZON.adres(p) : p; }
   function formatKm(x) { var A = g.BM_AKCJA; return A && A.km ? A.km(x) : String(Math.round(Number(x) || 0)); }
   function tytulUlicy(imie) {
     var im = imie && g.BM_AKCJA && g.BM_AKCJA.dopelniacz ? g.BM_AKCJA.dopelniacz(imie) : "";
@@ -368,7 +370,7 @@
       prost(r, 34, 46, 12, 18, "#7a4f2c", 1); prost(r, 14, 42, 12, 10, SZYBA, 1); prost(r, 54, 42, 12, 10, SZYBA, 1); prost(r, 58, 4, 8, 12, "#b5533c", 1);
     } },
     drzewo: { vb: "0 0 40 44", rys: function (r) {
-      prost(r, 18, 24, 4, 20, "#7a4f2c", 1); kolo(r, 20, 16, 15, "#e8892b").setAttribute("stroke", OBRYS);
+      prost(r, 18, 24, 4, 20, "#7a4f2c", 1); kolo(r, 20, 16, 15, sezonZima() ? "#f2f7fc" : "#e8892b").setAttribute("stroke", OBRYS);
     } },
     latarnia: { vb: "0 0 14 48", rys: function (r) {
       kreska(r, 7, 48, 7, 12, "#3a3d44", 2.2); kolo(r, 7, 8, 5, "#fff2a8").setAttribute("stroke", OBRYS);
@@ -419,6 +421,8 @@
     });
   }
 
+  /* Zima (js/sezon.mjs): łąka i grunt miniatury w kolorach śniegu. Dopisywane za CSS jesieni, więc jesień zostaje bez zmian. */
+  var CSS_ZIMA = ".um-okno{background:#c3d5e6}.um-laka{background:linear-gradient(#f4f8fc,#d3e2ef)}.um-grunt{background:linear-gradient(#e9f1f8 0 14%,#8c6d3f 14% 78%,#dfe9f3 78%)}";
   /* ── MINIATURA: nieruchoma, na karty. Bez pętli, bez dźwięku, bez paralaksy. ─────── */
   var CSS = ".um{display:block;margin:12px 0;color:var(--fg,#f0ede8);font-family:Inter,system-ui,sans-serif;text-decoration:none}" +
     ".um--ramka{background:var(--card,#0f0f14);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:18px;padding:14px;margin:14px 0}" +
@@ -444,7 +448,7 @@
     ".um-pas-zobacz{position:absolute;right:8px;top:4px;font-size:12px;line-height:1.15;font-weight:800;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.7)}";
   function wstrzyknijCss() {
     if (g.document.getElementById("bm-ulica-css")) return;
-    var st = g.document.createElement("style"); st.setAttribute("id", "bm-ulica-css"); st.textContent = CSS;
+    var st = g.document.createElement("style"); st.setAttribute("id", "bm-ulica-css"); st.textContent = CSS + (sezonZima() ? CSS_ZIMA : "");
     g.document.head.appendChild(st);
   }
   function tloNieba(pora) { var k = KOLORY_NIEBA[pora] || KOLORY_NIEBA.dzien; return "linear-gradient(" + k[0] + "," + k[1] + " 55%," + k[2] + ")"; }

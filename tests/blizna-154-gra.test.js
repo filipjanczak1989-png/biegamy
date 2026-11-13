@@ -201,7 +201,7 @@ test('postacie do odblokowania: poziom 10, poziom 20 albo mur, tylko za przełą
   assert.deepEqual(L.strojPostaci({ oczy: 'okulary' }, 'koparka'), { tulow: null, spodenki: null, stopy: null, glowa: null, oczy: null, szyja: null, plecy: null }, 'na rysunku dziecka nic');
   assert.equal(L.imieZPodpisu('Imię Nazwisko na rowerze'), 'Imię'); assert.equal(L.imieZPodpisu(null), '');
   const silnik = czytaj('js/cegielki.js'), konto = czytaj('js/cegielki-konto.js'), html = czytaj('gra-cegielki.html');
-  assert.match(silnik, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\|rakieta\|mur\)_\/\.test\(k\)/, 'arkusze roweru nie wczytują się same przy starcie strony');
+  assert.match(silnik, /!\/\^\(kasia\|filip\|rowerzysta\|dodatek\|rakieta\|mur\)_\|\^mikolaj\/\.test\(k\)/, 'arkusze roweru nie wczytują się same przy starcie strony');
   assert.match(konto, /d\.rowerzysta === true && window\.BM_CEGIELKI_GRA\) \{ window\.BM_CEGIELKI_GRA\.wlaczRowerzyste\(\); wlaczPostacRoweru/);
   assert.match(konto, /d\.postac_koparki === true/);
   for (const id of ['rowerzysta', 'koparka']) assert.match(html, new RegExp('data-postac="' + id + '" hidden'), 'karta ukryta do odblokowania: ' + id);

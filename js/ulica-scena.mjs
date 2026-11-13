@@ -4,6 +4,11 @@
 // Przed startem: plac z tablicą, niebo i liście; bez liczb, licznika, świętowania, dźwięku i udostępniania. Tekst z bazy (firma, imię) tylko przez textContent. Liczby tylko z suma_km licznika.
 (function (g) {
   "use strict";
+  /* SEZON (js/sezon.mjs): ścieżki przez adres(), kolory zimy dopisywane za CSS jesieni, płatki śniegu zamiast liści. Jesień i brak modułu = wszystko jak dotąd. */
+  var SZ = g.BM_SEZON || null, ZIMA = !!(SZ && SZ.zima());
+  function A(p) { return SZ ? SZ.adres(p) : p; }
+  var KOLORY_ZIMY = { "#8fb27a": "#dfe9f3", "#a4bd62": "#eef4fa", "#c9b458": "#f4f8fc", "#d6a04a": "#f4f8fc", "#b9c46a": "#f4f8fc", "#a8933f": "#c3d5e6", "#d9822b": "#f2f7fc", "#b5651d": "#e3eef8", "#c8553d": "#f2f7fc", "#e0a030": "#f2f7fc", "#7f9a4a": "#e3eef8", "#4f7a33": "#e3edf6", "#6f9e3e": "#f4f8fc", "#35561f": "#9fb3c8", "#e8892b": "#ffffff", "#f2b32a": "#ffffff", "#d9482b": "#ffffff" };
+  function poZimowemu(svg) { return ZIMA ? svg.replace(/#[0-9a-f]{6}/g, function (k) { return KOLORY_ZIMY[k] || k; }) : svg; }
   var WYS = 340, ODC = 30.25, START_X = 70, DROGA_Y = 240, DROGA_H = 72, KAFEL_DROGI = 242, KONIEC_SWIATA = 300, OKRES_SRODKA = 1400, KAFEL_DALEKO = 700, KAFEL_PRZOD = 380;
   var CEL_PX = 125 * ODC, SWIAT = START_X + CEL_PX + KONIEC_SWIATA, PARALAKSA = { daleko: 0.18, srodek: 0.55, przod: 1.25 };
   var ZA_DROGA = 20, POZIOM_DOMKU = 258, POZIOM_MASZYN = 286, POZIOM_DZWIGU = 262, POZIOM_BUDOWNICZEGO = 304, POZIOM_SRODKA = 238;
@@ -64,9 +69,9 @@
     ".us-grunt,.us-droga{position:absolute;top:" + DROGA_Y + "px;height:" + DROGA_H + "px;pointer-events:none}" +
     ".us-grunt{left:" + START_X + "px;width:" + CEL_PX + "px;background:linear-gradient(#6d8f3f 0 12%,#8c6d3f 12% 72%,#7a5d33 76%,#5f8a3a 78%)}" +
     ".us-droga{left:" + START_X + "px;background-color:#3a3d44;background-repeat:repeat-x;background-size:" + KAFEL_DROGI + "px " + DROGA_H + "px}" +
-    ".us-slupek{position:absolute;top:" + (DROGA_Y - 76) + "px;width:52px;height:85px;display:flex;align-items:center;justify-content:center;padding-top:9px;box-sizing:border-box;background:url(assets/ulica/slupek.webp) center/contain no-repeat;color:#23252b;font:800 10px/1 Inter,system-ui,sans-serif;letter-spacing:-.3px;white-space:nowrap;transform:translateX(-50%);pointer-events:none}" +
-    ".us-tablica{position:absolute;padding:8px 14px 24px;background:url(assets/ulica/tablica-start.webp) center/100% 100% no-repeat;color:#23252b;font:800 12px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
-    ".us-meta{background-image:url(assets/ulica/tablica-meta.webp);color:#fff}" +
+    ".us-slupek{position:absolute;top:" + (DROGA_Y - 76) + "px;width:52px;height:85px;display:flex;align-items:center;justify-content:center;padding-top:9px;box-sizing:border-box;background:url(" + A("assets/ulica/slupek.webp") + ") center/contain no-repeat;color:#23252b;font:800 10px/1 Inter,system-ui,sans-serif;letter-spacing:-.3px;white-space:nowrap;transform:translateX(-50%);pointer-events:none}" +
+    ".us-tablica{position:absolute;padding:8px 14px 24px;background:url(" + A("assets/ulica/tablica-start.webp") + ") center/100% 100% no-repeat;color:#23252b;font:800 12px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none}" +
+    ".us-meta{background-image:url(" + A("assets/ulica/tablica-meta.webp") + ");color:#fff}" +
     ".us-btn{position:absolute;display:block;margin:0;padding:0;border:0;background:none;cursor:pointer;touch-action:pan-y;color:inherit;font:inherit;min-width:44px;min-height:44px}" +
     ".us-btn:focus-visible{outline:3px solid #fff;outline-offset:2px;border-radius:8px}" +
     ".us-cz{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;pointer-events:none}" +
@@ -141,7 +146,7 @@
 
   function wstrzyknijCss() {
     if (g.document.getElementById("bm-ulica-scena-css")) return;
-    var st = g.document.createElement("style"); st.setAttribute("id", "bm-ulica-scena-css"); st.textContent = CSS;
+    var st = g.document.createElement("style"); st.setAttribute("id", "bm-ulica-scena-css"); st.textContent = CSS + (ZIMA ? ".us-laka{background:" + SZ.paleta().laka + "}.us-grunt{background:" + SZ.paleta().grunt + "}" : "");
     g.document.head.appendChild(st);
   }
   function el(tag, klasa, rodzic, tekst) {
@@ -407,15 +412,15 @@
     [[18, 74, 1, 96, -20], [58, 120, 0.8, 130, -80], [34, 96, 0.62, 170, -40]].forEach(function (c, nrCh) {
       var ch1 = el("div", "us-chmura", okno);
       ch1.setAttribute("aria-hidden", "true");
-      ch1.style.backgroundImage = svgUrl(SVG_CHMURA); zPliku(ch1, "assets/gra/chmura" + (nrCh + 1) + ".webp", "contain");
+      ch1.style.backgroundImage = svgUrl(SVG_CHMURA); zPliku(ch1, A("assets/gra/chmura" + (nrCh + 1) + ".webp"), "contain");
       ch1.style.top = c[0] + "px"; ch1.style.width = c[1] * c[2] + "px"; ch1.style.height = c[1] * c[2] * 0.56 + "px";
       ch1.style.animationDuration = c[3] + "s"; ch1.style.animationDelay = c[4] + "s";
       if (!ruch) przesun(ch1, 40 + c[3]);
     });
     var daleko = el("div", "us-warstwa", okno);
     daleko.style.top = "100px"; daleko.style.height = "120px"; daleko.style.width = "calc(100% + " + KAFEL_DALEKO + "px)";
-    daleko.style.backgroundImage = svgUrl(SVG_DALEKO); daleko.style.backgroundRepeat = "repeat-x"; daleko.style.backgroundPosition = "0 100%"; daleko.style.backgroundSize = KAFEL_DALEKO + "px 120px";
-    zPliku(daleko, "assets/ulica/wzgorza.webp", KAFEL_DALEKO + "px 120px");
+    daleko.style.backgroundImage = svgUrl(poZimowemu(SVG_DALEKO)); daleko.style.backgroundRepeat = "repeat-x"; daleko.style.backgroundPosition = "0 100%"; daleko.style.backgroundSize = KAFEL_DALEKO + "px 120px";
+    zPliku(daleko, A("assets/ulica/wzgorza.webp"), KAFEL_DALEKO + "px 120px");
     el("div", "us-laka", okno);
     var srodek = el("div", "us-warstwa", okno);
     srodek.style.width = "calc(100% + " + OKRES_SRODKA + "px)";
@@ -427,8 +432,8 @@
     ulica.style.width = (przed ? 1200 : SWIAT) + "px";
     var przod = el("div", "us-warstwa", okno);
     przod.style.top = (WYS - 54) + "px"; przod.style.height = "54px"; przod.style.width = "calc(100% + " + KAFEL_PRZOD + "px)";
-    przod.style.backgroundImage = svgUrl(SVG_PRZOD); przod.style.backgroundRepeat = "repeat-x"; przod.style.backgroundSize = KAFEL_PRZOD + "px 54px";
-    zPliku(przod, "assets/ulica/pierwszy-plan.webp", KAFEL_PRZOD + "px 54px");
+    przod.style.backgroundImage = svgUrl(poZimowemu(SVG_PRZOD)); przod.style.backgroundRepeat = "repeat-x"; przod.style.backgroundSize = KAFEL_PRZOD + "px 54px";
+    zPliku(przod, A("assets/ulica/pierwszy-plan.webp"), KAFEL_PRZOD + "px 54px");
     var tint = el("div", "us-tint us-tint-p", okno);
     var g1 = el("div", "us-gwiazdy us-g1", okno), g2 = el("div", "us-gwiazdy us-g2", okno), ksiezyc = el("div", "us-ksiezyc", okno);
     [g1, g2, ksiezyc].forEach(function (n) { okno.insertBefore(n, okno.firstChild.nextSibling); });   // niebo: za budynkami, a wysoki budynek sięga pod księżyc
@@ -486,7 +491,7 @@
       var plot = el("div", "us-sprite", srodek);
       plot.style.left = "0"; plot.style.right = "0"; plot.style.top = (POZIOM_SRODKA - 34) + "px"; plot.style.height = "26px";
       plot.style.backgroundImage = svgUrl(SVG_PLOT); plot.style.backgroundRepeat = "repeat-x";
-      plot.style.height = "34px"; plot.style.top = (POZIOM_SRODKA - 42) + "px"; zPliku(plot, "assets/ulica/plot.webp", "111px 34px");
+      plot.style.height = "34px"; plot.style.top = (POZIOM_SRODKA - 42) + "px"; zPliku(plot, A("assets/ulica/plot.webp"), "111px 34px");
       var wzor = [["drzewo", 40, 0.92], ["drzewo", 262, 0.72], ["latarnia", 430, 0.8], ["drzewo", 640, 1], ["latarnia", 870, 0.8], ["drzewo", 1012, 0.78], ["drzewo", 1236, 0.96]].filter(function (w) { return !(przed && w[0] === "latarnia"); });
       wzor.concat(wzor.filter(function (w) { return w[1] < 700; }).map(function (w) { return [w[0], w[1] + OKRES_SRODKA, w[2]]; })).forEach(function (w) {
         var wys = (w[0] === "drzewo" ? 130 : 92) * w[2], szer = wys * (w[0] === "drzewo" ? 0.94 : 0.288);
@@ -818,10 +823,11 @@
 
     /* cząstki: jedna pula, jeden canvas */
     function przygotujListki() {
-      ["#e8892b", "#f2b32a", "#d9482b", "#b5651d"].forEach(function (kol) {
+      (ZIMA ? SZ.paleta().liscie : ["#e8892b", "#f2b32a", "#d9482b", "#b5651d"]).forEach(function (kol) {
         var c = g.document.createElement("canvas"); c.width = 24; c.height = 24;
         var x = c.getContext("2d");
         if (!x) return;
+        if (ZIMA) { var gr = x.createRadialGradient(12, 12, 0, 12, 12, 9); gr.addColorStop(0, kol); gr.addColorStop(0.55, kol); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.beginPath(); x.arc(12, 12, 9, 0, 6.283); x.fill(); listki.push(c); return; }   // płatek śniegu
         x.translate(12, 12); x.scale(1.25, 1.25);
         var p = new g.Path2D(LISC);
         x.fillStyle = kol; x.fill(p); x.strokeStyle = "rgba(58,29,10,.7)"; x.lineWidth = 0.9; x.stroke(p);

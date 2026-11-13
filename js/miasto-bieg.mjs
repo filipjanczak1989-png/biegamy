@@ -341,7 +341,7 @@
   /** PLAKAT 1080×1350 dla organizacji: nazwa, okno, dystanse, QR do strony biegu, zdanie o pieniądzach. */
   function plakat(adres, obrazy) {
     var W = 1080, H = 1350, k = nowyCanvas(W, H), c = k.getContext("2d"), los = losowy(3);
-    var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#9fd0ee"); tlo.addColorStop(0.5, "#dceefb"); tlo.addColorStop(0.5, "#86ad55"); tlo.addColorStop(1, "#4f7a33"); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
+    var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#9fd0ee"); tlo.addColorStop(0.5, "#dceefb"); tlo.addColorStop(0.5, K("#86ad55")); tlo.addColorStop(1, K("#4f7a33")); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
     c.fillStyle = "#3b3b47"; c.fillRect(0, 700, W, 150); c.strokeStyle = "#fff7e6"; c.lineWidth = 6; c.setLineDash([40, 30]); c.beginPath(); c.moveTo(0, 775); c.lineTo(W, 775); c.stroke(); c.setLineDash([]);
     if (!rysujObraz(c, obrazy && obrazy.kibice, 40, 560, 420, 140)) { c.fillStyle = "#d9482b"; c.fillRect(60, 620, 300, 80); }
     rysujObraz(c, obrazy && obrazy.kibice, 620, 560, 420, 140);
@@ -418,11 +418,12 @@
       "<circle cx='24' cy='9' r='6.5' fill='#f3c89a'/><path d='M17.5 8.5q6-9 13-3l2 1.5-10 .5-3 2.5z' fill='#e8561e'/>" +
       "<ellipse cx='4' cy='55' rx='4.5' ry='2.5' fill='#e8561e'/><ellipse cx='36' cy='55' rx='4.5' ry='2.5' fill='#e8561e'/></g></svg>");
   };
-  function wstrzyknijCssSceny() { if (g.document.getElementById("bm-bieg-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-bieg-scena-css"; st.textContent = CSS_SCENY; g.document.head.appendChild(st); }
+  function wstrzyknijCssSceny() { if (g.document.getElementById("bm-bieg-scena-css")) return; var st = g.document.createElement("style"); st.id = "bm-bieg-scena-css"; st.textContent = K(CSS_SCENY); g.document.head.appendChild(st); }
   function el(tag, klasa, rodzic, tekst) { var n = g.document.createElement(tag); if (klasa) n.className = klasa; if (tekst != null) n.textContent = tekst; if (rodzic) rodzic.appendChild(n); return n; }
   /** Adres grafiki: strona może podać zrodlo(url) → adres z Cache API (blob:), żeby każdy plik szedł z sieci dokładnie raz i działał bez sieci. */
   var _zrodlo = null;
-  function adres(src) { return _zrodlo ? (_zrodlo(src) || src) : src; }
+  function adres(src) { var s = g.BM_SEZON ? g.BM_SEZON.adres(src) : src; return _zrodlo ? (_zrodlo(s) || s) : s; }   // sezon (js/sezon.mjs): plik motywu, gdy go ma
+  function K(k) { return g.BM_SEZON ? g.BM_SEZON.kolory(k) : k; }   // kolory łąki w motywie (js/sezon.mjs); jesień bez zmian
   function obraz(src, klasa, rodzic, lewo, szer) { var im = el("img", klasa, rodzic); im.alt = ""; im.decoding = "async"; im.draggable = false; im.setAttribute("data-plik", src); im.src = adres(src); im.style.left = lewo + "px"; im.style.width = szer + "px"; return im; }
   function tlo(n, src, rozmiar) { n.style.backgroundImage = "url(\"" + adres(src) + "\")"; if (rozmiar) n.style.backgroundSize = rozmiar; return n; }
   /** Cegły muru: imiona z puli (bez nazwisk), co piąta złota, co czwarta bez imienia (bez zgody). */

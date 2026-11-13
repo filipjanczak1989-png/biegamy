@@ -100,7 +100,7 @@ test('(3) strona nie wysyła niczego: bez Supabase i formularza, fetch tylko do 
     assert.doesNotMatch(t, /<form|action=|method="post"|FormData/i, n + ': bez formularza wysyłającego');
     assert.doesNotMatch(t, /sessionStorage|indexedDB|document\.cookie/, n + ': bez innych zapisów');
   }
-  assert.deepEqual([...HTML.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]), ['js/miasto-bieg.mjs', 'js/miasto-pokaz.mjs'], 'skrypty: własny moduł i tryb pokazu (11.11; bez sb.js, bez CDN)');
+  assert.deepEqual([...HTML.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]), ['js/sezon.mjs', 'js/miasto-bieg.mjs', 'js/miasto-pokaz.mjs'], 'skrypty: motyw (blizna-240), własny moduł i tryb pokazu (11.11; bez sb.js, bez CDN)');
   assert.deepEqual([...new Set((HTML + MJS).match(/https?:\/\/[^\s"'<)]+/g))].sort(), ['http://www.w3.org/2000/svg', 'https://fonts.googleapis.com', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap'].sort(), 'jedyne adresy zewnętrzne: fonty Google (bez nich fonty systemowe) i przestrzeń nazw SVG (nie jest pobierana)');
   const fetche = [...HTML.matchAll(/fetch\(([^)]*)\)/g)].map((m) => m[1]);
   assert.deepEqual(fetche, ['url'], 'jedyny fetch w stronie to własna grafika z assets/ (cache-first, Cache API)');

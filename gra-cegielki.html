@@ -30,7 +30,8 @@
   .postac i { display:block; width:var(--w,99px); height:var(--h,160px); background-repeat:no-repeat; background-size:calc(var(--w,99px)*6) var(--h,160px); animation:bieg var(--krok,.62s) steps(6) infinite; animation-delay:var(--faza,0s); }
   .postac[data-postac="kasia"] { --krok:.62s; --faza:-.31s; --fala:.83s; --tor:6.7s; --kier:-1; }
   .postac[data-postac="filip"] { --krok:.62s; --faza:0s; --fala:.71s; --tor:5.3s; --kier:1; }
-  .postac[data-postac="rowerzysta"] { --krok:.56s; }   /* tempo 1.1 z cegielki-logika: klatki szybciej o tyle, o ile szybciej jedzie */
+  .postac[data-postac="rowerzysta"] { --krok:.56s; }   /* zima: Mikołaj na saniach (js/sezon.mjs), podskok sań na przemian z jazdą */
+  .postac[data-postac="mikolaj"] { --krok:.9s; --fala:.9s; }   /* tempo 1.1 z cegielki-logika: klatki szybciej o tyle, o ile szybciej jedzie */
   @keyframes bieg { to { background-position-x:calc(var(--w,99px)*-6); } }
   @keyframes fala { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
   @keyframes wyprzedza { 0%,100% { transform:translateX(calc(var(--kier,1)*-7px)); } 50% { transform:translateX(calc(var(--kier,1)*7px)); } }
@@ -280,6 +281,7 @@
     <button class="postac" data-postac="filip"><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Filip</span></button>
     <button class="postac" data-postac="rowerzysta" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Rowerzysta</span></button>
     <button class="postac" data-postac="koparka" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Koparka</span></button>
+    <button class="postac" data-postac="mikolaj" hidden><span class="tor"><span class="fala"><i></i></span></span><span class="p-nazwa">Mikołaj</span></button>
   </div>
   <div class="m-wiecej">
   <p>Dotknięcie to skok, drugie w powietrzu to salto. Przesunięcie w dół to ślizg pod barierką.</p>
@@ -429,6 +431,7 @@
 <button id="glosnik" type="button" aria-label="Włącz dźwięki" aria-pressed="false"><img src="assets/gra/glosnik_wyl.webp" alt=""></button>
 <div id="ladowanie">Ładuję…</div>
 
+<script src="js/sezon.mjs" data-strona></script><!-- motyw (jesień/zima): jedno ustawienie w js/sezon.mjs; jesień nie zmienia niczego -->
 <script src="js/moderacja.mjs"></script>
 <script src="js/cegielki-logika.mjs"></script>
 <script src="js/cegielki-przypiecia.js"></script>

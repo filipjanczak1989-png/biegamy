@@ -10,8 +10,12 @@
   var PRED_START = 300, CZAS_KASKU = 10, CZAS_BUTA = 3, CZAS_ZELU = 8, BIDON_S = 5, CZAS_PRZEMIANY = 0.8, CZAS_NIETYKALNY_PRZEMIANA = 1, MAKS_CZASTEK = 80, MAKS_KONFETTI = 20;
   var PRZESZKODY = { pacholek: { sk: 0.42, hh: 50, hw: 22 }, barierka: { sk: 0.5, hh: 50, hw: 44 }, kaluza: { sk: 0.55, hh: 8, hw: 52 }, worki: { sk: 0.5, hh: 50, hw: 42 }, kamien: { sk: 0.45, hh: 50, hw: 42 } };
   var SK_PRZEDMIOTU = { cegla: 0.5, cegla_zlota: 0.58, kask: 0.6, bidon: 0.6, but: 0.6, zel: 0.6 };
-  var PODPIS_BONUSU = { kask: "Kask! Cegły ×2", bidon: "+5 sekund", but: "Sprint z magnesem", zel: "Żel: ×2", rakieta: "Rakieta!" };
-  var LISCIE = ["#e9772b", "#f2b233", "#c9472b", "#d98a23", "#8fae3c"];
+  /* SEZON (js/sezon.mjs): pliki motywu przez plikGry(), kolory łąki przez K(), zimą prezenty zamiast bonusów i Mikołaj na saniach (skóra Kasi: te same zasady i zapis). Jesień = jak dotąd. */
+  var SEZ = window.BM_SEZON || null, ZIMA = !!(SEZ && SEZ.zima());
+  var plikGry = function (p) { return SEZ ? SEZ.adres(p) : p; }, K = function (k) { return SEZ ? SEZ.kolory(k) : k; };
+  var PODPIS_BONUSU = ZIMA ? { kask: "Prezent! Cegły ×2", bidon: "Prezent: +5 sekund", but: "Prezent: sprint z magnesem", zel: "Prezent: ×2", rakieta: "Rakieta!" } : { kask: "Kask! Cegły ×2", bidon: "+5 sekund", but: "Sprint z magnesem", zel: "Żel: ×2", rakieta: "Rakieta!" };
+  var NAPIS_OCHRONY = ZIMA ? "Prezent uratował!" : "Kask uratował!";
+  var LISCIE = ZIMA ? SEZ.paleta().konfetti : ["#e9772b", "#f2b233", "#c9472b", "#d98a23", "#8fae3c"];
 
   var W = 960, H = 540, skala = 1, dpr = 1, gradNieba = null, pion = false, pasPodDroga = 0;
   var trybMaly = false;
@@ -149,7 +153,7 @@
       var sz = o.naturalWidth || o.width, wy = o.naturalHeight || o.height;
       if (sz && wy) { x.drawImage(o, 0, 0, sz, wy, 0, 0, sz, wy); x.drawImage(o, 0, 0, sz, wy, 0, 0, sz * SK, wy * SK); }
     });
-    Object.keys(PODPIS_BONUSU).map(function (k) { return PODPIS_BONUSU[k]; }).concat(["Kask uratował!", "Oj!", "Ślizg!", "+1 złota", "Wyzwanie dnia!", "Szybciej!"]).forEach(function (s) { tekst(s, 20, 60, 24, "#fff"); tekst(s, 20, 60, 26, "#fff"); });
+    Object.keys(PODPIS_BONUSU).map(function (k) { return PODPIS_BONUSU[k]; }).concat([NAPIS_OCHRONY, "Oj!", "Ślizg!", "+1 złota", "Wyzwanie dnia!", "Szybciej!"]).forEach(function (s) { tekst(s, 20, 60, 24, "#fff"); tekst(s, 20, 60, 26, "#fff"); });
     rozgrzejNapisy();
     return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); });
   }
@@ -201,7 +205,7 @@
           else (i.decode ? i.decode().catch(function () {}) : Promise.resolve()).then(function () { gotowe(null); });
         };
         i.onerror = function () { ok(); };
-        i.src = KAT + A[n].src + "?v=" + WERSJA;
+        i.src = plikGry(KAT + A[n].src) + "?v=" + WERSJA;
       }).then(function () { delete wTrakcie[n]; }));
     }));
   }
@@ -482,7 +486,7 @@
       if (naKlatke) naKlatke(f);
     }
     function petlaSceny(t0, t) { if (stop) return; var f = CZAS ? Math.min(1, (t - t0) / CZAS) : 1; klatkaSceny(f); if (f < 1) raf = requestAnimationFrame(function (t2) { petlaSceny(t0, t2); }); else if (naKoniec) naKoniec(n); }
-    var budGotowy = new Promise(function (ok) { bud.onload = ok; bud.onerror = ok; bud.src = "assets/ulica/budowniczy.webp?v=" + WERSJA; });
+    var budGotowy = new Promise(function (ok) { bud.onload = ok; bud.onerror = ok; bud.src = plikGry("assets/ulica/budowniczy.webp") + "?v=" + WERSJA; });
     Promise.all([wczytajObrazy(["krajobraz", "droga", "mur_rusztowanie", "mur_pomost", "mur_flaga_a", "mur_flaga_b", "mur_cegla"]), budGotowy]).then(function () {
       if (stop) return;
       if (OBR.mur_cegla) { ceglaGotowa = document.createElement("canvas"); ceglaGotowa.width = bw * 2; ceglaGotowa.height = bh * 2; ceglaGotowa.getContext("2d").drawImage(OBR.mur_cegla, 0, 0, bw * 2, bh * 2); }
@@ -523,17 +527,20 @@
     if (startuje) return;
     startuje = true;
     ostatniaPostac = postac; schowek.zapisz("cegielki_postac", postac);
+    /* Zima: Mikołaj na saniach to skóra Kasi: te same zasady, plecak i zapis wyniku (serwer zna cztery postacie), inny rysunek, bez stroju z Magazynu. */
+    var skora = postac === "mikolaj" && ZIMA && A.mikolaj ? "mikolaj" : null;
+    if (postac === "mikolaj") postac = "kasia";
     var pole = $("imie"); if (pole) { imieGracza = pole.value.trim(); schowek.zapisz("cegielki_imie", imieGracza); }
     trybMaly = !!($("m-maly") && $("m-maly").checked);
-    var STROJ = window.BM_CEGIELKI_STROJ, KONTO = window.BM_CEGIELKI_KONTO, ubior = KONTO ? L.strojPostaci(KONTO.wybor(postac), postac) : null;
+    var STROJ = window.BM_CEGIELKI_STROJ, KONTO = window.BM_CEGIELKI_KONTO, ubior = KONTO && !skora ? L.strojPostaci(KONTO.wybor(postac), postac) : null;
     noszone = STROJ && ubior ? STROJ.noszone(ubior) : [];
-    var naz = Object.keys(A).filter(function (k) { return k.indexOf(postac + "_") === 0; }).concat(STROJ ? STROJ.nazwyObrazow(noszone) : []);
+    var naz = skora ? ["mikolaj"] : Object.keys(A).filter(function (k) { return k.indexOf(postac + "_") === 0; }).concat(STROJ ? STROJ.nazwyObrazow(noszone) : []);
     if (L.ulepszenieDla("rakieta", postac) && KONTO && KONTO.plecak && L.mozeUzyc(KONTO.plecak(), [], "rakieta")) naz.push("rakieta_rower");   // arkusz tylko dla tych, którzy mają rakietę
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
     var t0Startu = performance.now();
     grafikiRundy.then(function () { return wczytajObrazy(naz); }).then(function () {
       /* Strój to tylko wygląd: gdy przeróbka się nie uda, gra rusza w oryginale. */
-      try { if (STROJ) STROJ.zastosuj(OBR, A, postac, ubior); } catch (e) {}
+      try { if (STROJ && !skora) STROJ.zastosuj(OBR, A, postac, ubior); } catch (e) {}
       return bitmapyPostaci(naz).then(function () { return D.przygotuj(); }).then(rozgrzejObrazy).then(function () { return probaPrzemiany(postac); });
     }).then(function () {
       $("ladowanie").hidden = true;
@@ -546,7 +553,7 @@
       if (DIAG) { DIAG.start = performance.now() - t0Startu; DIAG.przem = DIAG.reszta = 0; DIAG.przemN = DIAG.resztaN = 0; DIAG.zbierz = 0; }
       $("ladowanie").hidden = true;
       CZAS_WSTECZ.zgloszone = false;   // diagnostyka blizna-238: najwyżej jeden wpis na rundę
-      G = nowyStan(postac);
+      G = nowyStan(postac); G.skora = skora;
       if (L.gorkaWRundzie(G.poziom, G.maly) && !OBR.gorka) wczytajObrazy(["gorka"]);
       if (L.druzynaWRundzie(G.poziom, G.maly) && !OBR.druzyna) wczytajObrazy(["druzyna"]);
       $("menu").hidden = true; $("koniec").hidden = true;
@@ -612,7 +619,7 @@
       g.bud = 0; g.blysk = 0.3; g.nietykalny = 0.9; p.rozbita = true;
       pozaBonusu("tarcza", 0.4);
       konfetti(xs, stopy() - g.y - 70, 34);
-      dodajNapis("Kask uratował!", xs + 20, stopy() - g.y - 150, "#ffe07a", 26);
+      dodajNapis(NAPIS_OCHRONY, xs + 20, stopy() - g.y - 150, "#ffe07a", 26);
       D.graj("uderzenie");
       zaliczSekwencje(p);
       return;
@@ -847,6 +854,7 @@
   var ostatniWynik = 0, pozaKonca = 0;
   /* Rower stoi przy rowerze, koparka się cieszy, pozostali mają arkusz I. */
   function pozaKoncowa(nr) {
+    if (G.skora === "mikolaj") return { n: "mikolaj", ark: null, i: 5 };   // zima: Mikołaj wstaje w saniach z rękami w górze
     if (G.postac === "rowerzysta") return { n: nz("skok"), ark: "skok", i: 5 };
     if (G.postac === "koparka") return { n: "koparka_ark", ark: null, i: L.KLATKI_KOPARKI.radosc };
     return { n: nz("I"), ark: "I", i: nr };
@@ -952,7 +960,7 @@
   /* Napisy, które wchodzą przy skoku, salcie, lądowaniu i bonusach: przygotowane na ekranie ładowania, żeby pierwsze pojawienie się nie kosztowało klatki. */
   function rozgrzejNapisy() {
     rozgrzewka = true;
-    var lista = [["+1 złota", 24, "#ffe07a"], ["Ślizg!", 24, "#9df0a8"], ["Oj!", 26, "#ffb0a0"], ["Za późno!", 26, "#ffb0a0"], ["Kask uratował!", 26, "#ffe07a"], ["Szybciej!", 34, "#ffe07a"], ["Wyzwanie dnia!", 34, "#ffe07a"]];
+    var lista = [["+1 złota", 24, "#ffe07a"], ["Ślizg!", 24, "#9df0a8"], ["Oj!", 26, "#ffb0a0"], ["Za późno!", 26, "#ffb0a0"], [NAPIS_OCHRONY, 26, "#ffe07a"], ["Szybciej!", 34, "#ffe07a"], ["Wyzwanie dnia!", 34, "#ffe07a"]];
     L.NAZWY_TRIKOW.concat(["Salto", "Podbicie"]).forEach(function (n) { for (var k = 1; k <= L.COMBO_MAKS; k++) lista.push([(k > 1 ? "Combo ×" + k + ": " : "") + n + "!", 26, "#9df0a8"]); });
     for (var m = 1; m <= 6; m++) lista.push(["+" + m, 18, "#ffd9a0"], ["Bum! +" + m, 24, "#ffe07a"], ["Trach! +" + m, 24, "#ffe07a"]);
     Object.keys(PODPIS_BONUSU).forEach(function (k) { lista.push([PODPIS_BONUSU[k], 24, "#fff"]); });
@@ -982,16 +990,16 @@
   /* Pion: pas pod drogą, trawa z tym samym ruchem co droga. Tu nic się nie dzieje, palec gracza nie zasłania akcji. */
   function rysujPasPodDroga() {
     var y0 = goraDrogi() + WYS_DROGI, gr = x.createLinearGradient(0, y0, 0, H);
-    gr.addColorStop(0, "#26380f"); gr.addColorStop(1, "#16220a");
+    gr.addColorStop(0, K("#26380f")); gr.addColorStop(1, K("#16220a"));
     x.fillStyle = gr; x.fillRect(0, y0 - 1, W, H - y0 + 1);
     if (OBR.trawa_pod_droga) {
       /* Trawa w swojej skali, niżej sama ziemia: przy dużym pasie pod drogą rozciągnięta kępka zasłaniałaby przyciski. */
       var wysT = Math.min(H - y0 + 16, 130), zi = x.createLinearGradient(0, y0 + wysT - 18, 0, H);
-      zi.addColorStop(0, "#6b4524"); zi.addColorStop(1, "#33200f");
+      zi.addColorStop(0, K("#6b4524")); zi.addColorStop(1, K("#33200f"));
       x.fillStyle = zi; x.fillRect(0, y0 + wysT - 18, W, H);
       pasek("trawa_pod_droga", G.s, y0 - 16, wysT); return;
     }
-    x.fillStyle = "rgba(92,134,48,.55)";
+    x.fillStyle = ZIMA ? "rgba(255,255,255,.55)" : "rgba(92,134,48,.55)";
     var okres = 92, prz = G.s % okres;
     for (var r = 0; r < 4; r++) for (var xx = -prz + r * 31; xx < W + okres; xx += okres) { var yy = y0 + 22 + r * (H - y0 - 34) / 4; x.beginPath(); x.moveTo(xx - 7, yy + 9); x.lineTo(xx - 2, yy - 6); x.lineTo(xx + 1, yy + 2); x.lineTo(xx + 5, yy - 9); x.lineTo(xx + 8, yy + 9); x.fill(); }
   }
@@ -1136,7 +1144,25 @@
       x.save(); x.translate(o.x, o.y - 30); x.rotate(o.kat); x.drawImage(OBR[o.typ], -a.w * d.sk / 2, -a.h * d.sk / 2, a.w * d.sk, a.h * d.sk); x.restore();
     }
   }
+  /* Zima: Mikołaj na saniach (arkusz 6 póz: jazda, podskok, skok, opadanie, wywrotka, radość). Tylko rysunek: ruch i kolizje liczy ten sam krok co dla Kasi, bez losowania tutaj. */
+  function rysujMikolaja() {
+    var g = G, xs = graczX(), stopaY = stopy() - g.y + 2, cien = 1 - Math.min(0.7, g.y / 300), i = 0, obrot = 0;
+    x.fillStyle = "rgba(10,10,30,.3)"; x.beginPath(); x.ellipse(xs, stopy() + 3, 52 * cien, 8 * cien, 0, 0, Math.PI * 2); x.fill();
+    if (!A.mikolaj || !OBR.mikolaj) return;
+    if (g.reakcja > 0) i = 4;
+    else if (!g.naZiemi) { if (g.saltoT >= 0 && g.saltoT < 1) { i = 2; obrot = g.saltoT * Math.PI * 2; } else i = g.vy > 0 ? 2 : 3; }
+    else i = Math.floor(g.anim / 3) % 2;
+    if (g.bud > 0 || g.zel > 0) { x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = g.zel > 0 ? 0.35 + 0.15 * Math.sin(czasGlobalny * 9) : 0.3; x.drawImage(poswiataBiala, xs - 80, stopaY - 140, 160, 140); x.restore(); }
+    if (g.nietykalny > 0 && g.przemiana <= 0 && Math.floor(czasGlobalny * 14) % 2) x.globalAlpha = 0.5;
+    klatka("mikolaj", i, xs, stopaY, obrot);
+    x.globalAlpha = 1;
+    if (g.sprint > 0) {
+      x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = 3;
+      for (var k = 0; k < 5; k++) { var yy = stopaY - 18 - k * 18, dl = 26 + ((czasGlobalny * 200 + k * 37) % 40); x.beginPath(); x.moveTo(xs - 70 - k * 3, yy); x.lineTo(xs - 70 - k * 3 - dl, yy); x.stroke(); }
+    }
+  }
   function rysujGracza() {
+    if (G.skora === "mikolaj") return rysujMikolaja();
     if (G.postac === "koparka") return rysujKoparke();
     var g = G, xs = graczX(), bud = g.bud > 0, wlasne = g.postac === "rowerzysta", bieg = nz(bud && !wlasne ? "bud" : "bieg"), stopaY = stopy() - g.y + 2, n = bieg, i = Math.floor(g.anim) % 6, obrot = 0;
     var cien = 1 - Math.min(0.7, g.y / 300);
@@ -1295,9 +1321,9 @@
     rysujNiebo(); rysujTlo(); rysujGorkeTlo();
     var przechyl = stan === "gra" && G.katDrogi ? G.katDrogi : 0;
     if (przechyl) {
-      x.fillStyle = "#7f9150"; x.fillRect(0, goraDrogi() - 3, W, 90);   // nad opuszczoną drogą pas trawy zamiast nieba
+      x.fillStyle = K("#7f9150"); x.fillRect(0, goraDrogi() - 3, W, 90);   // nad opuszczoną drogą pas trawy zamiast nieba
       x.save(); x.translate(graczX(), stopy()); x.rotate(przechyl); x.scale(1.06, 1.06); x.translate(-graczX(), -stopy());
-      x.fillStyle = "#2b3a20"; x.fillRect(-200, goraDrogi() + WYS_DROGI - 2, W + 400, H);   // pod przechyloną drogą nie może prześwitywać niebo
+      x.fillStyle = K("#2b3a20"); x.fillRect(-200, goraDrogi() + WYS_DROGI - 2, W + 400, H);   // pod przechyloną drogą nie może prześwitywać niebo
     }
     pasek("droga", G.s, goraDrogi(), WYS_DROGI);
     if (pasPodDroga > 0) rysujPasPodDroga();
@@ -1397,8 +1423,8 @@
   function kartaPostaci(id, adres) {
     var a = id === "koparka" ? A.koparka_ark : A[id + "_bieg"], el = document.querySelector('.postac[data-postac="' + id + '"] i'); if (!a || !el) return;
     /* Styl w elemencie wygrywa z @media, więc wielkość karty w poziomie liczymy tutaj. Inaczej karty zajmują cały ekran i reszta menu wypada pod spód. */
-    var sz = (id === "koparka" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : innerWidth <= 480 ? 0.74 : 1), wys = Math.round(a.ch * sz / a.cw);
-    el.style.backgroundImage = "url(" + (adres || KAT + a.src + "?v=" + WERSJA) + ")";
+    var sz = (id === "koparka" || id === "mikolaj" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : innerWidth <= 480 ? 0.74 : 1), wys = Math.round(a.ch * sz / a.cw);
+    el.style.backgroundImage = "url(" + (adres || plikGry(KAT + a.src) + "?v=" + WERSJA) + ")";
     el.style.setProperty("--w", sz + "px"); el.style.setProperty("--h", wys + "px");
   }
   function obrazekOdznaki() { var im = document.createElement("img"); im.className = "odznaka-mini"; im.src = KAT + "odznaka.webp"; im.alt = "Odznaka"; return im; }
@@ -1410,6 +1436,8 @@
     if ($("imie")) $("imie").value = imieGracza;
     /* biegacze na kartach: rozmiar klatki z atlasu, różne tempo i faza */
     ["kasia", "filip"].forEach(function (id) { kartaPostaci(id); });
+    var bm = ZIMA && A.mikolaj_bieg ? document.querySelector('.postac[data-postac="mikolaj"]') : null;   // zima: karta Mikołaja na saniach
+    if (bm) { bm.hidden = false; kartaPostaci("mikolaj"); }
     odswiezGraj();
     $("menu").hidden = false;
   }
@@ -1418,7 +1446,9 @@
     try {
       var r = await fetch(KAT + "atlas.json?v=" + WERSJA);
       Object.assign(A, await r.json());
-      var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek|rakieta|mur)_/.test(k) && k !== "druzyna" && k !== "gorka" && k !== "trawa_pod_droga"; }).concat(["kasia_bieg", "filip_bieg"]);
+      /* Zima: arkusze Mikołaja tylko w motywie (pliki w assets/sezony/zima/gra, atlas.json bez zmian). */
+      if (ZIMA) { A.mikolaj = { src: "mikolaj.webp", cw: 300, ch: 240, n: 6, dol: 3, sk: 0.8 }; A.mikolaj_bieg = { src: "mikolaj_karta.webp", cw: 300, ch: 240, n: 6, dol: 3 }; }
+      var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek|rakieta|mur)_|^mikolaj/.test(k) && k !== "druzyna" && k !== "gorka" && k !== "trawa_pod_droga"; }).concat(["kasia_bieg", "filip_bieg"]);
       await wczytajObrazy(GRAFIKI_MENU);
       grafikiRundy = wczytajObrazy(wspolne);
       if (pion) grafikiRundy.then(function () { wczytajObrazy(["trawa_pod_droga"]); });

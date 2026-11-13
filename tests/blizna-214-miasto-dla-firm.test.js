@@ -58,7 +58,7 @@ test('(2) nic nie wysyła: licznik tylko przez js/akcja.mjs, grafiki z assets/ p
     assert.doesNotMatch(t, /supabase\.createClient|window\.supabase|\.rpc\(|\.from\(["']|\.insert\(|\.upsert\(|XMLHttpRequest|sendBeacon|\.storage\.|functions\.invoke/i, n + ': żadnej drogi do bazy poza licznikiem');
     assert.doesNotMatch(t, /<form|action=|method="post"|FormData/i, n + ': bez formularza wysyłającego'); assert.doesNotMatch(t, /sessionStorage|indexedDB|document\.cookie/, n + ': bez innych zapisów');
   }
-  assert.deepEqual([...HTML.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]), ['js/akcja.mjs', 'js/miasto-firmy.mjs', 'js/miasto-pokaz.mjs']);   // 11.11: + tryb pokazu
+  assert.deepEqual([...HTML.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]), ['js/sezon.mjs', 'js/akcja.mjs', 'js/miasto-firmy.mjs', 'js/miasto-pokaz.mjs']);   // 11.11: + tryb pokazu; 13.11: + motyw (blizna-240)
   assert.deepEqual([...new Set((HTML + MJS).match(/https?:\/\/[^\s"'<)]+/g))].sort(), ['https://afqojgkaveykxbltxzwm.supabase.co', 'https://fonts.googleapis.com', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap'].sort(), 'adresy zewnętrzne: licznik (jak miasto.html) i fonty');
   assert.deepEqual([...HTML.matchAll(/fetch\(([^)]*)\)/g)].map((m) => m[1]), ['url'], 'jedyny fetch w stronie to własna grafika'); assert.match(HTML, /if \(!url \|\| !\/\^assets\\\/\/\.test\(url\) \|\| !window\.fetch\) return Promise\.resolve\(url\);/);
   assert.equal((MJS.match(/fetch\(/g) || []).length, 0); assert.equal((MJS.match(/localStorage\.setItem/g) || []).length, 1); assert.equal((HTML.match(/localStorage\./g) || []).length, 0);
