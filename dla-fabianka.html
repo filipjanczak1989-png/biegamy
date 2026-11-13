@@ -138,6 +138,8 @@
     <div class="przyciski">
       <!-- wejście sponsora kilometrów (index.html#sponsor → zawodnik.html#sponsor) schowane 12.11 do czasu wersji z potwierdzeniem stawki; ścieżka w index.html i zawodnik.html zostaje (blizna-106) -->
       <a class="przycisk przycisk--zbiorka" id="gra" href="gra-cegielki.html" data-gra-link hidden>Zagraj w Cegiełki ›<span class="mur-gra"></span></a>
+      <!-- bieg wirtualny (bieg.html): link stały w HTML, widoczny tylko, gdy licznik oddaje obiekt bieg (bieg poza szkicem); z danych biegu nic tu nie trafia -->
+      <a class="przycisk przycisk--zbiorka" id="bieg-link" href="bieg.html" hidden>Bieg wirtualny ›</a>
     </div>
     <div id="firmy" hidden></div>
     <section id="firma" hidden></section>
@@ -201,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(uporzadkujPodpis, 1500); setTimeout(uporzadkujPodpis, 4500);   // scena montuje się po liczniku i po gra-ranking (obserwator łapie resztę)
     $('zasady').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
+    var bl = $('bieg-link'); if (bl) { bl.hidden = !(d.bieg && typeof d.bieg === 'object'); bl.href = /[?&]proba=1/.test(location.search || '') ? 'bieg.html?proba=1' : 'bieg.html'; }   // przegląd biegu 13.11, usterka 2
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;
     if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }

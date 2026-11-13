@@ -74,10 +74,13 @@ const BIEG = { slug: 'x', nazwa: 'Bieg', dzien_od: '2026-12-05', dzien_do: '2026
 
 test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dni, imię jak CHECK w bazie, role i zasady', async () => {
   const B = await modul();
-  assert.equal(B.stanStrony(null, { user: {} }, []).stan, 'wkrotce'); assert.equal(B.stanStrony(BIEG, null, []).stan, 'niezalogowany'); assert.equal(B.stanStrony(BIEG, { user: {} }, []).stan, 'przed');
-  assert.equal(B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'ja', numer: 1 }]).stan, 'po');
-  const sd = B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'dziecko', numer: 2 }]); assert.equal(sd.stan, 'dzieci'); assert.equal(sd.ja, null); assert.equal(sd.dzieci.length, 1, 'same dzieci bez zapisu rodzica też dają stan z dziećmi');
-  assert.equal(B.stanStrony({ ...BIEG, faza: 'wyniki' }, { user: {} }, []).stan, 'przed', 'zapis także w fazie wyniki (do wynik_do)'); assert.equal(B.stanStrony({ ...BIEG, faza: 'zakonczony' }, { user: {} }, []).stan, 'zamkniete'); assert.equal(B.stanStrony({ ...BIEG, faza: 'trwa' }, { user: {} }, []).stan, 'przed');
+  /* 14.11 (przegląd frontu, usterka 1): stanStrony ma bramkę zapisu. Przy TEKSTY_GOTOWE = false zapis jest tylko na ?proba=1, więc stany zapisu sprawdzamy
+     z { proba: true } (droga próby Filipa = dawne zachowanie); że bez próby strona nigdy nie pokazuje zapisu, pilnuje blizna-241. */
+  const P = { proba: true };
+  assert.equal(B.stanStrony(null, { user: {} }, []).stan, 'wkrotce'); assert.equal(B.stanStrony(BIEG, null, [], P).stan, 'niezalogowany'); assert.equal(B.stanStrony(BIEG, { user: {} }, [], P).stan, 'przed');
+  assert.equal(B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'ja', numer: 1 }], P).stan, 'po');
+  const sd = B.stanStrony(BIEG, { user: {} }, [{ rodzaj: 'dziecko', numer: 2 }], P); assert.equal(sd.stan, 'dzieci'); assert.equal(sd.ja, null); assert.equal(sd.dzieci.length, 1, 'same dzieci bez zapisu rodzica też dają stan z dziećmi');
+  assert.equal(B.stanStrony({ ...BIEG, faza: 'wyniki' }, { user: {} }, [], P).stan, 'przed', 'zapis także w fazie wyniki (do wynik_do)'); assert.equal(B.stanStrony({ ...BIEG, faza: 'zakonczony' }, { user: {} }, [], P).stan, 'zamkniete'); assert.equal(B.stanStrony({ ...BIEG, faza: 'trwa' }, { user: {} }, [], P).stan, 'przed');
   assert.equal(B.zapisyOtwarte({ faza: 'wyniki' }), true); assert.equal(B.zapisyOtwarte({ faza: 'zakonczony' }), false); assert.equal(B.zapisyOtwarte({ faza: 'szkic' }), false);
   assert.equal(B.mozeDopisacDziecko(BIEG, new Array(6)), false); assert.equal(B.mozeDopisacDziecko(BIEG, new Array(5)), true); assert.equal(B.mozeDopisacDziecko({ ...BIEG, faza: 'zakonczony' }, []), false); assert.equal(B.mozeDopisacDziecko({ ...BIEG, faza: 'wyniki' }, []), true);
   assert.equal(B.zakresDni('2026-12-05', '2026-12-06'), '5–6.12.2026'); assert.equal(B.zakresDni('2026-11-30', '2026-12-01'), '30.11–1.12.2026'); assert.equal(B.zakresDni('2026-12-08', '2026-12-08'), '8.12.2026'); assert.equal(B.zakresDni('zle'), '');
@@ -93,7 +96,7 @@ test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dn
 test('bieg.mjs: miejsca na teksty oznaczone i nieudawane; lista ukończyli z czasem tylko za zgodą na ranking; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
   const B = await modul();
   for (const k of ['MIEJSCE_REGULAMIN', 'MIEJSCE_OSWIADCZENIE', 'MIEJSCE_ZGODA_IMIE', 'MIEJSCE_ZGODA_IMIE_DZIECKA', 'MIEJSCE_ZGODA_RANKING', 'MIEJSCE_ZGODA_EMAIL', 'MIEJSCE_POLITYKA']) assert.match(B[k], /^\[MIEJSCE NA TEKST: /, k);
-  assert.equal(B.TEKSTY_GOTOWE, false, 'do czasu tekstów od Filipa');
+  assert.equal(B.TEKSTY_GOTOWE, false, 'do czasu tekstów od Filipa');   // skutek flagi (bramka zapisu w stanStrony i w bieg.html) pilnuje blizna-241
   assert.match(B.TEKSTY.regulamin_pole, /\(wymagane\)/); assert.match(B.TEKSTY.oswiadczenie_pole, /\(wymagane\)/); for (const k of ['zgoda_imie_pole', 'zgoda_ranking_pole', 'zgoda_email_pole', 'zgoda_imie_dziecka_pole']) assert.match(B.TEKSTY[k], /\(dobrowolne\)/, k);
   const u = B.ukonczyliHtml({ razem: 2, od: 0, lista: BIEG.ukonczyli }, [1]);
   assert.match(u, /bw-wiersz bw-wiersz--ty"><span class="bw-nr">1<\/span><span class="bw-imie">Ola <i>Ty<\/i><\/span><span class="bw-dyst">10 km<\/span>/);
@@ -130,7 +133,7 @@ test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadc
   assert.match(h, /if \(!\$\('bw-regulamin'\)\.checked\) \{ blad\.textContent = 'Zapis wymaga akceptacji regulaminu\.'; return; \}/);
   assert.match(h, /if \(!\$\('bw-oswiadczenie'\)\.checked\) \{ blad\.textContent = 'Dopisanie dziecka wymaga oświadczenia rodzica lub opiekuna\.'; return; \}/);
   assert.match(h, /\$\('bw-regulamin'\)\.checked = false; \$\('bw-zgoda-imie'\)\.checked = false; \$\('bw-zgoda-ranking'\)\.checked = false; \$\('bw-zgoda-email'\)\.checked = false;/, 'okno zapisu czyści pola przy każdym otwarciu, także ranking');
-  assert.match(h, /rpc\('akcja_bieg_zapisz', \{ p_slug: bieg\.slug, p_dystans: Number\(d\), p_zgoda_imie: \$\('bw-zgoda-imie'\)\.checked, p_zgoda_email: \$\('bw-zgoda-email'\)\.checked, p_regulamin_wersja: bieg\.regulamin_wersja, p_imie: imie \|\| null, p_zgoda_ranking: \$\('bw-zgoda-ranking'\)\.checked \}\)/);
+  assert.match(h, /rpc\('akcja_bieg_zapisz', \{ p_slug: bieg\.slug, p_dystans: Number\(d\), p_zgoda_imie: \$\('bw-zgoda-imie'\)\.checked, p_zgoda_email: \$\('bw-zgoda-email-pole'\)\.hidden \? !!\(zgodaKonta && zgodaKonta\.zgoda_email === true\) : \$\('bw-zgoda-email'\)\.checked, p_regulamin_wersja: bieg\.regulamin_wersja, p_imie: imie \|\| null, p_zgoda_ranking: \$\('bw-zgoda-ranking'\)\.checked \}\)/);
   assert.match(h, /rpc\('akcja_bieg_ranking_zgoda', \{ p_slug: bieg\.slug, p_zgoda: ch \}\)/, 'zgoda na ranking w moich zapisach, w każdej chwili do wyłączenia');
   assert.match(h, /if \(!dziecko\) h \+= '<label class="bw-zgoda bw-zgoda--moja">/, 'przełącznik rankingu tylko przy zapisie dorosłego');
   assert.match(h, /rpc\('akcja_bieg_dopisz_dziecko', \{ p_slug: bieg\.slug, p_imie: imie, p_zgoda_imie: \$\('bw-zgoda-imie-dziecka'\)\.checked, p_oswiadczenie: true, p_regulamin_wersja: bieg\.regulamin_wersja \}\)/);

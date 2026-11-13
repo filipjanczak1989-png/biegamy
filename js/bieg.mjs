@@ -3,11 +3,13 @@
 // (dorosły z czasem, dziecko bez czasu i ze „swoim dystansem”); szkic odznaki zwykłej i złotej jako SVG. Dane TYLKO z licznika (pole `bieg`) i z funkcji
 // akcja_bieg_* przez window.sb; imię dziecka, na które jest zbiórka, nigdy w tym pliku (nazwa biegu przychodzi z bazy). Bez wpisowego; kwot nie sprawdzamy i nie pokazujemy.
 // MIEJSCA NA TEKSTY: regulamin, oświadczenie rodzica, treść zgód i dopisek do polityki prywatności przychodzą od Filipa po 18.11 (stałe MIEJSCE_* niżej); do tego czasu strona pokazuje
-// oznaczone zaślepki (TEKSTY_GOTOWE = false). Zapisu na prawdziwy bieg nie ma, dopóki bieg ma status 'szkic' (akcja_bieg_zapisz i licznik go pomijają).
+// oznaczone zaślepki (TEKSTY_GOTOWE = false). Zapisu na prawdziwy bieg nie ma, dopóki bieg ma status 'szkic' (akcja_bieg_zapisz i licznik go pomijają),
+// a we froncie także dopóki TEKSTY_GOTOWE = false (bramka zapisu w stanStrony; wyjątek ?proba=1, przegląd frontu 13.11).
 (function (g) {
   "use strict";
   var ROLE = { organizator: "Organizator", organizator_opis: "BiegaMy. Prowadzi bieg i zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat.", zgoda: "Zgoda opiekuna", zgoda_opis: "Opiekun dziecka, dla którego jest zbiórka, wyraził zgodę na bieg, na imię dziecka i na jego rysunek." };
   var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, dystanse: [5, 10], wynik_do_dni: 2, ukonczyli_na_strone: 50 };
+  var KONTAKT = "biegamy.run@gmail.com";   // publiczny adres BiegaMy, ten sam co w stopce dla-fabianka.html
   /* ── MIEJSCA NA TEKSTY (od Filipa po 18.11) ── każde zaczyna się od „[MIEJSCE NA TEKST”, test blizna-235 pilnuje, że strona je pokazuje, a nie udaje gotowych treści */
   var MIEJSCE_REGULAMIN = "[MIEJSCE NA TEKST: regulamin biegu, od Filipa po 18.11. Organizator: BiegaMy. Zgoda opiekuna dziecka na bieg, imię i rysunek. Własne konto od 16 lat. Bez wpisowego. Czas i miejsce publicznie tylko za zgodą na ranking (pełnoletni, osobno 5 i 10 km, dzieci nigdy). Nic fizycznego.]";
   var MIEJSCE_OSWIADCZENIE = "[MIEJSCE NA TEKST: oświadczenie rodzica lub opiekuna przy dopisaniu dziecka, od Filipa po 18.11.]";
@@ -78,18 +80,39 @@
   function fazaInfo(bieg) { return FAZY[faza(bieg)]; }
   /** Zapisy (siebie i dzieci) otwarte w fazach zapisy, trwa i wyniki, czyli do wynik_do (przegląd 12.11). */
   function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa" || f === "wyniki"; }
+  /** BRAMKA ZAPISU (przegląd frontu 13.11, usterka 1): dopóki TEKSTY_GOTOWE = false, strona nie przyjmuje zapisu, nawet gdy bieg w bazie ma już status otwarty.
+   *  Wyjątek tylko ?proba=1 (próba Filipa na biegu próbnym, z zaślepkami). Samo przełączenie statusu nie otwiera więc zapisu z zaślepkami zamiast regulaminu. */
+  function zapisZablokowany(proba) { return !TEKSTY_GOTOWE && !proba; }
   /**
-   * Stan strony: 'wkrotce' (brak biegu w liczniku), 'niezalogowany', 'przed' (konto bez zapisu), 'po' (zapisany), 'dzieci' (zapisany z dziećmi albo same dzieci), 'zamkniete' (po zapisach, bez zapisu).
-   * moi = odpowiedź akcja_bieg_moi (własne wiersze, bez wycofanych). Zwraca też ja i dzieci.
+   * Stan strony: 'blad' (licznik się nie wczytał: sieć albo awaria), 'wkrotce' (brak biegu w liczniku albo bramka zapisu), 'niezalogowany', 'przed' (konto bez zapisu),
+   * 'po' (zapisany), 'dzieci' (zapisany z dziećmi albo same dzieci), 'zamkniete' (po zapisach, bez zapisu; także wylogowany po zapisach).
+   * moi = odpowiedź akcja_bieg_moi (własne wiersze, bez wycofanych). opcje = { blad: licznik === null, proba: ?proba=1 }. Zwraca też ja i dzieci.
    */
-  function stanStrony(bieg, sesja, moi) {
-    var lista = Array.isArray(moi) ? moi : [], ja = null, dzieci = [];
+  function stanStrony(bieg, sesja, moi, opcje) {
+    var o = opcje || {}, lista = Array.isArray(moi) ? moi : [], ja = null, dzieci = [];
     lista.forEach(function (u) { if (u.rodzaj === "ja" && !ja) ja = u; else if (u.rodzaj === "dziecko") dzieci.push(u); });
+    if (o.blad) return { stan: "blad", ja: null, dzieci: [] };
     if (!bieg || !bieg.slug) return { stan: "wkrotce", ja: null, dzieci: [] };
-    if (!sesja) return { stan: "niezalogowany", ja: null, dzieci: [] };
+    if (zapisZablokowany(o.proba)) return { stan: "wkrotce", ja: null, dzieci: [], bramka: true };
+    if (!sesja) return { stan: zapisyOtwarte(bieg) ? "niezalogowany" : "zamkniete", ja: null, dzieci: [] };
     if (dzieci.length) return { stan: "dzieci", ja: ja, dzieci: dzieci };
     if (ja) return { stan: "po", ja: ja, dzieci: [] };
     return { stan: zapisyOtwarte(bieg) ? "przed" : "zamkniete", ja: null, dzieci: [] };
+  }
+  /** Chip i zdanie pod nazwą: przy błędzie licznika nic (osobny komunikat w stanie 'blad'), przy bramce jak w szkicu, inaczej z fazy biegu. */
+  function naglowekStanu(bieg, stan) {
+    if (stan === "blad") return { chip: "", klasa: "", zdanie: "" };
+    if (stan === "wkrotce") return FAZY.szkic;
+    return fazaInfo(bieg);
+  }
+  /** Pole zgody na e-mail (okno zapisu i okno dziecka): tylko w fazie zapisy, bo e-mail idzie przed weekendem biegu; bez pola, gdy konto już ma zgodę (usterka 8). */
+  function poleEmailaWidoczne(bieg, zgodaKonta) { return faza(bieg) === "zapisy" && !(zgodaKonta && zgodaKonta.zgoda_email); }
+  /** Obietnica z limitem czasu: po ms (domyślnie 4 s) oddaje null; odrzucenie też null. Usterka 12: brak js/ulica.mjs nie zawiesza strony na próbie. */
+  function zLimitem(obietnica, ms) {
+    return new Promise(function (ok) {
+      var t = g.setTimeout(function () { ok(null); }, ms == null ? 4000 : ms);
+      Promise.resolve(obietnica).then(function (d) { g.clearTimeout(t); ok(d == null ? null : d); }, function () { g.clearTimeout(t); ok(null); });
+    });
   }
   function mozeDopisacDziecko(bieg, dzieci) { return zapisyOtwarte(bieg) && (dzieci || []).length < Math.min(ZASADY.limit_dzieci, Number(bieg && bieg.limit_dzieci) || ZASADY.limit_dzieci); }
 
@@ -97,7 +120,7 @@
   function liczbaHtml(duze, male) { return '<div class="bw-liczba"><b>' + esc(duze) + '</b><span>' + esc(male) + '</span></div>'; }
   function liczbyHtml(bieg) {
     var z = Number(bieg.zapisani) || 0, d = Number(bieg.dzieci) || 0, u = Number(bieg.ukonczyli_n) || 0, na = bieg.zapisani_na || {};
-    return liczbaHtml(liczba(z), forma(z, ["zapisana osoba", "zapisane osoby", "zapisanych osób"])) + liczbaHtml(liczba(d), forma(d, ["dziecko", "dzieci", "dzieci"])) +
+    return liczbaHtml(liczba(z), forma(z, ["zapisana osoba", "zapisane osoby", "zapisanych osób"])) + liczbaHtml(liczba(d), forma(d, ["w tym dzieci", "w tym dzieci", "w tym dzieci"])) +   // usterka 16: dzieci są wśród zapisanych, nie obok
       liczbaHtml(liczba(u), forma(u, ["ukończył(a)", "ukończyły", "ukończyło"])) + '<p class="bw-drobne bw-liczby-pod">5 km: ' + esc(liczba(na["5"] || 0)) + ' · 10 km: ' + esc(liczba(na["10"] || 0)) + ' · dzieci: swój dystans</p>';
   }
   /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
@@ -109,6 +132,7 @@
   function ukonczyliHtml(dane, mojeNumery) {
     var l = Array.isArray(dane && dane.lista) ? dane.lista : [], moje = mojeNumery || [], razem = Number(dane && dane.razem) || l.length, d = dane && dane.dystans, wr = Number(dane && dane.w_rankingu) || 0,
       zRankingiem = l.some(function (u) { return u.miejsce != null && u.czas_s != null && !u.dziecko; });   // jedna siatka dla całej listy: kolumna miejsca także pusta
+    if (dane && dane.blad) return '<p class="bw-drobne">Lista chwilowo niedostępna. Spróbuj za chwilę.</p>';   // usterka 4: błąd listy to nie „nikt nie ukończył”
     if (!l.length) return '<p class="bw-drobne">' + (d ? "Na " + esc(d) + " km jeszcze nikt nie dopisał wyniku." : "Jeszcze nikt nie dopisał wyniku. Lista zapełni się po weekendzie biegu.") + '</p>';
     return (d ? '<p class="bw-drobne bw-ranking-pod">' + (wr ? "Ranking " + esc(d) + " km: " + esc(liczba(wr)) + " " + forma(wr, ["osoba", "osoby", "osób"]) + " z czasem, za zgodą. Niżej pozostali bez czasu." : "Na " + esc(d) + " km nikt jeszcze nie włączył rankingu. Lista bez czasów.") + '</p>' : "") + '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0, zRankingiem); }).join("") + '</ol>' +
       (razem > l.length ? '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-ukonczyli-wiecej="' + l.length + '">Pokaż więcej (' + esc(liczba(razem - l.length)) + ')</button>' : "");
@@ -118,13 +142,16 @@
     var opcje = [[null, "Wszyscy"]].concat((dystanse || []).map(function (d) { return [Number(d), km(d) + " km"]; }));
     return '<div class="bw-zakladki" role="group" aria-label="Lista ukończyli: wybór dystansu">' + opcje.map(function (o) { return '<button type="button" class="bw-zakladka" data-ukonczyli-dystans="' + (o[0] == null ? "" : esc(o[0])) + '" aria-pressed="' + (o[0] === (akt == null ? null : Number(akt))) + '">' + esc(o[1]) + '</button>'; }).join("") + '</div>';
   }
-  /** „Wesprzyj zbiórkę”: trzy podpowiedzi (pierwsza wyróżniona), każda jest zwykłym linkiem do oficjalnej zbiórki. Link przez safeExternalHref; bez linku nic. */
+  /** „Wesprzyj zbiórkę”: trzy podpowiedzi (pierwsza wyróżniona), każda jest zwykłym linkiem do oficjalnej zbiórki; bez linku nic.
+   *  href = wynik A.linkZbiorki (safeExternalHref z sb.js: tylko https i JUŻ escapowany do atrybutu). Tu bez drugiego sita i escape, inaczej „&amp;amp;” w adresie (usterka 7).
+   *  Sprawdzamy tylko, że to https bez znaków, którymi dałoby się wyjść z atrybutu (wynik sita ich nie ma, surowy adres z cudzysłowem odpada). */
+  var RE_HREF_GOTOWY = /^https:\/\/[^\s"'<>`]+$/i;
   function wsparcieHtml(bieg, link) {
-    var href = g.safeExternalHref ? g.safeExternalHref(link || "") : (/^https:\/\//.test(String(link || "")) ? link : "");
-    if (!href) return "";
+    var href = String(link || "");
+    if (!RE_HREF_GOTOWY.test(href)) return "";
     var kwoty = Array.isArray(bieg && bieg.wsparcie_kwoty_zl) && bieg.wsparcie_kwoty_zl.length ? bieg.wsparcie_kwoty_zl : [20, 30, 50];
-    return '<div class="bw-kwoty">' + kwoty.map(function (k, i) { return '<a class="bw-kwota' + (i === 0 ? " bw-kwota--glowna" : "") + '" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-kwota="' + esc(k) + '"><b>' + esc(liczba(k)) + ' zł</b>' + (i === 0 ? '<small>podpowiedź</small>' : "") + '</a>'; }).join("") +
-      '<a class="bw-kwota bw-kwota--inna" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">inna kwota</a></div><p class="bw-drobne">' + esc(TEKSTY.wesprzyj_pod) + '</p>';
+    return '<div class="bw-kwoty">' + kwoty.map(function (k, i) { return '<a class="bw-kwota' + (i === 0 ? " bw-kwota--glowna" : "") + '" href="' + href + '" target="_blank" rel="noopener noreferrer" data-kwota="' + esc(k) + '"><b>' + esc(liczba(k)) + ' zł</b>' + (i === 0 ? '<small>podpowiedź</small>' : "") + '</a>'; }).join("") +
+      '<a class="bw-kwota bw-kwota--inna" href="' + href + '" target="_blank" rel="noopener noreferrer">inna kwota</a></div><p class="bw-drobne">' + esc(TEKSTY.wesprzyj_pod) + '</p>';
   }
 
   /* ── CANVAS: numer startowy i dyplom w dwóch wersjach ── */
@@ -190,6 +217,12 @@
     znakBiegamy(c, 100, 880, 28, "#3a1d0a"); c.fillStyle = "#7a4a1e"; c.textAlign = "right"; tekstWSzer(c, String(adres || "biegamy.run").replace(/^https?:\/\//, ""), W - 100, 880, 700, FONT_TEKST, 22, 500);
     return k;
   }
+  /** Data na dyplomie (usterka 19): dzień albo weekend biegu z bazy, nie chwila zaliczenia (wynik dopisany 7.12 to nadal bieg 5–6.12). Bez dat biegu: dzień zaliczenia jak dotąd. */
+  function dataNaDyplomie(u, bieg) {
+    var a = dataZIso(bieg && bieg.dzien_od), b = dataZIso(bieg && (bieg.dzien_do || bieg.dzien_od));
+    if (a && b) return "Data biegu: " + (a.getTime() === b.getTime() ? dataPolska(a) : zakresSlowny(bieg.dzien_od, bieg.dzien_do || bieg.dzien_od) + " " + b.getFullYear());
+    return "Data: " + dataPolska(u && u.ukonczony_at ? new Date(u.ukonczony_at) : new Date());
+  }
   /** DYPLOM 'telefon' 1080×1350 albo 'a4' 1754×1240. u: { imie, numer, rodzaj, wynik_s, wynik_dystans_km, dystans_km, dystans_wlasny_km, ukonczony_at, odznaka }. Dziecko: bez czasu, „swój dystans”. */
   function dyplom(u, bieg, format, obrazy) {
     var a4 = format === "a4", W = a4 ? 1754 : 1080, H = a4 ? 1240 : 1350, k = nowyCanvas(W, H), c = k.getContext("2d"), los = losowy(7), dziecko = u.rodzaj === "dziecko", zlota = u.odznaka === "zlota";
@@ -221,17 +254,22 @@
     if (!rysujObraz(c, obrazy && (zlota ? obrazy.medalZloty : obrazy.medal), med[0], med[1], med[2], med[3])) medalRysowany(c, med[0] + med[2] / 2, med[1] + med[3] * 0.65, 78, zlota);
     wstega(c, cx - (a4 ? 260 : 220), H - (a4 ? 140 : 150), a4 ? 520 : 440, a4 ? 60 : 66, zlota ? "#c99a2e" : "#e8561e", zlota ? "ZŁOTA ODZNAKA · DZIĘKUJEMY" : "KILOMETRY BUDUJĄ ULICĘ");
     c.textAlign = "left"; c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(22 * sx) + "px " + FONT_TEKST;
-    c.fillText("Data: " + dataPolska(u.ukonczony_at ? new Date(u.ukonczony_at) : new Date()), a4 ? 160 : 110, H - (a4 ? 440 : 420));
+    c.fillText(dataNaDyplomie(u, bieg), a4 ? 160 : 110, H - (a4 ? 440 : 420));
     c.fillText("Numer startowy: " + u.numer, a4 ? 160 : 110, H - (a4 ? 404 : 384));
     znakBiegamy(c, a4 ? 160 : 110, H - (a4 ? 330 : 300), Math.round(34 * sx), "#07070a"); c.fillStyle = "#7a4a1e"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText(ROLE.organizator + ": BiegaMy", a4 ? 160 : 110, H - (a4 ? 302 : 270));   // ta sama rola co na stronie (ROLE), bez własnego opisu; bez pola na cudzy znak (organizatorem jest BiegaMy)
     return k;
   }
   /** ODZNAKA jako SVG (szkic): 'zwykla' (ceglasty medal) albo 'zlota' (złoty medal z gwiazdkami). W środku IKONA ŚWIATA ULICY (dla tej ulicy koparka, assets/ulica/koparka.webp),
    *  żeby odznaki z różnych ulic różniły się od siebie (przegląd 12.11). Ikona tylko z assets/, nazwa biegu z bazy (escapowana). */
-  var IKONA_SWIATA = "assets/ulica/koparka.webp";
+  var IKONA_SWIATA = "assets/ulica/koparka.webp", _nrOdznaki = 0;
+  /** Id gradientu i maski w SVG: z id uczestnika (o.id), więc kilka odznak na stronie ma różne id, a ta sama karta rysuje się tak samo; bez o.id kolejny numer (usterka 26). */
+  function idOdznaki(rodzaj, o) {
+    var z = String(o.id == null ? "" : o.id).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+    return "bo-" + (rodzaj === "zlota" ? "zlota" : "zwykla") + "-" + (z || "n" + (++_nrOdznaki));
+  }
   function odznakaSvg(rodzaj, opcje) {
     var o = opcje || {}, zlota = rodzaj === "zlota", kolor = zlota ? "#f2b32a" : "#c8553d", kolor2 = zlota ? "#d89a12" : "#9a3b27", podpis = o.podpis || (zlota ? "ZŁOTA" : "BIEG"), rozmiar = Number(o.rozmiar) || 120;
-    var ikona = typeof o.ikona === "string" && /^assets\/[a-z0-9\/_-]+\.(webp|png|svg)$/i.test(o.ikona) ? o.ikona : IKONA_SWIATA, id = "bo-" + rodzaj + "-" + Math.abs(String(o.nazwa || "").length + (zlota ? 1 : 0));
+    var ikona = typeof o.ikona === "string" && /^assets\/[a-z0-9\/_-]+\.(webp|png|svg)$/i.test(o.ikona) ? o.ikona : IKONA_SWIATA, id = idOdznaki(rodzaj, o);
     var tytul = esc(o.nazwa || "Odznaka biegu") + (zlota ? " (złota)" : "");
     return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 120 156" width="' + rozmiar + '" height="' + Math.round(rozmiar * 1.3) + '" role="img" aria-label="' + tytul + '">' +
       '<defs><linearGradient id="' + id + '-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + (zlota ? "#ffe08a" : "#e07a5f") + '"/><stop offset="1" stop-color="' + kolor + '"/></linearGradient><clipPath id="' + id + '-c"><circle cx="60" cy="100" r="33"/></clipPath></defs>' +
@@ -272,24 +310,30 @@
       h += '<p class="bw-wynik-tytul">' + (dziecko ? "Ukończone" : "Ukończony") + ': <b>' + esc(wynikOpis(u)) + '</b></p>';
       h += '<img class="bw-obraz" data-dyplom="' + id + '" alt="Dyplom ' + esc(u.imie) + '">';
       h += '<div class="bw-wiersze"><button type="button" class="bw-przycisk" data-dyplom-udostepnij="' + id + '">Udostępnij dyplom</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-dyplom-a4="' + id + '">Dyplom A4</button></div>';
-      h += '<div class="bw-wynik-odznaka">' + odznakaSvg(u.odznaka === "zlota" ? "zlota" : "zwykla", { nazwa: bieg && bieg.nazwa, rozmiar: 64 }) + '<span>Odznaka biegu jest już w ' + (dziecko ? "Twojej kolekcji (odznaka dziecka)" : "Twojej kolekcji") + '.</span></div>';
+      h += '<div class="bw-wynik-odznaka">' + odznakaSvg(u.odznaka === "zlota" ? "zlota" : "zwykla", { nazwa: bieg && bieg.nazwa, rozmiar: 64, id: u.id }) + '<span>Odznaka biegu jest już w ' + (dziecko ? "Twojej kolekcji (odznaka dziecka)" : "Twojej kolekcji") + '.</span></div>';
       if (faza(bieg) === "trwa" || faza(bieg) === "wyniki") h += dziecko ? '<a href="#" class="bw-link-maly" data-dziecko-popraw="' + id + '">Popraw dystans</a>' : '<a href="#" class="bw-link-maly" data-wskaz="' + id + '">Wskaż inny trening</a>';
       if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
       return h + '</div>';
     }
     if (st === "przed") return h + '<p class="bw-opis">' + (dziecko ? "Po biegu wpiszesz tu, ile " + esc(u.imie) + " przeszło lub przebiegło." : "Po biegu wynik wejdzie tu sam z zegarka albo z treningu dopisanego na Dziś.") + '</p></div>';
-    if (st === "zamkniety") return h + '<p class="bw-opis">Bieg zakończony bez wyniku. Jeśli to pomyłka, napisz do organizatora.</p></div>';
+    if (st === "zamkniety") return h + '<p class="bw-opis">Bieg zakończony bez wyniku. Jeśli to pomyłka, napisz do organizatora: <a href="mailto:' + esc(KONTAKT) + '">' + esc(KONTAKT) + '</a>.</p></div>';   // usterka 25: z adresem
     if (dziecko) {
       return h + '<p class="bw-wynik-tytul">Ile ' + esc(u.imie) + ' przeszło lub przebiegło?</p>' +
         '<label class="bw-pole bw-pole--km"><span>Swój dystans w km (np. 1,5)</span><input type="text" inputmode="decimal" maxlength="6" data-dziecko-km="' + id + '" placeholder="1,5"></label>' +
-        '<button type="button" class="bw-przycisk" data-dziecko-zapisz="' + id + '">Zapisz dystans i odbierz dyplom ›</button><p class="bw-blad" data-dziecko-blad="' + id + '"></p></div>';
+        '<button type="button" class="bw-przycisk" data-dziecko-zapisz="' + id + '">Zapisz dystans i odbierz dyplom ›</button><p class="bw-blad" role="alert" data-dziecko-blad="' + id + '"></p></div>';
     }
-    var dni = zakresDni(bieg && bieg.dzien_od, bieg && bieg.dzien_do);
+    var dni = zakresDni(bieg && bieg.dzien_od, bieg && bieg.dzien_do), mniejszy = krotszyDystans(bieg, u.dystans_km);
     h += '<p class="bw-wynik-tytul">' + (o.brakTreningu ? "Nie widzimy jeszcze treningu z " + esc(dni) + " na co najmniej " + esc(km(u.dystans_km)) + " km." : "Szukamy Twojego treningu z weekendu biegu…") + '</p>';
     h += '<p class="bw-drobne">Trening z zegarka wejdzie sam. Bez zegarka dopisz bieg albo marsz na Dziś, z datą z weekendu biegu, i wróć tutaj.</p>';
+    if (o.brakTreningu && mniejszy) h += '<p class="bw-drobne" data-rada-dystans>Masz mniej kilometrów? Wycofaj zapis i zapisz się na ' + esc(km(mniejszy)) + ' km.</p>';   // usterka 10: wynik wchodzi tylko z treningu ≥ zapisanego dystansu
     h += '<a class="bw-przycisk" href="' + ADRES_DZIS + '">Dopisz trening na Dziś ›</a>';
     h += '<div class="bw-wiersze"><button type="button" class="bw-przycisk bw-przycisk--cichy" data-wskaz="' + id + '">Wskaż trening</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-sprawdz="' + id + '">Sprawdź jeszcze raz</button></div>';
-    return h + '<p class="bw-blad" data-wynik-blad="' + id + '"></p></div>';
+    return h + '<p class="bw-blad" role="alert" data-wynik-blad="' + id + '"></p></div>';
+  }
+  /** Najdłuższy dystans z listy biegu krótszy od zapisanego (zapis na 10 → 5), albo null (zapis na 5). */
+  function krotszyDystans(bieg, zapisany) {
+    var z = Number(zapisany) || 0, l = (bieg && Array.isArray(bieg.dystanse_km) && bieg.dystanse_km.length ? bieg.dystanse_km : ZASADY.dystanse).map(Number).filter(function (d) { return d > 0 && d < z; });
+    return l.length ? Math.max.apply(null, l) : null;
   }
   /** Lista treningów z weekendu do „Wskaż trening”: data, km, czas, który dystans zalicza; za krótkie bez guzika. */
   function treningiHtml(lista, u) {
@@ -301,16 +345,81 @@
         (zalicza ? '<button type="button" class="bw-przycisk bw-przycisk--maly" data-wybierz-trening="' + esc(t.id) + '">Zalicz ' + esc(km(t.zalicza_km)) + ' km</button>' : '<em>za krótki na ' + esc(km(u && u.dystans_km)) + ' km</em>') + '</li>';
     }).join("") + '</ul>';
   }
+  /* ── KOMUNIKATY (przegląd frontu 13.11, usterki 5, 6, 27) ──
+     Surowy błąd (TypeError, nazwa funkcji SQL) nigdy nie trafia na ekran: bladRpc zostawia tylko kod i znak „sieć”, treść idzie do client_errors (bieg.html).
+     Każdy kod odmowy z funkcji, które woła strona, ma własny tekst (test blizna-241 wyciąga kody z migracji). */
+  var TEKST_SIEC = "Brak połączenia. Sprawdź internet i spróbuj jeszcze raz.", TEKST_ZALOGUJ = "Potrzebne konto zawodnika: dokończ zakładanie konta w aplikacji albo zaloguj się na konto zawodnika.", TEKST_INNY = "Nie udało się. Spróbuj za chwilę.";
+  var RE_SIEC = /failed to fetch|networkerror|network request failed|load failed|fetch failed|err_internet|err_network/i;
+  /** Błąd z supabase-js albo wyjątek → { ok:false, powod:'blad', kod, siec } bez treści błędu. offline = navigator.onLine === false. */
+  function bladRpc(e, offline) {
+    var kod = e && e.code ? String(e.code) : "", tresc = String((e && (e.message || e)) || "");
+    return { ok: false, powod: "blad", kod: kod, siec: !!offline || (!kod && RE_SIEC.test(tresc)) };
+  }
+  function komunikatBledu(r) { return r && r.siec ? TEKST_SIEC : r && r.kod === "42501" ? TEKST_ZALOGUJ : TEKST_INNY; }
+  var KOMUNIKATY = {
+    zamkniete: "Zapisy są już zamknięte.", regulamin: "Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.", dystans: "Wybierz 5 albo 10 km.", imie: "Imię: jedno słowo, 2–20 liter.",
+    oswiadczenie: "Potrzebne oświadczenie rodzica.", nie_ma: "Nie ma takiego biegu.", limit_zapisow: "Limit zapisów na to konto w tym biegu został wykorzystany.", brak_zapisu: "Najpierw zapisz się na bieg.",
+    nie_twoj: "To nie jest Twój zapis.", juz_wycofany: "Ten zapis jest już wycofany.", ukonczony: "Ten zapis ma już wynik, nie można go wycofać."
+  };
+  /** Odmowy zapisu, dziecka, wycofania i zgód. miejsce 'karta' = przełącznik rankingu w karcie, który sam się odznacza (usterka 27: bez polecenia „odznacz”). */
+  function komunikat(r, miejsce) {
+    var p = r && r.powod;
+    if (p === "juz_zapisany") return "Już masz zapis w tym biegu (numer " + (r.numer || "") + ").";
+    if (p === "limit") return "Limit dzieci na konto: " + (r.limit || ZASADY.limit_dzieci) + ".";
+    if (p === "ranking_wiek") return miejsce === "karta" ? "Ranking jest tylko dla osób pełnoletnich." : "Ranking jest tylko dla osób pełnoletnich. Odznacz zgodę na ranking.";
+    if (p && Object.prototype.hasOwnProperty.call(KOMUNIKATY, p)) return KOMUNIKATY[p];
+    return komunikatBledu(r);
+  }
   function komunikatWyniku(r) {
     var p = r && r.powod;
     return p === "brak_treningu" ? "Ten trening nie zalicza dystansu albo nie jest z weekendu biegu." : p === "poza_oknem" ? "Wyniki przyjmujemy od weekendu biegu do końca dopisywania wyników." :
-      p === "dystans" ? "Wpisz dystans od 0,1 do 100 km." : p === "nie_twoj" ? "To nie jest Twój zapis." : "Nie udało się: " + (r && r.blad ? r.blad : "spróbuj za chwilę.");
+      p === "dystans" ? "Wpisz dystans od 0,1 do 100 km." : p === "nie_twoj" ? "To nie jest Twój zapis." : p === "nie_ma" ? "Nie znaleźliśmy tego zapisu. Odśwież stronę." : komunikatBledu(r);
+  }
+  /** „Wycofaj” (usterka 6): potwierdzenie, jedno zapytanie na raz dla zapisu (kliknięcie w trakcie nic nie wysyła), polski tekst odmowy i odświeżenie strony
+   *  także po odmowie (cron co godzinę zalicza wyniki, więc zapis mógł w tym czasie zostać ukończony). z = { potwierdz(t), rpc(nazwa, args), pokaz(t), odswiez() }. */
+  var _wycofywane = {};
+  function wycofaj(id, z) {
+    if (!id || _wycofywane[id]) return Promise.resolve({ ok: false, powod: "w_toku" });
+    if (!z.potwierdz("Wycofać ten zapis? Numer startowy przepada.")) return Promise.resolve({ ok: false, powod: "anulowane" });
+    _wycofywane[id] = true;
+    var koniec = function (r) { delete _wycofywane[id]; return r; };
+    return Promise.resolve().then(function () { return z.rpc("akcja_bieg_wycofaj", { p_id: id }); }).then(null, function (e) { return bladRpc(e); }).then(function (r) {
+      if (!r || !r.ok) z.pokaz(komunikat(r || bladRpc(null)));
+      return Promise.resolve().then(z.odswiez).then(function () { return koniec(r); }, function () { return koniec(r); });
+    });
+  }
+  /* ── POLA KARTY PRZY PRZERYSOWANIU (usterka 9): wpisany dystans dziecka i komunikaty pod uczestnikiem zostają po powrocie do karty ── */
+  var POLA_KARTY = ["data-dziecko-km", "data-ranking-stan"];   // bez pól błędów: po zmianie stanu stary komunikat (np. „Brak połączenia”) nie może wrócić pod nowy
+  function kazdePole(korzen, f) {
+    if (!korzen || !korzen.querySelectorAll) return;
+    POLA_KARTY.forEach(function (a) { Array.prototype.forEach.call(korzen.querySelectorAll("[" + a + "]"), function (el) { var id = el.getAttribute(a); if (id) f(a, id, el); }); });
+  }
+  /** Zapis pól przed innerHTML: klucz = atrybut i id uczestnika, wartość = wpisany tekst (pole) albo treść komunikatu. */
+  function zapiszPola(korzen) {
+    var zapis = {};
+    kazdePole(korzen, function (a, id, el) { var w = a === "data-dziecko-km" ? el.value : el.textContent; if (w) zapis[a + "=" + id] = String(w); });
+    return zapis;
+  }
+  /** Odtworzenie po innerHTML: tylko value i textContent (bez HTML), tylko u tego samego uczestnika. */
+  function odtworzPola(korzen, zapis) {
+    if (!zapis) return;
+    kazdePole(korzen, function (a, id, el) { var k = a + "=" + id; if (!Object.prototype.hasOwnProperty.call(zapis, k)) return; if (a === "data-dziecko-km") el.value = zapis[k]; else el.textContent = zapis[k]; });
+  }
+  /** Imię do pola w oknie zapisu z profilu konta (usterka 22): pierwsze słowo, z wielkiej litery, tylko gdy przechodzi walidację jak w bazie; inaczej "". */
+  function imieDoPola(sesja) { var m = sesja && sesja.user && sesja.user.user_metadata; return imieZProfilu(m && (m.full_name || m.name)); }
+  /** Rezygnacja z e-maila (EF bieg-rezygnacja: 200 ok, 400 zly_link, 404 nie_ma, 503 blad). Usterka 21: awaria serwera to nie „link nieaktualny”; bez „już użyty”. */
+  function komunikatRezygnacji(status, d) {
+    if (d && d.ok) return "Gotowe. Nie wyślemy już e-maili o biegu „" + String(d.nazwa || "") + "”.";
+    if (!d || d.powod === "blad" || Number(status) >= 500) return "Nie udało się teraz. Za chwilę kliknij link z e-maila jeszcze raz.";
+    return "Ten link jest nieaktualny. Zgodę zmienisz też po zalogowaniu, w sekcji „Twój bieg”.";
   }
   /** Rezygnacja z e-maila z linku: ?rezygnacja=<uuid> → token albo "". */
   function tokenRezygnacji(search) { var m = /[?&]rezygnacja=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:&|$)/i.exec(String(search || "")); return m ? m[1].toLowerCase() : ""; }
 
-  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY,
+  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
+    zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
+    zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
     MIEJSCE_REGULAMIN: MIEJSCE_REGULAMIN, MIEJSCE_OSWIADCZENIE: MIEJSCE_OSWIADCZENIE, MIEJSCE_ZGODA_IMIE: MIEJSCE_ZGODA_IMIE, MIEJSCE_ZGODA_IMIE_DZIECKA: MIEJSCE_ZGODA_IMIE_DZIECKA, MIEJSCE_ZGODA_RANKING: MIEJSCE_ZGODA_RANKING, MIEJSCE_ZGODA_EMAIL: MIEJSCE_ZGODA_EMAIL, MIEJSCE_POLITYKA: MIEJSCE_POLITYKA,
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,

@@ -771,6 +771,60 @@
     return '<div id="' + id + '" style="flex-basis:100%;min-width:0"></div>';
   }
 
+  /* POWRÓT NA BIEG PO ZALOGOWANIU (przegląd frontu biegu 13.11, usterka 2). index.html jest zamrożony: po zalogowaniu zawsze prowadzi na zawodnik.html (celZawodnika)
+     i nie zna parametru z celem powrotu. Dlatego bieg.html tuż przed przejściem do logowania zapisuje w localStorage znacznik { cel, t } (zapiszPowrot),
+     a ten plik, ładowany przez zawodnik.html, po wczytaniu Dziś (DOMContentLoaded, gdy sb.js już stoi) sprawdza go w powrotPoLogowaniu:
+     znacznik świeży (najwyżej 30 min), cel DOKŁADNIE z białej listy (bieg.html albo bieg.html?proba=1) i jest sesja → znacznik usunięty, location.replace(cel).
+     Znacznik znika zawsze: po użyciu, po terminie, przy celu spoza listy i przy nieczytelnym zapisie (sprząta każda strona z tym plikiem).
+     Cel tylko z listy, nigdy z adresu ani z danych, więc to nie jest otwarte przekierowanie.
+     Przejście TYLKO przy Dziś otwartym prosto z logowania (referrer z tej samej domeny: index.html albo /) i poza onboardingiem; w każdym innym wejściu na Dziś
+     znacznik jest zużywany bez przejścia. Bez tego późniejsze wejście na Dziś (np. z dolnej nawigacji) potrafiło przerzucić na bieg. Nowe konto (onboarding: profil
+     zawodnika powstaje dopiero tam, bez niego zapis kończy się 42501) zostaje na Dziś; do biegu prowadzi link na dla-fabianka.html. */
+  var KLUCZ_POWROTU = "bm_powrot_po_logowaniu", POWROT_MS = 30 * 60000, CELE_POWROTU = ["bieg.html", "bieg.html?proba=1"];
+  function magazynPowrotu(o) { try { return (o && o.localStorage) || g.localStorage || null; } catch (e) { return null; } }
+  function zapiszPowrot(cel, o) {
+    var m = magazynPowrotu(o);
+    if (!m || CELE_POWROTU.indexOf(cel) < 0) return false;
+    try { m.setItem(KLUCZ_POWROTU, JSON.stringify({ cel: cel, t: (o && o.teraz) || Date.now() })); return true; } catch (e) { return false; }
+  }
+  /** Ważny cel ze znacznika albo "". Zły, przeterminowany albo nieczytelny znacznik usuwa; o.zuzyj = usuń także ważny. */
+  function celPowrotu(o) {
+    var m = magazynPowrotu(o), surowy = null, z = null;
+    if (!m) return "";
+    try { surowy = m.getItem(KLUCZ_POWROTU); } catch (e) { return ""; }
+    if (surowy == null) return "";
+    try { z = JSON.parse(surowy); } catch (e) { z = null; }
+    var wiek = z && typeof z.t === "number" ? ((o && o.teraz) || Date.now()) - z.t : -1;
+    var dobry = !!z && typeof z.cel === "string" && CELE_POWROTU.indexOf(z.cel) >= 0 && wiek >= 0 && wiek <= POWROT_MS;
+    if (!dobry || (o && o.zuzyj)) { try { m.removeItem(KLUCZ_POWROTU); } catch (e) {} }
+    return dobry ? z.cel : "";
+  }
+  /** Czy Dziś otwiera się prosto z logowania: referrer z tej samej domeny, ścieżka / albo /index.html (index.html loguje przez location.href). */
+  function zLogowania(loc, doc) {
+    var m = /^(https?:\/\/[^\/?#]+)(\/[^?#]*)?/i.exec(String((doc && doc.referrer) || "")), tu = String(loc.origin || ((loc.protocol || "") + "//" + (loc.host || "")));
+    return !!m && m[1].toLowerCase() === tu.toLowerCase() && /\/(index\.html)?$/.test(m[2] || "/");
+  }
+  /** Na zawodnik.html przy wczytaniu; na innych stronach tylko sprzątanie znacznika. o (testy): { localStorage, location, document, sb, teraz }. → Promise<cel albo ""> */
+  function powrotPoLogowaniu(o) {
+    o = o || {};
+    try {
+      var loc = o.location || g.location, m = magazynPowrotu(o);
+      if (!loc || !/(^|\/)zawodnik\.html$/.test(String(loc.pathname || ""))) { celPowrotu(o); return Promise.resolve(""); }
+      var onboarding = /[?&]onboarding=1(&|$)/.test(String(loc.search || ""));
+      try { onboarding = onboarding || (!!m && m.getItem("biegamy_needs_onboarding") === "1"); } catch (e) {}
+      var cel = celPowrotu(o), sb = o.sb || g.sb;
+      if (!cel) return Promise.resolve("");
+      if (onboarding || !zLogowania(loc, o.document || g.document)) { celPowrotu({ localStorage: m, teraz: o.teraz, zuzyj: true }); return Promise.resolve(""); }
+      if (!sb || !sb.auth || !sb.auth.getSession) return Promise.resolve("");
+      return Promise.resolve(sb.auth.getSession()).then(function (r) {
+        if (!(r && r.data && r.data.session)) return "";   // bez sesji zawodnik.html i tak odsyła do logowania; znacznik zostaje
+        var c = celPowrotu({ localStorage: m, teraz: o.teraz, zuzyj: true });
+        if (c) loc.replace(c);
+        return c;
+      }, function () { return ""; });
+    } catch (e) { return Promise.resolve(""); }
+  }
+
   /** Dane karty okienka (EF): tylko to, co licznik i tak oddaje publicznie po starcie. */
   function kartaOkienka(d) {
     if (!d || !d.wystartowala) return null;
@@ -792,4 +846,7 @@
   g.BM_AKCJA.rozwinKafel = rozwinKafel; g.BM_AKCJA.tekstPaska = tekstPaska;
   g.BM_AKCJA.ukryjKafel = ukryjKafel; g.BM_AKCJA.maMurek = maMurek; g.BM_AKCJA.KLUCZ_UKRYCIA = KLUCZ_UKRYCIA; g.BM_AKCJA.etykietaPokaz = etykietaPokaz;
   g.BM_AKCJA.zdejmijKafel = zdejmijKafel; g.BM_AKCJA.daneKaflaHtml = daneKaflaHtml; g.BM_AKCJA.liczbyKaflaHtml = liczbyKaflaHtml; g.BM_AKCJA.adresStrony = adresStrony; g.BM_AKCJA.linkGry = linkGry;
+  g.BM_AKCJA.zapiszPowrot = zapiszPowrot; g.BM_AKCJA.celPowrotu = celPowrotu; g.BM_AKCJA.powrotPoLogowaniu = powrotPoLogowaniu; g.BM_AKCJA.CELE_POWROTU = CELE_POWROTU; g.BM_AKCJA.KLUCZ_POWROTU = KLUCZ_POWROTU;
+  /* powrót na bieg po zalogowaniu: tylko w przeglądarce (EF okienko importuje ten plik w Deno: bez document nic się nie dzieje); na zawodnik.html skrypt stoi przed sb.js, więc czekamy na DOMContentLoaded */
+  try { if (g.document && g.document.addEventListener) { if (g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", function () { powrotPoLogowaniu(); }); else powrotPoLogowaniu(); } } catch (e) {}
 })(typeof globalThis !== "undefined" ? globalThis : this);
