@@ -752,7 +752,7 @@
     g.v += (cel - g.v) * Math.min(1, dt * 6);
     g.s += g.v * dt;
     g.anim += dt * (9 + g.v / 34);
-    for (var iz = 0; iz < ZEGARY.length; iz++) { var kz = ZEGARY[iz]; if (g[kz] > 0) g[kz] = Math.max(0, g[kz] - dt); }
+    for (var iz = 0; iz < ZEGARY.length; iz++) { var kz = ZEGARY[iz]; g[kz] = g[kz] > 0 ? Math.max(0, g[kz] - dt) : 0; }   // NaN nie zostaje na zawsze (NaN w nietykalności = brak kolizji do końca rundy)
     if (g.poza) { g.poza.t -= dt; if (g.poza.t <= 0) g.poza = null; }
     if (g.reakcja > 0) { g.reakcja -= dt; if (g.reakcja <= 0) { g.reakcja = 0; g.reakcjaTyp = null; g.nietykalny = 1.0; ustawPoze("F", 1, 0.35); } }
     if (g.rakieta) {
@@ -1316,7 +1316,8 @@
   function petla(t) {
     requestAnimationFrame(petla);
     if (DIAG && stan === "gra" && !pauza && poprz) diagKlatka(t - poprz);
-    var dt = Math.min(0.05, (t - poprz) / 1000 || 0); poprz = t;
+    /* Krok czasu przycięty z obu stron: klatka ze znacznikiem wcześniejszym niż poprzednia dawała ujemny krok, a z nim dłuższą rundę, dłuższą nietykalność i cofnięty świat (blizna-238). */
+    var dt = Math.min(0.05, Math.max(0, (t - poprz) / 1000 || 0)); poprz = t;
     if (stan === "ladowanie") return;
     czasGlobalny += dt;
     if (stan === "gra" && !pauza) krok(dt);
