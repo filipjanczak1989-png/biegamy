@@ -46,7 +46,7 @@ begin
   return jsonb_build_object(
     'slug', b.slug, 'nazwa', b.nazwa, 'dzien_od', b.dzien_od, 'dzien_do', b.dzien_do, 'wynik_do', b.wynik_do,
     'dystanse_km', to_jsonb(b.dystanse_km), 'faza', public.akcja_bieg_faza(b, v_dzis), 'regulamin_wersja', b.regulamin_wersja,
-    'organizator_rodzaj', b.organizator_rodzaj, 'wsparcie_kwoty_zl', to_jsonb(b.wsparcie_kwoty_zl), 'limit_dzieci', b.limit_dzieci,
+    'wsparcie_kwoty_zl', to_jsonb(b.wsparcie_kwoty_zl), 'limit_dzieci', b.limit_dzieci,
     'zapisani', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null),
     'zapisani_na', v_na,
     'dzieci', (select count(*) from public.akcja_bieg_uczestnicy u where u.bieg_id = b.id and u.wycofany_at is null and u.rodzaj = 'dziecko'),

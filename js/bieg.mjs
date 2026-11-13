@@ -3,27 +3,29 @@
 // (dorosły z czasem, dziecko bez czasu i ze „swoim dystansem”); szkic odznaki zwykłej i złotej jako SVG. Dane TYLKO z licznika (pole `bieg`) i z funkcji
 // akcja_bieg_* przez window.sb; imię dziecka, na które jest zbiórka, nigdy w tym pliku (nazwa biegu przychodzi z bazy). Bez wpisowego; kwot nie sprawdzamy i nie pokazujemy.
 // MIEJSCA NA TEKSTY: regulamin, oświadczenie rodzica, treść zgód i dopisek do polityki prywatności przychodzą od Filipa po 18.11 (stałe MIEJSCE_* niżej); do tego czasu strona pokazuje
-// oznaczone zaślepki i blokuje zapis na produkcji, dopóki `regulamin_wersja` biegu nie ma tekstu (TEKSTY_GOTOWE = false).
+// oznaczone zaślepki (TEKSTY_GOTOWE = false). Zapisu na prawdziwy bieg nie ma, dopóki bieg ma status 'szkic' (akcja_bieg_zapisz i licznik go pomijają).
 (function (g) {
   "use strict";
-  var ROLE = { inicjator: "Inicjator", inicjator_opis: "opiekun dziecka albo organizacja w jego imieniu. Bieg odbywa się z jego inicjatywy i za jego zgodą.", operator: "Operator", operator_opis: "BiegaMy. Prowadzi zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat." };
+  var ROLE = { organizator: "Organizator", organizator_opis: "BiegaMy. Prowadzi bieg i zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat.", zgoda: "Zgoda opiekuna", zgoda_opis: "Opiekun dziecka, dla którego jest zbiórka, wyraził zgodę na bieg, na imię dziecka i na jego rysunek." };
   var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, dystanse: [5, 10], wynik_do_dni: 2, ukonczyli_na_strone: 50 };
   /* ── MIEJSCA NA TEKSTY (od Filipa po 18.11) ── każde zaczyna się od „[MIEJSCE NA TEKST”, test blizna-235 pilnuje, że strona je pokazuje, a nie udaje gotowych treści */
-  var MIEJSCE_REGULAMIN = "[MIEJSCE NA TEKST: regulamin biegu, od Filipa po 18.11. Role: Inicjator (opiekun) i Operator (BiegaMy). Własne konto od 16 lat. Bez wpisowego. Czasy prywatne. Nic fizycznego.]";
+  var MIEJSCE_REGULAMIN = "[MIEJSCE NA TEKST: regulamin biegu, od Filipa po 18.11. Organizator: BiegaMy. Zgoda opiekuna dziecka na bieg, imię i rysunek. Własne konto od 16 lat. Bez wpisowego. Czas i miejsce publicznie tylko za zgodą na ranking (pełnoletni, osobno 5 i 10 km, dzieci nigdy). Nic fizycznego.]";
   var MIEJSCE_OSWIADCZENIE = "[MIEJSCE NA TEKST: oświadczenie rodzica lub opiekuna przy dopisaniu dziecka, od Filipa po 18.11.]";
   var MIEJSCE_ZGODA_IMIE = "[MIEJSCE NA TEKST: zgoda na pokazanie imienia na liście „ukończyli”, od Filipa po 18.11.]";
   var MIEJSCE_ZGODA_IMIE_DZIECKA = "[MIEJSCE NA TEKST: zgoda na pokazanie imienia dziecka na liście „ukończyli”, od Filipa po 18.11.]";
+  var MIEJSCE_ZGODA_RANKING = "[MIEJSCE NA TEKST: zgoda na ranking (czas i miejsce na liście „ukończyli”) z oświadczeniem o pełnoletności, od Filipa po 18.11.]";
   var MIEJSCE_ZGODA_EMAIL = "[MIEJSCE NA TEKST: zgoda na jeden e-mail przypominający dzień przed biegiem, od Filipa po 18.11.]";
   var MIEJSCE_POLITYKA = "[MIEJSCE NA TEKST: dopisek do polityki prywatności o biegu (dane uczestników, dzieci, e-mail, retencja 90 dni), od Filipa po 18.11.]";
   var TEKSTY_GOTOWE = false;   // po wstawieniu tekstów: true (test pilnuje spójności z MIEJSCE_*)
   var TEKSTY = {
     regulamin_pole: "Akceptuję regulamin biegu (wymagane)",
     zgoda_imie_pole: "Pokaż moje imię i numer na liście „ukończyli” (dobrowolne)",
+    zgoda_ranking_pole: "Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”, osobno 5 i 10 km. Mam ukończone 18 lat (dobrowolne)",
     zgoda_email_pole: "Wyślij mi jeden e-mail przypominający dzień przed biegiem (dobrowolne)",
     oswiadczenie_pole: "Jestem rodzicem lub opiekunem tego dziecka i składam oświadczenie (wymagane)",
     zgoda_imie_dziecka_pole: "Pokaż imię dziecka na liście „ukończyli” (dobrowolne)",
     bez_wpisowego: "Udział jest bezpłatny. Nie ma wpisowego, medali ani pakietów. Kto chce, wspiera zbiórkę bezpośrednio u organizacji, która ją prowadzi; BiegaMy nic nie przyjmuje i nie widzi wpłat.",
-    czasy_prywatne: "Lista pokazuje tylko tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czasy są prywatne, widać je tylko na własnym dyplomie. Bez rankingu.",
+    czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking, osobno dla 5 i 10 km. Pozostali są na liście bez czasu, a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
     dzieci: "Dziecko dopisuje rodzic z własnego konta: samo imię, bez konta dziecka. Dziecko biegnie albo idzie swój dystans, dostaje numer i dyplom bez czasu.",
     wesprzyj_pod: "Wpłata idzie w całości do organizacji prowadzącej zbiórkę, poza BiegaMy. Kwoty nie sprawdzamy i nigdzie nie pokazujemy."
   };
@@ -98,17 +100,23 @@
     return liczbaHtml(liczba(z), forma(z, ["zapisana osoba", "zapisane osoby", "zapisanych osób"])) + liczbaHtml(liczba(d), forma(d, ["dziecko", "dzieci", "dzieci"])) +
       liczbaHtml(liczba(u), forma(u, ["ukończył(a)", "ukończyły", "ukończyło"])) + '<p class="bw-drobne bw-liczby-pod">5 km: ' + esc(liczba(na["5"] || 0)) + ' · 10 km: ' + esc(liczba(na["10"] || 0)) + ' · dzieci: swój dystans</p>';
   }
-  /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; bez czasu, bez rankingu. */
-  function wierszUkonczyl(u, moj) {
-    var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)";
-    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + '"><span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + esc(dyst) + '</span></li>';
+  /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
+  function wierszUkonczyl(u, moj, kolumnaMiejsca) {
+    var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)", rank = u.miejsce != null && u.czas_s != null && !u.dziecko, kol = rank || !!kolumnaMiejsca;
+    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + (kol ? " bw-wiersz--ranking" : "") + '">' + (rank ? '<span class="bw-pozycja" aria-label="miejsce ' + esc(u.miejsce) + '">' + esc(u.miejsce) + '.</span>' : (kol ? '<span class="bw-pozycja"></span>' : "")) + '<span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + (rank ? '<b class="bw-czas">' + esc(czas(u.czas_s)) + '</b> · ' : '') + esc(dyst) + '</span></li>';
   }
   /** Lista z osobnej funkcji (EF bieg-ukonczyli, ta sama droga co licznik): dane = { razem, od, lista }, strona dokleja kolejne porcje; „Pokaż więcej” rysuje strona. */
   function ukonczyliHtml(dane, mojeNumery) {
-    var l = Array.isArray(dane && dane.lista) ? dane.lista : [], moje = mojeNumery || [], razem = Number(dane && dane.razem) || l.length;
-    if (!l.length) return '<p class="bw-drobne">Jeszcze nikt nie dopisał wyniku. Lista zapełni się po weekendzie biegu.</p>';
-    return '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0); }).join("") + '</ol>' +
+    var l = Array.isArray(dane && dane.lista) ? dane.lista : [], moje = mojeNumery || [], razem = Number(dane && dane.razem) || l.length, d = dane && dane.dystans, wr = Number(dane && dane.w_rankingu) || 0,
+      zRankingiem = l.some(function (u) { return u.miejsce != null && u.czas_s != null && !u.dziecko; });   // jedna siatka dla całej listy: kolumna miejsca także pusta
+    if (!l.length) return '<p class="bw-drobne">' + (d ? "Na " + esc(d) + " km jeszcze nikt nie dopisał wyniku." : "Jeszcze nikt nie dopisał wyniku. Lista zapełni się po weekendzie biegu.") + '</p>';
+    return (d ? '<p class="bw-drobne bw-ranking-pod">' + (wr ? "Ranking " + esc(d) + " km: " + esc(liczba(wr)) + " " + forma(wr, ["osoba", "osoby", "osób"]) + " z czasem, za zgodą. Niżej pozostali bez czasu." : "Na " + esc(d) + " km nikt jeszcze nie włączył rankingu. Lista bez czasów.") + '</p>' : "") + '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0, zRankingiem); }).join("") + '</ol>' +
       (razem > l.length ? '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-ukonczyli-wiecej="' + l.length + '">Pokaż więcej (' + esc(liczba(razem - l.length)) + ')</button>' : "");
+  }
+  /** Przełącznik listy: wszyscy albo jeden dystans (ranking tego dystansu na górze). Przyciski ≥ 44 px, aria-pressed. */
+  function zakladkiListyHtml(dystanse, akt) {
+    var opcje = [[null, "Wszyscy"]].concat((dystanse || []).map(function (d) { return [Number(d), km(d) + " km"]; }));
+    return '<div class="bw-zakladki" role="group" aria-label="Lista ukończyli: wybór dystansu">' + opcje.map(function (o) { return '<button type="button" class="bw-zakladka" data-ukonczyli-dystans="' + (o[0] == null ? "" : esc(o[0])) + '" aria-pressed="' + (o[0] === (akt == null ? null : Number(akt))) + '">' + esc(o[1]) + '</button>'; }).join("") + '</div>';
   }
   /** „Wesprzyj zbiórkę”: trzy podpowiedzi (pierwsza wyróżniona), każda jest zwykłym linkiem do oficjalnej zbiórki. Link przez safeExternalHref; bez linku nic. */
   function wsparcieHtml(bieg, link) {
@@ -189,8 +197,8 @@
     var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#fffaf0"); tlo.addColorStop(1, "#f7e9cf"); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
     var sx = a4 ? 0.82 : 1, cx = W / 2, y = a4 ? 150 : 200;
     var WYK = a4
-      ? [[cx - 460, 80, 920, 40], [cx - 250, 128, 500, 125], [cx - 170, 272, 340, 38], [cx - 440, 316, 880, 104], [cx - 270, 440, 540, 40], [cx - 610, 490, 1220, 150], [cx - 180, 720, 360, 320], [150, H - 470, 330, 230], [W - 470, H - 480, 320, 180], [cx - 340, H - 150, 680, 80]]
-      : [[cx - 460, 110, 920, 40], [cx - 300, 178, 600, 142], [cx - 210, 350, 420, 40], [cx - 440, 400, 880, 122], [cx - 320, 550, 640, 42], [cx - 450, 608, 900, 164], [cx - 170, 790, 340, 320], [100, H - 445, 320, 200], [W - 390, H - 530, 300, 180], [cx - 300, H - 160, 600, 90]];
+      ? [[cx - 460, 80, 920, 40], [cx - 250, 128, 500, 125], [cx - 170, 272, 340, 38], [cx - 440, 316, 880, 104], [cx - 270, 440, 540, 40], [cx - 610, 490, 1220, 150], [cx - 180, 720, 360, 320], [150, H - 470, 330, 230], [cx - 340, H - 150, 680, 80]]
+      : [[cx - 460, 110, 920, 40], [cx - 300, 178, 600, 142], [cx - 210, 350, 420, 40], [cx - 440, 400, 880, 122], [cx - 320, 550, 640, 42], [cx - 450, 608, 900, 164], [cx - 170, 790, 340, 320], [100, H - 445, 320, 200], [cx - 300, H - 160, 600, 90]];
     konfettiTlo(c, W, H, 90, los, WYK);
     c.strokeStyle = zlota ? "#f2b32a" : "#e8561e"; c.lineWidth = 10; prost(c, 36, 36, W - 72, H - 72, 28); c.stroke();
     c.strokeStyle = zlota ? "#e8561e" : "#f2b32a"; c.lineWidth = 3; prost(c, 56, 56, W - 112, H - 112, 20); c.stroke();
@@ -215,10 +223,7 @@
     c.textAlign = "left"; c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(22 * sx) + "px " + FONT_TEKST;
     c.fillText("Data: " + dataPolska(u.ukonczony_at ? new Date(u.ukonczony_at) : new Date()), a4 ? 160 : 110, H - (a4 ? 440 : 420));
     c.fillText("Numer startowy: " + u.numer, a4 ? 160 : 110, H - (a4 ? 404 : 384));
-    znakBiegamy(c, a4 ? 160 : 110, H - (a4 ? 330 : 300), Math.round(34 * sx), "#07070a"); c.fillStyle = "#7a4a1e"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText(ROLE.operator + ": BiegaMy", a4 ? 160 : 110, H - (a4 ? 302 : 270));   // ta sama rola co na stronie (ROLE), bez własnego opisu
-    var pole = a4 ? [W - 160 - 290, H - 470, 290, 160] : [W - 110 - 270, H - 520, 270, 160];
-    c.setLineDash([12, 10]); c.strokeStyle = "#b08a52"; c.lineWidth = 3; prost(c, pole[0], pole[1], pole[2], pole[3], 16); c.stroke(); c.setLineDash([]);
-    c.fillStyle = "#7a4a1e"; c.textAlign = "center"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText("tu znak Inicjatora", pole[0] + pole[2] / 2, pole[1] + pole[3] / 2 + 8);
+    znakBiegamy(c, a4 ? 160 : 110, H - (a4 ? 330 : 300), Math.round(34 * sx), "#07070a"); c.fillStyle = "#7a4a1e"; c.font = "500 " + Math.round(20 * sx) + "px " + FONT_TEKST; c.fillText(ROLE.organizator + ": BiegaMy", a4 ? 160 : 110, H - (a4 ? 302 : 270));   // ta sama rola co na stronie (ROLE), bez własnego opisu; bez pola na cudzy znak (organizatorem jest BiegaMy)
     return k;
   }
   /** ODZNAKA jako SVG (szkic): 'zwykla' (ceglasty medal) albo 'zlota' (złoty medal z gwiazdkami). W środku IKONA ŚWIATA ULICY (dla tej ulicy koparka, assets/ulica/koparka.webp),
@@ -306,9 +311,9 @@
 
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
-    MIEJSCE_REGULAMIN: MIEJSCE_REGULAMIN, MIEJSCE_OSWIADCZENIE: MIEJSCE_OSWIADCZENIE, MIEJSCE_ZGODA_IMIE: MIEJSCE_ZGODA_IMIE, MIEJSCE_ZGODA_IMIE_DZIECKA: MIEJSCE_ZGODA_IMIE_DZIECKA, MIEJSCE_ZGODA_EMAIL: MIEJSCE_ZGODA_EMAIL, MIEJSCE_POLITYKA: MIEJSCE_POLITYKA,
+    MIEJSCE_REGULAMIN: MIEJSCE_REGULAMIN, MIEJSCE_OSWIADCZENIE: MIEJSCE_OSWIADCZENIE, MIEJSCE_ZGODA_IMIE: MIEJSCE_ZGODA_IMIE, MIEJSCE_ZGODA_IMIE_DZIECKA: MIEJSCE_ZGODA_IMIE_DZIECKA, MIEJSCE_ZGODA_RANKING: MIEJSCE_ZGODA_RANKING, MIEJSCE_ZGODA_EMAIL: MIEJSCE_ZGODA_EMAIL, MIEJSCE_POLITYKA: MIEJSCE_POLITYKA,
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
-    liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, wsparcieHtml: wsparcieHtml,
+    liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,
     numerStartowy: numerStartowy, dyplom: dyplom, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
 })(typeof globalThis !== "undefined" ? globalThis : window);

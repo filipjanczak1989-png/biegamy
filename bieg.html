@@ -18,8 +18,8 @@
 <!--
   BIEG WIRTUALNY Z PRAWDZIWYMI ZAPISAMI (etap 1, 12.11.2026; projekt poza repo). Strona publiczna; dane biegu z publicznego licznika (pole `bieg` z akcja_bieg_publiczny),
   własne zapisy przez funkcje akcja_bieg_* (tylko zalogowani). Bez imienia dziecka w kodzie: nazwa biegu przychodzi z bazy. Bez wpisowego; „Wesprzyj zbiórkę” to zwykły link
-  do oficjalnej zbiórki z podpowiedziami 20/30/50 zł; kwot nie sprawdzamy ani nie pokazujemy. Lista „ukończyli”: imię za zgodą, numer, dystans; czasy prywatne, bez rankingu.
-  Role: Inicjator (opiekun) i Operator (BiegaMy). Teksty regulaminu, oświadczenia rodzica, zgód i dopisku do polityki prywatności: MIEJSCA oznaczone w js/bieg.mjs (po 18.11).
+  do oficjalnej zbiórki z podpowiedziami 20/30/50 zł; kwot nie sprawdzamy ani nie pokazujemy. Lista „ukończyli”: imię za zgodą, numer, dystans; czas i miejsce tylko za zgodą na ranking (pełnoletni, osobno 5 i 10 km, decyzja 13.11), dzieci nigdy.
+  Organizator: BiegaMy; opiekun dziecka wyraża tylko zgodę (bieg, imię, rysunek). Teksty regulaminu, oświadczenia rodzica, zgód i dopisku do polityki prywatności: MIEJSCA oznaczone w js/bieg.mjs (po 18.11).
   ?proba=1 = bieg próbny przy ulicy próbnej (licznik próby, konto testowe). Stany strony: niezalogowany, przed zapisem, po zapisie, z dziećmi (js/bieg.mjs stanStrony).
 -->
 <style>
@@ -86,6 +86,15 @@
   .bw-wiersz--ty { background: rgba(232,86,30,.14); border-radius: 10px; border-top-color: transparent; }
   .bw-nr { font: 400 18px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg2); } .bw-imie i { font-style: normal; font-size: 11px; color: var(--akcent2); font-weight: 800; } .bw-imie small { font-size: 11px; color: var(--fg2); } .bw-imie .bw-bez { color: var(--fg2); font-weight: 400; }
   .bw-dyst { font-size: 12px; color: var(--fg2); text-align: right; }
+  /* ranking (13.11): miejsce przed numerem, czas przy dystansie; tylko wiersze, którym serwer dał czas (zgoda, dorosły) */
+  .bw-wiersz--ranking { grid-template-columns: 34px 44px 1fr auto; }
+  .bw-pozycja { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg); text-align: center; }
+  .bw-czas { font: 400 18px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; color: var(--fg); }
+  .bw-zakladki { display: flex; gap: 6px; margin: 0 0 10px; }
+  .bw-zakladka { flex: 1; min-height: 44px; border: 1px solid var(--ramka); border-radius: 12px; background: transparent; color: var(--fg2); font: 700 13px/1 Inter, sans-serif; cursor: pointer; }
+  .bw-zakladka[aria-pressed="true"] { background: rgba(255,255,255,.1); border-color: var(--fg2); color: var(--fg); }
+  .bw-ranking-pod { margin: 0 0 6px; }
+  .bw-zgoda--moja { margin: 10px 0 0; }
   .bw-kwoty { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
   .bw-kwota { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 56px; border: 1px solid rgba(232,86,30,.55); border-radius: 12px; color: var(--akcent2); text-decoration: none; font-weight: 700; }
   .bw-kwota b { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-kwota small { font-size: 10px; color: var(--fg2); font-weight: 600; }
@@ -196,6 +205,7 @@
   <div>
   <section class="bw-sekcja" aria-label="Ukończyli">
     <h2>Ukończyli</h2>
+    <div id="bw-ukonczyli-zakladki"></div>
     <div id="bw-ukonczyli"></div>
     <p class="bw-drobne" id="bw-czasy-prywatne"></p>
   </section>
@@ -228,6 +238,7 @@
   <label class="bw-pole" for="bw-imie"><span>Imię na numer i dyplom (jedno słowo)</span><input id="bw-imie" type="text" autocomplete="given-name" maxlength="20" placeholder="np. Ola"></label>
   <label class="bw-zgoda bw-zgoda--wymagana"><input type="checkbox" id="bw-regulamin"> <span id="bw-regulamin-tekst"></span></label>
   <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-imie"> <span id="bw-zgoda-imie-tekst"></span></label>
+  <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-ranking"> <span id="bw-zgoda-ranking-tekst"></span></label>
   <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-email"> <span id="bw-zgoda-email-tekst"></span></label>
   <p class="bw-blad" id="bw-zapis-blad"></p>
   <button type="button" class="bw-przycisk" id="bw-zapis-ok">Zapisz mnie i daj numer ›</button>
@@ -272,11 +283,12 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ── TEKSTY: miejsca oznaczone (od Filipa po 18.11) ── */
   function miejsce(t) { return '<span class="bw-miejsce">' + B.esc(t) + '</span>'; }
   $('bw-bez-wpisowego').textContent = B.TEKSTY.bez_wpisowego; $('bw-czasy-prywatne').textContent = B.TEKSTY.czasy_prywatne; $('bw-dzieci-zasada').textContent = B.TEKSTY.dzieci;
-  $('bw-role').innerHTML = '<div class="bw-rola"><b>' + B.esc(B.ROLE.inicjator) + '</b>' + B.esc(B.ROLE.inicjator_opis) + '</div><div class="bw-rola"><b>' + B.esc(B.ROLE.operator) + '</b>' + B.esc(B.ROLE.operator_opis) + '</div>';
+  $('bw-role').innerHTML = '<div class="bw-rola"><b>' + B.esc(B.ROLE.organizator) + '</b>' + B.esc(B.ROLE.organizator_opis) + '</div><div class="bw-rola"><b>' + B.esc(B.ROLE.zgoda) + '</b>' + B.esc(B.ROLE.zgoda_opis) + '</div>';
   $('bw-regulamin-tresc').innerHTML = '<h4>Regulamin</h4>' + miejsce(B.MIEJSCE_REGULAMIN) + '<h4>Oświadczenie rodzica lub opiekuna</h4>' + miejsce(B.MIEJSCE_OSWIADCZENIE) + '<h4>Zgody</h4>' + miejsce(B.MIEJSCE_ZGODA_IMIE) + miejsce(B.MIEJSCE_ZGODA_IMIE_DZIECKA) + miejsce(B.MIEJSCE_ZGODA_EMAIL) + '<h4>Polityka prywatności</h4>' + miejsce(B.MIEJSCE_POLITYKA);
   $('bw-polityka-miejsce').innerHTML = B.TEKSTY_GOTOWE ? '' : miejsce(B.MIEJSCE_POLITYKA);
   $('bw-regulamin-tekst').innerHTML = B.esc(B.TEKSTY.regulamin_pole) + ' <a href="#" data-regulamin>czytaj ›</a>';
   $('bw-zgoda-imie-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_imie_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_IMIE) + '</small>';
+  $('bw-zgoda-ranking-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_ranking_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_RANKING) + '</small>';
   $('bw-zgoda-email-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_email_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_EMAIL) + '</small>';
   $('bw-oswiadczenie-tekst').innerHTML = B.esc(B.TEKSTY.oswiadczenie_pole) + '<small>' + B.esc(B.MIEJSCE_OSWIADCZENIE) + '</small>';
   $('bw-zgoda-imie-dziecka-tekst').innerHTML = B.esc(B.TEKSTY.zgoda_imie_dziecka_pole) + '<small>' + B.esc(B.MIEJSCE_ZGODA_IMIE_DZIECKA) + '</small>';
@@ -320,14 +332,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.liczbyHtml(bieg) : ''; }
   /* lista „ukończyli” osobną funkcją (EF bieg-ukonczyli), tą samą drogą co licznik; porcje po 50, „Pokaż więcej” dokleja */
-  var ukonczyli = { razem: 0, lista: [] };
+  var ukonczyli = { razem: 0, lista: [] }, dystansListy = null;   // null = wszyscy; 5 albo 10 = ranking tego dystansu na górze
   function pobierzUkonczyli(od) {
     if (!bieg || !window.SB_URL || !window.fetch) return Promise.resolve(null);
-    return fetch(window.SB_URL + '/functions/v1/bieg-ukonczyli?slug=' + encodeURIComponent(bieg.slug) + '&od=' + (od || 0), { headers: { Accept: 'application/json' } })
+    return fetch(window.SB_URL + '/functions/v1/bieg-ukonczyli?slug=' + encodeURIComponent(bieg.slug) + '&od=' + (od || 0) + (dystansListy ? '&dystans=' + dystansListy : ''), { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
-  function rysujUkonczyli() { $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(ukonczyli, moi.map(function (u) { return Number(u.numer); })) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'; }
-  function odswiezUkonczyli() { return pobierzUkonczyli(0).then(function (d) { ukonczyli = d && Array.isArray(d.lista) ? { razem: Number(d.razem) || d.lista.length, lista: d.lista } : { razem: 0, lista: [] }; rysujUkonczyli(); }); }
+  function rysujUkonczyli() { $('bw-ukonczyli-zakladki').innerHTML = bieg ? B.zakladkiListyHtml(bieg.dystanse_km || B.ZASADY.dystanse, dystansListy) : ''; $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(ukonczyli, moi.map(function (u) { return Number(u.numer); })) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'; }
+  function odswiezUkonczyli() { return pobierzUkonczyli(0).then(function (d) { ukonczyli = d && Array.isArray(d.lista) ? { razem: Number(d.razem) || d.lista.length, lista: d.lista, dystans: d.dystans, w_rankingu: d.w_rankingu } : { razem: 0, lista: [], dystans: dystansListy }; rysujUkonczyli(); }); }
+  document.addEventListener('click', function (e) {
+    var z = e.target.closest('[data-ukonczyli-dystans]'); if (!z) return;
+    var d = z.getAttribute('data-ukonczyli-dystans'); dystansListy = d ? Number(d) : null; odswiezUkonczyli();
+  });
   document.addEventListener('click', function (e) {
     var w = e.target.closest('[data-ukonczyli-wiecej]'); if (!w) return;
     w.disabled = true;
@@ -347,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     h += B.wynikHtml(widok, bieg, { brakTreningu: !!brakTreningu[u.id] });   // 20261126: wynik, dyplom i odznaka albo droga do wyniku
     if (gotowy) h += '<a href="#" class="bw-link-maly" data-udostepnij="' + B.esc(u.id) + '">Numer startowy (obraz)</a>';
+    if (!dziecko) h += '<label class="bw-zgoda bw-zgoda--moja"><input type="checkbox" data-ranking-zgoda' + (u.ranking_zgoda ? ' data-ranking-wl' : '') + '> <span>Pokaż mnie w rankingu (czas i miejsce, mam 18 lat)</span></label><p class="bw-drobne" data-ranking-stan></p>';   // 13.11: zgoda osobna od imienia, w każdej chwili do wyłączenia
     if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += '<a href="#" class="bw-link-maly" data-wycofaj="' + B.esc(u.id) + '">Wycofaj ' + (dziecko ? 'zapis dziecka' : 'mój zapis') + '</a>';
     return h + '</div>';
   }
@@ -379,6 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     s.hidden = false;
     var lista = (stan.ja ? [stan.ja] : []).concat(stan.dzieci);
     t.innerHTML = lista.map(uczestnikHtml).join('');
+    t.querySelectorAll('[data-ranking-wl]').forEach(function (c) { c.checked = true; });   // stan zapisanej zgody, ustawiany po narysowaniu (w HTML nic nie jest zaznaczone z góry)
     $('bw-dziecko').hidden = !B.mozeDopisacDziecko(bieg, stan.dzieci);
     $('bw-zapisz-siebie').hidden = !!stan.ja || !B.zapisyOtwarte(bieg);
     $('bw-dzieci-info').textContent = stan.dzieci.length ? 'Dzieci: ' + stan.dzieci.length + ' z ' + B.ZASADY.limit_dzieci + '. Każde ma własny numer; dyplomy dzieci są bez czasu.' : 'Dziecko dopisujesz samym imieniem, z oświadczeniem rodzica. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
@@ -468,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('click', function (e) { var r = e.target.closest('[data-regulamin]'); if (r) { e.preventDefault(); pokazOkno($('bw-okno-regulamin')); } });
   var OKNO_ZAPIS = $('bw-okno-zapis'), OKNO_DZIECKO = $('bw-okno-dziecko');
   function otworzZapis() {
-    $('bw-zapis-blad').textContent = ''; $('bw-regulamin').checked = false; $('bw-zgoda-imie').checked = false; $('bw-zgoda-email').checked = false;   // nic z góry
+    $('bw-zapis-blad').textContent = ''; $('bw-regulamin').checked = false; $('bw-zgoda-imie').checked = false; $('bw-zgoda-ranking').checked = false; $('bw-zgoda-email').checked = false;   // nic z góry
     OKNO_ZAPIS.querySelectorAll('input[name="bw-dystans"]').forEach(function (r) { r.checked = false; });
     pokazOkno(OKNO_ZAPIS);
   }
@@ -479,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ($('bw-imie').value.trim() && !imie) { blad.textContent = 'Imię: jedno słowo, 2–20 liter, bez nazwiska.'; return; }
     if (!$('bw-regulamin').checked) { blad.textContent = 'Zapis wymaga akceptacji regulaminu.'; return; }
     blad.textContent = ''; $('bw-zapis-ok').disabled = true;
-    rpc('akcja_bieg_zapisz', { p_slug: bieg.slug, p_dystans: Number(d), p_zgoda_imie: $('bw-zgoda-imie').checked, p_zgoda_email: $('bw-zgoda-email').checked, p_regulamin_wersja: bieg.regulamin_wersja, p_imie: imie || null }).then(function (r) {
+    rpc('akcja_bieg_zapisz', { p_slug: bieg.slug, p_dystans: Number(d), p_zgoda_imie: $('bw-zgoda-imie').checked, p_zgoda_email: $('bw-zgoda-email').checked, p_regulamin_wersja: bieg.regulamin_wersja, p_imie: imie || null, p_zgoda_ranking: $('bw-zgoda-ranking').checked }).then(function (r) {
       $('bw-zapis-ok').disabled = false;
       if (!r.ok) { blad.textContent = komunikat(r); return; }
       schowajOkno(OKNO_ZAPIS); odswiez().then(function () { $('bw-moj').scrollIntoView({ block: 'start', behavior: B.bezRuchu() ? 'auto' : 'smooth' }); });
@@ -512,11 +530,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.confirm('Wycofać ten zapis? Numer startowy przepada.')) return;
     rpc('akcja_bieg_wycofaj', { p_id: w.getAttribute('data-wycofaj') }).then(function (r) { if (!r.ok) { alert(komunikat(r)); return; } odswiez(); });
   });
+  document.addEventListener('change', function (e) {
+    var c = e.target.closest('[data-ranking-zgoda]'); if (!c) return;
+    var ch = c.checked, st = c.closest('.bw-uczestnik').querySelector('[data-ranking-stan]'); st.textContent = 'Zapisuję…';
+    rpc('akcja_bieg_ranking_zgoda', { p_slug: bieg.slug, p_zgoda: ch }).then(function (r) {
+      if (!r.ok) { c.checked = !ch; st.textContent = komunikat(r); return; }
+      st.textContent = ch ? 'Twój czas i miejsce będą na liście „ukończyli”.' : 'Na liście będziesz bez czasu.';
+      moi.forEach(function (u) { if (u.rodzaj === 'ja') u.ranking_zgoda = ch; }); odswiezUkonczyli();
+    });
+  });
   function komunikat(r) {
     var p = r && r.powod;
     return p === 'zamkniete' ? 'Zapisy są już zamknięte.' : p === 'regulamin' ? 'Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.' : p === 'dystans' ? 'Wybierz 5 albo 10 km.' : p === 'imie' ? 'Imię: jedno słowo, 2–20 liter.'
       : p === 'juz_zapisany' ? 'Już masz zapis w tym biegu (numer ' + (r.numer || '') + ').' : p === 'oswiadczenie' ? 'Potrzebne oświadczenie rodzica.' : p === 'limit' ? 'Limit dzieci na konto: ' + (r.limit || B.ZASADY.limit_dzieci) + '.' : p === 'nie_ma' ? 'Nie ma takiego biegu.'
-      : p === 'limit_zapisow' ? 'Limit zapisów na to konto w tym biegu został wykorzystany.' : 'Nie udało się: ' + (r && r.blad ? r.blad : 'spróbuj za chwilę.');
+      : p === 'limit_zapisow' ? 'Limit zapisów na to konto w tym biegu został wykorzystany.' : p === 'ranking_wiek' ? 'Ranking jest tylko dla osób pełnoletnich. Odznacz zgodę na ranking.' : p === 'brak_zapisu' ? 'Najpierw zapisz się na bieg.' : 'Nie udało się: ' + (r && r.blad ? r.blad : 'spróbuj za chwilę.');
   }
 
   /* ── PODGLĄD GRAFIK (?podglad=1): numer i dyplom w dwóch wersjach, odznaki ── */

@@ -2,10 +2,10 @@
 -- Strażnik licznika (prawdziwa ulica przed/po migracji identyczna poza kluczem bieg, obiema drogami produkcji: service_role jak EF i authenticated jak RPC zalogowanych), uprawnienia (tabele bez dostępu z przeglądarki, funkcje tylko dla authenticated,
 -- lista „ukończyli” tylko dla roli serwisowej), imiona (Łucja, Żaneta, Anna-Maria tak; dwa słowa, cyfry, znaczniki nie), zapis raz na konto, dystans i regulamin, dziecko z oświadczeniem
 -- i limitem, nabijanie numerów (3 zapisy „ja”, 3 × limit dzieci łącznie z wycofanymi), moje zapisy tylko własne, licznik tylko z liczbami zbiorczymi, lista ze stronicowaniem,
--- wycofanie tylko własnych, fazy z dat (zapis także w „wyniki”, do wynik_do), CHECK weekendu, kolumna w zgłoszeniach cegiełek. Jedna transakcja, zawsze wycofana (tools/akcja-bieg-test.sh).
+-- wycofanie tylko własnych, fazy z dat (zapis także w „wyniki”, do wynik_do), CHECK weekendu, kolumna w zgłoszeniach cegiełek, RANKING (13.11: zgoda osobna od imienia, dzieci i niepełnoletni nigdy, miejsce osobno 5 i 10 km). Jedna transakcja, zawsze wycofana (tools/akcja-bieg-test.sh).
 do $T$
 declare
-  n int := 0; j jsonb; k jsonb; j0 jsonb; zw uuid; zw2 uuid; zwa uuid; b uuid; u1 uuid; dz uuid; dz2 uuid; zg uuid; x record; i int; v text;
+  n int := 0; j jsonb; k jsonb; j0 jsonb; zw uuid; zw2 uuid; zwa uuid; b uuid; u1 uuid; dz uuid; dz2 uuid; zg uuid; x record; i int; v text; ka uuid[]; ku uuid[]; nr int;
   W constant text := '2026-11-v1'; DZIS constant date := (now() at time zone 'Europe/Warsaw')::date;   -- doba warszawska jak w akcja_bieg_faza (data bazy jest w UTC: między 0:00 a 1:00 w Polsce dawała wczoraj i test fazy padał)
 begin
   select a.user_id into zw from public.athletes a where a.user_id is not null and a.full_name is not null and btrim(a.full_name) ~ '^[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]{2,20}( |$)'
@@ -44,10 +44,10 @@ begin
   if has_table_privilege('anon', 'public.akcja_biegi', 'SELECT') or has_table_privilege('authenticated', 'public.akcja_biegi', 'SELECT')
      or has_table_privilege('anon', 'public.akcja_bieg_uczestnicy', 'SELECT') or has_table_privilege('authenticated', 'public.akcja_bieg_uczestnicy', 'SELECT')
      or has_table_privilege('authenticated', 'public.akcja_bieg_uczestnicy', 'INSERT') then raise exception 'FAIL 1a: tabele biegu dostępne z przeglądarki'; end if;
-  if has_function_privilege('anon', 'public.akcja_bieg_zapisz(text, integer, boolean, boolean, text, text)', 'EXECUTE')
+  if has_function_privilege('anon', 'public.akcja_bieg_zapisz(text, integer, boolean, boolean, text, text, boolean)', 'EXECUTE')
      or has_function_privilege('anon', 'public.akcja_bieg_publiczny(text)', 'EXECUTE') or has_function_privilege('authenticated', 'public.akcja_bieg_publiczny(text)', 'EXECUTE')
-     or has_function_privilege('anon', 'public.akcja_bieg_ukonczyli(text, integer, integer)', 'EXECUTE') or has_function_privilege('authenticated', 'public.akcja_bieg_ukonczyli(text, integer, integer)', 'EXECUTE')
-     or not has_function_privilege('service_role', 'public.akcja_bieg_ukonczyli(text, integer, integer)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.akcja_bieg_ukonczyli(text, integer, integer, integer)', 'EXECUTE') or has_function_privilege('authenticated', 'public.akcja_bieg_ukonczyli(text, integer, integer, integer)', 'EXECUTE')
+     or not has_function_privilege('service_role', 'public.akcja_bieg_ukonczyli(text, integer, integer, integer)', 'EXECUTE')
      or has_function_privilege('anon', 'public.akcja_bieg_moi(text)', 'EXECUTE') then raise exception 'FAIL 1b: uprawnienia funkcji biegu'; end if;
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   execute 'set local role anon';
@@ -233,6 +233,81 @@ begin
   execute 'reset role';
   update public.akcja_biegi set limit_dzieci = 6 where id = b;
   n := n + 5;
+
+  -- 11. RANKING (decyzja 13.11): zgoda osobna od imienia, domyślnie wyłączona; dzieci nigdy (CHECK); niepełnoletni z daty urodzenia nigdy (zapis, zgoda, lista);
+  --     czas i miejsce tylko u zgodzonych dorosłych, miejsce osobno dla 5 i 10 km (remis = to samo miejsce); bez zgody bez czasu i bez wpływu na miejsca.
+  --     Konta: 7 bez daty urodzenia (dorośli z oświadczenia przy zgodzie); dwóm w tej wycofanej transakcji ustawiamy datę poniżej 18 lat. Imiona wymyślone.
+  select array_agg(t.id order by t.created_at), array_agg(t.user_id order by t.created_at) into ka, ku
+    from (select a.id, a.user_id, a.created_at from public.athletes a where a.user_id is not null and a.date_of_birth is null
+            and not exists (select 1 from public.coaches c where c.id = a.user_id)
+            and not exists (select 1 from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.konto_id = a.id)
+          order by a.created_at limit 7) t;
+  if coalesce(array_length(ka, 1), 0) < 7 then raise exception 'FAIL 11-0: za mało kont do testu rankingu'; end if;
+  select coalesce(max(numer), 0) into nr from public.akcja_bieg_uczestnicy where bieg_id = b;
+  insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, zgoda_imie, numer, dystans_km, regulamin_wersja, wynik_s, wynik_dystans_km, ukonczony_at, ranking_zgoda_at) values
+    (b, ka[1], 'ja', 'Anna', true, nr + 1, 5, W, 1500, 5, now(), now()),
+    (b, ka[2], 'ja', 'Bogna', false, nr + 2, 5, W, 1400, 5, now(), now()),
+    (b, ka[3], 'ja', 'Celina', true, nr + 3, 5, W, 1500, 5, now(), now()),
+    (b, ka[4], 'ja', 'Dawid', true, nr + 4, 5, W, 1300, 5, now(), null),
+    (b, ka[5], 'ja', 'Edek', true, nr + 5, 10, W, 2800, 10, now(), now()),
+    (b, ka[6], 'ja', 'Franek', true, nr + 6, 10, W, 2900, 10, now(), now());
+  update public.athletes set date_of_birth = (DZIS - interval '17 years')::date where id = ka[5];   -- 17 lat w dniu startu (DZIS + 2): niepełnoletni
+  begin
+    insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, numer, oswiadczenie_rodzica_at, regulamin_wersja, ukonczony_at, ranking_zgoda_at)
+      values (b, ka[1], 'dziecko', 'Zosia', nr + 7, now(), W, now(), now());
+    raise exception 'FAIL 11a: dziecko ze zgodą na ranking przeszło (CHECK)';
+  exception when check_violation then null; end;
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+  j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
+  k := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 10);
+  v := public.akcja_bieg_ukonczyli('proba-bieg', 0, 100)::text;
+  j0 := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 7);
+  execute 'reset role';
+  if (j->>'w_rankingu')::int <> 3 then raise exception 'FAIL 11b: w rankingu 5 km mają być 3 osoby ze zgodą: %', j->>'w_rankingu'; end if;
+  if j->'lista'->0->>'numer' <> (nr + 2)::text or (j->'lista'->0->>'miejsce')::int <> 1 or (j->'lista'->0->>'czas_s')::int <> 1400 then raise exception 'FAIL 11c: pierwsze miejsce 5 km = najszybszy ze zgodą: %', j->'lista'->0; end if;
+  if j->'lista'->0->>'imie' is not null then raise exception 'FAIL 11d: zgoda na ranking nie daje zgody na imię'; end if;
+  if (j->'lista'->1->>'miejsce')::int <> 2 or (j->'lista'->2->>'miejsce')::int <> 2 or j->'lista'->1->>'imie' is null then raise exception 'FAIL 11e: remis 1500 s = dwa drugie miejsca, imię za zgodą: %', j->'lista'; end if;
+  if exists (select 1 from jsonb_array_elements(j->'lista') e where e->>'numer' = (nr + 4)::text and (e ? 'czas_s' or e ? 'miejsce'))
+     or not exists (select 1 from jsonb_array_elements(j->'lista') e where e->>'numer' = (nr + 4)::text) then raise exception 'FAIL 11f: bez zgody na liście, ale bez czasu i miejsca (najszybszy nie przesuwa miejsc)'; end if;
+  if (k->>'w_rankingu')::int <> 1 or k->'lista'->0->>'numer' <> (nr + 6)::text or (k->'lista'->0->>'miejsce')::int <> 1 then raise exception 'FAIL 11g: 10 km osobno, niepełnoletni szybszy nie zajmuje miejsca: %', k; end if;
+  if exists (select 1 from jsonb_array_elements(k->'lista') e where e->>'numer' = (nr + 5)::text and e ? 'czas_s') then raise exception 'FAIL 11h: niepełnoletni z daty urodzenia z czasem'; end if;
+  if exists (select 1 from jsonb_array_elements((v::jsonb)->'lista') e where (e->>'dziecko')::boolean and (e ? 'czas_s' or e ? 'miejsce')) then raise exception 'FAIL 11i: dziecko z czasem'; end if;
+  if v ~ '"(konto_id|wynik_s|email|ranking_zgoda_at)"' or position('"czas_s": 1300' in v) > 0 then raise exception 'FAIL 11j: lista ogólna z polami kont albo czasem bez zgody'; end if;
+  if j0 is not null then raise exception 'FAIL 11k: dystans spoza biegu ma dać NULL'; end if;
+  if not exists (select 1 from jsonb_array_elements((v::jsonb)->'lista') e where e->>'numer' = (nr + 6)::text and (e->>'miejsce')::int = 1)
+     or not exists (select 1 from jsonb_array_elements((v::jsonb)->'lista') e where e->>'numer' = (nr + 2)::text and (e->>'miejsce')::int = 1) then raise exception 'FAIL 11k2: w liście ogólnej miejsca osobno dla 5 i 10 km (dwa pierwsze miejsca)'; end if;
+  update public.athletes set date_of_birth = (DZIS - interval '16 years')::date where id = ka[7];
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[7], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_zapisz('proba-bieg', 5, false, false, W, 'Gosia', true);
+  if (j->>'ok')::boolean or j->>'powod' <> 'ranking_wiek' then raise exception 'FAIL 11l: niepełnoletni z rankingiem przy zapisie ma dostać ranking_wiek: %', j; end if;
+  j := public.akcja_bieg_zapisz('proba-bieg', 5, false, false, W, 'Gosia');
+  if not (j->>'ok')::boolean then raise exception 'FAIL 11m: zapis bez rankingu (domyślnie) ma przejść: %', j; end if;
+  j := public.akcja_bieg_moi('proba-bieg');
+  if (j->0->>'ranking_zgoda')::boolean is distinct from false then raise exception 'FAIL 11n: zgoda na ranking domyślnie wyłączona: %', j->0; end if;
+  j := public.akcja_bieg_ranking_zgoda('proba-bieg', true);
+  if (j->>'ok')::boolean or j->>'powod' <> 'ranking_wiek' then raise exception 'FAIL 11o: włączenie rankingu przez niepełnoletniego: %', j; end if;
+  execute 'reset role';
+  update public.athletes set date_of_birth = null where id = ka[7];
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_dopisz_dziecko('proba-bieg', 'Hela', false, true, W);
+  if not (j->>'ok')::boolean then raise exception 'FAIL 11p: dziecko do testu: %', j; end if;
+  j := public.akcja_bieg_ranking_zgoda('proba-bieg', true);
+  if not (j->>'ok')::boolean then raise exception 'FAIL 11q: włączenie rankingu przez dorosłego: %', j; end if;
+  j := public.akcja_bieg_moi('proba-bieg');
+  if not exists (select 1 from jsonb_array_elements(j) e where e->>'rodzaj' = 'ja' and (e->>'ranking_zgoda')::boolean) then raise exception 'FAIL 11r: zgoda nie zapisana: %', j; end if;
+  if exists (select 1 from jsonb_array_elements(j) e where e->>'rodzaj' = 'dziecko' and (e->>'ranking_zgoda')::boolean) then raise exception 'FAIL 11s: dziecko dostało zgodę razem z rodzicem'; end if;
+  perform public.akcja_bieg_ranking_zgoda('proba-bieg', false);
+  j := public.akcja_bieg_moi('proba-bieg');
+  if exists (select 1 from jsonb_array_elements(j) e where (e->>'ranking_zgoda')::boolean) then raise exception 'FAIL 11t: wyłączenie zgody nie działa'; end if;
+  execute 'reset role';
+  if has_function_privilege('anon', 'public.akcja_bieg_ranking_zgoda(text, boolean)', 'EXECUTE') or not has_function_privilege('authenticated', 'public.akcja_bieg_ranking_zgoda(text, boolean)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.akcja_bieg_czas_rankingu(public.akcja_bieg_uczestnicy, public.akcja_biegi)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'public.akcja_bieg_czas_rankingu(public.akcja_bieg_uczestnicy, public.akcja_biegi)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.akcja_bieg_niepelnoletni(uuid, date)', 'EXECUTE') or has_function_privilege('authenticated', 'public.akcja_bieg_niepelnoletni(uuid, date)', 'EXECUTE')
+     then raise exception 'FAIL 11u: uprawnienia funkcji rankingu'; end if;
+  n := n + 22;
 
   raise exception 'TESTY BIEGU ZIELONE: % sprawdzeń', n;
 end $T$;
