@@ -28,14 +28,14 @@
       liscie: ["#e8892b", "#f2b32a", "#d9482b", "#b5651d"], platki: false,
       konfetti: ["#e9772b", "#f2b233", "#c9472b", "#d98a23", "#8fae3c"],
       trawaGry: "#7f9150", ziemiaGry: "#2b3a20", pasPodDroga: ["#26380f", "#16220a"], trawaPasa: "rgba(92,134,48,.55)", ziemiaPasa: ["#6b4524", "#33200f"],
-      mapaTlo: "#9fb050"
+      mapaTlo: "#9fb050", tekstNaLace: "#fff7e6"
     },
     zima: {
       laka: "linear-gradient(#f4f8fc,#e3edf6 28%,#d3e2ef 62%,#c3d5e6)", grunt: "linear-gradient(#e9f1f8 0 12%,#8c6d3f 12% 72%,#7a5d33 76%,#dfe9f3 78%)",
       liscie: ["#ffffff", "#f2f7fc", "#e3eef8", "#d6e6f5"], platki: true,
       konfetti: ["#ffffff", "#e3eef8", "#d8343a", "#2f9e5a", "#f2b632"],
       trawaGry: "#dfe9f3", ziemiaGry: "#9fb3c8", pasPodDroga: ["#dbe7f2", "#b9cde2"], trawaPasa: "rgba(255,255,255,.55)", ziemiaPasa: ["#c3d5e6", "#9fb3c8"],
-      mapaTlo: "#e3edf6"
+      mapaTlo: "#e3edf6", tekstNaLace: "#24313f"
     }
   };
   var _zestaw = null;
@@ -49,7 +49,7 @@
   }
   /** Aktywny sezon. d tylko w testach. */
   function aktywny(d) { return zParametru() || WYMUSZONY || zDaty(d || new Date()) || "jesien"; }
-  /** 'assets/ulica/drzewo.webp' → 'assets/sezony/zima/ulica/drzewo.webp', gdy sezon ma ten plik; inaczej ścieżka bez zmian (także z ?v= na końcu). */
+  /** assets/ulica/drzewo.webp → assets/sezony/zima/ulica/drzewo.webp, gdy sezon ma ten plik; inaczej ścieżka bez zmian (także z ?v= na końcu). */
   function adres(p, s) {
     var sz = s || aktywny();
     if (sz === "jesien" || typeof p !== "string") return p;

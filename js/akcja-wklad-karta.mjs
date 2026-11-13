@@ -62,7 +62,7 @@
   function rysujPasUlicy(c, W, H, sh, o) {
     var sy = H - sh - 100;
     var niebo = c.createLinearGradient(0, sy, 0, sy + sh * 0.6); niebo.addColorStop(0, "#9fd0ee"); niebo.addColorStop(1, "#dceefb"); c.fillStyle = niebo; c.fillRect(0, sy, W, sh * 0.6);
-    c.fillStyle = "#86ad55"; c.fillRect(0, sy + sh * 0.6, W, sh * 0.4);
+    c.fillStyle = g.BM_SEZON ? g.BM_SEZON.kolory("#86ad55") : "#86ad55"; c.fillRect(0, sy + sh * 0.6, W, sh * 0.4);
     if (o.wzgorza && o.wzgorza.naturalWidth) { var wh = sh * 0.34, ww = wh * (o.wzgorza.naturalWidth / o.wzgorza.naturalHeight); for (var xx = 0; xx < W; xx += ww) c.drawImage(o.wzgorza, xx, sy + sh * 0.6 - wh, ww, wh); }
     c.fillStyle = "#3b3b47"; c.fillRect(0, sy + sh * 0.76, W, sh * 0.16);
     if (o.droga && o.droga.naturalWidth) { var dh = sh * 0.16, dw = dh * (o.droga.naturalWidth / o.droga.naturalHeight); for (var x2 = 0; x2 < W; x2 += dw) c.drawImage(o.droga, x2, sy + sh * 0.76, dw, dh); }
@@ -75,7 +75,7 @@
     rysujObraz(c, o.drzewo, 960, pod - sh * 0.36, sh * 0.3, sh * 0.36);
     if (o["pierwszy-plan"] && o["pierwszy-plan"].naturalWidth) { var ph = sh * 0.12, pw2 = ph * (o["pierwszy-plan"].naturalWidth / o["pierwszy-plan"].naturalHeight); for (var x3 = 0; x3 < W; x3 += pw2) c.drawImage(o["pierwszy-plan"], x3, sy + sh - ph, pw2, ph); }
   }
-  function wczytaj(src) { return new Promise(function (ok) { try { var im = new g.Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = src; } catch (e) { ok(null); } }); }
+  function wczytaj(src) { return new Promise(function (ok) { try { var im = new g.Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = g.BM_SEZON ? g.BM_SEZON.adres(src) : src; } catch (e) { ok(null); } }); }   // grafiki ulicy w motywie (js/sezon.mjs)
   function fonty() { try { return g.document.fonts && g.document.fonts.load ? Promise.race([Promise.all([g.document.fonts.load("40px 'Bebas Neue'"), g.document.fonts.load("600 20px Inter")]), new Promise(function (ok) { g.setTimeout(ok, 1500); })]) : Promise.resolve(); } catch (e) { return Promise.resolve(); } }
   function doBloba(k) { return new Promise(function (ok) { k.toBlob(function (b) { ok(b); }, "image/png"); }); }
   function pobierz(blob, nazwa) { var u = URL.createObjectURL(blob), a = g.document.createElement("a"); a.href = u; a.download = nazwa; g.document.body.appendChild(a); a.click(); g.setTimeout(function () { a.remove(); URL.revokeObjectURL(u); }, 2000); }

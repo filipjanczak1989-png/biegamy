@@ -306,7 +306,9 @@
      sw.js (zamrożony) nie trzyma własnych .webp, więc strona trzyma wszystko sama: po jednym otwarciu z internetem cała ścieżka (scena, numer, dyplom, plakat)
      działa w trybie samolotowym. Tylko własne pliki assets/. Bez Cache API albo gdy pobranie padnie: zwykły adres pliku. */
   var zapytane = {};
+  function sezonu(u) { return window.BM_SEZON && typeof u === 'string' ? window.BM_SEZON.adres(u) : u; }   // motyw (js/sezon.mjs): plik zimy, gdy sezon go ma; jesień bez zmian
   function zasob(url) {
+    url = sezonu(url);
     if (adresy[url]) return Promise.resolve(adresy[url]);
     if (zapytane[url]) return zapytane[url];
     if (!url || !/^assets\//.test(url) || !window.fetch) return Promise.resolve(url);
@@ -318,7 +320,7 @@
     }).catch(function () { return url; });
     return zapytane[url];
   }
-  function zrodlo(url) { return adresy[url] || url; }
+  function zrodlo(url) { url = sezonu(url); return adresy[url] || url; }
   function obrazek(url) { return zasob(url).then(function (u) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = u; }); }); }
   function podmienAdresy(korzen) {
     (korzen || document).querySelectorAll('img[data-src]').forEach(function (im) { var src = im.getAttribute('data-src'); zasob(src).then(function (u) { im.src = u; }); });

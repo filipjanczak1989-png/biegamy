@@ -231,7 +231,9 @@
   var ulica = F.ULICA_PRZYKLAD, czasPamieci = null, stawka = 10, format = 'pion', obrazy = {}, adresy = {}, zapytane = {}, kanwa = null;
   var ZASOBY = ['assets/ulica/wzgorza.webp', 'assets/ulica/droga.webp', 'assets/ulica/pierwszy-plan.webp', 'assets/ulica/drzewo.webp', 'assets/ulica/latarnia.webp', 'assets/ulica/wiezowiec.webp', 'assets/ulica/domek-1.webp', 'assets/ulica/domek-2.webp', 'assets/ulica/domek-3.webp', 'assets/ulica/domek-4.webp'];
   /* grafiki jedną drogą przez Cache API (cache-first, każdy plik z sieci raz), jak na stronie biegu; bez Cache API zwykłe adresy */
+  function sezonu(u) { return window.BM_SEZON && typeof u === 'string' ? window.BM_SEZON.adres(u) : u; }   // motyw (js/sezon.mjs): plik zimy, gdy sezon go ma; jesień bez zmian
   function zasob(url) {
+    url = sezonu(url);
     if (adresy[url]) return Promise.resolve(adresy[url]);
     if (zapytane[url]) return zapytane[url];
     if (!url || !/^assets\//.test(url) || !window.fetch) return Promise.resolve(url);
@@ -239,7 +241,7 @@
     zapytane[url] = zCache.then(function (c) { return (c ? c.match(url) : Promise.resolve(null)).then(function (r) { return r || fetch(url).then(function (odp) { if (odp && odp.ok && c) c.put(url, odp.clone()).catch(function () {}); return odp; }); }).then(function (r) { if (!r || !r.ok) return url; return r.blob().then(function (b) { adresy[url] = URL.createObjectURL(b); return adresy[url]; }); }); }).catch(function () { return url; });
     return zapytane[url];
   }
-  function zrodlo(url) { return adresy[url] || url; }
+  function zrodlo(url) { url = sezonu(url); return adresy[url] || url; }
   function obrazek(url) { return zasob(url).then(function (u) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { ok(null); }; im.src = u; }); }); }
   var gotowe = Promise.all(ZASOBY.map(zasob)).then(function () { return Promise.all([obrazek('assets/ulica/domek-1.webp'), obrazek('assets/ulica/wiezowiec.webp')]).then(function (o) { obrazy = { domek: o[0], wiezowiec: o[1] }; }); });
   function podmienAdresy() { document.querySelectorAll('img[data-src]').forEach(function (im) { zasob(im.getAttribute('data-src')).then(function (u) { im.src = u; }); }); }

@@ -105,7 +105,7 @@
   /** Lista plików pokazu: cztery strony, ich skrypty (ze znaczników <script src>) i grafiki (literały assets/… w HTML i modułach) + dynamiczne domki. Pobierana żywcem, więc nie rozjeżdża się ze stronami. */
   function listaPlikow() {
     var pliki = [], widziane = {};
-    function dodaj(u) { if (u && !widziane[u]) { widziane[u] = true; pliki.push(u); } }
+    function dodaj(u) { if (u && g.BM_SEZON) u = g.BM_SEZON.adres(u); if (u && !widziane[u]) { widziane[u] = true; pliki.push(u); } }   // zimą pliki motywu (js/sezon.mjs), jesienią bez zmian
     STRONY.forEach(dodaj);
     return Promise.all(STRONY.map(function (st) {
       return g.fetch(st, { cache: "no-cache" }).then(function (r) { return r.ok ? r.text() : ""; }).catch(function () { return ""; }).then(function (html) {

@@ -138,8 +138,8 @@
     kol.forEach(function (x, i) { prost(c, x - 140, yl - 70, 280, 130, 20); c.fillStyle = "rgba(255,247,230,.92)"; c.fill(); c.strokeStyle = "#5a2e0e"; c.lineWidth = 3; c.stroke(); c.fillStyle = "#07070a"; c.font = "64px " + FONT_NAGL; c.fillText(wart[i], x, yl + 2); c.fillStyle = "#7a4a1e"; c.font = "600 20px " + FONT_TEKST; c.fillText(pod[i], x, yl + 40); });
     if (dane.sposob === "sponsor" && dane.stawka_gr) { c.fillStyle = "#fff7e6"; prost(c, 380, yl + 70, 560, 54, 14); c.fill(); c.strokeStyle = "#5a2e0e"; c.lineWidth = 3; c.stroke(); c.fillStyle = "#3a1d0a"; c.font = "600 22px " + FONT_TEKST; c.fillText("każdy km ulicy dokłada " + dane.stawka_gr + " gr na zbiórkę", 660, yl + 105); }
     /* dół: zdanie o pieniądzach i podpis */
-    c.fillStyle = "#fff7e6"; ["Wpłaty idą wyłącznie przez organizację prowadzącą zbiórkę.", "BiegaMy liczy kilometry."].forEach(function (t, i) { tekstWSzer(c, t, W / 2, H - (kw ? 108 : 128) + i * (kw ? 30 : 36), W - 100, FONT_TEKST, kw ? 22 : 26, 600); });   // dwa wiersze: jeden wychodził poza grafikę z obu stron
-    c.textAlign = "left"; c.fillStyle = "#fff7e6"; c.font = "600 28px " + FONT_TEKST; c.fillText("BiegaMy", 70, H - 28); c.textAlign = "right"; c.font = "500 22px " + FONT_TEKST; c.fillText(dataPolska(new Date()), W - 70, H - 28);
+    c.fillStyle = TL(); ["Wpłaty idą wyłącznie przez organizację prowadzącą zbiórkę.", "BiegaMy liczy kilometry."].forEach(function (t, i) { tekstWSzer(c, t, W / 2, H - (kw ? 108 : 128) + i * (kw ? 30 : 36), W - 100, FONT_TEKST, kw ? 22 : 26, 600); });   // dwa wiersze: jeden wychodził poza grafikę z obu stron
+    c.textAlign = "left"; c.fillStyle = TL(); c.font = "600 28px " + FONT_TEKST; c.fillText("BiegaMy", 70, H - 28); c.textAlign = "right"; c.font = "500 22px " + FONT_TEKST; c.fillText(dataPolska(new Date()), W - 70, H - 28);
     if (u.przyklad) { c.save(); c.translate(W - 150, kw ? 60 : 80); c.rotate(-0.12); c.font = "800 32px " + FONT_TEKST; var sw = c.measureText("PRZYKŁAD").width + 40; prost(c, -sw / 2, -26, sw, 52, 10); c.fillStyle = "#b8520f"; c.fill(); c.strokeStyle = "#fff7e6"; c.lineWidth = 4; c.stroke(); c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("PRZYKŁAD", 0, 2); c.restore(); }
     return k;
   }
@@ -164,6 +164,7 @@
   var _zrodlo = null;
   function adres(src) { var s = g.BM_SEZON ? g.BM_SEZON.adres(src) : src; return _zrodlo ? (_zrodlo(s) || s) : s; }   // sezon (js/sezon.mjs): plik motywu, gdy go ma
   function K(k) { return g.BM_SEZON ? g.BM_SEZON.kolory(k) : k; }   // kolory łąki w motywie (js/sezon.mjs); jesień bez zmian
+  function TL() { return g.BM_SEZON ? g.BM_SEZON.paleta().tekstNaLace : "#fff7e6"; }   // tekst na łące: zimą łąka jest śniegiem, jasny tekst by zniknął
   function obraz(src, klasa, rodzic, lewo, szer) { var im = el("img", klasa, rodzic); im.alt = ""; im.decoding = "async"; im.draggable = false; im.setAttribute("data-plik", src); im.src = adres(src); im.style.left = lewo + "px"; im.style.width = szer + "px"; return im; }
   function tlo(n, src) { n.style.backgroundImage = "url(\"" + adres(src) + "\")"; return n; }
   var IMIONA = ["Ania", "Bartek", "Ewa", "Franek", "Gosia", "Igor", "Kuba", "Lena", "Olek", "Tosia", "Wojtek", "Zosia"];

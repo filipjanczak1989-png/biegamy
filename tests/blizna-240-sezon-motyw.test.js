@@ -138,3 +138,64 @@ test('podpięcie: ścieżki ulicy, sceny, Miasta i gry przez sezon; strony Miast
   for (const z of ['index.html', 'zawodnik.html', 'sw.js']) assert.ok(!czytaj(z).includes('sezon.mjs'), z + ' zamrożony: bez zmian');
   assert.doesNotMatch(czytaj('js/sezon.mjs'), /fetch\(|XMLHttpRequest|sendBeacon|supabase|localStorage|document\.cookie/, 'motyw niczego nie wysyła ani nie zapisuje');
 });
+
+/* 14.11: podstrony Miasta biorą grafiki przez zasob() (Cache API → blob:), a podmiana <img> nie umie przemapować adresu blob:.
+   Bez motywu w zasob() zimą plakaty (obrazek → zasob), obrazki z data-src i lista gotowości pokazu zostawały jesienne. */
+function kontekstMotywu(search) {
+  const c = vm.createContext({ URLSearchParams, location: { search }, Promise });
+  c.globalThis = c; c.window = c; vm.runInContext(czytaj('js/sezon.mjs'), c);
+  return c;
+}
+test('Miasto zimą: zasob() i zrodlo() trzech podstron idą przez motyw (plakaty, data-src, sceny); jesienią adresy bez zmian', async () => {
+  const PLIK = 'assets/ulica/domek-3.webp';
+  for (const h of ['miasto-bieg.html', 'miasto-druzyny.html', 'miasto-firmy.html']) {
+    const html = czytaj(h), i = html.indexOf('  function sezonu(u)'), j = html.indexOf('  function zrodlo(url)', i), k = html.indexOf('\n', j);
+    assert.ok(i > 0 && j > i, h + ': sezonu(), zasob() i zrodlo() obok siebie');
+    for (const [search, oczek] of [['?sezon=zima', 'assets/sezony/zima/ulica/domek-3.webp'], ['', PLIK]]) {
+      const c = kontekstMotywu(search), pobrane = [];
+      c.URL = { createObjectURL: (b) => 'blob:' + b.u };
+      c.fetch = async (u) => { pobrane.push(u); return { ok: true, clone() { return this; }, blob: async () => ({ u }) }; };
+      vm.runInContext('var adresy = {}, zapytane = {};\n' + html.slice(i, k) + '\nthis.zasob = zasob; this.zrodlo = zrodlo;', c);
+      const s = search ? 'zima' : 'jesień';
+      assert.equal(await c.zasob(PLIK), 'blob:' + oczek, h + ' ' + s + ': zasob');
+      assert.deepEqual(pobrane, [oczek], h + ' ' + s + ': pobrany plik');
+      assert.equal(c.zrodlo(PLIK), 'blob:' + oczek, h + ' ' + s + ': zrodlo() trafia w ten sam blob (sceny modułów)');
+      assert.equal(await c.zasob(PLIK), 'blob:' + oczek, h + ' ' + s + ': drugi raz bez sieci');
+      assert.equal(pobrane.length, 1, h + ' ' + s + ': każdy plik z sieci raz');
+    }
+  }
+});
+test('tekst na łące czytelny w obu motywach (stopka podziękowania firmy); karta „Mój wkład” rysuje ulicę w motywie', () => {
+  const lum = (h) => { const k = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2]; };
+  const kontrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const S = sezon('');
+  assert.equal(S.paleta('jesien').tekstNaLace, '#fff7e6', 'jesień: ta sama stała co dotąd w stopce');
+  for (const s of ['jesien', 'zima']) {
+    const tlo = S.kolory('#86ad55', s), k = kontrast(S.paleta(s).tekstNaLace, tlo);
+    assert.ok(s === 'jesien' || k >= 4.5, s + ': kontrast stopki ' + k.toFixed(2) + ' na ' + tlo);
+  }
+  assert.ok(kontrast('#fff7e6', S.kolory('#86ad55', 'zima')) < 1.5, 'zima: dawny jasny tekst na śniegu był nieczytelny (dlatego zmiana)');
+  const firmy = czytaj('js/miasto-firmy.mjs');
+  assert.match(firmy, /function TL\(\) \{ return g\.BM_SEZON \? g\.BM_SEZON\.paleta\(\)\.tekstNaLace : "#fff7e6"; \}/);
+  assert.match(firmy, /c\.fillStyle = TL\(\); \["Wpłaty idą wyłącznie przez organizację prowadzącą zbiórkę\."/);
+  assert.match(firmy, /c\.fillStyle = TL\(\); c\.font = "600 28px " \+ FONT_TEKST; c\.fillText\("BiegaMy"/);
+  assert.match(firmy, /c\.fillStyle = K\("#86ad55"\); c\.fillRect\(0, H \* 0\.58/, 'łąka pod stopką przez motyw');
+  const karta = czytaj('js/akcja-wklad-karta.mjs');
+  assert.match(karta, /im\.src = g\.BM_SEZON \? g\.BM_SEZON\.adres\(src\) : src;/, 'karta: grafiki ulicy przez motyw');
+  assert.match(karta, /c\.fillStyle = g\.BM_SEZON \? g\.BM_SEZON\.kolory\("#86ad55"\) : "#86ad55";/, 'karta: łąka przez motyw');
+  assert.doesNotMatch(karta, /c\.fillStyle = "#86ad55"/);
+});
+test('Miasto zimą: lista gotowości pokazu = lista jesienna przez motyw (te same pozycje, pliki zimy w miejscu jesiennych)', async () => {
+  const lista = async (search) => {
+    const c = kontekstMotywu(search);
+    c.fetch = async (u) => { const p = path.join(KORZEN, String(u).split('?')[0]); return fs.existsSync(p) ? { ok: true, text: async () => fs.readFileSync(p, 'utf8') } : { ok: false, text: async () => '' }; };
+    vm.runInContext(czytaj('js/miasto-pokaz.mjs'), c);
+    return Array.from(await c.BM_POKAZ.listaPlikow());
+  };
+  const jesien = await lista(''), zima = await lista('?sezon=zima'), S = sezon('?sezon=zima');
+  assert.ok(jesien.length > 40 && jesien.includes('assets/ulica/domek-1.webp'), 'jesień: lista jak dotąd');
+  assert.deepEqual(jesien.filter((u) => u.includes('assets/sezony/')), [], 'jesienią żadnego pliku motywu (literały assets/… w skryptach trafiają na listę)');
+  assert.deepEqual(zima, jesien.map((u) => S.adres(u)));
+  const zimowe = zima.filter((u) => u.startsWith('assets/sezony/zima/'));
+  assert.ok(zimowe.length >= 20 && zimowe.every((u) => fs.existsSync(path.join(KORZEN, u))), 'zimą pliki motywu, każdy istnieje (' + zimowe.length + ')');
+});
