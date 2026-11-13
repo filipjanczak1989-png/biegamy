@@ -118,8 +118,10 @@
   };
   function odswiezGlosnik() { var b = $("glosnik"); b.querySelector("img").src = KAT + (D.wlaczony ? "glosnik_wl" : "glosnik_wyl") + ".webp"; b.setAttribute("aria-label", D.wlaczony ? "Wycisz dźwięki" : "Włącz dźwięki"); b.setAttribute("aria-pressed", String(D.wlaczony)); }
 
+  var zmierzone = { w: 0, h: 0, d: 0 };
   function rozmiar() {
     var cw = innerWidth, ch = innerHeight;
+    zmierzone.w = cw; zmierzone.h = ch; zmierzone.d = devicePixelRatio || 1;
     dpr = Math.min(devicePixelRatio || 1, 2);
     /* Pion: węższy świat niż w poziomie, droga w dolnej jednej trzeciej, tło skalowane do góry ekranu. Bardzo wąsko: komunikat zamiast gry. */
     pion = ch > cw;
@@ -1284,6 +1286,9 @@
     if (xx < W && xx + sz > 0) x.drawImage(o, xx, wys - wys, sz, wys);
   }
   function rysuj() {
+    /* Stan płótna od nowa w każdej klatce (zgłoszenie Filipa 13.11, Samsung, PWA): Android po powrocie z tła potrafi odtworzyć kontekst 2D z przekształceniem 1:1.
+       Skala była ustawiana tylko w rozmiar(), więc niebo i przyciemnienie nocy kończyły się na 560 z 720 px, a kafle drogi wychodziły dalej (blizna-239). */
+    x.setTransform(skala * dpr, 0, 0, skala * dpr, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over";
     /* „Szybciej!”: krótkie drgnięcie świata. Przywrócone na końcu klatki, bez save/restore na całej scenie. */
     var drg = stan === "gra" && G.drganie > 0 && !bezDrgan ? Math.sin(czasGlobalny * 90) * 22 * G.drganie : 0;
     if (drg) x.translate(drg, 0);
@@ -1331,6 +1336,7 @@
     /* Krok czasu przycięty z obu stron: klatka ze znacznikiem wcześniejszym niż poprzednia dawała ujemny krok, a z nim dłuższą rundę, dłuższą nietykalność i cofnięty świat (blizna-238). */
     var dt = Math.min(0.05, Math.max(0, (t - poprz) / 1000 || 0)); poprz = t;
     if (stan === "ladowanie") return;
+    sprawdzRozmiar();   // zgubione albo spóźnione „resize” (powrót z tła, podział ekranu, pasek systemowy): wymiar sprawdzany w każdej klatce, dwa odczyty
     czasGlobalny += dt;
     if (stan === "gra" && !pauza) krok(dt);
     else if (stan === "menu" || stan === "koniec") { G.s += 130 * dt; planujDekor(); krokCzastek(dt); while (G.dekor.length && G.dekor[0].x < G.s * 0.8 - graczX() - 400) G.dekor.shift(); }
@@ -1338,7 +1344,13 @@
   }
 
   /* ── wejście ── */
-  addEventListener("resize", function () { rozmiar(); if (!$("menu").hidden) ["kasia", "filip", "rowerzysta"].forEach(function (id) { if (OBR[id + "_bieg"]) kartaPostaci(id); }); });
+  function poZmianieRozmiaru() { rozmiar(); if (!$("menu").hidden) ["kasia", "filip", "rowerzysta"].forEach(function (id) { if (OBR[id + "_bieg"]) kartaPostaci(id); }); }
+  function sprawdzRozmiar() { if (innerWidth !== zmierzone.w || innerHeight !== zmierzone.h || (devicePixelRatio || 1) !== zmierzone.d) poZmianieRozmiaru(); }
+  addEventListener("resize", poZmianieRozmiaru);
+  addEventListener("orientationchange", poZmianieRozmiaru); addEventListener("pageshow", sprawdzRozmiar);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", sprawdzRozmiar);
+  /* Kontekst 2D odtworzony po utracie (Android po powrocie z tła): stan od zera i puste płótna pomocnicze. Rozmiar, skala i napisy z pamięci od nowa (blizna-239). */
+  c.addEventListener("contextrestored", function () { NAPISY.clear(); rozmiar(); });
   var palec = null;
   c.addEventListener("pointerdown", function (e) {
     e.preventDefault();
@@ -1357,7 +1369,7 @@
     if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") { e.preventDefault(); dotyk(); }
     if (e.code === "ArrowDown" || e.code === "KeyS") { e.preventDefault(); ruchWDol(); }
   });
-  document.addEventListener("visibilitychange", function () { if (document.hidden && stan === "gra") pauza = true; });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && stan === "gra") pauza = true; if (!document.hidden) sprawdzRozmiar(); });
   addEventListener("contextmenu", function (e) { e.preventDefault(); });
   document.querySelectorAll(".postac").forEach(function (b) { b.addEventListener("click", function () { start(b.dataset.postac); }); });
   /* Graj: ostatnia postać z tego urządzenia, jeśli nadal jest w menu. Dotknięcie karty dalej gra od razu tą postacią. */
