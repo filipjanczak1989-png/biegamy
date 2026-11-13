@@ -4,6 +4,7 @@
    a świat cofał się o tysiące pikseli, więc przed graczem robiła się pusta droga bez przeszkód i cegieł. Przy cofnięciu o 60 s nietykalność z 1 s robiła się
    61 s, a runda trwała minutę dłużej. Zegar ochrony z wartością spoza liczb (NaN) zostawał taki na zawsze, a z nim brak kolizji.
    Teraz krok jest przycięty z obu stron, a zegar, który nie jest dodatnią liczbą, wraca do zera. Zasady liczenia cegieł i rankingu bez zmian.
+   Diagnostyka (decyzja Filipa 13.11, bez zmiany zachowania): cofnięty znacznik daje jeden wpis na rundę w client_errors, kind 'gra-czas-wstecz'.
    Test: prawdziwy silnik, każda postać, poziomy 1, 5, 10 i 20; klatka cofnięta o 60 s w trakcie nietykalności, potem runda kończy się w swoim czasie. */
 'use strict';
 const test = require('node:test');
@@ -34,7 +35,7 @@ function element() {
 
 /* Prawdziwy silnik w pionie telefonu, ?test=1. Klatki idą przez pętlę gry (requestAnimationFrame) ze znacznikami czasu, jak w przeglądarce. */
 async function silnik(postac, poziom) {
-  const raf = [], el = {};
+  const raf = [], el = {}, raporty = [];
   class Obraz {
     constructor() { this.width = this.height = this.naturalWidth = this.naturalHeight = 100; this.complete = true; }
     set src(v) { this._s = v; Promise.resolve().then(() => this.onload && this.onload()); }
@@ -47,7 +48,7 @@ async function silnik(postac, poziom) {
     location: { search: '?test=1&pora=dzien&poziom_gry=' + poziom, hostname: 'localhost', href: 'http://localhost/gra-cegielki.html' },
     navigator: {}, performance: { now: () => 0 }, matchMedia: () => ({ matches: false }), addEventListener() {},
     localStorage: { d: {}, getItem(k) { return k in this.d ? this.d[k] : null; }, setItem(k, v) { this.d[k] = String(v); } },
-    requestAnimationFrame: (f) => raf.push(f), cancelAnimationFrame() {}, Image: Obraz, __los: los,
+    requestAnimationFrame: (f) => raf.push(f), cancelAnimationFrame() {}, Image: Obraz, __los: los, _logKlienta: (o) => raporty.push(o),
     document: { getElementById: (id) => el[id] || (el[id] = element()), createElement: () => element(), querySelector: () => null, querySelectorAll: () => [], addEventListener() {} },
     fetch: async (u) => { if (/atlas\.json/.test(u)) return { ok: true, json: async () => JSON.parse(ATLAS) }; throw new Error('bez sieci'); },
   });
@@ -65,7 +66,7 @@ async function silnik(postac, poziom) {
   /* Jedna klatka przeglądarki: pętla dostaje znacznik czasu. Gracz nie skacze i nie zbiera: liczy się tylko czas. */
   const klatka = (znacznik) => { ts = znacznik; raf.length = 0; petla(ts); };
   const klatki = (n) => { for (let i = 0; i < n; i++) klatka(ts + KLATKA_MS); };
-  return { G: () => c.__gra(), klatka, klatki, ts: () => ts };
+  return { G: () => c.__gra(), klatka, klatki, ts: () => ts, raporty };
 }
 
 const POSTACIE = ['kasia', 'filip', 'rowerzysta', 'koparka'], POZIOMY = [1, 5, 10, 20];
@@ -74,6 +75,7 @@ test('klatka cofnięta w czasie nie wydłuża rundy ani nietykalności i nie cof
   for (const postac of POSTACIE) for (const poziom of POZIOMY) {
     const m = postac + ', poziom ' + poziom, S = await silnik(postac, poziom);
     S.klatki(600);   // 10 s rundy
+    assert.equal(S.raporty.length, 0, m + ': raport bez cofniętej klatki');
     const g = S.G(); g.nietykalny = 1; g.przemiana = 0; g.reakcja = 0;   // trwa ochrona po kasku albo po upadku
     const przed = { czas: g.czas, niet: g.nietykalny, s: g.s, t: g.t };
     S.klatka(S.ts() - COFNIECIE_MS);
@@ -87,6 +89,10 @@ test('klatka cofnięta w czasie nie wydłuża rundy ani nietykalności i nie cof
     const limit = Math.ceil((g.czas + 30) * 60);
     for (let i = 0; i < limit && !g.st.koniec; i++) S.klatki(1);
     assert.ok(g.st.koniec, m + ': runda nie skończyła się, czas ' + g.czas.toFixed(1) + ' s');
+    /* Diagnostyka: jeden wpis na rundę, z rozmiarem skoku i stanem ochrony, żeby przy powrocie błędu było wiadomo, czy to ta przyczyna. */
+    assert.equal(S.raporty.length, 1, m + ': wpisów diagnostyki ' + S.raporty.length);
+    assert.equal(S.raporty[0].kind, 'gra-czas-wstecz');
+    assert.match(S.raporty[0].message, /^znacznik klatki wstecz o 60\.000 s \(1× od wczytania, najwięcej 60\.000 s\); stan gra, pauza nie, postać [a-z]+, poziom \d+, t \d+\.\d s, czas [\d.]+ s, nietykalny 1, rakieta nie, przemiana 0$/, m);
   }
 });
 

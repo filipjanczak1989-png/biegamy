@@ -543,6 +543,7 @@
       startuje = false;
       if (DIAG) { DIAG.start = performance.now() - t0Startu; DIAG.przem = DIAG.reszta = 0; DIAG.przemN = DIAG.resztaN = 0; DIAG.zbierz = 0; }
       $("ladowanie").hidden = true;
+      CZAS_WSTECZ.zgloszone = false;   // diagnostyka blizna-238: najwyżej jeden wpis na rundę
       G = nowyStan(postac);
       if (L.gorkaWRundzie(G.poziom, G.maly) && !OBR.gorka) wczytajObrazy(["gorka"]);
       if (L.druzynaWRundzie(G.poziom, G.maly) && !OBR.druzyna) wczytajObrazy(["druzyna"]);
@@ -1310,12 +1311,23 @@
     else { DIAG.reszta = Math.max(DIAG.reszta, ms); if (ms > 25) DIAG.resztaN++; }
   }
   function diagTekst() {
-    return "Diag: przemiana maks " + Math.round(DIAG.przem) + " ms (" + DIAG.przemN + " klatek > 25 ms), reszta maks " + Math.round(DIAG.reszta) + " ms (" + DIAG.resztaN + "), kask w kodzie " + DIAG.zbierz.toFixed(1) + " ms, start rundy " + Math.round(DIAG.start) + " ms, ekran " + c.width + "x" + c.height + ", dźwięk " + (D.wlaczony ? "tak" : "nie") + ". Balans: poziom " + G.poziom + ", tempo ×" + (G.plan.tempo * L.tempoRundy(G.t, G.maly)).toFixed(2) + ", cegła " + L.tekstMnoznika(G.poziom) + ", cegły " + G.cegly + ", punkty " + L.punktyRundy(G.cegly, G.poziom) + ", upadki " + G.st.upadki + ", złote " + G.st.zlote + ", kaski " + G.st.kaski + ", salta " + G.st.salta + ", czas " + G.t.toFixed(1) + " s";
+    return "Diag: przemiana maks " + Math.round(DIAG.przem) + " ms (" + DIAG.przemN + " klatek > 25 ms), reszta maks " + Math.round(DIAG.reszta) + " ms (" + DIAG.resztaN + "), kask w kodzie " + DIAG.zbierz.toFixed(1) + " ms, start rundy " + Math.round(DIAG.start) + " ms, ekran " + c.width + "x" + c.height + ", dźwięk " + (D.wlaczony ? "tak" : "nie") + ". Balans: poziom " + G.poziom + ", tempo ×" + (G.plan.tempo * L.tempoRundy(G.t, G.maly)).toFixed(2) + ", cegła " + L.tekstMnoznika(G.poziom) + ", cegły " + G.cegly + ", punkty " + L.punktyRundy(G.cegly, G.poziom) + ", upadki " + G.st.upadki + ", złote " + G.st.zlote + ", kaski " + G.st.kaski + ", salta " + G.st.salta + ", czas " + G.t.toFixed(1) + " s, znacznik klatki wstecz " + CZAS_WSTECZ.n + "× (najwięcej " + CZAS_WSTECZ.maks.toFixed(3) + " s)";
+  }
+  /* Diagnostyka blizna-238: czy telefon podaje znacznik klatki wcześniejszy niż poprzedni. Zachowanie bez zmian (taki krok i tak jest zerem).
+     Ślad: jeden wpis na rundę w client_errors (kind 'gra-czas-wstecz', tylko zalogowani, przez window._logKlienta z sb.js) i liczba w ?diag=1. */
+  var CZAS_WSTECZ = { n: 0, maks: 0, zgloszone: false };
+  function czasWstecz(o) {
+    CZAS_WSTECZ.n++; CZAS_WSTECZ.maks = Math.max(CZAS_WSTECZ.maks, o);
+    if (CZAS_WSTECZ.zgloszone || typeof window._logKlienta !== "function") return;
+    CZAS_WSTECZ.zgloszone = true;
+    var g = G, opis = g ? "postać " + g.postac + ", poziom " + g.poziom + ", t " + (+g.t).toFixed(1) + " s, czas " + (+g.czas).toFixed(1) + " s, nietykalny " + g.nietykalny + ", rakieta " + (g.rakieta ? "tak" : "nie") + ", przemiana " + g.przemiana : "bez rundy";
+    try { window._logKlienta({ kind: "gra-czas-wstecz", message: "znacznik klatki wstecz o " + o.toFixed(3) + " s (" + CZAS_WSTECZ.n + "× od wczytania, najwięcej " + CZAS_WSTECZ.maks.toFixed(3) + " s); stan " + stan + ", pauza " + (pauza ? "tak" : "nie") + ", " + opis, source: "cegielki.petla" }); } catch (e) {}
   }
   var poprz = 0;
   function petla(t) {
     requestAnimationFrame(petla);
     if (DIAG && stan === "gra" && !pauza && poprz) diagKlatka(t - poprz);
+    if (poprz && t < poprz) czasWstecz((poprz - t) / 1000);
     /* Krok czasu przycięty z obu stron: klatka ze znacznikiem wcześniejszym niż poprzednia dawała ujemny krok, a z nim dłuższą rundę, dłuższą nietykalność i cofnięty świat (blizna-238). */
     var dt = Math.min(0.05, Math.max(0, (t - poprz) / 1000 || 0)); poprz = t;
     if (stan === "ladowanie") return;
