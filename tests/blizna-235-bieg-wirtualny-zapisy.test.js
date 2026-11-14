@@ -93,10 +93,10 @@ test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dn
   assert.equal(B.FAZY.zapisy.chip, 'ZAPISY OTWARTE'); assert.equal(B.faza({ faza: 'cokolwiek' }), 'szkic');
 });
 
-test('bieg.mjs: miejsca na teksty oznaczone i nieudawane; lista ukończyli z czasem tylko za zgodą na ranking; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
+test('bieg.mjs: teksty od Filipa wstawione (bez zaślepek); lista ukończyli z czasem tylko za zgodą na ranking; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
   const B = await modul();
-  for (const k of ['MIEJSCE_REGULAMIN', 'MIEJSCE_OSWIADCZENIE', 'MIEJSCE_ZGODA_IMIE', 'MIEJSCE_ZGODA_IMIE_DZIECKA', 'MIEJSCE_ZGODA_RANKING', 'MIEJSCE_ZGODA_EMAIL', 'MIEJSCE_POLITYKA']) assert.match(B[k], /^\[MIEJSCE NA TEKST: /, k);
-  assert.equal(B.TEKSTY_GOTOWE, false, 'do czasu tekstów od Filipa');   // skutek flagi (bramka zapisu w stanStrony i w bieg.html) pilnuje blizna-241
+  assert.equal(B.TEKSTY_GOTOWE, true, 'teksty od Filipa 14.11 (treść pilnuje blizna-242)');
+  assert.doesNotMatch(czytaj('js/bieg.mjs') + czytaj('bieg.html'), /\[MIEJSCE NA TEKST|MIEJSCE_[A-Z]/, 'żadnej zaślepki'); assert.equal(B.WERSJA_TEKSTOW, '2026-11-v1');
   assert.match(B.TEKSTY.regulamin_pole, /\(wymagane\)/); assert.match(B.TEKSTY.oswiadczenie_pole, /\(wymagane\)/); for (const k of ['zgoda_imie_pole', 'zgoda_ranking_pole', 'zgoda_email_pole', 'zgoda_imie_dziecka_pole']) assert.match(B.TEKSTY[k], /\(dobrowolne\)/, k);
   const u = B.ukonczyliHtml({ razem: 2, od: 0, lista: BIEG.ukonczyli }, [1]);
   assert.match(u, /bw-wiersz bw-wiersz--ty"><span class="bw-nr">1<\/span><span class="bw-imie">Ola <i>Ty<\/i><\/span><span class="bw-dyst">10 km<\/span>/);
@@ -122,7 +122,7 @@ test('bieg.mjs: miejsca na teksty oznaczone i nieudawane; lista ukończyli z cza
   assert.match(B.odznakaSvg('zwykla', { ikona: 'https://zly.example/x.png" onload="alert(1)' }), /href="assets\/ulica\/koparka\.webp"/, 'ikona spoza assets/ odrzucona');
   assert.equal(typeof B.numerStartowy, 'function'); assert.equal(B.numerStartowy.length, 4, 'numer z adresem strony biegu'); assert.equal(typeof B.dyplom, 'function');
   assert.doesNotMatch(czytaj('js/bieg.mjs'), /numer wygenerowany w telefonie/); assert.match(czytaj('js/bieg.mjs'), /String\(adres \|\| "biegamy\.run"\)\.replace\(\/\^https\?:\\\/\\\/\/, ""\)/, 'na numerze adres strony biegu');
-  assert.doesNotMatch(czytaj('js/bieg.mjs').replace(/dla-fabianka(\.html)?/g, ''), /fabian|Kasia|Filip\b/, 'bez imion w module');
+  assert.doesNotMatch(czytaj('js/bieg.mjs').replace(/dla-fabianka(\.html)?/g, '').replace(B.DANE_ADMINISTRATORA, ''), /fabian|Kasia|Filip\b/, 'bez imion w module (poza danymi administratora z polityki, blizna-242)');
 });
 
 test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadczenie wymagane, wsparcie i lista z modułu, ?proba=1, bez imienia dziecka', () => {
@@ -153,7 +153,7 @@ test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadc
   assert.deepEqual([...ef.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((m) => m[1]), ['akcja_bieg_ukonczyli'], 'EF listy woła tylko akcja_bieg_ukonczyli'); assert.doesNotMatch(ef, /\.from\(/); assert.match(ef, /p_dystans: dystans/); assert.match(ef, /DYSTANS = \/\^\[1-9\]\[0-9\]\?\$\//, 'dystans z białej listy znaków');
   assert.match(czytaj('supabase/config.toml'), /\[functions\.bieg-ukonczyli\]\r?\nverify_jwt = false/);
   assert.match(h, /SLUG_AKCJI = PROBA \? 'proba' : 'dla-fabianka'/); assert.match(h, /U\.licznikProby\(\)/);
-  assert.match(h, /miejsce\(B\.MIEJSCE_REGULAMIN\)/); assert.match(h, /miejsce\(B\.MIEJSCE_OSWIADCZENIE\)/); assert.match(h, /B\.esc\(B\.MIEJSCE_ZGODA_EMAIL\)/);
+  assert.match(h, /B\.regulaminBloki\(wartosci\)\.forEach/); assert.match(h, /pole\('bw-zgoda-email-tekst', B\.TEKSTY\.zgoda_email_pole, B\.TEKSTY_KROTKIE\.zgoda_email\);/);
   assert.doesNotMatch(h, /\.from\(|createClient\(/, 'strona nie czyta tabel wprost'); assert.doesNotMatch(h, /rpc\('akcja_bieg_publiczny'/, 'publicznej funkcji nie woła przeglądarka (tylko licznik)');
   assert.doesNotMatch(h.replace(/dla-fabianka(\.html)?/g, ''), /fabian|Kasia|Filip\b/, 'imię dziecka tylko z bazy');
   assert.doesNotMatch(h, /\son[a-z]+="/i, 'bez JS w atrybutach');
@@ -164,7 +164,7 @@ test('decyzja 13.11: organizatorem jest BiegaMy, opiekun tylko wyraża zgodę; b
   const pliki = ['bieg.html', 'js/bieg.mjs', 'js/bieg-panel.mjs', MIG, WYC, 'supabase/migrations/20261126_akcja_bieg_wyniki.sql', 'supabase/migrations/20261126_WYCOFANIE_akcja_bieg_wyniki.sql',
     'supabase/migrations/20261128_akcja_bieg_przypomnienie_cron.sql', 'supabase/migrations/20261128_WYCOFANIE_akcja_bieg_przypomnienie_cron.sql',
     'supabase/functions/bieg-ukonczyli/index.ts', 'supabase/functions/bieg-rezygnacja/index.ts', 'supabase/functions/bieg-przypomnienie/index.ts', 'tools/akcja-bieg-test.sql', 'tools/akcja-bieg-wyniki-test.sql'];
-  for (const p of pliki) assert.doesNotMatch(czytaj(p), /organizator_rodzaj|nicjator|[Pp]artner|[Ss]karbon|[Oo]perator/, p);
+  for (const p of pliki) assert.doesNotMatch(czytaj(p).replace('BiegaMy nie jest partnerem tej organizacji i nie działa w jej imieniu.', ''), /organizator_rodzaj|nicjator|[Pp]artner|[Ss]karbon|[Oo]perator/, p);   // jedyny wyjątek: przeczenie w regulaminie od Filipa 14.11
   const m = czytaj(MIG), tabela = m.slice(m.indexOf('create table public.akcja_biegi ('), m.indexOf('comment on table public.akcja_biegi'));
   assert.ok(tabela.length > 200, 'definicja akcja_biegi znaleziona');
   assert.doesNotMatch(tabela, /url|link|https|kwota_gr|konto_wplat/i, 'bieg nie ma własnego linku ani pola na pieniądze');

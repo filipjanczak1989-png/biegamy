@@ -2,28 +2,54 @@
 // Czyste funkcje strony biegu: stan strony z licznika, sesji i własnych zapisów; teksty; walidacja imienia; numer startowy i dyplom na canvasie w dwóch wersjach
 // (dorosły z czasem, dziecko bez czasu i ze „swoim dystansem”); szkic odznaki zwykłej i złotej jako SVG. Dane TYLKO z licznika (pole `bieg`) i z funkcji
 // akcja_bieg_* przez window.sb; imię dziecka, na które jest zbiórka, nigdy w tym pliku (nazwa biegu przychodzi z bazy). Bez wpisowego; kwot nie sprawdzamy i nie pokazujemy.
-// MIEJSCA NA TEKSTY: regulamin, oświadczenie rodzica, treść zgód i dopisek do polityki prywatności przychodzą od Filipa po 18.11 (stałe MIEJSCE_* niżej); do tego czasu strona pokazuje
-// oznaczone zaślepki (TEKSTY_GOTOWE = false). Zapisu na prawdziwy bieg nie ma, dopóki bieg ma status 'szkic' (akcja_bieg_zapisz i licznik go pomijają),
-// a we froncie także dopóki TEKSTY_GOTOWE = false (bramka zapisu w stanStrony; wyjątek ?proba=1, przegląd frontu 13.11).
+// TEKSTY (14.11): regulamin, oświadczenie rodzica, zgody i zdanie o polityce prywatności od Filipa (REGULAMIN, TEKSTY_KROTKIE niżej). Zapisu na prawdziwy bieg nie ma,
+// dopóki bieg ma status 'szkic' (akcja_bieg_zapisz i licznik go pomijają), a we froncie także dopóki brakuje którejkolwiek wartości do tekstów albo wersja
+// regulaminu w bazie nie jest wersją tekstów (bramka w stanStrony; wyjątek ?proba=1).
 (function (g) {
   "use strict";
   var ROLE = { organizator: "Organizator", organizator_opis: "BiegaMy. Prowadzi bieg i zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat.", zgoda: "Zgoda opiekuna", zgoda_opis: "Opiekun dziecka, dla którego jest zbiórka, wyraził zgodę na bieg, na imię dziecka i na jego rysunek." };
   var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, dystanse: [5, 10], wynik_do_dni: 2, ukonczyli_na_strone: 50 };
   var KONTAKT = "biegamy.run@gmail.com";   // publiczny adres BiegaMy, ten sam co w stopce dla-fabianka.html
-  /* ── MIEJSCA NA TEKSTY (od Filipa po 18.11) ── każde zaczyna się od „[MIEJSCE NA TEKST”, test blizna-235 pilnuje, że strona je pokazuje, a nie udaje gotowych treści */
-  var MIEJSCE_REGULAMIN = "[MIEJSCE NA TEKST: regulamin biegu, od Filipa po 18.11. Organizator: BiegaMy. Zgoda opiekuna dziecka na bieg, imię i rysunek. Własne konto od 16 lat. Bez wpisowego. Czas i miejsce publicznie tylko za zgodą na ranking (pełnoletni, osobno 5 i 10 km, dzieci nigdy). Nic fizycznego.]";
-  var MIEJSCE_OSWIADCZENIE = "[MIEJSCE NA TEKST: oświadczenie rodzica lub opiekuna przy dopisaniu dziecka, od Filipa po 18.11.]";
-  var MIEJSCE_ZGODA_IMIE = "[MIEJSCE NA TEKST: zgoda na pokazanie imienia na liście „ukończyli”, od Filipa po 18.11.]";
-  var MIEJSCE_ZGODA_IMIE_DZIECKA = "[MIEJSCE NA TEKST: zgoda na pokazanie imienia dziecka na liście „ukończyli”, od Filipa po 18.11.]";
-  var MIEJSCE_ZGODA_RANKING = "[MIEJSCE NA TEKST: zgoda na ranking (czas i miejsce na liście „ukończyli”) z oświadczeniem o pełnoletności, od Filipa po 18.11.]";
-  var MIEJSCE_ZGODA_EMAIL = "[MIEJSCE NA TEKST: zgoda na jeden e-mail przypominający dzień przed biegiem, od Filipa po 18.11.]";
-  var MIEJSCE_POLITYKA = "[MIEJSCE NA TEKST: dopisek do polityki prywatności o biegu (dane uczestników, dzieci, e-mail, retencja 90 dni), od Filipa po 18.11.]";
-  var TEKSTY_GOTOWE = false;   // po wstawieniu tekstów: true (test pilnuje spójności z MIEJSCE_*)
+  /* ── TEKSTY BIEGU (14.11, plik „teksty-biegu-do-zaslepek.md” od organizatora, słowo w słowo) ── znaczniki {nazwa} {imie} {od} {do} {wynik_do} {link} {wersja} {od_kiedy}
+     wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
+     Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”. */
+  var WERSJA_TEKSTOW = "2026-11-v1";
+  var DANE_ADMINISTRATORA = "Filip Jańczak, prowadzący projekt BiegaMy (biegamy.run) jako osoba fizyczna — nie jest to działalność gospodarcza i nie posiadamy numeru NIP";   // dokładnie z privacy.html (§ 1), test porównuje
+  var REGULAMIN = {
+    tytul: "Regulamin biegu wirtualnego „{nazwa}”",
+    paragrafy: [
+      { naglowek: "§ 1. Czym jest bieg", punkty: ["Bieg wirtualny „{nazwa}” to bezpłatne wydarzenie w aplikacji BiegaMy (biegamy.run). Każdy uczestnik biegnie albo maszeruje samodzielnie, w wybranym przez siebie miejscu.", "Bieg odbywa się za zgodą opiekuna prawnego dziecka o imieniu {imie}, dla którego organizacja pożytku publicznego prowadzi zbiórkę pod adresem {link} („Zbiórka”). BiegaMy nie jest partnerem tej organizacji i nie działa w jej imieniu.", "Organizatorem biegu jest BiegaMy, " + DANE_ADMINISTRATORA + " („Organizator”). Organizator prowadzi też aplikację, zapisy i wyniki. Kontakt: biegamy.run@gmail.com.", "Organizator nie przyjmuje, nie przechowuje i nie przekazuje żadnych pieniędzy. Wpłaty na Zbiórkę są możliwe wyłącznie na stronie organizacji, która ją prowadzi, i podlegają jej zasadom."] },
+      { naglowek: "§ 2. Termin i dystanse", punkty: ["Bieg trwa od {od} do {do}.", "Dystanse: 5 km albo 10 km, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {wynik_do}, godz. 23:59."] },
+      { naglowek: "§ 3. Kto może wziąć udział", punkty: ["Udział jest bezpłatny. Nie ma wpisowego ani żadnej innej opłaty.", "Uczestnikiem z własnym kontem może być osoba, która ukończyła 16 lat i ma konto w BiegaMy.", "Dziecko poniżej 16 lat bierze udział wyłącznie jako dopisane przez rodzica albo opiekuna prawnego z jego konta, pod jego opieką i na jego odpowiedzialność. Jedno konto może dopisać najwyżej 6 dzieci.", "Dziecko pokonuje dystans dobrany przez rodzica („swój dystans”)."] },
+      { naglowek: "§ 4. Zapis", punkty: ["Zapis odbywa się w aplikacji i wymaga akceptacji tego regulaminu.", "Po zapisie uczestnik dostaje numer startowy w aplikacji. Dopisane dziecko dostaje własny numer.", "Z zapisu można zrezygnować w każdej chwili w aplikacji, bez podawania przyczyny."] },
+      { naglowek: "§ 5. Wynik i ukończenie", punkty: ["Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej 5 km albo 10 km. Trening może pochodzić z zegarka albo być wpisany ręcznie.", "Jeżeli uczestnik ma kilka pasujących treningów, aplikacja wybiera najlepszy. Uczestnik może wskazać inny.", "Ukończenie przez dziecko potwierdza rodzic, podając pokonany dystans.", "W sprawach spornych o ukończeniu rozstrzyga Organizator i może zaliczyć bieg ręcznie.", "Bieg nie ma nagród. Ranking czasów, osobno dla 5 i 10 km, obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu. Czas pozostałych uczestników nie jest publikowany. Dzieci nigdy nie są w rankingu."] },
+      { naglowek: "§ 6. Dyplom, odznaki i wsparcie Zbiórki", punkty: ["Każdy, kto ukończy bieg, dostaje w aplikacji dyplom i odznakę. Mają one postać wyłącznie cyfrową.", "Wsparcie Zbiórki jest dobrowolne i nie jest warunkiem zapisu, udziału ani ukończenia biegu.", "Uczestnik, który wsparł Zbiórkę dowolną kwotą i przesłał Organizatorowi potwierdzenie wpłaty, dostaje złotą wersję odznaki oraz cegiełkę w murze ulicy. Odznaka pojawia się po sprawdzeniu potwierdzenia.", "Kwota wpłaty nie jest publikowana. Potwierdzenie wpłaty Organizator usuwa po sprawdzeniu, najpóźniej po 14 dniach."] },
+      { naglowek: "§ 7. Bezpieczeństwo", punkty: ["Uczestnik sam wybiera trasę, porę i tempo oraz bierze udział na własną odpowiedzialność.", "Zapisując się, uczestnik potwierdza, że jego stan zdrowia pozwala na udział. Rodzic potwierdza to samo za dopisane dziecko.", "Uczestnik przestrzega przepisów ruchu drogowego i zasad bezpieczeństwa w miejscu, w którym biegnie.", "Organizator nie wyznacza ani nie zabezpiecza tras, nie zapewnia opieki medycznej ani ubezpieczenia.", "Postanowienia tego paragrafu nie ograniczają odpowiedzialności, której według prawa nie można wyłączyć."] },
+      { naglowek: "§ 8. Lista osób, które ukończyły, i dane osobowe", punkty: ["Na stronie biegu widoczne są liczby zbiorcze oraz lista osób, które ukończyły: imię, numer startowy i dystans. Imię pojawia się tylko za zgodą uczestnika, a imię dziecka tylko za zgodą rodzica. U osób, które zgodziły się na ranking, lista pokazuje także czas i miejsce. Zgodę na ranking można wycofać w aplikacji w każdej chwili.", "Administratorem danych uczestników jest Organizator. Zasady opisuje Polityka prywatności BiegaMy.", "Opiekun dziecka i organizacja prowadząca Zbiórkę mogą otrzymać wyłącznie liczby zbiorcze. Nie otrzymują imion, adresów e-mail ani żadnych innych danych uczestników.", "Dane zapisów Organizator usuwa po 90 dniach od zakończenia biegu. Zostają liczby zbiorcze, zdobyte odznaki i imiona na liście, na które wyrażono zgodę."] },
+      { naglowek: "§ 9. Uczciwość", punkty: ["Jedna osoba zapisuje się raz. Zabronione jest wpisywanie treningów, które się nie odbyły, oraz treści bezprawnych lub obraźliwych, także w polu imienia.", "Organizator może usunąć zapis albo wynik sprzeczny z regulaminem."] },
+      { naglowek: "§ 10. Wymagania techniczne", punkty: ["Do udziału potrzebne są: urządzenie z aktualną przeglądarką internetową, dostęp do internetu i konto w BiegaMy. Zegarek sportowy nie jest wymagany."] },
+      { naglowek: "§ 11. Kontakt i reklamacje", punkty: ["Uwagi i reklamacje można wysłać na adres biegamy.run@gmail.com. Organizator odpowiada w ciągu 14 dni."] },
+      { naglowek: "§ 12. Zmiany i odwołanie", punkty: ["Organizator może z ważnej przyczyny zmienić termin biegu albo go odwołać. Informacja pojawi się na stronie biegu.", "Zmiana regulaminu po otwarciu zapisów jest ogłaszana na stronie biegu. Uczestnik, który jej nie akceptuje, może zrezygnować z zapisu."] },
+      { naglowek: "§ 13. Postanowienia końcowe", punkty: ["Regulamin jest dostępny na stronie biegu przed zapisem i można go pobrać.", "W sprawach nieuregulowanych stosuje się Regulamin BiegaMy i prawo polskie.", "Wersja regulaminu: {wersja}, obowiązuje od {od_kiedy}."] }
+    ],
+    oswiadczenie: { naglowek: "Oświadczenie rodzica lub opiekuna (pełne brzmienie)", tekst: "Oświadczam, że jestem rodzicem albo opiekunem prawnym dziecka, które dopisuję do biegu. Zgadzam się na jego udział i na zapisanie jego imienia w aplikacji na potrzeby biegu. W czasie biegu dziecko pozostaje pod moją opieką, a jego stan zdrowia pozwala na udział." },
+    zgody: { naglowek: "Zgody dobrowolne (pełne brzmienie)", lista: [{ nazwa: "Imię na liście", tekst: "Zgadzam się, żeby moje imię pojawiło się na publicznej liście osób, które ukończyły bieg." }, { nazwa: "Imię dziecka na liście", tekst: "Zgadzam się, żeby imię dziecka pojawiło się na publicznej liście osób, które ukończyły bieg. Mogę wycofać tę zgodę w aplikacji w każdej chwili." }, { nazwa: "Ranking", tekst: "Pokaż mnie w rankingu z czasem i miejscem. Mam ukończone 18 lat. Bez zgody na imię będę w rankingu jako „bez imienia”." }, { nazwa: "E-mail", tekst: "Chcę dostać e-mail z przypomnieniem przed biegiem oraz informację o dyplomie i możliwości wsparcia zbiórki. Mogę zrezygnować w każdej chwili linkiem w wiadomości." }] }
+  };
+  /* krótkie wersje pod polami (≤ 200 znaków); pełne brzmienie w oknie regulaminu */
+  var TEKSTY_KROTKIE = {
+    oswiadczenie: "Jestem rodzicem lub opiekunem prawnym tego dziecka. Zgadzam się na jego udział i zapis imienia na potrzeby biegu. Dziecko biegnie pod moją opieką, a jego zdrowie pozwala na udział.",
+    zgoda_imie: "Zgadzam się, żeby moje imię pojawiło się na publicznej liście osób, które ukończyły bieg.",
+    zgoda_imie_dziecka: "Zgadzam się, żeby imię dziecka pojawiło się na publicznej liście osób, które ukończyły bieg. Mogę wycofać tę zgodę w każdej chwili.",
+    zgoda_ranking: "Pokaż mnie w rankingu z czasem i miejscem. Mam ukończone 18 lat. Bez zgody na imię będę w rankingu jako „bez imienia”.",
+    zgoda_email: "Chcę dostać e-mail z przypomnieniem przed biegiem oraz informację o dyplomie i możliwości wsparcia zbiórki. Mogę zrezygnować w każdej chwili linkiem w wiadomości.",
+    polityka: "Administratorem danych jest BiegaMy. Dane służą do przeprowadzenia biegu i są usuwane po 90 dniach od jego zakończenia. Szczegóły: Polityka prywatności."
+  };
+  var TEKSTY_GOTOWE = true;   // 14.11: teksty od Filipa wstawione; zapis dalej tylko z kompletem wartości z bazy (wartosciTekstow)
   var TEKSTY = {
     regulamin_pole: "Akceptuję regulamin biegu (wymagane)",
-    zgoda_imie_pole: "Pokaż moje imię i numer na liście „ukończyli” (dobrowolne)",
+    zgoda_imie_pole: "Pokaż moje imię na liście „ukończyli” (dobrowolne)",
     zgoda_ranking_pole: "Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”, osobno 5 i 10 km. Mam ukończone 18 lat (dobrowolne)",
-    zgoda_email_pole: "Wyślij mi jeden e-mail przypominający dzień przed biegiem (dobrowolne)",
+    zgoda_email_pole: "Wyślij mi e-mail z przypomnieniem przed biegiem (dobrowolne)",
     oswiadczenie_pole: "Jestem rodzicem lub opiekunem tego dziecka i składam oświadczenie (wymagane)",
     zgoda_imie_dziecka_pole: "Pokaż imię dziecka na liście „ukończyli” (dobrowolne)",
     bez_wpisowego: "Udział jest bezpłatny. Nie ma wpisowego, medali ani pakietów. Kto chce, wspiera zbiórkę bezpośrednio u organizacji, która ją prowadzi; BiegaMy nic nie przyjmuje i nie widzi wpłat.",
@@ -80,20 +106,55 @@
   function fazaInfo(bieg) { return FAZY[faza(bieg)]; }
   /** Zapisy (siebie i dzieci) otwarte w fazach zapisy, trwa i wyniki, czyli do wynik_do (przegląd 12.11). */
   function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa" || f === "wyniki"; }
-  /** BRAMKA ZAPISU (przegląd frontu 13.11, usterka 1): dopóki TEKSTY_GOTOWE = false, strona nie przyjmuje zapisu, nawet gdy bieg w bazie ma już status otwarty.
-   *  Wyjątek tylko ?proba=1 (próba Filipa na biegu próbnym, z zaślepkami). Samo przełączenie statusu nie otwiera więc zapisu z zaślepkami zamiast regulaminu. */
-  function zapisZablokowany(proba) { return !TEKSTY_GOTOWE && !proba; }
+  /** BRAMKA ZAPISU (przegląd 13.11, teksty 14.11): bez kompletu wartości do tekstów (teksty = wynik wartosciTekstow) strona nie przyjmuje zapisu,
+   *  nawet gdy bieg w bazie ma już status otwarty. Wyjątek tylko ?proba=1 (próba Filipa na biegu próbnym). */
+  function zapisZablokowany(proba, teksty) { return !proba && (!TEKSTY_GOTOWE || !teksty); }
+  var DNI_DOPELNIACZ = ["niedzieli", "poniedziałku", "wtorku", "środy", "czwartku", "piątku", "soboty"];
+  /** "2026-12-05" → "soboty, 5 grudnia 2026" (po „od”/„do” w regulaminie dzień tygodnia w dopełniaczu); zła data → "". */
+  function dataZDniem(iso) { var d = dataZIso(iso); return d ? DNI_DOPELNIACZ[d.getDay()] + ", " + d.getDate() + " " + MIESIACE[d.getMonth()] + " " + d.getFullYear() : ""; }
+  /** Wartości znaczników z bazy: bieg = pole `bieg` licznika, licznik = licznik akcji (imię), link = A.linkZbiorki(licznik). Brak którejkolwiek albo inna wersja = null. */
+  function wartosciTekstow(bieg, licznik, link) {
+    if (!bieg || !licznik) return null;
+    var tekst = function (v) { return typeof v === "string" ? v.trim() : ""; };
+    var w = { nazwa: tekst(bieg.nazwa), imie: tekst(licznik.imie), od: dataZDniem(bieg.dzien_od), do: dataZDniem(bieg.dzien_do), wynik_do: dataZDniem(bieg.wynik_do),
+      link: /^https:\/\//.test(tekst(link)) ? tekst(link) : "", wersja: tekst(bieg.regulamin_wersja), od_kiedy: dataZIso(bieg.regulamin_od) ? dataPolska(dataZIso(bieg.regulamin_od)) : "" };
+    for (var k in w) if (!w[k]) return null;
+    return w.wersja === WERSJA_TEKSTOW ? w : null;
+  }
+  /** Czego brakuje do tekstów (dla próby Filipa: okno regulaminu mówi, którego pola nie ma w bazie). */
+  function brakiTekstow(bieg, licznik, link) {
+    var w = { nazwa: bieg && bieg.nazwa, imie: licznik && licznik.imie, od: bieg && dataZDniem(bieg.dzien_od), do: bieg && dataZDniem(bieg.dzien_do), wynik_do: bieg && dataZDniem(bieg.wynik_do),
+      link: /^https:\/\//.test(String(link || "")) ? link : "", wersja: bieg && bieg.regulamin_wersja === WERSJA_TEKSTOW ? "ok" : "", od_kiedy: bieg && dataZIso(bieg.regulamin_od) ? "ok" : "" };
+    return Object.keys(w).filter(function (k) { return !w[k]; });
+  }
+  function wypelnij(t, w) { return String(t).replace(/\{([a-z_]+)\}/g, function (m, k) { return w && Object.prototype.hasOwnProperty.call(w, k) ? w[k] : m; }); }
+  /** Regulamin jako bloki do okna (strona robi z nich elementy przez textContent, bez innerHTML): tytul, naglowek, punkt, akapit, zgoda. */
+  function regulaminBloki(w) {
+    var b = [{ typ: "tytul", tekst: wypelnij(REGULAMIN.tytul, w) }];
+    REGULAMIN.paragrafy.forEach(function (p) {
+      b.push({ typ: "naglowek", tekst: p.naglowek });
+      p.punkty.forEach(function (t, i) { b.push({ typ: p.punkty.length > 1 ? "punkt" : "akapit", tekst: (p.punkty.length > 1 ? (i + 1) + ". " : "") + wypelnij(t, w) }); });
+    });
+    b.push({ typ: "naglowek", tekst: REGULAMIN.oswiadczenie.naglowek }, { typ: "akapit", tekst: REGULAMIN.oswiadczenie.tekst });
+    b.push({ typ: "naglowek", tekst: REGULAMIN.zgody.naglowek });
+    REGULAMIN.zgody.lista.forEach(function (z) { b.push({ typ: "zgoda", tekst: z.nazwa + ": " + z.tekst }); });
+    return b;
+  }
+  /** Ten sam regulamin jako zwykły tekst do pobrania (.txt, § 13 ust. 1). */
+  function regulaminTekst(w) {
+    return regulaminBloki(w).map(function (x) { return x.typ === "naglowek" ? "\n" + x.tekst : x.typ === "zgoda" ? "- " + x.tekst : x.tekst; }).join("\n") + "\n";
+  }
   /**
    * Stan strony: 'blad' (licznik się nie wczytał: sieć albo awaria), 'wkrotce' (brak biegu w liczniku albo bramka zapisu), 'niezalogowany', 'przed' (konto bez zapisu),
    * 'po' (zapisany), 'dzieci' (zapisany z dziećmi albo same dzieci), 'zamkniete' (po zapisach, bez zapisu; także wylogowany po zapisach).
-   * moi = odpowiedź akcja_bieg_moi (własne wiersze, bez wycofanych). opcje = { blad: licznik === null, proba: ?proba=1 }. Zwraca też ja i dzieci.
+   * moi = odpowiedź akcja_bieg_moi (własne wiersze, bez wycofanych). opcje = { blad: licznik === null, proba: ?proba=1, teksty: wartosciTekstow(…) }. Zwraca też ja i dzieci.
    */
   function stanStrony(bieg, sesja, moi, opcje) {
     var o = opcje || {}, lista = Array.isArray(moi) ? moi : [], ja = null, dzieci = [];
     lista.forEach(function (u) { if (u.rodzaj === "ja" && !ja) ja = u; else if (u.rodzaj === "dziecko") dzieci.push(u); });
     if (o.blad) return { stan: "blad", ja: null, dzieci: [] };
     if (!bieg || !bieg.slug) return { stan: "wkrotce", ja: null, dzieci: [] };
-    if (zapisZablokowany(o.proba)) return { stan: "wkrotce", ja: null, dzieci: [], bramka: true };
+    if (zapisZablokowany(o.proba, o.teksty)) return { stan: "wkrotce", ja: null, dzieci: [], bramka: true };
     if (!sesja) return { stan: zapisyOtwarte(bieg) ? "niezalogowany" : "zamkniete", ja: null, dzieci: [] };
     if (dzieci.length) return { stan: "dzieci", ja: ja, dzieci: dzieci };
     if (ja) return { stan: "po", ja: ja, dzieci: [] };
@@ -420,7 +481,7 @@
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
-    MIEJSCE_REGULAMIN: MIEJSCE_REGULAMIN, MIEJSCE_OSWIADCZENIE: MIEJSCE_OSWIADCZENIE, MIEJSCE_ZGODA_IMIE: MIEJSCE_ZGODA_IMIE, MIEJSCE_ZGODA_IMIE_DZIECKA: MIEJSCE_ZGODA_IMIE_DZIECKA, MIEJSCE_ZGODA_RANKING: MIEJSCE_ZGODA_RANKING, MIEJSCE_ZGODA_EMAIL: MIEJSCE_ZGODA_EMAIL, MIEJSCE_POLITYKA: MIEJSCE_POLITYKA,
+    WERSJA_TEKSTOW: WERSJA_TEKSTOW, DANE_ADMINISTRATORA: DANE_ADMINISTRATORA, REGULAMIN: REGULAMIN, TEKSTY_KROTKIE: TEKSTY_KROTKIE, wartosciTekstow: wartosciTekstow, brakiTekstow: brakiTekstow, dataZDniem: dataZDniem, wypelnij: wypelnij, regulaminBloki: regulaminBloki, regulaminTekst: regulaminTekst,
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
     liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,

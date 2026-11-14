@@ -38,9 +38,10 @@ function nowyElement(id, attrs) {
   const h = {};
   const e = { id, hidden: false, textContent: '', innerHTML: '', className: '', href: '', value: '', checked: false, disabled: false, style: {}, attrs: Object.assign({}, attrs || {}), _h: h,
     addEventListener(t, f) { (h[t] = h[t] || []).push(f); }, getAttribute(n) { return Object.prototype.hasOwnProperty.call(this.attrs, n) ? this.attrs[n] : null; },
-    setAttribute(n, v) { this.attrs[n] = String(v); }, removeAttribute(n) { delete this.attrs[n]; }, appendChild() {}, remove() {},
+    setAttribute(n, v) { this.attrs[n] = String(v); }, removeAttribute(n) { delete this.attrs[n]; }, appendChild(c) { (this.dzieci = this.dzieci || []).push(c); return c; }, remove() {},
     querySelectorAll: () => [], querySelector: () => null, scrollIntoView() {}, focus() {}, closest: () => null,
     klik() { (h.click || []).forEach((f) => f.call(e, { target: e, preventDefault() {} })); } };
+  let tekst = ''; Object.defineProperty(e, 'textContent', { get: () => tekst, set: (v) => { tekst = String(v); e.dzieci = []; }, enumerable: true });   // jak w przeglądarce: nowy tekst usuwa dzieci
   return e;
 }
 function domStrony(ctx, plik) {
@@ -49,13 +50,14 @@ function domStrony(ctx, plik) {
     const a = m[2], id = /\bid="([^"]+)"/.exec(a), ds = /\bdata-stan="([^"]+)"/.exec(a), ukryty = /\shidden(?=[\s>]|$)/.test(a);
     const e = nowyElement(id ? id[1] : '', ds ? { 'data-stan': ds[1] } : {}); e.hidden = ukryty; e.href = (/\bhref="([^"]*)"/.exec(a) || [])[1] || '';
     if (/\bdata-powrot\b/.test(a)) e.attrs['data-powrot'] = '';
+    if (/\bdata-polityka\b/.test(a)) { e.attrs['data-polityka'] = ''; stany.polityka = (stany.polityka || []).concat([e]); }
     if (id) rej.set(id[1], e); else if (ds) stany.push(e);
   }
   const daj = (id) => { if (!rej.has(id)) rej.set(id, nowyElement(id)); return rej.get(id); };
   if (rej.has('bw-cta')) rej.get('bw-cta').querySelectorAll = (s) => (s === '[data-stan]' ? stany : []);
   Object.assign(ctx.document, {
-    getElementById: daj, querySelector: () => null, createElement: () => nowyElement(''), head: nowyElement('head'), body: nowyElement('body'), readyState: 'interactive',
-    querySelectorAll: (s) => (s === '[data-powrot]' ? [...rej.values()].filter((e) => 'data-powrot' in e.attrs) : []),
+    getElementById: daj, querySelector: () => null, createElement: (t) => Object.assign(nowyElement(''), { tag: t }), createTextNode: (t) => ({ textContent: t }), head: nowyElement('head'), body: nowyElement('body'), readyState: 'interactive',
+    querySelectorAll: (s) => (s === '[data-powrot]' ? [...rej.values()].filter((e) => 'data-powrot' in e.attrs) : s === '[data-polityka]' ? (stany.polityka || []) : []),
     addEventListener: (t, f) => { (zdarzenia[t] = zdarzenia[t] || []).push(f); },
   });
   return { daj, stany, zdarzenia, widoczny: () => stany.filter((e) => !e.hidden).map((e) => e.attrs['data-stan']) };
@@ -82,8 +84,9 @@ async function stronaBiegu({ search = '', licznik = LICZNIK(BIEG('zapisy')), lic
   return { ctx, dom, ls, wywolania, stanSieci };
 }
 
-test('1 BLOKUJE: bramka zapisu: bez ?proba=1 stanStrony nigdy nie daje stanu zapisu (każda faza, sesja i zapisy), na ?proba=1 zapis jak dotąd; TEKSTY_GOTOWE zostaje false', () => {
-  assert.equal(B.TEKSTY_GOTOWE, false);
+test('1 BLOKUJE: bramka zapisu (teksty 14.11): bez kompletu wartości do tekstów stanStrony nigdy nie daje stanu zapisu (każda faza, sesja i zapisy); z kompletem i na ?proba=1 zapis jak dotąd', () => {
+  assert.equal(B.TEKSTY_GOTOWE, true);
+  const W = B.wartosciTekstow(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: '2026-11-18' }), { imie: 'Janek' }, 'https://example.org/z'); assert.ok(W, 'komplet wartości');
   const zapisowe = ['przed', 'po', 'dzieci', 'niezalogowany'];
   for (const faza of ['szkic', 'zapisy', 'trwa', 'wyniki', 'zakonczony']) for (const sesja of [null, { user: {} }]) for (const moi of [[], [{ rodzaj: 'ja', id: 'a' }], [{ rodzaj: 'dziecko', id: 'b' }]]) {
     const s = B.stanStrony(BIEG(faza), sesja, moi, {});
@@ -91,14 +94,17 @@ test('1 BLOKUJE: bramka zapisu: bez ?proba=1 stanStrony nigdy nie daje stanu zap
     assert.equal(s.ja, null); assert.deepEqual(s.dzieci, [], 'bez karty „Twój bieg”, więc bez „Dopisz dziecko” i „Zapisz też siebie”');
     assert.equal(B.stanStrony(BIEG(faza), sesja, moi).stan, s.stan, 'bez opcji = bramka (domyślnie zamknięte)');
   }
-  assert.equal(B.stanStrony(BIEG('zapisy'), { user: {} }, [], { proba: true }).stan, 'przed', 'próba Filipa: zapis z zaślepkami');
-  assert.equal(B.zapisZablokowany(false), true); assert.equal(B.zapisZablokowany(true), false);
+  assert.equal(B.stanStrony(BIEG('zapisy'), { user: {} }, [], { proba: true }).stan, 'przed', 'próba Filipa');
+  assert.equal(B.stanStrony(BIEG('zapisy'), { user: {} }, [], { teksty: W }).stan, 'przed', 'komplet wartości: zapis otwarty');
+  assert.equal(B.stanStrony(BIEG('zapisy'), { user: {} }, [], { teksty: null }).stan, 'wkrotce', 'brak wartości: WKRÓTCE');
+  assert.equal(B.zapisZablokowany(false), true); assert.equal(B.zapisZablokowany(false, W), false); assert.equal(B.zapisZablokowany(true), false); assert.equal(B.zapisZablokowany(false, null), true);
   assert.deepEqual(B.naglowekStanu(BIEG('zapisy'), 'wkrotce'), B.FAZY.szkic, 'przy bramce chip „WKRÓTCE”, nie „ZAPISY OTWARTE”');
   const h = czytaj('bieg.html');
-  assert.match(h, /stan = B\.stanStrony\(bieg, sesja, moi, \{ blad: !licznik, proba: PROBA \}\);/);
+  assert.match(h, /wartosci = B\.wartosciTekstow\(bieg, licznik, A\.linkZbiorki\(licznik \|\| \{\}\)\); rysujRegulamin\(\);/);
+  assert.match(h, /stan = B\.stanStrony\(bieg, sesja, moi, \{ blad: !licznik, proba: PROBA, teksty: wartosci \}\);/);
   assert.match(h, /<div data-stan="przed" hidden>\n\s*<button type="button" class="bw-przycisk" id="bw-zapisz">/, '#bw-zapisz tylko w stanie „przed”');
   assert.match(h, /function otworzZapis\(\) \{\n\s*if \(!moznaZapisac\(\)\) return;/); assert.match(h, /function otworzDziecko\(\) \{\n\s*if \(!moznaZapisac\(\)\) return;/);
-  assert.match(h, /function moznaZapisac\(\) \{ return !!stan && \['przed', 'po', 'dzieci'\]\.indexOf\(stan\.stan\) >= 0 && !B\.zapisZablokowany\(PROBA\); \}/);
+  assert.match(h, /function moznaZapisac\(\) \{ return !!stan && \['przed', 'po', 'dzieci'\]\.indexOf\(stan\.stan\) >= 0 && !B\.zapisZablokowany\(PROBA, wartosci\); \}/);
 });
 
 test('1 BLOKUJE: bieg.html w atrapie: otwarty bieg bez ?proba=1 = „wkrótce”, bez #bw-zapisz, bez karty i bez okna zapisu; z ?proba=1 zapis działa', async () => {
@@ -371,7 +377,7 @@ test('16, 19, 21, 22, 25, 26, 27: liczby, data na dyplomie, rezygnacja, imię z 
 });
 
 test('zasady: bez słów zakazanych, bez imienia dziecka, bez JS w atrybutach; powrót po logowaniu przechodzi wyłącznie na cel ze znacznika z białej listy', () => {
-  for (const p of ['bieg.html', 'js/bieg.mjs', 'dla-fabianka.html']) assert.doesNotMatch(czytaj(p), /[Pp]artner|[Ss]karbon|nicjator|[Oo]perator/, p);
+  for (const p of ['bieg.html', 'js/bieg.mjs', 'dla-fabianka.html']) assert.doesNotMatch(czytaj(p).replace('BiegaMy nie jest partnerem tej organizacji i nie działa w jej imieniu.', ''), /[Pp]artner|[Ss]karbon|nicjator|[Oo]perator/, p);   // wyjątek: przeczenie w regulaminie (14.11)
   for (const p of ['bieg.html', 'js/bieg.mjs']) assert.doesNotMatch(czytaj(p).replace(/dla-fabianka(\.html)?/g, ''), /fabian/i, p);
   assert.doesNotMatch(czytaj('bieg.html'), /\son[a-z]+="/i);
   const ak = czytaj('js/akcja.mjs'), pw = ak.slice(ak.indexOf('POWRÓT NA BIEG PO ZALOGOWANIU'), ak.indexOf('/** Dane karty okienka'));
@@ -386,4 +392,36 @@ test('przegląd 14.11: wysyłka zapisu i dziecka za bramką; zgoda konta z tekst
   assert.match(h, /\$\('bw-dziecko-ok'\)\.addEventListener\('click', function \(\) \{\r?\n\s*if \(!moznaZapisac\(\)\) return;/, 'dziecko: bramka także w przycisku wysyłki');
   assert.match(h, /rpc\('akcja_bieg_zgoda_email', \{ p_slug: bieg\.slug, p_zgoda: ch \}\)\.then\(function \(r\) \{\r?\n\s*if \(!r\.ok\) \{ \$\('bw-zgoda-konto'\)\.checked = !ch; st\.textContent = komunikat\(r\); return; \}/, 'zgoda konta: tekst odmowy z mapy kodów');
   assert.match(h, /p_zgoda_email: \$\('bw-zgoda-email-pole'\)\.hidden \? !!\(zgodaKonta && zgodaKonta\.zgoda_email === true\) : \$\('bw-zgoda-email'\)\.checked,/, 'wiersz „ja” zgodny ze zgodą konta');
+});
+
+
+/* 14.11 (teksty Filipa): strona z kompletem wartości z bazy otwiera zapis bez ?proba=1; okno regulaminu z bloków (h4, h5, p, ul > li) przez textContent,
+   bez żadnego {…}; przycisk pobrania widoczny; zdanie o polityce z linkiem pod zgodami. Brak jednej wartości (np. regulamin_od) = „WKRÓTCE”. */
+test('teksty 14.11 w atrapie strony: komplet z bazy = zapis; okno regulaminu z akapitami i zgodą na ranking; brak regulamin_od = WKRÓTCE', async () => {
+  const pelny = Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: '2026-11-18' })), { imie: 'Janek' });
+  const s = await stronaBiegu({ licznik: pelny, sesja: { user: { user_metadata: { full_name: 'anna kowalska' } } } });
+  assert.deepEqual(s.dom.widoczny(), ['przed'], 'bez ?proba=1, bo wartości są w bazie');
+  const okno = s.dom.daj('bw-regulamin-tresc'), el = okno.dzieci || [];
+  const tagi = el.map((e) => e.tag), tekst = el.map((e) => e.tag === 'ul' ? (e.dzieci || []).map((x) => x.textContent).join(' | ') : e.textContent).join('\n');
+  assert.equal(tagi[0], 'h4'); assert.equal(tagi.filter((t) => t === 'h5').length, 15, '13 paragrafów + oświadczenie + zgody');
+  assert.ok(tagi.includes('ul'), 'zgody jako lista');
+  assert.match(tekst, /^Regulamin biegu wirtualnego „Bieg na Mikołajki”/);
+  assert.match(tekst, /dziecka o imieniu Janek, dla którego organizacja pożytku publicznego prowadzi zbiórkę pod adresem https:\/\/www\.siepomaga\.pl\/x/);
+  assert.match(tekst, /Bieg trwa od soboty, 5 grudnia 2026 do niedzieli, 6 grudnia 2026\./); assert.match(tekst, /do wtorku, 8 grudnia 2026, godz\. 23:59/);
+  assert.match(tekst, /Wersja regulaminu: 2026-11-v1, obowiązuje od 18 listopada 2026\./);
+  assert.match(tekst, /Ranking: Pokaż mnie w rankingu z czasem i miejscem\./, 'zgoda na ranking w oknie regulaminu');
+  assert.doesNotMatch(tekst, /\{[a-z_]+\}/, 'żaden znacznik nie zostaje');
+  assert.equal(s.dom.daj('bw-regulamin-pobierz').hidden, false, 'przycisk pobrania widoczny');
+  const pol = (s.dom.stany.polityka || []);
+  assert.equal(pol.length, 3, 'zdanie o polityce: Zasady, okno zapisu, okno dziecka');
+  for (const e of pol) { assert.match(e.textContent, /^Administratorem danych jest BiegaMy\./); assert.equal((e.dzieci || [])[0].href, 'privacy.html#bieg'); assert.equal(e.dzieci[0].target, '_blank'); }
+  const brak = await stronaBiegu({ licznik: Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: null })), { imie: 'Janek' }), sesja: { user: {} } });
+  assert.deepEqual(brak.dom.widoczny(), ['wkrotce'], 'brak regulamin_od w bazie = WKRÓTCE');
+  assert.equal(brak.dom.daj('bw-regulamin-pobierz').hidden, true);
+  assert.match((brak.dom.daj('bw-regulamin-tresc').dzieci || [])[0].textContent, /Regulamin pojawi się razem z otwarciem zapisów/);
+  const proba = await stronaBiegu({ search: '?proba=1', licznikProby: LICZNIK(BIEG('zapisy', { slug: 'proba-bieg', regulamin_wersja: '2026-11-v1' })), sesja: { user: {} } });
+  assert.match((proba.dom.daj('bw-regulamin-tresc').dzieci || [])[0].textContent, /^Próba: w bazie brakuje danych do regulaminu: imie, od_kiedy\./, 'próba mówi, czego brakuje');
+  const h = czytaj('bieg.html');
+  assert.match(h, /el\.textContent = x\.tekst;/); assert.doesNotMatch(h, /bw-regulamin-tresc'\)\.innerHTML/, 'regulamin bez innerHTML');
+  assert.match(h, /new Blob\(\[B\.regulaminTekst\(wartosci\)\], \{ type: 'text\/plain;charset=utf-8' \}\)/);
 });
