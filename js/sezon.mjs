@@ -1,13 +1,14 @@
 // SEZON — jedno ustawienie wyglądu ulicy, Miasta, gry i plakatu (Filip 13.11). Plik BEZ import/export (globalThis.BM_SEZON), jak js/akcja.mjs.
 // Ładują go: js/akcja.mjs przed js/ulica.mjs (Dziś, landing, strona akcji: bez zmian w zamrożonych zawodnik.html i index.html), <script> na stronach Miasta i gry.
-// Kolejność wyboru: ?sezon=jesien|zima (podgląd tylko w tej karcie) → WYMUSZONY → data lokalna w ZAKRESY → "jesien". Brak pliku albo błąd = jesień, bo każde użycie idzie przez g.BM_SEZON ? … : ścieżka.
+// Kolejność wyboru: ?sezon=jesien|zima (podgląd tylko w tej karcie) → WYMUSZONY → data lokalna w ZAKRESY → "jesien". Decyzja Filipa 14.11: zima sama od 18.11.2026 00:00 czasu telefonu. Brak pliku albo błąd = jesień, bo każde użycie idzie przez g.BM_SEZON ? … : ścieżka.
 // Grafiki sezonu leżą w assets/sezony/<sezon>/<katalog>/<ta sama nazwa>. adres() podmienia ścieżkę WYŁĄCZNIE dla plików z manifestu PLIKI (test porównuje go z katalogiem), więc brak pliku zimowego = plik jesienny.
 (function (g) {
   "use strict";
-  /* RĘCZNE NADPISANIE: "jesien" do przełączenia przez Filipa. null = według dat z ZAKRESY, "zima" = zima od razu. */
-  var WYMUSZONY = "jesien";
-  /* Zakresy dat MM-DD (lokalna data telefonu, nie UTC). Zakres może przejść przez Nowy Rok. Jesień to wszystko poza nimi. */
-  var ZAKRESY = { zima: ["12-01", "01-06"] };
+  /* RĘCZNE NADPISANIE: null = według dat z ZAKRESY (decyzja 14.11); "jesien" albo "zima" = na sztywno, bez względu na datę. */
+  var WYMUSZONY = null;
+  /* Zakresy dat (lokalna data telefonu, nie UTC), oba końce włącznie. RRRR-MM-DD = jeden sezon w konkretnym roku; MM-DD = co roku, może przejść przez Nowy Rok.
+     Jesień to wszystko poza nimi. Zima 14.11: od 18.11.2026 (dzień otwarcia biegu; włącza się bez osobnego deployu) do 6.01.2027. */
+  var ZAKRESY = { zima: ["2026-11-18", "2027-01-06"] };
   var SEZONY = { jesien: true, zima: true };
   /* Manifest plików zimowych: katalog/nazwa względem assets/. */
   var PLIKI = {
@@ -42,9 +43,13 @@
   function zestaw(s) { if (!_zestaw) { _zestaw = {}; Object.keys(PLIKI).forEach(function (k) { var m = {}; PLIKI[k].forEach(function (p) { m[p] = true; }); _zestaw[k] = m; }); } return _zestaw[s] || {}; }
   function zParametru() { try { var s = new URLSearchParams(g.location && g.location.search || "").get("sezon"); return s && SEZONY[s] ? s : null; } catch (e) { return null; } }
   function mmdd(d) { var m = d.getMonth() + 1, dz = d.getDate(); return (m < 10 ? "0" : "") + m + "-" + (dz < 10 ? "0" : "") + dz; }
+  function rmd(d) { return d.getFullYear() + "-" + mmdd(d); }   // lokalna data telefonu (data w UTC przesunęłaby północ)
   function zDaty(d) {
-    var t = mmdd(d), wynik = null;
-    Object.keys(ZAKRESY).forEach(function (s) { var z = ZAKRESY[s]; if (z[0] <= z[1] ? t >= z[0] && t <= z[1] : t >= z[0] || t <= z[1]) wynik = s; });
+    var wynik = null;
+    Object.keys(ZAKRESY).forEach(function (s) {
+      var z = ZAKRESY[s], t = z[0].length === 10 ? rmd(d) : mmdd(d);
+      if (z[0].length === 10 ? t >= z[0] && t <= z[1] : z[0] <= z[1] ? t >= z[0] && t <= z[1] : t >= z[0] || t <= z[1]) wynik = s;
+    });
     return wynik;
   }
   /** Aktywny sezon. d tylko w testach. */

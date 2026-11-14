@@ -56,15 +56,21 @@ test('adres(): jesień bez zmian, zima tylko dla plików z manifestu, z zachowan
   assert.equal(S.adres('https://example.com/assets/ulica/drzewo.webp', 'zima'), 'https://example.com/assets/ulica/drzewo.webp');
 });
 
-test('wybór sezonu: ?sezon= → ręczne nadpisanie → daty (zakres przez Nowy Rok) → jesień; dziś jesień do przełączenia', () => {
+test('wybór sezonu (decyzja 14.11): zima sama od 18.11.2026 00:00 do 6.01.2027 23:59 czasu lokalnego; ?sezon= wygrywa; bez nadpisania', () => {
   const S = sezon('');
-  assert.equal(S.WYMUSZONY, 'jesien', 'jesień do przełączenia przez Filipa (zmiana tej linii = świadoma decyzja, popraw też test)');
-  assert.equal(S.aktywny(new Date(2026, 11, 24)), 'jesien', 'nadpisanie wygrywa z datą');
-  assert.equal(sezon('?sezon=zima').aktywny(), 'zima', 'podgląd ?sezon=zima');
-  assert.equal(sezon('?sezon=lato').aktywny(), 'jesien', 'nieznany sezon w adresie nic nie zmienia');
-  for (const [d, oczek] of [[new Date(2026, 10, 30), null], [new Date(2026, 11, 1), 'zima'], [new Date(2026, 11, 31), 'zima'], [new Date(2027, 0, 6), 'zima'], [new Date(2027, 0, 7), null]]) {
-    assert.equal(S.zDaty(d), oczek, d.toDateString());
-  }
+  assert.equal(S.WYMUSZONY, null, 'bez ręcznego nadpisania: o sezonie decyduje data (zima włącza się bez deployu)');
+  assert.deepEqual(Array.from(S.ZAKRESY.zima), ['2026-11-18', '2027-01-06']);
+  /* granice w czasie lokalnym telefonu (Date z polami lokalnymi; strefa procesu nie gra roli) */
+  for (const [d, oczek] of [
+    [new Date(2026, 10, 17, 23, 59, 59, 999), 'jesien'], [new Date(2026, 10, 18, 0, 0, 0, 0), 'zima'],
+    [new Date(2026, 11, 24, 12), 'zima'], [new Date(2026, 11, 31, 23, 59), 'zima'], [new Date(2027, 0, 1, 0, 0), 'zima'],
+    [new Date(2027, 0, 6, 23, 59, 59, 999), 'zima'], [new Date(2027, 0, 7, 0, 0), 'jesien'],
+    [new Date(2027, 10, 18, 12), 'jesien'], [new Date(2026, 0, 3, 12), 'jesien'],   // zakres z rokiem: następny listopad i poprzedni styczeń to jesień
+  ]) assert.equal(S.aktywny(d), oczek, d.toString());
+  assert.equal(sezon('?sezon=zima').aktywny(new Date(2026, 10, 14)), 'zima', 'podgląd ?sezon=zima przed 18.11');
+  assert.equal(sezon('?sezon=jesien').aktywny(new Date(2026, 11, 24)), 'jesien', 'podgląd jesieni w czasie zimy');
+  assert.equal(sezon('?sezon=lato').aktywny(new Date(2026, 10, 14)), 'jesien', 'nieznany sezon w adresie nic nie zmienia');
+  assert.doesNotMatch(czytaj('js/sezon.mjs'), /toISOString/, 'data lokalna, nie UTC');
 });
 
 test('kolory łąki: jesień bez zmian, zima z tabeli; paleta jesieni = dzisiejsze wartości z kodu', () => {
@@ -157,12 +163,12 @@ test('Miasto zimą: zasob() i zrodlo() trzech podstron idą przez motyw (plakaty
   for (const h of ['miasto-bieg.html', 'miasto-druzyny.html', 'miasto-firmy.html']) {
     const html = czytaj(h), i = html.indexOf('  function sezonu(u)'), j = html.indexOf('  function zrodlo(url)', i), k = html.indexOf('\n', j);
     assert.ok(i > 0 && j > i, h + ': sezonu(), zasob() i zrodlo() obok siebie');
-    for (const [search, oczek] of [['?sezon=zima', 'assets/sezony/zima/ulica/domek-3.webp'], ['', PLIK]]) {
+    for (const [search, oczek] of [['?sezon=zima', 'assets/sezony/zima/ulica/domek-3.webp'], ['?sezon=jesien', PLIK]]) {
       const c = kontekstMotywu(search), pobrane = [];
       c.URL = { createObjectURL: (b) => 'blob:' + b.u };
       c.fetch = async (u) => { pobrane.push(u); return { ok: true, clone() { return this; }, blob: async () => ({ u }) }; };
       vm.runInContext('var adresy = {}, zapytane = {};\n' + html.slice(i, k) + '\nthis.zasob = zasob; this.zrodlo = zrodlo;', c);
-      const s = search ? 'zima' : 'jesień';
+      const s = search === '?sezon=zima' ? 'zima' : 'jesień';
       assert.equal(await c.zasob(PLIK), 'blob:' + oczek, h + ' ' + s + ': zasob');
       assert.deepEqual(pobrane, [oczek], h + ' ' + s + ': pobrany plik');
       assert.equal(c.zrodlo(PLIK), 'blob:' + oczek, h + ' ' + s + ': zrodlo() trafia w ten sam blob (sceny modułów)');
@@ -198,7 +204,7 @@ test('Miasto zimą: lista gotowości pokazu = lista jesienna przez motyw (te sam
     vm.runInContext(czytaj('js/miasto-pokaz.mjs'), c);
     return Array.from(await c.BM_POKAZ.listaPlikow());
   };
-  const jesien = await lista(''), zima = await lista('?sezon=zima'), S = sezon('?sezon=zima');
+  const jesien = await lista('?sezon=jesien'), zima = await lista('?sezon=zima'), S = sezon('?sezon=zima');
   assert.ok(jesien.length > 40 && jesien.includes('assets/ulica/domek-1.webp'), 'jesień: lista jak dotąd');
   assert.deepEqual(jesien.filter((u) => u.includes('assets/sezony/')), [], 'jesienią żadnego pliku motywu (literały assets/… w skryptach trafiają na listę)');
   assert.deepEqual(zima, jesien.map((u) => S.adres(u)));
