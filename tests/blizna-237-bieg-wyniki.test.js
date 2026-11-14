@@ -97,11 +97,11 @@ test('wycofanie: każda funkcja i tabela etapu 2 zdjęta, crony zdjęte warunkow
   assert.match(t, /not exists \(select 1 from public\.training_logs l where l\.athlete_id = a\.id and l\.logged_at > now\(\) - interval '10 days'\)/, 'konto testowe bez prawdziwych treningów w oknie');
 });
 
-test('funkcje brzegowe: przypomnienie z sekretem, dwa RPC, ?test=1 przed wysyłką, link rezygnacji; rezygnacja jednym RPC z tokenem UUID i CORS; config.toml', () => {
+test('funkcje brzegowe: przypomnienie z sekretem, lista z RPC (rezerwacja i wynik: blizna-243), ?test=1 przed wysyłką, link rezygnacji; rezygnacja jednym RPC z tokenem UUID i CORS; config.toml', () => {
   const p = czytaj('supabase/functions/bieg-przypomnienie/index.ts').replace(/^\s*\/\/[^\n]*/gm, ''), r = czytaj('supabase/functions/bieg-rezygnacja/index.ts').replace(/^\s*\/\/[^\n]*/gm, '');
-  assert.deepEqual([...new Set([...p.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((x) => x[1]))].sort(), ['akcja_bieg_do_przypomnienia', 'akcja_bieg_mail_zapisz']); assert.doesNotMatch(p, /\.from\(/);
+  assert.deepEqual([...new Set([...p.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((x) => x[1]))].sort(), ['akcja_bieg_do_przypomnienia']); assert.doesNotMatch(p, /\.from\(/);   // rezerwacja i wynik w _shared/bieg-wysylka.mjs (blizna-243)
   assert.match(p, /if \(!HOOK \|\| req\.headers\.get\('x-push-secret'\) !== HOOK\) return new Response\('\{"error":"brak sekretu"\}', \{ status: 401/);
-  assert.ok(p.indexOf('if (test) return') > 0 && p.indexOf('if (test) return') < p.indexOf("fetch('https://api.resend.com/emails'"), '?test=1 wraca przed jakąkolwiek wysyłką');
+  assert.ok(p.indexOf('if (test) return') > 0 && p.indexOf('if (test) return') < p.indexOf('await rozeslij('), '?test=1 wraca przed jakąkolwiek wysyłką');
   assert.doesNotMatch(p.slice(p.indexOf('if (test) return'), p.indexOf('if (!RESEND)')), /email/, 'w odpowiedzi testu bez adresów');
   assert.match(p, /\?rezygnacja=\$\{o\.token\}/); assert.match(p, /'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'/);
   assert.doesNotMatch(p.slice(p.indexOf('if (test) return'), p.indexOf('if (!RESEND)')), /token/, 'w odpowiedzi testu bez tokenów');

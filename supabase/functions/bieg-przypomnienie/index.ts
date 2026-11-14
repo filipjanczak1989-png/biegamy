@@ -1,11 +1,14 @@
 // bieg-przypomnienie — BIEG WIRTUALNY, ETAP 2: jeden e-mail przed biegiem do kont ze zgodą (akcja_bieg_zgody: także rodzic, który zapisał same dzieci).
 // W DWÓCH DOBACH (decyzja 13.11): dwa dni przed startem od 18:00 i dzień przed startem od 8:00 czasu polskiego, najwyżej 90 wiadomości na dobę (Resend: 100 na dobę na całe konto).
 // Okna i limit liczy baza (akcja_bieg_do_przypomnienia z logu wysyłek); cron (20261128) woła o 7:00/7:20/7:40 i 17:00/17:20/17:40 UTC, z nagłówkiem x-push-secret = PUSH_HOOK_SECRET.
-// Klucz serwisowy WYŁĄCZNIE do dwóch RPC: akcja_bieg_do_przypomnienia (odbiorcy, adres z auth.users, token rezygnacji) i akcja_bieg_mail_zapisz (log = blokada podwójnej wysyłki i licznik doby).
-// Wysyłka przez Resend (RESEND_API_KEY, RESEND_FROM_EMAIL jak w firma-panel), pojedynczo, ≤ 2/s; 90 wiadomości to ~55 s, budżet wywołania ~110 s.
+// Klucz serwisowy WYŁĄCZNIE do trzech RPC: akcja_bieg_do_przypomnienia (odbiorcy, adres z auth.users, token rezygnacji), akcja_bieg_mail_rezerwuj (PRZED wysyłką)
+// i akcja_bieg_mail_wynik (po wysyłce): migracja 20261201. Odrzucony e-mail wraca po 15 min (najwyżej 3 próby), niepewny (5xx, zerwane połączenie) nie wraca nigdy.
+// Wysyłka przez Resend (RESEND_API_KEY, RESEND_FROM_EMAIL jak w firma-panel) z Idempotency-Key, pojedynczo, ≤ 2/s; logika w _shared/bieg-wysylka.mjs (blizna-243).
+// 90 wiadomości to ~55 s, budżet wywołania ~110 s (+ najwyżej 34 s ostatniego odbiorcy); cron woła z pg_net timeout 150 s.
 // Link rezygnacji: bieg.html?rezygnacja=<token> (strona woła EF bieg-rezygnacja) i nagłówek List-Unsubscribe jednym kliknięciem (POST na bieg-rezygnacja).
 // ?test=1 = tylko liczby (ile odbiorców, które biegi), BEZ wysyłki i BEZ wpisu do logu; adresów w odpowiedzi nie ma nigdy. Treść bez nazwisk; nazwa biegu i imiona z bazy.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { rozeslij, wyslijJeden } from '../_shared/bieg-wysylka.mjs';
 
 const RESEND = Deno.env.get('RESEND_API_KEY') || '', NADAWCA = Deno.env.get('RESEND_FROM_EMAIL') || 'BiegaMy <noreply@biegamy.run>', STRONA = 'https://biegamy.run';
 const HOOK = Deno.env.get('PUSH_HOOK_SECRET') || '';   // pusty = odmowa, nigdy „otwarte”
@@ -56,18 +59,9 @@ Deno.serve(async (req) => {
   const odbiorcy: Odbiorca[] = Array.isArray(data) ? data : [];
   if (test) return new Response(JSON.stringify({ test: true, ile: odbiorcy.length, biegi: [...new Set(odbiorcy.map((o) => o.slug))], same_dzieci: odbiorcy.filter((o) => o.uczestnicy.every((u) => u.rodzaj === 'dziecko')).length }), { headers: h });
   if (!RESEND) return new Response('{"error":"brak RESEND_API_KEY"}', { status: 500, headers: h });
-  let wyslane = 0, bledy = 0, pominiete = 0;
-  for (const o of odbiorcy) {
-    if (Date.now() - start > BUDZET_MS) { pominiete = odbiorcy.length - wyslane - bledy; break; }   // reszta w kolejnym wywołaniu z crona (log blokuje podwójne)
-    const t = tresc(o);
-    try {
-      const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND}` },
-        body: JSON.stringify({ from: NADAWCA, to: [o.email], subject: t.temat, html: t.html, text: t.tekst, headers: t.naglowki }) });
-      const ok = r.ok;
-      await sb.rpc('akcja_bieg_mail_zapisz', { p_bieg_id: o.bieg_id, p_konto_id: o.konto_id, p_blad: ok ? null : `resend ${r.status}` });
-      if (ok) wyslane++; else bledy++;
-    } catch (e) { bledy++; await sb.rpc('akcja_bieg_mail_zapisz', { p_bieg_id: o.bieg_id, p_konto_id: o.konto_id, p_blad: String((e as Error).message || e).slice(0, 200) }); }
-    await new Promise((ok) => setTimeout(ok, PRZERWA_MS));   // Resend: ≤ 2/s
-  }
-  return new Response(JSON.stringify({ wyslane, bledy, pominiete, ile: odbiorcy.length }), { headers: h });
+  const czekaj = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+  const wynik = await rozeslij({ odbiorcy, sb, tresc, nadawca: NADAWCA, start, budzetMs: BUDZET_MS, przerwaMs: PRZERWA_MS, czekaj,
+    wyslij: (klucz: string, cialo: string) => wyslijJeden({ f: fetch, resend: RESEND, klucz, cialo, czekaj }) });
+  if (wynik.blad_rezerwacji) console.error('bieg-przypomnienie: rezerwacja (akcja_bieg_mail_rezerwuj) nie odpowiedziała, wysyłka zatrzymana');
+  return new Response(JSON.stringify(wynik), { status: wynik.blad_rezerwacji ? 500 : 200, headers: h });
 });
