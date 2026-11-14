@@ -36,7 +36,13 @@ test('manifest plików zimy = zawartość katalogu, każdy plik z jesiennym odpo
     assert.ok(fs.existsSync(path.join(KORZEN, 'assets', p)), 'brak jesiennego ' + p);
     assert.deepEqual(wymiaryWebp(path.join(KAT_ZIMY, p)), wymiaryWebp(path.join(KORZEN, 'assets', p)), 'wymiary ' + p);
   }
-  for (const p of bezOdpowiednika) assert.deepEqual(wymiaryWebp(path.join(KAT_ZIMY, p)), [1800, 240], p + ': 6 klatek 300 × 240');
+  /* arkusze Mikołaja (14.11: cykl jazdy i pozy): wymiary = wpis atlasu w kodzie gry (cw × n, ch) */
+  const gra = czytaj('js/cegielki.js');
+  for (const [p, klucz] of [['gra/mikolaj.webp', 'mikolaj'], ['gra/mikolaj_karta.webp', 'mikolaj_bieg']]) {
+    const m = new RegExp('A\\.' + klucz + ' = \\{ src: "' + path.basename(p) + '", cw: (\\d+), ch: (\\d+), n: (\\d+)').exec(gra);
+    assert.ok(m, 'wpis atlasu ' + klucz);
+    assert.deepEqual(wymiaryWebp(path.join(KAT_ZIMY, p)), [Number(m[1]) * Number(m[3]), Number(m[2])], p + ': ' + m[3] + ' klatek ' + m[1] + ' × ' + m[2]);
+  }
 });
 
 test('adres(): jesień bez zmian, zima tylko dla plików z manifestu, z zachowaniem ?v= i prefiksu', () => {
@@ -198,4 +204,17 @@ test('Miasto zimą: lista gotowości pokazu = lista jesienna przez motyw (te sam
   assert.deepEqual(zima, jesien.map((u) => S.adres(u)));
   const zimowe = zima.filter((u) => u.startsWith('assets/sezony/zima/'));
   assert.ok(zimowe.length >= 20 && zimowe.every((u) => fs.existsSync(path.join(KORZEN, u))), 'zimą pliki motywu, każdy istnieje (' + zimowe.length + ')');
+});
+
+/* 14.11 (zlecenie Filipa, pkt 7): Mikołaj jedzie pełnym cyklem 6 klatek (kołysanie, worek, broda, raz macha), pozy z drugiego arkusza,
+   pył śniegu spod płóz w kodzie. Pył ma własny generator: Math.random i G.czastki liczą przeszkody (test wyniku rundy wyżej). */
+test('Mikołaj: jazda cyklem 6 klatek z arkusza jazdy, oba arkusze w rundzie, pył śniegu bez Math.random, karta z arkusza jazdy', () => {
+  const gra = czytaj('js/cegielki.js');
+  assert.match(gra, /if \(jazda\) klatka\("mikolaj_bieg", Math\.floor\(g\.anim \* 0\.6\) % 6, xs, stopaY, 0\);/);
+  assert.match(gra, /var naz = skora \? \["mikolaj", "mikolaj_bieg"\]/);
+  const pyl = /function pylSniegu\(xs, stopa, sypie\) \{[\s\S]*?\n  \}/.exec(gra);
+  assert.ok(pyl, 'funkcja pyłu');
+  assert.doesNotMatch(pyl[0], /Math\.random|G\.czastki|losowa\(/, 'pył bez wspólnego losowania i bez G.czastki');
+  assert.match(gra, /var a = id === "koparka" \? A\.koparka_ark : A\[id \+ "_bieg"\]/, 'karta w menu animuje arkusz jazdy');
+  assert.match(czytaj('gra-cegielki.html'), /\.postac\[data-postac="mikolaj"\] \{ --krok:\.9s; --fala:\.9s; justify-content:flex-end; \}/, 'podpis na linii biegaczy');
 });

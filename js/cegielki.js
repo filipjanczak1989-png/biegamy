@@ -534,7 +534,7 @@
     trybMaly = !!($("m-maly") && $("m-maly").checked);
     var STROJ = window.BM_CEGIELKI_STROJ, KONTO = window.BM_CEGIELKI_KONTO, ubior = KONTO && !skora ? L.strojPostaci(KONTO.wybor(postac), postac) : null;
     noszone = STROJ && ubior ? STROJ.noszone(ubior) : [];
-    var naz = skora ? ["mikolaj"] : Object.keys(A).filter(function (k) { return k.indexOf(postac + "_") === 0; }).concat(STROJ ? STROJ.nazwyObrazow(noszone) : []);
+    var naz = skora ? ["mikolaj", "mikolaj_bieg"] : Object.keys(A).filter(function (k) { return k.indexOf(postac + "_") === 0; }).concat(STROJ ? STROJ.nazwyObrazow(noszone) : []);
     if (L.ulepszenieDla("rakieta", postac) && KONTO && KONTO.plecak && L.mozeUzyc(KONTO.plecak(), [], "rakieta")) naz.push("rakieta_rower");   // arkusz tylko dla tych, którzy mają rakietę
     $("ladowanie").hidden = false; $("ladowanie").textContent = "Ładuję…";
     var t0Startu = performance.now();
@@ -1145,16 +1145,32 @@
     }
   }
   /* Zima: Mikołaj na saniach (arkusz 6 póz: jazda, podskok, skok, opadanie, wywrotka, radość). Tylko rysunek: ruch i kolizje liczy ten sam krok co dla Kasi, bez losowania tutaj. */
+  var PYL = [], pylZiarno = 7, pylCzas = 0;
+  function pylLos() { pylZiarno = (pylZiarno * 16807) % 2147483647; return pylZiarno / 2147483647; }
+  /* Pył śniegu spod płóz (zlecenie 14.11: cząstki w kodzie, nie w grafice). Osobna tablica i własny generator: Math.random i G.czastki
+     liczą przeszkody i dekoracje, więc runda Mikołajem kończy się tym samym wynikiem co Kasią przy tym samym ziarnie. */
+  function pylSniegu(xs, stopa, sypie) {
+    var dt = Math.min(0.05, Math.max(0, czasGlobalny - (pylCzas || czasGlobalny))); pylCzas = czasGlobalny;
+    if (sypie && dt > 0 && PYL.length < 36) for (var k = 0; k < 2; k++) PYL.push({ x: xs - 48 + pylLos() * 40, y: stopa - 1 - pylLos() * 4, vx: -70 - pylLos() * 110, vy: -25 - pylLos() * 55, r: 1.6 + pylLos() * 2.8, t: 0.35 + pylLos() * 0.35 });
+    for (var i = PYL.length - 1; i >= 0; i--) {
+      var p = PYL[i]; p.t -= dt; if (p.t <= 0) { PYL.splice(i, 1); continue; }
+      p.vy += 160 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      x.globalAlpha = Math.min(1, p.t * 2.6) * 0.85; x.fillStyle = "#f4f8ff"; x.beginPath(); x.arc(p.x, p.y, p.r, 0, Math.PI * 2); x.fill();
+    }
+    x.globalAlpha = 1;
+  }
   function rysujMikolaja() {
     var g = G, xs = graczX(), stopaY = stopy() - g.y + 2, cien = 1 - Math.min(0.7, g.y / 300), i = 0, obrot = 0;
     x.fillStyle = "rgba(10,10,30,.3)"; x.beginPath(); x.ellipse(xs, stopy() + 3, 52 * cien, 8 * cien, 0, 0, Math.PI * 2); x.fill();
     if (!A.mikolaj || !OBR.mikolaj) return;
     if (g.reakcja > 0) i = 4;
     else if (!g.naZiemi) { if (g.saltoT >= 0 && g.saltoT < 1) { i = 2; obrot = g.saltoT * Math.PI * 2; } else i = g.vy > 0 ? 2 : 3; }
-    else i = Math.floor(g.anim / 3) % 2;
+    var jazda = !(g.reakcja > 0) && g.naZiemi && A.mikolaj_bieg && OBR.mikolaj_bieg;
+    pylSniegu(xs, stopy(), jazda && !G.st.koniec);   // przed postacią: pył za płozami, a alfa migania nietykalności zostaje
     if (g.bud > 0 || g.zel > 0) { x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = g.zel > 0 ? 0.35 + 0.15 * Math.sin(czasGlobalny * 9) : 0.3; x.drawImage(poswiataBiala, xs - 80, stopaY - 140, 160, 140); x.restore(); }
     if (g.nietykalny > 0 && g.przemiana <= 0 && Math.floor(czasGlobalny * 14) % 2) x.globalAlpha = 0.5;
-    klatka("mikolaj", i, xs, stopaY, obrot);
+    if (jazda) klatka("mikolaj_bieg", Math.floor(g.anim * 0.6) % 6, xs, stopaY, 0);   // cykl jazdy: kołysanie sań, worek, broda, raz macha
+    else klatka("mikolaj", i, xs, stopaY, obrot);
     x.globalAlpha = 1;
     if (g.sprint > 0) {
       x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = 3;
@@ -1423,7 +1439,7 @@
   function kartaPostaci(id, adres) {
     var a = id === "koparka" ? A.koparka_ark : A[id + "_bieg"], el = document.querySelector('.postac[data-postac="' + id + '"] i'); if (!a || !el) return;
     /* Styl w elemencie wygrywa z @media, więc wielkość karty w poziomie liczymy tutaj. Inaczej karty zajmują cały ekran i reszta menu wypada pod spód. */
-    var sz = (id === "koparka" || id === "mikolaj" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : innerWidth <= 480 ? 0.74 : 1), wys = Math.round(a.ch * sz / a.cw);
+    var sz = (id === "koparka" || id === "mikolaj" ? 132 : 99) * (innerHeight <= 460 ? 0.62 : innerWidth <= 480 ? 0.74 : 1), wys = Math.round(a.ch * sz / a.cw);   // Mikołaj: komórka ciasna wokół sań (206 px), więc 132 px to prawie skala biegaczy, a trzy karty mieszczą się w rzędzie przy 360
     el.style.backgroundImage = "url(" + (adres || plikGry(KAT + a.src) + "?v=" + WERSJA) + ")";
     el.style.setProperty("--w", sz + "px"); el.style.setProperty("--h", wys + "px");
   }
@@ -1447,7 +1463,7 @@
       var r = await fetch(KAT + "atlas.json?v=" + WERSJA);
       Object.assign(A, await r.json());
       /* Zima: arkusze Mikołaja tylko w motywie (pliki w assets/sezony/zima/gra, atlas.json bez zmian). */
-      if (ZIMA) { A.mikolaj = { src: "mikolaj.webp", cw: 300, ch: 240, n: 6, dol: 3, sk: 0.8 }; A.mikolaj_bieg = { src: "mikolaj_karta.webp", cw: 300, ch: 240, n: 6, dol: 3 }; }
+      if (ZIMA) { A.mikolaj = { src: "mikolaj.webp", cw: 270, ch: 230, n: 6, dol: 3, sk: 1 }; A.mikolaj_bieg = { src: "mikolaj_karta.webp", cw: 206, ch: 172, n: 6, dol: 3, sk: 1 }; }   // pozy (jazda, podskok, skok, opadanie, wywrotka, radość) i cykl jazdy; skala jak biegacze
       var wspolne = Object.keys(A).filter(function (k) { return k !== "wiezowiec" && !L.BUDYNKI_POPRZEDNICH[k] && !/^(kasia|filip|rowerzysta|dodatek|rakieta|mur)_|^mikolaj/.test(k) && k !== "druzyna" && k !== "gorka" && k !== "trawa_pod_droga"; }).concat(["kasia_bieg", "filip_bieg"]);
       await wczytajObrazy(GRAFIKI_MENU);
       grafikiRundy = wczytajObrazy(wspolne);

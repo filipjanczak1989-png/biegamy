@@ -31,7 +31,7 @@
   .postac[data-postac="kasia"] { --krok:.62s; --faza:-.31s; --fala:.83s; --tor:6.7s; --kier:-1; }
   .postac[data-postac="filip"] { --krok:.62s; --faza:0s; --fala:.71s; --tor:5.3s; --kier:1; }
   .postac[data-postac="rowerzysta"] { --krok:.56s; }   /* zima: Mikołaj na saniach (js/sezon.mjs), podskok sań na przemian z jazdą */
-  .postac[data-postac="mikolaj"] { --krok:.9s; --fala:.9s; }   /* tempo 1.1 z cegielki-logika: klatki szybciej o tyle, o ile szybciej jedzie */
+  .postac[data-postac="mikolaj"] { --krok:.9s; --fala:.9s; justify-content:flex-end; }   /* sanie niższe niż biegacze: podpis na tej samej linii co Kasia i Filip */   /* tempo 1.1 z cegielki-logika: klatki szybciej o tyle, o ile szybciej jedzie */
   @keyframes bieg { to { background-position-x:calc(var(--w,99px)*-6); } }
   @keyframes fala { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
   @keyframes wyprzedza { 0%,100% { transform:translateX(calc(var(--kier,1)*-7px)); } 50% { transform:translateX(calc(var(--kier,1)*7px)); } }
