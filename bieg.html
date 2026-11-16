@@ -358,7 +358,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function pobierzSesje() { try { if (!window.sb || !window.sb.auth) return Promise.resolve(null); return Promise.resolve(window.sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session ? r.data.session : null; }, function () { return null; }); } catch (e) { return Promise.resolve(null); } }
   /* moje zapisy: null = błąd odczytu (odswiez zostawia poprzednią listę: brak zasięgu nie chowa numeru), [] = brak zapisów */
   function pobierzMoich() {
-    if (!sesja || !bieg || !window.sb || !window.sb.rpc || B.zapisZablokowany(PROBA)) return Promise.resolve([]);
+    /* 17.11: bramka z wartościami tekstów TEGO licznika. Samo B.zapisZablokowany(PROBA) było poza próbą zawsze prawdą, więc na prawdziwym biegu strona nigdy nie pytała o własne zapisy (brak numeru po zapisie). */
+    if (!sesja || !bieg || !window.sb || !window.sb.rpc || B.zapisZablokowany(PROBA, B.wartosciTekstow(bieg, licznik, A.linkZbiorki(licznik || {})))) return Promise.resolve([]);
     return Promise.resolve(window.sb.rpc('akcja_bieg_moi', { p_slug: bieg.slug })).then(function (r) { return r && !r.error && Array.isArray(r.data) ? r.data : null; }, function () { return null; });
   }
   /* usterka 5: na ekran tylko polski tekst z B.komunikat (kod i znak „sieć” z B.bladRpc); surowa treść błędu wyłącznie do client_errors (sb.js _logKlienta: zalogowani, limit, bez danych osoby) */

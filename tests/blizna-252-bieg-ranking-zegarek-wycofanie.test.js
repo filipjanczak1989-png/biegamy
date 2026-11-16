@@ -40,9 +40,9 @@ function nowyElement(id, attrs) {
   let tekst = ''; Object.defineProperty(e, 'textContent', { get: () => tekst, set: (v) => { tekst = String(v); e.dzieci = []; }, enumerable: true });
   return e;
 }
-async function stronaBiegu({ bieg = BIEG(), odpowiedz }) {
+async function stronaBiegu({ bieg = BIEG(), odpowiedz, search = '?proba=1' }) {
   const ctx = zamrozTimery(zaladujSb());
-  Object.assign(ctx.location, { pathname: '/bieg.html', search: '?proba=1', origin: 'https://biegamy.run' });
+  Object.assign(ctx.location, { pathname: '/bieg.html', search, origin: 'https://biegamy.run' });
   ctx.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
   const html = czytaj('bieg.html').replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, ''), rej = new Map(), stany = [], zdarzenia = {}, wywolania = [], pytania = [];
   for (const m of html.matchAll(/<([a-z0-9]+)\b([^>]*)>/gi)) {
@@ -66,6 +66,16 @@ async function stronaBiegu({ bieg = BIEG(), odpowiedz }) {
   return { daj, zdarzenia, wywolania, pytania, klikWycofaj };
 }
 const KONTO = () => [{ id: 'd1', rodzaj: 'dziecko', numer: 1, imie: 'Alfa' }, { id: 'j2', rodzaj: 'ja', numer: 2, imie: 'Tester', dystans_km: 5 }, { id: 'd4', rodzaj: 'dziecko', numer: 4, imie: 'Gamma' }];
+
+test('PRAWDZIWY bieg (bez ?proba=1, komplet tekstów): strona pyta o własne zapisy i pokazuje numer po zapisie; za bramką tekstów dalej nie pyta', async () => {
+  const odp = (n) => (n === 'akcja_bieg_moi' ? { data: KONTO(), error: null } : n === 'akcja_bieg_moja_zgoda' ? { data: { zgoda_email: false, ma_zapis: true }, error: null } : { data: null, error: null });
+  const s = await stronaBiegu({ search: '', bieg: BIEG({ slug: 'bieg-mikolajki' }), odpowiedz: odp });
+  assert.ok(s.wywolania.some((w) => w[0] === 'akcja_bieg_moi'), 'poza próbą, z kompletem wartości: odczyt własnych zapisów');
+  assert.equal(s.daj('bw-moj').hidden, false, 'karta „Twój bieg” widoczna'); assert.match(s.daj('bw-moj-tresc').innerHTML, /<h3>Tester<small>numer 2 /);
+  assert.equal(s.daj('bw-zgoda-konto-pole').hidden, false);
+  const z = await stronaBiegu({ search: '', bieg: BIEG({ slug: 'bieg-mikolajki', regulamin_wersja: '2026-11-v1' }), odpowiedz: odp });
+  assert.ok(!z.wywolania.some((w) => w[0] === 'akcja_bieg_moi'), 'inna wersja regulaminu = bramka: bez odczytu zapisów'); assert.equal(z.daj('bw-moj').hidden, true);
+});
 
 test('regulamin v2: § 9 w brzmieniu od organizatora (4 ustępy); § 4 ust. 3 mówi, że numer nie wraca; zgoda na imię dziecka z dopowiedzeniem', () => {
   const p = (n) => B.REGULAMIN.paragrafy[n - 1];
