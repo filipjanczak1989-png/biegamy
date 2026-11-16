@@ -251,6 +251,12 @@ begin
     (b, ka[4], 'ja', 'Dawid', true, nr + 4, 5, W, 1300, 5, now(), null),
     (b, ka[5], 'ja', 'Edek', true, nr + 5, 10, W, 2800, 10, now(), now()),
     (b, ka[6], 'ja', 'Franek', true, nr + 6, 10, W, 2900, 10, now(), now());
+  -- 16.11 (20261203): ranking tylko z treningu z zegarka, więc wyniki z tego punktu wskazują trening ze źródłem 'intervals' (przed 20261203 bez znaczenia; regułę sprawdza tools/akcja-bieg-ranking-gps-test.sql)
+  for i in 1..6 loop
+    with t as (insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id)
+                 values (ka[i], case when i > 4 then 10 else 5 end, '30:00', 'Spokojny', 'Run', now(), 'intervals', 'test-bieg', 'tb-rank-' || i) returning id)
+    update public.akcja_bieg_uczestnicy u set wynik_log_id = t.id from t where u.bieg_id = b and u.numer = nr + i;
+  end loop;
   update public.athletes set date_of_birth = (DZIS - interval '17 years')::date where id = ka[5];   -- 17 lat w dniu startu (DZIS + 2): niepełnoletni
   begin
     insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, numer, oswiadczenie_rodzica_at, regulamin_wersja, ukonczony_at, ranking_zgoda_at)
