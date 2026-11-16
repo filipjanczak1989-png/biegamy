@@ -117,7 +117,7 @@ test('strażnik tekstów: § 5, § 8 i § 9 zgodne (ranking tylko z zegarka albo
 
 test('lista „ukończyli”: wynik ręczny bez czasu i miejsca, z dopiskiem; czas nie wychodzi nawet gdyby serwer go przysłał; dziecko bez dopisku; karta mówi, dlaczego nie ma miejsca', () => {
   const r = B.wierszUkonczyl({ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true }, false, false);
-  assert.match(r, /<span class="bw-dyst">5 km <small class="bw-reczny">wynik ręczny<\/small><\/span>/); assert.doesNotMatch(r, /bw-czas|bw-pozycja/);
+  assert.match(r, /<span class="bw-dyst">5 km · <small class="bw-reczny">wynik ręczny<\/small><\/span>/); assert.doesNotMatch(r, /bw-czas|bw-pozycja/);
   const zly = B.wierszUkonczyl({ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true, miejsce: 1, czas_s: 1200 }, false, false);
   assert.doesNotMatch(zly, /20:00|bw-czas|miejsce 1/, 'ręczny nigdy z czasem'); assert.match(zly, /wynik ręczny/);
   assert.doesNotMatch(B.wierszUkonczyl({ numer: 8, imie: 'Zosia', dystans_km: 1.5, dziecko: true, reczny: true }, false, false), /wynik ręczny/);
