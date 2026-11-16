@@ -87,7 +87,7 @@ test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dn
   for (const [we, wy] of [['ola', 'Ola'], ['anna-maria', 'Anna-Maria'], ['Łucja', 'Łucja'], ['żaneta', 'Żaneta'], ['ANNA-MARIA', 'Anna-Maria']]) assert.equal(B.ladneImie(we), wy, we);
   for (const zle of ['Jan Kowalski', 'O', '<b>x</b>', 'Ola2', 'Anna--Maria', '-Ola', 'Ola Maria Zofia', '']) assert.equal(B.ladneImie(zle), '', 'odrzucone: ' + JSON.stringify(zle));
   assert.equal(B.imieZProfilu('Anna Przykładowa'), 'Anna'); assert.equal(B.imieZProfilu('Łucja'), 'Łucja');
-  assert.equal(B.ROLE.organizator, 'Organizator'); assert.equal(B.ROLE.zgoda, 'Zgoda opiekuna'); assert.equal(B.ZASADY.wiek_konta, 16); assert.equal(B.ZASADY.limit_dzieci, 6); assert.equal(B.ZASADY.max_zapisow_ja, 3); assert.deepEqual([...B.ZASADY.dystanse], [5, 10]);
+  assert.equal(B.ROLE.organizator, 'Organizator'); assert.equal(B.ROLE.zgoda, 'Zgoda opiekuna'); assert.equal(B.ZASADY.wiek_konta, 16); assert.equal(B.ZASADY.limit_dzieci, 6); assert.equal(B.ZASADY.max_zapisow_ja, 3); assert.equal(B.ZASADY.dystanse, undefined, '16.11: dystanse tylko z bazy (bieg.dystanse_km), bez listy na sztywno');
   assert.equal(B.ROLE.organizator_opis, 'BiegaMy. Prowadzi bieg i zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat.');
   assert.equal(B.ROLE.zgoda_opis, 'Opiekun dziecka, dla którego jest zbiórka, wyraził zgodę na bieg, na imię dziecka i na jego rysunek.');
   assert.equal(B.FAZY.zapisy.chip, 'ZAPISY OTWARTE'); assert.equal(B.faza({ faza: 'cokolwiek' }), 'szkic');
@@ -96,7 +96,7 @@ test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dn
 test('bieg.mjs: teksty od Filipa wstawione (bez zaślepek); lista ukończyli z czasem tylko za zgodą na ranking; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
   const B = await modul();
   assert.equal(B.TEKSTY_GOTOWE, true, 'teksty od Filipa 14.11 (treść pilnuje blizna-242)');
-  assert.doesNotMatch(czytaj('js/bieg.mjs') + czytaj('bieg.html'), /\[MIEJSCE NA TEKST|MIEJSCE_[A-Z]/, 'żadnej zaślepki'); assert.equal(B.WERSJA_TEKSTOW, '2026-11-v1');
+  assert.doesNotMatch(czytaj('js/bieg.mjs') + czytaj('bieg.html'), /\[MIEJSCE NA TEKST|MIEJSCE_[A-Z]/, 'żadnej zaślepki'); assert.equal(B.WERSJA_TEKSTOW, '2026-11-v2');
   assert.match(B.TEKSTY.regulamin_pole, /\(wymagane\)/); assert.match(B.TEKSTY.oswiadczenie_pole, /\(wymagane\)/); for (const k of ['zgoda_imie_pole', 'zgoda_ranking_pole', 'zgoda_email_pole', 'zgoda_imie_dziecka_pole']) assert.match(B.TEKSTY[k], /\(dobrowolne\)/, k);
   const u = B.ukonczyliHtml({ razem: 2, od: 0, lista: BIEG.ukonczyli }, [1]);
   assert.match(u, /bw-wiersz bw-wiersz--ty"><span class="bw-nr">1<\/span><span class="bw-imie">Ola <i>Ty<\/i><\/span><span class="bw-dyst">10 km<\/span>/);

@@ -11,20 +11,23 @@ const vm = require('node:vm');
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8');
 function modul() { const c = {}; c.globalThis = c; vm.createContext(c); vm.runInContext(czytaj('js/bieg.mjs'), c, { filename: 'js/bieg.mjs' }); return c.BM_BIEG_REAL; }
-const BIEG = (x) => Object.assign({ slug: 'mikolajki', nazwa: 'Bieg na Mikołajki', dzien_od: '2026-12-05', dzien_do: '2026-12-06', wynik_do: '2026-12-08', regulamin_wersja: '2026-11-v1', regulamin_od: '2026-11-18' }, x || {});
+const BIEG = (x) => Object.assign({ slug: 'mikolajki', nazwa: 'Bieg na Mikołajki', dzien_od: '2026-12-05', dzien_do: '2026-12-06', wynik_do: '2026-12-08', regulamin_wersja: '2026-11-v2', regulamin_od: '2026-11-18', dystanse_km: [5, 10] }, x || {});
 const LINK = 'https://example.org/zbiorka';
 
 test('wartości z bazy: komplet = obiekt; każde brakujące pole, zła data, link bez https albo inna wersja = null (WKRÓTCE)', () => {
   const B = modul(), w = B.wartosciTekstow(BIEG(), { imie: 'Janek' }, LINK);
-  assert.deepEqual(JSON.parse(JSON.stringify(w)), { nazwa: 'Bieg na Mikołajki', imie: 'Janek', od: 'soboty, 5 grudnia 2026', do: 'niedzieli, 6 grudnia 2026', wynik_do: 'wtorku, 8 grudnia 2026', link: LINK, wersja: '2026-11-v1', od_kiedy: '18 listopada 2026' });
+  assert.deepEqual(JSON.parse(JSON.stringify(w)), { nazwa: 'Bieg na Mikołajki', imie: 'Janek', od: 'soboty, 5 grudnia 2026', do: 'niedzieli, 6 grudnia 2026', wynik_do: 'wtorku, 8 grudnia 2026', link: LINK, wersja: '2026-11-v2', od_kiedy: '18 listopada 2026',
+    dystanse: '5 km albo 10 km', ranking_dystanse: 'na 5 i 10 km (osobno dla każdego dystansu)' });
   for (const [opis, b, l, link] of [
     ['bez nazwy', BIEG({ nazwa: '' }), { imie: 'Janek' }, LINK], ['bez imienia', BIEG(), {}, LINK], ['imię ze spacji', BIEG(), { imie: '  ' }, LINK],
     ['bez dzien_od', BIEG({ dzien_od: null }), { imie: 'Janek' }, LINK], ['bez dzien_do', BIEG({ dzien_do: undefined }), { imie: 'Janek' }, LINK],
     ['bez wynik_do', BIEG({ wynik_do: 'zła' }), { imie: 'Janek' }, LINK], ['bez linku', BIEG(), { imie: 'Janek' }, ''], ['link http', BIEG(), { imie: 'Janek' }, 'http://example.org'],
-    ['bez wersji', BIEG({ regulamin_wersja: null }), { imie: 'Janek' }, LINK], ['inna wersja', BIEG({ regulamin_wersja: '2026-11-v2' }), { imie: 'Janek' }, LINK],
+    ['bez wersji', BIEG({ regulamin_wersja: null }), { imie: 'Janek' }, LINK], ['stara wersja v1', BIEG({ regulamin_wersja: '2026-11-v1' }), { imie: 'Janek' }, LINK],
+    ['bez dystansów', BIEG({ dystanse_km: null }), { imie: 'Janek' }, LINK], ['pusta lista dystansów', BIEG({ dystanse_km: [] }), { imie: 'Janek' }, LINK], ['dystanse spoza 1–100', BIEG({ dystanse_km: [0, 101] }), { imie: 'Janek' }, LINK],
     ['bez regulamin_od', BIEG({ regulamin_od: null }), { imie: 'Janek' }, LINK], ['bez biegu', null, { imie: 'Janek' }, LINK], ['bez licznika', BIEG(), null, LINK],
   ]) assert.equal(B.wartosciTekstow(b, l, link), null, opis);
   assert.deepEqual(Array.from(B.brakiTekstow(BIEG({ regulamin_od: null, regulamin_wersja: 'x' }), {}, '')), ['imie', 'link', 'wersja', 'od_kiedy']);
+  assert.deepEqual(Array.from(B.brakiTekstow(BIEG({ dystanse_km: [] }), { imie: 'Janek' }, LINK)), ['dystanse']);
   assert.equal(B.dataZDniem('2026-12-07'), 'poniedziałku, 7 grudnia 2026'); assert.equal(B.dataZDniem('2026-12-09'), 'środy, 9 grudnia 2026'); assert.equal(B.dataZDniem('zła'), '');
 });
 
@@ -40,7 +43,7 @@ test('regulamin: 13 paragrafów z nagłówkami, punkty numerowane, oświadczenie
   assert.doesNotMatch(tekst, /\{[a-z_]+\}/); assert.match(tekst, /\n$/); assert.match(tekst, /\n§ 13\. Postanowienia końcowe\n1\. Regulamin jest dostępny na stronie biegu przed zapisem i można go pobrać\./);
   assert.match(tekst, /\n- Ranking: Pokaż mnie w rankingu z czasem i miejscem\. Mam ukończone 18 lat\./);
   /* wszystkie znaczniki z tekstów Filipa są wypełniane */
-  const zr = JSON.stringify(B.REGULAMIN); assert.deepEqual([...new Set(zr.match(/\{[a-z_]+\}/g))].sort(), ['{do}', '{imie}', '{link}', '{nazwa}', '{od_kiedy}', '{od}', '{wersja}', '{wynik_do}']);
+  const zr = JSON.stringify(B.REGULAMIN); assert.deepEqual([...new Set(zr.match(/\{[a-z_]+\}/g))].sort(), ['{do}', '{dystanse}', '{imie}', '{link}', '{nazwa}', '{od_kiedy}', '{od}', '{ranking_dystanse}', '{wersja}', '{wynik_do}']);
   for (const [k, v] of Object.entries(B.TEKSTY_KROTKIE)) { assert.ok(v.length <= 200, k + ': ' + v.length + ' znaków'); assert.doesNotMatch(v, /\{/, k); }
 });
 

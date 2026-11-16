@@ -86,7 +86,7 @@ async function stronaBiegu({ search = '', licznik = LICZNIK(BIEG('zapisy')), lic
 
 test('1 BLOKUJE: bramka zapisu (teksty 14.11): bez kompletu wartości do tekstów stanStrony nigdy nie daje stanu zapisu (każda faza, sesja i zapisy); z kompletem i na ?proba=1 zapis jak dotąd', () => {
   assert.equal(B.TEKSTY_GOTOWE, true);
-  const W = B.wartosciTekstow(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: '2026-11-18' }), { imie: 'Janek' }, 'https://example.org/z'); assert.ok(W, 'komplet wartości');
+  const W = B.wartosciTekstow(BIEG('zapisy', { regulamin_wersja: '2026-11-v2', regulamin_od: '2026-11-18' }), { imie: 'Janek' }, 'https://example.org/z'); assert.ok(W, 'komplet wartości');
   const zapisowe = ['przed', 'po', 'dzieci', 'niezalogowany'];
   for (const faza of ['szkic', 'zapisy', 'trwa', 'wyniki', 'zakonczony']) for (const sesja of [null, { user: {} }]) for (const moi of [[], [{ rodzaj: 'ja', id: 'a' }], [{ rodzaj: 'dziecko', id: 'b' }]]) {
     const s = B.stanStrony(BIEG(faza), sesja, moi, {});
@@ -232,7 +232,7 @@ test('5: polskie komunikaty: sieć, 42501, inne; bez „TypeError” i nazw funk
   const h = czytaj('bieg.html');
   assert.doesNotMatch(h, /r\.error\.message|'Nie udało się: '/, 'strona nie składa tekstu z błędu'); assert.doesNotMatch(czytaj('js/bieg.mjs'), /"Nie udało się: "/);
   assert.match(h, /window\._logKlienta\(\{ kind: 'bieg_rpc', source: 'bieg\.html ' \+ nazwa, message: nazwa \+ ' · ' \+ \(\(e && e\.code\) \|\| 'brak-kodu'\) \+ ' · ' \+ String\(\(e && e\.message\) \|\| e \|\| 'brak odpowiedzi'\)\.slice\(0, 300\) \}\)/, 'surowa treść do client_errors (bez details i hint)');
-  assert.match(h, /function komunikat\(r, miejsce\) \{ return B\.komunikat\(r, miejsce\); \}/);
+  assert.match(h, /function komunikat\(r, miejsce\) \{ return B\.komunikat\(r, miejsce, bieg\); \}/);
 });
 
 test('6: każdy kod odmowy z funkcji wołanych przez stronę ma własny tekst (kody wyciągnięte z migracji); teksty wycofania', () => {
@@ -398,7 +398,7 @@ test('przegląd 14.11: wysyłka zapisu i dziecka za bramką; zgoda konta z tekst
 /* 14.11 (teksty Filipa): strona z kompletem wartości z bazy otwiera zapis bez ?proba=1; okno regulaminu z bloków (h4, h5, p, ul > li) przez textContent,
    bez żadnego {…}; przycisk pobrania widoczny; zdanie o polityce z linkiem pod zgodami. Brak jednej wartości (np. regulamin_od) = „WKRÓTCE”. */
 test('teksty 14.11 w atrapie strony: komplet z bazy = zapis; okno regulaminu z akapitami i zgodą na ranking; brak regulamin_od = WKRÓTCE', async () => {
-  const pelny = Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: '2026-11-18' })), { imie: 'Janek' });
+  const pelny = Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v2', regulamin_od: '2026-11-18' })), { imie: 'Janek' });
   const s = await stronaBiegu({ licznik: pelny, sesja: { user: { user_metadata: { full_name: 'anna kowalska' } } } });
   assert.deepEqual(s.dom.widoczny(), ['przed'], 'bez ?proba=1, bo wartości są w bazie');
   const okno = s.dom.daj('bw-regulamin-tresc'), el = okno.dzieci || [];
@@ -408,18 +408,18 @@ test('teksty 14.11 w atrapie strony: komplet z bazy = zapis; okno regulaminu z a
   assert.match(tekst, /^Regulamin biegu wirtualnego „Bieg na Mikołajki”/);
   assert.match(tekst, /dziecka o imieniu Janek, dla którego organizacja pożytku publicznego prowadzi zbiórkę pod adresem https:\/\/www\.siepomaga\.pl\/x/);
   assert.match(tekst, /Bieg trwa od soboty, 5 grudnia 2026 do niedzieli, 6 grudnia 2026\./); assert.match(tekst, /do wtorku, 8 grudnia 2026, godz\. 23:59/);
-  assert.match(tekst, /Wersja regulaminu: 2026-11-v1, obowiązuje od 18 listopada 2026\./);
+  assert.match(tekst, /Wersja regulaminu: 2026-11-v2, obowiązuje od 18 listopada 2026\./);
   assert.match(tekst, /Ranking: Pokaż mnie w rankingu z czasem i miejscem\./, 'zgoda na ranking w oknie regulaminu');
   assert.doesNotMatch(tekst, /\{[a-z_]+\}/, 'żaden znacznik nie zostaje');
   assert.equal(s.dom.daj('bw-regulamin-pobierz').hidden, false, 'przycisk pobrania widoczny');
   const pol = (s.dom.stany.polityka || []);
   assert.equal(pol.length, 3, 'zdanie o polityce: Zasady, okno zapisu, okno dziecka');
   for (const e of pol) { assert.match(e.textContent, /^Administratorem danych jest BiegaMy\./); assert.equal((e.dzieci || [])[0].href, 'privacy.html#bieg'); assert.equal(e.dzieci[0].target, '_blank'); }
-  const brak = await stronaBiegu({ licznik: Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v1', regulamin_od: null })), { imie: 'Janek' }), sesja: { user: {} } });
+  const brak = await stronaBiegu({ licznik: Object.assign(LICZNIK(BIEG('zapisy', { regulamin_wersja: '2026-11-v2', regulamin_od: null })), { imie: 'Janek' }), sesja: { user: {} } });
   assert.deepEqual(brak.dom.widoczny(), ['wkrotce'], 'brak regulamin_od w bazie = WKRÓTCE');
   assert.equal(brak.dom.daj('bw-regulamin-pobierz').hidden, true);
   assert.match((brak.dom.daj('bw-regulamin-tresc').dzieci || [])[0].textContent, /Regulamin pojawi się razem z otwarciem zapisów/);
-  const proba = await stronaBiegu({ search: '?proba=1', licznikProby: LICZNIK(BIEG('zapisy', { slug: 'proba-bieg', regulamin_wersja: '2026-11-v1' })), sesja: { user: {} } });
+  const proba = await stronaBiegu({ search: '?proba=1', licznikProby: LICZNIK(BIEG('zapisy', { slug: 'proba-bieg', regulamin_wersja: '2026-11-v2' })), sesja: { user: {} } });
   assert.match((proba.dom.daj('bw-regulamin-tresc').dzieci || [])[0].textContent, /^Próba: w bazie brakuje danych do regulaminu: imie, od_kiedy\./, 'próba mówi, czego brakuje');
   const h = czytaj('bieg.html');
   assert.match(h, /el\.textContent = x\.tekst;/); assert.doesNotMatch(h, /bw-regulamin-tresc'\)\.innerHTML/, 'regulamin bez innerHTML');

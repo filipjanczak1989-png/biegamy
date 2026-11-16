@@ -8,21 +8,22 @@
 (function (g) {
   "use strict";
   var ROLE = { organizator: "Organizator", organizator_opis: "BiegaMy. Prowadzi bieg i zapisy, liczy kilometry, wydaje numery i dyplomy, nie przyjmuje żadnych wpłat.", zgoda: "Zgoda opiekuna", zgoda_opis: "Opiekun dziecka, dla którego jest zbiórka, wyraził zgodę na bieg, na imię dziecka i na jego rysunek." };
-  var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, dystanse: [5, 10], wynik_do_dni: 2, ukonczyli_na_strone: 50 };
+  var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, wynik_do_dni: 2, ukonczyli_na_strone: 50 };   // dystanse tylko z bazy (bieg.dystanse_km, dystanseBiegu), decyzja 16.11
   var KONTAKT = "biegamy.run@gmail.com";   // publiczny adres BiegaMy, ten sam co w stopce dla-fabianka.html
   /* ── TEKSTY BIEGU (14.11, plik „teksty-biegu-do-zaslepek.md” od organizatora, słowo w słowo) ── znaczniki {nazwa} {imie} {od} {do} {wynik_do} {link} {wersja} {od_kiedy}
-     wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
-     Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”. */
-  var WERSJA_TEKSTOW = "2026-11-v1";
+     {dystanse} {ranking_dystanse} wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
+     Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”.
+     v2 (16.11, decyzja Filipa: prawdziwy bieg ma jeden dystans, 5 km): § 2 i § 5 bez „5 km albo 10 km” na sztywno, dystanse z bieg.dystanse_km. */
+  var WERSJA_TEKSTOW = "2026-11-v2";
   var DANE_ADMINISTRATORA = "Filip Jańczak, prowadzący projekt BiegaMy (biegamy.run) jako osoba fizyczna — nie jest to działalność gospodarcza i nie posiadamy numeru NIP";   // dokładnie z privacy.html (§ 1), test porównuje
   var REGULAMIN = {
     tytul: "Regulamin biegu wirtualnego „{nazwa}”",
     paragrafy: [
       { naglowek: "§ 1. Czym jest bieg", punkty: ["Bieg wirtualny „{nazwa}” to bezpłatne wydarzenie w aplikacji BiegaMy (biegamy.run). Każdy uczestnik biegnie albo maszeruje samodzielnie, w wybranym przez siebie miejscu.", "Bieg odbywa się za zgodą opiekuna prawnego dziecka o imieniu {imie}, dla którego organizacja pożytku publicznego prowadzi zbiórkę pod adresem {link} („Zbiórka”). BiegaMy nie jest partnerem tej organizacji i nie działa w jej imieniu.", "Organizatorem biegu jest BiegaMy, " + DANE_ADMINISTRATORA + " („Organizator”). Organizator prowadzi też aplikację, zapisy i wyniki. Kontakt: biegamy.run@gmail.com.", "Organizator nie przyjmuje, nie przechowuje i nie przekazuje żadnych pieniędzy. Wpłaty na Zbiórkę są możliwe wyłącznie na stronie organizacji, która ją prowadzi, i podlegają jej zasadom."] },
-      { naglowek: "§ 2. Termin i dystanse", punkty: ["Bieg trwa od {od} do {do}.", "Dystanse: 5 km albo 10 km, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {wynik_do}, godz. 23:59."] },
+      { naglowek: "§ 2. Termin i dystans", punkty: ["Bieg trwa od {od} do {do}.", "Dystans: {dystanse}, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {wynik_do}, godz. 23:59."] },
       { naglowek: "§ 3. Kto może wziąć udział", punkty: ["Udział jest bezpłatny. Nie ma wpisowego ani żadnej innej opłaty.", "Uczestnikiem z własnym kontem może być osoba, która ukończyła 16 lat i ma konto w BiegaMy.", "Dziecko poniżej 16 lat bierze udział wyłącznie jako dopisane przez rodzica albo opiekuna prawnego z jego konta, pod jego opieką i na jego odpowiedzialność. Jedno konto może dopisać najwyżej 6 dzieci.", "Dziecko pokonuje dystans dobrany przez rodzica („swój dystans”)."] },
       { naglowek: "§ 4. Zapis", punkty: ["Zapis odbywa się w aplikacji i wymaga akceptacji tego regulaminu.", "Po zapisie uczestnik dostaje numer startowy w aplikacji. Dopisane dziecko dostaje własny numer.", "Z zapisu można zrezygnować w każdej chwili w aplikacji, bez podawania przyczyny."] },
-      { naglowek: "§ 5. Wynik i ukończenie", punkty: ["Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej 5 km albo 10 km. Trening może pochodzić z zegarka albo być wpisany ręcznie.", "Jeżeli uczestnik ma kilka pasujących treningów, aplikacja wybiera najlepszy. Uczestnik może wskazać inny.", "Ukończenie przez dziecko potwierdza rodzic, podając pokonany dystans.", "W sprawach spornych o ukończeniu rozstrzyga Organizator i może zaliczyć bieg ręcznie.", "Bieg nie ma nagród. Ranking czasów, osobno dla 5 i 10 km, obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu. Czas pozostałych uczestników nie jest publikowany. Dzieci nigdy nie są w rankingu."] },
+      { naglowek: "§ 5. Wynik i ukończenie", punkty: ["Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej {dystanse}. Trening może pochodzić z zegarka albo być wpisany ręcznie.", "Jeżeli uczestnik ma kilka pasujących treningów, aplikacja wybiera najlepszy. Uczestnik może wskazać inny.", "Ukończenie przez dziecko potwierdza rodzic, podając pokonany dystans.", "W sprawach spornych o ukończeniu rozstrzyga Organizator i może zaliczyć bieg ręcznie.", "Bieg nie ma nagród. Ranking czasów {ranking_dystanse} obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu. Czas pozostałych uczestników nie jest publikowany. Dzieci nigdy nie są w rankingu."] },
       { naglowek: "§ 6. Dyplom, odznaki i wsparcie Zbiórki", punkty: ["Każdy, kto ukończy bieg, dostaje w aplikacji dyplom i odznakę. Mają one postać wyłącznie cyfrową.", "Wsparcie Zbiórki jest dobrowolne i nie jest warunkiem zapisu, udziału ani ukończenia biegu.", "Uczestnik, który wsparł Zbiórkę dowolną kwotą i przesłał Organizatorowi potwierdzenie wpłaty, dostaje złotą wersję odznaki oraz cegiełkę w murze ulicy. Odznaka pojawia się po sprawdzeniu potwierdzenia.", "Kwota wpłaty nie jest publikowana. Potwierdzenie wpłaty Organizator usuwa po sprawdzeniu, najpóźniej po 14 dniach."] },
       { naglowek: "§ 7. Bezpieczeństwo", punkty: ["Uczestnik sam wybiera trasę, porę i tempo oraz bierze udział na własną odpowiedzialność.", "Zapisując się, uczestnik potwierdza, że jego stan zdrowia pozwala na udział. Rodzic potwierdza to samo za dopisane dziecko.", "Uczestnik przestrzega przepisów ruchu drogowego i zasad bezpieczeństwa w miejscu, w którym biegnie.", "Organizator nie wyznacza ani nie zabezpiecza tras, nie zapewnia opieki medycznej ani ubezpieczenia.", "Postanowienia tego paragrafu nie ograniczają odpowiedzialności, której według prawa nie można wyłączyć."] },
       { naglowek: "§ 8. Lista osób, które ukończyły, i dane osobowe", punkty: ["Na stronie biegu widoczne są liczby zbiorcze oraz lista osób, które ukończyły: imię, numer startowy i dystans. Imię pojawia się tylko za zgodą uczestnika, a imię dziecka tylko za zgodą rodzica. U osób, które zgodziły się na ranking, lista pokazuje także czas i miejsce. Zgodę na ranking można wycofać w aplikacji w każdej chwili.", "Administratorem danych uczestników jest Organizator. Zasady opisuje Polityka prywatności BiegaMy.", "Opiekun dziecka i organizacja prowadząca Zbiórkę mogą otrzymać wyłącznie liczby zbiorcze. Nie otrzymują imion, adresów e-mail ani żadnych innych danych uczestników.", "Dane zapisów Organizator usuwa po 90 dniach od zakończenia biegu. Zostają liczby zbiorcze, zdobyte odznaki i imiona na liście, na które wyrażono zgodę."] },
@@ -48,12 +49,12 @@
   var TEKSTY = {
     regulamin_pole: "Akceptuję regulamin biegu (wymagane)",
     zgoda_imie_pole: "Pokaż moje imię na liście „ukończyli” (dobrowolne)",
-    zgoda_ranking_pole: "Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”, osobno 5 i 10 km. Mam ukończone 18 lat (dobrowolne)",
+    zgoda_ranking_pole: "Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”{osobno}. Mam ukończone 18 lat (dobrowolne)",   // {osobno} i {osobno_dla}: tekstyDystansow
     zgoda_email_pole: "Wyślij mi e-mail z przypomnieniem przed biegiem (dobrowolne)",
     oswiadczenie_pole: "Jestem rodzicem lub opiekunem tego dziecka i składam oświadczenie (wymagane)",
     zgoda_imie_dziecka_pole: "Pokaż imię dziecka na liście „ukończyli” (dobrowolne)",
     bez_wpisowego: "Udział jest bezpłatny. Nie ma wpisowego, medali ani pakietów. Kto chce, wspiera zbiórkę bezpośrednio u organizacji, która ją prowadzi; BiegaMy nic nie przyjmuje i nie widzi wpłat.",
-    czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking, osobno dla 5 i 10 km. Pozostali są na liście bez czasu, a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
+    czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking{osobno_dla}. Pozostali są na liście bez czasu, a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
     dzieci: "Dziecko dopisuje rodzic z własnego konta: samo imię, bez konta dziecka. Dziecko biegnie albo idzie swój dystans, dostaje numer i dyplom bez czasu.",
     wesprzyj_pod: "Wpłata idzie w całości do organizacji prowadzącej zbiórkę, poza BiegaMy. Kwoty nie sprawdzamy i nigdzie nie pokazujemy."
   };
@@ -94,6 +95,50 @@
   function imieZProfilu(fullName) { return ladneImie(String(fullName || "").trim().split(/\s+/)[0] || ""); }
   function bezRuchu() { try { return !!(g.matchMedia && g.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; } }
 
+  /* ── DYSTANSE Z BAZY (16.11, decyzja Filipa: prawdziwy bieg ma jeden dystans, 5 km; próba zostaje z 5 i 10 km) ──
+     Wszystko, co mówi o dystansach (karty, okno zapisu, zakładki „Ukończyli”, regulamin, etykiety rankingu), bierze listę z bieg.dystanse_km.
+     Przy kilku dystansach brzmienie jak przed 16.11 („5 albo 10 km”, „osobno 5 i 10 km”); przy jednym bez wyboru i bez „osobno”. Brak listy = brak wartości. */
+  function dystanseBiegu(bieg) {
+    var l = bieg && Array.isArray(bieg.dystanse_km) ? bieg.dystanse_km : [];
+    return l.map(Number).filter(function (d, i, t) { return d >= 1 && d <= 100 && Math.floor(d) === d && t.indexOf(d) === i; }).sort(function (a, b) { return a - b; });
+  }
+  function zSpojnikiem(czesci, spojnik) { return czesci.length < 2 ? czesci.join("") : czesci.slice(0, -1).join(", ") + " " + spojnik + " " + czesci[czesci.length - 1]; }
+  /** [5] → „5 km”, [5, 10] → „5 km albo 10 km” (regulamin). */
+  function dystanseSlownie(l, spojnik) { return zSpojnikiem(l.map(function (d) { return km(d) + " km"; }), spojnik || "albo"); }
+  /** [5] → „5 km”, [5, 10] → „5 albo 10 km” (teksty strony). */
+  function dystanseKrotko(l, spojnik) { return l.length ? zSpojnikiem(l.map(km), spojnik || "albo") + " km" : ""; }
+  var IKONY_DYSTANSU = { 5: "assets/bieg/bieg-dystans-5.svg", 10: "assets/bieg/bieg-dystans-10.svg" };
+  function ikonaDystansu(d) { return IKONY_DYSTANSU[d] || IKONY_DYSTANSU[5]; }
+  /** Teksty strony zależne od dystansów biegu: pod kartami, krok „Zapisz się”, opis okna zapisu, odmowa bez wyboru, etykieta rankingu, opis listy. */
+  function tekstyDystansow(bieg) {
+    var l = dystanseBiegu(bieg), wiele = l.length > 1, i = wiele ? dystanseKrotko(l, "i") : "", zn = { osobno: i ? ", osobno " + i : "", osobno_dla: i ? ", osobno dla " + i : "" };
+    var wynik = "Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po biegu. Zapisać można się też jeszcze w tym czasie.", max = l.length ? km(l[l.length - 1]) : "";
+    return {
+      karty_pod: (wiele ? "Zapis na " + km(l[0]) + " km, a zrobione " + max + "? Dyplom na " + max + ". " : l.length ? "Liczy się trening co najmniej " + km(l[0]) + " km. " : "") + wynik,
+      krok_zapisu: (l.length ? "Dystans " + dystanseKrotko(l, "albo") + ", imię na numer i dyplom." : "Imię na numer i dyplom.") + " Dzieci dopisujesz samym imieniem.",
+      zapis_opis: (wiele ? "Wybierz dystans. " : l.length ? "Dystans: " + dystanseKrotko(l) + ", biegiem albo marszem. " : "") + "Imię trafi na numer startowy i dyplom; na listę „ukończyli” tylko za Twoją zgodą. Nic nie jest zaznaczone z góry.",
+      wybierz: wiele ? "Wybierz dystans: " + dystanseKrotko(l, "albo") + "." : "Nie wczytał się dystans biegu. Odśwież stronę.",
+      zgoda_ranking_pole: wypelnij(TEKSTY.zgoda_ranking_pole, zn), czasy_prywatne: wypelnij(TEKSTY.czasy_prywatne, zn)
+    };
+  }
+  /** Karty sekcji „Dystanse”: każdy dystans biegu i „Dzieci”; bez listy dystansów "" (sekcja schowana). */
+  function dystanseHtml(bieg) {
+    var l = dystanseBiegu(bieg);
+    if (!l.length) return "";
+    return l.map(function (d, i) { return '<div class="bw-dystans"><img src="' + ikonaDystansu(d) + '" alt=""><b>' + esc(km(d)) + ' km</b><small>' + (i ? "dla tych, którzy lubią dłużej" : "bieg albo marsz") + '</small></div>'; }).join("") +
+      '<div class="bw-dystans"><img src="assets/bieg/bieg-dystans-twoj.svg" alt=""><b>Dzieci</b><small>swój dystans, bez czasu</small></div>';
+  }
+  /** Wybór dystansu w oknie zapisu: tylko przy kilku dystansach; przy jednym "" (dystans ustawiony, podany w opisie okna). */
+  function wyborDystansuHtml(bieg) {
+    var l = dystanseBiegu(bieg);
+    return l.length < 2 ? "" : l.map(function (d) { return '<label><input type="radio" name="bw-dystans" value="' + d + '"><img src="' + ikonaDystansu(d) + '" alt=""><span><b>' + esc(km(d)) + ' km</b><small>bieg albo marsz</small></span></label>'; }).join("");
+  }
+  /** Dystans zapisu: przy jednym dystansie ten dystans, przy kilku zaznaczony (wartość pola) albo null. */
+  function dystansZapisu(bieg, zaznaczony) {
+    var l = dystanseBiegu(bieg), d = Number(zaznaczony);
+    return l.length === 1 ? l[0] : l.indexOf(d) >= 0 ? d : null;
+  }
+
   /* ── FAZA I STAN STRONY ── */
   var FAZY = {
     szkic: { chip: "WKRÓTCE", klasa: "bw-chip--wkrotce", zdanie: "Zapisy ruszą niebawem. Wróć tutaj za kilka dni." },
@@ -112,19 +157,22 @@
   var DNI_DOPELNIACZ = ["niedzieli", "poniedziałku", "wtorku", "środy", "czwartku", "piątku", "soboty"];
   /** "2026-12-05" → "soboty, 5 grudnia 2026" (po „od”/„do” w regulaminie dzień tygodnia w dopełniaczu); zła data → "". */
   function dataZDniem(iso) { var d = dataZIso(iso); return d ? DNI_DOPELNIACZ[d.getDay()] + ", " + d.getDate() + " " + MIESIACE[d.getMonth()] + " " + d.getFullYear() : ""; }
-  /** Wartości znaczników z bazy: bieg = pole `bieg` licznika, licznik = licznik akcji (imię), link = A.linkZbiorki(licznik). Brak którejkolwiek albo inna wersja = null. */
+  /** Wartości znaczników z bazy: bieg = pole `bieg` licznika, licznik = licznik akcji (imię), link = A.linkZbiorki(licznik). Brak którejkolwiek albo inna wersja = null.
+   *  {dystanse}: „5 km” albo „5 km albo 10 km”; {ranking_dystanse}: „na 5 km” albo „na 5 i 10 km (osobno dla każdego dystansu)”. Pusta lista dystansów = brak wartości. */
   function wartosciTekstow(bieg, licznik, link) {
     if (!bieg || !licznik) return null;
-    var tekst = function (v) { return typeof v === "string" ? v.trim() : ""; };
+    var tekst = function (v) { return typeof v === "string" ? v.trim() : ""; }, l = dystanseBiegu(bieg);
     var w = { nazwa: tekst(bieg.nazwa), imie: tekst(licznik.imie), od: dataZDniem(bieg.dzien_od), do: dataZDniem(bieg.dzien_do), wynik_do: dataZDniem(bieg.wynik_do),
-      link: /^https:\/\//.test(tekst(link)) ? tekst(link) : "", wersja: tekst(bieg.regulamin_wersja), od_kiedy: dataZIso(bieg.regulamin_od) ? dataPolska(dataZIso(bieg.regulamin_od)) : "" };
+      link: /^https:\/\//.test(tekst(link)) ? tekst(link) : "", wersja: tekst(bieg.regulamin_wersja), od_kiedy: dataZIso(bieg.regulamin_od) ? dataPolska(dataZIso(bieg.regulamin_od)) : "",
+      dystanse: dystanseSlownie(l), ranking_dystanse: !l.length ? "" : l.length > 1 ? "na " + dystanseKrotko(l, "i") + " (osobno dla każdego dystansu)" : "na " + dystanseKrotko(l) };
     for (var k in w) if (!w[k]) return null;
     return w.wersja === WERSJA_TEKSTOW ? w : null;
   }
   /** Czego brakuje do tekstów (dla próby Filipa: okno regulaminu mówi, którego pola nie ma w bazie). */
   function brakiTekstow(bieg, licznik, link) {
     var w = { nazwa: bieg && bieg.nazwa, imie: licznik && licznik.imie, od: bieg && dataZDniem(bieg.dzien_od), do: bieg && dataZDniem(bieg.dzien_do), wynik_do: bieg && dataZDniem(bieg.wynik_do),
-      link: /^https:\/\//.test(String(link || "")) ? link : "", wersja: bieg && bieg.regulamin_wersja === WERSJA_TEKSTOW ? "ok" : "", od_kiedy: bieg && dataZIso(bieg.regulamin_od) ? "ok" : "" };
+      link: /^https:\/\//.test(String(link || "")) ? link : "", wersja: bieg && bieg.regulamin_wersja === WERSJA_TEKSTOW ? "ok" : "", od_kiedy: bieg && dataZIso(bieg.regulamin_od) ? "ok" : "",
+      dystanse: dystanseBiegu(bieg).length ? "ok" : "" };
     return Object.keys(w).filter(function (k) { return !w[k]; });
   }
   function wypelnij(t, w) { return String(t).replace(/\{([a-z_]+)\}/g, function (m, k) { return w && Object.prototype.hasOwnProperty.call(w, k) ? w[k] : m; }); }
@@ -181,8 +229,9 @@
   function liczbaHtml(duze, male) { return '<div class="bw-liczba"><b>' + esc(duze) + '</b><span>' + esc(male) + '</span></div>'; }
   function liczbyHtml(bieg) {
     var z = Number(bieg.zapisani) || 0, d = Number(bieg.dzieci) || 0, u = Number(bieg.ukonczyli_n) || 0, na = bieg.zapisani_na || {};
+    var l = dystanseBiegu(bieg), pod = l.map(function (x) { return km(x) + " km: " + liczba(na[String(x)] || 0); }).concat(["dzieci: swój dystans"]).join(" · ");   // 16.11: dystanse z bazy
     return liczbaHtml(liczba(z), forma(z, ["zapisana osoba", "zapisane osoby", "zapisanych osób"])) + liczbaHtml(liczba(d), forma(d, ["w tym dzieci", "w tym dzieci", "w tym dzieci"])) +   // usterka 16: dzieci są wśród zapisanych, nie obok
-      liczbaHtml(liczba(u), forma(u, ["ukończył(a)", "ukończyły", "ukończyło"])) + '<p class="bw-drobne bw-liczby-pod">5 km: ' + esc(liczba(na["5"] || 0)) + ' · 10 km: ' + esc(liczba(na["10"] || 0)) + ' · dzieci: swój dystans</p>';
+      liczbaHtml(liczba(u), forma(u, ["ukończył(a)", "ukończyły", "ukończyło"])) + '<p class="bw-drobne bw-liczby-pod">' + esc(pod) + '</p>';
   }
   /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
   function wierszUkonczyl(u, moj, kolumnaMiejsca) {
@@ -198,8 +247,9 @@
     return (d ? '<p class="bw-drobne bw-ranking-pod">' + (wr ? "Ranking " + esc(d) + " km: " + esc(liczba(wr)) + " " + forma(wr, ["osoba", "osoby", "osób"]) + " z czasem, za zgodą. Niżej pozostali bez czasu." : "Na " + esc(d) + " km nikt jeszcze nie włączył rankingu. Lista bez czasów.") + '</p>' : "") + '<ol class="bw-lista">' + l.map(function (u) { return wierszUkonczyl(u, moje.indexOf(Number(u.numer)) >= 0, zRankingiem); }).join("") + '</ol>' +
       (razem > l.length ? '<button type="button" class="bw-przycisk bw-przycisk--cichy" data-ukonczyli-wiecej="' + l.length + '">Pokaż więcej (' + esc(liczba(razem - l.length)) + ')</button>' : "");
   }
-  /** Przełącznik listy: wszyscy albo jeden dystans (ranking tego dystansu na górze). Przyciski ≥ 44 px, aria-pressed. */
+  /** Przełącznik listy: wszyscy albo jeden dystans (ranking tego dystansu na górze). Przyciski ≥ 44 px, aria-pressed. Bieg z jednym dystansem: bez zakładek, sama lista „Wszyscy” (16.11). */
   function zakladkiListyHtml(dystanse, akt) {
+    if (!Array.isArray(dystanse) || dystanse.length < 2) return "";
     var opcje = [[null, "Wszyscy"]].concat((dystanse || []).map(function (d) { return [Number(d), km(d) + " km"]; }));
     return '<div class="bw-zakladki" role="group" aria-label="Lista ukończyli: wybór dystansu">' + opcje.map(function (o) { return '<button type="button" class="bw-zakladka" data-ukonczyli-dystans="' + (o[0] == null ? "" : esc(o[0])) + '" aria-pressed="' + (o[0] === (akt == null ? null : Number(akt))) + '">' + esc(o[1]) + '</button>'; }).join("") + '</div>';
   }
@@ -393,7 +443,7 @@
   }
   /** Najdłuższy dystans z listy biegu krótszy od zapisanego (zapis na 10 → 5), albo null (zapis na 5). */
   function krotszyDystans(bieg, zapisany) {
-    var z = Number(zapisany) || 0, l = (bieg && Array.isArray(bieg.dystanse_km) && bieg.dystanse_km.length ? bieg.dystanse_km : ZASADY.dystanse).map(Number).filter(function (d) { return d > 0 && d < z; });
+    var z = Number(zapisany) || 0, l = dystanseBiegu(bieg).filter(function (d) { return d < z; });
     return l.length ? Math.max.apply(null, l) : null;
   }
   /** Lista treningów z weekendu do „Wskaż trening”: data, km, czas, który dystans zalicza; za krótkie bez guzika. */
@@ -418,13 +468,15 @@
   }
   function komunikatBledu(r) { return r && r.siec ? TEKST_SIEC : r && r.kod === "42501" ? TEKST_ZALOGUJ : TEKST_INNY; }
   var KOMUNIKATY = {
-    zamkniete: "Zapisy są już zamknięte.", regulamin: "Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.", dystans: "Wybierz 5 albo 10 km.", imie: "Imię: jedno słowo, 2–20 liter.",
+    zamkniete: "Zapisy są już zamknięte.", regulamin: "Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.", imie: "Imię: jedno słowo, 2–20 liter.",
     oswiadczenie: "Potrzebne oświadczenie rodzica.", nie_ma: "Nie ma takiego biegu.", limit_zapisow: "Limit zapisów na to konto w tym biegu został wykorzystany.", brak_zapisu: "Najpierw zapisz się na bieg.",
     nie_twoj: "To nie jest Twój zapis.", juz_wycofany: "Ten zapis jest już wycofany.", ukonczony: "Ten zapis ma już wynik, nie można go wycofać."
   };
-  /** Odmowy zapisu, dziecka, wycofania i zgód. miejsce 'karta' = przełącznik rankingu w karcie, który sam się odznacza (usterka 27: bez polecenia „odznacz”). */
-  function komunikat(r, miejsce) {
+  /** Odmowy zapisu, dziecka, wycofania i zgód. miejsce 'karta' = przełącznik rankingu w karcie, który sam się odznacza (usterka 27: bez polecenia „odznacz”).
+   *  bieg: odmowa 'dystans' przy kilku dystansach „Wybierz 5 albo 10 km.”, przy jednym (dystans ustawiony przez stronę) lista w bazie musiała się zmienić. */
+  function komunikat(r, miejsce, bieg) {
     var p = r && r.powod;
+    if (p === "dystans") return dystanseBiegu(bieg).length > 1 ? "Wybierz " + dystanseKrotko(dystanseBiegu(bieg), "albo") + "." : "Dystans biegu się zmienił. Odśwież stronę.";
     if (p === "juz_zapisany") return "Już masz zapis w tym biegu (numer " + (r.numer || "") + ").";
     if (p === "limit") return "Limit dzieci na konto: " + (r.limit || ZASADY.limit_dzieci) + ".";
     if (p === "ranking_wiek") return miejsce === "karta" ? "Ranking jest tylko dla osób pełnoletnich." : "Ranking jest tylko dla osób pełnoletnich. Odznacz zgodę na ranking.";
@@ -484,6 +536,7 @@
     WERSJA_TEKSTOW: WERSJA_TEKSTOW, DANE_ADMINISTRATORA: DANE_ADMINISTRATORA, REGULAMIN: REGULAMIN, TEKSTY_KROTKIE: TEKSTY_KROTKIE, wartosciTekstow: wartosciTekstow, brakiTekstow: brakiTekstow, dataZDniem: dataZDniem, wypelnij: wypelnij, regulaminBloki: regulaminBloki, regulaminTekst: regulaminTekst,
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
+    dystanseBiegu: dystanseBiegu, dystanseSlownie: dystanseSlownie, dystanseKrotko: dystanseKrotko, tekstyDystansow: tekstyDystansow, dystanseHtml: dystanseHtml, wyborDystansuHtml: wyborDystansuHtml, dystansZapisu: dystansZapisu,
     liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,
     numerStartowy: numerStartowy, dyplom: dyplom, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
 })(typeof globalThis !== "undefined" ? globalThis : window);

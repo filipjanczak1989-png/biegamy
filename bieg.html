@@ -21,7 +21,8 @@
 <!--
   BIEG WIRTUALNY Z PRAWDZIWYMI ZAPISAMI (etap 1, 12.11.2026; projekt poza repo). Strona publiczna; dane biegu z publicznego licznika (pole `bieg` z akcja_bieg_publiczny),
   własne zapisy przez funkcje akcja_bieg_* (tylko zalogowani). Bez imienia dziecka w kodzie: nazwa biegu przychodzi z bazy. Bez wpisowego; „Wesprzyj zbiórkę” to zwykły link
-  do oficjalnej zbiórki z podpowiedziami 20/30/50 zł; kwot nie sprawdzamy ani nie pokazujemy. Lista „ukończyli”: imię za zgodą, numer, dystans; czas i miejsce tylko za zgodą na ranking (pełnoletni, osobno 5 i 10 km, decyzja 13.11), dzieci nigdy.
+  do oficjalnej zbiórki z podpowiedziami 20/30/50 zł; kwot nie sprawdzamy ani nie pokazujemy. Lista „ukończyli”: imię za zgodą, numer, dystans; czas i miejsce tylko za zgodą na ranking (pełnoletni, osobno w każdym dystansie, decyzja 13.11), dzieci nigdy.
+  Dystanse (16.11): wyłącznie z bieg.dystanse_km (js/bieg.mjs dystanseBiegu). Jeden dystans (prawdziwy bieg, 5 km): karta tego dystansu i dzieci, okno zapisu bez wyboru, „Ukończyli” bez zakładek.
   Organizator: BiegaMy; opiekun dziecka wyraża tylko zgodę (bieg, imię, rysunek). Teksty regulaminu, oświadczenia rodzica, zgód i zdania o polityce prywatności: od Filipa 14.11 (js/bieg.mjs, REGULAMIN i TEKSTY_KROTKIE), znaczniki {…} z bazy.
   ?proba=1 = bieg próbny przy ulicy próbnej (licznik próby, konto testowe). Stany strony: niezalogowany, przed zapisem, po zapisie, z dziećmi, zamknięte, wkrótce, błąd licznika (js/bieg.mjs stanStrony).
   Bramka zapisu (13.11, teksty 14.11): bez kompletu wartości do tekstów (B.wartosciTekstow) albo z inną wersją regulaminu w bazie, bez ?proba=1 strona pokazuje „wkrótce” i nie otwiera okien zapisu.
@@ -59,7 +60,7 @@
   .bw-przycisk--ziel { background: var(--ziel); } .bw-przycisk--nieb { background: var(--nieb); }
   .bw-przycisk[disabled] { opacity: .5; cursor: default; }
   .bw-wiersze { display: flex; gap: 10px; } .bw-wiersze .bw-przycisk { flex: 1; }
-  .bw-dystanse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .bw-dystanse { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }   /* tyle kolumn, ile kart: dystanse biegu i „Dzieci” */
   .bw-dystans { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 10px 6px 9px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); }
   .bw-dystans img { width: 54px; height: 54px; } .bw-dystans b { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; } .bw-dystans small { font-size: 10.5px; color: var(--fg2); line-height: 1.25; }
   .bw-liczby { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -175,14 +176,11 @@
     </div>
   </div>
 
-  <section class="bw-sekcja" aria-label="Dystanse">
+  <!-- karty z bieg.dystanse_km (B.dystanseHtml); bez biegu w liczniku sekcja schowana -->
+  <section class="bw-sekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>
     <h2>Dystanse</h2>
-    <div class="bw-dystanse">
-      <div class="bw-dystans"><img src="assets/bieg/bieg-dystans-5.svg" alt=""><b>5 km</b><small>bieg albo marsz</small></div>
-      <div class="bw-dystans"><img src="assets/bieg/bieg-dystans-10.svg" alt=""><b>10 km</b><small>dla tych, którzy lubią dłużej</small></div>
-      <div class="bw-dystans"><img src="assets/bieg/bieg-dystans-twoj.svg" alt=""><b>Dzieci</b><small>swój dystans, bez czasu</small></div>
-    </div>
-    <p class="bw-drobne">Zapis na 5 km, a zrobione 10? Dyplom na 10. Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po biegu. Zapisać można się też jeszcze w tym czasie.</p>
+    <div class="bw-dystanse" id="bw-dystanse"></div>
+    <p class="bw-drobne" id="bw-dystanse-pod"></p>
   </section>
 
   <section class="bw-sekcja" id="bw-moj" hidden aria-label="Twój bieg">
@@ -208,7 +206,7 @@
   <section class="bw-sekcja" aria-label="Jak to działa">
     <h2>Jak to działa</h2>
     <div class="bw-kroki">
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span>Dystans 5 albo 10 km, imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
+      <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt=""><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Bezpośrednio u organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans w weekend biegu</b><span>Gdziekolwiek. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po biegu.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
@@ -299,13 +297,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ── TEKSTY (14.11): regulamin z bloków przez textContent (bez innerHTML), znaczniki {…} z bazy; brak wartości = „WKRÓTCE” (stanStrony) ── */
   var wartosci = null;   // B.wartosciTekstow po każdym liczniku
-  $('bw-bez-wpisowego').textContent = B.TEKSTY.bez_wpisowego; $('bw-czasy-prywatne').textContent = B.TEKSTY.czasy_prywatne; $('bw-dzieci-zasada').textContent = B.TEKSTY.dzieci;
+  $('bw-bez-wpisowego').textContent = B.TEKSTY.bez_wpisowego; $('bw-dzieci-zasada').textContent = B.TEKSTY.dzieci;
   $('bw-role').innerHTML = '<div class="bw-rola"><b>' + B.esc(B.ROLE.organizator) + '</b>' + B.esc(B.ROLE.organizator_opis) + '</div><div class="bw-rola"><b>' + B.esc(B.ROLE.zgoda) + '</b>' + B.esc(B.ROLE.zgoda_opis) + '</div>';
   function pole(id, etykieta, krotki) { var el = $(id); el.textContent = etykieta; if (krotki) { var m = document.createElement('small'); m.textContent = krotki; el.appendChild(m); } }
   function zRegulaminem(id) { var el = $(id); el.textContent = B.TEKSTY.regulamin_pole + ' '; var a = document.createElement('a'); a.href = '#'; a.setAttribute('data-regulamin', ''); a.textContent = 'czytaj ›'; el.appendChild(a); }
   zRegulaminem('bw-regulamin-tekst'); zRegulaminem('bw-dziecko-regulamin-tekst');
   pole('bw-zgoda-imie-tekst', B.TEKSTY.zgoda_imie_pole, B.TEKSTY_KROTKIE.zgoda_imie);
-  pole('bw-zgoda-ranking-tekst', B.TEKSTY.zgoda_ranking_pole, B.TEKSTY_KROTKIE.zgoda_ranking);
   pole('bw-zgoda-email-tekst', B.TEKSTY.zgoda_email_pole, B.TEKSTY_KROTKIE.zgoda_email);
   pole('bw-oswiadczenie-tekst', B.TEKSTY.oswiadczenie_pole, B.TEKSTY_KROTKIE.oswiadczenie);
   pole('bw-zgoda-imie-dziecka-tekst', B.TEKSTY.zgoda_imie_dziecka_pole, B.TEKSTY_KROTKIE.zgoda_imie_dziecka);
@@ -335,11 +332,17 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 1500);
   });
   rysujRegulamin();
-  $('bw-zapis-opis').textContent = 'Wybierz dystans. Imię trafi na numer startowy i dyplom; na listę „ukończyli” tylko za Twoją zgodą. Nic nie jest zaznaczone z góry.';
+  /* 16.11: wszystko o dystansach z bieg.dystanse_km (B.tekstyDystansow); bez licznika teksty bez dystansu, a sekcja „Dystanse” schowana */
+  function rysujDystanse() {
+    var t = B.tekstyDystansow(bieg), karty = B.dystanseHtml(bieg);
+    $('bw-dystanse').innerHTML = karty; $('bw-dystanse-sekcja').hidden = !karty; $('bw-dystanse-pod').textContent = t.karty_pod;
+    $('bw-krok-zapis').textContent = t.krok_zapisu; $('bw-czasy-prywatne').textContent = t.czasy_prywatne; $('bw-zapis-opis').textContent = t.zapis_opis;
+    pole('bw-zgoda-ranking-tekst', t.zgoda_ranking_pole, B.TEKSTY_KROTKIE.zgoda_ranking);
+  }
+  rysujDystanse();
   $('bw-dziecko-opis').textContent = 'Dziecko dostaje własny numer i dyplom bez czasu, biegnie albo idzie swój dystans. Bez konta dziecka, bez nazwiska. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
   $('bw-stopka').innerHTML = 'Wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi; BiegaMy niczego nie przyjmuje. Czasy są prywatne, lista „ukończyli” pokazuje imię tylko za zgodą. <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
   var ADRES_STRONY = location.origin + location.pathname + (PROBA ? '?proba=1' : '');
-  $('bw-zapis-dystanse').innerHTML = B.ZASADY.dystanse.map(function (d) { return '<label><input type="radio" name="bw-dystans" value="' + d + '"><img src="assets/bieg/bieg-dystans-' + d + '.svg" alt=""><span><b>' + d + ' km</b><small>bieg albo marsz</small></span></label>'; }).join('');
   if (PROBA) { $('bw-chip-proba').hidden = false; $('bw-wroc').href = 'dla-fabianka.html?proba=1'; }
 
   /* ── DANE: licznik (pole bieg), sesja, moje zapisy ── */
@@ -380,13 +383,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.liczbyHtml(bieg) : ''; }
   /* lista „ukończyli” osobną funkcją (EF bieg-ukonczyli), tą samą drogą co licznik; porcje po 50, „Pokaż więcej” dokleja */
-  var ukonczyli = { razem: 0, lista: [] }, dystansListy = null;   // null = wszyscy; 5 albo 10 = ranking tego dystansu na górze
+  var ukonczyli = { razem: 0, lista: [] }, dystansListy = null;   // null = wszyscy; dystans z zakładki = ranking tego dystansu na górze (zakładki tylko przy kilku dystansach)
   function pobierzUkonczyli(od) {
     if (!bieg || !window.SB_URL || !window.fetch) return Promise.resolve(null);
     return fetch(window.SB_URL + '/functions/v1/bieg-ukonczyli?slug=' + encodeURIComponent(bieg.slug) + '&od=' + (od || 0) + (dystansListy ? '&dystans=' + dystansListy : ''), { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
-  function rysujUkonczyli() { $('bw-ukonczyli-zakladki').innerHTML = bieg ? B.zakladkiListyHtml(bieg.dystanse_km || B.ZASADY.dystanse, dystansListy) : ''; $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(ukonczyli, moi.map(function (u) { return Number(u.numer); })) : (stan && stan.stan === 'blad' ? B.ukonczyliHtml({ blad: true }) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'); }
+  function rysujUkonczyli() { $('bw-ukonczyli-zakladki').innerHTML = bieg ? B.zakladkiListyHtml(B.dystanseBiegu(bieg), dystansListy) : ''; $('bw-ukonczyli').innerHTML = bieg ? B.ukonczyliHtml(ukonczyli, moi.map(function (u) { return Number(u.numer); })) : (stan && stan.stan === 'blad' ? B.ukonczyliHtml({ blad: true }) : '<p class="bw-drobne">Lista pojawi się po starcie biegu.</p>'); }
   function odswiezUkonczyli() { return pobierzUkonczyli(0).then(function (d) { ukonczyli = d && Array.isArray(d.lista) ? { razem: Number(d.razem) || d.lista.length, lista: d.lista, dystans: d.dystans, w_rankingu: d.w_rankingu } : { razem: 0, lista: [], dystans: dystansListy, blad: !!bieg }; rysujUkonczyli(); }); }   // błąd listy ≠ pusta lista (usterka 4)
   document.addEventListener('click', function (e) {
     var z = e.target.closest('[data-ukonczyli-dystans]'); if (!z) return;
@@ -496,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
     wartosci = B.wartosciTekstow(bieg, licznik, A.linkZbiorki(licznik || {})); rysujRegulamin();   // teksty 14.11: znaczniki z bazy
     stan = B.stanStrony(bieg, sesja, moi, { blad: !licznik, proba: PROBA, teksty: wartosci });   // bramka zapisu (brak wartości do tekstów, poza ?proba=1); błąd licznika ≠ szkic
     pokazStan(stan.stan);
-    rysujNaglowek(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj();
+    rysujNaglowek(); rysujDystanse(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj();
     if (stan.stan === 'przed') $('bw-dziecko-od-razu').hidden = !B.mozeDopisacDziecko(bieg, []);
     $('bw-zaloguj-po').hidden = !!sesja;   // usterka 25: po zapisach wylogowany widzi „zamknięte”, a zapisany ma drogę do dyplomu
   }
@@ -548,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function otworzZapis() {
     if (!moznaZapisac()) return;
     $('bw-zapis-blad').textContent = ''; $('bw-regulamin').checked = false; $('bw-zgoda-imie').checked = false; $('bw-zgoda-ranking').checked = false; $('bw-zgoda-email').checked = false;   // nic z góry
-    OKNO_ZAPIS.querySelectorAll('input[name="bw-dystans"]').forEach(function (r) { r.checked = false; });
+    var wybor = $('bw-zapis-dystanse'); wybor.innerHTML = B.wyborDystansuHtml(bieg); wybor.hidden = !wybor.innerHTML;   // nic z góry; jeden dystans (16.11): bez wyboru, dystans w opisie okna
     $('bw-zgoda-email-pole').hidden = !B.poleEmailaWidoczne(bieg, zgodaKonta);   // usterka 8: e-mail wychodzi tylko przed biegiem; zgoda konta już jest = bez pola
     if (!$('bw-imie').value.trim()) $('bw-imie').value = B.imieDoPola(sesja);   // usterka 22: imię z profilu z wielkiej litery, do poprawienia
     pokazOkno(OKNO_ZAPIS);
@@ -556,8 +559,8 @@ document.addEventListener('DOMContentLoaded', function () {
   $('bw-zapisz').addEventListener('click', otworzZapis); $('bw-zapisz-siebie').addEventListener('click', otworzZapis);
   $('bw-zapis-ok').addEventListener('click', function () {
     if (!moznaZapisac()) return;
-    var d = (OKNO_ZAPIS.querySelector('input[name="bw-dystans"]:checked') || {}).value, imie = B.ladneImie($('bw-imie').value), blad = $('bw-zapis-blad');
-    if (!d) { blad.textContent = 'Wybierz dystans: 5 albo 10 km.'; return; }
+    var d = B.dystansZapisu(bieg, (OKNO_ZAPIS.querySelector('input[name="bw-dystans"]:checked') || {}).value), imie = B.ladneImie($('bw-imie').value), blad = $('bw-zapis-blad');
+    if (!d) { blad.textContent = B.tekstyDystansow(bieg).wybierz; return; }
     if ($('bw-imie').value.trim() && !imie) { blad.textContent = 'Imię: jedno słowo, 2–20 liter, bez nazwiska.'; return; }
     if (!$('bw-regulamin').checked) { blad.textContent = 'Zapis wymaga akceptacji regulaminu.'; return; }
     blad.textContent = ''; $('bw-zapis-ok').disabled = true;
@@ -609,14 +612,15 @@ document.addEventListener('DOMContentLoaded', function () {
       moi.forEach(function (u) { if (u.rodzaj === 'ja') u.ranking_zgoda = ch; }); odswiezUkonczyli();
     });
   });
-  function komunikat(r, miejsce) { return B.komunikat(r, miejsce); }   // teksty odmów w js/bieg.mjs (test: każdy kod z migracji ma tekst)
+  function komunikat(r, miejsce) { return B.komunikat(r, miejsce, bieg); }   // teksty odmów w js/bieg.mjs (test: każdy kod z migracji ma tekst); bieg: odmowa 'dystans' wg dystansów biegu
 
   /* ── PODGLĄD GRAFIK (?podglad=1): numer i dyplom w dwóch wersjach, odznaki ── */
   function podglad() {
     if (!PODGLAD) return;
     $('bw-podglad').hidden = false;
     var b = bieg || { nazwa: 'Bieg wirtualny (podgląd)', dzien_od: '2026-12-05', dzien_do: '2026-12-06' };
-    var ja = { id: 'pg1', imie: 'Ola', numer: 12, rodzaj: 'ja', dystans_km: 10, wynik_s: 3412, wynik_dystans_km: 10, ukonczony_at: '2026-12-06T10:00:00Z', odznaka: 'zwykla' };
+    var dPg = B.dystanseBiegu(b).slice(-1)[0] || 5;   // najdłuższy dystans biegu (16.11: prawdziwy bieg ma tylko 5 km)
+    var ja = { id: 'pg1', imie: 'Ola', numer: 12, rodzaj: 'ja', dystans_km: dPg, wynik_s: Math.round(341.2 * dPg), wynik_dystans_km: dPg, ukonczony_at: '2026-12-06T10:00:00Z', odznaka: 'zwykla' };
     var dz = { id: 'pg2', imie: 'Zosia', numer: 13, rodzaj: 'dziecko', dystans_wlasny_km: 1.5, ukonczony_at: '2026-12-06T10:00:00Z', odznaka: 'zlota' };
     gotoweGrafiki.then(function () {
       $('bw-pg-numer-ja').src = B.numerStartowy(ja, b, obrazy, ADRES_STRONY).toDataURL('image/png'); $('bw-pg-numer-dziecko').src = B.numerStartowy(dz, b, obrazy, ADRES_STRONY).toDataURL('image/png');
