@@ -1,4 +1,4 @@
-/* BLIZNA 252 / decyzje 16.11 wieczór i usterki z próby 16.11 (bieg wirtualny, regulamin 2026-11-v2):
+/* BLIZNA 253 (w commitach 30bdb5bd i 15b7a32f jeszcze jako 252; numer 252 ma też gałąź raportów AI) / decyzje 16.11 wieczór i usterki z próby 16.11 (bieg wirtualny, regulamin 2026-11-v2):
    - ranking (czas i miejsce) tylko z treningu z zegarka albo aplikacji z GPS (training_logs.source = 'intervals'); wynik ręczny = ukończenie i dyplom, na liście „wynik ręczny”
      (migracja 20261203, test po skutku tools/akcja-bieg-ranking-gps-test.sql); § 5 ust. 5, § 8 ust. 1 i § 9 mówią to samo, żadne zdanie nie obiecuje miejsca za wynik ręczny;
    - § 9 w brzmieniu od organizatora; § 4 ust. 3: numer startowy po rezygnacji nie wraca; zdanie pod zgodą na imię dziecka;
