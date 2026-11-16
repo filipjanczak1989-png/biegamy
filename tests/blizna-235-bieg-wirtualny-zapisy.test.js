@@ -139,7 +139,7 @@ test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadc
   assert.match(h, /rpc\('akcja_bieg_dopisz_dziecko', \{ p_slug: bieg\.slug, p_imie: imie, p_zgoda_imie: \$\('bw-zgoda-imie-dziecka'\)\.checked, p_oswiadczenie: true, p_regulamin_wersja: bieg\.regulamin_wersja \}\)/);
   assert.match(h, /B\.wsparcieHtml\(bieg, A\.linkZbiorki\(licznik\)\)/, 'link do zbiórki tylko przez sito z akcja.mjs'); assert.match(h, /B\.ukonczyliHtml\(ukonczyli, moi\.map/);
   assert.match(h, /fetch\(window\.SB_URL \+ '\/functions\/v1\/bieg-ukonczyli\?slug=' \+ encodeURIComponent\(bieg\.slug\) \+ '&od=' \+ \(od \|\| 0\) \+ \(dystansListy \? '&dystans=' \+ dystansListy : ''\)/, 'lista ukończyli tą samą drogą co licznik (EF), ze stronicowaniem i dystansem');
-  assert.match(h, /<a href="#" class="bw-link-maly" data-wycofaj="/, '„Wycofaj” jako mały link'); assert.doesNotMatch(h, /<button[^>]*data-wycofaj/);
+  assert.match(czytaj('js/bieg.mjs'), /<a href="#" class="bw-link-maly" data-wycofaj="/, '„Wycofaj” jako mały link (16.11: z modułu, z imieniem i numerem)'); assert.match(h, /h \+= B\.linkWycofaniaHtml\(u\);/); assert.doesNotMatch(h, /<button[^>]*data-wycofaj/);
   assert.match(h, /data-udostepnij="' \+ B\.esc\(u\.id\) \+ '">Udostępnij numer<\/button>/); assert.match(h, /navigator\.canShare\(\{ files: \[plik\] \}\)/);
   assert.doesNotMatch(h, /etap 2/, 'bez „(etap 2)” w tekstach dla użytkownika');
   const B2 = globalThis.BM_BIEG_REAL; const tekstStrony = h.replace(/<script>[\s\S]*<\/script>/, '') + ' ' + (B2 ? Object.values(B2.TEKSTY).join(' ') : '');

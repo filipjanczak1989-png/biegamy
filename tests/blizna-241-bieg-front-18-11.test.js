@@ -262,7 +262,7 @@ test('6: „Wycofaj”: jedno zapytanie na raz, tekst odmowy, odświeżenie tak�
   const c = proba({ ok: true }, false); assert.equal((await B.wycofaj('u2', c.zal)).powod, 'anulowane'); assert.equal(c.z.rpc.length, 0);
   const d = proba(null); d.zal.rpc = () => Promise.reject(new TypeError('Failed to fetch')); await B.wycofaj('u3', d.zal); assert.deepEqual(d.z.pokaz, ['Brak połączenia. Sprawdź internet i spróbuj jeszcze raz.']);
   const h = czytaj('bieg.html');
-  assert.match(h, /B\.wycofaj\(w\.getAttribute\('data-wycofaj'\), \{ potwierdz: function \(t\) \{ return window\.confirm\(t\); \}, rpc: rpc, pokaz: function \(t\) \{ alert\(t\); \}, odswiez: odswiez \}\)/);
+  assert.match(h, /B\.wycofaj\(w\.getAttribute\('data-wycofaj'\), \{ potwierdz: function \(t\) \{ return window\.confirm\(t\); \}, rpc: rpc, pokaz: function \(t\) \{ alert\(t\); \}, odswiez: odswiez \}, mojZapis\(w\.getAttribute\('data-wycofaj'\)\)\)/);
   assert.match(h, /if \(w\.getAttribute\('aria-disabled'\) === 'true'\) return;\n\s*w\.setAttribute\('aria-disabled', 'true'\);/);
 });
 

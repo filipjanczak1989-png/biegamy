@@ -71,7 +71,8 @@
   .bw-krok b { display: block; font-size: 15px; margin-bottom: 2px; } .bw-krok span { font-size: 13px; color: var(--fg2); line-height: 1.45; }
   .bw-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; } .bw-drobne a { color: var(--fg2); }
   .bw-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-  .bw-uczestnik { padding: 12px 0; border-top: 1px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }
+  .bw-uczestnik { padding: 14px 0 18px; border-top: 2px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }   /* wyraźna granica kart: link „Wycofaj” należy do karty nad kreską */
+  .bw-reczny { font-size: 11px; color: var(--fg2); white-space: nowrap; } .bw-pod-zgoda { margin: 4px 2px 0; }
   .bw-uczestnik h3 { margin: 0 0 8px; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-uczestnik h3 small { font: 600 12px/1 Inter, sans-serif; color: var(--fg2); letter-spacing: 0; margin-left: 8px; }
   .bw-pole { display: block; margin-top: 12px; } .bw-pole > span { display: block; font-size: 13px; color: var(--fg2); margin-bottom: 5px; }
   .bw-pole input[type=text] { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 500 15px/1.2 Inter, sans-serif; }
@@ -264,6 +265,7 @@
   <label class="bw-pole" for="bw-dziecko-imie"><span>Imię dziecka (jedno słowo, bez nazwiska)</span><input id="bw-dziecko-imie" type="text" autocomplete="off" maxlength="20" placeholder="np. Zosia"></label>
   <label class="bw-zgoda bw-zgoda--wymagana"><input type="checkbox" id="bw-oswiadczenie"> <span id="bw-oswiadczenie-tekst"></span></label>
   <label class="bw-zgoda"><input type="checkbox" id="bw-zgoda-imie-dziecka"> <span id="bw-zgoda-imie-dziecka-tekst"></span></label>
+  <p class="bw-drobne bw-pod-zgoda" id="bw-zgoda-imie-dziecka-pod"></p>
   <label class="bw-zgoda bw-zgoda--wymagana" id="bw-dziecko-regulamin-pole" hidden><input type="checkbox" id="bw-dziecko-regulamin"> <span id="bw-dziecko-regulamin-tekst"></span></label>
   <label class="bw-zgoda" id="bw-dziecko-email-pole" hidden><input type="checkbox" id="bw-dziecko-email"> <span id="bw-dziecko-email-tekst"></span></label>
   <p class="bw-drobne" data-polityka></p>
@@ -305,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
   pole('bw-zgoda-imie-tekst', B.TEKSTY.zgoda_imie_pole, B.TEKSTY_KROTKIE.zgoda_imie);
   pole('bw-zgoda-email-tekst', B.TEKSTY.zgoda_email_pole, B.TEKSTY_KROTKIE.zgoda_email);
   pole('bw-oswiadczenie-tekst', B.TEKSTY.oswiadczenie_pole, B.TEKSTY_KROTKIE.oswiadczenie);
-  pole('bw-zgoda-imie-dziecka-tekst', B.TEKSTY.zgoda_imie_dziecka_pole, B.TEKSTY_KROTKIE.zgoda_imie_dziecka);
+  pole('bw-zgoda-imie-dziecka-tekst', B.TEKSTY.zgoda_imie_dziecka_pole, B.TEKSTY_KROTKIE.zgoda_imie_dziecka); $('bw-zgoda-imie-dziecka-pod').textContent = B.TEKSTY.zgoda_imie_dziecka_pod;
   pole('bw-zgoda-konto-tekst', B.TEKSTY.zgoda_email_pole, B.TEKSTY_KROTKIE.zgoda_email); pole('bw-dziecko-email-tekst', B.TEKSTY.zgoda_email_pole, B.TEKSTY_KROTKIE.zgoda_email);
   /* zdanie o polityce pod zgodami: ostatnie słowa „Polityka prywatności.” jako link */
   Array.prototype.forEach.call(document.querySelectorAll('[data-polityka]'), function (el) {
@@ -415,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
     h += B.wynikHtml(widok, bieg, { brakTreningu: !!brakTreningu[u.id] });   // 20261126: wynik, dyplom i odznaka albo droga do wyniku
     if (gotowy) h += '<a href="#" class="bw-link-maly" data-udostepnij="' + B.esc(u.id) + '">Numer startowy (obraz)</a>';
     if (!dziecko) h += '<label class="bw-zgoda bw-zgoda--moja"><input type="checkbox" data-ranking-zgoda' + (u.ranking_zgoda ? ' data-ranking-wl' : '') + '> <span>Pokaż mnie w rankingu (czas i miejsce, mam 18 lat)</span></label><p class="bw-drobne" role="status" data-ranking-stan="' + B.esc(u.id) + '"></p>';   // 13.11: zgoda osobna od imienia, w każdej chwili do wyłączenia; status ogłaszany czytnikowi (usterka 14)
-    if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += '<a href="#" class="bw-link-maly" data-wycofaj="' + B.esc(u.id) + '">Wycofaj ' + (dziecko ? 'zapis dziecka' : 'mój zapis') + '</a>';
+    if (!u.ukonczony_at && B.zapisyOtwarte(bieg)) h += B.linkWycofaniaHtml(u);   // próba 16.11: link z imieniem i numerem, w karcie tego uczestnika
     return h + '</div>';
   }
   /* „Udostępnij numer” i dyplom: PNG przez systemowe okno telefonu (Web Share z plikiem), bez niego pobranie pliku */
@@ -480,7 +482,10 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   function pobierzZgode() {
     if (!sesja || !bieg || !window.sb || !window.sb.rpc || !moi.length) { zgodaKonta = null; return Promise.resolve(); }
-    return rpc('akcja_bieg_moja_zgoda', { p_slug: bieg.slug }).then(function (r) { zgodaKonta = r && typeof r.zgoda_email === 'boolean' ? r : null; });
+    /* próba 16.11: nieudany odczyt zgody chował pole do ręcznego odświeżenia. Jedno ponowienie, a po dwóch nieudanych zostaje ostatnia znana zgoda konta. */
+    function czytajZgode() { return rpc('akcja_bieg_moja_zgoda', { p_slug: bieg.slug }); }
+    function dobraZgoda(r) { return !!r && typeof r.zgoda_email === 'boolean'; }
+    return czytajZgode().then(function (r) { return dobraZgoda(r) ? r : czytajZgode(); }).then(function (r) { if (dobraZgoda(r)) zgodaKonta = r; });
   }
   /* wynik „ja” automatem: raz na wejście w fazie trwa/wyniki; brak treningu = droga przez Dziś albo „Wskaż trening” */
   function ustalWynik(id, log) {
@@ -503,11 +508,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (stan.stan === 'przed') $('bw-dziecko-od-razu').hidden = !B.mozeDopisacDziecko(bieg, []);
     $('bw-zaloguj-po').hidden = !!sesja;   // usterka 25: po zapisach wylogowany widzi „zamknięte”, a zapisany ma drogę do dyplomu
   }
+  /* próba 16.11: dwa odświeżenia naraz (powrót do karty i wycofanie zapisu) mogły narysować starszy stan po nowszym; liczy się tylko ostatnie */
+  var nrOdswiezenia = 0;
   function odswiez() {
+    var nr = ++nrOdswiezenia, stare = function () { return nr !== nrOdswiezenia; };
     return Promise.all([pobierzLicznik(), pobierzSesje()]).then(function (r) {
+      if (stare()) return null;
       licznik = r[0] || licznik; bieg = licznik && licznik.bieg && typeof licznik.bieg === 'object' ? licznik.bieg : null; sesja = r[1];   // nieudane odświeżenie zostawia ostatni dobry licznik
       return pobierzMoich();
-    }).then(function (m) { moi = m || (sesja ? moi : []); return pobierzZgode(); }).then(function () { rysujWszystko(); automat(); return odswiezUkonczyli(); }, function () { rysujWszystko(); });
+    }).then(function (m) { if (stare()) return null; moi = m || (sesja ? moi : []); return pobierzZgode(); }).then(function () { if (stare()) return null; rysujWszystko(); automat(); return odswiezUkonczyli(); }, function () { rysujWszystko(); });
   }
   $('bw-ponow').addEventListener('click', function () { var p = this; p.disabled = true; odswiez().then(function () { p.disabled = false; }); });
   /* usterka 2: powrót na bieg po zalogowaniu (znacznik { cel, t } w localStorage; czyta go js/akcja.mjs na zawodnik.html, cel tylko z białej listy) */
@@ -599,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     if (w.getAttribute('aria-disabled') === 'true') return;
     w.setAttribute('aria-disabled', 'true');
-    B.wycofaj(w.getAttribute('data-wycofaj'), { potwierdz: function (t) { return window.confirm(t); }, rpc: rpc, pokaz: function (t) { alert(t); }, odswiez: odswiez })
+    B.wycofaj(w.getAttribute('data-wycofaj'), { potwierdz: function (t) { return window.confirm(t); }, rpc: rpc, pokaz: function (t) { alert(t); }, odswiez: odswiez }, mojZapis(w.getAttribute('data-wycofaj')))
       .then(function () { w.removeAttribute('aria-disabled'); });
   });
   document.addEventListener('change', function (e) {
@@ -608,7 +617,8 @@ document.addEventListener('DOMContentLoaded', function () {
     rpc('akcja_bieg_ranking_zgoda', { p_slug: bieg.slug, p_zgoda: ch }).then(function (r) {
       var st = document.querySelector('[data-ranking-stan="' + id + '"]') || st0;   // karta mogła się przerysować w trakcie
       if (!r.ok) { c.checked = !ch; st.textContent = komunikat(r, 'karta'); return; }   // usterka 27: pole odznacza się samo, tekst bez polecenia
-      st.textContent = ch ? 'Twój czas i miejsce będą na liście „ukończyli”.' : 'Na liście będziesz bez czasu.';
+      var mojW = mojZapis(id);
+      st.textContent = !ch ? 'Na liście będziesz bez czasu.' : mojW && mojW.wynik_reczny === true ? 'Zgoda zapisana. Twój wynik jest ręczny, więc na liście zostaje bez czasu i miejsca.' : 'Twój czas i miejsce będą na liście „ukończyli”, jeśli wynik jest z zegarka albo aplikacji z GPS.';
       moi.forEach(function (u) { if (u.rodzaj === 'ja') u.ranking_zgoda = ch; }); odswiezUkonczyli();
     });
   });

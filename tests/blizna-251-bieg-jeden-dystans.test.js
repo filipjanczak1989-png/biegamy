@@ -99,8 +99,8 @@ test('teksty strony: jeden dystans = „Liczy się trening co najmniej 5 km”, 
   assert.equal(d.wybierz, 'Wybierz dystans: 5 albo 10 km.');
   assert.equal(j.zgoda_ranking_pole, 'Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”. Mam ukończone 18 lat (dobrowolne)');
   assert.equal(d.zgoda_ranking_pole, 'Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”, osobno 5 i 10 km. Mam ukończone 18 lat (dobrowolne)');
-  assert.equal(j.czasy_prywatne, 'Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking. Pozostali są na liście bez czasu, a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.');
-  assert.match(d.czasy_prywatne, /którzy włączyli ranking, osobno dla 5 i 10 km\. Pozostali/);
+  assert.equal(j.czasy_prywatne, 'Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking i mają wynik z zegarka albo aplikacji z GPS. Pozostali są na liście bez czasu (wynik wpisany ręcznie z dopiskiem „wynik ręczny”), a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.');
+  assert.match(d.czasy_prywatne, /którzy włączyli ranking, osobno dla 5 i 10 km i mają wynik z zegarka albo aplikacji z GPS\. Pozostali/);
   for (const t of Object.values(j).concat(Object.values(n))) { assert.doesNotMatch(t, /10 km|5 i 10|5 albo 10|osobno/, t); assert.doesNotMatch(t, /\{[a-z_]+\}/, t); }
   assert.doesNotMatch(JSON.stringify(B.TEKSTY), /10 km|5 i 10|5 albo 10/, 'TEKSTY bez dystansów na sztywno');
 });
@@ -133,7 +133,7 @@ test('regulamin v2: {dystanse} i {ranking_dystanse} z bazy; jeden dystans bez �
   assert.equal(w1.dystanse, '5 km'); assert.equal(w1.ranking_dystanse, 'na 5 km');
   assert.match(t1, /\n§ 2\. Termin i dystans\n1\. Bieg trwa od soboty, 5 grudnia 2026 do niedzieli, 6 grudnia 2026\.\n2\. Dystans: 5 km, biegiem albo marszem, na dowolnej trasie\.\n/);
   assert.match(t1, /\n1\. Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej 5 km\. Trening może/);
-  assert.match(t1, /\n5\. Bieg nie ma nagród\. Ranking czasów na 5 km obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu\./);
+  assert.match(t1, /\n5\. Bieg nie ma nagród\. Ranking czasów na 5 km obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu i mają wynik z treningu zapisanego zegarkiem albo aplikacją z GPS \(§ 9 ust\. 2\)\./);
   assert.match(t1, /Wersja regulaminu: 2026-11-v2, obowiązuje od 18 listopada 2026\./);
   assert.doesNotMatch(t1, /10 km|5 i 10|albo 10|\{[a-z_]+\}/);
   const t2 = B.regulaminTekst(B.wartosciTekstow(BIEG([5, 10]), { imie: 'Janek' }, LINK));
