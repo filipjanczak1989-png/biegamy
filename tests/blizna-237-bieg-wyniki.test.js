@@ -89,7 +89,7 @@ test('wycofanie: każda funkcja i tabela etapu 2 zdjęta, crony zdjęte warunkow
   assert.equal(pub(w), pub(e1), 'akcja_bieg_publiczny wraca słowo w słowo do wersji z 20261120');
   assert.ok(w.indexOf(DR + 'function if exists public.akcja_bieg_liczby') > w.indexOf('create or replace function public.akcja_bieg_publiczny'), 'funkcja liczb zdjęta po przywróceniu publicznego');
   const c = czytaj(CRON);
-  assert.match(c, /select cron\.schedule\('akcja-bieg-przypomnienie', '0,20,40 7,17 \* \* \*', \$job\$/, 'rano i wieczorem; okna i limit liczy baza'); assert.match(c, /'x-push-secret', \(select decrypted_secret from vault\.decrypted_secrets where name = 'push_hook_secret'\)/);
+  assert.match(c, /select cron\.schedule\('akcja-bieg-przypomnienie', '0,20,40 7 \* \* \*', \$job\$/, '20261207: same poranki; okno i limit liczy baza'); assert.match(c, /'x-push-secret', \(select decrypted_secret from vault\.decrypted_secrets where name = 'push_hook_secret'\)/);
   assert.match(czytaj(CRON_W), /perform cron\.unschedule\('akcja-bieg-przypomnienie'\)/);
   const sh = czytaj('tools/akcja-bieg-wyniki-test.sh'), t = czytaj('tools/akcja-bieg-wyniki-test.sql');
   assert.match(sh, /AKCJA_BIEG_WYNIKI_Z_MIGRACJA/); assert.match(sh, /echo 'rollback;'/); assert.match(sh, /create temp table _licznik_przed_zal as select public\.akcja_licznik\('dla-fabianka'\) as j;/, 'strażnik obiema drogami');
@@ -105,8 +105,8 @@ test('funkcje brzegowe: przypomnienie z sekretem, lista z RPC (rezerwacja i wyni
   assert.doesNotMatch(p.slice(p.indexOf('if (test) return'), p.indexOf('if (!RESEND)')), /email/, 'w odpowiedzi testu bez adresów');
   assert.match(p, /\?rezygnacja=\$\{o\.token\}/); assert.match(p, /'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'/);
   assert.doesNotMatch(p.slice(p.indexOf('if (test) return'), p.indexOf('if (!RESEND)')), /token/, 'w odpowiedzi testu bez tokenów');
-  assert.match(p, /if \(dni === 1\) return \{ temat: 'Jutro bieg', zdanie: 'Jutro zaczyna się weekend biegu' \};/, 'dzień przed: „Jutro bieg”');
-  assert.match(p, /if \(dni === 2\) return \{ temat: `\$\{duza\} bieg`, zdanie: `\$\{duza\} \(pojutrze\) zaczyna się weekend biegu` \};/, 'dwa dni przed: „W sobotę bieg”');
+  assert.match(p, /const ile = n === 1 \? 'Został 1 dzień' : n >= 2 && n <= 4 \? `Zostały \$\{n\} dni` : `Zostało \$\{n\} dni`;/, '20261207: „zostały 3 dni” przed końcem biegu');
+  assert.match(p, /k = kiedy\(Number\(o\.dni_do_konca \?\? 3\), o\.dzien_do\)/); assert.doesNotMatch(p, /weekend|w sobotę lub w niedzielę|Jutro bieg/, 'bez weekendu w e-mailu');
   assert.match(p, /temat: `\$\{k\.temat\}: \$\{o\.nazwa\}`/); assert.doesNotMatch(p, /Jutro bieg: \$\{/, 'temat bez sztywnego „Jutro”');
   assert.deepEqual([...r.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((x) => x[1]), ['akcja_bieg_rezygnacja']); assert.doesNotMatch(r, /\.from\(/);
   assert.match(r, /if \(!UUID\.test\(token\)\) return/); assert.match(r, /const DOZWOLONE = new Set\(\['https:\/\/biegamy\.run', 'https:\/\/run\.biegamy\.app'\]\);/);
@@ -125,7 +125,7 @@ test('js/bieg.mjs: stan wyniku z fazy, opis wyniku, dystans dziecka, blok wyniku
   const brak = B.wynikHtml(ja, BIEG('wyniki'), { brakTreningu: true });
   assert.match(brak, /Nie widzimy jeszcze treningu z 5–6\.12\.2026 na co najmniej 5 km\./); assert.match(brak, /href="zawodnik\.html#log">Dopisz trening na Dziś ›<\/a>/);
   assert.match(brak, /data-wskaz="u1">Wskaż trening<\/button>/); assert.match(brak, /data-sprawdz="u1"/);
-  assert.match(B.wynikHtml(ja, BIEG('trwa'), {}), /Szukamy Twojego treningu z weekendu biegu…/);
+  assert.match(B.wynikHtml(ja, BIEG('trwa'), {}), /Szukamy Twojego treningu z czasu biegu…/);
   const got = B.wynikHtml({ ...ja, ukonczony_at: 'x', wynik_dystans_km: 10, wynik_s: 3480, odznaka: 'zwykla' }, BIEG('wyniki'));
   assert.match(got, /Ukończony: <b>10 km · 58:00 · 5:48 \/km<\/b>/); assert.match(got, /<img class="bw-obraz" data-dyplom="u1"/); assert.match(got, /data-dyplom-a4="u1">Dyplom A4<\/button>/);
   assert.match(got, /data-wskaz="u1">Wskaż inny trening<\/a>/); assert.match(got, /<svg [^>]*aria-label="Bieg &lt;Mikołajkowy&gt;"/, 'nazwa biegu escapowana w odznace');
@@ -144,7 +144,7 @@ test('js/bieg.mjs: stan wyniku z fazy, opis wyniku, dystans dziecka, blok wyniku
 test('js/bieg-panel.mjs: bez innerHTML, bez czasów w stanie, walidacja czasu i dystansu; trener.html: sekcja i skrypt', async () => {
   const src = czytaj('js/bieg-panel.mjs').replace(/^\s*\/\/[^\n]*/gm, '');
   assert.doesNotMatch(src, /innerHTML|insertAdjacentHTML|outerHTML/, 'imiona niezaufane: tylko textContent');
-  assert.deepEqual([...src.matchAll(/wolaj\("([a-z_]+)"/g)].map((x) => x[1]).sort(), ['akcja_bieg_panel', 'akcja_bieg_usun_wynik', 'akcja_bieg_zalicz_recznie'], 'usuń wynik: 20261206 (blizna-281)');
+  assert.deepEqual([...src.matchAll(/wolaj\("([a-z_]+)"/g)].map((x) => x[1]).sort(), ['akcja_bieg_panel', 'akcja_bieg_usun_wynik', 'akcja_bieg_weryfikuj', 'akcja_bieg_zalicz_recznie'], 'usuń wynik i weryfikacja: 20261206 (blizna-281)');
   globalThis.document = { readyState: 'complete', getElementById: () => null, addEventListener() {} };
   await import(pathToFileURL(path.join(KORZEN, 'js/bieg-panel.mjs')).href);
   const P = globalThis.BM_BIEG_PANEL;
@@ -189,7 +189,7 @@ test('bieg.html: wynik w karcie, automat raz na wejście, zgoda konta (także w 
   assert.match(h, /window\.sb\.rpc\('akcja_bieg_treningi_z_okna', \{ p_slug: bieg\.slug \}\)/);
   assert.match(h, /rpc\('akcja_bieg_moja_zgoda', \{ p_slug: bieg\.slug \}\)/); assert.match(h, /rpc\('akcja_bieg_zgoda_email', \{ p_slug: bieg\.slug, p_zgoda: ch \}\)/);
   assert.match(h, /\$\('bw-dziecko-email'\)\.checked = false;/, 'zgoda w oknie dziecka nie zaznaczona z góry');
-  assert.match(h, /pole\.hidden = !\(ma && B\.faza\(bieg\) === 'zapisy'/, 'przełącznik zgody tylko przed biegiem');
+  assert.match(h, /pole\.hidden = !\(ma && B\.przedMailem\(bieg\) && zgodaKonta/, 'przełącznik zgody przed wysyłką e-maila (20261207: też w trakcie biegu)');
   const rez = h.slice(h.indexOf('var TOKEN = B.tokenRezygnacji'), h.indexOf('odswiez().then(podglad);'));
   assert.ok(rez.indexOf('history.replaceState') < rez.indexOf("fetch(window.SB_URL + '/functions/v1/bieg-rezygnacja'"), 'token znika z adresu przed wysłaniem');
   assert.doesNotMatch(rez, /innerHTML/, 'nazwa biegu z odpowiedzi tylko przez textContent');

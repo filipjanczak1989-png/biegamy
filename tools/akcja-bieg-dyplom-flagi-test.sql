@@ -46,8 +46,8 @@ begin
     values ('proba', 'proba-bieg', 'Bieg próbny', DZIS - 2, DZIS - 1, DZIS + 1, '{5}', 'otwarty', W) returning id into b;
   l := array_fill(null::uuid, array[4]); u := array_fill(null::uuid, array[7]);
   for i in 1..5 loop
-    insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, zgoda_imie, numer, dystans_km, regulamin_wersja)
-      values (b, ka[i], 'ja', IMIONA[i], true, case when i = 5 then 7 else i end, 5, W) returning id into v_log;
+    insert into public.akcja_bieg_uczestnicy (bieg_id, konto_id, rodzaj, imie, zgoda_imie, numer, dystans_km, regulamin_wersja, ranking_zgoda_at)
+      values (b, ka[i], 'ja', IMIONA[i], true, case when i = 5 then 7 else i end, 5, W, now()) returning id into v_log;
     u[case when i = 5 then 7 else i end] := v_log;
   end loop;
   for i in 1..4 loop
@@ -81,18 +81,18 @@ begin
   for i in 1..7 loop
     select x into e from jsonb_array_elements(k->'uczestnicy') x where (x->>'numer')::int = i;
     if e is null or jsonb_typeof(e->'do_sprawdzenia') <> 'array' then raise exception 'FAIL 3a: panel bez do_sprawdzenia przy numerze %: %', i, e; end if;
-    if e->'do_sprawdzenia' <> (case i when 2 then '["tempo szybsze niż 3:00/km"]' when 3 then '["szybciej niż 2:30/km (poniżej rekordu świata)"]'
+    if e->'do_sprawdzenia' <> (case i when 2 then '["tempo szybsze niż 3:00/km"]' when 3 then '["tempo szybsze niż 3:00/km"]'
                                       when 4 then '["trening ponad 2 razy dłuższy niż dystans biegu"]' when 5 then '["dziecko: ponad 21 km"]' else '[]' end)::jsonb
       then raise exception 'FAIL 3b: flaga numeru %: %', i, e->'do_sprawdzenia'; end if;
     if (e->>'wynik_usuniety')::boolean is not false then raise exception 'FAIL 3c: wynik_usuniety przed usunięciem: %', e; end if;
   end loop;
   if (select count(*) from jsonb_array_elements(k->'uczestnicy') x where jsonb_array_length(x->'do_sprawdzenia') > 0) <> 4 then raise exception 'FAIL 3d: cztery wyniki do sprawdzenia'; end if;
-  v := replace(replace(k::text, '3:00/km', ''), '2:30/km', '');
+  v := replace(replace(k::text, '3:00/km', ''), '36:00/km', '');
   if v ~ '\d:\d\d' or v ~* '"wynik_s"|"czas|konto|"email"|oswiadczenie|wynik_log|trening_km' or v ~ ': (12|12\.0+|5\.1|5\.10)[,}]' then raise exception 'FAIL 3e: panel z czasem, dystansem treningu albo danymi konta'; end if;
   n := n + 7 * 3 + 2;
-  -- 3f. progi na granicy (konto 1 i dziecko 1,5 km na chwilę zmienione, potem przywrócone): dokładnie 3:00/km, 2:30/km, 2 razy i 21 km jeszcze bez flagi
-  for wr in select x from jsonb_array_elements('[[5, 900, []], [5, 899, ["tempo szybsze niż 3:00/km"]], [5, 890, ["tempo szybsze niż 3:00/km"]], [5, 750, ["tempo szybsze niż 3:00/km"]],
-      [5, 749, ["szybciej niż 2:30/km (poniżej rekordu świata)"]], [10, 3000, []], [10.01, 3002, ["trening ponad 2 razy dłuższy niż dystans biegu"]], [9, 2700, []],
+  -- 3f. progi na granicy (konto 1 i dziecko 1,5 km na chwilę zmienione, potem przywrócone): dokładnie 3:00/km, 36:00/km, 2 razy i 21 km jeszcze bez flagi
+  for wr in select x from jsonb_array_elements('[[5, 900, []], [5, 899, ["tempo szybsze niż 3:00/km"]], [5, 890, ["tempo szybsze niż 3:00/km"]], [5, 10800, []],
+      [5, 10801, ["tempo wolniejsze niż 36:00/km"]], [10, 3000, []], [10.01, 3002, ["trening ponad 2 razy dłuższy niż dystans biegu"]], [9, 2700, []],
       [12, 1800, ["tempo szybsze niż 3:00/km", "trening ponad 2 razy dłuższy niż dystans biegu"]]]'::jsonb) x loop
     e := wr.x;
     update public.training_logs set distance_km = (e->>0)::numeric where id = l[1];
@@ -250,8 +250,94 @@ begin
   if (select x->'do_sprawdzenia' from jsonb_array_elements(e->'uczestnicy') x where (x->>'numer')::int = 4) <> '[]'::jsonb then raise exception 'FAIL 9d: flaga po wskazaniu zwykłego treningu'; end if;
   n := n + 4;
 
-  -- 10. razem pięć powiadomień 'bieg_wynik' (usunięcie ×2, zaliczenie ×2, poprawka), żadne z czasem
-  if (select count(*) from public.notifications where athlete_id = any(ka) and type = 'bieg_wynik') <> 5 then raise exception 'FAIL 10a: liczba powiadomień: %', (select count(*) from public.notifications where athlete_id = any(ka) and type = 'bieg_wynik'); end if;
+  -- 11. RANKING (17.11): wynik ręczny w rankingu z dopiskiem; tempo spoza 3:00–36:00/km (także z zegarka) do rankingu dopiero po „Zatwierdź”; „Odrzuć” = prośba o dowód;
+  --     zmiana wyniku kasuje decyzję. Stan: konto 4 zegarek 5,2 km 26:00, konto 1 wynik ręczny organizatora 5 km 26:40, konto 3 zegarek 5 km 12:00 (2:24/km), konto 5 bez czasu
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+  j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
+  execute 'reset role';
+  if (j->>'w_rankingu')::int <> 2 or (j->'lista'->0->>'numer')::int <> 4 or (j->'lista'->0->>'czas_s')::int <> 1560 or (j->'lista'->0->>'miejsce')::int <> 1 or (j->'lista'->0->>'reczny')::boolean
+     or (j->'lista'->1->>'numer')::int <> 1 or (j->'lista'->1->>'czas_s')::int <> 1600 or (j->'lista'->1->>'miejsce')::int <> 2 or (j->'lista'->1->>'reczny')::boolean is not true
+    then raise exception 'FAIL 11a: ranking: zegarek 26:00 i wynik ręczny 26:40 z dopiskiem, bez wyniku do weryfikacji: %', j; end if;
+  if exists (select 1 from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 3 and (x ? 'czas_s' or x ? 'miejsce')) then raise exception 'FAIL 11b: wynik do weryfikacji z czasem na liście'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  k := public.akcja_bieg_panel('proba-bieg');
+  execute 'reset role';
+  if (select count(*) from jsonb_array_elements(k->'uczestnicy') x where (x->>'do_weryfikacji')::boolean) <> 1
+     or (select x->>'weryfikacja' from jsonb_array_elements(k->'uczestnicy') x where (x->>'numer')::int = 3) is not null
+     or (select (x->>'do_weryfikacji')::boolean from jsonb_array_elements(k->'uczestnicy') x where (x->>'numer')::int = 3) is not true then raise exception 'FAIL 11c: panel: do weryfikacji tylko konto 3: %', k->'uczestnicy'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[3], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_moi('proba-bieg');
+  begin perform public.akcja_bieg_weryfikuj(u[3], 'zatwierdz'); raise exception 'FAIL 11d: weryfikacja przez zawodnika'; exception when insufficient_privilege then null; end;
+  execute 'reset role';
+  if (j->0->>'do_weryfikacji')::boolean is not true or j->0->'weryfikacja' <> 'null'::jsonb then raise exception 'FAIL 11e: moje zapisy: do weryfikacji: %', j; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_weryfikuj(u[3], 'tak');
+  if (j->>'ok')::boolean or j->>'powod' <> 'decyzja' then raise exception 'FAIL 11f: zła decyzja: %', j; end if;
+  j := public.akcja_bieg_weryfikuj(u[6], 'zatwierdz');
+  if (j->>'ok')::boolean or j->>'powod' <> 'dziecko' then raise exception 'FAIL 11g: dziecko: %', j; end if;
+  j := public.akcja_bieg_weryfikuj(u[2], 'zatwierdz');
+  if (j->>'ok')::boolean or j->>'powod' <> 'nie_ma' then raise exception 'FAIL 11h: wycofany: %', j; end if;
+  j := public.akcja_bieg_weryfikuj(v_nowy, 'zatwierdz');
+  if (j->>'ok')::boolean or j->>'powod' <> 'bez_wyniku' then raise exception 'FAIL 11i: bez wyniku: %', j; end if;
+  j := public.akcja_bieg_weryfikuj(u[3], 'odrzuc');
+  k := public.akcja_bieg_weryfikuj(u[3], 'odrzuc');
+  execute 'reset role';
+  if (j->>'ok')::boolean is not true or j->>'weryfikacja' <> 'odrzucony' or (k->>'ok')::boolean is not true then raise exception 'FAIL 11j: odrzucenie: % %', j, k; end if;
+  if (select array_agg(message) from public.notifications where athlete_id = ka[3] and type = 'bieg_wynik')
+     <> array['Organizator prosi o dowód Twojego wyniku w biegu „Bieg próbny” (np. zapis z zegarka, zrzut z aplikacji). Do czasu sprawdzenia wynik jest poza rankingiem; ukończenie i dyplom zostają. Kontakt na stronie biegu.']
+    then raise exception 'FAIL 11k: jedno powiadomienie z prośbą o dowód'; end if;
+  if (select weryfikacja_przez from public.akcja_bieg_uczestnicy where id = u[3]) is distinct from tr or (select ukonczony_at from public.akcja_bieg_uczestnicy where id = u[3]) is null then raise exception 'FAIL 11l: ślad decyzji, ukończenie zostaje'; end if;
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+  j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
+  execute 'reset role';
+  if (j->>'w_rankingu')::int <> 2 or exists (select 1 from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 3 and x ? 'czas_s') then raise exception 'FAIL 11m: odrzucony wynik poza rankingiem'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_weryfikuj(u[3], 'zatwierdz');
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+  k := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
+  execute 'reset role';
+  if (j->>'ok')::boolean is not true or (k->>'w_rankingu')::int <> 3 or (k->'lista'->0->>'numer')::int <> 3 or (k->'lista'->0->>'czas_s')::int <> 720 or (k->'lista'->0->>'miejsce')::int <> 1
+    then raise exception 'FAIL 11n: zatwierdzony wynik z zegarka 12:00 na pierwszym miejscu: % %', j, k; end if;
+  if (select count(*) from public.notifications where athlete_id = ka[3] and type = 'bieg_wynik' and message like 'Organizator sprawdził Twój wynik%') <> 1 then raise exception 'FAIL 11o: powiadomienie o zatwierdzeniu'; end if;
+  insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id)
+    values (ka[3], 5.0, '12:30', 'Spokojny', 'Run', ((DZIS - 1)::timestamp + interval '16 hours') at time zone 'Europe/Warsaw', 'intervals', 'test-bieg', 'tdf-3b') returning id into v_log;
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[3], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_wynik_ustal(u[3], v_log);
+  k := public.akcja_bieg_moi('proba-bieg');
+  execute 'reset role';
+  if (j->>'ok')::boolean is not true or (select weryfikacja from public.akcja_bieg_uczestnicy where id = u[3]) is not null or k->0->'weryfikacja' <> 'null'::jsonb or (k->0->>'do_weryfikacji')::boolean is not true
+    then raise exception 'FAIL 11p: nowy wynik kasuje decyzję: % %', j, k; end if;
+  if public.akcja_bieg_czas_rankingu((select x from public.akcja_bieg_uczestnicy x where x.id = u[3]), (select x from public.akcja_biegi x where x.id = b)) is not null then raise exception 'FAIL 11q: nowy wynik do weryfikacji bez decyzji w rankingu'; end if;
+  -- wolne tempo: organizator wpisuje 5 km w 3:00:01 → do weryfikacji, poza rankingiem; powód w panelu
+  perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_zalicz_recznie(u[7], 5, 10801);
+  k := public.akcja_bieg_panel('proba-bieg');
+  execute 'reset role';
+  select x into e from jsonb_array_elements(k->'uczestnicy') x where (x->>'numer')::int = 7;
+  if (j->>'ok')::boolean is not true or (e->>'do_weryfikacji')::boolean is not true or e->'do_sprawdzenia' <> '["tempo wolniejsze niż 36:00/km"]'::jsonb
+     or public.akcja_bieg_czas_rankingu((select x from public.akcja_bieg_uczestnicy x where x.id = u[7]), (select x from public.akcja_biegi x where x.id = b)) is not null then raise exception 'FAIL 11r: wolne tempo do weryfikacji: %', e; end if;
+  -- progi weryfikacji na granicy (konto 1: wynik organizatora bez treningu, 5 km, na chwilę zmieniony): 15:00 i 3:00:00 jeszcze bez weryfikacji
+  for wr in select x from jsonb_array_elements('[[899, true], [900, false], [10800, false], [10801, true]]'::jsonb) x loop
+    e := wr.x;
+    update public.akcja_bieg_uczestnicy set wynik_s = (e->>0)::int where id = u[1];
+    if public.akcja_bieg_do_weryfikacji((select x from public.akcja_bieg_uczestnicy x where x.id = u[1])) is distinct from (e->>1)::boolean then raise exception 'FAIL 11s: 5 km w % s: do weryfikacji ma być %', e->>0, e->>1; end if;
+    n := n + 1;
+  end loop;
+  update public.akcja_bieg_uczestnicy set wynik_s = 1600 where id = u[1];
+  n := n + 18;
+
+  -- 10. razem osiem powiadomień 'bieg_wynik' (usunięcie ×2, zaliczenie ×2, poprawka ×2, odrzucenie, zatwierdzenie), żadne z czasem
+  if (select count(*) from public.notifications where athlete_id = any(ka) and type = 'bieg_wynik') <> 8 then raise exception 'FAIL 10a: liczba powiadomień: %', (select count(*) from public.notifications where athlete_id = any(ka) and type = 'bieg_wynik'); end if;
   if exists (select 1 from public.notifications where athlete_id = any(ka) and type = 'bieg_wynik' and (message ~ '\d:\d\d' or message ~ '1600')) then raise exception 'FAIL 10b: czas w powiadomieniu'; end if;
   n := n + 2;
 

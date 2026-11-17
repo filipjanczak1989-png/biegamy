@@ -209,7 +209,7 @@
     <div class="bw-kroki">
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt=""><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Bezpośrednio u organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans w weekend biegu</b><span>Gdziekolwiek. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po biegu.</span></div></div>
+      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po końcu.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
     </div>
   </section>
@@ -275,8 +275,8 @@
 
 <dialog id="bw-okno-treningi" aria-label="Wskaż trening">
   <button type="button" class="bw-zamknij" data-zamknij aria-label="Zamknij">×</button>
-  <h3>Wskaż trening z weekendu biegu</h3>
-  <p class="bw-opis">Twoje biegi i marsze z weekendu biegu. Wybrany trening trafia na dyplom; czas widzisz tylko Ty.</p>
+  <h3>Wskaż trening z czasu biegu</h3>
+  <p class="bw-opis">Twoje biegi i marsze z czasu biegu. Wybrany trening trafia na dyplom, a przy zgodzie na ranking także czas na liście.</p>
   <div id="bw-treningi-lista"></div>
   <p class="bw-blad" role="alert" id="bw-treningi-blad"></p>
 </dialog>
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.title = (bieg ? bieg.nazwa : 'Bieg wirtualny') + ' · BiegaMy';
     $('bw-faza-zdanie').textContent = f.zdanie;
     if (bieg) {
-      $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = 'sobota–niedziela · wynik do ' + B.zakresDni(bieg.wynik_do, bieg.wynik_do);
+      $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = 'kiedy chcesz w tym czasie · wynik do ' + B.zakresDni(bieg.wynik_do, bieg.wynik_do);   // 17.11: bieg przez cały okres, nie w weekend
       try { localStorage.setItem('bm_bieg_nazwa_' + bieg.slug, String(bieg.nazwa || '').slice(0, 80)); } catch (e) {}   // nazwa odznaki biegu w kolekcji (js/odznaki-akcji.mjs)
     }
     else $('bw-termin').hidden = true;
@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function () {
   /* zgoda na e-mail na poziomie konta: także rodzic z samymi dziećmi; tylko przed biegiem, bo e-mail idzie dzień przed */
   function rysujZgode() {
     var pole = $('bw-zgoda-konto-pole'), ma = !!(stan && (stan.ja || stan.dzieci.length));
-    pole.hidden = !(ma && B.faza(bieg) === 'zapisy' && zgodaKonta && typeof zgodaKonta.zgoda_email === 'boolean');
+    pole.hidden = !(ma && B.przedMailem(bieg) && zgodaKonta && typeof zgodaKonta.zgoda_email === 'boolean');   // 20261207: e-mail 3 dni przed końcem, zgoda także w trakcie biegu
     if (!pole.hidden) $('bw-zgoda-konto').checked = zgodaKonta.zgoda_email;
   }
   $('bw-zgoda-konto').addEventListener('change', function () {
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var st = document.querySelector('[data-ranking-stan="' + id + '"]') || st0;   // karta mogła się przerysować w trakcie
       if (!r.ok) { c.checked = !ch; st.textContent = komunikat(r, 'karta'); return; }   // usterka 27: pole odznacza się samo, tekst bez polecenia
       var mojW = mojZapis(id);
-      st.textContent = !ch ? 'Na liście będziesz bez czasu.' : mojW && mojW.wynik_reczny === true ? 'Zgoda zapisana. Twój wynik jest ręczny, więc na liście zostaje bez czasu i miejsca.' : 'Twój czas i miejsce będą na liście „ukończyli”, jeśli wynik jest z zegarka albo aplikacji z GPS.';
+      st.textContent = !ch ? 'Na liście będziesz bez czasu.' : mojW && mojW.wynik_reczny === true ? 'Zgoda zapisana. Twój czas i miejsce będą na liście z dopiskiem „wynik ręczny”.' : 'Twój czas i miejsce będą na liście „ukończyli”.';   // 20261206: wynik ręczny też w rankingu
       moi.forEach(function (u) { if (u.rodzaj === 'ja') u.ranking_zgoda = ch; }); odswiezUkonczyli();
     });
   });

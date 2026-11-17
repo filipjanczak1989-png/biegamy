@@ -185,8 +185,8 @@ begin
   if public.akcja_licznik('proba')->'bieg' is not null and public.akcja_licznik('proba')->'bieg' <> 'null'::jsonb then raise exception 'FAIL 8f: szkic widoczny'; end if;
   update public.akcja_biegi set status = 'otwarty', dzien_od = DZIS + 2, dzien_do = DZIS + 3, wynik_do = DZIS + 6 where id = b;
   begin
-    update public.akcja_biegi set dzien_do = DZIS + 5 where id = b;
-    raise exception 'FAIL 8g: weekend dłuższy niż 2 dni przeszedł';
+    update public.akcja_biegi set dzien_do = DZIS + 40, wynik_do = DZIS + 42 where id = b;
+    raise exception 'FAIL 8g: bieg dłuższy niż 32 dni przeszedł (20261207: do 32 dni; wcześniej 2)';
   exception when check_violation then null;
   end;
   n := n + 7;

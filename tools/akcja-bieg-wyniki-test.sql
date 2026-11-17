@@ -101,11 +101,12 @@ begin
   if (j->>'ok')::boolean or j->>'powod' <> 'brak_zapisu' then raise exception 'FAIL 2f: konto bez aktywnego zapisu: %', j; end if;
   execute 'reset role';
   update public.akcja_bieg_uczestnicy set wycofany_at = null where id = dz2;
-  -- odbiorcy e-maila w dwóch dobach (dwa dni przed startem od 18:00, dzień przed od 8:00) i limit dobowy z logu: bieg przesunięty na chwilę daleko w przyszłość,
+  -- odbiorcy e-maila i limit dobowy z logu: bieg dwudniowy przesunięty na chwilę daleko w przyszłość; chwile wybrane tak, że okno jest to samo przed 20261207
+  -- (dwa dni przed startem od 18:00, dzień przed od 8:00) i po niej (3 dni przed końcem od 8:00, zaległe następnego dnia),
   -- żeby prawdziwe wysyłki z logu nie liczyły się do doby testu; potem daty wracają
   update public.akcja_biegi set dzien_od = D + 400, dzien_do = D + 401, wynik_do = D + 403 where id = b;
-  t0 := ((D + 398)::timestamp + interval '17 hours 59 minutes') at time zone 'Europe/Warsaw'; t1 := ((D + 398)::timestamp + interval '18 hours 5 minutes') at time zone 'Europe/Warsaw';
-  t2 := ((D + 399)::timestamp + interval '7 hours 55 minutes') at time zone 'Europe/Warsaw';  t3 := ((D + 399)::timestamp + interval '8 hours 5 minutes') at time zone 'Europe/Warsaw';
+  t0 := ((D + 398)::timestamp + interval '7 hours 55 minutes') at time zone 'Europe/Warsaw'; t1 := ((D + 398)::timestamp + interval '18 hours 5 minutes') at time zone 'Europe/Warsaw';
+  t2 := ((D + 397)::timestamp + interval '20 hours') at time zone 'Europe/Warsaw';  t3 := ((D + 399)::timestamp + interval '8 hours 5 minutes') at time zone 'Europe/Warsaw';
   t4 := ((D + 400)::timestamp + interval '9 hours') at time zone 'Europe/Warsaw';
   perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
   execute 'set local role service_role';

@@ -277,9 +277,12 @@ test('7: link zbiórki escapowany raz (prawdziwe escapeHtml i safeExternalHref z
   assert.doesNotMatch(q, /href="[^"]*'|"c"/, 'cudzysłowy z bazy tylko jako encje'); assert.equal(B.wsparcieHtml(BIEG('zapisy'), A.linkZbiorki({ url_zbiorki: 'javascript:alert(1)' })), '');
 });
 
-test('8: zgoda na e-mail w oknie zapisu tylko w fazie zapisy i bez zgody konta; ten sam warunek w oknie dziecka', () => {
+test('8: zgoda na e-mail w oknie zapisu przed wysyłką (faza zapisy, w trakcie biegu do dnia zaległych: 20261207) i bez zgody konta; ten sam warunek w oknie dziecka', () => {
   assert.equal(B.poleEmailaWidoczne(BIEG('zapisy'), null), true);
-  for (const f of ['trwa', 'wyniki', 'zakonczony', 'szkic']) assert.equal(B.poleEmailaWidoczne(BIEG(f), null), false, f);
+  for (const f of ['wyniki', 'zakonczony', 'szkic']) assert.equal(B.poleEmailaWidoczne(BIEG(f), null), false, f);
+  const t = Object.assign(BIEG('trwa'), { dzien_od: '2026-11-18', dzien_do: '2026-12-06' });
+  assert.equal(B.poleEmailaWidoczne(t, null, '2026-11-18'), true, 'pierwszy dzień biegu'); assert.equal(B.poleEmailaWidoczne(t, null, '2026-12-04'), true, 'dzień zaległych (dzien_do - 2)');
+  assert.equal(B.poleEmailaWidoczne(t, null, '2026-12-05'), false, 'po wysyłce'); assert.equal(B.przedMailem(t, '2026-12-03'), true);
   assert.equal(B.poleEmailaWidoczne(BIEG('zapisy'), { zgoda_email: true }), false, 'konto już ma zgodę'); assert.equal(B.poleEmailaWidoczne(BIEG('zapisy'), { zgoda_email: false }), true);
   const h = czytaj('bieg.html');
   assert.match(h, /<label class="bw-zgoda" id="bw-zgoda-email-pole"><input type="checkbox" id="bw-zgoda-email">/);
@@ -349,6 +352,7 @@ test('16, 19, 21, 22, 25, 26, 27: liczby, data na dyplomie, rezygnacja, imię z 
   assert.match(B.liczbyHtml({ zapisani: 5, dzieci: 2 }), /<span>w tym dzieci<\/span>/);
   assert.equal(B.dataNaDyplomie({ ukonczony_at: '2026-12-08T10:00:00Z' }, BIEG('zakonczony')), 'Data biegu: 5–6 grudnia 2026', '19');
   assert.equal(B.dataNaDyplomie({}, BIEG('zakonczony', { dzien_do: '2026-12-05' })), 'Data biegu: 5 grudnia 2026');
+  assert.equal(B.dataNaDyplomie({}, BIEG('zakonczony', { dzien_od: '2026-11-18', dzien_do: '2026-12-06' })), 'Termin biegu: 18.11–6.12.2026', '17.11: okres 19 dni krótko, bez nachodzenia na medal');
   const teksty = [], c2d = new Proxy({}, { get(t, k) { if (k === 'fillText') return (s) => teksty.push(String(s)); if (k === 'measureText') return (s) => ({ width: String(s).length * 5 }); if (k === 'createLinearGradient') return () => ({ addColorStop() {} }); if (k in t) return t[k]; return () => {}; }, set(t, k, v) { t[k] = v; return true; } });
   globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => c2d }) };
   try { B.dyplom({ imie: 'Ola', numer: 12, rodzaj: 'ja', dystans_km: 5, wynik_s: 1500, wynik_dystans_km: 5, ukonczony_at: '2026-12-08T10:00:00Z' }, BIEG('zakonczony'), 'telefon', {}); } finally { delete globalThis.document; }

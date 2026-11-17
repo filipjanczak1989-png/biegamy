@@ -1,5 +1,6 @@
 // Panel trenera: bieg wirtualny (20261126_akcja_bieg_wyniki). Lista uczestników (imię, numer, stan; bez czasów, kont i e-maili) i ręczne zaliczenie biegu.
-// 20261206: flaga „do sprawdzenia” z bazy (powód słownie, licznik w nagłówku, filtr) i „Usuń wynik” z powodem i potwierdzeniem (akcja_bieg_usun_wynik).
+// 20261206: flaga „do sprawdzenia” z bazy (powód słownie, filtr), „Usuń wynik” z powodem i potwierdzeniem (akcja_bieg_usun_wynik) i weryfikacja wyników do rankingu
+// (tempo spoza 3:00–36:00/km: „Zatwierdź” albo „Odrzuć” z prośbą o dowód, akcja_bieg_weryfikuj); licznik w nagłówku.
 // Plik BEZ import/export, jak js/firmy-panel.mjs. Dane z funkcji akcja_bieg_panel i akcja_bieg_zalicz_recznie (bramka trenera w bazie). Bez innerHTML: imiona są niezaufane.
 (function (g) {
   "use strict";
@@ -36,11 +37,23 @@
     if (e) return /tylko trener|42501/.test(String(e.message || e.code || "")) ? "To konto nie jest kontem trenera." : "Nie udało się. Sprawdź łącze.";
     return p === "dystans" ? "Zły dystans: dorosły z listy biegu, dziecko 0,1–100 km." : p === "czas" ? "Czas: od 1:00 do 24:00:00, u dziecka bez czasu." : p === "za_pozno" ? "Po terminie: zaliczać można do 7 dni po końcu dopisywania wyników."
       : p === "przed_biegiem" ? "Bieg jeszcze się nie zaczął." : p === "nie_ma" ? "Tego zapisu już nie ma (wycofany albo usunięty)."
-      : p === "zly_powod" ? "Wpisz powód: od 3 do 200 znaków, w jednej linii." : p === "bez_wyniku" ? "Ten zapis nie ma wyniku (może usunięty albo jeszcze niezaliczony). Odśwież listę." : "Nie udało się.";
+      : p === "zly_powod" ? "Wpisz powód: od 3 do 200 znaków, w jednej linii." : p === "bez_wyniku" ? "Ten zapis nie ma wyniku (może usunięty albo jeszcze niezaliczony). Odśwież listę."
+      : p === "dziecko" ? "Dzieci nie są w rankingu." : p === "decyzja" ? "Nieznana decyzja. Odśwież panel." : "Nie udało się.";
   }
   /* 20261206: flaga „do sprawdzenia” liczona w bazie (akcja_bieg_do_sprawdzenia): tylko powody słownie, bez czasu; nic nie znika samo */
   function doSprawdzenia(u) { return u && !u.wycofany && Array.isArray(u.do_sprawdzenia) ? u.do_sprawdzenia.filter(function (p) { return typeof p === "string" && p; }) : []; }
   function liczbaDoSprawdzenia(lista) { return (Array.isArray(lista) ? lista : []).filter(function (u) { return doSprawdzenia(u).length > 0; }).length; }
+  /** Wynik do weryfikacji (20261206): czeka = bez decyzji; stan słownie bez czasu. */
+  function czekaNaWeryfikacje(u) { return !!u && !u.wycofany && u.do_weryfikacji === true && u.weryfikacja == null; }
+  function liczbaDoWeryfikacji(lista) { return (Array.isArray(lista) ? lista : []).filter(czekaNaWeryfikacje).length; }
+  function stanWeryfikacji(u) { return !u || !u.do_weryfikacji ? "" : u.weryfikacja === "zatwierdzony" ? "Ranking: zatwierdzony" : u.weryfikacja === "odrzucony" ? "Ranking: odrzucony, prośba o dowód" : "Ranking: czeka na weryfikację"; }
+  function pytanieOdrzucenia(u) { return "Odrzucić wynik do rankingu: " + u.imie + ", numer " + u.numer + "? Uczestnik dostanie prośbę o dowód (zapis z zegarka, zrzut z aplikacji). Ukończenie i dyplom zostają; zatwierdzić możesz później."; }
+  /** „Zatwierdź” od razu; „Odrzuć” po potwierdzeniu (BM_OKIENKO, bez niego confirm). → Promise<wynik RPC | null> */
+  function weryfikuj(u, decyzja) {
+    var pytaj = decyzja !== "odrzuc" ? Promise.resolve({}) : g.BM_OKIENKO ? g.BM_OKIENKO({ tytul: "Odrzucić wynik do rankingu?", tekst: pytanieOdrzucenia(u), tak: "Odrzuć i poproś o dowód", nie: "Anuluj", grozne: true })
+      : Promise.resolve(g.confirm && g.confirm(pytanieOdrzucenia(u)) ? {} : null);
+    return Promise.resolve(pytaj).then(function (w) { if (!w) return null; return wolaj("akcja_bieg_weryfikuj", { p_id: u.id, p_decyzja: decyzja }); });
+  }
   function pytanieUsuniecia(u) { return "Usunąć wynik: " + u.imie + ", numer " + u.numer + "? Dyplom i miejsce na liście znikną, uczestnik dostanie powiadomienie z powodem. Przywrócisz go przyciskiem „Zalicz ręcznie”."; }
   function sprawdzPowod(t) { var s = String(t == null ? "" : t).trim(); return s.length < 3 || s.length > 200 ? "Wpisz powód: od 3 do 200 znaków." : ""; }
   /** „Usuń wynik” (§ 9 ust. 3–4 regulaminu): okienko panelu z powodem (BM_OKIENKO), bez niego prompt i confirm. Bez powodu albo po „Anuluj” nic nie wysyła. → Promise<wynik RPC | null> */
@@ -98,8 +111,9 @@
     el("div", "font-size:13px;color:var(--muted);margin-top:2px;", kont, dzien(b.dzien_od) + "–" + dzien(b.dzien_do) + " · " + (FAZA[b.faza] || b.faza) + " · wyniki do " + dzien(b.wynik_do) + " · zaliczanie ręczne do " + dzien(b.zalicz_do));
     var aktywni = u.filter(function (x) { return !x.wycofany; }), ukonczyli = aktywni.filter(function (x) { return x.ukonczony; }).length, dzieci = aktywni.filter(function (x) { return x.rodzaj === "dziecko"; }).length;
     el("div", "font-size:14px;color:var(--fg);margin:8px 0 4px;", kont, "Zapisani: " + aktywni.length + " (dzieci: " + dzieci + ") · ukończyli: " + ukonczyli + " · bez wyniku: " + (aktywni.length - ukonczyli));
-    var nFlag = liczbaDoSprawdzenia(aktywni), licznikFlag = el("div", "font-size:14px;font-weight:800;margin:0 0 4px;color:" + (nFlag ? "var(--red)" : "var(--muted)") + ";", kont, "Do sprawdzenia: " + nFlag);
-    licznikFlag.setAttribute("data-licznik-flag", String(nFlag));
+    var nWer = liczbaDoWeryfikacji(aktywni), nFlag = liczbaDoSprawdzenia(aktywni);
+    var licznikFlag = el("div", "font-size:14px;font-weight:800;margin:0 0 4px;color:" + (nWer || nFlag ? "var(--red)" : "var(--muted)") + ";", kont, "Do weryfikacji (ranking): " + nWer + " · do sprawdzenia: " + nFlag);
+    licznikFlag.setAttribute("data-licznik-weryfikacji", String(nWer)); licznikFlag.setAttribute("data-licznik-flag", String(nFlag));
     var ostrz = ostrzezenieMaili(b);
     el("div", "font-size:13px;color:var(--muted);", kont, "Zgody na e-mail przypominający: " + (Number(b.zgody_email) || 0));
     if (ostrz) { var o = el("div", "margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid var(--red);color:var(--fg);font-size:13px;line-height:1.45;", kont, ostrz); o.setAttribute("role", "alert"); o.setAttribute("data-ostrzezenie-maili", "1"); }
@@ -107,11 +121,11 @@
     var filtr = el("label", "display:flex;gap:8px;align-items:center;font-size:13px;color:var(--fg);margin:6px 0;min-height:44px;cursor:pointer;", kont), cz = el("input", "width:20px;height:20px;", filtr); cz.type = "checkbox";
     el("span", "", filtr, "Tylko bez wyniku");
     var filtr2 = el("label", "display:flex;gap:8px;align-items:center;font-size:13px;color:var(--fg);margin:6px 0;min-height:44px;cursor:pointer;", kont), cz2 = el("input", "width:20px;height:20px;", filtr2); cz2.type = "checkbox"; cz2.setAttribute("data-filtr-flag", "1");
-    el("span", "", filtr2, "Tylko do sprawdzenia");
+    el("span", "", filtr2, "Tylko do weryfikacji i do sprawdzenia");
     var lista = el("div", "", kont), mozna = ["trwa", "wyniki", "zakonczony"].indexOf(b.faza) >= 0 && String(b.zalicz_do) >= dzisWaw();
     function pokaz() {
       lista.textContent = "";
-      var widoczni = u.filter(function (x) { return (!cz.checked || (!x.ukonczony && !x.wycofany)) && (!cz2.checked || doSprawdzenia(x).length > 0); });
+      var widoczni = u.filter(function (x) { return (!cz.checked || (!x.ukonczony && !x.wycofany)) && (!cz2.checked || doSprawdzenia(x).length > 0 || (!x.wycofany && x.do_weryfikacji === true)); });
       if (!widoczni.length) el("div", "font-size:13px;color:var(--muted);padding:8px 0;", lista, cz2.checked ? "Nic do sprawdzenia." : cz.checked ? "Wszyscy mają wynik." : "Nikt się jeszcze nie zapisał.");
       widoczni.forEach(function (x) {
         var w = el("div", "padding:10px 0;border-top:1px solid var(--border);" + (x.wycofany ? "opacity:.55;" : ""), lista); w.setAttribute("data-uczestnik", x.id);
@@ -122,14 +136,26 @@
         el("div", "font-size:12px;color:" + (x.ukonczony ? "var(--fg)" : "var(--muted)") + ";", srodek, stanTekst(x));
         var flagi = doSprawdzenia(x);
         if (flagi.length) { var fl = el("div", "font-size:12px;font-weight:800;color:var(--red);margin-top:2px;overflow-wrap:anywhere;", srodek, "Do sprawdzenia: " + flagi.join(" · ")); fl.setAttribute("data-do-sprawdzenia", "1"); }
+        var sw = stanWeryfikacji(x);
+        if (sw && !x.wycofany) { var swe = el("div", "font-size:12px;font-weight:800;margin-top:2px;color:" + (czekaNaWeryfikacje(x) || x.weryfikacja === "odrzucony" ? "var(--red)" : "var(--fg)") + ";", srodek, sw); swe.setAttribute("data-weryfikacja", x.weryfikacja || "czeka"); }
         if (!x.wycofany && mozna) {
           var z = el("button", PRZYCISK + "flex:none;background:none;color:var(--fg);border:1px solid var(--border);", gora, x.ukonczony ? "Popraw" : "Zalicz ręcznie"); z.type = "button";
           z.addEventListener("click", function () { formularz(w, x, b, function () { wczytaj(b.slug); }); });
         }
-        if (!x.wycofany && mozna && x.ukonczony) {
-          var dol = el("div", "display:flex;justify-content:flex-end;margin-top:6px;", w);
+        var dol = null, info = null;
+        if (!x.wycofany && mozna && x.ukonczony) { dol = el("div", "display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;", w); info = el("div", "font-size:13px;color:var(--red);", w); }
+        if (dol && x.do_weryfikacji === true) {
+          [["zatwierdz", "Zatwierdź do rankingu", "zatwierdzony"], ["odrzuc", "Odrzuć (poproś o dowód)", "odrzucony"]].forEach(function (d) {
+            if (x.weryfikacja === d[2]) return;
+            var bw = el("button", PRZYCISK + "flex:none;background:none;color:var(--fg);border:1px solid var(--border);", dol, d[1]); bw.type = "button"; bw.setAttribute("data-weryfikuj", d[0]);
+            bw.addEventListener("click", function () {
+              bw.disabled = true; info.textContent = "";
+              weryfikuj(x, d[0]).then(function (r) { bw.disabled = false; if (!r) return; if (!r.ok) { info.textContent = komunikat(null, r); return; } wczytaj(b.slug); }, function (e) { bw.disabled = false; info.textContent = komunikat(e); });
+            });
+          });
+        }
+        if (dol) {
           var us = el("button", PRZYCISK + "flex:none;background:none;color:var(--red);border:1px solid var(--red);", dol, "Usuń wynik"); us.type = "button"; us.setAttribute("data-usun-wynik", x.id);
-          var info = el("div", "font-size:13px;color:var(--red);", w);
           us.addEventListener("click", function () {
             us.disabled = true; info.textContent = "";
             usunWynik(x).then(function (r) { us.disabled = false; if (!r) return; if (!r.ok) { info.textContent = komunikat(null, r); return; } wczytaj(b.slug); }, function (e) { us.disabled = false; info.textContent = komunikat(e); });
@@ -139,7 +165,7 @@
     }
     cz.addEventListener("change", pokaz); cz2.addEventListener("change", pokaz);
     pokaz();
-    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Czasy są prywatne: panel ich nie pokazuje. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. „Do sprawdzenia” liczy baza (tempo szybsze niż 3:00/km, trening ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
+    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Czasy są prywatne: panel ich nie pokazuje. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
   }
   function dzisWaw() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
 
@@ -154,6 +180,7 @@
     if (sekcja.open) { wczytane = true; wczytaj(null); }
   }
   g.BM_BIEG_PANEL = { sekundy: sekundy, kmZPola: kmZPola, stanTekst: stanTekst, komunikat: komunikat, ostrzezenieMaili: ostrzezenieMaili, doSprawdzenia: doSprawdzenia, liczbaDoSprawdzenia: liczbaDoSprawdzenia,
-    pytanieUsuniecia: pytanieUsuniecia, sprawdzPowod: sprawdzPowod, usunWynik: usunWynik, rysuj: rysuj };
+    pytanieUsuniecia: pytanieUsuniecia, sprawdzPowod: sprawdzPowod, usunWynik: usunWynik, rysuj: rysuj, czekaNaWeryfikacje: czekaNaWeryfikacje, liczbaDoWeryfikacji: liczbaDoWeryfikacji,
+    stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj };
   if (g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", start); else start();
 })(globalThis);

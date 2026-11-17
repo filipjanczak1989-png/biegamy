@@ -111,7 +111,7 @@ test('EF bieg-przypomnienie: trzy RPC (lista, rezerwacja, wynik), wysyłka tylko
   assert.match(p, /status: wynik\.blad_rezerwacji \? 500 : 200/);
   const c = czytaj('supabase/migrations/20261128_akcja_bieg_przypomnienie_cron.sql');
   assert.match(c, /body {4}:= '\{\}'::jsonb,\n {4}timeout_milliseconds := 150000\);\n\$job\$\);/, 'cron czeka 150 s, nie domyślne 5 s');
-  assert.match(c, /20261126_akcja_bieg_wyniki\.sql → 20261201_akcja_bieg_mail_ponowienie\.sql → deploy EF bieg-przypomnienie/);
+  assert.match(c, /20261126_akcja_bieg_wyniki\.sql → 20261201_akcja_bieg_mail_ponowienie\.sql → 20261207_akcja_bieg_okno_19_dni\.sql → deploy EF bieg-przypomnienie/);
 });
 
 test('migracja 20261201: dwie nowe funkcje tylko dla roli serwisowej, lista i stara droga podmienione; wycofanie wraca słowo w słowo do 20261126; test po skutku', () => {

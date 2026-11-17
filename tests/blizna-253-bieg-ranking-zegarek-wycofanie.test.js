@@ -110,8 +110,8 @@ test('regulamin v2: § 9 w brzmieniu od organizatora (4 ustępy); § 4 ust. 3 m�
   assert.equal(p(9).naglowek, '§ 9. Uczciwość');
   assert.deepEqual([...p(9).punkty], [
     'Jedna osoba zapisuje się raz. Zabronione jest wpisywanie treningów, które się nie odbyły, cudzych treningów oraz treści bezprawnych lub obraźliwych, także w polu imienia.',
-    'W ranking wchodzą wyłącznie wyniki z treningu zapisanego zegarkiem albo aplikacją z GPS. Wynik wpisany ręcznie daje ukończenie i dyplom, bez miejsca w rankingu.',
-    'Organizator może poprosić o potwierdzenie wyniku (np. zapis z zegarka). Wynik budzący wątpliwości, bez potwierdzenia, Organizator może usunąć z rankingu albo nie zaliczyć.',
+    'W rankingu są wyniki z zegarka i wpisane ręcznie.',
+    'Wynik budzący wątpliwości (np. tempo szybsze niż 3:00/km) trafia do rankingu po sprawdzeniu przez Organizatora, który może poprosić o dowód (np. zapis z zegarka, zrzut z aplikacji).',
     'Organizator może usunąć zapis albo wynik sprzeczny z regulaminem. W sprawach spornych, także dotyczących uczciwości wyników, rozstrzyga Organizator.']);
   assert.match(p(4).punkty[2], /^Z zapisu można zrezygnować w każdej chwili w aplikacji, bez podawania przyczyny\. Numer startowy po rezygnacji przepada i nie wraca do puli: przy ponownym zapisie uczestnik dostaje nowy numer\.$/);
   assert.equal(B.pytanieWycofania({ imie: 'Alfa', numer: 2 }), 'Wycofać zapis: Alfa, numer 2? Numer startowy przepada.', 'strona mówi to samo co § 4 ust. 3');
@@ -124,45 +124,55 @@ test('regulamin v2: § 9 w brzmieniu od organizatora (4 ustępy); § 4 ust. 3 m�
   assert.equal(B.WERSJA_TEKSTOW, '2026-11-v2');
 });
 
-test('strażnik tekstów: § 5, § 8 i § 9 zgodne (ranking tylko z zegarka albo aplikacji z GPS); żadne zdanie nie obiecuje czasu ani miejsca za wynik ręczny', () => {
-  const p = (n) => B.REGULAMIN.paragrafy[n - 1], ZEGAREK = /zegark\S* albo aplikacj\S* z GPS/;
-  assert.match(p(5).punkty[4], /Ranking czasów \{ranking_dystanse\} obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu i mają wynik z treningu zapisanego zegarkiem albo aplikacją z GPS \(§ 9 ust\. 2\)\./);
-  assert.match(p(9).punkty[1], ZEGAREK); assert.match(p(8).punkty[0], /zgodziły się na ranking i mają wynik z zegarka albo aplikacji z GPS, lista pokazuje także czas i miejsce\. Przy wyniku wpisanym ręcznie lista pokazuje dopisek „wynik ręczny”\./);
-  assert.match(p(5).punkty[0], /Trening może pochodzić z zegarka albo być wpisany ręcznie\./, 'ukończenie także z wpisu ręcznego (§ 9 ust. 2: ukończenie i dyplom)');
-  /* każde zdanie regulaminu i tekstów strony, które daje czas albo miejsce w rankingu, wymaga zegarka; każde zdanie o wyniku ręcznym odbiera miejsce albo czas */
+test('strażnik tekstów (decyzja 17.11 wieczór, 20261206): § 5 ust. 5, § 8 ust. 1 i § 9 ust. 2–4 zgodne: w rankingu wyniki z zegarka i wpisane ręcznie, wątpliwe po sprawdzeniu; nic nie mówi „tylko z zegarka”', () => {
+  const p = (n) => B.REGULAMIN.paragrafy[n - 1];
+  const R = 'W rankingu są wyniki z zegarka i wpisane ręcznie.', W = 'Wynik budzący wątpliwości (np. tempo szybsze niż 3:00/km) trafia do rankingu po sprawdzeniu przez Organizatora, który może poprosić o dowód (np. zapis z zegarka, zrzut z aplikacji).';
+  assert.equal(p(9).punkty[1], R); assert.equal(p(9).punkty[2], W, '§ 9 ust. 3 dosłownie');
+  assert.ok(p(5).punkty[4].includes(' ' + R + ' ' + W + ' '), '§ 5 ust. 5 zawiera te same dwa zdania dosłownie');
+  assert.match(p(5).punkty[4], /^Bieg nie ma nagród\. Ranking czasów \{ranking_dystanse\} obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu\. /);
+  assert.match(p(8).punkty[0], /U osób, które zgodziły się na ranking, lista pokazuje także czas i miejsce na zasadach z § 5 ust\. 5\. Przy wyniku wpisanym ręcznie lista pokazuje dopisek „wynik ręczny”\./);
+  assert.match(p(9).punkty[3], /^Organizator może usunąć zapis albo wynik sprzeczny z regulaminem\./, '§ 9 ust. 4 bez zmian (podstawa „Usuń wynik”)');
+  assert.match(p(5).punkty[0], /Trening może pochodzić z zegarka albo być wpisany ręcznie\./);
   const zdania = [];
-  for (const par of B.REGULAMIN.paragrafy) for (const t of par.punkty) for (const z of t.split(/(?<=[.?!])\s+/)) zdania.push([par.naglowek, z]);
-  for (const t of [B.tekstyDystansow(BIEG()).czasy_prywatne, B.tekstyDystansow(BIEG({ dystanse_km: [5, 10] })).czasy_prywatne, B.TEKSTY.wynik_reczny]) for (const z of t.split(/(?<=[.?!])\s+/)) zdania.push(['strona', z]);
-  let daje = 0, reczne = 0;
-  for (const [skad, z] of zdania) {
-    if (/(obejmuje|wchodzą|pokazuje także czas i miejsce|Czas i miejsce tylko)/.test(z) && /ranking/i.test(z)) { daje++; assert.match(z, /zegark|GPS/, skad + ': zdanie daje miejsce w rankingu bez warunku zegarka: ' + z); }
-    if (/ręczn/.test(z) && /ranking|czas|miejsc|list/.test(z)) { reczne++; assert.match(z, /bez miejsca|bez czasu|dopisek „wynik ręczny”|może zaliczyć/, skad + ': zdanie o wyniku ręcznym nie odbiera miejsca: ' + z); }
+  for (const par of B.REGULAMIN.paragrafy) for (const t of par.punkty) for (const x of t.split(/(?<=[.?!])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ„])/)) zdania.push([par.naglowek, x]);
+  for (const t of [B.tekstyDystansow(BIEG()).czasy_prywatne, B.tekstyDystansow(BIEG({ dystanse_km: [5, 10] })).czasy_prywatne, B.TEKSTY.wynik_reczny, B.TEKSTY.wynik_weryfikacja, B.TEKSTY.wynik_odrzucony]) for (const x of t.split(/(?<=[.?!])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ„])/)) zdania.push(['strona', x]);
+  let reczne = 0, watpliwe = 0;
+  for (const [skad, x] of zdania) {
+    assert.doesNotMatch(x, /wyłącznie wyniki z treningu zapisanego zegarkiem|tylko trening zapisany zegarkiem|ręczn\S* [^.]*bez miejsca w rankingu|aplikacj\S* z GPS/, skad + ': zdanie ze starej zasady (tylko zegarek): ' + x);
+    if (/ręczn/.test(x) && /ranking|czas|miejsc|list/.test(x)) { reczne++; assert.match(x, /wpisane ręcznie|dopisek „wynik ręczny”|z dopiskiem „wynik ręczny”|wpisanym ręcznie \(z dopiskiem|może zaliczyć/, skad + ': zdanie o wyniku ręcznym przeczy rankingowi z dopiskiem: ' + x); }
+    if (/wątpliwości|czeka na sprawdzenie/.test(x)) { watpliwe++; assert.match(x, /3:00\/km|dowód|Organizator|organizator/, skad + ': ' + x); }
   }
+  assert.ok(reczne >= 4 && watpliwe >= 3, 'strażnik widzi zdania: ręczne ' + reczne + ', wątpliwe ' + watpliwe);
   assert.match(p(5).punkty[4], /W rankingu liczy się trening \{ranking_zakres\}; dłuższy trening daje ukończenie i dyplom z prawdziwym dystansem i czasem, bez miejsca w rankingu\./);
   assert.equal(B.zakresRankingu([5]), 'od 5 km do 5,49 km'); assert.equal(B.zakresRankingu([5, 10]), 'od 5 km do 5,49 km albo od 10 km do 10,49 km');
-  for (const [skad, z] of zdania) if (/dłuższ\S* trening/.test(z)) assert.match(z, /bez miejsca w rankingu|bez czasu|bez dopisku/, skad + ': zdanie o dłuższym treningu nie odbiera miejsca: ' + z);
-  assert.match(czytaj('supabase/migrations/20261203_akcja_bieg_ranking_tylko_gps.sql'), /l\.distance_km <= u\.wynik_dystans_km \+ 0\.49/, 'próg w bazie = próg w tekstach (dystans + 0,49 km)');
-  assert.ok(daje >= 5 && reczne >= 4, 'strażnik widzi zdania: daje ' + daje + ', ręczne ' + reczne);
-  const calosc = B.regulaminTekst(B.wartosciTekstow(BIEG(), { imie: 'Janek' }, 'https://example.org/z'));
-  assert.doesNotMatch(calosc, /każdy\S* wynik\S* w rankingu|ręczn\S* [^.]*wchodzi do rankingu/i);
+  const mig = czytaj('supabase/migrations/20261206_akcja_bieg_dyplom_flagi.sql');
+  assert.ok(mig.includes('public.akcja_bieg_km_wyniku(u) <= u.wynik_dystans_km + 0.49'), 'próg długości w bazie = w tekstach (dystans + 0,49 km)');
+  assert.ok(mig.includes('(u.wynik_s < k.km * 180 or u.wynik_s > k.km * 2160)'), 'próg wiarygodności w bazie: 3:00/km i 36:00/km');
+  assert.match(B.TEKSTY.wynik_weryfikacja, /3:00\/km albo wolniejsze niż 36:00\/km/, 'karta mówi oba progi');
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v2', 'wersja zostaje (push przed 31b, nikt jej nie zaakceptował)');
 });
 
-test('lista „ukończyli”: wynik ręczny bez czasu i miejsca, z dopiskiem; czas nie wychodzi nawet gdyby serwer go przysłał; dziecko bez dopisku; karta mówi, dlaczego nie ma miejsca', () => {
+test('lista „ukończyli” (20261206): wynik ręczny z czasem, miejscem i dopiskiem; bez czasu od serwera bez miejsca; dziecko bez dopisku; karta: ręczny, do weryfikacji, odrzucony', () => {
   const r = B.wierszUkonczyl({ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true }, false, false);
-  assert.match(r, /<span class="bw-dyst">5 km · <small class="bw-reczny">wynik ręczny<\/small><\/span>/); assert.doesNotMatch(r, /bw-czas|bw-pozycja/);
-  const zly = B.wierszUkonczyl({ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true, miejsce: 1, czas_s: 1200 }, false, false);
-  assert.doesNotMatch(zly, /20:00|bw-czas|miejsce 1/, 'ręczny nigdy z czasem'); assert.match(zly, /wynik ręczny/);
+  assert.match(r, /<span class="bw-dyst">5 km · <small class="bw-reczny">wynik ręczny<\/small><\/span>/); assert.doesNotMatch(r, /bw-czas|bw-pozycja/, 'serwer nie dał czasu: bez czasu');
+  const rr = B.wierszUkonczyl({ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true, miejsce: 1, czas_s: 1200 }, false, true);
+  assert.match(rr, /aria-label="miejsce 1">1\.<\/span>/); assert.match(rr, /<b class="bw-czas">20:00<\/b> · 5 km · <small class="bw-reczny">wynik ręczny<\/small>/, 'ręczny w rankingu z dopiskiem');
   assert.doesNotMatch(B.wierszUkonczyl({ numer: 8, imie: 'Zosia', dystans_km: 1.5, dziecko: true, reczny: true }, false, false), /wynik ręczny/);
   const z = B.wierszUkonczyl({ numer: 3, imie: 'Ewa', dystans_km: 5, dziecko: false, reczny: false, miejsce: 1, czas_s: 1500 }, false, true);
   assert.match(z, /<b class="bw-czas">25:00<\/b> · 5 km<\/span>/); assert.doesNotMatch(z, /wynik ręczny/);
-  assert.doesNotMatch(B.wierszUkonczyl({ numer: 3, imie: 'Ewa', dystans_km: 5, dziecko: false }, false, false), /wynik ręczny/, 'baza sprzed 20261203 (bez klucza): bez dopisku');
   const l = B.ukonczyliHtml({ razem: 2, lista: [{ numer: 7, imie: 'Ola', dystans_km: 5, dziecko: false, reczny: true, miejsce: 1, czas_s: 1200 }, { numer: 9, imie: 'Jan', dystans_km: 5, dziecko: false, reczny: true }] });
-  assert.doesNotMatch(l, /bw-wiersz--ranking/, 'same wyniki ręczne: lista bez kolumny miejsca');
+  assert.match(l, /bw-wiersz--ranking/, 'ręczny z miejscem: lista z kolumną miejsca');
   const ja = { id: 'j1', rodzaj: 'ja', imie: 'Ola', numer: 7, dystans_km: 5, wynik_dystans_km: 5, wynik_s: 1500, ukonczony_at: 'x', odznaka: 'zwykla' };
-  assert.match(B.wynikHtml({ ...ja, wynik_reczny: true }, BIEG({ faza: 'wyniki' })), /<p class="bw-drobne" data-wynik-reczny>Wynik ręczny: masz ukończenie i dyplom, bez miejsca w rankingu\. W ranking wchodzi tylko trening zapisany zegarkiem albo aplikacją z GPS\. Masz ten trening także z zegarka\? Wskaż go niżej\.<\/p>/);
+  assert.match(B.wynikHtml({ ...ja, wynik_reczny: true }, BIEG({ faza: 'wyniki' })), /<p class="bw-drobne" data-wynik-reczny>Wynik ręczny: przy zgodzie na ranking masz czas i miejsce na liście, z dopiskiem „wynik ręczny”\. Masz ten trening także z zegarka\? Wskaż go niżej, a dopisek zniknie\.<\/p>/);
   assert.match(B.wynikHtml({ ...ja, wynik_reczny: true }, BIEG({ faza: 'wyniki' })), /data-dyplom="j1"/, 'dyplom zostaje');
   for (const u of [{ ...ja, wynik_reczny: false }, ja, { id: 'd1', rodzaj: 'dziecko', imie: 'Zosia', numer: 8, dystans_wlasny_km: 1, ukonczony_at: 'x', wynik_reczny: true }]) assert.doesNotMatch(B.wynikHtml(u, BIEG({ faza: 'wyniki' })), /data-wynik-reczny/);
-  assert.match(czytaj('bieg.html'), /mojW && mojW\.wynik_reczny === true \? 'Zgoda zapisana\. Twój wynik jest ręczny, więc na liście zostaje bez czasu i miejsca\.'/, 'włączenie rankingu przy wyniku ręcznym nie obiecuje miejsca');
+  const w = B.wynikHtml({ ...ja, do_weryfikacji: true, weryfikacja: null }, BIEG({ faza: 'wyniki' }));
+  assert.match(w, /<p class="bw-drobne" data-wynik-weryfikacja>Wynik czeka na sprawdzenie przez organizatora \(tempo szybsze niż 3:00\/km albo wolniejsze niż 36:00\/km\)\. Ukończenie i dyplom już masz; do rankingu wynik trafi po sprawdzeniu\.<\/p>/); assert.match(w, /data-dyplom="j1"/);
+  assert.doesNotMatch(B.wynikHtml({ ...ja, do_weryfikacji: true, weryfikacja: 'zatwierdzony' }, BIEG({ faza: 'wyniki' })), /data-wynik-weryfikacja|data-wynik-odrzucony/, 'zatwierdzony: bez dopisku');
+  const o = B.wynikHtml({ ...ja, do_weryfikacji: true, weryfikacja: 'odrzucony' }, BIEG({ faza: 'wyniki' }));
+  assert.match(o, /<p class="bw-drobne bw-odrzucony" data-wynik-odrzucony>Organizator prosi o dowód tego wyniku \(np\. zapis z zegarka, zrzut z aplikacji\)\. Do czasu sprawdzenia wynik jest poza rankingiem; ukończenie i dyplom zostają\. Napisz do organizatora: <a href="mailto:/);
+  assert.doesNotMatch(o, /data-wynik-weryfikacja/);
+  assert.match(czytaj('bieg.html'), /mojW && mojW\.wynik_reczny === true \? 'Zgoda zapisana\. Twój czas i miejsce będą na liście z dopiskiem „wynik ręczny”\.' : 'Twój czas i miejsce będą na liście „ukończyli”\.'/, 'włączenie rankingu przy wyniku ręcznym: z dopiskiem');
 });
 
 test('17.11: trening dłuższy niż dystans: w karcie i na dyplomie prawdziwy dystans i czas; karta mówi, że lista jest bez czasu; lista treningów pokazuje, co jest z zegarka', () => {
@@ -170,7 +180,7 @@ test('17.11: trening dłuższy niż dystans: w karcie i na dyplomie prawdziwy dy
   assert.equal(B.wynikOpis({ ...ja, wynik_trening_km: 10 }), '10 km · 48:20 · 4:50 /km', 'nie „5 km · 48:20 · 9:40”');
   assert.equal(B.wynikOpis({ ...ja, wynik_trening_km: 5.2, wynik_s: 1560 }), '5,2 km · 26:00 · 5:00 /km'); assert.equal(B.wynikOpis(ja), '5 km · 48:20 · 9:40 /km', 'baza sprzed 20261203: jak dotąd');
   assert.equal(B.dystansWyniku({ ...ja, wynik_trening_km: 10.2 }), 10.2); assert.equal(B.dystansWyniku(ja), 5);
-  assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 5.49 }), false); assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 5.5 }), true); assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 10, wynik_reczny: true }), false, 'ręczny ma własny dopisek');
+  assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 5.49 }), false); assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 5.5 }), true); assert.equal(B.zaDlugiDoRankingu({ ...ja, wynik_trening_km: 10, wynik_reczny: true }), true, '20261206: długi wpis ręczny też poza rankingiem');
   assert.equal(B.zaDlugiDoRankingu(ja), false); assert.equal(B.zaDlugiDoRankingu({ rodzaj: 'dziecko', wynik_trening_km: 9, wynik_dystans_km: 5 }), false);
   const k = B.wynikHtml({ ...ja, wynik_trening_km: 10 }, BIEG({ faza: 'wyniki' }));
   assert.match(k, /Ukończony: <b>10 km · 48:20 · 4:50 \/km<\/b>/); assert.match(k, /<p class="bw-drobne" data-wynik-za-dlugi>Trening dłuższy niż 5,49 km: masz ukończenie i dyplom z prawdziwym dystansem i czasem, a na liście jesteś bez czasu\. Ranking liczy treningi do 5,49 km\.<\/p>/);
