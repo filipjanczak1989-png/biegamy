@@ -118,5 +118,64 @@ begin
   if (j->>'w_rankingu')::int <> 2 or (j->'lista'->1->>'numer')::int <> 2 or (j->'lista'->1->>'miejsce')::int <> 2 then raise exception 'FAIL 7b: ranking po zmianach: 1500 s i 1860 s: %', j; end if;
   n := n + 2;
 
+  -- 8. DŁUGOŚĆ (17.11): w rankingu 5 km trening do 5,49 km włącznie; 5,50 km i 10 km dają ukończenie bez czasu i bez dopisku; „moje zapisy” oddają prawdziwy dystans treningu
+  if to_regprocedure('public.akcja_bieg_wynik_do_rankingu(public.akcja_bieg_uczestnicy)') is null then raise exception 'FAIL 8-0: brak funkcji akcja_bieg_wynik_do_rankingu'; end if;
+  if has_function_privilege('anon', 'public.akcja_bieg_wynik_do_rankingu(public.akcja_bieg_uczestnicy)', 'execute')
+     or has_function_privilege('authenticated', 'public.akcja_bieg_wynik_do_rankingu(public.akcja_bieg_uczestnicy)', 'execute') then raise exception 'FAIL 8-0b: reguła długości dostępna dla anon albo authenticated'; end if;
+  update public.training_logs set distance_km = 5.49 where id = l[1];
+  if public.akcja_bieg_czas_rankingu((select u from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.numer = 1), (select x from public.akcja_biegi x where x.id = b)) is distinct from 1500 then raise exception 'FAIL 8a: trening 5,49 km ma być w rankingu'; end if;
+  update public.training_logs set distance_km = 4.9 where id = l[1];
+  if public.akcja_bieg_czas_rankingu((select u from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.numer = 1), (select x from public.akcja_biegi x where x.id = b)) is distinct from 1500 then raise exception 'FAIL 8b: dolna granica bez zmian: 4,9 km w rankingu'; end if;
+  foreach v in array array['5.5', '10'] loop
+    update public.training_logs set distance_km = v::numeric where id = l[1];
+    perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+    execute 'set local role service_role';
+    j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
+    execute 'reset role';
+    select x into e from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1;
+    if e is null or e ? 'czas_s' or e ? 'miejsce' or (e->>'reczny')::boolean is not false then raise exception 'FAIL 8c: trening % km: na liście (ukończenie), bez czasu i bez dopisku: %', v, e; end if;
+    if (j->>'w_rankingu')::int <> 1 or (j->'lista'->0->>'numer')::int <> 2 or (j->'lista'->0->>'miejsce')::int <> 1 then raise exception 'FAIL 8d: po wypadnięciu długiego treningu pierwsze miejsce przechodzi dalej: %', j; end if;
+    perform set_config('request.jwt.claims', json_build_object('sub', ku[1], 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
+    k := public.akcja_bieg_moi('proba-bieg');
+    execute 'reset role';
+    select x into e from jsonb_array_elements(k) x where x->>'rodzaj' = 'ja';
+    if (e->>'wynik_trening_km')::numeric <> v::numeric or (e->>'wynik_dystans_km')::int <> 5 or (e->>'wynik_s')::int <> 1500 or (e->>'wynik_reczny')::boolean is not false then raise exception 'FAIL 8e: moje zapisy: prawdziwy dystans treningu % km, zaliczone 5 km, czas bez zmian: %', v, e; end if;
+    n := n + 3;
+  end loop;
+  if (select x->'wynik_trening_km' from jsonb_array_elements(k) x where x->>'rodzaj' = 'dziecko') is distinct from 'null'::jsonb then raise exception 'FAIL 8f: dziecko bez dystansu treningu'; end if;
+  update public.training_logs set distance_km = 5.1 where id = l[1];
+  n := n + 4;
+
+  -- 9. WSKAZANIE (17.11): wpis ręczny z dopisanym zapisem z zegarka (konto 6) z automatu zostaje ręczny; wskazany przez uczestnika wchodzi do rankingu; wpis ze zdjęcia (konto 3) nawet wskazany zostaje ręczny
+  j := public.akcja_bieg_wynik_z_treningu((select id from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 6), null);
+  if (j->>'ok')::boolean is not true or (select wynik_wskazany from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 6) then raise exception 'FAIL 9a: automat nie oznacza wyniku jako wskazany: %', j; end if;
+  if public.akcja_bieg_czas_rankingu((select u from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.numer = 6), (select x from public.akcja_biegi x where x.id = b)) is not null then raise exception 'FAIL 9b: wpis ręczny z dopisanym zegarkiem bez wskazania w rankingu'; end if;
+  j := public.akcja_bieg_wynik_z_treningu((select id from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 6), l[6]);
+  if (j->>'ok')::boolean is not true or not (select wynik_wskazany from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 6) then raise exception 'FAIL 9c: wskazany trening ma ustawić wynik_wskazany: %', j; end if;
+  if public.akcja_bieg_czas_rankingu((select u from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.numer = 6), (select x from public.akcja_biegi x where x.id = b)) is distinct from 1500 then raise exception 'FAIL 9d: wskazany wpis z dopisanym zegarkiem ma wejść do rankingu z 25:00'; end if;
+  j := public.akcja_bieg_wynik_z_treningu((select id from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 3), l[3]);
+  if (j->>'ok')::boolean is not true or public.akcja_bieg_czas_rankingu((select u from public.akcja_bieg_uczestnicy u where u.bieg_id = b and u.numer = 3), (select x from public.akcja_biegi x where x.id = b)) is not null
+    then raise exception 'FAIL 9e: wpis ze zdjęcia, nawet wskazany, nie wchodzi do rankingu: %', j; end if;
+  n := n + 5;
+
+  -- 10. AUTOMAT wybiera najpierw trening, który wejdzie do rankingu: konto 9 ma z zegarka 5,1 km (25:00) i dostaje szybszy tempem 10 km (40:00) → wynik z 5,1 km
+  insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id)
+    values (ka[9], 10, '40:00', 'Spokojny', 'Run', ((DZIS - 1)::timestamp + interval '16 hours') at time zone 'Europe/Warsaw', 'intervals', 'test-bieg', 'tbr-9d');
+  update public.akcja_bieg_uczestnicy set ukonczony_at = null, wynik_s = null, wynik_dystans_km = null, wynik_log_id = null, odznaka = 'brak' where bieg_id = b and numer = 9;
+  j := public.akcja_bieg_wynik_z_treningu((select id from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 9), null);
+  if (j->>'log_id')::uuid is distinct from l[9] or (j->>'wynik_s')::int <> 1500 then raise exception 'FAIL 10a: automat ma wybrać trening z zakresu rankingu (5,1 km), nie szybszy 10 km: %', j; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[6], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_treningi_z_okna('proba-bieg');
+  execute 'reset role';
+  if jsonb_array_length(j) <> 1 or (j->0->>'z_zegarka')::boolean is not true then raise exception 'FAIL 10b: treningi konta 6: wpis z dopisanym zegarkiem ma z_zegarka: %', j; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[3], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  j := public.akcja_bieg_treningi_z_okna('proba-bieg');
+  execute 'reset role';
+  if jsonb_array_length(j) <> 1 or (j->0->>'z_zegarka')::boolean is not false or j->0->>'zalicza_km' <> '5' then raise exception 'FAIL 10c: treningi konta 3: wpis ze zdjęcia bez z_zegarka: %', j; end if;
+  n := n + 3;
+
   raise exception 'TESTY RANKINGU Z ZEGARKA ZIELONE: % sprawdzeń', n;
 end $test$;
