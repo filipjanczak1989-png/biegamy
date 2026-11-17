@@ -438,23 +438,29 @@ document.addEventListener('DOMContentLoaded', function () {
     return udostepnijObraz(kanwy[id], 'numer-startowy-' + id.slice(0, 8) + '.png', 'Mój numer startowy');
   }
   document.addEventListener('click', function (e) { var u = e.target.closest('[data-udostepnij]'); if (!u) return; e.preventDefault(); udostepnijNumer(u.getAttribute('data-udostepnij')); });
+  /* 20261206: dyplom do udostępnienia i A4 rysowane w chwili kliknięcia z bieżącego zapisu (moi), nie z obrazu sprzed zmiany wyniku; bez ukończenia nic */
+  function dyplomTeraz(id, format) {
+    var u = mojZapis(id); if (!u || B.stanWyniku(u, bieg) !== 'gotowy') return null;
+    try { var k = B.dyplom(u, bieg, format, obrazy); if (format === 'telefon') kanwyDyplomu[id] = k; return { k: k, nazwa: B.nazwaPlikuDyplomu(u, format, bieg) }; } catch (er) { return null; }
+  }
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-dyplom-udostepnij]'); if (t) { var id = t.getAttribute('data-dyplom-udostepnij'); udostepnijObraz(kanwyDyplomu[id], 'dyplom-' + id.slice(0, 8) + '.png', 'Mój dyplom'); return; }
+    var t = e.target.closest('[data-dyplom-udostepnij]'); if (t) { var d = dyplomTeraz(t.getAttribute('data-dyplom-udostepnij'), 'telefon'); if (d) udostepnijObraz(d.k, d.nazwa, 'Mój dyplom'); return; }
     var a4 = e.target.closest('[data-dyplom-a4]'); if (!a4) return;
-    var u = mojZapis(a4.getAttribute('data-dyplom-a4')); if (!u) return;
-    try { doBloba(B.dyplom(u, bieg, 'a4', obrazy)).then(function (blob) { pobierzPlik(blob, 'dyplom-a4-' + u.id.slice(0, 8) + '.png'); }); } catch (er) {}
+    var d4 = dyplomTeraz(a4.getAttribute('data-dyplom-a4'), 'a4'); if (!d4) return;
+    doBloba(d4.k).then(function (blob) { pobierzPlik(blob, d4.nazwa); });
   });
   /* usterka 9: ten sam stan karty = bez przerysowania (wpisany dystans dziecka, komunikaty i obrazy zostają); inny stan = przerysowanie z odtworzeniem pól (B.zapiszPola / B.odtworzPola) */
   var ostatniaKarta = '';
   function rysujMoj() {
     var s = $('bw-moj'), t = $('bw-moj-tresc');
-    if (!stan || (!stan.ja && !stan.dzieci.length)) { s.hidden = true; t.innerHTML = ''; ostatniaKarta = ''; return; }
+    if (!stan || (!stan.ja && !stan.dzieci.length)) { s.hidden = true; t.innerHTML = ''; ostatniaKarta = ''; kanwyDyplomu = {}; return; }
     s.hidden = false;
-    var lista = (stan.ja ? [stan.ja] : []).concat(stan.dzieci), html = lista.map(uczestnikHtml).join(''), klucz = html + '|' + [bieg.nazwa, bieg.dzien_od, bieg.dzien_do].join('|');
+    var lista = (stan.ja ? [stan.ja] : []).concat(stan.dzieci), html = lista.map(uczestnikHtml).join(''), klucz = html + '|' + [bieg.nazwa, bieg.dzien_od, bieg.dzien_do].join('|') + '|' + lista.map(function (u) { return B.podpisDyplomu(u, bieg); }).join('#');   // 20261206: klucz idzie też za wynikiem
     if (klucz !== ostatniaKarta) {
       var pola = B.zapiszPola(t);
       t.innerHTML = html; ostatniaKarta = klucz;
       B.odtworzPola(t, pola);
+      kanwyDyplomu = {};   // 20261206: stary dyplom znika razem ze starą kartą (także gdy nowego nie da się narysować)
       t.querySelectorAll('[data-ranking-wl]').forEach(function (c) { c.checked = true; });   // stan zapisanej zgody, ustawiany po narysowaniu (w HTML nic nie jest zaznaczone z góry)
       gotoweGrafiki.then(function () {
         lista.forEach(function (u) {
@@ -652,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   odswiez().then(podglad);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { probowane = {}; odswiez(); } });   // powrót z Dziś po dopisaniu treningu: automat próbuje jeszcze raz
+  window.addEventListener('pageshow', function (e) { if (e && e.persisted) { probowane = {}; odswiez(); } });   // 20261206: powrót „wstecz” z pamięci przeglądarki (np. z dzwonka) też czyta wynik od nowa
 });
 </script>
 </body>

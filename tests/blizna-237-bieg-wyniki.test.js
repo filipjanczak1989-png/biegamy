@@ -144,7 +144,7 @@ test('js/bieg.mjs: stan wyniku z fazy, opis wyniku, dystans dziecka, blok wyniku
 test('js/bieg-panel.mjs: bez innerHTML, bez czasów w stanie, walidacja czasu i dystansu; trener.html: sekcja i skrypt', async () => {
   const src = czytaj('js/bieg-panel.mjs').replace(/^\s*\/\/[^\n]*/gm, '');
   assert.doesNotMatch(src, /innerHTML|insertAdjacentHTML|outerHTML/, 'imiona niezaufane: tylko textContent');
-  assert.deepEqual([...src.matchAll(/wolaj\("([a-z_]+)"/g)].map((x) => x[1]).sort(), ['akcja_bieg_panel', 'akcja_bieg_zalicz_recznie']);
+  assert.deepEqual([...src.matchAll(/wolaj\("([a-z_]+)"/g)].map((x) => x[1]).sort(), ['akcja_bieg_panel', 'akcja_bieg_usun_wynik', 'akcja_bieg_zalicz_recznie'], 'usuń wynik: 20261206 (blizna-281)');
   globalThis.document = { readyState: 'complete', getElementById: () => null, addEventListener() {} };
   await import(pathToFileURL(path.join(KORZEN, 'js/bieg-panel.mjs')).href);
   const P = globalThis.BM_BIEG_PANEL;

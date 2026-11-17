@@ -55,6 +55,7 @@
     zgoda_imie_dziecka_pole: "Pokaż imię dziecka na liście „ukończyli” (dobrowolne)",
     zgoda_imie_dziecka_pod: "Imię zawsze widzisz na numerze i dyplomie dziecka. Ta zgoda dotyczy tylko publicznej listy.",
     wynik_reczny: "Wynik ręczny: masz ukończenie i dyplom, bez miejsca w rankingu. W ranking wchodzi tylko trening zapisany zegarkiem albo aplikacją z GPS. Masz ten trening także z zegarka? Wskaż go niżej.",
+    wynik_usuniety: "Zgodnie z § 9 regulaminu nie ma dyplomu ani miejsca na liście. Jeśli to pomyłka, napisz do organizatora:",
     wynik_za_dlugi: "Trening dłuższy niż {gorna} km: masz ukończenie i dyplom z prawdziwym dystansem i czasem, a na liście jesteś bez czasu. Ranking liczy treningi do {gorna} km.",
     bez_wpisowego: "Udział jest bezpłatny. Nie ma wpisowego, medali ani pakietów. Kto chce, wspiera zbiórkę bezpośrednio u organizacji, która ją prowadzi; BiegaMy nic nie przyjmuje i nie widzi wpłat.",
     czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking{osobno_dla} i mają wynik z zegarka albo aplikacji z GPS{z_treningu}. Pozostali są na liście bez czasu (wynik wpisany ręcznie z dopiskiem „wynik ręczny”, dłuższy trening bez dopisku), a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
@@ -403,6 +404,7 @@
   /** 'przed' (wynik jeszcze nie), 'brak' (można dopisać), 'gotowy' (ukończony), 'zamkniety' (po terminie, bez wyniku). */
   function stanWyniku(u, bieg) {
     if (u && u.ukonczony_at) return "gotowy";
+    if (u && u.wynik_usuniety === true) return "usuniety";   /* 20261206: wynik usunięty przez organizatora (§ 9 ust. 3–4), bez dyplomu; automat go nie przywraca */
     var f = faza(bieg);
     return f === "trwa" || f === "wyniki" ? "brak" : f === "zakonczony" ? "zamkniety" : "przed";
   }
@@ -436,6 +438,11 @@
       if (!dziecko && u.wynik_reczny === true) h += '<p class="bw-drobne" data-wynik-reczny>' + esc(TEKSTY.wynik_reczny) + '</p>';   // 20261203: ranking tylko z zegarka
       if (zaDlugiDoRankingu(u)) h += '<p class="bw-drobne" data-wynik-za-dlugi>' + esc(wypelnij(TEKSTY.wynik_za_dlugi, { gorna: liczba(Number(u.wynik_dystans_km) + 0.49, 2) })) + '</p>';
       return h + '</div>';
+    }
+    if (st === "usuniety") {
+      h += '<p class="bw-wynik-tytul" data-wynik-usuniety>' + (dziecko ? "Organizator usunął wynik dziecka" : "Organizator usunął Twój wynik") + '</p>';
+      if (u.wynik_usuniety_powod) h += '<p class="bw-opis">Powód: ' + esc(u.wynik_usuniety_powod) + '</p>';
+      return h + '<p class="bw-drobne">' + esc(TEKSTY.wynik_usuniety) + ' <a href="mailto:' + esc(KONTAKT) + '">' + esc(KONTAKT) + '</a>.</p></div>';
     }
     if (st === "przed") return h + '<p class="bw-opis">' + (dziecko ? "Po biegu wpiszesz tu, ile " + esc(u.imie) + " przeszło lub przebiegło." : "Po biegu wynik wejdzie tu sam z zegarka albo z treningu dopisanego na Dziś.") + '</p></div>';
     if (st === "zamkniety") return h + '<p class="bw-opis">Bieg zakończony bez wyniku. Jeśli to pomyłka, napisz do organizatora: <a href="mailto:' + esc(KONTAKT) + '">' + esc(KONTAKT) + '</a>.</p></div>';   // usterka 25: z adresem
@@ -497,7 +504,20 @@
   function komunikatWyniku(r) {
     var p = r && r.powod;
     return p === "brak_treningu" ? "Ten trening nie zalicza dystansu albo nie jest z weekendu biegu." : p === "poza_oknem" ? "Wyniki przyjmujemy od weekendu biegu do końca dopisywania wyników." :
-      p === "dystans" ? "Wpisz dystans od 0,1 do 100 km." : p === "nie_twoj" ? "To nie jest Twój zapis." : p === "nie_ma" ? "Nie znaleźliśmy tego zapisu. Odśwież stronę." : komunikatBledu(r);
+      p === "dystans" ? "Wpisz dystans od 0,1 do 100 km." : p === "nie_twoj" ? "To nie jest Twój zapis." : p === "nie_ma" ? "Nie znaleźliśmy tego zapisu. Odśwież stronę." :
+      p === "usuniety" ? "Organizator usunął wynik w tym biegu (§ 9 regulaminu). Jeśli to pomyłka, napisz do organizatora: " + KONTAKT + "." : komunikatBledu(r);
+  }
+  /** Wszystko, co rysuje dyplom (20261206): inny podpis = inny dyplom. Klucz karty w bieg.html i nazwa pliku idą za wynikiem, więc po zmianie wyniku nie zostaje stary obraz. */
+  function podpisDyplomu(u, bieg) {
+    var x = u || {}, b = bieg || {};
+    return [x.id, x.imie, x.numer, x.rodzaj, x.odznaka, x.ukonczony_at, x.wynik_s, x.wynik_dystans_km, x.wynik_trening_km, x.dystans_km, x.dystans_wlasny_km, b.nazwa, b.dzien_od, b.dzien_do]
+      .map(function (v) { return v == null ? "" : String(v); }).join("|");
+  }
+  /** „dyplom-ab12cd34-k3f9a1.png”: 8 znaków id uczestnika i skrót wyniku. Ten sam wynik = ta sama nazwa; po poprawce nowy plik nie myli się ze starym w Pobranych. */
+  function nazwaPlikuDyplomu(u, format, bieg) {
+    var s = podpisDyplomu(u, bieg), h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return "dyplom-" + (format === "a4" ? "a4-" : "") + String((u && u.id) || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 8) + "-" + h.toString(36).slice(0, 6) + ".png";
   }
   /** „Wycofaj” (usterka 6): potwierdzenie, jedno zapytanie na raz dla zapisu (kliknięcie w trakcie nic nie wysyła), polski tekst odmowy i odświeżenie strony
    *  także po odmowie (cron co godzinę zalicza wyniki, więc zapis mógł w tym czasie zostać ukończony). z = { potwierdz(t), rpc(nazwa, args), pokaz(t), odswiez() }. */
@@ -553,5 +573,5 @@
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
     dystanseBiegu: dystanseBiegu, dystanseSlownie: dystanseSlownie, dystanseKrotko: dystanseKrotko, tekstyDystansow: tekstyDystansow, dystanseHtml: dystanseHtml, wyborDystansuHtml: wyborDystansuHtml, dystansZapisu: dystansZapisu,
     liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,
-    numerStartowy: numerStartowy, dyplom: dyplom, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
+    numerStartowy: numerStartowy, dyplom: dyplom, podpisDyplomu: podpisDyplomu, nazwaPlikuDyplomu: nazwaPlikuDyplomu, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
 })(typeof globalThis !== "undefined" ? globalThis : window);
