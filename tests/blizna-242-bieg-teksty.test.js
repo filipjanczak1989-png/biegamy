@@ -17,7 +17,7 @@ const LINK = 'https://example.org/zbiorka';
 test('wartości z bazy: komplet = obiekt; każde brakujące pole, zła data, link bez https albo inna wersja = null (WKRÓTCE)', () => {
   const B = modul(), w = B.wartosciTekstow(BIEG(), { imie: 'Janek' }, LINK);
   assert.deepEqual(JSON.parse(JSON.stringify(w)), { nazwa: 'Bieg na Mikołajki', imie: 'Janek', od: 'soboty, 5 grudnia 2026', do: 'niedzieli, 6 grudnia 2026', wynik_do: 'wtorku, 8 grudnia 2026', link: LINK, wersja: '2026-11-v2', od_kiedy: '18 listopada 2026',
-    dystanse: '5 km albo 10 km', ranking_dystanse: 'na 5 i 10 km (osobno dla każdego dystansu)' });
+    dystanse: '5 km albo 10 km', ranking_dystanse: 'na 5 i 10 km (osobno dla każdego dystansu)', ranking_zakres: 'od 5 km do 5,49 km albo od 10 km do 10,49 km' });
   for (const [opis, b, l, link] of [
     ['bez nazwy', BIEG({ nazwa: '' }), { imie: 'Janek' }, LINK], ['bez imienia', BIEG(), {}, LINK], ['imię ze spacji', BIEG(), { imie: '  ' }, LINK],
     ['bez dzien_od', BIEG({ dzien_od: null }), { imie: 'Janek' }, LINK], ['bez dzien_do', BIEG({ dzien_do: undefined }), { imie: 'Janek' }, LINK],
@@ -43,7 +43,7 @@ test('regulamin: 13 paragrafów z nagłówkami, punkty numerowane, oświadczenie
   assert.doesNotMatch(tekst, /\{[a-z_]+\}/); assert.match(tekst, /\n$/); assert.match(tekst, /\n§ 13\. Postanowienia końcowe\n1\. Regulamin jest dostępny na stronie biegu przed zapisem i można go pobrać\./);
   assert.match(tekst, /\n- Ranking: Pokaż mnie w rankingu z czasem i miejscem\. Mam ukończone 18 lat\./);
   /* wszystkie znaczniki z tekstów Filipa są wypełniane */
-  const zr = JSON.stringify(B.REGULAMIN); assert.deepEqual([...new Set(zr.match(/\{[a-z_]+\}/g))].sort(), ['{do}', '{dystanse}', '{imie}', '{link}', '{nazwa}', '{od_kiedy}', '{od}', '{ranking_dystanse}', '{wersja}', '{wynik_do}']);
+  const zr = JSON.stringify(B.REGULAMIN); assert.deepEqual([...new Set(zr.match(/\{[a-z_]+\}/g))].sort(), ['{do}', '{dystanse}', '{imie}', '{link}', '{nazwa}', '{od_kiedy}', '{od}', '{ranking_dystanse}', '{ranking_zakres}', '{wersja}', '{wynik_do}']);
   for (const [k, v] of Object.entries(B.TEKSTY_KROTKIE)) { assert.ok(v.length <= 200, k + ': ' + v.length + ' znaków'); assert.doesNotMatch(v, /\{/, k); }
 });
 

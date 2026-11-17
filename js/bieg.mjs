@@ -11,7 +11,7 @@
   var ZASADY = { wiek_konta: 16, limit_dzieci: 6, max_zapisow_ja: 3, wynik_do_dni: 2, ukonczyli_na_strone: 50 };   // dystanse tylko z bazy (bieg.dystanse_km, dystanseBiegu), decyzja 16.11
   var KONTAKT = "biegamy.run@gmail.com";   // publiczny adres BiegaMy, ten sam co w stopce dla-fabianka.html
   /* ── TEKSTY BIEGU (14.11, plik „teksty-biegu-do-zaslepek.md” od organizatora, słowo w słowo) ── znaczniki {nazwa} {imie} {od} {do} {wynik_do} {link} {wersja} {od_kiedy}
-     {dystanse} {ranking_dystanse} wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
+     {dystanse} {ranking_dystanse} {ranking_zakres} wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
      Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”.
      v2 (16.11, decyzja Filipa: prawdziwy bieg ma jeden dystans, 5 km): § 2 i § 5 bez „5 km albo 10 km” na sztywno, dystanse z bieg.dystanse_km. */
   var WERSJA_TEKSTOW = "2026-11-v2";
@@ -23,7 +23,7 @@
       { naglowek: "§ 2. Termin i dystans", punkty: ["Bieg trwa od {od} do {do}.", "Dystans: {dystanse}, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {wynik_do}, godz. 23:59."] },
       { naglowek: "§ 3. Kto może wziąć udział", punkty: ["Udział jest bezpłatny. Nie ma wpisowego ani żadnej innej opłaty.", "Uczestnikiem z własnym kontem może być osoba, która ukończyła 16 lat i ma konto w BiegaMy.", "Dziecko poniżej 16 lat bierze udział wyłącznie jako dopisane przez rodzica albo opiekuna prawnego z jego konta, pod jego opieką i na jego odpowiedzialność. Jedno konto może dopisać najwyżej 6 dzieci.", "Dziecko pokonuje dystans dobrany przez rodzica („swój dystans”)."] },
       { naglowek: "§ 4. Zapis", punkty: ["Zapis odbywa się w aplikacji i wymaga akceptacji tego regulaminu.", "Po zapisie uczestnik dostaje numer startowy w aplikacji. Dopisane dziecko dostaje własny numer.", "Z zapisu można zrezygnować w każdej chwili w aplikacji, bez podawania przyczyny. Numer startowy po rezygnacji przepada i nie wraca do puli: przy ponownym zapisie uczestnik dostaje nowy numer."] },
-      { naglowek: "§ 5. Wynik i ukończenie", punkty: ["Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej {dystanse}. Trening może pochodzić z zegarka albo być wpisany ręcznie.", "Jeżeli uczestnik ma kilka pasujących treningów, aplikacja wybiera najlepszy. Uczestnik może wskazać inny.", "Ukończenie przez dziecko potwierdza rodzic, podając pokonany dystans.", "W sprawach spornych o ukończeniu rozstrzyga Organizator i może zaliczyć bieg ręcznie.", "Bieg nie ma nagród. Ranking czasów {ranking_dystanse} obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu i mają wynik z treningu zapisanego zegarkiem albo aplikacją z GPS (§ 9 ust. 2). Czas pozostałych uczestników nie jest publikowany. Dzieci nigdy nie są w rankingu."] },
+      { naglowek: "§ 5. Wynik i ukończenie", punkty: ["Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej {dystanse}. Trening może pochodzić z zegarka albo być wpisany ręcznie.", "Jeżeli uczestnik ma kilka pasujących treningów, aplikacja wybiera najlepszy. Uczestnik może wskazać inny.", "Ukończenie przez dziecko potwierdza rodzic, podając pokonany dystans.", "W sprawach spornych o ukończeniu rozstrzyga Organizator i może zaliczyć bieg ręcznie.", "Bieg nie ma nagród. Ranking czasów {ranking_dystanse} obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu i mają wynik z treningu zapisanego zegarkiem albo aplikacją z GPS (§ 9 ust. 2). W rankingu liczy się trening {ranking_zakres}; dłuższy trening daje ukończenie i dyplom z prawdziwym dystansem i czasem, bez miejsca w rankingu. Czas pozostałych uczestników nie jest publikowany. Dzieci nigdy nie są w rankingu."] },
       { naglowek: "§ 6. Dyplom, odznaki i wsparcie Zbiórki", punkty: ["Każdy, kto ukończy bieg, dostaje w aplikacji dyplom i odznakę. Mają one postać wyłącznie cyfrową.", "Wsparcie Zbiórki jest dobrowolne i nie jest warunkiem zapisu, udziału ani ukończenia biegu.", "Uczestnik, który wsparł Zbiórkę dowolną kwotą i przesłał Organizatorowi potwierdzenie wpłaty, dostaje złotą wersję odznaki oraz cegiełkę w murze ulicy. Odznaka pojawia się po sprawdzeniu potwierdzenia.", "Kwota wpłaty nie jest publikowana. Potwierdzenie wpłaty Organizator usuwa po sprawdzeniu, najpóźniej po 14 dniach."] },
       { naglowek: "§ 7. Bezpieczeństwo", punkty: ["Uczestnik sam wybiera trasę, porę i tempo oraz bierze udział na własną odpowiedzialność.", "Zapisując się, uczestnik potwierdza, że jego stan zdrowia pozwala na udział. Rodzic potwierdza to samo za dopisane dziecko.", "Uczestnik przestrzega przepisów ruchu drogowego i zasad bezpieczeństwa w miejscu, w którym biegnie.", "Organizator nie wyznacza ani nie zabezpiecza tras, nie zapewnia opieki medycznej ani ubezpieczenia.", "Postanowienia tego paragrafu nie ograniczają odpowiedzialności, której według prawa nie można wyłączyć."] },
       { naglowek: "§ 8. Lista osób, które ukończyły, i dane osobowe", punkty: ["Na stronie biegu widoczne są liczby zbiorcze oraz lista osób, które ukończyły: imię, numer startowy i dystans. Imię pojawia się tylko za zgodą uczestnika, a imię dziecka tylko za zgodą rodzica. U osób, które zgodziły się na ranking i mają wynik z zegarka albo aplikacji z GPS, lista pokazuje także czas i miejsce. Przy wyniku wpisanym ręcznie lista pokazuje dopisek „wynik ręczny”. Zgodę na ranking można wycofać w aplikacji w każdej chwili.", "Administratorem danych uczestników jest Organizator. Zasady opisuje Polityka prywatności BiegaMy.", "Opiekun dziecka i organizacja prowadząca Zbiórkę mogą otrzymać wyłącznie liczby zbiorcze. Nie otrzymują imion, adresów e-mail ani żadnych innych danych uczestników.", "Dane zapisów Organizator usuwa po 90 dniach od zakończenia biegu. Zostają liczby zbiorcze, zdobyte odznaki i imiona na liście, na które wyrażono zgodę."] },
@@ -54,9 +54,10 @@
     oswiadczenie_pole: "Jestem rodzicem lub opiekunem tego dziecka i składam oświadczenie (wymagane)",
     zgoda_imie_dziecka_pole: "Pokaż imię dziecka na liście „ukończyli” (dobrowolne)",
     zgoda_imie_dziecka_pod: "Imię zawsze widzisz na numerze i dyplomie dziecka. Ta zgoda dotyczy tylko publicznej listy.",
-    wynik_reczny: "Wynik ręczny: masz ukończenie i dyplom, bez miejsca w rankingu. W ranking wchodzi tylko trening zapisany zegarkiem albo aplikacją z GPS.",
+    wynik_reczny: "Wynik ręczny: masz ukończenie i dyplom, bez miejsca w rankingu. W ranking wchodzi tylko trening zapisany zegarkiem albo aplikacją z GPS. Masz ten trening także z zegarka? Wskaż go niżej.",
+    wynik_za_dlugi: "Trening dłuższy niż {gorna} km: masz ukończenie i dyplom z prawdziwym dystansem i czasem, a na liście jesteś bez czasu. Ranking liczy treningi do {gorna} km.",
     bez_wpisowego: "Udział jest bezpłatny. Nie ma wpisowego, medali ani pakietów. Kto chce, wspiera zbiórkę bezpośrednio u organizacji, która ją prowadzi; BiegaMy nic nie przyjmuje i nie widzi wpłat.",
-    czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking{osobno_dla} i mają wynik z zegarka albo aplikacji z GPS. Pozostali są na liście bez czasu (wynik wpisany ręcznie z dopiskiem „wynik ręczny”), a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
+    czasy_prywatne: "Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce tylko u pełnoletnich, którzy włączyli ranking{osobno_dla} i mają wynik z zegarka albo aplikacji z GPS{z_treningu}. Pozostali są na liście bez czasu (wynik wpisany ręcznie z dopiskiem „wynik ręczny”, dłuższy trening bez dopisku), a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.",
     dzieci: "Dziecko dopisuje rodzic z własnego konta: samo imię, bez konta dziecka. Dziecko biegnie albo idzie swój dystans, dostaje numer i dyplom bez czasu.",
     wesprzyj_pod: "Wpłata idzie w całości do organizacji prowadzącej zbiórkę, poza BiegaMy. Kwoty nie sprawdzamy i nigdzie nie pokazujemy."
   };
@@ -109,11 +110,13 @@
   function dystanseSlownie(l, spojnik) { return zSpojnikiem(l.map(function (d) { return km(d) + " km"; }), spojnik || "albo"); }
   /** [5] → „5 km”, [5, 10] → „5 albo 10 km” (teksty strony). */
   function dystanseKrotko(l, spojnik) { return l.length ? zSpojnikiem(l.map(km), spojnik || "albo") + " km" : ""; }
+  /** Długość treningu, który wchodzi do rankingu: [5] → „od 5 km do 5,49 km”, [5, 10] → „od 5 km do 5,49 km albo od 10 km do 10,49 km” (górny próg = dystans + 0,49 km, jak w bazie). */
+  function zakresRankingu(l) { return zSpojnikiem(l.map(function (d) { return "od " + km(d) + " km do " + liczba(d + 0.49, 2) + " km"; }), "albo"); }
   var IKONY_DYSTANSU = { 5: "assets/bieg/bieg-dystans-5.svg", 10: "assets/bieg/bieg-dystans-10.svg" };
   function ikonaDystansu(d) { return IKONY_DYSTANSU[d] || IKONY_DYSTANSU[5]; }
   /** Teksty strony zależne od dystansów biegu: pod kartami, krok „Zapisz się”, opis okna zapisu, odmowa bez wyboru, etykieta rankingu, opis listy. */
   function tekstyDystansow(bieg) {
-    var l = dystanseBiegu(bieg), wiele = l.length > 1, i = wiele ? dystanseKrotko(l, "i") : "", zn = { osobno: i ? ", osobno " + i : "", osobno_dla: i ? ", osobno dla " + i : "" };
+    var l = dystanseBiegu(bieg), wiele = l.length > 1, i = wiele ? dystanseKrotko(l, "i") : "", zn = { osobno: i ? ", osobno " + i : "", osobno_dla: i ? ", osobno dla " + i : "", z_treningu: l.length ? " z treningu " + zakresRankingu(l) : "" };
     var wynik = "Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po biegu. Zapisać można się też jeszcze w tym czasie.", max = l.length ? km(l[l.length - 1]) : "";
     return {
       karty_pod: (wiele ? "Zapis na " + km(l[0]) + " km, a zrobione " + max + "? Dyplom na " + max + ". " : l.length ? "Liczy się trening co najmniej " + km(l[0]) + " km. " : "") + wynik,
@@ -166,7 +169,7 @@
     var tekst = function (v) { return typeof v === "string" ? v.trim() : ""; }, l = dystanseBiegu(bieg);
     var w = { nazwa: tekst(bieg.nazwa), imie: tekst(licznik.imie), od: dataZDniem(bieg.dzien_od), do: dataZDniem(bieg.dzien_do), wynik_do: dataZDniem(bieg.wynik_do),
       link: /^https:\/\//.test(tekst(link)) ? tekst(link) : "", wersja: tekst(bieg.regulamin_wersja), od_kiedy: dataZIso(bieg.regulamin_od) ? dataPolska(dataZIso(bieg.regulamin_od)) : "",
-      dystanse: dystanseSlownie(l), ranking_dystanse: !l.length ? "" : l.length > 1 ? "na " + dystanseKrotko(l, "i") + " (osobno dla każdego dystansu)" : "na " + dystanseKrotko(l) };
+      dystanse: dystanseSlownie(l), ranking_dystanse: !l.length ? "" : l.length > 1 ? "na " + dystanseKrotko(l, "i") + " (osobno dla każdego dystansu)" : "na " + dystanseKrotko(l), ranking_zakres: zakresRankingu(l) };
     for (var k in w) if (!w[k]) return null;
     return w.wersja === WERSJA_TEKSTOW ? w : null;
   }
@@ -339,7 +342,7 @@
   /** DYPLOM 'telefon' 1080×1350 albo 'a4' 1754×1240. u: { imie, numer, rodzaj, wynik_s, wynik_dystans_km, dystans_km, dystans_wlasny_km, ukonczony_at, odznaka }. Dziecko: bez czasu, „swój dystans”. */
   function dyplom(u, bieg, format, obrazy) {
     var a4 = format === "a4", W = a4 ? 1754 : 1080, H = a4 ? 1240 : 1350, k = nowyCanvas(W, H), c = k.getContext("2d"), los = losowy(7), dziecko = u.rodzaj === "dziecko", zlota = u.odznaka === "zlota";
-    var dyst = dziecko ? Number(u.dystans_wlasny_km) || 0 : Number(u.wynik_dystans_km || u.dystans_km) || 0, s = dziecko ? 0 : Number(u.wynik_s) || 0;
+    var dyst = dziecko ? Number(u.dystans_wlasny_km) || 0 : dystansWyniku(u), s = dziecko ? 0 : Number(u.wynik_s) || 0;
     var tlo = c.createLinearGradient(0, 0, 0, H); tlo.addColorStop(0, "#fffaf0"); tlo.addColorStop(1, "#f7e9cf"); c.fillStyle = tlo; c.fillRect(0, 0, W, H);
     var sx = a4 ? 0.82 : 1, cx = W / 2, y = a4 ? 150 : 200;
     var WYK = a4
@@ -353,9 +356,9 @@
     c.fillStyle = "#e8561e"; c.font = Math.round(150 * sx) + "px " + FONT_NAGL; c.fillText("DYPLOM", cx, y + (a4 ? 90 : 110));
     c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(30 * sx) + "px " + FONT_TEKST; c.fillText(dziecko ? "za ukończenie swojego dystansu" : "za ukończenie biegu", cx, y + (a4 ? 150 : 180));
     c.fillStyle = "#07070a"; tekstWSzer(c, u.imie || "", cx, y + (a4 ? 260 : 310), W - 240, FONT_NAGL, Math.round(130 * sx));
-    c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(34 * sx) + "px " + FONT_TEKST; tekstWSzer(c, String(bieg.nazwa || "Bieg wirtualny") + (dziecko ? " · swój dystans" : " · " + km(dyst) + " km"), cx, y + (a4 ? 320 : 380), W - 200, FONT_TEKST, Math.round(34 * sx), 500);
+    c.fillStyle = "#3a1d0a"; c.font = "500 " + Math.round(34 * sx) + "px " + FONT_TEKST; tekstWSzer(c, String(bieg.nazwa || "Bieg wirtualny") + (dziecko ? " · swój dystans" : " · " + liczba(dyst, 2) + " km"), cx, y + (a4 ? 320 : 380), W - 200, FONT_TEKST, Math.round(34 * sx), 500);
     var yy = y + (a4 ? 420 : 500), kol = a4 ? [cx - 420, cx, cx + 420] : [cx - 300, cx, cx + 300];
-    var wart = dziecko ? ["ukończono", km(dyst) + " km", zakresSlowny(bieg.dzien_od, bieg.dzien_do)] : [s ? czas(s) : "ukończono", s && dyst ? tempo(s, dyst).replace(" /km", "") : km(dyst), zakresSlowny(bieg.dzien_od, bieg.dzien_do)];
+    var wart = dziecko ? ["ukończono", km(dyst) + " km", zakresSlowny(bieg.dzien_od, bieg.dzien_do)] : [s ? czas(s) : "ukończono", s && dyst ? tempo(s, dyst).replace(" /km", "") : liczba(dyst, 2), zakresSlowny(bieg.dzien_od, bieg.dzien_do)];
     var pod = dziecko ? ["wynik", "swój dystans", "weekend biegu"] : [s ? "czas" : "wynik", s && dyst ? "tempo min/km" : "kilometry", "weekend biegu"];
     kol.forEach(function (x, i) {
       prost(c, x - (a4 ? 190 : 140), yy - (a4 ? 80 : 90), a4 ? 380 : 280, a4 ? 150 : 160, 22); c.fillStyle = "rgba(232,86,30,.08)"; c.fill(); c.strokeStyle = "#e8b48a"; c.lineWidth = 3; c.stroke();
@@ -404,10 +407,14 @@
     return f === "trwa" || f === "wyniki" ? "brak" : f === "zakonczony" ? "zamkniety" : "przed";
   }
   /** „10 km · 58:00 · 5:48 /km” (dorosły z czasem), „10 km” (bez czasu), „1,5 km · swój dystans” (dziecko). */
+  /** Dystans wyniku dorosłego: prawdziwy dystans treningu (wynik_trening_km z 20261203; 10 km przy biegu na 5 km), bez niego zaliczony dystans biegu. */
+  function dystansWyniku(u) { return Number(u && (u.wynik_trening_km || u.wynik_dystans_km || u.dystans_km)) || 0; }
+  /** Trening z zegarka dłuższy niż dystans biegu + 0,49 km: ukończenie jest, w rankingu go nie ma (decyzja 17.11). */
+  function zaDlugiDoRankingu(u) { var t = Number(u && u.wynik_trening_km) || 0, d = Number(u && u.wynik_dystans_km) || 0; return !!u && u.rodzaj !== "dziecko" && u.wynik_reczny !== true && d > 0 && t > d + 0.49; }
   function wynikOpis(u) {
     if (u.rodzaj === "dziecko") return km(u.dystans_wlasny_km) + " km · swój dystans";
-    var d = Number(u.wynik_dystans_km || u.dystans_km) || 0, s = Number(u.wynik_s) || 0;
-    return km(d) + " km" + (s ? " · " + czas(s) + " · " + tempo(s, d) : "");
+    var d = dystansWyniku(u), s = Number(u.wynik_s) || 0;
+    return liczba(d, 2) + " km" + (s ? " · " + czas(s) + " · " + tempo(s, d) : "");
   }
   /** Dystans dziecka z pola: „1,5” albo „1.5” → 1.5; poza 0,1–100 km albo śmieci → null. */
   function kmZPola(t) {
@@ -427,6 +434,7 @@
       if (faza(bieg) === "trwa" || faza(bieg) === "wyniki") h += dziecko ? '<a href="#" class="bw-link-maly" data-dziecko-popraw="' + id + '">Popraw dystans</a>' : '<a href="#" class="bw-link-maly" data-wskaz="' + id + '">Wskaż inny trening</a>';
       if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
       if (!dziecko && u.wynik_reczny === true) h += '<p class="bw-drobne" data-wynik-reczny>' + esc(TEKSTY.wynik_reczny) + '</p>';   // 20261203: ranking tylko z zegarka
+      if (zaDlugiDoRankingu(u)) h += '<p class="bw-drobne" data-wynik-za-dlugi>' + esc(wypelnij(TEKSTY.wynik_za_dlugi, { gorna: liczba(Number(u.wynik_dystans_km) + 0.49, 2) })) + '</p>';
       return h + '</div>';
     }
     if (st === "przed") return h + '<p class="bw-opis">' + (dziecko ? "Po biegu wpiszesz tu, ile " + esc(u.imie) + " przeszło lub przebiegło." : "Po biegu wynik wejdzie tu sam z zegarka albo z treningu dopisanego na Dziś.") + '</p></div>';
@@ -455,7 +463,7 @@
     if (!l.length) return '<p class="bw-opis">W weekendzie biegu nie ma Twoich treningów biegu ani marszu. Dopisz trening na Dziś albo poczekaj, aż wejdzie z zegarka.</p><a class="bw-przycisk" href="' + ADRES_DZIS + '">Dopisz trening na Dziś ›</a>';
     return '<ul class="bw-lista">' + l.map(function (t) {
       var zalicza = Number(t.zalicza_km) >= Number(u && u.dystans_km);
-      return '<li class="bw-trening"><span><b>' + esc(liczba(t.km, 2)) + ' km</b>'   /* dokładnie (10,2), nie zaokrąglone jak w liczbach strony: obok „Zalicz 10 km” */ + (t.czas_s ? ' · ' + esc(czas(t.czas_s)) : "") + '<small>' + esc(dataPolska(dataZIso(t.dzien))) + (t.typ ? ' · ' + esc(t.typ) : "") + '</small></span>' +
+      return '<li class="bw-trening"><span><b>' + esc(liczba(t.km, 2)) + ' km</b>'   /* dokładnie (10,2), nie zaokrąglone jak w liczbach strony: obok „Zalicz 10 km” */ + (t.czas_s ? ' · ' + esc(czas(t.czas_s)) : "") + '<small>' + esc(dataPolska(dataZIso(t.dzien))) + (t.typ ? ' · ' + esc(t.typ) : "") + (t.z_zegarka === true ? ' · z zegarka' : t.z_zegarka === false ? ' · wpis ręczny' : "") + '</small></span>' +
         (zalicza ? '<button type="button" class="bw-przycisk bw-przycisk--maly" data-wybierz-trening="' + esc(t.id) + '">Zalicz ' + esc(km(t.zalicza_km)) + ' km</button>' : '<em>za krótki na ' + esc(km(u && u.dystans_km)) + ' km</em>') + '</li>';
     }).join("") + '</ul>';
   }
@@ -537,7 +545,7 @@
   function tokenRezygnacji(search) { var m = /[?&]rezygnacja=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:&|$)/i.exec(String(search || "")); return m ? m[1].toLowerCase() : ""; }
 
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT,
-    stanWyniku: stanWyniku, wynikOpis: wynikOpis, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
+    stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
     WERSJA_TEKSTOW: WERSJA_TEKSTOW, DANE_ADMINISTRATORA: DANE_ADMINISTRATORA, REGULAMIN: REGULAMIN, TEKSTY_KROTKIE: TEKSTY_KROTKIE, wartosciTekstow: wartosciTekstow, brakiTekstow: brakiTekstow, dataZDniem: dataZDniem, wypelnij: wypelnij, regulaminBloki: regulaminBloki, regulaminTekst: regulaminTekst,
