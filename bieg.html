@@ -66,6 +66,9 @@
   .bw-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; } .bw-drobne a { color: var(--fg2); }
   .bw-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
   .bw-plakat { display: block; width: 100%; height: auto; aspect-ratio: 210 / 297; border-radius: 14px; margin: 0 0 12px; background: rgba(255,255,255,.04); }   /* 18.11: miejsce A4 od razu (loading=lazy) */
+  .bw-plakat-mini { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; color: var(--fg); text-decoration: none; }   /* 18.11: miniatura pod przyciskiem zapisu */
+  .bw-plakat-mini img { flex: none; width: 104px; height: auto; aspect-ratio: 210 / 297; border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.55); background: rgba(255,255,255,.04); object-fit: cover; }
+  .bw-plakat-mini span { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 15px; } .bw-plakat-mini small { font-weight: 400; font-size: 13px; color: var(--fg2); }
   .bw-uczestnik { padding: 14px 0 18px; border-top: 2px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }   /* wyraźna granica kart: link „Wycofaj” należy do karty nad kreską */
   .bw-reczny { font-size: 11px; color: var(--fg2); white-space: nowrap; } .bw-pod-zgoda { margin: 4px 2px 0; }
   .bw-uczestnik h3 { margin: 0 0 8px; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-uczestnik h3 small { font: 600 12px/1 Inter, sans-serif; color: var(--fg2); letter-spacing: 0; margin-left: 8px; }
@@ -171,6 +174,9 @@
       <button type="button" class="bw-przycisk" id="bw-ponow">Spróbuj ponownie</button>
     </div>
   </div>
+
+  <!-- 18.11: miniatura plakatu pod przyciskiem zapisu (B.plakatBiegu, tylko bieg-mikolajki); klik przewija do sekcji „Plakat”; obrazek się nie wczyta = miniatura znika -->
+  <a class="bw-plakat-mini" id="bw-plakat-mini" href="#bw-plakat-sekcja" hidden><img id="bw-plakat-mini-obraz" alt="Miniatura plakatu Wirtualnego Biegu Mikołajkowego" width="104" height="147" decoding="async"><span>Plakat biegu<small>Zobacz, pobierz PDF, udostępnij ›</small></span></a>
 
   <!-- karty z bieg.dystanse_km (B.dystanseHtml); bez biegu w liczniku sekcja schowana -->
   <section class="bw-sekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>
@@ -544,13 +550,15 @@ document.addEventListener('DOMContentLoaded', function () {
   /* 18.11: plakat biegu z B.plakatBiegu (tylko bieg-mikolajki). Obrazek ładowany raz na bieg; błąd wczytania chowa sekcję na stałe (do przeładowania strony). */
   var plakatSlug = null;
   function rysujPlakat() {
-    var p = bieg ? B.plakatBiegu(bieg.slug) : null, sek = $('bw-plakat-sekcja'), img = $('bw-plakat');
-    if (!p) { sek.hidden = true; plakatSlug = null; return; }
+    var p = bieg ? B.plakatBiegu(bieg.slug) : null, sek = $('bw-plakat-sekcja'), img = $('bw-plakat'), mini = $('bw-plakat-mini'), miniObraz = $('bw-plakat-mini-obraz');
+    if (!p) { sek.hidden = true; mini.hidden = true; plakatSlug = null; return; }
     if (plakatSlug === bieg.slug) return;
     plakatSlug = bieg.slug;
     img.onerror = function () { sek.hidden = true; };
+    miniObraz.onerror = function () { mini.hidden = true; };   // 18.11: ten sam plik co duża sekcja (przeglądarka pobiera raz)
     $('bw-plakat-pdf').href = p.pdf;
     sek.hidden = false; img.src = p.obraz;
+    mini.hidden = false; miniObraz.src = p.obraz;
   }
   $('bw-plakat-udostepnij').addEventListener('click', function () {
     var adres = B.ADRES_BIEGU, info = $('bw-plakat-info'), nazwa = bieg && bieg.nazwa ? String(bieg.nazwa) : 'Bieg wirtualny';
