@@ -1,4 +1,5 @@
-// Panel trenera: bieg wirtualny (20261126_akcja_bieg_wyniki). Lista uczestników (imię, numer, stan; bez czasów, kont i e-maili) i ręczne zaliczenie biegu.
+// Panel trenera: bieg wirtualny (20261126_akcja_bieg_wyniki). Lista uczestników (imię, numer, stan; bez kont i e-maili) i ręczne zaliczenie biegu.
+// 20261213 (decyzja 18.11): przy wyniku dystans treningu, czas, tempo i źródło (zegarek / wpis ręczny / organizator) — tylko w panelu, publicznie nie.
 // 20261206: flaga „do sprawdzenia” z bazy (powód słownie, filtr), „Usuń wynik” z powodem i potwierdzeniem (akcja_bieg_usun_wynik) i weryfikacja wyników do rankingu
 // (tempo spoza 3:00–36:00/km: „Zatwierdź” albo „Odrzuć” z prośbą o dowód, akcja_bieg_weryfikuj); licznik w nagłówku.
 // Plik BEZ import/export, jak js/firmy-panel.mjs. Dane z funkcji akcja_bieg_panel i akcja_bieg_zalicz_recznie (bramka trenera w bazie). Bez innerHTML: imiona są niezaufane.
@@ -10,6 +11,18 @@
   var POLE = "box-sizing:border-box;padding:10px;min-height:44px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--fg);font:inherit;font-size:15px;";
   var FAZA = { szkic: "szkic (niewidoczny)", zapisy: "zapisy", trwa: "trwa", wyniki: "dopisywanie wyników", zakonczony: "zakończony" };
   function km(x) { var n = Number(x) || 0; return (Math.round(n * 100) / 100).toLocaleString("pl-PL"); }
+  function czasPl(x) { var s = Math.round(Number(x) || 0), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sek = s % 60, p2 = function (v) { return (v < 10 ? "0" : "") + v; }; return h ? h + ":" + p2(m) + ":" + p2(sek) : m + ":" + p2(sek); }
+  var ZRODLA = { zegarek: "zegarek", "wpis ręczny": "wpis ręczny", organizator: "zaliczone przez organizatora" };
+  /** 20261213: szczegóły wyniku TYLKO dla organizatora (akcja_bieg_panel, bramka trenera w bazie): „10,01 km · 49:05 · 4:54/km · zegarek”; dziecko albo bez wyniku "". */
+  function szczegolyWyniku(u) {
+    if (!u || u.rodzaj === "dziecko" || !u.ukonczony || u.wycofany) return "";
+    var cz = [], k = Number(u.trening_km), s = Number(u.wynik_s);
+    if (k > 0) cz.push(km(k) + " km");
+    if (s > 0) cz.push(czasPl(s));
+    if (k > 0 && s > 0) cz.push(czasPl(s / k) + "/km");
+    if (Object.prototype.hasOwnProperty.call(ZRODLA, u.zrodlo)) cz.push(ZRODLA[u.zrodlo]);
+    return cz.join(" · ");
+  }
   function dzien(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || "")); return m ? Number(m[3]) + "." + Number(m[2]) + "." + m[1] : ""; }
   /** 18.11: koniec biegu i wyników z godziną (koniec_at z bazy, czas polski): „6.12.2026, godz. 20:00”; bez koniec_at "". */
   function koniecPl(iso) {
@@ -141,6 +154,8 @@
         var srodek = el("div", "flex:1;min-width:0;", gora);
         el("div", "font-size:15px;font-weight:800;color:var(--fg);overflow-wrap:anywhere;", srodek, x.imie + (x.rodzaj === "dziecko" ? " · dziecko" : " · " + x.dystans_km + " km"));
         el("div", "font-size:12px;color:" + (x.ukonczony ? "var(--fg)" : "var(--muted)") + ";", srodek, stanTekst(x));
+        var sz = szczegolyWyniku(x);
+        if (sz) { var sze = el("div", "font-size:12px;color:var(--fg2);overflow-wrap:anywhere;", srodek, sz); sze.setAttribute("data-wynik-szczegoly", "1"); }
         var flagi = doSprawdzenia(x);
         if (flagi.length) { var fl = el("div", "font-size:12px;font-weight:800;color:var(--red);margin-top:2px;overflow-wrap:anywhere;", srodek, "Do sprawdzenia: " + flagi.join(" · ")); fl.setAttribute("data-do-sprawdzenia", "1"); }
         var sw = stanWeryfikacji(x);
@@ -186,7 +201,7 @@
     sekcja.addEventListener("toggle", function () { if (sekcja.open && !wczytane) { wczytane = true; wczytaj(null); } });
     if (sekcja.open) { wczytane = true; wczytaj(null); }
   }
-  g.BM_BIEG_PANEL = { sekundy: sekundy, kmZPola: kmZPola, stanTekst: stanTekst, komunikat: komunikat, ostrzezenieMaili: ostrzezenieMaili, doSprawdzenia: doSprawdzenia, liczbaDoSprawdzenia: liczbaDoSprawdzenia,
+  g.BM_BIEG_PANEL = { szczegolyWyniku: szczegolyWyniku, sekundy: sekundy, kmZPola: kmZPola, stanTekst: stanTekst, komunikat: komunikat, ostrzezenieMaili: ostrzezenieMaili, doSprawdzenia: doSprawdzenia, liczbaDoSprawdzenia: liczbaDoSprawdzenia,
     pytanieUsuniecia: pytanieUsuniecia, sprawdzPowod: sprawdzPowod, usunWynik: usunWynik, rysuj: rysuj, czekaNaWeryfikacje: czekaNaWeryfikacje, liczbaDoWeryfikacji: liczbaDoWeryfikacji,
     stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj, koniecPl: koniecPl };
   if (g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", start); else start();

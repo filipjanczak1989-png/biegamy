@@ -142,6 +142,7 @@ begin
     j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
     execute 'reset role';
     select x into e from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1;
+    -- bieg tego testu ma regulamin v2: czas dłuższego treningu bez miejsca (20261213) dotyczy dopiero v4, tu lista bez czasu jak dotąd
     if e is null or e ? 'czas_s' or e ? 'miejsce' or (e->>'reczny')::boolean is not false then raise exception 'FAIL 8c: trening % km: na liście (ukończenie), bez czasu i bez dopisku: %', v, e; end if;
     if (j->>'w_rankingu')::int <> 7 - (to_regprocedure('public.akcja_bieg_wiszace_wyczysc()') is not null)::int or (j->'lista'->0->>'numer')::int <> 8 or (j->'lista'->0->>'miejsce')::int <> 1 or exists (select 1 from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1 and x ? 'miejsce')
       then raise exception 'FAIL 8d: długi trening wypada z rankingu, reszta zostaje: %', j; end if;

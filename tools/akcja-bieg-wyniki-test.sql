@@ -257,7 +257,8 @@ begin
   execute 'set local role authenticated';
   k := public.akcja_bieg_panel('proba-wyniki');
   if k->'bieg'->>'slug' <> 'proba-wyniki' or jsonb_array_length(k->'uczestnicy') <> 3 or not exists (select 1 from jsonb_array_elements(k->'biegi') e where e->>'slug' = 'proba-wyniki') then raise exception 'FAIL 7c: panel: %', k; end if;
-  if k::text ~* '"wynik_s"|konto|"email"|oswiadczenie|token|wynik_log' then raise exception 'FAIL 7d: w panelu dane prywatne'; end if;
+  -- 20261213 (decyzja 18.11): organizator widzi w panelu czas i dystans treningu; dane konta dalej nigdy
+  if k::text ~* 'konto|"email"|oswiadczenie|token|wynik_log' or (to_regprocedure('public.akcja_bieg_zrodlo_wyniku(public.akcja_bieg_uczestnicy)') is null and k::text ~* '"wynik_s"') then raise exception 'FAIL 7d: w panelu dane prywatne'; end if;
   if not exists (select 1 from jsonb_array_elements(k->'uczestnicy') e where (e->>'id')::uuid = ja and (e->>'ukonczony')::boolean and (e->>'z_treningu')::boolean and not (e->>'zaliczony_recznie')::boolean) then raise exception 'FAIL 7e: stan „ja” w panelu'; end if;
   j := public.akcja_bieg_zalicz_recznie(ja, 7, null);
   if (j->>'ok')::boolean or j->>'powod' <> 'dystans' then raise exception 'FAIL 7f: dystans spoza listy: %', j; end if;

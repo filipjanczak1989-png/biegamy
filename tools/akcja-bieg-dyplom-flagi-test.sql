@@ -89,7 +89,9 @@ begin
   end loop;
   if (select count(*) from jsonb_array_elements(k->'uczestnicy') x where jsonb_array_length(x->'do_sprawdzenia') > 0) <> 4 then raise exception 'FAIL 3d: cztery wyniki do sprawdzenia'; end if;
   v := replace(replace(k::text, '3:00/km', ''), '36:00/km', '');
-  if v ~ '\d:\d\d' or v ~* '"wynik_s"|"czas|konto|"email"|oswiadczenie|wynik_log|trening_km' or v ~ ': (12|12\.0+|5\.1|5\.10)[,}]' then raise exception 'FAIL 3e: panel z czasem, dystansem treningu albo danymi konta'; end if;
+  -- 20261213 (decyzja 18.11): organizator widzi w panelu czas (sekundy) i dystans treningu; dane konta i czas jako tekst dalej nigdy
+  if v ~ '\d:\d\d' or v ~* '"czas|konto|"email"|oswiadczenie|wynik_log'
+     or (to_regprocedure('public.akcja_bieg_zrodlo_wyniku(public.akcja_bieg_uczestnicy)') is null and (v ~* '"wynik_s"|trening_km' or v ~ ': (12|12\.0+|5\.1|5\.10)[,}]')) then raise exception 'FAIL 3e: panel z czasem, dystansem treningu albo danymi konta'; end if;
   n := n + 7 * 3 + 2;
   -- 3f. progi na granicy (konto 1 i dziecko 1,5 km na chwilę zmienione, potem przywrócone): dokładnie 3:00/km, 36:00/km, 2 razy i 21 km jeszcze bez flagi
   --     trening zmienia jego właściciel (claims zawodnika, rola authenticated jak w aplikacji): na produkcji trg_training_logs_guard_coach_fields odrzuca zmianę dystansu z claims trenera

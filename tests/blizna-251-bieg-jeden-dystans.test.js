@@ -99,9 +99,10 @@ test('teksty strony: jeden dystans = „Liczy się trening co najmniej 5 km”, 
   assert.equal(d.wybierz, 'Wybierz dystans: 5 albo 10 km.');
   assert.equal(j.zgoda_ranking_pole, 'Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”. Mam ukończone 18 lat (dobrowolne)');
   assert.equal(d.zgoda_ranking_pole, 'Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”, osobno 5 i 10 km. Mam ukończone 18 lat (dobrowolne)');
-  assert.equal(j.czasy_prywatne, 'Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce mają pełnoletni, którzy włączyli ranking, z wynikiem z zegarka albo wpisanym ręcznie (z dopiskiem „wynik ręczny”), z treningu od 5 km do 5,49 km. Wynik budzący wątpliwości (np. tempo szybsze niż 3:00/km) trafia do rankingu po sprawdzeniu przez organizatora. Pozostali są na liście bez czasu, a czas mają na dyplomie. Dzieci nigdy nie są w rankingu.');
+  /* 20261213 (decyzja 18.11, blizna-296): dłuższy trening ze zgodą = prawdziwy dystans i czas bez miejsca */
+  assert.equal(j.czasy_prywatne, 'Lista pokazuje tych, którzy ukończyli: imię (za zgodą), numer i dystans. Czas i miejsce mają pełnoletni, którzy włączyli ranking, z wynikiem z zegarka albo wpisanym ręcznie (z dopiskiem „wynik ręczny”), z treningu od 5 km do 5,49 km; przy dłuższym treningu lista pokazuje prawdziwy dystans i czas, bez miejsca. Wynik budzący wątpliwości (np. tempo szybsze niż 3:00/km) trafia na listę z czasem po sprawdzeniu przez organizatora. Bez zgody na ranking czasu na liście nie ma, jest na dyplomie. Dzieci nigdy nie są w rankingu.');
   assert.match(n.czasy_prywatne, /wpisanym ręcznie \(z dopiskiem „wynik ręczny”\)\. Wynik budzący/, 'bez biegu: bez zakresu długości');
-  assert.match(d.czasy_prywatne, /którzy włączyli ranking, osobno dla 5 i 10 km, z wynikiem z zegarka albo wpisanym ręcznie \(z dopiskiem „wynik ręczny”\), z treningu od 5 km do 5,49 km albo od 10 km do 10,49 km\. Wynik/);
+  assert.match(d.czasy_prywatne, /którzy włączyli ranking, osobno dla 5 i 10 km, z wynikiem z zegarka albo wpisanym ręcznie \(z dopiskiem „wynik ręczny”\), z treningu od 5 km do 5,49 km albo od 10 km do 10,49 km; przy dłuższym treningu lista pokazuje prawdziwy dystans i czas, bez miejsca\. Wynik/);
   for (const t of Object.values(j).concat(Object.values(n))) { assert.doesNotMatch(t, /10 km|5 i 10|5 albo 10|osobno/, t); assert.doesNotMatch(t, /\{[a-z_]+\}/, t); }
   assert.doesNotMatch(JSON.stringify(B.TEKSTY), /10 km|5 i 10|5 albo 10/, 'TEKSTY bez dystansów na sztywno');
 });
@@ -129,7 +130,7 @@ test('karty, wybór w oknie zapisu, dystans zapisu, zakładki „Ukończyli”, 
 });
 
 test('regulamin v2: {dystanse} i {ranking_dystanse} z bazy; jeden dystans bez „10 km”; dwa = „5 km albo 10 km”; brak listy = WKRÓTCE', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v3'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v2 (dane testu) dalej przyjmowana');
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v4'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v2 (dane testu) dalej przyjmowana');
   const w1 = B.wartosciTekstow(BIEG([5]), { imie: 'Janek' }, LINK), t1 = B.regulaminTekst(w1);
   assert.equal(w1.dystanse, '5 km'); assert.equal(w1.ranking_dystanse, 'na 5 km');
   assert.match(t1, /\n§ 2\. Termin i dystans\n1\. Bieg trwa od soboty, 5 grudnia 2026 do niedzieli, 6 grudnia 2026\.\n2\. Dystans: 5 km, biegiem albo marszem, na dowolnej trasie\.\n/);
