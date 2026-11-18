@@ -65,6 +65,7 @@
   .bw-krok b { display: block; font-size: 15px; margin-bottom: 2px; } .bw-krok span { font-size: 13px; color: var(--fg2); line-height: 1.45; }
   .bw-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; } .bw-drobne a { color: var(--fg2); }
   .bw-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .bw-plakat { display: block; width: 100%; height: auto; aspect-ratio: 210 / 297; border-radius: 14px; margin: 0 0 12px; background: rgba(255,255,255,.04); }   /* 18.11: miejsce A4 od razu (loading=lazy) */
   .bw-uczestnik { padding: 14px 0 18px; border-top: 2px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }   /* wyraźna granica kart: link „Wycofaj” należy do karty nad kreską */
   .bw-reczny { font-size: 11px; color: var(--fg2); white-space: nowrap; } .bw-pod-zgoda { margin: 4px 2px 0; }
   .bw-uczestnik h3 { margin: 0 0 8px; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-uczestnik h3 small { font: 600 12px/1 Inter, sans-serif; color: var(--fg2); letter-spacing: 0; margin-left: 8px; }
@@ -206,6 +207,14 @@
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po końcu.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
     </div>
+  </section>
+
+  <!-- 18.11: plakat biegu (adres w js/bieg.mjs PLAKATY, tylko bieg-mikolajki); obrazek się nie wczyta = sekcja znika -->
+  <section class="bw-sekcja" aria-label="Plakat" id="bw-plakat-sekcja" hidden>
+    <h2>Plakat</h2>
+    <img class="bw-plakat" id="bw-plakat" alt="Plakat Wirtualnego Biegu Mikołajkowego" loading="lazy" decoding="async">
+    <div class="bw-wiersze"><a class="bw-przycisk" id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat (PDF) ›</a><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-plakat-udostepnij">Udostępnij</button></div>
+    <p class="bw-drobne" id="bw-plakat-info" role="status"></p>
   </section>
   </div>
 
@@ -531,11 +540,30 @@ document.addEventListener('DOMContentLoaded', function () {
     var ja = stan && stan.ja; if (!ja || B.stanWyniku(ja, bieg) !== 'brak' || probowane[ja.id]) return;
     probowane[ja.id] = true; ustalWynik(ja.id, null);
   }
+  /* 18.11: plakat biegu z B.plakatBiegu (tylko bieg-mikolajki). Obrazek ładowany raz na bieg; błąd wczytania chowa sekcję na stałe (do przeładowania strony). */
+  var plakatSlug = null;
+  function rysujPlakat() {
+    var p = bieg ? B.plakatBiegu(bieg.slug) : null, sek = $('bw-plakat-sekcja'), img = $('bw-plakat');
+    if (!p) { sek.hidden = true; plakatSlug = null; return; }
+    if (plakatSlug === bieg.slug) return;
+    plakatSlug = bieg.slug;
+    img.onerror = function () { sek.hidden = true; };
+    $('bw-plakat-pdf').href = p.pdf;
+    sek.hidden = false; img.src = p.obraz;
+  }
+  $('bw-plakat-udostepnij').addEventListener('click', function () {
+    var adres = B.ADRES_BIEGU, info = $('bw-plakat-info'), nazwa = bieg && bieg.nazwa ? String(bieg.nazwa) : 'Bieg wirtualny';
+    info.textContent = '';
+    if (navigator.share) { navigator.share({ title: nazwa, text: nazwa + ': zapisz się i pobiegnij, kiedy chcesz.', url: adres }).catch(function () {}); return; }   // anulowanie udostępnienia to nie błąd
+    var pokazLink = function () { info.textContent = 'Link do biegu: ' + adres; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(adres).then(function () { info.textContent = 'Link skopiowany: ' + adres; }, pokazLink); return; } } catch (e) {}
+    pokazLink();
+  });
   function rysujWszystko() {
     wartosci = B.wartosciTekstow(bieg, licznik, A.linkZbiorki(licznik || {})); rysujRegulamin();   // teksty 14.11: znaczniki z bazy
     stan = B.stanStrony(bieg, sesja, moi, { blad: !licznik, proba: PROBA, teksty: wartosci });   // bramka zapisu (brak wartości do tekstów, poza ?proba=1); błąd licznika ≠ szkic
     pokazStan(stan.stan);
-    rysujNaglowek(); rysujDystanse(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj();
+    rysujNaglowek(); rysujDystanse(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj(); rysujPlakat();
     if (stan.stan === 'przed') $('bw-dziecko-od-razu').hidden = !B.mozeDopisacDziecko(bieg, []);
     $('bw-zaloguj-po').hidden = !!sesja;   // usterka 25: po zapisach wylogowany widzi „zamknięte”, a zapisany ma drogę do dyplomu
   }

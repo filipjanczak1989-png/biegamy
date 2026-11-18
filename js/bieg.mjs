@@ -581,7 +581,15 @@
   /** Rezygnacja z e-maila z linku: ?rezygnacja=<uuid> → token albo "". */
   function tokenRezygnacji(search) { var m = /[?&]rezygnacja=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:&|$)/i.exec(String(search || "")); return m ? m[1].toLowerCase() : ""; }
 
-  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT,
+  /* 18.11: plakat biegu. Pliki w publicznym kubełku bieg-plakaty (migracja 20261208, wgrywa organizator przez CLI), adres stały w kodzie, nie w bazie.
+     ?v= obowiązkowe: sw.js trzyma /storage/v1/object/public/ cache-first; nowa wersja pliku = nowe ?v=. PDF z ?download= (pobranie, nie podgląd). */
+  var PLAKAT_URL = "https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/bieg-plakaty/";
+  var PLAKATY = { "bieg-mikolajki": { obraz: PLAKAT_URL + "bieg-mikolajki-plakat.webp?v=1", pdf: PLAKAT_URL + "bieg-mikolajki-plakat.pdf?v=1&download=plakat-wirtualny-bieg-mikolajkowy.pdf" } };
+  var ADRES_BIEGU = "https://biegamy.run/bieg";
+  /** Plakat biegu po slugu: { obraz, pdf } albo null (inne biegi, w tym próba, bez plakatu). */
+  function plakatBiegu(slug) { var s = String(slug || ""); return Object.prototype.hasOwnProperty.call(PLAKATY, s) ? PLAKATY[s] : null; }
+
+  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, przedMailem: przedMailem, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
