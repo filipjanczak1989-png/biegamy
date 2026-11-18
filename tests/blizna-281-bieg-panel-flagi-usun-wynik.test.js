@@ -95,7 +95,7 @@ test('„Usuń wynik”: okienko z powodem i potwierdzeniem; bez powodu albo „
   wynik = { powod: '  brak potwierdzenia z zegarka  ' }; us().wywolaj('click'); await czekaj();
   assert.deepEqual(rpc[0], ['akcja_bieg_usun_wynik', { p_id: 'b', p_powod: 'brak potwierdzenia z zegarka' }]); assert.deepEqual(p.wczytane, ['proba-bieg'], 'po usunięciu lista od nowa');
   odp = { data: { ok: false, powod: 'za_pozno' }, error: null }; us().wywolaj('click'); await czekaj();
-  assert.match(p.wiersz('b').textContent, /Po terminie: zaliczać można do 7 dni po końcu dopisywania wyników\./); assert.equal(p.wczytane.length, 1);
+  assert.match(p.wiersz('b').textContent, /Po terminie zaliczania ręcznego \(data w nagłówku panelu\)\./); assert.equal(p.wczytane.length, 1);
   odp = { data: null, error: { message: 'akcja_bieg_usun_wynik: tylko trener', code: '42501' } }; us().wywolaj('click'); await czekaj();
   assert.match(p.wiersz('b').textContent, /To konto nie jest kontem trenera\./);
   assert.equal(P.komunikat(null, { powod: 'zly_powod' }), 'Wpisz powód: od 3 do 200 znaków, w jednej linii.'); assert.match(P.komunikat(null, { powod: 'bez_wyniku' }), /^Ten zapis nie ma wyniku/);

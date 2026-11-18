@@ -106,7 +106,7 @@ test('funkcje brzegowe: przypomnienie z sekretem, lista z RPC (rezerwacja i wyni
   assert.match(p, /\?rezygnacja=\$\{o\.token\}/); assert.match(p, /'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'/);
   assert.doesNotMatch(p.slice(p.indexOf('if (test) return'), p.indexOf('if (!RESEND)')), /token/, 'w odpowiedzi testu bez tokenów');
   assert.match(p, /const ile = n === 1 \? 'Został 1 dzień' : n >= 2 && n <= 4 \? `Zostały \$\{n\} dni` : `Zostało \$\{n\} dni`;/, '20261207: „zostały 3 dni” przed końcem biegu');
-  assert.match(p, /k = kiedy\(Number\(o\.dni_do_konca \?\? 3\), o\.dzien_do\)/); assert.doesNotMatch(p, /weekend|w sobotę lub w niedzielę|Jutro bieg/, 'bez weekendu w e-mailu');
+  assert.match(p, /k = kiedy\(Number\(o\.dni_do_konca \?\? 3\), o\.dzien_do, o\.koniec_godz\)/); assert.doesNotMatch(p, /weekend|w sobotę lub w niedzielę|Jutro bieg/, 'bez weekendu w e-mailu');
   assert.match(p, /temat: `\$\{k\.temat\}: \$\{o\.nazwa\}`/); assert.doesNotMatch(p, /Jutro bieg: \$\{/, 'temat bez sztywnego „Jutro”');
   assert.deepEqual([...r.matchAll(/\.rpc\(\s*'([^']+)'/g)].map((x) => x[1]), ['akcja_bieg_rezygnacja']); assert.doesNotMatch(r, /\.from\(/);
   assert.match(r, /if \(!UUID\.test\(token\)\) return/); assert.match(r, /const DOZWOLONE = new Set\(\['https:\/\/biegamy\.run', 'https:\/\/run\.biegamy\.app'\]\);/);

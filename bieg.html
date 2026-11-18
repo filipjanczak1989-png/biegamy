@@ -116,6 +116,7 @@
   .bw-trening { display: flex; gap: 10px; align-items: center; justify-content: space-between; min-height: 52px; padding: 6px 2px; border-top: 1px solid var(--ramka); font-size: 14px; }
   .bw-trening small { display: block; font-size: 11.5px; color: var(--fg2); } .bw-trening em { font-style: normal; font-size: 12px; color: var(--fg2); text-align: right; }
   .bw-przycisk--maly { width: auto; flex: none; margin: 0; padding: 12px 14px; font-size: 13px; }
+  #bw-zmiana-ok { background: none; border: 0; margin: 0; padding: 10px 2px; color: var(--fg); font: 600 13px/1 Inter, sans-serif; text-decoration: underline; cursor: pointer; }   /* 18.11: „Rozumiem” jako link, nie biały przycisk */
   .bw-baner { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(61,90,153,.25); border: 1px solid rgba(120,150,220,.45); font-size: 14px; line-height: 1.45; }
   dialog { border: 1px solid var(--ramka); border-radius: 20px; background: var(--karta); color: var(--fg); padding: 18px 16px; width: min(560px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
   dialog::backdrop { background: rgba(7,7,10,.92); }
@@ -139,6 +140,8 @@
     <p class="bw-termin" id="bw-termin" hidden><b id="bw-termin-daty"></b><span id="bw-termin-opis"></span></p>
     <p class="bw-opis" id="bw-faza-zdanie"></p>
     <p class="bw-baner" id="bw-rezygnacja" role="status" hidden></p>
+    <!-- 18.11: zmiana regulaminu po otwarciu zapisów (§ 12 ust. 2): zapisani na starszej wersji widzą krótki komunikat; „Rozumiem” chowa go na tym telefonie -->
+    <div class="bw-baner" id="bw-zmiana" role="status" hidden><span id="bw-zmiana-tekst"></span> <button type="button" class="bw-link-maly" id="bw-zmiana-ok">Rozumiem</button></div>
   </div>
 
   <div class="bw-uklad">
@@ -210,7 +213,7 @@
     <div class="bw-kroki">
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt=""><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Bezpośrednio u organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po końcu. <span id="bw-wiele-razy"></span></span></div></div>
+      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. <span id="bw-krok-koniec">Z zegarka albo bez: wynik dopisujesz do dwóch dni po końcu.</span> <span id="bw-wiele-razy"></span></span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
     </div>
   </section>
@@ -349,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('bw-dystanse').innerHTML = karty; $('bw-dystanse-sekcja').hidden = !karty; $('bw-dystanse-pod').textContent = t.karty_pod;
     $('bw-krok-zapis').textContent = t.krok_zapisu; $('bw-czasy-prywatne').textContent = t.czasy_prywatne; $('bw-zapis-opis').textContent = t.zapis_opis;
     $('bw-wiele-razy').textContent = B.zdanieWieleRazy(bieg);   // 18.11: wiele startów, liczy się najlepszy wynik; imię z nazwy biegu (baza)
+    $('bw-krok-koniec').textContent = B.zdanieKoniecWyniku(bieg);   // 18.11: do kiedy wynik (koniec_at z bazy)
     pole('bw-zgoda-ranking-tekst', t.zgoda_ranking_pole, B.TEKSTY_KROTKIE.zgoda_ranking);
   }
   rysujDystanse();
@@ -419,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.title = (bieg ? bieg.nazwa : 'Bieg wirtualny') + ' · BiegaMy';
     $('bw-faza-zdanie').textContent = f.zdanie;
     if (bieg) {
-      $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = 'kiedy chcesz w tym czasie · wynik do ' + B.zakresDni(bieg.wynik_do, bieg.wynik_do);   // 17.11: bieg przez cały okres, nie w weekend
+      $('bw-termin').hidden = false; $('bw-termin-daty').textContent = B.zakresDni(bieg.dzien_od, bieg.dzien_do); $('bw-termin-opis').textContent = B.terminOpis(bieg);   // 17.11: bieg przez cały okres; 18.11: koniec z godziną z bazy (koniec_at)
       try { localStorage.setItem('bm_bieg_nazwa_' + bieg.slug, String(bieg.nazwa || '').slice(0, 80)); } catch (e) {}   // nazwa odznaki biegu w kolekcji (js/odznaki-akcji.mjs)
     }
     else $('bw-termin').hidden = true;
@@ -568,11 +572,19 @@ document.addEventListener('DOMContentLoaded', function () {
     try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(adres).then(function () { info.textContent = 'Link skopiowany: ' + adres; }, pokazLink); return; } } catch (e) {}
     pokazLink();
   });
+  /* 18.11: komunikat o zmianie regulaminu (B.komunikatZmiany: zapis na starszej wersji, bieg z godziną końca); schowany „Rozumiem” na tę wersję biegu */
+  function kluczZmiany() { return 'bm_bieg_zmiana_' + (bieg && bieg.slug) + '_' + (bieg && bieg.regulamin_wersja); }
+  function rysujZmiane() {
+    var t = B.komunikatZmiany(bieg, moi), schowany = false;
+    try { schowany = localStorage.getItem(kluczZmiany()) === '1'; } catch (e) {}
+    $('bw-zmiana-tekst').textContent = t; $('bw-zmiana').hidden = !t || schowany;
+  }
+  $('bw-zmiana-ok').addEventListener('click', function () { $('bw-zmiana').hidden = true; try { localStorage.setItem(kluczZmiany(), '1'); } catch (e) {} });
   function rysujWszystko() {
     wartosci = B.wartosciTekstow(bieg, licznik, A.linkZbiorki(licznik || {})); rysujRegulamin();   // teksty 14.11: znaczniki z bazy
     stan = B.stanStrony(bieg, sesja, moi, { blad: !licznik, proba: PROBA, teksty: wartosci });   // bramka zapisu (brak wartości do tekstów, poza ?proba=1); błąd licznika ≠ szkic
     pokazStan(stan.stan);
-    rysujNaglowek(); rysujDystanse(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj(); rysujPlakat();
+    rysujNaglowek(); rysujDystanse(); rysujLiczby(); rysujUkonczyli(); rysujWsparcie(); rysujMoj(); rysujPlakat(); rysujZmiane();
     if (stan.stan === 'przed') $('bw-dziecko-od-razu').hidden = !B.mozeDopisacDziecko(bieg, []);
     $('bw-zaloguj-po').hidden = !!sesja;   // usterka 25: po zapisach wylogowany widzi „zamknięte”, a zapisany ma drogę do dyplomu
   }

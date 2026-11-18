@@ -14,7 +14,11 @@
      {dystanse} {ranking_dystanse} {ranking_zakres} wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
      Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”.
      v2 (16.11, decyzja Filipa: prawdziwy bieg ma jeden dystans, 5 km): § 2 i § 5 bez „5 km albo 10 km” na sztywno, dystanse z bieg.dystanse_km. */
-  var WERSJA_TEKSTOW = "2026-11-v2";
+  var WERSJA_TEKSTOW = "2026-11-v3";
+  /* 18.11 v3 (decyzja Filipa: bieg i wyniki kończą się 6.12 o 20:00, bez dopisywania do 8.12): jedyna zmiana to § 2 z godziną końca z bazy ({koniec} z koniec_at).
+     Strona przyjmuje v2 i v3: push frontu może iść przed plikiem danych 34e (v2 w bazie = dawny § 2), bez „WKRÓTCE” w przerwie. */
+  var WERSJE_TEKSTOW = ["2026-11-v2", "2026-11-v3"];
+  var REGULAMIN_P2_V3 = ["Bieg trwa od {od} do {koniec}.", "Dystans: {dystanse}, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {koniec}."];
   var DANE_ADMINISTRATORA = "Filip Jańczak, prowadzący projekt BiegaMy (biegamy.run) jako osoba fizyczna — nie jest to działalność gospodarcza i nie posiadamy numeru NIP";   // dokładnie z privacy.html (§ 1), test porównuje
   var REGULAMIN = {
     tytul: "Regulamin biegu wirtualnego „{nazwa}”",
@@ -120,7 +124,7 @@
   /** Teksty strony zależne od dystansów biegu: pod kartami, krok „Zapisz się”, opis okna zapisu, odmowa bez wyboru, etykieta rankingu, opis listy. */
   function tekstyDystansow(bieg) {
     var l = dystanseBiegu(bieg), wiele = l.length > 1, i = wiele ? dystanseKrotko(l, "i") : "", zn = { osobno: i ? ", osobno " + i : "", osobno_dla: i ? ", osobno dla " + i : "", z_treningu: l.length ? ", z treningu " + zakresRankingu(l) : "" };
-    var wynik = "Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, do dwóch dni po końcu biegu. Zapisać można się przez cały czas trwania biegu.", max = l.length ? km(l[l.length - 1]) : "";
+    var kk = koniecKrotko(bieg), wynik = "Wynik wchodzi z zegarka (jak każdy trening w BiegaMy) albo wpisujesz go sam, " + (kk ? "do " + kk : "do dwóch dni po końcu biegu") + ". Zapisać można się przez cały czas trwania biegu.", max = l.length ? km(l[l.length - 1]) : "";
     return {
       karty_pod: (wiele ? "Zapis na " + km(l[0]) + " km, a zrobione " + max + "? Dyplom na " + max + ". " : l.length ? "Liczy się trening co najmniej " + km(l[0]) + " km. " : "") + wynik,
       krok_zapisu: (l.length ? "Dystans " + dystanseKrotko(l, "albo") + ", imię na numer i dyplom." : "Imię na numer i dyplom.") + " Dzieci dopisujesz samym imieniem.",
@@ -158,9 +162,10 @@
   function faza(bieg) { return bieg && FAZY[bieg.faza] ? bieg.faza : "szkic"; }
   /** 18.11: w fazie „trwa” zdanie z końcem biegu z bazy („Bieg trwa do 6 grudnia. …”): bieg trwa cały okres, nie weekend. Bez daty: zdanie bez daty. */
   function fazaInfo(bieg) {
-    var f = FAZY[faza(bieg)], d = dataZIso(bieg && bieg.dzien_do);
+    var f = FAZY[faza(bieg)], d = dataZIso(bieg && bieg.dzien_do), kk = koniecKrotko(bieg), w = dataZIso(bieg && bieg.wynik_do);
+    if (f === FAZY.wyniki && (kk || w)) return { chip: f.chip, klasa: f.klasa, zdanie: "Bieg za nami. Wyniki i spóźnione zapisy przyjmujemy do " + (kk || w.getDate() + " " + MIESIACE[w.getMonth()]) + "." };   // 18.11: termin z bazy, nie „dwa dni”
     if (f !== FAZY.trwa || !d) return f;
-    return { chip: f.chip, klasa: f.klasa, zdanie: "Bieg trwa do " + d.getDate() + " " + MIESIACE[d.getMonth()] + ". Zapisz się i pobiegnij, kiedy chcesz." };
+    return { chip: f.chip, klasa: f.klasa, zdanie: "Bieg trwa do " + (kk || d.getDate() + " " + MIESIACE[d.getMonth()]) + ". Zapisz się i pobiegnij, kiedy chcesz." };   // 18.11: z godziną końca z bazy
   }
   /** Zapisy (siebie i dzieci) otwarte w fazach zapisy, trwa i wyniki, czyli do wynik_do (przegląd 12.11). */
   function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa" || f === "wyniki"; }
@@ -178,15 +183,42 @@
     var w = { nazwa: tekst(bieg.nazwa), imie: tekst(licznik.imie), od: dataZDniem(bieg.dzien_od), do: dataZDniem(bieg.dzien_do), wynik_do: dataZDniem(bieg.wynik_do),
       link: /^https:\/\//.test(tekst(link)) ? tekst(link) : "", wersja: tekst(bieg.regulamin_wersja), od_kiedy: dataZIso(bieg.regulamin_od) ? dataPolska(dataZIso(bieg.regulamin_od)) : "",
       dystanse: dystanseSlownie(l), ranking_dystanse: !l.length ? "" : l.length > 1 ? "na " + dystanseKrotko(l, "i") + " (osobno dla każdego dystansu)" : "na " + dystanseKrotko(l), ranking_zakres: zakresRankingu(l) };
+    if (w.wersja === "2026-11-v3") w.koniec = koniecZDniem(bieg);   // v3: § 2 z godziną końca; bez koniec_at w bazie = brak wartości
     for (var k in w) if (!w[k]) return null;
-    return w.wersja === WERSJA_TEKSTOW ? w : null;
+    return WERSJE_TEKSTOW.indexOf(w.wersja) >= 0 ? w : null;
   }
   /** Czego brakuje do tekstów (dla próby Filipa: okno regulaminu mówi, którego pola nie ma w bazie). */
   function brakiTekstow(bieg, licznik, link) {
     var w = { nazwa: bieg && bieg.nazwa, imie: licznik && licznik.imie, od: bieg && dataZDniem(bieg.dzien_od), do: bieg && dataZDniem(bieg.dzien_do), wynik_do: bieg && dataZDniem(bieg.wynik_do),
-      link: /^https:\/\//.test(String(link || "")) ? link : "", wersja: bieg && bieg.regulamin_wersja === WERSJA_TEKSTOW ? "ok" : "", od_kiedy: bieg && dataZIso(bieg.regulamin_od) ? "ok" : "",
-      dystanse: dystanseBiegu(bieg).length ? "ok" : "" };
+      link: /^https:\/\//.test(String(link || "")) ? link : "", wersja: bieg && WERSJE_TEKSTOW.indexOf(bieg.regulamin_wersja) >= 0 ? "ok" : "", od_kiedy: bieg && dataZIso(bieg.regulamin_od) ? "ok" : "",
+      dystanse: dystanseBiegu(bieg).length ? "ok" : "", koniec: bieg && bieg.regulamin_wersja === "2026-11-v3" && !koniecZDniem(bieg) ? "" : "ok" };
     return Object.keys(w).filter(function (k) { return !w[k]; });
+  }
+  /* ── 18.11: KONIEC BIEGU O GODZINIE (koniec_at z bazy, migracja 20261209); bez koniec_at teksty jak dotąd (dniami, wynik_do) ── */
+  /** koniec_at (ISO) w czasie polskim: { iso: "2026-12-06", godz: "20:00" } albo null. */
+  function koniecBiegu(bieg) {
+    var t = bieg && bieg.koniec_at ? new Date(bieg.koniec_at) : null, c = {};
+    if (!t || !isFinite(t.getTime())) return null;
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(t).forEach(function (p) { c[p.type] = p.value; });
+    return { iso: c.year + "-" + c.month + "-" + c.day, godz: c.hour + ":" + c.minute };
+  }
+  /** „niedzieli, 6 grudnia 2026, godz. 20:00” (regulamin § 2 v3) albo "". */
+  function koniecZDniem(bieg) { var k = koniecBiegu(bieg); return k && dataZDniem(k.iso) ? dataZDniem(k.iso) + ", godz. " + k.godz : ""; }
+  /** „6 grudnia, godz. 20:00” albo "". */
+  function koniecKrotko(bieg) { var k = koniecBiegu(bieg), d = k && dataZIso(k.iso); return d ? d.getDate() + " " + MIESIACE[d.getMonth()] + ", godz. " + k.godz : ""; }
+  /** Linia przy datach w nagłówku: „kiedy chcesz w tym czasie · do 6.12.2026, godz. 20:00”; bez koniec_at jak dotąd „· wynik do 8.12.2026”. */
+  function terminOpis(bieg) {
+    var k = koniecBiegu(bieg);
+    return "kiedy chcesz w tym czasie · " + (k ? "do " + zakresDni(k.iso, k.iso) + ", godz. " + k.godz : "wynik do " + zakresDni(bieg && bieg.wynik_do, bieg && bieg.wynik_do));
+  }
+  /** Krok 3 „Jak to działa”: do kiedy dopisuje się wynik. */
+  function zdanieKoniecWyniku(bieg) { var k = koniecBiegu(bieg); return "Z zegarka albo bez: wynik dopisujesz " + (k ? "do " + zakresDni(k.iso, k.iso) + ", godz. " + k.godz : "do dwóch dni po końcu") + "."; }
+  /** Komunikat dla zapisanych na starszej wersji regulaminu, gdy bieg ma godzinę końca: „Zmiana: bieg i wyniki kończą się 6.12 o 20:00.”; inaczej "". */
+  function komunikatZmiany(bieg, moi) {
+    var k = koniecBiegu(bieg), d = k && dataZIso(k.iso);
+    if (!d || !Array.isArray(moi) || !moi.some(function (u) { return u && !u.wycofany_at && u.regulamin_wersja && u.regulamin_wersja !== bieg.regulamin_wersja; })) return "";
+    return "Zmiana: bieg i wyniki kończą się " + d.getDate() + "." + (d.getMonth() + 1) + " o " + k.godz + ".";
   }
   function wypelnij(t, w) { return String(t).replace(/\{([a-z_]+)\}/g, function (m, k) { return w && Object.prototype.hasOwnProperty.call(w, k) ? w[k] : m; }); }
   /** Regulamin jako bloki do okna (strona robi z nich elementy przez textContent, bez innerHTML): tytul, naglowek, punkt, akapit, zgoda. */
@@ -194,7 +226,8 @@
     var b = [{ typ: "tytul", tekst: wypelnij(REGULAMIN.tytul, w) }];
     REGULAMIN.paragrafy.forEach(function (p) {
       b.push({ typ: "naglowek", tekst: p.naglowek });
-      p.punkty.forEach(function (t, i) { b.push({ typ: p.punkty.length > 1 ? "punkt" : "akapit", tekst: (p.punkty.length > 1 ? (i + 1) + ". " : "") + wypelnij(t, w) }); });
+      var punkty = p.naglowek === "§ 2. Termin i dystans" && w && w.wersja === "2026-11-v3" ? REGULAMIN_P2_V3 : p.punkty;   // v3: jedyna zmiana to termin w § 2
+      punkty.forEach(function (t, i) { b.push({ typ: punkty.length > 1 ? "punkt" : "akapit", tekst: (punkty.length > 1 ? (i + 1) + ". " : "") + wypelnij(t, w) }); });
     });
     b.push({ typ: "naglowek", tekst: REGULAMIN.oswiadczenie.naglowek }, { typ: "akapit", tekst: REGULAMIN.oswiadczenie.tekst });
     b.push({ typ: "naglowek", tekst: REGULAMIN.zgody.naglowek });
@@ -595,6 +628,7 @@
   function plakatBiegu(slug) { var s = String(slug || ""); return Object.prototype.hasOwnProperty.call(PLAKATY, s) ? PLAKATY[s] : null; }
 
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu, zdanieWieleRazy: zdanieWieleRazy,
+    WERSJE_TEKSTOW: WERSJE_TEKSTOW, REGULAMIN_P2_V3: REGULAMIN_P2_V3, koniecBiegu: koniecBiegu, koniecZDniem: koniecZDniem, koniecKrotko: koniecKrotko, terminOpis: terminOpis, zdanieKoniecWyniku: zdanieKoniecWyniku, komunikatZmiany: komunikatZmiany,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, przedMailem: przedMailem, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,

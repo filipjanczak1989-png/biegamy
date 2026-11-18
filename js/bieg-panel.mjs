@@ -11,6 +11,13 @@
   var FAZA = { szkic: "szkic (niewidoczny)", zapisy: "zapisy", trwa: "trwa", wyniki: "dopisywanie wyników", zakonczony: "zakończony" };
   function km(x) { var n = Number(x) || 0; return (Math.round(n * 100) / 100).toLocaleString("pl-PL"); }
   function dzien(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || "")); return m ? Number(m[3]) + "." + Number(m[2]) + "." + m[1] : ""; }
+  /** 18.11: koniec biegu i wyników z godziną (koniec_at z bazy, czas polski): „6.12.2026, godz. 20:00”; bez koniec_at "". */
+  function koniecPl(iso) {
+    var t = iso ? new Date(iso) : null, c = {};
+    if (!t || !isFinite(t.getTime())) return "";
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(t).forEach(function (p) { c[p.type] = p.value; });
+    return dzien(c.year + "-" + c.month + "-" + c.day) + ", godz. " + c.hour + ":" + c.minute;
+  }
   /** „58:00” / „1:02:05” → sekundy; puste → null; zły zapis → NaN. Czas jest prywatny: tylko na dyplomie uczestnika. */
   function sekundy(t) {
     var s = String(t == null ? "" : t).trim(); if (!s) return null;
@@ -35,7 +42,7 @@
   function komunikat(e, d) {
     var p = d && d.powod;
     if (e) return /tylko trener|42501/.test(String(e.message || e.code || "")) ? "To konto nie jest kontem trenera." : "Nie udało się. Sprawdź łącze.";
-    return p === "dystans" ? "Zły dystans: dorosły z listy biegu, dziecko 0,1–100 km." : p === "czas" ? "Czas: od 1:00 do 24:00:00, u dziecka bez czasu." : p === "za_pozno" ? "Po terminie: zaliczać można do 7 dni po końcu dopisywania wyników."
+    return p === "dystans" ? "Zły dystans: dorosły z listy biegu, dziecko 0,1–100 km." : p === "czas" ? "Czas: od 1:00 do 24:00:00, u dziecka bez czasu." : p === "za_pozno" ? "Po terminie zaliczania ręcznego (data w nagłówku panelu)."
       : p === "przed_biegiem" ? "Bieg jeszcze się nie zaczął." : p === "nie_ma" ? "Tego zapisu już nie ma (wycofany albo usunięty)."
       : p === "zly_powod" ? "Wpisz powód: od 3 do 200 znaków, w jednej linii." : p === "bez_wyniku" ? "Ten zapis nie ma wyniku (może usunięty albo jeszcze niezaliczony). Odśwież listę."
       : p === "dziecko" ? "Dzieci nie są w rankingu." : p === "decyzja" ? "Nieznana decyzja. Odśwież panel." : "Nie udało się.";
@@ -108,7 +115,7 @@
       wyb.addEventListener("change", function () { wczytaj(wyb.value); });
     }
     el("div", "font-size:16px;font-weight:800;color:var(--fg);overflow-wrap:anywhere;", kont, b.nazwa);
-    el("div", "font-size:13px;color:var(--muted);margin-top:2px;", kont, dzien(b.dzien_od) + "–" + dzien(b.dzien_do) + " · " + (FAZA[b.faza] || b.faza) + " · wyniki do " + dzien(b.wynik_do) + " · zaliczanie ręczne do " + dzien(b.zalicz_do));
+    el("div", "font-size:13px;color:var(--muted);margin-top:2px;", kont, dzien(b.dzien_od) + "–" + dzien(b.dzien_do) + " · " + (FAZA[b.faza] || b.faza) + (koniecPl(b.koniec_at) ? " · koniec biegu i wyników " + koniecPl(b.koniec_at) : " · wyniki do " + dzien(b.wynik_do)) + " · zaliczanie ręczne do " + dzien(b.zalicz_do));
     var aktywni = u.filter(function (x) { return !x.wycofany; }), ukonczyli = aktywni.filter(function (x) { return x.ukonczony; }).length, dzieci = aktywni.filter(function (x) { return x.rodzaj === "dziecko"; }).length;
     el("div", "font-size:14px;color:var(--fg);margin:8px 0 4px;", kont, "Zapisani: " + aktywni.length + " (dzieci: " + dzieci + ") · ukończyli: " + ukonczyli + " · bez wyniku: " + (aktywni.length - ukonczyli));
     var nWer = liczbaDoWeryfikacji(aktywni), nFlag = liczbaDoSprawdzenia(aktywni);
@@ -181,6 +188,6 @@
   }
   g.BM_BIEG_PANEL = { sekundy: sekundy, kmZPola: kmZPola, stanTekst: stanTekst, komunikat: komunikat, ostrzezenieMaili: ostrzezenieMaili, doSprawdzenia: doSprawdzenia, liczbaDoSprawdzenia: liczbaDoSprawdzenia,
     pytanieUsuniecia: pytanieUsuniecia, sprawdzPowod: sprawdzPowod, usunWynik: usunWynik, rysuj: rysuj, czekaNaWeryfikacje: czekaNaWeryfikacje, liczbaDoWeryfikacji: liczbaDoWeryfikacji,
-    stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj };
+    stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj, koniecPl: koniecPl };
   if (g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", start); else start();
 })(globalThis);

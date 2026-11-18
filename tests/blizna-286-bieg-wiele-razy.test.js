@@ -20,7 +20,7 @@ test('zdanie z imieniem z nazwy biegu; bez imienia zdanie neutralne', () => {
 
 test('bieg.html: zdanie w kroku 3 „Jak to działa”, tylko textContent, imię nie w pliku', () => {
   const h = czytaj('bieg.html');
-  assert.match(h, /<b>3\. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu<\/b><span>[^<]*<span id="bw-wiele-razy"><\/span><\/span>/);
+  assert.match(h, /<b>3\. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu<\/b><span>[^<]*<span id="bw-krok-koniec">[^<]*<\/span> <span id="bw-wiele-razy"><\/span><\/span>/);
   assert.match(h, /\$\('bw-wiele-razy'\)\.textContent = B\.zdanieWieleRazy\(bieg\);/);
   assert.doesNotMatch(h.replace(/dla-fabianka(\.html)?/g, ''), /fabian/i);
 });
