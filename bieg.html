@@ -204,7 +204,7 @@
     <div class="bw-kroki">
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt=""><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Bezpośrednio u organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po końcu.</span></div></div>
+      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. Z zegarkiem albo bez: wynik dopisujesz do dwóch dni po końcu. <span id="bw-wiele-razy"></span></span></div></div>
       <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
     </div>
   </section>
@@ -342,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var t = B.tekstyDystansow(bieg), karty = B.dystanseHtml(bieg);
     $('bw-dystanse').innerHTML = karty; $('bw-dystanse-sekcja').hidden = !karty; $('bw-dystanse-pod').textContent = t.karty_pod;
     $('bw-krok-zapis').textContent = t.krok_zapisu; $('bw-czasy-prywatne').textContent = t.czasy_prywatne; $('bw-zapis-opis').textContent = t.zapis_opis;
+    $('bw-wiele-razy').textContent = B.zdanieWieleRazy(bieg);   // 18.11: wiele startów, liczy się najlepszy wynik; imię z nazwy biegu (baza)
     pole('bw-zgoda-ranking-tekst', t.zgoda_ranking_pole, B.TEKSTY_KROTKIE.zgoda_ranking);
   }
   rysujDystanse();

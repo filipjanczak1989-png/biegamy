@@ -586,10 +586,15 @@
   var PLAKAT_URL = "https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/bieg-plakaty/";
   var PLAKATY = { "bieg-mikolajki": { obraz: PLAKAT_URL + "bieg-mikolajki-plakat.webp?v=1", pdf: PLAKAT_URL + "bieg-mikolajki-plakat.pdf?v=1&download=plakat-wirtualny-bieg-mikolajkowy.pdf" } };
   var ADRES_BIEGU = "https://biegamy.run/bieg";
+  /** 18.11: zdanie o wielu startach (krok 3 „Jak to działa”). Imię zbiórki w dopełniaczu z nazwy biegu z bazy („… dla <imię>”); bez niego zdanie bez imienia. */
+  function zdanieWieleRazy(bieg) {
+    var m = /\sdla\s+(\S+)\s*$/.exec(String((bieg && bieg.nazwa) || ""));
+    return "Możesz biec wiele razy. Liczy się Twój najlepszy wynik z czasu biegu, a każdy kilometr " + (m ? "idzie dla " + m[1] : "liczy się do akcji") + ".";
+  }
   /** Plakat biegu po slugu: { obraz, pdf } albo null (inne biegi, w tym próba, bez plakatu). */
   function plakatBiegu(slug) { var s = String(slug || ""); return Object.prototype.hasOwnProperty.call(PLAKATY, s) ? PLAKATY[s] : null; }
 
-  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu,
+  g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu, zdanieWieleRazy: zdanieWieleRazy,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, przedMailem: przedMailem, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
