@@ -21,6 +21,7 @@ begin
   if tr is null or coalesce(array_length(ka, 1), 0) < 3 then raise exception 'FAIL 2-0: za mało kont do testu'; end if;
   insert into public.akcje (slug, nazwa, imie_zbiorki, start, cel_km, stawka_gr_filip, testowa, wystartowala_at)
     values ('proba', 'Próba', 'Janek', DZIS, 100, 10, true, now()) on conflict (slug) do update set wystartowala_at = coalesce(public.akcje.wystartowala_at, now()), koniec = null;
+  update public.akcje set konta_testowe = coalesce(konta_testowe, '{}'::uuid[]) || array(select a.id from public.athletes a) where slug = 'proba';   -- 20261211: bieg akcji testowej przyjmuje tylko konta_testowe; konta testu dopisane w tej transakcji
   delete from public.akcja_biegi where akcja_slug = 'proba';
   insert into public.akcja_biegi (akcja_slug, slug, nazwa, dzien_od, dzien_do, wynik_do, dystanse_km, status, regulamin_wersja)
     values ('proba', 'proba-okno', 'Bieg próbny', DZIS - 10, DZIS + 8, DZIS + 10, '{5}', 'otwarty', W) returning id into b;

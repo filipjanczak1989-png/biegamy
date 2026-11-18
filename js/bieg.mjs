@@ -538,7 +538,8 @@
   var KOMUNIKATY = {
     zamkniete: "Zapisy są już zamknięte.", regulamin: "Regulamin się zmienił. Odśwież stronę i zaznacz nową wersję.", imie: "Imię: jedno słowo, 2–20 liter.",
     oswiadczenie: "Potrzebne oświadczenie rodzica.", nie_ma: "Nie ma takiego biegu.", limit_zapisow: "Limit zapisów na to konto w tym biegu został wykorzystany.", brak_zapisu: "Najpierw zapisz się na bieg.",
-    nie_twoj: "To nie jest Twój zapis.", juz_wycofany: "Ten zapis jest już wycofany.", ukonczony: "Ten zapis ma już wynik, nie można go wycofać."
+    nie_twoj: "To nie jest Twój zapis.", juz_wycofany: "Ten zapis jest już wycofany.", ukonczony: "Ten zapis ma już wynik, nie można go wycofać.",
+    tylko_test: "Bieg próbny jest tylko dla kont testowych."
   };
   /** Odmowy zapisu, dziecka, wycofania i zgód. miejsce 'karta' = przełącznik rankingu w karcie, który sam się odznacza (usterka 27: bez polecenia „odznacz”).
    *  bieg: odmowa 'dystans' przy kilku dystansach „Wybierz 5 albo 10 km.”, przy jednym (dystans ustawiony przez stronę) lista w bazie musiała się zmienić. */

@@ -38,6 +38,7 @@ begin
   -- przygotowanie: ulica próbna, bieg próbny w fazie „trwa” (wczoraj–dziś), zapis zw na 5 km ze zgodą na e-mail i dziecko zw; zw2 tylko z dzieckiem
   insert into public.akcje (slug, nazwa, imie_zbiorki, start, cel_km, stawka_gr_filip, testowa, wystartowala_at)
     values ('proba', 'Próba', 'Janek', D, 100, 10, true, now()) on conflict (slug) do update set wystartowala_at = coalesce(public.akcje.wystartowala_at, now()), koniec = null;
+  update public.akcje set konta_testowe = coalesce(konta_testowe, '{}'::uuid[]) || array(select a.id from public.athletes a) where slug = 'proba';   -- 20261211: bieg akcji testowej przyjmuje tylko konta_testowe; konta testu dopisane w tej transakcji
   delete from public.akcja_biegi where akcja_slug = 'proba';
   insert into public.akcja_biegi (akcja_slug, slug, nazwa, dzien_od, dzien_do, wynik_do, dystanse_km, status, regulamin_wersja)
     values ('proba', 'proba-wyniki', 'Bieg próbny', D - 1, D, D + 2, '{5,10}', 'otwarty', W) returning id into b;
