@@ -311,23 +311,22 @@
 
   /** Pasek celu (HTML) — wspólny dla Dziś, index i dla-fabianka. */
   /* PRÓG KILOMETRÓW RAZEM (11.11, część 9): licznik minął 1 000 km bez żadnego znaku (filmy progów prawdziwej akcji: 0; odznaki 1000 km zdjęte 2.11; push tylko start, niedziela,
-     zamknięcie). Dla każdego progu z PROGI_KM (i dla celu) jednorazowe świętowanie bez filmu: baner „X km razem” w kaflu akcji i na stronie akcji przez 48 h od pierwszego
-     zobaczenia na tym urządzeniu (licznik nie oddaje chwili przekroczenia), konfetti RAZ na konto/urządzenie (prefers-reduced-motion: bez ruchu), „Udostępnij” z gotową grafiką
-     (js/akcja-wklad-karta.mjs, po dotknięciu). Film progu, gdy się pojawi, ma pierwszeństwo: konfetti ustępuje czekającemu filmowi, baner zostaje jako dodatek. Zero zapytań. */
-  var PROGI_KM = [1000, 2500, 5000, 7500, 10000], BANER_PROGU_MS = 48 * 3600 * 1000, KLUCZ_PROGU = "bm_akcja_prog_";
-  function progiAkcji(d) { var cel = Number(d && d.cel_km) || 0; return PROGI_KM.filter(function (p) { return !cel || p < cel; }).concat(cel ? [cel] : []); }
-  /** Najwyższy próg nieprzekraczający sumy kilometrów (null poniżej pierwszego). */
-  function progPrzekroczony(d) { var s = Number(d && d.suma_km) || 0, w = null; progiAkcji(d).forEach(function (p) { if (s >= p) w = p; }); return w; }
+     zamknięcie). Jednorazowe świętowanie bez filmu: baner „X km razem” w kaflu akcji i na stronie akcji, konfetti RAZ na konto/urządzenie (prefers-reduced-motion: bez ruchu),
+     „Udostępnij” z gotową grafiką (js/akcja-wklad-karta.mjs, po dotknięciu). Film progu, gdy się pojawi, ma pierwszeństwo: konfetti ustępuje czekającemu filmowi, baner zostaje.
+     18.11 (decyzja Filipa, migracja 20261210): KAMIENIE CO 1000 KM i cel (12 500) jako ostatni; kamień i chwilę przekroczenia zna baza (akcja_progi, cron co 5 min), licznik oddaje
+     pole prog = {km, at, cel} TYLKO dla ostatniego kamienia i tylko przez 48 h od przekroczenia. Dotąd: stałe progi 1000/2500/5000… i 48 h od pierwszego zobaczenia na telefonie,
+     więc „1 000 km razem” wracało przy 2 325 km na każdym nowym telefonie. Front nie liczy progów ani czasu; bez pola prog (baza przed migracją) baneru nie ma. Zero zapytań. */
+  var KLUCZ_PROGU = "bm_akcja_prog_";
+  /** Ostatni kamień z licznika (pole prog; baza oddaje go tylko przez 48 h od przekroczenia) albo null. */
+  function progPrzekroczony(d) { var p = d && d.prog && typeof d.prog === "object" ? Number(d.prog.km) : NaN; return isFinite(p) && p > 0 ? p : null; }
   function klucz(slug, p, co) { return KLUCZ_PROGU + slug + "_" + p + (co ? "_" + co : ""); }
   function pamiec(k, v) { try { if (v === undefined) return g.localStorage.getItem(k); g.localStorage.setItem(k, v); } catch (e) {} return null; }
   function tekstProgu(p, d) { var cel = Number(d && d.cel_km) || 0; return p === cel && cel ? km(p) + " km. Cel osiągnięty razem." : km(p) + " km razem"; }
-  /** Baner progu (albo ""): zapamiętuje pierwsze pokazanie i pokazuje przez 48 h. teraz = czas (test). */
-  function banerProguHtml(d, teraz) {
+  /** Baner kamienia (albo ""): tylko gdy licznik oddaje pole prog. */
+  function banerProguHtml(d) {
     if (!d || !d.wystartowala) return "";
     var p = progPrzekroczony(d); if (!p) return "";
-    var slug = slugKafla(d), t = teraz || Date.now(), k = klucz(slug, p), od = Number(pamiec(k));
-    if (!od) { od = t; pamiec(k, String(t)); }
-    if (t - od >= BANER_PROGU_MS) return "";
+    var slug = slugKafla(d);
     g.setTimeout(function () { konfettiProgu(slug, p); }, 0);
     return '<div class="akcja-prog" role="status"><b>' + esc(tekstProgu(p, d)) + '</b><span>Razem, krok po kroku. Dziękujemy.</span><button type="button" class="akcja-link akcja-prog-udostepnij" data-prog-udostepnij="' + p + '">Udostępnij</button></div>';
   }
@@ -912,7 +911,7 @@
   }
   try { if (g.document && g.document.getElementById) { var elPaska = g.document.getElementById("bieg-pasek"); if (elPaska) pasekZPamieci(elPaska); } } catch (e) {}
 
-  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, pasekZPamieci: pasekZPamieci, PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, pasekZPamieci: pasekZPamieci, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     murCegielekHtml: murCegielekHtml, cegielkiMuru: cegielkiMuru, liczbaCegielek: liczbaCegielek, MUR_KROTKO: MUR_KROTKO, KLUCZ_MURU: KLUCZ_MURU, przyciskBieguHtml: przyciskBieguHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,

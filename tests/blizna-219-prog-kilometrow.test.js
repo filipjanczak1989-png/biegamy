@@ -1,4 +1,4 @@
-/* BLIZNA 219 (11.11.2026, część 9) — PRÓG KILOMETRÓW RAZEM bez filmu. Zwiad 11.11: licznik minął 1 000 km (1 117,76 km o 16:50) i nic się nie wydarzyło:
+/* BLIZNA 219 (11.11.2026, część 9; 18.11 kamienie co 1000 km z bazy, migracja 20261210) — PRÓG KILOMETRÓW RAZEM bez filmu. Zwiad 11.11: licznik minął 1 000 km (1 117,76 km o 16:50) i nic się nie wydarzyło:
    filmy progów prawdziwej akcji = 0 (próba: 1), odznaka 1000 km zdjęta 2.11 (zostały 1/100/200/500 km własnych), kafel i strona akcji bez obsługi progów,
    push tylko start / niedziela / zamknięcie. Wariant (js/akcja.mjs + js/akcja-wklad-karta.mjs):
    - baner „X km razem” w kaflu (daneKaflaHtml) i na stronie akcji / w centrum (pasekHtml) przez 48 h od PIERWSZEGO zobaczenia na urządzeniu (licznik nie zna chwili przekroczenia);
@@ -23,33 +23,36 @@ async function modul() {
   await import(pathToFileURL(path.join(KORZEN, 'js/akcja.mjs')).href);
   return globalThis.BM_AKCJA;
 }
-const D = (suma) => ({ nazwa: 'Ulica', imie: 'Imię', suma_km: suma, cel_km: 12500, pct: Math.floor(suma / 125) / 100, wystartowala: true });
+/* 18.11 (migracja 20261210): kamień i 48 h liczy baza; licznik oddaje pole prog = {km, at, cel} tylko dla ostatniego kamienia w ciągu 48 h od przekroczenia */
+const PROG = (km, cel) => ({ km, at: '2026-11-18T12:00:00+00:00', cel: !!cel });
+const D = (suma, prog) => ({ nazwa: 'Ulica', imie: 'Imię', suma_km: suma, cel_km: 12500, pct: Math.floor(suma / 125) / 100, wystartowala: true, prog: prog === undefined ? null : prog });
 
-test('progi: lista z celem, najwyższy przekroczony, poniżej 1 000 km nic; tekst progu i celu', async () => {
+test('kamień z licznika (pole prog), bez liczenia progów w przeglądarce; tekst kamienia i celu', async () => {
   const A = await modul();
-  assert.deepEqual([...A.PROGI_KM], [1000, 2500, 5000, 7500, 10000]);
-  assert.deepEqual([...A.progiAkcji(D(0))], [1000, 2500, 5000, 7500, 10000, 12500], 'cel na końcu');
-  assert.deepEqual([...A.progiAkcji({ cel_km: 3000 })], [1000, 2500, 3000], 'progi powyżej celu odpadają');
-  assert.equal(A.progPrzekroczony(D(999.9)), null); assert.equal(A.progPrzekroczony(D(1000)), 1000); assert.equal(A.progPrzekroczony(D(1117.76)), 1000); assert.equal(A.progPrzekroczony(D(2500)), 2500); assert.equal(A.progPrzekroczony(D(12500)), 12500);
-  assert.equal(zw(A.tekstProgu(1000, D(1000))), '1 000 km razem'); assert.equal(zw(A.tekstProgu(12500, D(12500))), '12 500 km. Cel osiągnięty razem.');
+  assert.equal(A.PROGI_KM, undefined, 'stałe progi 1000/2500/5000… zdjęte'); assert.equal(A.progiAkcji, undefined);
+  assert.equal(A.progPrzekroczony(D(2325.31)), null, 'suma bez pola prog: nic (baza decyduje)');
+  assert.equal(A.progPrzekroczony(D(2325.31, PROG(2000))), 2000); assert.equal(A.progPrzekroczony(D(12500, PROG(12500, true))), 12500);
+  for (const zly of [null, 'x', { km: 'abc' }, { km: -1000 }, { km: 0 }, [1000]]) assert.equal(A.progPrzekroczony(D(3000, zly)), null, JSON.stringify(zly));
+  assert.equal(zw(A.tekstProgu(1000, D(1000))), '1 000 km razem'); assert.equal(zw(A.tekstProgu(3000, D(3000))), '3 000 km razem'); assert.equal(zw(A.tekstProgu(12500, D(12500))), '12 500 km. Cel osiągnięty razem.');
 });
 
-test('baner: 48 h od pierwszego zobaczenia, potem nic; przed startem i poniżej progu nic; próba ma własny klucz', async () => {
-  const A = await modul(); const t0 = 1_800_000_000_000;
-  assert.equal(A.banerProguHtml(D(999), t0), ''); assert.equal(A.banerProguHtml({ ...D(1200), wystartowala: false }, t0), '');
-  const h = zw(A.banerProguHtml(D(1117.76), t0));
-  assert.match(h, /<div class="akcja-prog" role="status"><b>1 000 km razem<\/b><span>Razem, krok po kroku\. Dziękujemy\.<\/span><button type="button" class="akcja-link akcja-prog-udostepnij" data-prog-udostepnij="1000">Udostępnij<\/button><\/div>/);
-  assert.equal(globalThis.localStorage.getItem('bm_akcja_prog_dla-fabianka_1000'), String(t0), 'pierwsze zobaczenie zapisane');
-  assert.ok(A.banerProguHtml(D(1300), t0 + 47 * 3600e3), 'po 47 h nadal'); assert.equal(A.banerProguHtml(D(1300), t0 + 48 * 3600e3), '', 'po 48 h koniec');
-  assert.ok(A.banerProguHtml(D(2600), t0 + 60 * 3600e3), 'następny próg: nowy baner'); assert.match(zw(A.banerProguHtml(D(2600), t0 + 60 * 3600e3)), /2 500 km razem/);
-  A.banerProguHtml({ ...D(1117), testowa: true }, t0); assert.equal(globalThis.localStorage.getItem('bm_akcja_prog_proba_1000'), String(t0), 'próba osobno');
+test('baner: tylko z polem prog; przed startem i bez pola nic; przeglądarka nie zapamiętuje „pierwszego zobaczenia”', async () => {
+  const A = await modul();
+  assert.equal(A.banerProguHtml(D(2325.31)), '', 'przy 2 325 km bez świeżego kamienia: nic (dotąd „1 000 km razem”)');
+  assert.equal(A.banerProguHtml({ ...D(3100, PROG(3000)), wystartowala: false }), '');
+  const h = zw(A.banerProguHtml(D(3100, PROG(3000))));
+  assert.match(h, /<div class="akcja-prog" role="status"><b>3 000 km razem<\/b><span>Razem, krok po kroku\. Dziękujemy\.<\/span><button type="button" class="akcja-link akcja-prog-udostepnij" data-prog-udostepnij="3000">Udostępnij<\/button><\/div>/);
+  assert.match(zw(A.banerProguHtml(D(12500, PROG(12500, true)))), /<b>12 500 km\. Cel osiągnięty razem\.<\/b>/);
+  assert.deepEqual([...globalThis.localStorage._m.keys()].filter((k) => !/_konfetti$/.test(k)), [], 'tylko znacznik konfetti, bez zapisu chwili zobaczenia');
   assert.doesNotMatch(h, /zł|Fabian/i);
+  const kod = czytaj('js/akcja.mjs'), blok = kod.slice(kod.indexOf('PRÓG KILOMETRÓW RAZEM (11.11'), kod.indexOf('function konfettiProgu'));
+  assert.doesNotMatch(blok, /BANER_PROGU_MS|Date\.now\(\)|teraz/, 'czasu 48 h nie liczy przeglądarka');
 });
 
-test('kafel (daneKaflaHtml) i strona/centrum (pasekHtml) dostają baner tylko po progu; dla-fabianka.html i zawodnik.html bez zmian', async () => {
+test('kafel (daneKaflaHtml) i strona/centrum (pasekHtml) dostają baner tylko z polem prog; dla-fabianka.html i zawodnik.html bez zmian', async () => {
   const A = await modul();
-  assert.match(A.pasekHtml(D(1117.76)), /^<div class="akcja-prog"/); assert.doesNotMatch(A.pasekHtml(D(900)), /akcja-prog/);
-  assert.match(A.daneKaflaHtml(D(1117.76)), /^<div class="akcja-prog"/); assert.doesNotMatch(A.daneKaflaHtml(D(900)), /akcja-prog/);
+  assert.match(A.pasekHtml(D(3100, PROG(3000))), /^<div class="akcja-prog"/); assert.doesNotMatch(A.pasekHtml(D(3100)), /akcja-prog/);
+  assert.match(A.daneKaflaHtml(D(3100, PROG(3000))), /^<div class="akcja-prog"/); assert.doesNotMatch(A.daneKaflaHtml(D(3100)), /akcja-prog/);
   assert.match(czytaj('dla-fabianka.html'), /\$\('pasek'\)\.innerHTML = A\.pasekHtml\(d, \{ krotko: true \}\);/, 'strona akcji bierze sam pasek z modułu (12.11, punkt 5: liczby km tylko w scenie)');
   assert.match(czytaj('dla-fabianka.html'), /\$\('prog'\)\.innerHTML = A\.banerProguHtml\(d\);/, 'baner progu z modułu jako wąski pasek pod sceną');
   assert.ok(czytaj('dla-fabianka.html').indexOf('id="prog"') < czytaj('dla-fabianka.html').indexOf('id="pasek"'), 'pasek progu nad paskiem postępu');
