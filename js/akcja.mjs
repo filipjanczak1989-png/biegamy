@@ -831,20 +831,51 @@
       zamknieta: !!d.zamknieta, url_zbiorki: d.url_zbiorki || null } };
   }
 
-  /* 18.11: PASEK BIEGU NA DZIŚ (zawodnik.html#bieg-pasek, wyjątek od zamrożenia: jedyny element). „🎅 {nazwa biegu} · Zapisz się ›” → bieg.html.
-     Tylko bieg otwarty (faza zapisy/trwa) z licznika akcji (pole bieg, ten sam licznik co karta akcji: nic więcej nie pobieramy) i konto bez aktywnego
-     zapisu „ja” (RPC akcja_bieg_moi, w tle). Zapisany: nic. Krzyżyk chowa pasek na ten bieg (localStorage). Brak danych albo błąd = pasek ukryty.
+  /* 18.11: PASEK BIEGU NA DZIŚ (zawodnik.html#bieg-pasek, wyjątek od zamrożenia: jedyny element). Link zawsze bieg.html (konto testowe: bieg.html?proba=1).
+     Dane: pole bieg z licznika akcji (ten sam licznik co karta akcji: nic więcej nie pobieramy) i RPC akcja_bieg_moi (w tle). Brak danych albo błąd = pasek ukryty.
+     18.11 wieczór, WARIANTY (decyzja Filipa: zapisani też widzą drogę do numeru, wyniku i dyplomu; akcja_bieg_moi oddaje tylko aktywne zapisy):
+     - bez zapisu (faza zapisy/trwa): „🎅 {nazwa} · Zapisz się ›”;
+     - „ja” bez wyniku: „🎅 Twój numer {numer} · Twój bieg ›”; „ja” z wynikiem (ukonczony_at): „🏅 Ukończone · Twój dyplom ›” (zapisy/trwa/wyniki);
+     - same dzieci: „🎅 Bieg Twoich dzieci ›” (prostsze niż numer pierwszego dziecka);
+     - faza zakonczony: przez 7 dni od koniec_at (z bazy) „🏅 Ukończone · Twój dyplom ›”, tylko gdy ktoś z konta ukończył (bez wyniku nie ma dyplomu); potem nic.
+     Krzyżyk chowa pasek na ten bieg i wariant: po zmianie wariantu (np. po ukończeniu) pasek wraca raz. „Zapisz się” zostaje przy kluczu z 65a96e43.
      Tekst wyłącznie przez textContent; nazwa biegu z bazy. */
-  function stanPaskaBiegu(d, moi, ukryty) {
-    var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null;
-    if (!b || typeof b.slug !== "string" || !b.slug || ["zapisy", "trwa"].indexOf(b.faza) < 0 || ukryty) return null;
-    if (!Array.isArray(moi) || moi.some(function (u) { return u && u.rodzaj === "ja" && !u.wycofany_at; })) return null;
-    return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html", koniec: typeof b.koniec_at === "string" ? b.koniec_at : null };
+  var WARIANTY_PASKA = ["zapis", "numer", "dyplom", "dzieci"], PASEK_PO_KONCU_MS = 7 * 864e5;
+  function numerPaska(n) { var x = Number(n); return x >= 1 && x <= 99999 && Math.floor(x) === x ? x : null; }
+  function moznaPasek(b, t) {
+    if (!b || typeof b.slug !== "string" || !b.slug) return false;
+    if (["zapisy", "trwa", "wyniki"].indexOf(b.faza) >= 0) return true;
+    var k = typeof b.koniec_at === "string" ? Date.parse(b.koniec_at) : NaN;
+    return b.faza === "zakonczony" && isFinite(k) && t < k + PASEK_PO_KONCU_MS;
   }
-  function kluczPaskaBiegu(slug) { return "bm_bieg_pasek_ukryty_" + slug; }
-  /* 18.11 wieczór: PASEK OD RAZU Z PAMIĘCI TELEFONU (mniejszy skok układu). Ostatni stan potwierdzony przez bazę (slug, nazwa, link, koniec biegu, czas)
+  /** Wariant paska z licznika (d.bieg) i zapisów konta (akcja_bieg_moi); null = bez paska. teraz = czas (test). */
+  function stanPaskaBiegu(d, moi, teraz) {
+    var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null, t = teraz || Date.now();
+    if (!moznaPasek(b, t) || !Array.isArray(moi)) return null;
+    var aktywni = moi.filter(function (u) { return u && typeof u === "object" && !u.wycofany_at; });
+    var ja = aktywni.filter(function (u) { return u.rodzaj === "ja"; })[0], dzieci = aktywni.filter(function (u) { return u.rodzaj === "dziecko"; });
+    var k = typeof b.koniec_at === "string" ? Date.parse(b.koniec_at) : NaN, w = null, numer = null, waznyDo = isFinite(k) ? k : null;
+    if (b.faza === "zakonczony") {
+      if (aktywni.some(function (u) { return (u.rodzaj === "ja" || u.rodzaj === "dziecko") && u.ukonczony_at; })) { w = "dyplom"; waznyDo = k + PASEK_PO_KONCU_MS; }
+    } else if (ja) {
+      if (ja.ukonczony_at) w = "dyplom"; else { numer = numerPaska(ja.numer); w = numer ? "numer" : null; }
+    } else if (dzieci.length) w = "dzieci";
+    else if (b.faza !== "wyniki") w = "zapis";
+    if (!w) return null;
+    return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html", wariant: w, numer: numer, wazny_do: waznyDo };
+  }
+  function kluczPaskaBiegu(slug, wariant) { return "bm_bieg_pasek_ukryty_" + slug + (wariant && wariant !== "zapis" ? "_" + wariant : ""); }
+  function ukrytyPasek(s) { try { return !!s && g.localStorage.getItem(kluczPaskaBiegu(s.slug, s.wariant)) === "1"; } catch (e) { return false; } }
+  function tekstyPaska(s) {
+    if (s.wariant === "numer") return ["🎅 Twój numer " + s.numer + " ·", "Twój bieg ›"];
+    if (s.wariant === "dyplom") return ["🏅 Ukończone ·", "Twój dyplom ›"];
+    if (s.wariant === "dzieci") return ["🎅", "Bieg Twoich dzieci ›"];
+    return ["🎅 " + s.nazwa + " ·", "Zapisz się ›"];
+  }
+  /* 18.11 wieczór: PASEK OD RAZU Z PAMIĘCI TELEFONU (mniejszy skok układu). Ostatni stan potwierdzony przez bazę (slug, nazwa, link, wariant, numer, ważny do, czas)
      leży w localStorage; przy wczytaniu modułu na Dziś pasek rysuje się z niego, zanim przyjdzie licznik, a pasekBiegu potwierdza go albo chowa i czyści
-     pamięć (zapisany, faza inna, błąd). Pamięć ważna 24 h i nie po końcu biegu; bez potwierdzenia w 30 s pasek znika (brak danych = brak paska). */
+     pamięć (inna faza, błąd, krzyżyk). Pamięć ważna 24 h i do „ważny do” (koniec biegu; wariant z dyplomem po końcu: 7 dni od niego); bez potwierdzenia
+     w 30 s pasek znika (brak danych = brak paska). */
   var KLUCZ_PASKA = "bm_bieg_pasek_ostatni", PASEK_PAMIEC_MS = 24 * 3600e3, PASEK_CZEKA_MS = 30e3, _pasekCzeka = null;
   function pamiecPaska(s, teraz) {
     try {
@@ -852,12 +883,15 @@
         var p = JSON.parse(g.localStorage.getItem(KLUCZ_PASKA) || "null"), t = teraz || Date.now();
         if (!p || typeof p !== "object" || typeof p.slug !== "string" || !/^[a-z0-9-]{2,40}$/.test(p.slug) || typeof p.nazwa !== "string" || !p.nazwa || p.nazwa.length > 120) return null;
         if (p.href !== "bieg.html" && p.href !== "bieg.html?proba=1") return null;
+        if (WARIANTY_PASKA.indexOf(p.wariant) < 0) return null;
+        var numer = p.wariant === "numer" ? numerPaska(p.numer) : null;
+        if (p.wariant === "numer" && !numer) return null;
         if (!(t - Number(p.t) >= 0 && t - Number(p.t) < PASEK_PAMIEC_MS)) return null;
-        if (p.koniec && !(t < Date.parse(p.koniec))) return null;
-        if (g.localStorage.getItem(kluczPaskaBiegu(p.slug)) === "1") return null;
-        return { slug: p.slug, nazwa: p.nazwa, href: p.href, koniec: p.koniec || null };
+        if (p.wazny_do !== null && p.wazny_do !== undefined && !(t < Number(p.wazny_do))) return null;
+        var z = { slug: p.slug, nazwa: p.nazwa, href: p.href, wariant: p.wariant, numer: numer, wazny_do: p.wazny_do === null || p.wazny_do === undefined ? null : Number(p.wazny_do) };
+        return ukrytyPasek(z) ? null : z;
       }
-      if (s) g.localStorage.setItem(KLUCZ_PASKA, JSON.stringify({ slug: s.slug, nazwa: s.nazwa, href: s.href, koniec: s.koniec || null, t: teraz || Date.now() }));
+      if (s) g.localStorage.setItem(KLUCZ_PASKA, JSON.stringify({ slug: s.slug, nazwa: s.nazwa, href: s.href, wariant: s.wariant, numer: s.numer, wazny_do: s.wazny_do, t: teraz || Date.now() }));
       else g.localStorage.removeItem(KLUCZ_PASKA);
     } catch (e) {}
     return null;
@@ -884,26 +918,27 @@
     if (!el) return;
     el.textContent = "";
     if (!s) { el.hidden = true; return; }
-    var doc = g.document, w = doc.createElement("div"), a = doc.createElement("a"), nazwa = doc.createElement("span"), cta = doc.createElement("span"), x = doc.createElement("button");
+    var doc = g.document, w = doc.createElement("div"), a = doc.createElement("a"), nazwa = doc.createElement("span"), cta = doc.createElement("span"), x = doc.createElement("button"), tk = tekstyPaska(s);
     w.style.cssText = "display:flex;align-items:center;min-height:44px;padding-left:12px;border-radius:12px;background:var(--card,#16161d);border:1px solid var(--accent,#e8561e);";
     a.href = s.href; a.style.cssText = "flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:5px 0;color:var(--fg,#f0ede8);text-decoration:none;font-size:13px;font-weight:600;line-height:1.3;";
-    nazwa.textContent = "🎅 " + s.nazwa + " ·"; nazwa.style.cssText = "min-width:0;";
-    cta.textContent = "Zapisz się ›"; cta.style.cssText = "flex:none;white-space:nowrap;color:var(--accent,#e8561e);";
+    nazwa.textContent = tk[0]; nazwa.style.cssText = "min-width:0;";
+    cta.textContent = tk[1]; cta.style.cssText = "flex:none;white-space:nowrap;color:var(--accent,#e8561e);";
     x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Ukryj pasek biegu");
     x.style.cssText = "flex:none;width:44px;height:44px;border:0;background:none;color:var(--muted,#9a97a3);font-size:20px;line-height:1;cursor:pointer;";
-    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug), "1"); } catch (e) {} potwierdzPasek(el, null); });
+    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug, s.wariant), "1"); } catch (e) {} potwierdzPasek(el, null); });
     a.appendChild(nazwa); a.appendChild(cta); w.appendChild(a); w.appendChild(x); el.appendChild(w);
+    el.setAttribute("data-wariant", s.wariant);
     el.hidden = false;
   }
-  /** Wołane z _odswiezStanAkcji (zawodnik.html) bez czekania; → Promise<stan paska albo null>. Nigdy nie rzuca. */
-  function pasekBiegu(el, d, sb) {
+  /** Wołane z _odswiezStanAkcji (zawodnik.html) bez czekania; → Promise<stan paska albo null>. Nigdy nie rzuca. teraz = czas (test). */
+  function pasekBiegu(el, d, sb, teraz) {
     try {
       if (!el) return Promise.resolve(null);
-      var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null, ukryty = false;
-      if (b && typeof b.slug === "string") { try { ukryty = g.localStorage.getItem(kluczPaskaBiegu(b.slug)) === "1"; } catch (e) {} }
-      if (!stanPaskaBiegu(d, [], ukryty) || !sb || typeof sb.rpc !== "function") { potwierdzPasek(el, null); return Promise.resolve(null); }
+      var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null, t = teraz || Date.now();
+      if (!moznaPasek(b, t) || !sb || typeof sb.rpc !== "function") { potwierdzPasek(el, null); return Promise.resolve(null); }
       return Promise.resolve(sb.rpc("akcja_bieg_moi", { p_slug: b.slug })).then(function (r) {
-        var s = stanPaskaBiegu(d, r && !r.error ? r.data : null, false);
+        var s = stanPaskaBiegu(d, r && !r.error ? r.data : null, t);
+        if (ukrytyPasek(s)) s = null;
         potwierdzPasek(el, s);
         return s;
       }, function () { potwierdzPasek(el, null); return null; }).catch(function () { return null; });

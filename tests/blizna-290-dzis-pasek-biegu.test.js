@@ -36,15 +36,14 @@ function srodowisko(rpc) {
   return { ls, wolania, sb, pasek: el('div') };
 }
 
-test('stan paska: otwarty bieg i konto bez zapisu „ja”; w każdym innym przypadku brak', () => {
-  assert.deepEqual(A.stanPaskaBiegu(L(BIEG()), []), { slug: 'bieg-mikolajki', nazwa: 'Wirtualny Bieg Mikołajkowy dla Fabianka', href: 'bieg.html', koniec: null });
-  assert.equal(A.stanPaskaBiegu(L(BIEG({ koniec_at: '2026-12-06T19:00:00+00:00' })), []).koniec, '2026-12-06T19:00:00+00:00', 'koniec biegu do pamięci paska (blizna-291)');
+test('stan paska bez zapisu: otwarty bieg → „Zapisz się”; bez danych nic (warianty zapisanych: blizna-292)', () => {
+  assert.deepEqual(A.stanPaskaBiegu(L(BIEG()), []), { slug: 'bieg-mikolajki', nazwa: 'Wirtualny Bieg Mikołajkowy dla Fabianka', href: 'bieg.html', wariant: 'zapis', numer: null, wazny_do: null });
+  assert.equal(A.stanPaskaBiegu(L(BIEG({ koniec_at: '2026-12-06T19:00:00+00:00' })), []).wazny_do, Date.parse('2026-12-06T19:00:00+00:00'), 'koniec biegu do pamięci paska (blizna-291)');
   assert.equal(A.stanPaskaBiegu(L(BIEG({ faza: 'zapisy' })), []).href, 'bieg.html');
   assert.equal(A.stanPaskaBiegu(L(BIEG(), { testowa: true }), []).href, 'bieg.html?proba=1', 'konto testowe: licznik próby, bieg próbny');
-  assert.ok(A.stanPaskaBiegu(L(BIEG()), [{ rodzaj: 'dziecko', numer: 3 }]), 'same dzieci = konto bez zapisu „ja”: pasek jest');
-  for (const [opis, d, moi, ukryty] of [['zapisany „ja”', L(BIEG()), [{ rodzaj: 'ja', numer: 7 }]], ['faza wyniki', L(BIEG({ faza: 'wyniki' })), []], ['zakończony', L(BIEG({ faza: 'zakonczony' })), []],
-    ['bez pola bieg (szkic)', L(null), []], ['bieg nie-obiekt', L('<b>x</b>'), []], ['brak licznika', null, []], ['błąd zapisów (null)', L(BIEG()), null], ['schowany krzyżykiem', L(BIEG()), [], true]]) {
-    assert.equal(A.stanPaskaBiegu(d, moi, ukryty), null, opis);
+  for (const [opis, d, moi] of [['faza wyniki bez zapisu', L(BIEG({ faza: 'wyniki' })), []], ['zakończony bez zapisu', L(BIEG({ faza: 'zakonczony' })), []],
+    ['bez pola bieg (szkic)', L(null), []], ['bieg nie-obiekt', L('<b>x</b>'), []], ['brak licznika', null, []], ['błąd zapisów (null)', L(BIEG()), null]]) {
+    assert.equal(A.stanPaskaBiegu(d, moi), null, opis);
   }
 });
 
@@ -61,9 +60,8 @@ test('pasek: textContent z nazwą z bazy, link, krzyżyk chowa na ten bieg (tak�
   assert.equal(x.tag, 'button'); assert.equal(x.attrs['aria-label'], 'Ukryj pasek biegu');
   x.h.click();
   assert.equal(s.pasek.hidden, true); assert.equal(s.pasek.dzieci.length, 0); assert.equal(s.ls.get('bm_bieg_pasek_ukryty_bieg-mikolajki'), '1');
-  s.wolania.length = 0;
   assert.equal(await A.pasekBiegu(s.pasek, L(BIEG()), s.sb), null);
-  assert.equal(s.pasek.hidden, true); assert.deepEqual(s.wolania, [], 'schowany: bez zapytania o zapisy');
+  assert.equal(s.pasek.hidden, true, 'schowany zostaje po odświeżeniu (wariant znany dopiero z zapisów: zapytanie idzie, pasek nie)');
   assert.ok(await A.pasekBiegu(s.pasek, L(BIEG({ slug: 'inny-bieg' })), s.sb), 'krzyżyk dotyczy tylko tego biegu');
 });
 
