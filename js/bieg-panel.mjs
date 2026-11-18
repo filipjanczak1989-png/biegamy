@@ -187,7 +187,7 @@
     }
     cz.addEventListener("change", pokaz); cz2.addEventListener("change", pokaz);
     pokaz();
-    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Czasy są prywatne: panel ich nie pokazuje. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
+    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Panel pokazuje prawdziwy wynik (dystans treningu, czas, tempo, źródło); publicznie czas jest tylko w rankingu, za zgodą uczestnika. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening dłuższy niż 10,49 km przy biegu na 5 km od regulaminu v5, wcześniej ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
   }
   function dzisWaw() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
 

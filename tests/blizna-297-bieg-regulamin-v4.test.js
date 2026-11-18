@@ -17,11 +17,11 @@ const BIEG = (w, x) => Object.assign({ slug: 'bieg-mikolajki', nazwa: 'Wirtualny
   koniec_at: '2026-12-06T19:00:00+00:00', dystanse_km: [5], faza: 'trwa', regulamin_wersja: w, regulamin_od: '2026-11-18' }, x || {});
 const LICZNIK = { imie: 'Fabianek' }, LINK = 'https://example.org/zbiorka';
 
-test('wersje: v4 obowiązuje, strona przyjmuje v2, v3 i v4; obca wersja = WKRÓTCE', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v4'); assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4']);
+test('wersje: strona przyjmuje v2, v3, v4 (i v5, blizna-298); obca wersja = WKRÓTCE', () => {
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v5'); assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5']);
   for (const w of ['2026-11-v3', '2026-11-v4']) { const t = B.wartosciTekstow(BIEG(w), LICZNIK, LINK); assert.ok(t, w); assert.equal(t.koniec, 'niedzieli, 6 grudnia 2026, godz. 20:00', w + ': § 2 z godziną'); }
   assert.ok(B.wartosciTekstow(BIEG('2026-11-v2', { koniec_at: null, wynik_do: '2026-12-08' }), LICZNIK, LINK), 'v2 (bieg próbny)');
-  assert.equal(B.wartosciTekstow(BIEG('2026-11-v5'), LICZNIK, LINK), null, 'nieznana wersja: WKRÓTCE');
+  assert.equal(B.wartosciTekstow(BIEG('2026-11-v6'), LICZNIK, LINK), null, 'nieznana wersja: WKRÓTCE');
   assert.equal(B.wartosciTekstow(BIEG('2026-11-v4', { koniec_at: null }), LICZNIK, LINK), null, 'v4 bez godziny końca w bazie: brak wartości');
   assert.deepEqual(B.brakiTekstow(BIEG('2026-11-v4', { koniec_at: null }), LICZNIK, LINK), ['koniec']);
   assert.equal(B.odWersji('2026-11-v4', 4), true); assert.equal(B.odWersji('2026-11-v3', 4), false); assert.equal(B.odWersji('x', 3), false);
