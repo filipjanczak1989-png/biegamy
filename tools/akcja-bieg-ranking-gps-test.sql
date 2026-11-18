@@ -110,15 +110,21 @@ begin
     then raise exception 'FAIL 6c: wskazany trening z zegarka ma wejść do rankingu z 31:00: %', j; end if;
   n := n + 3;
 
-  -- 7. trening z zegarka usunięty po zaliczeniu (wynik_log_id → NULL): wynik zostaje w rankingu jako ręczny (dopisek), z dystansem zaliczonym
+  -- 7. trening z zegarka usunięty po zaliczeniu. Do 20261212: wynik zostawał w rankingu jako ręczny (dopisek). Od 20261212 (decyzja Filipa 18.11, usterka z produkcji):
+  --    wynik bez treningu znika z listy (automat może wziąć inny trening); w rankingu o jedno miejsce mniej. Warunek po funkcji z 20261212: test prawdziwy po obu stronach.
   delete from public.training_logs where id = l[5];
   perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
   execute 'set local role service_role';
   j := public.akcja_bieg_ukonczyli('proba-bieg', 0, 50, 5);
   execute 'reset role';
   select x into e from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 5;
-  if e is null or (e->>'czas_s')::int is distinct from 1600 or (e->>'reczny')::boolean is not true then raise exception 'FAIL 7a: po usunięciu treningu wynik ma zostać z czasem i dopiskiem: %', e; end if;
-  if (j->>'w_rankingu')::int <> 8 or (j->'lista'->7->>'numer')::int <> 2 or (j->'lista'->7->>'miejsce')::int <> 8 or (j->'lista'->7->>'czas_s')::int <> 1860 then raise exception 'FAIL 7b: ranking po zmianach: 31:00 na 8. miejscu: %', j; end if;
+  if to_regprocedure('public.akcja_bieg_wiszace_wyczysc()') is not null then
+    if e is not null or (select ukonczony_at from public.akcja_bieg_uczestnicy where bieg_id = b and numer = 5) is not null then raise exception 'FAIL 7a: po usunięciu treningu wynik ma zniknąć (20261212): %', e; end if;
+    if (j->>'w_rankingu')::int <> 7 or (j->'lista'->6->>'numer')::int <> 2 or (j->'lista'->6->>'miejsce')::int <> 7 or (j->'lista'->6->>'czas_s')::int <> 1860 then raise exception 'FAIL 7b: ranking po zmianach: 31:00 na 7. miejscu: %', j; end if;
+  else
+    if e is null or (e->>'czas_s')::int is distinct from 1600 or (e->>'reczny')::boolean is not true then raise exception 'FAIL 7a: po usunięciu treningu wynik ma zostać z czasem i dopiskiem: %', e; end if;
+    if (j->>'w_rankingu')::int <> 8 or (j->'lista'->7->>'numer')::int <> 2 or (j->'lista'->7->>'miejsce')::int <> 8 or (j->'lista'->7->>'czas_s')::int <> 1860 then raise exception 'FAIL 7b: ranking po zmianach: 31:00 na 8. miejscu: %', j; end if;
+  end if;
   n := n + 2;
 
   -- 8. DŁUGOŚĆ (17.11): w rankingu 5 km trening do 5,49 km włącznie; 5,50 km i 10 km dają ukończenie bez czasu i bez dopisku; „moje zapisy” oddają prawdziwy dystans treningu
@@ -137,7 +143,7 @@ begin
     execute 'reset role';
     select x into e from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1;
     if e is null or e ? 'czas_s' or e ? 'miejsce' or (e->>'reczny')::boolean is not false then raise exception 'FAIL 8c: trening % km: na liście (ukończenie), bez czasu i bez dopisku: %', v, e; end if;
-    if (j->>'w_rankingu')::int <> 7 or (j->'lista'->0->>'numer')::int <> 8 or (j->'lista'->0->>'miejsce')::int <> 1 or exists (select 1 from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1 and x ? 'miejsce')
+    if (j->>'w_rankingu')::int <> 7 - (to_regprocedure('public.akcja_bieg_wiszace_wyczysc()') is not null)::int or (j->'lista'->0->>'numer')::int <> 8 or (j->'lista'->0->>'miejsce')::int <> 1 or exists (select 1 from jsonb_array_elements(j->'lista') x where (x->>'numer')::int = 1 and x ? 'miejsce')
       then raise exception 'FAIL 8d: długi trening wypada z rankingu, reszta zostaje: %', j; end if;
     perform set_config('request.jwt.claims', json_build_object('sub', ku[1], 'role', 'authenticated')::text, true);
     execute 'set local role authenticated';
