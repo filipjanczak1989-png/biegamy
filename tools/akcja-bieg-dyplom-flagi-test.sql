@@ -2,7 +2,7 @@
 -- Bieg próbny, zapisy i treningi tylko w tej transakcji; imiona wymyślone. Pięć kont dorosłych bez treningów z ostatnich 10 dni (prawdziwe treningi nie mieszają się z testowymi) i jeden trener.
 do $test$
 declare
-  n int := 0; b uuid; j jsonb; k jsonb; e jsonb; v text; i int; tr uuid; ka uuid[]; ku uuid[]; l uuid[]; u uuid[]; v_log uuid; v_nowy uuid; v_ile int; wr record;
+  n int := 0; b uuid; j jsonb; k jsonb; e jsonb; v text; i int; tr uuid; ka uuid[]; ku uuid[]; l uuid[]; u uuid[]; v_log uuid; v_nowy uuid; v_ile int; wr record; v_claims text;
   DZIS constant date := (now() at time zone 'Europe/Warsaw')::date; W constant text := '2026-11-v2';
   POWOD constant text := 'brak potwierdzenia z zegarka (§ 9 ust. 3)';
   -- treningi kont 1–4 (konto 5 bez treningu): zwykły 5,1 km 25:00 · 5 km 14:00 (2:48/km) · 5 km 12:00 (2:24/km) · 12 km 60:00 (5:00/km)
@@ -91,17 +91,29 @@ begin
   if v ~ '\d:\d\d' or v ~* '"wynik_s"|"czas|konto|"email"|oswiadczenie|wynik_log|trening_km' or v ~ ': (12|12\.0+|5\.1|5\.10)[,}]' then raise exception 'FAIL 3e: panel z czasem, dystansem treningu albo danymi konta'; end if;
   n := n + 7 * 3 + 2;
   -- 3f. progi na granicy (konto 1 i dziecko 1,5 km na chwilę zmienione, potem przywrócone): dokładnie 3:00/km, 36:00/km, 2 razy i 21 km jeszcze bez flagi
+  --     trening zmienia jego właściciel (claims zawodnika, rola authenticated jak w aplikacji): na produkcji trg_training_logs_guard_coach_fields odrzuca zmianę dystansu z claims trenera
+  v_claims := current_setting('request.jwt.claims', true);
   for wr in select x from jsonb_array_elements('[[5, 900, []], [5, 899, ["tempo szybsze niż 3:00/km"]], [5, 890, ["tempo szybsze niż 3:00/km"]], [5, 10800, []],
       [5, 10801, ["tempo wolniejsze niż 36:00/km"]], [10, 3000, []], [10.01, 3002, ["trening ponad 2 razy dłuższy niż dystans biegu"]], [9, 2700, []],
       [12, 1800, ["tempo szybsze niż 3:00/km", "trening ponad 2 razy dłuższy niż dystans biegu"]]]'::jsonb) x loop
     e := wr.x;
+    perform set_config('request.jwt.claims', json_build_object('sub', ku[1], 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
     update public.training_logs set distance_km = (e->>0)::numeric where id = l[1];
+    if not found then raise exception 'FAIL 3f-0: zawodnik nie zmienił własnego treningu (RLS)'; end if;
+    execute 'reset role';
+    perform set_config('request.jwt.claims', v_claims, true);
     update public.akcja_bieg_uczestnicy set wynik_s = (e->>1)::int where id = u[1];
     if to_jsonb(public.akcja_bieg_do_sprawdzenia((select x from public.akcja_bieg_uczestnicy x where x.id = u[1]))) <> e->2 then
       raise exception 'FAIL 3f: % km w % s: % zamiast %', e->>0, e->>1, to_jsonb(public.akcja_bieg_do_sprawdzenia((select x from public.akcja_bieg_uczestnicy x where x.id = u[1]))), e->2; end if;
     n := n + 1;
   end loop;
+  perform set_config('request.jwt.claims', json_build_object('sub', ku[1], 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
   update public.training_logs set distance_km = 5.1 where id = l[1];
+  if not found then raise exception 'FAIL 3f-0: zawodnik nie przywrócił własnego treningu (RLS)'; end if;
+  execute 'reset role';
+  perform set_config('request.jwt.claims', v_claims, true);
   update public.akcja_bieg_uczestnicy set wynik_s = 1500 where id = u[1];
   foreach v in array array['21', '21.01'] loop
     update public.akcja_bieg_uczestnicy set dystans_wlasny_km = v::numeric where id = u[6];
