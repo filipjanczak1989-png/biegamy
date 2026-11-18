@@ -59,7 +59,8 @@ test('pasek: textContent z nazwą z bazy, link, krzyżyk chowa na ten bieg (tak�
   assert.equal(s.pasek.textContent, '🎅 <img src=x onerror=alert(1)> ·Zapisz się ›×', 'nazwa dosłownie jako tekst');
   assert.equal(x.tag, 'button'); assert.equal(x.attrs['aria-label'], 'Ukryj pasek biegu');
   x.h.click();
-  assert.equal(s.pasek.hidden, true); assert.equal(s.pasek.dzieci.length, 0); assert.equal(s.ls.get('bm_bieg_pasek_ukryty_bieg-mikolajki'), '1');
+  assert.equal(s.pasek.hidden, true); assert.equal(s.pasek.dzieci.length, 0);
+  assert.ok(Math.abs(Number(s.ls.get('bm_bieg_pasek_ukryty_bieg-mikolajki')) - (Date.now() + 3 * 864e5)) < 5000, '„Zapisz się” schowane na 3 dni (blizna-293), nie na zawsze');
   assert.equal(await A.pasekBiegu(s.pasek, L(BIEG()), s.sb), null);
   assert.equal(s.pasek.hidden, true, 'schowany zostaje po odświeżeniu (wariant znany dopiero z zapisów: zapytanie idzie, pasek nie)');
   assert.ok(await A.pasekBiegu(s.pasek, L(BIEG({ slug: 'inny-bieg' })), s.sb), 'krzyżyk dotyczy tylko tego biegu');

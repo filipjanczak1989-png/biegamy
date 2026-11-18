@@ -838,9 +838,19 @@
      - „ja” bez wyniku: „🎅 Twój numer {numer} · Twój bieg ›”; „ja” z wynikiem (ukonczony_at): „🏅 Ukończone · Twój dyplom ›” (zapisy/trwa/wyniki);
      - same dzieci: „🎅 Bieg Twoich dzieci ›” (prostsze niż numer pierwszego dziecka);
      - faza zakonczony: przez 7 dni od koniec_at (z bazy) „🏅 Ukończone · Twój dyplom ›”, tylko gdy ktoś z konta ukończył (bez wyniku nie ma dyplomu); potem nic.
-     Krzyżyk chowa pasek na ten bieg i wariant: po zmianie wariantu (np. po ukończeniu) pasek wraca raz. „Zapisz się” zostaje przy kluczu z 65a96e43.
+     Krzyżyk chowa pasek na ten bieg i wariant: po zmianie wariantu (np. po ukończeniu) pasek wraca. „Zapisz się” zostaje przy kluczu z 65a96e43.
+     18.11 noc (decyzja Filipa: „na zawsze” za mocno): zapisani (numer, dzieci, dyplom) chowają do końca bieżącego dnia (czas polski), „Zapisz się” na 3 dni.
+     W kluczu leży chwila powrotu (ms). Stara wartość „1” (na zawsze, 65a96e43/4e154a14) = schowany do końca dnia, w którym ją odczytamy: pasek wraca jutro.
      Tekst wyłącznie przez textContent; nazwa biegu z bazy. */
-  var WARIANTY_PASKA = ["zapis", "numer", "dyplom", "dzieci"], PASEK_PO_KONCU_MS = 7 * 864e5;
+  var WARIANTY_PASKA = ["zapis", "numer", "dyplom", "dzieci"], PASEK_PO_KONCU_MS = 7 * 864e5, PASEK_ZAPIS_UKRYTY_MS = 3 * 864e5;
+  /** Koniec bieżącego dnia w czasie polskim (najbliższa północ Europe/Warsaw) w ms; dwa przebiegi przesunięcia, więc dni zmiany czasu też się zgadzają. */
+  function koniecDniaWaw(t) {
+    var f = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+    function czesci(x) { var o = {}; f.formatToParts(new Date(x)).forEach(function (p) { o[p.type] = Number(p.value); }); return o; }
+    function przesuniecie(x) { var c = czesci(x); return Date.UTC(c.year, c.month - 1, c.day, c.hour, c.minute, c.second) - (x - x % 1000); }
+    var c = czesci(t), polnoc = Date.UTC(c.year, c.month - 1, c.day + 1);
+    return polnoc - przesuniecie(polnoc - przesuniecie(t));
+  }
   function numerPaska(n) { var x = Number(n); return x >= 1 && x <= 99999 && Math.floor(x) === x ? x : null; }
   function moznaPasek(b, t) {
     if (!b || typeof b.slug !== "string" || !b.slug) return false;
@@ -865,7 +875,23 @@
     return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html", wariant: w, numer: numer, wazny_do: waznyDo };
   }
   function kluczPaskaBiegu(slug, wariant) { return "bm_bieg_pasek_ukryty_" + slug + (wariant && wariant !== "zapis" ? "_" + wariant : ""); }
-  function ukrytyPasek(s) { try { return !!s && g.localStorage.getItem(kluczPaskaBiegu(s.slug, s.wariant)) === "1"; } catch (e) { return false; } }
+  /** Czy wariant schowany krzyżykiem (teraz < chwila powrotu z klucza). Stare „1” → do końca dzisiejszego dnia; przeterminowany klucz sprzątamy. */
+  function ukrytyPasek(s, teraz) {
+    if (!s) return false;
+    try {
+      var k = kluczPaskaBiegu(s.slug, s.wariant), v = g.localStorage.getItem(k), t = teraz || Date.now();
+      if (v === null || v === undefined) return false;
+      if (v === "1") { g.localStorage.setItem(k, String(koniecDniaWaw(t))); return true; }
+      var n = Number(v);
+      if (v !== "" && isFinite(n) && t < n) return true;
+      g.localStorage.removeItem(k);
+    } catch (e) {}
+    return false;
+  }
+  function schowajPasek(s, teraz) {
+    var t = teraz || Date.now();
+    try { g.localStorage.setItem(kluczPaskaBiegu(s.slug, s.wariant), String(s.wariant === "zapis" ? t + PASEK_ZAPIS_UKRYTY_MS : koniecDniaWaw(t))); } catch (e) {}
+  }
   function tekstyPaska(s) {
     if (s.wariant === "numer") return ["🎅 Twój numer " + s.numer + " ·", "Twój bieg ›"];
     if (s.wariant === "dyplom") return ["🏅 Ukończone ·", "Twój dyplom ›"];
@@ -889,7 +915,7 @@
         if (!(t - Number(p.t) >= 0 && t - Number(p.t) < PASEK_PAMIEC_MS)) return null;
         if (p.wazny_do !== null && p.wazny_do !== undefined && !(t < Number(p.wazny_do))) return null;
         var z = { slug: p.slug, nazwa: p.nazwa, href: p.href, wariant: p.wariant, numer: numer, wazny_do: p.wazny_do === null || p.wazny_do === undefined ? null : Number(p.wazny_do) };
-        return ukrytyPasek(z) ? null : z;
+        return ukrytyPasek(z, t) ? null : z;
       }
       if (s) g.localStorage.setItem(KLUCZ_PASKA, JSON.stringify({ slug: s.slug, nazwa: s.nazwa, href: s.href, wariant: s.wariant, numer: s.numer, wazny_do: s.wazny_do, t: teraz || Date.now() }));
       else g.localStorage.removeItem(KLUCZ_PASKA);
@@ -925,7 +951,7 @@
     cta.textContent = tk[1]; cta.style.cssText = "flex:none;white-space:nowrap;color:var(--accent,#e8561e);";
     x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Ukryj pasek biegu");
     x.style.cssText = "flex:none;width:44px;height:44px;border:0;background:none;color:var(--muted,#9a97a3);font-size:20px;line-height:1;cursor:pointer;";
-    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug, s.wariant), "1"); } catch (e) {} potwierdzPasek(el, null); });
+    x.addEventListener("click", function () { schowajPasek(s); potwierdzPasek(el, null); });
     a.appendChild(nazwa); a.appendChild(cta); w.appendChild(a); w.appendChild(x); el.appendChild(w);
     el.setAttribute("data-wariant", s.wariant);
     el.hidden = false;
@@ -938,7 +964,7 @@
       if (!moznaPasek(b, t) || !sb || typeof sb.rpc !== "function") { potwierdzPasek(el, null); return Promise.resolve(null); }
       return Promise.resolve(sb.rpc("akcja_bieg_moi", { p_slug: b.slug })).then(function (r) {
         var s = stanPaskaBiegu(d, r && !r.error ? r.data : null, t);
-        if (ukrytyPasek(s)) s = null;
+        if (ukrytyPasek(s, t)) s = null;
         potwierdzPasek(el, s);
         return s;
       }, function () { potwierdzPasek(el, null); return null; }).catch(function () { return null; });
@@ -946,7 +972,7 @@
   }
   try { if (g.document && g.document.getElementById) { var elPaska = g.document.getElementById("bieg-pasek"); if (elPaska) pasekZPamieci(elPaska); } } catch (e) {}
 
-  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, pasekZPamieci: pasekZPamieci, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, pasekZPamieci: pasekZPamieci, koniecDniaWaw: koniecDniaWaw, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     murCegielekHtml: murCegielekHtml, cegielkiMuru: cegielkiMuru, liczbaCegielek: liczbaCegielek, MUR_KROTKO: MUR_KROTKO, KLUCZ_MURU: KLUCZ_MURU, przyciskBieguHtml: przyciskBieguHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,

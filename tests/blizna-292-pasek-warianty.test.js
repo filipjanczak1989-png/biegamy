@@ -78,19 +78,20 @@ test('rysowanie: tekst wariantu przez textContent, link bieg.html, numer z bazy;
   assert.deepEqual(wol, [], 'poza oknem pokazywania: bez zapytania o zapisy');
 });
 
-test('krzyżyk na bieg i wariant: po ukończeniu pasek wraca raz; schowane „Zapisz się” z 65a96e43 zostaje schowane, numer po zapisie już widać', async () => {
-  const s = srodowisko();
-  await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA()]), T);
-  s.pasek.dzieci[0].dzieci[1].h.click();
-  assert.equal(s.pasek.hidden, true); assert.equal(s.m.get('bm_bieg_pasek_ukryty_bieg-mikolajki_numer'), '1'); assert.equal(s.m.has(KLUCZ), false, 'krzyżyk czyści pamięć');
-  assert.equal(await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA()]), T), null, 'numer schowany zostaje');
-  const d = await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA({ ukonczony_at: UK })]), T);
-  assert.equal(d && d.wariant, 'dyplom', 'po ukończeniu nowy wariant wraca'); assert.equal(s.pasek.textContent, '🏅 Ukończone ·Twój dyplom ›×');
-  s.pasek.dzieci[0].dzieci[1].h.click();
-  assert.equal(await A.pasekBiegu(s.pasek, L(BIEG({ faza: 'zakonczony' })), rpc([JA({ ukonczony_at: UK })]), K + DZIEN), null, 'dyplom schowany: także po końcu biegu');
-  const st = srodowisko({ 'bm_bieg_pasek_ukryty_bieg-mikolajki': '1' });
-  assert.equal(await A.pasekBiegu(st.pasek, L(BIEG()), rpc([]), T), null, 'klucz z 65a96e43 chowa „Zapisz się”');
-  assert.equal((await A.pasekBiegu(st.pasek, L(BIEG()), rpc([JA()]), T)).wariant, 'numer', 'po zapisie pasek z numerem wraca');
+test('krzyżyk na bieg i wariant: po ukończeniu nowy wariant wraca; stary klucz „Zapisz się” z 65a96e43 chowa dziś, numer po zapisie już widać (czasy: blizna-293)', async () => {
+  const teraz = Date.now; Date.now = () => T;
+  try {
+    const s = srodowisko();
+    await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA()]), T);
+    s.pasek.dzieci[0].dzieci[1].h.click();
+    assert.equal(s.pasek.hidden, true); assert.ok(Number(s.m.get('bm_bieg_pasek_ukryty_bieg-mikolajki_numer')) > T); assert.equal(s.m.has(KLUCZ), false, 'krzyżyk czyści pamięć');
+    assert.equal(await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA()]), T), null, 'numer schowany zostaje (dziś)');
+    const d = await A.pasekBiegu(s.pasek, L(BIEG()), rpc([JA({ ukonczony_at: UK })]), T);
+    assert.equal(d && d.wariant, 'dyplom', 'po ukończeniu nowy wariant wraca'); assert.equal(s.pasek.textContent, '🏅 Ukończone ·Twój dyplom ›×');
+    const st = srodowisko({ 'bm_bieg_pasek_ukryty_bieg-mikolajki': '1' });
+    assert.equal(await A.pasekBiegu(st.pasek, L(BIEG()), rpc([]), T), null, 'klucz z 65a96e43 chowa „Zapisz się” (dziś)');
+    assert.equal((await A.pasekBiegu(st.pasek, L(BIEG()), rpc([JA()]), T)).wariant, 'numer', 'po zapisie pasek z numerem wraca');
+  } finally { Date.now = teraz; }
 });
 
 test('pamięć telefonu trzyma wariant i numer; dyplom po końcu ważny 7 dni od koniec_at', async () => {
