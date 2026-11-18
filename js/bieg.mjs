@@ -151,12 +151,17 @@
   var FAZY = {
     szkic: { chip: "WKRÓTCE", klasa: "bw-chip--wkrotce", zdanie: "Zapisy ruszą niebawem. Wróć tutaj za kilka dni." },
     zapisy: { chip: "ZAPISY OTWARTE", klasa: "bw-chip--trwa", zdanie: "Zapisy trwają. Dołącz, zanim ruszy bieg." },
-    trwa: { chip: "BIEG TRWA", klasa: "bw-chip--trwa", zdanie: "Bieg trwa. Zapisz się i pobiegnij albo przejdź dystans, kiedy chcesz, do końca biegu." },
+    trwa: { chip: "BIEG TRWA", klasa: "bw-chip--trwa", zdanie: "Bieg trwa. Zapisz się i pobiegnij, kiedy chcesz." },
     wyniki: { chip: "DOPISYWANIE WYNIKÓW", klasa: "bw-chip--wyniki", zdanie: "Bieg za nami. Wyniki i spóźnione zapisy przyjmujemy jeszcze przez dwa dni." },
     zakonczony: { chip: "ZAKOŃCZONY", klasa: "bw-chip--koniec", zdanie: "Bieg zakończony. Dziękujemy wszystkim, którzy pobiegli i poszli." }
   };
   function faza(bieg) { return bieg && FAZY[bieg.faza] ? bieg.faza : "szkic"; }
-  function fazaInfo(bieg) { return FAZY[faza(bieg)]; }
+  /** 18.11: w fazie „trwa” zdanie z końcem biegu z bazy („Bieg trwa do 6 grudnia. …”): bieg trwa cały okres, nie weekend. Bez daty: zdanie bez daty. */
+  function fazaInfo(bieg) {
+    var f = FAZY[faza(bieg)], d = dataZIso(bieg && bieg.dzien_do);
+    if (f !== FAZY.trwa || !d) return f;
+    return { chip: f.chip, klasa: f.klasa, zdanie: "Bieg trwa do " + d.getDate() + " " + MIESIACE[d.getMonth()] + ". Zapisz się i pobiegnij, kiedy chcesz." };
+  }
   /** Zapisy (siebie i dzieci) otwarte w fazach zapisy, trwa i wyniki, czyli do wynik_do (przegląd 12.11). */
   function zapisyOtwarte(bieg) { var f = faza(bieg); return f === "zapisy" || f === "trwa" || f === "wyniki"; }
   /** BRAMKA ZAPISU (przegląd 13.11, teksty 14.11): bez kompletu wartości do tekstów (teksty = wynik wartosciTekstow) strona nie przyjmuje zapisu,
@@ -343,7 +348,7 @@
     znakBiegamy(c, 100, 880, 28, "#3a1d0a"); c.fillStyle = "#7a4a1e"; c.textAlign = "right"; tekstWSzer(c, String(adres || "biegamy.run").replace(/^https?:\/\//, ""), W - 100, 880, 700, FONT_TEKST, 22, 500);
     return k;
   }
-  /** Data na dyplomie (usterka 19): dzień albo weekend biegu z bazy, nie chwila zaliczenia (wynik dopisany 7.12 to nadal bieg 5–6.12). Bez dat biegu: dzień zaliczenia jak dotąd. */
+  /** Data na dyplomie (usterka 19): dni biegu z bazy, nie chwila zaliczenia (wynik dopisany 7.12 to nadal bieg 5–6.12). Bez dat biegu: dzień zaliczenia jak dotąd. */
   function dataNaDyplomie(u, bieg) {
     var a = dataZIso(bieg && bieg.dzien_od), b = dataZIso(bieg && (bieg.dzien_do || bieg.dzien_od));
     if (a && b && b - a > 2 * 864e5) return "Termin biegu: " + zakresDni(bieg.dzien_od, bieg.dzien_do);   /* 17.11: bieg 18.11–6.12, pełne nazwy miesięcy nachodziły na medal */
@@ -408,7 +413,7 @@
   }
 
   /* ── ETAP 2: WYNIK W KARCIE UCZESTNIKA (20261126_akcja_bieg_wyniki) ──
-     „ja”: wynik z treningu (automat przy wejściu na stronę i z crona; „Wskaż inny trening” z listy treningów z weekendu; wpis ręczny = trening z formularza na Dziś).
+     „ja”: wynik z treningu (automat przy wejściu na stronę i z crona; „Wskaż inny trening” z listy treningów z okresu biegu; wpis ręczny = trening z formularza na Dziś).
      Dziecko: rodzic wpisuje „swój dystans”, bez czasu. Po wyniku: dyplom (telefon i A4) i odznaka. Czas widać tylko tutaj, na własnym dyplomie. */
   var ADRES_DZIS = "zawodnik.html#log";
   /** 'przed' (wynik jeszcze nie), 'brak' (można dopisać), 'gotowy' (ukończony), 'zamkniety' (po terminie, bez wyniku). */
@@ -476,7 +481,7 @@
     var z = Number(zapisany) || 0, l = dystanseBiegu(bieg).filter(function (d) { return d < z; });
     return l.length ? Math.max.apply(null, l) : null;
   }
-  /** Lista treningów z weekendu do „Wskaż trening”: data, km, czas, który dystans zalicza; za krótkie bez guzika. */
+  /** Lista treningów z okresu biegu do „Wskaż trening”: data, km, czas, który dystans zalicza; za krótkie bez guzika. */
   function treningiHtml(lista, u) {
     var l = Array.isArray(lista) ? lista : [];
     if (!l.length) return '<p class="bw-opis">W czasie biegu nie ma Twoich treningów biegu ani marszu. Dopisz trening na Dziś albo poczekaj, aż wejdzie z zegarka.</p><a class="bw-przycisk" href="' + ADRES_DZIS + '">Dopisz trening na Dziś ›</a>';

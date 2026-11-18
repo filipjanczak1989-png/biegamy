@@ -34,13 +34,7 @@
   [hidden] { display: none !important; }
   button { font: inherit; }
   main { max-width: 560px; margin: 0 auto; padding: 0 12px calc(env(safe-area-inset-bottom) + 36px); }
-  .bw-hero { position: relative; margin: 0 -12px; height: 220px; overflow: hidden; background: linear-gradient(#9fd0ee, #dceefb 58%, #86ad55 58%, #5f8a3a); }
-  .bw-hero .bw-wzgorza { position: absolute; left: 0; right: 0; bottom: 36%; height: 34%; background: url(assets/ulica/wzgorza.webp) 0 100%/700px 100% repeat-x; }
-  .bw-hero .bw-droga { position: absolute; left: 0; right: 0; bottom: 11%; height: 24%; background: url(assets/ulica/droga.webp) 0 100%/auto 100% repeat-x; border-top: 2px solid #2a2c31; }
-  .bw-hero .bw-przod { position: absolute; left: 0; right: 0; bottom: 0; height: 16%; background: url(assets/ulica/pierwszy-plan.webp) 0 100%/380px 100% repeat-x; }
-  .bw-hero img { position: absolute; bottom: 0; filter: drop-shadow(0 3px 2px rgba(60,30,0,.35)); }
-  .bw-hero .bw-brama { left: 50%; transform: translateX(-50%); bottom: 12%; width: 230px; }
-  .bw-hero .bw-kibice { bottom: 34%; width: 150px; } .bw-hero .bw-kibice--l { left: -20px; } .bw-hero .bw-kibice--p { right: -20px; }
+  .bw-hero { position: relative; margin: 0 -12px; height: 56px; background: var(--karta); border-bottom: 1px solid var(--ramka); }   /* 18.11: bez grafiki START·META (jesienna); zimowa/mikołajkowa później */
   .bw-wroc { position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 10px; background: rgba(7,7,10,.72); color: var(--kremowy); font: 600 12px/1 Inter, sans-serif; text-decoration: none; }
   .bw-naglowek { padding: 14px 2px 0; }
   .bw-marka { font: 600 11px/1 Inter, sans-serif; letter-spacing: .24em; color: var(--fg2); text-transform: uppercase; }
@@ -126,12 +120,12 @@
   .bw-opis { font-size: 14px; line-height: 1.5; color: var(--fg2); margin: 8px 0 0; }
   .bw-tekst { font-size: 14px; line-height: 1.55; } .bw-tekst h4 { margin: 4px 0 10px; font-size: 16px; line-height: 1.3; } .bw-tekst h5 { margin: 16px 0 4px; font-size: 14px; }
   .bw-tekst p { margin: 0 0 6px; } .bw-tekst ul { margin: 4px 0 8px; padding-left: 18px; } .bw-tekst li { margin: 0 0 6px; } .bw-tekst .bw-brak { color: #ffd3b0; }
-  @media (min-width: 900px) { main { max-width: 1040px; } .bw-hero { height: 300px; border-radius: 0 0 22px 22px; } .bw-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 22px; align-items: start; } }
+  @media (min-width: 900px) { main { max-width: 1040px; } .bw-hero { border-radius: 0 0 22px 22px; } .bw-uklad { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 22px; align-items: start; } }
 </style>
 </head>
 <body>
 <main id="bw-main">
-  <div class="bw-hero"><div class="bw-wzgorza"></div><div class="bw-droga"></div><div class="bw-przod"></div><img class="bw-kibice bw-kibice--l" src="assets/bieg/bieg-kibice.svg" alt=""><img class="bw-kibice bw-kibice--p" src="assets/bieg/bieg-kibice.svg" alt=""><img class="bw-brama" src="assets/bieg/bieg-brama.svg" alt=""><a class="bw-wroc" id="bw-wroc" href="dla-fabianka.html">‹ Ulica akcji</a></div>
+  <div class="bw-hero"><a class="bw-wroc" id="bw-wroc" href="dla-fabianka.html">‹ Ulica akcji</a></div>
 
   <div class="bw-naglowek">
     <div class="bw-marka">BiegaMy · bieg wirtualny</div>
