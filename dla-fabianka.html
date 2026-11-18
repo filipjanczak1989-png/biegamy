@@ -68,6 +68,9 @@
   .pasek-linia #procent { flex: none; font: 600 13px/1 Inter, sans-serif; color: var(--fg2); white-space: nowrap; }
   .przyciski--gora { order: -7; margin-top: 12px; gap: 8px; }
   .przyciski--gora .przycisk { margin: 0; }
+  .bieg-gora { order: -11; margin: 0 0 12px; }   /* 18.11: zapis na bieg na samej górze (pod linijką z nazwą akcji, nad sceną), tylko przy otwartym biegu; pojawia się w tej samej chwili co scena (obie czekają na licznik) */
+  .bieg-gora .przycisk { margin: 0; }
+  .bieg-gora p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--fg2); text-align: center; text-wrap: balance; }
   #scena-gora .us-tytul { order: -6; padding: 0; margin: 10px 0 0; font-size: 22px; line-height: 44px; }
   #scena-gora .us-udostepnij { order: -6; width: auto; align-self: flex-end; margin: -44px 0 0; padding: 0 14px; min-height: 44px; font-size: 13px; }   /* w jednym wierszu z nazwą ulicy, cel dotyku 44 px */
   #scena-gora .us-opis { order: -5; margin: 6px 0 0; padding: 0; }
@@ -118,6 +121,10 @@
   <div id="pelna" hidden>
     <div id="prog" role="status"></div>
     <div class="pasek-linia"><div id="pasek"></div><span id="procent"></span></div>
+    <div class="bieg-gora" id="bieg-gora" hidden>
+      <a class="przycisk przycisk--glowny" id="bieg-zapisz" href="bieg.html">Zapisz się na bieg ›</a>
+      <p id="bieg-opis"></p>
+    </div>
     <div class="przyciski przyciski--gora">
       <a class="przycisk przycisk--glowny" id="dolacz" href="index.html#dolacz">Dołącz i biegnij</a>
       <a class="przycisk przycisk--zbiorka" id="zbiorka" hidden target="_blank" rel="noopener noreferrer">Oficjalna zbiórka ›</a>
@@ -174,6 +181,18 @@ document.addEventListener('DOMContentLoaded', function () {
     murPrzyGrze();
   }
   try { new MutationObserver(function () { uporzadkujPodpis(); }).observe($('ulica-po'), { childList: true, subtree: true }); } catch (e) {}
+  /* 18.11: „Zapisz się na bieg ›” wysoko na stronie, tylko gdy licznik oddaje obiekt bieg w fazie z otwartym zapisem (zapisy, trwa, wyniki = do wynik_do);
+     pod nim jedna linia z licznika: nazwa i termin („… · 18.11–6.12”), wyłącznie textContent. */
+  function dzienMiesiac(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + '.' + Number(m[2]) : ''; }
+  function rysujZapisNaBieg(b) {
+    var blok = $('bieg-gora'); if (!blok) return;
+    var otwarty = !!b && typeof b === 'object' && ['zapisy', 'trwa', 'wyniki'].indexOf(b.faza) >= 0;
+    blok.hidden = !otwarty;
+    if (!otwarty) return;
+    $('bieg-zapisz').href = /[?&]proba=1/.test(location.search || '') ? 'bieg.html?proba=1' : 'bieg.html';
+    var od = dzienMiesiac(b.dzien_od), dd = dzienMiesiac(b.dzien_do);
+    $('bieg-opis').textContent = String(b.nazwa || 'Bieg wirtualny') + (od && dd ? ' · ' + (od === dd ? od : od + '–' + dd) : '');
+  }
   function pokaz(d) {
     ulica(d);
     var sg = $('scena-gora'); if (sg && sg.classList) sg.classList.toggle('bez-sceny', !(d && d.wystartowala));   // miejsce na scenę u góry jest od pierwszego rysowania (CSS); znika tylko w zapowiedzi i przy awarii licznika
@@ -204,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('zasady').hidden = zamknieta;
     $('dolacz').hidden = zamknieta;
     var bl = $('bieg-link'); if (bl) { bl.hidden = !(d.bieg && typeof d.bieg === 'object'); bl.href = /[?&]proba=1/.test(location.search || '') ? 'bieg.html?proba=1' : 'bieg.html'; }   // przegląd biegu 13.11, usterka 2
+    rysujZapisNaBieg(d.bieg);
     var link = A.linkZbiorki(d);
     $('zbiorka').hidden = !link;
     if (link) { $('zbiorka').href = link; $('zbiorka').textContent = zamknieta ? 'Zbiórka trwa dalej — oficjalna strona ›' : 'Oficjalna zbiórka ›'; }
