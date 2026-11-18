@@ -37,7 +37,8 @@ function srodowisko(rpc) {
 }
 
 test('stan paska: otwarty bieg i konto bez zapisu „ja”; w każdym innym przypadku brak', () => {
-  assert.deepEqual(A.stanPaskaBiegu(L(BIEG()), []), { slug: 'bieg-mikolajki', nazwa: 'Wirtualny Bieg Mikołajkowy dla Fabianka', href: 'bieg.html' });
+  assert.deepEqual(A.stanPaskaBiegu(L(BIEG()), []), { slug: 'bieg-mikolajki', nazwa: 'Wirtualny Bieg Mikołajkowy dla Fabianka', href: 'bieg.html', koniec: null });
+  assert.equal(A.stanPaskaBiegu(L(BIEG({ koniec_at: '2026-12-06T19:00:00+00:00' })), []).koniec, '2026-12-06T19:00:00+00:00', 'koniec biegu do pamięci paska (blizna-291)');
   assert.equal(A.stanPaskaBiegu(L(BIEG({ faza: 'zapisy' })), []).href, 'bieg.html');
   assert.equal(A.stanPaskaBiegu(L(BIEG(), { testowa: true }), []).href, 'bieg.html?proba=1', 'konto testowe: licznik próby, bieg próbny');
   assert.ok(A.stanPaskaBiegu(L(BIEG()), [{ rodzaj: 'dziecko', numer: 3 }]), 'same dzieci = konto bez zapisu „ja”: pasek jest');

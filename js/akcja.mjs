@@ -840,9 +840,45 @@
     var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null;
     if (!b || typeof b.slug !== "string" || !b.slug || ["zapisy", "trwa"].indexOf(b.faza) < 0 || ukryty) return null;
     if (!Array.isArray(moi) || moi.some(function (u) { return u && u.rodzaj === "ja" && !u.wycofany_at; })) return null;
-    return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html" };
+    return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html", koniec: typeof b.koniec_at === "string" ? b.koniec_at : null };
   }
   function kluczPaskaBiegu(slug) { return "bm_bieg_pasek_ukryty_" + slug; }
+  /* 18.11 wieczór: PASEK OD RAZU Z PAMIĘCI TELEFONU (mniejszy skok układu). Ostatni stan potwierdzony przez bazę (slug, nazwa, link, koniec biegu, czas)
+     leży w localStorage; przy wczytaniu modułu na Dziś pasek rysuje się z niego, zanim przyjdzie licznik, a pasekBiegu potwierdza go albo chowa i czyści
+     pamięć (zapisany, faza inna, błąd). Pamięć ważna 24 h i nie po końcu biegu; bez potwierdzenia w 30 s pasek znika (brak danych = brak paska). */
+  var KLUCZ_PASKA = "bm_bieg_pasek_ostatni", PASEK_PAMIEC_MS = 24 * 3600e3, PASEK_CZEKA_MS = 30e3, _pasekCzeka = null;
+  function pamiecPaska(s, teraz) {
+    try {
+      if (s === undefined) {
+        var p = JSON.parse(g.localStorage.getItem(KLUCZ_PASKA) || "null"), t = teraz || Date.now();
+        if (!p || typeof p !== "object" || typeof p.slug !== "string" || !/^[a-z0-9-]{2,40}$/.test(p.slug) || typeof p.nazwa !== "string" || !p.nazwa || p.nazwa.length > 120) return null;
+        if (p.href !== "bieg.html" && p.href !== "bieg.html?proba=1") return null;
+        if (!(t - Number(p.t) >= 0 && t - Number(p.t) < PASEK_PAMIEC_MS)) return null;
+        if (p.koniec && !(t < Date.parse(p.koniec))) return null;
+        if (g.localStorage.getItem(kluczPaskaBiegu(p.slug)) === "1") return null;
+        return { slug: p.slug, nazwa: p.nazwa, href: p.href, koniec: p.koniec || null };
+      }
+      if (s) g.localStorage.setItem(KLUCZ_PASKA, JSON.stringify({ slug: s.slug, nazwa: s.nazwa, href: s.href, koniec: s.koniec || null, t: teraz || Date.now() }));
+      else g.localStorage.removeItem(KLUCZ_PASKA);
+    } catch (e) {}
+    return null;
+  }
+  /** Przy wczytaniu modułu na Dziś (zawodnik.html#bieg-pasek): pasek z ostatniego potwierdzonego stanu, bez czekania na licznik. → stan albo null. */
+  function pasekZPamieci(el, teraz) {
+    if (!el) return null;
+    var s = pamiecPaska(undefined, teraz);
+    if (!s) return null;
+    rysujPasekBiegu(el, s);
+    if (_pasekCzeka) g.clearTimeout(_pasekCzeka);
+    _pasekCzeka = g.setTimeout(function () { _pasekCzeka = null; rysujPasekBiegu(el, null); }, PASEK_CZEKA_MS);
+    return s;
+  }
+  /** Wynik z bazy (stan albo null): koniec czekania, pamięć, rysunek. */
+  function potwierdzPasek(el, s) {
+    if (_pasekCzeka) { g.clearTimeout(_pasekCzeka); _pasekCzeka = null; }
+    pamiecPaska(s || null);
+    rysujPasekBiegu(el, s || null);
+  }
   /* el = #bieg-pasek z klasą fade-in: showSection chowa go poza Dziś (display:none) i czyści display po powrocie, więc widoczność
      trzyma atrybut hidden, a układ flex siedzi w środku. */
   function rysujPasekBiegu(el, s) {
@@ -856,7 +892,7 @@
     cta.textContent = "Zapisz się ›"; cta.style.cssText = "flex:none;white-space:nowrap;color:var(--accent,#e8561e);";
     x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Ukryj pasek biegu");
     x.style.cssText = "flex:none;width:44px;height:44px;border:0;background:none;color:var(--muted,#9a97a3);font-size:20px;line-height:1;cursor:pointer;";
-    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug), "1"); } catch (e) {} rysujPasekBiegu(el, null); });
+    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug), "1"); } catch (e) {} potwierdzPasek(el, null); });
     a.appendChild(nazwa); a.appendChild(cta); w.appendChild(a); w.appendChild(x); el.appendChild(w);
     el.hidden = false;
   }
@@ -866,16 +902,17 @@
       if (!el) return Promise.resolve(null);
       var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null, ukryty = false;
       if (b && typeof b.slug === "string") { try { ukryty = g.localStorage.getItem(kluczPaskaBiegu(b.slug)) === "1"; } catch (e) {} }
-      if (!stanPaskaBiegu(d, [], ukryty) || !sb || typeof sb.rpc !== "function") { rysujPasekBiegu(el, null); return Promise.resolve(null); }
+      if (!stanPaskaBiegu(d, [], ukryty) || !sb || typeof sb.rpc !== "function") { potwierdzPasek(el, null); return Promise.resolve(null); }
       return Promise.resolve(sb.rpc("akcja_bieg_moi", { p_slug: b.slug })).then(function (r) {
         var s = stanPaskaBiegu(d, r && !r.error ? r.data : null, false);
-        rysujPasekBiegu(el, s);
+        potwierdzPasek(el, s);
         return s;
-      }, function () { rysujPasekBiegu(el, null); return null; }).catch(function () { return null; });
-    } catch (e) { try { rysujPasekBiegu(el, null); } catch (x) {} return Promise.resolve(null); }
+      }, function () { potwierdzPasek(el, null); return null; }).catch(function () { return null; });
+    } catch (e) { try { potwierdzPasek(el, null); } catch (x) {} return Promise.resolve(null); }
   }
+  try { if (g.document && g.document.getElementById) { var elPaska = g.document.getElementById("bieg-pasek"); if (elPaska) pasekZPamieci(elPaska); } } catch (e) {}
 
-  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, pasekZPamieci: pasekZPamieci, PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     murCegielekHtml: murCegielekHtml, cegielkiMuru: cegielkiMuru, liczbaCegielek: liczbaCegielek, MUR_KROTKO: MUR_KROTKO, KLUCZ_MURU: KLUCZ_MURU, przyciskBieguHtml: przyciskBieguHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
