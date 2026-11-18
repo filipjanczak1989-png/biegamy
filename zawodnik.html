@@ -895,6 +895,8 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
+<!-- PASEK BIEGU (18.11, wyjątek od zamrożenia: jedyny element): „🎅 {nazwa biegu} · Zapisz się ›” → bieg.html; render js/akcja.mjs pasekBiegu (licznik akcji + akcja_bieg_moi), bez czekania -->
+<div id="bieg-pasek" class="fade-in" hidden style="margin:0 16px 12px;"></div>
 <!-- MOTYWACJA DNIA -->
 <div id="daily-motivation" class="fade-in">
   <div style="position:absolute!important;inset:0;background-image:url(https://filipjanczak1989-png.github.io/biegamy-assets/motiv-bg.jpg);background-size:cover;background-position:center;opacity:0.35;border-radius:inherit;pointer-events:none;z-index:0!important;"></div>
@@ -4420,6 +4422,7 @@ window._odswiezStanAkcji = function () {
       }
     }
     window._renderKartyAkcji(d);
+    if (window.BM_AKCJA && window.BM_AKCJA.pasekBiegu) window.BM_AKCJA.pasekBiegu(document.getElementById('bieg-pasek'), d, window.sb);   // 18.11: pasek biegu, w tle
     return d;
   });
 };

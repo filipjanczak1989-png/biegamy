@@ -82,7 +82,9 @@ test('najkrótsza droga: openModal → selType(pigułka Spacer) → kursor w dys
 test('żadnych nowych zapytań ani wysyłek; kafel i karta używają wkladHtml; zamrożone pliki bez zmian w tej części', () => {
   const kod = czytaj('js/akcja.mjs');
   const rpc = [...kod.matchAll(/\.rpc\("([a-z_]+)"/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(rpc)].sort(), ['akcja_firmy_do_sprawdzenia', 'akcja_kafel_ukryj', 'akcja_kafel_ukryty'], 'te same trzy rpc co przed 11.11: pierwszy kilometr nie dodaje zapytań');
+  assert.deepEqual([...new Set(rpc)].sort(), ['akcja_bieg_moi', 'akcja_firmy_do_sprawdzenia', 'akcja_kafel_ukryj', 'akcja_kafel_ukryty'], 'te same trzy rpc co przed 11.11 (pierwszy kilometr nie dodaje zapytań) + akcja_bieg_moi paska biegu (18.11, blizna-290)');
+  const pasek = kod.slice(kod.indexOf('function pasekBiegu('), kod.indexOf('g.BM_AKCJA = {'));
+  assert.equal((kod.match(/\.rpc\("akcja_bieg_moi"/g) || []).length, 1); assert.match(pasek, /\.rpc\("akcja_bieg_moi"/, 'akcja_bieg_moi tylko w pasku biegu');
   const nowe = kod.slice(kod.indexOf('PIERWSZY KILOMETR (11.11'), kod.indexOf('function liczbyKaflaHtml')) + kod.slice(kod.indexOf('Pierwszy kilometr: najkrótsza droga'), kod.indexOf('Film akcji z kafla'));
   assert.ok(nowe.length > 1500, 'oba nowe bloki znalezione');
   assert.doesNotMatch(nowe, /fetch\(|sendBeacon|\.insert\(|\.update\(|\.from\(/, 'nowe bloki: nic nie idzie na serwer, żadnych nowych odczytów');

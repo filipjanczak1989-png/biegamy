@@ -832,7 +832,50 @@
       zamknieta: !!d.zamknieta, url_zbiorki: d.url_zbiorki || null } };
   }
 
-  g.BM_AKCJA = { PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
+  /* 18.11: PASEK BIEGU NA DZIŚ (zawodnik.html#bieg-pasek, wyjątek od zamrożenia: jedyny element). „🎅 {nazwa biegu} · Zapisz się ›” → bieg.html.
+     Tylko bieg otwarty (faza zapisy/trwa) z licznika akcji (pole bieg, ten sam licznik co karta akcji: nic więcej nie pobieramy) i konto bez aktywnego
+     zapisu „ja” (RPC akcja_bieg_moi, w tle). Zapisany: nic. Krzyżyk chowa pasek na ten bieg (localStorage). Brak danych albo błąd = pasek ukryty.
+     Tekst wyłącznie przez textContent; nazwa biegu z bazy. */
+  function stanPaskaBiegu(d, moi, ukryty) {
+    var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null;
+    if (!b || typeof b.slug !== "string" || !b.slug || ["zapisy", "trwa"].indexOf(b.faza) < 0 || ukryty) return null;
+    if (!Array.isArray(moi) || moi.some(function (u) { return u && u.rodzaj === "ja" && !u.wycofany_at; })) return null;
+    return { slug: b.slug, nazwa: String(b.nazwa || "Bieg wirtualny"), href: d.testowa === true ? "bieg.html?proba=1" : "bieg.html" };
+  }
+  function kluczPaskaBiegu(slug) { return "bm_bieg_pasek_ukryty_" + slug; }
+  /* el = #bieg-pasek z klasą fade-in: showSection chowa go poza Dziś (display:none) i czyści display po powrocie, więc widoczność
+     trzyma atrybut hidden, a układ flex siedzi w środku. */
+  function rysujPasekBiegu(el, s) {
+    if (!el) return;
+    el.textContent = "";
+    if (!s) { el.hidden = true; return; }
+    var doc = g.document, w = doc.createElement("div"), a = doc.createElement("a"), nazwa = doc.createElement("span"), cta = doc.createElement("span"), x = doc.createElement("button");
+    w.style.cssText = "display:flex;align-items:center;min-height:44px;padding-left:12px;border-radius:12px;background:var(--card,#16161d);border:1px solid var(--accent,#e8561e);";
+    a.href = s.href; a.style.cssText = "flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:5px 0;color:var(--fg,#f0ede8);text-decoration:none;font-size:13px;font-weight:600;line-height:1.3;";
+    nazwa.textContent = "🎅 " + s.nazwa + " ·"; nazwa.style.cssText = "min-width:0;";
+    cta.textContent = "Zapisz się ›"; cta.style.cssText = "flex:none;white-space:nowrap;color:var(--accent,#e8561e);";
+    x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Ukryj pasek biegu");
+    x.style.cssText = "flex:none;width:44px;height:44px;border:0;background:none;color:var(--muted,#9a97a3);font-size:20px;line-height:1;cursor:pointer;";
+    x.addEventListener("click", function () { try { g.localStorage.setItem(kluczPaskaBiegu(s.slug), "1"); } catch (e) {} rysujPasekBiegu(el, null); });
+    a.appendChild(nazwa); a.appendChild(cta); w.appendChild(a); w.appendChild(x); el.appendChild(w);
+    el.hidden = false;
+  }
+  /** Wołane z _odswiezStanAkcji (zawodnik.html) bez czekania; → Promise<stan paska albo null>. Nigdy nie rzuca. */
+  function pasekBiegu(el, d, sb) {
+    try {
+      if (!el) return Promise.resolve(null);
+      var b = d && d.bieg && typeof d.bieg === "object" ? d.bieg : null, ukryty = false;
+      if (b && typeof b.slug === "string") { try { ukryty = g.localStorage.getItem(kluczPaskaBiegu(b.slug)) === "1"; } catch (e) {} }
+      if (!stanPaskaBiegu(d, [], ukryty) || !sb || typeof sb.rpc !== "function") { rysujPasekBiegu(el, null); return Promise.resolve(null); }
+      return Promise.resolve(sb.rpc("akcja_bieg_moi", { p_slug: b.slug })).then(function (r) {
+        var s = stanPaskaBiegu(d, r && !r.error ? r.data : null, false);
+        rysujPasekBiegu(el, s);
+        return s;
+      }, function () { rysujPasekBiegu(el, null); return null; }).catch(function () { return null; });
+    } catch (e) { try { rysujPasekBiegu(el, null); } catch (x) {} return Promise.resolve(null); }
+  }
+
+  g.BM_AKCJA = { stanPaskaBiegu: stanPaskaBiegu, pasekBiegu: pasekBiegu, PROGI_KM: PROGI_KM, progiAkcji: progiAkcji, progPrzekroczony: progPrzekroczony, banerProguHtml: banerProguHtml, konfettiProgu: konfettiProgu, tekstProgu: tekstProgu, wkladHtml: wkladHtml, flagaPierwszego: flagaPierwszego, otworzPierwszyKm: otworzPierwszyKm, km: km, zl: zl, pct: pct, tekstFilipa: tekstFilipa, tekstSponsorow: tekstSponsorow, stanKarty: stanKarty, linkZbiorki: linkZbiorki,
     tekstWyprawy: tekstWyprawy, pobierzPubliczny: pobierzPubliczny, sprawdzGre: sprawdzGre, pasekHtml: pasekHtml, kartaDzisHtml: kartaDzisHtml, kartaOkienka: kartaOkienka, sponsorHtml: sponsorHtml,
     murCegielekHtml: murCegielekHtml, cegielkiMuru: cegielkiMuru, liczbaCegielek: liczbaCegielek, MUR_KROTKO: MUR_KROTKO, KLUCZ_MURU: KLUCZ_MURU, przyciskBieguHtml: przyciskBieguHtml,
     DEKLARACJE_GOTOWE: DEKLARACJE_GOTOWE, TEKST_DEKLARACJI: TEKST_DEKLARACJI, tekstDeklaracji: tekstDeklaracji, dopelniacz: dopelniacz,
