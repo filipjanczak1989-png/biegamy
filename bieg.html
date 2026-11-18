@@ -354,7 +354,37 @@ document.addEventListener('DOMContentLoaded', function () {
       A.zUlica(function (U) { U.licznikProby().then(ok, function () { ok(null); }); });
     }), 8000);   // usterka 12: bez js/ulica.mjs zUlica nie woła callbacku; po 8 s strona idzie dalej licznikiem publicznym (4 s bywało za mało na słabym telefonie)
   }
-  function pobierzLicznik() { return licznikStrony().then(function (dp) { return dp || A.pobierzPubliczny(SLUG_AKCJI); }).catch(function () { return null; }); }
+  /* 18.11: zapas licznika próby. licznikProby czeka bez limitu na EF akcja-proba-wizerunek (rysunek, muzyka, link zbiórki); gdy ta nie odpowie w 8 s, strona brała licznik
+     publiczny 'proba' (zawsze 404) i pokazywała „Nie udało się wczytać biegu”. Zapas: sam licznik próby z RPC akcja_licznik, bez wizerunku, z tym samym limitem 8 s.
+     Tylko konto testowe (slugDla z js/akcja-cytaty.mjs): baza przyjmuje zapis na próbę od każdego zalogowanego, więc strona nie pokazuje próby innym kontom.
+     Zapytania zapasu startują od razu; czekamy na nie dopiero, gdy licznikProby nic nie odda. */
+  function cytatyProby() {
+    if (window.BM_AKCJA_CYTATY) return Promise.resolve(window.BM_AKCJA_CYTATY);
+    return new Promise(function (ok) {
+      var el = document.querySelector('script[src="js/akcja-cytaty.mjs"]'), gotowe = function () { ok(window.BM_AKCJA_CYTATY || null); };
+      if (!el) { el = document.createElement('script'); el.src = 'js/akcja-cytaty.mjs'; el.async = true; document.head.appendChild(el); }
+      el.addEventListener('load', gotowe); el.addEventListener('error', gotowe);
+    });
+  }
+  function licznikProbyZapas() {
+    if (!PROBA || !window.sb || !window.sb.rpc) return null;
+    var konto = Promise.resolve(window.sb.rpc('auth_my_athlete_id')).then(function (r) { return r && !r.error && r.data ? String(r.data) : null; }, function () { return null; });   // bez sesji: anon nie ma tej funkcji = null
+    var dane = Promise.resolve(window.sb.rpc('akcja_licznik', { p_slug: 'proba' })).then(function (r) { return r && !r.error && r.data && typeof r.data === 'object' ? r.data : null; }, function () { return null; });
+    return function () {
+      return B.zLimitem(konto.then(function (id) { return id ? cytatyProby().then(function (C) { return C && C.slugDla(id) === 'proba' ? dane : null; }) : null; }), 8000);
+    };
+  }
+  function pobierzLicznik() {
+    var zapas = licznikProbyZapas();
+    return licznikStrony().then(function (dp) {
+      if (dp || !zapas) return dp || A.pobierzPubliczny(SLUG_AKCJI);
+      return zapas().then(function (z) {
+        if (!z) return A.pobierzPubliczny(SLUG_AKCJI);
+        zglosBlad('licznik próby', { code: 'zapas', message: 'licznikProby bez wyniku w 8 s; licznik z RPC akcja_licznik' });
+        return z;
+      });
+    }).catch(function () { return null; });
+  }
   function pobierzSesje() { try { if (!window.sb || !window.sb.auth) return Promise.resolve(null); return Promise.resolve(window.sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session ? r.data.session : null; }, function () { return null; }); } catch (e) { return Promise.resolve(null); } }
   /* moje zapisy: null = błąd odczytu (odswiez zostawia poprzednią listę: brak zasięgu nie chowa numeru), [] = brak zapisów */
   function pobierzMoich() {
