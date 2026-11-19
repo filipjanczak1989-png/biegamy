@@ -174,9 +174,9 @@ begin
   if (j->>'ok')::boolean or j->>'powod' is distinct from 'usuniety' then raise exception 'FAIL 8b: v6: usunięty wynik wrócił: %', j; end if;
   n := n + 2;
 
-  -- 9. prawdziwy bieg (gdy jest): v7 i tyle samo ukończonych co przed migracją (nikogo nie cofamy); w wyniku same liczby
+  -- 9. prawdziwy bieg (gdy jest): co najmniej v7 (blizna-309) i tyle samo ukończonych co przed migracją (nikogo nie cofamy); w wyniku same liczby
   if exists (select 1 from public.akcja_biegi where slug = 'bieg-mikolajki') then
-    if (select regulamin_wersja from public.akcja_biegi where slug = 'bieg-mikolajki') is distinct from W7 then raise exception 'FAIL 9a: bieg-mikolajki nie jest na v7'; end if;
+    if not public.akcja_bieg_wersja_od((select regulamin_wersja from public.akcja_biegi where slug = 'bieg-mikolajki'), 7) then raise exception 'FAIL 9a: bieg-mikolajki poniżej v7'; end if;
     if (select count(*) from public.akcja_bieg_uczestnicy u join public.akcja_biegi y on y.id = u.bieg_id where y.slug = 'bieg-mikolajki' and u.ukonczony_at is not null and u.wycofany_at is null)
        is distinct from (select c from _ukonczeni_przed) then raise exception 'FAIL 9b: bieg-mikolajki: inna liczba ukończonych niż przed migracją'; end if;
     raise notice 'bieg-mikolajki: v7, ukończonych % (przed migracją %)', (select count(*) from public.akcja_bieg_uczestnicy u join public.akcja_biegi y on y.id = u.bieg_id where y.slug = 'bieg-mikolajki' and u.ukonczony_at is not null and u.wycofany_at is null), (select c from _ukonczeni_przed);

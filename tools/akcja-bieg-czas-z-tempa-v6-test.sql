@@ -136,9 +136,9 @@ begin
   update public.akcja_biegi set regulamin_wersja = W where id = b;
   n := n + 2;
 
-  -- 8. prawdziwy bieg (jeśli jest): v6 i każdy ukończony dorosły z czasem treningu ma czas na 5 km (limit zniknął)
+  -- 8. prawdziwy bieg (jeśli jest): co najmniej v6 (od 20261217 v7; blizna-309) i każdy ukończony dorosły z czasem treningu ma czas na 5 km (limit zniknął)
   if exists (select 1 from public.akcja_biegi where slug = 'bieg-mikolajki') then
-    if (select regulamin_wersja from public.akcja_biegi where slug = 'bieg-mikolajki') is distinct from W then raise exception 'FAIL 8a: bieg-mikolajki nie na v6'; end if;
+    if not public.akcja_bieg_wersja_od((select regulamin_wersja from public.akcja_biegi where slug = 'bieg-mikolajki'), 6) then raise exception 'FAIL 8a: bieg-mikolajki poniżej v6'; end if;
     if exists (select 1 from public.akcja_bieg_uczestnicy u join public.akcja_biegi bb on bb.id = u.bieg_id where bb.slug = 'bieg-mikolajki' and u.rodzaj = 'ja' and u.wycofany_at is null
                 and u.ukonczony_at is not null and u.wynik_s is not null and public.akcja_bieg_czas_biegu(u, bb) is null) then raise exception 'FAIL 8b: bieg-mikolajki: ukończony z czasem treningu bez czasu na 5 km'; end if;
     n := n + 2;
