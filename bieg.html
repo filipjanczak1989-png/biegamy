@@ -19,7 +19,7 @@
 <!-- 19.11: ?v= = pierwsze 8 znaków sha256 pliku (bez \r). Po pushu strona przychodzi z sieci, a moduł bez ?v= z pamięci (service worker albo do 10 min
      pamięci GitHub Pages): 18.11 „B.zdanieKoniecWyniku is not a function” i pusta strona do odświeżenia. Nowy skrót = nowy adres = świeży moduł. Test blizna-299 pilnuje skrótu. -->
 <script defer src="js/akcja.mjs?v=5cc3b27b"></script>
-<script defer src="js/bieg.mjs?v=2ea9f956"></script>
+<script defer src="js/bieg.mjs?v=c35ad7d7"></script>
 <!--
   BIEG WIRTUALNY Z PRAWDZIWYMI ZAPISAMI (etap 1, 12.11.2026; projekt poza repo). Strona publiczna; dane biegu z publicznego licznika (pole `bieg` z akcja_bieg_publiczny),
   własne zapisy przez funkcje akcja_bieg_* (tylko zalogowani). Bez imienia dziecka w kodzie: nazwa biegu przychodzi z bazy. Bez wpisowego; „Wesprzyj zbiórkę” to zwykły link
@@ -59,18 +59,26 @@
   .bw-dystanse { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }   /* tyle kolumn, ile kart: dystanse biegu i „Dzieci” */
   .bw-dystans { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 10px 6px 9px; border: 1px solid var(--ramka); border-radius: 14px; background: rgba(255,255,255,.04); }
   .bw-dystans img { width: 54px; height: 54px; } .bw-dystans b { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; } .bw-dystans small { font-size: 10.5px; color: var(--fg2); line-height: 1.25; }
-  .bw-liczby { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .bw-liczba { background: rgba(255,255,255,.05); border: 1px solid var(--ramka); border-radius: 12px; padding: 10px 8px 8px; }
-  .bw-liczba b { display: block; font: 400 28px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; } .bw-liczba span { display: block; font-size: 11.5px; color: var(--fg2); margin-top: 3px; }
-  .bw-liczby-pod { grid-column: 1 / -1; margin: 2px 0 0; }
+  /* 19.11: „Razem” jedną linią (B.razemHtml) zamiast trzech kafli */
+  .bw-razem { margin: 14px 2px; font-size: 13.5px; line-height: 1.5; color: var(--fg2); }
+  .bw-razem b { font: 400 21px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .02em; color: var(--fg); } .bw-razem .bw-razem-tytul { font: 600 11px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; margin-right: 6px; }
+  /* 19.11: rozwijane bloki (<details>): „Jak działa ranking ›” pod listą i „Zasady, regulamin i prywatność ›”; strzałka obraca się po otwarciu */
+  details > summary { list-style: none; cursor: pointer; } details > summary::-webkit-details-marker { display: none; }
+  details > summary > span { display: inline-block; transition: transform .15s; } details[open] > summary > span { transform: rotate(90deg); }
+  .bw-rozwin { margin-top: 6px; } .bw-rozwin > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; font-weight: 600; color: var(--akcent2); }
+  .bw-rozwin .bw-drobne { margin-top: 0; }
+  details.bw-zasady > summary { display: flex; justify-content: space-between; align-items: center; min-height: 44px; margin: -4px 0; font: 600 12px/1.2 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
+  details.bw-zasady[open] > summary { margin-bottom: 8px; }
+  .bw-podsekcja { padding: 12px 0 2px; border-top: 1px solid var(--ramka); } .bw-podsekcja h3 { font: 600 11px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--fg2); margin: 0 0 10px; }
   .bw-kroki { display: grid; gap: 10px; } .bw-krok { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; } .bw-krok img { width: 56px; height: 56px; }
   .bw-krok b { display: block; font-size: 15px; margin-bottom: 2px; } .bw-krok span { font-size: 13px; color: var(--fg2); line-height: 1.45; }
   .bw-drobne { font-size: 12px; color: var(--fg2); line-height: 1.5; margin: 10px 0 0; } .bw-drobne a { color: var(--fg2); }
   .bw-obraz { display: block; width: 100%; height: auto; border-radius: 12px; background: var(--kremowy); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-  .bw-plakat { display: block; width: 100%; height: auto; aspect-ratio: 210 / 297; border-radius: 14px; margin: 0 0 12px; background: rgba(255,255,255,.04); }   /* 18.11: miejsce A4 od razu (loading=lazy) */
-  .bw-plakat-mini { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; color: var(--fg); text-decoration: none; }   /* 18.11: miniatura pod przyciskiem zapisu */
+  /* 19.11: plakat = miniatura (otwiera PDF) obok „Pobierz” i „Udostępnij”, bez dużego obrazka */
+  .bw-plakat-wiersz { display: flex; gap: 14px; align-items: center; }
+  .bw-plakat-mini { flex: none; display: block; line-height: 0; }
   .bw-plakat-mini img { flex: none; width: 104px; height: auto; aspect-ratio: 210 / 297; border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.55); background: rgba(255,255,255,.04); object-fit: cover; }
-  .bw-plakat-mini span { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 15px; } .bw-plakat-mini small { font-weight: 400; font-size: 13px; color: var(--fg2); }
+  .bw-plakat-przyciski { flex: 1; min-width: 0; } .bw-plakat-przyciski .bw-przycisk:first-child { margin-top: 0; }
   .bw-uczestnik { padding: 14px 0 18px; border-top: 2px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }   /* wyraźna granica kart: link „Wycofaj” należy do karty nad kreską */
   .bw-reczny { font-size: 11px; color: var(--fg2); white-space: nowrap; } .bw-pod-zgoda { margin: 4px 2px 0; }
   .bw-uczestnik h3 { margin: 0 0 8px; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-uczestnik h3 small { font: 600 12px/1 Inter, sans-serif; color: var(--fg2); letter-spacing: 0; margin-left: 8px; }
@@ -139,13 +147,17 @@
     <div class="bw-chipy"><span class="bw-chip bw-chip--wkrotce" id="bw-chip-faza">WKRÓTCE</span><span class="bw-chip bw-chip--proba" id="bw-chip-proba" hidden>PRÓBA</span></div>
     <h1 id="bw-nazwa"></h1>
     <p class="bw-pod">Bieg i marsz dla jednej zbiórki. Pobiegnij albo przejdź swój dystans tam, gdzie mieszkasz. Udział bezpłatny.</p>
-    <p class="bw-termin" id="bw-termin" hidden><b id="bw-termin-daty"></b><span id="bw-termin-opis"></span></p>
+    <!-- 19.11 (prostsza strona): sam zakres dat; godzina końca jest raz, w zdaniu fazy niżej (opis terminu zostaje w DOM, schowany) -->
+    <p class="bw-termin" id="bw-termin" hidden><b id="bw-termin-daty"></b><span id="bw-termin-opis" hidden></span></p>
     <p class="bw-opis" id="bw-faza-zdanie"></p>
     <p class="bw-baner" id="bw-rezygnacja" role="status" hidden></p>
     <!-- 18.11: zmiana regulaminu po otwarciu zapisów (§ 12 ust. 2): zapisani na starszej wersji widzą krótki komunikat; „Rozumiem” chowa go na tym telefonie -->
     <div class="bw-baner" id="bw-zmiana" role="status" hidden><span id="bw-zmiana-tekst"></span> <button type="button" class="bw-link-maly" id="bw-zmiana-ok">Rozumiem</button></div>
   </div>
 
+  <!-- 19.11 PROSTSZA STRONA (prośba Filipa 18.11): na wierzchu nagłówek z zapisem albo kartą uczestnika, „Razem” jedną linią, „Ukończyli” z „Jak działa ranking ›”,
+       „Wesprzyj zbiórkę”, plakat (miniatura z PDF i „Udostępnij”); reszta w zwiniętym „Zasady, regulamin i prywatność ›”. Każda informacja raz: elementy, które wypełnia skrypt,
+       a ich treść jest już gdzie indziej (opis terminu, zdanie o braku wpisowego pod zapisem, zdanie pod kartami dystansów), zostają w DOM schowane. -->
   <div class="bw-uklad">
   <div>
   <div class="bw-cta" id="bw-cta">
@@ -154,18 +166,16 @@
     <div data-stan="niezalogowany" hidden>
       <a class="bw-przycisk" id="bw-zaloguj" href="index.html" data-powrot>Zaloguj się, żeby się zapisać ›</a>
       <a class="bw-link-maly" id="bw-zaloz" href="index.html#dolacz" data-powrot>Nie masz konta? Załóż je ›</a>
-      <p>Zapis wymaga konta BiegaMy (własne konto od 16 lat). Dziecko dopisuje rodzic z własnego konta, samym imieniem.</p>
+      <p>Zapis wymaga konta BiegaMy (własne konto od 16 lat).</p>
     </div>
-    <!-- stan: przed zapisem -->
+    <!-- stan: przed zapisem; zdanie o braku wpisowego schowane: brak opłat mówi nagłówek, o wpłatach „Wesprzyj zbiórkę” -->
     <div data-stan="przed" hidden>
       <button type="button" class="bw-przycisk" id="bw-zapisz">Zapisz się na bieg ›</button>
       <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-dziecko-od-razu">Dopisz dziecko ›</button>
-      <p id="bw-bez-wpisowego"></p>
+      <p id="bw-bez-wpisowego" hidden></p>
     </div>
-    <!-- stan: po zapisie / z dziećmi: Twój bieg niżej -->
-    <div data-stan="po dzieci" hidden>
-      <a class="bw-przycisk" href="#bw-moj">Twój numer startowy ›</a>
-    </div>
+    <!-- stan: po zapisie / z dziećmi: karta „Twój bieg” stoi zaraz pod nagłówkiem, bez osobnego przycisku -->
+    <div data-stan="po dzieci" hidden></div>
     <div data-stan="zamkniete" hidden>
       <p>Zapisy na ten bieg są zamknięte.</p>
       <a class="bw-link-maly" id="bw-zaloguj-po" href="index.html" data-powrot hidden>Masz zapis? Zaloguj się, żeby zobaczyć wynik i dyplom ›</a>
@@ -180,16 +190,6 @@
     </div>
   </div>
 
-  <!-- 18.11: miniatura plakatu pod przyciskiem zapisu (B.plakatBiegu, tylko bieg-mikolajki); klik przewija do sekcji „Plakat”; obrazek się nie wczyta = miniatura znika -->
-  <a class="bw-plakat-mini" id="bw-plakat-mini" href="#bw-plakat-sekcja" hidden><img id="bw-plakat-mini-obraz" alt="Miniatura plakatu Wirtualnego Biegu Mikołajkowego" width="104" height="147" decoding="async"><span>Plakat biegu<small>Zobacz, pobierz PDF, udostępnij ›</small></span></a>
-
-  <!-- karty z bieg.dystanse_km (B.dystanseHtml); bez biegu w liczniku sekcja schowana -->
-  <section class="bw-sekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>
-    <h2>Dystanse</h2>
-    <div class="bw-dystanse" id="bw-dystanse"></div>
-    <p class="bw-drobne" id="bw-dystanse-pod"></p>
-  </section>
-
   <section class="bw-sekcja" id="bw-moj" hidden aria-label="Twój bieg">
     <h2>Twój bieg</h2>
     <div id="bw-moj-tresc"></div>
@@ -200,52 +200,68 @@
     <p class="bw-drobne" id="bw-zgoda-konto-stan" role="status"></p>
   </section>
 
+  <!-- „Razem” jedną linią (B.razemHtml) -->
+  <p class="bw-razem" id="bw-liczby" aria-label="Razem"></p>
+
+  <section class="bw-sekcja" aria-label="Ukończyli">
+    <h2>Ukończyli</h2>
+    <div id="bw-ukonczyli-zakladki"></div>
+    <div id="bw-ukonczyli"></div>
+    <!-- 18.11 (20261213): zachęta do rankingu pod listą; zasady rankingu (czas na 5 km, z tempa, zgoda) jedynie w „Jak działa ranking ›” -->
+    <p class="bw-drobne" id="bw-ranking-zacheta">Chcesz mieć swój czas na liście? Zaznacz „Pokaż mnie w rankingu” przy swoim numerze.</p>
+    <details class="bw-rozwin"><summary>Jak działa ranking <span aria-hidden="true">›</span></summary><p class="bw-drobne" id="bw-czasy-prywatne"></p></details>
+  </section>
+  </div>
+
+  <div>
   <section class="bw-sekcja" aria-label="Wesprzyj zbiórkę" id="bw-wsparcie-sekcja">
     <h2>Wesprzyj zbiórkę (dobrowolnie)</h2>
     <div id="bw-wsparcie"></div>
   </section>
 
-  <section class="bw-sekcja" aria-label="Razem">
-    <h2>Razem</h2>
-    <div class="bw-liczby" id="bw-liczby"></div>
-  </section>
-
-  <section class="bw-sekcja" aria-label="Jak to działa">
-    <h2>Jak to działa</h2>
-    <div class="bw-kroki">
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt=""><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt=""><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Bezpośrednio u organizacji prowadzącej zbiórkę. BiegaMy nic nie przyjmuje.</span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt=""><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. <span id="bw-krok-koniec">Z zegarka albo bez: wynik dopisujesz do dwóch dni po końcu.</span> <span id="bw-wiele-razy"></span></span></div></div>
-      <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt=""><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
-    </div>
-  </section>
-
-  <!-- 18.11: plakat biegu (adres w js/bieg.mjs PLAKATY, tylko bieg-mikolajki); obrazek się nie wczyta = sekcja znika -->
+  <!-- 18.11: plakat biegu (adres w js/bieg.mjs PLAKATY, tylko bieg-mikolajki); 19.11: tylko miniatura (otwiera PDF), „Pobierz” i „Udostępnij”; obrazek się nie wczyta = sekcja znika -->
   <section class="bw-sekcja" aria-label="Plakat" id="bw-plakat-sekcja" hidden>
     <h2>Plakat</h2>
-    <img class="bw-plakat" id="bw-plakat" alt="Plakat Wirtualnego Biegu Mikołajkowego" loading="lazy" decoding="async">
-    <div class="bw-wiersze"><a class="bw-przycisk" id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat (PDF) ›</a><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-plakat-udostepnij">Udostępnij</button></div>
+    <div class="bw-plakat-wiersz">
+      <a class="bw-plakat-mini" id="bw-plakat-mini" target="_blank" rel="noopener noreferrer"><img id="bw-plakat-mini-obraz" alt="Plakat Wirtualnego Biegu Mikołajkowego" width="104" height="147" loading="lazy" decoding="async"></a>
+      <div class="bw-plakat-przyciski"><a class="bw-przycisk" id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat (PDF) ›</a><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-plakat-udostepnij">Udostępnij</button></div>
+    </div>
     <p class="bw-drobne" id="bw-plakat-info" role="status"></p>
   </section>
-  </div>
 
-  <div>
-  <section class="bw-sekcja" aria-label="Ukończyli">
-    <h2>Ukończyli</h2>
-    <div id="bw-ukonczyli-zakladki"></div>
-    <div id="bw-ukonczyli"></div>
-    <!-- 18.11 (20261213): zachęta do rankingu pod listą; czas na liście tylko za zgodą (dłuższy trening: dystans i czas, bez miejsca) -->
-    <p class="bw-drobne" id="bw-ranking-zacheta">Chcesz mieć swój czas na liście? Zaznacz „Pokaż mnie w rankingu” przy swoim numerze.</p>
-    <p class="bw-drobne" id="bw-czasy-prywatne"></p>
-  </section>
-
-  <section class="bw-sekcja" aria-label="Zasady i regulamin" id="bw-zasady">
-    <h2>Zasady</h2>
-    <div class="bw-role" id="bw-role"></div>
-    <p class="bw-drobne" id="bw-dzieci-zasada"></p>
-    <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-pokaz-regulamin" data-regulamin>Regulamin biegu ›</button>
-    <p class="bw-drobne" data-polityka></p>
-  </section>
+  <!-- 19.11: wszystko poza wierzchem, domyślnie zwinięte. Kroki, dystanse, role, dzieci, regulamin, administrator danych i stopka; każda informacja raz -->
+  <details class="bw-sekcja bw-zasady" id="bw-zasady">
+    <summary>Zasady, regulamin i prywatność <span aria-hidden="true">›</span></summary>
+    <section class="bw-podsekcja" aria-label="Jak to działa">
+      <h3>Jak to działa</h3>
+      <div class="bw-kroki">
+        <div class="bw-krok"><img src="assets/bieg/bieg-krok-1.svg" alt="" loading="lazy"><div><b>1. Zapisz się</b><span id="bw-krok-zapis">Imię na numer i dyplom. Dzieci dopisujesz samym imieniem.</span></div></div>
+        <div class="bw-krok"><img src="assets/bieg/bieg-krok-2.svg" alt="" loading="lazy"><div><b>2. Jeśli chcesz, wesprzyj zbiórkę</b><span>Kwoty i link są wyżej, w „Wesprzyj zbiórkę”.</span></div></div>
+        <div class="bw-krok"><img src="assets/bieg/bieg-krok-3.svg" alt="" loading="lazy"><div><b>3. Pobiegnij albo przejdź dystans, kiedy chcesz w czasie biegu</b><span>Gdziekolwiek, w dowolny dzień od startu do końca biegu. <span id="bw-krok-koniec">Z zegarka albo bez: wynik dopisujesz do dwóch dni po końcu.</span> <span id="bw-wiele-razy"></span></span></div></div>
+        <div class="bw-krok"><img src="assets/bieg/bieg-krok-4.svg" alt="" loading="lazy"><div><b>4. Odbierz dyplom i odznakę</b><span>Kto ukończy, ma dyplom i odznakę biegu. Twoje kilometry liczą się też do ulicy.</span></div></div>
+      </div>
+    </section>
+    <!-- karty z bieg.dystanse_km (B.dystanseHtml); bez biegu w liczniku schowane. Zdanie pod kartami schowane: termin i wpis wyniku są w kroku 3 -->
+    <section class="bw-podsekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>
+      <h3>Dystanse</h3>
+      <div class="bw-dystanse" id="bw-dystanse"></div>
+      <p class="bw-drobne" id="bw-dystanse-pod" hidden></p>
+    </section>
+    <section class="bw-podsekcja" aria-label="Organizator i zgoda opiekuna">
+      <h3>Kto prowadzi bieg</h3>
+      <div class="bw-role" id="bw-role"></div>
+    </section>
+    <section class="bw-podsekcja" aria-label="Dzieci">
+      <h3>Dzieci</h3>
+      <p class="bw-drobne" id="bw-dzieci-zasada"></p>
+    </section>
+    <section class="bw-podsekcja" aria-label="Regulamin i prywatność">
+      <h3>Regulamin i prywatność</h3>
+      <button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-pokaz-regulamin" data-regulamin>Regulamin biegu ›</button>
+      <p class="bw-drobne" data-polityka></p>
+      <p class="bw-stopka" id="bw-stopka"></p>
+    </section>
+  </details>
   </div>
   </div>
 
@@ -255,8 +271,6 @@
     <div class="bw-wiersze" style="flex-wrap:wrap;margin-top:10px"><img class="bw-obraz" id="bw-pg-dyplom-ja" alt="dyplom dorosłego"><img class="bw-obraz" id="bw-pg-dyplom-dziecko" alt="dyplom dziecka"></div>
     <div class="bw-odznaki" id="bw-pg-odznaki" style="margin-top:12px"></div>
   </section>
-
-  <p class="bw-stopka" id="bw-stopka"></p>
 </main>
 
 <dialog id="bw-okno-zapis" aria-label="Zapis na bieg">
@@ -361,7 +375,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   rysujDystanse();
   $('bw-dziecko-opis').textContent = 'Dziecko dostaje własny numer i dyplom bez czasu, biegnie albo idzie swój dystans. Bez konta dziecka, bez nazwiska. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
-  $('bw-stopka').innerHTML = 'Wpłaty na zbiórkę idą zawsze bezpośrednio do organizacji, która ją prowadzi; BiegaMy niczego nie przyjmuje. Czasy są prywatne, lista „ukończyli” pokazuje imię tylko za zgodą. <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
+  /* 19.11 (regulamin v5): czas na liście jest publiczny w rankingu, więc bez „Czasy są prywatne”; o wpłatach mówi „Wesprzyj zbiórkę” i rola organizatora */
+  $('bw-stopka').innerHTML = 'Imię na liście „ukończyli” tylko za zgodą. Czas i miejsce tylko w rankingu, za zgodą pełnoletniego uczestnika (§ 5 ust. 5 regulaminu biegu). <a href="privacy.html">Polityka prywatności</a> · <a href="terms.html">Regulamin BiegaMy</a>';
   var ADRES_STRONY = location.origin + location.pathname + (PROBA ? '?proba=1' : '');
   if (PROBA) { $('bw-chip-proba').hidden = false; $('bw-wroc').href = 'dla-fabianka.html?proba=1'; }
 
@@ -432,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     else $('bw-termin').hidden = true;
   }
-  function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.liczbyHtml(bieg) : ''; }
+  function rysujLiczby() { $('bw-liczby').innerHTML = bieg ? B.razemHtml(bieg) : ''; }   // 19.11: jedna linia
   /* lista „ukończyli” osobną funkcją (EF bieg-ukonczyli), tą samą drogą co licznik; porcje po 50, „Pokaż więcej” dokleja */
   var ukonczyli = { razem: 0, lista: [] }, dystansListy = null;   // null = wszyscy; dystans z zakładki = ranking tego dystansu na górze (zakładki tylko przy kilku dystansach)
   function pobierzUkonczyli(od) {
@@ -519,7 +534,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     $('bw-dziecko').hidden = !B.mozeDopisacDziecko(bieg, stan.dzieci);
     $('bw-zapisz-siebie').hidden = !!stan.ja || !B.zapisyOtwarte(bieg);
-    $('bw-dzieci-info').textContent = stan.dzieci.length ? 'Dzieci: ' + stan.dzieci.length + ' z ' + B.ZASADY.limit_dzieci + '. Każde ma własny numer; dyplomy dzieci są bez czasu.' : 'Dziecko dopisujesz samym imieniem, z oświadczeniem rodzica. Najwyżej ' + B.ZASADY.limit_dzieci + ' dzieci na konto.';
+    $('bw-dzieci-info').textContent = stan.dzieci.length ? 'Dzieci: ' + stan.dzieci.length + ' z ' + B.ZASADY.limit_dzieci + '. Każde ma własny numer; dyplomy dzieci są bez czasu.' : '';   // 19.11: bez dzieci nic (zasady dzieci w oknie „Dopisz dziecko” i w „Zasadach”)
     rysujZgode();
   }
   /* zgoda na e-mail na poziomie konta: także rodzic z samymi dziećmi; tylko przed biegiem, bo e-mail idzie dzień przed */
@@ -555,18 +570,17 @@ document.addEventListener('DOMContentLoaded', function () {
     var ja = stan && stan.ja; if (!ja || B.stanWyniku(ja, bieg) !== 'brak' || probowane[ja.id]) return;
     probowane[ja.id] = true; ustalWynik(ja.id, null);
   }
-  /* 18.11: plakat biegu z B.plakatBiegu (tylko bieg-mikolajki). Obrazek ładowany raz na bieg; błąd wczytania chowa sekcję na stałe (do przeładowania strony). */
+  /* 18.11: plakat biegu z B.plakatBiegu (tylko bieg-mikolajki). Obrazek ładowany raz na bieg; błąd wczytania chowa sekcję na stałe (do przeładowania strony).
+     19.11: sama miniatura (link do PDF, jak „Pobierz”), bez dużego obrazka. */
   var plakatSlug = null;
   function rysujPlakat() {
-    var p = bieg ? B.plakatBiegu(bieg.slug) : null, sek = $('bw-plakat-sekcja'), img = $('bw-plakat'), mini = $('bw-plakat-mini'), miniObraz = $('bw-plakat-mini-obraz');
-    if (!p) { sek.hidden = true; mini.hidden = true; plakatSlug = null; return; }
+    var p = bieg ? B.plakatBiegu(bieg.slug) : null, sek = $('bw-plakat-sekcja'), mini = $('bw-plakat-mini'), miniObraz = $('bw-plakat-mini-obraz');
+    if (!p) { sek.hidden = true; plakatSlug = null; return; }
     if (plakatSlug === bieg.slug) return;
     plakatSlug = bieg.slug;
-    img.onerror = function () { sek.hidden = true; };
-    miniObraz.onerror = function () { mini.hidden = true; };   // 18.11: ten sam plik co duża sekcja (przeglądarka pobiera raz)
-    $('bw-plakat-pdf').href = p.pdf;
-    sek.hidden = false; img.src = p.obraz;
-    mini.hidden = false; miniObraz.src = p.obraz;
+    miniObraz.onerror = function () { sek.hidden = true; };
+    $('bw-plakat-pdf').href = p.pdf; mini.href = p.pdf;
+    sek.hidden = false; miniObraz.src = p.obraz;
   }
   $('bw-plakat-udostepnij').addEventListener('click', function () {
     var adres = B.ADRES_BIEGU, info = $('bw-plakat-info'), nazwa = bieg && bieg.nazwa ? String(bieg.nazwa) : 'Bieg wirtualny';

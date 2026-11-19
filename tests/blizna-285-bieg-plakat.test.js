@@ -30,16 +30,16 @@ test('pliki plakatu nie są w repo', () => {
   assert.deepEqual(pliki.filter((n) => /plakat/i.test(n) && /\.(png|jpe?g|webp|pdf)$/i.test(n) && /mikolaj|bieg/i.test(n)), []);
 });
 
-test('bieg.html: sekcja „Plakat” pod „Jak to działa”, ukryta w HTML, obrazek lazy z alt; przyciski PDF i Udostępnij', () => {
+test('bieg.html: sekcja „Plakat” po „Ukończyli” i „Wesprzyj zbiórkę”, ukryta w HTML; miniatura (blizna-287), przyciski PDF i Udostępnij', () => {
   const h = czytaj('bieg.html');
-  const jak = h.indexOf('aria-label="Jak to działa"'), sek = h.indexOf('id="bw-plakat-sekcja"'), uko = h.indexOf('aria-label="Ukończyli"');
-  assert.ok(jak > 0 && sek > jak && sek < uko, 'pod „Jak to działa”, przed „Ukończyli”');
+  /* 19.11 (prostsza strona): na wierzchu Ukończyli → Wesprzyj → Plakat; „Jak to działa” w zwiniętych „Zasadach” niżej; duży obrazek zastąpiła miniatura */
+  const uko = h.indexOf('aria-label="Ukończyli"'), sek = h.indexOf('id="bw-plakat-sekcja"'), jak = h.indexOf('aria-label="Jak to działa"');
+  assert.ok(uko > 0 && sek > uko && jak > sek, 'po „Ukończyli”, przed zwiniętym „Jak to działa”');
   assert.match(h, /<section class="bw-sekcja" aria-label="Plakat" id="bw-plakat-sekcja" hidden>/);
-  assert.match(h, /<img class="bw-plakat" id="bw-plakat" alt="Plakat Wirtualnego Biegu Mikołajkowego" loading="lazy" decoding="async">/);
-  assert.match(h, /\.bw-plakat \{ display: block; width: 100%; height: auto; aspect-ratio: 210 \/ 297; border-radius: 14px;/);
+  assert.match(h, /<img id="bw-plakat-mini-obraz" alt="Plakat Wirtualnego Biegu Mikołajkowego" width="104" height="147" loading="lazy" decoding="async">/);
   assert.match(h, /id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat \(PDF\) ›<\/a>/);
   assert.match(h, /id="bw-plakat-udostepnij">Udostępnij<\/button>/);
-  assert.match(h, /img\.onerror = function \(\) \{ sek\.hidden = true; \};/, 'obrazek się nie wczyta: sekcja znika');
+  assert.match(h, /miniObraz\.onerror = function \(\) \{ sek\.hidden = true; \};/, 'obrazek się nie wczyta: sekcja znika');
   assert.match(h, /navigator\.share\(\{ title: nazwa, text: [^}]*url: adres \}\)/);
   assert.match(h, /navigator\.clipboard\.writeText\(adres\)/);
   assert.match(h, /rysujMoj\(\); rysujPlakat\(\);/);

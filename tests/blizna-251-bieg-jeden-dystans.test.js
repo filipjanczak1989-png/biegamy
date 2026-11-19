@@ -161,7 +161,7 @@ test('strona w atrapie, JEDEN dystans: karty 5 km + Dzieci, zdanie o 5 km, bez z
   assert.ok(s.wywolania.some((w) => w[0] === 'ukonczyli' && !/&dystans=/.test(w[1])), 'lista „Wszyscy” (z dziećmi), bez filtra dystansu');
   assert.doesNotMatch(s.dom.daj('bw-czasy-prywatne').textContent, /osobno|10 km/);
   assert.equal(s.dom.daj('bw-zgoda-ranking-tekst').textContent, 'Pokaż mnie w rankingu: czas i miejsce na liście „ukończyli”. Mam ukończone 18 lat (dobrowolne)');
-  assert.match(s.dom.daj('bw-liczby').innerHTML, /5 km: 3 · dzieci: swój dystans/);
+  assert.match(s.dom.daj('bw-liczby').innerHTML, /^<span class="bw-razem-tytul">Razem<\/span><b>\d+<\/b> (osoba zapisana|osoby zapisane|osób zapisanych)/, '19.11: „Razem” jedną linią (B.razemHtml)'); assert.doesNotMatch(s.dom.daj('bw-liczby').innerHTML, /km:/, 'jeden dystans: bez podziału na dystanse');
   const okno = tekstOkna(s); assert.match(okno, /Dystans: 5 km, biegiem albo marszem/); assert.match(okno, /co najmniej 5 km\./); assert.doesNotMatch(okno, /10 km|\{[a-z_]+\}/);
   s.dom.daj('bw-zapisz').klik();
   assert.equal(s.dom.daj('bw-okno-zapis').getAttribute('open'), '');
@@ -205,7 +205,7 @@ test('strona w atrapie: bieg w szkicu (licznik bez pola bieg) = sekcja „Dystan
 test('bieg.html i js/bieg.mjs: żadnych „10 km”, „5 albo 10”, „5 i 10” w tekstach (poza komentarzami); meta bez dystansów; jedno źródło dystansów', () => {
   const h = czytaj('bieg.html'), bezKom = h.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   assert.doesNotMatch(bezKom, /10 km|5 albo 10|5 i 10|bieg-dystans-10/, 'bieg.html bez dystansów na sztywno');
-  assert.match(h, /<section class="bw-sekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>/);
+  assert.match(h, /<section class="bw-podsekcja" aria-label="Dystanse" id="bw-dystanse-sekcja" hidden>/, '19.11: w zwiniętych „Zasadach”');
   assert.match(h, /B\.zakladkiListyHtml\(B\.dystanseBiegu\(bieg\), dystansListy\)/); assert.doesNotMatch(h, /ZASADY\.dystanse/);
   assert.match(h, /var d = B\.dystansZapisu\(bieg, \(OKNO_ZAPIS\.querySelector\('input\[name="bw-dystans"\]:checked'\) \|\| \{\}\)\.value\)/);
   assert.match(h, /wybor\.innerHTML = B\.wyborDystansuHtml\(bieg\); wybor\.hidden = !wybor\.innerHTML;/);

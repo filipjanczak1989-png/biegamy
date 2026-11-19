@@ -331,6 +331,13 @@
     return liczbaHtml(liczba(z), forma(z, ["zapisana osoba", "zapisane osoby", "zapisanych osób"])) + liczbaHtml(liczba(d), forma(d, ["w tym dzieci", "w tym dzieci", "w tym dzieci"])) +   // usterka 16: dzieci są wśród zapisanych, nie obok
       liczbaHtml(liczba(u), forma(u, ["ukończył(a)", "ukończyły", "ukończyło"])) + '<p class="bw-drobne bw-liczby-pod">' + esc(pod) + '</p>';
   }
+  /** 19.11 (prostsza strona): „Razem” jedną linią: „RAZEM 14 osób zapisanych, w tym 4 dzieci · 3 ukończyły” (1: „ukończył(a)” jak w liczbyHtml); przy kilku dystansach podział na końcu. Liczby z licznika jak w liczbyHtml. */
+  function razemHtml(bieg) {
+    var z = Number(bieg && bieg.zapisani) || 0, d = Number(bieg && bieg.dzieci) || 0, u = Number(bieg && bieg.ukonczyli_n) || 0, na = (bieg && bieg.zapisani_na) || {}, l = dystanseBiegu(bieg);
+    var b = function (n) { return '<b>' + esc(liczba(n)) + '</b>'; };
+    return '<span class="bw-razem-tytul">Razem</span>' + b(z) + ' ' + forma(z, ["osoba zapisana", "osoby zapisane", "osób zapisanych"]) + (d ? ", w tym " + b(d) + " " + forma(d, ["dziecko", "dzieci", "dzieci"]) : "") +
+      ' · ' + b(u) + ' ' + forma(u, ["ukończył(a)", "ukończyły", "ukończyło"]) + (l.length > 1 ? ' · ' + esc(l.map(function (x) { return km(x) + " km: " + liczba(na[String(x)] || 0); }).join(" · ")) : "");
+  }
   /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
   function wierszUkonczyl(u, moj, kolumnaMiejsca) {
     var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)", reczny = u.reczny === true && !u.dziecko, rank = u.miejsce != null && u.czas_s != null && !u.dziecko, kol = rank || !!kolumnaMiejsca;
@@ -703,6 +710,6 @@
     esc: esc, liczba: liczba, km: km, forma: forma, odmiana: odmiana, czas: czas, tempo: tempo, dataPolska: dataPolska, zakresDni: zakresDni, zakresSlowny: zakresSlowny, ladneImie: ladneImie, imieZProfilu: imieZProfilu, bezRuchu: bezRuchu,
     faza: faza, fazaInfo: fazaInfo, zapisyOtwarte: zapisyOtwarte, stanStrony: stanStrony, mozeDopisacDziecko: mozeDopisacDziecko,
     dystanseBiegu: dystanseBiegu, dystanseSlownie: dystanseSlownie, dystanseKrotko: dystanseKrotko, tekstyDystansow: tekstyDystansow, dystanseHtml: dystanseHtml, wyborDystansuHtml: wyborDystansuHtml, dystansZapisu: dystansZapisu,
-    liczbyHtml: liczbyHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,
+    liczbyHtml: liczbyHtml, razemHtml: razemHtml, wierszUkonczyl: wierszUkonczyl, ukonczyliHtml: ukonczyliHtml, zakladkiListyHtml: zakladkiListyHtml, wsparcieHtml: wsparcieHtml,
     numerStartowy: numerStartowy, dyplom: dyplom, podpisDyplomu: podpisDyplomu, nazwaPlikuDyplomu: nazwaPlikuDyplomu, odznakaSvg: odznakaSvg, IKONA_SWIATA: IKONA_SWIATA, konfettiPunkty: konfettiPunkty, tekstWSzer: tekstWSzer };
 })(typeof globalThis !== "undefined" ? globalThis : window);

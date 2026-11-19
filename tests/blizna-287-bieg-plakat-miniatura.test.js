@@ -1,6 +1,7 @@
-/* BLIZNA 287 / 18.11: miniatura plakatu wyżej na bieg.html (duża sekcja „Plakat” na dole zostaje, blizna-285).
-   - pod przyciskiem zapisu (#bw-cta), przed kartą dystansów: obrazek 96–120 px, zaokrąglone rogi, cień, podpis; link #bw-plakat-sekcja (przewija do sekcji);
-   - tylko gdy B.plakatBiegu daje plakat (bieg-mikolajki); obrazek się nie wczyta = miniatura znika; bez plakatu ukryta. */
+/* BLIZNA 287 / 18.11: miniatura plakatu na bieg.html.
+   19.11 (prostsza strona, prośba Filipa 18.11): plakat to JEDNA sekcja z miniaturą, „Pobierz plakat (PDF)” i „Udostępnij”; bez drugiego, dużego obrazka.
+   - sekcja „Plakat” po „Wesprzyj zbiórkę”, przed zwiniętymi „Zasadami”; miniatura 96–120 px, zaokrąglona, z cieniem, link do PDF (jak „Pobierz”);
+   - tylko gdy B.plakatBiegu daje plakat (bieg-mikolajki); obrazek się nie wczyta albo brak plakatu = cała sekcja schowana. */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -9,10 +10,11 @@ const path = require('node:path');
 
 const h = fs.readFileSync(path.join(__dirname, '..', 'bieg.html'), 'utf8').replace(/\r/g, '');
 
-test('miniatura w HTML: ukryta, pod #bw-cta, przed dystansami; link do sekcji „Plakat”', () => {
-  const cta = h.indexOf('id="bw-cta"'), mini = h.indexOf('id="bw-plakat-mini"'), dyst = h.indexOf('id="bw-dystanse-sekcja"'), sek = h.indexOf('id="bw-plakat-sekcja"');
-  assert.ok(cta > 0 && mini > cta && mini < dyst && sek > dyst, 'kolejność: przycisk zapisu, miniatura, dystanse, …, sekcja „Plakat”');
-  assert.match(h, /<a class="bw-plakat-mini" id="bw-plakat-mini" href="#bw-plakat-sekcja" hidden><img id="bw-plakat-mini-obraz" alt="[^"]+" width="104" height="147" decoding="async">/);
+test('miniatura w HTML: w sekcji „Plakat” (po „Wesprzyj zbiórkę”, przed „Zasadami”), leniwa, z alt; bez dużego obrazka', () => {
+  const wes = h.indexOf('id="bw-wsparcie-sekcja"'), sek = h.indexOf('id="bw-plakat-sekcja"'), mini = h.indexOf('id="bw-plakat-mini"'), zas = h.indexOf('id="bw-zasady"'), koniecSek = h.indexOf('</section>', sek);
+  assert.ok(wes > 0 && sek > wes && mini > sek && mini < koniecSek && zas > koniecSek, 'kolejność: „Wesprzyj”, „Plakat” z miniaturą, „Zasady”');
+  assert.match(h, /<a class="bw-plakat-mini" id="bw-plakat-mini" target="_blank" rel="noopener noreferrer"><img id="bw-plakat-mini-obraz" alt="Plakat Wirtualnego Biegu Mikołajkowego" width="104" height="147" loading="lazy" decoding="async"><\/a>/);
+  assert.doesNotMatch(h, /id="bw-plakat"[ >]/, 'bez drugiego, dużego obrazka plakatu'); assert.doesNotMatch(h, /\.bw-plakat \{/, 'bez stylu dużego obrazka');
 });
 
 test('miniatura w CSS: 96–120 px, zaokrąglona, z cieniem, proporcja A4', () => {
@@ -22,8 +24,10 @@ test('miniatura w CSS: 96–120 px, zaokrąglona, z cieniem, proporcja A4', () =
   assert.match(css, /border-radius: \d+px/); assert.match(css, /box-shadow: /); assert.match(css, /aspect-ratio: 210 \/ 297/);
 });
 
-test('rysujPlakat: miniatura z tym samym plikiem co duża sekcja; błąd wczytania i brak plakatu chowają miniaturę', () => {
-  assert.match(h, /if \(!p\) \{ sek\.hidden = true; mini\.hidden = true; plakatSlug = null; return; \}/);
-  assert.match(h, /miniObraz\.onerror = function \(\) \{ mini\.hidden = true; \};/);
-  assert.match(h, /mini\.hidden = false; miniObraz\.src = p\.obraz;/);
+test('rysujPlakat: miniatura i „Pobierz” prowadzą do PDF; błąd wczytania i brak plakatu chowają sekcję', () => {
+  assert.match(h, /if \(!p\) \{ sek\.hidden = true; plakatSlug = null; return; \}/);
+  assert.match(h, /miniObraz\.onerror = function \(\) \{ sek\.hidden = true; \};/);
+  assert.match(h, /\$\('bw-plakat-pdf'\)\.href = p\.pdf; mini\.href = p\.pdf;/);
+  assert.match(h, /sek\.hidden = false; miniObraz\.src = p\.obraz;/);
+  assert.doesNotMatch(h, /\$\('bw-plakat'\)/, 'skrypt nie szuka już dużego obrazka');
 });
