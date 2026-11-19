@@ -1151,19 +1151,21 @@ window.claimDailyAndShow = function() {
 // ═════════════════════════════════════════════════
 // USER INIT
 // ═════════════════════════════════════════════════
+/* Imiona w rankingu z public_athletes (cudze profile tylko przez widok, 12.11.2026); własne imię z tabeli; profil prywatny = „Biegacz”.
+   !! Poziom skryptu (19.11, blizna-301): od 12.11 stało w środku initUser, a wołają je loadGlobalLeaderboard i loadFriendsLeaderboard
+   (obie na poziomie skryptu) — ReferenceError, rankingi puste u wszystkich graczy. Ten sam błąd co races.html (blizna-300). */
+async function _dopiszImiona(lista) {
+  const ids = [...new Set((lista || []).map(s => s.athlete_id).filter(Boolean))];
+  if (!ids.length) return;
+  const mapa = {};
+  const w = await _sb.from('public_athletes').select('id,full_name').in('id', ids);
+  (w.data || []).forEach(a => { mapa[a.id] = a; });
+  if (_athleteId && !mapa[_athleteId] && ids.includes(_athleteId)) { const t = await _sb.from('athletes').select('id,full_name').eq('id', _athleteId).maybeSingle(); if (t.data) mapa[t.data.id] = t.data; }
+  (lista || []).forEach(s => { s.athletes = mapa[s.athlete_id] || null; });
+}
 async function initUser() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
-  /* Imiona w rankingu z public_athletes (cudze profile tylko przez widok, 12.11.2026); własne imię z tabeli; profil prywatny = „Biegacz”. */
-  async function _dopiszImiona(lista) {
-    const ids = [...new Set((lista || []).map(s => s.athlete_id).filter(Boolean))];
-    if (!ids.length) return;
-    const mapa = {};
-    const w = await _sb.from('public_athletes').select('id,full_name').in('id', ids);
-    (w.data || []).forEach(a => { mapa[a.id] = a; });
-    if (_athleteId && !mapa[_athleteId] && ids.includes(_athleteId)) { const t = await _sb.from('athletes').select('id,full_name').eq('id', _athleteId).maybeSingle(); if (t.data) mapa[t.data.id] = t.data; }
-    (lista || []).forEach(s => { s.athletes = mapa[s.athlete_id] || null; });
-  }
   const { data: ath } = await _sb.from('athletes')
     .select('id, full_name')
     .eq('user_id', session.user.id)
