@@ -127,7 +127,8 @@ test('bieg.mjs: teksty od Filipa wstawione (bez zaślepek); lista ukończyli z c
 
 test('bieg.html: skrypty, stany, nic niezaznaczone z góry, regulamin i oświadczenie wymagane, wsparcie i lista z modułu, ?proba=1, bez imienia dziecka', () => {
   const h = czytaj('bieg.html');
-  for (const s of ['vendor/supabase-js-2.112.4.min.js', 'sb.js', 'js/akcja.mjs', 'js/bieg.mjs']) assert.ok(h.includes('<script defer src="' + s + '"></script>'), s);
+  for (const s of ['vendor/supabase-js-2.112.4.min.js', 'sb.js']) assert.ok(h.includes('<script defer src="' + s + '"></script>'), s);
+  for (const s of ['js/akcja.mjs', 'js/bieg.mjs']) assert.match(h, new RegExp('<script defer src="' + s.replace(/\./g, '\\.') + '\\?v=[0-9a-f]{8}"></script>'), s + ' z ?v= (19.11, blizna-299)');
   for (const st of ['niezalogowany', 'przed', 'po dzieci', 'zamkniete', 'wkrotce']) assert.ok(h.includes('data-stan="' + st + '"'), 'stan ' + st);
   assert.doesNotMatch(h, /<input type="checkbox"[^>]*\bchecked\b/, 'żadna zgoda zaznaczona z góry'); assert.doesNotMatch(h, /<input type="radio"[^>]*\bchecked\b/);
   assert.match(h, /if \(!\$\('bw-regulamin'\)\.checked\) \{ blad\.textContent = 'Zapis wymaga akceptacji regulaminu\.'; return; \}/);

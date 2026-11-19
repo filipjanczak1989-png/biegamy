@@ -6940,7 +6940,9 @@ window._icuRenderSplits = function (d, el) {
     try {
       if (typeof caches !== 'undefined') {
         caches.keys().then(function(ks){
-          var v = ks.find(function(k){ return k.indexOf('biegamy-') === 0; });
+          /* 19.11: tylko pamięć wersji (biegamy-RRRR-…). Samo „biegamy-” łapało też biegamy-obrazy-v1 (pamięć obrazów, bez wersji):
+             w client_errors z 18–19.11 tak opisanych było 26 z 60 wierszy. */
+          var v = ks.find(function(k){ return /^biegamy-\d{4}-/.test(k); });
           window._appVersion = v ? v.replace(/-(static|runtime|storage)$/, '') : null;
         }).catch(function(){});
       }
@@ -6983,13 +6985,32 @@ window._icuRenderSplits = function (d, el) {
        Ciebie, a `kind` ma być NOWY, żeby dało się odfiltrować w przeglądzie. */
     window._logKlienta = _logClientError;
 
+    /* 19.11 SZUM CHROME: wejście ze strony z `@view-transition{navigation:auto}` (theme.css) na stronę bez niego (bieg.html, dla-fabianka.html)
+       Chrome kończy odrzuceniem „InvalidStateError: Transition was aborted because of invalid state. ViewTransition opt-in disabled”.
+       To odrzucenie należy do przeglądarki: `pagereveal.viewTransition` jest wtedy null, więc strona nie ma do czego podpiąć .catch (handler pagereveal wyżej
+       tego nie obejmuje). Odtworzone w Chrome 157 na dwóch stronach-atrapach; skutek dla człowieka żaden (tylko bez animacji wejścia).
+       Na Androidzie w TEJ SAMEJ sekundzie przychodzi czasem „Script error.” bez źródła (18–19.11: 12 z 12 przy tym odrzuceniu).
+       Pomijamy dokładnie ten wariant odrzucenia i taki „Script error.” w oknie ±2 s od niego; inne odrzucenia przejść (skipped, aborted bez „opt-in disabled”)
+       i każdy „Script error.” bez sąsiada idą do client_errors jak dotąd. */
+    var _vtSzumT = -1e15;   // chwila ostatniego odrzucenia „opt-in disabled”
+    function _szumPrzejscia(r) { try { return !!r && r.name === 'InvalidStateError' && /ViewTransition opt-in disabled/.test(String(r.message || '')); } catch (_) { return false; } }
+    function _sasiadSzumu(t) { return Math.abs(t - _vtSzumT) < 2000; }
+
     // 5. handlery — addEventListener (addytywny, nie nadpisuje window.onerror=)
     window.addEventListener('error', function(e){
       if (!e.message && !e.error) return;                   // resource 404 (<img>/<script>) — nie JS-error, nie zaśmiecaj
-      _logClientError({ kind:'error', message:e.message, source:e.filename, lineno:e.lineno, colno:e.colno, stack: e.error && e.error.stack });
+      var o = { kind:'error', message:e.message, source:e.filename, lineno:e.lineno, colno:e.colno, stack: e.error && e.error.stack };
+      if (e.message === 'Script error.' && !e.filename) {     // bez źródła: zapis dopiero po 2 s, gdy obok nie było odrzucenia przejścia
+        var t0 = Date.now();
+        if (_sasiadSzumu(t0)) return;
+        setTimeout(function(){ if (!_sasiadSzumu(t0)) _logClientError(o); }, 2000);
+        return;
+      }
+      _logClientError(o);
     });
     window.addEventListener('unhandledrejection', function(e){
       var r = e.reason;
+      if (_szumPrzejscia(r)) { _vtSzumT = Date.now(); try { e.preventDefault(); } catch (_) {} return; }   // szum Chrome (wyżej): bez wpisu i bez czerwieni w konsoli
       _logClientError({ kind:'unhandledrejection', message:(r && r.message) || String(r), source:null, lineno:null, colno:null, stack: r && r.stack });
     });
   })();
