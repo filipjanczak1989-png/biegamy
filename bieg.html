@@ -79,6 +79,7 @@
   .bw-plakat-mini { flex: none; display: block; line-height: 0; }
   .bw-plakat-mini img { flex: none; width: 104px; height: auto; aspect-ratio: 210 / 297; border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.55); background: rgba(255,255,255,.04); object-fit: cover; }
   .bw-plakat-przyciski { flex: 1; min-width: 0; } .bw-plakat-przyciski .bw-przycisk:first-child { margin-top: 0; }
+  .bw-plakat-przyciski .bw-przycisk { white-space: nowrap; padding-left: 10px; padding-right: 10px; }   /* 19.11: „Pobierz PDF ›” w jednej linii od 320 px (wcześniej „›” spadał do drugiej) */
   .bw-uczestnik { padding: 14px 0 18px; border-top: 2px solid var(--ramka); } .bw-uczestnik:first-child { border-top: 0; padding-top: 0; }   /* wyraźna granica kart: link „Wycofaj” należy do karty nad kreską */
   .bw-reczny { font-size: 11px; color: var(--fg2); white-space: nowrap; } .bw-pod-zgoda { margin: 4px 2px 0; }
   .bw-uczestnik h3 { margin: 0 0 8px; font: 400 24px/1 'Bebas Neue', Inter, sans-serif; letter-spacing: .03em; } .bw-uczestnik h3 small { font: 600 12px/1 Inter, sans-serif; color: var(--fg2); letter-spacing: 0; margin-left: 8px; }
@@ -224,7 +225,7 @@
     <h2>Plakat</h2>
     <div class="bw-plakat-wiersz">
       <a class="bw-plakat-mini" id="bw-plakat-mini" target="_blank" rel="noopener noreferrer"><img id="bw-plakat-mini-obraz" alt="Plakat Wirtualnego Biegu Mikołajkowego" width="104" height="147" loading="lazy" decoding="async"></a>
-      <div class="bw-plakat-przyciski"><a class="bw-przycisk" id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat (PDF) ›</a><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-plakat-udostepnij">Udostępnij</button></div>
+      <div class="bw-plakat-przyciski"><a class="bw-przycisk" id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer" aria-label="Pobierz PDF plakatu">Pobierz PDF ›</a><button type="button" class="bw-przycisk bw-przycisk--cichy" id="bw-plakat-udostepnij">Udostępnij</button></div>
     </div>
     <p class="bw-drobne" id="bw-plakat-info" role="status"></p>
   </section>

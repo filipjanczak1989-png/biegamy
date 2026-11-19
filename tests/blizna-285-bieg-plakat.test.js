@@ -37,7 +37,8 @@ test('bieg.html: sekcja „Plakat” po „Ukończyli” i „Wesprzyj zbiórkę
   assert.ok(uko > 0 && sek > uko && jak > sek, 'po „Ukończyli”, przed zwiniętym „Jak to działa”');
   assert.match(h, /<section class="bw-sekcja" aria-label="Plakat" id="bw-plakat-sekcja" hidden>/);
   assert.match(h, /<img id="bw-plakat-mini-obraz" alt="Plakat Wirtualnego Biegu Mikołajkowego" width="104" height="147" loading="lazy" decoding="async">/);
-  assert.match(h, /id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer">Pobierz plakat \(PDF\) ›<\/a>/);
+  assert.match(h, /id="bw-plakat-pdf" target="_blank" rel="noopener noreferrer" aria-label="Pobierz PDF plakatu">Pobierz PDF ›<\/a>/, '19.11: krótka etykieta w jednej linii od 320 px; nazwa dostępna zawiera widoczny tekst');
+  assert.match(h, /\.bw-plakat-przyciski \.bw-przycisk \{ white-space: nowrap;/, 'strzałka nie spada do drugiej linii');
   assert.match(h, /id="bw-plakat-udostepnij">Udostępnij<\/button>/);
   assert.match(h, /miniObraz\.onerror = function \(\) \{ sek\.hidden = true; \};/, 'obrazek się nie wczyta: sekcja znika');
   assert.match(h, /navigator\.share\(\{ title: nazwa, text: [^}]*url: adres \}\)/);
