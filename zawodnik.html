@@ -1772,8 +1772,8 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
-        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="8" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto();uwagaCzasu('l-time','l-time-uwaga','l-dist',false)"></div>
+        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="8" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto();uwagaCzasu('l-time','l-time-uwaga','l-dist',false)" inputmode="numeric"><div id="l-time-uwaga" role="status" hidden style="font-size:11px;line-height:1.35;margin-top:4px;"></div></div>
       </div>
 
       <!-- DATA LOGU -->
@@ -2291,6 +2291,7 @@ async function openModal() {
   ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  if (window.uwagaCzasu) window.uwagaCzasu('l-time', 'l-time-uwaga', 'l-dist', false);   // blizna-304: bez komunikatu z poprzedniego treningu
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
@@ -2373,6 +2374,7 @@ function openModalForDate(dateStr, e) {
   ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  if (window.uwagaCzasu) window.uwagaCzasu('l-time', 'l-time-uwaga', 'l-dist', false);   // blizna-304: bez komunikatu z poprzedniego treningu
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
@@ -8637,6 +8639,7 @@ function editLog(idx) {
   // Wypełnij formularz danymi logu
   document.getElementById('l-dist').value = l.distance_km || '';
   document.getElementById('l-time').value = l.duration || '';
+  if (window.uwagaCzasu) window.uwagaCzasu('l-time', 'l-time-uwaga', 'l-dist', false);   // blizna-304: przy edycji tylko podpowiedź, błąd dopiero przy zapisie
   document.getElementById('l-pace').value = l.pace || '';
   document.getElementById('l-hr').value = l.heart_rate || '';
   const elevEl = document.getElementById('l-elevation'); if (elevEl) elevEl.value = l.elevation_gain || '';
@@ -8778,6 +8781,8 @@ async function saveLog() {
   }
   if (dist > 300) { toast('Dystans wygląda nieprawidłowo'); return; }
   if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { console.error('[saveLog] invalid pace format:', pace); toast('Tempo w formacie m:ss (np. 5:30)'); return; }
+  /* 19.11 (blizna-304): sama liczba („1”, „45”) albo czas uszkodzony („1:00:90”) się nie zapisuje — komunikat pod polem; puste pole wolno */
+  if (window.uwagaCzasu && !window.uwagaCzasu('l-time', 'l-time-uwaga', 'l-dist', true)) { toast('Czas: wpisz jako 45:00 albo 1:05:00'); return; }
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
 
   // Soft-warning rower (tylko nowy log): bieg ≥15km & pace <3:20 → spytaj
@@ -9007,6 +9012,7 @@ async function saveLog() {
   document.querySelector('#modal-bg .modal-title').textContent = 'Zaloguj trening';
   document.getElementById('save-btn').textContent = 'Zapisz log →';
   ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if (window.uwagaCzasu) window.uwagaCzasu('l-time', 'l-time-uwaga', 'l-dist', false);   // blizna-304
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
   document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';

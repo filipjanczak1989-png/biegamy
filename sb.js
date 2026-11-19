@@ -910,6 +910,32 @@
   // >=5 cyfr -> H:MM:SS/HH:MM:SS; >=3 -> M:SS/MM:SS. "530"->"5:30", "104500"->"10:45:00".
   // (Byl fork rozjechany: autoColonTime zawodnik/narzedzia + kalAutoColonTime kalendarz + autoColon trener.)
   window.autoColonTime = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,6);if(v.length>=5)v=v.slice(0,-4)+":"+v.slice(-4,-2)+":"+v.slice(-2);else if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
+  /* 19.11 (blizna-304): CZAS TRENINGU PRZED ZAPISEM — jedna reguła dla Dziś (l-time) i kalendarza (lm-time).
+     autoColonTime zostawia 1–2 cyfry bez dwukropka („1”, „45”), a takiego wpisu nie czyta nic w aplikacji (tempo, suma biegowa,
+     bieg: 49 takich treningów w bazie, w tym 14 km z czasem „1” w biegu). Przyjmujemy tylko to, co czyta baza (akcja_bieg_sekundy,
+     suma_biegowa): M:SS albo H:MM:SS, minuty i sekundy 0–59, czas > 0. Puste pole wolno (nie każdy trening ma czas), przy dystansie
+     od 5 km z łagodną podpowiedzią. → { ok, sekundy, blad, podpowiedz } */
+  window.sprawdzCzasTreningu = function (tekst, km) {
+    var t = String(tekst == null ? '' : tekst).trim(), m, s = null;
+    if (!t) return { ok: true, sekundy: null, blad: '', podpowiedz: Number(km) >= 5 ? 'Bez czasu trening nie ma tempa ani czasu w wynikach. Wpisz czas, jeśli go znasz (np. 45:00 albo 1:05:00).' : '' };
+    if ((m = /^(\d{1,2}):([0-5]\d):([0-5]\d)$/.exec(t))) s = Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+    else if ((m = /^(\d{1,3}):([0-5]\d)$/.exec(t))) s = Number(m[1]) * 60 + Number(m[2]);
+    if (!s) return { ok: false, sekundy: null, blad: 'Wpisz czas jako 45:00 albo 1:05:00.', podpowiedz: '' };
+    return { ok: true, sekundy: s, blad: '', podpowiedz: '' };
+  };
+  /** Komunikat pod polem czasu: błąd (czerwony) albo podpowiedź (szara). przyZapisie=false (wpisywanie): błąd znika, dopóki nie zapisujemy;
+   *  przyZapisie=true: pokazuje błąd i zwraca false, a wtedy formularz nie zapisuje. Bez elementów = true (nic nie blokujemy). */
+  window.uwagaCzasu = function (idCzas, idUwaga, idDystans, przyZapisie) {
+    var el = document.getElementById(idCzas), u = document.getElementById(idUwaga), d = document.getElementById(idDystans);
+    if (!el) return true;
+    var w = window.sprawdzCzasTreningu(el.value, d ? parseFloat(String(d.value).replace(',', '.')) : 0);
+    if (u) {
+      var tekst = !w.ok && przyZapisie ? w.blad : w.podpowiedz;
+      u.textContent = tekst; u.hidden = !tekst; u.style.color = !w.ok && przyZapisie ? 'var(--red, #ff6b6b)' : 'var(--muted, #8a8a93)';
+    }
+    if (!w.ok && przyZapisie) { try { el.focus(); } catch (_) {} }
+    return w.ok || !przyZapisie;
+  };
   // OUTPUT-formatter (secs->string DISPLAY; odwrotnosc autocolon-input). h>0 ? H:MM:SS : M:SS.
   // Render pace/splitow/VDOT/stref (narzedzia+zawodnik). (Byl fork bajt-identyczny x2.)
   window._secsToTime = function(secs){secs=Math.round(secs);const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0");};

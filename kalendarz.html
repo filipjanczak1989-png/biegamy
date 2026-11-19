@@ -3679,7 +3679,12 @@ function openLogModal(e, ds, idx) {
     const commentEl = document.getElementById('lm-comment');
     if (distEl && (t.dist || t.distance_km)) distEl.value = t.dist || t.distance_km;
     if (paceEl && t.pace) paceEl.value = t.pace;
-    if (timeEl && (t.time || t.duration_min)) timeEl.value = t.time || t.duration_min;
+    /* 19.11 (blizna-304): plan trzyma czas w MINUTACH jako liczbę (f-time, duration_min). Wpisana wprost dawała duration „45” bez dwukropka,
+       którego nic w aplikacji nie czyta (49 takich treningów w bazie). Teraz minuty → „45:00” albo „1:30:00”; tekst z dwukropkiem zostaje. */
+    if (timeEl && (t.time || t.duration_min)) {
+      const z = String(t.time || t.duration_min).trim(), min = /^\d+$/.test(z) ? Number(z) : null;
+      timeEl.value = min == null ? z : min >= 60 ? Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0') + ':00' : min + ':00';
+    }
     // Pokaż opis trenera w komentarzu jako placeholder
     if (commentEl && (t.description || t.notes)) {
       commentEl.placeholder = '📋 Plan trenera: ' + (t.description || t.notes).slice(0, 200);
@@ -3688,6 +3693,7 @@ function openLogModal(e, ds, idx) {
   } else {
     _logFeel = 'mid';
   }
+  if (window.uwagaCzasu) window.uwagaCzasu('lm-time', 'lm-time-uwaga', 'lm-dist', false);   // blizna-304: bez komunikatu z poprzedniego treningu; błąd dopiero przy zapisie
 
   // Zaznacz typ na pillsach
   document.querySelectorAll('.type-pill').forEach(b => {
@@ -3877,6 +3883,8 @@ async function saveLog() {
   const strava = document.getElementById('lm-strava').value.trim() || null;
   const comment = document.getElementById('lm-comment').value.trim() || null;
   if (!dist) { notify('Podaj dystans'); return; }
+  /* 19.11 (blizna-304): sama liczba albo czas uszkodzony się nie zapisuje — komunikat pod polem (finally niżej zwalnia blokadę zapisu); puste pole wolno */
+  if (window.uwagaCzasu && !window.uwagaCzasu('lm-time', 'lm-time-uwaga', 'lm-dist', true)) { notify('Czas: wpisz jako 45:00 albo 1:05:00'); return; }
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { notify('Zaloguj się'); return; }
   const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
@@ -6353,11 +6361,12 @@ async function doCopyWeek() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Dystans (km)</label>
-            <input id="lm-dist" type="number" step="0.01" placeholder="—" oninput="kalCalcBothAuto()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <input id="lm-dist" type="number" step="0.01" placeholder="—" oninput="kalCalcBothAuto();uwagaCzasu('lm-time','lm-time-uwaga','lm-dist',false)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
           </div>
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Czas</label>
-            <input id="lm-time" type="text" placeholder="np. 1:02:30" inputmode="numeric" oninput="autoColonTime(this);kalCalcPaceAuto()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <input id="lm-time" type="text" placeholder="np. 1:02:30" inputmode="numeric" oninput="autoColonTime(this);kalCalcPaceAuto();uwagaCzasu('lm-time','lm-time-uwaga','lm-dist',false)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <div id="lm-time-uwaga" role="status" hidden style="font-size:11px;line-height:1.35;margin-top:4px;"></div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
