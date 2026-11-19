@@ -151,7 +151,7 @@ test('migracja 20261206: kotwice 1:1 z wycofaniem, progi zgodne z opisem panelu,
   assert.ok(m.includes('(u.wynik_s < k.km * 180 or u.wynik_s > k.km * 2160)'), 'weryfikacja: te same progi co flaga'); assert.doesNotMatch(m, /2:30\/km|\* 150/, 'bez progu rekordu świata');
   assert.match(m, /if auth\.uid\(\) is null or not public\.auth_is_coach\(\) then raise exception 'akcja_bieg_weryfikuj: tylko trener' using errcode = '42501'; end if;/);
   assert.match(m, /k\.km > 2 \* coalesce\(u\.wynik_dystans_km, u\.dystans_km\) then 'trening ponad 2 razy dłuższy niż dystans biegu'/); assert.match(m, /u\.dystans_wlasny_km > 21 then 'dziecko: ponad 21 km'/);
-  assert.match(panelSrc, /tempo spoza 3:00–36:00\/km, trening dłuższy niż 10,49 km przy biegu na 5 km od regulaminu v5, wcześniej ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km/, 'opis w panelu = progi w bazie (próg v5: 20261214, blizna-298)');
+  assert.match(panelSrc, /tempo spoza 3:00–36:00\/km, trening dłuższy niż maraton od regulaminu v6, przy starszych regulaminach dłuższy niż dystans biegu, dziecko ponad 21 km/, 'opis w panelu = progi w bazie (v6: 20261215, blizna-303)');
   const panelMig = /'do_sprawdzenia', to_jsonb\(public\.akcja_bieg_do_sprawdzenia\(u\)\), 'do_weryfikacji', public\.akcja_bieg_czeka_na_weryfikacje\(u\), 'weryfikacja', u\.weryfikacja\) order by u\.numer\)\$k\$/.exec(m);
   assert.ok(panelMig, 'panel dostaje do_sprawdzenia'); assert.doesNotMatch(m.slice(m.indexOf("('public.akcja_bieg_panel(text)'")), /'wynik_s'|'czas/, 'panel bez czasu');
   const nowe = [MIG, WYC, 'tools/akcja-bieg-dyplom-flagi-test.sql', 'tools/akcja-bieg-dyplom-flagi-test.sh'].map(czytaj).join('\n');

@@ -25,8 +25,8 @@ const P5 = '5. Bieg nie ma nagród. Ranking czasów na 5 km obejmuje wyłącznie
 const P8 = '1. Na stronie biegu widoczne są liczby zbiorcze oraz lista osób, które ukończyły: imię, numer startowy i dystans. Imię pojawia się tylko za zgodą uczestnika, a imię dziecka tylko za zgodą rodzica. U osób, które zgodziły się na ranking, lista pokazuje także czas na 5 km i miejsce na zasadach z § 5 ust. 5; czas wyliczony z tempa ma dopisek „z tempa”. Przy wyniku wpisanym ręcznie lista pokazuje dopisek „wynik ręczny”. Zgodę na ranking można wycofać w aplikacji w każdej chwili.';
 const ZMIANA_V5 = 'przy treningu od 5,50 do 10,49 km w rankingu i na dyplomie liczy się czas na 5 km wyliczony z tempa (dopisek „z tempa”)';
 
-test('v5 obowiązuje; różni się od v4 tylko § 5 ust. 5 i § 8 ust. 1 (i linią wersji), słowo w słowo jak zatwierdzone 18.11', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v5'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v4') && B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v4 i v2 (bieg próbny) dalej przyjmowane');
+test('v5 (od v6: blizna-303) różni się od v4 tylko § 5 ust. 5 i § 8 ust. 1 (i linią wersji), słowo w słowo jak zatwierdzone 18.11', () => {
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v4') && B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v4 i v2 (bieg próbny) dalej przyjmowane');
   const w5 = B.wartosciTekstow(BIEG('2026-11-v5'), LICZNIK, LINK); assert.ok(w5);
   assert.deepEqual([w5.czas_na, w5.tempo_razy, w5.zakres_z_tempa, w5.limit_z_tempa], ['na 5 km', 'tempo × 5 km', 'od 5,50 km do 10,49 km', '10,49 km'], 'liczby z dystansu biegu w bazie');
   const t4 = B.regulaminBloki(B.wartosciTekstow(BIEG('2026-11-v4'), LICZNIK, LINK)).map((b) => b.tekst), t5 = B.regulaminBloki(w5).map((b) => b.tekst);
@@ -108,6 +108,6 @@ test('baza (20261214): czas z tempa tylko przy v5, czas bez miejsca tylko przy v
   assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(nowe), 'bez UUID'); assert.ok(!/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}/.test(nowe), 'bez e-maili');
   assert.ok(!/Fabian/i.test(nowe.replace(/dla-fabianka/g, '')), 'bez imienia dziecka ze zbiórki');
   assert.doesNotMatch(czytaj('bieg.html'), /2026-11-v[2-9]/, 'bieg.html bez wersji na sztywno');
-  assert.match(czytaj('js/bieg-panel.mjs'), /trening dłuższy niż 10,49 km przy biegu na 5 km od regulaminu v5/, 'opis flag w panelu = próg w bazie');
+  assert.match(czytaj('js/bieg-panel.mjs'), /trening dłuższy niż maraton od regulaminu v6/, 'opis flag w panelu = próg w bazie (v6: blizna-303)');
   assert.doesNotMatch(czytaj('js/bieg-panel.mjs'), /Czasy są prywatne: panel ich nie pokazuje/, 'panel pokazuje wynik od 20261213');
 });

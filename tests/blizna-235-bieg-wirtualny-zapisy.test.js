@@ -96,7 +96,7 @@ test('bieg.mjs: stan strony, zapisy tylko w zapisy/trwa, limit dzieci, zakres dn
 test('bieg.mjs: teksty od Filipa wstawione (bez zaślepek); lista ukończyli z czasem tylko za zgodą na ranking; wsparcie jako linki https; odznaki SVG bez skryptów', async () => {
   const B = await modul();
   assert.equal(B.TEKSTY_GOTOWE, true, 'teksty od Filipa 14.11 (treść pilnuje blizna-242)');
-  assert.doesNotMatch(czytaj('js/bieg.mjs') + czytaj('bieg.html'), /\[MIEJSCE NA TEKST|MIEJSCE_[A-Z]/, 'żadnej zaślepki'); assert.equal(B.WERSJA_TEKSTOW, '2026-11-v5'); assert.deepEqual(B.WERSJE_TEKSTOW, ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5'], '18.11: v3 (koniec 6.12 20:00), v2 dalej przyjmowana');
+  assert.doesNotMatch(czytaj('js/bieg.mjs') + czytaj('bieg.html'), /\[MIEJSCE NA TEKST|MIEJSCE_[A-Z]/, 'żadnej zaślepki'); assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6'); assert.deepEqual(B.WERSJE_TEKSTOW, ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6'], '18.11: v3 (koniec 6.12 20:00), v2 dalej przyjmowana');
   assert.match(B.TEKSTY.regulamin_pole, /\(wymagane\)/); assert.match(B.TEKSTY.oswiadczenie_pole, /\(wymagane\)/); for (const k of ['zgoda_imie_pole', 'zgoda_ranking_pole', 'zgoda_email_pole', 'zgoda_imie_dziecka_pole']) assert.match(B.TEKSTY[k], /\(dobrowolne\)/, k);
   const u = B.ukonczyliHtml({ razem: 2, od: 0, lista: BIEG.ukonczyli }, [1]);
   assert.match(u, /bw-wiersz bw-wiersz--ty"><span class="bw-nr">1<\/span><span class="bw-imie">Ola <i>Ty<\/i><\/span><span class="bw-dyst">10 km<\/span>/);

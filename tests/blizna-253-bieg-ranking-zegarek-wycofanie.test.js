@@ -121,7 +121,7 @@ test('regulamin v2: § 9 w brzmieniu od organizatora (4 ustępy); § 4 ust. 3 m�
   const h = czytaj('bieg.html');
   assert.match(h, /id="bw-zgoda-imie-dziecka-tekst"><\/span><\/label>\n\s*<p class="bw-drobne bw-pod-zgoda" id="bw-zgoda-imie-dziecka-pod"><\/p>/, 'zdanie pod zgodą w oknie dziecka');
   assert.match(h, /\$\('bw-zgoda-imie-dziecka-pod'\)\.textContent = B\.TEKSTY\.zgoda_imie_dziecka_pod;/);
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v5'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'));
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'));
 });
 
 test('strażnik tekstów (decyzja 17.11 wieczór, 20261206): § 5 ust. 5, § 8 ust. 1 i § 9 ust. 2–4 zgodne: w rankingu wyniki z zegarka i wpisane ręcznie, wątpliwe po sprawdzeniu; nic nie mówi „tylko z zegarka”', () => {
@@ -149,7 +149,7 @@ test('strażnik tekstów (decyzja 17.11 wieczór, 20261206): § 5 ust. 5, § 8 u
   assert.ok(mig.includes('public.akcja_bieg_km_wyniku(u) <= u.wynik_dystans_km + 0.49'), 'próg długości w bazie = w tekstach (dystans + 0,49 km)');
   assert.ok(mig.includes('(u.wynik_s < k.km * 180 or u.wynik_s > k.km * 2160)'), 'próg wiarygodności w bazie: 3:00/km i 36:00/km');
   assert.match(B.TEKSTY.wynik_weryfikacja, /3:00\/km albo wolniejsze niż 36:00\/km/, 'karta mówi oba progi');
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v5', '18.11: v3 (termin w § 2), v4 i v5 (§ 5 ust. 5, § 8 ust. 1: czas dłuższego treningu, w v5 na 5 km z tempa); v2 przyjmowana dalej');
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6', '18.11: v3 (termin w § 2), v4–v6 (§ 5 ust. 5, § 8 ust. 1: czas dłuższego treningu, od v5 na 5 km z tempa, w v6 bez górnej granicy); v2 przyjmowana dalej');
 });
 
 test('lista „ukończyli” (20261206): wynik ręczny z czasem, miejscem i dopiskiem; bez czasu od serwera bez miejsca; dziecko bez dopisku; karta: ręczny, do weryfikacji, odrzucony', () => {

@@ -1,7 +1,7 @@
 // Panel trenera: bieg wirtualny (20261126_akcja_bieg_wyniki). Lista uczestników (imię, numer, stan; bez kont i e-maili) i ręczne zaliczenie biegu.
 // 20261213 (decyzja 18.11): przy wyniku dystans treningu, czas, tempo i źródło (zegarek / wpis ręczny / organizator) — tylko w panelu, publicznie nie.
 // 20261206: flaga „do sprawdzenia” z bazy (powód słownie, filtr), „Usuń wynik” z powodem i potwierdzeniem (akcja_bieg_usun_wynik) i weryfikacja wyników do rankingu
-// (tempo spoza 3:00–36:00/km: „Zatwierdź” albo „Odrzuć” z prośbą o dowód, akcja_bieg_weryfikuj); licznik w nagłówku.
+// (tempo spoza 3:00–36:00/km, od v6 też trening dłuższy niż maraton — 20261215: „Zatwierdź” albo „Odrzuć” z prośbą o dowód, akcja_bieg_weryfikuj); licznik w nagłówku.
 // Plik BEZ import/export, jak js/firmy-panel.mjs. Dane z funkcji akcja_bieg_panel i akcja_bieg_zalicz_recznie (bramka trenera w bazie). Bez innerHTML: imiona są niezaufane.
 (function (g) {
   "use strict";
@@ -187,7 +187,7 @@
     }
     cz.addEventListener("change", pokaz); cz2.addEventListener("change", pokaz);
     pokaz();
-    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Panel pokazuje prawdziwy wynik (dystans treningu, czas, tempo, źródło); publicznie czas jest tylko w rankingu, za zgodą uczestnika. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening dłuższy niż 10,49 km przy biegu na 5 km od regulaminu v5, wcześniej ponad 2 razy dłuższy niż dystans, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
+    el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Panel pokazuje prawdziwy wynik (dystans treningu, czas, tempo, źródło); publicznie czas jest tylko w rankingu, za zgodą uczestnika. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km, a od regulaminu v6 także z treningu dłuższego niż maraton (42,2 km), wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening dłuższy niż maraton od regulaminu v6, przy starszych regulaminach dłuższy niż dystans biegu, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
   }
   function dzisWaw() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
 
