@@ -74,13 +74,18 @@
       : Promise.resolve(g.confirm && g.confirm(pytanieOdrzucenia(u)) ? {} : null);
     return Promise.resolve(pytaj).then(function (w) { if (!w) return null; return wolaj("akcja_bieg_weryfikuj", { p_id: u.id, p_decyzja: decyzja }); });
   }
-  function pytanieUsuniecia(u) { return "Usunąć wynik: " + u.imie + ", numer " + u.numer + "? Dyplom i miejsce na liście znikną, uczestnik dostanie powiadomienie z powodem. Przywrócisz go przyciskiem „Zalicz ręcznie”."; }
+  /* 20261217 (v7, blizna-307): usunięty trening w tej postaci nie wraca; poprawiony albo nowy trening przywraca wynik z flagą, ranking po „Zatwierdź”. b = bieg z panelu (regulamin_wersja od 20261217). */
+  function pytanieUsuniecia(u, b) {
+    var m = /^2026-11-v(\d+)$/.exec(String(b && b.regulamin_wersja || "")), v7 = !!m && Number(m[1]) >= 7;
+    return "Usunąć wynik: " + u.imie + ", numer " + u.numer + "? Dyplom i miejsce na liście znikną, uczestnik dostanie powiadomienie z powodem. " +
+      (v7 ? "Ten trening w obecnej postaci nie zaliczy już biegu. Gdy uczestnik poprawi w nim czas albo doda nowy trening, wynik wróci z flagą „Do sprawdzenia: wynik po usunięciu” i trafi do rankingu dopiero po „Zatwierdź”. Przywrócisz go też przyciskiem „Zalicz ręcznie”." : "Przywrócisz go przyciskiem „Zalicz ręcznie”.");
+  }
   function sprawdzPowod(t) { var s = String(t == null ? "" : t).trim(); return s.length < 3 || s.length > 200 ? "Wpisz powód: od 3 do 200 znaków." : ""; }
   /** „Usuń wynik” (§ 9 ust. 3–4 regulaminu): okienko panelu z powodem (BM_OKIENKO), bez niego prompt i confirm. Bez powodu albo po „Anuluj” nic nie wysyła. → Promise<wynik RPC | null> */
-  function usunWynik(u) {
+  function usunWynik(u, b) {
     var pytaj = g.BM_OKIENKO
-      ? g.BM_OKIENKO({ tytul: "Usunąć wynik?", tekst: pytanieUsuniecia(u), tak: "Usuń wynik", nie: "Anuluj", grozne: true, pola: [{ klucz: "powod", etykieta: "Powód (zobaczy go uczestnik), np. brak potwierdzenia z zegarka", typ: "text", maks: 200 }], sprawdz: function (w) { return sprawdzPowod(w.powod); } })
-      : Promise.resolve((function () { var p = g.prompt ? g.prompt("Powód usunięcia wyniku (zobaczy go uczestnik):", "") : null; if (p == null || sprawdzPowod(p) || !g.confirm || !g.confirm(pytanieUsuniecia(u))) return null; return { powod: p.trim() }; })());
+      ? g.BM_OKIENKO({ tytul: "Usunąć wynik?", tekst: pytanieUsuniecia(u, b), tak: "Usuń wynik", nie: "Anuluj", grozne: true, pola: [{ klucz: "powod", etykieta: "Powód (zobaczy go uczestnik), np. brak potwierdzenia z zegarka", typ: "text", maks: 200 }], sprawdz: function (w) { return sprawdzPowod(w.powod); } })
+      : Promise.resolve((function () { var p = g.prompt ? g.prompt("Powód usunięcia wyniku (zobaczy go uczestnik):", "") : null; if (p == null || sprawdzPowod(p) || !g.confirm || !g.confirm(pytanieUsuniecia(u, b))) return null; return { powod: p.trim() }; })());
     return Promise.resolve(pytaj).then(function (w) {
       if (!w || sprawdzPowod(w.powod)) return null;
       return wolaj("akcja_bieg_usun_wynik", { p_id: u.id, p_powod: String(w.powod).trim() });
@@ -180,7 +185,7 @@
           var us = el("button", PRZYCISK + "flex:none;background:none;color:var(--red);border:1px solid var(--red);", dol, "Usuń wynik"); us.type = "button"; us.setAttribute("data-usun-wynik", x.id);
           us.addEventListener("click", function () {
             us.disabled = true; info.textContent = "";
-            usunWynik(x).then(function (r) { us.disabled = false; if (!r) return; if (!r.ok) { info.textContent = komunikat(null, r); return; } wczytaj(b.slug); }, function (e) { us.disabled = false; info.textContent = komunikat(e); });
+            usunWynik(x, b).then(function (r) { us.disabled = false; if (!r) return; if (!r.ok) { info.textContent = komunikat(null, r); return; } wczytaj(b.slug); }, function (e) { us.disabled = false; info.textContent = komunikat(e); });
           });
         }
       });

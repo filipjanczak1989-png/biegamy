@@ -43,7 +43,7 @@ test('teksty strony: nagłówek, zdanie fazy, karty dystansów, krok 3; bez koni
 });
 
 test('regulamin v3: jedyna zmiana to § 2 z godziną końca; v2 przyjmowana dalej, v3 bez koniec_at = brak wartości', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6'); assert.deepEqual(B.WERSJE_TEKSTOW, ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6']);   // v4: blizna-297, v5: blizna-298, v6: blizna-303
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v7'); assert.deepEqual(B.WERSJE_TEKSTOW, ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6', '2026-11-v7']);   // v4: blizna-297, v5: blizna-298, v6: blizna-303, v7: blizna-307
   const L = { imie: 'Jan' }, link = 'https://example.org/zbiorka';
   const w3 = B.wartosciTekstow(BIEG(), L, link), w2 = B.wartosciTekstow(STARY(), L, link);
   assert.ok(w3 && w2, 'obie wersje dają teksty');

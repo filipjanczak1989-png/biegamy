@@ -21,7 +21,7 @@ const JA = (x) => Object.assign({ id: 'u1', rodzaj: 'ja', imie: 'Anna', numer: 1
 const P5 = '5. Bieg nie ma nagród. Ranking czasów na 5 km obejmuje wyłącznie pełnoletnich uczestników, którzy zgodzili się na udział w rankingu. W rankingu są wyniki z zegarka i wpisane ręcznie. Wynik budzący wątpliwości (np. tempo szybsze niż 3:00/km albo trening dłuższy niż maraton, 42,2 km) trafia do rankingu po sprawdzeniu przez Organizatora, który może poprosić o dowód (np. zapis z zegarka, zrzut z aplikacji). W rankingu liczy się czas na 5 km: przy treningu od 5 km do 5,49 km jest to czas treningu, a przy treningu od 5,50 km czas wyliczony ze średniego tempa (tempo × 5 km), oznaczony dopiskiem „z tempa”. Ten sam czas jest na dyplomie. Czas uczestników bez zgody na ranking nie jest publikowany. Dzieci nigdy nie są w rankingu.';
 
 test('v6 obowiązuje, strona przyjmuje v2–v6; v6 różni się od v5 tylko § 5 ust. 5 (i linią wersji); w tekstach v6 nie ma „10,49”', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v6'); assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6']);
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v7'); assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6', '2026-11-v7']);
   const w6 = B.wartosciTekstow(BIEG('2026-11-v6'), LICZNIK, LINK); assert.ok(w6); assert.equal(w6.od_z_tempa, 'od 5,50 km');
   const t5 = B.regulaminBloki(B.wartosciTekstow(BIEG('2026-11-v5'), LICZNIK, LINK)).map((b) => b.tekst), t6 = B.regulaminBloki(w6).map((b) => b.tekst);
   assert.equal(t5.length, t6.length);

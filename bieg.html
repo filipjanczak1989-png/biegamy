@@ -19,7 +19,7 @@
 <!-- 19.11: ?v= = pierwsze 8 znaków sha256 pliku (bez \r). Po pushu strona przychodzi z sieci, a moduł bez ?v= z pamięci (service worker albo do 10 min
      pamięci GitHub Pages): 18.11 „B.zdanieKoniecWyniku is not a function” i pusta strona do odświeżenia. Nowy skrót = nowy adres = świeży moduł. Test blizna-299 pilnuje skrótu. -->
 <script defer src="js/akcja.mjs?v=5cc3b27b"></script>
-<script defer src="js/bieg.mjs?v=7ee7df72"></script>
+<script defer src="js/bieg.mjs?v=630a833e"></script>
 <!--
   BIEG WIRTUALNY Z PRAWDZIWYMI ZAPISAMI (etap 1, 12.11.2026; projekt poza repo). Strona publiczna; dane biegu z publicznego licznika (pole `bieg` z akcja_bieg_publiczny),
   własne zapisy przez funkcje akcja_bieg_* (tylko zalogowani). Bez imienia dziecka w kodzie: nazwa biegu przychodzi z bazy. Bez wpisowego; „Wesprzyj zbiórkę” to zwykły link
@@ -126,6 +126,7 @@
   .bw-pole--km input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--ramka); background: rgba(255,255,255,.05); color: var(--fg); font: 600 18px/1.2 Inter, sans-serif; }
   .bw-trening { display: flex; gap: 10px; align-items: center; justify-content: space-between; min-height: 52px; padding: 6px 2px; border-top: 1px solid var(--ramka); font-size: 14px; }
   .bw-trening small { display: block; font-size: 11.5px; color: var(--fg2); } .bw-trening em { font-style: normal; font-size: 12px; color: var(--fg2); text-align: right; }
+  .bw-trening--bez-czasu { opacity: .55; }   /* v7 (blizna-307): trening bez czasu nie zalicza biegu */
   .bw-przycisk--maly { width: auto; flex: none; margin: 0; padding: 12px 14px; font-size: 13px; }
   #bw-zmiana-ok { background: none; border: 0; margin: 0; padding: 10px 2px; color: var(--fg); font: 600 13px/1 Inter, sans-serif; text-decoration: underline; cursor: pointer; }   /* 18.11: „Rozumiem” jako link, nie biały przycisk */
   .bw-baner { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(61,90,153,.25); border: 1px solid rgba(120,150,220,.45); font-size: 14px; line-height: 1.45; }
@@ -516,10 +517,13 @@ document.addEventListener('DOMContentLoaded', function () {
   /* 19.11 (blizna-305): „Popraw czas w treningu…” — adres dnia treningu z akcja_bieg_treningi_z_okna (raz na odświeżenie; bez odpowiedzi zostaje sam kalendarz) */
   var treningiOkna = null;
   function uzupelnijLinkiCzasu(korzen) {
-    var linki = korzen.querySelectorAll('[data-czas-link]');
-    if (!linki.length || !bieg || !window.sb || !window.sb.rpc) return;
+    var linki = korzen.querySelectorAll('[data-czas-link]'), brak = korzen.querySelectorAll('[data-czas-brak]');   // v7 (blizna-307): bez ukończenia — odsłonięte, gdy jest trening bez czasu
+    if ((!linki.length && !brak.length) || !bieg || !window.sb || !window.sb.rpc) return;
     var dane = treningiOkna || (treningiOkna = Promise.resolve(window.sb.rpc('akcja_bieg_treningi_z_okna', { p_slug: bieg.slug })).then(function (r) { return r && !r.error && Array.isArray(r.data) ? r.data : []; }, function () { return []; }));
-    dane.then(function (l) { linki.forEach(function (a) { a.href = B.linkTreninguBezCzasu(l, a.getAttribute('data-czas-km')); }); });
+    dane.then(function (l) {
+      linki.forEach(function (a) { a.href = B.linkTreninguBezCzasu(l, a.getAttribute('data-czas-km')); });
+      brak.forEach(function (p) { var t = B.treningBezCzasu(l, p.getAttribute('data-czas-dystans')), a = p.querySelector('[data-czas-brak-link]'); if (t && a) a.href = 'kalendarz.html?openDay=' + t.dzien; p.hidden = !t; });
+    });
   }
   /* usterka 9: ten sam stan karty = bez przerysowania (wpisany dystans dziecka, komunikaty i obrazy zostają); inny stan = przerysowanie z odtworzeniem pól (B.zapiszPola / B.odtworzPola) */
   var ostatniaKarta = '';
@@ -577,7 +581,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   function automat() {
-    var ja = stan && stan.ja; if (!ja || B.stanWyniku(ja, bieg) !== 'brak' || probowane[ja.id]) return;
+    var ja = stan && stan.ja, sw = ja && B.stanWyniku(ja, bieg);
+    if (!ja || !(sw === 'brak' || (sw === 'usuniety' && B.odWersji(bieg.regulamin_wersja, 7) && ['trwa', 'wyniki'].indexOf(B.faza(bieg)) >= 0)) || probowane[ja.id]) return;   // v7: po „Usuń wynik” poprawiony albo nowy trening wraca przy wejściu
     probowane[ja.id] = true; ustalWynik(ja.id, null);
   }
   /* 18.11: plakat biegu z B.plakatBiegu (tylko bieg-mikolajki). Obrazek ładowany raz na bieg; błąd wczytania chowa sekcję na stałe (do przeładowania strony).
@@ -655,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var okno = $('bw-okno-treningi'); $('bw-treningi-blad').textContent = ''; $('bw-treningi-lista').innerHTML = '<p class="bw-opis">Wczytuję treningi…</p>'; pokazOkno(okno);
     Promise.resolve(window.sb.rpc('akcja_bieg_treningi_z_okna', { p_slug: bieg.slug })).then(function (r) {
       if (!r || r.error) { $('bw-treningi-lista').innerHTML = ''; $('bw-treningi-blad').textContent = 'Nie udało się wczytać treningów. Spróbuj za chwilę.'; return; }
-      $('bw-treningi-lista').innerHTML = B.treningiHtml(r.data, wskazywany);
+      $('bw-treningi-lista').innerHTML = B.treningiHtml(r.data, wskazywany, bieg);
     }, function () { $('bw-treningi-lista').innerHTML = ''; $('bw-treningi-blad').textContent = 'Nie udało się wczytać treningów. Spróbuj za chwilę.'; });
   }
 
