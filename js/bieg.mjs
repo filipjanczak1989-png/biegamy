@@ -82,6 +82,7 @@
     zgoda_imie_dziecka_pod: "Imię zawsze widzisz na numerze i dyplomie dziecka. Ta zgoda dotyczy tylko publicznej listy.",
     wynik_reczny: "Wynik ręczny: przy zgodzie na ranking masz czas i miejsce na liście, z dopiskiem „wynik ręczny”. Masz ten trening także z zegarka? Wskaż go niżej, a dopisek zniknie.",
     wynik_weryfikacja: "Wynik czeka na sprawdzenie przez organizatora (tempo szybsze niż 3:00/km albo wolniejsze niż 36:00/km). Ukończenie i dyplom już masz; do rankingu wynik trafi po sprawdzeniu.",
+    czas_popraw: "Popraw czas w treningu, żeby mieć wynik w biegu.",
     wynik_weryfikacja_v6: "Wynik czeka na sprawdzenie przez organizatora (tempo spoza 3:00–36:00/km albo trening dłuższy niż maraton). Ukończenie i dyplom już masz; do rankingu wynik trafi po sprawdzeniu.",
     wynik_odrzucony: "Organizator prosi o dowód tego wyniku (np. zapis z zegarka, zrzut z aplikacji). Do czasu sprawdzenia wynik jest poza rankingiem; ukończenie i dyplom zostają. Napisz do organizatora:",
     wynik_usuniety: "Zgodnie z § 9 regulaminu nie ma dyplomu ani miejsca na liście. Jeśli to pomyłka, napisz do organizatora:",
@@ -550,6 +551,14 @@
     var d = dystansWyniku(u), s = Number(u.wynik_s) || 0;
     return liczba(d, 2) + " km" + (s ? " · " + czas(s) + " · " + tempo(s, d) : "");
   }
+  /** 19.11 (blizna-305): adres dnia treningu bez ważnego czasu w kalendarzu (kalendarz.html?openDay=RRRR-MM-DD otwiera dzień); treningi = akcja_bieg_treningi_z_okna,
+   *  km = dystans treningu z wyniku. Czas ważny jak w bazie: 60 s – 24 h. Kilka pasujących: najpóźniejszy. Brak: sam kalendarz. */
+  function linkTreninguBezCzasu(treningi, km) {
+    var k = Number(km), l = (Array.isArray(treningi) ? treningi : []).filter(function (t) { var s = Number(t && t.czas_s); return t && Math.abs(Number(t.km) - k) < 0.005 && !(s >= 60 && s <= 86400) && /^\d{4}-\d{2}-\d{2}$/.test(String(t.dzien)); });
+    if (!l.length) return "kalendarz.html";
+    l.sort(function (a, b) { return String(b.dzien).localeCompare(String(a.dzien)); });
+    return "kalendarz.html?openDay=" + l[0].dzien;
+  }
   /** Pod wynikiem v5 małym drukiem prawdziwy trening: „Trening: 10,01 km · 49:06”. */
   function treningPodWynikiem(u) { var t = Number(u && u.wynik_trening_km) || 0, s = Number(u && u.wynik_s) || 0; return t > 0 ? "Trening: " + liczba(t, 2) + " km" + (s ? " · " + czas(s) : "") : ""; }
   /** Dystans dziecka z pola: „1,5” albo „1.5” → 1.5; poza 0,1–100 km albo śmieci → null. */
@@ -569,7 +578,10 @@
       h += '<div class="bw-wiersze"><button type="button" class="bw-przycisk" data-dyplom-udostepnij="' + id + '">Udostępnij dyplom</button><button type="button" class="bw-przycisk bw-przycisk--cichy" data-dyplom-a4="' + id + '">Dyplom A4</button></div>';
       h += '<div class="bw-wynik-odznaka">' + odznakaSvg(u.odznaka === "zlota" ? "zlota" : "zwykla", { nazwa: bieg && bieg.nazwa, rozmiar: 64, id: u.id }) + '<span>Odznaka biegu jest już w ' + (dziecko ? "Twojej kolekcji (odznaka dziecka)" : "Twojej kolekcji") + '.</span></div>';
       if (faza(bieg) === "trwa" || faza(bieg) === "wyniki") h += dziecko ? '<a href="#" class="bw-link-maly" data-dziecko-popraw="' + id + '">Popraw dystans</a>' : '<a href="#" class="bw-link-maly" data-wskaz="' + id + '">Wskaż inny trening</a>';
-      if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
+      /* 19.11 (blizna-305): wynik z treningu bez ważnego czasu (pusty, sama liczba, uszkodzony) — prośba o poprawę z linkiem do dnia treningu w kalendarzu
+         (adres uzupełnia strona z akcja_bieg_treningi_z_okna, B.linkTreninguBezCzasu). Po poprawie czasu wyzwalacz z 20261212 przelicza wynik. Zaliczenie ręczne (bez treningu): jak dotąd. */
+      if (!dziecko && !u.wynik_s && Number(u.wynik_trening_km) > 0) h += '<p class="bw-drobne" data-czas-popraw>' + esc(TEKSTY.czas_popraw) + ' <a class="bw-link-maly" href="kalendarz.html" data-czas-link="' + id + '" data-czas-km="' + esc(u.wynik_trening_km) + '">Otwórz trening w kalendarzu ›</a></p>';
+      else if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
       if (!dziecko && u.wynik_reczny === true) h += '<p class="bw-drobne" data-wynik-reczny>' + esc(TEKSTY.wynik_reczny) + '</p>';   // 20261206: wynik ręczny w rankingu z dopiskiem
       if (!dziecko && u.do_weryfikacji === true && u.weryfikacja == null) h += '<p class="bw-drobne" data-wynik-weryfikacja>' + esc(odWersji(bieg && bieg.regulamin_wersja, 6) ? TEKSTY.wynik_weryfikacja_v6 : TEKSTY.wynik_weryfikacja) + '</p>';
       if (!dziecko && u.weryfikacja === "odrzucony") h += '<p class="bw-drobne bw-odrzucony" data-wynik-odrzucony>' + esc(TEKSTY.wynik_odrzucony) + ' <a href="mailto:' + esc(KONTAKT) + '">' + esc(KONTAKT) + '</a>.</p>';
@@ -717,7 +729,7 @@
 
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu, zdanieWieleRazy: zdanieWieleRazy,
     WERSJE_TEKSTOW: WERSJE_TEKSTOW, REGULAMIN_P2_V3: REGULAMIN_P2_V3, REGULAMIN_V4: REGULAMIN_V4, REGULAMIN_V5: REGULAMIN_V5, REGULAMIN_V6: REGULAMIN_V6, znacznikiZTempa: znacznikiZTempa, zakresZTempa: zakresZTempa, odWersji: odWersji, koniecBiegu: koniecBiegu, koniecZDniem: koniecZDniem, koniecKrotko: koniecKrotko, terminOpis: terminOpis, zdanieKoniecWyniku: zdanieKoniecWyniku, komunikatZmiany: komunikatZmiany,
-    stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, gornaRankingu: gornaRankingu, wynikNaDystans: wynikNaDystans, zasadaZTempa: zasadaZTempa, treningPodWynikiem: treningPodWynikiem, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
+    stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, gornaRankingu: gornaRankingu, wynikNaDystans: wynikNaDystans, zasadaZTempa: zasadaZTempa, treningPodWynikiem: treningPodWynikiem, linkTreninguBezCzasu: linkTreninguBezCzasu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, przedMailem: przedMailem, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,
     WERSJA_TEKSTOW: WERSJA_TEKSTOW, DANE_ADMINISTRATORA: DANE_ADMINISTRATORA, REGULAMIN: REGULAMIN, TEKSTY_KROTKIE: TEKSTY_KROTKIE, wartosciTekstow: wartosciTekstow, brakiTekstow: brakiTekstow, dataZDniem: dataZDniem, wypelnij: wypelnij, regulaminBloki: regulaminBloki, regulaminTekst: regulaminTekst,
