@@ -190,8 +190,14 @@
       krok_zapisu: (l.length ? "Dystans " + dystanseKrotko(l, "albo") + ", imię na numer i dyplom." : "Imię na numer i dyplom.") + " Dzieci dopisujesz samym imieniem.",
       zapis_opis: (wiele ? "Wybierz dystans. " : l.length ? "Dystans: " + dystanseKrotko(l) + ", biegiem albo marszem. " : "") + "Imię trafi na numer startowy i dyplom; na listę „ukończyli” tylko za Twoją zgodą. Nic nie jest zaznaczone z góry.",
       wybierz: wiele ? "Wybierz dystans: " + dystanseKrotko(l, "albo") + "." : "Nie wczytał się dystans biegu. Odśwież stronę.",
-      zgoda_ranking_pole: wypelnij(TEKSTY.zgoda_ranking_pole, zn), czasy_prywatne: wypelnij(TEKSTY.czasy_prywatne, zn)
+      zgoda_ranking_pole: wypelnij(TEKSTY.zgoda_ranking_pole, zn), czasy_prywatne: wypelnij(TEKSTY.czasy_prywatne, zn) + zdanieZegarekPoKoncu(bieg)
     };
+  }
+  /** 20.11 (blizna-317, zdanie Filipa; migracja 20261219: automat 24 h po końcu dla zegarka): „ Trening z zegarka zrobiony przed 20:00 wejdzie, jeśli zsynchronizuje
+   *  się do 24 h po końcu.” — godzina z koniec_at w bazie; bieg bez godziny końca (koniec dniem) bez tego zdania. */
+  function zdanieZegarekPoKoncu(bieg) {
+    var k = koniecBiegu(bieg);
+    return k ? " Trening z zegarka zrobiony przed " + k.godz + " wejdzie, jeśli zsynchronizuje się do 24 h po końcu." : "";
   }
   /** Karty sekcji „Dystanse”: każdy dystans biegu i „Dzieci”; bez listy dystansów "" (sekcja schowana). */
   function dystanseHtml(bieg) {
