@@ -8622,11 +8622,13 @@ async function deleteLog(logId) {
 }
 
 let _editingLogId = null;
+let _editingLogDist = null;   // blizna-310: dystans zapisanego logu (pytanie o > 60 km tylko przy zmianie)
 function editLog(idx) {
   const l = window._logsData?.[idx];
   if (!l) return;
   _modalGen++;              // nowa generacja: zaległe CTA zegarka nie wytrze panelu karty
   _editingLogId = l.id;
+  _editingLogDist = l.distance_km != null ? Number(l.distance_km) : null;
   _logDate = l.logged_at ? l.logged_at.split('T')[0] : null;
   setTimeout(_updateLogDateDisplay, 50);
 
@@ -8789,6 +8791,8 @@ async function saveLog() {
   if (!_editingLogId && window.looksLikeBike(_logType, dist, pace)) {
     if (await window.askBikeOrRun(dist, pace) === 'bike') _logType = 'Zastępczy';
   }
+  /* 20.11 (blizna-310): bieg albo marsz ponad 60 km — „Na pewno X km?”; Anuluj wraca do formularza. Przy edycji tylko, gdy zmienił się dystans. */
+  if (window.pytajDuzyDystans && !window.pytajDuzyDystans(_logType, dist, _editingLogId ? _editingLogDist : null)) { try { document.getElementById('l-dist').focus(); } catch (_) {} return; }
 
   _savingLog = true;
   try {

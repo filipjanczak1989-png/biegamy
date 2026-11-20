@@ -936,6 +936,17 @@
     if (!w.ok && przyZapisie) { try { el.focus(); } catch (_) {} }
     return w.ok || !przyZapisie;
   };
+  /* 20.11 (blizna-310, decyzja Filipa): łagodne pytanie „Na pewno X km?” przy biegu albo marszu ponad 60 km — Dziś i kalendarz, bez blokady
+     (twardy limit 300 km na Dziś zostaje). Bieg = isRunType; marsz = typy marszowe jak akcja_typ_liczy w bazie, bez „wzmacniającego”.
+     przedKm = dystans zapisanego treningu przy edycji: bez zmiany dystansu nie pytamy. true = zapisuj, false = wróć do formularza. */
+  var _typyMarszu = ['spacer', 'marsz', 'nordic walking', 'nordic', 'wędrówka'];
+  window.pytajDuzyDystans = function (typ, km, przedKm) {
+    var k = Number(km), t = String(typ == null ? '' : typ);   // isRunType dostaje typ jak w formularzu („Spokojny”), małe litery tylko do listy marszu
+    if (!(k > 60)) return true;
+    if (!((window.isRunType && window.isRunType(t)) || _typyMarszu.indexOf(t.toLowerCase().trim()) >= 0)) return true;
+    if (przedKm != null && przedKm !== '' && Math.abs(Number(przedKm) - k) < 0.005) return true;
+    return !!window.confirm('Na pewno ' + String(Math.round(k * 100) / 100).replace('.', ',') + ' km?');
+  };
   // OUTPUT-formatter (secs->string DISPLAY; odwrotnosc autocolon-input). h>0 ? H:MM:SS : M:SS.
   // Render pace/splitow/VDOT/stref (narzedzia+zawodnik). (Byl fork bajt-identyczny x2.)
   window._secsToTime = function(secs){secs=Math.round(secs);const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0");};

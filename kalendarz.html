@@ -3642,6 +3642,7 @@ function openLogModal(e, ds, idx) {
   // — to wystarczy bo zawodnik widzi tylko swoje logi (RLS)
   const existingLog = (window._calLogs && window._calLogs[ds] && window._calLogs[ds][0]) || null;
   window._existingLogId = existingLog ? existingLog.id : null;
+  window._existingLogDist = existingLog && existingLog.distance_km != null ? Number(existingLog.distance_km) : null;   // blizna-310: pytanie o > 60 km przy edycji tylko po zmianie dystansu
 
   // Reset pól
   ['lm-dist','lm-time','lm-pace','lm-hr','lm-strava','lm-comment'].forEach(id => {
@@ -3896,6 +3897,8 @@ async function saveLog() {
   if (!existingLogId && window.looksLikeBike(_logType2, dist, pace)) {
     if (await window.askBikeOrRun(dist, pace) === 'bike') _logType2 = 'Zastępczy';
   }
+  /* 20.11 (blizna-310): bieg albo marsz ponad 60 km — „Na pewno X km?” (po sprawdzeniu czasu i pytaniu o rower); Anuluj wraca do formularza (finally zwalnia blokadę). */
+  if (window.pytajDuzyDystans && !window.pytajDuzyDystans(_logType2, dist, existingLogId ? window._existingLogDist : null)) { try { document.getElementById('lm-dist').focus(); } catch (_) {} return; }
 
   /* ZAPIS PRZEZ SSOT — `window.zapiszLog` w sb.js. Upload, cztery ochrony,
      offset strefy i czyszczenie tempa dla nie-biegów siedzą TAM, nie tutaj.
