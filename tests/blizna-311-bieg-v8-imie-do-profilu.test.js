@@ -52,6 +52,6 @@ test('lista: imię z polem profil (UUID) → link do profil.html?id=; bez pola, 
   const bez = html({ imie: null, profil: UUID });
   assert.doesNotMatch(bez, /data-profil/); assert.match(bez, /bez imienia/);
   assert.equal(B.linkProfilu({ imie: 'Anna', profil: UUID }), 'profil.html?id=' + UUID);
-  assert.match(czytaj('bieg.html'), /\.bw-imie-link \{ display: inline-block; padding: 8px 0;/);
+  assert.match(czytaj('bieg.html'), /\.bw-imie-link \{ display: inline-block;/);   // pole dotyku: blizna-313
   assert.match(czytaj('profil.html'), /const _pubId = new URLSearchParams\(location\.search\)\.get\('id'\);/, 'profil.html?id= otwiera publiczny profil także bez logowania');
 });

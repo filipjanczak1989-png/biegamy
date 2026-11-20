@@ -102,7 +102,7 @@
   .bw-wiersz--ty { background: rgba(232,86,30,.14); border-radius: 10px; border-top-color: transparent; }
   .bw-nr { font: 400 18px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg2); } .bw-imie i { font-style: normal; font-size: 11px; color: var(--akcent2); font-weight: 800; } .bw-imie small { font-size: 11px; color: var(--fg2); } .bw-imie .bw-bez { color: var(--fg2); font-weight: 400; }
   .bw-dyst { font-size: 12px; color: var(--fg2); text-align: right; }
-  .bw-imie-link { display: inline-block; padding: 8px 0; color: inherit; text-decoration: underline; text-decoration-color: rgba(255,138,61,.65); text-underline-offset: 3px; }   /* v8 (blizna-311): imię → publiczny profil */
+  .bw-imie-link { display: inline-block; box-sizing: border-box; min-height: 44px; padding: 13px 0; margin: -5px 0; color: inherit; text-decoration: underline; text-decoration-color: rgba(255,138,61,.65); text-underline-offset: 3px; }   /* v8 (blizna-311): imię → publiczny profil; 20.11 (blizna-313): pole dotyku ≥ 44 px, margines −5 px oddaje wierszowi tę samą wysokość co przy 8 px */
   /* ranking (13.11): miejsce przed numerem, czas przy dystansie; tylko wiersze, którym serwer dał czas (zgoda, dorosły) */
   .bw-wiersz--ranking { grid-template-columns: 34px 44px 1fr auto; }
   .bw-pozycja { font: 400 22px/1 'Bebas Neue', Inter, sans-serif; color: var(--fg); text-align: center; }
