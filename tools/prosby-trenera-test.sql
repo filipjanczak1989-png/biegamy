@@ -8,7 +8,8 @@ begin
   if to_regclass('public.prosby_trenera') is null then raise exception 'FAIL 0a: brak tabeli prosby_trenera (migracja 20261221 nie weszła)'; end if;
   foreach f in array array['public.popros_o_trenera(uuid)', 'public.wycofaj_prosbe_o_trenera()', 'public.prosby_do_mnie()', 'public.rozpatrz_prosbe(uuid, boolean)'] loop
     if to_regprocedure(f) is null then raise exception 'FAIL 0b: brak %', f; end if;
-    if not (select p.prosecdef and array_to_string(p.proconfig, ',') like '%search_path=public, pg_temp%' from pg_proc p where p.oid = to_regprocedure(f)) then raise exception 'FAIL 0c: % bez security definer albo stałej search_path', f; end if;
+    /* coalesce: bez search_path proconfig to NULL, a `if not (… and NULL)` nie zgłasza błędu (mutacja przy M2, 20.11) */
+    if not coalesce((select p.prosecdef and coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=public, pg_temp%' from pg_proc p where p.oid = to_regprocedure(f)), false) then raise exception 'FAIL 0c: % bez security definer albo stałej search_path', f; end if;
     if not has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then raise exception 'FAIL 0d: % — wykonanie: zalogowany tak, anon nie', f; end if;
   end loop;
   n := n + 4;
