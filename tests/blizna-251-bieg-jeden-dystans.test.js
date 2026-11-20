@@ -130,7 +130,7 @@ test('karty, wybór w oknie zapisu, dystans zapisu, zakładki „Ukończyli”, 
 });
 
 test('regulamin v2: {dystanse} i {ranking_dystanse} z bazy; jeden dystans bez „10 km”; dwa = „5 km albo 10 km”; brak listy = WKRÓTCE', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v7'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v2 (dane testu) dalej przyjmowana');
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v8'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v2 (dane testu) dalej przyjmowana');
   const w1 = B.wartosciTekstow(BIEG([5]), { imie: 'Janek' }, LINK), t1 = B.regulaminTekst(w1);
   assert.equal(w1.dystanse, '5 km'); assert.equal(w1.ranking_dystanse, 'na 5 km');
   assert.match(t1, /\n§ 2\. Termin i dystans\n1\. Bieg trwa od soboty, 5 grudnia 2026 do niedzieli, 6 grudnia 2026\.\n2\. Dystans: 5 km, biegiem albo marszem, na dowolnej trasie\.\n/);

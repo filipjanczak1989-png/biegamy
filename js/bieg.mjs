@@ -14,7 +14,7 @@
      {dystanse} {ranking_dystanse} {ranking_zakres} wypełnia strona danymi z bazy (pole `bieg` licznika i akcja); brak którejkolwiek wartości = „WKRÓTCE” (wartosciTekstow → null, bramka w stanStrony).
      Dane administratora w § 1 ust. 3 skopiowane z privacy.html (test porównuje). Teksty dotyczą wersji WERSJA_TEKSTOW: inna wersja w bazie = „WKRÓTCE”.
      v2 (16.11, decyzja Filipa: prawdziwy bieg ma jeden dystans, 5 km): § 2 i § 5 bez „5 km albo 10 km” na sztywno, dystanse z bieg.dystanse_km. */
-  var WERSJA_TEKSTOW = "2026-11-v7";
+  var WERSJA_TEKSTOW = "2026-11-v8";
   /* 18.11 v3 (decyzja Filipa: bieg i wyniki kończą się 6.12 o 20:00, bez dopisywania do 8.12): jedyna zmiana to § 2 z godziną końca z bazy ({koniec} z koniec_at).
      18.11 v4 (decyzja Filipa, migracja 20261213): jak v3, plus § 5 ust. 5 i § 8 ust. 1 — ze zgodą na ranking dłuższy trening jest na liście z prawdziwym dystansem
      i czasem, bez miejsca. Strona przyjmuje v2 (bieg próbny), v3 i v4: push frontu może iść przed plikiem danych 34f, bez „WKRÓTCE” w przerwie.
@@ -24,8 +24,10 @@
      trening dłuższy niż maraton po sprawdzeniu przez organizatora. Zmienia się tylko § 5 ust. 5. Strona przyjmuje v2–v6 (push PRZED migracją).
      19.11 v7 (decyzja Filipa, migracja 20261217, która sama przestawia bieg na v7): bieg zalicza tylko trening z czasem (60 s – 24 h, jak w bazie). Zmienia się § 5 ust. 1
      (REGULAMIN_V7, obok § 5 ust. 5 z v6). Trening bez czasu w „Wskaż trening” wyszarzony z dopiskiem „bez czasu”; bez ukończenia karta prosi o poprawę czasu
-     (blizna-307). Strona przyjmuje v2–v7 (push PRZED migracją). */
-  var WERSJE_TEKSTOW = ["2026-11-v2", "2026-11-v3", "2026-11-v4", "2026-11-v5", "2026-11-v6", "2026-11-v7"];
+     (blizna-307). Strona przyjmuje v2–v7 (push PRZED migracją).
+     20.11 v8 (decyzja Filipa, migracja 20261218, która sama przestawia bieg na v8): imię pełnoletniego uczestnika z publicznym profilem w BiegaMy prowadzi
+     na liście „Ukończyli” do tego profilu (pole `profil` liczy baza). Zmienia się § 8 ust. 1 (REGULAMIN_V8). Strona przyjmuje v2–v8 (push PRZED migracją, blizna-311). */
+  var WERSJE_TEKSTOW = ["2026-11-v2", "2026-11-v3", "2026-11-v4", "2026-11-v5", "2026-11-v6", "2026-11-v7", "2026-11-v8"];
   var REGULAMIN_P2_V3 = ["Bieg trwa od {od} do {koniec}.", "Dystans: {dystanse}, biegiem albo marszem, na dowolnej trasie.", "Wynik można dodać lub poprawić w aplikacji do {koniec}."];
   /** v4: [numer punktu od 0, pełne brzmienie] — tylko te dwa punkty różnią się od v3 (test porównuje). */
   var REGULAMIN_V4 = {
@@ -45,6 +47,10 @@
   /** v7 (19.11): § 5 ust. 1 w brzmieniu zatwierdzonym przez Filipa (bieg na 5 km: „co najmniej 5 km”); § 5 ust. 5 i § 8 ust. 1 jak w v6 (test porównuje). */
   var REGULAMIN_V7 = {
     "§ 5. Wynik i ukończenie": [0, "Bieg ukończył uczestnik, który w terminie z § 2 ma w aplikacji trening biegowy albo marszowy na dystansie co najmniej {dystanse}, z czasem (np. 45:00 albo 1:05:00). Trening może pochodzić z zegarka albo być wpisany ręcznie; trening bez czasu nie zalicza biegu."]
+  };
+  /** v8 (20.11): § 8 ust. 1 jak w v5–v7 i zdanie Filipa o profilu na końcu (test porównuje). */
+  var REGULAMIN_V8 = {
+    "§ 8. Lista osób, które ukończyły, i dane osobowe": [0, REGULAMIN_V5["§ 8. Lista osób, które ukończyły, i dane osobowe"][1] + " U pełnoletnich uczestników z publicznym profilem w BiegaMy imię na liście prowadzi do tego profilu."]
   };
   /** Czas treningu ważny dla biegu od v7: jak w bazie (akcja_bieg_sekundy, 60 s – 24 h). czas_s z akcja_bieg_treningi_z_okna. */
   function czasWazny(s) { var n = Number(s); return s != null && s !== "" && isFinite(n) && n >= 60 && n <= 86400; }
@@ -287,6 +293,7 @@
       if (l.length && stare.some(function (u) { return !odWersji(u.regulamin_wersja, 5); })) cz.push("przy treningu " + zakresZTempa(l, true) + " w rankingu i na dyplomie liczy się czas " + znacznikiZTempa(l).czas_na + " wyliczony z tempa (dopisek „z tempa”)");
     } else if (stare.some(function (u) { return !odWersji(u.regulamin_wersja, 4); })) cz.push("przy dłuższym treningu osoby ze zgodą na ranking są na liście z prawdziwym dystansem i czasem, bez miejsca");
     if (odWersji(bieg.regulamin_wersja, 7) && stare.some(function (u) { return !odWersji(u.regulamin_wersja, 7); })) cz.push("bieg zalicza trening z czasem (np. 45:00 albo 1:05:00)");   // v7 (19.11): zapisani na v6 — zdanie Filipa słowo w słowo
+    if (odWersji(bieg.regulamin_wersja, 8) && stare.some(function (u) { return !odWersji(u.regulamin_wersja, 8); })) cz.push("imię na liście „Ukończyli” prowadzi do publicznego profilu w BiegaMy (tylko pełnoletni z profilem publicznym)");   // v8 (20.11): zapisani na v7 — zdanie Filipa słowo w słowo
     return cz.length ? "Zmiana regulaminu: " + cz.join("; ") + "." : "";
   }
   function wypelnij(t, w) { return String(t).replace(/\{([a-z_]+)\}/g, function (m, k) { return w && Object.prototype.hasOwnProperty.call(w, k) ? w[k] : m; }); }
@@ -299,8 +306,10 @@
       var v4 = w && (odWersji(w.wersja, 6) ? REGULAMIN_V6 : odWersji(w.wersja, 5) ? REGULAMIN_V5 : odWersji(w.wersja, 4) ? REGULAMIN_V4 : null);   // v4–v6: § 5 ust. 5 i § 8 ust. 1
       v4 = v4 && v4[p.naglowek];
       if (v4) { punkty = punkty.slice(); punkty[v4[0]] = v4[1]; }
-      var v7 = w && odWersji(w.wersja, 7) && REGULAMIN_V7[p.naglowek];   // v7: § 5 ust. 1 (czas wymagany), obok zmian z v4–v6
-      if (v7) { punkty = punkty.slice(); punkty[v7[0]] = v7[1]; }
+      [[7, REGULAMIN_V7], [8, REGULAMIN_V8]].forEach(function (z) {   // v7: § 5 ust. 1 (czas wymagany); v8: § 8 ust. 1 (imię prowadzi do profilu); obok zmian z v4–v6
+        var x = w && odWersji(w.wersja, z[0]) && z[1][p.naglowek];
+        if (x) { punkty = punkty.slice(); punkty[x[0]] = x[1]; }
+      });
       punkty.forEach(function (t, i) { b.push({ typ: punkty.length > 1 ? "punkt" : "akapit", tekst: (punkty.length > 1 ? (i + 1) + ". " : "") + wypelnij(t, w) }); });
     });
     b.push({ typ: "naglowek", tekst: REGULAMIN.oswiadczenie.naglowek }, { typ: "akapit", tekst: REGULAMIN.oswiadczenie.tekst });
@@ -367,6 +376,10 @@
     return '<span class="bw-razem-tytul">Razem</span>' + b(z) + ' ' + forma(z, ["osoba zapisana", "osoby zapisane", "osób zapisanych"]) + (d ? ", w tym " + b(d) + " " + forma(d, ["dziecko", "dzieci", "dzieci"]) : "") +
       ' · ' + b(u) + ' ' + forma(u, ["ukończył(a)", "ukończyły", "ukończyło"]) + (l.length > 1 ? ' · ' + esc(l.map(function (x) { return km(x) + " km: " + liczba(na[String(x)] || 0); }).join(" · ")) : "");
   }
+  /** v8 (20261218, blizna-311): id publicznego profilu z bazy (pełnoletni, zgoda na imię, profil publiczny, bieg od v8) → „profil.html?id=…”; inaczej "".
+   *  Tylko poprawny UUID: inny tekst nie trafia do adresu. */
+  var RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function linkProfilu(u) { return u && !u.dziecko && u.imie && typeof u.profil === "string" && RE_UUID.test(u.profil) ? "profil.html?id=" + u.profil.toLowerCase() : ""; }
   /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
   function wierszUkonczyl(u, moj, kolumnaMiejsca) {
     var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)", reczny = u.reczny === true && !u.dziecko, rank = u.miejsce != null && u.czas_s != null && !u.dziecko, kol = rank || !!kolumnaMiejsca;
@@ -374,7 +387,7 @@
     var bezMiejsca = !rank && !u.dziecko && u.czas_s != null && u.trening_km != null && Number(u.trening_km) > 0;
     if (bezMiejsca) dyst = liczba(u.trening_km, 1) + " km · " + czas(u.czas_s);
     var zTempa = rank && u.z_tempa === true;   // 20261214 (v5): czas na dystans biegu wyliczony z tempa dłuższego treningu, z miejscem
-    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + (kol ? " bw-wiersz--ranking" : "") + '">' + (rank ? '<span class="bw-pozycja" aria-label="miejsce ' + esc(u.miejsce) + '">' + esc(u.miejsce) + '.</span>' : (kol ? '<span class="bw-pozycja"></span>' : "")) + '<span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + (rank ? '<b class="bw-czas">' + esc(czas(u.czas_s)) + '</b> · ' : '') + esc(dyst) + (zTempa ? ' · <small class="bw-z-tempa">z tempa</small>' : '') + (reczny ? ' · <small class="bw-reczny">wynik ręczny</small>' : '') + '</span></li>';
+    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + (kol ? " bw-wiersz--ranking" : "") + '">' + (rank ? '<span class="bw-pozycja" aria-label="miejsce ' + esc(u.miejsce) + '">' + esc(u.miejsce) + '.</span>' : (kol ? '<span class="bw-pozycja"></span>' : "")) + '<span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (linkProfilu(u) ? '<a class="bw-imie-link" href="' + linkProfilu(u) + '" data-profil>' + esc(u.imie) + '</a>' : u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + (rank ? '<b class="bw-czas">' + esc(czas(u.czas_s)) + '</b> · ' : '') + esc(dyst) + (zTempa ? ' · <small class="bw-z-tempa">z tempa</small>' : '') + (reczny ? ' · <small class="bw-reczny">wynik ręczny</small>' : '') + '</span></li>';
   }
   /** Lista z osobnej funkcji (EF bieg-ukonczyli, ta sama droga co licznik): dane = { razem, od, lista }, strona dokleja kolejne porcje; „Pokaż więcej” rysuje strona. */
   function ukonczyliHtml(dane, mojeNumery) {
@@ -757,7 +770,7 @@
   function plakatBiegu(slug) { var s = String(slug || ""); return Object.prototype.hasOwnProperty.call(PLAKATY, s) ? PLAKATY[s] : null; }
 
   g.BM_BIEG_REAL = { ROLE: ROLE, ZASADY: ZASADY, TEKSTY: TEKSTY, TEKSTY_GOTOWE: TEKSTY_GOTOWE, FAZY: FAZY, KONTAKT: KONTAKT, PLAKATY: PLAKATY, ADRES_BIEGU: ADRES_BIEGU, plakatBiegu: plakatBiegu, zdanieWieleRazy: zdanieWieleRazy,
-    WERSJE_TEKSTOW: WERSJE_TEKSTOW, REGULAMIN_P2_V3: REGULAMIN_P2_V3, REGULAMIN_V4: REGULAMIN_V4, REGULAMIN_V5: REGULAMIN_V5, REGULAMIN_V6: REGULAMIN_V6, REGULAMIN_V7: REGULAMIN_V7, czasWazny: czasWazny, czasBrakHtml: czasBrakHtml, treningBezCzasu: treningBezCzasu, znacznikiZTempa: znacznikiZTempa, zakresZTempa: zakresZTempa, odWersji: odWersji, koniecBiegu: koniecBiegu, koniecZDniem: koniecZDniem, koniecKrotko: koniecKrotko, terminOpis: terminOpis, zdanieKoniecWyniku: zdanieKoniecWyniku, komunikatZmiany: komunikatZmiany,
+    WERSJE_TEKSTOW: WERSJE_TEKSTOW, REGULAMIN_P2_V3: REGULAMIN_P2_V3, REGULAMIN_V4: REGULAMIN_V4, REGULAMIN_V5: REGULAMIN_V5, REGULAMIN_V6: REGULAMIN_V6, REGULAMIN_V7: REGULAMIN_V7, REGULAMIN_V8: REGULAMIN_V8, linkProfilu: linkProfilu, czasWazny: czasWazny, czasBrakHtml: czasBrakHtml, treningBezCzasu: treningBezCzasu, znacznikiZTempa: znacznikiZTempa, zakresZTempa: zakresZTempa, odWersji: odWersji, koniecBiegu: koniecBiegu, koniecZDniem: koniecZDniem, koniecKrotko: koniecKrotko, terminOpis: terminOpis, zdanieKoniecWyniku: zdanieKoniecWyniku, komunikatZmiany: komunikatZmiany,
     stanWyniku: stanWyniku, wynikOpis: wynikOpis, dystansWyniku: dystansWyniku, zaDlugiDoRankingu: zaDlugiDoRankingu, gornaRankingu: gornaRankingu, wynikNaDystans: wynikNaDystans, zasadaZTempa: zasadaZTempa, treningPodWynikiem: treningPodWynikiem, linkTreninguBezCzasu: linkTreninguBezCzasu, zakresRankingu: zakresRankingu, kmZPola: kmZPola, wynikHtml: wynikHtml, treningiHtml: treningiHtml, komunikatWyniku: komunikatWyniku, tokenRezygnacji: tokenRezygnacji, ADRES_DZIS: ADRES_DZIS,
     zapisZablokowany: zapisZablokowany, naglowekStanu: naglowekStanu, poleEmailaWidoczne: poleEmailaWidoczne, przedMailem: przedMailem, zLimitem: zLimitem, bladRpc: bladRpc, komunikat: komunikat, wycofaj: wycofaj,
     pytanieWycofania: pytanieWycofania, linkWycofaniaHtml: linkWycofaniaHtml, zapiszPola: zapiszPola, odtworzPola: odtworzPola, imieDoPola: imieDoPola, komunikatRezygnacji: komunikatRezygnacji, dataNaDyplomie: dataNaDyplomie, krotszyDystans: krotszyDystans,

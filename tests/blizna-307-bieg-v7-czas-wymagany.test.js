@@ -26,8 +26,8 @@ const KOMUNIKAT = 'Zmiana regulaminu: bieg zalicza trening z czasem (np. 45:00 a
 const paragraf5 = (w) => { const b = B.regulaminBloki(B.wartosciTekstow(BIEG(w), LICZNIK, LINK)), i = b.findIndex((x) => x.tekst === '§ 5. Wynik i ukończenie'); return b.slice(i + 1, i + 6).map((x) => x.tekst); };
 
 test('v7 obowiązuje, strona przyjmuje v2–v7; § 5 ust. 1 słowo w słowo; v7 różni się od v6 tylko § 5 ust. 1 i linią wersji', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v7');
-  assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6', '2026-11-v7']);
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v8');
+  assert.deepEqual([...B.WERSJE_TEKSTOW], ['2026-11-v2', '2026-11-v3', '2026-11-v4', '2026-11-v5', '2026-11-v6', '2026-11-v7', '2026-11-v8']);
   const v7 = paragraf5('2026-11-v7'), v6 = paragraf5('2026-11-v6');
   assert.equal(v7[0], P51); assert.notEqual(v6[0], P51);
   assert.deepEqual(v7.slice(1), v6.slice(1), '§ 5 ust. 2–5 jak w v6');

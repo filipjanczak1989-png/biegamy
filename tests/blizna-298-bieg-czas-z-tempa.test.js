@@ -26,7 +26,7 @@ const P8 = '1. Na stronie biegu widoczne są liczby zbiorcze oraz lista osób, k
 const ZMIANA_V5 = 'przy treningu od 5,50 do 10,49 km w rankingu i na dyplomie liczy się czas na 5 km wyliczony z tempa (dopisek „z tempa”)';
 
 test('v5 (od v6: blizna-303) różni się od v4 tylko § 5 ust. 5 i § 8 ust. 1 (i linią wersji), słowo w słowo jak zatwierdzone 18.11', () => {
-  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v7'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v4') && B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v4 i v2 (bieg próbny) dalej przyjmowane');
+  assert.equal(B.WERSJA_TEKSTOW, '2026-11-v8'); assert.ok(B.WERSJE_TEKSTOW.includes('2026-11-v4') && B.WERSJE_TEKSTOW.includes('2026-11-v2'), 'v4 i v2 (bieg próbny) dalej przyjmowane');
   const w5 = B.wartosciTekstow(BIEG('2026-11-v5'), LICZNIK, LINK); assert.ok(w5);
   assert.deepEqual([w5.czas_na, w5.tempo_razy, w5.zakres_z_tempa, w5.limit_z_tempa], ['na 5 km', 'tempo × 5 km', 'od 5,50 km do 10,49 km', '10,49 km'], 'liczby z dystansu biegu w bazie');
   const t4 = B.regulaminBloki(B.wartosciTekstow(BIEG('2026-11-v4'), LICZNIK, LINK)).map((b) => b.tekst), t5 = B.regulaminBloki(w5).map((b) => b.tekst);
