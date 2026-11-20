@@ -1484,6 +1484,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">biegamy.run</div>
       </div>
     </div>
+    <div id="profile-coach-prosba" style="display:none;align-items:center;gap:10px;font-size:12px;line-height:1.4;color:var(--fg);background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:10px;padding:8px 12px;margin:-12px 0 20px;"></div>
 
     <!-- Powiadomienia push -->
     <div id="push-toggle-card" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">
@@ -1545,7 +1546,8 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 <div id="change-coach-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);">
   <div style="background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:380px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,0.8);">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Zmień trenera</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Wybierz trenera, z którym chcesz pracować.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Wybierz trenera, z którym chcesz pracować — dostanie Twoją prośbę i ją potwierdzi.</div>
+    <div id="change-coach-prosba" style="display:none;align-items:center;gap:10px;font-size:12px;line-height:1.4;color:var(--fg);background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:10px;padding:8px 12px;margin-bottom:12px;"></div>
     <div id="change-coaches-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
       <div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Ładuję...</div>
     </div>
@@ -3511,17 +3513,22 @@ async function loadProfile() {
       // Trener — dociągamy z bazy
       try {
         const { data: athExtra } = await sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
+        const cnEl = document.getElementById('profile-coach-name');
+        const caEl = document.getElementById('coach-avatar-lbl');
         if(athExtra?.coach_id) {
           let coachName = 'BiegaMy Coaching';
           try {
             const { data: coachRow } = await sb.from('coaches').select('full_name').eq('id', athExtra.coach_id).maybeSingle();
             if(coachRow?.full_name) coachName = coachRow.full_name;
           } catch(e) {}
-          const cnEl = document.getElementById('profile-coach-name');
-          const caEl = document.getElementById('coach-avatar-lbl');
           if(cnEl) cnEl.textContent = coachName;
           if(caEl) caEl.textContent = coachName.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+        } else if (athExtra) {
+          /* K2: bez trenera karta mówiła „BiegaMy Coaching” (domyślny tekst z HTML) — a trenera nie ma; prośba, jeśli jest, pod kartą. */
+          if(cnEl) cnEl.textContent = 'Bez trenera';
+          if(caEl) caEl.textContent = '—';
         }
+        _pokazProsbe('profile-coach-prosba');
       } catch(e) {}
     }
   }
@@ -6826,11 +6833,15 @@ let _obPrivacy = 'private'; // domyślnie prywatny
 
    Poza RLS zostaje service_role w Edge Functions i właściciel bazy — to
    infrastruktura, jej miejsce jest w privacy.html, nie na karcie onboardingu. */
+/* K2 (20.11.2026): trener z onboardingu to PROŚBA — trener widzi treningi dopiero po jej przyjęciu (rozpatrz_prosbe ustawia
+   coach_id), więc zdanie mówi to wprost. Wybór liczy się tylko w trybie „Mam trenera”: _selectedCoachId zostaje po powrocie
+   do „Trenuję sam”, a prośba nie może pójść od kogoś, kto się z niej wycofał. */
+function _obTrener() { return _obMode === 'coach' ? _selectedCoachId : null; }
 function _obOdswiezPodpisPrywatnosci() {
   const el = document.getElementById('ob-priv-sub');
   if (!el) return;
-  el.textContent = _selectedCoachId
-    ? 'Tylko Ty i Twój trener widzicie Twoje treningi'
+  el.textContent = _obTrener()
+    ? 'Tylko Ty i Twój trener (gdy przyjmie Twoją prośbę) widzicie Twoje treningi'
     : 'Tylko Ty widzisz swoje treningi';
 }
 
@@ -6955,7 +6966,7 @@ async function obFinish() {
     // kontu. Stary/nieparsowalny (Date.parse→NaN→porównanie false) → kolumny nie dotykamy → modal FAZY 2 łapie.
     const _fresh = _terms && (Date.now() - Date.parse(_terms)) < 86400000;
     if (_terms && _fresh) athleteData.terms_accepted_at = _terms;
-    if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
+    /* Trenera NIE zapisujemy w athletes (K2, blizna-323): po zapisie wiersza idzie prośba popros_o_trenera niżej. */
     /* Miasto z kroku 4 — tylko gdy człowiek COŚ wybrał. Brak wyboru zostawia
        kolumny NULL, czyli „nie wiadomo", a nie zgadnięte miejsce. */
     if (_obMiasto) {
@@ -7008,7 +7019,14 @@ async function obFinish() {
       }
     }
 
-    if (_selectedCoachId) COACH_ID = _selectedCoachId;
+    /* Prośba o trenera z kroku 1 — dopiero teraz, bo potrzebuje wiersza athletes. Błąd nie zatrzymuje onboardingu:
+       konto już jest, a prośbę można wysłać w Profilu („Zmień trenera”). COACH_ID zostaje bez zmian do przyjęcia prośby. */
+    let _obProsba = null;
+    if (_obTrener() && _athleteId) {
+      const { data: _pid, error: _pErr } = await sb.rpc('popros_o_trenera', { p_coach_id: _obTrener() });
+      _obProsba = _pErr ? 'blad' : (_pid ? 'wyslana' : null);
+      if (_pErr) console.warn('Prośba o trenera:', _pErr.message);
+    }
 
     // Avatar upload — uploaduj do biegamy-assets/avatars i zapisz URL do athletes.avatar_url
     if (_obAvatarFile && _athleteId) {
@@ -7045,7 +7063,9 @@ async function obFinish() {
     try { localStorage.removeItem('terms_accepted_at_pending'); } catch(e) {}   // FAZA 3: localStorage (parzyste z zapisem)
     sessionStorage.removeItem('_fromTrener'); // B' fix: koniec onboardingu = pełny tryb atlety
     window.history.replaceState({}, '', 'zawodnik.html');
-    toast('Witaj w BiegaMy! 🏃');
+    toast(_obProsba === 'wyslana' ? 'Witaj w BiegaMy! 🏃 Prośba wysłana — trener potwierdzi'
+      : _obProsba === 'blad' ? 'Witaj w BiegaMy! 🏃 Prośby do trenera nie udało się wysłać — wyślij ją w Profilu'
+      : 'Witaj w BiegaMy! 🏃');
 
     // Sprawdź czy jeden z pierwszych 50 użytkowników (odznaka pierwsza_z_pierwszych)
     if (_athleteId) {
@@ -7170,7 +7190,48 @@ async function obSaveCoach() { await obFinish(); }
 
 
 // ── ZMIANA TRENERA ────────────────────────────────────────────────
+/* K2 (20.11.2026, blizna-323). Trenera nie zapisujemy już wprost: wybór wysyła prośbę (popros_o_trenera), trener przyjmuje ją
+   w panelu (rozpatrz_prosbe ustawia coach_id). Wprost wolno zapisać tylko NULL — „Bez trenera”, razem z wycofaniem oczekującej
+   prośby. Oczekująca prośba jest widoczna (do kogo, kiedy) z „Wycofaj” — w tym oknie i w karcie Trener w profilu. */
 let _changeCoachId = null;
+const _BEZ_TRENERA = 'bez-trenera';
+
+async function _mojaProsbaOTrenera() {
+  if (!_athleteId) return null;
+  const { data, error } = await sb.from('prosby_trenera').select('id, coach_id, utworzono')
+    .eq('athlete_id', _athleteId).eq('status', 'oczekuje').maybeSingle();
+  if (error || !data) return null;
+  const { data: c } = await sb.from('coaches').select('full_name').eq('id', data.coach_id).maybeSingle();
+  return { ...data, trener: (c && c.full_name) || 'trener' };
+}
+async function _pokazProsbe(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return null;
+  const p = await _mojaProsbaOTrenera();
+  if (!p) { el.innerHTML = ''; el.style.display = 'none'; return null; }
+  const kiedy = new Date(p.utworzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = '<div style="flex:1;min-width:0;">⏳ Prośba do <b>' + escapeHtml(p.trener) + '</b> · wysłana ' + escapeHtml(kiedy) + ' — czeka na potwierdzenie trenera</div>'
+    + '<button type="button" onclick="wycofajProsbeOTrenera()" style="flex-shrink:0;min-height:44px;background:none;border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:0 12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Wycofaj</button>';
+  el.style.display = 'flex';
+  return p;
+}
+async function wycofajProsbeOTrenera() {
+  const { error } = await sb.rpc('wycofaj_prosbe_o_trenera');
+  if (error) { toast('Błąd: ' + error.message); return; }
+  toast('Prośba wycofana');
+  await Promise.all([_pokazProsbe('change-coach-prosba'), _pokazProsbe('profile-coach-prosba')]);
+}
+function _kartaTreneraHtml(id, nazwa, opis, wybrany) {
+  const initials = id === _BEZ_TRENERA ? '—' : (nazwa||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  return `<div class="ob-coach-card ${wybrany?'selected':''}" id="chg-coach-${id}" onclick="selectChangeCoach('${id}', document.getElementById('chg-coach-${id}'))" style="${wybrany?'background:rgba(var(--accent-rgb),0.07);border-color:rgba(var(--accent-rgb),0.4);cursor:pointer;':'cursor:pointer;'}">
+      <div style="width:38px;height:38px;border-radius:50%;background:${wybrany?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${escapeHtml(initials)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(nazwa)}</div>
+        ${opis?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${escapeHtml(opis)}</div>`:''}
+      </div>
+      <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${wybrany?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;">${wybrany?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+    </div>`;
+}
 
 async function openChangeCoach() {
   document.getElementById('change-coach-modal').style.display = 'flex';
@@ -7184,21 +7245,12 @@ async function openChangeCoach() {
 
   // Pobierz aktualnego trenera zawodnika
   const { data: ath } = await sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
-  const currentCoachId = ath?.coach_id || COACH_ID;
-  _changeCoachId = currentCoachId;
+  const currentCoachId = ath?.coach_id || null;
+  _changeCoachId = currentCoachId || _BEZ_TRENERA;
+  _pokazProsbe('change-coach-prosba');
 
-  list.innerHTML = coachList.map(c => {
-    const isSelected = c.id === currentCoachId;
-    const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', document.getElementById('chg-coach-${c.id}'))" style="${isSelected?'background:rgba(var(--accent-rgb),0.07);border-color:rgba(var(--accent-rgb),0.4);cursor:pointer;':'cursor:pointer;'}">
-      <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(c.full_name)}</div>
-        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${escapeHtml(c.specialization)}</div>`:''}
-      </div>
-      <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isSelected?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;">${isSelected?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
-    </div>`;
-  }).join('');
+  list.innerHTML = coachList.map(c => _kartaTreneraHtml(c.id, c.full_name, c.specialization, c.id === currentCoachId)).join('')
+    + _kartaTreneraHtml(_BEZ_TRENERA, 'Bez trenera', 'Biegam sam — oczekująca prośba zostanie wycofana', !currentCoachId);
 }
 
 function selectChangeCoach(coachId, el) {
@@ -7227,12 +7279,23 @@ function closeChangeCoach() {
 
 async function saveCoachChange() {
   if (!_changeCoachId || !_athleteId) return;
-  const { error } = await sb.from('athletes').update({ coach_id: _changeCoachId }).eq('id', _athleteId);
+  if (_changeCoachId === _BEZ_TRENERA) {
+    const { error: eW } = await sb.rpc('wycofaj_prosbe_o_trenera');
+    if (eW) { toast('Błąd: ' + eW.message); return; }
+    const { error: eZ } = await sb.from('athletes').update({ coach_id: null }).eq('id', _athleteId);
+    if (eZ) { toast('Błąd: ' + eZ.message); return; }
+    COACH_ID = null;
+    closeChangeCoach();
+    await loadProfileSection();
+    toast('Biegasz bez trenera ✓');
+    return;
+  }
+  /* Prośba do obecnego trenera nie tworzy prośby (null) i wycofuje oczekującą zmianę — to „zostaję przy obecnym”. */
+  const { data: idProsby, error } = await sb.rpc('popros_o_trenera', { p_coach_id: _changeCoachId });
   if (error) { toast('Błąd: ' + error.message); return; }
-  COACH_ID = _changeCoachId;
   closeChangeCoach();
   await loadProfileSection();
-  toast('Trener zmieniony ✓');
+  toast(idProsby ? 'Prośba wysłana — trener potwierdzi' : 'Zostajesz u obecnego trenera ✓');
 }
 
 
@@ -13260,6 +13323,7 @@ window.sendDuelChallenge = sendDuelChallenge;
     <!-- Wybór trenera (pokazuje się gdy mode=coach lub find) -->
     <div id="ob-coach-section" style="display:none;margin-top:16px;">
       <div class="ob-label">Wybierz trenera</div>
+      <div style="font-size:12px;color:var(--muted);margin:-4px 0 8px;line-height:1.4;">Trener dostanie Twoją prośbę i ją potwierdzi.</div>
       <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;padding:8px 0;">&#x23F3; Ładuję listę trenerów...</div>
       <div id="ob-coaches" style="display:none;"></div>
     </div>
