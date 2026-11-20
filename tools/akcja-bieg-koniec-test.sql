@@ -95,7 +95,7 @@ begin
   if (k->>'ok')::boolean then raise exception 'FAIL 4e: dopisanie dziecka po końcu: %', k; end if;
   n := n + 5;
 
-  -- 5. automat w 2 godziny po końcu: import zegarka z biegu przed końcem (zsynchronizowany po końcu) TAK; wpis ręczny dodany po końcu NIE; trening po końcu NIE
+  -- 5. automat w oknie po końcu (od 20261219: 24 h, było 2 h): import zegarka z biegu przed końcem (zsynchronizowany po końcu) TAK; wpis ręczny dodany po końcu NIE; trening po końcu NIE
   insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id, created_at)
     values (ka[2], 5.0, '28:00', 'Spokojny', 'Run', now() - interval '40 minutes', 'intervals', 'test-koniec', 'tk-b', now() - interval '5 minutes') returning id into lB;
   insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, created_at)
@@ -112,13 +112,19 @@ begin
   if exists (select 1 from jsonb_array_elements(k) x where (x->>'id')::uuid = lC2) then raise exception 'FAIL 5c: „Wskaż trening” pokazuje trening po końcu'; end if;
   n := n + 3;
 
-  -- 6. automat po 2 godzinach od końca już nie działa (także dla importu zegarka sprzed końca)
+  -- 6. automat po 24 godzinach od końca (20261219; było 2 h) już nie działa (także dla importu zegarka sprzed końca)
+  update public.akcja_biegi set koniec_at = now() - interval '25 hours' where id = b;
+  insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id, created_at)
+    values (ka[3], 5.0, '31:00', 'Spokojny', 'Run', now() - interval '26 hours', 'intervals', 'test-koniec', 'tk-c3', now() - interval '1 hour');
+  perform public.akcja_bieg_automat();
+  if (select ukonczony_at from public.akcja_bieg_uczestnicy where id = u[3]) is not null then raise exception 'FAIL 6a: automat po 24 godzinach od końca dał wynik'; end if;
+  -- 6b. w 24 h (koniec 3 h temu, przy starym oknie 2 h już zamknięte): import zegarka sprzed końca zsynchronizowany po końcu TAK
   update public.akcja_biegi set koniec_at = now() - interval '3 hours' where id = b;
   insert into public.training_logs (athlete_id, distance_km, duration, training_type, external_type, logged_at, source, external_source, external_id, created_at)
-    values (ka[3], 5.0, '31:00', 'Spokojny', 'Run', now() - interval '4 hours', 'intervals', 'test-koniec', 'tk-c3', now() - interval '1 hour');
+    values (ka[3], 5.0, '30:00', 'Spokojny', 'Run', now() - interval '4 hours', 'intervals', 'test-koniec', 'tk-c4', now() - interval '30 minutes');
   perform public.akcja_bieg_automat();
-  if (select ukonczony_at from public.akcja_bieg_uczestnicy where id = u[3]) is not null then raise exception 'FAIL 6a: automat po 2 godzinach od końca dał wynik'; end if;
-  n := n + 1;
+  if (select ukonczony_at from public.akcja_bieg_uczestnicy where id = u[3]) is null then raise exception 'FAIL 6b: automat 3 h po końcu (okno 24 h) nie przyjął zegarka sprzed końca'; end if;
+  n := n + 2;
 
   -- 7. organizator: zalicza po końcu do zalicz_do; po zalicz_do odmowa (zaliczanie, usunięcie, weryfikacja); bez zalicz_do jak dotąd wynik_do + 7
   perform set_config('request.jwt.claims', json_build_object('sub', tr, 'role', 'authenticated')::text, true);
