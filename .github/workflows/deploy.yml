@@ -67,10 +67,16 @@ jobs:
       #    src=/href=/fetch(/import z tych katalogow w *.html, *.js, *.css.
       #    Trafienia na "supabase/" w kodzie to wylacznie adresy *.supabase.co.
       #
+      # !! 20.11.2026 (blizna-319): /CLAUDE.md i /.claude/settings.local.json byly publiczne (HTTP 200), bo lista
+      #    wykluczen ich nie znala, a upload-pages-artifact publikuje tez pliki z kropka. Teraz wycinamy KAZDA sciezke
+      #    z kropka w korzeniu (/.*: .claude, .gitignore, .gitattributes, .githooks, .ai, .git, .github) i KAZDY *.md
+      #    (strona nie laduje zadnego .md — tylko komentarze w kodzie je wymieniaja). Gdyby kiedys byl potrzebny
+      #    /.well-known/ (np. aplikacja Android), dopisz PRZED tymi wzorcami --include '/.well-known/***'.
+      #    Lista sciezek, ktore MUSZA dawac 404 na produkcji: tools/sciezki-niepubliczne.txt (sprawdz-po-pushu, blizna-319).
+      #
       # !! CZEGO SWIADOMIE NIE WYKLUCZAMY:
       #      CNAME            — bez niego Pages gubi domene wlasna
       #      js/ vendor/ assets/ — strona to laduje
-      #      README*.md CLAUDE.md — dokumentacja w korzeniu repo, nieszkodliwa
       #    Oszczednosc miejsca jest przy okazji i jest mala (~1,1 MB przy
       #    artefakcie liczonym w dziesiatkach MB — patrz zaleglosc o assets/ gry).
       #    Sens jest porzadkowy, nie wydajnosciowy.
@@ -83,19 +89,22 @@ jobs:
           # (sprawdzone 15.08.2026: zero dopasowan ponizej korzenia), i wlasnie
           # dlatego kotwica kosztuje teraz nic, a pozniej kosztowalaby debugowanie.
           rsync -a \
-            --exclude '/.git' \
-            --exclude '/.github' \
+            --exclude '/.*' \
+            --exclude '*.md' \
             --exclude '/tests' \
             --exclude '/tools' \
             --exclude '/docs' \
-            --exclude '/.ai' \
             --exclude '/supabase' \
             --exclude '/journal.txt' \
             ./ /tmp/site/
           echo "Wdrazane: $(du -sh /tmp/site | cut -f1)"
-          for k in tests tools docs .ai supabase journal.txt; do
+          for k in tests tools docs .ai supabase journal.txt .claude CLAUDE.md README.md .gitignore .git .github; do
             test ! -e "/tmp/site/$k" || { echo "BLAD: $k trafil do artefaktu"; exit 1; }
           done
+          kropka="$(find /tmp/site -mindepth 1 -maxdepth 1 -name '.*' | head -5)"
+          test -z "$kropka" || { echo "BLAD: sciezka z kropka w korzeniu artefaktu: $kropka"; exit 1; }
+          md="$(find /tmp/site -name '*.md' | head -5)"
+          test -z "$md" || { echo "BLAD: plik .md w artefakcie: $md"; exit 1; }
           test -f /tmp/site/CNAME || { echo "BLAD: brak CNAME — domena wlasna padnie"; exit 1; }
           test -f /tmp/site/zawodnik.html || { echo "BLAD: brak zawodnik.html"; exit 1; }
 

@@ -25,3 +25,6 @@ out-*/
 # Rysunek postaci jest tajny do startu, a repo publiczne: plik nigdy tutaj (blizna-155).
 *koparka-postac*
 fabianek*
+
+# 20.11.2026 (blizna-319): lokalne uprawnienia Claude Code — nie do repo i nie na stronę
+.claude/settings.local.json

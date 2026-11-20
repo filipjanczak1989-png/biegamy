@@ -1,0 +1,23 @@
+# Ścieżki, które na produkcji (https://biegamy.run/<ścieżka>) MUSZĄ dawać 404 (20.11.2026, blizna-319).
+# Czyta je sprawdz-po-pushu.sh (tryb „po”: każda inna odpowiedź = CZERWONY) i tests/blizna-319 (deploy.yml musi je wycinać).
+# Jedna ścieżka w linii, bez wiodącego ukośnika; # = komentarz. Ten plik jest w tools/, więc sam też się nie publikuje.
+CLAUDE.md
+README.md
+README_PWA.md
+.claude/settings.local.json
+.gitignore
+.gitattributes
+.githooks/pre-commit
+.githooks/commit-msg
+.github/workflows/deploy.yml
+.ai/LEKCJE.md
+.git/config
+.git/HEAD
+docs/akcja-f-spec.md
+journal.txt
+tests/_srodowisko.js
+tools/bramka-commit.js
+tools/sciezki-niepubliczne.txt
+supabase/config.toml
+supabase/migrations/20261219_akcja_bieg_zamrozenie_po_koncu.sql
+assets/gra/dzwieki/zrodla.md
