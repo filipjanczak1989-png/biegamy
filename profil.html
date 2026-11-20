@@ -344,6 +344,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     </div>
     <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;flex-shrink:0;">✎ zmień</div>
   </div>
+  <div id="coach-prosba" style="display:none;align-items:center;gap:10px;font-size:12px;line-height:1.4;color:var(--fg);background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:10px;padding:8px 12px;margin-top:8px;"></div>
   <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;line-height:1.5;">Zmiana trenera nie usuwa Twoich treningów ani celów.</div>
 </div>
 
@@ -1012,6 +1013,41 @@ function renderCoach(ath) {
     valEl.style.color = 'var(--accent)';
     iconEl.textContent = '🏃';
   }
+  pokazProsbeOTrenera();
+}
+
+/* K2 (20.11.2026, blizna-323). Wybór trenera to PROŚBA (popros_o_trenera) — trener przyjmuje ją w panelu, dopiero wtedy
+   zmienia się coach_id. Wprost zapisujemy tylko NULL („Bez trenera”, razem z wycofaniem oczekującej prośby). Oczekująca prośba
+   jest widoczna pod kartą trenera i w oknie wyboru: do kogo, kiedy wysłana, z przyciskiem „Wycofaj”. */
+async function _mojaProsbaOTrenera() {
+  if (!_myId) return null;
+  const { data, error } = await sb.from('prosby_trenera').select('id, coach_id, utworzono')
+    .eq('athlete_id', _myId).eq('status', 'oczekuje').maybeSingle();
+  if (error || !data) return null;
+  let trener = COACHES[data.coach_id]?.name || '';
+  if (!trener) { const { data: c } = await sb.from('coaches').select('full_name').eq('id', data.coach_id).maybeSingle(); trener = (c && c.full_name) || 'trener'; }
+  return { ...data, trener };
+}
+async function pokazProsbeOTrenera() {
+  if (!_isOwnProfile) return null;
+  const p = await _mojaProsbaOTrenera();
+  const kiedy = p ? new Date(p.utworzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  ['coach-prosba', 'coach-picker-prosba'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = p
+      ? '<div style="flex:1;min-width:0;">⏳ Prośba do <b>' + escHtml(p.trener) + '</b> · wysłana ' + escHtml(kiedy) + ' — czeka na potwierdzenie trenera</div>'
+        + '<button type="button" onclick="event.stopPropagation();wycofajProsbeOTrenera()" style="flex-shrink:0;min-height:44px;background:none;border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:0 12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Wycofaj</button>'
+      : '';
+    el.style.display = p ? 'flex' : 'none';
+  });
+  return p;
+}
+async function wycofajProsbeOTrenera() {
+  const { error } = await sb.rpc('wycofaj_prosbe_o_trenera');
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('Prośba wycofana');
+  await pokazProsbeOTrenera();
 }
 
 function renderCity(ath) {
@@ -1090,10 +1126,12 @@ function openCoachPicker() {
         '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.03em;">Wybierz <span style="color:var(--accent);">trenera</span></div>' +
         '<button onclick="closeCoachPicker()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0 6px;line-height:1;">×</button>' +
       '</div>' +
-      '<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;">Swój wybór możesz zmienić w każdej chwili. Treningi i cele zostają niezależnie od trenera.</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;">Wybrany trener dostanie Twoją prośbę i ją potwierdzi. Treningi i cele zostają niezależnie od trenera.</div>' +
+      '<div id="coach-picker-prosba" style="display:none;align-items:center;gap:10px;font-size:12px;line-height:1.4;color:var(--fg);background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:10px;padding:8px 12px;margin-bottom:12px;"></div>' +
       optionsHtml +
     '</div>';
   document.body.appendChild(overlay);
+  pokazProsbeOTrenera();
 }
 
 function closeCoachPicker() {
@@ -1104,33 +1142,31 @@ function closeCoachPicker() {
 async function selectCoach(newCoachId) {
   if (!_myId) return;
   const currentId = _profileData?.coach_id || null;
-  if (newCoachId === currentId) { closeCoachPicker(); return; }
+  /* Wybór tego, co już jest: bez oczekującej prośby nic się nie dzieje (jak dotąd). Z oczekującą prośbą o zmianę — jak w zawodnik.html:
+     obecny trener → popros_o_trenera (null, a oczekująca wycofana) i „Zostajesz u obecnego trenera ✓”; bez trenera → wycofanie niżej. */
+  if ((newCoachId || null) === currentId && !(await _mojaProsbaOTrenera())) { closeCoachPicker(); return; }
 
-  // Potwierdzenie tylko przy ZMIANIE z trenera na innego/brak (nie przy pierwszym wyborze z null→trener)
-  if (currentId) {
-    const fromName = COACHES[currentId]?.name || 'obecnego trenera';
-    const toName = newCoachId ? (COACHES[newCoachId]?.name || 'nowego trenera') : 'biegania bez trenera';
-    if (!confirm('Zmienić z "' + fromName + '" na "' + toName + '"?')) return;
-  }
-
-  const { error } = await sb.from('athletes')
-    .update({ coach_id: newCoachId })
-    .eq('id', _myId);
-
-  if (error) {
-    showToast('Błąd: ' + error.message);
+  if (!newCoachId) {
+    /* „Bez trenera”: wycofanie oczekującej prośby + coach_id = NULL (jedyny zapis trenera wprost, blizna-323).
+       Potwierdzenie tylko przy odejściu od trenera — samo wycofanie prośby go nie potrzebuje. */
+    if (currentId && !confirm('Zakończyć współpracę z "' + (COACHES[currentId]?.name || 'obecnym trenerem') + '" i biegać samodzielnie?')) return;
+    const { error: eW } = await sb.rpc('wycofaj_prosbe_o_trenera');
+    if (eW) { showToast('Błąd: ' + eW.message); return; }
+    const { error } = await sb.from('athletes').update({ coach_id: null }).eq('id', _myId);
+    if (error) { showToast('Błąd: ' + error.message); return; }
+    if (_profileData) _profileData.coach_id = null;
+    closeCoachPicker();
+    renderCoach(_profileData);
+    showToast('Biegasz teraz samodzielnie ✓');
     return;
   }
 
-  if (_profileData) _profileData.coach_id = newCoachId;
+  /* Trener = prośba. Obecny trener nie tworzy prośby (null) i wycofuje oczekującą zmianę — „zostaję przy obecnym”. */
+  const { data: idProsby, error } = await sb.rpc('popros_o_trenera', { p_coach_id: newCoachId });
+  if (error) { showToast('Błąd: ' + error.message); return; }
   closeCoachPicker();
   renderCoach(_profileData);
-
-  if (newCoachId) {
-    showToast('Trener przypisany ✓');
-  } else {
-    showToast('Biegasz teraz samodzielnie ✓');
-  }
+  showToast(idProsby ? 'Prośba wysłana — trener potwierdzi' : 'Zostajesz u obecnego trenera ✓');
 }
 
 async function editDateOfBirth() {
