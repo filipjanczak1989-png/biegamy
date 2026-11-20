@@ -149,11 +149,16 @@ const BLOKADY_TRESCI = [
      w migracji jest prawdziwą instrukcją — oznaczenie jej „przykładem"
      zamieniłoby marker w furtkę i po trzech użyciach nikt by nie wiedział,
      co on właściwie znaczy. */
-  { re: /\bGRANT\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bTO\s+anon\b/i,
+  /* LISTA RÓL (20.11.2026, blizna-324): anon nie musi stać zaraz po TO/FROM — `… TO authenticated, anon` i `… FROM public, anon, authenticated`
+     to ta sama instrukcja dla anona. Do tego dnia wzorce wymagały `TO anon`/`FROM anon`, więc nadanie anonowi w liście ról schodziło do zwykłego
+     GRANT/REVOKE (w CI ostrzeżenie zamiast czerwonego runu), a odebranie w liście nie domykało pary z CREATE TABLE (fałszywe ostrzeżenie przy 20261221).
+     PUBLIC = anon (decyzja Filipa 20.11): każda rola, także anon, dziedziczy uprawnienia PUBLIC, więc `… TO public` liczy się twardo jak `… TO anon`
+     (`(?!\.)` — schemat `public.x` to nie rola). Odebranie FROM public NIE domyka pary z CREATE TABLE: Supabase nadaje anonowi wprost, nie przez PUBLIC. */
+  { re: /\bGRANT\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bTO\s+(?:[a-z_]\w*\s*,\s*)*(?:anon|public)\b(?!\.)/i,
     opis: 'GRANT dla roli anon',
     ciBlokada: true,
-    czemu: 'Uprawnienie dla NIEZALOGOWANEGO. Wyciek danych, nie usterka — cofaj natychmiast.' },
-  { re: /\bREVOKE\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bFROM\s+anon\b/i,
+    czemu: 'Uprawnienie dla NIEZALOGOWANEGO (anon wprost albo przez PUBLIC). Wyciek danych, nie usterka — cofaj natychmiast.' },
+  { re: /\bREVOKE\s+(ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE)\b[^;]*\bFROM\s+(?:[a-z_]\w*\s*,\s*)*anon\b/i,
     opis: 'REVOKE dla roli anon (zawężenie dostępu)',
     czemu: 'Kierunek BEZPIECZNY — anon traci dostęp, nic nie wycieka. SPRAWDŹ JEDNO: '
          + 'czy `authenticated` ma WŁASNY grant, czy dziedziczył po `anon`.' },
@@ -171,7 +176,7 @@ const BLOKADY_TRESCI = [
          ma `serwisowa`. Kierunek ma znaczenie tak samo jak przy GRANT/REVOKE:
          `… TO anon` = wyciek (blokada, także w CI), `grant anon to <rola>` = ta rola
          dziedziczy uprawnienia anona, czyli niewiele (ostrzeżenie). */
-  { re: /\bGRANT\s+(?!(?:ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE|REFERENCES|TRIGGER|TRUNCATE|CREATE|CONNECT|TEMP|TEMPORARY)\b)[a-z_][\w]*(?:\s*,\s*[a-z_][\w]*)*\s+TO\s+anon\b/i,
+  { re: /\bGRANT\s+(?!(?:ALL|SELECT|INSERT|UPDATE|DELETE|EXECUTE|USAGE|REFERENCES|TRIGGER|TRUNCATE|CREATE|CONNECT|TEMP|TEMPORARY)\b)[a-z_][\w]*(?:\s*,\s*[a-z_][\w]*)*\s+TO\s+(?:[a-z_]\w*\s*,\s*)*(?:anon|public)\b(?!\.)/i,
     opis: 'GRANT <rola> TO anon (członkostwo w roli)',
     ciBlokada: true,
     czemu: 'anon dziedziczy WSZYSTKIE uprawnienia tej roli — bez ani jednego słowa SELECT w diffie. Wyciek, nie usterka.' },
@@ -278,7 +283,7 @@ function sprawdz(zmiana, tryb, zatwierdzenie) {
   const calosc = dodane.join('\n');
   const bezRevoke = (obiekt) => {
     const nazwa = obiekt.replace(/"/g, '');
-    return !new RegExp('\\bREVOKE\\b[^;]*\\bON\\s+(?:TABLE\\s+)?(?:public\\.)?"?' + nazwa + '"?\\b[^;]*\\bFROM\\s+anon\\b', 'i').test(calosc);
+    return !new RegExp('\\bREVOKE\\b[^;]*\\bON\\s+(?:TABLE\\s+)?(?:public\\.)?"?' + nazwa + '"?\\b[^;]*\\bFROM\\s+(?:[a-z_]\\w*\\s*,\\s*)*anon\\b', 'i').test(calosc);   // anon także w liście ról (blizna-324)
   };
 
   /* ZAWĘŻENIE DLA ANON (12.11.2026, decyzja Filipa). Grant kolumnowy `SELECT (kolumny) ON x` dla roli anon w pliku migracji,
@@ -685,6 +690,28 @@ function samokontrola() {
     ok(twarda(D(MIG, [kol, rev], 'hook', POW)), '   revoke PONIŻEJ grantu → TWARDA (kolejność w pliku)');
     ok(twarda(D('tools/x-test.sql', [rev, kol], 'hook', POW)), '   poza plikiem migracji → TWARDA');
     ok(twarda(D(MIG, [kol], 'ci')), '   w CI grant kolumnowy bez revoke → nadal TWARDA (czerwony run)');
+  }
+
+  /* 14) LISTA RÓL (20.11.2026, blizna-324): anon w liście po TO/FROM to nadal anon. */
+  {
+    console.log('\n  14) anon w liście ról po TO / FROM');
+    const L = (linie, tryb) => sprawdz({ pliki: [], dodane: linie }, tryb || 'hook');
+    const twarda = (w) => w.blokady.some((b) => b.ciBlokada);
+    const tab = 'cre' + 'ate table public.tab_x (id uuid primary key);';
+    ok(twarda(L(['gra' + 'nt select on public.tab_x to authenticated, anon;'], 'ci')), 'GRANT … TO authenticated, anon → TWARDA (czerwony run w CI)');
+    ok(twarda(L(['gra' + 'nt execute on function public.f(uuid) to service_role,anon;'], 'ci')), 'GRANT … TO service_role,anon (bez spacji) → TWARDA');
+    ok(twarda(L(['gra' + 'nt serwisowa to authenticated, anon;'], 'ci')), 'GRANT <rola> TO authenticated, anon → TWARDA');
+    ok(!twarda(L(['gra' + 'nt select on public.tab_x to authenticated, service_role;'], 'ci')), 'GRANT bez anona w liście → nie twarda');
+    ok(!twarda(L(['gra' + 'nt select on public.anon_log to authenticated;'], 'ci')), 'słowo anon w nazwie obiektu → nie twarda');
+    ok(!L([tab, 'rev' + 'oke all on table public.tab_x from public, anon, authenticated;']).ostrzezenia.some((o) => o.obiektAnon), 'CREATE + REVOKE … FROM public, anon, authenticated → para domknięta');
+    ok(L([tab, 'rev' + 'oke all on table public.tab_x from public, authenticated;']).ostrzezenia.some((o) => o.obiektAnon), 'REVOKE bez anona w liście → ostrzeżenie zostaje');
+    ok(L([tab, 'rev' + 'oke all on table public.tab_x from anon_x;']).ostrzezenia.some((o) => o.obiektAnon), 'rola anon_x to nie anon → ostrzeżenie zostaje');
+    ok(twarda(L(['gra' + 'nt execute on function public.f(uuid) to public;'], 'ci')), 'GRANT … TO public → TWARDA (PUBLIC = także anon)');
+    ok(twarda(L(['gra' + 'nt select on public.tab_x to authenticated, PUBLIC;'], 'ci')), 'GRANT … TO authenticated, PUBLIC → TWARDA');
+    ok(twarda(L(['gra' + 'nt serwisowa to public;'], 'ci')), 'GRANT <rola> TO public → TWARDA');
+    ok(!twarda(L(['gra' + 'nt usage on schema public to authenticated;'], 'ci')), 'schemat public w ON → nie twarda');
+    ok(!twarda(L(['gra' + 'nt select on public.tab_x to authenticated;'], 'ci')), 'public.x jako obiekt → nie twarda');
+    ok(L([tab, 'rev' + 'oke all on table public.tab_x from public;']).ostrzezenia.some((o) => o.obiektAnon), 'REVOKE … FROM public NIE domyka pary (anon ma nadanie wprost)');
   }
 
   console.log('\n  ' + (bledy
