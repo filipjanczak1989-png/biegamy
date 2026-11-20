@@ -113,6 +113,7 @@ const DANE = {
   injuries: [{ athlete_id: 'a1', poziom: ZLY, miejsce: ZLY }],
   'rpc:znajdz_zawodnika_po_emailu': [{ id: 'a1', full_name: ZLY, coach_id: null }],
   'rpc:get_app_stats': [{ total_count: 1, week_count: 1 }],
+  'rpc:prosby_do_mnie': [{ id: 'q1', athlete_id: 'a1', imie: ZLY, utworzono: TERAZ }],   /* K2, blizna-323 */
 };
 
 function panel() {
@@ -151,6 +152,7 @@ const SCENARIUSZE = [
   ['momenty do zatwierdzenia', (c) => c.loadPendingMoments()],
   ['żywienie zawodnika', (c) => c.loadPanelDiet()],
   ['Strava zawodnika', (c) => c.loadStravaPanel()],
+  ['prośby o trenera (K2)', (c) => c.loadProsbyTrenera()],
 ];
 
 for (const [nazwa, wolaj] of SCENARIUSZE) {

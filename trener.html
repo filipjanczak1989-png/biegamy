@@ -436,6 +436,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 <div class="intake-section fi" id="moments-section" style="display:none;"></div>
 
+<!-- ━━━━━━━━ PROŚBY O TRENERA (K2, 20.11.2026) ━━━━━━━━ -->
+<div class="sec-hdr fi" id="prosby-sec-hdr" style="display:none;">
+  <div class="sec-title">🙋 Prośby o trenera · <span id="prosby-count" style="color:var(--accent);">0</span></div>
+  <button class="sec-action" onclick="loadProsbyTrenera()">↻ Odśwież</button>
+</div>
+<div class="intake-section fi" id="prosby-section"></div>
+
 <!-- ━━━━━━━━ NOWE ZGŁOSZENIA Z ANKIETY ━━━━━━━━ -->
 <div class="sec-hdr fi" id="intake-sec-hdr" style="display:none;">
   <div class="sec-title">📋 Nowe zgłoszenia · <span id="intake-count" style="color:var(--accent);">0</span></div>
@@ -2931,13 +2938,6 @@ const _PPB_POLA = [
   ['ppb-10k-in',  10,      'pb_10k', 'ppb-10k-in-rok'],
   ['ppb-5k-in',   5,       'pb_5k', 'ppb-5k-in-rok'],
 ];
-const _ATH_PB_POLA = [
-  ['ath-pb-mar',  42.195,  'pb_marathon'],
-  ['ath-pb-half', 21.0975, 'pb_half'],
-  ['ath-pb-10k',  10,      'pb_10k'],
-  ['ath-pb-5k',   5,       'pb_5k'],
-];
-
 async function savePanelPB() {
   const id = window._selectedAthleteId;
   if (!id) return;
@@ -3911,80 +3911,12 @@ function openAthModal() {
   m.removeAttribute('hidden');
   m.style.removeProperty('display');
   m.classList.add('ath-modal-show');
-  ['ath-name','ath-email','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
 }
 function closeAthModal() {
   const m = document.getElementById('add-ath-modal');
   m.setAttribute('hidden', '');
   m.style.display = 'none';
   m.classList.remove('ath-modal-show');
-}
-
-async function saveAthlete() {
-  const name = document.getElementById('ath-name').value.trim();
-  if (!name) { showToast('Wpisz imię i nazwisko'); return; }
-
-  const email = document.getElementById('ath-email').value.trim().toLowerCase();
-  if (!email) { showToast('Wpisz email'); return; }
-  if (!/.+@.+\..+/.test(email)) { showToast('Niepoprawny email'); return; }
-
-  // Get fresh session if needed
-  if (!_coachId) {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { showToast('Zaloguj się ponownie'); return; }
-    _coachId = session.user.id;
-  }
-
-  // Sprawdź czy zawodnik z tym mailem już istnieje
-  /* po zdjęciu athletes_read_public cudzy wiersz nie jest widoczny z tabeli: funkcja znajdz_zawodnika_po_emailu (tylko trener, migracja 20261112); do jej wejścia tabela */
-  let existingArr = null;
-  { const r = await sb.rpc('znajdz_zawodnika_po_emailu', { p_email: email }); if (r && !r.error && r.data && r.data.length) existingArr = r.data; }
-  if (!existingArr) { const t = await sb.from('athletes').select('id, coach_id').ilike('email', email).limit(1); existingArr = t.data; }
-  const existing = existingArr && existingArr[0];
-
-  if (existing) {
-    if (existing.coach_id === _coachId) {
-      showToast('Masz już tego zawodnika w grupie');
-    } else {
-      showToast('Email u innego trenera, dogadajcie się offline');
-    }
-    return;
-  }
-
-  const pbUpdates = _walidujPBTrener(_ATH_PB_POLA, 'ath-pb-err');
-  if (!pbUpdates) return;
-
-  const { error } = await sb.from('athletes').insert({
-    coach_id: _coachId,
-    full_name: name,
-    email: email,
-    goal: document.getElementById('ath-goal').value.trim() || null,
-    target_race: document.getElementById('ath-goal').value.trim() || null,
-    target_date: document.getElementById('ath-target-date').value || null,
-    ...pbUpdates,
-    active: true
-  });
-
-  // Also save name to profiles if user exists
-  if (error) {
-    // 23505 = Postgres unique_violation. Race: drugi insert wszedł
-    // między nasz ilike check a ten insert. DB-level UNIQUE index
-    // (athletes_email_unique_idx) rejected drugi → identyczny komunikat
-    // jak gdy ilike złapał duplikat.
-    if (error.code === '23505') {
-      showToast('Email u innego trenera, dogadajcie się offline');
-    } else {
-      showToast('Błąd: ' + error.message);
-    }
-    return;
-  }
-
-  showToast(name + ' dodany ✓');
-  closeAthModal();
-  await loadAthletes();
-  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
 }
 
 
@@ -6567,71 +6499,59 @@ async function sendPanelMessage() {
   await loadPanelChat();
 }
 
-// ── ATHLETE MODAL TABS ────────────────────────────────────────────
-function switchAthTab(tab) {
-  const isNew = tab === 'new';
-  document.getElementById('ath-tab-new').style.display = isNew ? 'block' : 'none';
-  document.getElementById('ath-tab-existing').style.display = isNew ? 'none' : 'block';
-  document.getElementById('tab-new').style.background = isNew ? 'rgba(212,80,26,0.1)' : 'transparent';
-  document.getElementById('tab-new').style.borderBottomColor = isNew ? '#d4501a' : 'transparent';
-  document.getElementById('tab-new').style.color = isNew ? '#f0ede8' : '#66636e';
-  document.getElementById('tab-existing').style.background = isNew ? 'transparent' : 'rgba(61,184,112,0.1)';
-  document.getElementById('tab-existing').style.borderBottomColor = isNew ? 'transparent' : '#3db870';
-  document.getElementById('tab-existing').style.color = isNew ? '#66636e' : '#f0ede8';
-}
-
-let _foundAthleteId = null;
-async function searchAthleteByEmail() {
-  const email = document.getElementById('ath-email-search').value.trim().toLowerCase();
-  const res = document.getElementById('ath-search-result');
-  const btn = document.getElementById('btn-assign');
-  _foundAthleteId = null;
-  btn.style.display = 'none';
-  res.innerHTML = '<div style="font-size:11px;color:#66636e;font-family:DM Mono,monospace;">Szukam...</div>';
-
-  if (!email) { res.innerHTML = '<div style="color:#e05050;font-size:11px;font-family:DM Mono,monospace;">Wpisz email</div>'; return; }
-
-  // Szukaj zawodnika po emailu — Supabase przechowuje email w auth.users
-  // Używamy widoku users_with_email jeśli istnieje, lub szukamy przez athlete email kolumnę
-  let { data, error } = { data: null, error: null };
-  { const r = await sb.rpc('znajdz_zawodnika_po_emailu', { p_email: email }); if (r && !r.error && r.data && r.data.length) data = r.data[0]; }
-  if (!data) ({ data, error } = await sb.from('athletes').select('id, full_name, coach_id, user_id, email').ilike('email', email).maybeSingle());   // zapas do czasu migracji 20261112
-
-  if (window.bmOfflineGdy(error, res, 'wyszukiwania zawodnika')) return;   // bez tego: „Nie znaleziono zawodnika"
-  if (!data) {
-    // email może nie być w athletes — szukaj przez dedicated view lub kolumnę
-    res.innerHTML = `<div style="background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e05050;font-family:'DM Mono',monospace;">
-      Nie znaleziono zawodnika z emailem <strong>${escapeHtml(email)}</strong>.<br>
-      <span style="color:#66636e;margin-top:4px;display:block;">Upewnij się że zawodnik zarejestrował się w BiegaMy i podałeś poprawny email.</span>
+/* PROŚBY O TRENERA (K2, 20.11.2026, blizna-323). Zawodnik prosi w aplikacji (popros_o_trenera: onboarding, „Zmień trenera”,
+   profil), trener przyjmuje albo odrzuca tutaj (rozpatrz_prosbe; przyjęcie ustawia coach_id). Imię przychodzi z prosby_do_mnie —
+   wiersz athletes niepodpiętej osoby jest dla trenera niewidoczny do przyjęcia — i trafia na stronę przez escapeHtml.
+   Zastąpiło „Przypisz po e-mailu”: martwe od zawsze (athletes nie ma polityki UPDATE dla trenera → 0 wierszy bez błędu, a panel
+   pokazywał „przypisany ✓”), a trener i tak nie powinien brać cudzego konta bez zgody zawodnika.
+   Bez sieci: komunikat offline (_trOffline) zamiast pustej sekcji — jak w pozostałych loaderach panelu (blizna-49). */
+async function loadProsbyTrenera() {
+  const hdr = document.getElementById('prosby-sec-hdr'), sec = document.getElementById('prosby-section'), lic = document.getElementById('prosby-count');
+  if (!hdr || !sec) return;
+  let wynik;
+  try { wynik = await sb.rpc('prosby_do_mnie'); } catch (e) { wynik = { data: null, error: e }; }
+  const { data, error } = wynik || {};
+  if (_trOffline(error, sec, 'próśb o trenera')) { hdr.style.display = 'flex'; if (lic) lic.textContent = '!'; return; }
+  if (error) {
+    hdr.style.display = 'flex';
+    if (lic) lic.textContent = '!';
+    sec.innerHTML = '<div class="intake-empty" style="color:var(--red)">Błąd ładowania próśb: ' + escapeHtml(error.message) + '</div>';
+    return;
+  }
+  const lista = data || [];
+  if (lic) lic.textContent = lista.length;
+  hdr.style.display = lista.length ? 'flex' : 'none';
+  sec.innerHTML = lista.map(p => {
+    const imie = p.imie || 'Zawodnik';
+    const ini = imie.split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2);
+    const kiedy = new Date(p.utworzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return `<div class="intake-card" style="cursor:default;">
+      <div class="intake-top">
+        <div class="intake-av">${escapeHtml(ini)}</div>
+        <div class="intake-meta">
+          <div class="intake-name">${escapeHtml(imie)}</div>
+          <div class="intake-sub">prosi o przyjęcie do grupy · ${escapeHtml(kiedy)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="intake-btn intake-btn-reject" data-id="${escapeHtml(p.id)}" onclick="rozpatrzProsbe(this.dataset.id, false, this)">✕ Odrzuć</button>
+        <button class="intake-btn intake-btn-accept" data-id="${escapeHtml(p.id)}" onclick="rozpatrzProsbe(this.dataset.id, true, this)">✓ Przyjmij</button>
+      </div>
     </div>`;
-    return;
-  }
-
-  if (data.coach_id && data.coach_id !== _coachId) {
-    res.innerHTML = `<div style="background:rgba(232,184,64,0.1);border:1px solid rgba(232,184,64,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e8b840;font-family:'DM Mono',monospace;">Ten zawodnik jest już przypisany do innego trenera.</div>`;
-    return;
-  }
-  if (data.coach_id === _coachId) {
-    res.innerHTML = `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;font-size:11px;color:#3db870;font-family:'DM Mono',monospace;">✓ ${escapeHtml(data.full_name)||'Zawodnik'} jest już w Twojej grupie.</div>`;
-    return;
-  }
-
-  _foundAthleteId = data.id;
-  res.innerHTML = `<div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;">
-    <div style="font-size:13px;font-weight:500;color:#f0ede8;">${escapeHtml(data.full_name)||'Zawodnik'}</div>
-    <div style="font-size:10px;color:#66636e;font-family:'DM Mono',monospace;margin-top:2px;">${escapeHtml(email)}</div>
-  </div>`;
-  btn.style.display = 'block';
+  }).join('');
 }
 
-async function assignAthleteByEmail() {
-  if (!_foundAthleteId) return;
-  const { error } = await sb.from('athletes').update({ coach_id: _coachId }).eq('id', _foundAthleteId);
-  if (error) { showToast('Błąd: ' + error.message); return; }
-  showToast('Zawodnik przypisany do Twojej grupy ✓');
-  closeAthModal();
-  await loadAthletes();
-  zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
+async function rozpatrzProsbe(id, przyjmij, btn) {
+  if (!przyjmij && !confirm('Odrzucić prośbę? Zawodnik nie zostanie przypisany do Ciebie i może poprosić ponownie.')) return;
+  if (btn) btn.disabled = true;
+  const { data, error } = await sb.rpc('rozpatrz_prosbe', { p_id: id, p_przyjmij: przyjmij });
+  if (error) { showToast('Błąd: ' + error.message); await loadProsbyTrenera(); return; }
+  showToast(data === 'przyjeta' ? 'Zawodnik przyjęty do grupy ✓' : 'Prośba odrzucona');
+  await loadProsbyTrenera();
+  if (data === 'przyjeta') {
+    await loadAthletes();
+    zaladujPoranek();   /* TRENER-PORANEK v1 (fire&forget) */
+  }
 }
 
 init();
@@ -6922,83 +6842,16 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 <div id="add-ath-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;" hidden>
   <div style="background:#16161a;border:1px solid #2a2a32;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
     <div style="padding:18px 20px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Dodaj zawodnika</div>
       <button onclick="closeAthModal()" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:20px;">✕</button>
     </div>
 
-    <!-- ZAKŁADKI -->
-    <div style="display:flex;border-bottom:1px solid #2a2a32;margin-bottom:0;">
-      <button id="tab-new" onclick="switchAthTab('new')" style="flex:1;background:rgba(212,80,26,0.1);border:none;border-bottom:2px solid #d4501a;color:#f0ede8;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:10px;cursor:pointer;">+ Nowy</button>
-      <button id="tab-existing" onclick="switchAthTab('existing')" style="flex:1;background:transparent;border:none;border-bottom:2px solid transparent;color:#66636e;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:10px;cursor:pointer;">Przypisz istniejącego</button>
-    </div>
-
-    <!-- TAB: NOWY ZAWODNIK -->
-    <div id="ath-tab-new" style="padding:20px;">
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Imię i nazwisko *</label>
-        <input id="ath-name" type="text" placeholder="np. Marek Kowalski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Email *</label>
-        <input id="ath-email" type="email" placeholder="jan@kowalski.pl" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Cel (nazwa biegu)</label>
-        <input id="ath-goal" type="text" placeholder="np. Maraton Warszawski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Data startu</label>
-        <input id="ath-target-date" type="date" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div>
-          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Maraton</label>
-          <input id="ath-pb-mar" type="text" placeholder="3:45:00" maxlength="7"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,42.195);this.style.borderColor='#2a2a32'">
-        </div>
-        <div>
-          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Półmaraton</label>
-          <input id="ath-pb-half" type="text" placeholder="1:45:00" maxlength="7"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,21.0975);this.style.borderColor='#2a2a32'">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
-        <div>
-          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 10 km</label>
-          <input id="ath-pb-10k" type="text" placeholder="45:30" maxlength="7"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,10);this.style.borderColor='#2a2a32'">
-        </div>
-        <div>
-          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 5 km</label>
-          <input id="ath-pb-5k" type="text" placeholder="22:00" maxlength="7"
-            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.value=dopelnijPB(this.value,5);this.style.borderColor='#2a2a32'">
-        </div>
-      </div>
-      <div id="ath-pb-err" class="pb-err"></div>
+    <!-- DODAJ ZAWODNIKA (K2, 20.11.2026): bez formularza „+ Nowy” (wpis bez konta odrzucał RLS) i bez przypisywania po e-mailu — zawodnik zakłada konto i prosi sam, trener przyjmuje w „Prośbach o trenera” -->
+    <div id="ath-tab-existing" style="padding:20px;">
+      <div style="font-size:12px;color:#c9c6c0;line-height:1.6;margin-bottom:16px;">Zawodnik zakłada konto w BiegaMy i wybiera Cię sam: przy rejestracji (<b>„Mam trenera”</b>) albo później w <b>Profil → „Zmień trenera”</b>. Jego prośba pojawi się w panelu w sekcji <b>„Prośby o trenera”</b> — przyjmujesz ją jednym przyciskiem.</div>
+      <div style="font-size:11px;color:#66636e;font-family:'DM Mono',monospace;line-height:1.6;margin-bottom:16px;">Trener nie przypisuje cudzego konta bez zgody zawodnika.</div>
       <div style="display:flex;gap:8px;">
-        <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
-        <button onclick="saveAthlete()" style="flex:2;background:#d4501a;color:#f0ede8;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz zawodnika →</button>
-      </div>
-    </div><!-- /ath-tab-new -->
-
-    <!-- TAB: PRZYPISZ ISTNIEJĄCEGO -->
-    <div id="ath-tab-existing" style="display:none;padding:20px;">
-      <div style="font-size:11px;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;">Wpisz email zawodnika który już zarejestrował się w BiegaMy. Zostanie przypisany do Twojej grupy.</div>
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Email zawodnika</label>
-        <div style="display:flex;gap:8px;">
-          <input id="ath-email-search" type="email" placeholder="jan@kowalski.pl" style="flex:1;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
-          <button onclick="searchAthleteByEmail()" style="background:#d4501a;color:#f0ede8;border:none;border-radius:8px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Szukaj</button>
-        </div>
-      </div>
-      <div id="ath-search-result" style="margin-bottom:16px;"></div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
-        <button onclick="assignAthleteByEmail()" id="btn-assign" style="flex:2;background:#3db870;color:#061a0e;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;display:none;">Przypisz do grupy →</button>
+        <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zamknij</button>
       </div>
     </div><!-- /ath-tab-existing -->
   </div><!-- /.modal inner -->
@@ -9036,9 +8889,9 @@ document.addEventListener('keydown', (e) => {
 
   // START — załaduj po DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { loadPendingIntakes(); loadPendingMoments(); });
+    document.addEventListener('DOMContentLoaded', () => { loadPendingIntakes(); loadPendingMoments(); loadProsbyTrenera(); });
   } else {
-    loadPendingIntakes(); loadPendingMoments();
+    loadPendingIntakes(); loadPendingMoments(); loadProsbyTrenera();
   }
 })();
 </script>
