@@ -14,7 +14,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
 import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH } from "./router.mjs";
+import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy } from "./router.mjs";   // 21.11: pytania o BiegaMy bez sieci, „nie wiem” + link
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
+import { odpowiedzBiegu } from "./bieg-odp.mjs";   // 21.11: ustępy regulaminu biegu z js/bieg.mjs
+import { oNas } from "../_shared/o-nas.mjs";   // 21.11: „o nas” jak w v2 (bez tematu „liczba”, który v2 liczy z bazy)
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
@@ -120,6 +123,8 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
     // po starcie akcji: zagadka → zdanie + karta akcji (nazwa, licznik, oficjalna zbiórka) — dane jak w publicznym liczniku
     if (traf.log === "zagadka" && AKK) { const k = AKK.kartaOkienka(akcjaDane); if (k) kartyZd = [k]; }
     if (Array.isArray((traf as { karty?: unknown[] }).karty)) kartyZd = (traf as { karty: unknown[] }).karty;   // „jak dołączyć" przed startem → karta rejestracji
+    // 21.11: bieg wirtualny — ustępy regulaminu z js/bieg.mjs (pole `bieg` licznika); bez licznika zostaje „Nie wiem tego na pewno.” + link z routera
+    if (traf.log === "bieg") { const ob = odpowiedzBiegu(akcjaDane, (traf as { bieg?: unknown }).bieg); if (ob) return odp(200, { ...pusto("router"), zdania: ob.zdania, karty: ob.karty }); }
     return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd, chipy: (traf as { chipy?: unknown[] }).chipy || [] });
   }
   if (traf) {
@@ -132,12 +137,25 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
     await zapiszLog(adm, { athlete_id: ath.id, tekst, narzedzia: [traf.narzedzie], tryb: "router" });
     return odp(200, { ...pusto("router"), zdania: zw.zdania, karty: zw.karty, akcja: zw.akcja !== undefined ? zw.akcja : nawigacja([traf.narzedzie]), narzedzia: [traf.narzedzie] });
   }
+  // ── O NAS (21.11, jak v2): plik wiedzy o BiegaMy — przed trybem osoby i siecią, 0 tokenów („co to BiegaMy”, „kto prowadzi BiegaMy”) ──
+  const on = oNas(tekst);
+  if (on && on.temat !== "liczba") {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: ["o-nas"] });
+    return odp(200, { ...pusto("router"), zdania: on.zdania, karty: on.karty || [], akcja: on.akcja || null });
+  }
+  // ── PYTANIA O BIEGAMY (Filip 21.11): nigdy internet. Akcja i bieg bez trafienia w routerze → „nie wiem” + link, bez modelu; reszta o BiegaMy
+  //    idzie dalej jak dotąd, ale bez sieci (osoba, impreza, pamięć sieci, sieć po modelu), a zamiast sieci „nie wiem” + link do „O nas”. ──
+  const oBiegaMy = rodzajBiegaMy(tekst);
+  if (oBiegaMy === "akcja" || oBiegaMy === "bieg") {
+    await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: ["nie-wiem"], powod_odrzucenia: "BiegaMy (" + oBiegaMy + "): brak odpowiedzi w routerze" });
+    return odp(200, { ...pusto("router"), zdania: [ODP_NIE_WIEM], karty: [kartaStrony(oBiegaMy)] });
+  }
 
   // ── M2b: pytanie o OSOBĘ — trzy fronty równolegle (osoba.mjs): profile publiczne, wyniki F6, sieć tylko dla osoby
   //    publicznej sportowo albo pytania wprost. Bez modelu z narzędziami; nie do pamięci sieci ani do znalezisk. ──
   // Sieć ze źródłami — JEDNA funkcja dla trybów osoby i imprezy (limit 20/dobę wspólny, uzyteSiecDzis).
   const httpsOk = (u: string) => { try { return new URL(u).protocol === "https:"; } catch { return false; } };
-  const sieciDozwolona = async () => { if (!GEMINI) return false; try { return (await uzyteSiecDzis(adm, ath.id, dzis)) < LIMIT_SIEC; } catch { return false; } };
+  const sieciDozwolona = async () => { if (!GEMINI || oBiegaMy) return false; try { return (await uzyteSiecDzis(adm, ath.id, dzis)) < LIMIT_SIEC; } catch { return false; } };
   const siecZeZrodlami = async (t: string) => {
     const w = await zapytajSiec({ fetchFn: fetch, klucz: GEMINI, tekst: t, dzis });
     const z = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
@@ -156,7 +174,7 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
   // ── M3a v2: tryb „impreza" — kalendarz maszyny (adapter kalendarz.mjs) + nasze starty + sieć (dozwolona dla nazwy
   //    biegu), pamięć 24 h, znaleziska ze statusem „kalendarz". null = nie impreza → dalej (pamięć sieci, model). ──
   const imp = imprezaZPytania(tekst);
-  if (imp) {
+  if (imp && !oBiegaMy) {   // 21.11: pytanie o BiegaMy nie jest imprezą z kalendarza ani z sieci
     const kluczImp = normalizuj(tekst);
     const o = await odpowiedzImpreza({ sb, fetchFn: fetch, token: jwt, q: imp.q, jawne: imp.jawne, cena: !!(imp as { cena?: boolean }).cena, dzis, sieciDozwolona, siec: siecZeZrodlami,
       zPamieci: () => zPamieci(adm, kluczImp, teraz),
@@ -184,7 +202,7 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
   // ── M2d: pamięć odpowiedzi z sieci (≤ 24 h) — trafienie = bez modelu, bez limitu, 0 zł ──
   const klucz = normalizuj(tekst);
   const pam = await zPamieci(adm, klucz, teraz);
-  if (pam && pam.zrodla.length) {
+  if (pam && pam.zrodla.length && !oBiegaMy) {   // 21.11: bez starej odpowiedzi z sieci dla pytań o BiegaMy
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "siec-cache" });
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla });
   }
@@ -211,6 +229,10 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
   // które nie przeszły detektora słownikowego) NIE idzie do Google ścieżką ogólną.
   const blokadaSieci = wygladaNaOsobe(tekst) || !!osobaWZdaniu(tekst) || wygladaNaNazwisko(tekst);   // M3-1: nazwisko wewnątrz zdania; przed 8.11 (4): także SAMO nazwisko w kontekście wyników
   if (!blokadaSieci && czyDoSieci(normalizuj(tekst), m.poza_danymi, m.uzyte.length)) {
+    if (oBiegaMy) {   // 21.11: pytanie o BiegaMy, którego model nie zna — „nie wiem” + link do „O nas”, nigdy sieć
+      await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "flash", narzedzia: ["nie-wiem"], tok_we: m.tok.we, tok_wy: m.tok.wy, powod_odrzucenia: "BiegaMy: bez sieci" });
+      return odp(200, { ...pusto("flash"), zdania: [ODP_NIE_WIEM], karty: [kartaStrony("biegamy")], koszt_tok: m.tok });
+    }
     let ileSiec;
     try { ileSiec = await uzyteSiecDzis(adm, ath.id, dzis); } catch (e) { return await blad(503, { blad: "limity" }, "limity sieci: " + opisBledu(e)); }
     if (ileSiec >= LIMIT_SIEC) {

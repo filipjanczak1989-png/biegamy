@@ -35,6 +35,8 @@ const PYTANIA_AKCJI = [
   ['czy to Jasna Góra?', 'wyprawa'], ['jaki jest cel wyprawy', 'wyprawa'], ['gdzie jest meta', 'wyprawa'], ['dokąd biegnie Filip i Kasia', 'wyprawa'],
   ['czy wyprawa kończy się w Krakowie', 'wyprawa'], ['na co choruje Fabianek', 'akcja'], ['jak się nazywa Fabianek', 'akcja'], ['jakie nazwisko ma Fabianek', 'akcja'],
   ['ile już zebraliście', 'km'], ['ile na liczniku', 'km'], ['co mu dolega', 'zdrowie'], ['a dlaczego?', 'po-akcji'], ['a on?', 'po-akcji'],
+  // 21.11 (blizna-329): „co za akcja” szło do trybu imprezy i sieci; warianty bez „to”, koniec akcji, „ile zostało do celu”
+  ['co za akcja', 'akcja'], ['czym jest akcja', 'akcja'], ['do kiedy trwa akcja', 'akcja'], ['ile zostało do celu', 'km'],
 ];
 const KONTEKSTY = { samo: [], 'po Fabianku': ['kim jest Fabianek'], 'po zbiórce': ['na kogo zbiórka'] };
 const CHOROBA = /\b(chor\w*|nowotw\w*|bialacz\w*|guz\w*|rak\w*|sma|zespol\w*|operac\w*|lecze\w*|terapi\w*|diagnoz\w*|szpital\w*|hospic\w*|rdzen\w*|genetycz\w*|niepelnospraw\w*|zgon\w*|zmarl\w*|onkolog\w*|chemi\w*|przeszczep\w*|zanik\w*|mutacj\w*)\b/;

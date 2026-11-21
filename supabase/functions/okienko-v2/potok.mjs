@@ -6,6 +6,8 @@
 // Wynik: { status, body } — body w kształcie v1 (zdania, karty, akcja, zrodla, narzedzia, tryb, koszt_tok, chipy?); index.ts dokłada wersję.
 import { waliduj, wykonaj, nawigacja } from "../okienko/narzedzia.mjs";
 import { dopasuj, normalizuj, czyOboz, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, kartyBezDanychDziecka, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH, czyPytanieOMiejsce } from "../okienko/router.mjs";
+import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy } from "../okienko/router.mjs";   // 21.11: pytania o BiegaMy bez sieci, „nie wiem” + link
+import { odpowiedzBiegu } from "../okienko/bieg-odp.mjs";   // 21.11: ustępy regulaminu biegu z js/bieg.mjs (ten sam moduł co v1)
 import { zdanieAkcji, liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "./akcja-v2.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "../okienko/model.mjs";
@@ -106,6 +108,8 @@ export async function potok(we, nadpisz = {}) {
     // 3.11: po starcie — licznik z akcja_licznik („ile km już jest”), wyprawa bez celu; pamięć tury „akcja” (dopytania bez modelu)
     const zd = traf.log === "zagadka" ? (zdanieAkcji(traf.rodzaj, akcjaDane, AKK) || traf.zdanie) : traf.zdanie;
     if (traf.log === "zagadka") await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [zd] });
+    // 21.11: bieg wirtualny — ustępy regulaminu z js/bieg.mjs (pole `bieg` licznika); bez licznika zostaje „Nie wiem tego na pewno.” + link z routera
+    if (traf.log === "bieg") { const ob = odpowiedzBiegu(akcjaDane, traf.bieg); if (ob) return odp(200, { ...pusto("router"), zdania: ob.zdania, karty: ob.karty }); }
     return odp(200, { ...pusto("router"), zdania: [zd], karty: kartyZd, chipy: traf.chipy || [] });
   }
   // ── O NAS (Filip 3.11 15:25): plik wiedzy o BiegaMy (_shared/o-nas.mjs) — PRZED bramką osób i przed siecią, 0 tokenów:
@@ -120,8 +124,11 @@ export async function potok(we, nadpisz = {}) {
     await log({ tryb: "router", narzedzia: ["o-nas"] });
     return odp(200, { ...pusto("router"), zdania: zdaniaOn, karty: kartyOn, akcja: on.akcja || null });
   }
+  /* PYTANIA O BIEGAMY (Filip 21.11): nigdy internet — sieć wyłączona dla osoby, imprezy, przepisów, wiedzy i ścieżki po modelu; akcja i bieg bez trafienia
+     w routerze i klasyfikatorze → „nie wiem” + link zamiast modelu v1, reszta o BiegaMy → zamiast sieci „nie wiem” + link do „O nas” (przezSiec). */
+  const oBiegaMy = rodzajBiegaMy(tekst);
   // sieć ze źródłami (wspólna dla osoby, imprezy, przepisów) — deklarowana PRZED routerem, bo przepis gotowosc rusza już z routera
-  const sieciDozwolona = async () => { if (!gemini) return false; try { return (await d.uzyteSiecDzis(adm, athleteId, dzis)) < d.LIMIT_SIEC; } catch { return false; } };
+  const sieciDozwolona = async () => { if (!gemini || oBiegaMy) return false; try { return (await d.uzyteSiecDzis(adm, athleteId, dzis)) < d.LIMIT_SIEC; } catch { return false; } };
   const siecZeZrodlami = async (t) => {
     const w = await d.zapytajSiec({ fetchFn, klucz: gemini, tekst: t, dzis });
     const z = zOdpowiedziSieci(w.tekst, w.gm, httpsOk);
@@ -204,7 +211,7 @@ export async function potok(we, nadpisz = {}) {
     return odp(200, { ...pusto("osoba"), zdania: o.zdania, karty: o.karty, zrodla: o.zrodla, akcja: o.akcja, koszt_tok: o.tok });
   }
   const imp = imprezaZPytania(tekst);
-  if (imp) {
+  if (imp && !oBiegaMy) {   // 21.11: pytanie o BiegaMy nie jest imprezą z kalendarza ani z sieci
     const kluczImp = normalizuj(tekst);
     const o = await d.odpowiedzImpreza({ sb, fetchFn, token: jwt, q: imp.q, jawne: imp.jawne, cena: !!imp.cena, dzis, sieciDozwolona, siec: siecZeZrodlami,
       zPamieci: () => d.zPamieci(adm, kluczImp, teraz),
@@ -245,7 +252,7 @@ export async function potok(we, nadpisz = {}) {
     if (t) return await odpowiedzZWiedzy(t, null);
   }
   const pam = await d.zPamieci(adm, klucz, teraz);
-  if (pam && pam.zrodla.length) {
+  if (pam && pam.zrodla.length && !oBiegaMy) {   // 21.11: bez starej odpowiedzi z sieci dla pytań o BiegaMy
     await log({ tryb: "siec-cache" });
     if (!jestOboz && kluczWiedzy(tekst)) { try { await d.wiedzaPolicz(adm, { klucz: kluczWiedzy(tekst) }); } catch { /* licznik nie psuje odpowiedzi */ } }   // liczba zapytań w panelu liczy też odpowiedzi z pamięci 24 h
     return odp(200, { ...pusto("siec-cache"), zdania: pam.zdania, zrodla: pam.zrodla, karty: jestOboz ? kartyNaszegoObozu() : [] });
@@ -321,6 +328,11 @@ export async function potok(we, nadpisz = {}) {
   }
 
   // ── model v1 z narzędziami (bez rozumienia, awaria albo intencja bez obsługi w tym etapie) ──
+  /* 21.11: akcja i bieg, których nie rozpoznał router ani klasyfikator (intencja „akcja” odpowiada wyżej), nie idą do modelu — zmyślał bieg z wynikami */
+  if (oBiegaMy === "akcja" || oBiegaMy === "bieg") {
+    await log({ tryb: "router", narzedzia: ["nie-wiem"], intencja: roz ? roz.intencja : null, powod_odrzucenia: [awaria, "BiegaMy (" + oBiegaMy + "): bez modelu"].filter(Boolean).join(" | ") });
+    return odp(200, { ...pusto("router"), zdania: [ODP_NIE_WIEM], karty: [kartaStrony(oBiegaMy)] });
+  }
   let m;
   try {
     m = await d.zapytajModel({ fetchFn, klucz: gemini, sb, athleteId, tekst, historia, ekran, dzis, teraz, f6ctx: { fetchFn, token: jwt } });
@@ -370,6 +382,10 @@ export async function potok(we, nadpisz = {}) {
   /* sieć ze źródłami (M2a): limit 20/dobę, pamięć 24 h, znaleziska; `m` = koszt poprzedzającego modelu (0 przy skoku z intencji „fakt”).
      null = limit (odpowiedź 429 już zwrócona przez wyjątek niżej) — zwracamy gotową odpowiedź potoku. */
   async function przezSiec(m, roz) {
+    if (oBiegaMy) {   // 21.11: pytanie o BiegaMy — „nie wiem” + link (akcja, bieg albo „O nas”), nigdy sieć (także wiedza ogólna i obóz)
+      await log({ tryb: "v2", narzedzia: ["nie-wiem"], tok_we: m.tok.we, tok_wy: m.tok.wy, intencja: roz ? roz.intencja : null, powod_odrzucenia: "BiegaMy: bez sieci" });
+      return odp(200, { ...pusto("router"), zdania: [ODP_NIE_WIEM], karty: [kartaStrony(oBiegaMy)] });
+    }
     let ileSiec;
     try { ileSiec = await d.uzyteSiecDzis(adm, athleteId, dzis); } catch (e) { return await blad(503, { blad: "limity" }, "limity sieci: " + String(e && e.message).slice(0, 100)); }
     if (ileSiec >= d.LIMIT_SIEC) {

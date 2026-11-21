@@ -37,6 +37,7 @@
     if (typeof url !== 'string') return null;
     for (var k in EKRANY) if (EKRANY[k] === url) return url;
     if (url === 'index.html#dolacz') return url;   // karta „Konto w BiegaMy" (okienko: „jak dołączyć" przed startem akcji)
+    if (url === 'bieg.html' || url === 'dla-fabianka.html' || url === 'o-nas.html') return url;   // 21.11: odpowiedzi o biegu i „nie wiem” + link (router.mjs kartaStrony)
     if (/^wyniki\.html(#\/zawodnik\/[A-Za-z0-9%._~-]{1,240})?$/.test(url)) return url;   // 3.11: karta zawodnika w Wynikach (klucz zakodowany)
     if (/^races\.html#impreza=[A-Za-z0-9%._~-]{1,1500}$/.test(url)) return url;   // plan startowy: karta imprezy z „Wezmę udział” (BM_KALENDARZ.imprezaZLinku w races.html waliduje treść)
     if (/^wyniki\.html#\/impreza\/[A-Za-z0-9%._~-]{1,240}(\/\d{4})?$/.test(url)) return url;   // blizna-143: edycja imprezy w Wynikach
