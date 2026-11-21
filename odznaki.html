@@ -320,7 +320,9 @@ const BADGES = [
   {id:'walentynki_solo',       name:'Walentynki solo',       desc:'Bieg 14 lutego',                             rarity:'rare',     cat:'Specjalne', hidden:true},
   {id:'urodzinowy_run',        name:'Urodzinowy run',        desc:'Bieg w dniu urodzin',                        rarity:'epic',     cat:'Specjalne', hidden:true},
   {id:'easter_egg',           name:'Easter Egg',           desc:'Kliknij logo BiegaMy 7 razy w 5 sekund', rarity:'legendary', cat:'Sekretne', hidden:true},
-  {id:'pierwsza_z_pierwszych',name:'Pierwsza z pierwszych',desc:'Jeden z pierwszych 50 użytkowników',     rarity:'legendary', cat:'Sekretne', hidden:true},
+  /* z_bazy: odznakę nadaje wyłącznie baza (migracja/funkcja); zapis z przeglądarki pomija wyzwalacz achievements_chronione (21.11.2026) */
+  {id:'pierwsza_z_pierwszych',name:'Pierwsza z pierwszych',desc:'Jeden z pierwszych 50 użytkowników',     rarity:'legendary', cat:'Sekretne', hidden:true, z_bazy:true},
+  {id:'pionier_biegamy',      name:'Pionier BiegaMy',      desc:'Konto założone w 2026 — pierwszym roku BiegaMy', rarity:'rare', cat:'Sekretne', hidden:true, z_bazy:true},
   {id:'wieczny_optymista',    name:'Wieczny optymista',    desc:'10 treningów oznaczonych "good feel"',   rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'swiety_mikolaj',       name:'Święty Mikołaj',       desc:'Bieg 6 grudnia',                         rarity:'rare',      cat:'Sekretne', hidden:true},
   {id:'dzien_biegacza',       name:'Dzień Biegacza',       desc:'Bieg 1 czerwca',                         rarity:'rare',      cat:'Sekretne', hidden:true},

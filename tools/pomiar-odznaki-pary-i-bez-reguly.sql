@@ -124,7 +124,8 @@ where a.badge_id not in (
   'pliszka','pierwszy_pojedynek','zwyciezca_pojedynku','mistrz_pojedynkow','maraton_dni','mr_13',
   'pi_day','maraton_tygodnia','polmaraton_tydz','setka_dokladna','easy_rider','rakieta',
   'czterolistna_koniczyna','solo_artist','tylko_jeden','dzien_kobiet','walentynki_solo','urodzinowy_run',
-  'easter_egg','pierwsza_z_pierwszych','wieczny_optymista','swiety_mikolaj','dzien_biegacza'
+  'easter_egg','pierwsza_z_pierwszych','wieczny_optymista','swiety_mikolaj','dzien_biegacza',
+  'pionier_biegamy'   -- 21.11.2026: nadaje tylko baza (O3), poza pomiarem 7.10
 )
 group by 1
 order by 2 desc;

@@ -41,10 +41,15 @@ test('każda definicja SILNIKA jest w katalogu (zdobyta odznaka nie może być n
   assert.deepEqual(brak, [], 'silnik przyznaje, katalog nie pokazuje: ' + brak.join(', '));
 });
 
-test('każda WIDOCZNA pozycja katalogu ma regułę w silniku (literalną albo pętlę WYZWANIA)', () => {
+test('każda WIDOCZNA pozycja katalogu ma regułę w silniku (literalną albo pętlę WYZWANIA) albo jest nadawana przez bazę (z_bazy)', () => {
   const widoczne = KATALOG.lista.filter((b) => !b.bez_reguly);
-  const bezReguly = widoczne.filter((b) => !reguly.has(b.id) && !WYZWANIA.has(b.id)).map((b) => b.id);
+  const bezReguly = widoczne.filter((b) => !reguly.has(b.id) && !WYZWANIA.has(b.id) && !b.z_bazy).map((b) => b.id);
   assert.deepEqual(bezReguly, [], 'katalog obiecuje, silnik nie przyznaje: ' + bezReguly.join(', '));
+});
+
+test('z_bazy (21.11.2026): dokładnie pierwsza_z_pierwszych i pionier_biegamy, w obu plikach, a silnik ich NIE przyznaje', () => {
+  for (const zrodlo of [SILNIK, KATALOG]) assert.deepEqual(zrodlo.lista.filter((b) => b.z_bazy).map((b) => b.id).sort(), ['pierwsza_z_pierwszych', 'pionier_biegamy']);
+  for (const id of ['pierwsza_z_pierwszych', 'pionier_biegamy']) assert.ok(!reguly.has(id), 'przeglądarka znów przyznaje ' + id);
 });
 
 test('pozycje z bez_reguly NAPRAWDĘ nie mają reguły (flaga nie ukrywa działających odznak)', () => {
@@ -103,7 +108,8 @@ test('pomiar-odznaki: lista katalogu w SQL (pkt 4) = BADGES z odznaki.html, a 31
   const bezReguly = KATALOG.lista.filter((b) => b.bez_reguly).map((b) => b.id).filter((id) => !pkt3.has(id));
   assert.deepEqual(bezReguly, [], 'SQL pkt 3 nie liczy bez_reguly: ' + bezReguly.join(', '));
   const pkt2 = idsZ(sql.split('-- 2. TYLKO SILNIK')[1].split('group by 1')[0]);
-  const tylkoSilnik = KATALOG.lista.filter((b) => b.cat === 'Tempo' || b.cat === 'Specjalne' || b.cat === 'Sekretne' ||
+  /* pionier_biegamy (21.11.2026) jest w kategorii Sekretne, ale nie należy do grupy z pomiaru 7.10 (nadaje ją tylko baza) */
+  const tylkoSilnik = KATALOG.lista.filter((b) => b.id !== 'pionier_biegamy') .filter((b) => b.cat === 'Tempo' || b.cat === 'Specjalne' || b.cat === 'Sekretne' ||
     ['pierwszy_fan','stary_druh','coach_whisperer','spam_friend','pliszka','pierwszy_pojedynek','zwyciezca_pojedynku','mistrz_pojedynkow'].includes(b.id));
   assert.equal(tylkoSilnik.length, 33, 'grupa tylko-silnik w katalogu ma 33 pozycje');
   const brak2 = tylkoSilnik.map((b) => b.id).filter((id) => !pkt2.has(id));
