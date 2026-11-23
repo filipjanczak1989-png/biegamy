@@ -153,9 +153,11 @@
     var h = (u && window.safeExternalHref) ? window.safeExternalHref(u, { tylkoHttps: true }) : '';
     return h ? '<a class="okn-link" href="' + h + '" target="_blank" rel="noopener noreferrer">Strona imprezy ›</a>' : '';
   }
-  /* blizna-143 (Filip 3.11: „nie da się w nie kliknąć”): każda edycja z kluczem maszyny prowadzi do ekranu imprezy w Wynikach; zły klucz → bez przycisku */
+  /* blizna-143 (Filip 3.11: „nie da się w nie kliknąć”): edycja z kluczem maszyny prowadzi do ekranu imprezy w Wynikach; zły klucz → bez przycisku.
+     blizna-337 (Filip 23.11): przycisk TYLKO przy edycji z wynikami w maszynie (ma_wyniki === true) — nigdy przy edycji bez wyników, także przyszłej. */
   var RE_KLUCZ_IMPREZY = /^(?:kalendarz|biegamy|wyniki|zgloszenie):[A-Za-z0-9:._-]{1,100}$/;
   function celImprezy(d) {
+    if (d.ma_wyniki !== true) return null;
     if (typeof d.klucz !== 'string' || !RE_KLUCZ_IMPREZY.test(d.klucz)) return null;
     var rok = /^\d{4}-/.test(String(d.data || '')) ? String(d.data).slice(0, 4) : '';
     return 'wyniki.html#/impreza/' + encodeURIComponent(d.klucz) + (rok ? '/' + rok : '');

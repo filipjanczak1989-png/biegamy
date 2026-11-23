@@ -78,9 +78,9 @@ test('ekran imprezy: tylko RPC maszyny z listy, strona 100, stopka „Usuń moje
   assert.match(wiersz, /esc\(x\.nazwa\)/); assert.match(wiersz, /data-klucz="' \+ esc\(x\.klucz\)/);
 });
 
-test('Okienko: każda edycja z kluczem prowadzi do ekranu imprezy z rokiem; klik przechodzi przez bezpiecznyCel; zły klucz bez przycisku', async () => {
+test('Okienko: edycja z kluczem i z wynikami prowadzi do ekranu imprezy z rokiem; klik przechodzi przez bezpiecznyCel; zły klucz bez przycisku (23.11: bez wyników — blizna-337)', async () => {
   const { O } = okienko(); const W = await wyniki();
-  const karta = (d) => O.htmlOdpowiedzi(200, { tryb: 'impreza', zdania: [], karty: [{ typ: 'impreza', dane: { nazwa: 'Poznań Półmaraton', data: '2025-04-13', przeszla: true, dystanse: [21.097], ...d } }] });
+  const karta = (d) => O.htmlOdpowiedzi(200, { tryb: 'impreza', zdania: [], karty: [{ typ: 'impreza', dane: { nazwa: 'Poznań Półmaraton', data: '2025-04-13', przeszla: true, ma_wyniki: true, dystanse: [21.097], ...d } }] });
   const cel = (h) => (h.match(/data-cel="([^"]*)">Wyniki ›/) || [])[1];
   const c = cel(karta({ klucz: 'kalendarz:461ece06-748a-49b8-bcb1-750f25fbf28c' }));
   assert.equal(c, 'wyniki.html#/impreza/kalendarz%3A461ece06-748a-49b8-bcb1-750f25fbf28c/2025');

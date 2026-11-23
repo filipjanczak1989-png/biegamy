@@ -10,6 +10,7 @@
 // Wynik („kto wygrał…", „wyniki…", „rekord…", „moje…") NIE jest imprezą. Odpowiedź: zdania z sieci (etykieta,
 // źródła) → karty z kalendarza → karty z naszych startów; pusto → „Nie znalazłem tego biegu w kalendarzu ani w sieci."
 import { normalizuj, czyOboz } from "./router.mjs";
+import { tekstDlaRegul } from "./router.mjs";   // 23.11: literówki „wyniki” w kopii tekstu dla reguł
 import { wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { szukajImprez } from "./kalendarz.mjs";
 import { BladF6, ODP_F6_ZAJETA } from "./f6.mjs";
@@ -30,6 +31,7 @@ export const ODP_CENA_BEZ_LINKU = "Maszyna wyników nie zna strony tej imprezy �
 
 /** → {q, jawne} | null. jawne = jest słowo z listy (impreza nawet bez trafienia w kalendarzu). */
 export function imprezaZPytania(tekst) {
+  tekst = tekstDlaRegul(tekst);   // 23.11: „poznan maraton wniki” to pytanie o wyniki (NIE_IMPREZA), nie impreza z „wniki” w nazwie
   const t = normalizuj(tekst);
   if (!t || /^\d+$/.test(t) || czyOboz(tekst)) return null;   // obóz to nie impreza z kalendarza (Filip 3.11; „ile kosztuje obóz biegowy” też)
   if (CENA.test(t) && !/\b(kto|wynik\w*|rekord\w*|moj\w*|moje|mam)\b/.test(t)) {
@@ -63,11 +65,12 @@ export async function naszeStarty(sb, q, dzis) {
   return (data || []).map((r) => ({ race_id: r.id, nazwa: String(r.name || "").slice(0, 120), data: r.date || null, miasto: r.city || null }));
 }
 
-/** WYNIKI IMPREZY (Filip 22.11, krok 2): kalendarz maszyny wyników BEZ sieci → do 3 kart imprez z kluczem (front pokazuje „Wyniki ›”), najpierw edycje przeszłe.
-    Pusta lista = brak trafień; wyjątek maszyny leci dalej (EF zostawia wtedy zdanie routera z „Otwórz Wyniki ›”). */
+/** WYNIKI IMPREZY (Filip 22.11, krok 2; 23.11): kalendarz maszyny wyników BEZ sieci → do 3 kart edycji, KTÓRE MAJĄ WYNIKI w maszynie (ma_wyniki === true),
+    najnowsza pierwsza. Edycja bez wyników (także przeszła) nie daje karty: „Wyniki ›” prowadziłby donikąd (23.11, Poznań). Pusta lista = brak wyników;
+    wyjątek maszyny leci dalej. W obu przypadkach EF zostawia zdanie routera „Nie znalazłem wyników tej imprezy.” z „Otwórz Wyniki ›”. */
 export async function kartyWynikow(fetchFn, token, q) {
   const l = await szukajImprez(fetchFn, token, { q });
-  return l.filter((d) => d && d.klucz).sort((a, b) => Number(!!b.przeszla) - Number(!!a.przeszla)).slice(0, 3).map((d) => ({ typ: "impreza", dane: d }));
+  return l.filter((d) => d && d.klucz && d.ma_wyniki === true).sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).slice(0, 3).map((d) => ({ typ: "impreza", dane: d }));
 }
 
 /** deps: {sb, fetchFn, token, q, jawne, dzis, sieciDozwolona: async () => bool, siec: async (tekst) => {zdania, zrodla, tok, zapytania},

@@ -28,6 +28,7 @@ export function mapuj(r) {
     url: [r.url_zapisy, r.url_organizer, r.url_regulamin].find((u) => typeof u === "string" && /^https:\/\/[^\s"'<>]{4,300}$/.test(u)) || null,   // etap 5: „Strona imprezy ›" (UI: safeExternalHref)
     status: r.status ?? null,
     przeszla: r.przeszla === true,
+    ma_wyniki: r.ma_wyniki === true,   // 23.11: „Wyniki ›” tylko przy edycji z wynikami w maszynie; RPC bez tego pola (dzisiejsze events_search) = false
   };
 }
 /** Argumenty RPC — jedyne miejsce zależne od wybranego RPC (nazwy parametrów różnią się). */

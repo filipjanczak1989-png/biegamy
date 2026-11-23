@@ -358,7 +358,14 @@ export function czyZmianaPlanu(tekst) { const t = normalizuj(tekst); return !!t 
    przeszłe edycje z kluczem) i karta imprezy z „Wyniki ›”; bez trafienia „Otwórz Wyniki ›”. Bez zmian: „moje wyniki”, „jak mi poszło”, imię i nazwisko (tryb osoby),
    imię albo zaimek w pytaniu („jaki wynik ma Kasia / ona na 100 km”: wyniki osób na później). Literówek nie poprawiamy (Filip 22.11: bez precyzji na zapas). */
 export const ODP_WYNIKI_IMPREZY = "Wyniki tej imprezy są w zakładce Wyniki:";
-export const ODP_WYNIKI_BRAK = "Nie znalazłem tej imprezy w maszynie wyników. Poszukaj jej w zakładce Wyniki:";
+export const ODP_WYNIKI_BRAK = "Nie znalazłem wyników tej imprezy.";   // 23.11 (Filip): także gdy impreza jest w kalendarzu, ale maszyna nie ma wyników żadnej jej edycji; karta „Otwórz Wyniki ›” zostaje
+/* 23.11 (Filip): literówki w słowie „wyniki” poprawiane WYŁĄCZNIE w kopii tekstu dla reguł (dopasuj, wynikiImprezyZPytania, imprezaZPytania).
+   Klasyfikator v2 i log dostają tekst oryginalny (nagrania ławki v2 są kluczowane treścią). Jawna lista całych słów, bez odległości edycyjnej:
+   „wynik”, „wyniku” są o jedną literę od „wyniki” i są poprawne (prototyp: korpus ławek 2667 pytań, 0 zmian trasy bez tych form). */
+export const LITEROWKI_WYNIKI = /(?<![\p{L}\d])(wniki|wynki|wyiki|wynkii)(?![\p{L}\d])/giu;
+export function tekstDlaRegul(tekst) {
+  return typeof tekst === "string" ? tekst.replace(LITEROWKI_WYNIKI, (m) => (m[0] === m[0].toUpperCase() ? "Wyniki" : "wyniki")) : tekst;
+}
 export const KARTA_WYNIKI = { typ: "kat_pojecie", dane: { klucz: "wyniki", tytul: "Wyniki", co_to: "", cel: "wyniki.html", ekran_nazwa: "Wyniki" } };
 const WYNIKI_MOJE = /\b(moj\w*|moje|moich|mam|mial\w*|mi|ja|mnie|swoj\w*|nasz\w*|pobieglem|pobieglam|poszlo)\b/;
 const WYNIKI_ZAIMEK = /\b(ona|on|jej|jego|ich|oni|one)\b/;
@@ -366,6 +373,7 @@ const WYNIKI_POMOCNICZE = /^(wynik\w*|z|ze|w|we|na|biegu|imprezy|zawodow|edycji|
 const WYNIKI_BIEGOWE = /\b(maraton\w*|polmaraton\w*|bieg\w*|ultra\w*|trail\w*|parkrun\w*|cross\w*|run\w*|\d+ ?km|dych\w*|piatk\w*|zawod\w*)\b/;
 /** Pytanie o wyniki imprezy → { q } (słowa nazwy bez „wyniki”, słów pomocniczych i roku) | null. Tylko liczba mnoga: „czy kofeina poprawia wynik” to nie impreza. */
 export function wynikiImprezyZPytania(tekst) {
+  tekst = tekstDlaRegul(tekst);   // 23.11: wniki/wynki/wyiki/wynkii → wyniki (tylko kopia dla reguł)
   const t = normalizuj(tekst);
   if (!t || !/\b(wyniki|wynikow|wynikach)\b/.test(t) || WYNIKI_MOJE.test(t) || WYNIKI_ZAIMEK.test(t) || maPareOsoby(tekst) || !WYNIKI_BIEGOWE.test(t)) return null;
   const slowa = String(tekst).replace(/[?!.,;:"„”()🙏]/gu, " ").split(/\s+/).filter(Boolean);
@@ -383,6 +391,7 @@ const BIEG_Z_OBOZEM = /\b(bieg|biegu|biegi|biegiem|zawody|zawodach|maraton\w*|po
 export function czyOboz(tekst) { const t = normalizuj(tekst); return SLOWO_OBOZU.test(t) && !WYNIKI_NIE_OBOZ.test(t) && !BIEG_Z_OBOZEM.test(t); }
 
 export function dopasuj(tekst, dzis) {
+  tekst = tekstDlaRegul(tekst);   // 23.11: wniki/wynki/wyiki/wynkii → wyniki (tylko kopia dla reguł; EF, klasyfikator i log mają oryginał)
   const t = normalizuj(tekst);
   if (!t) return null;
   const bieg = tematBiegu(tekst, dzis);

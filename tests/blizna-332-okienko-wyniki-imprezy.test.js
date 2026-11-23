@@ -1,6 +1,7 @@
 /* BLIZNA 332 (Filip 22.11, krok 2): „półmaraton Poznań wyniki” szło do sieci (tryb imprezy pomija „wyniki”), a sieć oddała datę kolejnej edycji zamiast wyników.
    Teraz: „wynik/wyniki” + słowo biegowe → kalendarz maszyny wyników BEZ sieci i do 3 kart imprez z „Wyniki ›” (najpierw edycje przeszłe); bez trafienia albo przy
-   awarii maszyny „Nie znalazłem tej imprezy…” + „Otwórz Wyniki ›”. „moje wyniki”, imię i nazwisko, imię albo zaimek w pytaniu — jak dotąd. */
+   awarii maszyny „Nie znalazłem tej imprezy…” + „Otwórz Wyniki ›”. „moje wyniki”, imię i nazwisko, imię albo zaimek w pytaniu — jak dotąd.
+   23.11 (blizna-337): karty TYLKO edycji z wynikami w maszynie (ma_wyniki), najnowsza pierwsza; w pozostałych przypadkach „Nie znalazłem wyników tej imprezy.” */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -13,7 +14,7 @@ const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r/
 
 /* atrapa maszyny wyników: Poznań — edycja przeszła i nadchodząca z kluczem; „awaria” — błąd; reszta — pusto */
 const IMPREZY = [{ klucz: 'kalendarz:poznan-polmaraton-2027', nazwa: 'Poznań Półmaraton', data: '2027-04-11', miejscowosc: 'Poznań', przeszla: false },
-  { klucz: 'kalendarz:poznan-polmaraton-2026', nazwa: 'Poznań Półmaraton', data: '2026-04-12', miejscowosc: 'Poznań', przeszla: true }];
+  { klucz: 'kalendarz:poznan-polmaraton-2026', nazwa: 'Poznań Półmaraton', data: '2026-04-12', miejscowosc: 'Poznań', przeszla: true, ma_wyniki: true }];
 const wywolania = [];
 const fetchF6 = async (url, init) => {
   const rpc = String(url).split('/rpc/')[1], a = JSON.parse(init.body);
@@ -40,17 +41,17 @@ test('router: wyniki imprezy → zdanie zapasowe + „Otwórz Wyniki ›” i za
   }
   for (const [q, oczek] of NIE) assert.equal(await trasaRoutera(q), oczek, q);
   assert.equal(R.ODP_WYNIKI_IMPREZY, 'Wyniki tej imprezy są w zakładce Wyniki:');
-  assert.equal(R.ODP_WYNIKI_BRAK, 'Nie znalazłem tej imprezy w maszynie wyników. Poszukaj jej w zakładce Wyniki:');
+  assert.equal(R.ODP_WYNIKI_BRAK, 'Nie znalazłem wyników tej imprezy.');   // 23.11 (Filip)
 });
 
-test('v2: trafienie → karty imprez z kluczem (najpierw przeszła), brak trafienia i awaria → „Otwórz Wyniki ›”; zawsze bez sieci i modelu', async () => {
+test('v2: trafienie → karty edycji z wynikami (23.11: przyszła bez wyników odpada), brak trafienia i awaria → „Otwórz Wyniki ›”; zawsze bez sieci i modelu', async () => {
   const { R, zaladuj } = await moduly();
   const f6 = await zaladuj('supabase/functions/okienko/f6.mjs');
   f6._wyczyscPamiecF6();
   const r = await przebiegV2('polmaraton poznan wyniki', { fetchF6 });
   assert.equal(r.slad, 'router:wyniki-imprezy');
   assert.deepEqual(r.body.zdania, [R.ODP_WYNIKI_IMPREZY]);
-  assert.deepEqual(r.body.karty.map((k) => [k.typ, k.dane.klucz]), [['impreza', 'kalendarz:poznan-polmaraton-2026'], ['impreza', 'kalendarz:poznan-polmaraton-2027']], 'przeszła edycja pierwsza');
+  assert.deepEqual(r.body.karty.map((k) => [k.typ, k.dane.klucz]), [['impreza', 'kalendarz:poznan-polmaraton-2026']], 'tylko edycja z wynikami (23.11)');
   assert.ok(wywolania.some((w) => w === 'events_search:polmaraton poznan'), 'zapytanie do kalendarza bez „wyniki”: ' + wywolania.join(', '));
   for (const q of ['wyniki parkrun', 'wyniki maratonu awaria']) {
     f6._wyczyscPamiecF6();
