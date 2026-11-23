@@ -9,3 +9,4 @@ Kolumny: ławka v2 (% wierszy z oczekiwanym śladem, cel 95 %), czas odpowiedzi 
 | 2026-11-03 | 94.1 % (240/255, atrapy) | — | — (kciuki od 4.11) | — | — |
 | 2026-11-09 | 95.3 % | — / — ms | — | 0.000 USD/dobę | 0 |
 | 2026-11-16 | 95.3 % | 610 / 610 ms | — | 0.000 USD/dobę | 0 |
+| 2026-11-23 | 95.3 % | — / — ms | — | 0.000 USD/dobę | 0 |
