@@ -93,7 +93,7 @@ test('(2) pogoda po stronie klienta: dziś/jutro z kafla, inne miasto → dopise
   assert.equal(O.pogodaLokalnie('ile km w tym tygodniu'), null);
   assert.equal(fetche, 0, 'pogoda bez EF');
   const ui = czytaj('js', 'okienko.js');
-  assert.match(ui, /var lokalnie = pogodaLokalnie\(tekst\);\s*\n\s*if \(lokalnie\) \{ wynik\.innerHTML = lokalnie; zapamietajPytanie\(tekst\); return; \}/);
+  assert.match(ui, /var lokalnie = pogodaLokalnie\(tekst\);\s*\n\s*if \(lokalnie\) \{ wynik\.innerHTML = lokalnie; return; \}/);   // 22.11 (krok 5): bez zapisu ostatnich pytań
 });
 
 test('UI: karta trenera z „Napisz" (data-plan=trener → czat z trenerem); karta rekordu z etykietą „z wyników zawodów"', () => {

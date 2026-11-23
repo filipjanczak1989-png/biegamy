@@ -19,8 +19,10 @@
     czat: 'Czat', cialo: 'Ćwiczenia', statystyki: 'Statystyki', profil: 'Profil', jedzenie: 'Jedzenie', starty: 'Starty',
     wyzwania: 'Wyzwania', odznaki: 'Odznaki', radio: 'Radio'
   };
-  var PODPOWIEDZI = ['Kiedy mam start?', 'Ile przebiegłem w tym miesiącu?', 'Plan na jutro', 'Jakie mam odznaki?', 'Pokaż wyzwania',
-    'Kto wygrał maraton w Berlinie?', 'Wyniki: imię i nazwisko'];
+  /* PODPOWIEDZI (Filip 22.11, krok 5): tylko pytania, na które router odpowiada sam (bez modelu i sieci); ta sama lista dla podpowiedzi w polu.
+     „Kto wygrał maraton w Berlinie?” (sieć) i „Wyniki: imię i nazwisko” (tryb osoby) zeszły, a ostatnie pytania użytkownika nie są już podpowiedziami. */
+  var PODPOWIEDZI = ['Plan na jutro', 'Ile przebiegłem w tym tygodniu?', 'Kiedy mam start?', 'Jaką mam formę?', 'Jakie mam odznaki?'];
+  var PODPOWIEDZ_AKCJI = 'Co to za akcja?';   // szósta, tylko gdy akcja trwa (stan z licznika: js/akcja-cytaty.mjs)
   var TEKSTY = {
     pusto: 'Nie mam tego w Twoich danych.',
     dzien: 'Na dziś koniec pytań — od jutra znowu. Ekrany dalej znajdę:',
@@ -30,7 +32,7 @@
     siecLimit: 'Na dziś koniec szukania w sieci — od jutra znowu. W aplikacji dalej znajdę:',
     siecPusto: 'Tego nie znalazłem w sieci.'
   };
-  var KLUCZ_OSTATNIE = 'okienko_ostatnie', KLUCZ_PODPOWIEDZ = 'okienko_podpowiedz';
+  var KLUCZ_PODPOWIEDZ = 'okienko_podpowiedz';   // 22.11 (krok 5): ostatnie pytania nie są już zapisywane — nie są podpowiedziami
 
   function esc(s) { return window.escapeHtml ? window.escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function bezpiecznyCel(url) {
@@ -445,10 +447,9 @@
   }
 
   function chipy() {
-    var ostatnie = czytaj(KLUCZ_OSTATNIE, []);
-    var lista = PODPOWIEDZI.slice(0, 3).concat(Array.isArray(ostatnie) ? ostatnie.slice(0, 2) : []);
-    var bylo = {};
-    return lista.filter(function (q) { var k = String(q).toLowerCase(); if (bylo[k]) return false; bylo[k] = 1; return true; })
+    var ak = window.BM_AKCJA_CYTATY;
+    var akcjaTrwa = !!(ak && typeof ak.czyAkcjaRuszyla === 'function' && ak.czyAkcjaRuszyla() && !(typeof ak.czyAkcjaZamknieta === 'function' && ak.czyAkcjaZamknieta()));
+    return PODPOWIEDZI.concat(akcjaTrwa ? [PODPOWIEDZ_AKCJI] : [])
       .map(function (q) { return '<button type="button" class="okn-chip" data-pytanie="' + esc(q) + '">' + esc(q) + '</button>'; }).join('');
   }
 
@@ -492,7 +493,7 @@
     var wynik = el('okienko-wynik'); if (!wynik) return;
     if (wTrakcie) return;
     var lokalnie = pogodaLokalnie(tekst);
-    if (lokalnie) { wynik.innerHTML = lokalnie; zapamietajPytanie(tekst); return; }
+    if (lokalnie) { wynik.innerHTML = lokalnie; return; }
     wTrakcie = true; przyciskZapytaj(true);
     try {
       wynik.innerHTML = '<div class="okn-szkielet" aria-hidden="true"></div>';
@@ -500,13 +501,7 @@
       var o = await zapytaj(tekst);
       wynik.removeAttribute('aria-busy');
       wynik.innerHTML = htmlOdpowiedzi(o.status, o.json, tekst);
-      zapamietajPytanie(tekst);
     } finally { wTrakcie = false; przyciskZapytaj(false); }
-  }
-  function zapamietajPytanie(tekst) {
-    var ost = czytaj(KLUCZ_OSTATNIE, []);
-    if (!Array.isArray(ost)) ost = [];
-    zapisz(KLUCZ_OSTATNIE, [tekst].concat(ost.filter(function (q) { return q !== tekst; })).slice(0, 5));
   }
 
   function otworz() {
@@ -634,6 +629,6 @@
   }
 
   window.OKIENKO = { zapytaj: zapytaj, htmlOdpowiedzi: htmlOdpowiedzi, bezpiecznyCel: bezpiecznyCel, wyszukajEkrany: wyszukajEkrany,
-    podpowiedz: podpowiedz, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, akcjaZapisuPlanu: akcjaZapisuPlanu, pogodaLokalnie: pogodaLokalnie, wyslij: wyslij };   // wyslij: blizna-131 (blokada podwójnego wysłania)
+    podpowiedz: podpowiedz, chipy: chipy, PODPOWIEDZI: PODPOWIEDZI, PODPOWIEDZ_AKCJI: PODPOWIEDZ_AKCJI, otworz: otworz, zamknij: zamknij, EKRANY: EKRANY, TEKSTY: TEKSTY, akcjaOsoby: akcjaOsoby, akcjaPlanu: akcjaPlanu, akcjaKatalogu: akcjaKatalogu, NAZWY_EKRANOW: NAZWY_EKRANOW, akcjaKtoTy: akcjaKtoTy, akcjaZapisuPlanu: akcjaZapisuPlanu, pogodaLokalnie: pogodaLokalnie, wyslij: wyslij };   // wyslij: blizna-131 (blokada podwójnego wysłania)
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', podepnij); else podepnij();
 })();

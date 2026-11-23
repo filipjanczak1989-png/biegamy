@@ -143,10 +143,10 @@ test('pole widoczne bez parametru i bez localStorage; stare ?zapytaj=0/1 nic nie
   assert.ok(!/get\('from'\)/.test(OKN), 'okienko nie wnioskuje o kontekście z parametru nawigacji');
 });
 
-test('limity w UI: 429 dzień / miesiąc / sieć mają własne teksty; podpowiedzi z sieci i wyników', () => {
+test('limity w UI: 429 dzień / miesiąc / sieć mają własne teksty; od 22.11 podpowiedzi bez sieci i bez trybu osoby (blizna-335)', () => {
   const { O } = swiat();
   assert.match(O.htmlOdpowiedzi(429, { limit: 'dzien' }, ''), /Na dziś koniec pytań/);
   assert.match(O.htmlOdpowiedzi(429, { limit: 'miesiac' }, ''), /Na ten miesiąc koniec pytań/);
   assert.match(O.htmlOdpowiedzi(429, { limit: 'siec' }, ''), /Na dziś koniec szukania w sieci/);
-  assert.ok(OKN.includes("'Kto wygrał maraton w Berlinie?', 'Wyniki: imię i nazwisko'"));
+  assert.ok(!OKN.includes("'Kto wygrał maraton w Berlinie?'") && !OKN.includes("'Wyniki: imię i nazwisko'"), 'Filip 22.11: podpowiedzi tylko z pytań, które router zna');
 });
