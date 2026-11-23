@@ -6073,7 +6073,7 @@ window._icuRenderSplits = function (d, el) {
       ].filter(Boolean).join(' · ');
       const navUrl = (px === 'pfo' && athleteId)
         ? 'kalendarz.html?role=coach&athlete=' + athleteId + '&openDay=' + dateStr
-        : 'kalendarz.html?openDay=' + dateStr;
+        : 'kalendarz.html?role=athlete&openDay=' + dateStr;   // 23.11 (blizna-340): bez roli konto trener+zawodnik lądowało w kalendarzu trenera
       const clickAttr = dateOk ? ' onclick="location.href=\'' + navUrl + '\'" style="cursor:pointer;' : ' style="cursor:default;';
       return '<div' + clickAttr + 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,0.05);">'
         + '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#fff;">' + bits + '</div>'
@@ -6394,7 +6394,7 @@ window._icuRenderSplits = function (d, el) {
         const tipFull = clickable ? (titleAttr + ' · otwórz') : titleAttr;
         const navUrl = (px === 'pfo')
           ? 'kalendarz.html?role=coach&athlete=' + athleteId + '&openDay=' + dateStr
-          : 'kalendarz.html?openDay=' + dateStr;
+          : 'kalendarz.html?role=athlete&openDay=' + dateStr;   // 23.11 (blizna-340): jak wyżej
         const clickAttr = clickable ? ' onclick="location.href=\'' + navUrl + '\'"' : '';
         cells += '<div class="fhm-cell" data-tip="' + esc(tipFull) + '" data-date="' + dateStr + '" data-future="' + (isFuture ? 1 : 0) + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';' + (clickable ? 'cursor:pointer;' : 'cursor:default;') + ring + animStyle + '"' + clickAttr + ' onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
       }

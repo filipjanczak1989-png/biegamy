@@ -68,7 +68,7 @@ test('wyniki.html: sesja → hash w sessionStorage (sam hash), pushState/popstat
   for (const s of ['js/tekst.mjs', 'js/kalendarz-lista.mjs', 'sb.js', 'js/wyszukiwarka-wynikow.js', 'js/wyniki-api.js', 'js/wyniki-lista.mjs', 'js/wynik-zgloszony.mjs']) assert.ok(h.includes('<script src="' + s + '">'), s);
   assert.match(h, /sessionStorage\.setItem\(KLUCZ_HASH, location\.hash \|\| '#\/'\)/); assert.equal((h.match(/sessionStorage\.setItem/g) || []).length, 1, 'tylko hash w sessionStorage');
   assert.doesNotMatch(h, /localStorage\.setItem/);
-  assert.match(h, /history\.pushState\(\{ h: h, y: window\.scrollY \}, '', h\)/); assert.match(h, /addEventListener\('popstate'/);
+  assert.match(h, /history\.pushState\(\{ h: h, y: window\.scrollY, d: glebokosc\(\) \+ 1 \}, '', h\)/);   // 23.11: d = głębokość widoku (blizna-340) assert.match(h, /addEventListener\('popstate'/);
   assert.match(h, /addEventListener\('pointerdown'[\s\S]*?\{ prefetch: true \}/, 'prefetch tylko z intencji');
   assert.match(h, /if \(opcje && opcje\.prefetch && !wyl\.wolno\(\)\) return/, 'wyłącznik dotyczy prefetchu');
   assert.doesNotMatch(h, /onclick="[^"]*\$\{/, 'zero JS-in-attribute z danymi');

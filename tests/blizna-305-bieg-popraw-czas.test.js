@@ -19,7 +19,7 @@ const JA = (x) => Object.assign({ id: 'u10', rodzaj: 'ja', imie: 'Anna', numer: 
 
 test('karta: wynik z treningu bez czasu → prośba o poprawę z linkiem do treningu; zaliczenie organizatora i wynik z czasem bez zmian', () => {
   const h = B.wynikHtml(JA({ wynik_trening_km: 14 }), BIEG);
-  assert.match(h, /<p class="bw-drobne" data-czas-popraw>Popraw czas w treningu, żeby mieć wynik w biegu\. <a class="bw-link-maly" href="kalendarz\.html" data-czas-link="u10" data-czas-km="14">Otwórz trening w kalendarzu ›<\/a><\/p>/);
+  assert.match(h, /<p class="bw-drobne" data-czas-popraw>Popraw czas w treningu, żeby mieć wynik w biegu\. <a class="bw-link-maly" href="kalendarz\.html\?role=athlete" data-czas-link="u10" data-czas-km="14">Otwórz trening w kalendarzu ›<\/a><\/p>/);
   assert.doesNotMatch(h, /Czas nie wszedł z treningu/);
   assert.match(B.wynikHtml(JA({ wynik_trening_km: null }), BIEG), /Czas nie wszedł z treningu, więc dyplom pokazuje kilometry\./, 'zaliczenie przez organizatora: jak dotąd');
   assert.doesNotMatch(B.wynikHtml(JA({ wynik_trening_km: 6, wynik_s: 1998, czas_biegu_s: 1665, z_tempa: true }), BIEG), /data-czas-popraw|Czas nie wszedł/, 'z czasem: nic');
@@ -29,12 +29,12 @@ test('karta: wynik z treningu bez czasu → prośba o poprawę z linkiem do tren
 test('link: dzień treningu o tym dystansie bez ważnego czasu (60 s – 24 h jak w bazie); kilka — najpóźniejszy; brak — sam kalendarz', () => {
   const L = B.linkTreninguBezCzasu;
   const tr = [{ id: 'a', dzien: '2026-11-19', km: 14, czas_s: 1 }, { id: 'b', dzien: '2026-11-20', km: 6, czas_s: 1998 }];
-  assert.equal(L(tr, 14), 'kalendarz.html?openDay=2026-11-19');
-  assert.equal(L(tr, '14.00'), 'kalendarz.html?openDay=2026-11-19', 'km z data-czas-km jako tekst');
-  assert.equal(L(tr, 6), 'kalendarz.html', 'trening z ważnym czasem nie jest celem linku');
-  assert.equal(L([{ dzien: '2026-11-19', km: 14, czas_s: null }, { dzien: '2026-11-21', km: 14, czas_s: 0 }], 14), 'kalendarz.html?openDay=2026-11-21');
-  assert.equal(L([{ dzien: '2026-11-19', km: 14, czas_s: 90000 }], 14), 'kalendarz.html?openDay=2026-11-19', 'ponad 24 h = bez ważnego czasu');
-  assert.equal(L(null, 14), 'kalendarz.html'); assert.equal(L([{ dzien: 'zła data', km: 14, czas_s: 1 }], 14), 'kalendarz.html');
+  assert.equal(L(tr, 14), 'kalendarz.html?role=athlete&openDay=2026-11-19');
+  assert.equal(L(tr, '14.00'), 'kalendarz.html?role=athlete&openDay=2026-11-19', 'km z data-czas-km jako tekst');
+  assert.equal(L(tr, 6), 'kalendarz.html?role=athlete', 'trening z ważnym czasem nie jest celem linku');
+  assert.equal(L([{ dzien: '2026-11-19', km: 14, czas_s: null }, { dzien: '2026-11-21', km: 14, czas_s: 0 }], 14), 'kalendarz.html?role=athlete&openDay=2026-11-21');
+  assert.equal(L([{ dzien: '2026-11-19', km: 14, czas_s: 90000 }], 14), 'kalendarz.html?role=athlete&openDay=2026-11-19', 'ponad 24 h = bez ważnego czasu');
+  assert.equal(L(null, 14), 'kalendarz.html?role=athlete'); assert.equal(L([{ dzien: 'zła data', km: 14, czas_s: 1 }], 14), 'kalendarz.html?role=athlete');   // 23.11: role=athlete (blizna-340)
 });
 
 test('bieg.html: link uzupełniany po narysowaniu karty z akcja_bieg_treningi_z_okna (raz na odświeżenie), kalendarz otwiera dzień z ?openDay=', () => {

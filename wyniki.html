@@ -108,12 +108,25 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
   async function wyniki(klucz, opcje) { var r = await rpc('runner_results', { p_runner_key: klucz }, opcje); return r.error ? r : { data: r.data.map(W.wiersz) }; }
 
   /* ── nawigacja: pushState + popstate (render z pamięci — zero RPC przy powrocie) ── */
+  /* d = głębokość widoku w Wynikach (ile naszych pushState nad wejściem). „‹ Wstecz” najpierw zamyka widok w Wynikach (d > 0), potem wychodzi. */
+  function glebokosc() { return (history.state && Number(history.state.d)) || 0; }
   function idz(stan, zamien) {
     var h = W.hashDla(stan);
-    if (zamien) history.replaceState({ h: h }, '', h); else history.pushState({ h: h, y: window.scrollY }, '', h);
+    if (zamien) history.replaceState({ h: h, d: glebokosc() }, '', h); else history.pushState({ h: h, y: window.scrollY, d: glebokosc() + 1 }, '', h);
     renderuj(W.parsuj(h));
   }
   window.addEventListener('popstate', function () { renderuj(W.parsuj(location.hash)); });
+  /* „‹ Wstecz” (Filip 23.11, blizna-340) — reguła jak „← Powrót” w kalendarz.html: widok otwarty w Wynikach albo wejście z naszej strony → history.back()
+     (jak wstecz w telefonie); wejście z zewnątrz → location.replace('races.html'), bez nowego wpisu. Wcześniej zwykły link do races.html dopisywał
+     Kalendarz Startów do historii, a jego „‹” (history.back) wracał do Wyników → pętla Kalendarz Startów ↔ Wyniki. href zostaje na wypadek braku JS. */
+  function wstecz(e) {
+    if (e) e.preventDefault();
+    var zNaszej = false;
+    try { zNaszej = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) {}
+    if (glebokosc() > 0 || (zNaszej && history.length > 1)) history.back();
+    else location.replace('races.html');
+  }
+  $('w-wstecz').addEventListener('click', wstecz);
   ekran.addEventListener('click', function (e) {
     var el = e.target.closest ? e.target.closest('[data-klucz],[data-porownaj],[data-toja],[data-wpisz],[data-usun-wz],[data-imp-rok],[data-imp-km],[data-imp-plec],[data-imp-strona]') : null;
     if (!el) return;

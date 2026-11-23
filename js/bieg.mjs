@@ -589,9 +589,9 @@
    *  km = dystans treningu z wyniku. Czas ważny jak w bazie: 60 s – 24 h. Kilka pasujących: najpóźniejszy. Brak: sam kalendarz. */
   function linkTreninguBezCzasu(treningi, km) {
     var k = Number(km), l = (Array.isArray(treningi) ? treningi : []).filter(function (t) { var s = Number(t && t.czas_s); return t && Math.abs(Number(t.km) - k) < 0.005 && !(s >= 60 && s <= 86400) && /^\d{4}-\d{2}-\d{2}$/.test(String(t.dzien)); });
-    if (!l.length) return "kalendarz.html";
+    if (!l.length) return "kalendarz.html?role=athlete";   // 23.11 (blizna-340): rola zawodnika — konto trener+zawodnik nie ląduje w kalendarzu trenera
     l.sort(function (a, b) { return String(b.dzien).localeCompare(String(a.dzien)); });
-    return "kalendarz.html?openDay=" + l[0].dzien;
+    return "kalendarz.html?role=athlete&openDay=" + l[0].dzien;
   }
   /** Pod wynikiem v5 małym drukiem prawdziwy trening: „Trening: 10,01 km · 49:06”. */
   function treningPodWynikiem(u) { var t = Number(u && u.wynik_trening_km) || 0, s = Number(u && u.wynik_s) || 0; return t > 0 ? "Trening: " + liczba(t, 2) + " km" + (s ? " · " + czas(s) : "") : ""; }
@@ -614,7 +614,7 @@
       if (faza(bieg) === "trwa" || faza(bieg) === "wyniki") h += dziecko ? '<a href="#" class="bw-link-maly" data-dziecko-popraw="' + id + '">Popraw dystans</a>' : '<a href="#" class="bw-link-maly" data-wskaz="' + id + '">Wskaż inny trening</a>';
       /* 19.11 (blizna-305): wynik z treningu bez ważnego czasu (pusty, sama liczba, uszkodzony) — prośba o poprawę z linkiem do dnia treningu w kalendarzu
          (adres uzupełnia strona z akcja_bieg_treningi_z_okna, B.linkTreninguBezCzasu). Po poprawie czasu wyzwalacz z 20261212 przelicza wynik. Zaliczenie ręczne (bez treningu): jak dotąd. */
-      if (!dziecko && !u.wynik_s && Number(u.wynik_trening_km) > 0) h += '<p class="bw-drobne" data-czas-popraw>' + esc(TEKSTY.czas_popraw) + ' <a class="bw-link-maly" href="kalendarz.html" data-czas-link="' + id + '" data-czas-km="' + esc(u.wynik_trening_km) + '">Otwórz trening w kalendarzu ›</a></p>';
+      if (!dziecko && !u.wynik_s && Number(u.wynik_trening_km) > 0) h += '<p class="bw-drobne" data-czas-popraw>' + esc(TEKSTY.czas_popraw) + ' <a class="bw-link-maly" href="kalendarz.html?role=athlete" data-czas-link="' + id + '" data-czas-km="' + esc(u.wynik_trening_km) + '">Otwórz trening w kalendarzu ›</a></p>';
       else if (!dziecko && !u.wynik_s) h += '<p class="bw-drobne">Czas nie wszedł z treningu, więc dyplom pokazuje kilometry.</p>';
       if (!dziecko && u.wynik_reczny === true) h += '<p class="bw-drobne" data-wynik-reczny>' + esc(TEKSTY.wynik_reczny) + '</p>';   // 20261206: wynik ręczny w rankingu z dopiskiem
       if (!dziecko && u.do_weryfikacji === true && u.weryfikacja == null) h += '<p class="bw-drobne" data-wynik-weryfikacja>' + esc(u.po_usunieciu === true ? TEKSTY.wynik_po_usunieciu : odWersji(bieg && bieg.regulamin_wersja, 6) ? TEKSTY.wynik_weryfikacja_v6 : TEKSTY.wynik_weryfikacja) + '</p>';   // 20261217: wynik po „Usuń wynik” wraca do rankingu po „Zatwierdź”
@@ -647,7 +647,7 @@
    *  jest trening na zapisany dystans bez ważnego czasu (B.treningBezCzasu z akcja_bieg_treningi_z_okna). Przed v7 nic (trening bez czasu zaliczał). */
   function czasBrakHtml(u, bieg) {
     if (!u || u.rodzaj === "dziecko" || !odWersji(bieg && bieg.regulamin_wersja, 7)) return "";
-    return '<p class="bw-drobne" data-czas-brak="' + esc(u.id) + '" data-czas-dystans="' + esc(u.dystans_km) + '" hidden>' + esc(TEKSTY.czas_popraw) + ' <a class="bw-link-maly" href="kalendarz.html" data-czas-brak-link>Otwórz trening w kalendarzu ›</a></p>';
+    return '<p class="bw-drobne" data-czas-brak="' + esc(u.id) + '" data-czas-dystans="' + esc(u.dystans_km) + '" hidden>' + esc(TEKSTY.czas_popraw) + ' <a class="bw-link-maly" href="kalendarz.html?role=athlete" data-czas-brak-link>Otwórz trening w kalendarzu ›</a></p>';
   }
   /** Najpóźniejszy trening z okresu biegu, który zalicza zapisany dystans, ale nie ma ważnego czasu (od v7 nie daje ukończenia), albo null. */
   function treningBezCzasu(treningi, dystans) {

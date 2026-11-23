@@ -64,7 +64,7 @@ test('„Wskaż trening”: przy v7 trening bez ważnego czasu wyszarzony, bez g
 test('karta bez ukończenia (v7): schowane „Popraw czas…”, odsłaniane przy treningu na dystans bez czasu; po usunięciu też; dziecko i v6 bez tego', () => {
   const ja = { id: 'u1', rodzaj: 'ja', imie: 'Anna', numer: 1, dystans_km: 5 };
   const brak7 = B.wynikHtml(ja, BIEG('2026-11-v7'), { brakTreningu: true }), brak6 = B.wynikHtml(ja, BIEG('2026-11-v6'), { brakTreningu: true });
-  assert.match(brak7, /<p class="bw-drobne" data-czas-brak="u1" data-czas-dystans="5" hidden>Popraw czas w treningu, żeby mieć wynik w biegu\. <a class="bw-link-maly" href="kalendarz\.html" data-czas-brak-link>Otwórz trening w kalendarzu ›<\/a><\/p>/);
+  assert.match(brak7, /<p class="bw-drobne" data-czas-brak="u1" data-czas-dystans="5" hidden>Popraw czas w treningu, żeby mieć wynik w biegu\. <a class="bw-link-maly" href="kalendarz\.html\?role=athlete" data-czas-brak-link>Otwórz trening w kalendarzu ›<\/a><\/p>/);
   assert.match(brak7, /z datą z czasu biegu \([^)]*\) i z czasem \(np\. 45:00\), i wróć tutaj\./);
   assert.match(brak7, /Nie widzimy jeszcze treningu z [^<]* na co najmniej 5 km z czasem\.<\/p>/);
   assert.doesNotMatch(brak6, /data-czas-brak|i z czasem|km z czasem/);
