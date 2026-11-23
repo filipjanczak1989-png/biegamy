@@ -383,14 +383,20 @@ document.addEventListener('DOMContentLoaded', function () {
   var ADRES_STRONY = location.origin + location.pathname + (PROBA ? '?proba=1' : '');
   if (PROBA) { $('bw-chip-proba').hidden = false; $('bw-wroc').href = 'dla-fabianka.html?proba=1'; }
   /* WSTECZ (23.11, blizna-341): reguła jak „← Powrót” w kalendarzu. Wejście z naszej strony → history.back() (jak wstecz w telefonie); z zewnątrz
-     (link z Facebooka, e-mail, brak referrera) → location.replace na Dziś (zalogowany) albo na stronę startową (niezalogowany), bez nowego wpisu.
+     (link z Facebooka, e-mail, brak referrera) → location.replace na Dziś (zalogowany) albo na ulicę akcji (niezalogowany, w próbie ulica próbna), bez nowego wpisu.
      Wcześniej zwykły link dopisywał ulicę do historii. Napis „‹ Ulica akcji” zostaje, gdy wstecz naprawdę wraca na ulicę; inaczej „‹ Wstecz”. href zostaje bez JS. */
   function zNaszejStrony() { try { return !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) { return false; } }
-  function napisWstecz() { var w = $('bw-wroc'); try { if (!(zNaszejStrony() && new URL(document.referrer).pathname === new URL(w.href, location.href).pathname)) w.textContent = '‹ Wstecz'; } catch (e) {} }
+  function zHistorii() { return zNaszejStrony() && history.length > 1; }
+  function celZZewnatrz(s) { return s ? 'zawodnik.html' : (PROBA ? 'dla-fabianka.html?proba=1' : 'dla-fabianka.html'); }
+  function napisWstecz() {
+    var w = $('bw-wroc');
+    if (zHistorii()) { try { if (new URL(document.referrer).pathname !== new URL(w.href, location.href).pathname) w.textContent = '‹ Wstecz'; } catch (e) {} return; }
+    pobierzSesje().then(function (s) { if (s) w.textContent = '‹ Wstecz'; });
+  }
   function wsteczBiegu(e) {
     if (e) e.preventDefault();
-    if (zNaszejStrony() && history.length > 1) { history.back(); return; }
-    pobierzSesje().then(function (s) { location.replace(s ? 'zawodnik.html' : 'index.html'); });
+    if (zHistorii()) { history.back(); return; }
+    pobierzSesje().then(function (s) { location.replace(celZZewnatrz(s)); });
   }
   napisWstecz(); $('bw-wroc').addEventListener('click', wsteczBiegu);
   /* DOLNY PASEK (23.11, blizna-341): tylko dla zalogowanych, po rozpoznaniu sesji (window.NAV z sb.js); niezalogowany widzi stronę bez zmian */

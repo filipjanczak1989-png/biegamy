@@ -3,7 +3,8 @@
        (trener bez wiersza zawodnika → pasek trenera; konto trener + zawodnik → trenera tylko po wejściu z trener.html). Strona sama nie czyta tabel
        (blizna-235), robi to NAV. Style paska = kopia reguł z theme.css (cały theme.css zmieniłby wygląd strony).
    (2) „‹ Ulica akcji” w bieg.html: reguła jak „← Powrót” w kalendarzu (blizna-339). Z naszej strony → history.back(); z zewnątrz → location.replace
-       na Dziś (zalogowany) albo index.html (niezalogowany), bez nowego wpisu. Napis „‹ Ulica akcji” tylko, gdy wstecz naprawdę wraca na ulicę.
+       na Dziś (zalogowany) albo na ulicę akcji (niezalogowany; w próbie dla-fabianka.html?proba=1), bez nowego wpisu. Napis „‹ Ulica akcji” tylko, gdy
+       wstecz naprawdę wraca na ulicę (gość z zewnątrz: tak, jak przed zmianą). Decyzja 23.11 wieczór: gość z zewnątrz na ulicę, nie na index.html.
    Ulica nie ma własnego „wstecz” (nie dokładamy go); zalogowany wraca paskiem. */
 'use strict';
 const test = require('node:test');
@@ -95,28 +96,32 @@ test('obie strony wołają pasek po starcie (z zabezpieczeniem); ulica bez włas
 });
 
 /* ── „‹ Ulica akcji” w bieg.html: prawdziwe funkcje ze strony w atrapie ── */
-const KOD_WSTECZ = ['zNaszejStrony', 'napisWstecz', 'wsteczBiegu'].map((n) => funkcja(BIEG, n)).join('\n');
-function biegWstecz({ referrer = '', dlugosc = 3, sesja = true, href = 'https://biegamy.run/dla-fabianka.html' } = {}) {
+const KOD_WSTECZ = ['zNaszejStrony', 'zHistorii', 'celZZewnatrz', 'napisWstecz', 'wsteczBiegu'].map((n) => funkcja(BIEG, n)).join('\n');
+function biegWstecz({ referrer = '', dlugosc = 3, sesja = true, proba = false, href = 'https://biegamy.run/dla-fabianka.html' + (proba ? '?proba=1' : '') } = {}) {
   const zd = [], w = { href, textContent: '‹ Ulica akcji' };
-  const ctx = { document: { referrer }, URL, $: () => w, pobierzSesje: () => Promise.resolve(sesja ? { user: {} } : null),
+  const ctx = { document: { referrer }, URL, $: () => w, PROBA: proba, pobierzSesje: () => Promise.resolve(sesja ? { user: {} } : null),
     history: { length: dlugosc, back: () => zd.push('back'), pushState: () => zd.push('PUSH') },
     location: { origin: 'https://biegamy.run', href: 'https://biegamy.run/bieg.html', replace: (u) => zd.push('replace:' + u), assign: (u) => zd.push('ASSIGN:' + u) } };
   vm.runInNewContext(KOD_WSTECZ + '\nnapisWstecz(); wsteczBiegu({ preventDefault() {} });', ctx);
   return new Promise((ok) => setImmediate(() => ok({ zd: zd.join(','), napis: w.textContent })));
 }
 
-test('bieg.html „‹ Ulica akcji”: z naszej strony back, z zewnątrz replace (Dziś / strona startowa); napis tylko, gdy wraca na ulicę', async () => {
+test('bieg.html „‹ Ulica akcji”: z naszej strony back, z zewnątrz replace (zalogowany → Dziś, gość → ulica); napis tylko, gdy wraca na ulicę', async () => {
   assert.match(BIEG, /<a class="bw-wroc" id="bw-wroc" href="dla-fabianka\.html">‹ Ulica akcji<\/a>/, 'HTML bez zmian (blizna-283, 288)');
   assert.ok(BIEG.includes("napisWstecz(); $('bw-wroc').addEventListener('click', wsteczBiegu);"), 'obsługa kliknięcia podpięta');
+  assert.doesNotMatch(KOD_WSTECZ, /index\.html/, 'gość z zewnątrz nie ląduje na stronie startowej (decyzja 23.11 wieczór)');
   const P = 'https://biegamy.run/';
   assert.deepEqual(await biegWstecz({ referrer: P + 'dla-fabianka.html' }), { zd: 'back', napis: '‹ Ulica akcji' }, 'z ulicy: wraca na ulicę');
-  assert.deepEqual(await biegWstecz({ referrer: P + 'dla-fabianka.html?proba=1', href: P + 'dla-fabianka.html?proba=1' }), { zd: 'back', napis: '‹ Ulica akcji' }, 'z ulicy próbnej');
+  assert.deepEqual(await biegWstecz({ referrer: P + 'dla-fabianka.html?proba=1', proba: true }), { zd: 'back', napis: '‹ Ulica akcji' }, 'z ulicy próbnej');
   assert.deepEqual(await biegWstecz({ referrer: P + 'zawodnik.html' }), { zd: 'back', napis: '‹ Wstecz' }, 'z Dziś (kafel, Okienko): wraca na Dziś');
   assert.deepEqual(await biegWstecz({ referrer: '', dlugosc: 1, sesja: true }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' }, 'z zewnątrz, zalogowany → Dziś');
-  assert.deepEqual(await biegWstecz({ referrer: '', dlugosc: 1, sesja: false }), { zd: 'replace:index.html', napis: '‹ Wstecz' }, 'z zewnątrz, niezalogowany → strona startowa');
-  assert.deepEqual(await biegWstecz({ referrer: 'https://l.facebook.com/x', dlugosc: 3, sesja: false }), { zd: 'replace:index.html', napis: '‹ Wstecz' }, 'link z Facebooka');
-  assert.deepEqual(await biegWstecz({ referrer: 'https://l.facebook.com/x', dlugosc: 3, sesja: true }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' });
-  assert.deepEqual(await biegWstecz({ referrer: P + 'dla-fabianka.html', dlugosc: 1, sesja: false }), { zd: 'replace:index.html', napis: '‹ Ulica akcji' }, 'nowa karta bez historii → zastąp');
+  assert.deepEqual(await biegWstecz({ referrer: '', dlugosc: 1, sesja: false }), { zd: 'replace:dla-fabianka.html', napis: '‹ Ulica akcji' }, 'z zewnątrz, gość → ulica, napis jak dotąd');
+  assert.deepEqual(await biegWstecz({ referrer: '', dlugosc: 1, sesja: false, proba: true }), { zd: 'replace:dla-fabianka.html?proba=1', napis: '‹ Ulica akcji' }, 'próba: gość → ulica próbna');
+  assert.deepEqual(await biegWstecz({ referrer: '', dlugosc: 1, sesja: true, proba: true }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' }, 'próba: zalogowany → Dziś');
+  assert.deepEqual(await biegWstecz({ referrer: 'https://l.facebook.com/x', dlugosc: 3, sesja: false }), { zd: 'replace:dla-fabianka.html', napis: '‹ Ulica akcji' }, 'link z Facebooka, gość');
+  assert.deepEqual(await biegWstecz({ referrer: 'https://l.facebook.com/x', dlugosc: 3, sesja: true }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' }, 'link z Facebooka, zalogowany');
+  assert.deepEqual(await biegWstecz({ referrer: P + 'dla-fabianka.html', dlugosc: 1, sesja: false }), { zd: 'replace:dla-fabianka.html', napis: '‹ Ulica akcji' }, 'nowa karta bez historii → zastąp');
+  assert.deepEqual(await biegWstecz({ referrer: P + 'zawodnik.html', dlugosc: 1, sesja: true }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' }, 'nowa karta z Dziś → zastąp na Dziś');
   assert.deepEqual(await biegWstecz({ referrer: 'nie-adres', dlugosc: 3 }), { zd: 'replace:zawodnik.html', napis: '‹ Wstecz' }, 'zepsuty referrer = z zewnątrz');
 });
 
