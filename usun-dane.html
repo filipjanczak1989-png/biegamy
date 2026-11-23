@@ -40,7 +40,26 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
   <p class="ud-muted">Jak przetwarzamy wyniki zawodów i jakie masz prawa: <a href="privacy.html#wyniki-usun">polityka prywatności, sekcja 12</a>.</p>
 </main>
 <script>
+/* „← Kalendarz startów” (23.11, blizna-343): reguła P1. Z naszej strony (i jest historia) → history.back(), jak wstecz w telefonie; z zewnątrz (link
+   z maila po zalogowaniu, nowa karta) → location.replace: zalogowany na Kalendarz Startów, niezalogowany na stronę startową, bez nowego wpisu.
+   Wcześniej zwykły link dopisywał Kalendarz Startów do historii (pętla z wyszukiwarką wyników). Napis „← Kalendarz startów” zostaje, gdy wstecz
+   naprawdę tam prowadzi; inaczej „← Wstecz”. href zostaje bez JS. */
+function zNaszejStrony() { try { return !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) { return false; } }
+function zHistorii() { return zNaszejStrony() && history.length > 1; }
+function sesjaUd() { try { return Promise.resolve(window.sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session ? r.data.session : null; }, function () { return null; }); } catch (e) { return Promise.resolve(null); } }
+function celZZewnatrz(s) { return s ? 'races.html' : 'index.html'; }
+function napisPowrotu(a) {
+  if (zHistorii()) { try { if (new URL(document.referrer).pathname !== new URL(a.href, location.href).pathname) a.textContent = '← Wstecz'; } catch (e) {} return; }
+  sesjaUd().then(function (s) { if (!s) a.textContent = '← Wstecz'; });
+}
+function powrotUd(e) {
+  if (e) e.preventDefault();
+  if (zHistorii()) { history.back(); return; }
+  sesjaUd().then(function (s) { location.replace(celZZewnatrz(s)); });
+}
 document.addEventListener('DOMContentLoaded', function () {
+  var powrot = document.querySelector('.ud-powrot');
+  if (powrot) { napisPowrotu(powrot); powrot.addEventListener('click', powrotUd); }
   var root = document.getElementById('usun-dane');
   var dostepne = typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne() && !!window.sb;
   var podglad = dostepne && typeof window.wynikiApiPodglad === 'function' && window.wynikiApiPodglad();

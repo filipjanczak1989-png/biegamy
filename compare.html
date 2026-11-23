@@ -19,7 +19,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sa
 .header{position:sticky;top:0;z-index:10;background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 16px 0;}
 .header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
 /* .back-btn usunięty 21.08.2026 — martwy styl. Przycisk powrotu na tej stronie
-   istnieje, ale siedzi w nagłówku hero (niżej, <a href="zawodnik.html#section-forma">)
+   istnieje, ale siedzi w nagłówku hero (niżej, <a class="bm-hero-wstecz">, obsługa: wsteczPorownania)
    i jest stylowany inline. Ta reguła została po układzie sprzed hero i nie miała
    ani jednego użycia — jedyne wystąpienie „back-btn" w pliku było jej definicją. */
 
@@ -51,7 +51,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sa
      Opakowanie 900 px = szerokość <main> niżej, żeby na desktopie hero stało w tej samej kolumnie co treść. -->
 <div style="max-width:900px;margin:0 auto;">
 <section class="bm-hero" data-bm-hero="compare">
-  <a class="bm-hero-wstecz" href="zawodnik.html#section-forma" title="Wróć" aria-label="Wróć">←</a>
+  <a class="bm-hero-wstecz" href="zawodnik.html?tab=forma" title="Wróć" aria-label="Wróć">←</a>
   <div class="bm-hero-tresc">
     <h1 class="bm-hero-tytul">Porównanie <span>formy</span></h1>
     <p class="bm-hero-opis">Wykres formy 90 dni.</p>
@@ -824,6 +824,18 @@ function initCompareToggles() {
 function changeFriend() {
   location.href = 'compare.html';
 }
+
+/* „←” (23.11, blizna-343): reguła P1. Z naszej strony (i jest historia) → history.back(), jak wstecz w telefonie; z zewnątrz → location.replace na
+   Formę, bez nowego wpisu. Wcześniej zwykły link do zawodnik.html#section-forma dopisywał Dziś do historii (wstecz w telefonie wracało do Porównania)
+   i otwierał Dziś, nie Formę: kotwica ukrytej sekcji nic nie robi, Formę otwiera ?tab=forma. href zostaje bez JS. */
+function wsteczPorownania(e) {
+  if (e) e.preventDefault();
+  var zNaszej = false;
+  try { zNaszej = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) {}
+  if (zNaszej && history.length > 1) history.back();
+  else location.replace('zawodnik.html?tab=forma');
+}
+(function () { var w = document.querySelector('.bm-hero-wstecz'); if (w) w.addEventListener('click', wsteczPorownania); })();
 
 init();
 </script>
