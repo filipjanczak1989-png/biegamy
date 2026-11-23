@@ -58,14 +58,15 @@ Równolegle:
 - **(b) wyniki F6** (`api.biegamy.run`, token użytkownika w `Authorization`) — `search_runners` do 3, dla najlepszego
   `runner_results`: N startów, ostatni start, najlepszy czas na dystansie ostatniego startu, 5 ostatnich; „Otwórz wyniki"
   → races.html (wyszukiwarka, `WYNIKI_API_WLACZONE = true` dla wszystkich od 1.11.2026);
-- **(c) sieć** tylko gdy osoba publiczna sportowo: ≥ 30 startów, start w Mistrzostwach Polski albo podium OPEN
-  (1–3 w generalnej; podium w kategorii za szerokie — 9/12 startów jednej zawodniczki). ~~albo pytanie wprost~~ — **od 2.11
-  wieczorem wyjątek „pytanie wprost” zamknięty** (decyzja Filipa po przeglądzie A): prywatna osoba NIGDY do Google, także
-  przy „kim jest X w sieci”; `wprost` zostaje tylko w logu. Sekcja „Przed 8.11” niżej.
-  Wtedy `zapytajSiec` ze źródłami, licznik jak tryb `siec` (20/dobę, `uzyteSiecDzis` liczy też `osoba` z
-  `zapytania_sieci ≥ 1`). Inaczej nazwisko nie wychodzi do Google i braku sieci nie komunikujemy.
+- **(c) sieć — WYŁĄCZONA od 22.11** (decyzja Filipa po raporcie wpadek z logów: z sieci szły opisy osób z miejscowością
+  i klubami): tryb osoby nie woła sieci nigdy, także dla osoby publicznej sportowo i przy „kim jest X”, „X w sieci”,
+  „google X”. Przełącznik `OPISY_OSOB_Z_SIECI = false` w `osoba.mjs`; blizna-334 (oraz odwrócone blizna-67 i blizna-107).
+  Zostają (a) i (b): publiczne profile w BiegaMy, wyniki z maszyny i wybór „który to Ty?”.
+  Historia: do 21.11 sieć była dla osoby publicznej sportowo (≥ 30 startów, start w Mistrzostwach Polski albo podium OPEN;
+  podium w kategorii za szerokie — 9/12 startów jednej zawodniczki); od 2.11 wieczorem wyjątek „pytanie wprost” zamknięty
+  (decyzja Filipa po przeglądzie A), więc prywatna osoba nigdy nie szła do Google. Sekcja „Przed 8.11” niżej.
 
-Odpowiedź: zdania z sieci (jeśli są, z etykietą i źródłami) → karta osoby → karta wyników; nic → (do M3-0)
+Odpowiedź: karta osoby → karta wyników (do 21.11 przed nimi zdania z sieci z etykietą i źródłami); nic → (do M3-0)
 „Nie znalazłem tej osoby w aplikacji ani w wynikach." — od M3-0 osoba bez trafień idzie dalej ścieżką ogólną (bez
 sieci), a gdy i tam pusto: „Nie znalazłem tego w aplikacji, w wynikach ani w kalendarzu."; 429 z F6 → „Maszyna wyników jest teraz zajęta — spróbuj za
 chwilę." (reszta zostaje). Pamięć F6 wspólna (dane publiczne): RPC + argumenty, 10 min, ≤ 500 wpisów, w izolacie.
@@ -229,8 +230,8 @@ zdania i nie po przyimku miejsca (w/we/na/pod/koło/obok/przy/za — „w Warsza
 przechodzi). Odpadają: słowa pytające, NIE_IMIE, przyimki, słowa imprez/aplikacji (maraton, bieg, start, trasa, zapisy,
 wyniki, rekord, plan, trening, odznaki, sieć, google…), PEŁNE formy miesięcy i czasu („Marcin" ≠ marzec), czasowniki.
 Kontekst: „w/na <Miejsce>" → `gdzie` → filtr runner_results po rdzeniu (brak trafienia → zdanie „Maszyna wyników nie zna
-startu tej osoby: X." i pełna karta); „kim jest / w sieci / google" → wprost. Reguła publiczności bez zmian — zdanie
-z wykrytą osobą idzie do Google tylko dla osoby publicznej sportowo albo wprost. Strażnik ścieżki ogólnej zna też
+startu tej osoby: X." i pełna karta); „kim jest / w sieci / google" → wprost. Od 22.11 zdanie z wykrytą osobą nie idzie
+do Google wcale (opisy osób z sieci wyłączone, wyżej (c)); wcześniej tylko dla osoby publicznej sportowo. Strażnik ścieżki ogólnej zna też
 `osobaWZdaniu` (pas bezpieczeństwa). Testy: blizna-81 (15 zdań → 0 wyjść do sieci poza wprost).
 
 ## M3-1 (2) kolejność i detektory (1.11.2026) — wdrożone w v19
@@ -358,12 +359,12 @@ Pięć reguł, jeden commit, blizna-107; ławka po zmianie: patrz `docs/lawka-py
    rysuje „Oficjalna zbiórka ›”). Własne km („ile km mam w akcji”) nadal nieprzechwytywane.
 3. **Nazwisko + słowo biegowe → tryb osoby** — „Jan Kowalski parkrun”, „kasia nowak ultra”, „Anna Nowak maraton”: router nie robi
    z tego listy biegów (`maPareOsoby`, imię ze słownika), `osobaZPytania` zdejmuje słowa biegowe (`osobaObokSlowBiegowych`) → F6 +
-   profile, sieć tylko po regule publiczności. Tryb imprezy: bez trafienia w kalendarzu nie pyta sieci, gdy pytanie wygląda na osobę
+   profile, bez sieci (od 22.11; wcześniej sieć tylko po regule publiczności). Tryb imprezy: bez trafienia w kalendarzu nie pyta sieci, gdy pytanie wygląda na osobę
    (para, nazwisko w kontekście, „Nazwisko + słowo biegowe”).
 4. **Samo nazwisko** — „wyniki Nowaka”, „jak pobiegł Kowalski w Dębnie”, „kim jest Kowalski” → tryb osoby (`samoNazwisko`: jedno słowo
    z dużej litery, reszta co najwyżej „w/na Miejsce” → `gdzie`); strażnik ścieżki ogólnej (`wygladaNaNazwisko`: duża litera w kontekście
    wyników/biegu, nie po przyimku miejsca, nie po słowie „Bieg/Maraton…”) blokuje sieć jak dla pary. Świadoma luka: nazwisko pisane
    małą literą („wyniki nowaka”) nie jest rozpoznawane — bez słownika nazwisk nie da się go odróżnić od słowa.
 5. **„Wprost” zamknięte** — `doSieci = publiczna` (≥ 30 startów / MP / podium open); prompt sieci jeden („…biegacz(ka) startujący
-   w zawodach?”).
+   w zawodach?”). **Od 22.11** `doSieci = OPISY_OSOB_Z_SIECI && publiczna`, a przełącznik jest wyłączony: tryb osoby bez sieci (blizna-334).
 Koszt: zero nowych wywołań modelu — wszystkie reguły to router/detektory (0 tokenów); mniej wyjść do sieci.
