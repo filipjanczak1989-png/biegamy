@@ -6,7 +6,7 @@
 // Wynik: { status, body } — body w kształcie v1 (zdania, karty, akcja, zrodla, narzedzia, tryb, koszt_tok, chipy?); index.ts dokłada wersję.
 import { waliduj, wykonaj, nawigacja } from "../okienko/narzedzia.mjs";
 import { dopasuj, normalizuj, czyOboz, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, kartyBezDanychDziecka, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH, czyPytanieOMiejsce } from "../okienko/router.mjs";
-import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy } from "../okienko/router.mjs";   // 21.11: pytania o BiegaMy bez sieci, „nie wiem” + link
+import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy, ODP_PLAN_TRENER, KARTA_PLAN_TRENER } from "../okienko/router.mjs";   // 21.11: pytania o BiegaMy bez sieci, „nie wiem” + link; 22.11: plan z trenerem
 import { odpowiedzBiegu } from "../okienko/bieg-odp.mjs";   // 21.11: ustępy regulaminu biegu z js/bieg.mjs (ten sam moduł co v1)
 import { zdanieAkcji, liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "./akcja-v2.mjs";
 import { zWyniku } from "../okienko/odpowiedz.mjs";
@@ -110,6 +110,8 @@ export async function potok(we, nadpisz = {}) {
     if (traf.log === "zagadka") await zapiszTure(adm, athleteId, "akcja", {}, { pytanie: tekst, odpowiedz: [zd] });
     // 21.11: bieg wirtualny — ustępy regulaminu z js/bieg.mjs (pole `bieg` licznika); bez licznika zostaje „Nie wiem tego na pewno.” + link z routera
     if (traf.log === "bieg") { const ob = odpowiedzBiegu(akcjaDane, traf.bieg); if (ob) return odp(200, { ...pusto("router"), zdania: ob.zdania, karty: ob.karty }); }
+    // 22.11 (krok 1): zmiana albo ułożenie planu — z trenerem „Napisz do trenera”; bez trenera zostaje „Ułóż plan” z routera
+    if (traf.planKarta) { const { data: a } = await sb.from("athletes").select("coach_id").eq("id", athleteId).maybeSingle(); if (a && a.coach_id) return odp(200, { ...pusto("router"), zdania: [ODP_PLAN_TRENER], karty: [KARTA_PLAN_TRENER] }); }
     return odp(200, { ...pusto("router"), zdania: [zd], karty: kartyZd, chipy: traf.chipy || [] });
   }
   // ── O NAS (Filip 3.11 15:25): plik wiedzy o BiegaMy (_shared/o-nas.mjs) — PRZED bramką osób i przed siecią, 0 tokenów:

@@ -334,6 +334,17 @@ export function rodzajBiegaMy(tekst) {
   return /\bbiegamy\b/.test(t) ? "biegamy" : null;
 }
 
+/* ZMIANA I UŁOŻENIE PLANU (Filip 22.11, krok 1): „Chcę zmienić plan treningowy” (jedyna wpadka prawdziwego użytkownika w logach 1–21.11) szło do modelu i dostawało
+   pustą odpowiedź, a „ułóż plan” w v1 wyglądało na imię i nazwisko (sieć zablokowana, dalej model). Stałe zdanie + karta: z trenerem „Napisz do trenera”, bez trenera
+   „Ułóż plan” (generator). Router nie zna trenera: oddaje wariant bez trenera, EF podmienia go po coach_id. Zakotwiczone (całe pytanie): „plan na jutro”,
+   „zmień plan na jutro”, „pokaż plan”, „plan startowy”, „plan żywieniowy” i „plan Jana Kowalskiego” zostają jak dotąd. */
+export const ODP_PLAN_TRENER = "Plan układa Twój trener. Napisz mu, co chcesz zmienić.";
+export const ODP_PLAN_GENERATOR = "Nowy plan ułożysz w generatorze — trzy pytania.";
+export const KARTA_PLAN_TRENER = { typ: "plan_pusty", dane: { stan: "trener" } };
+export const KARTA_PLAN_GENERATOR = { typ: "plan_pusty", dane: { stan: "generator" } };
+const PLAN_ZMIANA = /^(a )?(chce|chcialbym|chcialabym|chcemy|prosze|mozesz|mozna|jak|czy (moge|mozna|mozesz))?( sie)?( mi)? ?(zmienic|zmien|zmiana|zmieni\w*|ulozyc|uloz|oloz|uluz|ulozysz|zrob|zrobic|stworz|stworzyc|przygotuj|przygotowac|rozpisz|rozpisac|wygeneruj|dac|daj|potrzebuje|chce|mam miec)( mi| nowy| inny| moj| swoj| mi nowy| mi inny)? (plan|planu|planem)( treningow\w*| biegow\w*| na bieganie| trening\w*)?( na (nowo|inny))?$|^(nowy|inny) plan( treningow\w*)?$|^plan (do zmiany|jest za (ciezki|lekki|trudny|latwy))$/;
+export function czyZmianaPlanu(tekst) { const t = normalizuj(tekst); return !!t && PLAN_ZMIANA.test(t); }
+
 /** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */
 /* OBÓZ (Filip 3.11): „gdzie na obóz”, „obóz biegowy”, „zgrupowanie” to pytanie o obozy z sieci, NIGDY impreza z kalendarza po słowie w nazwie. Wyjątek: bieg, który ma obóz w nazwie
    („wyniki biegu Obóz Karolin”, „kiedy jest bieg Obóz Karolin”) działa jak każda inna impreza. „obóz przed maratonem” to dalej obóz. */
@@ -355,6 +366,7 @@ export function dopasuj(tekst, dzis) {
   if (biegPoNazwie && !ZDROWIE.test(t) && !CHOROBA.test(t)) return wynikBiegu(bieg);   // 21.11: nazwa naszego biegu — przed regułami „moje” (ból i choroba zostają przy stałych zdaniach)
   if (PYT_DOLACZ.test(t)) return { zdanie: ZDANIE_REJESTRACJA, log: "rejestracja",
     karty: [{ typ: "kat_pojecie", dane: { klucz: ODP_REJESTRACJA.klucz, tytul: ODP_REJESTRACJA.tytul, co_to: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa } }] };
+  if (czyZmianaPlanu(tekst)) return { zdanie: ODP_PLAN_GENERATOR, log: "plan-zmiana", planKarta: true, karty: [KARTA_PLAN_GENERATOR] };   // 22.11 (krok 1): EF podmienia na wariant z trenerem
   /* ławka v2 (3.11): pytanie o INNĄ osobę („ile km przebiegł Robert Korzeniowski w tym tygodniu”, „pokaż plan Jana Kowalskiego”) trafiało
      w „moje” narzędzia (moje_treningi, nawigacja do mojego planu). Para imię+nazwisko bez słowa „mój/mam/mnie” → router oddaje
      pytanie trybowi osoby (osoba.mjs). */
