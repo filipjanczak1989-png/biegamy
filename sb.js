@@ -3190,6 +3190,41 @@
         var els = nav.querySelectorAll('[data-navid]');
         for (var i = 0; i < els.length; i++){ els[i].classList.toggle('active', els[i].getAttribute('data-navid') === id); }
       } catch(e){}
+    },
+    // ── Strony publiczne bez theme.css (bieg.html, dla-fabianka.html; 23.11, blizna-341): pasek TYLKO dla zalogowanych.
+    //    Bez sesji: zero zapytań i zero zmian w DOM (strona jak dotąd). Rola jak w races.html: trener bez wiersza zawodnika → pasek trenera;
+    //    konto trener + zawodnik → pasek trenera tylko po wejściu z trener.html, inaczej zawodnika. Strona sama nie czyta tabel (blizna-235): robi to NAV.
+    //    Style to kopia reguł paska z theme.css (cały theme.css zmieniłby wygląd strony); test pilnuje zgodności z theme.css.
+    _cssBezMotywu: ".bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px calc(22px + env(safe-area-inset-bottom, 0px));z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}"
+      + ".nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}"
+      + ".nav-it svg{width:22px;height:22px;stroke:var(--muted,#8a8798);stroke-width:1.7;transition:stroke 0.15s;}"
+      + ".nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted,#8a8798);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}"
+      + "#nav-mount{ position:relative; z-index:50; }"
+      + ".bottom-nav,.bottom-nav *{box-sizing:border-box;}"
+      + "body.z-paskiem main{padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px));}",
+    rolaKonta: async function(uid){
+      var sb = window.sb;
+      function q(f){ try { return Promise.resolve(f()).then(function(r){ return r && !r.error ? r.data : null; }, function(){ return null; }); } catch(e){ return Promise.resolve(null); } }
+      var w = await Promise.all([
+        q(function(){ return sb.from('athletes').select('id').eq('user_id', uid).maybeSingle(); }),
+        q(function(){ return sb.from('coaches').select('id').eq('id', uid).maybeSingle(); })
+      ]);
+      var athleteId = w[0] && w[0].id ? w[0].id : null, trener = !!(w[1] && w[1].id), zTrenera = false;
+      try { zTrenera = /\/trener\.html$/.test(new URL(document.referrer).pathname); } catch(e){}
+      var rola = trener && (!athleteId || zTrenera) ? 'coach' : 'athlete';
+      return { rola: rola, athleteId: rola === 'athlete' ? athleteId : null };
+    },
+    zamontujDlaZalogowanych: async function(){
+      var sb = window.sb, s = null;
+      if (!sb || !sb.auth || document.getElementById('nav-mount')) return null;
+      try { var r = await sb.auth.getSession(); s = r && r.data ? r.data.session : null; } catch(e){ s = null; }
+      if (!s || !s.user || !s.user.id) return null;
+      var k = await this.rolaKonta(s.user.id);
+      if (document.getElementById('nav-mount')) return null;
+      var st = document.createElement('style'); st.id = 'nav-css-bez-motywu'; st.textContent = this._cssBezMotywu; document.head.appendChild(st);
+      var m = document.createElement('div'); m.id = 'nav-mount'; m.innerHTML = this.render(null, { role: k.rola, athleteId: k.athleteId }); document.body.appendChild(m);
+      document.body.classList.add('z-paskiem');
+      return k;
     }
   };
 

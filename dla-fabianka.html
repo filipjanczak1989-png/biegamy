@@ -158,6 +158,8 @@
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
   var A = window.BM_AKCJA, $ = function (id) { return document.getElementById(id); };
+  /* DOLNY PASEK (23.11, blizna-341): tylko dla zalogowanych, po rozpoznaniu sesji (window.NAV z sb.js); niezalogowany widzi stronę bez zmian */
+  try { if (window.NAV && typeof window.NAV.zamontujDlaZalogowanych === 'function') Promise.resolve(window.NAV.zamontujDlaZalogowanych()).catch(function () {}); } catch (e) {}
   function dzisWaw() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
 
   /* Data startu wyłącznie z licznika (akcje.start) — bez literałów w stronie. */
