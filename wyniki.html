@@ -74,7 +74,7 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
 .w-stopka a{color:var(--muted);font-size:13px;text-decoration:underline;display:inline-block;padding:12px;}
 [hidden]{display:none !important;}
 /* toast nad dolnym paskiem (23.11, blizna-344): wygląd jak window.showToast z sb.js, ale tamten stoi na bottom:24px, czyli na pasku.
-   116 px: pasek ma 89 px, a okrągłe logo „Log” wystaje nad niego o 18 px — toast nie dotyka logo */
+   116 px: pasek ma ~89 px, kółko logo „Log” wystaje nad niego ~3 px, a jego poświata (cień 20 px) sięga wyżej — przy 100 px toast jej dotykał */
 .toast{position:fixed;bottom:calc(116px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%) translateY(10px);background:rgba(91,140,255,0.95);color:#fff;padding:12px 20px;border-radius:12px;font:500 14px 'DM Sans',sans-serif;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,0.3);max-width:90vw;text-align:center;pointer-events:none;opacity:0;transition:opacity 0.3s,transform 0.3s;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>

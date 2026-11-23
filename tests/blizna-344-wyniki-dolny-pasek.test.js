@@ -49,7 +49,7 @@ test('mountNav: pasek zawodnika albo trenera jak w races.html, bez podświetleni
 
 test('koniec treści i toast nad paskiem: odstęp 112 px, własny toast na 116 px (window.showToast z sb.js stoi na pasku)', () => {
   assert.match(W, /#content\{padding:12px 16px calc\(112px \+ env\(safe-area-inset-bottom, 0px\)\);max-width:640px;margin:0 auto;\}/);
-  assert.match(W, /\.toast\{position:fixed;bottom:calc\(116px \+ env\(safe-area-inset-bottom, 0px\)\);[^}]*z-index:99999;[^}]*opacity:0;/, 'nad paskiem (89 px) i nad wystającym logo „Log” (18 px)');
+  assert.match(W, /\.toast\{position:fixed;bottom:calc\(116px \+ env\(safe-area-inset-bottom, 0px\)\);[^}]*z-index:99999;[^}]*opacity:0;/, 'nad paskiem (~89 px) i nad poświatą logo „Log” (przy 100 px toast jej dotykał)');
   assert.match(W, /\.toast\.show\{opacity:1;/);
   assert.match(W, /<div class="toast" id="toast" role="status"><\/div>/);
   assert.doesNotMatch(W, /window\.showToast\(/, 'Wyniki nie wołają toastu z sb.js');

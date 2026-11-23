@@ -1729,9 +1729,14 @@
       info:    'rgba(91,140,255,0.95)',
       warn:    'rgba(232,184,64,0.95)'
     };
+    /* 23.11 (blizna-346): nad dolnym paskiem, gdy na stronie jest WIDOCZNY .bottom-nav — 116 px + safe area jak w Wynikach (pasek ~89 px,
+       kółko logo „Log” wystaje nad niego ~3 px, a jego poświata — cień 20 px — sięga wyżej; przy 100 px toast jej dotykał). Strona bez paska
+       albo z ukrytym paskiem: jak dotąd 24 px. Sprawdzane przy każdym toaście. */
+    let dol = '24px';
+    try { if (Array.prototype.some.call(document.querySelectorAll('.bottom-nav'), function(n){ return n.getClientRects().length > 0; })) dol = 'calc(116px + env(safe-area-inset-bottom, 0px))'; } catch(e) {}
     const t = document.createElement('div');
     t.style.cssText =
-      'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+      'position:fixed;bottom:' + dol + ';left:50%;transform:translateX(-50%);' +
       'background:' + (colors[type] || colors.info) + ';color:#fff;' +
       'padding:12px 20px;border-radius:12px;font-family:\'DM Sans\',sans-serif;' +
       'font-size:14px;font-weight:500;z-index:99999;' +

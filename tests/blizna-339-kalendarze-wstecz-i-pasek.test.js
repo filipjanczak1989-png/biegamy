@@ -23,7 +23,7 @@ test('P3: races.html ma dolny pasek z window.NAV (jeden korzeń przed </body>, m
   assert.equal((R.match(/<div id="nav-mount"><\/div>/g) || []).length, 1);
   assert.match(R, /<div id="nav-mount"><\/div>\n<\/body>/, 'korzeń na końcu strony');
   assert.match(R, /  _isCoach = !!coachRow;\n  mountNav\(\);/, 'montowanie po rozpoznaniu trenera');
-  assert.match(R, /\.toast\{\n  position:fixed;bottom:calc\(100px \+ env\(safe-area-inset-bottom, 0px\)\);/, 'toast nad paskiem');
+  assert.match(R, /\.toast\{\n  position:fixed;bottom:calc\(116px \+ env\(safe-area-inset-bottom, 0px\)\);/, 'toast nad paskiem i nad logo „Log” (blizna-346)');
   assert.match(R, /\.races-list\{padding:0 16px calc\(112px \+ env\(safe-area-inset-bottom, 0px\)\);/, 'koniec listy nad paskiem');
 });
 
