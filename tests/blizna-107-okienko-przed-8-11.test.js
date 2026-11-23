@@ -69,7 +69,7 @@ test('4) samo nazwisko: tryb osoby w „wyniki X" / „jak pobiegł X w Mieście
   assert.match(imp, /const wolnoSiec = !\(naOsobe && !kalendarz\.length && !nasze\.length\)/);
 });
 
-test('5) „wprost" zamknięte: prywatna osoba nigdy do sieci, publiczna sportowo tak', async () => {
+test('5) „wprost" zamknięte: prywatna osoba nigdy do sieci; od 22.11 (Filip, krok 4) także publiczna sportowo nie', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
   const F = await zaladuj('supabase/functions/okienko/f6.mjs');
   const lancuch = () => { const c = { then: (ok) => ok({ data: [], error: null }) }; for (const m of ['select', 'neq', 'ilike', 'limit', 'or', 'eq']) c[m] = () => c; return c; };
@@ -83,10 +83,11 @@ test('5) „wprost" zamknięte: prywatna osoba nigdy do sieci, publiczna sportow
     siec: async () => { siec++; return { zdania: ['x'], zrodla: [{ tytul: 'a', url: 'https://a' }], tok: { we: 1, wy: 1 }, zapytania: 1 }; } });
   for (const [q, wprost] of [['Jan Kowalski', true], ['Jan Kowalski', false], ['Kowalski', true], ['Kowalski', false]]) { F._wyczyscPamiecF6(); await O.odpowiedzOsoba(deps(prywatna, q, wprost)); }
   assert.equal(siec, 0, 'prywatna osoba: 0 wyjść do sieci, także przy „kim jest … w sieci"');
-  F._wyczyscPamiecF6(); await O.odpowiedzOsoba(deps(publiczna, 'Anna Nowak', false)); assert.equal(siec, 1, '≥ 30 startów → sieć');
-  F._wyczyscPamiecF6(); await O.odpowiedzOsoba(deps(mp, 'Agnieszka Lis', false)); assert.equal(siec, 2, 'MP → sieć');
+  F._wyczyscPamiecF6(); await O.odpowiedzOsoba(deps(publiczna, 'Anna Nowak', false)); assert.equal(siec, 0, '≥ 30 startów: od 22.11 też bez sieci (opisy osób z internetu wyłączone)');
+  F._wyczyscPamiecF6(); await O.odpowiedzOsoba(deps(mp, 'Agnieszka Lis', false)); assert.equal(siec, 0, 'MP: od 22.11 też bez sieci');
   const src = czytaj('supabase/functions/okienko/osoba.mjs');
-  assert.match(src, /const doSieci = !!\(wyniki && wyniki\.publiczna\);/);
+  assert.match(src, /const doSieci = OPISY_OSOB_Z_SIECI && !!\(wyniki && wyniki\.publiczna\);/);
+  assert.match(src, /^export const OPISY_OSOB_Z_SIECI = false;$/m, 'przełącznik opisów osób z sieci wyłączony (Filip 22.11)');
   assert.doesNotMatch(src, /wprost \? `Kim jest/);
   assert.match(czytaj('docs/okienko-spec.md'), /wyjątek „pytanie wprost” zamknięty/i);
 });

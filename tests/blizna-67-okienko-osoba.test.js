@@ -88,16 +88,17 @@ test('nazwisko z 3 startami (bez MP i podium open) NIE trafia do sieci; karty os
   assert.deepEqual(o.akcja, { nawiguj: 'races.html' });
 });
 
-test('30+ startów, Mistrzostwa Polski albo podium OPEN → sieć; podium tylko w kategorii → nie', async () => {
+test('od 22.11 (Filip, krok 4): 30+ startów, Mistrzostwa Polski, podium OPEN i w kategorii → NIGDY sieć; zostają karty osób i wyniki z maszyny', async () => {
   const O = await zaladuj('supabase/functions/okienko/osoba.mjs');
-  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ starty: 30 }) })).siec.length, 1, '30 startów');
-  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ wyniki: [{ event_name: 'Mistrzostwa Polski w Maratonie', distance_km: 42.195, time_seconds: 9000, position_total: 40 }] }) })).siec.length, 1, 'MP');
-  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ wyniki: [{ event_name: 'Bieg', distance_km: 5, time_seconds: 1000, position_total: 2 }] }) })).siec.length, 1, 'podium open');
+  assert.equal(O.OPISY_OSOB_Z_SIECI, false);
+  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ starty: 30 }) })).siec.length, 0, '30 startów');
+  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ wyniki: [{ event_name: 'Mistrzostwa Polski w Maratonie', distance_km: 42.195, time_seconds: 9000, position_total: 40 }] }) })).siec.length, 0, 'MP');
+  assert.equal((await odpowiedz(O, { f6: f6Atrapa({ wyniki: [{ event_name: 'Bieg', distance_km: 5, time_seconds: 1000, position_total: 2 }] }) })).siec.length, 0, 'podium open');
   assert.equal((await odpowiedz(O, { f6: f6Atrapa({ wyniki: [{ event_name: 'Bieg', distance_km: 5, time_seconds: 1000, position_total: 40, position_category: 1 }] }) })).siec.length, 0, 'podium w kategorii');
   const z = await odpowiedz(O, { f6: f6Atrapa({ starty: 31 }) });
-  assert.deepEqual(z.o.zdania, ['Zdanie z sieci.']);
-  assert.equal(z.o.zrodla.length, 1);
-  assert.deepEqual(z.o.karty.map((k) => k.typ), ['osoba', 'osoba', 'wyniki'], 'kolejność: zdania z sieci → osoby (atrapa bez RLS: obie) → wyniki');
+  assert.ok(!z.o.zdania.includes('Zdanie z sieci.'), 'bez opisu z internetu');
+  assert.equal(z.o.zrodla.length, 0);
+  assert.deepEqual(z.o.karty.map((k) => k.typ), ['osoba', 'osoba', 'wyniki'], 'osoby (atrapa bez RLS: obie) → wyniki z maszyny');
 });
 
 test('„kim jest X" przy 3 startach NIE trafia do sieci (przed 8.11, Filip 2.11: „wprost" zamknięte — blizna-107); limit sieci wyczerpany → bez sieci', async () => {

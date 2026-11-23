@@ -21,6 +21,9 @@ import { normalizuj } from "./router.mjs";
 import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
 export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
 export const PROG_STARTOW_PUBLICZNY = 30;
+/* OPISY OSÓB Z INTERNETU WYŁĄCZONE (Filip 22.11, krok 4; red team z logów: z sieci szły opisy osób z miejscowością i klubami): tryb osoby nigdy nie woła
+   sieci, także dla osób publicznych sportowo. Zostają wyniki z maszyny (F6), karta „który to Ty?” i publiczne profile w BiegaMy (dane aplikacji, nie internet). */
+export const OPISY_OSOB_Z_SIECI = false;
 // M3-0b (1.11.2026, „puste znaczy coś"): osoba bez trafień dostaje ODPOWIEDŹ INFORMACYJNĄ (0 tokenów, bez modelu) —
 // każde zdanie tylko gdy dotyczy: brak konta w BiegaMy (gdy odczyt profili się udał), brak startów w maszynie (gdy F6
 // odpowiedziało), zajęta maszyna (429). Przycisku „Zaproś do BiegaMy" nie ma — zwiad 1.11: aplikacja nie ma mechanizmu
@@ -258,7 +261,7 @@ export async function odpowiedzOsoba(deps) {
   const f6Stan = rB.status === "fulfilled" ? "ok" : (rB.reason && rB.reason.kod) || "blad";
   /* PRZED 8.11 (5, decyzja Filipa 2.11): wyjątek „pytania wprost” ZAMKNIĘTY — do sieci WYŁĄCZNIE osoba publiczna sportowo
      (≥ 30 startów / MP / podium open). `wprost` zostaje tylko w logu; prywatna osoba NIGDY do Google. */
-  const doSieci = !!(wyniki && wyniki.publiczna);
+  const doSieci = OPISY_OSOB_Z_SIECI && !!(wyniki && wyniki.publiczna);   // 22.11 (krok 4): wyłączone na stałe
   let zdania = [], zrodla = [], tok = { we: 0, wy: 0 }, zapytania = 0, sieci = false;
   if (doSieci && await deps.sieciDozwolona()) {
     try {
