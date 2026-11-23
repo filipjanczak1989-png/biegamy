@@ -210,7 +210,15 @@ export const ODP_PODZIEKOWANIE = "Nie ma za co. Pytaj dalej.";
    obowiązuje v1 i v2 — ścieżka awaryjna v2 (model v1) tu nie dociera. */
 export const ODP_ODMOWA = "Nie udostępniam cudzych danych ani list użytkowników. Mogę pokazać Twoje dane albo publiczny profil konkretnej osoby.";
 const ODMOWA = /\b(wszystkich|wszystkie|wszystkim|cal[ae]|pelna|kazdego|kazdemu)\b.{0,40}\b(uzytkownik\w*|zawodnik\w*|biegacz\w*|osob\w*|kont\w*|email\w*|mail\w*|adres\w*|telefon\w*|numer\w*|dan\w*)\b|\b(list[aeyę]|spis|baz[aey]|eksport\w*|wypisz|zrzut)\b.{0,30}\b(uzytkownik\w*|zawodnik\w*|biegacz\w*|kont|osob\w*|email\w*|mail\w*|telefon\w*)\b|\b(email\w*|mail\w*|telefon\w*|numer\w*|adres\w*)\b.{0,30}\b(biegacz\w*|uzytkownik\w*|zawodnik\w*|osob z|ludzi)\b|\b(z?ignoruj|olej|pomin|zapomnij|wylacz|obejdz)\b.{0,30}\b(zasad\w*|regul\w*|instrukcj\w*|ograniczen\w*|polecen\w*|prompt\w*)\b|\b(system ?prompt|prompt systemowy|twoje instrukcje|jakie masz zasady)\b/;
-export function czyOdmowa(tekst) { const t = normalizuj(tekst); return !!t && ODMOWA.test(t); }
+/* NAZWISKO OSOBY (Filip 22.11, krok 3, red team z logów: „jak ma nazwisko Kasia” szło w v1 do modelu): odmowa jak przy innych osobach. Własne nazwisko
+   w profilu bez zmian; nazwisko Fabianka łapie wcześniej zagadka akcji (stoi w routerze przed bramką odmowy). */
+const NAZWISKO_OSOBY = /\b(jak (sie )?(ma|maja|nazywa|nazywaja) na nazwis\w*|jak ma nazwis\w*|jakie (ma |maja )?nazwis\w*|jakie jest nazwis\w*|nazwis\w* (ma|maja|kasi\w*|filip\w*|trener\w*)|podaj (mi )?nazwis\w*|(kasi\w*|trener\w*|trenerk\w*|wspoltrenerk\w*) (ma )?nazwis\w*|nazwis\w* (tej|tego|tych) (osob\w*|zawodnik\w*|trener\w*))\b/;
+const NIE_NAZWISKO = /\b(moje|moim|mojego|swoje|swoim|zmien\w*|zmiana|w profilu|poprawi\w*|literowk\w*)\b/;
+export function czyOdmowa(tekst) { const t = normalizuj(tekst); return !!t && (ODMOWA.test(t) || (NAZWISKO_OSOBY.test(t) && !NIE_NAZWISKO.test(t))); }
+/* PYTANIE O MODEL AI (Filip 22.11, krok 3): stałe zdanie bez nazwy dostawcy, zgodnie z polityką prywatności („modele AI zewnętrznych dostawców”). */
+export const ODP_O_OKIENKU = "Jestem Okienkiem BiegaMy. Odpowiadam z Twoich danych w aplikacji, a przy części pytań pomaga mi model AI zewnętrznego dostawcy — tak, jak opisuje polityka prywatności.";
+const MODEL_AI = /\b(na jakim (modelu|ai|silniku)|jaki (jest )?twoj model|jaki model (ai|jezykow\w*|sztucznej inteligencji)|^jaki (jest )?model$|jakim (modelem|ai) jestes|czy jestes (chatgpt|chat gpt|gpt|gemini|claude|ai|sztuczn\w* inteligencj\w*|botem|robotem)|kto cie (zasila|napedza)|z jakiego (ai|modelu) korzyst\w*|uzywasz (chatgpt|gpt|gemini|ai))\b/;
+export function czyPytanieOModel(tekst) { const t = normalizuj(tekst); return !!t && MODEL_AI.test(t); }
 const REAKCJA_ZWROT = /^(stary|ej|halo|no|hej|czlowieku)[ ,]+(zapytal\w*|pytal\w*|chcial\w*|co ty|nie o to|zle|co odwali\w*).{0,80}$/;
 export function czyReakcja(tekst) { const t = normalizuj(tekst); return !!t && (REAKCJA_MOCNA.test(t) || REAKCJA_KROTKA.test(t) || REAKCJA_ZWROT.test(t)); }
 /* NISKA PEWNOŚĆ (Filip 3.11): bez liter albo jedno–dwa słowa, których nie zna router (ani osoba, impreza, katalog — one idą wcześniej)
@@ -384,6 +392,7 @@ export function dopasuj(tekst, dzis) {
   if (czyReakcja(tekst)) return { zdanie: ODP_NIEZROZUMIALEM, log: "reakcja", chipy: CHIPY_WYBORU, feedback: true };   // Filip 3.11: reakcje → chipy, bez narzędzi
   if (PODZIEKOWANIE.test(t)) return { zdanie: ODP_PODZIEKOWANIE, log: "podziekowanie" };
   if (czyOdmowa(tekst)) return { zdanie: ODP_ODMOWA, log: "odmowa" };   // bramka odmowy — przed każdym narzędziem, modelem i siecią
+  if (czyPytanieOModel(tekst)) return { zdanie: ODP_O_OKIENKU, log: "o-okienku" };   // 22.11 (krok 3): pytanie o model AI — stałe zdanie
   if (biegPoNazwie && !ZDROWIE.test(t) && !CHOROBA.test(t)) return wynikBiegu(bieg);   // 21.11: nazwa naszego biegu — przed regułami „moje” (ból i choroba zostają przy stałych zdaniach)
   if (PYT_DOLACZ.test(t)) return { zdanie: ZDANIE_REJESTRACJA, log: "rejestracja",
     karty: [{ typ: "kat_pojecie", dane: { klucz: ODP_REJESTRACJA.klucz, tytul: ODP_REJESTRACJA.tytul, co_to: ODP_REJESTRACJA.tekst, cel: ODP_REJESTRACJA.cel, ekran_nazwa: ODP_REJESTRACJA.ekran_nazwa } }] };

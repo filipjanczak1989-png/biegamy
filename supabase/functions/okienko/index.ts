@@ -18,7 +18,8 @@ import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy, ODP_PLAN_TRENER, KARTA_PLAN_T
 import { kartyWynikow } from "./impreza.mjs";   // 22.11 (krok 2): wyniki imprezy z kalendarza maszyny, bez sieci
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { odpowiedzBiegu } from "./bieg-odp.mjs";   // 21.11: ustępy regulaminu biegu z js/bieg.mjs
-import { oNas } from "../_shared/o-nas.mjs";   // 21.11: „o nas” jak w v2 (bez tematu „liczba”, który v2 liczy z bazy)
+import { oNas } from "../_shared/o-nas.mjs";   // 21.11: „o nas” jak w v2
+import { liczbaBiegaczy, ZDANIE_LICZBY_ZAPAS } from "../_shared/liczba-biegaczy.mjs";   // 22.11 (krok 3): temat „liczba” jak w v2, z bazy
 import { zWyniku } from "./odpowiedz.mjs";
 import { zapytajModel, BladModelu } from "./model.mjs";
 import { sprawdz, powodPustych } from "./straznik.mjs";
@@ -144,9 +145,11 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
   }
   // ── O NAS (21.11, jak v2): plik wiedzy o BiegaMy — przed trybem osoby i siecią, 0 tokenów („co to BiegaMy”, „kto prowadzi BiegaMy”) ──
   const on = oNas(tekst);
-  if (on && on.temat !== "liczba") {
+  if (on) {
+    let zdaniaOn = on.zdania;
+    if (on.temat === "liczba") { let n = null; try { n = await liczbaBiegaczy(adm); } catch { n = null; } zdaniaOn = [n || ZDANIE_LICZBY_ZAPAS]; }   // 22.11 (krok 3): „ile osób / kto korzysta z BiegaMy”, nigdy nazwy
     await zapiszLog(adm, { athlete_id: ath.id, tekst, tryb: "router", narzedzia: ["o-nas"] });
-    return odp(200, { ...pusto("router"), zdania: on.zdania, karty: on.karty || [], akcja: on.akcja || null });
+    return odp(200, { ...pusto("router"), zdania: zdaniaOn, karty: on.karty || [], akcja: on.akcja || null });
   }
   // ── PYTANIA O BIEGAMY (Filip 21.11): nigdy internet. Akcja i bieg bez trafienia w routerze → „nie wiem” + link, bez modelu; reszta o BiegaMy
   //    idzie dalej jak dotąd, ale bez sieci (osoba, impreza, pamięć sieci, sieć po modelu), a zamiast sieci „nie wiem” + link do „O nas”. ──

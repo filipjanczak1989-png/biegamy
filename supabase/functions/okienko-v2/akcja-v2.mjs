@@ -3,7 +3,7 @@
 // akcja_licznik oddaje wyprawa_cel_nazwa dopiero po dotarciu, a i wtedy Okienko go nie powtarza (Dziś pokazuje „Dotarliśmy”).
 export const ZDANIE_WYPRAWA_TRWA = "Dokąd biegną Filip i Kasia — zdradzimy na mecie. Postęp wyprawy widać na Dziś.";
 export const ZDANIE_WYPRAWA_DOTARLI = "Dotarli! Szczegóły na Dziś.";
-export const ZDANIE_LICZBY_ZAPAS = "Z BiegaMy korzysta kilkadziesiąt osób — biegacze i ich trenerzy.";
+export { ZDANIE_LICZBY_ZAPAS, zdanieLiczby, liczbaBiegaczy } from "../_shared/liczba-biegaczy.mjs";   // 22.11 (krok 3): wspólne z v1, bez kopii
 
 /** → zdanie dla pytania o akcję PO STARCIE albo null (wtedy zostaje zdanie z routera: zagadka przed startem, PO_STARCIE po). */
 export const ZDANIE_ULICA = "Ulicę, domki firm i wpisy osób wpłacających zobaczysz na stronie akcji. Firmy i wpisy dopisuje trener po zobaczeniu potwierdzenia wpłaty, a kwotę firmy pokazujemy tylko za jej zgodą. Okienko niczego tam nie zmienia ani nie potwierdza.";
@@ -25,15 +25,3 @@ export function zdanieAkcji(rodzaj, d, AKK) {
   return null;
 }
 
-/** „ile osób korzysta z BiegaMy” → „Z BiegaMy korzysta ponad X biegaczy.” — konta z logowaniem, bez usuniętych; X w dół do dziesiątek. */
-export function zdanieLiczby(n) {
-  const k = Number(n);
-  if (!Number.isFinite(k) || k < 10) return null;
-  const x = Math.floor(k / 10) * 10;
-  return k > x ? `Z BiegaMy korzysta ponad ${x} biegaczy.` : `Z BiegaMy korzysta ${x} biegaczy.`;
-}
-export async function liczbaBiegaczy(adm) {
-  const { count, error } = await adm.from("athletes").select("id", { count: "exact", head: true }).not("user_id", "is", null).neq("full_name", "Usunięty użytkownik");
-  if (error) return null;
-  return zdanieLiczby(count);
-}

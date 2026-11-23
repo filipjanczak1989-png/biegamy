@@ -46,7 +46,7 @@ test('potok: liczba z bazy w odpowiedzi; „pokaż profil Kasi” = o nas (nie n
   };
   let r = await pyt('Ile osób korzysta z BiegaMy?');
   assert.deepEqual(r.body.zdania, ['Z BiegaMy korzysta ponad 90 biegaczy.']); assert.deepEqual(r.slad, ['router:o-nas']);
-  r = await pyt('ile osób korzysta z biegamy', 3); assert.match(r.body.zdania[0], /^Z BiegaMy korzysta kilkadziesiąt osób/, 'błąd/za mało → zdanie zapasowe bez liczby');
+  r = await pyt('ile osób korzysta z biegamy', 3); assert.equal(r.body.zdania[0], 'Z BiegaMy korzystają biegacze i ich trenerzy.', 'błąd/za mało → zdanie zapasowe bez liczby (Filip 22.11: bez „kilkadziesiąt”)');
   r = await pyt('pokaż profil Kasi');
   assert.deepEqual(r.slad, ['router:o-nas']); assert.equal(r.body.karty[0].dane.id, '2dd9206b-d2f0-4bdc-a1ef-4d7765e446b8'); assert.equal(r.body.akcja, null, 'nie nawigacja do mojego Profilu');
   r = await pyt('pokaż mój profil'); assert.ok(r.body.akcja && r.body.akcja.nawiguj === 'profil.html', 'własny Profil bez zmian');

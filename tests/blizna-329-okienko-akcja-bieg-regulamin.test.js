@@ -71,7 +71,7 @@ function trasaV1(M, q) {
   if (t && 'nawiguj' in t) return { trasa: 'nawiguj', traf: t };
   if (t) return { trasa: t.narzedzie, traf: t };
   const on = M.oNas(q);
-  if (on && on.temat !== 'liczba') return { trasa: 'o-nas' };
+  if (on) return { trasa: 'o-nas' };   // od 22.11 (krok 3) v1 odpowiada też tematem „liczba”, jak v2
   const bm = M.R.rodzajBiegaMy(q);
   if (bm === 'akcja' || bm === 'bieg') return { trasa: 'nie-wiem', bm };
   if (M.Os.osobaZPytania(q)) return { trasa: 'osoba', bm };
