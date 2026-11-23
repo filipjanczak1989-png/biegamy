@@ -1050,7 +1050,7 @@ const PYTANIA = [
   W('Kiedy Orlen Warsaw Marathon?? 🏃‍♂️🔥', 'imprezy', 4, 'impreza', { intencja: 'impreza', zrodlo: 'claude', luka: 'gen', uwaga: 'dziś: osoba' }),
   W('Zapisy na Biegnij Warszawo ruszyły!!! Ile kosztuje? 😍', 'imprezy', 3, 'impreza', { intencja: 'impreza', zrodlo: 'claude' }),
   W('Czy Bieg Powstania Warszawskiego jest wieczorem? 🌙', 'imprezy', 2, 'impreza', { intencja: 'impreza', zrodlo: 'claude', luka: 'gen', uwaga: 'dziś: osoba' }),
-  W('Wyniki Cracovia Maratonu już są?! 🙏', 'imprezy', 3, 'impreza', { intencja: 'impreza', zrodlo: 'claude' }),
+  W('Wyniki Cracovia Maratonu już są?! 🙏', 'imprezy', 3, 'router:wyniki-imprezy', { intencja: 'impreza', zrodlo: 'claude', uwaga: '22.11 (Filip, krok 2): wyniki imprezy z kalendarza maszyny bez sieci, wcześniej impreza' }),
   W('Ile osób startuje w Poznań Maratonie? 😱', 'imprezy', 2, 'impreza', { intencja: 'impreza', zrodlo: 'claude', luka: 'gen', uwaga: 'dziś: router:zagadka' }),
   W('a ile kosztuje?', 'imprezy', 4, 'impreza', { intencja: 'impreza', zrodlo: 'claude', po: ['Kiedy jest Półmaraton Warszawski?'] }),
   W('a meta też na stadionie?', 'imprezy', 2, 'impreza', { intencja: 'impreza', zrodlo: 'claude', po: ['Jaka jest trasa Wrocław Maratonu?', 'Okej a gdzie start?'] }),

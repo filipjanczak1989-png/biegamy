@@ -345,6 +345,27 @@ export const KARTA_PLAN_GENERATOR = { typ: "plan_pusty", dane: { stan: "generato
 const PLAN_ZMIANA = /^(a )?(chce|chcialbym|chcialabym|chcemy|prosze|mozesz|mozna|jak|czy (moge|mozna|mozesz))?( sie)?( mi)? ?(zmienic|zmien|zmiana|zmieni\w*|ulozyc|uloz|oloz|uluz|ulozysz|zrob|zrobic|stworz|stworzyc|przygotuj|przygotowac|rozpisz|rozpisac|wygeneruj|dac|daj|potrzebuje|chce|mam miec)( mi| nowy| inny| moj| swoj| mi nowy| mi inny)? (plan|planu|planem)( treningow\w*| biegow\w*| na bieganie| trening\w*)?( na (nowo|inny))?$|^(nowy|inny) plan( treningow\w*)?$|^plan (do zmiany|jest za (ciezki|lekki|trudny|latwy))$/;
 export function czyZmianaPlanu(tekst) { const t = normalizuj(tekst); return !!t && PLAN_ZMIANA.test(t); }
 
+/* WYNIKI IMPREZY (Filip 22.11, krok 2): „półmaraton Poznań wyniki” szło do sieci i dostawało datę kolejnej edycji zamiast wyników (tryb imprezy celowo pomija
+   „wyniki”, więc pytanie szło dalej do modelu i sieci). Teraz „wynik/wyniki” + słowo biegowe → kalendarz maszyny wyników bez sieci (events_search oddaje też
+   przeszłe edycje z kluczem) i karta imprezy z „Wyniki ›”; bez trafienia „Otwórz Wyniki ›”. Bez zmian: „moje wyniki”, „jak mi poszło”, imię i nazwisko (tryb osoby),
+   imię albo zaimek w pytaniu („jaki wynik ma Kasia / ona na 100 km”: wyniki osób na później). Literówek nie poprawiamy (Filip 22.11: bez precyzji na zapas). */
+export const ODP_WYNIKI_IMPREZY = "Wyniki tej imprezy są w zakładce Wyniki:";
+export const ODP_WYNIKI_BRAK = "Nie znalazłem tej imprezy w maszynie wyników. Poszukaj jej w zakładce Wyniki:";
+export const KARTA_WYNIKI = { typ: "kat_pojecie", dane: { klucz: "wyniki", tytul: "Wyniki", co_to: "", cel: "wyniki.html", ekran_nazwa: "Wyniki" } };
+const WYNIKI_MOJE = /\b(moj\w*|moje|moich|mam|mial\w*|mi|ja|mnie|swoj\w*|nasz\w*|pobieglem|pobieglam|poszlo)\b/;
+const WYNIKI_ZAIMEK = /\b(ona|on|jej|jego|ich|oni|one)\b/;
+const WYNIKI_POMOCNICZE = /^(wynik\w*|z|ze|w|we|na|biegu|imprezy|zawodow|edycji|gdzie|sa|juz|jakie|jaki|czy|pokaz|daj|szukam|chce|poprosze|prosze|jest|byly|beda|20\d\d)$/;
+const WYNIKI_BIEGOWE = /\b(maraton\w*|polmaraton\w*|bieg\w*|ultra\w*|trail\w*|parkrun\w*|cross\w*|run\w*|\d+ ?km|dych\w*|piatk\w*|zawod\w*)\b/;
+/** Pytanie o wyniki imprezy → { q } (słowa nazwy bez „wyniki”, słów pomocniczych i roku) | null. Tylko liczba mnoga: „czy kofeina poprawia wynik” to nie impreza. */
+export function wynikiImprezyZPytania(tekst) {
+  const t = normalizuj(tekst);
+  if (!t || !/\b(wyniki|wynikow|wynikach)\b/.test(t) || WYNIKI_MOJE.test(t) || WYNIKI_ZAIMEK.test(t) || maPareOsoby(tekst) || !WYNIKI_BIEGOWE.test(t)) return null;
+  const slowa = String(tekst).replace(/[?!.,;:"„”()🙏]/gu, " ").split(/\s+/).filter(Boolean);
+  if (slowa.some((w) => czyImie(w))) return null;   // imię w pytaniu = pytanie o osobę, nie o imprezę
+  const nazwa = slowa.filter((w) => { const n = normalizuj(w); return n && !WYNIKI_POMOCNICZE.test(n); });
+  return nazwa.length && nazwa.length <= 6 && WYNIKI_BIEGOWE.test(normalizuj(nazwa.join(" "))) ? { q: nazwa.join(" ").slice(0, 80) } : null;
+}
+
 /** → {narzedzie, args} | {nawiguj, ekran} | {zdanie, log} | null */
 /* OBÓZ (Filip 3.11): „gdzie na obóz”, „obóz biegowy”, „zgrupowanie” to pytanie o obozy z sieci, NIGDY impreza z kalendarza po słowie w nazwie. Wyjątek: bieg, który ma obóz w nazwie
    („wyniki biegu Obóz Karolin”, „kiedy jest bieg Obóz Karolin”) działa jak każda inna impreza. „obóz przed maratonem” to dalej obóz. */
@@ -402,6 +423,8 @@ export function dopasuj(tekst, dzis) {
       return { narzedzie: "moje_wyniki", args: m ? { gdzie: m[1] } : {} };
     }
   }
+  const wynikiImprezy = wynikiImprezyZPytania(tekst);   // 22.11 (krok 2): EF szuka imprezy w kalendarzu maszyny wyników, bez sieci
+  if (wynikiImprezy) return { zdanie: ODP_WYNIKI_BRAK, log: "wyniki-imprezy", wynikiImprezy, karty: [KARTA_WYNIKI] };
   if (bieg && !bieg.nazwa) return wynikBiegu(bieg);   // 21.11: „bieg” + temat z regulaminu — po regułach „moje”, przed kalendarzem
   const biegi = dopasujBiegi(tekst, dzis);
   if (biegi) return biegi;

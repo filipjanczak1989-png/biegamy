@@ -63,6 +63,13 @@ export async function naszeStarty(sb, q, dzis) {
   return (data || []).map((r) => ({ race_id: r.id, nazwa: String(r.name || "").slice(0, 120), data: r.date || null, miasto: r.city || null }));
 }
 
+/** WYNIKI IMPREZY (Filip 22.11, krok 2): kalendarz maszyny wyników BEZ sieci → do 3 kart imprez z kluczem (front pokazuje „Wyniki ›”), najpierw edycje przeszłe.
+    Pusta lista = brak trafień; wyjątek maszyny leci dalej (EF zostawia wtedy zdanie routera z „Otwórz Wyniki ›”). */
+export async function kartyWynikow(fetchFn, token, q) {
+  const l = await szukajImprez(fetchFn, token, { q });
+  return l.filter((d) => d && d.klucz).sort((a, b) => Number(!!b.przeszla) - Number(!!a.przeszla)).slice(0, 3).map((d) => ({ typ: "impreza", dane: d }));
+}
+
 /** deps: {sb, fetchFn, token, q, jawne, dzis, sieciDozwolona: async () => bool, siec: async (tekst) => {zdania, zrodla, tok, zapytania},
     zPamieci: async () => {zdania, zrodla} | null, doPamieci: async (zdania, zrodla) => void, znaleziska: async (wpisy) => void}
     → null (nie impreza: bez słowa z listy i bez trafień) | {zdania, karty, zrodla, tok, zapytania_sieci, f6, z_pamieci, powod} */
