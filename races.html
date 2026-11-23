@@ -69,7 +69,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 .search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--fg3);pointer-events:none;}
 
 /* ── RACES LIST ── */
-.races-list{padding:0 16px 100px;display:flex;flex-direction:column;gap:12px;}
+.races-list{padding:0 16px calc(112px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:12px;}   /* 23.11: koniec listy nad dolnym paskiem */
 
 .race-card{
   background:var(--card);border:1px solid var(--border);
@@ -235,7 +235,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 
 /* ── TOAST ── */
 .toast{
-  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  position:fixed;bottom:calc(100px + env(safe-area-inset-bottom, 0px));left:50%;   /* 23.11 (blizna-339): nad dolnym paskiem nawigacji */transform:translateX(-50%) translateY(20px);
   background:rgba(22,18,30,0.97);border:1px solid rgba(255,255,255,0.1);
   color:var(--fg);border-radius:14px;padding:11px 20px;font-size:13px;
   box-shadow:0 8px 32px rgba(0,0,0,0.6);z-index:9999;
@@ -703,6 +703,17 @@ function imprezyStopka(wynik) {
   }
 }
 
+/* DOLNY PASEK (Filip 23.11, blizna-339): jak na innych ekranach — window.NAV z sb.js. Kalendarz Startów nie ma pozycji w menu, więc bez podświetlenia.
+   Rola: trener bez wiersza zawodnika → pasek trenera; konto trener i zawodnik → pasek trenera tylko po wejściu z panelu trenera, inaczej zawodnika. */
+function mountNav() {
+  var m = document.getElementById('nav-mount');
+  if (!m || !window.NAV) return;
+  var zTrenera = false;
+  try { zTrenera = /\/trener\.html$/.test(new URL(document.referrer).pathname); } catch (e) {}
+  var rola = _isCoach && (!_athleteId || zTrenera) ? 'coach' : 'athlete';
+  m.innerHTML = window.NAV.render(null, { role: rola, athleteId: rola === 'athlete' ? _athleteId : null });
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
   const { data: { session } } = await _sb.auth.getSession();
@@ -744,6 +755,7 @@ function imprezyStopka(wynik) {
   // Sprawdź czy trener
   const { data: coachRow } = await _sb.from('coaches').select('id').eq('id', _user.id).maybeSingle();
   _isCoach = !!coachRow;
+  mountNav();   // 23.11 (blizna-339): dolny pasek po rozpoznaniu roli
   updateAddRaceUI();
 
   // K4: „W Polsce" — tylko gdy serwer wyników dostępny (ta sama bramka co wyszukiwarka wyników). K5: PO rozpoznaniu
@@ -2046,5 +2058,7 @@ function showToast(msg) {
    znajomym", wróci jako funkcja ZE ZGODĄ, nie jako dziura, która i tak
    nie działała. */
 </script>
+<!-- Dolna nawigacja — window.NAV (sb.js), montowana w mountNav() po rozpoznaniu roli (Filip 23.11, blizna-339) -->
+<div id="nav-mount"></div>
 </body>
 </html>

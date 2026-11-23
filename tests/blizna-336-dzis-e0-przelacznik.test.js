@@ -17,7 +17,7 @@ const crypto = require('node:crypto');
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r\n/g, '\n');
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-const PRZED_E0 = '1242db61ae2877405bf4eebd21d0176acd983d4fbcab59ff17359920ef11d7b5';   // zawodnik.html (LF) na origin/main 165d8fe3, 23.11
+const PRZED_E0 = '16d483ba8d91371d81faff5915df5ddd17af84941e9bd6e22ce066dcd11f9361';   // zawodnik.html (LF) bez bloków DZIS-E0; 23.11 wieczór: + role=athlete w 3 linkach do kalendarza (blizna-339; przed tym 1242db61…, origin/main 165d8fe3)
 const HTML = czytaj('zawodnik.html');
 const MODUL = czytaj('js/dzis-nowy.mjs');
 const MIG = czytaj('supabase/migrations/20261225_dzis_przelacznik.sql');

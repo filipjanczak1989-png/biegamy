@@ -892,7 +892,7 @@ html { scroll-behavior: smooth; }
 <nav>
   <a href="o-nas.html" class="nav-logo" id="nav-logo-back">Biega<span>My</span></a>
   <div class="nav-links" style="display:flex;gap:4px;">
-    <a href="#" class="nav-link" id="back-link" onclick="goBack()">← Powrót</a>
+    <a href="#" class="nav-link" id="back-link" onclick="goBack();return false;">← Powrót</a>
     <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -2839,8 +2839,13 @@ if (_urlOpenDay && /^\d{4}-\d{2}-\d{2}$/.test(_urlOpenDay)) {
   window._calOpenDay = _urlOpenDay;
   window._calJumpToDate = _urlOpenDay; // tydzień pod spodem też właściwy
 }
+/* 23.11 (Filip, blizna-339): „← Powrót” działał jak link (location.href + wpis „#”), więc z wstecz w telefonie dawał pętlę kalendarz ↔ Dziś.
+   Teraz jak wstecz w telefonie: przyszliśmy z naszej strony → cofnij w historii; wejście z zewnątrz → zastąp adres, bez nowego wpisu. */
 function goBack() {
-  window.location.href = _backUrl;
+  var zNaszej = false;
+  try { zNaszej = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+  if (zNaszej && history.length > 1) history.back();
+  else window.location.replace(_backUrl);
 }
 
 document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';

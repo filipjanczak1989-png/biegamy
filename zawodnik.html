@@ -8281,7 +8281,7 @@ async function updateWeekProgress() {
 // ⌚ Otwórz dzisiejszy trening w kalendarzu (drill-down z pełnymi wykresami)
 window._openTodayInCal = function() {
   const key = new Date().toLocaleDateString('sv-SE');   // YYYY-MM-DD lokalny
-  location.href = 'kalendarz.html?openDay=' + key;
+  location.href = 'kalendarz.html?role=athlete&openDay=' + key;
 };
 
 // ⌚ Mini-sparkline tempa dzisiejszego treningu z zegarka (fire-and-forget, best-effort)
@@ -9121,7 +9121,7 @@ async function saveLog() {
   toast(tekstWgTrenera('Log zapisany! Trener widzi Twój wynik ✓',
                        'Log zapisany! Forma przeliczona ✓'));
   if (_isNewLog) {
-    setTimeout(() => { window.location.href = 'kalendarz.html?openDay=' + logDate; }, 200);
+    setTimeout(() => { window.location.href = 'kalendarz.html?role=athlete&openDay=' + logDate; }, 200);
   }
   await loadLogs();
 
@@ -11359,7 +11359,7 @@ async function openNotifications() {
         } else if (n.type==='coach_message' || n.type==='coach') {
           notifClick = "document.getElementById('notif-panel')?.remove();showSection('msgs');setTimeout(function(){if(typeof openChatThread==='function')openChatThread('coach',null,null);},400);";
         } else if (n.type==='training_change' || n.type==='training_updated') {
-          notifClick = "location.href='kalendarz.html';";
+          notifClick = "location.href='kalendarz.html?role=athlete';";
         } else if (n.type==='comment' || n.type==='log_comment') {
           notifClick = "document.getElementById('notif-panel')?.remove();showSection('social');setTimeout(function(){switchSocialTab('feed');},400);";
         } else if (n.type==='duel' && n.from_athlete_id) {
