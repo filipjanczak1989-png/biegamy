@@ -4,7 +4,8 @@
 // wycofania (RPC_KALENDARZA = "upcoming_races"), nie martwy kod. Reszta okienka dostaje zawsze ten sam kształt (mapuj).
 import { f6 } from "./f6.mjs";
 import "../../../js/tekst.mjs";
-const T = /** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
+import { linkWynikow } from "./linki-wynikow.mjs";   // 23.11 (krok 3 b): „Oficjalne wyniki ›” tylko https + domena z listy
+const T =/** @type {any} */ (globalThis).BM_TEKST;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
 export const RPC_KALENDARZA = "events_search";   // K-API 017 (1.11.2026); wycofanie = "upcoming_races"
 export const MAX_IMPREZ = 20;
@@ -29,6 +30,7 @@ export function mapuj(r) {
     status: r.status ?? null,
     przeszla: r.przeszla === true,
     ma_wyniki: r.ma_wyniki === true,   // 23.11: „Wyniki ›” tylko przy edycji z wynikami w maszynie; RPC bez tego pola (dzisiejsze events_search) = false
+    url_wyniki: linkWynikow(r.url_wyniki),   // 23.11 (krok 3 b): adres wyników z maszyny (020) — tylko https + serwis z listy, inaczej null
   };
 }
 /** Argumenty RPC — jedyne miejsce zależne od wybranego RPC (nazwy parametrów różnią się). */

@@ -142,7 +142,8 @@ test('v2: „poznan maraton wyniki” i z literówką — reguła wyników bez s
     assert.deepEqual(r.body.zdania, [R.ODP_WYNIKI_BRAK], q);
     assert.deepEqual(r.body.karty, [R.KARTA_WYNIKI], q);
     assert.equal(r.sieci + r.modele, 0, q);
-    assert.deepEqual(m.wywolania.map((w) => w.toLowerCase()), ['events_search:poznan maraton'], q + ' (bez słowa „wyniki” i literówki w zapytaniu do maszyny)');
+    assert.deepEqual(m.wywolania.map((w) => w.toLowerCase()).slice(0, 1), ['events_search:poznan maraton'], q + ' (bez słowa „wyniki” i literówki w zapytaniu do maszyny)');
+    assert.ok(m.wywolania.slice(1).every((w) => w.startsWith('event_info')) && m.wywolania.length <= 2, q + ' — najwyżej jedno event_info (krok 3 a, blizna-338)');
   }
   f6._wyczyscPamiecF6();
   const z = await przebiegV2('poznan maraton wniki', { fetchF6: maszyna(POZNAN_Z_WYNIKAMI).fetchF6 });

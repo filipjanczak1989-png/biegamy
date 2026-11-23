@@ -14,6 +14,8 @@ import { tekstDlaRegul } from "./router.mjs";   // 23.11: literówki „wyniki�
 import { wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { szukajImprez } from "./kalendarz.mjs";
 import { BladF6, ODP_F6_ZAJETA } from "./f6.mjs";
+import { f6 } from "./f6.mjs";   // 23.11 (krok 3 a): event_info — ostatnia edycja z wynikami tej samej imprezy
+import { linkWynikow } from "./linki-wynikow.mjs";   // 23.11 (krok 3 b): adres wyników tylko https + serwis z listy
 
 export const ODP_IMPREZA_PUSTO = "Nie znalazłem tego biegu w kalendarzu ani w sieci.";
 export const SLOWA_IMPREZY = /\b(bieg|biegi|biegu|maraton\w*|polmaraton\w*|ultra\w*|zawody|zawodach|cross\w*|dych\w*|piatk\w*|sztafet\w*|trail\w*|parkrun\w*)\b/;
@@ -70,7 +72,30 @@ export async function naszeStarty(sb, q, dzis) {
     wyjątek maszyny leci dalej. W obu przypadkach EF zostawia zdanie routera „Nie znalazłem wyników tej imprezy.” z „Otwórz Wyniki ›”. */
 export async function kartyWynikow(fetchFn, token, q) {
   const l = await szukajImprez(fetchFn, token, { q });
-  return l.filter((d) => d && d.klucz && d.ma_wyniki === true).sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).slice(0, 3).map((d) => ({ typ: "impreza", dane: d }));
+  const zWynikami = l.filter((d) => d && d.klucz && d.ma_wyniki === true).sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).slice(0, 3).map((d) => ({ typ: "impreza", dane: d }));
+  if (zWynikami.length) return zWynikami;
+  // 23.11 (krok 3 a): żadna trafiona edycja nie ma wyników (np. najbliższa jest przyszła) → ostatnia edycja Z WYNIKAMI tej samej imprezy
+  const pierwsza = l.find((d) => d && d.klucz);
+  const ostatnia = pierwsza ? await kartaOstatniejZWynikami(fetchFn, token, pierwsza) : null;
+  return ostatnia ? [ostatnia] : [];
+}
+
+/** KROK 3 a (Filip 23.11): ostatnia edycja Z WYNIKAMI tej samej imprezy według maszyny (event_info 019: reguła serii — numery edycji, sponsorzy,
+    miasto; ta sama, którą liczy ekran imprezy, więc „Wyniki ›” zawsze otwiera wyniki). Karta: klucz edycji wyjściowej + data edycji z wynikami
+    (ekran wybiera ten rok), ma_wyniki = true, przeszla = true, url_wyniki tylko przez strażnika. Brak wyników w serii albo błąd maszyny → null. */
+export async function kartaOstatniejZWynikami(fetchFn, token, d) {
+  if (!d || typeof d.klucz !== "string" || !d.klucz) return null;
+  let w;
+  try { w = await f6(fetchFn, token, "event_info", { p_klucz: d.klucz }); } catch { return null; }
+  const zW = (Array.isArray(w) ? w : []).filter((r) => r && r.event_id && /^\d{4}-\d{2}-\d{2}$/.test(String(r.data || "")));
+  if (!zW.length) return null;
+  const data = zW.map((r) => String(r.data)).sort().pop();
+  const teDni = zW.filter((r) => String(r.data) === data).sort((a, b) => (Number(b.ukonczonych) || 0) - (Number(a.ukonczonych) || 0));
+  const g = teDni[0];
+  return { typ: "impreza", dane: { klucz: d.klucz, nazwa: String(g.nazwa || d.nazwa || "").split(" – ")[0].slice(0, 120), data, dokladnosc_daty: "dzien",
+    miejscowosc: g.miejscowosc ? String(g.miejscowosc).slice(0, 60) : null, dystanse: [...new Set(teDni.map((r) => Number(r.dystans_km)).filter((x) => x > 0))].slice(0, 6),
+    zrodlo_domena: null, url: null, status: null, przeszla: true, ma_wyniki: true,
+    url_wyniki: teDni.map((r) => linkWynikow(r.url_wyniki)).find(Boolean) || null, ostatnia_z_wynikami: true } };
 }
 
 /** deps: {sb, fetchFn, token, q, jawne, dzis, sieciDozwolona: async () => bool, siec: async (tekst) => {zdania, zrodla, tok, zapytania},
@@ -114,7 +139,14 @@ export async function odpowiedzImpreza(deps) {
       } catch { /* sieć padła — karty zostają */ }
     }
   }
-  const karty = [...kal.slice(0, MAX_KART).map((d) => ({ typ: "impreza", dane: d })), ...nasze.slice(0, MAX_KART).map((d) => ({ typ: "start_nasz", dane: d }))];
+  // 23.11 (krok 3 a): przyszła edycja bez wyników i żadnej karty z wynikami → dołóż kartę ostatniej edycji z wynikami tej samej imprezy (event_info)
+  // liczy się to, co WIDAĆ (pierwsze MAX_KART): edycja z wynikami dalej na liście nie może wyłączyć karty (live 23.11: „poznan polmaraton”, wynik na 11. miejscu),
+  // a nie bierzemy jej zamiast event_info, bo pasuje do rdzeni zapytania, niekoniecznie do tej samej imprezy (serię rozstrzyga maszyna)
+  const widoczne = kal.slice(0, MAX_KART);
+  const przyszla = deps.cena ? null : widoczne.find((k) => k && k.klucz && !k.przeszla);
+  const ostatnia = przyszla && !widoczne.some((k) => k.ma_wyniki === true) ? await kartaOstatniejZWynikami(fetchFn, token, przyszla) : null;
+  const karty = [...kal.slice(0, ostatnia ? MAX_KART - 1 : MAX_KART).map((d) => ({ typ: "impreza", dane: d })), ...(ostatnia ? [ostatnia] : []),
+    ...nasze.slice(0, MAX_KART).map((d) => ({ typ: "start_nasz", dane: d }))];
   if (deps.cena && karty.length) zdania = [kal.some((k) => k.url) ? ODP_CENA_LINK : ODP_CENA_BEZ_LINKU];
   if (f6Stan === "limit") zdania = [...zdania, ODP_F6_ZAJETA];
   if (!karty.length && !zdania.length) zdania = [ODP_IMPREZA_PUSTO];

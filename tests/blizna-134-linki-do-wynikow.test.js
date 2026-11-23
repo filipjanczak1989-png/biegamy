@@ -62,6 +62,12 @@ test('każdy link „wyniki” w stronach i skryptach prowadzi do wyniki.html (n
     for (const m of s.matchAll(/(?:href|data-cel)="([^"]*)"[^>]*>[^<]*(?:[Ww]ynik(?:i|ów)|Otwórz wyniki)/g)) {
       if (/^#$|^javascript:/.test(m[1])) continue;
       if (m[1] === 'usun-dane.html') continue;   // „Usuń moje wyniki” w stopce ekranu imprezy (blizna-143) to nie link do wyników
+      /* 23.11 (Filip, krok 3 b, blizna-338): „Oficjalne wyniki ›” to ŚWIADOMY link zewnętrzny do serwisu pomiaru czasu — wyłącznie w js/okienko.js,
+         wyłącznie adres po strażniku linkWynikow (https + 6 domen) i safeExternalHref. Każdy inny link z „wyniki” nadal musi prowadzić do wyniki.html. */
+      if (p === 'js/okienko.js' && m[1] === "' + h + '" && /target="_blank" rel="noopener noreferrer">Oficjalne wyniki$/.test(m[0])) {
+        assert.match(s, /var u = linkWynikow\(d\.url_wyniki\), h = u && window\.safeExternalHref \? window\.safeExternalHref\(u, \{ tylkoHttps: true \}\) : '';/, 'oficjalne wyniki bez strażnika');
+        continue;
+      }
       assert.match(m[1], /^wyniki\.html|' \+ esc\(cel(?:Wynikow|Imprezy)/, `${p}: link do wyników prowadzi do ${m[1]}`);
     }
     assert.doesNotMatch(s, /races\.html[^"']*"[^>]*>\s*(Otwórz wyniki|Zobacz wyniki)/, p);

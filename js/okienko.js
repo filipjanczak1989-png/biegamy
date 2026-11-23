@@ -162,8 +162,27 @@
     var rok = /^\d{4}-/.test(String(d.data || '')) ? String(d.data).slice(0, 4) : '';
     return 'wyniki.html#/impreza/' + encodeURIComponent(d.klucz) + (rok ? '/' + rok : '');
   }
+  /* blizna-338 (Filip 23.11, krok 3 b): „Oficjalne wyniki ›” — adres wyników z maszyny, tylko https + serwis pomiaru czasu z listy, tylko edycja, która
+     już się odbyła. KOPIA supabase/functions/okienko/linki-wynikow.mjs (front bez modułów); blizna-338 pilnuje, że lista i odpowiedzi są te same. */
+  var DOMENY_WYNIKOW = ['datasport.pl', 'elektronicznezapisy.pl', 'b4sport.pl', 'plus-timing.pl', 'foxter-sport.pl', 'time4run.com.pl'];
+  function domenaWynikow(h) { return DOMENY_WYNIKOW.filter(function (d) { return h === d || h.slice(-(d.length + 1)) === '.' + d; })[0] || null; }
+  function linkWynikow(u) {
+    if (typeof u !== 'string' || u.length > 500 || /[\s\\\u0000-\u001f\u007f]/.test(u)) return null;
+    var x; try { x = new URL(u); } catch (e) { return null; }
+    if (x.protocol !== 'https:' || x.username || x.password || x.port) return null;
+    var h = x.hostname.toLowerCase();
+    if (!h || h.split('.').some(function (s) { return !s || s.indexOf('xn--') === 0; }) || /^[\d.]+$/.test(h) || h.indexOf(':') >= 0) return null;
+    return domenaWynikow(h) ? x.href : null;
+  }
+  function linkOficjalnych(d) {
+    if (d.przeszla !== true) return '';
+    var u = linkWynikow(d.url_wyniki), h = u && window.safeExternalHref ? window.safeExternalHref(u, { tylkoHttps: true }) : '';
+    if (!h) return '';
+    return '<a class="okn-link" href="' + h + '" target="_blank" rel="noopener noreferrer">Oficjalne wyniki ›</a>' +
+      '<span class="okn-meta">źródło wyników: ' + esc(domenaWynikow(new URL(u).hostname.toLowerCase())) + '</span>';
+  }
   function kartaImprezy(d) {
-    var dyst = (Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
+    var dyst =(Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {
       var n = Number(x); return Math.abs(n - 42.195) < 0.3 ? 'maraton' : Math.abs(n - 21.0975) < 0.3 ? 'półmaraton' : kmTxt(n) + ' km';
     }).join(', ');
     var kiedy = (d.przeszla ? 'była ' : '') + (d.dokladnosc_daty === 'miesiac' ? miesiacTxt(d.data) : dataTxt(d.data));
@@ -171,7 +190,8 @@
     return '<div class="okn-karta okn-karta--impreza"><b>' + esc(d.nazwa || '') + '</b><span class="okn-meta">' + esc(meta) + '</span>' +
       (d.zrodlo_domena ? '<span class="okn-meta">źródło: ' + esc(d.zrodlo_domena) + '</span>' : '') +
       (d.status === 'zgloszona' ? '<span class="okn-meta">zgłoszona przez biegacza</span>' : '') + linkImprezy(d.url) +   // K5 (018)
-      (celImprezy(d) ? '<button type="button" class="okn-otworz" data-cel="' + esc(celImprezy(d)) + '">Wyniki ›</button>' : '') + '</div>';
+      (d.ostatnia_z_wynikami === true ? '<span class="okn-meta">ostatnia edycja z wynikami</span>' : '') +
+      (celImprezy(d) ? '<button type="button" class="okn-otworz" data-cel="' + esc(celImprezy(d)) + '">Wyniki ›</button>' : '') + linkOficjalnych(d) + '</div>';
   }
 
   /* PLAN STARTOWY (Filip 3.11): rola, data, odległość, uzasadnienie; start z kalendarza otwiera kartę imprezy z „Wezmę udział” w races.html (arkusz openImpreza, RPC impreza_do_races).
