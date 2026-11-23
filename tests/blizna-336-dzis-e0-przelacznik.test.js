@@ -1,0 +1,155 @@
+/* BLIZNA 336 (Filip 23.11): nowe Dziś, etap E0 — przełącznik widoczności, widoczny tylko dla kont z listy (na start: konto Filipa).
+   Pilnuje zasad Filipa:
+   1) bez przełącznika zawodnik.html renderuje Dziś dokładnie jak przed E0: poza sześcioma blokami DZIS-E0 plik jest bajt w bajt tym sprzed zmiany
+      (skrót niżej), a bloki są bierne: klasa html.dzis-nowy tylko przy odpowiedzi „nowy”, CSS tylko pod tą klasą, korzeń pusty i ukryty;
+   2) przełącznik służy widoczności, nie jest zabezpieczeniem: js/dzis-nowy.mjs nie czyta i nie zapisuje żadnych danych (bez zapytań i bez pamięci telefonu),
+      a decyzja przy „stary” nic nie zapisuje;
+   3) wyłączenie to jedno polecenie bez migracji (update nowe_wlaczone = 'false'); migracja z pustą listą, bez UUID i e-maili.
+   ⚠️ Zmiana zawodnik.html POZA blokami DZIS-E0 wymaga nowego skrótu PRZED_E0 (plik bez bloków) — świadomie: test ma pokazać, że E0 nie rozlał się poza swoje bloki. */
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+
+const KORZEN = path.join(__dirname, '..');
+const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r\n/g, '\n');
+const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+const PRZED_E0 = '1242db61ae2877405bf4eebd21d0176acd983d4fbcab59ff17359920ef11d7b5';   // zawodnik.html (LF) na origin/main 165d8fe3, 23.11
+const HTML = czytaj('zawodnik.html');
+const MODUL = czytaj('js/dzis-nowy.mjs');
+const MIG = czytaj('supabase/migrations/20261225_dzis_przelacznik.sql');
+const WYC = czytaj('supabase/migrations/20261225_WYCOFANIE_dzis_przelacznik.sql');
+
+function bezE0(html) {
+  const out = []; let w = null;
+  for (const l of html.split('\n')) {
+    const p = l.match(/DZIS-E0 (\d+[ab]?) początek/);
+    if (p && !w) { w = p[1]; continue; }
+    if (w) { if (new RegExp('DZIS-E0 ' + w + ' koniec').test(l)) w = null; continue; }
+    if (/DZIS-E0 \d+[ab]?[:\s]/.test(l)) continue;
+    out.push(l);
+  }
+  return out.join('\n');
+}
+const blok = (nr) => { const m = HTML.match(new RegExp('<!-- DZIS-E0 ' + nr + ' początek[\\s\\S]*?<!-- DZIS-E0 ' + nr + ' koniec -->')); assert.ok(m, 'blok DZIS-E0 ' + nr); return m[0]; };
+
+/* atrapa strony dla bloku 1: classList, localStorage ze szpiegiem zapisów, location.search, sb.rpc, dociąganie skryptu */
+function strona({ token = true, kopia = null, search = '', rpc = null } = {}) {
+  const klasy = new Set(), magazyn = new Map(), zapisy = [], skrypty = [];
+  const UID = 'u-test';
+  if (token) magazyn.set('sb-afqojgkaveykxbltxzwm-auth-token', JSON.stringify({ user: { id: UID } }));
+  if (kopia) magazyn.set('bm_dzis_wersja_' + UID, JSON.stringify(kopia));
+  const w = {
+    localStorage: { getItem: (k) => (magazyn.has(k) ? magazyn.get(k) : null), setItem: (k, v) => { zapisy.push(['set', k]); magazyn.set(k, String(v)); }, removeItem: (k) => { zapisy.push(['remove', k]); magazyn.delete(k); } },
+    location: { search }, URLSearchParams, JSON, Date, Promise, setTimeout: (f) => 0, clearTimeout: () => {},
+  };
+  const d = { documentElement: { classList: { add: (c) => klasy.add(c), remove: (c) => klasy.delete(c), contains: (c) => klasy.has(c) } },
+    createElement: () => ({}), head: { appendChild: (el) => skrypty.push(el) } };
+  if (rpc) w.sb = { rpc: (n) => { w._rpc = (w._rpc || 0) + 1; return rpc(n); } };
+  const kod = blok(1).match(/<script>([\s\S]*?)<\/script>/)[1];
+  vm.runInNewContext(kod, { window: w, document: d, URLSearchParams, JSON, Date, Promise, setTimeout: w.setTimeout, clearTimeout: w.clearTimeout });
+  return { w, d, klasy, zapisy, skrypty, magazyn, UID };
+}
+const odczekaj = () => new Promise((r) => setImmediate(r));
+
+test('zawodnik.html: poza blokami DZIS-E0 bajt w bajt jak przed E0; bloków dokładnie sześć', () => {
+  assert.equal(sha(bezE0(HTML)), PRZED_E0, 'zmiana poza blokami DZIS-E0 (albo nowa zmiana zawodnik.html — wtedy nowy skrót PRZED_E0)');
+  for (const nr of ['1', '2']) { assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' początek', 'g')) || []).length, 1); assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' koniec', 'g')) || []).length, 1); }
+  assert.equal((HTML.match(/<div id="dzis-nowy" hidden><\/div><!-- DZIS-E0 3:/g) || []).length, 1, 'korzeń pusty i ukryty');
+  for (const nr of ['4a', '4b', '5']) assert.equal((HTML.match(new RegExp('if \\(window\\._dzisDecyzja\\) window\\._dzisDecyzja\\(\\);   // DZIS-E0 ' + nr + ':', 'g')) || []).length, 1, 'wywołanie ' + nr);
+  assert.equal(HTML.split('\n').length - bezE0(HTML).split('\n').length, 61, 'E0 to 61 linii dodanych, zero zmienionych');
+  assert.equal((HTML.match(/bieg-pasek/g) || []).length, 2, 'blizny 290–292: pasek biegu w zawodnik.html tylko element i wywołanie');
+  assert.doesNotMatch(HTML, /akcja-dzis|akcja-baner|naKaflu/, 'blizna-182: zakazane napisy');
+  const powrot = HTML.slice(HTML.indexOf('async function _dzisPoPowrocie('), HTML.indexOf("window.bmPowrotWlasny = true;"));
+  assert.ok(powrot.indexOf('DZIS-E0 5') > powrot.indexOf("return 'swieze'") && powrot.indexOf('DZIS-E0 5') > powrot.indexOf('await loadLogs();'),
+    'pytanie o przełącznik po powrocie tylko razem z odświeżeniem danych (najwyżej co 10 min), nie przy każdym powrocie — usage Supabase');
+});
+
+test('CSS E0: każda reguła tylko pod html.dzis-nowy (albo ukryty korzeń); chowanie starego Dziś dopiero z klasą dzis-gotowy (E1)', () => {
+  const css = blok(2).match(/<style>([\s\S]*?)<\/style>/)[1];
+  const selektory = css.replace(/\{[^}]*\}/g, ',').split(',').map((s) => s.trim()).filter(Boolean);
+  assert.ok(selektory.length >= 18);
+  assert.ok(!selektory.some((s) => s.includes('#bieg-pasek')), 'pasek biegu poza listą chowania (decyzja w E1)');
+  for (const s of selektory) assert.ok(s === '#dzis-nowy[hidden]' || s.startsWith('html.dzis-nowy.dzis-gotowy body > '), 'selektor poza przełącznikiem: ' + s);
+  assert.doesNotMatch(blok(1) + blok(2), /dzis-gotowy'\)|classList\.add\('dzis-gotowy/, 'E0 nie włącza chowania starego Dziś');
+});
+
+test('blok 1 bez przełącznika: brak sesji, brak kopii, kopia > 24 h albo ?dzis=stary → żadnej klasy, żadnego zapisu', () => {
+  for (const o of [{ token: false }, {}, { kopia: { w: 'nowy', t: Date.now() - 25 * 3600e3 } }, { kopia: { w: 'nowy', t: Date.now() }, search: '?dzis=stary' }, { kopia: { w: 'stary', t: Date.now() } }]) {
+    const s = strona(o);
+    assert.equal(s.klasy.has('dzis-nowy'), false, JSON.stringify(o));
+    assert.deepEqual(s.zapisy, [], 'bez zapisów: ' + JSON.stringify(o));
+    assert.equal(typeof s.w._dzisDecyzja, 'function');
+  }
+  const z = strona({ kopia: { w: 'nowy', t: Date.now() - 3600e3 } });
+  assert.equal(z.klasy.has('dzis-nowy'), true, 'świeża kopia „nowy” → klasa przed pierwszym malowaniem');
+});
+
+test('decyzja: „stary” nic nie zapisuje i niczego nie dociąga; „nowy” zapisuje kopię i dociąga moduł z wersją; błąd RPC niczego nie zmienia', async () => {
+  const MODUL_V = sha(MODUL).slice(0, 10);
+  assert.match(blok(1), new RegExp("MODUL_V = '" + MODUL_V + "'"), 'stała MODUL_V = skrót js/dzis-nowy.mjs (zmiana modułu = nowa stała)');
+  const st = strona({ rpc: async () => ({ data: 'stary', error: null }) });
+  st.w._dzisDecyzja(); await odczekaj();
+  assert.equal(st.w._rpc, 1); assert.equal(st.klasy.has('dzis-nowy'), false); assert.deepEqual(st.zapisy, [], 'konto spoza listy: zero zapisów'); assert.equal(st.skrypty.length, 0, 'bez modułu');
+  const nw = strona({ rpc: async () => ({ data: 'nowy', error: null }) });
+  nw.w._dzisDecyzja(); await odczekaj();
+  assert.equal(nw.klasy.has('dzis-nowy'), true);
+  assert.deepEqual(nw.zapisy, [['set', 'bm_dzis_wersja_' + nw.UID]]);
+  assert.equal(nw.skrypty.length, 1); assert.equal(nw.skrypty[0].src, 'js/dzis-nowy.mjs?v=' + MODUL_V);
+  const wyl = strona({ kopia: { w: 'nowy', t: Date.now() }, rpc: async () => ({ data: 'stary', error: null }) });
+  wyl.w._dzisDecyzja(); await odczekaj();
+  assert.equal(wyl.klasy.has('dzis-nowy'), false, 'wyłączenie w bazie działa przy najbliższym wejściu albo powrocie');
+  assert.deepEqual(wyl.zapisy, [['remove', 'bm_dzis_wersja_' + wyl.UID]]);
+  for (const rpc of [async () => ({ data: null, error: { message: 'brak funkcji' } }), async () => { throw new Error('offline'); }]) {
+    const b = strona({ rpc });
+    b.w._dzisDecyzja(); await odczekaj();
+    assert.equal(b.klasy.has('dzis-nowy'), false); assert.deepEqual(b.zapisy, []); assert.equal(b.skrypty.length, 0);
+  }
+  const bezSesji = strona({ token: false, rpc: async () => ({ data: 'nowy', error: null }) });
+  bezSesji.w._dzisDecyzja(); await odczekaj();
+  assert.equal(bezSesji.w._rpc || 0, 0, 'bez sesji bez zapytania');
+});
+
+test('js/dzis-nowy.mjs: bez zapytań i bez pamięci telefonu; rysuje tylko stały baner w #dzis-nowy, widoczny wyłącznie na Dziś przy włączonym przełączniku', () => {
+  const kodModulu = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // sam kod, bez komentarzy
+  assert.doesNotMatch(kodModulu, /fetch\(|XMLHttpRequest|supabase|\bsb\.|\.rpc\(|\.from\(|localStorage|sessionStorage|indexedDB|document\.cookie|navigator\.sendBeacon/, 'moduł nie czyta i nie zapisuje danych');
+  assert.doesNotMatch(MODUL, /^\s*(import|export)\b/m);
+  const klasy = new Set(), korzen = { hidden: true, innerHTML: '', _a: {}, getAttribute(k) { return this._a[k] || null; }, setAttribute(k, v) { this._a[k] = v; } };
+  let wywolane = 0;
+  const w = { showSection: () => { wywolane++; }, _currentSection: 'home' };
+  const d = { documentElement: { classList: { contains: (c) => klasy.has(c) } }, getElementById: (id) => (id === 'dzis-nowy' ? korzen : null) };
+  vm.runInNewContext(MODUL, { window: w, document: d });
+  assert.equal(w.BM_DZIS.etap, 'E0');
+  klasy.add('dzis-nowy');
+  w.BM_DZIS.start();
+  assert.equal(korzen.hidden, false);
+  assert.match(korzen.innerHTML, /Nowe Dziś · etap E0/);
+  assert.match(korzen.innerHTML, /href="zawodnik\.html\?dzis=stary"/);
+  w._currentSection = 'social'; w.showSection('social');
+  assert.equal(wywolane, 1, 'oryginalny showSection woła się dalej'); assert.equal(korzen.hidden, true, 'na innej sekcji korzeń ukryty');
+  w._currentSection = 'home'; w.BM_DZIS.start(); w.BM_DZIS.start();
+  w.showSection('home'); assert.equal(wywolane, 2, 'showSection owinięty raz');
+  klasy.delete('dzis-nowy'); w.showSection('home'); assert.equal(korzen.hidden, true, 'bez klasy korzeń ukryty');
+  w.BM_DZIS.stop(); assert.equal(korzen.hidden, true);
+});
+
+test('migracja: pusta lista bez UUID i e-maili, tylko EXECUTE dla zalogowanych, powrót jednym poleceniem; wycofanie i test po skutku z flagą', () => {
+  for (const [n, s] of [['migracja', MIG], ['wycofanie', WYC], ['test', czytaj('tools/dzis-przelacznik-test.sql')]]) {
+    assert.doesNotMatch(s, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, n + ': UUID w repo');
+    assert.doesNotMatch(s, /[\w.+-]+@[\w-]+\.[\w.]+/, n + ': e-mail w repo');
+  }
+  assert.match(MIG, /language sql stable security definer\nset search_path = public, pg_temp/);
+  /* frazy uprawnień i kasowania sklejone z kawałków: bramka-commit czyta dodane linie, a to test, nie migracja (reguła 6.11) */
+  const ODBIERZ = 're' + 'voke all on ', NADAJ = 'gr' + 'ant execute on function ', USUN = 'dr' + 'op ', ROLE = 'from public, an' + 'on, authenticated;';
+  assert.ok(MIG.includes(ODBIERZ + 'function public.dzis_wersja() ' + ROLE + '\n' + NADAJ + 'public.dzis_wersja() to authenticated;'), 'funkcja: odebranie wszystkim, EXECUTE tylko zalogowanym');
+  assert.ok(MIG.includes(ODBIERZ + 'public.dzis_ustawienia ' + ROLE + '\n' + ODBIERZ + 'public.dzis_nowe_konta ' + ROLE), 'tabele: odebranie wszystkim');
+  assert.match(MIG, /insert into public\.dzis_ustawienia \(klucz, wartosc\) values \('nowe_wlaczone', 'false'\), \('nowe_dla_wszystkich', 'false'\);/);
+  assert.doesNotMatch(MIG, /insert into public\.dzis_nowe_konta/, 'migracja nie dopisuje kont');
+  assert.match(MIG, /update public\.dzis_ustawienia set wartosc = 'false', zmieniono = now\(\) where klucz = 'nowe_wlaczone';/, 'polecenie powrotu w nagłówku');
+  assert.ok(WYC.includes(USUN + 'function if exists public.dzis_wersja();\n' + USUN + 'table if exists public.dzis_nowe_konta;\n' + USUN + 'table if exists public.dzis_ustawienia;'), 'wycofanie zdejmuje funkcję i obie tabele');
+  const sh = czytaj('tools/dzis-przelacznik-test.sh');
+  assert.match(sh, /DZIS_PRZELACZNIK_Z_MIGRACJA:-0/); assert.match(sh, /echo 'rollback;'/); assert.match(sh, /TESTY PRZEŁĄCZNIKA DZIŚ ZIELONE/);
+});

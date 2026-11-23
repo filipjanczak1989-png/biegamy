@@ -19,6 +19,63 @@
 <title>BiegaMy — Mój Plan</title>
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<!-- DZIS-E0 1 początek: nowe Dziś za przełącznikiem (plan 13.11 §1–2, Filip 23.11). Bez przełącznika ten blok niczego nie zmienia na ekranie: klasa
+     html.dzis-nowy pojawia się tylko, gdy zapisana odpowiedź dzis_wersja() tego konta mówi „nowy” i ma < 24 h, albo gdy baza odpowie „nowy”.
+     ?dzis=stary wymusza stary ekran. Błąd, brak RPC, brak sieci albo brak modułu w 3 s → stary ekran. Moduł js/dzis-nowy.mjs dociągany tylko przy „nowy”. -->
+<script>
+(function (w, d) {
+  var KLUCZ = 'bm_dzis_wersja_', DOBA = 864e5, MODUL_V = 'd73be914f4', h = d.documentElement;
+  function uid() { try { var s = JSON.parse(w.localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token') || 'null'); return (s && s.user && s.user.id) || null; } catch (e) { return null; } }
+  function wymuszonyStary() { try { return new URLSearchParams(w.location.search).get('dzis') === 'stary'; } catch (e) { return false; } }
+  function kopiaNowy(u) { try { var k = JSON.parse(w.localStorage.getItem(KLUCZ + u) || 'null'); return !!(k && k.w === 'nowy' && Date.now() - k.t < DOBA); } catch (e) { return false; } }
+  function wlacz() { try { h.classList.add('dzis-nowy'); } catch (e) {} }
+  function wylacz() { try { h.classList.remove('dzis-nowy'); if (w.BM_DZIS && w.BM_DZIS.stop) w.BM_DZIS.stop(); } catch (e) {} }
+  function wlaczone() { try { return h.classList.contains('dzis-nowy'); } catch (e) { return false; } }
+  try { var u0 = uid(); if (u0 && !wymuszonyStary() && kopiaNowy(u0)) wlacz(); } catch (e) {}
+  var czeka = false;
+  function modul() {
+    if (w.BM_DZIS) { try { w.BM_DZIS.start(); } catch (e) { wylacz(); } return; }
+    if (czeka) return;
+    czeka = true;
+    var el = d.createElement('script'), limit = setTimeout(function () { if (!w.BM_DZIS) wylacz(); }, 3000);
+    el.src = 'js/dzis-nowy.mjs?v=' + MODUL_V; el.async = true;
+    el.onload = function () { clearTimeout(limit); czeka = false; if (!w.BM_DZIS) { wylacz(); return; } if (wlaczone()) { try { w.BM_DZIS.start(); } catch (e) { wylacz(); } } };
+    el.onerror = function () { clearTimeout(limit); czeka = false; wylacz(); };
+    d.head.appendChild(el);
+  }
+  /* Woła initAuth (po loadLogs) i powrót do aplikacji. Odpowiedź „stary” wyłącza od razu i kasuje kopię; błąd RPC nic nie zmienia (kopia < 24 h decyduje). */
+  w._dzisDecyzja = function () {
+    try {
+      var u = uid();
+      if (!u || wymuszonyStary()) { wylacz(); return; }
+      if (wlaczone()) modul();
+      if (!w.sb || typeof w.sb.rpc !== 'function') return;
+      var po = false, limit = setTimeout(function () { po = true; }, 3000);
+      Promise.resolve(w.sb.rpc('dzis_wersja')).then(function (r) {
+        if (po) return;
+        clearTimeout(limit);
+        if (!r || r.error) return;
+        if (r.data === 'nowy') { try { w.localStorage.setItem(KLUCZ + u, JSON.stringify({ w: 'nowy', t: Date.now() })); } catch (e) {} wlacz(); modul(); }
+        else if (r.data === 'stary') { if (kopiaNowy(u)) { try { w.localStorage.removeItem(KLUCZ + u); } catch (e) {} } wylacz(); }
+      }, function () {});
+    } catch (e) {}
+  };
+})(window, document);
+</script>
+<!-- DZIS-E0 1 koniec -->
+<!-- DZIS-E0 2 początek: wszystkie reguły tylko pod html.dzis-nowy (bez przełącznika nie pasują do niczego). E0: korzeń z banerem nad starym Dziś;
+     chowanie starych elementów Dziś (lista z planu 13.11 §2, sprawdzona w DOM 23.11) dopiero z klasą dzis-gotowy, którą ustawi E1. Pasek biegu
+     celowo poza listą: czy zostaje w nowym Dziś, decyduje E1. -->
+<style>
+#dzis-nowy[hidden]{display:none!important}
+html.dzis-nowy.dzis-gotowy body > #daily-motivation, html.dzis-nowy.dzis-gotowy body > #home-tiles-row,
+html.dzis-nowy.dzis-gotowy body > #today-card, html.dzis-nowy.dzis-gotowy body > #akcja-karta, html.dzis-nowy.dzis-gotowy body > #weather-widget,
+html.dzis-nowy.dzis-gotowy body > #feel-report-card, html.dzis-nowy.dzis-gotowy body > #radio-home-banner, html.dzis-nowy.dzis-gotowy body > .sec-hdr,
+html.dzis-nowy.dzis-gotowy body > #week-strip, html.dzis-nowy.dzis-gotowy body > .week-sum, html.dzis-nowy.dzis-gotowy body > #week-km-bar-wrap,
+html.dzis-nowy.dzis-gotowy body > #nut-widget, html.dzis-nowy.dzis-gotowy body > #home-social-preview, html.dzis-nowy.dzis-gotowy body > #coach-msg-section,
+html.dzis-nowy.dzis-gotowy body > #ai-reports-tile-section, html.dzis-nowy.dzis-gotowy body > #log-list, html.dzis-nowy.dzis-gotowy body > #icu-home-banner{display:none!important}
+</style>
+<!-- DZIS-E0 2 koniec -->
 <style>
 /* ══ BIEGAMY — PREMIUM UI v3 ══════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -895,6 +952,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
+<div id="dzis-nowy" hidden></div><!-- DZIS-E0 3: korzeń nowego Dziś (pusty i ukryty bez przełącznika) -->
 <!-- PASEK BIEGU (18.11, wyjątek od zamrożenia: jedyny element): „🎅 {nazwa biegu} · Zapisz się ›” → bieg.html; render js/akcja.mjs pasekBiegu (licznik akcji + akcja_bieg_moi), bez czekania -->
 <div id="bieg-pasek" class="fade-in" hidden style="margin:0 16px 12px;"></div>
 <!-- MOTYWACJA DNIA -->
@@ -6569,6 +6627,7 @@ async function initAuth() {
       if(tn2){ const drugiCzlon = n2.split(' ')[1]; tn2.innerHTML = escapeHtml(n2.split(' ')[0]) + (drugiCzlon ? ' <span>' + escapeHtml(drugiCzlon[0]) + '.</span>' : ''); }
       if (_isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1') { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
+      if (window._dzisDecyzja) window._dzisDecyzja();   // DZIS-E0 4a: przełącznik nowego Dziś (bez przełącznika nic nie zmienia)
       if (window.TERMS) window.TERMS.check();   // FAZA 2: brama regulaminu (fallback-sesja s2)
     } else {
       showOnboarding();
@@ -6667,6 +6726,7 @@ async function initAuth() {
       }
     }
     await loadLogs();
+    if (window._dzisDecyzja) window._dzisDecyzja();   // DZIS-E0 4b: przełącznik nowego Dziś (bez przełącznika nic nie zmienia)
     loadAvatarTopbar(_athleteId);
     if (typeof window.loadWeather === 'function') window.loadWeather();
     // SILNIK (debug-only) — ?silnik=1 raw debug · ?silnik=anim auto-animacja gdy wolumen. Bez param = zero śladu.
@@ -13562,6 +13622,7 @@ async function _dzisPoPowrocie(powod) {
     if (z && !zmianaDnia && Date.now() - z.ts < DZIS_ODSWIEZ_PO_MS) return 'swieze';
     if (zmianaDnia || !z) _ustawDateNaglowka();
     await loadLogs();
+    if (window._dzisDecyzja) window._dzisDecyzja();   // DZIS-E0 5: przełącznik razem z odświeżeniem danych po powrocie (najwyżej co 10 min), nie przy każdym powrocie
     if (typeof window.loadWeather === 'function') window.loadWeather();
     return 'odswiezone:' + powod;
   } catch (e) { console.error('[dziś] odświeżenie po powrocie:', e); return 'blad'; }
