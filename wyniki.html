@@ -25,7 +25,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
 #topbar h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;}
 #topbar .w-dzial{margin-left:auto;display:flex;gap:8px;}
 .top-back-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--fg);border-radius:12px;padding:8px 14px;font-size:13px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;text-decoration:none;}
-#content{padding:12px 16px 100px;max-width:640px;margin:0 auto;}
+#content{padding:12px 16px calc(112px + env(safe-area-inset-bottom, 0px));max-width:640px;margin:0 auto;}   /* 23.11 (blizna-344): koniec treści nad dolnym paskiem */
 .w-karta{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:12px;}
 .w-karta h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:8px;}
 .w-naglowek{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
@@ -73,6 +73,10 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
 .w-stopka{margin-top:4px;text-align:center;}
 .w-stopka a{color:var(--muted);font-size:13px;text-decoration:underline;display:inline-block;padding:12px;}
 [hidden]{display:none !important;}
+/* toast nad dolnym paskiem (23.11, blizna-344): wygląd jak window.showToast z sb.js, ale tamten stoi na bottom:24px, czyli na pasku.
+   116 px: pasek ma 89 px, a okrągłe logo „Log” wystaje nad niego o 18 px — toast nie dotyka logo */
+.toast{position:fixed;bottom:calc(116px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%) translateY(10px);background:rgba(91,140,255,0.95);color:#fff;padding:12px 20px;border-radius:12px;font:500 14px 'DM Sans',sans-serif;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,0.3);max-width:90vw;text-align:center;pointer-events:none;opacity:0;transition:opacity 0.3s,transform 0.3s;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -85,7 +89,9 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
   <div id="w-status" class="w-muted" role="status"></div>
   <div id="w-ekran"></div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status"></div>
+<!-- Dolna nawigacja — window.NAV (sb.js), montowana w mountNav() po rozpoznaniu roli (23.11, blizna-344) -->
+<div id="nav-mount"></div>
 <script>
 (function () {
   'use strict';
@@ -95,6 +101,19 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
   var ekran = $('w-ekran'), status = $('w-status'), tytul = $('w-tytul'), udost = $('w-udostepnij');
   var KLUCZ_HASH = 'bm_wyniki_hash';   // sam hash (bez danych osób) — powrót po logowaniu
 
+  /* TOAST (23.11, blizna-344): lokalny zamiast window.showToast z sb.js (tamten stoi na dole ekranu, na pasku); ten sam wygląd, nad paskiem */
+  var _toastCzas = null;
+  function showToast(msg) { var t = $('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(_toastCzas); _toastCzas = setTimeout(function () { t.classList.remove('show'); }, 2800); }
+  /* DOLNY PASEK (23.11, blizna-344): jak w Kalendarzu Startów — window.NAV z sb.js, bez podświetlenia (Wyników nie ma w menu). Rola jak w races.html:
+     trener bez wiersza zawodnika → pasek trenera; konto trener + zawodnik → pasek trenera tylko po wejściu z panelu trenera, inaczej zawodnika. */
+  function mountNav() {
+    var m = $('nav-mount');
+    if (!m || !window.NAV) return;
+    var zTrenera = false;
+    try { zTrenera = /\/trener\.html$/.test(new URL(document.referrer).pathname); } catch (e) {}
+    var rola = _isCoach && (!_athleteId || zTrenera) ? 'coach' : 'athlete';
+    m.innerHTML = window.NAV.render(null, { role: rola, athleteId: rola === 'athlete' ? _athleteId : null });
+  }
   function komunikat(err) { var k = window._wyszukiwarkaWynikow; return k ? k.komunikatBledu(err, 'Nie udało się pobrać wyników.') : 'Nie udało się pobrać wyników.'; }
   async function rpc(nazwa, args, opcje) {
     var k = pam.klucz(nazwa, args), z = pam.czytaj(k);
@@ -374,13 +393,14 @@ table.w-wyniki tr.w-nasz .k-msc{box-shadow:inset 3px 0 0 var(--accent);}
     var sesja = (await _sb.auth.getSession()).data.session;
     if (!sesja) { try { sessionStorage.setItem(KLUCZ_HASH, location.hash || '#/'); } catch (e) {} location.href = 'index.html'; return; }
     try { var h = sessionStorage.getItem(KLUCZ_HASH); if (h && (!location.hash || location.hash === '#/')) { sessionStorage.removeItem(KLUCZ_HASH); history.replaceState(null, '', h); } } catch (e) {}
-    if (!(typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne())) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Maszyna wyników jest niedostępna w tym środowisku.</div></div>'; return; }
-    api = window.wynikiApi(_sb);
     try {
       var a = await _sb.from('athletes').select('id,f6_runner_key').eq('user_id', sesja.user.id).maybeSingle();
       if (a.data) { _athleteId = a.data.id; _mojKlucz = a.data.f6_runner_key && W.kluczOk(a.data.f6_runner_key) ? a.data.f6_runner_key : null; }
       var c = await _sb.from('coaches').select('id').eq('id', sesja.user.id).maybeSingle(); _isCoach = !!(c && c.data);
     } catch (e) {}
+    mountNav();   // 23.11 (blizna-344): pasek po rozpoznaniu roli — także wtedy, gdy maszyna wyników jest niedostępna
+    if (!(typeof window.wynikiApiDostepne === 'function' && window.wynikiApiDostepne())) { ekran.innerHTML = '<div class="w-karta"><div class="w-muted">Maszyna wyników jest niedostępna w tym środowisku.</div></div>'; return; }
+    api = window.wynikiApi(_sb);
     if (!location.hash) history.replaceState({ h: '#/' }, '', '#/');
     renderuj(W.parsuj(location.hash));
   })();
