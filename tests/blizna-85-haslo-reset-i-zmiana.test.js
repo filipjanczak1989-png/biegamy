@@ -39,7 +39,7 @@ function indexWVm({ search, session, updateUser }) {
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }),
     channel: () => ({ on() { return this; }, subscribe() {} }), removeChannel() {},
   });
-  ctx.location = { href: 'https://biegamy.run/index.html' + search, search, pathname: '/index.html', hostname: 'biegamy.run', origin: 'https://biegamy.run', assign() {}, replace() {}, reload() {} };
+  ctx.location = { href: 'https://biegamy.run/index.html' + search, search, pathname: '/index.html', hostname: 'biegamy.run', origin: 'https://biegamy.run', assign() {}, replace(u) { this.zastapiono = u; this.href = u; }, reload() {} };   // 23.11: replace zapisuje cel (blizna-342)
   ctx.history = { zapisy: [], replaceState(_s, _t, url) { this.zapisy.push(url); }, pushState() {} };
   const handlery = [];
   ctx.document.addEventListener = (ev, fn) => { if (ev === 'DOMContentLoaded') handlery.push(fn); };
@@ -88,7 +88,7 @@ test('(1) index.html ?reset=1 z sesją: BEZ przekierowania, formularz widoczny; 
   assert.ok(s.ctx.history.zapisy.includes('index.html'), '?reset=1 zdjęte z adresu');
   assert.equal(s.ctx.location.href, 'https://biegamy.run/index.html?reset=1', 'redirect dopiero po timerze');
   await s.timery();
-  assert.equal(s.ctx.location.href, 'zawodnik.html', 'po udanym updateUser → redirectUser');
+  assert.equal(s.ctx.location.zastapiono, 'zawodnik.html', 'po udanym updateUser → redirectUser (location.replace: index nie zostaje w historii, blizna-342)');
 });
 
 test('(1) PASSWORD_RECOVERY bez ?reset=1 (Supabase wróciło na goły Site URL) też zatrzymuje redirect; błąd 401 → „Zaloguj się ponownie…"; bez sesji → link wygasł', async () => {

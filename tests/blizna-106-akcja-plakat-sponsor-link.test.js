@@ -54,8 +54,8 @@ test('C: sponsor z zewnątrz — dla-fabianka → index.html#sponsor → zawodni
   assert.match(ix, /location\.hash === '#sponsor'/, 'hash omija hero');
   assert.match(ix, /function celZawodnika\(onboarding\) \{[\s\S]*?location\.hash === '#sponsor'[\s\S]*?'zawodnik\.html'[\s\S]*?'#sponsor'/);
   const red = ix.slice(ix.indexOf('async function redirectUser'), ix.indexOf('function switchTab'));
-  assert.match(red, /window\.location\.href = celZawodnika\(false\);/, 'logowanie i sesja → cel z hashem');
-  assert.match(red, /window\.location\.href = 'trener\.html';/, 'trener bez hasha');
+  assert.match(red, /window\.location\.replace\(celZawodnika\(false\)\);/, 'logowanie i sesja → cel z hashem (replace, blizna-342)');
+  assert.match(red, /window\.location\.replace\('trener\.html'\);/, 'trener bez hasha (replace, blizna-342)');
   assert.match(ix, /selectedRole === 'coach' \? 'trener\.html' : celZawodnika\(true\)/, 'rejestracja → onboarding + #sponsor');
   const z = czytaj('zawodnik.html'), i = z.indexOf('window._renderKartyAkcji = async function'), r = z.slice(i, z.indexOf('\n};\n', i));
   assert.match(r, /window\.location\.hash === '#sponsor'/); assert.match(r, /querySelector\('\.akcja-form'\); if \(f\) f\.hidden = false;/);

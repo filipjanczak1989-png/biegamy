@@ -947,22 +947,24 @@ function celZawodnika(onboarding) {
   const sponsor = location.hash === '#sponsor';
   return 'zawodnik.html' + (onboarding ? '?onboarding=1' : '') + (sponsor ? '#sponsor' : '');
 }
+/* 23.11 (blizna-342): przekierowanie zalogowanego przez location.replace — strona startowa nie zostaje w historii. Z location.href wstecz z Dziś
+   wracało na index.html, który z sesją znowu przekierowywał na Dziś (pułapka przy wyjściu z polityki prywatności, regulaminu, 404, po logowaniu). */
 async function redirectUser(user) {
   // 1) Najpierw sprawdź user_metadata (szybko, dla rejestracji email/password)
   const metaRole = user.user_metadata?.role;
   if (metaRole === 'coach' || metaRole === 'trener') {
-    window.location.href = 'trener.html';
+    window.location.replace('trener.html');
     return;
   }
   // 2) Brak roli w metadata — sprawdź w tabeli coaches (trener bez roli w metadata nie może trafić na zawodnik.html)
   try {
     const { data: coachRow } = await sb.from('coaches').select('id').eq('id', user.id).maybeSingle();
     if (coachRow) {
-      window.location.href = 'trener.html';
+      window.location.replace('trener.html');
       return;
     }
   } catch(e) { /* fallback do zawodnika */ }
-  window.location.href = celZawodnika(false);
+  window.location.replace(celZawodnika(false));
 }
 
 // ── TAB SWITCH ────────────────────────────────────────────────────────────────
@@ -1098,7 +1100,7 @@ async function register() {
     document.getElementById('success-msg').textContent = `Witaj, ${name}! Konto ${roleLabel} zostało utworzone.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
     setTimeout(() => {
-      window.location.href = selectedRole === 'coach' ? 'trener.html' : celZawodnika(true);
+      window.location.replace(selectedRole === 'coach' ? 'trener.html' : celZawodnika(true));   // 23.11 (blizna-342): jak redirectUser, bez wpisu index w historii
     }, 1500);
   } else {
     // Email confirmation włączone — poinformuj i zostań na stronie
