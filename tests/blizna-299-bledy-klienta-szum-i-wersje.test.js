@@ -60,8 +60,9 @@ test('1a: odrzucenie przejścia „opt-in disabled” bez wpisu i bez czerwieni 
   L.odpal('unhandledrejection', { reason: { name: 'InvalidStateError', message: 'Transition was skipped' } });
   L.odpal('unhandledrejection', { reason: { name: 'AbortError', message: 'Transition was aborted because of invalid state' } });
   L.odpal('unhandledrejection', { reason: { name: 'TypeError', message: 'x is not a function', stack: 'TypeError: x…' } });
-  assert.deepEqual(L.wpisy.map((w) => [w.tabela, w.kind, w.message]), [['client_errors', 'unhandledrejection', 'Transition was skipped'],
-    ['client_errors', 'unhandledrejection', 'Transition was aborted because of invalid state'], ['client_errors', 'unhandledrejection', 'x is not a function']]);
+  // 23.11 (blizna-347): komunikat z nazwą błędu („AbortError: …”), żeby z wpisu było widać, co odrzuciło
+  assert.deepEqual(L.wpisy.map((w) => [w.tabela, w.kind, w.message]), [['client_errors', 'unhandledrejection', 'InvalidStateError: Transition was skipped'],
+    ['client_errors', 'unhandledrejection', 'AbortError: Transition was aborted because of invalid state'], ['client_errors', 'unhandledrejection', 'TypeError: x is not a function']]);
 });
 
 test('1a: „Script error.” bez źródła obok odrzucenia przejścia (przed albo po, do 2 s) pomijany; samotny i z plikiem zapisywany', () => {

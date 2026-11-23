@@ -3398,14 +3398,23 @@
      w theme.css sprawia, ze przejscie powstaje przy KAZDEJ nawigacji w obrebie
      originu. Do 15.08.2026 nasluchiwalismy wylacznie `pagereveal`, i to tylko
      przy swipie, wiec odrzucenia z pozostalych sciezek nie mialy odbiorcy. */
+  /* 23.11 (blizna-347): pominiete przejscie moze odrzucic KAZDA z trzech obietnic obiektu przejscia — ready, finished i updateCallbackDone.
+     Do 23.11 lapalismy tylko `finished`, a client_errors dalej dostawal „Transition was skipped…”, „…Viewport size changed” (Android, zmiana
+     rozmiaru w trakcie animacji) i Safari „skipTransition() was called” (7 dni: 44 wpisy). Oznaczamy wszystkie trzy jako obsluzone. */
+  function _vtPolknij(vt, klucze) {
+    (klucze || ['ready', 'finished', 'updateCallbackDone']).forEach(function(k){
+      try { var p = vt && vt[k]; if (p && typeof p.catch === 'function') p.catch(function(){}); } catch(_){}
+    });
+  }
   window.addEventListener('pageswap', function(e){
     /* Stary dokument znika za chwile — nie ma tu czego sprzatac, chodzi
-       WYLACZNIE o oznaczenie odrzucenia jako obsluzonego. */
-    try { if (e && e.viewTransition) e.viewTransition.finished.catch(function(){}); } catch(_){}
+       WYLACZNIE o oznaczenie odrzucen jako obsluzonych. */
+    try { if (e && e.viewTransition) _vtPolknij(e.viewTransition); } catch(_){}
   });
 
   window.addEventListener('pagereveal', function(e){
     if (!e || !e.viewTransition) return;                    // brak aktywnej cross-doc VT (fallback / same-doc)
+    _vtPolknij(e.viewTransition, ['ready', 'updateCallbackDone']);   // 23.11 (blizna-347): finished ma nizej wlasny .catch() przed .finally() (sprzatanie atrybutu)
     var d = null;
     try { d = sessionStorage.getItem('bm_vt_dir'); sessionStorage.removeItem('bm_vt_dir'); } catch(_){}
     /* !! NIE MA TU WCZESNEGO WYJSCIA — I TO JEST CALA NAPRAWA.
@@ -7088,7 +7097,9 @@ window._icuRenderSplits = function (d, el) {
     window.addEventListener('unhandledrejection', function(e){
       var r = e.reason;
       if (_szumPrzejscia(r)) { _vtSzumT = Date.now(); try { e.preventDefault(); } catch (_) {} return; }   // szum Chrome (wyżej): bez wpisu i bez czerwieni w konsoli
-      _logClientError({ kind:'unhandledrejection', message:(r && r.message) || String(r), source:null, lineno:null, colno:null, stack: r && r.stack });
+      /* 23.11 (blizna-347): nazwa błędu razem z komunikatem („AbortError: Transition was skipped”) — bez niej nie dało się ustalić, co odrzuciło */
+      var tresc = (r && r.message) ? ((r.name ? String(r.name) + ': ' : '') + r.message) : String(r);
+      _logClientError({ kind:'unhandledrejection', message: tresc, source:null, lineno:null, colno:null, stack: r && r.stack });
     });
   })();
 })();
