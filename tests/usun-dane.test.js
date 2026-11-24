@@ -174,7 +174,7 @@ test('blokada nazwiska: opis skutku (imiennik, 3 lata) i przekazanie p_blokuj_na
   await czekaj();
   s.root.wszystkie('INPUT')[0].value = 'Jan Testowy';
   await s.klik(/^Szukaj$/); await s.klik(/rocznik 1980/);
-  assert.match(s.tekst(), /innej osoby o tym samym nazwisku i roczniku\. Wygasa po 3 latach/);
+  assert.match(s.tekst(), /wszystkie wyniki bez roku urodzenia z tym imieniem i nazwiskiem – obecne i przyszłe\. Obejmie również wyniki innej osoby o tych samych danych\. Wygasa po 3 latach/);
   const blok = s.root.wszystkie('INPUT').find((i) => i.getAttribute('id') === 'ud-blokuj');
   blok.checked = true; await blok.wyzwol('change');
   await s.klik(/Dalej – podsumowanie/);
@@ -325,4 +325,150 @@ test('pole kodu: maxlength 10, inputmode numeric, autocomplete one-time-code; te
     ['123456', '1234567', '12345678', '1234567890', null, null, null, null]);
   const kod = fs.readFileSync(path.join(KORZEN, 'js', 'usun-dane.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   assert.doesNotMatch(kod, /\\d\{6\}|6 cyfr|maxlength: '6'/, 'nigdzie na sztywno 6 cyfr');
+});
+
+// ── 013: wyniki bez roku urodzenia – podgląd imienników (erasure_preview_nazwisko0), blokada automatyczna, teksty ──
+const KANDYDAT_BEZ = { data: [{ runner_key: 'n:testowy jan', display_name: 'Jan Testowy', yob: null, results_count: 2, last_event: 'Bieg Fikcyjny' }], error: null };
+const PODGLAD_BEZ = { data: [
+  { result_id: 'b1', event_name: 'Bieg Fikcyjny 4', event_date: '2025-06-01', distance_km: 10, source: 'b4sport', ma_id_zrodla: false, dopasowanie: 'nazwisko' },
+  { result_id: 'b2', event_name: 'Bieg Fikcyjny 5', event_date: '2024-06-01', distance_km: 5, source: 'elektroniczne-zapisy', ma_id_zrodla: false, dopasowanie: 'nazwisko' },
+], error: null };
+async function doPodgladuBez(odp = {}) {
+  const s = scena({ odpowiedzi: { search_runners: KANDYDAT_BEZ, erasure_preview: PODGLAD_BEZ, ...odp } });
+  await czekaj();
+  s.root.wszystkie('INPUT')[0].value = 'Jan Testowy';
+  await s.klik(/^Szukaj$/); await s.klik(/rocznik nieznany/);
+  return s;
+}
+const ileRazy = (s, n) => s.wolania.filter((x) => x[0] === n).length;
+
+test('013 bez rocznika: bez pola blokady, opis blokady automatycznej; jedno zapytanie o imienników przed podsumowaniem i ostrzeżenie z liczbą', async () => {
+  const s = await doPodgladuBez({ erasure_preview_nazwisko0: { data: 3, error: null }, erasure_request: { data: 'w-9', error: null } });
+  assert.equal(s.root.wszystkie('INPUT').find((i) => i.getAttribute('id') === 'ud-blokuj'), undefined, 'bez rocznika – bez pola blokady');
+  assert.match(s.tekst(), /Te wyniki nie mają roku urodzenia\. Po potwierdzeniu wniosku przez 3 lata będziemy od razu ukrywać nowe wyniki bez roku urodzenia/);
+  const pola = s.root.wszystkie('INPUT').filter((i) => i.getAttribute('type') === 'checkbox');
+  pola[1].checked = false; await pola[1].wyzwol('change'); pola[1].checked = true; await pola[1].wyzwol('change');
+  assert.equal(ileRazy(s, 'erasure_preview_nazwisko0'), 0, 'zaznaczanie nie pyta serwera');
+  await s.klik(/Dalej – podsumowanie/);
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.find((x) => x[0] === 'erasure_preview_nazwisko0')[1])), { p_result_ids: ['b1', 'b2'], p_blokuj_nazwisko: false });
+  assert.match(s.tekst(), /Razem z zaznaczonymi zostaną ukryte jeszcze 3 inne wyniki bez roku urodzenia z tym samym imieniem i nazwiskiem – mogą należeć do innej osoby/);
+  assert.match(s.tekst(), /Przez 3 lata nowe wyniki bez roku urodzenia z tym imieniem i nazwiskiem będziemy od razu ukrywać/);
+  assert.doesNotMatch(s.tekst(), /sprawdzi go osoba z BiegaMy/, '2 + 3 ≤ 30');
+  await s.klik(/^Wróć$/); await s.klik(/Dalej – podsumowanie/);
+  assert.equal(ileRazy(s, 'erasure_preview_nazwisko0'), 1, 'ten sam wybór – wynik zapamiętany');
+  const p2 = s.root.wszystkie('INPUT').filter((i) => i.getAttribute('type') === 'checkbox');
+  assert.equal(p2.length, 0, 'na podsumowaniu nie ma pól');
+  await s.klik(/Złóż wniosek/);
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.find((x) => x[0] === 'erasure_request')[1])), { p_result_ids: ['b1', 'b2'], p_blokuj_nazwisko: false });
+});
+
+test('013: inny wybór = nowe zapytanie; 0 imienników – bez ostrzeżenia, z opisem blokady; ponad 30 wyników – sprawdzenie przez osobę', async () => {
+  let n = 0;
+  const s = await doPodgladuBez({ erasure_preview_nazwisko0: () => ({ data: [0, 29, 30][n++], error: null }) });
+  await s.klik(/Dalej – podsumowanie/);
+  assert.doesNotMatch(s.tekst(), /Razem z zaznaczonymi/);
+  assert.match(s.tekst(), /Przez 3 lata nowe wyniki bez roku urodzenia/);
+  await s.klik(/^Wróć$/);
+  const pola = s.root.wszystkie('INPUT').filter((i) => i.getAttribute('type') === 'checkbox');
+  pola[0].checked = false; await pola[0].wyzwol('change');
+  await s.klik(/Dalej – podsumowanie/);
+  assert.equal(ileRazy(s, 'erasure_preview_nazwisko0'), 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.filter((x) => x[0] === 'erasure_preview_nazwisko0')[1][1])), { p_result_ids: ['b2'], p_blokuj_nazwisko: false });
+  assert.match(s.tekst(), /zostanie ukrytych jeszcze 29 innych wyników/);
+  assert.doesNotMatch(s.tekst(), /sprawdzi go osoba z BiegaMy/, '1 + 29 = 30 – próg to „ponad 30”');
+  await s.klik(/^Wróć$/);
+  const p3 = s.root.wszystkie('INPUT').filter((i) => i.getAttribute('type') === 'checkbox');
+  p3[0].checked = true; await p3[0].wyzwol('change'); p3[1].checked = false; await p3[1].wyzwol('change');
+  await s.klik(/Dalej – podsumowanie/);
+  assert.match(s.tekst(), /zostanie ukrytych jeszcze 30 innych wyników/);
+  assert.match(s.tekst(), /Wniosek obejmie ponad 30 wyników – zanim je ukryjemy, sprawdzi go osoba z BiegaMy/);
+});
+
+test('013 z rocznikiem: bez blokady – bez zapytania o imienników; z blokadą – zapytanie z p_blokuj_nazwisko true', async () => {
+  const bez = scena({ odpowiedzi: { search_runners: KANDYDACI, erasure_preview: PODGLAD } });
+  await czekaj();
+  bez.root.wszystkie('INPUT')[0].value = 'Jan Testowy';
+  await bez.klik(/^Szukaj$/); await bez.klik(/rocznik 1980/); await bez.klik(/Dalej – podsumowanie/);
+  assert.equal(ileRazy(bez, 'erasure_preview_nazwisko0'), 0, 'kandydat z rocznikiem bez blokady nie obejmie imienników bez rocznika');
+  assert.doesNotMatch(bez.tekst(), /Przez 3 lata nowe wyniki bez roku urodzenia/);
+  const z = scena({ odpowiedzi: { search_runners: KANDYDACI, erasure_preview: PODGLAD, erasure_preview_nazwisko0: { data: 1, error: null } } });
+  await czekaj();
+  z.root.wszystkie('INPUT')[0].value = 'Jan Testowy';
+  await z.klik(/^Szukaj$/); await z.klik(/rocznik 1980/);
+  const blok = z.root.wszystkie('INPUT').find((i) => i.getAttribute('id') === 'ud-blokuj');
+  blok.checked = true; await blok.wyzwol('change');
+  await z.klik(/Dalej – podsumowanie/);
+  assert.equal(z.wolania.find((x) => x[0] === 'erasure_preview_nazwisko0')[1].p_blokuj_nazwisko, true);
+  assert.match(z.tekst(), /zostanie ukryty jeszcze 1 inny wynik bez roku urodzenia/);
+});
+
+test('013 błędy podglądu imienników: 429 (za godzinę, bez ponowienia), 401 (sesja), PT400 (tekst z serwera), sieć (ponowienie); wniosku nie ma', async () => {
+  const przypadki = [
+    [{ status: 429, kod: 'limit', retryAfter: 3600, komunikat: null }, /Za dużo prób – spróbuj ponownie za godzinę\./, false],
+    [{ status: 401, kod: 'nieautoryzowany', komunikat: null }, /Sesja wygasła/, false],
+    [{ status: 400, kod: 'zle_dane', komunikat: 'Wyniki bez rocznika w jednym wniosku muszą mieć to samo imię i nazwisko (przy blokadzie – takie jak wyniki z rocznikiem)' },
+      /Wyniki bez rocznika w jednym wniosku muszą mieć to samo imię i nazwisko/, false],
+    [{ status: 0, kod: 'siec', komunikat: null }, /Brak połączenia z internetem/, true],
+    [{ status: 502, kod: 'serwer', komunikat: null }, /Coś poszło nie tak/, true],
+  ];
+  for (const [blad, re, ponow] of przypadki) {
+    const s = await doPodgladuBez({ erasure_preview_nazwisko0: { data: null, error: blad } });
+    await s.klik(/Dalej – podsumowanie/);
+    assert.match(s.tekst(), re, JSON.stringify(blad));
+    assert.equal(!!s.przycisk(/Sprawdź ponownie/), ponow, 'ponowienie: ' + blad.status);
+    assert.equal(s.przycisk(/Złóż wniosek/), undefined, 'bez liczby imienników nie ma wniosku');
+    assert.ok(!s.wolania.some((x) => x[0] === 'erasure_request'));
+    assert.doesNotMatch(s.tekst(), /PT4|uuid|b1|b2|null|undefined/, 'bez szczegółów technicznych');
+  }
+  const s = await doPodgladuBez({ erasure_preview_nazwisko0: { data: null, error: { status: 403, kod: 'odmowa', komunikat: 'Zaloguj się kodem albo linkiem z maila (ważne 15 min)' } } });
+  await s.klik(/Dalej – podsumowanie/);
+  assert.match(s.tekst(), /Minęło 15 minut od zalogowania kodem/, '403 świeżego logowania – ponowne logowanie');
+});
+
+test('013: jeden wniosek = jedno imię i nazwisko – po zmianie kandydata wniosek zawiera tylko wiersze nowego kandydata', async () => {
+  const dwoch = { data: [KANDYDAT_BEZ.data[0], { runner_key: 'n:inny piotr', display_name: 'Piotr Inny', yob: null, results_count: 1, last_event: 'Bieg Fikcyjny' }], error: null };
+  const s = scena({ odpowiedzi: { search_runners: dwoch, erasure_preview: (a) => (a.p_runner_key === 'n:inny piotr'
+    ? { data: [{ result_id: 'c1', event_name: 'Bieg Fikcyjny 6', event_date: '2025-07-01', distance_km: 10, source: 'b4sport', ma_id_zrodla: false, dopasowanie: 'nazwisko' }], error: null }
+    : PODGLAD_BEZ), erasure_preview_nazwisko0: { data: 0, error: null }, erasure_request: { data: 'w-10', error: null } } });
+  await czekaj();
+  s.root.wszystkie('INPUT')[0].value = 'Testowy';
+  await s.klik(/^Szukaj$/); await s.klik(/^Jan Testowy/);
+  await s.klik(/^Wróć$/);
+  s.root.wszystkie('INPUT')[0].value = 'Testowy';
+  await s.klik(/^Szukaj$/); await s.klik(/^Piotr Inny/);
+  await s.klik(/Dalej – podsumowanie/); await s.klik(/Złóż wniosek/);
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.find((x) => x[0] === 'erasure_request')[1])), { p_result_ids: ['c1'], p_blokuj_nazwisko: false });
+  assert.deepEqual(JSON.parse(JSON.stringify(s.wolania.find((x) => x[0] === 'erasure_preview_nazwisko0')[1])), { p_result_ids: ['c1'], p_blokuj_nazwisko: false });
+});
+
+test('013 teksty: „wstrzymane” podaje oba powody (wynik i lista wniosków); odmiana zdania o imiennikach; pomocniki', async () => {
+  const s = scena({ odpowiedzi: { search_runners: KANDYDACI, erasure_preview: PODGLAD, erasure_request: { data: 'w-3', error: null }, erasure_confirm: { data: 'wstrzymane', error: null },
+    erasure_status: { data: [{ id: 'w-4', stan: 'wstrzymane', utworzono: '2026-10-20T10:00:00Z', wierszy: 31 }], error: null } } });
+  await czekaj(); await czekaj();
+  assert.match(s.tekst(), /31 wyników, czeka na ręczne sprawdzenie \(dużo wniosków jednego dnia albo ponad 30 wyników\)/);
+  s.root.wszystkie('INPUT')[0].value = 'Jan Testowy';
+  await s.klik(/^Szukaj$/); await s.klik(/rocznik 1980/); await s.klik(/Dalej – podsumowanie/); await s.klik(/Złóż wniosek/); await s.klik(/Potwierdzam/);
+  assert.match(s.tekst(), /jednego dnia przyszło dużo wniosków albo wniosek obejmuje ponad 30 wyników\. Ukryjemy wyniki po sprawdzeniu\./);
+  assert.doesNotMatch(s.tekst(), /dostaniesz|powiadomimy|wyślemy/i, 'bez obietnicy powiadomienia');
+  const { zdanieImiennikow, obejmieImiennikow, kluczImiennikow, PROG_RECZNY } = s.ctx._usunDane;
+  assert.equal(PROG_RECZNY, 30);
+  assert.match(zdanieImiennikow(1), /zostanie ukryty jeszcze 1 inny wynik/);
+  for (const n of [2, 3, 4, 22, 104]) assert.match(zdanieImiennikow(n), new RegExp(`zostaną ukryte jeszcze ${n} inne wyniki`));
+  for (const n of [5, 11, 12, 13, 14, 25, 112]) assert.match(zdanieImiennikow(n), new RegExp(`zostanie ukrytych jeszcze ${n} innych wyników`));
+  assert.equal(obejmieImiennikow({ yob: null }, [{ ma_id_zrodla: false }], false), true);
+  assert.equal(obejmieImiennikow({ yob: null }, [{ ma_id_zrodla: true }], false), false, 'profil ze źródła (ID) – nie');
+  assert.equal(obejmieImiennikow({ yob: 1980 }, [{ ma_id_zrodla: false }], false), false);
+  assert.equal(obejmieImiennikow({ yob: 1980 }, [], true), true, 'blokada nazwiska obejmuje też wyniki bez rocznika');
+  assert.equal(kluczImiennikow(['b2', 'b1'], false), kluczImiennikow(['b1', 'b2'], false));
+  assert.notEqual(kluczImiennikow(['b1'], false), kluczImiennikow(['b1'], true));
+});
+
+test('013 przy niedostępnej usłudze: usługa niedostępna, zero zapytań (także o imienników); RPC na liście klienta', async () => {
+  const s = scena({ dostepne: false, odpowiedzi: { erasure_preview_nazwisko0: { data: 5, error: null } } });
+  await czekaj();
+  assert.match(s.tekst(), /chwilowo niedostępna/);
+  assert.equal(s.wolania.length, 0);
+  const klient = fs.readFileSync(path.join(KORZEN, 'js', 'wyniki-api.js'), 'utf8');
+  assert.match(klient, /^\s*var WYNIKI_API_WLACZONE = true;/m, 'od 1.11.2026 włączone (blizna-53); przy false działa ta sama ścieżka „niedostępna”');
+  assert.match(klient, /var RPC_DOZWOLONE = \[[^\]]*'erasure_preview_nazwisko0'/, 'nowe RPC na liście dozwolonych klienta');
 });

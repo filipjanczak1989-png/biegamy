@@ -7,6 +7,15 @@
    - erasure_confirm(p_id) → 'ukryte' | 'wstrzymane' | 'wygasle' | stan; erasure_cancel(p_id) → 'cofniete' | stan;
    - erasure_status() → do 20 wniosków konta (id, stan, utworzono, ukryto, kasowanie_od, wierszy);
    - wniosek i potwierdzenie wymagają świeżego logowania kodem albo linkiem z maila (amr otp/magiclink ≤ 15 min, PT403).
+   Migracja 013 (wyniki bez roku urodzenia, docs/B4SPORT-KLUCZ.md w biegamy-collector, sekcje 8e i 9):
+   - erasure_preview_nazwisko0(p_result_ids uuid[≤200], p_blokuj_nazwisko) → liczba dodatkowych widocznych wyników bez roku
+     urodzenia z tymi samymi imionami i nazwiskami (sam odczyt); PT401 bez konta, PT400 przy > 200 id albo kilku nazwiskach.
+     Wołany RAZ przed podsumowaniem (wynik zapamiętany dla tego samego wyboru) i tylko gdy wniosek może objąć imienników –
+     limit /rpc/erasure_* to 20 zapytań na godzinę na adres IP na cały przebieg wniosku;
+   - wniosek z wynikiem bez roku urodzenia (albo z blokadą nazwiska) blokuje automatycznie na 3 lata to imię i nazwisko dla
+     wyników bez roku urodzenia; jeden wniosek = jedno imię i nazwisko (PT400) – tu zawsze, bo wiersze wniosku pochodzą z
+     podglądu jednego kandydata (grupa „n:” = jedno nazwisko bez rocznika, profil ze źródła ma ID, grupa z rocznikiem ma rocznik);
+   - stan 'wstrzymane': dużo wniosków jednego dnia albo wniosek obejmuje ponad 30 wyników (razem z imiennikami).
    Bez danych osobowych w URL, logach i magazynach przeglądarki; dane z serwera wyłącznie przez textContent. */
 (function () {
   'use strict';
@@ -20,9 +29,10 @@
   var WAZNOSC_WNIOSKU_MIN = 30;
   var ADRES_POWROTU = 'https://biegamy.run/usun-dane.html';
   var KONTAKT = 'biegamy.run@gmail.com';
+  var PROG_RECZNY = 30;   // 013: wniosek, który ukryłby ponad tyle wyników (z imiennikami), czeka na sprawdzenie przez osobę z BiegaMy
   var STANY = {
     czeka_na_potwierdzenie: 'czeka na Twoje potwierdzenie',
-    wstrzymane: 'czeka na ręczne sprawdzenie',
+    wstrzymane: 'czeka na ręczne sprawdzenie (dużo wniosków jednego dnia albo ponad ' + PROG_RECZNY + ' wyników)',
     ukryte: 'ukryte – wyniki nie są widoczne',
     wykonane: 'usunięte z bazy',
     cofniete: 'cofnięty – wyniki wróciły',
@@ -63,6 +73,25 @@
     return { wierszy: wiersze.length, zrodla: zrodla.sort(), profil: wiersze.some(function (w) { return w.ma_id_zrodla; }) };
   }
 
+  // 013: czy wniosek może objąć imienników bez roku urodzenia – kandydat bez rocznika i zaznaczony wynik bez ID ze źródła,
+  // albo blokada nazwiska (obejmuje też wyniki bez roku urodzenia z tym imieniem i nazwiskiem). Tylko wtedy pytamy serwer o liczbę.
+  function obejmieImiennikow(kandydat, wybrane, blokuj) {
+    if (blokuj) return true;
+    return !!kandydat && kandydat.yob == null && (wybrane || []).some(function (w) { return w && !w.ma_id_zrodla; });
+  }
+
+  // Zdanie ostrzeżenia z liczbą dodatkowych wyników (odmiana: 1 / 2–4 / 5+)
+  function zdanieImiennikow(n) {
+    var d = n % 10, s = n % 100;
+    var rdzen = n === 1 ? 'zostanie ukryty jeszcze 1 inny wynik'
+      : d >= 2 && d <= 4 && (s < 12 || s > 14) ? 'zostaną ukryte jeszcze ' + n + ' inne wyniki'
+      : 'zostanie ukrytych jeszcze ' + n + ' innych wyników';
+    return 'Razem z zaznaczonymi ' + rdzen + ' bez roku urodzenia z tym samym imieniem i nazwiskiem – mogą należeć do innej osoby, która tak samo się nazywa.';
+  }
+
+  // Klucz zapamiętanej liczby imienników: ten sam wybór (posortowane id) i ta sama blokada → bez ponownego zapytania
+  function kluczImiennikow(ids, blokuj) { return ids.slice().sort().join(',') + '|' + (blokuj ? 1 : 0); }
+
   // Kod z maila: spacje usunięte, same cyfry, długość KOD_MIN–KOD_MAX; inaczej null
   function poprawnyKod(wpis) {
     var k = String(wpis == null ? '' : wpis).replace(/\s+/g, '');
@@ -90,7 +119,7 @@
     return n + ' ' + (n === 1 ? jeden : d >= 2 && d <= 4 && (s < 12 || s > 14) ? kilka : wiele);
   }
 
-  // Tekst dla użytkownika z błędu klienta js/wyniki-api.js; komunikat serwera tylko ze stałych zdań funkcji 012 (PT4xx)
+  // Tekst dla użytkownika z błędu klienta js/wyniki-api.js; komunikat serwera tylko ze stałych zdań funkcji 012/013 (PT4xx)
   function tekstBledu(err) {
     if (!err) return '';
     if (err.kod === 'brak_sesji' || err.kod === 'nieautoryzowany' || err.status === 401) return 'Sesja wygasła – zaloguj się ponownie w aplikacji i wróć na tę stronę.';
@@ -114,7 +143,8 @@
     var stopZegar = opts.clearInterval || function (id) { clearInterval(id); };
     var lok = opts.location || (typeof location !== 'undefined' ? location : null);
     var hist = opts.history || (typeof history !== 'undefined' ? history : null);
-    var stan = { email: null, koniec: null, kandydat: null, wiersze: [], wybrane: {}, blokuj: false, wniosek: null, odliczanie: null, licznik: null };
+    var stan = { email: null, koniec: null, kandydat: null, wiersze: [], wybrane: {}, blokuj: false, wniosek: null, odliczanie: null, licznik: null,
+      imiennicy: { klucz: null, liczba: null } };
 
     function el(tag, props) {
       var n = doc.createElement(tag);
@@ -350,24 +380,57 @@
       });
       var naglowek = el('tr', {});
       ['', 'Data', 'Zawody', 'Dystans', 'Źródło', 'Dopasowanie'].forEach(function (t) { naglowek.append(el('th', { text: t })); });
-      var blokada = el('input', { type: 'checkbox', checked: false, id: 'ud-blokuj' });
-      blokada.addEventListener('change', function () { stan.blokuj = !!blokada.checked; });
+      // 013: kandydat bez rocznika – pole blokady nie ma sensu (blokada wymaga rocznika, serwer by odmówił), a blokada imienia
+      // i nazwiska dla wyników bez roku urodzenia powstaje sama przy wniosku z takim wynikiem
+      var bezRocznika = c.yob == null;
+      var automatyczna = bezRocznika && stan.wiersze.some(function (w) { return !w.ma_id_zrodla; });
+      var blokada = bezRocznika ? null : el('input', { type: 'checkbox', checked: false, id: 'ud-blokuj' });
+      if (blokada) blokada.addEventListener('change', function () { stan.blokuj = !!blokada.checked; });
+      var opisBlokady = !bezRocznika
+        ? p('Blokada ukryje też wyniki, które pojawią się później bez identyfikatora ze źródła z tym imieniem, nazwiskiem i rocznikiem, a także wszystkie wyniki bez roku urodzenia z tym imieniem i nazwiskiem – obecne i przyszłe. Obejmie również wyniki innej osoby o tych samych danych. Wygasa po 3 latach. Działa tylko, gdy zaznaczone wyniki z rocznikiem mają jedno nazwisko i jeden rocznik.', 'ud-muted')
+        : automatyczna
+          ? p('Te wyniki nie mają roku urodzenia. Po potwierdzeniu wniosku przez 3 lata będziemy od razu ukrywać nowe wyniki bez roku urodzenia z tym imieniem i nazwiskiem – także wyniki innej osoby, która tak samo się nazywa. Nie trzeba nic zaznaczać.', 'ud-muted')
+          : null;
       var dalej = przycisk('Dalej – podsumowanie', function () { podsumuj(); });
       ekran(el('h2', { text: 'Podgląd: ' + String(c.display_name || '') }), z.el,
         p('Odznacz wyniki, które nie są Twoje. Wiersz „profil ze źródła” oznacza wyniki przypisane do Twojego profilu w serwisie z wynikami – wtedy ukryjemy wszystkie wyniki tego profilu.', 'ud-muted'),
         el('table', { class: 'ud-tabela' }, el('thead', {}, naglowek), tbody), licznik,
-        el('p', {}, blokada, el('label', { for: 'ud-blokuj', text: ' Zablokuj też przyszłe wyniki z moim nazwiskiem i rocznikiem' })),
-        p('Blokada ukryje również wyniki, które pojawią się później bez identyfikatora ze źródła – także wyniki innej osoby o tym samym nazwisku i roczniku. Wygasa po 3 latach. Działa tylko, gdy zaznaczone wyniki mają jedno nazwisko i znany rocznik.', 'ud-muted'),
+        blokada ? el('p', {}, blokada, el('label', { for: 'ud-blokuj', text: ' Zablokuj też przyszłe wyniki z moim nazwiskiem i rocznikiem' })) : null,
+        opisBlokady,
         dalej, przycisk('Wróć', function () { glowny(); }));
       stan.licznik = zegar(z.tik, 15000);
       policz();
     }
 
     /* krok 4: podsumowanie → wniosek → potwierdzenie */
-    function podsumuj() {
+    async function podsumuj() {
       if (czasMinal()) return poOknie();
       var wybrane = stan.wiersze.filter(function (w) { return stan.wybrane[w.result_id]; });
       var s = podsumowanie(wybrane);
+      var ids = wybrane.map(function (w) { return w.result_id; });
+      // 013: liczba imienników bez roku urodzenia – jedno zapytanie przed podsumowaniem, zapamiętane dla tego samego wyboru
+      var imiennicy = 0;
+      var obejmie = obejmieImiennikow(stan.kandydat, wybrane, stan.blokuj);
+      if (obejmie) {
+        var klucz = kluczImiennikow(ids, stan.blokuj);
+        if (stan.imiennicy.klucz === klucz) imiennicy = stan.imiennicy.liczba;
+        else {
+          ekran(el('h2', { text: 'Podsumowanie' }), info('Sprawdzam, czy wniosek obejmie też inne wyniki…'));
+          var pr = await api.rpc('erasure_preview_nazwisko0', { p_result_ids: ids, p_blokuj_nazwisko: !!stan.blokuj });
+          if (pr.error) {
+            if (wymagaKodu(pr.error)) return poOknie();
+            var bp = info('');
+            obsluzBlad(pr.error, bp);
+            ekran(el('h2', { text: 'Podsumowanie' }), bp,
+              // ponowienie tylko przy błędzie sieci albo serwera: 400 (dane), 401 (sesja) i 429 (limit) się nie poprawią od razu
+              [400, 401, 429].indexOf(pr.error.status) >= 0 ? null : przycisk('Sprawdź ponownie', function () { podsumuj(); }),
+              przycisk('Wróć', function () { podglad(stan.kandydat); }));
+            return;
+          }
+          imiennicy = Math.max(0, Math.floor(Number(pr.data) || 0));
+          stan.imiennicy = { klucz: klucz, liczba: imiennicy };
+        }
+      }
       var komunikat = info('');
       var zloz = przycisk('Złóż wniosek', async function () {
         zloz.disabled = true;
@@ -381,6 +444,9 @@
         p('Ukryjemy ' + liczba(s.wierszy, 'wynik', 'wyniki', 'wyników') + ' ze źródeł: ' + s.zrodla.join(', ') + '.'),
         s.profil ? p('Część wyników należy do profilu w serwisie źródłowym – ukryjemy wszystkie wyniki tego profilu, także niezaznaczone.') : null,
         stan.blokuj ? p('Włączysz też blokadę nazwiska i rocznika na 3 lata (może objąć imiennika).') : null,
+        imiennicy > 0 ? info(zdanieImiennikow(imiennicy), 'ud-uwaga') : null,
+        obejmie ? p('Przez 3 lata nowe wyniki bez roku urodzenia z tym imieniem i nazwiskiem będziemy od razu ukrywać – także wyniki innej osoby, która tak samo się nazywa.') : null,
+        s.wierszy + imiennicy > PROG_RECZNY ? p('Wniosek obejmie ponad ' + PROG_RECZNY + ' wyników – zanim je ukryjemy, sprawdzi go osoba z BiegaMy.') : null,
         p('Wyniki znikną z wyszukiwarki zaraz po potwierdzeniu, a po 30 dniach usuniemy je z bazy na stałe. Przez te 30 dni możesz cofnąć wniosek na tej stronie. Lista na stronie organizatora zawodów zostaje u organizatora.', 'ud-muted'),
         zloz, przycisk('Wróć', function () { podglad(stan.kandydat); }), komunikat);
     }
@@ -403,7 +469,7 @@
     function wynik(st) {
       var teksty = {
         ukryte: 'Gotowe – wyniki są ukryte. Po 30 dniach usuniemy je z bazy; do tego czasu możesz cofnąć wniosek.',
-        wstrzymane: 'Wniosek czeka na ręczne sprawdzenie (dużo wniosków jednego dnia). Ukryjemy wyniki po sprawdzeniu.',
+        wstrzymane: 'Wniosek czeka na ręczne sprawdzenie – jednego dnia przyszło dużo wniosków albo wniosek obejmuje ponad ' + PROG_RECZNY + ' wyników. Ukryjemy wyniki po sprawdzeniu.',
         wygasle: 'Wniosek wygasł, bo minęło 30 minut. Złóż go jeszcze raz.',
       };
       ekran(el('h2', { text: 'Wniosek' }), p(teksty[st] || ('Stan wniosku: ' + (STANY[st] || 'nieznany') + '.')), przycisk('Moje wnioski', function () { glowny(); }));
@@ -415,5 +481,6 @@
 
   window.initUsunDane = initUsunDane;
   window._usunDane = { oknoLogowania: oknoLogowania, bladZLinku: bladZLinku, podsumowanie: podsumowanie, tekstBledu: tekstBledu,
+    obejmieImiennikow: obejmieImiennikow, zdanieImiennikow: zdanieImiennikow, kluczImiennikow: kluczImiennikow, PROG_RECZNY: PROG_RECZNY,
     maskujEmail: maskujEmail, wymagaKodu: wymagaKodu, poprawnyKod: poprawnyKod, KOD_MIN: KOD_MIN, KOD_MAX: KOD_MAX, STANY: STANY, OKNO_MIN: OKNO_MIN, PONOWNA_WYSYLKA_S: PONOWNA_WYSYLKA_S, ADRES_POWROTU: ADRES_POWROTU };
 })();

@@ -15,7 +15,7 @@
    - Tylko RPC z listy RPC_DOZWOLONE — ta sama lista co w Caddy (caddy-f6-api.caddy) i f6.bramka; inne nazwy nie wychodzą.
    - 401 → jedno sb.auth.refreshSession() i ponowienie; potem error.kod 'nieautoryzowany'.
    - Kody błędów: status HTTP (0 = sieć/timeout/offline), kod (stały, po polsku), retryAfter (s, z nagłówka Retry-After),
-     komunikat (TYLKO tekst z funkcji SQL 012 — kody PT4xx — inne treści odpowiedzi serwera nie wychodzą do UI). */
+     komunikat (TYLKO tekst z funkcji SQL 012/013 — kody PT4xx — inne treści odpowiedzi serwera nie wychodzą do UI). */
 (function () {
   'use strict';
 
@@ -24,6 +24,7 @@
   var TIMEOUT_MS = 15000;
   var RPC_DOZWOLONE = ['search_runners', 'runner_results', 'upcoming_races', 'event_course_status', 'events_search',
     'erasure_preview', 'erasure_request', 'erasure_confirm', 'erasure_cancel', 'erasure_status',
+    'erasure_preview_nazwisko0',   // 013: liczba imienników bez rocznika przed wnioskiem (24.11, blizna-350; Caddy przepuszcza od 27.10)
     'event_hide',   // K5 (018): trener ukrywa zgłoszenie; event_propose świadomie POZA listą — wyłącznie przez EF impreza-zglos
     'event_info', 'event_results'];   // 019: ekran imprezy w wyniki.html (ta sama lista w Caddy i f6.bramka)
   var KODY = { 400: 'zle_dane', 401: 'nieautoryzowany', 403: 'odmowa', 404: 'brak', 413: 'za_duze', 429: 'limit' };
@@ -101,7 +102,7 @@
       if (res.ok) return { data: tresc, error: null };
 
       var kod = KODY[res.status] || (res.status >= 500 ? 'serwer' : 'blad');
-      // komunikat tylko z funkcji 012 (raise sqlstate 'PT4xx'): stałe zdania po polsku, bez danych osób
+      // komunikat tylko z funkcji 012/013 (raise sqlstate 'PT4xx'): stałe zdania po polsku, bez danych osób
       var komunikat = tresc && typeof tresc.code === 'string' && /^PT4\d\d$/.test(tresc.code) && typeof tresc.message === 'string'
         ? tresc.message.slice(0, 300) : null;
       return blad(res.status, kod, { retryAfter: retryAfter(res), komunikat: komunikat });
