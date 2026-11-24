@@ -15,7 +15,7 @@ import { wymagajUsera } from "../_shared/wymagaj-usera.mjs";
 import { waliduj, wykonaj, nawigacja, dzisWaw } from "./narzedzia.mjs";
 import { dopasuj, normalizuj, zagadkaKandydat, czyNiepewne, ODP_NIEPEWNE, CHIPY_WYBORU, przeciekAkcji, ODP_CEL_TAJNY, ODP_ZDROWIE_INNYCH } from "./router.mjs";
 import { ODP_NIE_WIEM, kartaStrony, rodzajBiegaMy, ODP_PLAN_TRENER, KARTA_PLAN_TRENER, ODP_WYNIKI_IMPREZY } from "./router.mjs";   // 21.11: pytania o BiegaMy bez sieci, „nie wiem” + link; 22.11: plan z trenerem, wyniki imprezy
-import { kartyWynikow } from "./impreza.mjs";   // 22.11 (krok 2): wyniki imprezy z kalendarza maszyny, bez sieci
+import { wynikiImprezy } from "./impreza.mjs";   // 22.11 (krok 2): wyniki imprezy z kalendarza maszyny, bez sieci; 24.11: + „Szukaj wyników w Google ›”
 import "../../../js/akcja.mjs";   // BM_AKCJA.kartaOkienka — karta akcji po starcie (projekt F dzień 3)
 import { odpowiedzBiegu } from "./bieg-odp.mjs";   // 21.11: ustępy regulaminu biegu z js/bieg.mjs
 import { oNas } from "../_shared/o-nas.mjs";   // 21.11: „o nas” jak w v2
@@ -127,8 +127,9 @@ async function obsluz(req: Request, stan: Stan): Promise<Response> {
     if (Array.isArray((traf as { karty?: unknown[] }).karty)) kartyZd = (traf as { karty: unknown[] }).karty;   // „jak dołączyć" przed startem → karta rejestracji
     // 21.11: bieg wirtualny — ustępy regulaminu z js/bieg.mjs (pole `bieg` licznika); bez licznika zostaje „Nie wiem tego na pewno.” + link z routera
     if (traf.log === "bieg") { const ob = odpowiedzBiegu(akcjaDane, (traf as { bieg?: unknown }).bieg); if (ob) return odp(200, { ...pusto("router"), zdania: ob.zdania, karty: ob.karty }); }
-    // 22.11 (krok 2): wyniki imprezy — karty z kalendarza maszyny wyników (bez sieci); bez trafienia albo przy awarii zostaje „Otwórz Wyniki ›” z routera
-    if (traf.log === "wyniki-imprezy") { let k: unknown[] = []; try { k = await kartyWynikow(fetch, jwt, (traf as { wynikiImprezy: { q: string } }).wynikiImprezy.q); } catch { k = []; } if (k.length) return odp(200, { ...pusto("router"), zdania: [ODP_WYNIKI_IMPREZY], karty: k }); }
+    // 22.11 (krok 2): wyniki imprezy — karty z kalendarza maszyny wyników (bez sieci); bez trafienia albo przy awarii zostaje „Otwórz Wyniki ›” z routera,
+    // a pod nim (24.11, blizna-348) „Szukaj wyników w Google ›” — zapytanie z karty kalendarza albo z pytania, bez sieci i modelu po stronie funkcji
+    if (traf.log === "wyniki-imprezy") { const w = await wynikiImprezy(fetch, jwt, (traf as { wynikiImprezy: { q: string } }).wynikiImprezy.q, dzis); if (w.karty.length) return odp(200, { ...pusto("router"), zdania: [ODP_WYNIKI_IMPREZY], karty: w.karty }); if (w.google) kartyZd = [...kartyZd, w.google]; }
     // 22.11 (krok 1): zmiana albo ułożenie planu — z trenerem „Napisz do trenera”; bez trenera zostaje „Ułóż plan” z routera
     if ((traf as { planKarta?: boolean }).planKarta) { const { data: a } = await sb.from("athletes").select("coach_id").eq("id", ath.id).maybeSingle(); if (a && a.coach_id) return odp(200, { ...pusto("router"), zdania: [ODP_PLAN_TRENER], karty: [KARTA_PLAN_TRENER] }); }
     return odp(200, { ...pusto("router"), zdania: [traf.zdanie], karty: kartyZd, chipy: (traf as { chipy?: unknown[] }).chipy || [] });

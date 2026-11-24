@@ -68,6 +68,12 @@ test('każdy link „wyniki” w stronach i skryptach prowadzi do wyniki.html (n
         assert.match(s, /var u = linkWynikow\(d\.url_wyniki\), h = u && window\.safeExternalHref \? window\.safeExternalHref\(u, \{ tylkoHttps: true \}\) : '';/, 'oficjalne wyniki bez strażnika');
         continue;
       }
+      /* 24.11 (Filip, blizna-348): „Szukaj wyników w Google ›” — ŚWIADOMY link zewnętrzny, wyłącznie w js/okienko.js, stały host i encodeURIComponent */
+      if (p === 'js/okienko.js' && m[1] === "' + esc(h) + '" && /target="_blank" rel="noopener noreferrer">Szukaj wyników$/.test(m[0])) {
+        assert.match(s, /var GOOGLE_WYNIKI = 'https:\/\/www\.google\.com\/search\?q=';/, 'Google: stały host');
+        assert.match(s, /return GOOGLE_WYNIKI \+ encodeURIComponent\(t\);/, 'Google: zapytanie zakodowane');
+        continue;
+      }
       assert.match(m[1], /^wyniki\.html|' \+ esc\(cel(?:Wynikow|Imprezy)/, `${p}: link do wyników prowadzi do ${m[1]}`);
     }
     assert.doesNotMatch(s, /races\.html[^"']*"[^>]*>\s*(Otwórz wyniki|Zobacz wyniki)/, p);

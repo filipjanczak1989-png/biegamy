@@ -58,7 +58,8 @@ test('v2: trafienie → karty edycji z wynikami (23.11: przyszła bez wyników o
     const b = await przebiegV2(q, { fetchF6 });
     assert.equal(b.slad, 'router:wyniki-imprezy', q);
     assert.deepEqual(b.body.zdania, [R.ODP_WYNIKI_BRAK], q);
-    assert.deepEqual(b.body.karty, [R.KARTA_WYNIKI], q);
+    // 24.11 (blizna-348): pod „Otwórz Wyniki ›” karta „Szukaj wyników w Google ›” (bez karty kalendarza: tekst pytania bez „wyniki”)
+    assert.deepEqual(b.body.karty, [R.KARTA_WYNIKI, { typ: 'szukaj_google', dane: { q: q.replace(/^wyniki /, '') + ' wyniki' } }], q);
     assert.equal(b.sieci + b.modele, 0, q);
   }
   assert.equal(r.sieci + r.modele, 0);
@@ -67,9 +68,10 @@ test('v2: trafienie → karty edycji z wynikami (23.11: przyszła bez wyników o
 test('v1: ten sam krok w funkcji; front: karta imprezy z kluczem ma „Wyniki ›”, karta zapasowa „Otwórz Wyniki ›”', async () => {
   const { R } = await moduly();
   const v1 = czytaj('supabase/functions/okienko/index.ts');
-  assert.match(v1, /if \(traf\.log === "wyniki-imprezy"\) \{ let k: unknown\[\] = \[\]; try \{ k = await kartyWynikow\(fetch, jwt,/);
-  assert.match(v1, /if \(k\.length\) return odp\(200, \{ \.\.\.pusto\("router"\), zdania: \[ODP_WYNIKI_IMPREZY\], karty: k \}\); \}/);
-  assert.match(czytaj('supabase/functions/okienko/impreza.mjs'), /export async function kartyWynikow\(fetchFn, token, q\) \{\n  const l = await szukajImprez\(fetchFn, token, \{ q \}\);/);
+  // 24.11 (blizna-348): ta sama reguła przez wynikiImprezy (karty albo karta Google pod „Otwórz Wyniki ›”)
+  assert.match(v1, /if \(traf\.log === "wyniki-imprezy"\) \{ const w = await wynikiImprezy\(fetch, jwt,/);
+  assert.match(v1, /if \(w\.karty\.length\) return odp\(200, \{ \.\.\.pusto\("router"\), zdania: \[ODP_WYNIKI_IMPREZY\], karty: w\.karty \}\); if \(w\.google\) kartyZd = \[\.\.\.kartyZd, w\.google\]; \}/);
+  assert.match(czytaj('supabase/functions/okienko/impreza.mjs'), /export async function kartyWynikow\(fetchFn, token, q\) \{\n  return kartyZListy\(fetchFn, token, await szukajImprez\(fetchFn, token, \{ q \}\)\);/);
   const ctx = zaladujSb(); ctx.sessionStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
   vm.runInContext(czytaj('js/okienko.js'), ctx, { filename: 'js/okienko.js' });
   const h = ctx.OKIENKO.htmlOdpowiedzi(200, { tryb: 'router', zdania: [R.ODP_WYNIKI_IMPREZY], karty: [{ typ: 'impreza', dane: IMPREZY[1] }] });

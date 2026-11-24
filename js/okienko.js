@@ -108,6 +108,7 @@
     if (k.typ === 'osoba') return kartaOsoby(d);
     if (k.typ === 'wyniki') return kartaWynikow(d);
     if (k.typ === 'impreza') return kartaImprezy(d);
+    if (k.typ === 'szukaj_google') return kartaGoogle(d);
     if (k.typ === 'plan_start') return kartaPlanu(d);
     if (k.typ === 'plan_przycisk') return '<button type="button" class="okn-otworz" data-pytanie="Zapisz plan">Zapisz plan</button>';
     if (k.typ === 'plan_zapis') return (Array.isArray(d.starty) && d.starty.length) ? '<div class="okn-karta" data-plan-box="1"><button type="button" class="okn-otworz" data-plan-zapisz="' + esc(JSON.stringify(d.starty)) + '">Tak, zapisz jako cele</button></div>' : '';
@@ -180,6 +181,20 @@
     if (!h) return '';
     return '<a class="okn-link" href="' + h + '" target="_blank" rel="noopener noreferrer">Oficjalne wyniki ›</a>' +
       '<span class="okn-meta">źródło wyników: ' + esc(domenaWynikow(new URL(u).hostname.toLowerCase())) + '</span>';
+  }
+  /* blizna-348 (Filip 24.11, zamiast sieci po link): „Szukaj wyników w Google ›” pod „Otwórz Wyniki ›”, gdy maszyna nie ma wyników imprezy.
+     Host STAŁY, tylko https; zapytanie z funkcji (nazwa, miasto, rok imprezy — nigdy dane osoby) wyłącznie przez encodeURIComponent; nowa karta, noopener.
+     Zapytanie puste, za długie albo bez „wyniki” na końcu → nic. */
+  var GOOGLE_WYNIKI = 'https://www.google.com/search?q=';
+  function adresGoogle(q) {
+    if (typeof q !== 'string') return '';
+    var t = q.replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 160 || !/(^|\s)wyniki$/.test(t)) return '';
+    return GOOGLE_WYNIKI + encodeURIComponent(t);
+  }
+  function kartaGoogle(d) {
+    var h = adresGoogle(d.q);
+    return h ? '<div class="okn-karta"><a class="okn-link" href="' + esc(h) + '" target="_blank" rel="noopener noreferrer">Szukaj wyników w Google ›</a></div>' : '';
   }
   function kartaImprezy(d) {
     var dyst =(Array.isArray(d.dystanse) ? d.dystanse : []).slice(0, 6).map(function (x) {

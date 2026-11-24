@@ -140,7 +140,8 @@ test('v2: „poznan maraton wyniki” i z literówką — reguła wyników bez s
     const m = maszyna(POZNAN_DZIS), r = await przebiegV2(q, { fetchF6: m.fetchF6 });
     assert.equal(r.slad, 'router:wyniki-imprezy', q);
     assert.deepEqual(r.body.zdania, [R.ODP_WYNIKI_BRAK], q);
-    assert.deepEqual(r.body.karty, [R.KARTA_WYNIKI], q);
+    // 24.11 (blizna-348): pod „Otwórz Wyniki ›” „Szukaj wyników w Google ›” — nazwa i miasto z najnowszej przeszłej edycji kalendarza, rok z jej daty
+    assert.deepEqual(r.body.karty, [R.KARTA_WYNIKI, { typ: 'szukaj_google', dane: { q: '25 Poznań Maraton Poznań 2026 wyniki' } }], q);
     assert.equal(r.sieci + r.modele, 0, q);
     assert.deepEqual(m.wywolania.map((w) => w.toLowerCase()).slice(0, 1), ['events_search:poznan maraton'], q + ' (bez słowa „wyniki” i literówki w zapytaniu do maszyny)');
     assert.ok(m.wywolania.slice(1).every((w) => w.startsWith('event_info')) && m.wywolania.length <= 2, q + ' — najwyżej jedno event_info (krok 3 a, blizna-338)');
