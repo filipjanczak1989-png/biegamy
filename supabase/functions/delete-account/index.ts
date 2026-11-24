@@ -118,6 +118,18 @@ Deno.serve(async (req) => {
     .map(r => { const o = parseStorageRef(r.raw, r.hint); return o && (!r.wlasne || nalezyDoKonta(o.path)) ? o : null; })
     .filter(Boolean) as Array<{ bucket: string; path: string }>;
 
+  /* 24.11.2026: avatar konta pod KAŻDĄ nazwą avatars/<athleteId>.<ext>, nie tylko ten z avatar_url. Po zmianie rozszerzenia przy
+     ponownym wgraniu (jpg → png…) i po przepięciu na mniejszą kopię .jfif (20261226_avatary_400) poprzedni plik zostaje
+     w kubełku, a dotąd kasowaliśmy tylko wskazany. Lista folderu avatars/ po prefiksie id, ten sam warunek własności co wyżej.
+     Błąd listy nie blokuje usunięcia konta (jak reszta storage: best-effort). */
+  if (athleteId) {
+    const { data: avatary } = await admin.storage.from('biegamy-assets').list('avatars', { search: athleteId, limit: 100 });
+    for (const f of avatary || []) {
+      const p = 'avatars/' + f.name;
+      if (nalezyDoKonta(p) && !objects.some(o => o.bucket === 'biegamy-assets' && o.path === p)) objects.push({ bucket: 'biegamy-assets', path: p });
+    }
+  }
+
   // ── 4) RPC (klient z JWT USERA -> auth.uid() = ten user). ATOMOWA BRAMKA — nieodwracalny rdzeń. ──
   const userClient = createClient(SB_URL, ANON, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { error: rpcErr } = await userClient.rpc('delete_my_account');
