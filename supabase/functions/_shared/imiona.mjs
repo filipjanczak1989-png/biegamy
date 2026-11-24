@@ -111,3 +111,25 @@ export function normalizujSlowo(s) {
 }
 /** „Kasia", „KATARZYNA", „Łukasz" → true; „bieg", „kim", „warszawa" → false. */
 export function czyImie(slowo) { return IMIONA.has(normalizujSlowo(slowo)); }
+
+/* 24.11 (Filip): imię w ODMIANIE → mianownik ze słownika, z polskimi znakami jak w pytaniu: „Anny” → „Anna”, „Kasi” → „Kasia”, „Jerzego” → „Jerzy”,
+   „Pawła” → „Paweł”, „Łukasza” → „Łukasz”. Słowo już w mianowniku (czyImie) → null. Same końcówki, bez słownika form: każdy kandydat musi być
+   w IMIONA, więc „maratonu”, „Poznaniu” czy „Warszawy” nic nie dają. Wstawka „e” dla imion ze znikającym „e” (Marek → Marka, Paweł → Pawła, Kacper →
+   Kacpra) tylko między dwiema spółgłoskami na końcu i PRZED formą bez wstawki, bo słownik PESEL zna też „Mark” (a „Michał” nie może dać „Michael”);
+   „ii” przed „i”, bo zna też „Mariia”. Zwykłe słowa, które z końcówką dają imię ze słownika („inny” → Inna, „ani” → Ania, „idę” → Ida), są wykluczone
+   (lista z korpusu ławek i tekstów aplikacji, 24.11). */
+const NIE_ODMIANA = new Set(["ani", "inny", "inni", "danie", "dany", "dani", "liny", "linie", "lubi", "ide", "mili", "mai", "ligi", "dali"]);
+const KONCOWKI_ODMIANY = [["ego", "y"], ["ego", ""], ["owi", ""], ["iem", ""], ["em", ""], ["rze", "r"], ["rze", "ra"], ["cie", "t"], ["cie", "ta"],
+  ["dzie", "d"], ["dze", "ga"], ["ce", "ka"], ["le", "ł"], ["ie", ""], ["ie", "a"], ["ii", "ia"], ["i", "ia"], ["i", "a"], ["y", "a"], ["ę", "a"], ["u", ""], ["a", ""]];
+export function imieZOdmiany(slowo) {
+  const s = String(slowo || "");
+  if (!/^[\p{L}]{3,}$/u.test(s) || czyImie(s) || NIE_ODMIANA.has(normalizujSlowo(s))) return null;
+  const m = s.toLowerCase();
+  for (const [k, z] of KONCOWKI_ODMIANY) {
+    if (!m.endsWith(k) || m.length - k.length < 2) continue;
+    const r = m.slice(0, m.length - k.length) + z;
+    const zbitka = !/[aeiouyąęó]/.test(r.slice(-2, -1)) && !/[aeiouyąęó]/.test(r.slice(-1));
+    for (const kand of zbitka ? [r.slice(0, -1) + "e" + r.slice(-1), r] : [r]) if (czyImie(kand)) return s[0] + kand.slice(1);
+  }
+  return null;
+}

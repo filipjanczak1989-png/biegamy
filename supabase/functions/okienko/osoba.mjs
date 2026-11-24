@@ -16,7 +16,7 @@
 // Moduł nie zapisuje nigdzie (blizna-67/69); odpowiedzi osobowej nie wkładamy do okienko_siec_cache ani do znalezisk.
 import { wygladaNaOsobeSlownik, PYTAJNE, wygladaNaNazwisko } from "./pamiec.mjs";
 import { czyImie } from "../_shared/imiona.mjs";
-import { normalizuj } from "./router.mjs";
+import { normalizuj, paraOsobyOdmienionej } from "./router.mjs";
 
 import { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 } from "./f6.mjs";
 export { f6, BladF6, ODP_F6_ZAJETA, F6_URL, F6_TTL_MS, F6_MAX_WPISOW, _wyczyscPamiecF6, _rozmiarPamieciF6 };   // klient F6 wydzielony (M3a)
@@ -68,13 +68,13 @@ export function osobaWZdaniu(tekst) {
     const A = czyImie(w1);
     const B = slowa.length >= 4 && i > 0 && !poPrzyimku && DUZA.test(w1) && DUZA.test(w2);
     if (!A && !B) continue;
-    const reszta = slowa.slice(i + 2);
-    let gdzie = null;
-    for (let j = 0; j < reszta.length - 1; j++) if (/^(w|we|na)$/i.test(reszta[j]) && /^[\p{L}][\p{L}.-]{2,39}$/u.test(reszta[j + 1]) && !MIESIAC_OS.test(reszta[j + 1]) && !zleSlowoOsoby(reszta[j + 1])) { gdzie = reszta[j + 1]; break; }
-    const n = normalizuj(t);
-    const wprost = /\bkim jest\b|\bkto to\b|\bw sieci\b|\bgoogle\b|\bw internecie\b/.test(n);
-    return { q: w1 + " " + w2, gdzie, wprost };
+    return { q: w1 + " " + w2, gdzie: gdzieZa(slowa.slice(i + 2)), wprost: WPROST.test(normalizuj(t)) };
   }
+  return null;
+}
+const WPROST = /\bkim jest\b|\bkto to\b|\bw sieci\b|\bgoogle\b|\bw internecie\b/;
+function gdzieZa(reszta) {   // „w/we/na <Miejsce>” za parą imię–nazwisko → filtr wyników
+  for (let j = 0; j < reszta.length - 1; j++) if (/^(w|we|na)$/i.test(reszta[j]) && /^[\p{L}][\p{L}.-]{2,39}$/u.test(reszta[j + 1]) && !MIESIAC_OS.test(reszta[j + 1]) && !zleSlowoOsoby(reszta[j + 1])) return reszta[j + 1];
   return null;
 }
 
@@ -83,6 +83,14 @@ export function osobaWZdaniu(tekst) {
     imię i nazwisko wewnątrz dłuższego zdania → osobaWZdaniu (M3-1). */
 export function osobaZPytania(tekst) {
   const t = String(tekst || "").replace(/[?!.]+$/g, "").trim();
+  /* 24.11 (Filip): imię w odmianie + nazwisko w pytaniu o wyniki („wyniki Anny Nowak z maratonu”) → osoba z imieniem w MIANOWNIKU („Anna Nowak”), bo maszyna
+     i Społeczność szukają po mianowniku (rdzeń „anny” nie trafia „Anna”; odmienione nazwisko łapie szukanie po rdzeniach). Router oddaje takie pytanie
+     trybowi osoby, więc tu zawsze osoba — także gdy nazwisko jest zarazem zwykłym słowem („Listopad”); inaczej pytanie poszłoby dalej (impreza, model). */
+  const odm = paraOsobyOdmienionej(t);
+  if (odm) {
+    const slowa = t.replace(/[\\"'„”(),;:]+/g, " ").split(/\s+/).filter(Boolean), i = slowa.indexOf(odm.odmienione);
+    return { q: odm.imie + " " + odm.nazwisko, gdzie: i >= 0 ? gdzieZa(slowa.slice(i + 2)) : null, wprost: WPROST.test(normalizuj(t)) };
+  }
   const n = normalizuj(t);
   const reszta = (re) => { const m = t.match(re); return m ? m[1].trim() : null; };
   const wprost = reszta(/^(?:kim\s+jest|kto\s+to\s+jest|kto\s+to)\s+(.+)$/i) || reszta(/^(.+?)\s+w\s+(?:sieci|google|internecie)$/i)

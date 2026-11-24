@@ -29,7 +29,7 @@ const Z_NAZWISKIEM = [
   ['czy kasia nowak biega w weekend', 'kasia nowak', null],
   ['kim jest Robert Korzeniowski w sieci', 'Robert Korzeniowski', null],
   ['ile km zrobil Filip Janczak w pazdzierniku', 'Filip Janczak', null],
-  ['pokaz mi wyniki Marka Nowaka z Krakowa', 'Marka Nowaka', null],
+  ['pokaz mi wyniki Marka Nowaka z Krakowa', 'Marek Nowaka', null],   // 24.11 (blizna-349): pytanie o wyniki — imię w mianowniku (rdzeń „mark” nie trafiał „Marek”)
   ['czy Zdzislaw Kraszewski biegal maraton', 'Zdzislaw Kraszewski', null],
   ['co slychac u Basi Kowalczyk', 'Basi Kowalczyk', null],
   ['jaki czas ma Tomek Wisniewski na dyche', 'Tomek Wisniewski', null],

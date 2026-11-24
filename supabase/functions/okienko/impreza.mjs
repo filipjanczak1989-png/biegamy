@@ -9,7 +9,7 @@
 // „maraton warszawski kiedy"; ALBO 1–3 słowa bez słowa z listy, gdy nazwa trafia w kalendarz („ultrakotlina").
 // Wynik („kto wygrał…", „wyniki…", „rekord…", „moje…") NIE jest imprezą. Odpowiedź: zdania z sieci (etykieta,
 // źródła) → karty z kalendarza → karty z naszych startów; pusto → „Nie znalazłem tego biegu w kalendarzu ani w sieci."
-import { normalizuj, czyOboz, maPareOsoby } from "./router.mjs";
+import { normalizuj, czyOboz, maPareOsoby, paraOsobyOdmienionej } from "./router.mjs";
 import { tekstDlaRegul } from "./router.mjs";   // 23.11: literówki „wyniki” w kopii tekstu dla reguł
 import { wygladaNaOsobe, wygladaNaNazwisko } from "./pamiec.mjs";
 import { szukajImprez } from "./kalendarz.mjs";
@@ -94,7 +94,8 @@ export async function wynikiImprezy(fetchFn, token, q, dzis) {
 
 /** 24.11 (Filip): ZAPYTANIE dla „Szukaj wyników w Google ›” — „<nazwa> <miasto> <rok> wyniki”. Nazwa i miasto z karty kalendarza maszyny (najnowsza
     PRZESZŁA edycja; rok tylko z jej daty), a gdy przeszłej nie ma — z pierwszej karty bez roku; bez karty: tekst pytania bez „wyniki” (q z routera).
-    Bez sieci i modelu. Zapytanie z parą imię–nazwisko (maPareOsoby) → null: dane osoby nie idą do wyszukiwarki. Adres (stały host) składa front. */
+    Bez sieci i modelu. Zapytanie z parą imię–nazwisko (maPareOsoby, a od 24.11 także imię w odmianie: paraOsobyOdmienionej, bez względu na wielkość liter)
+    → null: dane osoby nie idą do wyszukiwarki. Adres (stały host) składa front. */
 export function kartaGoogleWynikow(kalendarz, q, dzis) {
   const l = (Array.isArray(kalendarz) ? kalendarz : []).filter((d) => d && typeof d.nazwa === "string" && d.nazwa.trim());
   const przeszle = l.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d.data || "")) && (d.przeszla === true || String(d.data) < String(dzis || "")))
@@ -102,9 +103,9 @@ export function kartaGoogleWynikow(kalendarz, q, dzis) {
   const k = przeszle[0] || l[0] || null;
   const czesci = k ? [String(k.nazwa).split(" – ")[0], k.miejscowosc || k.miasto || "", przeszle[0] ? String(k.data).slice(0, 4) : ""] : [String(q || "")];
   const tekst = [...czesci, "wyniki"].map((s) => String(s).replace(/\s+/g, " ").trim()).filter(Boolean).join(" ");
-  if (tekst === "wyniki" || tekst.length > 160 || maPareOsoby(tekst)) return null;
-  /* tekst PYTANIA (bez karty kalendarza): te same strażniki osoby co przed siecią w trybie imprezy — „wyniki Anny Nowak z maratonu” (imię w dopełniaczu, którego
-     maPareOsoby nie zna) router puszcza jako wyniki imprezy, a do Google nie może pójść. Ostrożnie: słowo z dużej litery w krótkim pytaniu też blokuje przycisk. */
+  if (tekst === "wyniki" || tekst.length > 160 || maPareOsoby(tekst) || paraOsobyOdmienionej(tekst)) return null;
+  /* tekst PYTANIA (bez karty kalendarza): te same strażniki osoby co przed siecią w trybie imprezy (druga linia za routerem, który od 24.11 oddaje „wyniki Anny
+     Nowak z maratonu” trybowi osoby). Ostrożnie: słowo z dużej litery w krótkim pytaniu też blokuje przycisk. */
   if (!k && (wygladaNaOsobe(String(q || "")) || wygladaNaNazwisko(tekst))) return null;
   return { typ: "szukaj_google", dane: { q: tekst } };
 }

@@ -86,13 +86,14 @@ test('korpus ławek: tylko znane pytania z literówką; dla pozostałych tekst d
   for (const q of zmienione) assert.equal(R.tekstDlaRegul(q).replace(/wyniki/g, 'X'), q.replace(/(?<![\p{L}\d])(wniki|wynki|wyiki|wynkii)(?![\p{L}\d])/giu, 'X'), q);
 });
 
-test('tylko kopia dla reguł: obie funkcje nie poprawiają tekstu; poprawka siedzi w trzech regułach; log v2 i klasyfikator dostają oryginał', async () => {
+test('tylko kopia dla reguł: obie funkcje nie poprawiają tekstu; poprawka siedzi w czterech regułach (24.11: + para osoby w odmianie); log v2 i klasyfikator dostają oryginał', async () => {
   for (const f of ['supabase/functions/okienko/index.ts', 'supabase/functions/okienko-v2/potok.mjs']) assert.doesNotMatch(czytaj(f), /tekstDlaRegul|LITEROWKI_WYNIKI/, f);
   const router = czytaj('supabase/functions/okienko/router.mjs'), impreza = czytaj('supabase/functions/okienko/impreza.mjs');
   assert.match(router, /export function dopasuj\(tekst, dzis\) \{\n  tekst = tekstDlaRegul\(tekst\);/);
   assert.match(router, /export function wynikiImprezyZPytania\(tekst\) \{\n  tekst = tekstDlaRegul\(tekst\);/);
   assert.match(impreza, /export function imprezaZPytania\(tekst\) \{\n  tekst = tekstDlaRegul\(tekst\);/);
-  assert.equal((router + impreza).split('tekst = tekstDlaRegul(tekst);').length - 1, 3, 'dokładnie trzy miejsca');
+  assert.match(router, /export function paraOsobyOdmienionej\(tekst\) \{\n  tekst = tekstDlaRegul\(tekst\);/, '24.11 (blizna-349): „wniki anny nowak” też osoba');
+  assert.equal((router + impreza).split('tekst = tekstDlaRegul(tekst);').length - 1, 4, 'dokładnie cztery miejsca');
   // v2 naprawdę: pytanie z literówką, którego reguły nie łapią, idzie do klasyfikatora i do logu w oryginale
   const { potok } = await moduly();
   const q = 'jakei mam wynki z zawodów', tabele = { okienko_v2_log: [], okienko_v2_rozmowa: [], okienko_siec_cache: [], okienko_znaleziska: [], athletes: [] }, doKlasyfikatora = [];

@@ -6,7 +6,7 @@ import { EKRANY } from "./narzedzia.mjs";
 import { dopasujFaq } from "./faq-akcji.mjs";
 import "../../../js/tekst.mjs";
 import "../../../js/akcja-cytaty.mjs";
-import { czyImie } from "../_shared/imiona.mjs";   // przed 8.11 (3): „Anna Nowak maraton” to osoba, nie lista maratonów   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
+import { czyImie, imieZOdmiany } from "../_shared/imiona.mjs";   // przed 8.11 (3): „Anna Nowak maraton” to osoba, nie lista maratonów   // zagadka akcji (2.11.2026): ZAGADKI, czyAkcjaRuszyla — jedno źródło z banerem cytatu
 const T = /** @type {any} */ (globalThis).BM_TEKST;
 const AKCJA = /** @type {any} */ (globalThis).BM_AKCJA_CYTATY;   // porządek 1.11: normalizacja, rdzeń, miesiące, odmiana — js/tekst.mjs
 
@@ -119,6 +119,25 @@ export function maPareOsoby(tekst) {
     if (/^[\p{L}][\p{L}'-]{2,}$/u.test(s[i + 1]) && !BIEG_SLOWO.test(n2) && !/^(w|we|na|do|z|ze|od|u|o|i|a|czy|jak|ile|kto|co|gdzie|kiedy)$/.test(n2)) return true;
   }
   return false;
+}
+/* 24.11 (Filip): IMIĘ W ODMIANIE + nazwisko w pytaniu o wyniki („wyniki Anny Nowak z maratonu”, „wyniki Pawła Nowaka w Dębnie”) to pytanie o OSOBĘ.
+   maPareOsoby zna tylko mianownik, więc reguła wyników imprezy brała osobę za imprezę. Tylko pytania o wyniki; para zaraz po słowie imprezy albo patrona
+   („Bieg Jerzego Popiełuszki”, „Memoriał Janusza Kusocińskiego”) zostaje nazwą imprezy. Pytanie o własne wyniki („mój/mam/mnie/ja”) zostaje jak przy parze
+   w mianowniku (router). → { imie (mianownik), nazwisko, odmienione } | null */
+const PRZED_PATRONEM = /^(bieg\w*|maraton\w*|polmaraton\w*|memorial\w*|im|imienia|pamieci|puchar\w*|turniej\w*|prix|mistrzostw\w*|zawod\w*|cross\w*|ultra\w*|trail\w*|rajd\w*|sztafet\w*|swiet\w*|sw|ulic\w*|parkrun\w*|run|dych\w*|piatk\w*)$/;
+const NIE_NAZWISKO_PARY = /^(wynik\w*|jest|sa|nie|tak|jak|czy|ile|kto|gdzie|kiedy|jaki|jaka|jakie|dla|przez|oraz|albo|lub|tez|juz|jeszcze|ten|tym|tego|tej|jego|jej|ich|moj\w*|twoj\w*|swoj\w*)$/;
+export function paraOsobyOdmienionej(tekst) {
+  tekst = tekstDlaRegul(tekst);   // „wniki Anny Nowak” też (osoba.mjs woła z oryginałem)
+  const t = normalizuj(tekst);
+  if (!/\bwynik\w*/.test(t) || /\b(moj\w*|mam|mnie|ja)\b/.test(t)) return null;
+  const s = String(tekst || "").replace(/[?!.,;:"'„”()]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  for (let i = 0; i < s.length - 1; i++) {
+    const imie = imieZOdmiany(s[i]);
+    if (!imie || (i > 0 && PRZED_PATRONEM.test(normalizuj(s[i - 1])))) continue;
+    const n2 = normalizuj(s[i + 1]);
+    if (/^[\p{L}][\p{L}'-]{2,}$/u.test(s[i + 1]) && !BIEG_SLOWO.test(n2) && !NIE_NAZWISKO_PARY.test(n2)) return { imie, nazwisko: s[i + 1], odmienione: s[i] };
+  }
+  return null;
 }
 export function dopasujBiegi(tekst, dzis) {
   const t = normalizuj(tekst);
@@ -375,7 +394,7 @@ const WYNIKI_BIEGOWE = /\b(maraton\w*|polmaraton\w*|bieg\w*|ultra\w*|trail\w*|pa
 export function wynikiImprezyZPytania(tekst) {
   tekst = tekstDlaRegul(tekst);   // 23.11: wniki/wynki/wyiki/wynkii → wyniki (tylko kopia dla reguł)
   const t = normalizuj(tekst);
-  if (!t || !/\b(wyniki|wynikow|wynikach)\b/.test(t) || WYNIKI_MOJE.test(t) || WYNIKI_ZAIMEK.test(t) || maPareOsoby(tekst) || !WYNIKI_BIEGOWE.test(t)) return null;
+  if (!t || !/\b(wyniki|wynikow|wynikach)\b/.test(t) || WYNIKI_MOJE.test(t) || WYNIKI_ZAIMEK.test(t) || maPareOsoby(tekst) || paraOsobyOdmienionej(tekst) || !WYNIKI_BIEGOWE.test(t)) return null;
   const slowa = String(tekst).replace(/[?!.,;:"„”()🙏]/gu, " ").split(/\s+/).filter(Boolean);
   if (slowa.some((w) => czyImie(w))) return null;   // imię w pytaniu = pytanie o osobę, nie o imprezę
   const nazwa = slowa.filter((w) => { const n = normalizuj(w); return n && !WYNIKI_POMOCNICZE.test(n); });
@@ -410,6 +429,7 @@ export function dopasuj(tekst, dzis) {
      w „moje” narzędzia (moje_treningi, nawigacja do mojego planu). Para imię+nazwisko bez słowa „mój/mam/mnie” → router oddaje
      pytanie trybowi osoby (osoba.mjs). */
   if (maPareOsoby(tekst) && !/\b(moj\w*|mam|mnie|ja)\b/.test(t)) return null;
+  if (paraOsobyOdmienionej(tekst)) return null;   // 24.11: „wyniki Anny Nowak z maratonu” → tryb osoby (imię w mianowniku: osoba.mjs)
   if (/\bplan\w*\b.*\b(dzis|dzisiaj)\b|\bco (mam )?(dzis|dzisiaj)\b|\b(dzis|dzisiaj)\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "dzis" } };
   if (/\bplan\w*\b.*\bjutr\w*|\bco (mam )?jutr\w*|\bjutr\w* trening/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "jutro" } };
   if (/\bplan\w*\b.*\b(nastepn|przyszl)\w* tydz\w*/.test(t)) return { narzedzie: "moj_plan", args: { zakres: "nastepny_tydzien" } };

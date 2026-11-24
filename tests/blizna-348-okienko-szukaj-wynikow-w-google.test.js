@@ -77,10 +77,13 @@ test('v2 naprawdę: „Otwórz Wyniki ›”, a pod nim Google; bez sieci i mode
     assert.ok(!(o.body.karty || []).some((k) => k && k.typ === 'szukaj_google'), q + ': bez przycisku Google (' + o.slad + ')');
     assert.ok(!JSON.stringify(o.body).includes('google'), q + ': nic o Google w odpowiedzi');
   }
-  // „wyniki Anny Nowak z maratonu” router puszcza dziś regułą wyników imprezy (imienia w dopełniaczu nie zna) — przycisk blokuje strażnik nazwiska
-  f6._wyczyscPamiecF6();
-  const an = await przebiegV2('wyniki Anny Nowak z maratonu', { fetchF6: maszyna([]) });
-  assert.equal(an.slad, 'router:wyniki-imprezy'); assert.deepEqual(an.body.karty, [R.KARTA_WYNIKI], 'tylko „Otwórz Wyniki ›”');
+  // 24.11 (blizna-349): imię w odmianie + nazwisko idzie trybem osoby (dotąd regułą wyników imprezy; małe litery mijały strażnik nazwiska → Google z nazwiskiem)
+  for (const q of ['wyniki Anny Nowak z maratonu', 'wyniki anny nowak z maratonu']) {
+    f6._wyczyscPamiecF6();
+    const an = await przebiegV2(q, { fetchF6: maszyna([]) });
+    assert.equal(an.slad, 'osoba', q); assert.ok(!JSON.stringify(an.body).includes('google'), q + ': bez Google');
+  }
+  assert.equal((await zaladuj('supabase/functions/okienko/impreza.mjs')).kartaGoogleWynikow([], 'anny nowak maratonu', DZIS), null, 'druga linia: imię w odmianie małymi literami');
 });
 
 test('v1 i v2: ta sama reguła — karta Google dopisana POD kartami routera, tylko gdy brak kart z wynikami', () => {
