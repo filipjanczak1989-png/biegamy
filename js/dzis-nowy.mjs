@@ -97,7 +97,7 @@
     "#dzis-nowy .dn-cel{color:#f5f3ef;font:600 15px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-zrobione{color:#6fcf97;font:600 12px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-liczby{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#dzis-nowy .dn-l{min-width:0}" +
     "#dzis-nowy .dn-l b{display:block;font:400 26px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef;white-space:nowrap}" +
-    "#dzis-nowy .dn-l b small{margin-left:3px;font:500 10px/1 'DM Mono',monospace;color:#bcb8b2;letter-spacing:.04em}#dzis-nowy .dn-l b.dn-slowo{font:600 14px/1.85 'DM Sans',sans-serif;letter-spacing:0}" +
+    "#dzis-nowy .dn-l b small{margin-left:3px;font:500 10px/1 'DM Mono',monospace;color:#bcb8b2;letter-spacing:.04em}#dzis-nowy .dn-l b.dn-slowo{font:600 13px/2 'DM Sans',sans-serif;letter-spacing:0}" +
     "#dzis-nowy .dn-l span{display:block;margin-top:5px;font:500 10px/1 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8f8c97}" +
     "#dzis-nowy .dn-wiersze{list-style:none;margin:0;padding:0}#dzis-nowy .dn-wiersz{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid #232329}" +
     "#dzis-nowy .dn-wiersz:first-child{border-top:0;padding-top:0}#dzis-nowy .dn-wiersz:last-child{padding-bottom:0}" +
@@ -257,8 +257,17 @@
         (opis ? '<p class="dn-tekst">' + esc(opis.length > 160 ? opis.slice(0, 157) + "…" : opis) + "</p>" : "");
     }).join("");
   }
+  /* Odczucie w bazie to KOD (training_logs_feel_dozwolone: bad, mid, good, great), nie słowo. Słownik ten sam co w reszcie aplikacji
+     (FEEL_ETYKIETY z sb.js); własna kopia na wypadek, gdyby tamtego jeszcze nie było. Nieznany kod = „—”, nigdy surowy tekst z bazy. */
+  var ODCZUCIA = { bad: "Ciężko", mid: "Przeciętnie", good: "Dobrze", great: "Świetnie" };
+  function odczucie(kod) {
+    var k = String(kod || ""), s = w.FEEL_ETYKIETY;
+    if (!Object.prototype.hasOwnProperty.call(ODCZUCIA, k)) return "";
+    return s && typeof s[k] === "string" && s[k] ? s[k] : ODCZUCIA[k];
+  }
   function liczbyWpisu(l) {
-    var czwarta = Number(l.heart_rate) > 0 ? [liczba(l.heart_rate), "bpm", "tętno śr."] : Number(l.elevation_gain) > 0 ? [liczba(l.elevation_gain), "m", "w górę"] : [l.feel ? String(l.feel) : "—", "", "odczucie", !!l.feel];
+    var slowo = odczucie(l.feel);
+    var czwarta = Number(l.heart_rate) > 0 ? [liczba(l.heart_rate), "bpm", "tętno śr."] : Number(l.elevation_gain) > 0 ? [liczba(l.elevation_gain), "m", "w górę"] : [slowo || "—", "", "odczucie", !!slowo];
     return [[km(l.distance_km), "km", "dystans"], [czas(l.duration), "", "czas"], [tempo(l.pace), "/km", "tempo"], czwarta];
   }
   /** Kafel Ostatni trening: najnowszy wpis, z regułą 14 dni w podpisie. */
@@ -410,5 +419,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

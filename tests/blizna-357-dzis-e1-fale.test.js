@@ -162,7 +162,7 @@ test('(4) stany puste i brzegowe: bez planu, dzień wolny, zero wpisów, jeden w
   xss.B.start(); await xss.doKonca();
   for (const n of ['ulica', 'trening', 'ostatni', 'lista']) assert.doesNotMatch(xss.kafel(n).innerHTML, /<img src=x>|<b>t<\/b>|<script>|<u>l|<s>f<\/s>/, n + ': tekst z bazy escapowany');
   assert.match(xss.kafel('ulica').innerHTML, /&lt;img src=x&gt;/); assert.match(xss.kafel('trening').innerHTML, /&lt;b&gt;t&lt;\/b&gt;.*&lt;script&gt;/);
-  assert.match(xss.kafel('ostatni').innerHTML, /&lt;u&gt;l&lt;\/u&gt;.*&lt;s&gt;f&lt;\/s&gt;/); assert.match(xss.kafel('lista').innerHTML, /&lt;u&gt;l2&lt;\/u&gt;/);
+  assert.match(xss.kafel('ostatni').innerHTML, /&lt;u&gt;l&lt;\/u&gt;/); assert.doesNotMatch(xss.kafel('ostatni').innerHTML, /s&gt;f|<s>/, 'odczucie spoza słownika w ogóle nie trafia na ekran (blizna-359)'); assert.match(xss.kafel('lista').innerHTML, /&lt;u&gt;l2&lt;\/u&gt;/);
   assert.equal(xss.wezel('[data-dn="powitanie"]').textContent, 'Cześć, <i>x</i>', 'imię idzie przez textContent, nie przez HTML');
   assert.match(xss.kafel('ulica').innerHTML, /<b>1<\/b><span>z 2 km · 50%/, 'bez pct z bazy procent liczony z sumy i celu');
 });
@@ -181,7 +181,7 @@ test('(5) reguła 14 dni: do 14 dni „N dni temu”, starszy „X tygodni temu�
   assert.deepEqual(['44:36', '1:02:05', '0:00', 'ok. 40 min', null].map(B.czas), ['44:36', '1:02:05', '—', '—', '—']);
   assert.deepEqual(['5:26', '5:07/km', '0:00', 'szybko', undefined].map(B.tempo), ['5:26', '5:07', '—', '—', '—']);
   assert.deepEqual([8.214, 16.44, 0, null, 'x'].map(B.km), ['8,21', '16,4', '—', '—', '—']);
-  assert.match(B.ostatniHtml({ training_type: 'Spacer', distance_km: 3, feel: 'Lekko', logged_at: wstecz(0) }, teraz), /<b class="dn-slowo">Lekko<\/b><span>odczucie<\/span>/, 'bez tętna i przewyższenia czwartą liczbą jest odczucie');
+  assert.match(B.ostatniHtml({ training_type: 'Spacer', distance_km: 3, feel: 'good', logged_at: wstecz(0) }, teraz), /<b class="dn-slowo">Dobrze<\/b><span>odczucie<\/span>/, 'bez tętna i przewyższenia czwartą liczbą jest odczucie');
   assert.match(B.ostatniHtml({ distance_km: 3, elevation_gain: 80, logged_at: wstecz(0) }, teraz), /<b>80<small>m<\/small><\/b><span>w górę<\/span>/);
 });
 
