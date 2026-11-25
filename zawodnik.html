@@ -4620,25 +4620,60 @@ window.loadWeather = async function() {
 
   // Fetch z EF
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    const resp = await fetch(window.SB_FN_URL + '/get-weather', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ city }),
-    });
-    const json = await resp.json();
-    if (!resp.ok || !json.ok) {
-      console.warn('[weather] EF error:', json);
-      wrap.style.display = 'none';
-      return;
-    }
+    const json = await window._pogodaPobierz({ city });
+    if (!json) { wrap.style.display = 'none'; return; }
     try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: json })); } catch(e) {}
     _renderWeather(json);
   } catch(e) {
     console.error('[weather] fetch err', e);
+    window._pogodaZglos('siec');
     wrap.style.display = 'none';
   }
+};
+
+/* POGODA 401 (25.11.2026): get-weather dostawał 401 przy otwarciu aplikacji po przerwie, a kafel znikał bez śladu
+   (console.warn nie trafia do client_errors). Teraz: token z getSession(), przy 401 JEDNO odświeżenie sesji i JEDNO
+   ponowienie nowym tokenem. Każda porażka → client_errors, kind 'pogoda', w treści SAM ETAP (bez miasta, adres bez
+   parametrów), każdy etap raz na załadowanie strony, nie offline. '401-bramka' = odrzuciła bramka Supabase
+   (odpowiedź z polem code), '401-funkcja' = odrzuciła sama funkcja (getUser). */
+window._pogodaEtapy = ['brak-sesji', '401-bramka', '401-funkcja', 'odswiezenie-nieudane', '401-po-odswiezeniu', 'http-4xx', 'http-5xx', 'miasto-nieznane', 'odpowiedz-bez-ok', 'siec'];
+window._pogodaZgloszone = {};
+window._pogodaZglos = function(etap) {
+  try {
+    if (window._pogodaEtapy.indexOf(etap) < 0) return;   // tylko etapy z listy: nic, co mogłoby nieść miasto albo treść odpowiedzi
+    if (window._pogodaZgloszone[etap] || navigator.onLine === false || typeof window._logKlienta !== 'function') return;
+    window._pogodaZgloszone[etap] = true;
+    window._logKlienta({ kind: 'pogoda', message: etap, url: location.pathname });
+  } catch(e) {}
+};
+window._pogodaPobierz = async function(tresc) {
+  const wolaj = function(token) {
+    return fetch(window.SB_FN_URL + '/get-weather', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(tresc),
+    });
+  };
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window._pogodaZglos('brak-sesji'); return null; }
+  let resp = await wolaj(session.access_token);
+  if (resp.status === 401) {
+    let odmowa = null;
+    try { odmowa = await resp.json(); } catch(e) {}
+    window._pogodaZglos(odmowa && odmowa.code ? '401-bramka' : '401-funkcja');
+    let nowy = null;
+    try { const r = await sb.auth.refreshSession(); nowy = (r && !r.error && r.data && r.data.session && r.data.session.access_token) || null; } catch(e) {}
+    if (!nowy) { window._pogodaZglos('odswiezenie-nieudane'); return null; }
+    resp = await wolaj(nowy);
+    if (resp.status === 401) { window._pogodaZglos('401-po-odswiezeniu'); return null; }
+  }
+  let json = null;
+  try { json = await resp.json(); } catch(e) {}
+  if (!resp.ok || !json || !json.ok) {
+    window._pogodaZglos(!resp.ok ? (resp.status >= 500 ? 'http-5xx' : 'http-4xx') : (json && json._error === 'city_not_found' ? 'miasto-nieznane' : 'odpowiedz-bez-ok'));
+    return null;
+  }
+  return json;
 };
 
 window._renderWeather = function(data) {
