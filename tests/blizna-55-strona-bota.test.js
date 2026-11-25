@@ -14,14 +14,14 @@ const path = require('node:path');
 const KORZEN = path.join(__dirname, '..');
 const PLIK = path.join(KORZEN, 'bot.html');
 const czytaj = () => fs.readFileSync(PLIK, 'utf8').replace(/\r/g, '');
-const KONTAKT = 'biegamy.run+bot@gmail.com';
+const KONTAKT = 'biegamy.run@gmail.com';
 
 test('bot.html istnieje pod stałą nazwą (adres jest w User-Agencie kolektora)', () => {
   assert.ok(fs.existsSync(PLIK), 'bot.html — bez niej kolektor archiwum nic nie pobiera');
   assert.match(czytaj(), /<html lang="pl">/);
 });
 
-test('bot.html: kontakt biegamy.run+bot@gmail.com i ŻADNEGO innego adresu e-mail', () => {
+test('bot.html: kontakt biegamy.run@gmail.com i ŻADNEGO innego adresu e-mail', () => {
   const s = czytaj();
   assert.ok(s.includes(`href="mailto:${KONTAKT}"`), 'kontakt jako link mailto');
   const adresy = [...new Set(s.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) || [])];
