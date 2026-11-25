@@ -34,6 +34,9 @@
 //   „Coś boli” (jedyne wejście do zgłoszenia bólu w aplikacji): stary kod dalej wypełnia schowane pudełko #today-bol i wiesza na jego przyciskach
 //   swoje działania (okno zgłoszenia, „Już nie boli”, „Nadal boli”, „Napisz do trenera”). Nowy kafel pokazuje ten sam stan (window._aktywnaKontuzja)
 //   i KLIKA STARE PRZYCISKI po id z krótkiej listy: zapis do injuries, pamięć odroczenia i komunikaty zostają w starych funkcjach, co do słowa.
+//   „Wczoraj nie zrobiłem” (rozliczenie WCZORAJSZEGO planu, z cofnięciem): stary kod sam decyduje, czy przycisk #today-nie-zrobilem pokazać
+//   (dokładnie jeden wczorajszy plan, nie odpoczynek, nie zrobiony) i jaki ma napis; nowy kafel przepisuje napis i klika stary przycisk
+//   (oznaczNieZrobione → update trainings.status). „Nie dziś” dla DZISIEJSZEGO treningu to osobna funkcja na później (decyzja Filipa 25.11).
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -46,7 +49,7 @@
   var OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
+  var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
   var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
@@ -306,6 +309,8 @@
     if (pz) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(pz, { childList: true });
     var bp = d.getElementById("today-bol");   // stary kod przerysowuje pudełko po każdym zgłoszeniu i zamknięciu
     if (bp) new w.MutationObserver(function () { try { dzialania(); } catch (e) {} }).observe(bp, { childList: true, subtree: true });
+    var nz = d.getElementById("today-nie-zrobilem");   // stary kod pokazuje go przez style.display i zmienia napis po zapisie
+    if (nz) new w.MutationObserver(function () { try { dzialania(); } catch (e) {} }).observe(nz, { attributes: true, childList: true, characterData: true, subtree: true });
     var mb = d.getElementById("moment-baner");   // stary kod odsłania i chowa przycisk przez style.display
     if (mb) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(mb, { attributes: true, attributeFilter: ["style"] });
   }
@@ -353,8 +358,15 @@
     return { ciche: "", ramka: '<div class="dn-bol" data-dn="bol"><b>' + esc(tytul) + "</b><p>" + esc("Zgłoszone" + (odKiedy ? " " + odKiedy : "") + "." + (coDalej ? " " + coDalej : "")) + "</p>" +
       '<div class="dn-bol-akcje"><button type="button" data-dn="stary" data-stary="today-bol-koniec">Już nie boli</button>' + (nadal ? '<button type="button" data-dn="stary" data-stary="today-bol-nadal">Nadal boli</button>' : "") + "</div></div>" };
   }
+  /** „Wczoraj nie zrobiłem” / „Wczoraj: nie zrobione ✓ · cofnij”: tylko gdy stary kod odsłonił swój przycisk; napis jego. */
+  function wczorajHtml() {
+    var st = d.getElementById("today-nie-zrobilem"), ds = st && st.style ? String(st.style.display || "") : "";
+    if (!st || ds === "" || ds === "none") return "";
+    var napis = String(st.textContent || "").replace(/\s+/g, " ").trim();
+    return napis ? '<button type="button" class="dn-cichy" data-dn="stary" data-stary="today-nie-zrobilem">' + esc(napis) + "</button>" : "";
+  }
   function dzialaniaHtml() {
-    var b = bolHtml(), ciche = b.ciche;
+    var b = bolHtml(), ciche = wczorajHtml() + b.ciche;
     return b.ramka + (ciche ? '<div class="dn-ciche">' + ciche + "</div>" : "");
   }
   /** Przerysowuje sam pas działań w kaflu treningu (stan starej karty zmienił się po zgłoszeniu, zamknięciu, wczytaniu). */
@@ -691,5 +703,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
