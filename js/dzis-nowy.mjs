@@ -36,6 +36,8 @@
 //   „Coś boli” (jedyne wejście do zgłoszenia bólu w aplikacji): stary kod dalej wypełnia schowane pudełko #today-bol i wiesza na jego przyciskach
 //   swoje działania (okno zgłoszenia, „Już nie boli”, „Nadal boli”, „Napisz do trenera”). Nowy kafel pokazuje ten sam stan (window._aktywnaKontuzja)
 //   i KLIKA STARE PRZYCISKI po id z krótkiej listy: zapis do injuries, pamięć odroczenia i komunikaty zostają w starych funkcjach, co do słowa.
+//   Pogoda (decyzja Filipa 25.11: jedna linia przy treningu zamiast kafla na 3 dni): podtytuł kafla dostaje „dziś 3–8 °C, deszcz” z danych, które stary
+//   kod i tak pobiera dla swojego kafla (window._weatherCache po _renderWeather). Moduł NIE woła funkcji get-weather; bez miasta albo bez danych linii nie ma.
 //   „Wczoraj nie zrobiłem” (rozliczenie WCZORAJSZEGO planu, z cofnięciem): stary kod sam decyduje, czy przycisk #today-nie-zrobilem pokazać
 //   (dokładnie jeden wczorajszy plan, nie odpoczynek, nie zrobiony) i jaki ma napis; nowy kafel przepisuje napis i klika stary przycisk
 //   (oznaczNieZrobione → update trainings.status). „Nie dziś” dla DZISIEJSZEGO treningu to osobna funkcja na później (decyzja Filipa 25.11).
@@ -52,7 +54,7 @@
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "" }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -393,7 +395,8 @@
   /** Cały kafel „Trening na dziś” z tego, co już wczytane: plan, wiadomość od trenera, pas działań. Woła go każda z dwóch odpowiedzi fali 2. */
   function rysujTrening() {
     if (!dane.trening) return;
-    wpisz("trening", treningHtml(dane.trening) + radaHtml(dane.wiadomosc) + '<div class="dn-dzialania" data-dn="dzialania"></div>');
+    dane.pogoda = pogodaTekst();
+    wpisz("trening", treningHtml(dane.trening, dane.pogoda) + radaHtml(dane.wiadomosc) + '<div class="dn-dzialania" data-dn="dzialania"></div>');
     var pas = czesc("dzialania"); if (pas) pas._dnHtml = null;
     dzialania();
   }
@@ -458,12 +461,25 @@
   function zalogujHtml(czekaPlan) {
     return czekaPlan ? '<button type="button" class="dn-glowny" data-dn="zaloguj">Zaloguj wynik</button>' : '<button type="button" class="dn-drugi" data-dn="zaloguj">Dodaj trening</button>';
   }
-  /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą. */
-  function treningHtml(lista) {
+  /** „dziś 3–8 °C, deszcz” z dnia o DZISIEJSZEJ dacie (lokalnej) w danych starego kafla pogody; inaczej "". Opis słowny przychodzi z funkcji pogody (label). */
+  function pogodaTekst(teraz) {
+    try {
+      var c = w._weatherCache, dni = c && Array.isArray(c.days) ? c.days : [], klucz = kluczDnia(teraz), dz = null;
+      for (var i = 0; i < dni.length; i++) if (dni[i] && dni[i].date === klucz) { dz = dni[i]; break; }
+      if (!dz || typeof dz.temp_min !== "number" || typeof dz.temp_max !== "number" || !isFinite(dz.temp_min) || !isFinite(dz.temp_max)) return "";
+      var lo = Math.min(dz.temp_min, dz.temp_max), hi = Math.max(dz.temp_min, dz.temp_max), st = function (x) { return (x < 0 ? "−" : "") + Math.abs(Math.round(x)); };
+      var temp = lo === hi ? st(lo) + " °C" : lo < 0 ? "od " + st(lo) + " do " + st(hi) + " °C" : st(lo) + "–" + st(hi) + " °C";
+      var opis = typeof dz.label === "string" ? dz.label.trim().toLowerCase() : "";
+      return "dziś " + temp + (opis && opis !== "pogoda" && opis.length <= 40 ? ", " + opis : "");
+    } catch (e) { return ""; }
+  }
+  function zPogoda(kto, pogoda) { return [kto, pogoda].filter(Boolean).join(" · "); }
+  /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo "". */
+  function treningHtml(lista, pogoda) {
     lista = lista || [];
-    if (!lista.length) return gora("Trening na dziś", "bez planu", ["Plan", PLAN]) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
+    if (!lista.length) return gora("Trening na dziś", zPogoda("bez planu", pogoda), ["Plan", PLAN]) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
     var kto = lista[0].plan_source === "generator" ? "z generatora" : lista[0].coach_id ? "od trenera" : "";
-    return gora("Trening na dziś", kto, ["Plan", PLAN]) + lista.map(function (t) {
+    return gora("Trening na dziś", zPogoda(kto, pogoda), ["Plan", PLAN]) + lista.map(function (t) {
       if (WOLNE.indexOf(String(t.type || "").trim()) >= 0) return '<h3 class="dn-tytul">Dzień wolny</h3><p class="dn-tekst">' + esc(t.description || "Odpoczynek też buduje formę.") + "</p>";
       var cel = [], opis = String(t.description || "");
       if (Number(t.distance_km) > 0) cel.push(km(t.distance_km) + " km");
@@ -721,6 +737,12 @@
         };
         owinietyZapis = true;
       }
+      if (!owinietaPogoda && typeof w._renderWeather === "function") {   // stary kod woła ją, gdy dojdą dane pogody (z sieci albo z pamięci karty)
+        var orygPogoda = w._renderWeather;
+        w._renderWeather = function () { var r = orygPogoda.apply(this, arguments); try { rysujTrening(); } catch (e) {} return r; };
+        owinietaPogoda = true;
+      }
+      if (dane.trening && pogodaTekst() !== dane.pogoda) rysujTrening();   // dane pogody doszły, zanim dało się owinąć starą funkcję: kolejny start (initAuth) je dopisuje
       obserwuj();
       pokaz();
       zdarzenie();
@@ -735,5 +757,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
