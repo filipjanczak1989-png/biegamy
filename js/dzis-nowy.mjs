@@ -28,6 +28,9 @@
 //   „Zapytaj” i własne menu, ale pozycje wołają TE SAME funkcje starego ekranu (goToMyProfile, toggleSoundSetting, logout), a inicjały, zdjęcie, adres
 //   konta i napis o dźwiękach są odbiciem starych elementów. Stare menu siedzi wewnątrz schowanego paska, więc nie da się go po prostu pokazać.
 //   Chip „← Trener” pokazuje się, gdy stary kod odsłonił swój (konto trenera) i zostaje, choć stary chowa go na czas banera momentu.
+// DZIAŁANIA PRZY TRENINGU (E4a, blizna-364…): przyciski w kaflu „Trening na dziś” wołają funkcje starego ekranu, moduł sam niczego nie zapisuje.
+//   „Zaloguj wynik” = openModal() (ten sam formularz co krążek Log; zapis robi saveLog). Po udanym zapisie (formularz zamknięty) dane Dziś
+//   wczytują się od nowa: nowy „Ostatni trening”, „zrobione” przy planie.
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -40,7 +43,7 @@
   var OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -151,9 +154,12 @@
     "#dzis-nowy .dn-jp-kom{margin:10px 0 0;color:#ff9a8a;font:500 13px/1.4 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-jp-ok{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329;text-align:center}#dzis-nowy .dn-jp-ok b{display:block;color:#f5f3ef;font:700 14px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-jp-ok p{margin:4px 0 0;color:#bcb8b2;font:400 12px/1.5 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-glowny,#dzis-nowy .dn-drugi{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:14px 0 0;border-radius:12px;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}" +
+    "#dzis-nowy .dn-glowny{border:0;background:#c44a13;color:#fff}#dzis-nowy .dn-drugi{border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font-weight:600}" +
+    "#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:scale(.99)}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active{transform:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -260,6 +266,7 @@
       else if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
+      else if (co === "zaloguj") { if (typeof w.openModal === "function") w.openModal(); }
       else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
       else if (co === "jp-zapisz") { jpZapisz(false); }
       else if (co === "jp-pomin") { jpPomin(); }
@@ -367,10 +374,15 @@
       '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>' +
       '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad) + "</p>";
   }
-  /** Kafel Trening na dziś, tylko do odczytu (działania wejdą w E4–E5). lista = wiersze trainings z dzisiejszą datą. */
+  /** Przycisk wyniku: główny „Zaloguj wynik”, gdy na dziś jest niezrobiony plan; w dzień wolny, bez planu i po zrobionym planie mniejszy „Dodaj trening”.
+      Stare Dziś pokazuje „Zaloguj wynik” zawsze; oba otwierają ten sam formularz. */
+  function zalogujHtml(czekaPlan) {
+    return czekaPlan ? '<button type="button" class="dn-glowny" data-dn="zaloguj">Zaloguj wynik</button>' : '<button type="button" class="dn-drugi" data-dn="zaloguj">Dodaj trening</button>';
+  }
+  /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą. */
   function treningHtml(lista) {
     lista = lista || [];
-    if (!lista.length) return gora("Trening na dziś", "bez planu", ["Plan", PLAN]) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>';
+    if (!lista.length) return gora("Trening na dziś", "bez planu", ["Plan", PLAN]) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
     var kto = lista[0].plan_source === "generator" ? "z generatora" : lista[0].coach_id ? "od trenera" : "";
     return gora("Trening na dziś", kto, ["Plan", PLAN]) + lista.map(function (t) {
       if (WOLNE.indexOf(String(t.type || "").trim()) >= 0) return '<h3 class="dn-tytul">Dzień wolny</h3><p class="dn-tekst">' + esc(t.description || "Odpoczynek też buduje formę.") + "</p>";
@@ -380,7 +392,7 @@
       if (tempo(t.pace) !== "—") cel.push(tempo(t.pace) + " /km");
       return '<div class="dn-plan">' + pigulka(t.type) + (cel.length ? '<span class="dn-cel">' + esc(cel.join(" · ")) + "</span>" : "") + (t.status === "done" ? '<span class="dn-zrobione">zrobione</span>' : "") + "</div>" +
         (opis ? '<p class="dn-tekst">' + esc(opis.length > 160 ? opis.slice(0, 157) + "…" : opis) + "</p>" : "");
-    }).join("");
+    }).join("") + zalogujHtml(lista.some(function (t) { return WOLNE.indexOf(String(t.type || "").trim()) < 0 && t.status !== "done"; }));
   }
   /* Odczucie w bazie to KOD (training_logs_feel_dozwolone: bad, mid, good, great), nie słowo. Słownik ten sam co w reszcie aplikacji
      (FEEL_ETYKIETY z sb.js); własna kopia na wypadek, gdyby tamtego jeszcze nie było. Nieznany kod = „—”, nigdy surowy tekst z bazy. */
@@ -616,6 +628,15 @@
       if (!nasluchDokumentu && d.addEventListener) {   // dotknięcie poza nowym Dziś (menu dolne, pasek biegu) zamyka menu konta
         nasluchDokumentu = true;
         d.addEventListener("click", function (e) { try { var kk = korzen(); if (kk && e && e.target && !(kk.contains && kk.contains(e.target))) menuKonta(false); } catch (err) {} });
+      }
+      if (!owinietyZapis && typeof w.saveLog === "function") {   // „Zapisz log” w formularzu woła globalną saveLog; udany zapis zamyka formularz
+        var orygZapis = w.saveLog;
+        w.saveLog = function () {
+          var r = orygZapis.apply(this, arguments);
+          try { Promise.resolve(r).then(function () { var m = d.getElementById("modal-bg"), otwarty = !!(m && m.classList && m.classList.contains("open")); if (!otwarty && wlaczone() && !ustepuje() && !wstrzymane) wczytaj(true); }, function () {}); } catch (e) {}
+          return r;
+        };
+        owinietyZapis = true;
       }
       obserwuj();
       pokaz();

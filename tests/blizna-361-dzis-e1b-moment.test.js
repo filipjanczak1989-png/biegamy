@@ -90,6 +90,6 @@ test('(4) bez przycisku w stronie, przy pustym display i w podglądzie trenera: 
 test('(5) pasek momentu jest przyciskiem z prawdziwym celem dotyku i stylami tylko pod #dzis-nowy', () => {
   const css = MODUL.match(/#dzis-nowy \.dn-moment\{[^}]*\}/)[0];
   assert.match(css, /min-height:56px/); assert.match(css, /width:100%/); assert.match(css, /cursor:pointer/);
-  assert.match(MODUL, /prefers-reduced-motion:reduce\)\{[^}]*#dzis-nowy \.dn-moment:active\{transform:none\}/);
+  assert.match(MODUL, /prefers-reduced-motion:reduce\)\{[^}]*#dzis-nowy \.dn-moment:active[^{]*\{transform:none\}/);
   for (const sel of MODUL.match(/[^"{}]*\.dn-moment[^{]*\{/g)) assert.match(sel, /^#dzis-nowy /, 'selektor poza nowym Dziś: ' + sel);
 });
