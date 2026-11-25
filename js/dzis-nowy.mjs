@@ -15,6 +15,10 @@
 //   WATCH.render('badge') co stary, ale stan bierze z profilu z fali 1 (cztery kolumny intervals_* w tym samym zapytaniu, opts.stan),
 //   więc budżet zostaje 5 zapytań. Pasek „problem z zegarkiem” jest odbiciem starego slotu (#watch-pasek-slot): jego dane kosztują osobne
 //   zapytanie, które stary kod i tak robi. Po ↺ (synchronizacja) dane Dziś wczytują się od nowa.
+// MOMENT (E1b, blizna-361): Silnik Momentu (animacja kamienia milowego) dopina się do body i od starego ekranu nie zależy, ale jedyne wejście do niego,
+//   przycisk „Nowy moment!” (#moment-baner), siedzi w schowanym górnym pasku. Pasek zdarzenia pokazuje go pod nagłówkiem, gdy stary przycisk jest
+//   odsłonięty, a dotknięcie woła kliknięcie starego przycisku: kolejka, animacja albo karta i zapis shown_at zostają w jednym miejscu (loadMomenty).
+//   Jedna rzecz naraz: problem z zegarkiem ma pierwszeństwo przed momentem.
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -70,6 +74,9 @@
     "#dzis-nowy .dn-naglowek{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 10px}#dzis-nowy .dn-naglowek > div:first-child{min-width:0}" +
     "#dzis-nowy .dn-zegarek{display:flex;align-items:center}#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;opacity:1}" +
     "#dzis-nowy .dn-zd{margin:0 0 12px}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
+    "#dzis-nowy .dn-moment{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 16px;border-radius:16px;border:1px solid rgba(255,122,69,.55);background:rgba(196,74,19,.14);color:#f5f3ef;font:600 15px/1.25 'DM Sans',sans-serif;text-align:left;cursor:pointer}" +
+    "#dzis-nowy .dn-moment svg{flex:none;stroke:#ff7a45}#dzis-nowy .dn-moment span{flex:1;min-width:0}#dzis-nowy .dn-moment small{display:block;margin-top:2px;color:#bcb8b2;font:400 13px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-moment i{flex:none;font-style:normal;color:#ff7a45;font-size:20px;line-height:1}#dzis-nowy .dn-moment:active{transform:scale(.99)}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
     "#dzis-nowy .dn-akcje{display:flex;align-items:center;gap:8px;flex:none}" +
@@ -115,7 +122,7 @@
     "@media (max-width:359px){#dzis-nowy .dn-liczby{grid-template-columns:1fr 1fr;gap:12px 8px}}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active{transform:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active{transform:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -182,6 +189,7 @@
       if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
+      else if (co === "moment") { var stary = d.getElementById("moment-baner"); if (stary && stary.click) stary.click(); zdarzenie(); }
       else if (sekcja && typeof w.showSection === "function") w.showSection(sekcja);
     } catch (err) { zglos("render"); }
   }
@@ -204,13 +212,20 @@
     });
     var pz = d.getElementById("watch-pasek-slot");
     if (pz) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(pz, { childList: true });
+    var mb = d.getElementById("moment-baner");   // stary kod odsłania i chowa przycisk przez style.display
+    if (mb) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(mb, { attributes: true, attributeFilter: ["style"] });
   }
 
   function czesc(n) { var k = korzen(); return k && k.querySelector ? k.querySelector('[data-dn="' + n + '"]') : null; }
-  /** Pasek zdarzenia pod nagłówkiem: jedna rzecz naraz. Dziś jedno źródło: pasek problemu z zegarkiem, który stary kod wstawił do #watch-pasek-slot. */
+  var MOMENT_HTML = '<button type="button" class="dn-moment" data-dn="moment"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M12 3l2.2 5.6L20 9.3l-4.4 3.9L17 19l-5-3-5 3 1.4-5.8L4 9.3l5.8-.7z"/></svg><span>Nowy moment!<small>Dotknij, żeby zobaczyć</small></span><i aria-hidden="true">›</i></button>';
+  /** Czy stary kod (loadMomenty) odsłonił przycisk „Nowy moment!”: jest zatwierdzony, niepokazany moment. */
+  function momentCzeka() { var b = d.getElementById("moment-baner"), ds = b && b.style ? String(b.style.display || "") : ""; return !!b && ds !== "" && ds !== "none"; }
+  /** Pasek zdarzenia pod nagłówkiem: jedna rzecz naraz. Pierwszy jest pasek problemu z zegarkiem (stary kod wstawia go do #watch-pasek-slot), potem moment. */
   function zdarzenie() {
     var el = czesc("zdarzenie"); if (!el) return;
     var org = d.getElementById("watch-pasek-slot"), html = org ? String(org.innerHTML || "").trim() : "";
+    if (!html && momentCzeka()) html = MOMENT_HTML;
     if (el._dnHtml !== html) { el.innerHTML = html; el._dnHtml = html; }
     el.hidden = !html;
   }
