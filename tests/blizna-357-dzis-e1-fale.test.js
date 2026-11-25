@@ -25,7 +25,8 @@ const WPISY = [
   { id: 'l3', logged_at: '2026-11-20T18:00:00', training_type: 'Interwały', distance_km: 9, duration: '47:10', pace: '5:14', heart_rate: 158, elevation_gain: null, feel: null },
 ];
 const ODPOWIEDZI = {
-  athletes: { data: { id: 'a-1', full_name: 'Ola Nowak', coach_id: 'c-1' }, error: null },
+  athletes: { data: { id: 'a-1', full_name: 'Ola Nowak', coach_id: null }, error: null },   // konto bez trenera: budżet 5; z trenerem 6 (test 10)
+  messages: { data: [{ body: 'Jutro spokojnie, nogi mają odpocząć.', sent_at: new Date(2026, 10, 24, 18, 0).toISOString() }], error: null },
   'rpc akcja_licznik': { data: { wystartowala: true, nazwa: 'Ulica próbna', suma_km: 12345.6, cel_km: 20000, pct: 61.7 }, error: null },
   'rpc akcja_moj_wklad': { data: { km: 42.3 }, error: null },
   trainings: { data: [{ id: 't1', date: '2026-11-25', type: 'Interwały', distance_km: 8, duration_min: null, pace: '4:30', description: 'Rozgrzewka 2 km, potem 4 × 1 km.', status: 'planned', plan_source: null, coach_id: 'c-1' }], error: null },
@@ -64,8 +65,8 @@ function strona({ search = '', odpowiedzi = {}, sesja = { user: { id: 'u-1' } },
   if (!bezKlienta) w.sb = sb;
   const d = { readyState: 'complete', documentElement: { classList: { add: (c) => klasy.add(c), remove: (c) => klasy.delete(c), contains: (c) => klasy.has(c) } },
     getElementById: (id) => el[id] || null, createElement: () => ({}), head: { appendChild() {} }, addEventListener(n, f) { sluchacze[n] = f; } };
-  const DataT = class extends Date { constructor(...a) { if (a.length) super(...a); else super(2026, 10, 25, 12, 0, 0); } static now() { return zegar; }
-    toISOString() { return '1999-01-01T00:00:00.000Z'; } };   // klucz dnia ma iść z lokalnych pól daty: kto sięgnie po UTC, dostanie rok 1999 i test (1) to złapie
+  const DataT = class extends Date { constructor(...a) { if (a.length) super(...a); else { super(2026, 10, 25, 12, 0, 0); this._teraz = true; } } static now() { return zegar; }
+    toISOString() { return this._teraz ? '1999-01-01T00:00:00.000Z' : super.toISOString(); } };   // klucz dnia ma iść z lokalnych pól daty: kto sięgnie po UTC, dostanie rok 1999 i test (1) to złapie
   vm.runInNewContext(MODUL, { window: w, document: d, URLSearchParams, Date: DataT, Promise, encodeURIComponent });
   /** Odpowiada na wszystko, co czeka, falami, aż nic nie zostanie. → liczba fal. */
   async function doKonca() {
@@ -257,4 +258,20 @@ test('(9) wczesny start: gdy strona jeszcze się czyta i korzenia nie ma, moduł
   s.d.readyState = 'interactive'; s.d.getElementById = oryg;
   s.sluchacze.DOMContentLoaded(); await s.doKonca();
   assert.equal(korzen.hidden, false); assert.equal(s.zapytania.length, 5, 'po wczytaniu strony zwykłe dwie fale');
+});
+
+test('(10) konto z trenerem: szóste zapytanie (wiadomość od trenera) idzie w fali 2, razem z treningiem i wpisami; bez trenera go nie ma; dalej 2 fale', async () => {
+  const s = strona({ odpowiedzi: { athletes: { data: { id: 'a-1', full_name: 'Ola Nowak', coach_id: 'c-1' }, error: null } } });
+  s.B.start();
+  assert.equal(await s.doKonca(), 2, 'dalej dokładnie dwie fale');
+  assert.deepEqual(s.zapytania.map((z) => [z.fala, z.nazwa]), [[1, 'rpc akcja_licznik'], [1, 'rpc akcja_moj_wklad'], [1, 'athletes'], [2, 'trainings'], [2, 'messages'], [2, 'training_logs']], 'budżet konta z trenerem: 6 zapytań');
+  const m = s.zapytania.find((z) => z.nazwa === 'messages');
+  assert.match(m.opis, /^select\("body,sent_at"\)\.eq\("athlete_id","a-1"\)\.eq\("sender","coach"\)\.gte\("sent_at","(\d{4}-\d\d-\d\dT[\d:.]+Z)"\)\.order\("sent_at",\{"ascending":false\}\)\.limit\(1\)$/, 'tylko od trenera, tylko świeże, jedna najnowsza');
+  const od = new Date(m.opis.match(/gte\("sent_at","([^"]+)"/)[1]).getTime();
+  assert.equal(Math.round((1e12 - od) / 864e5), 7, 'okno 7 dni liczone od teraz, nie od roku 1999 z atrapy klucza dnia');
+  assert.equal(s.zapytania.filter((z) => z.nazwa === 'athletes').length, 1, 'profil dalej raz');
+  assert.match(s.kafel('trening').innerHTML, /class="dn-rada" data-dn="rada"/);
+  const bez = strona(); bez.B.start(); await bez.doKonca();
+  assert.equal(bez.zapytania.length, 5, 'konto bez trenera nie pyta o wiadomości');
+  assert.doesNotMatch(bez.kafel('trening').innerHTML, /dn-rada/);
 });

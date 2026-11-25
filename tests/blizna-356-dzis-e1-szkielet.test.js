@@ -126,7 +126,7 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
 
 test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez parametrów; błąd startu wraca do starego ekranu', () => {
   const s = strona({ search: '?log=1&x=tajne' });
-  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja', 'odczucie']);
+  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja', 'odczucie', 'wiadomosc']);
   assert.equal(s.B.zglos('render'), true); assert.equal(s.B.zglos('render'), false);
   for (const zly of ['', 'inne', 'menu', 'render?x=1', undefined]) assert.equal(s.B.zglos(zly), false);
   for (let i = 0; i < 50; i++) s.B.zglos('start');

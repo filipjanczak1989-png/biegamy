@@ -4,9 +4,11 @@
 // Okienkiem i dzwonkiem, kafle w kolejności z makiety r5 jako szkielet (dane dojdą w commicie 2), skróty, link „stare Dziś ›”,
 // Menu na dole zostaje STARE (Filip 25.11 po zrzutach): ikony z makiety są tylko w rzędzie skrótów i na dzwonku. Okienko otwiera
 // pigułka „Zapytaj” w nagłówku (wygląd starego pola Zapytaj). Licznik dzwonka bierze z tego, co stary kod już wpisał w stronę.
-// DANE (commit 2): moduł nie czeka na stary kod. Dwie fale, razem 5 zapytań (blizna-357 pilnuje liczby):
+// DANE (commit 2): moduł nie czeka na stary kod. Dwie fale, razem 5 zapytań, a u konta z trenerem 6 (blizna-357 pilnuje liczby):
 //   fala 1 (od razu po sesji, równolegle): profil zawodnika RAZ (BM_DZIS.profil() oddaje tę samą obietnicę), akcja_licznik, akcja_moj_wklad;
-//   fala 2 (po id zawodnika, równolegle): trening na dziś, sześć ostatnich wpisów (pierwszy = „Ostatni trening”, reszta = lista od przedostatniego).
+//   fala 2 (po id zawodnika, równolegle): trening na dziś, sześć ostatnich wpisów (pierwszy = „Ostatni trening”, reszta = lista od przedostatniego)
+//     oraz, TYLKO gdy profil ma trenera, najnowsza wiadomość od trenera z ostatnich 7 dni (E4a, blizna-367; decyzja Filipa 25.11: starsza się nie pokazuje,
+//     bo wiadomość sprzed miesiąca jako „rada na dziś” myli). Wiersz w kaflu treningu otwiera rozmowę z trenerem; treść jako sam tekst.
 //   Konto próby akcji (inny slug niż domyślny) dokłada w fali 2 dwa zapytania o swoją akcję.
 // „JAK POSZŁO?” (E1b, blizna-363), jak karta FEEL-REPORT starego Dziś: wpis Z ZEGARKA z ostatnich 48 h bez odczucia → cztery miny, notatka, „Zapisz raport”, „Pomiń”.
 //   Kandydat wybierany z sześciu wpisów fali 2 (zero nowych zapytań). To JEDYNE miejsca, gdzie moduł zapisuje:
@@ -45,12 +47,12 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie"];
-  var OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc"];
+  var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -169,6 +171,9 @@
     "#dzis-nowy .dn-bol{margin:14px 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(232,184,64,.55);background:rgba(232,184,64,.07)}" +
     "#dzis-nowy .dn-bol b{display:block;color:#e8b840;font:600 13px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-bol p{margin:4px 0 0;color:#bcb8b2;font:400 13px/1.45 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-bol-akcje{display:flex;gap:8px;margin:10px 0 0}#dzis-nowy .dn-bol-akcje button{flex:1;min-height:44px;border-radius:10px;border:1px solid #3a3a44;background:none;color:#f5f3ef;font:600 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
+    "#dzis-nowy .dn-rada{display:block;width:100%;margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;text-align:left;cursor:pointer;font:400 14px/1.45 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-rada-kto{display:flex;justify-content:space-between;gap:10px;margin:0 0 4px;color:#8f8c97;font:500 11px/1.3 'DM Mono',monospace;letter-spacing:.06em}#dzis-nowy .dn-rada-kto b{color:#ff7a45;font-weight:500}" +
+    "#dzis-nowy .dn-rada-t{display:block;overflow-wrap:anywhere}#dzis-nowy .dn-rada-w{display:block;margin:6px 0 0;color:#ff7a45;font:600 13px/1.2 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
     "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}}";
@@ -279,6 +284,10 @@
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
       else if (co === "stary") { var sid = t.getAttribute("data-stary"), stp = STARE_PRZYCISKI.indexOf(sid) >= 0 ? d.getElementById(sid) : null; if (stp && stp.click) stp.click(); }
+      else if (co === "rada") {   // jak „Napisz do trenera” w starej karcie: sekcja wiadomości, potem wątek trenera
+        if (typeof w.showSection === "function") w.showSection("msgs");
+        w.setTimeout(function () { try { if (typeof w.openChatThread === "function") w.openChatThread("coach", null, null); } catch (e2) {} }, 400);
+      }
       else if (co === "zaloguj") { if (typeof w.openModal === "function") w.openModal(); }
       else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
       else if (co === "jp-zapisz") { jpZapisz(false); }
@@ -311,6 +320,8 @@
     if (bp) new w.MutationObserver(function () { try { dzialania(); } catch (e) {} }).observe(bp, { childList: true, subtree: true });
     var nz = d.getElementById("today-nie-zrobilem");   // stary kod pokazuje go przez style.display i zmienia napis po zapisie
     if (nz) new w.MutationObserver(function () { try { dzialania(); } catch (e) {} }).observe(nz, { attributes: true, childList: true, characterData: true, subtree: true });
+    var cn = d.getElementById("coach-nm");   // imię trenera stary kod dopisuje po swoim zapytaniu, zwykle później niż przyjdzie wiadomość
+    if (cn) new w.MutationObserver(function () { try { if (dane.wiadomosc) rysujTrening(); } catch (e) {} }).observe(cn, { childList: true, characterData: true, subtree: true });
     var mb = d.getElementById("moment-baner");   // stary kod odsłania i chowa przycisk przez style.display
     if (mb) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(mb, { attributes: true, attributeFilter: ["style"] });
   }
@@ -368,6 +379,23 @@
   function dzialaniaHtml() {
     var b = bolHtml(), ciche = wczorajHtml() + b.ciche;
     return b.ramka + (ciche ? '<div class="dn-ciche">' + ciche + "</div>" : "");
+  }
+  /** Wiadomość od trenera: tylko z ostatnich 7 dni (po kalendarzu telefonu), sam tekst (znaczniki zdjęć i GIF-ów wycięte, wynik escapowany), najwyżej 140 znaków. */
+  function radaHtml(m, teraz) {
+    if (!m) return "";
+    var n = dniTemu(m.sent_at, teraz); if (n == null || n > OKNO_WIADOMOSCI_DNI) return "";
+    var surowe = String(m.body || ""), tekst = surowe.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!tekst && /<(img|video)\b/i.test(surowe)) tekst = "zdjęcie albo GIF";
+    if (!tekst) return "";
+    if (tekst.length > 140) tekst = tekst.slice(0, 137) + "…";
+    return '<button type="button" class="dn-rada" data-dn="rada"><span class="dn-rada-kto"><b>' + esc(tekstStarego("coach-nm") || "Trener") + "</b><span>" + esc(kiedy(m.sent_at, teraz)) + '</span></span><span class="dn-rada-t">' + esc(tekst) + '</span><span class="dn-rada-w">Czytaj ›</span></button>';
+  }
+  /** Cały kafel „Trening na dziś” z tego, co już wczytane: plan, wiadomość od trenera, pas działań. Woła go każda z dwóch odpowiedzi fali 2. */
+  function rysujTrening() {
+    if (!dane.trening) return;
+    wpisz("trening", treningHtml(dane.trening) + radaHtml(dane.wiadomosc) + '<div class="dn-dzialania" data-dn="dzialania"></div>');
+    var pas = czesc("dzialania"); if (pas) pas._dnHtml = null;
+    dzialania();
   }
   /** Przerysowuje sam pas działań w kaflu treningu (stan starej karty zmienił się po zgłoszeniu, zamknięciu, wczytaniu). */
   function dzialania() {
@@ -624,7 +652,11 @@
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
         pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
-          .then(function (t) { if (nr !== dane.nr) return; wpisz("trening", treningHtml(t) + '<div class="dn-dzialania" data-dn="dzialania"></div>'); var pas = czesc("dzialania"); if (pas) pas._dnHtml = null; dzialania(); }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
+          .then(function (t) { if (nr !== dane.nr) return; dane.trening = t || []; rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
+        if (a.coach_id) {
+          pytaj(sb.from("messages").select("body,sent_at").eq("athlete_id", a.id).eq("sender", "coach").gte("sent_at", new Date(Date.now() - OKNO_WIADOMOSCI_DNI * 864e5).toISOString()).order("sent_at", { ascending: false }).limit(1))
+            .then(function (m) { if (nr !== dane.nr) return; dane.wiadomosc = m && m[0] ? m[0] : null; rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.wiadomosc = null; rysujTrening(); zglosDane("wiadomosc"); });
+        } else dane.wiadomosc = null;
         pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
@@ -703,5 +735,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
