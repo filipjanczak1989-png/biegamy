@@ -28,9 +28,13 @@ function artefakt() {
 }
 const tablica = (sw, nazwa) => sw.match(new RegExp('const ' + nazwa + ' = \\[([\\s\\S]*?)\\];'))[1].match(/'[^']+'/g).map((x) => x.slice(1, -1));
 
+/* Jedyny wyjątek w repo: bieg.html ma od 19.11 ręczne ?v= (8 znaków skrótu pliku) przy dwóch modułach, pilnowane przez blizna-299.
+   Od 25.11 narzędzie widzi też .mjs (blizna-353) i w artefakcie podmienia je na własny hash. */
+const RECZNE_299 = /^bieg\.html: js\/(akcja|bieg)\.mjs\?v=[0-9a-f]{8}$/;
+
 test('repo: odwołania do własnych .js/.css są BEZ ?v= (wersjonuje się tylko artefakt)', () => {
   const zle = [];
-  for (const f of fs.readdirSync(KORZEN).filter((x) => /\.html$/.test(x))) for (const o of odwolania(czytaj(f))) if (/\?v=/.test(o.surowy)) zle.push(f + ': ' + o.surowy);
+  for (const f of fs.readdirSync(KORZEN).filter((x) => /\.html$/.test(x))) for (const o of odwolania(czytaj(f))) if (/\?v=/.test(o.surowy) && !RECZNE_299.test(f + ': ' + o.surowy)) zle.push(f + ': ' + o.surowy);
   assert.deepEqual(zle, []);
   assert.doesNotMatch(czytaj('sw.js'), /'\/[^']+\?v=/, 'sw.js w repo bez ?v=');
 });
