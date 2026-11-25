@@ -1272,6 +1272,7 @@
           || /^media\d*\.giphy\.com$/.test(h)
           || h === 'afqojgkaveykxbltxzwm.supabase.co'
           || (window.BM_SRODOWISKO === 'test' && !!window.SB_URL && h === new URL(window.SB_URL).hostname)   // magazyn projektu testowego — tylko na teście
+          || h === 'radio.biegamy.run'   // utwory i okładki radia z m3 (window.RADIO)
           || h === 'filipjanczak1989-png.github.io';
     } catch {
       return false;
@@ -2220,13 +2221,88 @@
     return null;
   };
 
-  // RADIO BiegaMy — buildery URL. media z bucketu radio-audio (URL = slug + '.' + media_ext),
-  // cover z bucketu radio-audio (cover_slug = pełna nazwa pliku bez .webp, np. 'cover-park-wolnosci').
+  // RADIO BiegaMy — buildery URL (URL = slug + '.' + media_ext; okładka = cover_slug + '.webp', np. 'cover-park-wolnosci').
+  // Od 24.11.2026 pliki z m3 (radio.biegamy.run, Caddy), nie z Supabase Storage: Cached Egress planu Free przekroczony.
+  // Kubełek radio-audio zostaje jako ZAPAS: plik jeszcze nieskopiowany na m3 (nowy utwór z panelu trenera) albo m3 nie odpowiada
+  // → radio.html przełącza ten jeden utwór na Supabase. Środowisko testowe zostaje przy własnym magazynie.
+  const _radioZM3 = window.BM_SRODOWISKO !== 'test';
+  const _radioSupabase = window.SB_URL + '/storage/v1/object/public/radio-audio/';
   window.RADIO = {
-    MEDIA_BASE: window.SB_URL + '/storage/v1/object/public/radio-audio/',
-    COVER_BASE: window.SB_URL + '/storage/v1/object/public/radio-audio/',
+    MEDIA_BASE: _radioZM3 ? 'https://radio.biegamy.run/' : _radioSupabase,
+    COVER_BASE: _radioZM3 ? 'https://radio.biegamy.run/' : _radioSupabase,
+    ZAPAS_BASE: _radioSupabase,
     mediaUrl: function(t){ return (t && t.slug) ? (this.MEDIA_BASE + t.slug + '.' + (t.media_ext || 'mp4')) : ''; },
+    mediaUrlZapas: function(t){ return (t && t.slug && this.ZAPAS_BASE !== this.MEDIA_BASE) ? (this.ZAPAS_BASE + t.slug + '.' + (t.media_ext || 'mp4')) : ''; },
     coverUrl: function(t){ return (t && t.cover_slug) ? (this.COVER_BASE + t.cover_slug + '.webp') : ''; },
+
+    // UTWORY NA URZĄDZENIU: utwór słuchany ≥ 20 s pobieramy raz w całości (fetch z CORS, Caddy wpuszcza tylko https://biegamy.run)
+    // do Cache API i odtąd gra z pamięci telefonu przez blob: URL — bez sieci, także offline i w tle.
+    // NIE przez Service Worker: sw.js celowo przepuszcza media do sieci (tło iOS wymaga zasobu z obsługą Range); blob: URL ma ją
+    // natywnie. Cache poza CACHE_VERSION (sw.js go nie kasuje przy deployu), limit jak przy filmach: najstarsze wpisy wylatują.
+    CACHE: 'biegamy-radio-v1',
+    LIMIT: 40,
+    LIMIT_B: 250 * 1024 * 1024,
+    zapisane: new Set(),
+    _wToku: {},
+    wczytajSpis: async function(){
+      try {
+        if (!('caches' in window)) return this.zapisane;
+        const c = await caches.open(this.CACHE);
+        const klucze = await c.keys();
+        this.zapisane = new Set(klucze.map(function(r){ return r.url; }));
+      } catch(e){}
+      return this.zapisane;
+    },
+    zUrzadzenia: async function(url){
+      try {
+        if (!url || !('caches' in window)) return '';
+        const c = await caches.open(this.CACHE);
+        const r = await c.match(url);
+        if (!r) { this.zapisane.delete(url); return ''; }
+        const b = await r.blob();
+        if (!b || !b.size) return '';
+        return URL.createObjectURL(b);
+      } catch(e){ return ''; }
+    },
+    zapiszNaUrzadzeniu: function(url){
+      const self = this;
+      if (!url || url.indexOf(self.MEDIA_BASE) !== 0 || self.MEDIA_BASE === self.ZAPAS_BASE || !('caches' in window)) return Promise.resolve(false);
+      if (navigator.connection && navigator.connection.saveData) return Promise.resolve(false);
+      if (self._wToku[url]) return self._wToku[url];
+      const p = (async function(){
+        try {
+          const c = await caches.open(self.CACHE);
+          if (await c.match(url)) { self.zapisane.add(url); return true; }
+          const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+          if (!res || res.status !== 200) return false;
+          const typ = (res.headers.get('content-type') || '').toLowerCase();
+          if (typ.indexOf('audio/') !== 0) return false;
+          const b = await res.blob();
+          const dl = Number(res.headers.get('content-length')) || 0;
+          if (!b.size || (dl && b.size !== dl)) return false;   // urwany plik nie wchodzi (blizna-44)
+          await c.put(url, new Response(b, { status: 200, headers: { 'Content-Type': typ, 'Content-Length': String(b.size) } }));
+          self.zapisane.add(url);
+          await self._przytnij(c);
+          return true;
+        } catch(e){ return false; }
+        finally { delete self._wToku[url]; }
+      })();
+      self._wToku[url] = p;
+      return p;
+    },
+    _przytnij: async function(c){
+      const klucze = await c.keys();
+      const rozmiary = await Promise.all(klucze.map(async function(k){
+        const r = await c.match(k);
+        return Number(r && r.headers.get('content-length')) || 0;
+      }));
+      let n = klucze.length, suma = rozmiary.reduce(function(a, b){ return a + b; }, 0);
+      for (let i = 0; i < klucze.length && (n > this.LIMIT || suma > this.LIMIT_B); i++) {
+        await c.delete(klucze[i]);
+        this.zapisane.delete(klucze[i].url);
+        n--; suma -= rozmiary[i];
+      }
+    },
     // Hit tygodnia — #N utworów z najwięcej odtworzeń w ostatnich 7 dniach (widok radio_top_weekly, security_invoker=false)
     weeklyTop: async function(limit){
       try {

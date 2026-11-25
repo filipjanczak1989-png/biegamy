@@ -29,11 +29,17 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROZSZERZENIA = /\.(js|css)$/i;
+/* .mjs od 25.11.2026 (plan nowego Dziś, pierwszy commit E1). Do tego dnia wzorzec znał tylko .js i .css, więc moduły js/*.mjs
+   wpięte zwykłym <script src> (akcja.mjs, odznaki-akcji.mjs, tekst.mjs, ulica.mjs…) szły BEZ ?v=: po deployu nowy HTML mógł dostać
+   stary moduł z cache SW, czyli dokładnie błąd, przed którym to narzędzie chroni. Żaden moduł nie ma statycznego `import … from`,
+   więc adres w HTML to cały graf (pilnuje blizna-353).
+   POZA ZASIĘGIEM zostają adresy składane w kodzie (el.src = 'js/x.mjs', import('./js/x.mjs')): narzędzie czyta tylko atrybuty
+   src/href. Ich jawną listę trzyma tests/blizna-353; js/dzis-nowy.mjs ma własną stałą MODUL_V (blizna-336). */
+const ROZSZERZENIA = /\.(m?js|css)$/i;
 
 function hash(bufor) { return crypto.createHash('sha256').update(bufor).digest('hex').slice(0, 10); }
 
-/* Odwołania src="…" / href="…" do plików .js/.css z WŁASNEGO originu, które istnieją w katalogu.
+/* Odwołania src="…" / href="…" do plików .js/.mjs/.css z WŁASNEGO originu, które istnieją w katalogu.
    Pomija adresy absolutne (http:, //), data:, szablony ${…} i kotwice. Zdejmuje istniejące ?v=. */
 function odwolania(html) {
   const out = [];

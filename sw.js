@@ -13,7 +13,7 @@
 //   - skipWaiting + clients.claim → user dostaje nową wersję natychmiast
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'biegamy-2026-11-24-2265cae';
+const CACHE_VERSION = 'biegamy-2026-11-25-a84ac57';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
@@ -28,6 +28,9 @@ const LIMIT_OBRAZOW_B = 30 * 1024 * 1024;
 const FILMY_CACHE = 'biegamy-filmy-v1';
 const LIMIT_FILMOW = 3;
 const LIMIT_FILMOW_B = 10 * 1024 * 1024;
+// RADIO (24.11.2026): utwory zapisane na urządzeniu przez radio.html (sb.js window.RADIO, Cache API z poziomu strony, nie SW).
+// SW tylko go NIE KASUJE przy deployu; media z radio.biegamy.run nadal idą prosto do sieci (gałąź mediów niżej).
+const RADIO_CACHE = 'biegamy-radio-v1';
 
 // Pliki które chcemy mieć offline od samego start (precache)
 /* Strony narzedzia.html i statystyki.html usuniete 24.08.2026 — zdjete stad
@@ -182,7 +185,7 @@ self.addEventListener('activate', (event) => {
         // Usuń stare cache (z poprzednich wersji)
         return Promise.all(
           names
-            .filter((name) => !name.startsWith(CACHE_VERSION) && name !== ASSETS_CACHE && name !== FILMY_CACHE)   // obrazy i filmy przeżywają deploy
+            .filter((name) => !name.startsWith(CACHE_VERSION) && name !== ASSETS_CACHE && name !== FILMY_CACHE && name !== RADIO_CACHE)   // obrazy, filmy i utwory radia przeżywają deploy
             .map((name) => {
               console.log(`[SW] Deleting old cache: ${name}`);
               return caches.delete(name);

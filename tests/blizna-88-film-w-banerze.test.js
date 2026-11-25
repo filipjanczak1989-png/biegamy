@@ -204,7 +204,7 @@ test('film akcji: tajny do startu, adres z licznika, bez webm i plakatu, pełny 
 test('(5) SW: osobny cache filmów (max 3, przeżywa deploy), zakresy 206/416, radio dalej bez SW', async () => {
   const sw = czytaj('sw.js');
   assert.match(sw, /const FILMY_CACHE = 'biegamy-filmy-v1';\nconst LIMIT_FILMOW = 3;/);
-  assert.match(sw, /name !== ASSETS_CACHE && name !== FILMY_CACHE\)/);
+  assert.match(sw, /name !== ASSETS_CACHE && name !== FILMY_CACHE( && name !== RADIO_CACHE)?\)/);   // 24.11: utwory radia też przeżywają deploy (blizna-351)
   assert.ok(sw.indexOf('if (isFilmPromo(url))') < sw.indexOf("if (/\\.(mp4|m4a|mp3|webm|ogg|wav|aac|mov|m4v)$/i.test(url.pathname)) return;"), 'filmy przed ogólnym pominięciem mediów');
   const kod = ['function isFilmPromo', 'function zakresBajtow', 'async function filmZCache', 'async function pobierzFilm'].map((n) => sw.match(new RegExp(n.replace(/ /g, '\\s') + '\\([\\s\\S]*?\\n\\}\\n'))[0]).join('\n');
   const wlozone = [];

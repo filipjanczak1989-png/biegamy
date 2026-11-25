@@ -126,6 +126,12 @@ let _radioTopTracks = [];          // kawałki zakładki Przeboje (źródło kol
 let _radioPlayTimer = null;        // timer 5s do zliczenia odtworzenia
 let _radioIsCoach = false;         // trener? (moderacja: usuwa każdy komentarz)
 let _radioPlaylistRows = [];       // wiersze radio_playlist_tracks (id+position) — do reorderu
+// Utwory z m3 + kopia na urządzeniu (sb.js window.RADIO, 24.11.2026):
+let _radioBiezacy = null;          // { url: adres m3, src: to, co gra (blob: z urządzenia, m3 albo zapas Supabase), blob, zapas }
+let _radioPrzygotowany = null;     // { url, src: blob: } następny utwór z urządzenia, gotowy przed 'ended' (zmiana w tle bez czekania)
+let _radioZnacznik = 0;            // każdy radioPlayAt unieważnia spóźnione odczyty z urządzenia
+let _radioPrzygZnacznik = 0;
+let _radioZapisTimer = null;       // 20 s słuchania z sieci → zapis utworu na urządzeniu
 
 async function radioInit(){
   const { data: { session } } = await sb.auth.getSession();
@@ -157,6 +163,22 @@ async function radioInit(){
     if (_radioSwapping) return; // transient pause podczas zmiany utworu (tło) — NIE zrzucaj sesji na 'paused'
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'paused'; } catch(e){} }
   });
+  // Utwór nie gra: kopia z urządzenia uszkodzona → wyrzuć ją i graj z m3; m3 bez pliku (nowy utwór, jeszcze nieskopiowany)
+  // albo m3 nie odpowiada → ten jeden utwór z Supabase (kubełek radio-audio zostaje jako zapas). Raz na utwór.
+  aud.addEventListener('error', function(){
+    const b = _radioBiezacy, R = window.RADIO, t = _radioQueue[_radioIdx];
+    if (!b || !R || !t) return;
+    if (b.blob) {
+      try { caches.open(R.CACHE).then(function(c){ return c.delete(b.url); }).catch(function(){}); } catch(e){}
+      if (R.zapisane) R.zapisane.delete(b.url);
+      radioUstawZrodlo(b.url, b.url);
+      return;
+    }
+    if (b.zapas || !R.mediaUrlZapas) return;
+    const z = window.safeUrlAttr ? window.safeUrlAttr(R.mediaUrlZapas(t)) : '';
+    if (z) radioUstawZrodlo(b.url, z, true);
+  });
+  if (window.RADIO && window.RADIO.wczytajSpis) window.RADIO.wczytajSpis();
 })();
 
 async function radioLoad(){
@@ -567,16 +589,24 @@ function radioPlayAt(i){
   vid.removeAttribute('src'); vid.style.display = 'none';
 
   _radioSwapping = true;         // tło: chroń sesję przed transient pause podczas zmiany src
-  aud.src = url;                 // <-- mp4; <audio> gra ścieżkę dźwiękową (klucz iOS)
   aud.style.display = 'block';
   player.style.display = 'block';
-  const _pp = aud.play();
-  if (_pp && _pp.then) {
-    _pp.then(function(){
-      _radioSwapping = false;
-      if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
-    }).catch(function(){ _radioSwapping = false; });
-  } else { _radioSwapping = false; }
+  // Źródło: kopia z urządzenia (blob:) albo m3 przez sieć. Gotowy blob: (ten sam utwór albo przygotowany następny) → od razu,
+  // jak dotąd synchronicznie w geście / w 'ended'. Kopia jest, ale blob: niegotowy (klik w katalogu) → load() w geście
+  // odblokowuje <audio> na iOS (to samo robi howler.js), źródło po odczycie z pamięci. Stary sb.js bez RADIO.zapisane → m3/Supabase jak dotąd.
+  const zn = ++_radioZnacznik;
+  const R = window.RADIO, b = _radioBiezacy, p = _radioPrzygotowany;
+  if (b && b.blob && b.url === url) radioUstawZrodlo(url, b.src);
+  else if (p && p.url === url) { _radioPrzygotowany = null; radioUstawZrodlo(url, p.src); }
+  else if (R.zapisane && R.zUrzadzenia && R.zapisane.has(url)) {
+    aud.removeAttribute('src');
+    try { aud.load(); } catch(e){}
+    R.zUrzadzenia(url).then(function(src){
+      if (zn !== _radioZnacznik) { if (src) { try { URL.revokeObjectURL(src); } catch(e){} } return; }
+      radioUstawZrodlo(url, src || url);
+    });
+  }
+  else radioUstawZrodlo(url, url);
 
   // Zlicz odtworzenie po 5s ciągłego grania (Filip: próg 5s). Globalny licznik (bez per-user dedupe).
   if (_radioPlayTimer) clearTimeout(_radioPlayTimer);
@@ -593,6 +623,55 @@ function radioPlayAt(i){
   }, 5000);
 
   radioUpdateMediaSession(t, cover);
+}
+
+// Ustawia to, co gra. url = adres utworu na m3 (klucz kopii na urządzeniu), src = blob:, m3 albo zapas z Supabase.
+function radioUstawZrodlo(url, src, zapas){
+  const aud = document.getElementById('rad-audio');
+  const stary = _radioBiezacy;
+  _radioBiezacy = { url: url, src: src, blob: src.indexOf('blob:') === 0, zapas: !!zapas };
+  _radioSwapping = true;
+  aud.src = src;                 // <audio> gra ścieżkę dźwiękową (klucz iOS)
+  if (stary && stary.blob && stary.src !== src) { try { URL.revokeObjectURL(stary.src); } catch(e){} }
+  const _pp = aud.play();
+  if (_pp && _pp.then) {
+    _pp.then(function(){
+      _radioSwapping = false;
+      if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
+    }).catch(function(){ _radioSwapping = false; });
+  } else { _radioSwapping = false; }
+
+  if (_radioZapisTimer) { clearTimeout(_radioZapisTimer); _radioZapisTimer = null; }
+  const R = window.RADIO;
+  if (src === url && R && R.zapiszNaUrzadzeniu) {   // gra z m3 przez sieć; zapas z Supabase nigdy nie idzie na urządzenie
+    _radioZapisTimer = setTimeout(function(){
+      _radioZapisTimer = null;
+      if (!_radioBiezacy || _radioBiezacy.src !== url || aud.paused) return;
+      R.zapiszNaUrzadzeniu(url).then(function(){ radioPrzygotujNastepny(); });
+    }, 20000);
+  }
+  radioPrzygotujNastepny();
+}
+
+// Następny utwór z kolejki, jeśli jest na urządzeniu: blob: gotowy zawczasu, żeby 'ended' w tle zmieniał utwór bez czekania.
+function radioPrzygotujNastepny(){
+  const R = window.RADIO;
+  if (!R || !R.zapisane || !R.zUrzadzenia) return;
+  let j = _radioLoop === 'one' ? _radioIdx : _radioIdx + 1;
+  if (j >= _radioQueue.length) j = _radioLoop === 'all' ? 0 : -1;
+  const t = j >= 0 ? _radioQueue[j] : null;
+  const url = (t && window.safeUrlAttr) ? window.safeUrlAttr(R.mediaUrl(t)) : '';
+  const p = _radioPrzygotowany;
+  if (p && p.url === url) return;
+  if (p && (!_radioBiezacy || _radioBiezacy.src !== p.src)) { try { URL.revokeObjectURL(p.src); } catch(e){} }
+  _radioPrzygotowany = null;
+  const zn = ++_radioPrzygZnacznik;
+  if (!url || !R.zapisane.has(url) || (_radioBiezacy && _radioBiezacy.url === url)) return;
+  R.zUrzadzenia(url).then(function(src){
+    if (!src) return;
+    if (zn !== _radioPrzygZnacznik) { try { URL.revokeObjectURL(src); } catch(e){} return; }
+    _radioPrzygotowany = { url: url, src: src };
+  });
 }
 
 function radioNext(){
@@ -645,6 +724,10 @@ function radioClosePlayer(){
   vid.removeAttribute('src'); aud.removeAttribute('src');
   document.getElementById('rad-player').style.display = 'none';
   _radioQueue = []; _radioIdx = -1;
+  _radioZnacznik++; _radioPrzygZnacznik++;
+  if (_radioZapisTimer) { clearTimeout(_radioZapisTimer); _radioZapisTimer = null; }
+  [_radioBiezacy, _radioPrzygotowany].forEach(function(x){ if (x && String(x.src).indexOf('blob:') === 0) { try { URL.revokeObjectURL(x.src); } catch(e){} } });
+  _radioBiezacy = null; _radioPrzygotowany = null;
   if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch(e){} }
 }
 

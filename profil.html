@@ -3206,10 +3206,10 @@ async function _pcLoad(t, silent){
   var r=await sb.from('peer_messages')
     .select('id,from_id,body,sent_at')
     .or('and(from_id.eq.'+_myId+',to_id.eq.'+t+'),and(from_id.eq.'+t+',to_id.eq.'+_myId+')')
-    .order('sent_at',{ascending:true})
+    .order('sent_at',{ascending:false})   // 200 NAJNOWSZYCH: z ascending:true i limitem długa rozmowa pokazywała 200 najstarszych (blizna-354)
     .limit(200);
   if(r.error && window.bmBladSieci(r.error)){ if(!silent) window.bmStanOffline(el, 'wiadomości'); return; }
-  var msgs=r.data||[];
+  var msgs=(r.data||[]).slice().reverse();   // w oknie jak dotąd: od najstarszej do najnowszej
 
   if(!msgs.length){
     if(!silent) el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.7;font-family:DM Mono,monospace;">'
