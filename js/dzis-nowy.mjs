@@ -19,6 +19,10 @@
 //   przycisk „Nowy moment!” (#moment-baner), siedzi w schowanym górnym pasku. Pasek zdarzenia pokazuje go pod nagłówkiem, gdy stary przycisk jest
 //   odsłonięty, a dotknięcie woła kliknięcie starego przycisku: kolejka, animacja albo karta i zapis shown_at zostają w jednym miejscu (loadMomenty).
 //   Jedna rzecz naraz: problem z zegarkiem ma pierwszeństwo przed momentem.
+// KONTO I TRENER (E1b, blizna-362): w schowanym górnym pasku zostały też menu konta (avatar) i chip „← Trener”. Nowe Dziś ma własny avatar obok pola
+//   „Zapytaj” i własne menu, ale pozycje wołają TE SAME funkcje starego ekranu (goToMyProfile, toggleSoundSetting, logout), a inicjały, zdjęcie, adres
+//   konta i napis o dźwiękach są odbiciem starych elementów. Stare menu siedzi wewnątrz schowanego paska, więc nie da się go po prostu pokazać.
+//   Chip „← Trener” pokazuje się, gdy stary kod odsłonił swój (konto trenera) i zostaje, choć stary chowa go na czas banera momentu.
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -30,7 +34,7 @@
   var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja"];
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -72,6 +76,13 @@
 
   var CSS = "#dzis-nowy{padding:4px 16px 8px;color:#f5f3ef;font-family:'DM Sans',system-ui,sans-serif}" +
     "#dzis-nowy .dn-naglowek{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 10px}#dzis-nowy .dn-naglowek > div:first-child{min-width:0}" +
+    "#dzis-nowy .dn-rzad{display:flex;align-items:center;gap:8px;margin:0 0 12px}#dzis-nowy .dn-rzad .dn-zapytaj{flex:1;width:auto;min-width:0;margin:0}" +
+    "#dzis-nowy .dn-awatar{flex:none;overflow:hidden;color:#f5f3ef;font:600 15px/1 'DM Sans',sans-serif;letter-spacing:.02em}#dzis-nowy .dn-awatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}" +
+    "#dzis-nowy .dn-trener{display:inline-flex;align-items:center;min-height:32px;margin:0 0 8px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,122,69,.4);background:rgba(196,74,19,.14);color:#ff7a45;font:500 11px/1 'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}" +
+    "#dzis-nowy{position:relative}#dzis-nowy .dn-menu{position:absolute;right:16px;z-index:50;min-width:220px;max-width:calc(100% - 32px);margin-top:-6px;padding:8px;border-radius:16px;border:1px solid #2a2a30;background:#16161b;box-shadow:0 16px 40px rgba(0,0,0,.7)}" +
+    "#dzis-nowy .dn-menu-kto{padding:8px 12px 10px;margin:0 0 6px;border-bottom:1px solid #2a2a30;color:#8f8c97;font:500 11px/1.3 'DM Mono',monospace;overflow-wrap:anywhere}" +
+    "#dzis-nowy .dn-menu button,#dzis-nowy .dn-menu a{display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:none;color:#f5f3ef;font:500 14px/1.2 'DM Sans',sans-serif;text-align:left;text-decoration:none;cursor:pointer}" +
+    "#dzis-nowy .dn-menu a.dn-menu-cichy{color:#bcb8b2}#dzis-nowy .dn-menu button.dn-menu-wyloguj{color:#ff6b5e}" +
     "#dzis-nowy .dn-zegarek{display:flex;align-items:center}#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;opacity:1}" +
     "#dzis-nowy .dn-zd{margin:0 0 12px}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
     "#dzis-nowy .dn-moment{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 16px;border-radius:16px;border:1px solid rgba(255,122,69,.55);background:rgba(196,74,19,.14);color:#f5f3ef;font:600 15px/1.25 'DM Sans',sans-serif;text-align:left;cursor:pointer}" +
@@ -160,10 +171,15 @@
         '<span class="dn-szkielet"></span><span class="dn-szkielet k"></span>' + (k[0] === "trening" ? '<span class="dn-szkielet w"></span>' : "") +
         '<span class="dn-ukryte">Wczytuję…</span></section>';
     }).join("");
-    return '<header class="dn-naglowek"><div><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
+    return '<header class="dn-naglowek"><div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
       '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
-      '<button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
+      '<div class="dn-rzad"><button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
+      '<button type="button" class="dn-okr dn-awatar" data-dn="konto" aria-haspopup="menu" aria-expanded="false" aria-label="Konto"><span data-dn="inicjaly"></span><img data-dn="foto" alt="" hidden></button></div>' +
+      '<div class="dn-menu" data-dn="menu" role="menu" hidden><div class="dn-menu-kto" data-dn="email"></div>' +
+      '<button type="button" role="menuitem" data-dn="m-profil">Mój profil</button><button type="button" role="menuitem" data-dn="m-dzwieki">Dźwięki</button>' +
+      '<a role="menuitem" href="gra.html">BiegaMy: Wyzwanie</a><a role="menuitem" class="dn-menu-cichy" href="o-nas.html">O nas</a><a role="menuitem" class="dn-menu-cichy" href="terms.html">Regulamin</a><a role="menuitem" class="dn-menu-cichy" href="privacy.html">Polityka prywatności</a>' +
+      '<button type="button" role="menuitem" class="dn-menu-wyloguj" data-dn="m-wyloguj">Wyloguj się</button></div>' +
       '<div class="dn-zd" data-dn="zdarzenie" hidden></div>' +
       '<div class="dn-kafle">' + kafle + "</div>" +
       '<a class="dn-stare" href="zawodnik.html?dzis=stary">stare Dziś ›</a>';
@@ -175,6 +191,34 @@
     if (p) p.textContent = powitanie();
     if (da) da.textContent = dataDzis();
     if (l) { var n = licznikDzwonka(); l.textContent = n; l.hidden = !n; }
+    konto();
+  }
+  function tekstStarego(id) { var el = d.getElementById(id); return el ? String(el.textContent || "").replace(/\s+/g, " ").trim() : ""; }
+  /** Avatar, adres konta, napis o dźwiękach i chip trenera: odbicie tego, co stary kod wpisał w schowany górny pasek. */
+  function konto() {
+    var k = korzen(); if (!k || !k.querySelector) return;
+    var ini = k.querySelector('[data-dn="inicjaly"]'), foto = k.querySelector('[data-dn="foto"]'), em = k.querySelector('[data-dn="email"]'), dz = k.querySelector('[data-dn="m-dzwieki"]'), tr = k.querySelector('[data-dn="trener"]');
+    if (ini) ini.textContent = tekstStarego("av-initials").slice(0, 2);
+    if (foto) {
+      var stare = d.getElementById("av-photo"), adres = stare && stare.style && stare.style.display !== "none" ? String(stare.getAttribute ? stare.getAttribute("src") || "" : stare.src || "") : "";
+      adres = adres && typeof w.safeUrlAttr === "function" ? String(w.safeUrlAttr(adres) || "") : "";   // tylko adresy, które przepuszcza wspólny filtr aplikacji
+      if (foto._dnAdres !== adres) { foto._dnAdres = adres; if (adres) foto.src = adres; else if (foto.removeAttribute) foto.removeAttribute("src"); }
+      foto.hidden = !adres; if (ini) ini.hidden = !!adres;
+    }
+    if (em) { var e1 = tekstStarego("menu-email"); em.textContent = e1 === "..." ? "" : e1; em.hidden = !em.textContent; }
+    if (dz) { var t = tekstStarego("sound-menu-item").replace(/^[^A-Za-zĄ-ż]+/, ""); dz.textContent = t || "Dźwięki"; }
+    if (tr) {
+      var chip = d.getElementById("back-to-trener"), ds = chip && chip.style ? String(chip.style.display || "") : "";
+      if (chip && ds !== "" && ds !== "none") trenerWidziany = true;   // stary kod odsłania chip tylko trenerom; na czas banera momentu chowa go z braku miejsca, tu miejsce jest
+      tr.hidden = !(chip && trenerWidziany);
+    }
+  }
+  function menuKonta(otworz) {
+    var k = korzen(); if (!k || !k.querySelector) return;
+    var m = k.querySelector('[data-dn="menu"]'), b = k.querySelector('[data-dn="konto"]'); if (!m) return;
+    var ma = otworz == null ? !!m.hidden : !!otworz;
+    if (ma) konto();
+    m.hidden = !ma; if (b && b.setAttribute) b.setAttribute("aria-expanded", ma ? "true" : "false");
   }
 
   /** Jedno delegowane kliknięcie na korzeniu: Okienko i dzwonek wołają to, co stary ekran; skróty-sekcje wołają showSection. */
@@ -186,7 +230,14 @@
     }
     try {
       var co = t.getAttribute("data-dn"), sekcja = t.getAttribute("data-sekcja");
-      if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
+      if (co === "konto") { menuKonta(null); return; }
+      if (co === "menu" || co === "email") return;   // tło menu i odnośniki w nim: nic nie zamykamy, przeglądarka robi swoje
+      menuKonta(false);
+      if (co === "m-profil") { if (typeof w.goToMyProfile === "function") w.goToMyProfile(); }
+      else if (co === "m-dzwieki") { if (typeof w.toggleSoundSetting === "function") Promise.resolve(w.toggleSoundSetting()).then(function () { menuKonta(true); }, function () {}); }
+      else if (co === "m-wyloguj") { if (typeof w.logout === "function") w.logout(); }
+      else if (co === "trener") { var chip = d.getElementById("back-to-trener"); if (chip && chip.click) chip.click(); }   // stary odnośnik: ten sam adres i to samo sprzątanie po podglądzie
+      else if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
       else if (co === "moment") { var stary = d.getElementById("moment-baner"); if (stary && stary.click) stary.click(); zdarzenie(); }
@@ -200,13 +251,14 @@
     html().classList[aktywny ? "add" : "remove"]("dzis-gotowy");
     html().classList[widac ? "add" : "remove"]("dzis-na-dzis");
     if (k) k.hidden = !widac;
+    if (!widac) menuKonta(false);
     if (widac) odswiezNaglowek();
   }
 
   function obserwuj() {
     if (obserwatorzy || typeof w.MutationObserver !== "function") return;
     obserwatorzy = true;
-    ["topbar-name", "zawodnik-bell-dot"].forEach(function (id) {
+    ["topbar-name", "zawodnik-bell-dot", "av-initials", "av-photo", "menu-email", "sound-menu-item", "back-to-trener"].forEach(function (id) {
       var el = d.getElementById(id);
       if (el) new w.MutationObserver(function () { try { odswiezNaglowek(); } catch (e) {} }).observe(el, { childList: true, characterData: true, subtree: true, attributes: true });
     });
@@ -461,6 +513,10 @@
         var orygSync = w._onWatchSynced;
         w._onWatchSynced = function () { var r = orygSync.apply(this, arguments); try { if (wlaczone() && !ustepuje() && !wstrzymane) wczytaj(true); } catch (e) {} return r; };
         owinietaSynchronizacja = true;
+      }
+      if (!nasluchDokumentu && d.addEventListener) {   // dotknięcie poza nowym Dziś (menu dolne, pasek biegu) zamyka menu konta
+        nasluchDokumentu = true;
+        d.addEventListener("click", function (e) { try { var kk = korzen(); if (kk && e && e.target && !(kk.contains && kk.contains(e.target))) menuKonta(false); } catch (err) {} });
       }
       obserwuj();
       pokaz();

@@ -64,7 +64,7 @@ test('(1) plakietka zegarka z danych profilu: WATCH.render(badge) dostaje stan z
   }
   const h = s.korzen.innerHTML;
   assert.match(h, /<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden><\/span><button type="button" class="dn-okr" data-dn="dzwonek"/, 'zegarek obok dzwonka');
-  assert.match(h, /<\/header><button type="button" class="dn-zapytaj" data-dn="okienko"[^>]*>.*<span>Zapytaj<\/span><\/button><div class="dn-zd" data-dn="zdarzenie" hidden><\/div><div class="dn-kafle">/, '„Zapytaj” jako pole pod nagłówkiem, pod nim pasek zdarzenia');
+  assert.match(h, /<\/header><div class="dn-rzad"><button type="button" class="dn-zapytaj" data-dn="okienko"[^>]*>.*?<span>Zapytaj<\/span><\/button><button [^>]*data-dn="konto"[^>]*>.*?<\/button><\/div><div class="dn-menu" data-dn="menu" role="menu" hidden>.*?<\/div><div class="dn-zd" data-dn="zdarzenie" hidden><\/div><div class="dn-kafle">/, '„Zapytaj” jako pole pod nagłówkiem (od blizna-362 z avatarem obok), pod nim pasek zdarzenia');
 });
 
 test('(2) bez WATCH albo ze starszym sb.js (bez stanZProfilu): plakietki nie ma, ale nie ma też szóstego zapytania ani błędu', async () => {
