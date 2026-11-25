@@ -13,7 +13,8 @@
 // „JAK POSZŁO?” (E1b, blizna-363), jak karta FEEL-REPORT starego Dziś: wpis Z ZEGARKA z ostatnich 48 h bez odczucia → cztery miny, notatka, „Zapisz raport”, „Pomiń”.
 //   Kandydat wybierany z sześciu wpisów fali 2 (zero nowych zapytań). To JEDYNE miejsca, gdzie moduł zapisuje:
 //   (1) baza: update training_logs jednego wiersza po id, pola feel i comment, dopiero po „Zapisz raport”, z odesłaniem id (0 wierszy = odmowa RLS = błąd);
-//   (2) pamięć telefonu: klucz fr_skip_<id wpisu>, ten sam co stare Dziś, więc „Pomiń” na jednym ekranie działa na drugim.
+//   (2) pamięć telefonu: klucz fr_skip_<id wpisu>, ten sam co stare Dziś, więc „Pomiń” na jednym ekranie działa na drugim. Po „Pomiń” cisza:
+//       jak w starej karcie pytanie nie przechodzi na kolejny, starszy wpis.
 //   Notatka nie nadpisuje istniejącego komentarza (wtedy pola notatki nie ma). Trzy zdania po zapisie co do słowa jak w starym (decyzja Filipa 19.08.2026).
 //   Ponowne start() (initAuth, powrót do aplikacji) nie pyta drugi raz przez 60 s. Zapytanie bez odpowiedzi w 10 s = błąd kafla.
 // PIERWSZE WCZYTANIE (poprawka 25.11, blizna-358): moduł dochodzi, zanim strona wczyta skrypt klienta bazy (sb.js stoi niżej niż #dzis-nowy),
@@ -520,15 +521,15 @@
 
   /* ── „JAK POSZŁO?” ──────────────────────────────────────────────────────────────────────────────────────── */
   function pominiety(id) { try { return !!w.localStorage.getItem("fr_skip_" + id); } catch (e) { return false; } }
-  /** Wpis, o który pytamy: najnowszy z zegarka (intervals), z ostatnich 48 h, bez odczucia, niepominięty. Warunki starej karty FEEL-REPORT. */
+  /** Wpis, o który pytamy: najnowszy z zegarka (intervals), z ostatnich 48 h, bez odczucia. Warunki starej karty FEEL-REPORT, łącznie z „Pomiń”:
+      stara karta bierze JEDEN najnowszy taki wpis i gdy jest pominięty, milczy; nie przechodzi na starszy (decyzja Filipa 25.11, blizna-370). */
   function kandydatOdczucia(wpisy, teraz) {
     var t = teraz == null ? Date.now() : teraz;
     for (var i = 0; i < (wpisy || []).length; i++) {
       var l = wpisy[i], kiedyMs = l ? new Date(l.logged_at).getTime() : NaN;
       if (!l || !l.id || l.external_source !== "intervals" || l.feel != null) continue;
       if (!(t - kiedyMs <= OKNO_ODCZUCIA_MS)) continue;
-      if (pominiety(l.id)) continue;
-      return l;
+      return pominiety(l.id) ? null : l;
     }
     return null;
   }

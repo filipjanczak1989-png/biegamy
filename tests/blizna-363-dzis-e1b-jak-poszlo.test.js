@@ -70,7 +70,7 @@ test('(1) kiedy pytamy: wpis z zegarka, do 48 h, bez odczucia, niepominięty; na
   assert.equal(k([wpis('reczny', 2, { external_source: null, feel: 'good' }), wpis('zegarek', 20)]), 'zegarek', 'ostatni trening jest ręczny, wczorajszy z zegarka czeka');
   assert.equal(k([wpis('a', 1, { feel: 'good' }), wpis('b', 5), wpis('c', 30)]), 'b', 'najnowszy pasujący');
   assert.equal(k([]), null); assert.equal(k(null), null);
-  assert.equal(strona({ pominiete: ['a'] }).B.kandydatOdczucia([wpis('a', 1), wpis('b', 3)], TERAZ).id, 'b', 'pominięty wpis nie wraca, kolejny czeka');
+  assert.equal(strona({ pominiete: ['a'] }).B.kandydatOdczucia([wpis('a', 1), wpis('b', 3)], TERAZ), null, 'po „Pomiń” cisza: starszy wpis nie wskakuje na miejsce pominiętego (blizna-370)');
   assert.equal(strona({ bezPamieci: true }).B.kandydatOdczucia([wpis('a', 1)], TERAZ).id, 'a', 'zablokowana pamięć telefonu nie wywraca ekranu');
   assert.match(HTML, /\.eq\('external_source','intervals'\)\.is\('feel', null\)/, 'te same warunki co stara karta');
   assert.match(HTML, /var od=new Date\(Date\.now\(\)-48\*3600\*1000\)/); assert.match(HTML, /localStorage\.setItem\('fr_skip_'\+_frId,'1'\)/, 'ten sam klucz pominięcia');
@@ -153,9 +153,7 @@ test('(5) „Pomiń”: klucz fr_skip_<id> w pamięci telefonu (wspólny ze star
   s.dotknij('jp-pomin'); await s.tik();
   assert.deepEqual([...s.pamiec.entries()], [['fr_skip_l1', '1']]);
   assert.equal(s.zapisy.length, 0);
-  assert.match(s.ostatni.innerHTML, /<div class="dn-jp-kt">Spokojny · wczoraj · 8,21 km<\/div>/, 'pominięty pierwszy: pytanie przechodzi na następny wpis z zegarka w oknie 48 h');
-  s.dotknij('jp-pomin'); await s.tik();
-  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/); assert.equal(s.pamiec.size, 2);
+  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/, 'po „Pomiń” cisza, choć w oknie 48 h jest drugi wpis z zegarka (jak stara karta, blizna-370)'); assert.equal(s.pamiec.size, 1);
   s.B.wczytaj(true); await s.doKonca();
   assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/, 'po ponownym wczytaniu pominięte nie wracają');
   const bez = strona({ bezPamieci: true }); bez.B.start(); await bez.doKonca();
