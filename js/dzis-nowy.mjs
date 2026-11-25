@@ -42,7 +42,7 @@
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
-  var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
+  var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["lista", "Twoje ostatnie treningi"]];
 

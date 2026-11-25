@@ -41,7 +41,7 @@ function strona({ search = '', hash = '', sekcja = 'home', imie = 'Ola Nowak', d
   return { w, d, klasy, korzen, czesci, menu, el, style, wpisy, sekcje, obserwowane, B: w.BM_DZIS };
 }
 
-test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolejności makiety, 7 skrótów, link „stare Dziś ›”', () => {
+test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolejności makiety, 8 skrótów, link „stare Dziś ›”', () => {
   const s = strona();
   assert.equal(s.B.etap, 'E1');
   s.B.start();
@@ -50,8 +50,10 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   const h = s.korzen.innerHTML;
   assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['ulica', 'trening', 'skroty', 'ostatni', 'lista']);
   assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Ulica', 'Trening na dziś', 'Ostatni trening', 'Twoje ostatnie treningi']);
-  assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
-  assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
+  assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'jedzenie', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
+  assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['nutrition.html', 'races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
+  assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?jablko-64\.webp.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
+  assert.ok(fs.existsSync(path.join(KORZEN, 'nutrition.html')));
   assert.deepEqual([...h.matchAll(/data-sekcja="([a-z]+)"/g)].map((m) => m[1]), ['cwiczenia', 'msgs']);
   assert.match(h, /<a class="dn-stare" href="zawodnik\.html\?dzis=stary">stare Dziś ›<\/a>$/);
   assert.match(h, /<button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg [^>]*aria-hidden="true">.*?<\/svg><span>Zapytaj<\/span><\/button>/, 'Okienko = pigułka z napisem, nie sama ikona');
@@ -114,11 +116,11 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
   assert.doesNotMatch(s.style[0].textContent, /nav/);
   assert.equal(s.B.MENU, undefined);
   const uzyte = new Set([...plain(s.B.SKROTY).map((x) => x[2]), 'dzwonek']);
-  assert.deepEqual([...uzyte].sort(), ['dymek', 'dzwonek', 'flaga', 'hantla', 'medal', 'pad', 'puchar', 'radio']);
+  assert.deepEqual([...uzyte].sort(), ['dymek', 'dzwonek', 'flaga', 'hantla', 'jablko', 'medal', 'pad', 'puchar', 'radio']);
   for (const n of uzyte) for (const r of ['64', '128']) assert.ok(fs.statSync(path.join(KORZEN, 'assets/ui/dzis/ikony', n + '-' + r + '.webp')).size > 500, 'brak ikony ' + n + '-' + r);
   assert.deepEqual(fs.readdirSync(path.join(KORZEN, 'assets/ui/dzis/ikony')).sort(), [...uzyte].flatMap((n) => [n + '-128.webp', n + '-64.webp']).sort(), 'w katalogu tylko używane ikony (bez ikon menu i chmurki Okienka)');
   const obrazy = [...s.korzen.innerHTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]);
-  assert.equal(obrazy.length, 8, 'siedem skrótów i dzwonek');
+  assert.equal(obrazy.length, 9, 'osiem skrótów i dzwonek');
   for (const p of obrazy) assert.ok(fs.existsSync(path.join(KORZEN, p)), 'brak pliku ' + p);
 });
 
