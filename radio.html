@@ -168,13 +168,18 @@ async function radioInit(){
   aud.addEventListener('error', function(){
     const b = _radioBiezacy, R = window.RADIO, t = _radioQueue[_radioIdx];
     if (!b || !R || !t) return;
+    // Ślad w client_errors (kind 'radio', sam etap, raz na stronę: sb.js RADIO.zglos). Stary sb.js z cache SW nie ma zglos → bez śladu, jak dotąd.
+    const zglos = function(etap){ if (R.zglos) R.zglos(etap); };
     if (b.blob) {
+      zglos('kopia');
       try { caches.open(R.CACHE).then(function(c){ return c.delete(b.url); }).catch(function(){}); } catch(e){}
       if (R.zapisane) R.zapisane.delete(b.url);
       radioUstawZrodlo(b.url, b.url);
       return;
     }
-    if (b.zapas || !R.mediaUrlZapas) return;
+    if (b.zapas) { zglos('zapas'); return; }
+    zglos('m3');
+    if (!R.mediaUrlZapas) return;
     const z = window.safeUrlAttr ? window.safeUrlAttr(R.mediaUrlZapas(t)) : '';
     if (z) radioUstawZrodlo(b.url, z, true);
   });

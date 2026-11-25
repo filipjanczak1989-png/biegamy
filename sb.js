@@ -2286,9 +2286,25 @@
           return true;
         } catch(e){ return false; }
         finally { delete self._wToku[url]; }
-      })();
+      })().then(function(ok){ if (!ok) self.zglos('zapis'); return ok; });   // próba była i się nie udała (sieć, status, typ, urwany plik, brak miejsca)
       self._wToku[url] = p;
       return p;
+    },
+    // ZGŁOSZENIE (25.11.2026, blizna-355): do tego dnia przełączenia radia nie zostawiały śladu, więc nie było widać, czy gra z m3,
+    // czy na koszt Supabase. Jeden wpis w client_errors, kind 'radio', a w treści SAM etap, który zawiódł:
+    //   kopia = kopia na urządzeniu nie zagrała (dalej m3) · m3 = m3 nie odpowiada albo nie ma pliku (dalej zapas z Supabase)
+    //   zapas = zapas też nie zagrał · zapis = nie udało się zapisać utworu na urządzeniu.
+    // Bez adresu utworu, tytułu, sluga i ID: adres strony idzie bez parametrów (radio.html?utwor=<id> niosłoby ID utworu).
+    // Każdy etap najwyżej RAZ na załadowanie strony: jedna awaria m3 nie daje wpisu na każdy utwór z kolejki.
+    ETAPY: ['kopia', 'm3', 'zapas', 'zapis'],
+    _zgloszone: {},
+    zglos: function(etap){
+      try {
+        if (this.ETAPY.indexOf(etap) < 0 || this._zgloszone[etap]) return false;
+        this._zgloszone[etap] = true;
+        if (typeof window._logKlienta === 'function') window._logKlienta({ kind: 'radio', message: etap, url: location.pathname });
+        return true;
+      } catch(e){ return false; }
     },
     _przytnij: async function(c){
       const klucze = await c.keys();
@@ -7127,7 +7143,7 @@ window._icuRenderSplits = function (d, el) {
         _sentThisLoad++;
         sb.from('client_errors').insert({
           user_id: window._authUid,
-          url: (location.pathname + location.search).slice(0, 990),
+          url: String(typeof o.url === 'string' ? o.url : (location.pathname + location.search)).slice(0, 990),   // o.url: wołający, którego parametry adresu niosą ID (radio), podaje sam pathname
           kind: o.kind,
           message: String(o.message || '').slice(0, 1900),
           source: String(o.source || '').slice(0, 990),
