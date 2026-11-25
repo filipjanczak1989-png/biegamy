@@ -31,6 +31,9 @@
 // DZIAŁANIA PRZY TRENINGU (E4a, blizna-364…): przyciski w kaflu „Trening na dziś” wołają funkcje starego ekranu, moduł sam niczego nie zapisuje.
 //   „Zaloguj wynik” = openModal() (ten sam formularz co krążek Log; zapis robi saveLog). Po udanym zapisie (formularz zamknięty) dane Dziś
 //   wczytują się od nowa: nowy „Ostatni trening”, „zrobione” przy planie.
+//   „Coś boli” (jedyne wejście do zgłoszenia bólu w aplikacji): stary kod dalej wypełnia schowane pudełko #today-bol i wiesza na jego przyciskach
+//   swoje działania (okno zgłoszenia, „Już nie boli”, „Nadal boli”, „Napisz do trenera”). Nowy kafel pokazuje ten sam stan (window._aktywnaKontuzja)
+//   i KLIKA STARE PRZYCISKI po id z krótkiej listy: zapis do injuries, pamięć odroczenia i komunikaty zostają w starych funkcjach, co do słowa.
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -43,6 +46,7 @@
   var OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
+  var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
   var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
@@ -157,6 +161,11 @@
     "#dzis-nowy .dn-glowny,#dzis-nowy .dn-drugi{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:14px 0 0;border-radius:12px;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-glowny{border:0;background:#c44a13;color:#fff}#dzis-nowy .dn-drugi{border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:scale(.99)}" +
+    "#dzis-nowy .dn-dzialania:empty{display:none}#dzis-nowy .dn-ciche{display:flex;flex-wrap:wrap;justify-content:center;gap:0 4px;margin:8px 0 -6px}" +
+    "#dzis-nowy .dn-cichy{min-height:44px;padding:0 12px;border:0;background:none;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
+    "#dzis-nowy .dn-bol{margin:14px 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(232,184,64,.55);background:rgba(232,184,64,.07)}" +
+    "#dzis-nowy .dn-bol b{display:block;color:#e8b840;font:600 13px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-bol p{margin:4px 0 0;color:#bcb8b2;font:400 13px/1.45 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-bol-akcje{display:flex;gap:8px;margin:10px 0 0}#dzis-nowy .dn-bol-akcje button{flex:1;min-height:44px;border-radius:10px;border:1px solid #3a3a44;background:none;color:#f5f3ef;font:600 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
     "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}}";
@@ -266,6 +275,7 @@
       else if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
+      else if (co === "stary") { var sid = t.getAttribute("data-stary"), stp = STARE_PRZYCISKI.indexOf(sid) >= 0 ? d.getElementById(sid) : null; if (stp && stp.click) stp.click(); }
       else if (co === "zaloguj") { if (typeof w.openModal === "function") w.openModal(); }
       else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
       else if (co === "jp-zapisz") { jpZapisz(false); }
@@ -294,6 +304,8 @@
     });
     var pz = d.getElementById("watch-pasek-slot");
     if (pz) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(pz, { childList: true });
+    var bp = d.getElementById("today-bol");   // stary kod przerysowuje pudełko po każdym zgłoszeniu i zamknięciu
+    if (bp) new w.MutationObserver(function () { try { dzialania(); } catch (e) {} }).observe(bp, { childList: true, subtree: true });
     var mb = d.getElementById("moment-baner");   // stary kod odsłania i chowa przycisk przez style.display
     if (mb) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(mb, { attributes: true, attributeFilter: ["style"] });
   }
@@ -322,6 +334,33 @@
         h = String(h || ""); el.innerHTML = h; el.hidden = !h;
       }, function () { el.hidden = true; });
     } catch (e) { el.hidden = true; }
+  }
+
+  /* ── DZIAŁANIA PRZY TRENINGU: odbicie stanu starej karty, kliknięcia idą do jej przycisków ── */
+  function jestStary(id) { return !!d.getElementById(id); }
+  function cichy(id, napis) { return jestStary(id) ? '<button type="button" class="dn-cichy" data-dn="stary" data-stary="' + id + '">' + esc(napis) + "</button>" : ""; }
+  /** Ból: nic, dopóki stary kod nie ustalił stanu; bez zgłoszenia ciche „Coś boli” (i „Napisz do trenera”, gdy stara karta je ma);
+      z aktywnym zgłoszeniem ramka z poziomem, miejscem i „Już nie boli” (po 30 dniach także „Nadal boli”, jak w starym). */
+  function bolHtml(teraz) {
+    var box = d.getElementById("today-bol");
+    if (!box) return { ramka: "", ciche: "" };
+    var akt = w._aktywnaKontuzja;
+    if (!akt || !jestStary("today-bol-koniec")) return { ramka: "", ciche: cichy("today-bol-btn", "Coś boli") + cichy("today-bol-czat", "Napisz do trenera") };
+    var B = w.BOL, dni = Math.max(0, Math.round(((teraz == null ? Date.now() : teraz) - new Date(akt.created_at).getTime()) / 864e5));
+    var odKiedy = !isFinite(dni) ? "" : dni === 0 ? "dziś" : dni === 1 ? "od wczoraj" : "od " + dni + " dni", nadal = jestStary("today-bol-nadal");
+    var tytul = B && typeof B.nazwaPoziomu === "function" && typeof B.nazwaMiejsca === "function" ? String(B.nazwaPoziomu(akt.poziom)) + " · " + String(B.nazwaMiejsca(akt.miejsce)) : "Zgłoszony ból";
+    var coDalej = ""; try { coDalej = nadal ? "Nadal boli?" : typeof w._bolCoDalej === "function" ? String(w._bolCoDalej(Number(akt.poziom) === 3) || "") : ""; } catch (e) {}
+    return { ciche: "", ramka: '<div class="dn-bol" data-dn="bol"><b>' + esc(tytul) + "</b><p>" + esc("Zgłoszone" + (odKiedy ? " " + odKiedy : "") + "." + (coDalej ? " " + coDalej : "")) + "</p>" +
+      '<div class="dn-bol-akcje"><button type="button" data-dn="stary" data-stary="today-bol-koniec">Już nie boli</button>' + (nadal ? '<button type="button" data-dn="stary" data-stary="today-bol-nadal">Nadal boli</button>' : "") + "</div></div>" };
+  }
+  function dzialaniaHtml() {
+    var b = bolHtml(), ciche = b.ciche;
+    return b.ramka + (ciche ? '<div class="dn-ciche">' + ciche + "</div>" : "");
+  }
+  /** Przerysowuje sam pas działań w kaflu treningu (stan starej karty zmienił się po zgłoszeniu, zamknięciu, wczytaniu). */
+  function dzialania() {
+    var el = czesc("dzialania"); if (!el) return;
+    var h = dzialaniaHtml(); if (el._dnHtml !== h) { el.innerHTML = h; el._dnHtml = h; }
   }
 
   /* ── DANE ───────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -573,7 +612,7 @@
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
         pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
-          .then(function (t) { if (nr === dane.nr) wpisz("trening", treningHtml(t)); }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
+          .then(function (t) { if (nr !== dane.nr) return; wpisz("trening", treningHtml(t) + '<div class="dn-dzialania" data-dn="dzialania"></div>'); var pas = czesc("dzialania"); if (pas) pas._dnHtml = null; dzialania(); }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
         pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
@@ -652,5 +691,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
