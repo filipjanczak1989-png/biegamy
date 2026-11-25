@@ -11,6 +11,10 @@
 //   Ponowne start() (initAuth, powrót do aplikacji) nie pyta drugi raz przez 60 s. Zapytanie bez odpowiedzi w 10 s = błąd kafla.
 // PIERWSZE WCZYTANIE (poprawka 25.11, blizna-358): moduł dochodzi, zanim strona wczyta skrypt klienta bazy (sb.js stoi niżej niż #dzis-nowy),
 //   więc szkielet rysuje od razu, a z danymi czeka na DOMContentLoaded. Wcześniej pytał bez klienta i pokazywał „Nie udało się wczytać”.
+// ZEGAREK (E1b, blizna-360): górny pasek starego ekranu jest na Dziś schowany, a z nim plakietka zegarka. Nowy nagłówek rysuje ją tą samą
+//   WATCH.render('badge') co stary, ale stan bierze z profilu z fali 1 (cztery kolumny intervals_* w tym samym zapytaniu, opts.stan),
+//   więc budżet zostaje 5 zapytań. Pasek „problem z zegarkiem” jest odbiciem starego slotu (#watch-pasek-slot): jego dane kosztują osobne
+//   zapytanie, które stary kod i tak robi. Po ↺ (synchronizacja) dane Dziś wczytują się od nowa.
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
@@ -22,7 +26,8 @@
   var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja"];
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false;
+  var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["lista", "Twoje ostatnie treningi"]];
@@ -62,13 +67,15 @@
   }
 
   var CSS = "#dzis-nowy{padding:4px 16px 8px;color:#f5f3ef;font-family:'DM Sans',system-ui,sans-serif}" +
-    "#dzis-nowy .dn-naglowek{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 14px}" +
+    "#dzis-nowy .dn-naglowek{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 10px}#dzis-nowy .dn-naglowek > div:first-child{min-width:0}" +
+    "#dzis-nowy .dn-zegarek{display:flex;align-items:center}#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;opacity:1}" +
+    "#dzis-nowy .dn-zd{margin:0 0 12px}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
-    "#dzis-nowy .dn-akcje{display:flex;gap:8px;flex:none}" +
+    "#dzis-nowy .dn-akcje{display:flex;align-items:center;gap:8px;flex:none}" +
     "#dzis-nowy .dn-okr{position:relative;width:48px;height:48px;border-radius:50%;border:1px solid #2a2a30;background:#0f0f13;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}" +
     "#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active{transform:scale(.96)}" +
-    "#dzis-nowy .dn-zapytaj{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 16px 0 14px;border-radius:24px;border:1px solid #2a2a30;background:#0f0f13;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}" +
+    "#dzis-nowy .dn-zapytaj{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin:0 0 12px;padding:0 16px 0 14px;border-radius:24px;text-align:left;border:1px solid #2a2a30;background:#0f0f13;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}" +
     "#dzis-nowy .dn-zapytaj svg{flex:none;stroke:#bcb8b2}" +
     "#dzis-nowy .dn-licznik{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#c44a13;color:#fff;font:700 11px/20px 'DM Sans',sans-serif;text-align:center}" +
     "#dzis-nowy .dn-licznik[hidden]{display:none}" +
@@ -147,8 +154,10 @@
         '<span class="dn-ukryte">Wczytuję…</span></section>';
     }).join("");
     return '<header class="dn-naglowek"><div><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
-      '<div class="dn-akcje"><button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
+      '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
+      '<button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
+      '<div class="dn-zd" data-dn="zdarzenie" hidden></div>' +
       '<div class="dn-kafle">' + kafle + "</div>" +
       '<a class="dn-stare" href="zawodnik.html?dzis=stary">stare Dziś ›</a>';
   }
@@ -164,7 +173,10 @@
   /** Jedno delegowane kliknięcie na korzeniu: Okienko i dzwonek wołają to, co stary ekran; skróty-sekcje wołają showSection. */
   function klik(e) {
     var t = e && e.target && e.target.closest ? e.target.closest("[data-dn],[data-sekcja]") : null;
-    if (!t) return;
+    if (!t) {   // „✕” odbitego paska zegarka: jego własny onclick już go usunął z drzewa (stąd brak przodka z data-dn); zamykamy też oryginał, żeby nie wrócił na innych sekcjach
+      try { if (e && e.target && e.target.closest && e.target.closest(".wc-pasek button")) { var org = d.getElementById("watch-pasek-slot"); if (org) org.innerHTML = ""; zdarzenie(); } } catch (err) {}
+      return;
+    }
     try {
       var co = t.getAttribute("data-dn"), sekcja = t.getAttribute("data-sekcja");
       if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
@@ -190,6 +202,29 @@
       var el = d.getElementById(id);
       if (el) new w.MutationObserver(function () { try { odswiezNaglowek(); } catch (e) {} }).observe(el, { childList: true, characterData: true, subtree: true, attributes: true });
     });
+    var pz = d.getElementById("watch-pasek-slot");
+    if (pz) new w.MutationObserver(function () { try { zdarzenie(); } catch (e) {} }).observe(pz, { childList: true });
+  }
+
+  function czesc(n) { var k = korzen(); return k && k.querySelector ? k.querySelector('[data-dn="' + n + '"]') : null; }
+  /** Pasek zdarzenia pod nagłówkiem: jedna rzecz naraz. Dziś jedno źródło: pasek problemu z zegarkiem, który stary kod wstawił do #watch-pasek-slot. */
+  function zdarzenie() {
+    var el = czesc("zdarzenie"); if (!el) return;
+    var org = d.getElementById("watch-pasek-slot"), html = org ? String(org.innerHTML || "").trim() : "";
+    if (el._dnHtml !== html) { el.innerHTML = html; el._dnHtml = html; }
+    el.hidden = !html;
+  }
+  /** Plakietka zegarka: ta sama WATCH.render co w starym pasku, stan z profilu (opts.stan), więc bez zapytania. Starszy sb.js bez stanZProfilu
+      (telefon trzyma go jeszcze w pamięci): plakietki nie ma, ale też nie ma szóstego zapytania. */
+  function zegarek(a, nr) {
+    var el = czesc("zegarek"), W = w.WATCH; if (!el) return;
+    if (!W || typeof W.render !== "function" || typeof W.stanZProfilu !== "function") { el.hidden = true; return; }
+    try {
+      Promise.resolve(W.render("badge", { athleteId: a.id, returnTo: "zawodnik.html", stan: W.stanZProfilu(a) })).then(function (h) {
+        if (nr !== dane.nr) return;
+        h = String(h || ""); el.innerHTML = h; el.hidden = !h;
+      }, function () { el.hidden = true; });
+    } catch (e) { el.hidden = true; }
   }
 
   /* ── DANE ───────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -346,15 +381,16 @@
     dane.t = teraz;
     if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); return; }
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
-      if (nr !== dane.nr || !uid) return null;   // bez sesji stary kod sam odsyła do logowania
+      if (nr !== dane.nr) return null;
+      if (!uid) { dane.t = 0; return null; }   // bez sesji stary kod sam odsyła do logowania; okno 60 s zwolnione, żeby następny start() (initAuth) spróbował jeszcze raz
       /* FALA 1: profil, licznik akcji i mój wkład idą razem */
       var s0 = slugAkcji(null), a0 = s0 ? akcja(sb, nr, s0, s0, proba) : null;
-      var pProfil = pytaj(sb.from("athletes").select("id,full_name,coach_id").eq("user_id", uid).maybeSingle());
+      var pProfil = pytaj(sb.from("athletes").select(PROFIL_KOLUMNY).eq("user_id", uid).maybeSingle());
       if (!a0) schowaj("ulica");
       return pProfil.then(function (a) {
         if (nr !== dane.nr) return a;
         if (!a) { wstrzymane = true; stop(); return null; }   // konto bez wiersza zawodnika: pierwsze kroki zostają na starym ekranie
-        dane.imie = String(a.full_name || ""); odswiezNaglowek();
+        dane.imie = String(a.full_name || ""); odswiezNaglowek(); zegarek(a, nr);
         /* FALA 2: wszystko, co potrzebuje id zawodnika */
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
@@ -406,8 +442,14 @@
         w.showSection = function () { var r = oryg.apply(this, arguments); try { pokaz(); } catch (e) {} return r; };
         owiniete = true;
       }
+      if (!owinietaSynchronizacja && typeof w._onWatchSynced === "function") {
+        var orygSync = w._onWatchSynced;
+        w._onWatchSynced = function () { var r = orygSync.apply(this, arguments); try { if (wlaczone() && !ustepuje() && !wstrzymane) wczytaj(true); } catch (e) {} return r; };
+        owinietaSynchronizacja = true;
+      }
       obserwuj();
       pokaz();
+      zdarzenie();
       if (!klient() && d.readyState === "loading") { poWczytaniuStrony(); return; }   // skrypt klienta bazy stoi niżej w stronie: szkielet już jest, dane po DOMContentLoaded
       wczytaj(false);
     } catch (e) { zglos("start"); stop(); throw e; }   // blok DZIS-E0 1 łapie wyjątek i wraca do starego ekranu
@@ -419,5 +461,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, PROFIL_KOLUMNY: PROFIL_KOLUMNY, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

@@ -2851,6 +2851,11 @@
       const { data } = await window.sb.from('athletes')
         .select('intervals_athlete_id, intervals_connected_at, intervals_can_write, intervals_token_dead_at')
         .eq('id', athleteId).maybeSingle();
+      return this.stanZProfilu(data);
+    },
+    /* Stan zegarka z wiersza athletes, który wołający JUŻ MA (nowe Dziś dokłada te cztery kolumny do swojego jedynego
+       zapytania o profil i podaje wynik jako opts.stan do render, żeby plakietka nie kosztowała osobnego zapytania). */
+    stanZProfilu: function(data) {
       return { polaczony: !!(data && data.intervals_athlete_id),
                od_kiedy: (data && data.intervals_connected_at) || null,
                moze_wysylac: !!(data && data.intervals_can_write),
@@ -2911,7 +2916,7 @@
     render: async function(waga, opts) {
       opts = opts || {};
       this._injectCss();
-      const st = await this.czyPolaczony(opts.athleteId);
+      const st = (opts.stan && typeof opts.stan === 'object') ? opts.stan : await this.czyPolaczony(opts.athleteId);   // opts.stan = wynik stanZProfilu: bez zapytania
       const ic = this.iconSvg();
       const rt = opts.returnTo ? ("'" + opts.returnTo + "'") : '';
       const skip = opts.onSkip || 'WATCH._noop';
