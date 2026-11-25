@@ -9,6 +9,9 @@
 //   fala 2 (po id zawodnika, równolegle): trening na dziś, sześć ostatnich wpisów (pierwszy = „Ostatni trening”, reszta = lista od przedostatniego).
 //   Konto próby akcji (inny slug niż domyślny) dokłada w fali 2 dwa zapytania o swoją akcję. Bez pamięci telefonu: nic nie zapisuje.
 //   Ponowne start() (initAuth, powrót do aplikacji) nie pyta drugi raz przez 60 s. Zapytanie bez odpowiedzi w 10 s = błąd kafla.
+// PIERWSZE WCZYTANIE (poprawka 25.11, blizna-358): moduł dochodzi, zanim strona wczyta skrypt klienta bazy (sb.js stoi niżej niż #dzis-nowy),
+//   więc szkielet rysuje od razu, a z danymi czeka na DOMContentLoaded. Wcześniej pytał bez klienta i pokazywał „Nie udało się wczytać”.
+//   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
 // Zgłoszenia: client_errors, kind 'dzis-nowy', w treści sam etap, raz na stronę, adres bez parametrów (wzór radia, blizna-355).
@@ -16,10 +19,10 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja"];
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var dane = { t: 0, nr: 0, profil: null, imie: "" }, wstrzymane = false, czekaNaDom = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false;
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["lista", "Twoje ostatnie treningi"]];
@@ -34,8 +37,9 @@
   function zglos(etap) {
     try {
       if (ETAPY.indexOf(etap) < 0 || zgloszone[etap]) return false;
+      if (typeof w._logKlienta !== "function") return false;   // logger jeszcze nie doszedł: nie zużywamy jedynego wpisu tego etapu
       zgloszone[etap] = true;
-      if (typeof w._logKlienta === "function") w._logKlienta({ kind: "dzis-nowy", message: etap, url: w.location.pathname });
+      w._logKlienta({ kind: "dzis-nowy", message: etap, url: w.location.pathname });
       return true;
     } catch (e) { return false; }
   }
@@ -280,15 +284,39 @@
   function zglosDane(etap) { if (w.navigator && w.navigator.onLine === false) return; zglos(etap); }
   function klient() { return w.sb && typeof w.sb.rpc === "function" && typeof w.sb.from === "function" && w.sb.auth ? w.sb : null; }
   function slugAkcji(id) { var c = w.BM_AKCJA_CYTATY; try { return c && typeof c.slugDla === "function" ? String(c.slugDla(id || null) || "") : ""; } catch (e) { return ""; } }
+  /** Czy baza odrzuciła token (wygasł albo zegar telefonu się spóźnia i supabase-js uważa go za ważny). */
+  function odmowaTokenu(r) { var e = r && r.error; return !!e && (r.status === 401 || e.code === "PGRST301" || e.code === "PGRST303" || /jwt/i.test(String(e.message || ""))); }
+  /** Wymusza odświeżenie sesji i czeka na TOKEN_REFRESHED (albo wynik refreshSession), najwyżej LIMIT_MS. → obietnica true/false, nigdy nie odrzuca. */
+  function odswiezSesje(sb) {
+    return new Promise(function (ok) {
+      var gotowe = false, sub = null, t = w.setTimeout(function () { koniec(false); }, LIMIT_MS);
+      function koniec(v) { if (gotowe) return; gotowe = true; w.clearTimeout(t); try { if (sub && sub.unsubscribe) sub.unsubscribe(); } catch (e) {} ok(v); }
+      try { if (typeof sb.auth.onAuthStateChange === "function") { var r = sb.auth.onAuthStateChange(function (zd) { if (zd === "TOKEN_REFRESHED") koniec(true); }); sub = r && r.data && r.data.subscription; } } catch (e) {}
+      try {
+        if (typeof sb.auth.refreshSession !== "function") { koniec(false); return; }
+        Promise.resolve(sb.auth.refreshSession()).then(function (x) { koniec(!!x && !x.error); }, function () { koniec(false); });
+      } catch (e) { koniec(false); }
+    });
+  }
+  /** Obsługa odrzuconego zapytania. → true, gdy nic więcej nie robić: odpowiedź jest spóźniona albo trwa odświeżanie sesji i całe wczytanie pójdzie od nowa.
+      proba = true znaczy, że to już ponowienie: druga odmowa jest zwykłym błędem kafla. */
+  function przejete(sb, nr, e, proba) {
+    if (nr !== dane.nr) return true;
+    if (proba || !e || !e.autoryzacja) return false;
+    if (dane.odswieza === nr) return true;   // inne zapytanie tej samej próby już uruchomiło odświeżanie
+    dane.odswieza = nr;
+    odswiezSesje(sb).then(function (udane) { if (nr !== dane.nr) return; if (udane) zglos("sesja"); wczytaj(true, true); });
+    return true;
+  }
   /** Zapytanie supabase-js → obietnica samych danych; { error } i brak odpowiedzi w LIMIT_MS to odrzucenie. */
   function pytaj(q) {
     return new Promise(function (ok, zle) {
       var t = w.setTimeout(function () { zle(new Error("limit")); }, LIMIT_MS);
-      Promise.resolve(q).then(function (r) { w.clearTimeout(t); if (r && r.error) zle(r.error); else ok(r ? r.data : null); }, function (e) { w.clearTimeout(t); zle(e); });
+      Promise.resolve(q).then(function (r) { w.clearTimeout(t); if (r && r.error) zle({ autoryzacja: odmowaTokenu(r) }); else ok(r ? r.data : null); }, function () { w.clearTimeout(t); zle({ autoryzacja: false }); });
     });
   }
   /** Dwa zapytania o akcję (licznik, mój wkład) wysłane od razu; pokaz() rysuje kafel, gdy wiadomo, że to akcja tego konta. */
-  function akcja(sb, nr, slug, domyslny) {
+  function akcja(sb, nr, slug, domyslny, proba) {
     var adres = domyslny + ".html" + (slug !== domyslny ? "?" + encodeURIComponent(slug) + "=1" : "") + "#ulica-po";
     var pL = pytaj(sb.rpc("akcja_licznik", { p_slug: slug })), pW = pytaj(sb.rpc("akcja_moj_wklad", { p_slug: slug })).then(null, function () { return null; });
     pL.then(null, function () {});
@@ -298,11 +326,11 @@
         if (!dn || !dn.wystartowala) { schowaj("ulica"); return; }
         wpisz("ulica", ulicaHtml(dn, null, adres));
         pW.then(function (wk) { if (nr !== dane.nr) return; var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
-      }, function () { if (nr !== dane.nr) return; schowaj("ulica"); zglosDane("akcja"); });
+      }, function (e) { if (przejete(sb, nr, e, proba)) return; schowaj("ulica"); zglosDane("akcja"); });
     } };
   }
-  /** Fale danych. wymus = true pomija okno 60 s (przycisk „Spróbuj ponownie”). */
-  function wczytaj(wymus) {
+  /** Fale danych. wymus = true pomija okno 60 s (przycisk „Spróbuj ponownie”); proba = true to ponowienie po odświeżeniu sesji (drugiego już nie będzie). */
+  function wczytaj(wymus, proba) {
     var teraz = Date.now();
     if (!wymus && dane.t && teraz - dane.t < SWIEZE_MS) return;
     var sb = klient(), nr = ++dane.nr;
@@ -311,7 +339,7 @@
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
       if (nr !== dane.nr || !uid) return null;   // bez sesji stary kod sam odsyła do logowania
       /* FALA 1: profil, licznik akcji i mój wkład idą razem */
-      var s0 = slugAkcji(null), a0 = s0 ? akcja(sb, nr, s0, s0) : null;
+      var s0 = slugAkcji(null), a0 = s0 ? akcja(sb, nr, s0, s0, proba) : null;
       var pProfil = pytaj(sb.from("athletes").select("id,full_name,coach_id").eq("user_id", uid).maybeSingle());
       if (!a0) schowaj("ulica");
       return pProfil.then(function (a) {
@@ -320,18 +348,18 @@
         dane.imie = String(a.full_name || ""); odswiezNaglowek();
         /* FALA 2: wszystko, co potrzebuje id zawodnika */
         var s1 = slugAkcji(a.id);
-        if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0).pokaz(); else schowaj("ulica");
+        if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
         pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
-          .then(function (t) { if (nr === dane.nr) wpisz("trening", treningHtml(t)); }, function () { if (nr !== dane.nr) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
+          .then(function (t) { if (nr === dane.nr) wpisz("trening", treningHtml(t)); }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
         pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
             wpisz("ostatni", ostatniHtml(l[0] || null));
             if (l.length > 1) wpisz("lista", listaHtml(l.slice(1))); else schowaj("lista");
-          }, function () { if (nr !== dane.nr) return; bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); zglosDane("wpisy"); });
+          }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); zglosDane("wpisy"); });
         return a;
-      }, function () {
-        if (nr !== dane.nr) return null;
+      }, function (e) {
+        if (przejete(sb, nr, e, proba)) return null;
         if (a0) a0.pokaz();   // licznik nie zależy od profilu: pokazujemy domyślną akcję
         bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); zglosDane("profil");
         return null;
@@ -344,11 +372,17 @@
     try { k.innerHTML = szkieletHtml(); } catch (e) { zglos("render"); throw e; }
     k.setAttribute("data-etap", ETAP);
   }
+  /** Jedno ponowne start() po wczytaniu całej strony (wczesny start z bloku DZIS-E0 1). */
+  function poWczytaniuStrony() {
+    if (czekaNaDom || !d.addEventListener) return;
+    czekaNaDom = true;
+    d.addEventListener("DOMContentLoaded", function () { czekaNaDom = false; if (wlaczone()) { try { start(); } catch (e) {} } });
+  }
   function start() {
     try {
       var k = korzen();
       if (!k && d.readyState === "loading") {   // wczesny start z bloku DZIS-E0 1 (kopia „nowy”): strona jeszcze się czyta
-        if (!czekaNaDom && d.addEventListener) { czekaNaDom = true; d.addEventListener("DOMContentLoaded", function () { czekaNaDom = false; if (wlaczone()) { try { start(); } catch (e) {} } }); }
+        poWczytaniuStrony();
         return;
       }
       if (!k) { zglos("start"); return; }
@@ -365,6 +399,7 @@
       }
       obserwuj();
       pokaz();
+      if (!klient() && d.readyState === "loading") { poWczytaniuStrony(); return; }   // skrypt klienta bazy stoi niżej w stronie: szkielet już jest, dane po DOMContentLoaded
       wczytaj(false);
     } catch (e) { zglos("start"); stop(); throw e; }   // blok DZIS-E0 1 łapie wyjątek i wraca do starego ekranu
   }
