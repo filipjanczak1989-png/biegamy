@@ -1,8 +1,10 @@
-// Blizna #55 (22.10.2026) — bot.html, strona bota zaciągu archiwum wyników (biegamy-collector, tools/archiwum).
+// Blizna #55 (22.10.2026) — bot.html, strona bota wyników (biegamy-collector: kolektory codzienne i zaciąg archiwum).
 //
 // Kolektor archiwum przed pierwszym pobraniem pyta HEAD https://biegamy.run/bot.html i bez odpowiedzi 200 nie pobiera nic,
-// a jego User-Agent wskazuje tę stronę. Skasowanie albo przemianowanie pliku zatrzymuje zaciąg; zmiana kontaktu albo opisu
+// a User-Agent obu trybów wskazuje tę stronę. Skasowanie albo przemianowanie pliku zatrzymuje zaciąg; zmiana kontaktu albo opisu
 // User-Agenta zostawia administratorów serwisów z wynikami bez wiarygodnej informacji, kto ich odwiedza i jak to zatrzymać.
+// 24.11.2026: treść opisuje oba tryby (godziny z wyniki.cron, tempo z kodu kolektorów) i politykę wieku v2; nazwa oznaczenia
+// wyników bez roku urodzenia ma być ta sama, którą widzi użytkownik w wyszukiwarce wyników.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -30,11 +32,24 @@ test('bot.html: opis User-Agenta i zasad zgodny z kolektorem', () => {
   const s = czytaj();
   assert.ok(s.includes('BiegaMyBot/1.0 (+https://biegamy.run/bot.html)'), 'pełny User-Agent jak w tools/archiwum/zasady.js');
   assert.match(s, /User-agent: BiegaMyBot\nDisallow: \//, 'przykład wpisu robots.txt, który kolektor respektuje');
-  assert.match(s, /1 zapytanie na 2 sekundy/);
-  assert.match(s, /18:00–03:00 UTC/);
-  assert.match(s, /403, 429 albo błędzie serwera 5xx/);
-  assert.match(s, /dzieci i młodzieży/);
+  assert.match(s, /03:17\s+a\s+04:32 UTC/, 'codziennie: godziny startu z wyniki.cron');
+  assert.match(s, /1 zapytanie na sekundę/, 'codziennie: tempo klienta HTTP');
+  assert.match(s, /18:00–03:00 UTC/, 'archiwum: okno godzin');
+  assert.match(s, /1 zapytanie\s+na 2 sekundy i nie więcej niż 3000 zapytań na dobę/, 'archiwum: tempo i limit z zasady.js');
+  assert.match(s, /403, 429 albo zakaz w <code>robots\.txt<\/code>/, 'archiwum: zatrzymanie po odmowie');
   assert.match(s, /href="usun-dane\.html"/);
+});
+
+test('bot.html: polityka wieku — „staramy się”, rocznik do 18 lat odpada, oznaczenie jak w wyszukiwarce wyników', () => {
+  const s = czytaj();
+  assert.match(s, /Staramy się nie publikować wyników osób niepełnoletnich/);
+  assert.doesNotMatch(s, /Nie publikujemy wyników osób niepełnoletnich/, 'wyniki z kategorią bez wieku mogą objąć osobę 16–17-letnią');
+  assert.match(s, /kończy 18 lat lub mniej/);
+  const oznaczenie = (s.match(/<strong>„([^”]+)”<\/strong>/) || [])[1];
+  assert.equal(oznaczenie, 'rocznik nieznany');
+  const wyszukiwarka = fs.readFileSync(path.join(KORZEN, 'js', 'wyszukiwarka-wynikow.js'), 'utf8');
+  assert.ok(wyszukiwarka.includes(`'${oznaczenie}'`), 'ten sam napis co przy kandydacie bez rocznika w js/wyszukiwarka-wynikow.js');
+  assert.equal((/Twojego\s+dziecka, napisz na <a href="mailto:([^"]+)">/.exec(s) || [])[1], KONTAKT, 'droga usunięcia wyniku przy zastrzeżeniu o wieku');
 });
 
 test('bot.html: statyczna — bez skryptów aplikacji i bez wywołań sieci', () => {

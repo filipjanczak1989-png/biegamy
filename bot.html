@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<!-- Strona bota zaciągu archiwum wyników (biegamy-collector, tools/archiwum). Adres stały: jest w User-Agencie
-     BiegaMyBot/1.0 (+https://biegamy.run/bot.html), a kolektor przed pierwszym pobraniem sprawdza HEAD na tę stronę
-     (bez 200 nic nie pobiera). Treść ma zgadzać się z tools/archiwum/zasady.js; zmiana zasad = zmiana tej strony. -->
+<!-- Strona bota wyników (biegamy-collector): kolektory codzienne (tools/collect-*.js, ops/vps/wyniki.cron) i zaciąg archiwum
+     (tools/archiwum). Adres stały: jest w User-Agencie BiegaMyBot/1.0 (+https://biegamy.run/bot.html) – jedna stała
+     DEFAULT_USER_AGENT w kliencie HTTP kolektora (results-adapters/http/client.js); archiwum przed pierwszym pobraniem sprawdza HEAD na tę stronę
+     (bez 200 nic nie pobiera). Treść ma zgadzać się z kodem kolektorów, wyniki.cron i tools/archiwum/zasady.js – zmiana tempa,
+     godzin albo reguł wieku = zmiana tej strony. -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -27,7 +29,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 
   <h2>Kim jesteśmy</h2>
   <p>BiegaMy (<a href="/">biegamy.run</a>) to aplikacja do treningu biegowego z trenerem. BiegaMyBot to nasz program,
-    który pobiera opublikowane już publicznie wyniki zawodów biegowych.</p>
+    który pobiera opublikowane już publicznie wyniki zawodów biegowych. Działa na dwa sposoby: raz dziennie sprawdza nowe
+    wyniki z ostatnich tygodni, a wieczorami, w porcjach uruchamianych ręcznie, uzupełnia starsze wyniki (archiwum).</p>
 
   <h2>Po co pobieramy wyniki</h2>
   <p>Przygotowujemy wyszukiwarkę wyników: biegacz znajduje swój wynik i może dołączyć go do historii startów. Przy każdym
@@ -35,20 +38,51 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 
   <h2>Jak się zachowujemy</h2>
   <ul>
-    <li>Przedstawiamy się zawsze tak samo: <code>User-Agent: BiegaMyBot/1.0 (+https://biegamy.run/bot.html)</code>.</li>
-    <li>Niskie tempo: około 1 zapytanie na 2 sekundy i nie więcej niż 3000 zapytań na dobę do jednego serwisu.</li>
-    <li>Pracujemy wieczorem i w nocy (18:00–03:00 UTC), poza godzinami największego ruchu.</li>
-    <li>Przestrzegamy pliku <code>robots.txt</code>, także <code>Crawl-delay</code>.</li>
-    <li>Przy odpowiedzi 403, 429 albo błędzie serwera 5xx (po jednej ponownej próbie) zatrzymujemy się i wracamy dopiero
-      po ręcznym sprawdzeniu przyczyny.</li>
-    <li>Nie pobieramy wyników dzieci i młodzieży: pomijamy biegi dziecięce, młodzieżowe i szkolne, osoby niepełnoletnie,
-      a także wyniki, przy których wieku nie da się ustalić.</li>
+    <li>Przedstawiamy się zawsze tak samo: <code>User-Agent: BiegaMyBot/1.0 (+https://biegamy.run/bot.html)</code> – zarówno
+      przy codziennym sprawdzaniu, jak i przy archiwum.</li>
+    <li>Przestrzegamy pliku <code>robots.txt</code>, także <code>Crawl-delay</code>. Gdy <code>robots.txt</code> nie odpowiada,
+      niczego nie pobieramy. <code>Crawl-delay</code> dłuższy niż 60 sekund traktujemy jak prośbę o niepobieranie i się zatrzymujemy.</li>
     <li>Nie obchodzimy blokad: nie zmieniamy adresu, nie podszywamy się pod przeglądarkę, nie logujemy się i nie rozwiązujemy
       zabezpieczeń.</li>
   </ul>
 
+  <h2>Kiedy i jak często</h2>
+  <ul>
+    <li><strong>Codziennie:</strong> raz na dobę, każdy serwis o swojej stałej godzinie – przebiegi startują między 03:17
+      a 04:32 UTC. Tempo: 1 zapytanie na sekundę do jednego serwisu, a w części serwisów 1 zapytanie na 2 sekundy (dłuższy
+      <code>Crawl-delay</code> ma pierwszeństwo). Jeden przebieg to najwyżej około 1200 zapytań do jednego serwisu (plus pojedyncze
+      ponowienia po błędach).</li>
+    <li><strong>Archiwum:</strong> tylko wieczorem i w nocy (18:00–03:00 UTC), w porcjach uruchamianych ręcznie. Tempo: 1 zapytanie
+      na 2 sekundy i nie więcej niż 3000 zapytań na dobę do jednego serwisu.</li>
+  </ul>
+
+  <h2>Gdy serwis odmawia albo ma kłopot</h2>
+  <ul>
+    <li><strong>Codziennie:</strong> odpowiedź 403 albo zakaz w <code>robots.txt</code> przerywa cały przebieg od razu; 429 – po
+      jednej ponownej próbie (z poszanowaniem <code>Retry-After</code>). Dostajemy wtedy alarm, a kolejna próba jest najwcześniej
+      następnego dnia o tej samej godzinie. Błąd serwera 5xx: jedna ponowna próba, potem pomijamy tę stronę do następnego dnia.</li>
+    <li><strong>Archiwum:</strong> 403, 429 albo zakaz w <code>robots.txt</code> – natychmiastowe zatrzymanie; 5xx albo błąd sieci –
+      jedna ponowna próba po 30 sekundach, potem zatrzymanie. Następną porcję uruchamiamy ręcznie, po sprawdzeniu przyczyny.</li>
+  </ul>
+
+  <h2>Dzieci i młodzież</h2>
+  <p>Staramy się nie publikować wyników osób niepełnoletnich. Odsiewamy je już przy pobieraniu – na tyle, na ile wiek widać w wynikach:</p>
+  <ul>
+    <li>Gdy serwis podaje rok urodzenia, pomijamy każdego, kto w roku zawodów kończy 18 lat lub mniej, oraz wyniki bez roku
+      urodzenia.</li>
+    <li>Większość serwisów z pomiarem czasu roku urodzenia nie podaje. Wtedy oceniamy wiek po kategorii: pomijamy kategorie
+      dziecięce i młodzieżowe (np. K16, M15, przedziały zaczynające się poniżej 18 lat), biegi dziecięce, młodzieżowe i szkolne
+      oraz krótkie biegi bez kategorii dla dorosłych.</li>
+    <li>Wynik z kategorią, która o wieku nic nie mówi (np. „OPEN”, sama płeć „M” lub „K”, w części serwisów także brak kategorii),
+      zapisujemy bez roku urodzenia – w wyszukiwarce wyników widać przy nim <strong>„rocznik nieznany”</strong>. Jeśli jednak w tym
+      samym biegu – a w części serwisów na tych samych zawodach – są kategorie młodzieżowe, taki wynik też pomijamy.</li>
+  </ul>
+  <p>Przy takich wynikach nie możemy całkiem wykluczyć osoby niepełnoletniej. Jeśli to Twój wynik albo wynik Twojego
+    dziecka, napisz na <a href="mailto:biegamy.run+bot@gmail.com">biegamy.run+bot@gmail.com</a> – usuniemy go.</p>
+
   <h2>Jak nas zatrzymać</h2>
-  <p>Jeśli prowadzisz serwis z wynikami i nie chcesz, żebyśmy go odwiedzali, wystarczy wpis w <code>robots.txt</code>:</p>
+  <p>Jeśli prowadzisz serwis z wynikami i nie chcesz, żebyśmy go odwiedzali, wystarczy wpis w <code>robots.txt</code>
+    (zatrzymuje i codzienne sprawdzanie, i archiwum):</p>
   <pre>User-agent: BiegaMyBot
 Disallow: /</pre>
   <p>Możesz też napisać na <a href="mailto:biegamy.run+bot@gmail.com">biegamy.run+bot@gmail.com</a> – wyłączymy dany serwis
