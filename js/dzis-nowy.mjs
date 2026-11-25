@@ -2,7 +2,8 @@
 // WYŁĄCZNIE dla konta, któremu dzis_wersja() odpowiada „nowy”. Przełącznik służy widoczności, nie jest zabezpieczeniem.
 // Co robi ten commit: nowy ekran ZASTĘPUJE stare Dziś (klasa dzis-gotowy uruchamia chowanie z bloku DZIS-E0 2): nagłówek z datą,
 // Okienkiem i dzwonkiem, kafle w kolejności z makiety r5 jako szkielet (dane dojdą w commicie 2), skróty, link „stare Dziś ›”,
-// menu z ikonami r5 i krążkiem Log. Licznik dzwonka bierze z tego, co stary kod już wpisał w stronę.
+// Menu na dole zostaje STARE (Filip 25.11 po zrzutach): ikony z makiety są tylko w rzędzie skrótów i na dzwonku. Okienko otwiera
+// pigułka „Zapytaj” w nagłówku (wygląd starego pola Zapytaj). Licznik dzwonka bierze z tego, co stary kod już wpisał w stronę.
 // DANE (commit 2): moduł nie czeka na stary kod. Dwie fale, razem 5 zapytań (blizna-357 pilnuje liczby):
 //   fala 1 (od razu po sesji, równolegle): profil zawodnika RAZ (BM_DZIS.profil() oddaje tę samą obietnicę), akcja_licznik, akcja_moj_wklad;
 //   fala 2 (po id zawodnika, równolegle): trening na dziś, sześć ostatnich wpisów (pierwszy = „Ostatni trening”, reszta = lista od przedostatniego).
@@ -15,11 +16,10 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "menu", "klient", "profil", "akcja", "trening", "wpisy"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy"];
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var dane = { t: 0, nr: 0, profil: null, imie: "" }, wstrzymane = false, czekaNaDom = false;
-  var MENU = { home: "dom", plan: "kalendarz", food: "jablko", forma: "wykres", social: "spolecznosc", profil: "profil" };
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["lista", "Twoje ostatnie treningi"]];
@@ -63,7 +63,9 @@
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
     "#dzis-nowy .dn-akcje{display:flex;gap:8px;flex:none}" +
     "#dzis-nowy .dn-okr{position:relative;width:48px;height:48px;border-radius:50%;border:1px solid #2a2a30;background:#0f0f13;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}" +
-    "#dzis-nowy .dn-okr:active{transform:scale(.96)}" +
+    "#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active{transform:scale(.96)}" +
+    "#dzis-nowy .dn-zapytaj{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 16px 0 14px;border-radius:24px;border:1px solid #2a2a30;background:#0f0f13;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}" +
+    "#dzis-nowy .dn-zapytaj svg{flex:none;stroke:#bcb8b2}" +
     "#dzis-nowy .dn-licznik{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#c44a13;color:#fff;font:700 11px/20px 'DM Sans',sans-serif;text-align:center}" +
     "#dzis-nowy .dn-licznik[hidden]{display:none}" +
     "#dzis-nowy .dn-kafle{display:flex;flex-direction:column;gap:12px}" +
@@ -102,10 +104,7 @@
     "@media (max-width:359px){#dzis-nowy .dn-liczby{grid-template-columns:1fr 1fr;gap:12px 8px}}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "html.dzis-gotowy #nav-mount .dn-ik{display:block;margin:0 auto}" +
-    "html.dzis-gotowy #nav-mount .dn-log{width:52px;height:52px;margin:-20px auto 0;border-radius:50%;background:#c44a13;border:2px solid #3a1d0a;box-shadow:0 3px 0 #3a1d0a;display:flex;align-items:center;justify-content:center}" +
-    "html.dzis-gotowy #nav-mount .dn-log img{width:26px;height:26px;display:block}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active{transform:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active{transform:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -144,7 +143,7 @@
         '<span class="dn-ukryte">Wczytuję…</span></section>';
     }).join("");
     return '<header class="dn-naglowek"><div><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
-      '<div class="dn-akcje"><button type="button" class="dn-okr" data-dn="okienko" aria-label="Zapytaj">' + ikona("okienko", 28) + "</button>" +
+      '<div class="dn-akcje"><button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
       '<div class="dn-kafle">' + kafle + "</div>" +
       '<a class="dn-stare" href="zawodnik.html?dzis=stary">stare Dziś ›</a>';
@@ -171,36 +170,12 @@
     } catch (err) { zglos("render"); }
   }
 
-  /** Menu r5: ikony z kompletu w miejscu konturowych, Log jako pomarańczowy krążek ze znakiem B. Odwracalne (menu(false)). */
-  function menu(wl) {
-    try {
-      var nav = d.getElementById("nav-mount");
-      if (!nav || !nav.querySelectorAll) return;
-      var poz = nav.querySelectorAll("a.nav-it[data-navid]");
-      for (var i = 0; i < poz.length; i++) {
-        var a = poz[i], id = a.getAttribute("data-navid"), ik = a.firstElementChild;
-        if (!ik) continue;
-        if (wl && !a.hasAttribute("data-dn-menu")) {
-          var nowa = id === "log" ? '<span class="dn-log"><img src="assets/ui/logo-b-biale-alfa.webp" alt=""></span>' : (MENU[id] ? ikona(MENU[id], 26) : "");
-          if (!nowa) continue;
-          a._dnOryg = ik.outerHTML;
-          ik.outerHTML = nowa;
-          a.setAttribute("data-dn-menu", "1");
-        } else if (!wl && a.hasAttribute("data-dn-menu")) {
-          if (a._dnOryg) ik.outerHTML = a._dnOryg;
-          a.removeAttribute("data-dn-menu");
-        }
-      }
-    } catch (e) { zglos("menu"); }
-  }
-
   /** Korzeń i chowanie starego Dziś tylko przy włączonym przełączniku, na sekcji Dziś i gdy nowy ekran nie ustępuje. */
   function pokaz() {
     var k = korzen(), aktywny = wlaczone() && !ustepuje() && !wstrzymane, widac = aktywny && naDzis();
     html().classList[aktywny ? "add" : "remove"]("dzis-gotowy");
     html().classList[widac ? "add" : "remove"]("dzis-na-dzis");
     if (k) k.hidden = !widac;
-    menu(aktywny);
     if (widac) odswiezNaglowek();
   }
 
@@ -211,8 +186,6 @@
       var el = d.getElementById(id);
       if (el) new w.MutationObserver(function () { try { odswiezNaglowek(); } catch (e) {} }).observe(el, { childList: true, characterData: true, subtree: true, attributes: true });
     });
-    var nav = d.getElementById("nav-mount");   // stary kod rysuje menu od nowa (NAV.render) → ikony r5 wracają same
-    if (nav) new w.MutationObserver(function () { try { if (html().classList.contains("dzis-gotowy")) menu(true); } catch (e) {} }).observe(nav, { childList: true });
   }
 
   /* ── DANE ───────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -395,13 +368,12 @@
       wczytaj(false);
     } catch (e) { zglos("start"); stop(); throw e; }   // blok DZIS-E0 1 łapie wyjątek i wraca do starego ekranu
   }
-  /** Powrót do starego ekranu: korzeń ukryty, stare Dziś i stare menu odsłonięte. */
+  /** Powrót do starego ekranu: korzeń ukryty, stare Dziś odsłonięte. */
   function stop() {
     var k = korzen(); if (k) k.hidden = true;
     html().classList.remove("dzis-gotowy"); html().classList.remove("dzis-na-dzis");
-    menu(false);
   }
-  w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE, MENU: MENU,
+  w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
     ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
