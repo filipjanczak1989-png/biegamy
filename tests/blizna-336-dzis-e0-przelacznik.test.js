@@ -60,7 +60,7 @@ test('zawodnik.html: poza blokami DZIS-E0 bajt w bajt jak przed E0; bloków dok�
   for (const nr of ['1', '2']) { assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' początek', 'g')) || []).length, 1); assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' koniec', 'g')) || []).length, 1); }
   assert.equal((HTML.match(/<div id="dzis-nowy" hidden><\/div><!-- DZIS-E0 3:/g) || []).length, 1, 'korzeń pusty i ukryty');
   for (const nr of ['4a', '4b', '5']) assert.equal((HTML.match(new RegExp('if \\(window\\._dzisDecyzja\\) window\\._dzisDecyzja\\(\\);   // DZIS-E0 ' + nr + ':', 'g')) || []).length, 1, 'wywołanie ' + nr);
-  assert.equal(HTML.split('\n').length - bezE0(HTML).split('\n').length, 61, 'E0 to 61 linii dodanych, zero zmienionych');
+  assert.equal(HTML.split('\n').length - bezE0(HTML).split('\n').length, 63, 'E0 to 61 linii dodanych, zero zmienionych; E1 (25.11) dokłada 2 linie w bloku 1: zgłoszenie braku modułu');
   assert.equal((HTML.match(/bieg-pasek/g) || []).length, 2, 'blizny 290–292: pasek biegu w zawodnik.html tylko element i wywołanie');
   assert.doesNotMatch(HTML, /akcja-dzis|akcja-baner|naKaflu/, 'blizna-182: zakazane napisy');
   const powrot = HTML.slice(HTML.indexOf('async function _dzisPoPowrocie('), HTML.indexOf("window.bmPowrotWlasny = true;"));
@@ -113,27 +113,23 @@ test('decyzja: „stary” nic nie zapisuje i niczego nie dociąga; „nowy” z
   assert.equal(bezSesji.w._rpc || 0, 0, 'bez sesji bez zapytania');
 });
 
-test('js/dzis-nowy.mjs: bez zapytań i bez pamięci telefonu; rysuje tylko stały baner w #dzis-nowy, widoczny wyłącznie na Dziś przy włączonym przełączniku', () => {
-  const kodModulu = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // sam kod, bez komentarzy
-  assert.doesNotMatch(kodModulu, /fetch\(|XMLHttpRequest|supabase|\bsb\.|\.rpc\(|\.from\(|localStorage|sessionStorage|indexedDB|document\.cookie|navigator\.sendBeacon/, 'moduł nie czyta i nie zapisuje danych');
+test('js/dzis-nowy.mjs od E1 pilnuje blizna-356 (szkielet, zasady, zgłoszenia); tu: plik bez import/export i blok 1 zgłasza brak modułu raz, bez parametrów adresu', async () => {
   assert.doesNotMatch(MODUL, /^\s*(import|export)\b/m);
-  const klasy = new Set(), korzen = { hidden: true, innerHTML: '', _a: {}, getAttribute(k) { return this._a[k] || null; }, setAttribute(k, v) { this._a[k] = v; } };
-  let wywolane = 0;
-  const w = { showSection: () => { wywolane++; }, _currentSection: 'home' };
-  const d = { documentElement: { classList: { contains: (c) => klasy.has(c) } }, getElementById: (id) => (id === 'dzis-nowy' ? korzen : null) };
-  vm.runInNewContext(MODUL, { window: w, document: d });
-  assert.equal(w.BM_DZIS.etap, 'E0');
-  klasy.add('dzis-nowy');
-  w.BM_DZIS.start();
-  assert.equal(korzen.hidden, false);
-  assert.match(korzen.innerHTML, /Nowe Dziś · etap E0/);
-  assert.match(korzen.innerHTML, /href="zawodnik\.html\?dzis=stary"/);
-  w._currentSection = 'social'; w.showSection('social');
-  assert.equal(wywolane, 1, 'oryginalny showSection woła się dalej'); assert.equal(korzen.hidden, true, 'na innej sekcji korzeń ukryty');
-  w._currentSection = 'home'; w.BM_DZIS.start(); w.BM_DZIS.start();
-  w.showSection('home'); assert.equal(wywolane, 2, 'showSection owinięty raz');
-  klasy.delete('dzis-nowy'); w.showSection('home'); assert.equal(korzen.hidden, true, 'bez klasy korzeń ukryty');
-  w.BM_DZIS.stop(); assert.equal(korzen.hidden, true);
+  assert.match(MODUL, /var ETAP = "E1"/);
+  for (const jak of ['onerror', 'onload']) {
+    const s = strona({ kopia: { w: 'nowy', t: Date.now() }, search: '?utm=1', rpc: async () => ({ data: 'nowy', error: null }) });
+    const wpisy = []; s.w._logKlienta = (o) => wpisy.push(o); s.w.location.pathname = '/zawodnik.html';
+    s.w._dzisDecyzja(); s.w._dzisDecyzja();
+    assert.equal(s.skrypty.length, 1, 'moduł dociągany raz');
+    s.skrypty[0][jak]();   // onload bez window.BM_DZIS = plik doszedł, ale to nie moduł
+    assert.equal(s.klasy.has('dzis-nowy'), false, jak + ': powrót do starego ekranu');
+    assert.deepEqual(JSON.parse(JSON.stringify(wpisy)), [{ kind: 'dzis-nowy', message: 'modul', url: '/zawodnik.html' }], jak + ': jeden wpis, sam etap, adres bez parametrów');
+    s.w._dzisDecyzja(); await odczekaj();   // baza znów mówi „nowy” → druga próba dociągnięcia modułu na tej samej stronie
+    assert.equal(s.skrypty.length, 2, 'druga próba dociągnięcia');
+    s.skrypty[1].onerror();
+    assert.equal(wpisy.length, 1, 'kolejna nieudana próba na tej samej stronie bez nowego wpisu');
+  }
+  assert.ok(blok(1).includes('limit = setTimeout(function () { if (!w.BM_DZIS) brakModulu(); }, 3000);'), 'limit 3 s też zgłasza');
 });
 
 test('migracja: pusta lista bez UUID i e-maili, tylko EXECUTE dla zalogowanych, powrót jednym poleceniem; wycofanie i test po skutku z flagą', () => {

@@ -24,7 +24,7 @@
      ?dzis=stary wymusza stary ekran. Błąd, brak RPC, brak sieci albo brak modułu w 3 s → stary ekran. Moduł js/dzis-nowy.mjs dociągany tylko przy „nowy”. -->
 <script>
 (function (w, d) {
-  var KLUCZ = 'bm_dzis_wersja_', DOBA = 864e5, MODUL_V = 'd73be914f4', h = d.documentElement;
+  var KLUCZ = 'bm_dzis_wersja_', DOBA = 864e5, MODUL_V = '1c15c8b82c', h = d.documentElement;
   function uid() { try { var s = JSON.parse(w.localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token') || 'null'); return (s && s.user && s.user.id) || null; } catch (e) { return null; } }
   function wymuszonyStary() { try { return new URLSearchParams(w.location.search).get('dzis') === 'stary'; } catch (e) { return false; } }
   function kopiaNowy(u) { try { var k = JSON.parse(w.localStorage.getItem(KLUCZ + u) || 'null'); return !!(k && k.w === 'nowy' && Date.now() - k.t < DOBA); } catch (e) { return false; } }
@@ -32,15 +32,17 @@
   function wylacz() { try { h.classList.remove('dzis-nowy'); if (w.BM_DZIS && w.BM_DZIS.stop) w.BM_DZIS.stop(); } catch (e) {} }
   function wlaczone() { try { return h.classList.contains('dzis-nowy'); } catch (e) { return false; } }
   try { var u0 = uid(); if (u0 && !wymuszonyStary() && kopiaNowy(u0)) wlacz(); } catch (e) {}
-  var czeka = false;
+  var czeka = false, zgloszony = false;
+  /* E1: moduł nie doszedł (404, błąd, 3 s) → jeden wpis client_errors kind 'dzis-nowy', etap „modul”, adres bez parametrów. */
+  function brakModulu() { try { if (!zgloszony && typeof w._logKlienta === 'function') { zgloszony = true; w._logKlienta({ kind: 'dzis-nowy', message: 'modul', url: w.location.pathname }); } } catch (e) {} wylacz(); }
   function modul() {
     if (w.BM_DZIS) { try { w.BM_DZIS.start(); } catch (e) { wylacz(); } return; }
     if (czeka) return;
     czeka = true;
-    var el = d.createElement('script'), limit = setTimeout(function () { if (!w.BM_DZIS) wylacz(); }, 3000);
+    var el = d.createElement('script'), limit = setTimeout(function () { if (!w.BM_DZIS) brakModulu(); }, 3000);
     el.src = 'js/dzis-nowy.mjs?v=' + MODUL_V; el.async = true;
-    el.onload = function () { clearTimeout(limit); czeka = false; if (!w.BM_DZIS) { wylacz(); return; } if (wlaczone()) { try { w.BM_DZIS.start(); } catch (e) { wylacz(); } } };
-    el.onerror = function () { clearTimeout(limit); czeka = false; wylacz(); };
+    el.onload = function () { clearTimeout(limit); czeka = false; if (!w.BM_DZIS) { brakModulu(); return; } if (wlaczone()) { try { w.BM_DZIS.start(); } catch (e) { wylacz(); } } };
+    el.onerror = function () { clearTimeout(limit); czeka = false; brakModulu(); };
     d.head.appendChild(el);
   }
   /* Woła initAuth (po loadLogs) i powrót do aplikacji. Odpowiedź „stary” wyłącza od razu i kasuje kopię; błąd RPC nic nie zmienia (kopia < 24 h decyduje). */
