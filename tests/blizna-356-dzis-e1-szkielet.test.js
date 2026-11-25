@@ -124,7 +124,7 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
 
 test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez parametrów; błąd startu wraca do starego ekranu', () => {
   const s = strona({ search: '?log=1&x=tajne' });
-  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja']);
+  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja', 'odczucie']);
   assert.equal(s.B.zglos('render'), true); assert.equal(s.B.zglos('render'), false);
   for (const zly of ['', 'inne', 'menu', 'render?x=1', undefined]) assert.equal(s.B.zglos(zly), false);
   for (let i = 0; i < 50; i++) s.B.zglos('start');
@@ -138,9 +138,14 @@ test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez param
   assert.equal(wybuch.klasy.has('dzis-gotowy'), false); assert.equal(wybuch.korzen.hidden, true);
 });
 
-test('(6) granice: moduł bez pamięci telefonu i bez własnych żądań poza klientem bazy, tylko odczyt; cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
+test('(6) granice: moduł czyta przez klienta bazy; DWA wyjątki od „tylko odczyt” (blizna-363): jeden update odczucia i jeden klucz pamięci telefonu; cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|\.cookie|sendBeacon|\.(insert|update|upsert|delete)\(/, 'tylko odczyt przez klienta bazy, nic w pamięci telefonu');
+  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|sessionStorage|indexedDB|\.cookie|sendBeacon|\.(insert|upsert|delete)\(|\.rpc\("(?!akcja_licznik|akcja_moj_wklad)/, 'żadnych własnych żądań, żadnego dopisywania ani kasowania');
+  assert.deepEqual(kod.match(/\.update\([^\n]*/g), ['.update(zmiana).eq("id", stan.id).select("id")).then(function (wiersze) {'],'jedyny zapis: jeden wiersz po id, z odesłaniem id');
+  assert.match(kod, /pytaj\(sb\.from\("training_logs"\)\.update\(zmiana\)/, 'i tylko w training_logs');
+  assert.match(kod, /var zmiana = \{ feel: stan\.kod \};\s*if \(notatka && !stan\.maKomentarz\) zmiana\.comment = notatka;/, 'zapisywane pola: feel i (bez nadpisywania) comment');
+  assert.deepEqual(kod.match(/localStorage\.[a-zA-Z]+\("[^"]*"/g), ['localStorage.getItem("fr_skip_"', 'localStorage.setItem("fr_skip_"'], 'jedyny klucz pamięci telefonu: fr_skip_<id wpisu>, wspólny ze starym Dziś');
+  assert.equal((kod.match(/localStorage/g) || []).length, 2);
   const s = strona(); s.B.start();
   const css = s.style[0].textContent;
   assert.equal(s.style.length, 1); s.B.start(); assert.equal(s.style.length, 1, 'arkusz wstawiany raz');

@@ -115,9 +115,9 @@ test('(4) chip „← Trener”: tylko gdy stary kod odsłonił swój; dotknięc
   assert.equal(podglad.korzen.innerHTML, '', 'podgląd trenera zostaje na starym ekranie');
 });
 
-test('(5) granice: moduł dalej bez pamięci telefonu i bez własnego wylogowania; cele dotyku 44 px; style tylko pod #dzis-nowy', () => {
+test('(5) granice: moduł bez własnego wylogowania i bez sprzątania pamięci telefonu; cele dotyku 44 px; style tylko pod #dzis-nowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /signOut|localStorage|sessionStorage/, 'wylogowanie i sprzątanie robi wyłącznie stara funkcja logout()');
+  assert.doesNotMatch(kod, /signOut|sessionStorage|localStorage\.(clear|removeItem)/, 'wylogowanie i sprzątanie robi wyłącznie stara funkcja logout()');
   assert.match(MODUL, /#dzis-nowy \.dn-menu button,#dzis-nowy \.dn-menu a\{[^}]*min-height:44px/);
   for (const sel of MODUL.match(/[^"{}]*\.dn-(menu|awatar|trener|rzad)[^{]*\{/g)) for (const jeden of sel.replace(/\{$/, '').split(',')) assert.match(jeden.trim(), /^#dzis-nowy /, 'selektor poza nowym Dziś: ' + jeden);
 });

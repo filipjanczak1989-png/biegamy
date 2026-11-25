@@ -90,7 +90,7 @@ test('(1) budżet pierwszego ekranu: 2 fale, 5 zapytań, profil raz; fala 1 = pr
   assert.equal(licznik.opis, '{"p_slug":"ulica-glowna"}'); assert.equal(wklad.opis, '{"p_slug":"ulica-glowna"}');
   assert.equal(profil.opis, 'select("id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at").eq("user_id","u-1").maybeSingle()', 'cztery kolumny zegarka jadą w tym samym zapytaniu o profil (blizna-360)');
   assert.equal(trening.opis, 'select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id","a-1").eq("date","2026-11-25").order("created_at").limit(3)', 'dzień z LOKALNEGO zegara');
-  assert.equal(wpisy.opis, 'select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel").eq("athlete_id","a-1").not("training_type","like","__badge__%").order("logged_at",{"ascending":false}).limit(6)', 'jedno zapytanie na ostatni trening i listę, bez odznak');
+  assert.equal(wpisy.opis, 'select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id","a-1").not("training_type","like","__badge__%").order("logged_at",{"ascending":false}).limit(6)', 'jedno zapytanie na ostatni trening i listę, bez odznak');
   assert.deepEqual(plain(await s.B.profil()), ODPOWIEDZI.athletes.data, 'BM_DZIS.profil() oddaje ten sam profil kolejnym kaflom, bez nowego zapytania');
   assert.equal(s.zapytania.length, 5);
   assert.deepEqual(s.wpisy, [], 'udane wczytanie niczego nie zgłasza');

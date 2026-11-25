@@ -7,7 +7,12 @@
 // DANE (commit 2): moduł nie czeka na stary kod. Dwie fale, razem 5 zapytań (blizna-357 pilnuje liczby):
 //   fala 1 (od razu po sesji, równolegle): profil zawodnika RAZ (BM_DZIS.profil() oddaje tę samą obietnicę), akcja_licznik, akcja_moj_wklad;
 //   fala 2 (po id zawodnika, równolegle): trening na dziś, sześć ostatnich wpisów (pierwszy = „Ostatni trening”, reszta = lista od przedostatniego).
-//   Konto próby akcji (inny slug niż domyślny) dokłada w fali 2 dwa zapytania o swoją akcję. Bez pamięci telefonu: nic nie zapisuje.
+//   Konto próby akcji (inny slug niż domyślny) dokłada w fali 2 dwa zapytania o swoją akcję.
+// „JAK POSZŁO?” (E1b, blizna-363), jak karta FEEL-REPORT starego Dziś: wpis Z ZEGARKA z ostatnich 48 h bez odczucia → cztery miny, notatka, „Zapisz raport”, „Pomiń”.
+//   Kandydat wybierany z sześciu wpisów fali 2 (zero nowych zapytań). To JEDYNE miejsca, gdzie moduł zapisuje:
+//   (1) baza: update training_logs jednego wiersza po id, pola feel i comment, dopiero po „Zapisz raport”, z odesłaniem id (0 wierszy = odmowa RLS = błąd);
+//   (2) pamięć telefonu: klucz fr_skip_<id wpisu>, ten sam co stare Dziś, więc „Pomiń” na jednym ekranie działa na drugim.
+//   Notatka nie nadpisuje istniejącego komentarza (wtedy pola notatki nie ma). Trzy zdania po zapisie co do słowa jak w starym (decyzja Filipa 19.08.2026).
 //   Ponowne start() (initAuth, powrót do aplikacji) nie pyta drugi raz przez 60 s. Zapytanie bez odpowiedzi w 10 s = błąd kafla.
 // PIERWSZE WCZYTANIE (poprawka 25.11, blizna-358): moduł dochodzi, zanim strona wczyta skrypt klienta bazy (sb.js stoi niżej niż #dzis-nowy),
 //   więc szkielet rysuje od razu, a z danymi czeka na DOMContentLoaded. Wcześniej pytał bez klienta i pokazywał „Nie udało się wczytać”.
@@ -31,10 +36,11 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie"];
+  var OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0 }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -131,6 +137,20 @@
     "#dzis-nowy .dn-w-ile{flex:none;color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif;text-align:right;white-space:nowrap}#dzis-nowy .dn-w-ile b{color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-ponow{min-height:44px;margin:10px 0 0;padding:0 16px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "@media (max-width:359px){#dzis-nowy .dn-liczby{grid-template-columns:1fr 1fr;gap:12px 8px}}" +
+    "#dzis-nowy .dn-jp{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329}" +
+    "#dzis-nowy .dn-jp-t{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px;color:#ff7a45;font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}" +
+    "#dzis-nowy .dn-jp-t small{color:#8f8c97;font:400 12px/1.3 'DM Sans',sans-serif;letter-spacing:0;text-transform:none}" +
+    "#dzis-nowy .dn-jp-kt{margin:0 0 10px;color:#f5f3ef;font:600 14px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-miny{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 0}" +
+    "#dzis-nowy .dn-mina{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:64px;padding:8px 2px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#bcb8b2;font:500 11px/1.2 'DM Sans',sans-serif;cursor:pointer}" +
+    "#dzis-nowy .dn-mina[aria-pressed=true]{border-color:#ff7a45;background:rgba(196,74,19,.18);color:#f5f3ef}" +
+    "#dzis-nowy .dn-jp textarea{display:block;width:100%;box-sizing:border-box;min-height:60px;margin:10px 0 0;padding:11px 13px;border-radius:12px;border:1px solid #2a2a30;background:#0b0b0f;color:#f5f3ef;font:400 14px/1.4 'DM Sans',sans-serif;resize:vertical}" +
+    "#dzis-nowy .dn-jp-akcje{display:flex;align-items:center;gap:8px;margin:10px 0 0}" +
+    "#dzis-nowy .dn-jp-zapisz{flex:1;min-height:48px;border:0;border-radius:12px;background:#c44a13;color:#fff;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}#dzis-nowy .dn-jp-zapisz[disabled]{opacity:.6;cursor:default}" +
+    "#dzis-nowy .dn-jp-pomin{min-height:48px;padding:0 14px;border:0;background:none;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
+    "#dzis-nowy .dn-jp-kom{margin:10px 0 0;color:#ff9a8a;font:500 13px/1.4 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-jp-ok{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329;text-align:center}#dzis-nowy .dn-jp-ok b{display:block;color:#f5f3ef;font:700 14px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-jp-ok p{margin:4px 0 0;color:#bcb8b2;font:400 12px/1.5 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
     "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active{transform:none}}";
@@ -240,6 +260,9 @@
       else if (co === "okienko") { var pole = d.getElementById("okienko-pole"); if (pole && pole.click) pole.click(); }
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
+      else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
+      else if (co === "jp-zapisz") { jpZapisz(false); }
+      else if (co === "jp-pomin") { jpPomin(); }
       else if (co === "moment") { var stary = d.getElementById("moment-baner"); if (stary && stary.click) stary.click(); zdarzenie(); }
       else if (sekcja && typeof w.showSection === "function") w.showSection(sekcja);
     } catch (err) { zglos("render"); }
@@ -387,6 +410,82 @@
     }).join("") + "</ul>";
   }
 
+  /* ── „JAK POSZŁO?” ──────────────────────────────────────────────────────────────────────────────────────── */
+  function pominiety(id) { try { return !!w.localStorage.getItem("fr_skip_" + id); } catch (e) { return false; } }
+  /** Wpis, o który pytamy: najnowszy z zegarka (intervals), z ostatnich 48 h, bez odczucia, niepominięty. Warunki starej karty FEEL-REPORT. */
+  function kandydatOdczucia(wpisy, teraz) {
+    var t = teraz == null ? Date.now() : teraz;
+    for (var i = 0; i < (wpisy || []).length; i++) {
+      var l = wpisy[i], kiedyMs = l ? new Date(l.logged_at).getTime() : NaN;
+      if (!l || !l.id || l.external_source !== "intervals" || l.feel != null) continue;
+      if (!(t - kiedyMs <= OKNO_ODCZUCIA_MS)) continue;
+      if (pominiety(l.id)) continue;
+      return l;
+    }
+    return null;
+  }
+  function minaSvg(kod) { try { return typeof w.feelSvg === "function" ? String(w.feelSvg(kod, 22) || "") : ""; } catch (e) { return ""; } }
+  /** Blok pod liczbami kafla. osobny = pytamy o inny wpis niż ten w kaflu, więc trzeba go nazwać. */
+  function jakPoszloHtml(l, osobny, teraz) {
+    var kd = kiedy(l.logged_at, teraz), opis = String(l.training_type || "Trening") + (kd ? " · " + kd : "") + (km(l.distance_km) !== "—" ? " · " + km(l.distance_km) + " km" : "");
+    return '<div class="dn-jp" data-dn="jp"><div class="dn-jp-t">Jak poszło?<small>zegarek tego nie wie</small></div>' +
+      (osobny ? '<div class="dn-jp-kt">' + esc(opis) + "</div>" : "") +
+      '<div class="dn-miny">' + MINY.map(function (k) { return '<button type="button" class="dn-mina" data-dn="jp-mina" data-kod="' + k + '" aria-pressed="false">' + minaSvg(k) + "<span>" + esc(odczucie(k)) + "</span></button>"; }).join("") + "</div>" +
+      (String(l.comment || "").trim() ? "" : '<textarea data-dn="jp-notatka" maxlength="1000" aria-label="Notatka do treningu" placeholder="Dodaj notatkę (opcjonalnie): jak nogi, co bolało, warunki…"></textarea>') +
+      '<div class="dn-jp-akcje"><button type="button" class="dn-jp-zapisz" data-dn="jp-zapisz">Zapisz raport</button><button type="button" class="dn-jp-pomin" data-dn="jp-pomin">Pomiń</button></div>' +
+      '<p class="dn-jp-kom" data-dn="jp-kom" role="status" hidden></p></div>';
+  }
+  /** Zdanie po zapisie: brzmienie ze starej karty co do słowa (decyzja Filipa 19.08.2026). zTrenerem = profil ma coach_id. */
+  function podpisPoZapisie(kod, zTrenerem) {
+    if (zTrenerem) return "Trener to zobaczy, a forma policzy się dokładniej.";
+    return kod === "bad" ? "Zwolnij i przyjrzyj się regeneracji — a jeśli zmęczenie nie mija, to sygnał, żeby poszukać wsparcia trenera." : "Forma policzy się dokładniej.";
+  }
+  function jpCzesc(n) { var el = kafel("ostatni"); return el && el.querySelector ? el.querySelector('[data-dn="' + n + '"]') : null; }
+  function jpKomunikat(tekst) { var el = jpCzesc("jp-kom"); if (el) { el.textContent = tekst || ""; el.hidden = !tekst; } }
+  function jpBrudny() { var n = jpCzesc("jp-notatka"); return !!jp && (!!jp.kod || jp.zapisuje || !!(n && String(n.value || "").trim())); }
+  /** Kafle „Ostatni trening” i lista z dane.wpisy. Gdy ktoś właśnie wybiera minę albo pisze notatkę do tego samego wpisu, kafla nie przerysowujemy. */
+  function rysujWpisy(sb) {
+    var l = dane.wpisy || [], kand = kandydatOdczucia(l);
+    if (l.length > 1) wpisz("lista", listaHtml(l.slice(1))); else schowaj("lista");
+    if (jp && kand && kand.id === jp.id && jpBrudny()) return;
+    jp = kand ? { id: kand.id, kod: null, zapisuje: false, maKomentarz: !!String(kand.comment || "").trim(), sb: sb || (jp && jp.sb) || null } : null;
+    wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0]) : ""));
+  }
+  function jpWybierz(kod) {
+    if (!jp || jp.zapisuje || MINY.indexOf(kod) < 0) return;
+    jp.kod = kod; jpKomunikat("");
+    var el = kafel("ostatni"), miny = el && el.querySelectorAll ? el.querySelectorAll('[data-dn="jp-mina"]') : [];
+    for (var i = 0; i < miny.length; i++) miny[i].setAttribute("aria-pressed", miny[i].getAttribute("data-kod") === kod ? "true" : "false");
+  }
+  function jpPomin() {
+    if (!jp || jp.zapisuje) return;
+    try { w.localStorage.setItem("fr_skip_" + jp.id, "1"); } catch (e) {}
+    var sb = jp.sb; jp = null; rysujWpisy(sb);
+  }
+  /** Jedyny zapis do bazy w module. proba = ponowienie po odświeżeniu sesji (drugiego nie będzie). */
+  function jpZapisz(proba) {
+    if (!jp || (jp.zapisuje && !proba)) return;
+    if (!jp.kod) { jpKomunikat("Wybierz, jak poszło."); return; }
+    var stan = jp, sb = stan.sb || klient(), pole = jpCzesc("jp-notatka"), notatka = pole ? String(pole.value || "").trim() : "", guzik = jpCzesc("jp-zapisz");
+    if (!sb) { jpKomunikat("Nie udało się zapisać. Spróbuj ponownie."); return; }
+    var zmiana = { feel: stan.kod };
+    if (notatka && !stan.maKomentarz) zmiana.comment = notatka;   // istniejącego komentarza nie nadpisujemy
+    stan.zapisuje = true; jpKomunikat(""); if (guzik) guzik.disabled = true;
+    pytaj(sb.from("training_logs").update(zmiana).eq("id", stan.id).select("id")).then(function (wiersze) {
+      if (jp !== stan) return;
+      if (!wiersze || wiersze.length !== 1) throw { autoryzacja: false };   // 200 z pustą tablicą = RLS nie przepuściło: to nie jest sukces
+      for (var i = 0; i < dane.wpisy.length; i++) if (dane.wpisy[i] && dane.wpisy[i].id === stan.id) { dane.wpisy[i].feel = stan.kod; if (zmiana.comment) dane.wpisy[i].comment = zmiana.comment; }
+      var blok = jpCzesc("jp");
+      if (blok) { blok.className = "dn-jp-ok"; blok.innerHTML = "<b>Zapisane — dzięki!</b><p>" + esc(podpisPoZapisie(stan.kod, dane.trener === true)) + "</p>"; }
+      w.setTimeout(function () { if (jp === stan) { jp = null; rysujWpisy(sb); } }, PODZIEKOWANIE_MS);
+    }).then(null, function (e) {
+      if (jp !== stan) return;
+      if (e && e.autoryzacja && !proba) { odswiezSesje(sb).then(function () { if (jp === stan) jpZapisz(true); }); return; }
+      stan.zapisuje = false; if (guzik) guzik.disabled = false;
+      jpKomunikat("Nie udało się zapisać. Spróbuj ponownie."); zglosDane("odczucie");
+    });
+  }
+
   function kafel(n) { var k = korzen(); return k && k.querySelector ? k.querySelector('[data-kafel="' + n + '"]') : null; }
   function wpisz(n, html) { var el = kafel(n); if (!el) return; el.innerHTML = html; el.hidden = false; if (el.removeAttribute) el.removeAttribute("aria-busy"); }
   function schowaj(n) { var el = kafel(n); if (el) { el.hidden = true; if (el.removeAttribute) el.removeAttribute("aria-busy"); } }
@@ -457,17 +556,17 @@
       return pProfil.then(function (a) {
         if (nr !== dane.nr) return a;
         if (!a) { wstrzymane = true; stop(); return null; }   // konto bez wiersza zawodnika: pierwsze kroki zostają na starym ekranie
-        dane.imie = String(a.full_name || ""); odswiezNaglowek(); zegarek(a, nr);
+        dane.imie = String(a.full_name || ""); dane.trener = !!a.coach_id; odswiezNaglowek(); zegarek(a, nr);
         /* FALA 2: wszystko, co potrzebuje id zawodnika */
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
         pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
           .then(function (t) { if (nr === dane.nr) wpisz("trening", treningHtml(t)); }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
-        pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
+        pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
-            wpisz("ostatni", ostatniHtml(l[0] || null));
-            if (l.length > 1) wpisz("lista", listaHtml(l.slice(1))); else schowaj("lista");
+            dane.wpisy = l;
+            rysujWpisy(sb);
           }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); zglosDane("wpisy"); });
         return a;
       }, function (e) {
@@ -532,5 +631,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, PROFIL_KOLUMNY: PROFIL_KOLUMNY, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
