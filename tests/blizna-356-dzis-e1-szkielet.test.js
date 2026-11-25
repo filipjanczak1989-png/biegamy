@@ -151,7 +151,9 @@ test('(6) granice: moduł czyta przez klienta bazy; DWA wyjątki od „tylko odc
   const s = strona(); s.B.start();
   const css = s.style[0].textContent;
   assert.equal(s.style.length, 1); s.B.start(); assert.equal(s.style.length, 1, 'arkusz wstawiany raz');
-  const selektory = css.replace(/@media[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim().replace(/^\}/, '')).filter(Boolean);   // „}” na początku = koniec reguły @media
+  const klatki = css.match(/@keyframes [^{]+/g) || [];
+  for (const k of klatki) assert.match(k, /^@keyframes dn-[a-z-]+$/, 'animacja spoza nowego Dziś: ' + k);   // nazwy animacji są globalne, więc z własnym przedrostkiem
+  const selektory = css.replace(/@keyframes [^{]+\{(?:[^{}]*\{[^}]*\})*\}/g, '').replace(/@media[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim().replace(/^\}/, '')).filter(Boolean);   // „}” na początku = koniec reguły @media
   assert.ok(selektory.length >= 25);
   for (const x of selektory) assert.ok(/^(#dzis-nowy\b|html\.dzis-gotowy(\.dzis-na-dzis)? )/.test(x), 'selektor poza nowym Dziś: ' + x);
   assert.match(css, /html\.dzis-gotowy\.dzis-na-dzis body > \.topbar,html\.dzis-gotowy\.dzis-na-dzis body > #okienko-pole\{display:none!important\}/, 'stary pasek i pole Zapytaj schowane tylko na Dziś');

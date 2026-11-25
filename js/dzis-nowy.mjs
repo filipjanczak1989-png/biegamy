@@ -26,7 +26,13 @@
 // MOMENT (E1b, blizna-361): Silnik Momentu (animacja kamienia milowego) dopina się do body i od starego ekranu nie zależy, ale jedyne wejście do niego,
 //   przycisk „Nowy moment!” (#moment-baner), siedzi w schowanym górnym pasku. Pasek zdarzenia pokazuje go pod nagłówkiem, gdy stary przycisk jest
 //   odsłonięty, a dotknięcie woła kliknięcie starego przycisku: kolejka, animacja albo karta i zapis shown_at zostają w jednym miejscu (loadMomenty).
-//   Jedna rzecz naraz: problem z zegarkiem ma pierwszeństwo przed momentem.
+//   Jedna rzecz naraz, w kolejności: problem z zegarkiem → moment → „Jak poszło?” (decyzja Filipa 25.11, blizna-371).
+//   „Jak poszło?” w pasku to tylko ZACHĘTA: blok w kaflu „Ostatni trening” leży poza pierwszym ekranem, więc pasek go zapowiada, a dotknięcie przewija
+//   do bloku, podświetla go i ustawia fokus na pierwszej minie. Formularz jest jeden (w kaflu). Pasek istnieje wtedy i tylko wtedy, gdy jest blok:
+//   „Pomiń” i udany zapis zdejmują oba; pasek nie ma własnego „×”.
+//   Pasek nie może szarpać układem: gdy pojawia się nad miejscem, które ktoś właśnie czyta (przewinięty ekran), pozycja przewinięcia jest wyrównywana;
+//   gdy pojawia się na widoku po szkielecie (dane dochodzą falami, więc „Jak poszło?” przychodzi po kaflu „Ulica”), wsuwa się płynnie zamiast
+//   przeskakiwać (bez animacji przy ograniczonym ruchu). Miejsca z góry nie rezerwujemy: większość wejść paska nie ma, więc to rezerwa dawałaby skok.
 // KONTO I TRENER (E1b, blizna-362): w schowanym górnym pasku zostały też menu konta (avatar) i chip „← Trener”. Nowe Dziś ma własny avatar obok pola
 //   „Zapytaj” i własne menu, ale pozycje wołają TE SAME funkcje starego ekranu (goToMyProfile, toggleSoundSetting, logout), a inicjały, zdjęcie, adres
 //   konta i napis o dźwiękach są odbiciem starych elementów. Stare menu siedzi wewnątrz schowanego paska, więc nie da się go po prostu pokazać.
@@ -55,7 +61,7 @@
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "" }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -107,7 +113,9 @@
     "#dzis-nowy .dn-menu button,#dzis-nowy .dn-menu a{display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:none;color:#f5f3ef;font:500 14px/1.2 'DM Sans',sans-serif;text-align:left;text-decoration:none;cursor:pointer}" +
     "#dzis-nowy .dn-menu a.dn-menu-cichy{color:#bcb8b2}#dzis-nowy .dn-menu button.dn-menu-wyloguj{color:#ff6b5e}" +
     "#dzis-nowy .dn-zegarek{display:flex;align-items:center}#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;opacity:1}" +
-    "#dzis-nowy .dn-zd{margin:0 0 12px}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
+    "#dzis-nowy .dn-zd{margin:0 0 12px;overflow:hidden}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
+    "#dzis-nowy .dn-zd.dn-zd-wjazd{animation:dn-zd-wjazd .24s ease-out}@keyframes dn-zd-wjazd{from{max-height:0;margin-bottom:0;opacity:0}to{max-height:140px;margin-bottom:12px;opacity:1}}" +
+    "#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:dn-jp-swiatlo 1.6s ease-out}@keyframes dn-jp-swiatlo{0%,60%{box-shadow:0 0 0 2px #ff7a45;border-radius:12px}100%{box-shadow:0 0 0 2px rgba(255,122,69,0)}}" +
     "#dzis-nowy .dn-moment{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 16px;border-radius:16px;border:1px solid rgba(255,122,69,.55);background:rgba(196,74,19,.14);color:#f5f3ef;font:600 15px/1.25 'DM Sans',sans-serif;text-align:left;cursor:pointer}" +
     "#dzis-nowy .dn-moment svg{flex:none;stroke:#ff7a45}#dzis-nowy .dn-moment span{flex:1;min-width:0}#dzis-nowy .dn-moment small{display:block;margin-top:2px;color:#bcb8b2;font:400 13px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-moment i{flex:none;font-style:normal;color:#ff7a45;font-size:20px;line-height:1}#dzis-nowy .dn-moment:active{transform:scale(.99)}" +
@@ -180,7 +188,7 @@
     "#dzis-nowy .dn-rada-t{display:block;overflow-wrap:anywhere}#dzis-nowy .dn-rada-w{display:block;margin:6px 0 0;color:#ff7a45;font:600 13px/1.2 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -293,6 +301,7 @@
         w.setTimeout(function () { try { if (typeof w.openChatThread === "function") w.openChatThread("coach", null, null); } catch (e2) {} }, 400);
       }
       else if (co === "zaloguj") { if (typeof w.openModal === "function") w.openModal(); }
+      else if (co === "jp-pokaz") { jpPokaz(); }
       else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
       else if (co === "jp-zapisz") { jpZapisz(false); }
       else if (co === "jp-pomin") { jpPomin(); }
@@ -335,13 +344,40 @@
     '<path d="M12 3l2.2 5.6L20 9.3l-4.4 3.9L17 19l-5-3-5 3 1.4-5.8L4 9.3l5.8-.7z"/></svg><span>Nowy moment!<small>Dotknij, żeby zobaczyć</small></span><i aria-hidden="true">›</i></button>';
   /** Czy stary kod (loadMomenty) odsłonił przycisk „Nowy moment!”: jest zatwierdzony, niepokazany moment. */
   function momentCzeka() { var b = d.getElementById("moment-baner"), ds = b && b.style ? String(b.style.display || "") : ""; return !!b && ds !== "" && ds !== "none"; }
-  /** Pasek zdarzenia pod nagłówkiem: jedna rzecz naraz. Pierwszy jest pasek problemu z zegarkiem (stary kod wstawia go do #watch-pasek-slot), potem moment. */
+  /** Zachęta „Jak poszło?” w pasku: tylko gdy w kaflu „Ostatni trening” jest blok do wypełnienia (ten sam stan jp), nie po udanym zapisie. */
+  function jpPasekHtml() {
+    if (!jp || jp.zapisane) return "";
+    return '<button type="button" class="dn-moment" data-dn="jp-pokaz">' + minaSvg("good") + "<span>Jak poszło?<small>" + esc(jp.opis || "") + '</small></span><i aria-hidden="true">›</i></button>';
+  }
+  function wysokoscPaska(el) { try { var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null; return el.hidden || !r ? 0 : r.height + 12; } catch (e) { return 0; } }
+  /** Pasek zdarzenia pod nagłówkiem: jedna rzecz naraz. Kolejność: problem z zegarkiem (stary kod wstawia go do #watch-pasek-slot) → moment → „Jak poszło?”.
+      Zmiana wysokości paska nie może szarpać ekranem: patrz komentarz na górze pliku. */
   function zdarzenie() {
     var el = czesc("zdarzenie"); if (!el) return;
     var org = d.getElementById("watch-pasek-slot"), html = org ? String(org.innerHTML || "").trim() : "";
     if (!html && momentCzeka()) html = MOMENT_HTML;
+    if (!html) html = jpPasekHtml();
+    if (el._dnHtml === html && el.hidden === !html) return;
+    var przed = wysokoscPaska(el), dol = null, bylUkryty = !!el.hidden;
+    try { if (el.getBoundingClientRect) dol = el.getBoundingClientRect().top; } catch (e) {}
     if (el._dnHtml !== html) { el.innerHTML = html; el._dnHtml = html; }
     el.hidden = !html;
+    var nadEkranem = dol != null && dol < 0, cl = el.classList;
+    if (cl && cl.remove) cl.remove("dn-zd-wjazd");
+    if (nadEkranem) {   // ktoś czyta niżej: treść pod palcem ma zostać w miejscu (przeglądarki bez kotwiczenia przewijania, np. Safari na iOS)
+      var roznica = wysokoscPaska(el) - przed, kotwiczy = false;
+      try { kotwiczy = !!(w.CSS && w.CSS.supports && w.CSS.supports("overflow-anchor", "auto")); } catch (e) {}
+      if (roznica && !kotwiczy && typeof w.scrollBy === "function") w.scrollBy(0, roznica);
+    } else if (html && bylUkryty && dane.kafleStoja && cl && cl.add) cl.add("dn-zd-wjazd");   // pojawia się na widoku po szkielecie: wsuwa się, nie przeskakuje
+  }
+  /** Dotknięcie zachęty: do bloku w kaflu. Bez animacji przewijania, gdy telefon prosi o ograniczenie ruchu. */
+  function jpPokaz() {
+    if (!jp || jp.zapisane) return;
+    var blok = jpCzesc("jp"); if (!blok) return;
+    var spokojnie = false; try { spokojnie = !!(w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) {}
+    try { if (blok.scrollIntoView) blok.scrollIntoView({ behavior: spokojnie ? "auto" : "smooth", block: "center" }); } catch (e) {}
+    try { if (blok.classList) { blok.classList.remove("dn-jp-swiatlo"); void blok.offsetWidth; blok.classList.add("dn-jp-swiatlo"); } } catch (e) {}
+    try { var mina = jpCzesc("jp-mina"); if (mina && mina.focus) mina.focus({ preventScroll: true }); } catch (e) {}
   }
   /** Plakietka zegarka: ta sama WATCH.render co w starym pasku, stan z profilu (opts.stan), więc bez zapytania. Starszy sb.js bez stanZProfilu
       (telefon trzyma go jeszcze w pamięci): plakietki nie ma, ale też nie ma szóstego zapytania. */
@@ -534,9 +570,11 @@
     return null;
   }
   function minaSvg(kod) { try { return typeof w.feelSvg === "function" ? String(w.feelSvg(kod, 22) || "") : ""; } catch (e) { return ""; } }
+  /** „Spokojny · wczoraj · 10,01 km”: nazwa wpisu, o który pytamy; ta sama w bloku i w pasku na górze. */
+  function jpOpis(l, teraz) { var kd = kiedy(l.logged_at, teraz); return String(l.training_type || "Trening") + (kd ? " · " + kd : "") + (km(l.distance_km) !== "—" ? " · " + km(l.distance_km) + " km" : ""); }
   /** Blok pod liczbami kafla. osobny = pytamy o inny wpis niż ten w kaflu, więc trzeba go nazwać. */
   function jakPoszloHtml(l, osobny, teraz) {
-    var kd = kiedy(l.logged_at, teraz), opis = String(l.training_type || "Trening") + (kd ? " · " + kd : "") + (km(l.distance_km) !== "—" ? " · " + km(l.distance_km) + " km" : "");
+    var opis = jpOpis(l, teraz);
     return '<div class="dn-jp" data-dn="jp"><div class="dn-jp-t">Jak poszło?<small>zegarek tego nie wie</small></div>' +
       (osobny ? '<div class="dn-jp-kt">' + esc(opis) + "</div>" : "") +
       '<div class="dn-miny">' + MINY.map(function (k) { return '<button type="button" class="dn-mina" data-dn="jp-mina" data-kod="' + k + '" aria-pressed="false">' + minaSvg(k) + "<span>" + esc(odczucie(k)) + "</span></button>"; }).join("") + "</div>" +
@@ -557,8 +595,9 @@
     var l = dane.wpisy || [], kand = kandydatOdczucia(l);
     if (l.length > 1) wpisz("lista", listaHtml(l.slice(1))); else schowaj("lista");
     if (jp && kand && kand.id === jp.id && jpBrudny()) return;
-    jp = kand ? { id: kand.id, kod: null, zapisuje: false, maKomentarz: !!String(kand.comment || "").trim(), sb: sb || (jp && jp.sb) || null } : null;
+    jp = kand ? { id: kand.id, kod: null, zapisuje: false, zapisane: false, opis: jpOpis(kand), maKomentarz: !!String(kand.comment || "").trim(), sb: sb || (jp && jp.sb) || null } : null;
     wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0]) : ""));
+    zdarzenie();   // zachęta w pasku pojawia się i znika razem z blokiem, w tym samym kroku co kafel
   }
   function jpWybierz(kod) {
     if (!jp || jp.zapisuje || MINY.indexOf(kod) < 0) return;
@@ -585,6 +624,7 @@
       if (!wiersze || wiersze.length !== 1) throw { autoryzacja: false };   // 200 z pustą tablicą = RLS nie przepuściło: to nie jest sukces
       for (var i = 0; i < dane.wpisy.length; i++) if (dane.wpisy[i] && dane.wpisy[i].id === stan.id) { dane.wpisy[i].feel = stan.kod; if (zmiana.comment) dane.wpisy[i].comment = zmiana.comment; }
       var blok = jpCzesc("jp");
+      stan.zapisane = true; zdarzenie();
       if (blok) { blok.className = "dn-jp-ok"; blok.innerHTML = "<b>Zapisane — dzięki!</b><p>" + esc(podpisPoZapisie(stan.kod, dane.trener === true)) + "</p>"; }
       w.setTimeout(function () { if (jp === stan) { jp = null; rysujWpisy(sb); } }, PODZIEKOWANIE_MS);
     }).then(null, function (e) {
@@ -747,7 +787,7 @@
       if (dane.trening && pogodaTekst() !== dane.pogoda) rysujTrening();   // dane pogody doszły, zanim dało się owinąć starą funkcję: kolejny start (initAuth) je dopisuje
       obserwuj();
       pokaz();
-      zdarzenie();
+      zdarzenie(); dane.kafleStoja = true;   // od teraz pasek, który dojdzie później, wsuwa się zamiast przeskakiwać
       if (!klient() && d.readyState === "loading") { poWczytaniuStrony(); return; }   // skrypt klienta bazy stoi niżej w stronie: szkielet już jest, dane po DOMContentLoaded
       wczytaj(false);
     } catch (e) { zglos("start"); stop(); throw e; }   // blok DZIS-E0 1 łapie wyjątek i wraca do starego ekranu
@@ -759,5 +799,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
