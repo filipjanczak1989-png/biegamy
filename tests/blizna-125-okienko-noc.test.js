@@ -30,14 +30,66 @@ test('anonimizacja: imię, imię+nazwisko, para wielkich liter, e-mail, telefon 
 });
 
 test('każdy raport w docs/okienko-raport/*.md jest czysty (bez imion ze słownika poza publicznymi, e-maili, telefonów, athlete_id)', async () => {
-  const A = await import(pathToFileURL(path.join(KORZEN, 'tools/_anonimizuj.mjs')).href);
+  const S = await import(pathToFileURL(path.join(KORZEN, 'tools/_straznik-raportu.mjs')).href);   // ten sam strażnik co w narzędziu: ten test biegnie w nocy PO wygenerowaniu raportu
   const dir = path.join(KORZEN, 'docs/okienko-raport');
   const pliki = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f)) : [];
   for (const f of pliki) {
     const t = fs.readFileSync(path.join(dir, f), 'utf8');
     assert.doesNotMatch(t, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/, f + ': uuid w raporcie');
-    assert.ok(A.czysty(t.replace(/\[OSOBA\]|\[e-mail\]|\[telefon\]|osoba #\d+/g, '')), f + ': dane osobowe w raporcie');
+    assert.ok(S.raportCzysty(t), f + ': dane osobowe w raporcie');
   }
+});
+
+/* 25.11.2026: noc była czerwona w każdy poniedziałek (9, 16, 23.11) i w dni z wpisem „do poprawy” (6, 22.11), bo strażnik brał
+   STAŁE słowa narzędzia za imiona: „Wiersz” (odmiana imienia Wiera) i „luka:” (imię Luka). Raport składamy tu z PRAWDZIWYCH
+   szablonów narzędzia (kandydatDoLawki i zdanie tygodnia wyjęte ze źródła), bez danych osób. */
+function szablony() {
+  const r = czytaj('tools/okienko-raport-dnia.mjs');
+  const kl = r.match(/export function klasyfikuj\(w\) \{[\s\S]*?\n\}\n/), ka = r.match(/export function kandydatDoLawki\(w\) \{[\s\S]*?\n\}\n/);
+  const tydz = r.match(/md\.push\(`(Wiersz tygodnia[^`]*)`, ""\);/);
+  assert.ok(kl && ka && tydz, 'szablony narzędzia: klasyfikuj, kandydatDoLawki, zdanie tygodnia');
+  const f = new Function('dzis', (kl[0] + ka[0]).replace(/export /g, '') + '\nreturn { klasyfikuj, kandydatDoLawki };')('2026-11-23');
+  return { ...f, zdanieTygodnia: tydz[1], zrodlo: r };
+}
+function raportProbny(pytanie) {
+  const { klasyfikuj, kandydatDoLawki, zdanieTygodnia } = szablony();
+  const w = { wersja: 'v2', osoba: 'osoba #1', kiedy: '2026-11-22T09:15:00Z', pytanie, sciezka: 'siec:wyniki · wyniki_imprezy 0.91', odpowiedz: 'Nie znalazłem wyników tej imprezy.',
+    ocena: -1, narzedzia: [], samosprawdzenie: true, ok: true, ms: 812, tryb: 'siec' };
+  assert.ok(klasyfikuj(w).length, 'wpis próbny jest „do poprawy”');
+  return ['# Raport Okienka — 2026-11-23 (doba 2026-11-22)', '', 'Wpisów: 1 (v2: 1, v1: 0); do przejrzenia: 1. Osoby = pseudonimy na ten raport; teksty zanonimizowane.', '',
+    '## Do poprawy (każdy wpis → poprawka z blizną + pytanie do ławki)', '', `### ${klasyfikuj(w).join(' · ')} — ${w.wersja}, ${w.osoba}, ${w.kiedy.slice(11, 16)} UTC`, '',
+    `- pytanie: ${w.pytanie}`, `- ścieżka: ${w.sciezka} · ${w.ms} ms`, `- odpowiedź: ${w.odpowiedz}`, `- kandydat do ławki: \`${kandydatDoLawki(w)}\``, '',
+    '## Liczby doby', '', '- czas v2: p50 812 ms, p90 812 ms (cel p90 < 2000)', '', zdanieTygodnia, ''].join('\n');
+}
+
+test('strażnik raportu: raport z wpisem „do poprawy” i sekcją tygodniową, bez danych osób, PRZECHODZI; sam `czysty` by go odrzucił (stary błąd)', async () => {
+  const S = await import(pathToFileURL(path.join(KORZEN, 'tools/_straznik-raportu.mjs')).href);
+  const A = await import(pathToFileURL(path.join(KORZEN, 'tools/_anonimizuj.mjs')).href);
+  const t = raportProbny('wyniki maratonu w poznaniu');
+  assert.match(t, /\{ luka: 'E\?', uwaga: 'z życia 2026-11-23: /); assert.match(t, /\nWiersz tygodnia dopisany do docs\/okienko-postep\.md\.\n/);
+  assert.equal(S.raportCzysty(t), true);
+  assert.equal(A.czysty(t.replace(/\[OSOBA\]|\[e-mail\]|\[telefon\]|osoba #\d+/g, '')), false, 'bez wyjątków ten raport nie powstawał');
+  assert.equal(A.czyImie('luka:') && A.czyImie('Wiersz'), true, 'słownik bez zmian: oba słowa dalej wyglądają jak imiona');
+  // narzędzie używa tego strażnika, a zwroty stoją w nim litera w literę
+  const { zrodlo } = szablony();
+  assert.match(zrodlo, /import \{ raportCzysty \} from "\.\/_straznik-raportu\.mjs";/);
+  assert.match(zrodlo, /if \(!raportCzysty\(tekst\)\) \{ console\.error\("RAPORT NIEZAPISANY: strażnik anonimizacji znalazł dane osobowe"\); process\.exit\(2\); \}/);
+  assert.deepEqual(S.STALE_ZWROTY, ['Wiersz tygodnia dopisany do docs/okienko-postep.md.', "{ luka: 'E?', uwaga: 'z życia "], 'dokładnie dwa stałe zwroty');
+  assert.ok(zrodlo.includes('md.push(`' + S.STALE_ZWROTY[0] + '`, "");'), 'zdanie tygodnia w narzędziu = wyjątek');
+  assert.ok(zrodlo.includes(S.STALE_ZWROTY[1] + '${dzis}: '), 'szablon kandydata w narzędziu = wyjątek');
+});
+
+test('strażnik raportu: ten sam raport z danymi osoby dalej ODRZUCONY; wyjątek to dokładny zwrot, nie słowo', async () => {
+  const S = await import(pathToFileURL(path.join(KORZEN, 'tools/_straznik-raportu.mjs')).href);
+  assert.equal(S.raportCzysty(raportProbny('wyniki Anny Nowak z maratonu')), false, 'imię i nazwisko w pytaniu (także w linii kandydata)');
+  assert.equal(S.raportCzysty(raportProbny('napisz na jan@example.com')), false, 'e-mail');
+  assert.equal(S.raportCzysty(raportProbny('zadzwoń 601 234 567')), false, 'telefon');
+  const czystyRaport = raportProbny('wyniki maratonu w poznaniu');
+  assert.equal(S.raportCzysty(czystyRaport + '\nWiersz Luka\n'), false, 'same słowa „Wiersz” i „Luka” poza zwrotami dalej są imionami');
+  assert.equal(S.raportCzysty(czystyRaport + "\n{ luka: 'Anna' }\n"), false, 'inna wartość pola luka nie jest wyjątkiem');
+  assert.equal(S.raportCzysty(czystyRaport + '\nWiersz tygodnia dopisany do docs/okienko-postep.md. Dopisała Anna\n'), false, 'tekst tuż za zwrotem dalej sprawdzany');
+  assert.equal(S.raportCzysty(czystyRaport.replace("uwaga: 'z życia 2026-11-23: ", "uwaga: 'z życia Anny 2026-11-23: ")), false, 'tekst wewnątrz szablonu kandydata dalej sprawdzany');
+  assert.equal(S.raportCzysty(czystyRaport.replace('osoba #1', 'Jan')), false, 'imię zamiast pseudonimu');
 });
 
 test('narzędzie raportu: dane TYLKO z EF okienko-raport-dane (sekret), bez klucza service i bez REST do tabel; sędzia ocenia (5 kryteriów), limit kosztu, alarm = kod 3; EF: sekret, same SELECT, anonimizacja, bez athlete_id', () => {
@@ -55,7 +107,7 @@ test('narzędzie raportu: dane TYLKO z EF okienko-raport-dane (sekret), bez kluc
   assert.match(czytaj('tools/_anonimizuj.mjs'), /from "\.\.\/supabase\/functions\/_shared\/anonimizuj\.mjs"/, 'jedna anonimizacja dla EF i narzędzi');
   const s = czytaj('tools/_sedzia.mjs');   // sędzia wydzielony (blizna-141): wspólny dla raportu, porównania dostawców i wzorców
   assert.match(s, /required: \["odpowiada", "konkret", "liczby_z_pokryciem", "wyciek", "ton", "uzasadnienie"\]/); assert.match(s, /temperature: 0/); assert.match(s, /model: "gemini-3\.5-flash"/);
-  assert.match(r, /limit \$\{OPCJE\.limitUsd\} USD przekroczony/); assert.match(r, /if \(!czysty\(/, 'strażnik przed zapisem'); assert.match(r, /process\.exitCode = 3/);
+  assert.match(r, /limit \$\{OPCJE\.limitUsd\} USD przekroczony/); assert.match(r, /if \(!raportCzysty\(tekst\)\)/, 'strażnik przed zapisem'); assert.match(r, /process\.exitCode = 3/);
   assert.match(r, /klasyfikuj|kandydatDoLawki/); assert.doesNotMatch(r, /functions\/v1\/okienko(-v2)?["'`]/, 'raport nie pyta okienka (koszt, limity użytkowników)');
 });
 

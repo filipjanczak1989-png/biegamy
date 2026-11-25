@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { anonimizuj, czysty } from "./_anonimizuj.mjs";
+import { raportCzysty } from "./_straznik-raportu.mjs";   // czysty + znaczniki + dwa stałe zwroty narzędzia („Wiersz tygodnia…”, „{ luka: 'E?'…”), które słownik brał za imiona
 import { wybierzSedziego, ocenOdpowiedz, znajdzWzorzec, trescDlaSedziego, MODEL_SEDZIEGO_CLAUDE } from "./_sedzia.mjs";
 
 const KORZEN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -148,7 +149,7 @@ if (OPCJE.tydzien) {
   md.push(`Wiersz tygodnia dopisany do docs/okienko-postep.md.`, "");
 }
 const tekst = md.join("\n");
-if (!czysty(tekst.replace(/\[OSOBA\]|\[e-mail\]|\[telefon\]|osoba #\d+/g, ""))) { console.error("RAPORT NIEZAPISANY: strażnik anonimizacji znalazł dane osobowe"); process.exit(2); }
+if (!raportCzysty(tekst)) { console.error("RAPORT NIEZAPISANY: strażnik anonimizacji znalazł dane osobowe"); process.exit(2); }
 const dir = path.join(KORZEN, "docs/okienko-raport"); fs.mkdirSync(dir, { recursive: true });
 const wyj = path.join(dir, dzis + ".md"); fs.writeFileSync(wyj, tekst + "\n");
 console.log(tekst); console.log("\nzapisano:", path.relative(KORZEN, wyj));
