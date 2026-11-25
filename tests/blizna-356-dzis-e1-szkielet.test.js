@@ -3,7 +3,7 @@
 // Decyzje Filipa 25.11: nowy ekran ZASTĘPUJE stare Dziś dla kont z listy (link „stare Dziś ›” zostaje), ikony tymczasowo
 // z makiety r5 w repo aplikacji, menu r5 z Logiem, pasek biegu zostaje, podgląd trenera (?from=trener) na starym ekranie
 // do E8, zgłoszenia w client_errors z kind 'dzis-nowy'. Decyzje 13.11: #sponsor i historia Okienka (#log-list) też stary ekran.
-// Ten commit nie pyta jeszcze bazy (dane w commicie 2): imię i licznik dzwonka bierze z tego, co stary kod wpisał w stronę.
+// Szkielet stoi bez sieci; dane (commit 2) pilnuje blizna-357. Tu klient bazy w atrapie nigdy nie odpowiada, więc ekran zostaje szkieletem.
 // Bez przełącznika nic się nie zmienia: pilnuje tego blizna-336 (zawodnik.html poza blokami bajt w bajt, klasa tylko dla „nowy”).
 'use strict';
 const test = require('node:test');
@@ -32,7 +32,8 @@ function strona({ search = '', hash = '', sekcja = 'home', imie = 'Ola Nowak', d
     'okienko-pole': { klikniec: 0, click() { this.klikniec++; } }, 'nav-mount': { querySelectorAll: () => menu } };
   const style = [], wpisy = [], sekcje = [], obserwowane = [];
   const w = { _currentSection: sekcja, location: { search, hash, pathname: '/zawodnik.html' }, URLSearchParams, showSection(n) { sekcje.push(n); this._currentSection = n; },
-    openNotifications() { w._dzwonek = (w._dzwonek || 0) + 1; }, _logKlienta(o) { wpisy.push(o); },
+    openNotifications() { w._dzwonek = (w._dzwonek || 0) + 1; }, _logKlienta(o) { wpisy.push(o); }, setTimeout: () => 0, clearTimeout() {},
+    sb: { rpc: () => new Promise(() => {}), from: () => { throw new Error('szkielet nie pyta'); }, auth: { getSession: () => new Promise(() => {}) } },   // klient, który nigdy nie odpowiada: ekran zostaje szkieletem
     MutationObserver: function (f) { this.observe = (cel) => obserwowane.push([cel, f]); } };
   const d = { documentElement: { classList: { add: (c) => klasy.add(c), remove: (c) => klasy.delete(c), contains: (c) => klasy.has(c) } },
     getElementById: (id) => el[id] || (id === 'dzis-nowy-css' ? (style[0] || null) : null), createElement: () => ({}), head: { appendChild: (s) => style.push(s) } };
@@ -122,7 +123,7 @@ test('(4) menu r5: sześć ikon z kompletu i krążek Log; pliki ikon są w repo
 
 test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez parametrów; błąd startu wraca do starego ekranu', () => {
   const s = strona({ search: '?log=1&x=tajne' });
-  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'menu']);
+  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'menu', 'klient', 'profil', 'akcja', 'trening', 'wpisy']);
   assert.equal(s.B.zglos('render'), true); assert.equal(s.B.zglos('render'), false);
   for (const zly of ['', 'inne', 'render?x=1', undefined]) assert.equal(s.B.zglos(zly), false);
   for (let i = 0; i < 50; i++) s.B.zglos('menu');
@@ -141,13 +142,13 @@ test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez param
   assert.equal(wybuch.klasy.has('dzis-gotowy'), false); assert.equal(wybuch.korzen.hidden, true);
 });
 
-test('(6) granice: moduł bez zapytań i bez pamięci telefonu (commit 1); cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
+test('(6) granice: moduł bez pamięci telefonu i bez własnych żądań poza klientem bazy, tylko odczyt; cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|supabase|\bsb\.|\.rpc\(|\.from\(|localStorage|sessionStorage|indexedDB|document\.cookie|sendBeacon/, 'dane wchodzą dopiero w commicie 2');
+  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|\.cookie|sendBeacon|\.(insert|update|upsert|delete)\(/, 'tylko odczyt przez klienta bazy, nic w pamięci telefonu');
   const s = strona(); s.B.start();
   const css = s.style[0].textContent;
   assert.equal(s.style.length, 1); s.B.start(); assert.equal(s.style.length, 1, 'arkusz wstawiany raz');
-  const selektory = css.replace(/@media[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim()).filter((x) => x && x !== '}');
+  const selektory = css.replace(/@media[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim().replace(/^\}/, '')).filter(Boolean);   // „}” na początku = koniec reguły @media
   assert.ok(selektory.length >= 25);
   for (const x of selektory) assert.ok(/^(#dzis-nowy\b|html\.dzis-gotowy(\.dzis-na-dzis)? )/.test(x), 'selektor poza nowym Dziś: ' + x);
   assert.match(css, /html\.dzis-gotowy\.dzis-na-dzis body > \.topbar,html\.dzis-gotowy\.dzis-na-dzis body > #okienko-pole\{display:none!important\}/, 'stary pasek i pole Zapytaj schowane tylko na Dziś');

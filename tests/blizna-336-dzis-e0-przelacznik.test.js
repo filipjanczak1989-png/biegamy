@@ -55,12 +55,28 @@ function strona({ token = true, kopia = null, search = '', rpc = null } = {}) {
 }
 const odczekaj = () => new Promise((r) => setImmediate(r));
 
+test('E1 wczesny start: świeża kopia „nowy” dociąga moduł od razu, przed initAuth; bez kopii, przy starej kopii, ?dzis=stary i bez sesji nic się nie dociąga', () => {
+  const s = strona({ kopia: { w: 'nowy', t: Date.now() } });
+  assert.equal(s.skrypty.length, 1, 'moduł rusza przy czytaniu nagłówka strony, zanim ktokolwiek zawoła _dzisDecyzja');
+  assert.match(s.skrypty[0].src, /^js\/dzis-nowy\.mjs\?v=[0-9a-f]{10}$/);
+  s.w._dzisDecyzja(); s.w._dzisDecyzja();
+  assert.equal(s.skrypty.length, 1, 'initAuth nie dociąga go drugi raz');
+  let startow = 0; s.w.BM_DZIS = { start() { startow++; }, stop() {} };
+  s.skrypty[0].onload();
+  assert.equal(startow, 1, 'po dojściu pliku start od razu');
+  for (const [opis, o] of [['bez kopii', {}], ['kopia starsza niż doba', { kopia: { w: 'nowy', t: Date.now() - 864e5 - 1000 } }], ['kopia „stary”', { kopia: { w: 'stary', t: Date.now() } }],
+    ['?dzis=stary', { kopia: { w: 'nowy', t: Date.now() }, search: '?dzis=stary' }], ['bez sesji', { kopia: { w: 'nowy', t: Date.now() }, token: false }]]) {
+    const x = strona(o);
+    assert.equal(x.skrypty.length, 0, opis + ': nic nie dociągamy'); assert.equal(x.klasy.size, 0, opis + ': żadnej klasy');
+  }
+});
+
 test('zawodnik.html: poza blokami DZIS-E0 bajt w bajt jak przed E0; bloków dokładnie sześć', () => {
   assert.equal(sha(bezE0(HTML)), PRZED_E0, 'zmiana poza blokami DZIS-E0 (albo nowa zmiana zawodnik.html — wtedy nowy skrót PRZED_E0)');
   for (const nr of ['1', '2']) { assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' początek', 'g')) || []).length, 1); assert.equal((HTML.match(new RegExp('DZIS-E0 ' + nr + ' koniec', 'g')) || []).length, 1); }
   assert.equal((HTML.match(/<div id="dzis-nowy" hidden><\/div><!-- DZIS-E0 3:/g) || []).length, 1, 'korzeń pusty i ukryty');
   for (const nr of ['4a', '4b', '5']) assert.equal((HTML.match(new RegExp('if \\(window\\._dzisDecyzja\\) window\\._dzisDecyzja\\(\\);   // DZIS-E0 ' + nr + ':', 'g')) || []).length, 1, 'wywołanie ' + nr);
-  assert.equal(HTML.split('\n').length - bezE0(HTML).split('\n').length, 63, 'E0 to 61 linii dodanych, zero zmienionych; E1 (25.11) dokłada 2 linie w bloku 1: zgłoszenie braku modułu');
+  assert.equal(HTML.split('\n').length - bezE0(HTML).split('\n').length, 64, 'E0 to 61 linii dodanych, zero zmienionych; E1 (25.11) dokłada 3 linie w bloku 1: zgłoszenie braku modułu (2) i wczesny start modułu (1)');
   assert.equal((HTML.match(/bieg-pasek/g) || []).length, 2, 'blizny 290–292: pasek biegu w zawodnik.html tylko element i wywołanie');
   assert.doesNotMatch(HTML, /akcja-dzis|akcja-baner|naKaflu/, 'blizna-182: zakazane napisy');
   const powrot = HTML.slice(HTML.indexOf('async function _dzisPoPowrocie('), HTML.indexOf("window.bmPowrotWlasny = true;"));
