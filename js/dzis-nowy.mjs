@@ -101,7 +101,8 @@
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   /* Skróty stoją w siatce 4 × 2 BEZ przewijania (blizna-369): przewijany rząd ucinał ikony i na laptopie nie było jak go przesunąć.
      Siatka jest pełna przy ośmiu skrótach; dziewiąty wymaga decyzji, co wypada, a test tego pilnuje. */
-  var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["tydzien", "Ten tydzień"], ["lista", "Twoje ostatnie treningi"]];
+  /* Trening na dziś stoi NAD Ulicą (decyzja Filipa 25.11, blizna-381): to pierwsza rzecz dnia, a z kadrem w nagłówku przycisk wyniku wypadałby pod dolne menu. */
+  var KAFLE = [["trening", "Trening na dziś"], ["ulica", "Ulica"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["tydzien", "Ten tydzień"], ["lista", "Twoje ostatnie treningi"]];
 
   function korzen() { return d.getElementById("dzis-nowy"); }
   function html() { return d.documentElement; }

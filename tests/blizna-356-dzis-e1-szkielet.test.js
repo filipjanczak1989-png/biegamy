@@ -48,8 +48,8 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.equal(s.korzen.hidden, false);
   assert.deepEqual([...s.klasy].sort(), ['dzis-gotowy', 'dzis-na-dzis', 'dzis-nowy'], 'dzis-gotowy uruchamia chowanie starego Dziś z bloku DZIS-E0 2');
   const h = s.korzen.innerHTML;
-  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['ulica', 'trening', 'skroty', 'ostatni', 'tydzien', 'lista']);
-  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Ulica', 'Trening na dziś', 'Ostatni trening', 'Ten tydzień', 'Twoje ostatnie treningi']);
+  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'lista']);   // trening nad Ulicą od blizna-381
+  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Twoje ostatnie treningi']);
   assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'jedzenie', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
   assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['nutrition.html', 'races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
   assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?jablko-64\.webp.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
