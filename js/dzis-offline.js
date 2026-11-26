@@ -205,19 +205,30 @@
     return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + hm;
   };
 
-  /* Pasek jak „Nowa wersja aplikacji" (sb.js bmPasekNowejWersji): dół nad nawigacją, z-index 400. */
+  /* Pasek jak „Nowa wersja aplikacji" (sb.js bmPasekNowejWersji): dół nad nawigacją, z-index 400.
+     POŁOŻENIE (26.11.2026, blizna-399): przy 80 px pigułka zachodziła na pomarańczowe kółko „Log" w dolnym menu (pasek ma ok. 89 px,
+     kółko wystaje nad niego, a jego poświata sięga jeszcze wyżej). Gdy na stronie jest WIDOCZNY .bottom-nav: 116 px + bezpieczny
+     obszar telefonu, tyle samo co toast (showToast, blizna-346). Strona bez dolnego menu: 80 px jak dotąd.
+     Menu potrafi dojść po pigułce (rysuje je późniejszy skrypt), więc położenie liczymy przy każdym pokazaniu i raz po chwili. */
+  M.dolPaska = function () {
+    var zMenu = false;
+    try { zMenu = Array.prototype.some.call(document.querySelectorAll('.bottom-nav'), function (n) { return n.getClientRects().length > 0; }); } catch (e) {}
+    return 'calc(env(safe-area-inset-bottom,0px) + ' + (zMenu ? 116 : 80) + 'px)';
+  };
   M.pokazPasek = function (ts) {
     if (typeof document === 'undefined') return;
     var p = document.getElementById('bm-offline-pasek');
     if (!p) {
       p = document.createElement('div');
       p.id = 'bm-offline-pasek';
-      p.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:50%;transform:translateX(-50%);' +
+      p.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);' +
         'z-index:400;display:flex;align-items:center;gap:10px;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.14);' +
         'border-radius:12px;padding:9px 12px;font-family:\'DM Sans\',sans-serif;font-size:13px;color:#f0ede8;box-shadow:0 8px 24px rgba(0,0,0,0.45);max-width:92vw;';
       var txt = document.createElement('span'); txt.id = 'bm-offline-pasek-txt'; p.appendChild(txt);
       document.body.appendChild(p);
+      try { setTimeout(function () { var q = document.getElementById('bm-offline-pasek'); if (q) q.style.bottom = M.dolPaska(); }, 1500); } catch (e) {}
     }
+    p.style.bottom = M.dolPaska();
     var t = document.getElementById('bm-offline-pasek-txt');
     if (t) t.textContent = 'Offline · dane z ' + M.formatCzas(ts);
   };
