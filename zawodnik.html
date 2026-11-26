@@ -24,7 +24,7 @@
      ?dzis=stary wymusza stary ekran. Błąd, brak RPC, brak sieci albo brak modułu w 3 s → stary ekran. Moduł js/dzis-nowy.mjs dociągany tylko przy „nowy”. -->
 <script>
 (function (w, d) {
-  var KLUCZ = 'bm_dzis_wersja_', DOBA = 864e5, MODUL_V = '9e12b93cc5', h = d.documentElement;
+  var KLUCZ = 'bm_dzis_wersja_', DOBA = 864e5, MODUL_V = 'bd531c9138', h = d.documentElement;
   function uid() { try { var s = JSON.parse(w.localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token') || 'null'); return (s && s.user && s.user.id) || null; } catch (e) { return null; } }
   function wymuszonyStary() { try { return new URLSearchParams(w.location.search).get('dzis') === 'stary'; } catch (e) { return false; } }
   function kopiaNowy(u) { try { var k = JSON.parse(w.localStorage.getItem(KLUCZ + u) || 'null'); return !!(k && k.w === 'nowy' && Date.now() - k.t < DOBA); } catch (e) { return false; } }

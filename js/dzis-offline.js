@@ -33,9 +33,10 @@
   'use strict';
   var PREFIX = 'bm_dzis_migawka_';
   var LIMIT_B = 200 * 1024;          // 200 kB — 5× p90 z pomiaru; powyżej zapis odrzucony
-  var CZESCI = ['logi', 'dzis', 'tydzien', 'trener', 'postep', 'zawodnik', 'wiadomosc', 'hero'];
+  var CZESCI = ['logi', 'dzis', 'tydzien', 'trener', 'postep', 'zawodnik', 'wiadomosc', 'hero', 'dzisNowe'];
   // trener = flaga ma_trenera; postep = {trainings, logs} tygodnia; zawodnik = {id, full_name} (initAuth offline);
   // wiadomosc = ostatnia wiadomość trenera {body, sent_at}; hero = URL ostatnio WYŚWIETLONEGO kadru hero.
+  // dzisNowe = dane kafli nowego Dziś (js/dzis-nowy.mjs, 26.11.2026): jeden obiekt z własnym ts i dniem treningu; pisze i czyta go tylko tamten moduł.
   // Części BEZ_CZASU nie przesuwają znacznika „dane z HH:MM" ani nie zdejmują paska offline: kadr hero
   // zapisuje się także offline (obraz z cache SW się załadował), a to nie jest świeża synchronizacja danych.
   var BEZ_CZASU = ['hero'];

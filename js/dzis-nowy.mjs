@@ -51,6 +51,10 @@
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
+// PAMIĘĆ BEZ SIECI (blizna-374): po każdym udanym odczycie dane kafli trafiają do migawki starego Dziś (js/dzis-offline.js), jako jej część „dzisNowe”.
+//   Moduł NIE dotyka pamięci telefonu sam: zapis idzie przez DzisOffline.zapisz, które pilnuje limitu rozmiaru, kasuje migawki innych kont,
+//   czyści wszystko przy wylogowaniu i nic nie zapisuje w podglądzie trenera. W migawce nie ma identyfikatora trenera, tylko „czy jest trener”.
+//   Każde pole to ostatnia UDANA odpowiedź; nieudane zapytanie zostawia poprzednią wartość. Trening niesie dzień, którego dotyczy.
 // Zgłoszenia: client_errors, kind 'dzis-nowy', w treści sam etap, raz na stronę, adres bez parametrów (wzór radia, blizna-355).
 // Plik BEZ import/export (globalThis.BM_DZIS), jak js/ulica.mjs. Zmiana tego pliku = nowa stała MODUL_V w bloku DZIS-E0 1 (blizna-336).
 (function (w, d) {
@@ -61,7 +65,7 @@
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false, uid: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -641,6 +645,27 @@
   function bladKafla(n, etykieta) { wpisz(n, gora(etykieta, "", null) + '<p class="dn-tekst">Nie udało się wczytać.</p><button type="button" class="dn-ponow" data-dn="ponow">Spróbuj ponownie</button>'); }
   /** Błąd danych: przy braku sieci telefon o tym wie i wpis do client_errors nic by nie dał. */
   function zglosDane(etap) { if (w.navigator && w.navigator.onLine === false) return; zglos(etap); }
+  /* ── PAMIĘĆ BEZ SIECI: zapis części „dzisNowe” w migawce starego Dziś ── */
+  var mig = null, migCzeka = false;
+  function pamiec() { var o = w.DzisOffline; return o && typeof o.zapisz === "function" && typeof o.odczytaj === "function" ? o : null; }
+  /** Jedno pole migawki (profil, ulica, trening, wiadomosc, wpisy). Kilka pól z jednej fali idzie jednym zapisem. Nigdy nie rzuca. */
+  function zapamietaj(nr, pole, wartosc) {
+    if (nr !== dane.nr || !dane.uid) return;
+    try {
+      if (!mig || mig.uid !== dane.uid) {   // pierwsze pole po wejściu: zaczynamy od tego, co już jest w telefonie, żeby nie zgubić pól, których ta próba nie doczyta
+        mig = { uid: dane.uid, pola: {} };
+        var o = pamiec(), m = o ? o.odczytaj(dane.uid) : null, st = m && m.czesci ? m.czesci.dzisNowe : null;
+        if (st && typeof st === "object") ["profil", "ulica", "trening", "wiadomosc", "wpisy"].forEach(function (k) { if (k in st) mig.pola[k] = st[k]; });
+      }
+      mig.pola[pole] = wartosc;
+    } catch (e) { return; }
+    if (migCzeka) return;
+    migCzeka = true;
+    Promise.resolve().then(function () {
+      migCzeka = false;
+      try { var o = pamiec(); if (!o || !mig) return; mig.pola.ts = Date.now(); o.zapisz(mig.uid, "dzisNowe", mig.pola); } catch (e) {}
+    });
+  }
   function klient() { return w.sb && typeof w.sb.rpc === "function" && typeof w.sb.from === "function" && w.sb.auth ? w.sb : null; }
   function slugAkcji(id) { var c = w.BM_AKCJA_CYTATY; try { return c && typeof c.slugDla === "function" ? String(c.slugDla(id || null) || "") : ""; } catch (e) { return ""; } }
   /** Czy baza odrzuciła token (wygasł albo zegar telefonu się spóźnia i supabase-js uważa go za ważny). */
@@ -682,9 +707,9 @@
     return { pokaz: function () {
       pL.then(function (dn) {
         if (nr !== dane.nr) return;
-        if (!dn || !dn.wystartowala) { schowaj("ulica"); return; }
+        if (!dn || !dn.wystartowala) { schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
         wpisz("ulica", ulicaHtml(dn, null, adres));
-        pW.then(function (wk) { if (nr !== dane.nr) return; var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
+        pW.then(function (wk) { if (nr !== dane.nr) return; zapamietaj(nr, "ulica", { licznik: dn, wklad: wk || null, adres: adres }); var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
       }, function (e) { if (przejete(sb, nr, e, proba)) return; schowaj("ulica"); zglosDane("akcja"); });
     } };
   }
@@ -697,6 +722,7 @@
     if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); return; }
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
       if (nr !== dane.nr) return null;
+      dane.uid = uid;
       if (!uid) { dane.t = 0; return null; }   // bez sesji stary kod sam odsyła do logowania; okno 60 s zwolnione, żeby następny start() (initAuth) spróbował jeszcze raz
       /* FALA 1: profil, licznik akcji i mój wkład idą razem */
       var s0 = slugAkcji(null), a0 = s0 ? akcja(sb, nr, s0, s0, proba) : null;
@@ -706,19 +732,21 @@
         if (nr !== dane.nr) return a;
         if (!a) { wstrzymane = true; stop(); return null; }   // konto bez wiersza zawodnika: pierwsze kroki zostają na starym ekranie
         dane.imie = String(a.full_name || ""); dane.trener = !!a.coach_id; odswiezNaglowek(); zegarek(a, nr);
+        zapamietaj(nr, "profil", { id: a.id, full_name: a.full_name || null, trener: !!a.coach_id, intervals_athlete_id: a.intervals_athlete_id || null, intervals_connected_at: a.intervals_connected_at || null,
+          intervals_can_write: a.intervals_can_write == null ? null : a.intervals_can_write, intervals_token_dead_at: a.intervals_token_dead_at || null });
         /* FALA 2: wszystko, co potrzebuje id zawodnika */
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
         pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
-          .then(function (t) { if (nr !== dane.nr) return; dane.trening = t || []; rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
+          .then(function (t) { if (nr !== dane.nr) return; dane.trening = t || []; zapamietaj(nr, "trening", { dzien: kluczDnia(), lista: dane.trening }); rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); zglosDane("trening"); });
         if (a.coach_id) {
           pytaj(sb.from("messages").select("body,sent_at").eq("athlete_id", a.id).eq("sender", "coach").gte("sent_at", new Date(Date.now() - OKNO_WIADOMOSCI_DNI * 864e5).toISOString()).order("sent_at", { ascending: false }).limit(1))
-            .then(function (m) { if (nr !== dane.nr) return; dane.wiadomosc = m && m[0] ? m[0] : null; rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.wiadomosc = null; rysujTrening(); zglosDane("wiadomosc"); });
-        } else dane.wiadomosc = null;
+            .then(function (m) { if (nr !== dane.nr) return; dane.wiadomosc = m && m[0] ? m[0] : null; zapamietaj(nr, "wiadomosc", dane.wiadomosc); rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; dane.wiadomosc = null; rysujTrening(); zglosDane("wiadomosc"); });
+        } else { dane.wiadomosc = null; zapamietaj(nr, "wiadomosc", null); }
         pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
-            dane.wpisy = l;
+            dane.wpisy = l; zapamietaj(nr, "wpisy", l);
             rysujWpisy(sb);
           }, function (e) { if (przejete(sb, nr, e, proba)) return; bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); zglosDane("wpisy"); });
         return a;
