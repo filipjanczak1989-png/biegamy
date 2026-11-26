@@ -193,6 +193,8 @@
     "#dzis-nowy .dn-ul-scena{position:relative;height:200px;margin:-16px -16px 14px;overflow:hidden;border-radius:17px 17px 0 0;background:#1b2130}" +
     "#dzis-nowy .dn-ul-tlo{position:absolute;left:0;right:0;top:-140px}#dzis-nowy .dn-ul-tlo .us{margin:0}#dzis-nowy .dn-ul-tlo .um{margin:140px 12px 0}" +
     "#dzis-nowy .dn-ul-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
+    "#dzis-nowy .dn-ul-mur{margin:-14px -16px 14px}#dzis-nowy .dn-ul-mur:empty{display:none}" +
+    "#dzis-nowy .dn-ul-mur .us-mur-przelacz{overflow:visible;z-index:3}#dzis-nowy .dn-ul-mur .us-mur-przelacz::after{content:'';position:absolute;inset:-12px -4px -4px}" +
     "#dzis-nowy .dn-pasek{height:8px;border-radius:4px;background:#1b1b21;overflow:hidden;margin:10px 0}#dzis-nowy .dn-pasek i{display:block;height:100%;border-radius:4px;background:#c44a13}" +
     "#dzis-nowy .dn-plan{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 8px}#dzis-nowy .dn-plan-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
     "#dzis-nowy .dn-typ{display:inline-block;padding:4px 10px;border-radius:999px;background:#1b1b21;color:#f5f3ef;font:600 12px/1.3 'DM Sans',sans-serif}" +
@@ -604,14 +606,17 @@
      sama o nic nie pyta (ranking gry i dźwięk tylko poza kaflem), więc budżet zostaje 6 / 7. Okno ma stałą wysokość od pierwszego rysunku (bez skoku).
      Ładowanie dopiero, gdy kafel jest blisko ekranu: sekcja Dziś schowana albo kafel daleko = nic się nie pobiera. Element sceny przeżywa ponowne
      rysowanie kafla (przenoszony do nowego okna), więc odświeżenie danych tylko przesuwa licznik. Okno pojawia się tylko, gdy stary kod może je
-     wypełnić (albo strona jeszcze się czyta); stary kod nie doszedł albo scena nie wstała w 10 s = okno znika i kafel jest taki jak przed E3. */
-  var scenaUl = null, scenaDane = null, scenaStan = 0, scenaObs = null, scenaNiema = false;   // stan: 0 nic, 1 czeka na ekran, 2 ładowana albo stoi
+     wypełnić (albo strona jeszcze się czyta); stary kod nie doszedł albo scena nie wstała w 10 s = okno znika i kafel jest taki jak przed E3.
+     MUR (E3 commit 2, blizna-400): cegły, które nie mieszczą się w rzędzie na scenie, scena stawia w kontenerze pod oknem (opcja murDol, ten sam
+     mechanizm co stary kafel): pasek „Cały mur (N)”, po rozwinięciu kolejne rzędy i „Zwiń”; stan zwinięcia pamięta scena (bm_akcja_mur_dzis).
+     Kontener bez data-dn (kliknięcia w mur nie są sprawami modułu), pusty = schowany; przy odświeżeniu przechodzi razem ze sceną. */
+  var scenaUl = null, scenaMur = null, scenaDane = null, scenaStan = 0, scenaObs = null, scenaNiema = false;   // stan: 0 nic, 1 czeka na ekran, 2 ładowana albo stoi
   function scenaMozliwa() {
     if (scenaNiema) return false;
     try { return !!(w.BM_ULICA && w.BM_ULICA.naKaflu) || !!(w.BM_AKCJA && w.BM_AKCJA.zUlica) || d.readyState === "loading"; } catch (e) { return false; }
   }
   function scenaHtml(adres) {
-    return '<div class="dn-ul-scena"><div class="dn-ul-tlo" data-dn="scena"></div>' + (adres ? '<a class="dn-ul-link" href="' + esc(adres) + '" tabindex="-1" aria-hidden="true"></a>' : "") + "</div>";
+    return '<div class="dn-ul-scena"><div class="dn-ul-tlo" data-dn="scena"></div>' + (adres ? '<a class="dn-ul-link" href="' + esc(adres) + '" tabindex="-1" aria-hidden="true"></a>' : "") + '</div><div class="dn-ul-mur"></div>';
   }
   /** Ulica z modułu sceny: gotowy, ładowany przez stary kod, albo po DOMContentLoaded (stary skrypt akcji stoi niżej w stronie). Brak = bez sceny. */
   function zUlicy(cb) {
@@ -623,7 +628,7 @@
   function usunScene() {
     if (scenaObs) { try { scenaObs.disconnect(); } catch (e) {} scenaObs = null; }
     if (scenaUl && w.BM_ULICA && w.BM_ULICA.usun) { try { w.BM_ULICA.usun(scenaUl); } catch (e) {} }
-    scenaUl = null; scenaDane = null; scenaStan = 0;
+    scenaUl = null; scenaMur = null; scenaDane = null; scenaStan = 0;
   }
   function bezSceny() {
     scenaNiema = true; usunScene();
@@ -634,7 +639,7 @@
     var tu = scenaUl;
     if (!tu || !scenaDane) return;
     var pierwszy = !tu._bmScena && !tu._bmCzeka;
-    zUlicy(function (U) { if (tu === scenaUl && scenaDane && U && U.naKaflu) U.naKaflu(tu, scenaDane); });
+    zUlicy(function (U) { if (tu === scenaUl && scenaDane && U && U.naKaflu) U.naKaflu(tu, scenaDane, { murDol: scenaMur }); });
     if (pierwszy) w.setTimeout(function () { if (tu === scenaUl && !tu.firstChild) bezSceny(); }, 10000);
   }
   function czekajNaEkran(el) {
@@ -652,10 +657,12 @@
     var zeScena = scenaMozliwa();
     wpisz("ulica", ulicaHtml(dn, null, adres, zeScena));
     if (!zeScena) { usunScene(); return; }
-    var el = kafel("ulica"), miejsce = el && el.querySelector ? el.querySelector('[data-dn="scena"]') : null;
+    var el = kafel("ulica"), miejsce = el && el.querySelector ? el.querySelector('[data-dn="scena"]') : null, mur = el && el.querySelector ? el.querySelector(".dn-ul-mur") : null;
     if (!miejsce) return;
-    if (scenaUl && scenaUl !== miejsce) { try { miejsce.parentNode.replaceChild(scenaUl, miejsce); } catch (e) { usunScene(); scenaUl = miejsce; } }
-    else scenaUl = miejsce;
+    if (scenaUl && scenaUl !== miejsce) {
+      try { miejsce.parentNode.replaceChild(scenaUl, miejsce); if (scenaMur && mur && scenaMur !== mur) mur.parentNode.replaceChild(scenaMur, mur); }
+      catch (e) { usunScene(); scenaUl = miejsce; scenaMur = mur; }
+    } else { scenaUl = miejsce; scenaMur = mur; }
     scenaDane = dn;
     if (scenaStan === 2) montujScene(); else czekajNaEkran(el);
   }

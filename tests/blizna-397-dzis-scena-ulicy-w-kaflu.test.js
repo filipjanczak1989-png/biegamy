@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { strona, MODUL } = require('./_dzis-nowy-strona.js');
 
-const OKNO = '<div class="dn-ul-scena"><div class="dn-ul-tlo" data-dn="scena"></div><a class="dn-ul-link" href="ulica-glowna.html#ulica-po" tabindex="-1" aria-hidden="true"></a></div>';
+const OKNO = '<div class="dn-ul-scena"><div class="dn-ul-tlo" data-dn="scena"></div><a class="dn-ul-link" href="ulica-glowna.html#ulica-po" tabindex="-1" aria-hidden="true"></a></div><div class="dn-ul-mur"></div>';   // 26.11 (blizna-400): pod oknem kontener muru
 
 /** Stary kod na stronie: BM_AKCJA.zUlica ładuje js/ulica.mjs (tu: na żądanie testu), BM_ULICA.naKaflu montuje scenę w elemencie. */
 function staryKod(s, { odrazu = false } = {}) {
