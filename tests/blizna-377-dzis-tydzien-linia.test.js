@@ -29,13 +29,13 @@ test('(1) z planem: kilometry do planu i „N z M treningów”; liczby jak w st
   assert.equal(b({ km: 131.6, planKm: 140.5, zaplanowane: 7, zrobione: 6, wpisow: 6 }), 'Ten tydzień: <b>132</b> z 141 km · <b>6</b> z 7 treningów', 'od 100 km bez części dziesiętnej, także w planie');
 });
 
-test('(2) bez planu: kilometry i dni z ruchem; pusty tydzień bez planu to zdanie, nie zera', async () => {
+test('(2) bez planu: kilometry i liczba treningów (od blizna-386, wcześniej „dni z ruchem”); pusty tydzień bez planu to zdanie, nie zera', async () => {
   const s = strona({ trening: [], wpisyTyg: WPISY, profil: Object.assign({}, PROFIL, { coach_id: null }) }); s.B.start(); await s.doKonca();
-  assert.equal(linia(s), 'Ten tydzień: <b>24,6</b> km · <b>4</b> dni z ruchem');
+  assert.equal(linia(s), 'Ten tydzień: <b>24,6</b> km · <b>4</b> treningi');
   const L = s.B.tydzienLinia, b = (o) => L(Object.assign({ km: 0, planKm: 0, zaplanowane: 0, zrobione: 0, wpisow: 0, dniZRuchem: 0 }, o));
-  assert.equal(b({ km: 8.21, wpisow: 1, dniZRuchem: 1 }), 'Ten tydzień: <b>8,2</b> km · <b>1</b> dzień z ruchem');
-  assert.equal(b({ km: 0, wpisow: 2, dniZRuchem: 2 }), 'Ten tydzień: <b>0</b> km · <b>2</b> dni z ruchem', 'sam rower: zero kilometrów biegowych, ale ruch był');
-  assert.equal(b({ km: 40, wpisow: 6, dniZRuchem: 5 }), 'Ten tydzień: <b>40</b> km · <b>5</b> dni z ruchem');
+  assert.equal(b({ km: 8.21, wpisow: 1, dniZRuchem: 1 }), 'Ten tydzień: <b>8,2</b> km · <b>1</b> trening');
+  assert.equal(b({ km: 0, wpisow: 2, dniZRuchem: 2 }), 'Ten tydzień: <b>0</b> km · <b>2</b> treningi', 'sam rower: zero kilometrów biegowych, ale treningi były');
+  assert.equal(b({ km: 40, wpisow: 6, dniZRuchem: 5 }), 'Ten tydzień: <b>40</b> km · <b>6</b> treningów');
   assert.equal(b({}), 'Ten tydzień: jeszcze bez treningu');
   const pusty = strona({ trening: [], wpisyTyg: [] }); pusty.B.start(); await pusty.doKonca();
   assert.equal(linia(pusty), 'Ten tydzień: jeszcze bez treningu');

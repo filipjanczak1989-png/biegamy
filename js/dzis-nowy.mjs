@@ -58,7 +58,7 @@
 //   Budżet: 6 zapytań bez trenera, 7 z trenerem, dalej 2 fale (decyzja Filipa 26.11). Zapytanie o plany TYGODNIA zastępuje zapytanie
 //   o trening na dziś (dzisiejszy wybierany po dacie); dochodzi jedno o wpisy z dwóch tygodni (ten i poprzedni, do „km tydzień temu”).
 //   Para plany + wpisy trafia do migawki (pole „tydzien”, z poniedziałkiem, którego dotyczy) i bez sieci wraca tylko dla tego samego tygodnia.
-//   LINIA TYGODNIA (blizna-377) pod powitaniem: „Ten tydzień: 24,6 z 38 km · 3 z 5 treningów”; bez planu „21,7 km · 3 dni z ruchem”.
+//   LINIA TYGODNIA (blizna-377) pod powitaniem: „Ten tydzień: 24,6 z 38 km · 3 z 5 treningów”; bez planu „21,7 km · 3 treningi”.
 //   Miejsce na linię jest w szkielecie od początku (stała wysokość), więc dociągnięcie danych niczego nie przesuwa. Gdy tygodnia nie da się
 //   policzyć (błąd, brak funkcji tygodnia), linia zostaje pusta: żadnego „0 km”, którego nie wiemy.
 //   KAFEL „TEN TYDZIEŃ” (blizna-378) po „Ostatnim treningu”: zakres dat, „Kalendarz ›”, trzy liczby (czas w ruchu, kilometry do planu, średnie tempo;
@@ -859,7 +859,7 @@
     var km = "<b>" + esc(kmTygodnia(t.km)) + "</b>";
     if (t.zaplanowane > 0) return "Ten tydzień: " + km + (t.planKm > 0 ? " z " + esc(kmTygodnia(t.planKm)) : "") + " km · <b>" + t.zrobione + "</b> z " + t.zaplanowane + " " + odmiana(t.zaplanowane, "treningu", "treningów", "treningów");
     if (!t.wpisow) return "Ten tydzień: jeszcze bez treningu";
-    return "Ten tydzień: " + km + " km · <b>" + t.dniZRuchem + "</b> " + odmiana(t.dniZRuchem, "dzień", "dni", "dni") + " z ruchem";
+    return "Ten tydzień: " + km + " km · <b>" + t.wpisow + "</b> " + odmiana(t.wpisow, "trening", "treningi", "treningów");   // jak stary Postęp tygodnia bez planu: liczba treningów (decyzja Filipa 26.11, blizna-386)
   }
   var DNI_TYG = ["pn", "wt", "śr", "cz", "pt", "sb", "nd"];
   /** „23–29 listopada”, na przełomie miesięcy „30 listopada – 6 grudnia”. */
