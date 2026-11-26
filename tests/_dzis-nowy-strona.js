@@ -15,6 +15,7 @@ const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r\
 const MODUL = czytaj('js/dzis-nowy.mjs');
 const OFFLINE = czytaj('js/dzis-offline.js');
 const KLIENT = czytaj('sb' + '.js');
+const REGULA_PLANU = czytaj('js/plan-pusty.mjs').replace(/^export /gm, '') + '\nwindow._planPusty = { stanPlanu: stanPlanu, pokazGenerator: pokazGenerator };';   // prawdziwa reguła „komu Ułóż plan” (blizna-388)
 const wytnij = (re) => { const m = re.exec(KLIENT); if (!m) throw new Error('nie ma w kliencie: ' + re); return m[0]; };
 const FUNKCJE_TYGODNIA = [/window\._parseTimeToSecs = function\(t\)\{[\s\S]*?\n  \};/, /window\._dzienWaw = function \(iso\) \{[\s\S]*?\n  \};/, /window\._tydzienWaw = function \(ts\) \{[\s\S]*?\n  \};/,
   /window\.RUN_TYPES = new Set\(\[[\s\S]*?\]\);/, /window\.isRunType = function\(t\) \{[\s\S]*?\n  \};/].map(wytnij).join('\n');
@@ -33,7 +34,7 @@ function pamiecTelefonu(mapa) {
 }
 
 function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { feel: 'mid' })], profil = PROFIL, trening = TRENING, wiadomosc = [{ body: 'Jutro luźno.', sent_at: new Date(TERAZ - 20 * 3600e3).toISOString() }],
-  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null } = {}) {
+  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null, bezReguly = false, bezGeneratora = false } = {}) {
   const klasy = new Set(['dzis-nowy']), wezly = {}, zapytania = [], czasomierze = [], sluchacze = {}, zgloszenia = [], st = { zegar: teraz, online, awaria: Object.assign({}, awaria), sesja };
   const tel = pamiecTelefonu(pamiec);
   const lista = () => { const k = new Set(); return { add: (c) => k.add(c), remove: (c) => k.delete(c), contains: (c) => k.has(c) }; };
@@ -54,9 +55,11 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   const wyslij = (nazwa, opis) => { const zq = { nazwa, opis, stan: 'czeka' }; zapytania.push(zq); return new Promise((ok) => { zq.odpowiedz = () => { if (zq.stan !== 'czeka') return; zq.stan = 'jest'; ok(odpowiedz(nazwa)); }; }); };
   const lancuch = (t) => { const kroki = []; let p = null; const q = new Proxy({}, { get(_, k) { if (k === 'then') return (a, b) => (p = p || wyslij(t === 'training_logs' && kroki.join('').includes('.gte("logged_at"') ? 'training_logs tydzien' : t, kroki.join(''))).then(a, b); return (...arg) => { kroki.push('.' + k + '(' + arg.map((x) => JSON.stringify(x)).join(',') + ')'); return q; }; } }); return q; };
   const nawigator = { get onLine() { return st.online; } };
-  const w = { _currentSection: 'home', location: { search, hash: '', pathname: '/zawodnik.html' }, URLSearchParams, navigator: nawigator, showSection(n) { this._currentSection = n; }, _logKlienta(...a) { zgloszenia.push(a); },
+  const stare = [];
+  const w = { _currentSection: 'home', location: { search, hash: '', pathname: '/zawodnik.html' }, URLSearchParams, navigator: nawigator, showSection(n) { this._currentSection = n; stare.push('showSection ' + n); }, _logKlienta(...a) { zgloszenia.push(a); },
     setTimeout(f, ms) { czasomierze.push({ f, ms, zywy: true }); return czasomierze.length; }, clearTimeout(i) { if (czasomierze[i - 1]) czasomierze[i - 1].zywy = false; },
     addEventListener(n, f) { (sluchacze[n] = sluchacze[n] || []).push(f); },
+    openChatThread(...a) { stare.push('openChatThread ' + a.join(',')); }, openModal() { stare.push('openModal'); },
     localStorage: tel, matchMedia: () => ({ matches: false }), CSS: { supports: () => true }, scrollBy() {},
     BM_AKCJA_CYTATY: { slugDla: () => 'ulica-glowna' }, feelSvg: (kod) => '<svg data-mina="' + kod + '"></svg>', FEEL_ETYKIETY: { bad: 'Ciężko', mid: 'Przeciętnie', good: 'Dobrze', great: 'Świetnie' },
     WATCH: { stanZProfilu: (a) => ({ polaczony: !!a.intervals_athlete_id, id: a.id }), render: async (_, o) => '<span class="wc-badge" data-id="' + o.athleteId + '">' + (o.stan.polaczony ? 'ok' : 'brak') + '</span>' },
@@ -70,12 +73,14 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   vm.createContext(kontekst);
   if (!bezOffline) vm.runInContext(OFFLINE, kontekst);   // prawdziwy js/dzis-offline.js → w.DzisOffline, pamięć = mapa testu
   if (!bezTygodnia) vm.runInContext(FUNKCJE_TYGODNIA, kontekst);   // prawdziwe funkcje tygodnia; bez nich moduł pyta tylko o dzisiejszy trening
+  if (!bezReguly) vm.runInContext(REGULA_PLANU, kontekst);
+  if (!bezGeneratora) w.openGenModal = () => { stare.push('openGenModal'); };
   vm.runInContext(MODUL, kontekst);
   async function doKonca() { await tik(); for (let i = 0; i < 14 && zapytania.some((x) => x.stan === 'czeka'); i++) { for (const x of zapytania.filter((y) => y.stan === 'czeka')) x.odpowiedz(); await tik(); } await tik(); }
   const dotknij = (co, kod) => korzen._zd.click({ target: { closest: (sel) => (sel === '[data-dn],[data-sekcja]' ? { getAttribute: (k) => (k === 'data-dn' ? co : k === 'data-kod' ? kod : null) } : null) } });
   /** Migawka tak, jak leży w telefonie: napis JSON spod klucza konta, rozpakowany dopiero tutaj. */
   const migawka = () => { const raw = tel.mapa.get('bm_dzis_migawka_' + UID); return raw ? JSON.parse(raw) : null; };
-  return { w, d, el, korzen, zapytania, czasomierze, sluchacze, zgloszenia, st, tel, doKonca, tik, dotknij, migawka, B: w.BM_DZIS, D: w.DzisOffline,
+  return { w, d, el, korzen, zapytania, czasomierze, sluchacze, zgloszenia, stare, st, tel, doKonca, tik, dotknij, migawka, B: w.BM_DZIS, D: w.DzisOffline,
     kafel: (n) => wezel('[data-kafel="' + n + '"]'), cz: (n) => wezel('[data-dn="' + n + '"]'), pasekOffline: () => (el['bm-offline-pasek'] && el['bm-offline-pasek-txt'] ? el['bm-offline-pasek-txt'].textContent : null) };
 }
 

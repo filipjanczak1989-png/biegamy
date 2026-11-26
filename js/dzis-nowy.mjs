@@ -232,6 +232,7 @@
     "#dzis-nowy .dn-glowny{border:0;background:#c44a13;color:#fff}#dzis-nowy .dn-drugi{border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:scale(.99)}" +
     "#dzis-nowy .dn-dzialania:empty{display:none}#dzis-nowy .dn-ciche{display:flex;flex-wrap:wrap;justify-content:center;gap:0 4px;margin:8px 0 -6px}" +
+    "#dzis-nowy .dn-cichy.dn-pod{display:block;width:100%;margin:6px 0 0}" +
     "#dzis-nowy .dn-cichy{min-height:44px;padding:0 12px;border:0;background:none;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-bol{margin:14px 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(232,184,64,.55);background:rgba(232,184,64,.07)}" +
     "#dzis-nowy .dn-bol b{display:block;color:#e8b840;font:600 13px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-bol p{margin:4px 0 0;color:#bcb8b2;font:400 13px/1.45 'DM Sans',sans-serif}" +
@@ -355,7 +356,8 @@
       else if (co === "dzwonek") { if (typeof w.openNotifications === "function") w.openNotifications(); }
       else if (co === "ponow") { rysuj(); odswiezNaglowek(); wczytaj(true); }
       else if (co === "stary") { var sid = t.getAttribute("data-stary"), stp = STARE_PRZYCISKI.indexOf(sid) >= 0 ? d.getElementById(sid) : null; if (stp && stp.click) stp.click(); }
-      else if (co === "rada") {   // jak „Napisz do trenera” w starej karcie: sekcja wiadomości, potem wątek trenera
+      else if (co === "generator") { if (typeof w.openGenModal === "function") w.openGenModal(); }   // stare okno „Ułóż plan”, ta sama droga co w starym Dziś
+      else if (co === "rada" || co === "napisz") {   // jak „Napisz do trenera” w starej karcie: sekcja wiadomości, potem wątek trenera
         if (typeof w.showSection === "function") w.showSection("msgs");
         w.setTimeout(function () { try { if (typeof w.openChatThread === "function") w.openChatThread("coach", null, null); } catch (e2) {} }, 400);
       }
@@ -489,11 +491,45 @@
     if (tekst.length > 140) tekst = tekst.slice(0, 137) + "…";
     return '<button type="button" class="dn-rada" data-dn="rada"><span class="dn-rada-kto"><b>' + esc(tekstStarego("coach-nm") || "Trener") + "</b><span>" + esc(kiedy(m.sent_at, teraz)) + '</span></span><span class="dn-rada-t">' + esc(tekst) + '</span><span class="dn-rada-w">Czytaj ›</span></button>';
   }
+  /* ── DZIŚ BEZ PLANU: generator albo trener (blizna-388) ──
+     Konto BEZ trenera ma generator planów, konto Z trenerem nie (decyzja Filipa 26.11). O tym, co pokazać, gdy na dziś nie ma treningu, decyduje
+     TA SAMA reguła co w starym Dziś i w Okienku: stanPlanu z js/plan-pusty.mjs (stary kod wystawia ją jako window._planPusty). Moduł jej nie przepisuje.
+       „generator” → „Ułóż plan” (stare openGenModal, ta sama droga co w starym Dziś), „Dodaj trening” jako drugi, cichy przycisk;
+       „trener”    → „Trener jeszcze nie wysłał planu na dziś.” i „Napisz do trenera” (sekcja wiadomości, wątek trenera); NIGDY generator;
+       „wolne”     → konto bez trenera z planem z generatora, w którym dziś nie ma treningu: „Dziś wolne”;
+       null        → jeszcze nie wiadomo (reguła się nie wczytała, profil nie doszedł): neutralne „Dziś bez planu”, bez obietnic.
+     Reguła wczytuje się w starym kodzie własnym importem; gdy kafel rysuje się wcześniej, moduł zagląda ponownie co pół sekundy (najwyżej 10 s). */
+  var czekaNaRegule = 0;
+  function stanBezPlanu() {
+    try {
+      var R = w._planPusty; if (!R || typeof R.stanPlanu !== "function" || dane.trener == null || !dane.trening) return null;
+      var dzis = kluczDnia(), gen = w._maPlanGeneratora === true || (dane.plany || []).some(function (t) { return t && t.plan_source === "generator" && t.date >= dzis; });
+      return R.stanPlanu({ maTrenera: dane.trener === true, maPlanGeneratora: gen, brakPlanu: !dane.trening.length }) || null;
+    } catch (e) { return null; }
+  }
+  function czekajNaRegule() {
+    if (w._planPusty || czekaNaRegule) return;
+    var proby = 0; czekaNaRegule = 1;
+    (function sprawdz() {
+      if (w._planPusty) { czekaNaRegule = 0; try { if (wlaczone() && dane.trening && !dane.trening.length) rysujTrening(); } catch (e) {} return; }
+      if (++proby > 20) { czekaNaRegule = 0; return; }
+      w.setTimeout(sprawdz, 500);
+    })();
+  }
+  /** Treść kafla, gdy na dziś nie ma treningu. stan z stanBezPlanu(); generator tylko, gdy stary kod ma czym go otworzyć. */
+  function bezPlanuHtml(stan) {
+    var cichy = '<button type="button" class="dn-cichy dn-pod" data-dn="zaloguj">Dodaj trening</button>';
+    if (stan === "generator" && typeof w.openGenModal === "function") return '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Nie masz planu? Ułóż go w minutę.</p><button type="button" class="dn-glowny" data-dn="generator">Ułóż plan</button>' + cichy;
+    if (stan === "trener") return '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Trener jeszcze nie wysłał planu na dziś.</p><button type="button" class="dn-glowny" data-dn="napisz">Napisz do trenera</button>' + cichy;
+    if (stan === "wolne") return '<h3 class="dn-tytul">Dziś wolne</h3><p class="dn-tekst">W Twoim planie nie ma dziś treningu.</p>' + zalogujHtml(false);
+    return '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
+  }
   /** Cały kafel „Trening na dziś” z tego, co już wczytane: plan, wiadomość od trenera, pas działań. Woła go każda z dwóch odpowiedzi fali 2. */
   function rysujTrening() {
     if (!dane.trening) return;
     dane.pogoda = pogodaTekst();
-    wpisz("trening", treningHtml(dane.trening, dane.pogoda) + radaHtml(dane.wiadomosc) + '<div class="dn-dzialania" data-dn="dzialania"></div>');
+    if (!dane.trening.length) czekajNaRegule();
+    wpisz("trening", treningHtml(dane.trening, dane.pogoda, stanBezPlanu()) + radaHtml(dane.wiadomosc) + '<div class="dn-dzialania" data-dn="dzialania"></div>');
     var pas = czesc("dzialania"); if (pas) pas._dnHtml = null;
     dzialania();
   }
@@ -578,10 +614,10 @@
     var i = pogoda.indexOf(", ");
     return '<p class="dn-pog">' + (i < 0 ? "<span>" + esc(pogoda) + "</span>" : "<span>" + esc(pogoda.slice(0, i + 1)) + "</span> <span>" + esc(pogoda.slice(i + 2)) + "</span>") + "</p>";
   }
-  /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo "". */
-  function treningHtml(lista, pogoda) {
+  /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo ""; stan = wynik stanBezPlanu() (liczy się tylko przy pustej liście). */
+  function treningHtml(lista, pogoda, stan) {
     lista = lista || [];
-    if (!lista.length) return gora("Trening na dziś", "bez planu", ["Plan", PLAN]) + pogodaHtml(pogoda) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
+    if (!lista.length) return gora("Trening na dziś", stan === "wolne" ? "z generatora" : "bez planu", ["Plan", PLAN]) + pogodaHtml(pogoda) + bezPlanuHtml(stan);
     var kto = lista[0].plan_source === "generator" ? "z generatora" : lista[0].coach_id ? "od trenera" : "";
     return gora("Trening na dziś", kto, ["Plan", PLAN]) + pogodaHtml(pogoda) + lista.map(function (t) {
       if (WOLNE.indexOf(String(t.type || "").trim()) >= 0) return '<h3 class="dn-tytul">Dzień wolny</h3><p class="dn-tekst">' + esc(t.description || "Odpoczynek też buduje formę.") + "</p>";
@@ -1153,5 +1189,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
