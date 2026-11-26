@@ -85,14 +85,14 @@ test('(2) blok w kaflu „Ostatni trening”: cztery miny kreską w kolejności 
   assert.deepEqual([...h.matchAll(/data-dn="jp-mina" data-kod="([a-z]+)" aria-pressed="false"><svg data-mina="([a-z]+)" width="22"><\/svg><span>([^<]+)<\/span>/g)].map((m) => [m[1], m[2], m[3]]),
     [['great', 'great', 'Świetnie'], ['good', 'good', 'Dobrze'], ['mid', 'mid', 'Przeciętnie'], ['bad', 'bad', 'Ciężko']], 'stare miny kreską (feelSvg), kolejność starej karty');
   assert.deepEqual([...HTML.matchAll(/class="feel-btn" data-fr="([a-z]+)"/g)].map((m) => m[1]), ['great', 'good', 'mid', 'bad']);
-  assert.match(h, /<textarea data-dn="jp-notatka"[^>]*placeholder="Dodaj notatkę \(opcjonalnie\): jak nogi, co bolało, warunki…"><\/textarea>/);
+  assert.match(h, /<div class="dn-jp-pole" data-dn="jp-pole" hidden><textarea data-dn="jp-notatka" rows="3" maxlength="500"[^>]*placeholder="Jak się czułeś\? Co cieszyło, co bolało… \(opcjonalnie\)"><\/textarea>/, 'od blizna-404: pole odczuć schowane do wyboru miny');
   assert.match(h, /data-dn="jp-zapisz">Zapisz raport<\/button><button type="button" class="dn-jp-pomin" data-dn="jp-pomin">Pomiń<\/button>/);
   assert.doesNotMatch(h, /dn-jp-kt/, 'pytamy o trening z kafla: nie trzeba go nazywać drugi raz');
   const inny = strona({ wpisy: [wpis('reczny', 2, { external_source: null, feel: 'good', training_type: 'Spacer' }), wpis('l1', 26, { training_type: 'Wybieganie', distance_km: 16.4 })] }); inny.B.start(); await inny.doKonca();
   assert.match(inny.ostatni.innerHTML, /<div class="dn-kto">Spacer · dziś<\/div>/);
   assert.match(inny.ostatni.innerHTML, /<div class="dn-jp-kt">Wybieganie · wczoraj · 16,4 km<\/div>/, 'pytanie o inny wpis niż w kaflu: nazwany wprost');
   const zKomentarzem = strona({ wpisy: [wpis('l1', 3, { comment: 'Mój opis z zegarka' })] }); zKomentarzem.B.start(); await zKomentarzem.doKonca();
-  assert.doesNotMatch(zKomentarzem.ostatni.innerHTML, /textarea/, 'wpis ma już komentarz: pola notatki nie ma, bo i tak byśmy jej nie zapisali');
+  assert.match(zKomentarzem.ostatni.innerHTML, /<p class="dn-jp-zeg">Z zegarka: Mój opis z zegarka<\/p><textarea[^>]*><\/textarea>/, 'od blizna-404 (decyzja Filipa 26.11): komentarz z zegarka jako szary podpis nad pustym polem');
   for (const [opis, wp] of [['ma odczucie', [wpis('l1', 3, { feel: 'good' })]], ['ręczny', [wpis('l1', 3, { external_source: null })]], ['stary', [wpis('l1', 60)]], ['brak wpisów', []]]) {
     const x = strona({ wpisy: wp }); x.B.start(); await x.doKonca();
     assert.doesNotMatch(x.ostatni.innerHTML, /dn-jp/, opis + ': bez pytania');
@@ -126,13 +126,17 @@ test('(3) zapis jak w starym: mina → (notatka) → „Zapisz raport” = jeden
   assert.deepEqual(s.zgloszenia, []);
 });
 
-test('(4) notatka: pusta nie idzie; istniejącego komentarza nie nadpisujemy; trzy zdania po zapisie co do słowa jak w starym', async () => {
+test('(4) notatka: pusta nie idzie; komentarz z zegarka zostaje, nowy tekst się dokleja; trzy zdania po zapisie co do słowa jak w starym', async () => {
   const pusta = strona(); pusta.B.start(); await pusta.doKonca();
   pusta.cz('jp-notatka').value = '   '; pusta.dotknij('jp-mina', 'great'); pusta.dotknij('jp-zapisz'); await pusta.tik();
   assert.equal(pusta.zapytania.find((x) => /update/.test(x.opis)).opis, '.update({"feel":"great"}).eq("id","l1").select("id")');
+  // od blizna-404 (decyzja Filipa 26.11): komentarz z zegarka nie stoi w polu; pusty tekst nie idzie, nowy dokleja się po \n
+  const bezTekstu = strona({ wpisy: [wpis('l1', 3, { comment: 'Opis z zegarka' })] }); bezTekstu.B.start(); await bezTekstu.doKonca();
+  bezTekstu.cz('jp-notatka').value = ''; bezTekstu.dotknij('jp-mina', 'bad'); bezTekstu.dotknij('jp-zapisz'); await bezTekstu.tik();
+  assert.equal(bezTekstu.zapytania.find((x) => /update/.test(x.opis)).opis, '.update({"feel":"bad"}).eq("id","l1").select("id")', 'bez nowego tekstu: pola comment nie wysyłamy, komentarz z zegarka nietknięty');
   const zKom = strona({ wpisy: [wpis('l1', 3, { comment: 'Opis z zegarka' })] }); zKom.B.start(); await zKom.doKonca();
-  zKom.cz('jp-notatka').value = 'gdyby pole jednak było'; zKom.dotknij('jp-mina', 'bad'); zKom.dotknij('jp-zapisz'); await zKom.tik();
-  assert.equal(zKom.zapytania.find((x) => /update/.test(x.opis)).opis, '.update({"feel":"bad"}).eq("id","l1").select("id")', 'komentarz z zegarka zostaje nietknięty');
+  zKom.cz('jp-notatka').value = 'potem kolka'; zKom.dotknij('jp-mina', 'bad'); zKom.dotknij('jp-zapisz'); await zKom.tik();
+  assert.equal(zKom.zapytania.find((x) => /update/.test(x.opis)).opis, '.update({"feel":"bad","comment":"Opis z zegarka\\npotem kolka"}).eq("id","l1").select("id")', 'doklejony po \\n, nie nadpisany');
   const B = strona().B;
   assert.equal(B.podpisPoZapisie('good', true), 'Trener to zobaczy, a forma policzy się dokładniej.');
   assert.equal(B.podpisPoZapisie('bad', true), 'Trener to zobaczy, a forma policzy się dokładniej.');

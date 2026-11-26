@@ -14,8 +14,13 @@
 //   Kandydat wybierany z sześciu wpisów fali 2 (zero nowych zapytań). To JEDYNE miejsca, gdzie moduł zapisuje:
 //   (1) baza: update training_logs jednego wiersza po id, pola feel i comment, dopiero po „Zapisz raport”, z odesłaniem id (0 wierszy = odmowa RLS = błąd);
 //   (2) pamięć telefonu: klucz fr_skip_<id wpisu>, ten sam co stare Dziś, więc „Pomiń” na jednym ekranie działa na drugim. Po „Pomiń” cisza:
-//       jak w starej karcie pytanie nie przechodzi na kolejny, starszy wpis.
-//   Notatka nie nadpisuje istniejącego komentarza (wtedy pola notatki nie ma). Trzy zdania po zapisie co do słowa jak w starym (decyzja Filipa 19.08.2026).
+//       jak w starej karcie pytanie nie przechodzi na kolejny, starszy wpis;
+//   (3) pamięć telefonu: szkic dn_jp_szkic_<id wpisu> (mina i tekst), żeby odpowiedź bez sieci nie ginęła (E3 commit 5, blizna-404).
+//   ODCZUCIA (E3 commit 5, 26.11, decyzja Filipa; zastępuje zasadę z 19.08 „przy komentarzu pola nie ma”): pole pod minami pojawia się po wyborze miny,
+//   500 znaków, licznik od 400. Komentarz wpisu z zegarka (synchronizacja wpisuje tam nazwę aktywności, np. „Morning Run”) NIE stoi w polu: szary podpis
+//   „Z zegarka: …” nad pustym polem, nowy tekst doklejany po \n, limit liczy tylko nowy tekst. Wpis ręczny: komentarz stoi w polu do edycji (dziś
+//   „Jak poszło?” pyta tylko o wpisy z zegarka, więc to zabezpieczenie). Pusty tekst = pola comment nie wysyłamy („nie podane = nie ruszaj”). To samo pole
+//   comment co w kalendarzu, w tym samym update co mina. Trzy zdania po zapisie co do słowa jak w starym (decyzja Filipa 19.08.2026).
 //   Ponowne start() (initAuth, powrót do aplikacji) nie pyta drugi raz przez 60 s. Zapytanie bez odpowiedzi w 10 s = błąd kafla.
 // PIERWSZE WCZYTANIE (poprawka 25.11, blizna-358): moduł dochodzi, zanim strona wczyta skrypt klienta bazy (sb.js stoi niżej niż #dzis-nowy),
 //   więc szkielet rysuje od razu, a z danymi czeka na DOMContentLoaded. Wcześniej pytał bez klienta i pokazywał „Nie udało się wczytać”.
@@ -91,7 +96,7 @@
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
   var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien"];
-  var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
+  var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null, LIMIT_NOTATKI = 500, PROG_LICZNIKA = 400;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
@@ -231,7 +236,9 @@
     "#dzis-nowy .dn-miny{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 0}" +
     "#dzis-nowy .dn-mina{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:64px;padding:8px 2px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#bcb8b2;font:500 11px/1.2 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-mina[aria-pressed=true]{border-color:#ff7a45;background:rgba(196,74,19,.18);color:#f5f3ef}" +
-    "#dzis-nowy .dn-jp textarea{display:block;width:100%;box-sizing:border-box;min-height:60px;margin:10px 0 0;padding:11px 13px;border-radius:12px;border:1px solid #2a2a30;background:#0b0b0f;color:#f5f3ef;font:400 14px/1.4 'DM Sans',sans-serif;resize:vertical}" +
+    "#dzis-nowy .dn-jp textarea{display:block;width:100%;box-sizing:border-box;margin:10px 0 0;padding:11px 13px;border-radius:12px;border:1px solid #2a2a30;background:#0f0f13;color:#f5f3ef;font:400 16px/1.4 'DM Sans',sans-serif;resize:vertical}#dzis-nowy .dn-jp textarea::placeholder{color:#8f8c97}" +
+    "#dzis-nowy .dn-jp-zeg{margin:10px 0 0;color:#8f8c97;font:400 13px/1.4 'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-jp-zeg+textarea{margin-top:6px}" +
+    "#dzis-nowy .dn-jp-licznik{display:block;margin:4px 2px 0;text-align:right;color:#8f8c97;font:500 12px/1.3 'DM Mono',monospace}#dzis-nowy .dn-jp-licznik.dn-za-duzo{color:#ff9a8a}#dzis-nowy .dn-jp-licznik[hidden]{display:none}" +
     "#dzis-nowy .dn-jp-akcje{display:flex;align-items:center;gap:8px;margin:10px 0 0}" +
     "#dzis-nowy .dn-jp-zapisz{flex:1;min-height:48px;box-sizing:border-box;border:1.5px solid #c44a13;border-radius:12px;background:transparent;color:#ff7a45;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}#dzis-nowy .dn-jp-zapisz.dn-pelny{background:#c44a13;color:#fff}#dzis-nowy .dn-jp-zapisz[disabled]{opacity:.6;cursor:default}" +
     "#dzis-nowy .dn-jp-pomin{min-height:48px;padding:0 14px;border:0;background:none;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
@@ -812,13 +819,14 @@
   /** „Spokojny · wczoraj · 10,01 km”: nazwa wpisu, o który pytamy; ta sama w bloku i w pasku na górze. */
   function jpOpis(l, teraz) { var kd = kiedy(l.logged_at, teraz); return String(l.training_type || "Trening") + (kd ? " · " + kd : "") + (km(l.distance_km) !== "—" ? " · " + km(l.distance_km) + " km" : ""); }
   /** Blok pod liczbami kafla. osobny = pytamy o inny wpis niż ten w kaflu, więc trzeba go nazwać. */
-  function jakPoszloHtml(l, osobny, teraz) {
-    var opis = jpOpis(l, teraz);
+  function jakPoszloHtml(l, osobny, teraz, wybrana, tekst) {
+    var opis = jpOpis(l, teraz), kom = String(l.comment || ""), doklej = dokleja(l), t = typeof tekst === "string" ? tekst : doklej ? "" : kom;
     return '<div class="dn-jp" data-dn="jp"><div class="dn-jp-t">Jak poszło?<small>zegarek tego nie wie</small></div>' +
       (osobny ? '<div class="dn-jp-kt">' + esc(opis) + "</div>" : "") +
-      '<div class="dn-miny">' + MINY.map(function (k) { return '<button type="button" class="dn-mina" data-dn="jp-mina" data-kod="' + k + '" aria-pressed="false">' + minaSvg(k) + "<span>" + esc(odczucie(k)) + "</span></button>"; }).join("") + "</div>" +
-      (String(l.comment || "").trim() ? "" : '<textarea data-dn="jp-notatka" maxlength="1000" aria-label="Notatka do treningu" placeholder="Dodaj notatkę (opcjonalnie): jak nogi, co bolało, warunki…"></textarea>') +
-      '<div class="dn-jp-akcje"><button type="button" class="dn-jp-zapisz" data-dn="jp-zapisz">Zapisz raport</button><button type="button" class="dn-jp-pomin" data-dn="jp-pomin">Pomiń</button></div>' +
+      '<div class="dn-miny">' + MINY.map(function (k) { return '<button type="button" class="dn-mina" data-dn="jp-mina" data-kod="' + k + '" aria-pressed="' + (k === wybrana ? "true" : "false") + '">' + minaSvg(k) + "<span>" + esc(odczucie(k)) + "</span></button>"; }).join("") + "</div>" +
+      '<div class="dn-jp-pole" data-dn="jp-pole"' + (wybrana ? "" : " hidden") + ">" + (doklej ? '<p class="dn-jp-zeg">Z zegarka: ' + esc(kom) + "</p>" : "") + '<textarea data-dn="jp-notatka" rows="3" maxlength="' + LIMIT_NOTATKI + '" aria-label="Jak się czułeś? Notatka do treningu, opcjonalnie" placeholder="Jak się czułeś? Co cieszyło, co bolało… (opcjonalnie)">' + esc(t) + "</textarea>" +
+      licznikHtml(t.length) + "</div>" +
+      '<div class="dn-jp-akcje"><button type="button" class="' + (wybrana ? "dn-jp-zapisz dn-pelny" : "dn-jp-zapisz") + '" data-dn="jp-zapisz">Zapisz raport</button><button type="button" class="dn-jp-pomin" data-dn="jp-pomin">Pomiń</button></div>' +
       '<p class="dn-jp-kom" data-dn="jp-kom" role="status" hidden></p></div>';
   }
   /** Zdanie po zapisie: brzmienie ze starej karty co do słowa (decyzja Filipa 19.08.2026). zTrenerem = profil ma coach_id. */
@@ -826,16 +834,41 @@
     if (zTrenerem) return "Trener to zobaczy, a forma policzy się dokładniej.";
     return kod === "bad" ? "Zwolnij i przyjrzyj się regeneracji — a jeśli zmęczenie nie mija, to sygnał, żeby poszukać wsparcia trenera." : "Forma policzy się dokładniej.";
   }
+  /** Wpis z zegarka z komentarzem: komentarz zostaje (podpis nad polem), nowy tekst się dokleja. */
+  function dokleja(l) { return !!l && !!String(l.external_source || "").trim() && !!String(l.comment || "").trim(); }
+  /** Pole comment do zapisu: null = nie wysyłamy (pusty albo bez zmian), false = nowy tekst ponad limit, napis = nowa wartość. */
+  function komentarzDoZapisu(stary, tekst, doklej) {
+    var t = String(tekst == null ? "" : tekst).trim(), s = String(stary == null ? "" : stary);
+    if (!t) return null;
+    if (!doklej && t === s.trim()) return null;
+    if (t.length > LIMIT_NOTATKI) return false;   // przy doklejaniu limit liczy tylko nowy tekst
+    return doklej ? s + "\n" + t : t;
+  }
+  function licznikHtml(n) { return '<span class="dn-jp-licznik' + (n > LIMIT_NOTATKI ? " dn-za-duzo" : "") + '" data-dn="jp-licznik" aria-live="polite"' + (n >= PROG_LICZNIKA ? "" : " hidden") + ">" + n + "/" + LIMIT_NOTATKI + "</span>"; }
+  function jpLicznik(n) { var el = jpCzesc("jp-licznik"); if (!el) return; el.textContent = n + "/" + LIMIT_NOTATKI; el.hidden = n < PROG_LICZNIKA; el.className = "dn-jp-licznik" + (n > LIMIT_NOTATKI ? " dn-za-duzo" : ""); }
+  /** Szkic odpowiedzi (mina i tekst) w pamięci telefonu: bez sieci zapis się nie uda, a przerysowanie albo zamknięcie aplikacji nie może go zgubić. */
+  function czytajSzkic(id) { try { var o = JSON.parse(w.localStorage.getItem("dn_jp_szkic_" + id) || "null"); return o && typeof o === "object" ? { k: MINY.indexOf(o.k) >= 0 ? o.k : null, t: typeof o.t === "string" ? o.t.slice(0, 5000) : null } : null; } catch (e) { return null; } }
+  function zapiszSzkic() { if (!jp || jp.zapisane) return; var pole = jpCzesc("jp-notatka"); try { w.localStorage.setItem("dn_jp_szkic_" + jp.id, JSON.stringify({ k: jp.kod, t: pole ? String(pole.value || "") : null })); } catch (e) {} }
+  function usunSzkic(id) { try { w.localStorage.removeItem("dn_jp_szkic_" + id); } catch (e) {} }
+  /** Wpisywanie w pole odczuć: licznik od 400 znaków i szkic. */
+  function wpisywanie(e) {
+    var t = e && e.target && e.target.closest ? e.target.closest("[data-dn]") : null;
+    if (!t || t.getAttribute("data-dn") !== "jp-notatka" || !jp) return;
+    jpLicznik(String(t.value || "").length); zapiszSzkic();
+  }
   function jpCzesc(n) { var el = kafel("ostatni"); return el && el.querySelector ? el.querySelector('[data-dn="' + n + '"]') : null; }
   function jpKomunikat(tekst) { var el = jpCzesc("jp-kom"); if (el) { el.textContent = tekst || ""; el.hidden = !tekst; } }
-  function jpBrudny() { var n = jpCzesc("jp-notatka"); return !!jp && (!!jp.kod || jp.zapisuje || !!(n && String(n.value || "").trim())); }
+  function jpBrudny() { return !!jp && (!!jp.kod || jp.zapisuje); }   // pole odczuć jest dopiero po wyborze miny, więc mina wystarcza
   /** Kafle „Ostatni trening” i lista z dane.wpisy. Gdy ktoś właśnie wybiera minę albo pisze notatkę do tego samego wpisu, kafla nie przerysowujemy. */
   function rysujWpisy(sb) {
     var l = dane.wpisy || [], kand = dane.wpisyZTelefonu ? null : kandydatOdczucia(l);   // wpisy z telefonu = bez sieci: nie pytamy, bo odczucia nie dałoby się zapisać
     if (l.length > 1) wpisz("lista", listaHtml(l.slice(1))); else schowaj("lista");
-    if (jp && kand && kand.id === jp.id && jpBrudny()) return;
-    jp = kand ? { id: kand.id, kod: null, zapisuje: false, zapisane: false, opis: jpOpis(kand), maKomentarz: !!String(kand.comment || "").trim(), sb: sb || (jp && jp.sb) || null } : null;
-    wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0]) : ""));
+    /* rozpoczęta odpowiedź zostaje także, gdy dane przyszły z pamięci telefonu (wtedy kandydata nie ma, bo bez sieci nie pytamy): do 26.11 mina i notatka
+       ginęły przy pierwszym przerysowaniu bez sieci (powrót do aplikacji, ↺ zegarka) */
+    if (jp && jpBrudny() && (kand ? kand.id === jp.id : dane.wpisyZTelefonu)) return;
+    var szkic = kand ? czytajSzkic(kand.id) : null;
+    jp = kand ? { id: kand.id, kod: szkic ? szkic.k : null, zapisuje: false, zapisane: false, opis: jpOpis(kand), komentarz: String(kand.comment || ""), doklej: dokleja(kand), sb: sb || (jp && jp.sb) || null } : null;
+    wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0], undefined, jp.kod, szkic && szkic.t !== null ? szkic.t : undefined) : ""));
     zdarzenie();   // zachęta w pasku pojawia się i znika razem z blokiem, w tym samym kroku co kafel
   }
   /* Kolor (audyt A3, blizna-392): pomarańczowy był wszędzie, więc niczego nie wyróżniał. Etykiety kafli („Trening na dziś”, „Ulica”, „Jak poszło?”)
@@ -848,10 +881,13 @@
     var el = kafel("ostatni"), miny = el && el.querySelectorAll ? el.querySelectorAll('[data-dn="jp-mina"]') : [];
     for (var i = 0; i < miny.length; i++) miny[i].setAttribute("aria-pressed", miny[i].getAttribute("data-kod") === kod ? "true" : "false");
     var guzik = jpCzesc("jp-zapisz"); if (guzik) guzik.className = "dn-jp-zapisz dn-pelny";
+    var pole = jpCzesc("jp-pole"); if (pole) pole.hidden = false;
+    zapiszSzkic();
   }
   function jpPomin() {
     if (!jp || jp.zapisuje) return;
     try { w.localStorage.setItem("fr_skip_" + jp.id, "1"); } catch (e) {}
+    usunSzkic(jp.id);
     var sb = jp.sb; jp = null; rysujWpisy(sb);
   }
   /** Jedyny zapis do bazy w module. proba = ponowienie po odświeżeniu sesji (drugiego nie będzie). */
@@ -860,15 +896,16 @@
     if (!jp.kod) { jpKomunikat("Wybierz, jak poszło."); return; }
     var stan = jp, sb = stan.sb || klient(), pole = jpCzesc("jp-notatka"), notatka = pole ? String(pole.value || "").trim() : "", guzik = jpCzesc("jp-zapisz");
     if (!sb) { jpKomunikat("Nie udało się zapisać. Spróbuj ponownie."); return; }
-    var zmiana = { feel: stan.kod };
-    if (notatka && !stan.maKomentarz) zmiana.comment = notatka;   // istniejącego komentarza nie nadpisujemy
+    var zmiana = { feel: stan.kod }, kom = komentarzDoZapisu(stan.komentarz, notatka, stan.doklej);   // null = pola comment nie wysyłamy (nie kasujemy, nie ruszamy)
+    if (kom === false) { jpKomunikat("Notatka może mieć najwyżej " + LIMIT_NOTATKI + " znaków. Skróć ją."); return; }
+    if (kom) zmiana.comment = kom;
     stan.zapisuje = true; jpKomunikat(""); if (guzik) guzik.disabled = true;
     pytaj(sb.from("training_logs").update(zmiana).eq("id", stan.id).select("id")).then(function (wiersze) {
       if (jp !== stan) return;
       if (!wiersze || wiersze.length !== 1) throw { autoryzacja: false };   // 200 z pustą tablicą = RLS nie przepuściło: to nie jest sukces
       for (var i = 0; i < dane.wpisy.length; i++) if (dane.wpisy[i] && dane.wpisy[i].id === stan.id) { dane.wpisy[i].feel = stan.kod; if (zmiana.comment) dane.wpisy[i].comment = zmiana.comment; }
       var blok = jpCzesc("jp");
-      stan.zapisane = true; zdarzenie();
+      stan.zapisane = true; usunSzkic(stan.id); zdarzenie();
       if (blok) { blok.className = "dn-jp-ok"; blok.innerHTML = "<b>Zapisane — dzięki!</b><p>" + esc(podpisPoZapisie(stan.kod, dane.trener === true)) + "</p>"; }
       w.setTimeout(function () { if (jp === stan) { jp = null; rysujWpisy(sb); } }, PODZIEKOWANIE_MS);
     }).then(null, function (e) {
@@ -1286,7 +1323,7 @@
       wstawCss();
       if (k.getAttribute("data-etap") !== ETAP) {
         rysuj();
-        if (k.addEventListener && !k._dnKlik) { k.addEventListener("click", klik); k._dnKlik = true; }
+        if (k.addEventListener && !k._dnKlik) { k.addEventListener("click", klik); k.addEventListener("input", wpisywanie); k._dnKlik = true; }
       }
       if (!owiniete && typeof w.showSection === "function") {
         var oryg = w.showSection;
@@ -1341,5 +1378,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

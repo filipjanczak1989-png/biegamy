@@ -117,7 +117,7 @@ test('(4) chip „← Trener”: tylko gdy stary kod odsłonił swój; dotknięc
 
 test('(5) granice: moduł bez własnego wylogowania i bez sprzątania pamięci telefonu; cele dotyku 44 px; style tylko pod #dzis-nowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /signOut|sessionStorage.(clear|removeItem|setItem)|localStorage\.(clear|removeItem)/, 'wylogowanie i sprzątanie robi wyłącznie stara funkcja logout()');
+  assert.doesNotMatch(kod, /signOut|sessionStorage.(clear|removeItem|setItem)|localStorage\.(clear|removeItem\((?!"dn_jp_szkic_" \+ id\)))/, 'wylogowanie i sprzątanie robi wyłącznie stara funkcja logout(); jedyny wyjątek: własny szkic odpowiedzi po zapisie albo „Pomiń” (blizna-404)');
   assert.match(MODUL, /#dzis-nowy \.dn-menu button,#dzis-nowy \.dn-menu a\{[^}]*min-height:44px/);
   for (const sel of MODUL.match(/[^"{}]*\.dn-(menu|awatar|trener|rzad)[^{]*\{/g)) for (const jeden of sel.replace(/\{$/, '').split(',')) assert.match(jeden.trim(), /^#dzis-nowy /, 'selektor poza nowym Dziś: ' + jeden);
 });
