@@ -529,9 +529,41 @@
     return Number(u.cegly_n) > 0 || (Array.isArray(u.imiona) && u.imiona.length > 0) || Number(u.bez_imienia) > 0 || (Array.isArray(d.firmy) && d.firmy.some(function (f) { return f && f.rodzaj === "cegielka"; }));
   }
   var _ostatniWklad = null, _kafelDane = null;   // zapytanie o wkład nie przeszło (tłok, brak sieci): ostatnia znana liczba, nie „0 km”
+  /* STARY KAFEL A NOWE DZIŚ (26.11.2026, blizna-396; ten sam wzór co stary kadr, blizna-380). Stare Dziś chowa tylko CSS (html.dzis-nowy.dzis-gotowy),
+     więc kafel akcji montował się pod nowym ekranem niewidoczny i pobierał całą scenę ulicy. Zmierzone 26.11 na prawdziwej stronie: 2 skrypty (165 kB),
+     11 obrazów (389 kB) i zapytanie akcja_kafel_ukryty, na każde wejście, dla ekranu, którego nikt nie widzi. Teraz: dopóki stare Dziś jest schowane,
+     kafel się nie buduje (żadnej sceny, żadnego zapytania o ukrycie); dane czekają i kafel staje, gdy stary ekran wraca:
+     ?dzis=stary i konto bez przełącznika (klas nie ma od początku); podgląd trenera, #sponsor, #log-list (moduł ustępuje); konto bez wiersza zawodnika
+     i awaria modułu (stop() zdejmuje dzis-gotowy); brak modułu i odpowiedź „stary” (blok DZIS-E0 1 zdejmuje dzis-nowy). Przełącznik włączony, a moduł
+     jeszcze nie zdecydował: czekamy najwyżej 12 prób co 300 ms (moduł ma 3 s), potem kafel staje jak dotąd. Kafel zbudowany, zanim nowy ekran się
+     pokazał, zostaje. Karta pod kaflem (#akcja-karta, formularz sponsora) rysuje się jak dotąd: odłożony kafel liczy się dla niej jak stojący. */
+  var _kafelOdlozony = false, _kafelBylSchowany = false, _kafelProby = 0, _kafelCzeka = null, _kafelPilnuje = false;
+  function klasyStrony() { try { return g.document.documentElement.classList; } catch (e) { return null; } }
+  function stareDzisSchowane() { var c = klasyStrony(), tak = !!c && c.contains("dzis-nowy") && c.contains("dzis-gotowy"); if (tak) _kafelBylSchowany = true; return tak; }
+  function noweDzisWDrodze() {
+    var c = klasyStrony();
+    if (!c || !c.contains("dzis-nowy") || c.contains("dzis-gotowy") || _kafelBylSchowany || _kafelProby >= 12) return false;
+    try { if (g.BM_DZIS && typeof g.BM_DZIS.ustepuje === "function" && g.BM_DZIS.ustepuje()) return false; } catch (e) { return false; }
+    return true;
+  }
+  function kafelWroc() { if (_kafelOdlozony && _kafelDane && !stareDzisSchowane()) wstawKafel(_kafelDane[0], _kafelDane[1]); }
+  function pilnujPowrotu() {
+    if (_kafelPilnuje) return;
+    _kafelPilnuje = true;
+    try { new g.MutationObserver(function () { try { kafelWroc(); } catch (e) {} }).observe(g.document.documentElement, { attributes: true, attributeFilter: ["class"] }); } catch (e) {}
+  }
+  /** true = kafla teraz nie budujemy (stare Dziś schowane albo nowe właśnie się decyduje); dane zostają na powrót starego ekranu. */
+  function odlozKafel(d, wklad) {
+    var schowane = stareDzisSchowane(), wDrodze = !schowane && noweDzisWDrodze();
+    if (!schowane && !wDrodze) { _kafelOdlozony = false; return false; }
+    _kafelDane = [d, wklad]; _kafelOdlozony = true; pilnujPowrotu();
+    if (wDrodze && !_kafelCzeka && g.setTimeout) { _kafelProby++; _kafelCzeka = g.setTimeout(function () { _kafelCzeka = null; try { kafelWroc(); } catch (e) {} }, 300); }
+    return true;
+  }
   function wstawKafel(d, wklad) {
     var b = banerDzis();
     if (!b) return;
+    if (!b.querySelector(".akcja-dzis") && odlozKafel(d, wklad)) return;
     var slug = slugKafla(d);
     _kafelDane = [d, wklad];
     sprawdzUkrycie(slug, d, wklad);
@@ -604,7 +636,7 @@
   /* JEDNA WERSJA NA DZIŚ (Filip 9.11): kafel u góry i karta „Centrum Akcji” niżej pokazywały to samo (Ulica, licznik, pasek, wkład, Gra, Zbiórka, Firma, plakat, film).
      Gdy stoi kafel, karta zostaje tylko z tym, czego kafel nie ma: nazwa, „Zostań sponsorem kilometrów” (formularz musi być w #akcja-karta, obsługa w zawodnik.html)
      i „Więcej o akcji”. Kafel ukryty krzyżykiem = akcja znika z Dziś także z karty. Bez banera (inne strony) karta pełna jak dotąd. */
-  function kafelNaDzis(d) { var b = banerDzis(); return !!(b && b.querySelector && b.querySelector(".akcja-dzis")); }
+  function kafelNaDzis(d) { var b = banerDzis(); return !!(b && b.querySelector && b.querySelector(".akcja-dzis")) || (_kafelOdlozony && !!b); }
   /* Karta poza Dziś (8a, zgłoszenie 9.11): zawodnik.html chowa .fade-in przy zmianie zakładki, ale render karty przychodzi później (po RPC) i odsłania ją
      na Społeczności. Po każdym renderze: gdy bieżąca sekcja to nie Dziś (window._currentSection z showSection), karta wraca do ukrycia. */
   function pilnujSekcji() {
