@@ -158,6 +158,7 @@
     "#dzis-nowy .dn-kadr > div{position:relative;z-index:1;min-width:0}#dzis-nowy .dn-kadr .dn-data{color:#f5f3ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-data-m{letter-spacing:.1em}#dzis-nowy .dn-kadr .dn-data-s{letter-spacing:.02em}" +
     "@media (max-width:359px){#dzis-nowy .dn-kadr .dn-data{font-size:10px;letter-spacing:.02em}}" +
     "#dzis-nowy .dn-kadr .dn-powitanie{line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-pow-m{font-size:28px}#dzis-nowy .dn-kadr .dn-pow-s{font-size:24px}" +
+    "#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:116px;margin:0;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #2a2a30;background:#0f0f13;white-space:nowrap}" +
     "#dzis-nowy .dn-kadr-o{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;opacity:0;transition:opacity .2s ease-out}#dzis-nowy .dn-kadr-o.jest{opacity:1}" +
     "#dzis-nowy .dn-kadr-g{position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(180deg,rgba(6,6,8,.06) 0%,rgba(6,6,8,.2) 42%,rgba(6,6,8,.76) 64%,rgba(6,6,8,.9) 100%)}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
@@ -793,6 +794,10 @@
      Powitanie na kadrze stoi ZAWSZE w jednym wierszu: długie imię dostaje mniejszą czcionkę (ta sama wysokość wiersza), w ostateczności wielokropek.
      Powód zmierzony 26.11: „Cześć, Aleksandra” przy 360 px łamało się na dwa wiersze i wypychało datę w jasną część zdjęcia (kontrast 1,97:1).
      Z tego samego powodu data też stoi zawsze w jednym wierszu: dłuższa („poniedziałek · 30 października”) dostaje ciaśniejsze odstępy liter.
+     Chip „← Trener” (podgląd z panelu trenera) na zdjęciu stoi w LEWYM GÓRNYM rogu ramki, w ciemnej pigułce jak przyciski (blizna-387): nad datą
+     wisiał na środku zdjęcia. Położenie liczone od dołu kolumny tekstu, której dolna krawędź jest stała (ramka 184 px, odstęp 14 px), więc nie zależy
+     od długości imienia ani daty. W ramce bez zdjęcia (brak sieci, tryb oszczędzania) chip stoi w tym samym rogu (decyzja Filipa 26.11: zawsze
+     jedno miejsce). Tylko nagłówek bez ramki (kadr się nie wybrał) zostawia chip nad datą, jak przed kadrem.
      Jedno żądanie obrazu na wejście; przeglądarka sama wybiera 960 albo 1280 px. Kadr zmienia się dopiero przy następnym wejściu, nie pod palcem. */
   var KADR_KATALOG = "assets/ui/dzis/kadry/";
   function bezObrazu() { try { var n = w.navigator || {}; return n.onLine === false || !!(n.connection && n.connection.saveData === true); } catch (e) { return false; } }
