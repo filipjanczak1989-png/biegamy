@@ -189,7 +189,7 @@
     "#dzis-nowy .dn-tytul{margin:0 0 6px;font:400 26px/1.05 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef}" +
     "#dzis-nowy .dn-tekst{margin:0;color:#bcb8b2;font:400 14px/1.45 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-tekst b{color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-ul-km{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#dzis-nowy .dn-ul-km b{font:400 32px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}" +
-    "#dzis-nowy .dn-ul-km span{color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-ul-km span{color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-ul-km--koniec{margin-bottom:8px}" +
     "#dzis-nowy .dn-ul-scena{position:relative;height:200px;margin:-16px -16px 14px;overflow:hidden;border-radius:17px 17px 0 0;background:#1b2130}" +
     "#dzis-nowy .dn-ul-tlo{position:absolute;left:0;right:0;top:-140px}#dzis-nowy .dn-ul-tlo .us{margin:0}#dzis-nowy .dn-ul-tlo .um{margin:140px 12px 0}" +
     "#dzis-nowy .dn-ul-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
@@ -591,19 +591,20 @@
     return '<div class="dn-gora"><div><h2 class="dn-etykieta">' + esc(etykieta) + "</h2>" + (kto ? '<div class="dn-kto">' + esc(kto) + "</div>" : "") + "</div>" +
       (link ? '<a class="dn-link" href="' + esc(link[1]) + '">' + esc(link[0]) + " ›</a>" : "") + "</div>";
   }
-  function wkladTekst(wklad) {
+  function wkladTekst(wklad, koniec) {
     if (!wklad) return "";
     var k = Number(wklad.km) || 0;
-    return k > 0 ? "Twój wkład: <b>" + esc(liczba(k, k < 10 ? 1 : 0)) + " km</b>" : "Twój wkład: <b>0 km</b>. Spacer też buduje ulicę.";
+    return k > 0 ? "Twój wkład: <b>" + esc(liczba(k, k < 10 ? 1 : 0)) + " km</b>" : "Twój wkład: <b>0 km</b>" + (koniec ? "" : ". Spacer też buduje ulicę.");
   }
-  /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. zeScena: okno sceny na górze kafla (E3). */
-  function ulicaHtml(d, wklad, adres, zeScena) {
+  /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. zeScena: okno sceny na górze kafla (E3).
+      koniec: akcja zamknięta (stanAkcji): suma „razem” bez celu i paska, wkład bez zachęty (E3 commit 4). */
+  function ulicaHtml(d, wklad, adres, zeScena, koniec) {
     var suma = Number(d.suma_km) || 0, cel = Number(d.cel_km) || 0, p = Number(d.pct);
     p = Math.max(0, Math.min(100, isFinite(p) ? p : cel > 0 ? suma / cel * 100 : 0));
     return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) + progUlicyHtml(d) +
-      '<div class="dn-ul-km"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%</span></div>" +
-      '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>' +
-      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad) + "</p>" + przyciskiUlicyHtml(d);
+      '<div class="dn-ul-km' + (koniec ? ' dn-ul-km--koniec' : '') + '"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>" + (koniec ? "km razem · akcja zakończona" : "z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%") + "</span></div>" +
+      (koniec ? "" : '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>') +
+      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad, koniec) + "</p>" + przyciskiUlicyHtml(d);
   }
   /* PLAKAT, ZBIÓRKA, PRÓG (E3 commit 3, 26.11.2026, blizna-401). Reguły ze starego kodu akcji (js/akcja.mjs), nie kopie: plakat tylko z białej listy
      hostów (plakatUrl → safeUrlAttr), zbiórka tylko https (linkZbiorki → safeExternalHref), próg tylko z pola prog licznika (baza oddaje je przez 48 h
@@ -676,12 +677,41 @@
       scenaObs.observe(el);
     } catch (e) { start(); }
   }
-  /** Kafel Ulicy z licznika z bazy: liczby jak dotąd, nad nimi scena (nowa albo ta sama, przeniesiona). */
-  function wpiszUlice(dn, adres, slug) {
-    var zeScena = scenaMozliwa();
-    wpisz("ulica", ulicaHtml(dn, null, adres, zeScena));
+  /* STANY BRZEGOWE I BEZ SIECI (E3 commit 4, 26.11.2026, blizna-403). Zero zapytań.
+     - Stan akcji z reguły starego kodu (BM_AKCJA.stanKarty, ta sama co dla starej karty): „trwa”; „zamknieta” przez 7 dni po końcu (suma razem,
+       „akcja zakończona”, bez celu i paska); „brak” przed startem i później = kafel schowany. Bez starego kodu: po starcie „trwa”, jak dotąd.
+     - Bez sieci kafel z pamięci telefonu (DzisOffline, część dzisNowe) dostaje scenę z zapamiętanego licznika, jeśli da się ją postawić bez sieci:
+       moduł sceny już jest w stronie (sieć padła w trakcie: stojąca scena zostaje, nie jest rozbierana) albo jego skrypty leżą w pamięci Service
+       Workera (sprawdzane raz na starcie, caches.match). Inaczej kafel bez okna, żeby puste okno nie zjechało po 10 s. Konfetti tylko z bazy.
+     - Konto próby: stary kod (akcja-cytaty odswiezStan) scala licznik próby z danymi z osobnej funkcji (nazwa, imię, zbiórka, plakat, rysunek koparki)
+       i zostawia go w window._akcjaStan. Kafel bierze go zamiast samego licznika próby; gdy stary kod skończy później, kafel rysuje się jeszcze raz.
+       Do pamięci telefonu idzie licznik z bazy (bez podpisanych adresów z funkcji próby). */
+  var scenaWPamieci = null, ulicaOst = null, owinietaAkcja = false;
+  function stanAkcji(dn) {
+    if (!dn || !dn.wystartowala) return "brak";
+    var f = akcjaF("stanKarty");
+    try { var s = f ? f(dn, Date.now()) : "trwa"; return s === "zamknieta" || s === "brak" ? s : "trwa"; } catch (e) { return "trwa"; }
+  }
+  function sprawdzScenePamiec() {
+    if (scenaWPamieci !== null) return;
+    scenaWPamieci = false;
+    try { if (w.caches && typeof w.caches.match === "function") Promise.all([w.caches.match("js/ulica.mjs"), w.caches.match("js/ulica-scena.mjs")]).then(function (r) { scenaWPamieci = !!(r[0] && r[1]); }, function () {}); } catch (e) {}
+  }
+  function scenaBezSieci() { return !!(w.BM_ULICA && w.BM_ULICA.naKaflu) || scenaWPamieci === true; }
+  function licznikProby(dn) { var s = w._akcjaStan; return s && typeof s === "object" && s.wystartowala ? s : dn; }
+  function odswiezProbe() {
+    var o = ulicaOst, s = w._akcjaStan;
+    if (!o || o.slug !== "proba" || o.zTel || !s || typeof s !== "object" || !s.wystartowala || s === o.dn || !wlaczone() || ustepuje() || wstrzymane) return;
+    if (stanAkcji(s) === "brak") return;
+    wpiszUlice(s, o.wklad, o.adres, o.slug, false);
+  }
+  /** Kafel Ulicy: liczby, nad nimi scena (nowa albo ta sama, przeniesiona). zTel = z pamięci telefonu (bez konfetti, scena tylko bez sieci). */
+  function wpiszUlice(dn, wklad, adres, slug, zTel) {
+    var koniec = stanAkcji(dn) === "zamknieta", zeScena = scenaMozliwa() && (!zTel || scenaBezSieci());
+    ulicaOst = { dn: dn, wklad: wklad, adres: adres, slug: slug, zTel: !!zTel, koniec: koniec };
+    wpisz("ulica", ulicaHtml(dn, wklad, adres, zeScena, koniec));
     var prog = progUlicy(dn), konfetti = akcjaF("konfettiProgu");
-    if (prog && konfetti && slug) w.setTimeout(function () { try { konfetti(slug, prog); } catch (e) {} }, 0);
+    if (!zTel && prog && konfetti && slug) w.setTimeout(function () { try { konfetti(slug, prog); } catch (e) {} }, 0);
     if (!zeScena) { usunScene(); return; }
     var el = kafel("ulica"), miejsce = el && el.querySelector ? el.querySelector('[data-dn="scena"]') : null, mur = el && el.querySelector ? el.querySelector(".dn-ul-mur") : null;
     if (!miejsce) return;
@@ -1081,8 +1111,8 @@
   /** Każda z czterech funkcji rysuje swój kafel z telefonu i oddaje true; false = w telefonie tego nie ma (wtedy zwykły komunikat o błędzie). */
   function awaryjnieUlica(nr) {
     var n = zPamieci(); if (nr !== dane.nr || !n || !("ulica" in n)) return false;
-    usunScene();   // E3: z pamięci telefonu kafel bez sceny (scena bez sieci: E3 commit 4)
-    var u = n.ulica; if (u && u.licznik && u.licznik.wystartowala) wpisz("ulica", ulicaHtml(u.licznik, u.wklad || null, String(u.adres || ""))); else schowaj("ulica");
+    var u = n.ulica;
+    if (u && u.licznik && stanAkcji(u.licznik) !== "brak") wpiszUlice(u.licznik, u.wklad || null, String(u.adres || ""), "", true); else { usunScene(); schowaj("ulica"); }
     return zTelefonu(n, "ulica");
   }
   function awaryjnieTrening(nr) {
@@ -1161,9 +1191,10 @@
     return { pokaz: function () {
       pL.then(function (dn) {
         if (nr !== dane.nr) return;
-        if (!dn || !dn.wystartowala) { usunScene(); schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
-        wpiszUlice(dn, adres, slug);
-        pW.then(function (wk) { if (nr !== dane.nr) return; zapamietaj(nr, "ulica", { licznik: dn, wklad: wk || null, adres: adres }); var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
+        if (stanAkcji(dn) === "brak") { usunScene(); schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
+        var dnK = slug === "proba" ? licznikProby(dn) : dn;
+        wpiszUlice(dnK, null, adres, slug);
+        pW.then(function (wk) { if (nr !== dane.nr) return; zapamietaj(nr, "ulica", { licznik: dn, wklad: wk || null, adres: adres }); if (ulicaOst && !ulicaOst.zTel) ulicaOst.wklad = wk || null; var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk, stanAkcji(dnK) === "zamknieta"); });
       }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("akcja"); if (e && e.siec && awaryjnieUlica(nr)) return; schowaj("ulica"); });
     } };
   }
@@ -1283,6 +1314,12 @@
           return r;
         };
         owinietyZapis = true;
+      }
+      sprawdzScenePamiec();
+      if (!owinietaAkcja && typeof w._odswiezStanAkcji === "function") {   // E3 4: konto próby dostaje scalony licznik starego kodu, także gdy ten skończy po module
+        var orygAkcja = w._odswiezStanAkcji;
+        w._odswiezStanAkcji = function () { var r = orygAkcja.apply(this, arguments); try { Promise.resolve(r).then(function () { try { odswiezProbe(); } catch (e) {} }, function () {}); } catch (e) {} return r; };
+        owinietaAkcja = true;
       }
       if (!owinietaPogoda && typeof w._renderWeather === "function") {   // stary kod woła ją, gdy dojdą dane pogody (z sieci albo z pamięci karty)
         var orygPogoda = w._renderWeather;

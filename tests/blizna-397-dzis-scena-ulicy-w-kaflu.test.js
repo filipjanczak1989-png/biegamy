@@ -119,14 +119,14 @@ test('(7) moduł rysuje kafel, zanim stary skrypt akcji się wczytał: okno od r
   }
 });
 
-test('(8) kafel z pamięci telefonu (bez sieci): bez sceny, a scena z wcześniejszego wejścia zdjęta', async () => {
+test('(8) kafel z pamięci telefonu (bez sieci): stojąca scena zostaje (E3 commit 4, blizna-403; do 26.11 była zdejmowana)', async () => {
   const s = strona(), st = staryKod(s, { odrazu: true }); s.B.start(); await s.doKonca();
-  const tu = scena(s);
+  const tu = scena(s), pierwsza = tu._bmScena;
   s.st.online = false; s.st.awaria = { '*': 'siec' };
   await odswiez(s);
   const h = s.kafel('ulica').innerHTML;
-  assert.match(h, /Ulica próbna/, 'kafel z pamięci jest'); assert.doesNotMatch(h, /dn-ul-scena/, 'bez okna sceny (scena bez sieci: E3 commit 4)');
-  assert.deepEqual(st.usun, [tu]);
+  assert.match(h, /Ulica próbna/, 'kafel z pamięci jest'); assert.ok(h.startsWith(OKNO), 'okno sceny zostaje');
+  assert.deepEqual(st.usun, [], 'sieć padła w trakcie: scena nie jest rozbierana'); assert.equal(tu._bmScena, pierwsza);
 });
 
 test('(9) style: stała wysokość okna od pierwszego rysunku, scena od krawędzi do krawędzi kafla, cała scena jest linkiem do ulicy', () => {
