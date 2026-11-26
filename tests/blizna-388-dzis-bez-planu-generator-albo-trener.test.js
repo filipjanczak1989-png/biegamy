@@ -92,7 +92,8 @@ test('(6) jedna reguła: moduł woła stanPlanu z js/plan-pusty.mjs i nie ma wł
   assert.match(regula, /export function stanPlanu\(\{ maTrenera, maPlanGeneratora, brakPlanu \}\)/);
   assert.match(regula, /if \(maTrenera\) return "trener";\s*if \(maPlanGeneratora\) return "wolne";\s*return "generator";/, 'gdy reguła zmieni kształt, ten test trzeba przeczytać razem z modułem');
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.match(kod, /return R\.stanPlanu\(\{ maTrenera: dane\.trener === true, maPlanGeneratora: gen, brakPlanu: !dane\.trening\.length \}\) \|\| null;/);
+  assert.match(kod, /return R\.stanPlanu\(\{ maTrenera: dane\.trener === true, maPlanGeneratora: gen, brakPlanu: brakPlanu \}\) \|\| null;/);
+  assert.match(kod, /function stanBezPlanu\(\) \{ return dane\.trening \? stanPlanuDla\(!dane\.trening\.length\) : null; \}/, 'kafel treningu pyta regułę o dzisiejszy dzień (od blizna-393 ta sama funkcja służy też kaflowi tygodnia)');
   assert.doesNotMatch(kod, /dane\.trener \? "trener"|\? "generator" :|return "generator"/, 'moduł nie rozstrzyga sam, komu należy się generator');
   assert.doesNotMatch(kod, /\bimport\s*\(/, 'plik dalej bez import: regułę wystawia stary kod');
   assert.match(kod, /else if \(co === "generator"\) \{ if \(typeof w\.openGenModal === "function"\) w\.openGenModal\(\); \}/);

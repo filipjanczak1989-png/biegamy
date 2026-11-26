@@ -64,7 +64,7 @@ test('(3) pusty tydzień bez planu kilometrów (konto ma starsze wpisy): same na
 
 test('(4) pierwszy tydzień konta: zdanie z makiety i same nazwy dni, bez liczb; tylko gdy WIEMY, że konto nie ma żadnego wpisu', async () => {
   const h = await kafel({ trening: [], wpisy: [], wpisyTyg: [], profil: BEZ_TRENERA });
-  assert.match(h, /^<div class="dn-gora">.*?Kalendarz ›<\/a><\/div><div class="dn-slupki dn-puste" aria-hidden="true">.*?<\/div><p class="dn-tekst dn-tl">Słupki pojawią się po pierwszym treningu\.<\/p>$/);
+  assert.match(h, /^<div class="dn-gora">.*?Kalendarz ›<\/a><\/div><div class="dn-slupki dn-puste" aria-hidden="true">.*?<\/div><p class="dn-tekst dn-tl">Słupki pojawią się po pierwszym treningu\.<\/p>(<button type="button" class="dn-wlink" data-dn="generator">Ułóż plan ›<\/button>)?$/);   // link dla konta bez trenera: blizna-393
   assert.doesNotMatch(h, /dn-liczby|tydzień temu|—/, 'trzy kreski nic nie mówią nowej osobie');
   // nie doszło zapytanie o ostatnie wpisy: nie wiemy, czy konto jest nowe
   const niewiadomo = await kafel({ trening: [], wpisy: [], wpisyTyg: [], profil: BEZ_TRENERA, awaria: { training_logs: 'odmowa' } });

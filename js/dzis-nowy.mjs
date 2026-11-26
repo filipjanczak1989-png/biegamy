@@ -203,6 +203,7 @@
     "#dzis-nowy .dn-legenda{display:flex;gap:14px;margin:10px 0 0;font:500 11px/1.4 'DM Sans',sans-serif;color:#bcb8b2}#dzis-nowy .dn-legenda span{display:inline-flex;align-items:center;gap:6px}" +
     "#dzis-nowy .dn-legenda i{width:10px;height:10px;box-sizing:border-box;border-radius:3px}#dzis-nowy .dn-legenda i.plan{border:1.5px dashed #77726b}#dzis-nowy .dn-legenda i.zrob{background:#ff7a45}" +
     "#dzis-nowy .dn-tl{margin-top:10px}#dzis-nowy .dn-slupki.dn-puste{margin-bottom:0}" +
+    "#dzis-nowy .dn-wlink{display:inline-flex;align-items:center;min-height:44px;margin:2px 0 -10px;padding:0;border:0;background:none;color:#ff7a45;font:600 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-inne{margin:8px 0 0;font:400 12px/1.4 'DM Sans',sans-serif;color:#bcb8b2}" +
     "#dzis-nowy .dn-l b{display:block;font:400 26px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef;white-space:nowrap}" +
     "#dzis-nowy .dn-l b small{margin-left:3px;font:500 10px/1 'DM Mono',monospace;color:#bcb8b2;letter-spacing:.04em}#dzis-nowy .dn-l b.dn-slowo{font:600 13px/2 'DM Sans',sans-serif;letter-spacing:0}" +
@@ -498,20 +499,26 @@
        „trener”    → „Trener jeszcze nie wysłał planu na dziś.” i „Napisz do trenera” (sekcja wiadomości, wątek trenera); NIGDY generator;
        „wolne”     → konto bez trenera z planem z generatora, w którym dziś nie ma treningu: „Dziś wolne”;
        null        → jeszcze nie wiadomo (reguła się nie wczytała, profil nie doszedł): neutralne „Dziś bez planu”, bez obietnic.
+     Ta sama reguła daje link „Ułóż plan ›” w kaflu „Ten tydzień”, gdy tydzień jest pusty albo to pierwszy tydzień konta (blizna-393): tylko konto
+     bez trenera i bez planu z generatora, i tylko gdy w tygodniu nie ma żadnego planu. Konto z trenerem nigdy go nie widzi.
      Reguła wczytuje się w starym kodzie własnym importem; gdy kafel rysuje się wcześniej, moduł zagląda ponownie co pół sekundy (najwyżej 10 s). */
   var czekaNaRegule = 0;
-  function stanBezPlanu() {
+  /** Wynik reguły dla podanego „czy brakuje planu”; null = nie wiadomo (reguła albo profil się nie wczytały). */
+  function stanPlanuDla(brakPlanu) {
     try {
-      var R = w._planPusty; if (!R || typeof R.stanPlanu !== "function" || dane.trener == null || !dane.trening) return null;
+      var R = w._planPusty; if (!R || typeof R.stanPlanu !== "function" || dane.trener == null) return null;
       var dzis = kluczDnia(), gen = w._maPlanGeneratora === true || (dane.plany || []).some(function (t) { return t && t.plan_source === "generator" && t.date >= dzis; });
-      return R.stanPlanu({ maTrenera: dane.trener === true, maPlanGeneratora: gen, brakPlanu: !dane.trening.length }) || null;
+      return R.stanPlanu({ maTrenera: dane.trener === true, maPlanGeneratora: gen, brakPlanu: brakPlanu }) || null;
     } catch (e) { return null; }
   }
+  function stanBezPlanu() { return dane.trening ? stanPlanuDla(!dane.trening.length) : null; }
+  /** Czy w kaflu tygodnia wolno zaproponować generator: reguła mówi „generator” i strona ma czym go otworzyć. */
+  function generatorWTygodniu() { return stanPlanuDla(true) === "generator" && typeof w.openGenModal === "function"; }
   function czekajNaRegule() {
     if (w._planPusty || czekaNaRegule) return;
     var proby = 0; czekaNaRegule = 1;
     (function sprawdz() {
-      if (w._planPusty) { czekaNaRegule = 0; try { if (wlaczone() && dane.trening && !dane.trening.length) rysujTrening(); } catch (e) {} return; }
+      if (w._planPusty) { czekaNaRegule = 0; try { if (wlaczone() && dane.trening && !dane.trening.length) { rysujTrening(); rysujTydzien(); } } catch (e) {} return; }
       if (++proby > 20) { czekaNaRegule = 0; return; }
       w.setTimeout(sprawdz, 500);
     })();
@@ -924,8 +931,9 @@
     if (x.plan) return "Dziś jeszcze nic · trening w planie";
     return x.wolne ? "Dziś wolne" : "";
   }
-  /** Kafel „Ten tydzień”. t = wynik policzTydzien, z = zakresTygodnia (z.dzis wyróżnia dzisiejszy słupek), pierwszy = konto nie ma jeszcze żadnego wpisu. */
-  function tydzienHtml(t, z, pierwszy) {
+  /** Kafel „Ten tydzień”. t = wynik policzTydzien, z = zakresTygodnia (z.dzis wyróżnia dzisiejszy słupek), pierwszy = konto nie ma jeszcze żadnego wpisu,
+      generator = wolno zaproponować „Ułóż plan ›” (generatorWTygodniu); link pojawia się tylko w pustym tygodniu bez żadnego planu. */
+  function tydzienHtml(t, z, pierwszy, generator) {
     var cr = czasRuchu(t.sek), zPlanem = t.planKm > 0, czyta = [], pusto = !t.wpisow && !zPlanem, nowe = pusto && !!pierwszy && !t.zaplanowane;
     var dzis = dzisWTygodniu(t.dni.filter(function (x) { return x.dzien === z.dzis; })[0]);
     var L = [[cr[0], cr[1], "czas w ruchu"], zPlanem ? [kmTygodnia(Math.max(0, t.planKm - t.km)), "km", "do planu"] : [kmTygodnia(t.kmPoprz), "km", "tydzień temu"], [tempoZSek(t.tempoSek), "/km", "śr. tempo"]];
@@ -939,7 +947,8 @@
     }).join("");
     return gora("Ten tydzień", zakresDat(z), ["Kalendarz", PLAN]) +
       (nowe ? "" : '<div class="dn-liczby dn-trzy">' + L.map(function (x) { return '<div class="dn-l"><b>' + esc(x[0]) + (x[1] && x[0] !== "—" ? "<small>" + esc(x[1]) + "</small>" : "") + "</b><span>" + esc(x[2]) + "</span></div>"; }).join("") + "</div>") +
-      (pusto ? '<div class="dn-slupki dn-puste" aria-hidden="true">' + slupki + '</div><p class="dn-tekst dn-tl">' + (nowe ? "Słupki pojawią się po pierwszym treningu." : "W tym tygodniu jeszcze bez treningu.") + "</p>"
+      (pusto ? '<div class="dn-slupki dn-puste" aria-hidden="true">' + slupki + '</div><p class="dn-tekst dn-tl">' + (nowe ? "Słupki pojawią się po pierwszym treningu." : "W tym tygodniu jeszcze bez treningu.") + "</p>" +
+          (generator && !t.zaplanowane ? '<button type="button" class="dn-wlink" data-dn="generator">Ułóż plan ›</button>' : "")
         : '<div class="dn-slupki" role="img" aria-label="' + esc("Kilometry dzień po dniu: " + czyta.join("; ")) + '">' + slupki + "</div>") +
       (dzis ? '<p class="dn-tekst dn-tl">' + dzis + "</p>" : "") +
       (zPlanem ? '<p class="dn-legenda"><span><i class="plan"></i>plan</span><span><i class="zrob"></i>zrobione</span></p>' : "") +
@@ -948,7 +957,7 @@
   /** Linia pod powitaniem i kafel „Ten tydzień” z tego samego wyniku. Bez wyniku: linia pusta, kafel schowany. */
   function rysujTydzien() {
     var el = czesc("tydzien-linia"), h = tydzienLinia(dane.tydzien); if (el && el._dnHtml !== h) { el.innerHTML = h; el._dnHtml = h; }
-    if (dane.tydzien && dane.zakres) wpisz("tydzien", tydzienHtml(dane.tydzien, dane.zakres, dane.wpisyZnane && !(dane.wpisy || []).length)); else schowaj("tydzien");
+    if (dane.tydzien && dane.zakres) wpisz("tydzien", tydzienHtml(dane.tydzien, dane.zakres, dane.wpisyZnane && !(dane.wpisy || []).length, generatorWTygodniu())); else schowaj("tydzien");
   }
   /** Obie połowy (plany i wpisy tygodnia) są: liczymy i zapisujemy parę do migawki. */
   function przeliczTydzien(nr, zTel) {
@@ -1198,5 +1207,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
