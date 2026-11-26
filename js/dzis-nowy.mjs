@@ -190,6 +190,9 @@
     "#dzis-nowy .dn-tekst{margin:0;color:#bcb8b2;font:400 14px/1.45 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-tekst b{color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-ul-km{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#dzis-nowy .dn-ul-km b{font:400 32px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}" +
     "#dzis-nowy .dn-ul-km span{color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-ul-scena{position:relative;height:200px;margin:-16px -16px 14px;overflow:hidden;border-radius:17px 17px 0 0;background:#1b2130}" +
+    "#dzis-nowy .dn-ul-tlo{position:absolute;left:0;right:0;top:-140px}#dzis-nowy .dn-ul-tlo .us{margin:0}#dzis-nowy .dn-ul-tlo .um{margin:140px 12px 0}" +
+    "#dzis-nowy .dn-ul-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
     "#dzis-nowy .dn-pasek{height:8px;border-radius:4px;background:#1b1b21;overflow:hidden;margin:10px 0}#dzis-nowy .dn-pasek i{display:block;height:100%;border-radius:4px;background:#c44a13}" +
     "#dzis-nowy .dn-plan{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 8px}#dzis-nowy .dn-plan-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
     "#dzis-nowy .dn-typ{display:inline-block;padding:4px 10px;border-radius:999px;background:#1b1b21;color:#f5f3ef;font:600 12px/1.3 'DM Sans',sans-serif}" +
@@ -587,14 +590,74 @@
     var k = Number(wklad.km) || 0;
     return k > 0 ? "Twój wkład: <b>" + esc(liczba(k, k < 10 ? 1 : 0)) + " km</b>" : "Twój wkład: <b>0 km</b>. Spacer też buduje ulicę.";
   }
-  /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. */
-  function ulicaHtml(d, wklad, adres) {
+  /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. zeScena: okno sceny na górze kafla (E3). */
+  function ulicaHtml(d, wklad, adres, zeScena) {
     var suma = Number(d.suma_km) || 0, cel = Number(d.cel_km) || 0, p = Number(d.pct);
     p = Math.max(0, Math.min(100, isFinite(p) ? p : cel > 0 ? suma / cel * 100 : 0));
-    return gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) +
+    return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) +
       '<div class="dn-ul-km"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%</span></div>" +
       '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>' +
       '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad) + "</p>";
+  }
+  /* SCENA ULICY (E3 commit 1, 26.11.2026, blizna-397). Ta sama scena co w starym kaflu i na stronie akcji: BM_ULICA.naKaflu z js/ulica.mjs,
+     który ładuje stary kod (BM_AKCJA.zUlica: najpierw sezon, potem ulica i scena). Dane: licznik, o który moduł już pyta; scena w trybie kafla
+     sama o nic nie pyta (ranking gry i dźwięk tylko poza kaflem), więc budżet zostaje 6 / 7. Okno ma stałą wysokość od pierwszego rysunku (bez skoku).
+     Ładowanie dopiero, gdy kafel jest blisko ekranu: sekcja Dziś schowana albo kafel daleko = nic się nie pobiera. Element sceny przeżywa ponowne
+     rysowanie kafla (przenoszony do nowego okna), więc odświeżenie danych tylko przesuwa licznik. Okno pojawia się tylko, gdy stary kod może je
+     wypełnić (albo strona jeszcze się czyta); stary kod nie doszedł albo scena nie wstała w 10 s = okno znika i kafel jest taki jak przed E3. */
+  var scenaUl = null, scenaDane = null, scenaStan = 0, scenaObs = null, scenaNiema = false;   // stan: 0 nic, 1 czeka na ekran, 2 ładowana albo stoi
+  function scenaMozliwa() {
+    if (scenaNiema) return false;
+    try { return !!(w.BM_ULICA && w.BM_ULICA.naKaflu) || !!(w.BM_AKCJA && w.BM_AKCJA.zUlica) || d.readyState === "loading"; } catch (e) { return false; }
+  }
+  function scenaHtml(adres) {
+    return '<div class="dn-ul-scena"><div class="dn-ul-tlo" data-dn="scena"></div>' + (adres ? '<a class="dn-ul-link" href="' + esc(adres) + '" tabindex="-1" aria-hidden="true"></a>' : "") + "</div>";
+  }
+  /** Ulica z modułu sceny: gotowy, ładowany przez stary kod, albo po DOMContentLoaded (stary skrypt akcji stoi niżej w stronie). Brak = bez sceny. */
+  function zUlicy(cb) {
+    if (w.BM_ULICA && w.BM_ULICA.naKaflu) { cb(w.BM_ULICA); return; }
+    if (w.BM_AKCJA && w.BM_AKCJA.zUlica) { w.BM_AKCJA.zUlica(cb); return; }
+    if (d.readyState === "loading") { d.addEventListener("DOMContentLoaded", function () { zUlicy(cb); }); return; }
+    bezSceny();
+  }
+  function usunScene() {
+    if (scenaObs) { try { scenaObs.disconnect(); } catch (e) {} scenaObs = null; }
+    if (scenaUl && w.BM_ULICA && w.BM_ULICA.usun) { try { w.BM_ULICA.usun(scenaUl); } catch (e) {} }
+    scenaUl = null; scenaDane = null; scenaStan = 0;
+  }
+  function bezSceny() {
+    scenaNiema = true; usunScene();
+    var el = kafel("ulica"), o = el && el.querySelector ? el.querySelector(".dn-ul-scena") : null;
+    if (o) o.hidden = true;
+  }
+  function montujScene() {
+    var tu = scenaUl;
+    if (!tu || !scenaDane) return;
+    var pierwszy = !tu._bmScena && !tu._bmCzeka;
+    zUlicy(function (U) { if (tu === scenaUl && scenaDane && U && U.naKaflu) U.naKaflu(tu, scenaDane); });
+    if (pierwszy) w.setTimeout(function () { if (tu === scenaUl && !tu.firstChild) bezSceny(); }, 10000);
+  }
+  function czekajNaEkran(el) {
+    if (scenaStan) return;
+    scenaStan = 1;
+    var start = function () { if (scenaObs) { try { scenaObs.disconnect(); } catch (e) {} scenaObs = null; } scenaStan = 2; montujScene(); };
+    if (!w.IntersectionObserver || !el) { start(); return; }
+    try {
+      scenaObs = new w.IntersectionObserver(function (wpisy) { for (var i = 0; i < wpisy.length; i++) if (wpisy[i].isIntersecting) { start(); return; } }, { rootMargin: "300px 0px" });
+      scenaObs.observe(el);
+    } catch (e) { start(); }
+  }
+  /** Kafel Ulicy z licznika z bazy: liczby jak dotąd, nad nimi scena (nowa albo ta sama, przeniesiona). */
+  function wpiszUlice(dn, adres) {
+    var zeScena = scenaMozliwa();
+    wpisz("ulica", ulicaHtml(dn, null, adres, zeScena));
+    if (!zeScena) { usunScene(); return; }
+    var el = kafel("ulica"), miejsce = el && el.querySelector ? el.querySelector('[data-dn="scena"]') : null;
+    if (!miejsce) return;
+    if (scenaUl && scenaUl !== miejsce) { try { miejsce.parentNode.replaceChild(scenaUl, miejsce); } catch (e) { usunScene(); scenaUl = miejsce; } }
+    else scenaUl = miejsce;
+    scenaDane = dn;
+    if (scenaStan === 2) montujScene(); else czekajNaEkran(el);
   }
   /** Przycisk wyniku: główny „Zaloguj wynik”, gdy na dziś jest niezrobiony plan; w dzień wolny, bez planu i po zrobionym planie mniejszy „Dodaj trening”.
       Stare Dziś pokazuje „Zaloguj wynik” zawsze; oba otwierają ten sam formularz. */
@@ -985,6 +1048,7 @@
   /** Każda z czterech funkcji rysuje swój kafel z telefonu i oddaje true; false = w telefonie tego nie ma (wtedy zwykły komunikat o błędzie). */
   function awaryjnieUlica(nr) {
     var n = zPamieci(); if (nr !== dane.nr || !n || !("ulica" in n)) return false;
+    usunScene();   // E3: z pamięci telefonu kafel bez sceny (scena bez sieci: E3 commit 4)
     var u = n.ulica; if (u && u.licznik && u.licznik.wystartowala) wpisz("ulica", ulicaHtml(u.licznik, u.wklad || null, String(u.adres || ""))); else schowaj("ulica");
     return zTelefonu(n, "ulica");
   }
@@ -1064,8 +1128,8 @@
     return { pokaz: function () {
       pL.then(function (dn) {
         if (nr !== dane.nr) return;
-        if (!dn || !dn.wystartowala) { schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
-        wpisz("ulica", ulicaHtml(dn, null, adres));
+        if (!dn || !dn.wystartowala) { usunScene(); schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
+        wpiszUlice(dn, adres);
         pW.then(function (wk) { if (nr !== dane.nr) return; zapamietaj(nr, "ulica", { licznik: dn, wklad: wk || null, adres: adres }); var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
       }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("akcja"); if (e && e.siec && awaryjnieUlica(nr)) return; schowaj("ulica"); });
     } };
