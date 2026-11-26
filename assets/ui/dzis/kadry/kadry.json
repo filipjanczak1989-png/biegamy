@@ -1,0 +1,75 @@
+{
+  "wersja": 1,
+  "opis": "Kadry dnia do nagłówka nowego Dziś. Plik = <id>-<szerokość>.webp w tym katalogu. pogoda: null = bez warunku, inaczej kadr tylko przy takiej pogodzie. tlo = kolor ramki przed wczytaniem zdjęcia.",
+  "proporcje": "21:9",
+  "rozmiary": [
+    {
+      "szerokosc": 960,
+      "wysokosc": 411,
+      "limit_bajtow": 50000
+    },
+    {
+      "szerokosc": 1280,
+      "wysokosc": 549,
+      "limit_bajtow": 80000
+    }
+  ],
+  "kadry": [
+    {
+      "id": "zima-sciezka",
+      "pora_roku": "zima",
+      "pogoda": null,
+      "pora_dnia": "dzien",
+      "tlo": "#4c443c",
+      "opis": "ścieżka wśród traw"
+    },
+    {
+      "id": "zima-stadion",
+      "pora_roku": "zima",
+      "pogoda": null,
+      "pora_dnia": "dzien",
+      "tlo": "#423a3a",
+      "opis": "stadion z bieżnią"
+    },
+    {
+      "id": "zima-bulwar",
+      "pora_roku": "zima",
+      "pogoda": null,
+      "pora_dnia": "dzien",
+      "tlo": "#343a3f",
+      "opis": "bulwar nad rzeką o świcie"
+    },
+    {
+      "id": "zima-park",
+      "pora_roku": "zima",
+      "pogoda": "snieg",
+      "pora_dnia": "dzien",
+      "tlo": "#37404a",
+      "opis": "ośnieżony park z ławką"
+    },
+    {
+      "id": "zima-dwoje",
+      "pora_roku": "zima",
+      "pogoda": "snieg",
+      "pora_dnia": "zmrok",
+      "tlo": "#323a43",
+      "opis": "dwoje biegaczy na śniegu o zmierzchu"
+    },
+    {
+      "id": "zima-deszcz",
+      "pora_roku": "zima",
+      "pogoda": "deszcz",
+      "pora_dnia": "dzien",
+      "tlo": "#373c42",
+      "opis": "mokra ulica na osiedlu we mgle"
+    },
+    {
+      "id": "zima-latarnie",
+      "pora_roku": "zima",
+      "pogoda": null,
+      "pora_dnia": "zmrok",
+      "tlo": "#2d2a25",
+      "opis": "ulica z latarniami po zmroku"
+    }
+  ]
+}
