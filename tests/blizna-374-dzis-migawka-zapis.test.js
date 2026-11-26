@@ -85,7 +85,7 @@ test('(6) granice: nowa część jest na liście dozwolonych; moduł zapisuje ty
   assert.match(OFFLINE, /var CZESCI = \['logi', 'dzis', 'tydzien', 'trener', 'postep', 'zawodnik', 'wiadomosc', 'hero', 'dzisNowe'\];/);
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   assert.deepEqual(kod.match(/\.zapisz\([^)]*\)/g), ['.zapisz(mig.uid, "dzisNowe", mig.pola)']);
-  assert.equal((kod.match(/localStorage/g) || []).length, 2, 'własny dostęp do pamięci telefonu dalej tylko dla „Pomiń” (blizna-356)');
+  assert.equal((kod.match(/localStorage/g) || []).length, 4, 'własny dostęp do pamięci telefonu tylko dla „Pomiń” i pamięci kadrów (blizna-356, blizna-384); migawka idzie przez DzisOffline');
   assert.doesNotMatch(kod, /DzisOffline\.(wyczysc|_storage|klucz)|bm_dzis_migawka/);
   assert.doesNotMatch(kod, /zapamietaj\(nr, "profil", \{[^}]*coach_id:/, 'identyfikator trenera nie idzie do migawki');
 });

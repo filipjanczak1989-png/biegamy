@@ -142,12 +142,15 @@ test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez param
 
 test('(6) granice: moduł czyta przez klienta bazy; DWA wyjątki od „tylko odczyt” (blizna-363): jeden update odczucia i jeden klucz pamięci telefonu; cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|sessionStorage|indexedDB|\.cookie|sendBeacon|\.(insert|upsert|delete)\(|\.rpc\("(?!akcja_licznik|akcja_moj_wklad)/, 'żadnych własnych żądań, żadnego dopisywania ani kasowania');
+  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|sessionStorage\.(setItem|removeItem|clear)|indexedDB|\.cookie|sendBeacon|\.(insert|upsert|delete)\(|\.rpc\("(?!akcja_licznik|akcja_moj_wklad)/, 'żadnych własnych żądań, żadnego dopisywania ani kasowania');
   assert.deepEqual(kod.match(/\.update\([^\n]*/g), ['.update(zmiana).eq("id", stan.id).select("id")).then(function (wiersze) {'],'jedyny zapis: jeden wiersz po id, z odesłaniem id');
   assert.match(kod, /pytaj\(sb\.from\("training_logs"\)\.update\(zmiana\)/, 'i tylko w training_logs');
   assert.match(kod, /var zmiana = \{ feel: stan\.kod \};\s*if \(notatka && !stan\.maKomentarz\) zmiana\.comment = notatka;/, 'zapisywane pola: feel i (bez nadpisywania) comment');
-  assert.deepEqual(kod.match(/localStorage\.[a-zA-Z]+\("[^"]*"/g), ['localStorage.getItem("fr_skip_"', 'localStorage.setItem("fr_skip_"'], 'jedyny klucz pamięci telefonu: fr_skip_<id wpisu>, wspólny ze starym Dziś');
-  assert.equal((kod.match(/localStorage/g) || []).length, 2);
+  assert.deepEqual((kod.match(/localStorage\.[a-zA-Z]+\("[^"]*"/g) || []).sort(), ['localStorage.getItem("dn_kadr"', 'localStorage.getItem("fr_skip_"', 'localStorage.setItem("dn_kadr"', 'localStorage.setItem("fr_skip_"'],
+    'dwa klucze pamięci telefonu: fr_skip_<id wpisu> (wspólny ze starym Dziś) i od blizna-384 dn_kadr (które kadry już były)');
+  assert.equal((kod.match(/localStorage/g) || []).length, 4);
+  assert.deepEqual([...new Set(kod.match(/\bss\.[a-zA-Z]+|sessionStorage\.[a-zA-Z]+/g) || [])].sort(), ['ss.getItem', 'ss.key', 'ss.length'], 'pamięć karty tylko do ODCZYTU pogody (wpisy „weather:” starego Dziś), blizna-384');
+  assert.equal((kod.match(/sessionStorage/g) || []).length, 1);
   const s = strona(); s.B.start();
   const css = s.style[0].textContent;
   assert.equal(s.style.length, 1); s.B.start(); assert.equal(s.style.length, 1, 'arkusz wstawiany raz');

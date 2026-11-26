@@ -716,6 +716,66 @@
       try { var o = pamiec(); if (!o || !mig) return; mig.pola.ts = Date.now(); o.zapisz(mig.uid, "dzisNowe", mig.pola); pasekOffline(); } catch (e) {}
     });
   }
+  /* ── KADR DNIA: wybór (blizna-384) ──
+     Lista kadrów jest wpisana tutaj, bo moduł rysuje szkielet, zanim strona wczyta cokolwiek innego, a adres kadru musi być znany już wtedy.
+     Ta sama lista leży w assets/ui/dzis/kadry/kadry.json (źródło dla ludzi i dla testu zgodności): [id, pora roku, pogoda albo null, pora dnia, kolor tła].
+     Reguły, w tej kolejności (decyzje Filipa 25.11; bez rodzaju treningu):
+       1. pora roku z daty, twardo; dopóki pora roku nie ma własnych kadrów, bierze zimowe (z zimową granicą zmroku);
+       2. pora dnia: po zmroku tylko kadry „zmrok”, w dzień tylko dzienne; granica stała dla pory roku, bez liczenia wschodów;
+       3. pogoda: śnieg albo deszcz wybiera kadr z tą cechą; bez danych pogody (albo bez takiego kadru) tylko kadry bez cechy pogodowej;
+       4. anty-powtórka: nie ten sam co wczoraj i przedwczoraj; gdy nic nie zostaje, odpada anty-powtórka, nigdy pogoda ani pora roku;
+       5. wynik stały w ciągu dnia dla danej pory dnia (pamięć telefonu, klucz dn_kadr); bez pamięci (tryb prywatny) wybór i tak zależy tylko od daty.
+     Pogoda: z pamięci karty, te same wpisy „weather:” co stare Dziś (tylko odczyt), i te same kody śniegu i deszczu co stary dobór kadru. */
+  var KADRY = [["zima-sciezka", "zima", null, "dzien", "#4c443c"], ["zima-stadion", "zima", null, "dzien", "#423a3a"], ["zima-bulwar", "zima", null, "dzien", "#343a3f"], ["zima-park", "zima", "snieg", "dzien", "#37404a"],
+    ["zima-dwoje", "zima", "snieg", "zmrok", "#323a43"], ["zima-deszcz", "zima", "deszcz", "dzien", "#373c42"], ["zima-latarnie", "zima", null, "zmrok", "#2d2a25"]];
+  var KADR_PAMIEC = 8, ZMROK = { zima: [16, 7], wiosna: [19, 6], lato: [21, 5], jesien: [18, 6] };
+  function poraRoku(t) { var m = t.getMonth(); return m === 11 || m <= 1 ? "zima" : m <= 4 ? "wiosna" : m <= 7 ? "lato" : "jesien"; }
+  /** Pamięć kadrów: lista [dzień, pora dnia, id], najnowsze na końcu. Brak pamięci telefonu (tryb prywatny) = pusta lista, nigdy wyjątek. */
+  function pamiecKadrow() { try { var p = JSON.parse(w.localStorage.getItem("dn_kadr") || "[]"); return Array.isArray(p) ? p.filter(function (x) { return Array.isArray(x) && x.length === 3; }) : []; } catch (e) { return []; } }
+  function zapamietajKadr(k) {
+    try {
+      var p = pamiecKadrow().filter(function (x) { return !(x[0] === k.dzien && x[1] === k.pora); }); p.push([k.dzien, k.pora, k.id]);
+      w.localStorage.setItem("dn_kadr", JSON.stringify(p.slice(-KADR_PAMIEC)));
+    } catch (e) {}
+  }
+  /** „snieg”, „deszcz” albo null: dzisiejszy dzień z pamięci pogody (najpierw stan strony, potem pamięć karty). Tylko odczyt. */
+  function pogodaKadru(teraz) {
+    var klucz = kluczDnia(teraz), dzien = function (dane) { var dd = dane && Array.isArray(dane.days) ? dane.days : [], i; for (i = 0; i < dd.length; i++) if (dd[i] && dd[i].date === klucz) return dd[i]; return null; };
+    var d0 = null;
+    try { d0 = dzien(w._weatherCache); } catch (e) {}
+    try { var ss = w.sessionStorage; for (var i = 0; !d0 && ss && i < ss.length; i++) { var k = ss.key(i); if (k && k.indexOf("weather:") === 0) { var c = JSON.parse(ss.getItem(k) || "null"); d0 = dzien(c && c.data); } } } catch (e) {}
+    if (!d0) return null;
+    var wc = +d0.weather_code || 0;
+    if ((wc >= 71 && wc <= 77) || wc === 85 || wc === 86) return "snieg";
+    if ((wc >= 51 && wc <= 67) || (wc >= 80 && wc <= 82) || wc >= 95 || (+d0.precip_pct || 0) >= 60) return "deszcz";
+    return null;
+  }
+  /** Czysty wybór. o = { teraz: Date, pogoda: "snieg" | "deszcz" | null, pamiec: lista [dzień, pora, id], kadry: lista (do testów) }.
+      → { id, tlo, pora, sezon, dzien } albo null, gdy lista kadrów jest pusta. Niczego nie czyta i niczego nie zapisuje. */
+  function wybierzKadr(o) {
+    o = o || {};
+    var teraz = o.teraz || new Date(), lista = o.kadry || KADRY, pam = o.pamiec || [], dzien = kluczDnia(teraz), sezon = poraRoku(teraz);
+    if (!lista.some(function (k) { return k[1] === sezon; })) sezon = "zima";
+    var z = ZMROK[sezon], h = teraz.getHours(), pora = h >= z[0] || h < z[1] ? "zmrok" : "dzien";
+    var wSezonie = lista.filter(function (k) { return k[1] === sezon; }); if (!wSezonie.length) return null;
+    var pula = wSezonie.filter(function (k) { return k[3] === pora; }); if (!pula.length) pula = wSezonie;
+    var wynik = function (k) { return { id: k[0], tlo: k[4], pora: pora, sezon: sezon, dzien: dzien }; }, i;
+    for (i = pam.length - 1; i >= 0; i--) if (pam[i][0] === dzien && pam[i][1] === pora) { var juz = pula.filter(function (k) { return k[0] === pam[i][2]; })[0]; if (juz) return wynik(juz); break; }
+    var zPogoda = o.pogoda ? pula.filter(function (k) { return k[2] === o.pogoda; }) : [], bez = pula.filter(function (k) { return k[2] === null; });
+    var kandydaci = zPogoda.length ? zPogoda : bez.length ? bez : pula;
+    var dni = function (n) { return kluczDnia(new Date(teraz.getFullYear(), teraz.getMonth(), teraz.getDate() - n)); }, wcz = dni(1), przed = dni(2);
+    var niedawne = pam.filter(function (x) { return x[0] === wcz || x[0] === przed; }).map(function (x) { return x[2]; });
+    var wolne = kandydaci.filter(function (k) { return niedawne.indexOf(k[0]) < 0; }); if (!wolne.length) wolne = kandydaci;
+    var nrDnia = Math.round(Date.UTC(teraz.getFullYear(), teraz.getMonth(), teraz.getDate()) / 864e5);
+    return wynik(wolne[nrDnia % wolne.length]);
+  }
+  /** Kadr na teraz: czyta pogodę i pamięć, wybiera, zapamiętuje. */
+  function kadrNaTeraz(teraz) {
+    teraz = teraz || new Date();
+    var k = wybierzKadr({ teraz: teraz, pogoda: pogodaKadru(teraz), pamiec: pamiecKadrow() });
+    if (k) zapamietajKadr(k);
+    return k;
+  }
   /* ── TYDZIEŃ: dane ── */
   /** Tydzień pn–nd zawierający chwilę `teraz`, w dobie warszawskiej. null, gdy strona nie ma funkcji z sb.js: wtedy moduł pyta tylko o dzisiejszy trening.
       wpisyOd = chwila, od której pytamy o wpisy: poniedziałek POPRZEDNIEGO tygodnia z zapasem 3 h (północ w Warszawie to 22:00 albo 23:00 UTC dnia wcześniej);
@@ -1055,5 +1115,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

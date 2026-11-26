@@ -110,7 +110,7 @@ test('(7) ekran z telefonu nie blokuje następnej próby; granice: moduł czyta 
   s.B.start(); await s.doKonca();
   assert.ok(s.zapytania.length > przed, 'ponowne wejście na Dziś próbuje sieci od razu, bez czekania 60 s'); assert.equal(s.pasekOffline(), null);
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.equal((kod.match(/localStorage/g) || []).length, 2); assert.doesNotMatch(kod, /bm_dzis_migawka|bm-offline-pasek/);
+  assert.equal((kod.match(/localStorage/g) || []).length, 4); assert.doesNotMatch(kod, /bm_dzis_migawka|bm-offline-pasek/);
   assert.match(kod, /e\.siec && awaryjnieTrening\(nr\)/); assert.match(kod, /e\.siec && awaryjnieWpisy\(nr, sb\)/); assert.match(kod, /e\.siec && awaryjnieUlica\(nr\)/); assert.match(kod, /e\.siec && awaryjnieWszystko\(nr, sb\)/);
 });
 
