@@ -58,6 +58,9 @@
 //   Budżet: 6 zapytań bez trenera, 7 z trenerem, dalej 2 fale (decyzja Filipa 26.11). Zapytanie o plany TYGODNIA zastępuje zapytanie
 //   o trening na dziś (dzisiejszy wybierany po dacie); dochodzi jedno o wpisy z dwóch tygodni (ten i poprzedni, do „km tydzień temu”).
 //   Para plany + wpisy trafia do migawki (pole „tydzien”, z poniedziałkiem, którego dotyczy) i bez sieci wraca tylko dla tego samego tygodnia.
+//   LINIA TYGODNIA (blizna-377) pod powitaniem: „Ten tydzień: 24,6 z 38 km · 3 z 5 treningów”; bez planu „21,7 km · 3 dni z ruchem”.
+//   Miejsce na linię jest w szkielecie od początku (stała wysokość), więc dociągnięcie danych niczego nie przesuwa. Gdy tygodnia nie da się
+//   policzyć (błąd, brak funkcji tygodnia), linia zostaje pusta: żadnego „0 km”, którego nie wiemy.
 // PAMIĘĆ BEZ SIECI (blizna-374): po każdym udanym odczycie dane kafli trafiają do migawki starego Dziś (js/dzis-offline.js), jako jej część „dzisNowe”.
 //   Moduł NIE dotyka pamięci telefonu sam: zapis idzie przez DzisOffline.zapisz, które pilnuje limitu rozmiaru, kasuje migawki innych kont,
 //   czyści wszystko przy wylogowaniu i nic nie zapisuje w podglądzie trenera. W migawce nie ma identyfikatora trenera, tylko „czy jest trener”.
@@ -141,6 +144,7 @@
     "#dzis-nowy .dn-moment svg{flex:none;stroke:#ff7a45}#dzis-nowy .dn-moment span{flex:1;min-width:0}#dzis-nowy .dn-moment small{display:block;margin-top:2px;color:#bcb8b2;font:400 13px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-moment i{flex:none;font-style:normal;color:#ff7a45;font-size:20px;line-height:1}#dzis-nowy .dn-moment:active{transform:scale(.99)}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
+    "#dzis-nowy .dn-tydz{margin:-6px 0 12px;min-height:18px;font:500 13px/18px 'DM Sans',sans-serif;color:#bcb8b2}#dzis-nowy .dn-tydz b{font-weight:600;color:#f5f3ef}" +
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
     "#dzis-nowy .dn-akcje{display:flex;align-items:center;gap:8px;flex:none}" +
     "#dzis-nowy .dn-okr{position:relative;width:48px;height:48px;border-radius:50%;border:1px solid #2a2a30;background:#0f0f13;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}" +
@@ -250,6 +254,7 @@
     return '<header class="dn-naglowek"><div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
       '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
+      '<p class="dn-tydz" data-dn="tydzien-linia"></p>' +
       '<div class="dn-rzad"><button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
       '<button type="button" class="dn-okr dn-awatar" data-dn="konto" aria-haspopup="menu" aria-expanded="false" aria-label="Konto"><span data-dn="inicjaly"></span><img data-dn="foto" alt="" hidden></button></div>' +
       '<div class="dn-menu" data-dn="menu" role="menu" hidden><div class="dn-menu-kto" data-dn="email"></div>' +
@@ -725,10 +730,22 @@
     o.dniZRuchem = dni.filter(function (x) { return x.wpisow > 0; }).length; o.dni = dni;
     return o;
   }
+  function odmiana(n, jeden, kilka, wiele) { n = Math.abs(n); var j = n % 10, d = n % 100; return n === 1 ? jeden : j >= 2 && j <= 4 && !(d >= 12 && d <= 14) ? kilka : wiele; }
+  function kmTygodnia(x) { return liczba(x, x > 0 && x < 100 && Math.round(x * 10) % 10 ? 1 : 0); }
+  /** Linia pod powitaniem. t = wynik policzTydzien albo null (wtedy pusta). Z planem: kilometry do planu i „N z M treningów”; bez planu: kilometry i dni z ruchem. */
+  function tydzienLinia(t) {
+    if (!t) return "";
+    var km = "<b>" + esc(kmTygodnia(t.km)) + "</b>";
+    if (t.zaplanowane > 0) return "Ten tydzień: " + km + (t.planKm > 0 ? " z " + esc(kmTygodnia(t.planKm)) : "") + " km · <b>" + t.zrobione + "</b> z " + t.zaplanowane + " " + odmiana(t.zaplanowane, "treningu", "treningów", "treningów");
+    if (!t.wpisow) return "Ten tydzień: jeszcze bez treningu";
+    return "Ten tydzień: " + km + " km · <b>" + t.dniZRuchem + "</b> " + odmiana(t.dniZRuchem, "dzień", "dni", "dni") + " z ruchem";
+  }
+  function rysujTydzien() { var el = czesc("tydzien-linia"), h = tydzienLinia(dane.tydzien); if (el && el._dnHtml !== h) { el.innerHTML = h; el._dnHtml = h; } }
   /** Obie połowy (plany i wpisy tygodnia) są: liczymy i zapisujemy parę do migawki. */
   function przeliczTydzien(nr, zTel) {
     if (nr !== dane.nr || !dane.zakres || !dane.plany || !dane.wpisyTyg) return;
-    try { dane.tydzien = policzTydzien(dane.plany, dane.wpisyTyg, dane.zakres); } catch (e) { dane.tydzien = null; zglos("tydzien"); return; }
+    try { dane.tydzien = policzTydzien(dane.plany, dane.wpisyTyg, dane.zakres); } catch (e) { dane.tydzien = null; rysujTydzien(); zglos("tydzien"); return; }
+    rysujTydzien();
     if (!zTel) zapamietaj(nr, "tydzien", { od: dane.zakres.od, plany: dane.plany, wpisy: dane.wpisyTyg });
   }
   /* ── PAMIĘĆ BEZ SIECI: odczyt ── */
@@ -773,7 +790,7 @@
   function awaryjnieTydzien(nr) {
     var n = zPamieci(); if (nr !== dane.nr) return false;
     if (!dane.zakres) dane.zakres = zakresTygodnia();
-    var t = n && n.tydzien; if (!dane.zakres || !t || t.od !== dane.zakres.od || !t.plany || !t.wpisy) { dane.tydzien = null; return false; }
+    var t = n && n.tydzien; if (!dane.zakres || !t || t.od !== dane.zakres.od || !t.plany || !t.wpisy) { dane.tydzien = null; rysujTydzien(); return false; }
     dane.plany = t.plany; dane.wpisyTyg = t.wpisy; przeliczTydzien(nr, true);
     return zTelefonu(n, "tydzien");
   }
@@ -872,10 +889,10 @@
           dane.trening = z ? t.filter(function (x) { return x && x.date === dzis; }).slice(0, 3) : t;
           if (z) dane.plany = t;
           zapamietaj(nr, "trening", { dzien: dzis, lista: dane.trening }); przeliczTydzien(nr); rysujTrening();
-        }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("trening"); if (e && e.siec) awaryjnieTydzien(nr); if (e && e.siec && awaryjnieTrening(nr)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); });
+        }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("trening"); if (!(e && e.siec && awaryjnieTydzien(nr))) { dane.tydzien = null; rysujTydzien(); } if (e && e.siec && awaryjnieTrening(nr)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); });
         if (z) {
           pytaj(sb.from("training_logs").select("logged_at,training_type,distance_km,duration").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").gte("logged_at", z.wpisyOd).order("logged_at", { ascending: false }).limit(200))
-            .then(function (l) { if (nr !== dane.nr) return; dane.wpisyTyg = l || []; przeliczTydzien(nr); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("tydzien"); if (e && e.siec && awaryjnieTydzien(nr)) return; dane.tydzien = null; });
+            .then(function (l) { if (nr !== dane.nr) return; dane.wpisyTyg = l || []; przeliczTydzien(nr); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("tydzien"); if (e && e.siec && awaryjnieTydzien(nr)) return; dane.tydzien = null; rysujTydzien(); });
         }
         if (a.coach_id) {
           pytaj(sb.from("messages").select("body,sent_at").eq("athlete_id", a.id).eq("sender", "coach").gte("sent_at", new Date(Date.now() - OKNO_WIADOMOSCI_DNI * 864e5).toISOString()).order("sent_at", { ascending: false }).limit(1))
@@ -971,5 +988,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
