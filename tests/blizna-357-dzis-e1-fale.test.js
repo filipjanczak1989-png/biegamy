@@ -126,7 +126,7 @@ test('(3) kafle z danymi: Ulica z licznikiem i wkładem, Trening na dziś, Ostat
   assert.equal(u.hidden, false); assert.equal('aria-busy' in u._a, false);
   const t = s.kafel('trening').innerHTML;
   assert.match(t, /<h2 class="dn-etykieta">Trening na dziś<\/h2><div class="dn-kto">od trenera<\/div>/);
-  assert.match(t, /<span class="dn-typ">Interwały<\/span><span class="dn-cel">8 km · 4:30 \/km<\/span>/);
+  assert.match(t, /<div class="dn-plan-g"><span class="dn-typ">Interwały<\/span><\/div><span class="dn-cel"><span>8 km ·<\/span> <span>4:30 \/km<\/span><\/span>/);   // od blizna-389 pigułka nad celem, cel w członach
   assert.match(t, /<p class="dn-tekst">Rozgrzewka 2 km, potem 4 × 1 km\.<\/p>/);
   assert.match(t, /href="kalendarz\.html\?role=athlete">Plan ›/);
   const o = s.kafel('ostatni').innerHTML;
@@ -153,7 +153,7 @@ test('(4) stany puste i brzegowe: bez planu, dzień wolny, zero wpisów, jeden w
   assert.equal(jeden.wezel('[data-kafel="ulica"] [data-dn="wklad"]').innerHTML, 'Twój wkład: <b>0 km</b>. Spacer też buduje ulicę.');
   const t = jeden.kafel('trening').innerHTML;
   assert.match(t, /<h3 class="dn-tytul">Dzień wolny<\/h3><p class="dn-tekst">Odpoczynek też buduje formę\.<\/p>/);
-  assert.match(t, /<span class="dn-cel">5 km · 30 min<\/span><span class="dn-zrobione">zrobione<\/span>/);
+  assert.match(t, /<span class="dn-zrobione">zrobione<\/span><\/div><span class="dn-cel"><span>5 km ·<\/span> <span>30 min<\/span><\/span>/);
   assert.match(t, /<p class="dn-tekst">x{157}…<\/p>/, 'długi opis ucięty');
   const bezAkcji = strona({ bezAkcji: true });
   bezAkcji.B.start(); await bezAkcji.doKonca();

@@ -188,12 +188,12 @@
     "#dzis-nowy .dn-link{flex:none;display:inline-flex;align-items:center;min-height:44px;margin:-14px -4px -14px 0;padding:0 4px;color:#ff7a45;font:600 13px/1 'DM Sans',sans-serif;text-decoration:none}" +
     "#dzis-nowy .dn-tytul{margin:0 0 6px;font:400 26px/1.05 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef}" +
     "#dzis-nowy .dn-tekst{margin:0;color:#bcb8b2;font:400 14px/1.45 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-tekst b{color:#f5f3ef;font-weight:600}" +
-    "#dzis-nowy .dn-ul-km{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#dzis-nowy .dn-ul-km b{font:400 40px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}" +
+    "#dzis-nowy .dn-ul-km{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#dzis-nowy .dn-ul-km b{font:400 32px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}" +
     "#dzis-nowy .dn-ul-km span{color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-pasek{height:8px;border-radius:4px;background:#1b1b21;overflow:hidden;margin:10px 0}#dzis-nowy .dn-pasek i{display:block;height:100%;border-radius:4px;background:#c44a13}" +
-    "#dzis-nowy .dn-plan{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:0 0 8px}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
+    "#dzis-nowy .dn-plan{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 8px}#dzis-nowy .dn-plan-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
     "#dzis-nowy .dn-typ{display:inline-block;padding:4px 10px;border-radius:999px;background:#1b1b21;color:#f5f3ef;font:600 12px/1.3 'DM Sans',sans-serif}" +
-    "#dzis-nowy .dn-cel{color:#f5f3ef;font:600 15px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-zrobione{color:#6fcf97;font:600 12px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-cel{color:#f5f3ef;font:400 28px/1.1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em}#dzis-nowy .dn-cel span{display:inline-block;white-space:nowrap}#dzis-nowy .dn-zrobione{color:#6fcf97;font:600 12px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-liczby{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#dzis-nowy .dn-l{min-width:0}#dzis-nowy .dn-liczby.dn-trzy{grid-template-columns:repeat(3,1fr)}" +
     "#dzis-nowy .dn-slupki{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:16px 0 2px}#dzis-nowy .dn-sl{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}" +
     "#dzis-nowy .dn-sl-p{position:relative;width:100%;max-width:30px;height:64px}#dzis-nowy .dn-sl-p i{position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;border-radius:6px 6px 2px 2px}" +
@@ -614,6 +614,10 @@
     var i = pogoda.indexOf(", ");
     return '<p class="dn-pog">' + (i < 0 ? "<span>" + esc(pogoda) + "</span>" : "<span>" + esc(pogoda.slice(0, i + 1)) + "</span> <span>" + esc(pogoda.slice(i + 2)) + "</span>") + "</p>";
   }
+  /* Typografia kafla treningu (audyt A1, blizna-389): cel treningu („8 km · 4:30 /km”) to najważniejsza liczba dnia, a stał zwykłym tekstem 15 px
+     obok licznika Ulicy 40 px. Teraz cel fontem liczb 28 px, pigułka rodzaju NAD nim; licznik Ulicy 32 px. Długi cel łamie się tylko MIĘDZY członami
+     („16,4 km ·” / „95 min ·” / „5:37 /km”): każdy człon to osobny, niełamliwy kawałek, a kropka zostaje przy członie przed nią. */
+  function celHtml(cel) { return '<span class="dn-cel">' + cel.map(function (c, i) { return "<span>" + esc(c) + (i < cel.length - 1 ? " ·" : "") + "</span>"; }).join(" ") + "</span>"; }
   /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo ""; stan = wynik stanBezPlanu() (liczy się tylko przy pustej liście). */
   function treningHtml(lista, pogoda, stan) {
     lista = lista || [];
@@ -625,7 +629,7 @@
       if (Number(t.distance_km) > 0) cel.push(km(t.distance_km) + " km");
       if (Number(t.duration_min) > 0) cel.push(liczba(t.duration_min) + " min");
       if (tempo(t.pace) !== "—") cel.push(tempo(t.pace) + " /km");
-      return '<div class="dn-plan">' + pigulka(t.type) + (cel.length ? '<span class="dn-cel">' + esc(cel.join(" · ")) + "</span>" : "") + (t.status === "done" ? '<span class="dn-zrobione">zrobione</span>' : "") + "</div>" +
+      return '<div class="dn-plan"><div class="dn-plan-g">' + pigulka(t.type) + (t.status === "done" ? '<span class="dn-zrobione">zrobione</span>' : "") + "</div>" + (cel.length ? celHtml(cel) : "") + "</div>" +
         (opis ? '<p class="dn-tekst">' + esc(opis.length > 160 ? opis.slice(0, 157) + "…" : opis) + "</p>" : "");
     }).join("") + zalogujHtml(lista.some(function (t) { return WOLNE.indexOf(String(t.type || "").trim()) < 0 && t.status !== "done"; }));
   }
@@ -1189,5 +1193,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);
