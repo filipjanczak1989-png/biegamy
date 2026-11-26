@@ -27,7 +27,7 @@ test('(1) bez sieci po wcześniejszym wejściu: wszystkie kafle z telefonu, plak
   for (const n of ['ulica', 'trening', 'ostatni', 'lista']) assert.doesNotMatch(s.kafel(n).innerHTML, /Nie udało się wczytać/, n);
   assert.equal(s.pasekOffline(), 'Offline · dane z 12:00');
   assert.equal(s.zgloszenia.length, 0, 'telefon wie, że nie ma sieci: nic nie zgłaszamy');
-  assert.equal(s.tel.zapisy.length, 0, 'odczyt niczego nie zapisuje; godzina w telefonie zostaje z ostatniego udanego wejścia');
+  assert.equal(s.tel.zapisy.filter((k) => k !== 'dn_kadr').length, 0, 'odczyt niczego nie zapisuje; godzina w telefonie zostaje z ostatniego udanego wejścia');
   assert.equal(s.migawka().czesci.dzisNowe.ts, TERAZ);
 });
 

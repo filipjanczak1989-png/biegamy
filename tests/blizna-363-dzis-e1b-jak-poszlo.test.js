@@ -151,9 +151,9 @@ test('(4) notatka: pusta nie idzie; istniejącego komentarza nie nadpisujemy; tr
 test('(5) „Pomiń”: klucz fr_skip_<id> w pamięci telefonu (wspólny ze starym Dziś), blok znika i nie wraca; bez zapisu do bazy', async () => {
   const s = strona({ wpisy: [wpis('l1', 2), wpis('l2', 30)] }); s.B.start(); await s.doKonca();
   s.dotknij('jp-pomin'); await s.tik();
-  assert.deepEqual([...s.pamiec.entries()], [['fr_skip_l1', '1']]);
+  assert.deepEqual([...s.pamiec.entries()].filter((x) => x[0] !== 'dn_kadr'), [['fr_skip_l1', '1']]);   // dn_kadr = pamięć kadrów nagłówka (blizna-384)
   assert.equal(s.zapisy.length, 0);
-  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/, 'po „Pomiń” cisza, choć w oknie 48 h jest drugi wpis z zegarka (jak stara karta, blizna-370)'); assert.equal(s.pamiec.size, 1);
+  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/, 'po „Pomiń” cisza, choć w oknie 48 h jest drugi wpis z zegarka (jak stara karta, blizna-370)'); assert.equal([...s.pamiec.keys()].filter((k) => k !== 'dn_kadr').length, 1);
   s.B.wczytaj(true); await s.doKonca();
   assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp/, 'po ponownym wczytaniu pominięte nie wracają');
   const bez = strona({ bezPamieci: true }); bez.B.start(); await bez.doKonca();

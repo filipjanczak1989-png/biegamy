@@ -89,7 +89,7 @@ test('(3) dotknięcie paska: do bloku w kaflu, podświetlenie, fokus na pierwsze
   s.dotknij('jp-pokaz');
   assert.deepEqual(s.zdarzenia, ['scrollIntoView {"behavior":"smooth","block":"center"}', 'focus [data-dn="jp-mina"] {"preventScroll":true}']);
   assert.equal(s.blok.classList.contains('dn-jp-swiatlo'), true, 'blok podświetlony');
-  assert.equal(s.zapytania.length, przed); assert.equal(s.pamiec.size, 0, 'dotknięcie paska to nie „Pomiń”');
+  assert.equal(s.zapytania.length, przed); assert.equal([...s.pamiec.keys()].filter((k) => k !== 'dn_kadr').length, 0, 'dotknięcie paska to nie „Pomiń”');
   assert.equal(s.pasek.innerHTML, PASEK, 'pasek zostaje, dopóki pytanie czeka');
   const spokojny = strona({ ruch: true }); spokojny.B.start(); await spokojny.doKonca(); spokojny.dotknij('jp-pokaz');
   assert.equal(spokojny.zdarzenia[0], 'scrollIntoView {"behavior":"auto","block":"center"}', 'przy ograniczonym ruchu bez animacji przewijania');
@@ -101,7 +101,7 @@ test('(4) „Pomiń” = cisza wszędzie; udany zapis zdejmuje pasek od razu; b�
   const s = strona({ wpisy: [wpis('l1', 5), wpis('l2', 30)] }); s.B.start(); await s.doKonca();
   s.dotknij('jp-pomin'); await s.tik();
   assert.equal(s.pasek.hidden, true, 'po „Pomiń” pasek znika razem z blokiem'); assert.equal(s.pasek.innerHTML, '');
-  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp"/); assert.deepEqual([...s.pamiec.keys()], ['fr_skip_l1'], 'i nie przechodzi na starszy wpis z okna (blizna-370)');
+  assert.doesNotMatch(s.ostatni.innerHTML, /dn-jp"/); assert.deepEqual([...s.pamiec.keys()].filter((k) => k !== 'dn_kadr'), ['fr_skip_l1'], 'i nie przechodzi na starszy wpis z okna (blizna-370)');
   s.B.wczytaj(true); await s.doKonca(); assert.equal(s.pasek.hidden, true, 'po ponownym wczytaniu dalej cisza');
   const z = strona(); z.B.start(); await z.doKonca();
   z.dotknij('jp-mina', 'good'); assert.equal(z.pasek.innerHTML, PASEK, 'wybrana mina, raport niezapisany: pasek zostaje');

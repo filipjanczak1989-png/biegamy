@@ -33,7 +33,8 @@ test('(2) kilka pól z jednej fali to jeden zapis; całe wczytanie to najwyżej 
   const ile = s.tel.zapisy.filter((k) => k === 'bm_dzis_migawka_' + UID).length;
   assert.ok(ile >= 1 && ile <= 3, 'zapisów migawki: ' + ile);
   s.B.start(); await s.doKonca();
-  assert.equal(s.tel.zapisy.length, ile, 'ponowny start w oknie 60 s niczego nie pyta i niczego nie zapisuje');
+  assert.equal(s.tel.zapisy.filter((k) => k !== 'dn_kadr').length, ile, 'ponowny start w oknie 60 s niczego nie pyta i niczego nie zapisuje');
+  assert.equal(s.tel.zapisy.filter((k) => k === 'dn_kadr').length, 1, 'pamięć kadrów nagłówka zapisana raz (blizna-385)');
 });
 
 test('(3) nieudane zapytanie nie kasuje tego, co już było w telefonie: każde pole to ostatnia UDANA odpowiedź', async () => {
@@ -56,9 +57,9 @@ test('(3) nieudane zapytanie nie kasuje tego, co już było w telefonie: każde 
 test('(4) prywatność po staremu: w podglądzie trenera nic się nie zapisuje; bez sesji nic; migawka innego konta znika; stare części zostają', async () => {
   const t = strona({ search: '?from=trener' }); t.B.start(); await t.doKonca();
   assert.equal(t.migawka(), null, 'podgląd trenera nie zostawia niczego w przeglądarce');
-  assert.equal(t.tel.zapisy.length, 0);
+  assert.equal(t.tel.zapisy.length, 0);   // w podglądzie trenera moduł ustępuje, więc nie ma też kadru
   const bez = strona({ sesja: false }); bez.B.start(); await bez.doKonca();
-  assert.equal(bez.tel.mapa.size, 0);
+  assert.deepEqual([...bez.tel.mapa.keys()], ['dn_kadr'], 'bez sesji żadnej migawki; zostaje tylko pamięć kadrów nagłówka (nazwa kadru, żadnych danych konta)');
   const s = strona();
   s.tel.mapa.set('bm_dzis_migawka_obcy', JSON.stringify({ userId: 'obcy', ts: 1, czesci: { logi: [{ id: 'cudzy' }] } }));
   s.tel.mapa.set('bm_dzis_migawka_' + UID, JSON.stringify({ userId: UID, ts: 5, czesci: { logi: [{ id: 'stary-ekran' }], hero: 'https://x/kadr.webp' } }));
@@ -67,7 +68,7 @@ test('(4) prywatność po staremu: w podglądzie trenera nic się nie zapisuje; 
   const m = s.migawka();
   assert.deepEqual(m.czesci.logi, [{ id: 'stary-ekran' }], 'części starego Dziś nietknięte');
   assert.equal(m.czesci.hero, 'https://x/kadr.webp'); assert.ok(m.czesci.dzisNowe.profil);
-  s.D.wyczysc(); assert.equal(s.tel.mapa.size, 0, 'wylogowanie czyści także nową część');
+  s.D.wyczysc(); assert.equal([...s.tel.mapa.keys()].filter((k) => k.indexOf('bm_dzis_migawka_') === 0).length, 0, 'wylogowanie czyści także nową część');
 });
 
 test('(5) zapis nigdy nie psuje ekranu: pełna pamięć telefonu, brak modułu migawki, migawka ponad limit', async () => {
@@ -75,7 +76,7 @@ test('(5) zapis nigdy nie psuje ekranu: pełna pamięć telefonu, brak modułu m
   pelna.B.start(); await pelna.doKonca();
   assert.match(pelna.kafel('ostatni').innerHTML, /<b>10<small>km/, 'kafle narysowane mimo błędu zapisu'); assert.equal(pelna.zgloszenia.length, 0);
   const brak = strona({ bezOffline: true }); brak.B.start(); await brak.doKonca();
-  assert.match(brak.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.equal(brak.tel.mapa.size, 0);
+  assert.match(brak.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.deepEqual([...brak.tel.mapa.keys()], ['dn_kadr']);
   const duza = strona({ wpisy: [wpis('l1', 5, { feel: 'good', comment: 'x'.repeat(210 * 1024) })] }); duza.B.start(); await duza.doKonca();
   const m = duza.migawka();
   assert.ok(!m || !m.czesci.dzisNowe || !m.czesci.dzisNowe.wpisy, 'migawka ponad 200 kB nie jest zapisywana (limit DzisOffline)');

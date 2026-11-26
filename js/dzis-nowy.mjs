@@ -154,6 +154,12 @@
     "#dzis-nowy .dn-moment{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 16px;border-radius:16px;border:1px solid rgba(255,122,69,.55);background:rgba(196,74,19,.14);color:#f5f3ef;font:600 15px/1.25 'DM Sans',sans-serif;text-align:left;cursor:pointer}" +
     "#dzis-nowy .dn-moment svg{flex:none;stroke:#ff7a45}#dzis-nowy .dn-moment span{flex:1;min-width:0}#dzis-nowy .dn-moment small{display:block;margin-top:2px;color:#bcb8b2;font:400 13px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-moment i{flex:none;font-style:normal;color:#ff7a45;font-size:20px;line-height:1}#dzis-nowy .dn-moment:active{transform:scale(.99)}" +
+    "#dzis-nowy .dn-naglowek.dn-kadr{position:relative;box-sizing:border-box;height:184px;margin:0 -16px 12px;padding:0 16px 14px;align-items:flex-end;overflow:hidden;border-radius:0 0 20px 20px;background-color:#1a1d22}" +
+    "#dzis-nowy .dn-kadr > div{position:relative;z-index:1;min-width:0}#dzis-nowy .dn-kadr .dn-data{color:#f5f3ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-data-m{letter-spacing:.1em}#dzis-nowy .dn-kadr .dn-data-s{letter-spacing:.02em}" +
+    "@media (max-width:359px){#dzis-nowy .dn-kadr .dn-data{font-size:10px;letter-spacing:.02em}}" +
+    "#dzis-nowy .dn-kadr .dn-powitanie{line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-pow-m{font-size:28px}#dzis-nowy .dn-kadr .dn-pow-s{font-size:24px}" +
+    "#dzis-nowy .dn-kadr-o{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;opacity:0;transition:opacity .2s ease-out}#dzis-nowy .dn-kadr-o.jest{opacity:1}" +
+    "#dzis-nowy .dn-kadr-g{position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(180deg,rgba(6,6,8,.06) 0%,rgba(6,6,8,.2) 42%,rgba(6,6,8,.76) 64%,rgba(6,6,8,.9) 100%)}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
     "#dzis-nowy .dn-tydz{margin:-6px 0 12px;min-height:18px;font:500 13px/18px 'DM Sans',sans-serif;color:#bcb8b2}#dzis-nowy .dn-tydz b{font-weight:600;color:#f5f3ef}" +
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
@@ -234,7 +240,7 @@
     "#dzis-nowy .dn-rada-t{display:block;overflow-wrap:anywhere}#dzis-nowy .dn-rada-w{display:block;margin:6px 0 0;color:#ff7a45;font:600 13px/1.2 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}#dzis-nowy .dn-kadr-o{transition:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -253,6 +259,10 @@
     return t && t !== "—" ? t.split(/\s+/)[0] : "";
   }
   function powitanie() { var i = imie(); return i ? "Cześć, " + i : "Cześć"; }
+  /** Klasa powitania wg długości: na kadrze powitanie nie może się złamać (blizna-385), więc długie imię dostaje mniejszą czcionkę. Poza kadrem klasy nic nie zmieniają. */
+  /** Klasa daty wg długości: na kadrze data nie może się złamać, więc długa dostaje ciaśniejsze odstępy liter. Poza kadrem klasy nic nie zmieniają. */
+  function klasaDaty(t) { var n = String(t || "").length; return "dn-data" + (n > 27 ? " dn-data-s" : n > 23 ? " dn-data-m" : ""); }
+  function klasaPowitania(t) { var n = String(t || "").length; return "dn-powitanie" + (n > 19 ? " dn-pow-s" : n > 15 ? " dn-pow-m" : ""); }
   /** Licznik dzwonka: lustro kropki starego dzwonka (liczbę liczy stary kod). */
   function licznikDzwonka() {
     var el = d.getElementById("zawodnik-bell-dot");
@@ -272,7 +282,8 @@
         '<span class="dn-szkielet"></span><span class="dn-szkielet k"></span>' + (k[0] === "trening" ? '<span class="dn-szkielet w"></span>' : "") +
         '<span class="dn-ukryte">Wczytuję…</span></section>';
     }).join("");
-    return '<header class="dn-naglowek"><div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="dn-data" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="dn-powitanie" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
+    var kadr = null; try { kadr = kadrNaTeraz(); } catch (e) { kadr = null; }
+    return '<header class="dn-naglowek' + (kadr ? ' dn-kadr" data-kadr="' + esc(kadr.id) + '" style="background-color:' + esc(kadr.tlo) + '">' + kadrHtml(kadr) : '">') + '<div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="' + klasaDaty(dataDzis()) + '" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="' + klasaPowitania(powitanie()) + '" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
       '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
       '<p class="dn-tydz" data-dn="tydzien-linia"></p>' +
@@ -290,8 +301,8 @@
   function odswiezNaglowek() {
     var k = korzen(); if (!k || !k.querySelector) return;
     var p = k.querySelector('[data-dn="powitanie"]'), da = k.querySelector('[data-dn="data"]'), l = k.querySelector('[data-dn="licznik"]');
-    if (p) p.textContent = powitanie();
-    if (da) da.textContent = dataDzis();
+    if (p) { p.textContent = powitanie(); p.className = klasaPowitania(p.textContent); }
+    if (da) { da.textContent = dataDzis(); da.className = klasaDaty(da.textContent); }
     if (l) { var n = licznikDzwonka(); l.textContent = n; l.hidden = !n; }
     konto();
   }
@@ -734,7 +745,9 @@
   function pamiecKadrow() { try { var p = JSON.parse(w.localStorage.getItem("dn_kadr") || "[]"); return Array.isArray(p) ? p.filter(function (x) { return Array.isArray(x) && x.length === 3; }) : []; } catch (e) { return []; } }
   function zapamietajKadr(k) {
     try {
-      var p = pamiecKadrow().filter(function (x) { return !(x[0] === k.dzien && x[1] === k.pora); }); p.push([k.dzien, k.pora, k.id]);
+      var stare = pamiecKadrow(), p = stare.filter(function (x) { return !(x[0] === k.dzien && x[1] === k.pora); });
+      if (p.length < stare.length && stare.some(function (x) { return x[0] === k.dzien && x[1] === k.pora && x[2] === k.id; })) return;   // ten sam kadr już zapamiętany: bez zapisu
+      p.push([k.dzien, k.pora, k.id]);
       w.localStorage.setItem("dn_kadr", JSON.stringify(p.slice(-KADR_PAMIEC)));
     } catch (e) {}
   }
@@ -768,6 +781,26 @@
     var wolne = kandydaci.filter(function (k) { return niedawne.indexOf(k[0]) < 0; }); if (!wolne.length) wolne = kandydaci;
     var nrDnia = Math.round(Date.UTC(teraz.getFullYear(), teraz.getMonth(), teraz.getDate()) / 864e5);
     return wynik(wolne[nrDnia % wolne.length]);
+  }
+  /* ── KADR DNIA: w nagłówku (blizna-385) ──
+     Nagłówek dostaje ramkę o STAŁEJ wysokości 184 px na całą szerokość ekranu. Decyzja o kadrze zapada przed narysowaniem szkieletu i już się nie
+     zmienia, więc wysokość jest ta sama od pierwszej klatki w każdym z przypadków:
+       zdjęcie się wczyta      → ramka w kolorze tła kadru, zdjęcie wchodzi przenikaniem (bez animacji przy ograniczonym ruchu);
+       zdjęcie się nie wczyta  → ramka zostaje w kolorze tła (znacznik obrazu znika), bez zgłoszenia do client_errors: brak sieci to nie błąd aplikacji;
+       brak sieci na starcie albo tryb oszczędzania danych → ramka w kolorze tła, obrazu w ogóle nie pobieramy.
+     Data i powitanie stoją na dole po lewej, przyciski zegarka i dzwonka na dole po prawej (decyzja Filipa 26.11: w prawym górnym rogu zasłaniały
+     głowę biegacza na 4 z 7 kadrów). Gradient 6% → 20% (42%) → 76% (64%) → 90%: zmierzony kontrast daty na siedmiu kadrach co najmniej 9,47:1.
+     Powitanie na kadrze stoi ZAWSZE w jednym wierszu: długie imię dostaje mniejszą czcionkę (ta sama wysokość wiersza), w ostateczności wielokropek.
+     Powód zmierzony 26.11: „Cześć, Aleksandra” przy 360 px łamało się na dwa wiersze i wypychało datę w jasną część zdjęcia (kontrast 1,97:1).
+     Z tego samego powodu data też stoi zawsze w jednym wierszu: dłuższa („poniedziałek · 30 października”) dostaje ciaśniejsze odstępy liter.
+     Jedno żądanie obrazu na wejście; przeglądarka sama wybiera 960 albo 1280 px. Kadr zmienia się dopiero przy następnym wejściu, nie pod palcem. */
+  var KADR_KATALOG = "assets/ui/dzis/kadry/";
+  function bezObrazu() { try { var n = w.navigator || {}; return n.onLine === false || !!(n.connection && n.connection.saveData === true); } catch (e) { return false; } }
+  /** Wnętrze ramki: zdjęcie (albo nic, gdy bez sieci lub w trybie oszczędzania) i gradient. k = wynik kadrNaTeraz. */
+  function kadrHtml(k) {
+    var p = KADR_KATALOG + k.id;
+    return (bezObrazu() ? "" : '<img class="dn-kadr-o" src="' + p + '-960.webp" srcset="' + p + "-960.webp 960w, " + p + '-1280.webp 1280w" sizes="100vw" width="960" height="411" alt="" aria-hidden="true" decoding="async"' +
+      " onload=\"this.className='dn-kadr-o jest'\" onerror=\"this.remove()\">") + '<span class="dn-kadr-g" aria-hidden="true"></span>';
   }
   /** Kadr na teraz: czyta pogodę i pamięć, wybiera, zapamiętuje. */
   function kadrNaTeraz(teraz) {
@@ -1115,5 +1148,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

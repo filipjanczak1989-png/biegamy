@@ -119,7 +119,7 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
   assert.deepEqual([...uzyte].sort(), ['dymek', 'dzwonek', 'flaga', 'hantla', 'jablko', 'medal', 'pad', 'puchar', 'radio']);
   for (const n of uzyte) for (const r of ['64', '128']) assert.ok(fs.statSync(path.join(KORZEN, 'assets/ui/dzis/ikony', n + '-' + r + '.webp')).size > 500, 'brak ikony ' + n + '-' + r);
   assert.deepEqual(fs.readdirSync(path.join(KORZEN, 'assets/ui/dzis/ikony')).sort(), [...uzyte].flatMap((n) => [n + '-128.webp', n + '-64.webp']).sort(), 'w katalogu tylko używane ikony (bez ikon menu i chmurki Okienka)');
-  const obrazy = [...s.korzen.innerHTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]);
+  const obrazy = [...s.korzen.innerHTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]).filter((o) => !o.startsWith('assets/ui/dzis/kadry/'));   // kadr w nagłówku: blizna-385
   assert.equal(obrazy.length, 9, 'osiem skrótów i dzwonek');
   for (const p of obrazy) assert.ok(fs.existsSync(path.join(KORZEN, p)), 'brak pliku ' + p);
 });

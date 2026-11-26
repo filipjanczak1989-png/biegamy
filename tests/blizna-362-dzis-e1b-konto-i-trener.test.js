@@ -108,7 +108,7 @@ test('(4) chip „← Trener”: tylko gdy stary kod odsłonił swój; dotknięc
   assert.equal(s.cz('trener').hidden, false, 'na nowym Dziś miejsce jest: chip zostaje');
   s.dotknij('trener'); assert.equal(s.staryChip.klikniec, 1, 'stary odnośnik: ten sam adres i to samo sprzątanie po podglądzie');
   assert.match(HTML, /<a id="back-to-trener" href="trener\.html" onclick="sessionStorage\.removeItem\('_fromTrener'\)" style="display:none;/);
-  assert.match(s.korzen.innerHTML, /<header class="dn-naglowek"><div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener<\/button><div class="dn-data"/);
+  assert.match(s.korzen.innerHTML, /<header class="dn-naglowek[^>]*>(?:<img class="dn-kadr-o"[^>]*>)?(?:<span class="dn-kadr-g" aria-hidden="true"><\/span>)?<div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener<\/button><div class="dn-data"/);
   const wczesniej = strona({ chip: 'block' }); wczesniej.B.start();
   assert.equal(wczesniej.cz('trener').hidden, false, 'chip odsłonięty przed startem modułu');
   const podglad = strona({ chip: 'block', search: '?from=trener' }); podglad.B.start();
