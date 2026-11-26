@@ -81,7 +81,7 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   /** Migawka tak, jak leży w telefonie: napis JSON spod klucza konta, rozpakowany dopiero tutaj. */
   const migawka = () => { const raw = tel.mapa.get('bm_dzis_migawka_' + UID); return raw ? JSON.parse(raw) : null; };
   return { w, d, el, korzen, zapytania, czasomierze, sluchacze, zgloszenia, stare, st, tel, doKonca, tik, dotknij, migawka, B: w.BM_DZIS, D: w.DzisOffline,
-    kafel: (n) => wezel('[data-kafel="' + n + '"]'), cz: (n) => wezel('[data-dn="' + n + '"]'), pasekOffline: () => (el['bm-offline-pasek'] && el['bm-offline-pasek-txt'] ? el['bm-offline-pasek-txt'].textContent : null) };
+    kafel: (n) => wezel('[data-kafel="' + n + '"]'), cz: (n) => wezel('[data-dn="' + n + '"]'), jp: (n) => wezel('[data-kafel="ostatni"] [data-dn="' + n + '"]'), pasekOffline: () => (el['bm-offline-pasek'] && el['bm-offline-pasek-txt'] ? el['bm-offline-pasek-txt'].textContent : null) };
 }
 
 module.exports = { strona, wpis, tik, TERAZ, UID, PROFIL, TRENING, MODUL, OFFLINE, FUNKCJE_TYGODNIA, czytaj };

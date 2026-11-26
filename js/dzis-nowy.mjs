@@ -173,7 +173,7 @@
     "#dzis-nowy .dn-licznik[hidden]{display:none}" +
     "#dzis-nowy .dn-kafle{display:flex;flex-direction:column;gap:12px}" +
     "#dzis-nowy .dn-kafel{background:#0f0f13;border:1px solid #232329;border-radius:18px;padding:16px}" +
-    "#dzis-nowy .dn-etykieta{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#ff7a45;margin:0 0 12px}" +
+    "#dzis-nowy .dn-etykieta{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#8f8c97;margin:0 0 12px}" +
     "#dzis-nowy .dn-szkielet{display:block;height:14px;border-radius:7px;background:#1b1b21;margin:0 0 10px}" +
     "#dzis-nowy .dn-szkielet.k{width:55%}#dzis-nowy .dn-szkielet.w{height:44px;margin:14px 0 0}" +
     "#dzis-nowy .dn-skroty{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 6px;padding:2px 0}" +
@@ -215,7 +215,7 @@
     "#dzis-nowy .dn-ponow{min-height:44px;margin:10px 0 0;padding:0 16px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "@media (max-width:359px){#dzis-nowy .dn-liczby{grid-template-columns:1fr 1fr;gap:12px 8px}}" +
     "#dzis-nowy .dn-jp{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329}" +
-    "#dzis-nowy .dn-jp-t{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px;color:#ff7a45;font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}" +
+    "#dzis-nowy .dn-jp-t{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px;color:#8f8c97;font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}" +
     "#dzis-nowy .dn-jp-t small{color:#8f8c97;font:400 12px/1.3 'DM Sans',sans-serif;letter-spacing:0;text-transform:none}" +
     "#dzis-nowy .dn-jp-kt{margin:0 0 10px;color:#f5f3ef;font:600 14px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-miny{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 0}" +
@@ -223,7 +223,7 @@
     "#dzis-nowy .dn-mina[aria-pressed=true]{border-color:#ff7a45;background:rgba(196,74,19,.18);color:#f5f3ef}" +
     "#dzis-nowy .dn-jp textarea{display:block;width:100%;box-sizing:border-box;min-height:60px;margin:10px 0 0;padding:11px 13px;border-radius:12px;border:1px solid #2a2a30;background:#0b0b0f;color:#f5f3ef;font:400 14px/1.4 'DM Sans',sans-serif;resize:vertical}" +
     "#dzis-nowy .dn-jp-akcje{display:flex;align-items:center;gap:8px;margin:10px 0 0}" +
-    "#dzis-nowy .dn-jp-zapisz{flex:1;min-height:48px;border:0;border-radius:12px;background:#c44a13;color:#fff;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}#dzis-nowy .dn-jp-zapisz[disabled]{opacity:.6;cursor:default}" +
+    "#dzis-nowy .dn-jp-zapisz{flex:1;min-height:48px;box-sizing:border-box;border:1.5px solid #c44a13;border-radius:12px;background:transparent;color:#ff7a45;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}#dzis-nowy .dn-jp-zapisz.dn-pelny{background:#c44a13;color:#fff}#dzis-nowy .dn-jp-zapisz[disabled]{opacity:.6;cursor:default}" +
     "#dzis-nowy .dn-jp-pomin{min-height:48px;padding:0 14px;border:0;background:none;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-jp-kom{margin:10px 0 0;color:#ff9a8a;font:500 13px/1.4 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-jp-ok{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329;text-align:center}#dzis-nowy .dn-jp-ok b{display:block;color:#f5f3ef;font:700 14px/1.3 'DM Sans',sans-serif}" +
@@ -705,11 +705,16 @@
     wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0]) : ""));
     zdarzenie();   // zachęta w pasku pojawia się i znika razem z blokiem, w tym samym kroku co kafel
   }
+  /* Kolor (audyt A3, blizna-392): pomarańczowy był wszędzie, więc niczego nie wyróżniał. Etykiety kafli („Trening na dziś”, „Ulica”, „Jak poszło?”)
+     są szare (#8f8c97); pomarańcz zostaje dla linków i przycisków. „Zapisz raport” jest pełny dopiero po wyborze miny: wcześniej to przycisk
+     w obrysie (dalej wygląda na przycisk i dalej reaguje: dotknięty bez miny mówi, czego brakuje), bo pełny pomarańczowy przycisk, którego
+     jeszcze nie da się użyć, był najgłośniejszą rzeczą w kaflu. */
   function jpWybierz(kod) {
     if (!jp || jp.zapisuje || MINY.indexOf(kod) < 0) return;
     jp.kod = kod; jpKomunikat("");
     var el = kafel("ostatni"), miny = el && el.querySelectorAll ? el.querySelectorAll('[data-dn="jp-mina"]') : [];
     for (var i = 0; i < miny.length; i++) miny[i].setAttribute("aria-pressed", miny[i].getAttribute("data-kod") === kod ? "true" : "false");
+    var guzik = jpCzesc("jp-zapisz"); if (guzik) guzik.className = "dn-jp-zapisz dn-pelny";
   }
   function jpPomin() {
     if (!jp || jp.zapisuje) return;
