@@ -39,7 +39,7 @@ test('(1) z planem: zakres dat, „Kalendarz ›”, trzy liczby, siedem słupk�
 
 test('(2) słupki mają jeden opis dla czytnika ekranu, a kilometry dnia stoją pod słupkiem (bez odczytu pod palcem)', async () => {
   const s = strona({ trening: PLANY, wpisyTyg: WPISY }); s.B.start(); await s.doKonca();
-  assert.match(kafel(s).innerHTML, /<div class="dn-slupki" role="img" aria-label="Kilometry dzień po dniu: pn 8,2 km, plan 8 km; wt bez biegu; śr 10,2 km, plan 10 km; cz 6,2 km, plan 9 km; pt bez biegu; sb bez biegu, plan 5 km; nd bez biegu, plan 6 km">/);
+  assert.match(kafel(s).innerHTML, /<div class="dn-slupki" role="img" aria-label="Kilometry dzień po dniu: pn 8,2 km, plan 8 km; wt wolne; śr 10,2 km, plan 10 km; cz 6,2 km, plan 9 km; pt bez biegu; sb bez biegu, plan 5 km; nd bez biegu, plan 6 km">/);
   assert.match(MODUL, /#dzis-nowy \.dn-slupki\{display:grid;grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/, 'siedem równych kolumn: mieści się też przy 320 px');
   const z = s.B.zakresTygodnia(TERAZ), t = s.B.policzTydzien([plan('a', '2026-11-23', 'Wybieganie', 30), plan('b', '2026-11-24', 'Spokojny', 1)], [log('2026-11-24T10:00:00+00:00', 'Spokojny', 0.4, '3:00')], z);
   assert.deepEqual(slupki(s.B.tydzienHtml(t, z)).slice(0, 2), [['pn', '', '100', '', ''], ['wt', '0,4', '6', '6', '']], 'bardzo mały słupek ma najmniej 6% wysokości, żeby był widoczny');
@@ -67,7 +67,7 @@ test('(4) drobne formaty: zakres na przełomie miesięcy, czas poniżej godziny,
   assert.match(H2(pusty({ inne: 2, kmInne: 0 }), zG), /<p class="dn-inne">\+ 2 inne aktywności<\/p>$/, 'bez kilometrów (np. siłownia) sama liczba');
   assert.match(H2(pusty({ inne: 5, kmInne: 41.26 }), zG), /<p class="dn-inne">\+ 5 innych aktywności · 41,3 km<\/p>$/);
   assert.doesNotMatch(H2(pusty({}), zG), /dn-inne/);
-  assert.equal(slupki(H2(pusty({}), zG)).filter((x) => x[4]).length, 1, 'dziś (środa 2.12) wyróżnione także w pustym tygodniu');
+  assert.equal((H2(pusty({}), zG).match(/<div class="dn-sl dzis">/g) || []).length, 1, 'dziś (środa 2.12) wyróżnione także w pustym tygodniu (od blizna-379 same nazwy dni)');
 });
 
 test('(5) kafel stoi po „Ostatnim treningu”, przed listą; gdy tygodnia nie da się policzyć, jest schowany, nie na szkielecie i nie z zerami', async () => {
