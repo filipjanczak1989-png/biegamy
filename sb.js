@@ -4548,14 +4548,28 @@ window._icuRenderSplits = function (d, el) {
       if (w.typ !== undefined) payload.training_type = w.typ;
 
       if (edycja) {
+        /* PUSTA ZMIANA = NIC DO ZAPISANIA = SUKCES (26.11.2026, blizna-402). Okno dnia w kalendarzu (saveTraining)
+           przy wykonanym treningu dopina do wpisu z tego dnia tylko zdjęcia, link Stravy i komentarz; gdy nie ma
+           żadnego z nich, wszystkie pola są `undefined` i zmiana wychodzi pusta. PostgREST pustej zmiany nie
+           wykonuje (bez kolumn nie ma `UPDATE … SET`) i oddaje zero wierszy bez błędu, więc niżej wyglądało to
+           jak odmowa: okno się nie zamykało, zawodnik klikał „Zapisz” w kółko, a do client_errors szły wpisy
+           „update · brak-kodu”. Kontrakt `undefined` = nie ruszaj: nic do ruszenia znaczy, że wszystko zapisane. */
+        if (Object.keys(payload).length === 0) {
+          return { ok: true, id: w.idLoguDoEdycji, powtorzony: false };
+        }
         var wynikU = await sb.from('training_logs').update(payload)
           .eq('id', w.idLoguDoEdycji).eq('athlete_id', w.athleteId).select('id');
-        if (!wynikU.error && (!wynikU.data || wynikU.data.length === 0)) {
+        /* Zero wierszy przy NIEPUSTEJ zmianie: wpis zniknął (usunięty w innej karcie, podmieniony przez import)
+           albo nie należy do tego konta. Treść techniczna idzie do client_errors, zawodnik dostaje zdanie, co zrobić. */
+        var zeroWierszy = !wynikU.error && (!wynikU.data || wynikU.data.length === 0);
+        if (zeroWierszy) {
           wynikU.error = { message: 'Brak uprawnień do edycji — sprawdź polityki RLS' };
         }
         if (wynikU.error) {
           if (window.zglosNieudanyZapis) window.zglosNieudanyZapis('update', 'training_logs', wynikU.error);
-          return { ok: false, blad: wynikU.error, komunikat: window.komunikatBledu(wynikU.error) };
+          return { ok: false, blad: wynikU.error, komunikat: zeroWierszy
+            ? 'Nie udało się zapisać, ten wpis mógł zostać usunięty. Odśwież stronę.'
+            : window.komunikatBledu(wynikU.error) };
         }
         return { ok: true, id: w.idLoguDoEdycji, powtorzony: false };
       }
