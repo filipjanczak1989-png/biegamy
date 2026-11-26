@@ -7595,6 +7595,7 @@ function _heroShow(i, opts) {
   const url = opts.url || _heroCards[i];
   const podpis = opts.podpis != null ? opts.podpis : (_heroQuotes[i] || '');
   if (!url) return;
+  if (_heroStareSchowane()) { _heroOdlozony = true; return; }   // stare Dziś schowane pod nowym: nie pobieramy (blizna-380)
   const img = new Image();
   img.onload = () => {
     if (_heroOkladkaDzis() && url !== window._heroOkladka.url) return;
@@ -7729,12 +7730,44 @@ async function _okladkaStartu(dzien) {
 }
 
 let _heroWystartowal = false;
+/* STARY KADR A NOWE DZIŚ (26.11.2026, blizna-380). Stare Dziś chowa tylko CSS (html.dzis-nowy.dzis-gotowy), więc kadr dnia
+   (średnio 275 kB) pobierał się także u kont z nowym ekranem. Teraz: dopóki stare Dziś jest schowane, kadr nie rusza
+   (ani _heroInit, ani okładka startu, ani sonda offline). Rusza, gdy stary ekran wraca:
+   ?dzis=stary i konto bez przełącznika (klas nie ma od początku); podgląd trenera, #sponsor, #log-list (moduł ustępuje);
+   konto bez wiersza zawodnika i awaria modułu (stop() zdejmuje dzis-gotowy); brak modułu i odpowiedź „stary” (blok DZIS-E0 1
+   zdejmuje dzis-nowy). Przełącznik włączony, a moduł jeszcze nie zdecydował: czekamy najwyżej 12 prób co 300 ms (moduł ma 3 s),
+   potem kadr rusza jak dotąd. Kadr, który ruszył, zanim nowy ekran się pokazał, zostaje pobrany jak przed zmianą. */
+let _heroOdlozony = false, _heroBylSchowany = false, _heroProby = 0, _heroCzeka = null;
+function _heroStareSchowane() {
+  const c = document.documentElement.classList, tak = c.contains('dzis-nowy') && c.contains('dzis-gotowy');
+  if (tak) _heroBylSchowany = true;
+  return tak;
+}
+function _heroNoweWDrodze() {
+  const c = document.documentElement.classList;
+  if (!c.contains('dzis-nowy') || c.contains('dzis-gotowy') || _heroBylSchowany || _heroProby >= 12) return false;
+  try { if (window.BM_DZIS && typeof window.BM_DZIS.ustepuje === 'function' && window.BM_DZIS.ustepuje()) return false; } catch (e) { return false; }
+  return true;
+}
+function _heroWroc() {
+  if (!_heroOdlozony) return;   // schowanie sprawdzają _heroInit i _heroShow
+  if (_heroWystartowal) { _heroOdlozony = false; _heroShow(_heroIdx); return; }
+  try { _heroInit(); } catch (e) {}
+}
+try { new MutationObserver(_heroWroc).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) {
     console.warn('[hero] _heroInit skipped - no bg or cards');
     return;
   }
+  if (_heroStareSchowane()) { _heroOdlozony = true; return; }
+  if (_heroNoweWDrodze()) {
+    _heroOdlozony = true; _heroProby++;
+    if (!_heroCzeka) _heroCzeka = setTimeout(() => { _heroCzeka = null; _heroWroc(); }, 300);
+    return;
+  }
+  _heroOdlozony = false;
   _heroWystartowal = true;
   if (_heroOkladkaDzis()) { _heroShow(0, { url: window._heroOkladka.url, podpis: window._heroOkladka.podpis }); return; }
   _heroIdx = 0;

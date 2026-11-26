@@ -17,7 +17,7 @@ const crypto = require('node:crypto');
 const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r\n/g, '\n');
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-const PRZED_E0 = 'bacec862135c24414b9f5bc356bc40cdee803675c323fd05237a9bd8a387690a';   // zawodnik.html (LF) bez bloków DZIS-E0; 25.11: pogoda po 401 ponawia raz i zgłasza etap, loadWeather + _pogodaPobierz (blizna-372; przed tym 4eccc5bb… z 25.11: wątek czatu 200 najnowszych, blizna-354; 16d483ba… z 23.11: role=athlete w 3 linkach, blizna-339; wcześniej 1242db61…, origin/main 165d8fe3)
+const PRZED_E0 = '468e5ff24343b0242b1b3e6180d83f8ccb0770da8b78d2fa4002fbf984ce159d';   // zawodnik.html (LF) bez bloków DZIS-E0; 26.11: stary kadr dnia nie pobiera się pod nowym Dziś, _heroInit + _heroShow (blizna-380; przed tym bacec862… z 25.11: pogoda po 401 ponawia raz i zgłasza etap, blizna-372; 4eccc5bb… z 25.11: wątek czatu 200 najnowszych, blizna-354; 16d483ba… z 23.11: role=athlete w 3 linkach, blizna-339; wcześniej 1242db61…, origin/main 165d8fe3)
 const HTML = czytaj('zawodnik.html');
 const MODUL = czytaj('js/dzis-nowy.mjs');
 const MIG = czytaj('supabase/migrations/20261225_dzis_przelacznik.sql');
