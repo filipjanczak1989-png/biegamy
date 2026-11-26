@@ -4379,7 +4379,7 @@ async function sendTemplate() {
   }
 }
 
-setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppStats(); initRealtimeNotifications(); setInterval(checkUnreadMessages, 30000); loadRacesPendingBadge();
+setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppStats(); initRealtimeNotifications(); loadRacesPendingBadge();
   // W3 push auto-heal: reconcile DB vs aktualna subskrypcja (coach athlete id)
   try { const _paid = await _ensureCoachAthleteId(); if (_paid) { window._pushAthleteId = _paid; if (typeof window.reconcilePushSubscription === 'function') window.reconcilePushSubscription(_paid); } } catch(e) {}
 }, 100);
@@ -4459,48 +4459,74 @@ function initRealtimeNotifications() {
   _startCoachMsgWatch();
 }
 
+/* NIEPRZECZYTANE WIADOMOŚCI: JEDEN ZEGAR, JEDNO ŻĄDANIE (26.11.2026, blizna-391).
+   Do 26.11 ten sam licznik odświeżały DWA zegary po 30 s: checkUnreadMessages (1 żądanie) i jej kopia przy powiadomieniach (2 żądania:
+   lista zawodników, potem licznik). Razem 3 żądania co 30 s, także gdy karta leżała w tle: jedna karta zostawiona na dobę
+   to 8640 żądań i tyle samo wpisów w logach Supabase (limit Log Ingestion przekroczony).
+   Teraz: jedna funkcja i jedno żądanie (lista zawodników z pamięci strony, _dbAthletes), jeden zegar co 60 s, a przy ukrytej
+   karcie zegar stoi. Po powrocie do karty jedno odświeżenie od razu i zegar rusza znowu.
+   Trener widzi to samo co dotąd: plakietkę z liczbą na dzwonku, kolor dzwonka i toast o nowej wiadomości. */
+const NIEPRZECZYTANE_CO_MS = 60000;
 let _coachMsgInterval = null;
 let _prevCoachMsgCount = 0;
+let _nieprzeczytaneWToku = false;
 
-async function _checkCoachMessages() {
+async function checkUnreadMessages() {
+  if (!_coachId || _nieprzeczytaneWToku) return;
+  // Filtruj tylko zawodników tego trenera — bez tego liczymy wiadomości z całego systemu
+  const athleteIds = (_dbAthletes || []).map(a => a.id);
+  if (!athleteIds.length) return;
+  _nieprzeczytaneWToku = true;
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    // Pobierz liczbę nieprzeczytanych wiadomości od zawodników
-    const { data: athletes } = await sb.from('athletes').select('id').eq('coach_id', session.user.id);
-    if (!athletes || !athletes.length) return;
-    const ids = athletes.map(a => a.id);
-    const { count } = await sb.from('messages')
-      .select('*', {count: 'exact', head: true})
-      .in('athlete_id', ids)
+    const { count, error } = await sb.from('messages')
+      .select('*', {count:'exact', head:true})
+      .eq('read', false)
       .eq('sender', 'athlete')
-      .eq('read', false);
+      .in('athlete_id', athleteIds);
+    if (error) return;   // błąd sieci nie gasi plakietki: zostaje ostatni znany stan
+    const ile = count || 0;
     const dot = document.getElementById('notif-dot');
+    const icon = document.getElementById('notif-icon');
     if (dot) {
-      if (count > 0) {
+      if (ile > 0) {
         dot.style.display = 'flex';
         dot.style.background = '#5b8cff';
-        dot.textContent = count > 9 ? '9+' : count;
+        dot.textContent = ile > 9 ? '9+' : ile;
         dot.style.cssText += ';min-width:16px;height:16px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;position:absolute;top:-4px;right:-4px;border:2px solid var(--bg);';
       } else {
         dot.style.display = 'none';
       }
     }
+    if (icon) icon.setAttribute('stroke', ile > 0 ? 'var(--accent)' : 'var(--muted)');
     // Toast gdy nowa
-    if (count > _prevCoachMsgCount && _prevCoachMsgCount === 0 && count > 0) {
+    if (ile > _prevCoachMsgCount && _prevCoachMsgCount === 0) {
       showToast('💬 Zawodnik napisał wiadomość');
-    } else if (count > _prevCoachMsgCount && _prevCoachMsgCount > 0) {
+    } else if (ile > _prevCoachMsgCount && _prevCoachMsgCount > 0) {
       showToast('💬 Nowa wiadomość od zawodnika');
     }
-    _prevCoachMsgCount = count || 0;
-  } catch(e) {}
+    _prevCoachMsgCount = ile;
+  } catch(e) {
+  } finally { _nieprzeczytaneWToku = false; }
 }
 
-function _startCoachMsgWatch() {
-  _checkCoachMessages();
-  if (!_coachMsgInterval) {
-    _coachMsgInterval = setInterval(_checkCoachMessages, 30000);
+function _zegarNieprzeczytanych(wlacz) {
+  if (!wlacz) {
+    if (_coachMsgInterval) { clearInterval(_coachMsgInterval); _coachMsgInterval = null; }
+    return;
   }
+  if (!_coachMsgInterval) _coachMsgInterval = setInterval(checkUnreadMessages, NIEPRZECZYTANE_CO_MS);
+}
+
+let _nieprzeczytanePodpiete = false;
+function _startCoachMsgWatch() {
+  if (_nieprzeczytanePodpiete) return;
+  _nieprzeczytanePodpiete = true;
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { _zegarNieprzeczytanych(false); return; }
+    checkUnreadMessages();          // powrót do karty: jedno odświeżenie od razu
+    _zegarNieprzeczytanych(true);
+  });
+  if (!document.hidden) _zegarNieprzeczytanych(true);
 }
 
 async function openCoachNotifications() {
@@ -5359,23 +5385,6 @@ async function clearCoachChat() {
   if (!confirm('Usunąć swoje wiadomości? Wiadomości zawodnika zostaną.')) return;
   await sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId).eq('sender', 'coach');
   await loadCoachChat();
-}
-
-async function checkUnreadMessages() {
-  if (!_coachId) return;
-  // Filtruj tylko zawodników tego trenera — bez tego liczymy wiadomości z całego systemu
-  const athleteIds = (_dbAthletes || []).map(a => a.id);
-  if (!athleteIds.length) return;
-  const { count } = await sb.from('messages')
-    .select('*', {count:'exact', head:true})
-    .eq('read', false)
-    .eq('sender', 'athlete')
-    .in('athlete_id', athleteIds);
-  // Pokaż/ukryj dzwoneczek
-  const dot = document.getElementById('notif-dot');
-  const icon = document.getElementById('notif-icon');
-  if (dot) dot.style.display = count > 0 ? 'block' : 'none';
-  if (icon) icon.setAttribute('stroke', count > 0 ? 'var(--accent)' : 'var(--muted)');
 }
 
 function toggleEmojiPickerCoach() {
