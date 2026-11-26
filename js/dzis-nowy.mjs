@@ -61,6 +61,10 @@
 //   LINIA TYGODNIA (blizna-377) pod powitaniem: „Ten tydzień: 24,6 z 38 km · 3 z 5 treningów”; bez planu „21,7 km · 3 dni z ruchem”.
 //   Miejsce na linię jest w szkielecie od początku (stała wysokość), więc dociągnięcie danych niczego nie przesuwa. Gdy tygodnia nie da się
 //   policzyć (błąd, brak funkcji tygodnia), linia zostaje pusta: żadnego „0 km”, którego nie wiemy.
+//   KAFEL „TEN TYDZIEŃ” (blizna-378) po „Ostatnim treningu”: zakres dat, „Kalendarz ›”, trzy liczby (czas w ruchu, kilometry do planu, średnie tempo;
+//   bez planu kilometrów zamiast „do planu” stoi „tydzień temu”), siedem słupków pn–nd zwykłym HTML i CSS (plan obrysem, zrobione wypełnieniem,
+//   dziś wyróżnione, kilometry dnia podpisane pod słupkiem), legenda i mała linia aktywności niebiegowych. Słupki mają jeden opis dla czytnika
+//   ekranu (role="img"). Gdy tygodnia nie da się policzyć, kafel jest schowany. Odczyt pod palcem: później, razem z Formą.
 // PAMIĘĆ BEZ SIECI (blizna-374): po każdym udanym odczycie dane kafli trafiają do migawki starego Dziś (js/dzis-offline.js), jako jej część „dzisNowe”.
 //   Moduł NIE dotyka pamięci telefonu sam: zapis idzie przez DzisOffline.zapisz, które pilnuje limitu rozmiaru, kasuje migawki innych kont,
 //   czyści wszystko przy wylogowaniu i nic nie zapisuje w podglądzie trenera. W migawce nie ma identyfikatora trenera, tylko „czy jest trener”.
@@ -91,7 +95,7 @@
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   /* Skróty stoją w siatce 4 × 2 BEZ przewijania (blizna-369): przewijany rząd ucinał ikony i na laptopie nie było jak go przesunąć.
      Siatka jest pełna przy ośmiu skrótach; dziewiąty wymaga decyzji, co wypada, a test tego pilnuje. */
-  var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["lista", "Twoje ostatnie treningi"]];
+  var KAFLE = [["ulica", "Ulica"], ["trening", "Trening na dziś"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["tydzien", "Ten tydzień"], ["lista", "Twoje ostatnie treningi"]];
 
   function korzen() { return d.getElementById("dzis-nowy"); }
   function html() { return d.documentElement; }
@@ -175,7 +179,15 @@
     "#dzis-nowy .dn-plan{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:0 0 8px}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
     "#dzis-nowy .dn-typ{display:inline-block;padding:4px 10px;border-radius:999px;background:#1b1b21;color:#f5f3ef;font:600 12px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-cel{color:#f5f3ef;font:600 15px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-zrobione{color:#6fcf97;font:600 12px/1.3 'DM Sans',sans-serif}" +
-    "#dzis-nowy .dn-liczby{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#dzis-nowy .dn-l{min-width:0}" +
+    "#dzis-nowy .dn-liczby{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#dzis-nowy .dn-l{min-width:0}#dzis-nowy .dn-liczby.dn-trzy{grid-template-columns:repeat(3,1fr)}" +
+    "#dzis-nowy .dn-slupki{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:16px 0 2px}#dzis-nowy .dn-sl{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}" +
+    "#dzis-nowy .dn-sl-p{position:relative;width:100%;max-width:30px;height:64px}#dzis-nowy .dn-sl-p i{position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;border-radius:6px 6px 2px 2px}" +
+    "#dzis-nowy .dn-sl-p i.plan{border:1.5px dashed #77726b}#dzis-nowy .dn-sl-p i.zrob{background:#ff7a45}" +
+    "#dzis-nowy .dn-sl b{min-height:13px;font:500 11px/13px 'DM Mono',monospace;color:#f5f3ef;white-space:nowrap}#dzis-nowy .dn-sl span{font:500 10px/1.2 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#a09b95}" +
+    "#dzis-nowy .dn-sl.dzis span{color:#ff7a45}#dzis-nowy .dn-sl.dzis .dn-sl-p{box-shadow:0 1px 0 #ff7a45}" +
+    "#dzis-nowy .dn-legenda{display:flex;gap:14px;margin:10px 0 0;font:500 11px/1.4 'DM Sans',sans-serif;color:#bcb8b2}#dzis-nowy .dn-legenda span{display:inline-flex;align-items:center;gap:6px}" +
+    "#dzis-nowy .dn-legenda i{width:10px;height:10px;box-sizing:border-box;border-radius:3px}#dzis-nowy .dn-legenda i.plan{border:1.5px dashed #77726b}#dzis-nowy .dn-legenda i.zrob{background:#ff7a45}" +
+    "#dzis-nowy .dn-inne{margin:8px 0 0;font:400 12px/1.4 'DM Sans',sans-serif;color:#bcb8b2}" +
     "#dzis-nowy .dn-l b{display:block;font:400 26px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef;white-space:nowrap}" +
     "#dzis-nowy .dn-l b small{margin-left:3px;font:500 10px/1 'DM Mono',monospace;color:#bcb8b2;letter-spacing:.04em}#dzis-nowy .dn-l b.dn-slowo{font:600 13px/2 'DM Sans',sans-serif;letter-spacing:0}" +
     "#dzis-nowy .dn-l span{display:block;margin-top:5px;font:500 10px/1 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8f8c97}" +
@@ -740,7 +752,33 @@
     if (!t.wpisow) return "Ten tydzień: jeszcze bez treningu";
     return "Ten tydzień: " + km + " km · <b>" + t.dniZRuchem + "</b> " + odmiana(t.dniZRuchem, "dzień", "dni", "dni") + " z ruchem";
   }
-  function rysujTydzien() { var el = czesc("tydzien-linia"), h = tydzienLinia(dane.tydzien); if (el && el._dnHtml !== h) { el.innerHTML = h; el._dnHtml = h; } }
+  var DNI_TYG = ["pn", "wt", "śr", "cz", "pt", "sb", "nd"];
+  /** „23–29 listopada”, na przełomie miesięcy „30 listopada – 6 grudnia”. */
+  function zakresDat(z) { var a = z.od.split("-").map(Number), b = z.do.split("-").map(Number); return a[1] === b[1] ? a[2] + "–" + b[2] + " " + MIESIACE[b[1] - 1] : a[2] + " " + MIESIACE[a[1] - 1] + " – " + b[2] + " " + MIESIACE[b[1] - 1]; }
+  function czasRuchu(sek) { var m = Math.round(sek / 60); return !(m > 0) ? ["—", ""] : m < 60 ? [String(m), "min"] : [Math.floor(m / 60) + ":" + (m % 60 < 10 ? "0" : "") + m % 60, "h"]; }
+  function tempoZSek(s) { return s > 0 ? Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + s % 60 : "—"; }
+  /** Kafel „Ten tydzień”. t = wynik policzTydzien, z = zakresTygodnia (z.dzis wyróżnia dzisiejszy słupek). */
+  function tydzienHtml(t, z) {
+    var cr = czasRuchu(t.sek), zPlanem = t.planKm > 0, czyta = [];
+    var L = [[cr[0], cr[1], "czas w ruchu"], zPlanem ? [kmTygodnia(Math.max(0, t.planKm - t.km)), "km", "do planu"] : [kmTygodnia(t.kmPoprz), "km", "tydzień temu"], [tempoZSek(t.tempoSek), "/km", "śr. tempo"]];
+    var maks = t.dni.reduce(function (m, x) { return Math.max(m, x.km, x.planKm); }, 0) || 1;
+    var slupki = t.dni.map(function (x, i) {
+      var pl = x.planKm > 0 ? Math.max(6, Math.round(x.planKm / maks * 100)) : 0, zr = x.km > 0 ? Math.max(6, Math.round(x.km / maks * 100)) : 0;
+      czyta.push(DNI_TYG[i] + " " + (x.km > 0 ? kmTygodnia(x.km) + " km" : "bez biegu") + (x.planKm > 0 ? ", plan " + kmTygodnia(x.planKm) + " km" : ""));
+      return '<div class="dn-sl' + (x.dzien === z.dzis ? " dzis" : "") + '"><div class="dn-sl-p">' + (pl ? '<i class="plan" style="height:' + pl + '%"></i>' : "") + (zr ? '<i class="zrob" style="height:' + zr + '%"></i>' : "") +
+        "</div><b>" + (x.km > 0 ? esc(kmTygodnia(x.km)) : "") + "</b><span>" + DNI_TYG[i] + "</span></div>";
+    }).join("");
+    return gora("Ten tydzień", zakresDat(z), ["Kalendarz", PLAN]) +
+      '<div class="dn-liczby dn-trzy">' + L.map(function (x) { return '<div class="dn-l"><b>' + esc(x[0]) + (x[1] && x[0] !== "—" ? "<small>" + esc(x[1]) + "</small>" : "") + "</b><span>" + esc(x[2]) + "</span></div>"; }).join("") + "</div>" +
+      '<div class="dn-slupki" role="img" aria-label="' + esc("Kilometry dzień po dniu: " + czyta.join("; ")) + '">' + slupki + "</div>" +
+      (zPlanem ? '<p class="dn-legenda"><span><i class="plan"></i>plan</span><span><i class="zrob"></i>zrobione</span></p>' : "") +
+      (t.inne > 0 ? '<p class="dn-inne">+ ' + t.inne + " " + odmiana(t.inne, "inna aktywność", "inne aktywności", "innych aktywności") + (t.kmInne > 0 ? " · " + esc(kmTygodnia(t.kmInne)) + " km" : "") + "</p>" : "");
+  }
+  /** Linia pod powitaniem i kafel „Ten tydzień” z tego samego wyniku. Bez wyniku: linia pusta, kafel schowany. */
+  function rysujTydzien() {
+    var el = czesc("tydzien-linia"), h = tydzienLinia(dane.tydzien); if (el && el._dnHtml !== h) { el.innerHTML = h; el._dnHtml = h; }
+    if (dane.tydzien && dane.zakres) wpisz("tydzien", tydzienHtml(dane.tydzien, dane.zakres)); else schowaj("tydzien");
+  }
   /** Obie połowy (plany i wpisy tygodnia) są: liczymy i zapisujemy parę do migawki. */
   function przeliczTydzien(nr, zTel) {
     if (nr !== dane.nr || !dane.zakres || !dane.plany || !dane.wpisyTyg) return;
@@ -858,14 +896,14 @@
     if (!wymus && dane.t && teraz - dane.t < SWIEZE_MS && !(dane.bezSieci && !dane.wToku)) return;   // ekran z telefonu próbuje od razu, ale dopiero gdy poprzednia próba nie ma otwartych zapytań
     var sb = klient(), nr = ++dane.nr;
     dane.t = teraz; dane.bezSieci = false; dane.tsTelefonu = 0; dane.wpisyZTelefonu = false; dane.zakres = null; dane.plany = null; dane.wpisyTyg = null; dane.tydzien = null;
-    if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); return; }
+    if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); rysujTydzien(); return; }
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
       if (uid || !brakSieci()) return uid;   // wygasła sesja bez sieci: supabase-js nie odda sesji, bo nie może jej odświeżyć; identyfikator konta jak w starym Dziś
       var o = pamiec(); return o && typeof o.userId === "function" ? Promise.resolve(o.userId(sb)).then(null, function () { return null; }) : null;
     }).then(function (uid) {
       if (nr !== dane.nr) return null;
       dane.uid = uid;
-      if (!uid && brakSieci()) { dane.t = 0; schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); return null; }   // bez sieci nikt nie odeśle do logowania: komunikat zamiast wiecznego szkieletu
+      if (!uid && brakSieci()) { dane.t = 0; schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); rysujTydzien(); return null; }   // bez sieci nikt nie odeśle do logowania: komunikat zamiast wiecznego szkieletu
       if (!uid) { dane.t = 0; return null; }   // bez sesji stary kod sam odsyła do logowania; okno 60 s zwolnione, żeby następny start() (initAuth) spróbował jeszcze raz
       /* FALA 1: profil, licznik akcji i mój wkład idą razem */
       var s0 = slugAkcji(null), a0 = s0 ? akcja(sb, nr, s0, s0, proba) : null;
@@ -890,6 +928,7 @@
           if (z) dane.plany = t;
           zapamietaj(nr, "trening", { dzien: dzis, lista: dane.trening }); przeliczTydzien(nr); rysujTrening();
         }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("trening"); if (!(e && e.siec && awaryjnieTydzien(nr))) { dane.tydzien = null; rysujTydzien(); } if (e && e.siec && awaryjnieTrening(nr)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); });
+        if (!z) rysujTydzien();   // strona bez funkcji tygodnia: kafel nie zostaje na szkielecie
         if (z) {
           pytaj(sb.from("training_logs").select("logged_at,training_type,distance_km,duration").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").gte("logged_at", z.wpisyOd).order("logged_at", { ascending: false }).limit(200))
             .then(function (l) { if (nr !== dane.nr) return; dane.wpisyTyg = l || []; przeliczTydzien(nr); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("tydzien"); if (e && e.siec && awaryjnieTydzien(nr)) return; dane.tydzien = null; rysujTydzien(); });
@@ -910,7 +949,7 @@
         if (a0) a0.pokaz();   // licznik nie zależy od profilu: pokazujemy domyślną akcję (bez sieci: z telefonu)
         zglosDane("profil");
         if (e && e.siec && awaryjnieWszystko(nr, sb)) return null;
-        bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista");
+        bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); rysujTydzien();
         return null;
       });
     });
@@ -988,5 +1027,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

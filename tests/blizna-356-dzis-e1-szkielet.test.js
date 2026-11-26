@@ -48,8 +48,8 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.equal(s.korzen.hidden, false);
   assert.deepEqual([...s.klasy].sort(), ['dzis-gotowy', 'dzis-na-dzis', 'dzis-nowy'], 'dzis-gotowy uruchamia chowanie starego Dziś z bloku DZIS-E0 2');
   const h = s.korzen.innerHTML;
-  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['ulica', 'trening', 'skroty', 'ostatni', 'lista']);
-  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Ulica', 'Trening na dziś', 'Ostatni trening', 'Twoje ostatnie treningi']);
+  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['ulica', 'trening', 'skroty', 'ostatni', 'tydzien', 'lista']);
+  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Ulica', 'Trening na dziś', 'Ostatni trening', 'Ten tydzień', 'Twoje ostatnie treningi']);
   assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'jedzenie', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
   assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['nutrition.html', 'races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
   assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?jablko-64\.webp.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
@@ -59,7 +59,7 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.match(h, /<button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg [^>]*aria-hidden="true">.*?<\/svg><span>Zapytaj<\/span><\/button>/, 'Okienko = pigułka z napisem, nie sama ikona');
   assert.doesNotMatch(h, /okienko-64\.webp/, 'chmurka Okienka wycofana: myliła się z Czatem');
   assert.match(h, /aria-label="Powiadomienia"/);
-  assert.equal((h.match(/aria-busy="true"/g) || []).length, 4, 'kafle z danymi czekają na commit 2');
+  assert.equal((h.match(/aria-busy="true"/g) || []).length, 5, 'pięć kafli na szkielecie (od blizna-378 także „Ten tydzień”)');
   assert.equal(s.korzen._a['data-etap'], 'E1');
   const przed = s.korzen.innerHTML; s.B.start(); s.B.start();
   assert.equal(s.korzen.innerHTML, przed, 'ponowny start nie rysuje od nowa');
