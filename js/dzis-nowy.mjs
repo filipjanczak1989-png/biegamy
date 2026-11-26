@@ -177,6 +177,7 @@
     "#dzis-nowy [hidden]{display:none!important}" +
     "#dzis-nowy .dn-gora{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 12px}#dzis-nowy .dn-gora .dn-etykieta{margin:0}" +
     "#dzis-nowy .dn-kto{margin:4px 0 0;color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-pog{margin:-8px 0 12px;color:#bcb8b2;font:500 13px/1.3 'DM Sans',sans-serif}#dzis-nowy .dn-pog span{display:inline-block}#dzis-nowy .dn-pog span:first-child{white-space:nowrap}" +
     "#dzis-nowy .dn-link{flex:none;display:inline-flex;align-items:center;min-height:44px;margin:-14px -4px -14px 0;padding:0 4px;color:#ff7a45;font:600 13px/1 'DM Sans',sans-serif;text-decoration:none}" +
     "#dzis-nowy .dn-tytul{margin:0 0 6px;font:400 26px/1.05 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef}" +
     "#dzis-nowy .dn-tekst{margin:0;color:#bcb8b2;font:400 14px/1.45 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-tekst b{color:#f5f3ef;font-weight:600}" +
@@ -557,13 +558,20 @@
       return "dziś " + temp + (opis && opis !== "pogoda" && opis.length <= 40 ? ", " + opis : "");
     } catch (e) { return ""; }
   }
-  function zPogoda(kto, pogoda) { return [kto, pogoda].filter(Boolean).join(" · "); }
+  /** Pogoda w OSOBNYM wierszu pod nagłówkiem kafla, na całą jego szerokość (audyt A2, blizna-382). W jednej linii ze źródłem planu („od trenera · dziś 3–8 °C,
+      częściowe zachmurzenie”) łamała się w pół zdania, bo obok stoi link „Plan ›”. Tekst bez zmian. Gdy mimo to brakuje miejsca, łamie się po przecinku:
+      temperatura w pierwszym wierszu, opis w drugim (decyzja Filipa 26.11), bez wielokropka. */
+  function pogodaHtml(pogoda) {
+    pogoda = String(pogoda || ""); if (!pogoda) return "";
+    var i = pogoda.indexOf(", ");
+    return '<p class="dn-pog">' + (i < 0 ? "<span>" + esc(pogoda) + "</span>" : "<span>" + esc(pogoda.slice(0, i + 1)) + "</span> <span>" + esc(pogoda.slice(i + 2)) + "</span>") + "</p>";
+  }
   /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo "". */
   function treningHtml(lista, pogoda) {
     lista = lista || [];
-    if (!lista.length) return gora("Trening na dziś", zPogoda("bez planu", pogoda), ["Plan", PLAN]) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
+    if (!lista.length) return gora("Trening na dziś", "bez planu", ["Plan", PLAN]) + pogodaHtml(pogoda) + '<h3 class="dn-tytul">Dziś bez planu</h3><p class="dn-tekst">Każdy kilometr i tak się liczy.</p>' + zalogujHtml(false);
     var kto = lista[0].plan_source === "generator" ? "z generatora" : lista[0].coach_id ? "od trenera" : "";
-    return gora("Trening na dziś", zPogoda(kto, pogoda), ["Plan", PLAN]) + lista.map(function (t) {
+    return gora("Trening na dziś", kto, ["Plan", PLAN]) + pogodaHtml(pogoda) + lista.map(function (t) {
       if (WOLNE.indexOf(String(t.type || "").trim()) >= 0) return '<h3 class="dn-tytul">Dzień wolny</h3><p class="dn-tekst">' + esc(t.description || "Odpoczynek też buduje formę.") + "</p>";
       var cel = [], opis = String(t.description || "");
       if (Number(t.distance_km) > 0) cel.push(km(t.distance_km) + " km");

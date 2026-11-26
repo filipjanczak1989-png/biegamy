@@ -41,7 +41,8 @@ function strona({ cache = undefined, treningi = [{ id: 't1', type: 'Spokojny', d
   vm.runInNewContext(MODUL, { window: w, document: d, URLSearchParams, Date: DataT, Promise, encodeURIComponent });
   return { w, korzen, zapytania, st, tik, B: w.BM_DZIS, trening: wezel('[data-kafel="trening"]') };
 }
-const kto = (html) => (html.match(/<div class="dn-kto">([^<]*)<\/div>/) || [])[1] || '';
+// Od blizna-382 (audyt A2) źródło planu i pogoda stoją w dwóch wierszach. Brzmienie zostało, więc pomocnik składa je z powrotem w jedno zdanie.
+const kto = (html) => [(html.match(/<div class="dn-kto">([^<]*)<\/div>/) || [])[1] || '', ((html.match(/<p class="dn-pog">(.*?)<\/p>/) || [])[1] || '').replace(/<[^>]+>/g, '')].filter(Boolean).join(' · ');
 
 test('(1) linia z dzisiejszego dnia starego kafla: zakres temperatur i opis z funkcji pogody; doklejona do podtytułu treningu', async () => {
   const B = strona().B, t = (c) => { const s = strona({ cache: c }); return s.B.pogodaTekst(D0); };
@@ -54,7 +55,7 @@ test('(1) linia z dzisiejszego dnia starego kafla: zakres temperatur i opis z fu
   assert.equal(t(pogoda(dzien('2026-11-25', { label: 'Pogoda' }))), 'dziś 3–8 °C', '„Pogoda” to zaślepka funkcji dla nieznanego kodu: nie powtarzamy jej');
   assert.equal(t(pogoda(dzien('2026-11-25', { label: undefined }))), 'dziś 3–8 °C');
   assert.equal(t(pogoda(dzien('2026-11-24'), dzien('2026-11-25', { temp_min: 2, temp_max: 6, label: 'Mżawka' }), dzien('2026-11-26'))), 'dziś 2–6 °C, mżawka', 'bierzemy dzień o dzisiejszej dacie, nie pierwszy z listy');
-  assert.equal(B.treningHtml([], 'dziś 3–8 °C, deszcz').includes('<div class="dn-kto">bez planu · dziś 3–8 °C, deszcz</div>'), true);
+  assert.equal(kto(B.treningHtml([], 'dziś 3–8 °C, deszcz')), 'bez planu · dziś 3–8 °C, deszcz');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo', coach_id: 'c' }], 'dziś 5 °C')), 'od trenera · dziś 5 °C');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo', plan_source: 'generator' }], 'dziś 5 °C')), 'z generatora · dziś 5 °C');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo' }], 'dziś 5 °C')), 'dziś 5 °C', 'plan bez źródła: sama pogoda, bez wiszącej kropki');
