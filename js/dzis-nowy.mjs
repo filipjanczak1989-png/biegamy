@@ -194,6 +194,10 @@
     "#dzis-nowy .dn-ul-tlo{position:absolute;left:0;right:0;top:-140px}#dzis-nowy .dn-ul-tlo .us{margin:0}#dzis-nowy .dn-ul-tlo .um{margin:140px 12px 0}" +
     "#dzis-nowy .dn-ul-link{position:absolute;inset:0;z-index:2;-webkit-tap-highlight-color:transparent}" +
     "#dzis-nowy .dn-ul-mur{margin:-14px -16px 14px}#dzis-nowy .dn-ul-mur:empty{display:none}" +
+    "#dzis-nowy .dn-ul-prog{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:12px 0;padding:12px 14px 0;border:1px solid #3a2a20;border-radius:12px;background:#17120f}" +
+    "#dzis-nowy .dn-ul-prog b{font:400 22px/1.1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}#dzis-nowy .dn-ul-prog span{color:#bcb8b2;font:400 13px/1.4 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-ul-prog .dn-link{margin:0 0 0 -4px;border:0;background:none;cursor:pointer}" +
+    "#dzis-nowy .dn-ul-przyciski{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}#dzis-nowy .dn-ul-przyciski .dn-drugi{margin:0;text-decoration:none}#dzis-nowy .dn-ul-przyciski .dn-drugi:only-child{grid-column:1/-1}" +
     "#dzis-nowy .dn-ul-mur .us-mur-przelacz{overflow:visible;z-index:3}#dzis-nowy .dn-ul-mur .us-mur-przelacz::after{content:'';position:absolute;inset:-12px -4px -4px}" +
     "#dzis-nowy .dn-pasek{height:8px;border-radius:4px;background:#1b1b21;overflow:hidden;margin:10px 0}#dzis-nowy .dn-pasek i{display:block;height:100%;border-radius:4px;background:#c44a13}" +
     "#dzis-nowy .dn-plan{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 8px}#dzis-nowy .dn-plan-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#dzis-nowy .dn-tekst + .dn-plan,#dzis-nowy .dn-plan + .dn-plan,#dzis-nowy .dn-tekst + .dn-tytul{margin-top:14px}" +
@@ -596,10 +600,30 @@
   function ulicaHtml(d, wklad, adres, zeScena) {
     var suma = Number(d.suma_km) || 0, cel = Number(d.cel_km) || 0, p = Number(d.pct);
     p = Math.max(0, Math.min(100, isFinite(p) ? p : cel > 0 ? suma / cel * 100 : 0));
-    return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) +
+    return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) + progUlicyHtml(d) +
       '<div class="dn-ul-km"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%</span></div>" +
       '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>' +
-      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad) + "</p>";
+      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad) + "</p>" + przyciskiUlicyHtml(d);
+  }
+  /* PLAKAT, ZBIÓRKA, PRÓG (E3 commit 3, 26.11.2026, blizna-401). Reguły ze starego kodu akcji (js/akcja.mjs), nie kopie: plakat tylko z białej listy
+     hostów (plakatUrl → safeUrlAttr), zbiórka tylko https (linkZbiorki → safeExternalHref), próg tylko z pola prog licznika (baza oddaje je przez 48 h
+     od przekroczenia kamienia). Plakat na pełnym ekranie i grafikę „Udostępnij” progu obsługuje stary kod (kliknięcia na document: data-plakat,
+     data-prog-udostepnij); te elementy nie mają data-dn, więc moduł ich nie przejmuje. Konfetti progu raz na konto i telefon, kluczem starego kafla,
+     tylko z danych z bazy (nie z pamięci telefonu). Bez starego kodu: kafel bez przycisków i bez progu. Zero zapytań. */
+  function akcjaF(n) { var A = w.BM_AKCJA; return A && typeof A[n] === "function" ? A[n] : null; }
+  function progUlicy(d) { var f = akcjaF("progPrzekroczony"); try { return f && akcjaF("tekstProgu") ? f(d) : null; } catch (e) { return null; } }
+  function progUlicyHtml(d) {
+    var p = progUlicy(d); if (!p) return "";
+    return '<div class="dn-ul-prog" role="status"><b>' + esc(akcjaF("tekstProgu")(p, d)) + "</b><span>Razem, krok po kroku. Dziękujemy.</span>" +
+      '<button type="button" class="dn-link" data-prog-udostepnij="' + esc(String(p)) + '">Udostępnij ›</button></div>';
+  }
+  function przyciskiUlicyHtml(d) {
+    var fp = akcjaF("plakatUrl"), fz = akcjaF("linkZbiorki"), pl = "", zb = "";
+    try { pl = fp ? fp(d) || "" : ""; zb = fz ? fz(d) || "" : ""; } catch (e) { return ""; }
+    if (!pl && !zb) return "";
+    return '<div class="dn-ul-przyciski">' +
+      (pl ? '<a class="dn-drugi" href="' + esc(pl) + '" data-plakat="' + esc(pl) + '"' + (zb ? ' data-zbiorka="' + esc(zb) + '"' : "") + ' target="_blank" rel="noopener noreferrer">Plakat</a>' : "") +
+      (zb ? '<a class="dn-drugi" href="' + esc(zb) + '" target="_blank" rel="noopener noreferrer">Zbiórka</a>' : "") + "</div>";
   }
   /* SCENA ULICY (E3 commit 1, 26.11.2026, blizna-397). Ta sama scena co w starym kaflu i na stronie akcji: BM_ULICA.naKaflu z js/ulica.mjs,
      który ładuje stary kod (BM_AKCJA.zUlica: najpierw sezon, potem ulica i scena). Dane: licznik, o który moduł już pyta; scena w trybie kafla
@@ -653,9 +677,11 @@
     } catch (e) { start(); }
   }
   /** Kafel Ulicy z licznika z bazy: liczby jak dotąd, nad nimi scena (nowa albo ta sama, przeniesiona). */
-  function wpiszUlice(dn, adres) {
+  function wpiszUlice(dn, adres, slug) {
     var zeScena = scenaMozliwa();
     wpisz("ulica", ulicaHtml(dn, null, adres, zeScena));
+    var prog = progUlicy(dn), konfetti = akcjaF("konfettiProgu");
+    if (prog && konfetti && slug) w.setTimeout(function () { try { konfetti(slug, prog); } catch (e) {} }, 0);
     if (!zeScena) { usunScene(); return; }
     var el = kafel("ulica"), miejsce = el && el.querySelector ? el.querySelector('[data-dn="scena"]') : null, mur = el && el.querySelector ? el.querySelector(".dn-ul-mur") : null;
     if (!miejsce) return;
@@ -1136,7 +1162,7 @@
       pL.then(function (dn) {
         if (nr !== dane.nr) return;
         if (!dn || !dn.wystartowala) { usunScene(); schowaj("ulica"); zapamietaj(nr, "ulica", null); return; }
-        wpiszUlice(dn, adres);
+        wpiszUlice(dn, adres, slug);
         pW.then(function (wk) { if (nr !== dane.nr) return; zapamietaj(nr, "ulica", { licznik: dn, wklad: wk || null, adres: adres }); var el = kafel("ulica"), p = el && el.querySelector ? el.querySelector('[data-dn="wklad"]') : null; if (p) p.innerHTML = wkladTekst(wk); });
       }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("akcja"); if (e && e.siec && awaryjnieUlica(nr)) return; schowaj("ulica"); });
     } };
