@@ -51,6 +51,13 @@
 //   Odrzucony token (401, JWT) przy pierwszej próbie: bez komunikatu, odświeżenie sesji i JEDNO ponowne wczytanie; dopiero druga odmowa to błąd kafla.
 // Kiedy nowy ekran USTĘPUJE staremu (decyzje 13.11 i 25.11): podgląd trenera (?from=trener, do E8), #sponsor (formularz
 // sponsora otwiera stary ekran), #log-list (historia Okienka). ?dzis=stary obsługuje blok DZIS-E0 1.
+// TYDZIEŃ (E6a, blizna-376): dane. Tydzień pn–nd w dobie WARSZAWSKIEJ, gotowymi funkcjami sb.js (_tydzienWaw, _dzienWaw); typy biegowe przez
+//   isRunType (lista pod bramką reguł), moduł niczego z tego nie przepisuje. Liczenie regułami starego „Postępu tygodnia” (updateWeekProgress):
+//   zaplanowane = plany tygodnia poza „Odpoczynkiem”; zrobione = większa z liczb: plany „done” albo wpisy (nie więcej niż zaplanowanych);
+//   kilometry tylko z wpisów biegowych, inne aktywności osobno; plan kilometrów = dystanse planów biegowych.
+//   Budżet: 6 zapytań bez trenera, 7 z trenerem, dalej 2 fale (decyzja Filipa 26.11). Zapytanie o plany TYGODNIA zastępuje zapytanie
+//   o trening na dziś (dzisiejszy wybierany po dacie); dochodzi jedno o wpisy z dwóch tygodni (ten i poprzedni, do „km tydzień temu”).
+//   Para plany + wpisy trafia do migawki (pole „tydzien”, z poniedziałkiem, którego dotyczy) i bez sieci wraca tylko dla tego samego tygodnia.
 // PAMIĘĆ BEZ SIECI (blizna-374): po każdym udanym odczycie dane kafli trafiają do migawki starego Dziś (js/dzis-offline.js), jako jej część „dzisNowe”.
 //   Moduł NIE dotyka pamięci telefonu sam: zapis idzie przez DzisOffline.zapisz, które pilnuje limitu rozmiaru, kasuje migawki innych kont,
 //   czyści wszystko przy wylogowaniu i nic nie zapisuje w podglądzie trenera. W migawce nie ma identyfikatora trenera, tylko „czy jest trener”.
@@ -70,12 +77,12 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien"];
   var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
-  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false, uid: null, bezSieci: false, tsTelefonu: 0, wpisyZTelefonu: false, wToku: 0 }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false, nasluchSieci = false;
+  var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false, uid: null, bezSieci: false, tsTelefonu: 0, wpisyZTelefonu: false, wToku: 0, zakres: null, plany: null, wpisyTyg: null, tydzien: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false, nasluchSieci = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
   var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
@@ -665,7 +672,7 @@
       if (!mig || mig.uid !== dane.uid) {   // pierwsze pole po wejściu: zaczynamy od tego, co już jest w telefonie, żeby nie zgubić pól, których ta próba nie doczyta
         mig = { uid: dane.uid, pola: { czas: {} } };
         var o = pamiec(), m = o ? o.odczytaj(dane.uid) : null, st = m && m.czesci ? m.czesci.dzisNowe : null;
-        if (st && typeof st === "object") ["profil", "ulica", "trening", "wiadomosc", "wpisy"].forEach(function (k) { if (k in st) { mig.pola[k] = st[k]; mig.pola.czas[k] = (st.czas && st.czas[k]) || st.ts || 0; } });
+        if (st && typeof st === "object") ["profil", "ulica", "trening", "wiadomosc", "wpisy", "tydzien"].forEach(function (k) { if (k in st) { mig.pola[k] = st[k]; mig.pola.czas[k] = (st.czas && st.czas[k]) || st.ts || 0; } });
       }
       mig.pola[pole] = wartosc; mig.pola.czas[pole] = Date.now();
     } catch (e) { return; }
@@ -675,6 +682,54 @@
       migCzeka = false;
       try { var o = pamiec(); if (!o || !mig) return; mig.pola.ts = Date.now(); o.zapisz(mig.uid, "dzisNowe", mig.pola); pasekOffline(); } catch (e) {}
     });
+  }
+  /* ── TYDZIEŃ: dane ── */
+  /** Tydzień pn–nd zawierający chwilę `teraz`, w dobie warszawskiej. null, gdy strona nie ma funkcji z sb.js: wtedy moduł pyta tylko o dzisiejszy trening.
+      wpisyOd = chwila, od której pytamy o wpisy: poniedziałek POPRZEDNIEGO tygodnia z zapasem 3 h (północ w Warszawie to 22:00 albo 23:00 UTC dnia wcześniej);
+      o tym, do którego dnia i tygodnia wpis należy, decyduje dopiero _dzienWaw. */
+  function zakresTygodnia(teraz) {
+    try {
+      if (typeof w._tydzienWaw !== "function" || typeof w._dzienWaw !== "function" || typeof w.isRunType !== "function") return null;
+      var ts = teraz == null ? Date.now() : teraz, t = w._tydzienWaw(ts);
+      if (!t || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.od)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(t.do))) return null;
+      var p = t.od.split("-").map(Number), dz = function (n) { return new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)).toISOString().slice(0, 10); }, dni = [];
+      for (var i = 0; i < 7; i++) dni.push(dz(i));
+      return { od: t.od, do: t.do, poprzOd: dz(-7), dzis: w._dzienWaw(new Date(ts).toISOString()), dni: dni, wpisyOd: new Date(Date.UTC(p[0], p[1] - 1, p[2] - 7) - 3 * 3600e3).toISOString() };
+    } catch (e) { return null; }
+  }
+  function sekundy(t) { var s = typeof w._parseTimeToSecs === "function" ? w._parseTimeToSecs(t) : null; return isFinite(s) && s > 0 ? s : 0; }
+  /** Liczby tygodnia z planów (trainings) i wpisów (training_logs; mogą obejmować też poprzedni tydzień). z = zakresTygodnia().
+      zaplanowane, zrobione, km, kmInne, planKm: dokładnie reguły starej updateWeekProgress (test porównuje ze źródłem tamtej funkcji).
+      Nowe: sek (czas w ruchu, wszystkie aktywności), tempoSek (średnie tempo biegów, które mają dystans i czas), kmPoprz (biegowe km tydzień temu),
+      dniZRuchem, inne (liczba aktywności niebiegowych) i siedem dni pn–nd: km biegowe, km z planu, czy jest plan, czy dzień wolny. */
+  function policzTydzien(plany, wpisy, z) {
+    var bieg = w.isRunType, n = function (x) { return parseFloat(x) || 0; }, nr = {}, dni = z.dni.map(function (d, i) { nr[d] = i; return { dzien: d, km: 0, planKm: 0, plan: false, wolne: false, wpisow: 0 }; });
+    var P = (plany || []).filter(function (t) { return t && t.date >= z.od && t.date <= z.do; }), W = 0, o = { od: z.od, do: z.do, km: 0, kmInne: 0, planKm: 0, kmPoprz: 0, sek: 0, inne: 0 }, sekBieg = 0, kmZCzasem = 0;
+    (wpisy || []).forEach(function (l) {
+      if (!l) return;
+      var d = w._dzienWaw(l.logged_at), k = n(l.distance_km), b = bieg(l.training_type);
+      if (d >= z.poprzOd && d < z.od) { if (b) o.kmPoprz += k; return; }
+      if (!(d >= z.od && d <= z.do)) return;
+      var s = sekundy(l.duration); W++; o.sek += s; dni[nr[d]].wpisow++;
+      if (b) { o.km += k; dni[nr[d]].km += k; if (k > 0 && s > 0) { sekBieg += s; kmZCzasem += k; } } else { o.kmInne += k; o.inne++; }
+    });
+    P.forEach(function (t) {
+      var x = dni[nr[t.date]], b = bieg(t.type);
+      if (b) o.planKm += n(t.distance_km);
+      if (t.type === "Odpoczynek") { x.wolne = true; return; }
+      x.plan = true; if (b) x.planKm += n(t.distance_km);
+    });
+    o.zaplanowane = P.filter(function (t) { return t.type !== "Odpoczynek"; }).length;
+    o.zrobione = Math.max(P.filter(function (t) { return t.status === "done"; }).length, Math.min(W, o.zaplanowane));
+    o.wpisow = W; o.tempoSek = kmZCzasem > 0 ? Math.round(sekBieg / kmZCzasem) : 0;
+    o.dniZRuchem = dni.filter(function (x) { return x.wpisow > 0; }).length; o.dni = dni;
+    return o;
+  }
+  /** Obie połowy (plany i wpisy tygodnia) są: liczymy i zapisujemy parę do migawki. */
+  function przeliczTydzien(nr, zTel) {
+    if (nr !== dane.nr || !dane.zakres || !dane.plany || !dane.wpisyTyg) return;
+    try { dane.tydzien = policzTydzien(dane.plany, dane.wpisyTyg, dane.zakres); } catch (e) { dane.tydzien = null; zglos("tydzien"); return; }
+    if (!zTel) zapamietaj(nr, "tydzien", { od: dane.zakres.od, plany: dane.plany, wpisy: dane.wpisyTyg });
   }
   /* ── PAMIĘĆ BEZ SIECI: odczyt ── */
   function brakSieci() { return !!(w.navigator && w.navigator.onLine === false); }
@@ -714,12 +769,21 @@
     zTelefonu(n, "wpisy"); dane.wpisy = n.wpisy; dane.wpisyZTelefonu = true; rysujWpisy(sb);
     return true;
   }
+  /** Tydzień z telefonu tylko wtedy, gdy to ten sam tydzień (ten sam poniedziałek): zeszłotygodniowe liczby podane jako bieżące byłyby nieprawdą. */
+  function awaryjnieTydzien(nr) {
+    var n = zPamieci(); if (nr !== dane.nr) return false;
+    if (!dane.zakres) dane.zakres = zakresTygodnia();
+    var t = n && n.tydzien; if (!dane.zakres || !t || t.od !== dane.zakres.od || !t.plany || !t.wpisy) { dane.tydzien = null; return false; }
+    dane.plany = t.plany; dane.wpisyTyg = t.wpisy; przeliczTydzien(nr, true);
+    return zTelefonu(n, "tydzien");
+  }
   /** Nie doszedł nawet profil: nagłówek, plakietka zegarka i wszystkie kafle z telefonu. Ulicę rysuje osobno obsługa błędu licznika. */
   function awaryjnieWszystko(nr, sb) {
     var n = zPamieci(); if (nr !== dane.nr || !n || !n.profil) return false;
     dane.imie = String(n.profil.full_name || ""); dane.trener = !!n.profil.trener; odswiezNaglowek(); zegarek(n.profil, nr);
     if (!awaryjnieTrening(nr)) bladKafla("trening", "Trening na dziś");
     if (!awaryjnieWpisy(nr, sb)) { bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); }
+    awaryjnieTydzien(nr);
     return zTelefonu(n, "profil");
   }
   function klient() { return w.sb && typeof w.sb.rpc === "function" && typeof w.sb.from === "function" && w.sb.auth ? w.sb : null; }
@@ -776,7 +840,7 @@
     var teraz = Date.now();
     if (!wymus && dane.t && teraz - dane.t < SWIEZE_MS && !(dane.bezSieci && !dane.wToku)) return;   // ekran z telefonu próbuje od razu, ale dopiero gdy poprzednia próba nie ma otwartych zapytań
     var sb = klient(), nr = ++dane.nr;
-    dane.t = teraz; dane.bezSieci = false; dane.tsTelefonu = 0; dane.wpisyZTelefonu = false;
+    dane.t = teraz; dane.bezSieci = false; dane.tsTelefonu = 0; dane.wpisyZTelefonu = false; dane.zakres = null; dane.plany = null; dane.wpisyTyg = null; dane.tydzien = null;
     if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); return; }
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
       if (uid || !brakSieci()) return uid;   // wygasła sesja bez sieci: supabase-js nie odda sesji, bo nie może jej odświeżyć; identyfikator konta jak w starym Dziś
@@ -799,8 +863,20 @@
         /* FALA 2: wszystko, co potrzebuje id zawodnika */
         var s1 = slugAkcji(a.id);
         if (a0 && s1 === s0) a0.pokaz(); else if (s1 && s0) akcja(sb, nr, s1, s0, proba).pokaz(); else schowaj("ulica");
-        pytaj(sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id).eq("date", kluczDnia()).order("created_at").limit(3))
-          .then(function (t) { if (nr !== dane.nr) return; dane.trening = t || []; zapamietaj(nr, "trening", { dzien: kluczDnia(), lista: dane.trening }); rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("trening"); if (e && e.siec && awaryjnieTrening(nr)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); });
+        /* Plany: jedno zapytanie o cały tydzień, dzisiejszy trening wybierany z niego po dacie (zegar telefonu, jak dotąd). Zakres obejmuje też „dziś” telefonu,
+           gdyby za granicą wypadało poza tygodniem warszawskim. Bez funkcji tygodnia: samo dziś, jak przed E6a. */
+        var z = dane.zakres = zakresTygodnia(), dzis = kluczDnia(), qT = sb.from("trainings").select("id,date,type,distance_km,duration_min,pace,description,status,plan_source,coach_id").eq("athlete_id", a.id);
+        qT = z ? qT.gte("date", z.od < dzis ? z.od : dzis).lte("date", z.do > dzis ? z.do : dzis).order("date").order("created_at").limit(60) : qT.eq("date", dzis).order("created_at").limit(3);
+        pytaj(qT).then(function (t) {
+          if (nr !== dane.nr) return; t = t || [];
+          dane.trening = z ? t.filter(function (x) { return x && x.date === dzis; }).slice(0, 3) : t;
+          if (z) dane.plany = t;
+          zapamietaj(nr, "trening", { dzien: dzis, lista: dane.trening }); przeliczTydzien(nr); rysujTrening();
+        }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("trening"); if (e && e.siec) awaryjnieTydzien(nr); if (e && e.siec && awaryjnieTrening(nr)) return; dane.trening = null; bladKafla("trening", "Trening na dziś"); });
+        if (z) {
+          pytaj(sb.from("training_logs").select("logged_at,training_type,distance_km,duration").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").gte("logged_at", z.wpisyOd).order("logged_at", { ascending: false }).limit(200))
+            .then(function (l) { if (nr !== dane.nr) return; dane.wpisyTyg = l || []; przeliczTydzien(nr); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("tydzien"); if (e && e.siec && awaryjnieTydzien(nr)) return; dane.tydzien = null; });
+        }
         if (a.coach_id) {
           pytaj(sb.from("messages").select("body,sent_at").eq("athlete_id", a.id).eq("sender", "coach").gte("sent_at", new Date(Date.now() - OKNO_WIADOMOSCI_DNI * 864e5).toISOString()).order("sent_at", { ascending: false }).limit(1))
             .then(function (m) { if (nr !== dane.nr) return; dane.wiadomosc = m && m[0] ? m[0] : null; zapamietaj(nr, "wiadomosc", dane.wiadomosc); rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("wiadomosc"); if (e && e.siec && awaryjnieWiadomosc(nr)) return; dane.wiadomosc = null; rysujTrening(); });
@@ -895,5 +971,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, policzTydzien: policzTydzien, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

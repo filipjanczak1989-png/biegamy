@@ -15,8 +15,8 @@ test('(1) po udanym wczytaniu w telefonie leży część „dzisNowe”: profil,
   const m = s.migawka();
   assert.equal(m.userId, UID);
   const n = m.czesci.dzisNowe;
-  assert.deepEqual(Object.keys(n).sort(), ['czas', 'profil', 'trening', 'ts', 'ulica', 'wiadomosc', 'wpisy']);
-  assert.deepEqual(n.czas, { profil: TERAZ, ulica: TERAZ, trening: TERAZ, wiadomosc: TERAZ, wpisy: TERAZ }, 'każde pole ma własną godzinę (blizna-375: pasek „Offline” w stanie mieszanym)');
+  assert.deepEqual(Object.keys(n).sort(), ['czas', 'profil', 'trening', 'ts', 'tydzien', 'ulica', 'wiadomosc', 'wpisy']);   // „tydzien” od E6a (blizna-376)
+  assert.deepEqual(n.czas, { profil: TERAZ, ulica: TERAZ, trening: TERAZ, wiadomosc: TERAZ, wpisy: TERAZ, tydzien: TERAZ }, 'każde pole ma własną godzinę (blizna-375: pasek „Offline” w stanie mieszanym)');
   assert.deepEqual(n.profil, { id: 'a-1', full_name: 'Ola Nowak', trener: true, intervals_athlete_id: 'i123', intervals_connected_at: '2026-10-01T10:00:00Z', intervals_can_write: true, intervals_token_dead_at: null });
   assert.deepEqual(n.ulica, { licznik: { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad: { km: 196 }, adres: 'ulica-glowna.html#ulica-po' });
   assert.deepEqual(n.trening, { dzien: '2026-11-26', lista: TRENING }, 'trening niesie dzień, którego dotyczy');

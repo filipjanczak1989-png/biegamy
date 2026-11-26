@@ -1,4 +1,6 @@
 // Atrapa strony dla testów nowego Dziś z PRAWDZIWYM js/dzis-offline.js (pamięć bez sieci: blizna-374, blizna-375).
+// Od E6a (blizna-376) także z PRAWDZIWYMI funkcjami tygodnia wyciętymi ze źródła klienta: _parseTimeToSecs, _dzienWaw, _tydzienWaw, RUN_TYPES, isRunType.
+// Zapytanie o wpisy tygodnia (to z .gte na logged_at) nazywa się tu „training_logs tydzien”, żeby odróżnić je od sześciu ostatnich wpisów.
 // Pamięć telefonu to mapa napisów, jak w przeglądarce: testy czytają z niej surowy JSON, nie obiekt z pamięci modułu.
 // Zapytania odpowiadają dopiero na polecenie testu (doKonca), a każdemu można zadać awarię:
 //   'siec'   → { data: null, error: { message: 'TypeError: Failed to fetch' } }   (tak odpowiada supabase-js bez połączenia)
@@ -12,6 +14,10 @@ const KORZEN = path.join(__dirname, '..');
 const czytaj = (p) => fs.readFileSync(path.join(KORZEN, p), 'utf8').replace(/\r\n/g, '\n');
 const MODUL = czytaj('js/dzis-nowy.mjs');
 const OFFLINE = czytaj('js/dzis-offline.js');
+const KLIENT = czytaj('sb' + '.js');
+const wytnij = (re) => { const m = re.exec(KLIENT); if (!m) throw new Error('nie ma w kliencie: ' + re); return m[0]; };
+const FUNKCJE_TYGODNIA = [/window\._parseTimeToSecs = function\(t\)\{[\s\S]*?\n  \};/, /window\._dzienWaw = function \(iso\) \{[\s\S]*?\n  \};/, /window\._tydzienWaw = function \(ts\) \{[\s\S]*?\n  \};/,
+  /window\.RUN_TYPES = new Set\(\[[\s\S]*?\]\);/, /window\.isRunType = function\(t\) \{[\s\S]*?\n  \};/].map(wytnij).join('\n');
 const tik = async (n = 20) => { for (let i = 0; i < n; i++) await Promise.resolve(); };
 const TERAZ = new Date(2026, 10, 26, 12, 0, 0).getTime();
 const UID = 'u-1';
@@ -27,7 +33,7 @@ function pamiecTelefonu(mapa) {
 }
 
 function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { feel: 'mid' })], profil = PROFIL, trening = TRENING, wiadomosc = [{ body: 'Jutro luźno.', sent_at: new Date(TERAZ - 20 * 3600e3).toISOString() }],
-  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false } = {}) {
+  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null } = {}) {
   const klasy = new Set(['dzis-nowy']), wezly = {}, zapytania = [], czasomierze = [], sluchacze = {}, zgloszenia = [], st = { zegar: teraz, online, awaria: Object.assign({}, awaria), sesja };
   const tel = pamiecTelefonu(pamiec);
   const lista = () => { const k = new Set(); return { add: (c) => k.add(c), remove: (c) => k.delete(c), contains: (c) => k.has(c) }; };
@@ -37,7 +43,8 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   const korzen = { hidden: true, innerHTML: '', _a: {}, _zd: {}, getAttribute(k) { return k in this._a ? this._a[k] : null; }, setAttribute(k, v) { this._a[k] = v; }, querySelector: (s) => wezel(s), addEventListener(n, f) { this._zd[n] = f; }, contains: () => true };
   const el = { 'dzis-nowy': korzen, 'topbar-name': { textContent: 'Ola' }, 'zawodnik-bell-dot': { textContent: '', style: { display: 'none' } }, 'moment-baner': { style: { display: 'none' } }, 'watch-pasek-slot': { innerHTML: '' } };
   const nowyEl = () => ({ id: '', style: {}, textContent: '', appendChild(c) { if (c.id) el[c.id] = c; }, remove() { delete el[this.id]; } });
-  const DANE = () => ({ athletes: profil, 'rpc akcja_licznik': licznik, 'rpc akcja_moj_wklad': wklad, trainings: trening, training_logs: wpisy, messages: wiadomosc });
+  const DANE = () => ({ athletes: profil, 'rpc akcja_licznik': licznik, 'rpc akcja_moj_wklad': wklad, trainings: trening, training_logs: wpisy, messages: wiadomosc,
+    'training_logs tydzien': wpisyTyg || wpisy.map((l) => ({ logged_at: l.logged_at, training_type: l.training_type, distance_km: l.distance_km, duration: l.duration })) });
   const odpowiedz = (nazwa) => {
     const a = st.awaria[nazwa] || st.awaria['*'];
     if (a === 'siec') return { data: null, error: { message: 'TypeError: Failed to fetch' }, status: 0 };
@@ -45,7 +52,7 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
     return { data: DANE()[nazwa], error: null, status: 200 };
   };
   const wyslij = (nazwa, opis) => { const zq = { nazwa, opis, stan: 'czeka' }; zapytania.push(zq); return new Promise((ok) => { zq.odpowiedz = () => { if (zq.stan !== 'czeka') return; zq.stan = 'jest'; ok(odpowiedz(nazwa)); }; }); };
-  const lancuch = (t) => { const kroki = []; let p = null; const q = new Proxy({}, { get(_, k) { if (k === 'then') return (a, b) => (p = p || wyslij(t, kroki.join(''))).then(a, b); return (...arg) => { kroki.push('.' + k + '(' + arg.map((x) => JSON.stringify(x)).join(',') + ')'); return q; }; } }); return q; };
+  const lancuch = (t) => { const kroki = []; let p = null; const q = new Proxy({}, { get(_, k) { if (k === 'then') return (a, b) => (p = p || wyslij(t === 'training_logs' && kroki.join('').includes('.gte("logged_at"') ? 'training_logs tydzien' : t, kroki.join(''))).then(a, b); return (...arg) => { kroki.push('.' + k + '(' + arg.map((x) => JSON.stringify(x)).join(',') + ')'); return q; }; } }); return q; };
   const nawigator = { get onLine() { return st.online; } };
   const w = { _currentSection: 'home', location: { search, hash: '', pathname: '/zawodnik.html' }, URLSearchParams, navigator: nawigator, showSection(n) { this._currentSection = n; }, _logKlienta(...a) { zgloszenia.push(a); },
     setTimeout(f, ms) { czasomierze.push({ f, ms, zywy: true }); return czasomierze.length; }, clearTimeout(i) { if (czasomierze[i - 1]) czasomierze[i - 1].zywy = false; },
@@ -62,6 +69,7 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   const kontekst = { window: w, self: w, document: d, navigator: nawigator, location: w.location, localStorage: tel, sessionStorage: { getItem: (k) => (zakladkaTrenera && k === '_fromTrener' ? '1' : null) }, URLSearchParams, Date: DataT, Promise, encodeURIComponent, JSON, String, Number, Object, Array, Math, RegExp, Error, isFinite, isNaN, parseInt, parseFloat };
   vm.createContext(kontekst);
   if (!bezOffline) vm.runInContext(OFFLINE, kontekst);   // prawdziwy js/dzis-offline.js → w.DzisOffline, pamięć = mapa testu
+  if (!bezTygodnia) vm.runInContext(FUNKCJE_TYGODNIA, kontekst);   // prawdziwe funkcje tygodnia; bez nich moduł pyta tylko o dzisiejszy trening
   vm.runInContext(MODUL, kontekst);
   async function doKonca() { await tik(); for (let i = 0; i < 14 && zapytania.some((x) => x.stan === 'czeka'); i++) { for (const x of zapytania.filter((y) => y.stan === 'czeka')) x.odpowiedz(); await tik(); } await tik(); }
   const dotknij = (co, kod) => korzen._zd.click({ target: { closest: (sel) => (sel === '[data-dn],[data-sekcja]' ? { getAttribute: (k) => (k === 'data-dn' ? co : k === 'data-kod' ? kod : null) } : null) } });
@@ -71,4 +79,4 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
     kafel: (n) => wezel('[data-kafel="' + n + '"]'), cz: (n) => wezel('[data-dn="' + n + '"]'), pasekOffline: () => (el['bm-offline-pasek'] && el['bm-offline-pasek-txt'] ? el['bm-offline-pasek-txt'].textContent : null) };
 }
 
-module.exports = { strona, wpis, tik, TERAZ, UID, PROFIL, TRENING, MODUL, OFFLINE, czytaj };
+module.exports = { strona, wpis, tik, TERAZ, UID, PROFIL, TRENING, MODUL, OFFLINE, FUNKCJE_TYGODNIA, czytaj };

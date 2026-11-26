@@ -2,6 +2,7 @@
 //
 // Stare Dziś robi przy wejściu ok. 90 zapytań w ok. 12 falach i pyta o profil zawodnika 7 razy (bot dymny 25.11).
 // Nowe ma od początku stały budżet i ten test go pilnuje: 2 fale, 5 zapytań, profil RAZ.
+// Od E6a (blizna-376) prawdziwa strona ma funkcje tygodnia i budżet 6 (z trenerem 7); tam jest pilnowany. Ta atrapa ich nie ma, więc tu zostaje droga zapasowa: samo dziś, 5 (z trenerem 6).
 //   fala 1: profil zawodnika + akcja_licznik + akcja_moj_wklad (żadne nie czeka na drugie),
 //   fala 2: trening na dziś + ostatnie wpisy (potrzebują id zawodnika z fali 1).
 // „Fala” = zapytania wysłane, zanim przyszła odpowiedź na którekolwiek z poprzedniej fali. Atrapa klienta bazy trzyma
