@@ -5,7 +5,7 @@
 // 22 px, kreska 1,7). Teraz skróty to inline SVG z Lucide 1.72.0 (kontynuacja Feathera; licencja ISC, „radio” z Feather na MIT,
 // tekst w LICENSES/lucide.txt): zero plików i zapytań, kreska 1,6 przy 24 px = na ekranie ta sama grubość co menu.
 // Bez powtórek z menu: jabłko ma „Jedzenie”, więc Odżywianie dostaje sztućce; Czat to okrągły dymek, menu ma kwadratowy.
-// Stare pliki .webp zostają w repo (decyzja Filipa: nie kasujemy), nowe Dziś pobiera z nich tylko dzwonek.
+// Stare pliki .webp zostają w repo (decyzja Filipa: nie kasujemy), nowe Dziś pobierało z nich jeszcze dzwonek (od blizna-413 nic).
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -31,8 +31,8 @@ test('(1) osiem skrótów to inline SVG w kółku, w tej kolejności; żadnego o
 });
 
 test('(2) ścieżki: Lucide 1.72.0 bez zmian (przypięte skrótem), same kształty, nic aktywnego', () => {
-  assert.equal(crypto.createHash('sha256').update(MAPA[1]).digest('hex').slice(0, 16), 'c028d285f54ed363', 'zmiana ścieżek = świadoma decyzja i nowy skrót');
-  assert.deepEqual(Object.keys(IKONY), ['biceps', 'sztucce', 'flaga', 'puchar', 'medal', 'radio', 'dymek', 'pad']);
+  assert.equal(crypto.createHash('sha256').update(MAPA[1]).digest('hex').slice(0, 16), '3fef8341bebb6fbb', 'zmiana ścieżek = świadoma decyzja i nowy skrót');
+  assert.deepEqual(Object.keys(IKONY), ['biceps', 'sztucce', 'flaga', 'puchar', 'medal', 'radio', 'dymek', 'dzwonek', 'pad']);   // dzwonek od blizna-413
   for (const [k, v] of Object.entries(IKONY)) {
     assert.match(v, /^(<(path|circle|line|rect|polyline) [^<>]*\/>)+$/, k + ': same proste kształty');
     for (const a of v.matchAll(/ ([a-z0-9-]+)="/g)) assert.ok(['d', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height', 'rx', 'points'].includes(a[1]), k + ': atrybut ' + a[1]);

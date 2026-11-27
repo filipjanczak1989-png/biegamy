@@ -13,14 +13,18 @@ const assert = require('node:assert/strict');
 const { strona, MODUL } = require('./_dzis-nowy-strona.js');
 
 const naglowek = (s) => (s.korzen.innerHTML.match(/<header[\s\S]*?<\/header>/) || [''])[0];
-const REGULA = '#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:116px;margin:0;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #2a2a30;background:#0f0f13;white-space:nowrap}';
+// od blizna-413 (paczka I2): wygląd chipu (48 px, obwódka i tło jak kółka zegarka i dzwonka) w regule ogólnej, na kadrze samo położenie
+const REGULA = '#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:112px;margin:0;white-space:nowrap}';
 
 test('(1) w ramce kadru: lewy górny róg, ciemna pigułka jak przyciski, cel dotyku 44 px; położenie nie zależy od długości imienia ani daty', () => {
   assert.ok(MODUL.includes(REGULA), 'reguła chipu na kadrze');
-  // ramka 184 px, odstęp dolny 14 px, dół kolumny tekstu na 170 px: bottom 116 px + wysokość 44 px = góra chipu 10 px od góry ramki
-  assert.equal(184 - 14 - 116 - 44, 10);
+  // ramka 184 px, odstęp dolny 14 px, dół kolumny tekstu na 170 px: bottom 112 px + wysokość 48 px = góra chipu 10 px od góry ramki (jak przed blizna-413)
+  assert.equal(184 - 14 - 112 - 48, 10);
+  assert.ok(MODUL.includes('#dzis-nowy .dn-trener{display:inline-flex;align-items:center;box-sizing:border-box;min-height:48px;'), 'chip 48 px, jak kółka');
   assert.ok(MODUL.includes('height:184px;margin:0 -16px 12px;padding:0 16px 14px;align-items:flex-end;'), 'liczby, z których wynika położenie chipu');
-  assert.ok(MODUL.includes('#dzis-nowy .dn-okr{position:relative;width:48px;height:48px;border-radius:50%;border:1px solid #2a2a30;background:#0f0f13;'), 'te same kolory tła i obwódki co przyciski zegarka i dzwonka');
+  const wyglad = 'border:1px solid rgba(255,255,255,.08);background:rgba(23,22,27,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#f5f3ef;';
+  assert.ok(MODUL.includes('#dzis-nowy .dn-akcje .dn-okr,#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;box-sizing:border-box;border-radius:50%;' + wyglad), 'kółka zegarka i dzwonka');
+  assert.ok(MODUL.includes('border-radius:24px;' + wyglad), 'chip: ta sama obwódka, tło i kolor co kółka (od blizna-413)');
   assert.ok(MODUL.includes('#dzis-nowy .dn-kadr .dn-powitanie{line-height:34px;white-space:nowrap;'), 'kolumna tekstu ma stałą wysokość (blizna-385), więc chip liczony od jej dołu stoi zawsze w tym samym miejscu');
 });
 
@@ -42,9 +46,9 @@ test('(3) ramka bez zdjęcia: ten sam róg co ze zdjęciem (jedno miejsce zawsze
   }
   const bezKadru = strona(); bezKadru.B.KADRY.length = 0; bezKadru.B.start();
   assert.match(naglowek(bezKadru), /^<header class="dn-naglowek"><div><button type="button" class="dn-trener"/);
-  assert.equal((MODUL.match(/\.dn-trener\{/g) || []).length, 2, 'dwie reguły chipu: zwykła (nagłówek bez ramki) i ta dla ramki kadru');
+  assert.equal((MODUL.match(/\.dn-trener\{/g) || []).length, 3, 'trzy reguły chipu: zwykła, położenie w ramce kadru i pełne tło bez backdrop-filter (od blizna-413)');
   assert.doesNotMatch(MODUL, /dn-kadr-pusty|\.dn-kadr:not\(/, 'żadnego wyjątku dla ramki bez zdjęcia');
-  assert.match(MODUL, /#dzis-nowy \.dn-trener\{display:inline-flex;align-items:center;min-height:32px;margin:0 0 8px;/, 'zwykły chip bez zmian');
+  assert.match(MODUL, /#dzis-nowy \.dn-trener\{display:inline-flex;align-items:center;box-sizing:border-box;min-height:48px;margin:0 0 8px;/, 'zwykły chip: odstęp nad datą jak dotąd, wygląd kółek od blizna-413 (wcześniej 32 px w pomarańczowej ramce)');
 });
 
 test('(4) chip dalej działa po staremu: widać go tylko, gdy stary kod odsłonił swój; dotknięcie klika stary odnośnik', async () => {

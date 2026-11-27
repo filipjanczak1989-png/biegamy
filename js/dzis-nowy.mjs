@@ -94,7 +94,7 @@
 // Plik BEZ import/export (globalThis.BM_DZIS), jak js/ulica.mjs. Zmiana tego pliku = nowa stała MODUL_V w bloku DZIS-E0 1 (blizna-336).
 (function (w, d) {
   "use strict";
-  var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
+  var ETAP = "E1", owiniete = false, zgloszone = {}, obserwatorzy = false;
   var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien", "spolecznosc", "karta-dnia"];
   var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null, LIMIT_NOTATKI = 500, PROG_LICZNIKA = 400;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
@@ -144,7 +144,9 @@
      ekranie tę samą grubość co menu (1,7 przy 22 px ≈ 1,56 px). Inline: zero plików i zapytań. Dobór: Ciało = biceps (biceps-flexed; „osoba”, person-standing,
      wyglądała na mniejszą: rysunek 12×16 przy 18–20 pozostałych, zrzut 27.11),
      Odżywianie = sztućce (utensils; jabłko ma już menu), Starty = flaga, Wyzwania = puchar (trophy), Odznaki = medal, Radio = radio, Czat = dymek
-     (message-circle; menu ma kwadratowy), Gra = pad (gamepad-2). Ścieżki skopiowane z paczki lucide-static@1.72.0 skryptem, bez zmian. */
+     (message-circle; menu ma kwadratowy), Gra = pad (gamepad-2). Paczka I2 (blizna-413): dzwonek w nagłówku = bell; dzwonek, zegarek
+     i chip „← Trener” w tym samym kółku co skróty, z przyciemnionym tłem z rozmyciem nad zdjęciem kadru (bez backdrop-filter: pełne #17161b). Od I2 moduł nie pobiera
+     żadnego obrazka ikony; pliki webp w assets/ui/dzis/ikony/ zostają (decyzja Filipa: nie kasujemy). Ścieżki skopiowane z paczki lucide-static@1.72.0 skryptem, bez zmian. */
   var IKONY_SVG = {
     biceps: '<path d="M12.409 13.017A5 5 0 0 1 22 15c0 3.866-4 7-9 7-4.077 0-8.153-.82-10.371-2.462-.426-.316-.631-.832-.62-1.362C2.118 12.723 2.627 2 10 2a3 3 0 0 1 3 3 2 2 0 0 1-2 2c-1.105 0-1.64-.444-2-1"/><path d="M15 14a5 5 0 0 0-7.584 2"/><path d="M9.964 6.825C8.019 7.977 9.5 13 8 15"/>',
     sztucce: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
@@ -153,26 +155,27 @@
     medal: '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/>',
     radio: '<path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/>',
     dymek: '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>',
+    dzwonek: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
     pad: '<line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/>'
   };
   function ikonaSvg(nazwa) {
     return Object.prototype.hasOwnProperty.call(IKONY_SVG, nazwa) ? '<svg class="dn-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + IKONY_SVG[nazwa] + "</svg>" : "";
-  }
-  function ikona(nazwa, px, klasa) {
-    return '<img class="dn-ik' + (klasa ? " " + klasa : "") + '" src="' + IKONY + nazwa + '-64.webp" srcset="' + IKONY + nazwa + "-64.webp 64w, " + IKONY + nazwa + '-128.webp 128w" sizes="' + px +
-      'px" width="' + px + '" height="' + px + '" alt="" aria-hidden="true" decoding="async" onerror="this.style.visibility=\'hidden\'">';
   }
 
   var CSS = "#dzis-nowy{padding:4px 16px 8px;color:#f5f3ef;font-family:'DM Sans',system-ui,sans-serif}" +
     "#dzis-nowy .dn-naglowek{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:6px 0 10px}#dzis-nowy .dn-naglowek > div:first-child{min-width:0}" +
     "#dzis-nowy .dn-rzad{display:flex;align-items:center;gap:8px;margin:0 0 12px}#dzis-nowy .dn-rzad .dn-zapytaj{flex:1;width:auto;min-width:0;margin:0}" +
     "#dzis-nowy .dn-awatar{flex:none;overflow:hidden;color:#f5f3ef;font:600 15px/1 'DM Sans',sans-serif;letter-spacing:.02em}#dzis-nowy .dn-awatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}" +
-    "#dzis-nowy .dn-trener{display:inline-flex;align-items:center;min-height:32px;margin:0 0 8px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,122,69,.4);background:rgba(196,74,19,.14);color:#ff7a45;font:500 11px/1 'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}" +
+    "#dzis-nowy .dn-trener{display:inline-flex;align-items:center;box-sizing:border-box;min-height:48px;margin:0 0 8px;padding:0 16px;border-radius:24px;border:1px solid rgba(255,255,255,.08);background:rgba(23,22,27,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#f5f3ef;font:500 11px/1 'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:border-color .15s}" +
     "#dzis-nowy{position:relative}#dzis-nowy .dn-menu{position:absolute;right:16px;z-index:50;min-width:220px;max-width:calc(100% - 32px);margin-top:-6px;padding:8px;border-radius:16px;border:1px solid #2a2a30;background:#16161b;box-shadow:0 16px 40px rgba(0,0,0,.7)}" +
     "#dzis-nowy .dn-menu-kto{padding:8px 12px 10px;margin:0 0 6px;border-bottom:1px solid #2a2a30;color:#8f8c97;font:500 11px/1.3 'DM Mono',monospace;overflow-wrap:anywhere}" +
     "#dzis-nowy .dn-menu button,#dzis-nowy .dn-menu a{display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:none;color:#f5f3ef;font:500 14px/1.2 'DM Sans',sans-serif;text-align:left;text-decoration:none;cursor:pointer}" +
     "#dzis-nowy .dn-menu a.dn-menu-cichy{color:#bcb8b2}#dzis-nowy .dn-menu button.dn-menu-wyloguj{color:#ff6b5e}" +
-    "#dzis-nowy .dn-zegarek{display:flex;align-items:center}#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;opacity:1}" +
+    "#dzis-nowy .dn-zegarek{display:flex;align-items:center}" +
+    "#dzis-nowy .dn-akcje .dn-okr,#dzis-nowy .dn-zegarek .wc-badge{width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:1px solid rgba(255,255,255,.08);background:rgba(23,22,27,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#f5f3ef;opacity:1;transition:border-color .15s}" +
+    "#dzis-nowy .dn-zegarek .wc-icon{width:22px;height:22px;stroke:#f5f3ef;stroke-width:1.75}#dzis-nowy .dn-zegarek .wc-badge-warn .wc-icon{stroke:#e8b840}#dzis-nowy .dn-zegarek .wc-refresh{color:#f5f3ef;opacity:.8}" +
+    "#dzis-nowy .dn-akcje .dn-okr:active,#dzis-nowy .dn-akcje .dn-okr:focus-visible,#dzis-nowy .dn-zegarek .wc-badge:active,#dzis-nowy .dn-zegarek .wc-badge:focus-visible,#dzis-nowy .dn-trener:active,#dzis-nowy .dn-trener:focus-visible{border-color:#ff7a45}" +
+    "@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#dzis-nowy .dn-akcje .dn-okr,#dzis-nowy .dn-zegarek .wc-badge,#dzis-nowy .dn-trener{background:#17161b}}" +
     "#dzis-nowy .dn-zd{margin:0 0 12px;overflow:hidden}#dzis-nowy .dn-zd .wc-pasek{margin:0!important}" +
     "#dzis-nowy .dn-zd.dn-zd-wjazd{animation:dn-zd-wjazd .24s ease-out}@keyframes dn-zd-wjazd{from{max-height:0;margin-bottom:0;opacity:0}to{max-height:140px;margin-bottom:12px;opacity:1}}" +
     "#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:dn-jp-swiatlo 1.6s ease-out}@keyframes dn-jp-swiatlo{0%,60%{box-shadow:0 0 0 2px #ff7a45;border-radius:12px}100%{box-shadow:0 0 0 2px rgba(255,122,69,0)}}" +
@@ -183,7 +186,7 @@
     "#dzis-nowy .dn-kadr > div{position:relative;z-index:1;min-width:0}#dzis-nowy .dn-kadr .dn-data{color:#f5f3ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-data-m{letter-spacing:.1em}#dzis-nowy .dn-kadr .dn-data-s{letter-spacing:.02em}" +
     "@media (max-width:359px){#dzis-nowy .dn-kadr .dn-data{font-size:10px;letter-spacing:.02em}}" +
     "#dzis-nowy .dn-kadr .dn-powitanie{line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dzis-nowy .dn-kadr .dn-pow-m{font-size:28px}#dzis-nowy .dn-kadr .dn-pow-s{font-size:24px}" +
-    "#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:116px;margin:0;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #2a2a30;background:#0f0f13;white-space:nowrap}" +
+    "#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:112px;margin:0;white-space:nowrap}" +
     "#dzis-nowy .dn-kadr-o{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;opacity:0;transition:opacity .2s ease-out}#dzis-nowy .dn-kadr-o.jest{opacity:1}" +
     "#dzis-nowy .dn-kadr-g{position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(180deg,rgba(6,6,8,.06) 0%,rgba(6,6,8,.2) 42%,rgba(6,6,8,.76) 64%,rgba(6,6,8,.9) 100%)}" +
     "@media (min-width:900px){html.dzis-gotowy.dzis-na-dzis #dn-tlo.jest{display:block;position:fixed;top:-80px;right:-80px;bottom:-80px;left:-80px;z-index:-1;background-color:#000;background-position:center;background-size:cover;background-repeat:no-repeat;filter:blur(40px) brightness(.35);pointer-events:none;animation:dn-tlo-wejscie .6s ease-out}" +
@@ -195,7 +198,8 @@
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
     "#dzis-nowy .dn-akcje{display:flex;align-items:center;gap:8px;flex:none}" +
     "#dzis-nowy .dn-okr{position:relative;width:48px;height:48px;border-radius:50%;border:1px solid #2a2a30;background:#0f0f13;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}" +
-    "#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active{transform:scale(.96)}" +
+    "#dzis-nowy .dn-zegarek .wc-badge:hover{transform:none;box-shadow:none}" +
+    "#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-zegarek .wc-badge:active,#dzis-nowy .dn-trener:active{transform:scale(.96)}" +
     "#dzis-nowy .dn-zapytaj{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin:0 0 12px;padding:0 16px 0 14px;border-radius:24px;text-align:left;border:1px solid #2a2a30;background:#0f0f13;color:#f5f3ef;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}" +
     "#dzis-nowy .dn-zapytaj svg{flex:none;stroke:#bcb8b2}" +
     "#dzis-nowy .dn-licznik{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#c44a13;color:#fff;font:700 11px/20px 'DM Sans',sans-serif;text-align:center}" +
@@ -292,7 +296,7 @@
     "#dzis-nowy button.dn-link{border:0;background:none;cursor:pointer}#dzis-nowy .dn-sp-pusto{margin:12px 0 0}#dzis-nowy .dn-sp-pusto .dn-link{margin:0 -4px 0 0;min-height:44px}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
-    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}#dzis-nowy .dn-kadr-o{transition:none}}";
+    "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-zegarek .wc-badge:active,#dzis-nowy .dn-trener:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}#dzis-nowy .dn-kadr-o{transition:none}}";
 
   function wstawCss() {
     if (d.getElementById("dzis-nowy-css")) return;
@@ -338,7 +342,7 @@
     kadrTeraz = kadr;
     return '<header class="dn-naglowek' + (kadr ? ' dn-kadr" data-kadr="' + esc(kadr.id) + '" style="background-color:' + esc(kadr.tlo) + '">' + kadrHtml(kadr) : '">') + '<div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="' + klasaDaty(dataDzis()) + '" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="' + klasaPowitania(powitanie()) + '" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
       '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
-      '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
+      '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikonaSvg("dzwonek") + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
       '<p class="dn-tydz" data-dn="tydzien-linia"></p>' +
       '<div class="dn-rzad"><button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Zapytaj</span></button>' +
       '<button type="button" class="dn-okr dn-awatar" data-dn="konto" aria-haspopup="menu" aria-expanded="false" aria-label="Konto"><span data-dn="inicjaly"></span><img data-dn="foto" alt="" hidden></button></div>' +

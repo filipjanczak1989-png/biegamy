@@ -120,9 +120,9 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
   // (decyzja Filipa 27.11: nie kasujemy), nowe Dziś ich nie pobiera.
   assert.deepEqual(plain(s.B.SKROTY).map((x) => x[2]), ['biceps', 'sztucce', 'flaga', 'puchar', 'medal', 'radio', 'dymek', 'pad']);
   for (const r of ['64', '128']) assert.ok(fs.statSync(path.join(KORZEN, 'assets/ui/dzis/ikony', 'dzwonek-' + r + '.webp')).size > 500, 'brak ikony dzwonek-' + r);
-  assert.equal((s.korzen.innerHTML.match(/<svg class="dn-svg"/g) || []).length, 8, 'osiem skrótów jako SVG');
+  assert.equal((s.korzen.innerHTML.match(/<svg class="dn-svg"/g) || []).length, 9, 'osiem skrótów i dzwonek jako SVG (dzwonek od blizna-413)');
   const obrazy = [...s.korzen.innerHTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]).filter((o) => !o.startsWith('assets/ui/dzis/kadry/'));   // kadr w nagłówku: blizna-385
-  assert.deepEqual(obrazy.map((o) => o.split('/').pop()), ['dzwonek-64.webp'], 'z obrazków ikon został sam dzwonek (od blizna-412; wcześniej osiem skrótów i dzwonek)');
+  assert.deepEqual(obrazy, [], 'żadnego obrazka ikony (od blizna-413; wcześniej sam dzwonek, przed blizna-412 osiem skrótów i dzwonek)');
   for (const p of obrazy) assert.ok(fs.existsSync(path.join(KORZEN, p)), 'brak pliku ' + p);
 });
 
@@ -158,7 +158,7 @@ test('(6) granice: moduł czyta przez klienta bazy; DWA wyjątki od „tylko odc
   assert.equal(s.style.length, 1); s.B.start(); assert.equal(s.style.length, 1, 'arkusz wstawiany raz');
   const klatki = css.match(/@keyframes [^{]+/g) || [];
   for (const k of klatki) assert.match(k, /^@keyframes dn-[a-z-]+$/, 'animacja spoza nowego Dziś: ' + k);   // nazwy animacji są globalne, więc z własnym przedrostkiem
-  const selektory = css.replace(/@keyframes [^{]+\{(?:[^{}]*\{[^}]*\})*\}/g, '').replace(/@media[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim().replace(/^\}/, '')).filter(Boolean);   // „}” na początku = koniec reguły @media
+  const selektory = css.replace(/@keyframes [^{]+\{(?:[^{}]*\{[^}]*\})*\}/g, '').replace(/@(media|supports)[^{]*\{/g, '').replace(/\{[^}]*\}/g, ',').split(',').map((x) => x.trim().replace(/^\}/, '')).filter(Boolean);   // „}” na początku = koniec reguły @media
   assert.ok(selektory.length >= 25);
   for (const x of selektory) assert.ok(/^(#dzis-nowy\b|html\.dzis-gotowy(\.dzis-na-dzis)? )/.test(x), 'selektor poza nowym Dziś: ' + x);
   assert.match(css, /html\.dzis-gotowy\.dzis-na-dzis body > \.topbar,html\.dzis-gotowy\.dzis-na-dzis body > #okienko-pole\{display:none!important\}/, 'stary pasek i pole Zapytaj schowane tylko na Dziś');

@@ -18,7 +18,7 @@ test('(1) imię trenera białe i pogrubione; data obok szara; „Czytaj ›” d
 
 test('(2) po audycie A3 w arkuszu nie ma już pomarańczowego tekstu poza linkami, przyciskami i wyróżnieniem „dziś”', () => {
   const pomaranczowe = [...MODUL.matchAll(/(#dzis-nowy [^{}"]*)\{(?:[^}]*;)?color:#ff7a45[^}]*\}/g)].map((m) => m[1].replace('#dzis-nowy ', '')).sort();
-  assert.deepEqual(pomaranczowe, ['.dn-jp-zapisz', '.dn-link', '.dn-moment i', '.dn-rada-w', '.dn-sl.dzis span', '.dn-trener', '.dn-wlink'],
+  assert.deepEqual(pomaranczowe, ['.dn-jp-zapisz', '.dn-link', '.dn-moment i', '.dn-rada-w', '.dn-sl.dzis span', '.dn-wlink']   /* od blizna-413 chip „← Trener” ma kolor kółek (#f5f3ef), jak przyciski nagłówka */,
     'linki (.dn-link, .dn-wlink, .dn-rada-w), przyciski (.dn-trener, .dn-jp-zapisz w obrysie, strzałka paska zdarzeń) i podpis dzisiejszego dnia pod słupkami; nowy pomarańczowy tekst wymaga decyzji');
 });
 

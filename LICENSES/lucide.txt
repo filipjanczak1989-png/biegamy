@@ -1,4 +1,4 @@
-Ikony skrótów nowego Dziś (js/dzis-nowy.mjs, IKONY_SVG): lucide-static@1.72.0, https://lucide.dev
+Ikony skrótów i dzwonek w nagłówku nowego Dziś (js/dzis-nowy.mjs, IKONY_SVG): lucide-static@1.72.0, https://lucide.dev
 
 ISC License
 
