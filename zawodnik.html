@@ -10514,7 +10514,45 @@ async function loadSocialFeed(compact) {
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
 
-async function loadHomeSocialPreview() { loadSocialFeed(true); }
+/* STARY PODGLĄD SPOŁECZNOŚCI A NOWE DZIŚ (27.11.2026, blizna-405; ten sam wzór co stary kadr, blizna-380, i stary kafel akcji, blizna-396).
+   Stare Dziś chowa #home-social-preview tylko CSS (html.dzis-nowy.dzis-gotowy), a loadSocialFeed(true) i tak pytał bazę 5–6 razy przy każdym wejściu
+   (profile publiczne, czy konto jest trenerem, podopieczni, własne i ich treningi, publiczne treningi, obserwowani) dla podglądu, którego nikt nie widzi.
+   Teraz: dopóki stare Dziś jest schowane, podgląd się nie wczytuje; wczytuje się raz, gdy stary ekran wraca:
+   ?dzis=stary i konto bez przełącznika (klas nie ma od początku); podgląd trenera, #sponsor, #log-list (moduł ustępuje); konto bez wiersza zawodnika
+   i awaria modułu (stop() zdejmuje dzis-gotowy); brak modułu i odpowiedź „stary” (blok przełącznika nowego Dziś zdejmuje dzis-nowy). Przełącznik włączony, a moduł
+   jeszcze nie zdecydował: czekamy najwyżej 12 prób co 300 ms (moduł ma 3 s), potem podgląd wczytuje się jak dotąd.
+   Sekcja Społeczność (showSection('social') → loadSocialFeed()) bez zmian: ta bramka stoi tylko na podglądzie. */
+let _spolOdlozony = false, _spolBylSchowany = false, _spolProby = 0, _spolCzeka = null, _spolPilnuje = false;
+function _spolStareSchowane() {
+  const c = document.documentElement.classList, tak = c.contains('dzis-nowy') && c.contains('dzis-gotowy');
+  if (tak) _spolBylSchowany = true;
+  return tak;
+}
+function _spolNoweWDrodze() {
+  const c = document.documentElement.classList;
+  if (!c.contains('dzis-nowy') || c.contains('dzis-gotowy') || _spolBylSchowany || _spolProby >= 12) return false;
+  try { if (window.BM_DZIS && typeof window.BM_DZIS.ustepuje === 'function' && window.BM_DZIS.ustepuje()) return false; } catch (e) { return false; }
+  return true;
+}
+function _spolWroc() {
+  if (!_spolOdlozony) return;   // schowanie sprawdza loadHomeSocialPreview
+  loadHomeSocialPreview();
+}
+async function loadHomeSocialPreview() {
+  if (_spolStareSchowane()) { _spolOdlozony = true; _spolPilnujPowrotu(); return; }
+  if (_spolNoweWDrodze()) {
+    _spolOdlozony = true; _spolProby++; _spolPilnujPowrotu();
+    if (!_spolCzeka) _spolCzeka = setTimeout(() => { _spolCzeka = null; _spolWroc(); }, 300);
+    return;
+  }
+  _spolOdlozony = false;
+  loadSocialFeed(true);
+}
+function _spolPilnujPowrotu() {
+  if (_spolPilnuje) return;
+  _spolPilnuje = true;
+  try { new MutationObserver(_spolWroc).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
+}
 
 // Baner radia: hit tygodnia (#1 odtworzeń 7 dni). Fallback 3-stopniowy, async-safe:
 // statyczny default już w DOM → enhance po query → przy błędzie/braku zostaje statyczny.
