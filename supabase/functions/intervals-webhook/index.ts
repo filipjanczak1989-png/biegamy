@@ -18,6 +18,8 @@ import { czyWydmuszka, wierszWydmuszki } from '../_shared/wydmuszka.mjs';   // p
 //    „Świadomy duplikat" z B1 rozjechał się 27.07 (sync dostał ACT_MAP, webhook nie): przez 10 tygodni
 //    każdy nie-bieg z webhooka wpadał jako 'Zastępczy'. secToClock/paceStr/kształt wiersza nadal lokalnie.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
+import { trasyWlaczone, zapiszTrase, naglowekIntervals } from '../_shared/trasa-ksztalt.mjs';
+import { isRunType } from '../_shared/reguly-treningow.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
 import { sekretWebhookaOk } from '../_shared/sekret-webhooka.mjs';   // 12.11: jedna czysta funkcja, testowana w Node
 function secToClock(sec: number): string {
@@ -148,6 +150,18 @@ Deno.serve(async (req) => {
       const d = await domknijPlanyPoImporcie(svc, ath.id, wstawiony ? [wstawiony] : []);
       domkniete += d.domkniete;
     } catch (e) { console.error('intervals-webhook domkniecie planu', rawId, (e as Error)?.message); }
+    /* TRASY (T2, plan-s2 §1): kształt trasy do tabeli trasy, tylko za flagą TRASY_WLACZONE=1 (domyślnie wyłączone) i tylko przy śladzie GPS.
+       Jedno dodatkowe wywołanie intervals na aktywność. Błąd nie psuje importu; poświadczenia nigdy do logu. */
+    if (trasyWlaczone(Deno.env.get('TRASY_WLACZONE')) && wstawiony?.id && Array.isArray((row as any).icu_stream_types) && (row as any).icu_stream_types.includes('latlng')) {
+      try {
+        const { data: cred } = await svc.from('intervals_credentials').select('api_key,access_token').eq('athlete_id', ath.id).maybeSingle();
+        const auth = naglowekIntervals(cred);
+        if (auth) {
+          const t = await zapiszTrase(svc, { logId: wstawiony.id, athleteId: ath.id, activityId: String(a.id), auth, czyBieg: isRunType((row as any).training_type) && (row as any).icu_trainer !== true });
+          if (!t.zapisano && t.powod !== 'bez trasy') console.error('intervals-webhook trasa', rawId, t.powod);
+        }
+      } catch (e) { console.error('intervals-webhook trasa', rawId, (e as Error)?.message); }
+    }
   }
 
   // ── 5b) WYPRAWA (komenda Filipa 4.11): nowa aktywność konta wyprawy → odświeżenie śladu (EF sama sprawdza, czy konto jest w trwającej

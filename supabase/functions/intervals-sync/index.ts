@@ -41,6 +41,9 @@ function gapToPace(v: number): string | null {
 // rozjechany od 27.07 — webhook nie dostał ACT_MAP). Bramka: tools/bramka-reguly.js część D.
 import { RUN_ACT, typeForActivity, rawActivityType, strumienieAktywnosci, trenazerAktywnosci } from '../_shared/typ-aktywnosci.mjs';
 import { domknijPlanyPoImporcie } from '../_shared/domknij-plan.mjs';
+import { trasyWlaczone, zapiszTrase } from '../_shared/trasa-ksztalt.mjs';
+import { isRunType } from '../_shared/reguly-treningow.mjs';
+const TRASY_NA_SYNC = 20;
 import { oknoSyncu } from '../_shared/okno-syncu.mjs';
 import { czyWydmuszka, wierszWydmuszki } from '../_shared/wydmuszka.mjs';   // plan B Garmin (3.11): aktywność bez dystansu/czasu = log „szczegóły niedostępne”, nie ogryzek   // 3.11: 90 dni / pełna historia — jedno miejsce, blizna-121 (luka 30 dni → komplet)
 
@@ -225,7 +228,7 @@ Deno.serve(async (req) => {
     }
 
     for (const w of wydmuszki) doWstawienia.push(w);   // wydmuszki nigdy nie wzbogacają wpisu ręcznego — zawsze osobny wiersz
-    let synced = 0, wzbogacone = 0;
+    let synced = 0, wzbogacone = 0, trasy = 0;
     let pominiete: { external_id: string; data: string; powod: string; powodCzytelny: string }[] = [];
     let domkniete = 0;   // plany domknięte logami z tej paczki (06.10)
     if (doWstawienia.length) {
@@ -261,6 +264,25 @@ Deno.serve(async (req) => {
           domkniete = d.domkniete;
         }
       } catch (e) { console.error('intervals-sync domkniecie planow', (e as Error)?.message); }
+      /* TRASY (T2, plan-s2 §1): kształty dla świeżo wstawionych wpisów ze śladem GPS, tylko za flagą TRASY_WLACZONE=1 (domyślnie wyłączone).
+         Najnowsze najpierw, najwyżej TRASY_NA_SYNC na wywołanie (pełna historia nie zasypie intervals); starsze dojdą z uzupełnieniem (T3).
+         Jedno wywołanie intervals na aktywność. Błąd nie przerywa syncu. */
+      if (trasyWlaczone(Deno.env.get('TRASY_WLACZONE'))) {
+        try {
+          const pominieteT = new Set(pominiete.map((p) => p.external_id));
+          const zeSladem = doWstawienia
+            .filter((r: any) => !pominieteT.has(r.external_id) && Array.isArray(r.icu_stream_types) && r.icu_stream_types.includes('latlng'))
+            .sort((p: any, q: any) => String(q.logged_at).localeCompare(String(p.logged_at))).slice(0, TRASY_NA_SYNC);
+          if (zeSladem.length) {
+            const { data: wpisy } = await svc.from('training_logs').select('id,external_id,training_type,icu_trainer')
+              .eq('athlete_id', athlete_id).eq('external_source', 'intervals').in('external_id', zeSladem.map((r: any) => r.external_id));
+            for (const w of (wpisy || [])) {
+              const t = await zapiszTrase(svc, { logId: w.id, athleteId: athlete_id, activityId: String(w.external_id), auth: authH, czyBieg: isRunType(w.training_type) && w.icu_trainer !== true });
+              if (t.zapisano) trasy++; else if (t.powod !== 'bez trasy') console.error('intervals-sync trasa', t.powod);
+            }
+          }
+        } catch (e) { console.error('intervals-sync trasy', (e as Error)?.message); }
+      }
     }
     for (const w of doWzbogacenia) {
       /* Blad wzbogacenia NIE przerywa syncu — gorszy skutek to brak telemetrii
@@ -315,6 +337,7 @@ Deno.serve(async (req) => {
     return J(200, {
       ok: true, synced, wzbogacone, wellness: wellnessSynced, wydmuszki: wydmuszki.length,
       domkniete,                           // 06.10: plany oznaczone done przez ten import
+      trasy,                               // T2: zapisane kształty tras (0, gdy TRASY_WLACZONE wyłączone)
       pominietych: pominiete.length,
       pominiete: pominiete.slice(0, 20),   // cap na odpowiedz; licznik zostaje pelny
     });
