@@ -8319,5 +8319,33 @@ window.SHARECARD = (function () {
     }
   }
 
-  return { mount: mount, pokazMoment: pokazMoment };
+  // Karta TRENINGU bez slotu i bez przycisku (nowe Dziś, 27.11.2026, blizna-411): „Karta dnia ›” w kaflu
+  // „Ostatni trening” i „Zrób kartę dnia ›” po „Jak poszło?”. Ten sam podgląd co „Zobacz kartę” (render w EF
+  // share-card, Zapisz, Udostępnij, tło), a zanim EF odda kartę, czekacz jak przy momencie: render trwa
+  // 0,7–4,6 s, a dotknięty link nie ma własnego napisu „Renderuję…”. Nic nie pobiera, dopóki nikt nie dotknie.
+  // → Promise<true> podgląd otwarty, <false> brak wpisu albo błąd (komunikat już pokazany).
+  async function otworz(log, opts) {
+    if (!log || !log.id || log.distance_km == null) return false;
+    if (document.getElementById('sc-czekacz') || document.getElementById('sc-podglad')) return true;   // drugi dotyk w trakcie
+    _stan = { cel: { typ: 'log', id: log.id }, slotId: null, log: log, mom: null,
+              mozeEdytowac: !opts || opts.mozeEdytowac !== false, onZamkniecie: null };
+    const czekacz = document.createElement('div');
+    czekacz.id = 'sc-czekacz';
+    czekacz.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;color:#a8a5a0;font-family:DM Mono,monospace;font-size:12px;';
+    czekacz.textContent = 'Przygotowuję kartę…';
+    document.body.appendChild(czekacz);
+    try {
+      const blob = await pobierzKarte();
+      _plik = new File([blob], 'biegamy-karta.png', { type: 'image/png' });
+      czekacz.remove();
+      pokazPodglad(blob);
+      return true;
+    } catch (e) {
+      czekacz.remove();
+      powiadom('Nie udało się przygotować karty');
+      return false;
+    }
+  }
+
+  return { mount: mount, pokazMoment: pokazMoment, otworz: otworz };
 })();

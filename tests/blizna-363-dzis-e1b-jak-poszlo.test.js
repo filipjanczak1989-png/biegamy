@@ -41,7 +41,7 @@ function strona({ wpisy = [wpis('l1', 20)], trener = null, pominiete = [], zapis
     return (...arg) => { if (k === 'update') tresc = plain(arg[0]); kroki.push('.' + k + '(' + arg.map((x) => JSON.stringify(x)).join(',') + ')'); return q; }; } }); return q; };
   const w = { _currentSection: 'home', location: { search: '', hash: '', pathname: '/zawodnik.html' }, URLSearchParams, navigator: { onLine: true }, showSection(n) { this._currentSection = n; }, _logKlienta(o) { zgloszenia.push(o.message); },
     setTimeout(f, ms) { czasomierze.push({ f, ms, zywy: true }); return czasomierze.length; }, clearTimeout(i) { if (czasomierze[i - 1]) czasomierze[i - 1].zywy = false; },
-    BM_AKCJA_CYTATY: { slugDla: () => 'ulica-glowna' },
+    BM_AKCJA_CYTATY: { slugDla: () => 'ulica-glowna' }, SHARECARD: { otworz: () => Promise.resolve(true) },   // karta dnia z sb.js, jak na prawdziwej stronie (P1d, blizna-411)
     feelSvg: (kod, px) => '<svg data-mina="' + kod + '" width="' + px + '"></svg>', FEEL_ETYKIETY: { bad: 'Ciężko', mid: 'Przeciętnie', good: 'Dobrze', great: 'Świetnie' },
     sb: { from: lancuch, rpc: (n) => { let p = null; return { then: (a, b) => (p = p || wyslij('rpc ' + n, '')).then(a, b) }; },
       auth: { getSession: async () => ({ data: { session: { user: { id: 'u-1' } } } }), refreshSession: async () => { stan.odswiezen++; return { data: { session: {} }, error: null }; }, onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } } };
@@ -79,7 +79,7 @@ test('(1) kiedy pytamy: wpis z zegarka, do 48 h, bez odczucia, niepominięty; na
 test('(2) blok w kaflu „Ostatni trening”: cztery miny kreską w kolejności starej karty, notatka, „Zapisz raport”, „Pomiń”; bez nowych zapytań', async () => {
   const s = strona(); s.B.start(); await s.doKonca();
   assert.deepEqual(s.zapytania.map((z) => z.nazwa), ['rpc akcja_licznik', 'rpc akcja_moj_wklad', 'athletes', 'trainings', 'training_logs'], 'budżet bez zmian: 5 zapytań');
-  assert.match(s.zapytania[4].opis, /^\.select\("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment"\)/);
+  assert.match(s.zapytania[4].opis, /^\.select\("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment,card_bg_url"\)/);   // card_bg_url: karta dnia (P1d, blizna-411)
   const h = s.ostatni.innerHTML;
   assert.match(h, /<div class="dn-liczby">.*<\/div><div class="dn-jp" data-dn="jp"><div class="dn-jp-t">Jak poszło\?<small>zegarek tego nie wie<\/small><\/div>/, 'pod czterema liczbami');
   assert.deepEqual([...h.matchAll(/data-dn="jp-mina" data-kod="([a-z]+)" aria-pressed="false"><svg data-mina="([a-z]+)" width="22"><\/svg><span>([^<]+)<\/span>/g)].map((m) => [m[1], m[2], m[3]]),
@@ -102,7 +102,8 @@ test('(2) blok w kaflu „Ostatni trening”: cztery miny kreską w kolejności 
 });
 
 test('(3) zapis jak w starym: mina → (notatka) → „Zapisz raport” = jeden update po id; potem podziękowanie i odczucie w kaflu', async () => {
-  const s = strona({ wpisy: [wpis('l1', 20, { heart_rate: null, elevation_gain: null }), wpis('l0', 70, { feel: 'good' })] }); s.B.start(); await s.doKonca();
+  // wpis bez dystansu: karty dnia do niego nie ma (share-card odrzuca), więc to ścieżka „jak w starym” (podziękowanie znika po 2,6 s); z kartą: blizna-411
+  const s = strona({ wpisy: [wpis('l1', 20, { heart_rate: null, elevation_gain: null, distance_km: null }), wpis('l0', 70, { feel: 'good' })] }); s.B.start(); await s.doKonca();
   s.dotknij('jp-zapisz'); await s.tik();
   assert.equal(s.zapisy.length, 0); assert.equal(s.cz('jp-kom').textContent, 'Wybierz, jak poszło.', 'bez miny nie zapisujemy (stare: okienko alert)'); assert.equal(s.cz('jp-kom').hidden, false);
   s.dotknij('jp-mina', 'mid'); assert.deepEqual(s.miny(), { great: 'false', good: 'false', mid: 'true', bad: 'false' }); assert.equal(s.cz('jp-kom').hidden, true);
@@ -148,7 +149,7 @@ test('(4) notatka: pusta nie idzie; komentarz z zegarka zostaje, nowy tekst się
   assert.match(HTML, /let _maTrenera = !!\(ath && ath\.coach_id\)/); assert.match(HTML, /window\._brakTrenera = _trenerZnany \? !_maTrenera : null;/);
   for (const [trener, kod, oczek] of [['c-1', 'bad', 'Trener to zobaczy, a forma policzy się dokładniej.'], [null, 'bad', 'Zwolnij i przyjrzyj się regeneracji — a jeśli zmęczenie nie mija, to sygnał, żeby poszukać wsparcia trenera.'], [null, 'mid', 'Forma policzy się dokładniej.']]) {
     const s = strona({ trener }); s.B.start(); await s.doKonca(); s.dotknij('jp-mina', kod); s.dotknij('jp-zapisz'); await s.doKonca();
-    assert.equal(s.cz('jp').innerHTML, '<b>Zapisane — dzięki!</b><p>' + oczek + '</p>', String(trener) + ' / ' + kod);
+    assert.ok(s.cz('jp').innerHTML.startsWith('<b>Zapisane — dzięki!</b><p>' + oczek + '</p>'), String(trener) + ' / ' + kod);   // pod zdaniem link do karty dnia (blizna-411)
   }
 });
 

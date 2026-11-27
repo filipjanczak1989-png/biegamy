@@ -34,7 +34,7 @@ function pamiecTelefonu(mapa) {
 }
 
 function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { feel: 'mid' })], profil = PROFIL, trening = TRENING, wiadomosc = [{ body: 'Jutro luźno.', sent_at: new Date(TERAZ - 20 * 3600e3).toISOString() }],
-  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null, bezReguly = false, bezGeneratora = false, spol = undefined } = {}) {
+  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null, bezReguly = false, bezGeneratora = false, spol = undefined, bezKarty = false } = {}) {
   const klasy = new Set(['dzis-nowy']), wezly = {}, zapytania = [], czasomierze = [], sluchacze = {}, zgloszenia = [], st = { zegar: teraz, online, awaria: Object.assign({}, awaria), sesja };
   const tel = pamiecTelefonu(pamiec);
   const lista = () => { const k = new Set(); return { add: (c) => k.add(c), remove: (c) => k.delete(c), contains: (c) => k.has(c) }; };
@@ -76,6 +76,7 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   if (!bezTygodnia) vm.runInContext(FUNKCJE_TYGODNIA, kontekst);   // prawdziwe funkcje tygodnia; bez nich moduł pyta tylko o dzisiejszy trening
   if (!bezReguly) vm.runInContext(REGULA_PLANU, kontekst);
   if (!bezGeneratora) w.openGenModal = () => { stare.push('openGenModal'); };
+  if (!bezKarty) w.SHARECARD = { otworz: (l, o) => { stare.push('SHARECARD.otworz ' + l.id + ' ' + JSON.stringify(o)); return Promise.resolve(st.karta !== false); } };   // karta dnia z sb.js, jak na prawdziwej stronie (P1d, blizna-411); st.karta = false: błąd przy otwarciu
   vm.runInContext(MODUL, kontekst);
   async function doKonca() { await tik(); for (let i = 0; i < 14 && zapytania.some((x) => x.stan === 'czeka'); i++) { for (const x of zapytania.filter((y) => y.stan === 'czeka')) x.odpowiedz(); await tik(); } await tik(); }
   const dotknij = (co, kod) => korzen._zd.click({ target: { closest: (sel) => (sel === '[data-dn],[data-sekcja]' ? { getAttribute: (k) => (k === 'data-dn' ? co : k === 'data-kod' ? kod : null) } : null) } });

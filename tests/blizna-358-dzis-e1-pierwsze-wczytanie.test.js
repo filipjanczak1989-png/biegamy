@@ -54,6 +54,7 @@ function strona({ readyState = 'complete', zKlientem = true, token = 'wazny', od
         return Promise.resolve({ data: { session: {} }, error: null });
       } } };
   const w = { _currentSection: 'home', location: { search: '', hash: '', pathname: '/zawodnik.html' }, URLSearchParams, navigator: { onLine: true },
+    SHARECARD: { otworz: () => Promise.resolve(true) },   // karta dnia z sb.js, jak na prawdziwej stronie (P1d, blizna-411)
     setTimeout(f, ms) { czasomierze.push({ f, ms, zywy: true }); return czasomierze.length; }, clearTimeout(i) { if (czasomierze[i - 1]) czasomierze[i - 1].zywy = false; } };
   const dojda = () => { w.sb = sb; w._logKlienta = (o) => wpisy.push(o); w.BM_AKCJA_CYTATY = { slugDla: () => 'ulica-glowna' }; w.showSection = function (n) { this._currentSection = n; }; };
   if (zKlientem) dojda();

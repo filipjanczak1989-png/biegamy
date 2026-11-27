@@ -95,7 +95,7 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien", "spolecznosc"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien", "spolecznosc", "karta-dnia"];
   var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null, LIMIT_NOTATKI = 500, PROG_LICZNIKA = 400;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
@@ -271,6 +271,7 @@
     "#dzis-nowy .dn-jp-kom{margin:10px 0 0;color:#ff9a8a;font:500 13px/1.4 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-jp-ok{margin:16px 0 0;padding:14px 0 0;border-top:1px solid #232329;text-align:center}#dzis-nowy .dn-jp-ok b{display:block;color:#f5f3ef;font:700 14px/1.3 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-jp-ok p{margin:4px 0 0;color:#bcb8b2;font:400 12px/1.5 'DM Sans',sans-serif}" +
+    "#dzis-nowy button.dn-link{border:0;background:none;cursor:pointer}#dzis-nowy .dn-jp-ok p.dn-jp-karta{display:flex;justify-content:center;margin:2px 0 -8px}#dzis-nowy .dn-jp-karta .dn-link{margin:0}" +
     "#dzis-nowy .dn-glowny,#dzis-nowy .dn-drugi{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:14px 0 0;border-radius:12px;font:700 14px/1 'DM Sans',sans-serif;cursor:pointer}" +
     "#dzis-nowy .dn-glowny{border:0;background:#c44a13;color:#fff}#dzis-nowy .dn-drugi{border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:scale(.99)}" +
@@ -416,6 +417,7 @@
       else if (co === "jp-mina") { jpWybierz(t.getAttribute("data-kod")); }
       else if (co === "jp-zapisz") { jpZapisz(false); }
       else if (co === "jp-pomin") { jpPomin(); }
+      else if (co === "karta") { kartaKlik(t.getAttribute("data-log")); }
       else if (co === "moment") { var stary = d.getElementById("moment-baner"); if (stary && stary.click) stary.click(); zdarzenie(); }
       else if (co === "sp-profil") { var pid = String(t.getAttribute("data-id") || ""); if (RE_UUID.test(pid) && typeof w.openAthleteProfile === "function") w.openAthleteProfile(pid); }
       else if (sekcja && typeof w.showSection === "function") w.showSection(sekcja);
@@ -629,9 +631,10 @@
   var DNI_KR = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"];
   function dzienKrotko(iso) { var a = new Date(iso); return isNaN(a.getTime()) ? "" : DNI_KR[a.getDay()] + " " + a.getDate() + "." + (a.getMonth() < 9 ? "0" : "") + (a.getMonth() + 1); }
   function pigulka(typ) { var t = String(typ || "Trening"); return typeof w.renderTypePill === "function" ? w.renderTypePill(t) : '<span class="dn-typ">' + esc(t) + "</span>"; }
-  function gora(etykieta, kto, link) {
+  /** Nagłówek kafla. link = [napis, adres] albo null; przycisk = gotowy przycisk w miejscu linku (karta dnia), ma pierwszeństwo. */
+  function gora(etykieta, kto, link, przycisk) {
     return '<div class="dn-gora"><div><h2 class="dn-etykieta">' + esc(etykieta) + "</h2>" + (kto ? '<div class="dn-kto">' + esc(kto) + "</div>" : "") + "</div>" +
-      (link ? '<a class="dn-link" href="' + esc(link[1]) + '">' + esc(link[0]) + " ›</a>" : "") + "</div>";
+      (przycisk || (link ? '<a class="dn-link" href="' + esc(link[1]) + '">' + esc(link[0]) + " ›</a>" : "")) + "</div>";
   }
   function wkladTekst(wklad, koniec) {
     if (!wklad) return "";
@@ -948,11 +951,39 @@
     var czwarta = Number(l.heart_rate) > 0 ? [liczba(l.heart_rate), "bpm", "tętno śr."] : Number(l.elevation_gain) > 0 ? [liczba(l.elevation_gain), "m", "w górę"] : [slowo || "—", "", "odczucie", !!slowo];
     return [[km(l.distance_km), "km", "dystans"], [czas(l.duration), "", "czas"], [tempo(l.pace), "/km", "tempo"], czwarta];
   }
-  /** Kafel Ostatni trening: najnowszy wpis, z regułą 14 dni w podpisie. */
-  function ostatniHtml(log, teraz) {
+  /* KARTA DNIA (P1d, 27.11.2026, blizna-411). Karta treningu do udostępnienia już istnieje: SHARECARD w sb.js (przycisk „Zobacz kartę” w oknie
+     edycji wpisu i w kalendarzu). Render robi funkcja share-card w bazie (obraz w Storage, ten sam dla tego samego wpisu i tła); na karcie: imię,
+     zdjęcie profilu, data (godzina tylko z zegarka), dystans, rodzaj treningu, czas i tempo, przewyższenie, kalorie, tętno TYLKO gdy zawodnik
+     wybrał „tętno publiczne” (hr_public). Bez komentarza i bez odczucia. Dwa wejścia z nowego Dziś, oba otwierają tę samą kartę przez
+     SHARECARD.otworz (bez kopii jej kodu): „Karta dnia ›” w kaflu „Ostatni trening” (tylko trening z dziś albo z wczoraj) i „Zrób kartę dnia ›”
+     pod zdaniem po zapisie „Jak poszło?”. Pierwszy ekran: zero zapytań; karta pobiera dopiero po dotknięciu (funkcja share-card, potem obraz).
+     Bez sieci linku nie ma (karty nie da się zrobić). Brak SHARECARD na wczytanej stronie albo błąd przy otwarciu = wpis client_errors „karta-dnia”. */
+  function przyciskKarty(id, napis) { return '<button type="button" class="dn-link" data-dn="karta" data-log="' + esc(id) + '">' + esc(napis) + " ›</button>"; }
+  function kartaJest() {
+    var S = w.SHARECARD;
+    if (S && typeof S.otworz === "function") return true;
+    if (d.readyState !== "loading") zglosDane("karta-dnia");   // strona wczytana, a karty nie ma: błąd aplikacji (przed końcem wczytywania sb.js może jeszcze iść)
+    return false;
+  }
+  /** Czy przy tym wpisie pokazać link do karty. zDniem: tylko trening z dziś albo z wczoraj (kafel „Ostatni trening”). */
+  function kartaWpisu(l, zDniem) {
+    if (!l || !l.id || l.distance_km == null || dane.wpisyZTelefonu || brakSieci()) return false;
+    if (zDniem) { var n = dniTemu(l.logged_at); if (n !== 0 && n !== 1) return false; }
+    return kartaJest();
+  }
+  function kartaKlik(id) {
+    var l = null, S = w.SHARECARD;
+    for (var i = 0; i < (dane.wpisy || []).length; i++) if (dane.wpisy[i] && dane.wpisy[i].id === id) { l = dane.wpisy[i]; break; }
+    if (!l) return;
+    if (!S || typeof S.otworz !== "function") { zglosDane("karta-dnia"); return; }
+    try { Promise.resolve(S.otworz(l, { mozeEdytowac: true })).then(function (ok) { if (ok === false) zglosDane("karta-dnia"); }, function () { zglosDane("karta-dnia"); }); }
+    catch (e) { zglosDane("karta-dnia"); }
+  }
+  /** Kafel Ostatni trening: najnowszy wpis, z regułą 14 dni w podpisie. zKarta: link „Karta dnia ›” w prawym górnym rogu (kartaWpisu). */
+  function ostatniHtml(log, teraz, zKarta) {
     if (!log) return gora("Ostatni trening", "", null) + '<h3 class="dn-tytul">Jeszcze pusto</h3><p class="dn-tekst">Tu pojawi się dystans, czas i tempo pierwszego treningu.</p>';
     var kd = kiedy(log.logged_at, teraz);
-    return gora("Ostatni trening", String(log.training_type || "Trening") + (kd ? " · " + kd : ""), null) +
+    return gora("Ostatni trening", String(log.training_type || "Trening") + (kd ? " · " + kd : ""), null, zKarta ? przyciskKarty(log.id, "Karta dnia") : "") +
       '<div class="dn-liczby">' + liczbyWpisu(log).map(function (x) { return '<div class="dn-l"><b' + (x[3] ? ' class="dn-slowo"' : "") + ">" + esc(x[0]) + (x[1] && x[0] !== "—" ? "<small>" + esc(x[1]) + "</small>" : "") + "</b><span>" + esc(x[2]) + "</span></div>"; }).join("") + "</div>";
   }
   /** Kafel Twoje ostatnie treningi: wpisy od przedostatniego (najnowszy stoi w kaflu wyżej). */
@@ -1030,7 +1061,7 @@
     if (jp && jpBrudny() && (kand ? kand.id === jp.id : dane.wpisyZTelefonu)) return;
     var szkic = kand ? czytajSzkic(kand.id) : null;
     jp = kand ? { id: kand.id, kod: szkic ? szkic.k : null, zapisuje: false, zapisane: false, opis: jpOpis(kand), komentarz: String(kand.comment || ""), doklej: dokleja(kand), sb: sb || (jp && jp.sb) || null } : null;
-    wpisz("ostatni", ostatniHtml(l[0] || null) + (kand ? jakPoszloHtml(kand, kand !== l[0], undefined, jp.kod, szkic && szkic.t !== null ? szkic.t : undefined) : ""));
+    wpisz("ostatni", ostatniHtml(l[0] || null, undefined, kartaWpisu(l[0], true)) + (kand ? jakPoszloHtml(kand, kand !== l[0], undefined, jp.kod, szkic && szkic.t !== null ? szkic.t : undefined) : ""));
     zdarzenie();   // zachęta w pasku pojawia się i znika razem z blokiem, w tym samym kroku co kafel
   }
   /* Kolor (audyt A3, blizna-392): pomarańczowy był wszędzie, więc niczego nie wyróżniał. Etykiety kafli („Trening na dziś”, „Ulica”, „Jak poszło?”)
@@ -1068,8 +1099,10 @@
       for (var i = 0; i < dane.wpisy.length; i++) if (dane.wpisy[i] && dane.wpisy[i].id === stan.id) { dane.wpisy[i].feel = stan.kod; if (zmiana.comment) dane.wpisy[i].comment = zmiana.comment; }
       var blok = jpCzesc("jp");
       stan.zapisane = true; usunSzkic(stan.id); zdarzenie();
-      if (blok) { blok.className = "dn-jp-ok"; blok.innerHTML = "<b>Zapisane — dzięki!</b><p>" + esc(podpisPoZapisie(stan.kod, dane.trener === true)) + "</p>"; }
-      w.setTimeout(function () { if (jp === stan) { jp = null; rysujWpisy(sb); } }, PODZIEKOWANIE_MS);
+      var wpis = null; for (var j = 0; j < dane.wpisy.length; j++) if (dane.wpisy[j] && dane.wpisy[j].id === stan.id) wpis = dane.wpisy[j];
+      var zKarta = kartaWpisu(wpis, false);   // „Zrób kartę dnia ›” do tego samego treningu (P1d)
+      if (blok) { blok.className = "dn-jp-ok"; blok.innerHTML = "<b>Zapisane — dzięki!</b><p>" + esc(podpisPoZapisie(stan.kod, dane.trener === true)) + "</p>" + (zKarta ? '<p class="dn-jp-karta">' + przyciskKarty(stan.id, "Zrób kartę dnia") + "</p>" : ""); }
+      if (!zKarta) w.setTimeout(function () { if (jp === stan) { jp = null; rysujWpisy(sb); } }, PODZIEKOWANIE_MS);   // z linkiem podziękowanie zostaje do następnego odświeżenia: 2,6 s nie wystarczy, żeby go dotknąć
     }).then(null, function (e) {
       if (jp !== stan) return;
       if (e && e.autoryzacja && !proba) { odswiezSesje(sb).then(function () { if (jp === stan) jpZapisz(true); }); return; }
@@ -1487,7 +1520,7 @@
           pytaj(sb.from("messages").select("body,sent_at").eq("athlete_id", a.id).eq("sender", "coach").gte("sent_at", new Date(Date.now() - OKNO_WIADOMOSCI_DNI * 864e5).toISOString()).order("sent_at", { ascending: false }).limit(1))
             .then(function (m) { if (nr !== dane.nr) return; dane.wiadomosc = m && m[0] ? m[0] : null; zapamietaj(nr, "wiadomosc", dane.wiadomosc); rysujTrening(); }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("wiadomosc"); if (e && e.siec && awaryjnieWiadomosc(nr)) return; dane.wiadomosc = null; rysujTrening(); });
         } else { dane.wiadomosc = null; zapamietaj(nr, "wiadomosc", null); }
-        pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
+        pytaj(sb.from("training_logs").select("id,logged_at,training_type,distance_km,duration,pace,heart_rate,elevation_gain,feel,external_source,comment,card_bg_url").eq("athlete_id", a.id).not("training_type", "like", "__badge__%").order("logged_at", { ascending: false }).limit(ILE_WPISOW))
           .then(function (l) {
             if (nr !== dane.nr) return; l = l || [];
             dane.wpisy = l; dane.wpisyZTelefonu = false; dane.wpisyZnane = true; zapamietaj(nr, "wpisy", l);
