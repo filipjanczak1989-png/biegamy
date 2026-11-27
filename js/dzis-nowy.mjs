@@ -102,7 +102,7 @@
   var STARE_PRZYCISKI = ["today-bol-btn", "today-bol-czat", "today-bol-koniec", "today-bol-nadal", "today-nie-zrobilem"];   // jedyne stare elementy, które wolno kliknąć z kafla treningu
   var dane = { t: 0, nr: 0, profil: null, imie: "", odswieza: 0, wpisy: [], trener: null, trening: null, wiadomosc: null, pogoda: "", kafleStoja: false, uid: null, bezSieci: false, tsTelefonu: 0, wpisyZTelefonu: false, wpisyZnane: false, wToku: 0, zakres: null, plany: null, wpisyTyg: null, tydzien: null }, wstrzymane = false, czekaNaDom = false, owinietaSynchronizacja = false, owinietyZapis = false, owinietaPogoda = false, trenerWidziany = false, nasluchDokumentu = false, nasluchSieci = false;
   var PROFIL_KOLUMNY = "id,full_name,coach_id,intervals_athlete_id,intervals_connected_at,intervals_can_write,intervals_token_dead_at";
-  var SKROTY = [["cialo", "Ciało", "hantla", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "jablko", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
+  var SKROTY = [["cialo", "Ciało", "biceps", "sekcja", "cwiczenia"], ["jedzenie", "Odżywianie", "sztucce", "strona", "nutrition.html"], ["starty", "Starty", "flaga", "strona", "races.html"], ["wyzwania", "Wyzwania", "puchar", "strona", "wyzwania.html"],
     ["odznaki", "Odznaki", "medal", "strona", "odznaki.html"], ["radio", "Radio", "radio", "strona", "radio.html"], ["czat", "Czat", "dymek", "sekcja", "msgs"], ["gra", "Gra", "pad", "strona", "gra.html"]];
   /* Skróty stoją w siatce 4 × 2 BEZ przewijania (blizna-369): przewijany rząd ucinał ikony i na laptopie nie było jak go przesunąć.
      Siatka jest pełna przy ośmiu skrótach; dziewiąty wymaga decyzji, co wypada, a test tego pilnuje. */
@@ -138,6 +138,26 @@
     return "";
   }
 
+  /* IKONY SKRÓTÓW (paczka I1, 27.11.2026, blizna-412): Lucide 1.72.0 (lucide.dev), licencja ISC; „radio” Lucide wywodzi z Feather (MIT).
+     Tekst obu licencji: LICENSES/lucide.txt. Dolne menu (window.NAV w kliencie, styl w theme.css: 22 px, kreska 1,7) rysuje ścieżkami Feather na siatce 24
+     z zaokrąglonymi końcami i łączeniami; Lucide to jego kontynuacja, więc skróty i menu mówią jednym językiem. Kreska 1,6 przy 24 px daje na
+     ekranie tę samą grubość co menu (1,7 przy 22 px ≈ 1,56 px). Inline: zero plików i zapytań. Dobór: Ciało = biceps (biceps-flexed; „osoba”, person-standing,
+     wyglądała na mniejszą: rysunek 12×16 przy 18–20 pozostałych, zrzut 27.11),
+     Odżywianie = sztućce (utensils; jabłko ma już menu), Starty = flaga, Wyzwania = puchar (trophy), Odznaki = medal, Radio = radio, Czat = dymek
+     (message-circle; menu ma kwadratowy), Gra = pad (gamepad-2). Ścieżki skopiowane z paczki lucide-static@1.72.0 skryptem, bez zmian. */
+  var IKONY_SVG = {
+    biceps: '<path d="M12.409 13.017A5 5 0 0 1 22 15c0 3.866-4 7-9 7-4.077 0-8.153-.82-10.371-2.462-.426-.316-.631-.832-.62-1.362C2.118 12.723 2.627 2 10 2a3 3 0 0 1 3 3 2 2 0 0 1-2 2c-1.105 0-1.64-.444-2-1"/><path d="M15 14a5 5 0 0 0-7.584 2"/><path d="M9.964 6.825C8.019 7.977 9.5 13 8 15"/>',
+    sztucce: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+    flaga: '<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/>',
+    puchar: '<path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/>',
+    medal: '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/>',
+    radio: '<path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/>',
+    dymek: '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>',
+    pad: '<line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/>'
+  };
+  function ikonaSvg(nazwa) {
+    return Object.prototype.hasOwnProperty.call(IKONY_SVG, nazwa) ? '<svg class="dn-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + IKONY_SVG[nazwa] + "</svg>" : "";
+  }
   function ikona(nazwa, px, klasa) {
     return '<img class="dn-ik' + (klasa ? " " + klasa : "") + '" src="' + IKONY + nazwa + '-64.webp" srcset="' + IKONY + nazwa + "-64.webp 64w, " + IKONY + nazwa + '-128.webp 128w" sizes="' + px +
       'px" width="' + px + '" height="' + px + '" alt="" aria-hidden="true" decoding="async" onerror="this.style.visibility=\'hidden\'">';
@@ -184,7 +204,8 @@
     "#dzis-nowy .dn-skroty{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 6px;padding:2px 0}" +
     "#dzis-nowy .dn-skrot{min-width:0;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:none;border:0;padding:4px 0;" +
     "color:#bcb8b2;font:500 11px/1.2 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}" +
-    "#dzis-nowy .dn-skrot .dn-krazek{width:48px;height:48px;border-radius:50%;background:#0f0f13;border:1px solid #232329;display:flex;align-items:center;justify-content:center}" +
+    "#dzis-nowy .dn-skrot .dn-krazek{width:48px;height:48px;box-sizing:border-box;border-radius:50%;background:#17161b;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#f5f3ef;transition:border-color .15s}" +
+    "#dzis-nowy .dn-skrot:active .dn-krazek,#dzis-nowy .dn-skrot:focus-visible .dn-krazek{border-color:#ff7a45}#dzis-nowy .dn-svg{display:block;width:24px;height:24px;flex:none}" +
     "#dzis-nowy .dn-stare{display:flex;align-items:center;justify-content:center;min-height:48px;margin:6px 0 0;color:#bcb8b2;font:500 13px/1 'DM Sans',sans-serif;text-decoration:none}" +
     "#dzis-nowy [hidden]{display:none!important}" +
     "#dzis-nowy .dn-gora{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 12px}#dzis-nowy .dn-gora .dn-etykieta{margin:0}" +
@@ -300,7 +321,7 @@
       if (k[0] === "skroty") {
         return '<nav class="dn-skroty" data-kafel="skroty" aria-label="Skróty">' + SKROTY.map(function (s) {
           return (s[3] === "strona" ? '<a class="dn-skrot" href="' + s[4] + '"' : '<button type="button" class="dn-skrot" data-sekcja="' + s[4] + '"') + ' data-skrot="' + s[0] + '">' +
-            '<span class="dn-krazek">' + ikona(s[2], 28) + "</span><span>" + esc(s[1]) + "</span>" + (s[3] === "strona" ? "</a>" : "</button>");
+            '<span class="dn-krazek">' + ikonaSvg(s[2]) + "</span><span>" + esc(s[1]) + "</span>" + (s[3] === "strona" ? "</a>" : "</button>");
         }).join("") + "</nav>";
       }
       return '<section class="dn-kafel" data-kafel="' + k[0] + '" aria-busy="true"><h2 class="dn-etykieta">' + esc(k[1]) + '</h2>' +
@@ -824,7 +845,7 @@
     });
     if (z) {
       var nazwa = nazwaOdznaki(z.odznaka);
-      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(z.id) + '"><span class="dn-sp-av dn-sp-medal" aria-hidden="true">' + ikona("medal", 28) + '</span><span class="dn-sp-t"><b>' +
+      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(z.id) + '"><span class="dn-sp-av dn-sp-medal" aria-hidden="true">' + ikonaSvg("medal") + '</span><span class="dn-sp-t"><b>' +
         esc(z.imie || "Zawodnik") + "</b> · " + (nazwa ? "odznaka „" + esc(nazwa) + "”" : "nowa odznaka") + "<small>" + esc(temu(z.kiedy, teraz)) + "</small></span></button></li>");
     }
     return '<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność</h2><div class="dn-kto">profile publiczne</div></div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›</button></div>' +
@@ -1427,7 +1448,7 @@
       wstawCss();
       if (k.getAttribute("data-etap") !== ETAP) {
         rysuj();
-        if (k.addEventListener && !k._dnKlik) { k.addEventListener("click", klik); k.addEventListener("input", wpisywanie); k._dnKlik = true; }
+        if (k.addEventListener && !k._dnKlik) { k.addEventListener("click", klik); k.addEventListener("input", wpisywanie); k.addEventListener("touchstart", function () {}, { passive: true }); /* iOS: bez nasłuchu dotyku nie ma :active (krótki stan skrótu) */ k._dnKlik = true; }
       }
       if (!owiniete && typeof w.showSection === "function") {
         var oryg = w.showSection;

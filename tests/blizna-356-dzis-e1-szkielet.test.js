@@ -52,7 +52,7 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Społeczność', 'Twoje ostatnie treningi']);
   assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'jedzenie', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
   assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['nutrition.html', 'races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
-  assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?jablko-64\.webp.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
+  assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?<svg class="dn-svg"[^>]*>.*?<\/svg>.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
   assert.ok(fs.existsSync(path.join(KORZEN, 'nutrition.html')));
   assert.deepEqual([...h.matchAll(/data-sekcja="([a-z]+)"/g)].map((m) => m[1]), ['cwiczenia', 'msgs']);
   assert.match(h, /<a class="dn-stare" href="zawodnik\.html\?dzis=stary">stare Dziś ›<\/a>$/);
@@ -115,12 +115,13 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
   assert.doesNotMatch(MODUL, /nav-mount|nav-it|data-navid|dn-log/, 'w module nie ma ani słowa o menu');
   assert.doesNotMatch(s.style[0].textContent, /nav/);
   assert.equal(s.B.MENU, undefined);
-  const uzyte = new Set([...plain(s.B.SKROTY).map((x) => x[2]), 'dzwonek']);
-  assert.deepEqual([...uzyte].sort(), ['dymek', 'dzwonek', 'flaga', 'hantla', 'jablko', 'medal', 'pad', 'puchar', 'radio']);
-  for (const n of uzyte) for (const r of ['64', '128']) assert.ok(fs.statSync(path.join(KORZEN, 'assets/ui/dzis/ikony', n + '-' + r + '.webp')).size > 500, 'brak ikony ' + n + '-' + r);
-  assert.deepEqual(fs.readdirSync(path.join(KORZEN, 'assets/ui/dzis/ikony')).sort(), [...uzyte].flatMap((n) => [n + '-128.webp', n + '-64.webp']).sort(), 'w katalogu tylko używane ikony (bez ikon menu i chmurki Okienka)');
+  // od blizna-412 (paczka I1): skróty to inline SVG (Lucide), obrazek z katalogu ikon zostaje tylko dzwonkowi. Stare pliki zostają w repo
+  // (decyzja Filipa 27.11: nie kasujemy), nowe Dziś ich nie pobiera.
+  assert.deepEqual(plain(s.B.SKROTY).map((x) => x[2]), ['biceps', 'sztucce', 'flaga', 'puchar', 'medal', 'radio', 'dymek', 'pad']);
+  for (const r of ['64', '128']) assert.ok(fs.statSync(path.join(KORZEN, 'assets/ui/dzis/ikony', 'dzwonek-' + r + '.webp')).size > 500, 'brak ikony dzwonek-' + r);
+  assert.equal((s.korzen.innerHTML.match(/<svg class="dn-svg"/g) || []).length, 8, 'osiem skrótów jako SVG');
   const obrazy = [...s.korzen.innerHTML.matchAll(/src="(assets\/[^"]+)"/g)].map((m) => m[1]).filter((o) => !o.startsWith('assets/ui/dzis/kadry/'));   // kadr w nagłówku: blizna-385
-  assert.equal(obrazy.length, 9, 'osiem skrótów i dzwonek');
+  assert.deepEqual(obrazy.map((o) => o.split('/').pop()), ['dzwonek-64.webp'], 'z obrazków ikon został sam dzwonek (od blizna-412; wcześniej osiem skrótów i dzwonek)');
   for (const p of obrazy) assert.ok(fs.existsSync(path.join(KORZEN, p)), 'brak pliku ' + p);
 });
 

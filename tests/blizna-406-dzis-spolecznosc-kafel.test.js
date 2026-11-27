@@ -84,7 +84,7 @@ test('(4) treść: nagłówek, podsumowanie (dziś / w ostatniej dobie, odmiana)
   assert.match(h, /<span class="dn-sp-av dn-sp-licz" aria-hidden="true">5<\/span><span class="dn-sp-t"><b>5 osób biegało dziś<\/b>, razem 41 km<small>Poznań, Gniezno, Swarzędz<\/small><\/span>/);
   assert.match(h, /<button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="00000001-[^"]+"><span class="dn-sp-av" style="background:#[0-9a-f]{6}" aria-hidden="true">K<\/span><span class="dn-sp-t"><b>Kasia<\/b> · wybieganie 10,2 km<small>Poznań · 2 h temu<\/small><\/span><\/button>/);
   assert.match(h, /<b>Piotr<\/b> · interwały 6,4 km<small>Gniezno · 4 h temu<\/small>/);
-  assert.match(h, /<span class="dn-sp-av dn-sp-medal" aria-hidden="true"><img[^>]*medal-64\.webp[^>]*><\/span><span class="dn-sp-t"><b>Tomek<\/b> · nowa odznaka<small>3 h temu<\/small>/, 'nieznana odznaka: bez surowego kodu');
+  assert.match(h, /<span class="dn-sp-av dn-sp-medal" aria-hidden="true"><svg class="dn-svg"[^>]*>.*?<\/svg><\/span><span class="dn-sp-t"><b>Tomek<\/b> · nowa odznaka<small>3 h temu<\/small>/, 'nieznana odznaka: bez surowego kodu');
   assert.doesNotMatch(h, /zly_kod_nieznany/);
   const B = s.B;
   for (const [n, t] of [[1, '1 osoba biegała'], [2, '2 osoby biegały'], [4, '4 osoby biegały'], [5, '5 osób biegało'], [12, '12 osób biegało'], [22, '22 osoby biegały']]) assert.match(B.spolHtml({ osob: n, km: 3, biegi: [], miasta: [], od_polnocy: true }), new RegExp('<b>' + t + ' dziś</b>'));
