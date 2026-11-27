@@ -80,7 +80,7 @@ test('(4) treść: nagłówek, podsumowanie (dziś / w ostatniej dobie, odmiana)
   const { s, v } = await pokaz({ spol: DANE }); v.blisko(); await s.doKonca();
   const h = kafel(s).innerHTML;
   assert.equal(kafel(s).hidden, false);
-  assert.match(h, /^<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność<\/h2><div class="dn-kto">profile publiczne<\/div><\/div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›<\/button><\/div>/);
+  assert.match(h, /^<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność<\/h2><\/div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›<\/button><\/div>/, 'od blizna-414 bez podpisu „profile publiczne”');
   assert.match(h, /<span class="dn-sp-av dn-sp-licz" aria-hidden="true">5<\/span><span class="dn-sp-t"><b>5 osób biegało dziś<\/b>, razem 41 km<small>Poznań, Gniezno, Swarzędz<\/small><\/span>/);
   assert.match(h, /<button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="00000001-[^"]+"><span class="dn-sp-av" style="background:#[0-9a-f]{6}" aria-hidden="true">K<\/span><span class="dn-sp-t"><b>Kasia<\/b> · wybieganie 10,2 km<small>Poznań · 2 h temu<\/small><\/span><\/button>/);
   assert.match(h, /<b>Piotr<\/b> · interwały 6,4 km<small>Gniezno · 4 h temu<\/small>/);
@@ -88,7 +88,7 @@ test('(4) treść: nagłówek, podsumowanie (dziś / w ostatniej dobie, odmiana)
   assert.doesNotMatch(h, /zly_kod_nieznany/);
   const B = s.B;
   for (const [n, t] of [[1, '1 osoba biegała'], [2, '2 osoby biegały'], [4, '4 osoby biegały'], [5, '5 osób biegało'], [12, '12 osób biegało'], [22, '22 osoby biegały']]) assert.match(B.spolHtml({ osob: n, km: 3, biegi: [], miasta: [], od_polnocy: true }), new RegExp('<b>' + t + ' dziś</b>'));
-  assert.match(B.spolHtml({ osob: 3, km: 7.25, biegi: [], miasta: [], od_polnocy: false }), /<b>3 osoby biegały w ostatniej dobie<\/b>, razem 7,3 km<\/span>/, 'decyzja 4: nie wszystkie od północy');
+  assert.match(B.spolHtml({ osob: 3, km: 7.25, biegi: [], miasta: [], od_polnocy: false }), /<b>3 osoby biegały w ostatniej dobie<\/b>, razem 7 km<\/span>/, 'decyzja 4: nie wszystkie od północy; suma bez miejsc po przecinku od blizna-414');
   assert.match(B.spolHtml({ osob: 3, km: 7, biegi: [], miasta: [] }), /w ostatniej dobie<\/b>/, 'bez pola od_polnocy: bezpieczniej „w ostatniej dobie” niż „dziś”');
 });
 

@@ -291,7 +291,7 @@
     "#dzis-nowy .dn-sp{list-style:none;margin:12px 0 0;padding:0}#dzis-nowy .dn-sp li{border-top:1px solid #232329}#dzis-nowy .dn-sp li:first-child{border-top:0}" +
     "#dzis-nowy .dn-sp-w{display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;min-height:56px;padding:8px 0;border:0;background:none;color:inherit;text-align:left;font:inherit}#dzis-nowy button.dn-sp-w{cursor:pointer}#dzis-nowy .dn-sp li:first-child .dn-sp-w{padding-top:0}" +
     "#dzis-nowy .dn-sp-av{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:#fff;font:700 15px/1 'DM Sans',sans-serif}#dzis-nowy .dn-sp-licz{background:#1b1b21;color:#f5f3ef;font:400 22px/1 'Bebas Neue','DM Sans',sans-serif}#dzis-nowy .dn-sp-medal{background:#1b1b21}" +
-    "#dzis-nowy .dn-sp-t{flex:1;min-width:0;color:#bcb8b2;font:400 14px/1.35 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-sp-t b{color:#f5f3ef;font-weight:600}#dzis-nowy .dn-sp-t svg{display:inline-block;vertical-align:-1px;margin-right:5px}" +
+    "#dzis-nowy .dn-sp-t{flex:1;min-width:0;color:#bcb8b2;font:400 14px/1.35 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-sp-t b{color:#f5f3ef;font-weight:600}" +
     "#dzis-nowy .dn-sp-t small{display:block;margin-top:2px;color:#8f8c97;font:400 12px/1.35 'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
     "#dzis-nowy button.dn-link{border:0;background:none;cursor:pointer}#dzis-nowy .dn-sp-pusto{margin:12px 0 0}#dzis-nowy .dn-sp-pusto .dn-link{margin:0 -4px 0 0;min-height:44px}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
@@ -604,8 +604,10 @@
   }
 
   /* ── DANE ───────────────────────────────────────────────────────────────────────────────────────────────── */
-  function liczba(n, m) { n = Number(n); if (!isFinite(n)) return "—"; var t = n.toFixed(m || 0).split("."), ul = (t[1] || "").replace(/0+$/, ""); return t[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (ul ? "," + ul : ""); }
+  function liczba(n, m, zera) { n = Number(n); if (!isFinite(n)) return "—"; var t = n.toFixed(m || 0).split("."), ul = zera ? t[1] || "" : (t[1] || "").replace(/0+$/, ""); return t[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (ul ? "," + ul : ""); }
   function km(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, n < 10 ? 2 : 1) : "—"; }
+  /** Kilometry w kaflu Społeczność (S1, blizna-414): zawsze jedno miejsce po przecinku, także zero (4,0 · 10,2); brak albo 0 = "". */
+  function kmSpol(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, 1, true) : ""; }
   /** Czas z bazy ("h:mm:ss" albo "mm:ss") → "1:02:15" / "48:10"; inny zapis = „—”. */
   function czas(t) {
     if (!/^\d{1,3}:\d{2}(:\d{2})?$/.test(String(t || ""))) return "—";
@@ -810,7 +812,10 @@
      zapytanie, gdy kafel jest w zasięgu), bez własnego zegara. Funkcja oddaje same profile publiczne: pierwsze imię, miasto, rodzaj, km,
      czas, id profilu; wszystko przez esc, id tylko w kształcie UUID. Cudzych danych nie zapisujemy w pamięci telefonu: bez sieci kafla nie ma.
      Brak funkcji na bazie, błąd albo zły kształt odpowiedzi = kafel schowany i jeden wpis client_errors (etap „spolecznosc”), więc moduł
-     i migrację można wdrożyć w dowolnej kolejności. Bez czasowników z rodzajem („Kasia · odznaka …”), bo płci w danych nie ma. */
+     i migrację można wdrożyć w dowolnej kolejności. Bez czasowników z rodzajem („Kasia · odznaka …”), bo płci w danych nie ma.
+     S1 (blizna-414, decyzje Filipa 27.11): bez podpisu „profile publiczne” pod etykietą; kilometry jednym formatem: w wierszach biegów zawsze jedno
+     miejsce po przecinku (4,0 · 10,2), suma w podsumowaniu bez miejsc (36 km); bez ikonki rodzaju przed imieniem (na telefonie wyglądała jak buźka),
+     rodzaj zostaje słowem. */
   var spol = { nr: 0, chce: 0, sb: null, obs: null, przewijanie: false, czeka: 0, czekaSb: null }, AWATARY = ["#b0452f", "#3d5a99", "#2f6b3a", "#8a4fbf", "#9a6a00", "#1e7f8a"],
     RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function spolSzkielet() { return '<h2 class="dn-etykieta">Społeczność</h2><span class="dn-szkielet"></span><span class="dn-szkielet k"></span><span class="dn-ukryte">Wczytuję…</span>'; }
@@ -861,10 +866,6 @@
     var znak = Array.from ? (Array.from(String(imie || "").trim())[0] || "?") : (String(imie || "?").charAt(0) || "?");
     return '<span class="dn-sp-av" style="background:' + AWATARY[h % AWATARY.length] + '" aria-hidden="true">' + esc(znak.toUpperCase()) + "</span>";
   }
-  /** Ikona rodzaju: sam rysunek z istniejącej pigułki rodzaju (sb.js renderTypePill), bez drugiej kopii słownika. Rysunek jest stały, bez danych od ludzi. */
-  function ikonaRodzaju(t) {
-    try { var h = typeof w.renderTypePill === "function" ? String(w.renderTypePill(String(t || ""), { size: "sm" }) || "") : "", m = /<svg [^>]*>[\s\S]*?<\/svg>/.exec(h); return m ? m[0].replace(/^<svg /, '<svg aria-hidden="true" ') : ""; } catch (e) { return ""; }
-  }
   /** Nazwa odznaki z katalogów (K3): bieg wirtualny i akcja z js/odznaki-akcji.mjs, osobiste z BADGES w zawodnik.html. Nieznana = "" (nigdy surowy kod). */
   function nazwaOdznaki(id) {
     var s = String(id || ""), A = w.BM_ODZNAKI_AKCJI;
@@ -882,19 +883,19 @@
     var biegi = (Array.isArray(d.biegi) ? d.biegi : []).filter(function (b) { return b && RE_UUID.test(String(b.id)); }).slice(0, 2);
     var z = d.odznaka && RE_UUID.test(String(d.odznaka.id)) ? d.odznaka : null;
     if (osob > 0) wiersze.push('<li><div class="dn-sp-w"><span class="dn-sp-av dn-sp-licz" aria-hidden="true">' + osob + '</span><span class="dn-sp-t"><b>' + osob + " " +
-      odmiana(osob, "osoba biegała", "osoby biegały", "osób biegało") + (d.od_polnocy === true ? " dziś" : " w ostatniej dobie") + "</b>, razem " + esc(liczba(suma, suma < 10 ? 1 : 0)) + " km" +
+      odmiana(osob, "osoba biegała", "osoby biegały", "osób biegało") + (d.od_polnocy === true ? " dziś" : " w ostatniej dobie") + "</b>, razem " + esc(liczba(Math.round(suma), 0)) + " km" +
       (miasta.length ? "<small>" + esc(miasta.join(", ")) + "</small>" : "") + "</span></div></li>");
     biegi.forEach(function (b) {
-      var rodzaj = String(b.rodzaj || "Bieg"), ile = km(b.km), gdzie = [typeof b.miasto === "string" ? b.miasto : "", temu(b.kiedy, teraz)].filter(Boolean).join(" · ");
-      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(b.id) + '">' + spolAwatar(b.id, b.imie) + '<span class="dn-sp-t">' + ikonaRodzaju(rodzaj) +
-        "<b>" + esc(b.imie || "Zawodnik") + "</b> · " + esc(rodzaj.toLowerCase()) + (ile !== "—" ? " " + esc(ile) + " km" : "") + (gdzie ? "<small>" + esc(gdzie) + "</small>" : "") + "</span></button></li>");
+      var rodzaj = String(b.rodzaj || "Bieg"), ile = kmSpol(b.km), gdzie = [typeof b.miasto === "string" ? b.miasto : "", temu(b.kiedy, teraz)].filter(Boolean).join(" · ");
+      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(b.id) + '">' + spolAwatar(b.id, b.imie) + '<span class="dn-sp-t">' +
+        "<b>" + esc(b.imie || "Zawodnik") + "</b> · " + esc(rodzaj.toLowerCase()) + (ile ? " " + esc(ile) + " km" : "") + (gdzie ? "<small>" + esc(gdzie) + "</small>" : "") + "</span></button></li>");
     });
     if (z) {
       var nazwa = nazwaOdznaki(z.odznaka);
       wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(z.id) + '"><span class="dn-sp-av dn-sp-medal" aria-hidden="true">' + ikonaSvg("medal") + '</span><span class="dn-sp-t"><b>' +
         esc(z.imie || "Zawodnik") + "</b> · " + (nazwa ? "odznaka „" + esc(nazwa) + "”" : "nowa odznaka") + "<small>" + esc(temu(z.kiedy, teraz)) + "</small></span></button></li>");
     }
-    return '<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność</h2><div class="dn-kto">profile publiczne</div></div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›</button></div>' +
+    return '<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność</h2></div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›</button></div>' +
       (osob > 0 || biegi.length ? "" : '<p class="dn-tekst dn-sp-pusto">Jeszcze nikt publiczny nie biegał w tej dobie. <button type="button" class="dn-link" data-sekcja="social">Zobacz Społeczność ›</button></p>') +
       (wiersze.length ? '<ul class="dn-sp">' + wiersze.join("") + "</ul>" : "");
   }

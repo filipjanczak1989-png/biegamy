@@ -2,8 +2,8 @@
 //
 // Nazwa odznaki nie może być surowym kodem („zly_kod”, „akcja-100”): bierzemy ją z katalogów, które już są:
 //   bieg wirtualny (bieg-…) i akcja (akcja-…) z js/odznaki-akcji.mjs (BM_ODZNAKI_AKCJI.biegDef / nazwa), osobiste z BADGES w zawodnik.html.
-//   Nieznana = „nowa odznaka”. Ikona rodzaju = sam rysunek SVG z istniejącej pigułki rodzaju (renderTypePill z klienta), bez drugiej kopii
-//   słownika rodzajów. Kafel stoi przed „Twoimi ostatnimi treningami” (makieta r5: kafel 6 z 7).
+//   Nieznana = „nowa odznaka”. Ikona rodzaju (rysunek z pigułki renderTypePill) była przed imieniem do blizna-414: na telefonie wyglądała
+//   jak buźka, więc rodzaj zostaje samym słowem. Kafel stoi przed „Twoimi ostatnimi treningami” (makieta r5: kafel 6 z 7).
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -44,16 +44,14 @@ test('(2) nazwy odznak z katalogów: osobista z BADGES, akcja i bieg wirtualny z
   assert.match(wiersz(bez, 'pierwszy_krok'), /nowa odznaka/);
 });
 
-test('(3) ikona rodzaju: sam rysunek z pigułki (stały, aria-hidden), bez tekstu rodzaju w środku; bez pigułki wiersz bez ikony', () => {
-  const s = strona(); s.w.renderTypePill = pigulka();
+test('(3) od blizna-414 bez ikony rodzaju: nawet z pigułką w kliencie wiersz zaczyna się od imienia, rodzaj zostaje słowem', () => {
+  const s = strona(); let wolania = 0; const p = pigulka(); s.w.renderTypePill = (...a) => { wolania++; return p(...a); };
   const h = s.B.spolHtml({ osob: 1, km: 5, miasta: [], biegi: [{ id: U(1), imie: 'Kasia', miasto: null, rodzaj: 'Wybieganie', km: 10.2, kiedy: new Date().toISOString() }] });
-  assert.match(h, /<span class="dn-sp-t"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3db870"[^>]*>[^]*?<\/svg><b>Kasia<\/b> · wybieganie 10,2 km/, 'kolor i rysunek wybiegania z pigułki');
-  assert.doesNotMatch(h.match(/<svg[^]*?<\/svg>/)[0], /Wybieganie|WYBIEGANIE/i, 'w ikonie nie ma tekstu rodzaju');
+  assert.match(h, /<span class="dn-sp-t"><b>Kasia<\/b> · wybieganie 10,2 km/);
+  assert.doesNotMatch(h, /<svg(?! class="dn-svg")/, 'jedyny rysunek w kaflu to medal odznaki (tu go nie ma)');
+  assert.equal(wolania, 0, 'kafel nie woła pigułki rodzaju');
   const zly = s.B.spolHtml({ osob: 1, km: 5, miasta: [], biegi: [{ id: U(1), imie: 'K', miasto: null, rodzaj: '<b>"x', km: 1, kiedy: new Date().toISOString() }] });
-  assert.match(zly, /<svg aria-hidden="true"[^>]*stroke="#888888"/, 'nieznany rodzaj: domyślne kółko z pigułki');
-  assert.doesNotMatch(zly.match(/<svg[^]*?<\/svg>/)[0], /<b>|"x/, 'tekst od ludzi nie trafia do rysunku');
-  const bez = strona().B.spolHtml({ osob: 1, km: 5, miasta: [], biegi: [{ id: U(1), imie: 'Kasia', miasto: null, rodzaj: 'Wybieganie', km: 1, kiedy: new Date().toISOString() }] });
-  assert.doesNotMatch(bez, /<svg/); assert.match(bez, /<b>Kasia<\/b> · wybieganie/);
+  assert.match(zly, /<b>K<\/b> · &lt;b&gt;&quot;x 1,0 km/, 'rodzaj od ludzi tylko jako tekst przez esc');
 });
 
 test('(4) „x temu”: przed chwilą, minuty, godziny, wczoraj, dni', () => {
