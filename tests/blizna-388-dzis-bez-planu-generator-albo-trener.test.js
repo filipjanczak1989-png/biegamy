@@ -19,7 +19,7 @@ const przyciski = (h) => [...h.matchAll(/<button type="button" class="([^"]*)" d
 
 test('(1) bez trenera i bez planu: główny „Ułóż plan” otwiera stare okno generatora; „Dodaj trening” jako drugi, cichy', async () => {
   const s = await kafel({ profil: BEZ_TRENERA, trening: [] }), h = s.kafel('trening').innerHTML;
-  assert.match(h, /<div class="dn-kto">bez planu<\/div>/);
+  assert.doesNotMatch(h, /class="dn-kto"/, 'linia „bez planu” pod etykietą powtarzała nagłówek „Dziś bez planu” (P1a, blizna-408)');
   assert.match(h, /<h3 class="dn-tytul">Dziś bez planu<\/h3><p class="dn-tekst">Nie masz planu\? Ułóż go w minutę\.<\/p>/, 'to samo zdanie co w starym Dziś');
   assert.deepEqual(przyciski(h), [['Ułóż plan', 'generator', 'dn-glowny'], ['Dodaj trening', 'zaloguj', 'dn-cichy dn-pod']]);
   assert.doesNotMatch(h, /Napisz do trenera|Trener jeszcze/);

@@ -502,12 +502,13 @@
   function jestStary(id) { return !!d.getElementById(id); }
   function cichy(id, napis) { return jestStary(id) ? '<button type="button" class="dn-cichy" data-dn="stary" data-stary="' + id + '">' + esc(napis) + "</button>" : ""; }
   /** Ból: nic, dopóki stary kod nie ustalił stanu; bez zgłoszenia ciche „Coś boli” (i „Napisz do trenera”, gdy stara karta je ma);
-      z aktywnym zgłoszeniem ramka z poziomem, miejscem i „Już nie boli” (po 30 dniach także „Nadal boli”, jak w starym). */
-  function bolHtml(teraz) {
+      z aktywnym zgłoszeniem ramka z poziomem, miejscem i „Już nie boli” (po 30 dniach także „Nadal boli”, jak w starym).
+      bezCzatu: kafel ma już duży „Napisz do trenera” (dziś bez planu, konto z trenerem), więc cichy drugi raz go nie powtarza (P1a, blizna-408). */
+  function bolHtml(teraz, bezCzatu) {
     var box = d.getElementById("today-bol");
     if (!box) return { ramka: "", ciche: "" };
     var akt = w._aktywnaKontuzja;
-    if (!akt || !jestStary("today-bol-koniec")) return { ramka: "", ciche: cichy("today-bol-btn", "Coś boli") + cichy("today-bol-czat", "Napisz do trenera") };
+    if (!akt || !jestStary("today-bol-koniec")) return { ramka: "", ciche: cichy("today-bol-btn", "Coś boli") + (bezCzatu ? "" : cichy("today-bol-czat", "Napisz do trenera")) };
     var B = w.BOL, dni = Math.max(0, Math.round(((teraz == null ? Date.now() : teraz) - new Date(akt.created_at).getTime()) / 864e5));
     var odKiedy = !isFinite(dni) ? "" : dni === 0 ? "dziś" : dni === 1 ? "od wczoraj" : "od " + dni + " dni", nadal = jestStary("today-bol-nadal");
     var tytul = B && typeof B.nazwaPoziomu === "function" && typeof B.nazwaMiejsca === "function" ? String(B.nazwaPoziomu(akt.poziom)) + " · " + String(B.nazwaMiejsca(akt.miejsce)) : "Zgłoszony ból";
@@ -523,7 +524,7 @@
     return napis ? '<button type="button" class="dn-cichy" data-dn="stary" data-stary="today-nie-zrobilem">' + esc(napis) + "</button>" : "";
   }
   function dzialaniaHtml() {
-    var b = bolHtml(), ciche = wczorajHtml() + b.ciche;
+    var b = bolHtml(undefined, !!dane.trening && !dane.trening.length && stanBezPlanu() === "trener"), ciche = wczorajHtml() + b.ciche;
     return b.ramka + (ciche ? '<div class="dn-ciche">' + ciche + "</div>" : "");
   }
   /** Wiadomość od trenera: tylko z ostatnich 7 dni (po kalendarzu telefonu), sam tekst (znaczniki zdjęć i GIF-ów wycięte, wynik escapowany), najwyżej 140 znaków. */
@@ -884,7 +885,7 @@
   /** Kafel Trening na dziś. lista = wiersze trainings z dzisiejszą datą; pogoda = gotowa linia albo ""; stan = wynik stanBezPlanu() (liczy się tylko przy pustej liście). */
   function treningHtml(lista, pogoda, stan) {
     lista = lista || [];
-    if (!lista.length) return gora("Trening na dziś", stan === "wolne" ? "z generatora" : "bez planu", ["Plan", PLAN]) + pogodaHtml(pogoda) + bezPlanuHtml(stan);
+    if (!lista.length) return gora("Trening na dziś", stan === "wolne" ? "z generatora" : "", ["Plan", PLAN]) + pogodaHtml(pogoda) + bezPlanuHtml(stan);   // „bez planu” pod etykietą powtarzało nagłówek „Dziś bez planu” (P1a, blizna-408)
     var kto = lista[0].plan_source === "generator" ? "z generatora" : lista[0].coach_id ? "od trenera" : "";
     return gora("Trening na dziś", kto, ["Plan", PLAN]) + pogodaHtml(pogoda) + lista.map(function (t) {
       if (WOLNE.indexOf(String(t.type || "").trim()) >= 0) return '<h3 class="dn-tytul">Dzień wolny</h3><p class="dn-tekst">' + esc(t.description || "Odpoczynek też buduje formę.") + "</p>";

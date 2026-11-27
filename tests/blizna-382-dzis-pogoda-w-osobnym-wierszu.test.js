@@ -18,7 +18,7 @@ test('(1) dwa wiersze: źródło planu w nagłówku kafla, pogoda pod nim w osob
     'pogoda stoi PO zamknięciu nagłówka z linkiem „Plan ›”, więc ma całą szerokość kafla');
   assert.doesNotMatch(h, /od trenera · dziś|<div class="dn-kto">[^<]*°C/, 'pogody nie ma już w linii ze źródłem planu');
   assert.match(B.treningHtml([{ type: 'Tempo', plan_source: 'generator' }], 'dziś 5 °C'), /<div class="dn-kto">z generatora<\/div>.*?<p class="dn-pog"><span>dziś 5 °C<\/span><\/p>/, 'sama temperatura: jeden kawałek');
-  assert.match(B.treningHtml([], 'dziś od −6 do 2 °C, śnieg'), /<div class="dn-kto">bez planu<\/div>.*?<\/div><p class="dn-pog"><span>dziś od −6 do 2 °C,<\/span> <span>śnieg<\/span><\/p><h3 class="dn-tytul">Dziś bez planu<\/h3>/);
+  assert.match(B.treningHtml([], 'dziś od −6 do 2 °C, śnieg'), /<h2 class="dn-etykieta">Trening na dziś<\/h2><\/div>.*?<\/div><p class="dn-pog"><span>dziś od −6 do 2 °C,<\/span> <span>śnieg<\/span><\/p><h3 class="dn-tytul">Dziś bez planu<\/h3>/);
 });
 
 test('(2) bez pogody nie ma pustego wiersza; bez źródła planu zostaje sama pogoda', () => {

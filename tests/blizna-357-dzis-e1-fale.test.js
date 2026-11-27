@@ -141,7 +141,7 @@ test('(3) kafle z danymi: Ulica z licznikiem i wkładem, Trening na dziś, Ostat
 test('(4) stany puste i brzegowe: bez planu, dzień wolny, zero wpisów, jeden wpis, akcja przed startem, wkład 0 km, brak modułu akcji', async () => {
   const pusty = strona({ odpowiedzi: { trainings: { data: [], error: null }, training_logs: { data: [], error: null }, 'rpc akcja_licznik': { data: { wystartowala: false }, error: null } } });
   pusty.B.start(); await pusty.doKonca();
-  assert.match(pusty.kafel('trening').innerHTML, /<div class="dn-kto">bez planu<\/div>.*<h3 class="dn-tytul">Dziś bez planu<\/h3>/);
+  assert.match(pusty.kafel('trening').innerHTML, /<h2 class="dn-etykieta">Trening na dziś<\/h2><\/div>.*<h3 class="dn-tytul">Dziś bez planu<\/h3>/);   // bez linii „bez planu” pod etykietą (P1a, blizna-408)
   assert.match(pusty.kafel('ostatni').innerHTML, /<h3 class="dn-tytul">Jeszcze pusto<\/h3>/);
   assert.equal(pusty.kafel('lista').hidden, true, 'pusta lista schowana');
   assert.equal(pusty.kafel('ulica').hidden, true, 'akcja przed startem: kafel schowany');

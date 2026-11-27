@@ -55,7 +55,7 @@ test('(1) linia z dzisiejszego dnia starego kafla: zakres temperatur i opis z fu
   assert.equal(t(pogoda(dzien('2026-11-25', { label: 'Pogoda' }))), 'dziś 3–8 °C', '„Pogoda” to zaślepka funkcji dla nieznanego kodu: nie powtarzamy jej');
   assert.equal(t(pogoda(dzien('2026-11-25', { label: undefined }))), 'dziś 3–8 °C');
   assert.equal(t(pogoda(dzien('2026-11-24'), dzien('2026-11-25', { temp_min: 2, temp_max: 6, label: 'Mżawka' }), dzien('2026-11-26'))), 'dziś 2–6 °C, mżawka', 'bierzemy dzień o dzisiejszej dacie, nie pierwszy z listy');
-  assert.equal(kto(B.treningHtml([], 'dziś 3–8 °C, deszcz')), 'bez planu · dziś 3–8 °C, deszcz');
+  assert.equal(kto(B.treningHtml([], 'dziś 3–8 °C, deszcz')), 'dziś 3–8 °C, deszcz', 'bez planu: sama pogoda, bo linia „bez planu” powtarzała nagłówek (P1a, blizna-408)');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo', coach_id: 'c' }], 'dziś 5 °C')), 'od trenera · dziś 5 °C');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo', plan_source: 'generator' }], 'dziś 5 °C')), 'z generatora · dziś 5 °C');
   assert.equal(kto(B.treningHtml([{ type: 'Tempo' }], 'dziś 5 °C')), 'dziś 5 °C', 'plan bez źródła: sama pogoda, bez wiszącej kropki');
@@ -93,7 +93,7 @@ test('(3) lustro, nie własne wołanie: dane dochodzą po starcie modułu → ka
   const wczesniej = strona({ cache: pogoda(dzien('2026-11-25')) }); wczesniej.B.start(); await wczesniej.tik();
   assert.equal(kto(wczesniej.trening.innerHTML), 'od trenera · dziś 3–8 °C, częściowe zachmurzenie', 'dane były przed startem modułu (pamięć karty): linia od razu');
   const bezPlanu = strona({ cache: pogoda(dzien('2026-11-25')), treningi: [] }); bezPlanu.B.start(); await bezPlanu.tik();
-  assert.equal(kto(bezPlanu.trening.innerHTML), 'bez planu · dziś 3–8 °C, częściowe zachmurzenie');
+  assert.equal(kto(bezPlanu.trening.innerHTML), 'dziś 3–8 °C, częściowe zachmurzenie');   // bez linii „bez planu” (P1a, blizna-408)
   const bezStarej = strona({ cache: pogoda(dzien('2026-11-25')), zRender: false }); bezStarej.B.start(); await bezStarej.tik();
   assert.equal(kto(bezStarej.trening.innerHTML), 'od trenera · dziś 3–8 °C, częściowe zachmurzenie', 'brak starej funkcji nie psuje ekranu');
   for (const x of [s, wczesniej, bezPlanu]) assert.equal(x.zapytania.includes('FETCH'), false);
