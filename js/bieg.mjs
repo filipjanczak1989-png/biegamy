@@ -385,7 +385,7 @@
   /** v8 (20261218, blizna-311): id publicznego profilu z bazy (pełnoletni, zgoda na imię, profil publiczny, bieg od v8) → „profil.html?id=…”; inaczej "".
    *  Tylko poprawny UUID: inny tekst nie trafia do adresu. */
   var RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  function linkProfilu(u) { return u && !u.dziecko && u.imie && typeof u.profil === "string" && RE_UUID.test(u.profil) ? "profil.html?id=" + u.profil.toLowerCase() : ""; }
+  function linkProfilu(u) { return u && !u.dziecko && u.organizator !== true && u.imie && typeof u.profil === "string" && RE_UUID.test(u.profil) ? "profil.html?id=" + u.profil.toLowerCase() : ""; }   // wpis organizatora (20261233) nie ma konta ani profilu
   /** Wiersz listy „ukończyli”: imię za zgodą (inaczej „bez imienia”), numer, dystans; czas i miejsce tylko, gdy serwer je dał (zgoda na ranking, dorosły). */
   function wierszUkonczyl(u, moj, kolumnaMiejsca) {
     var dyst = u.dystans_km != null ? km(u.dystans_km) + " km" : "ukończył(a)", reczny = u.reczny === true && !u.dziecko, rank = u.miejsce != null && u.czas_s != null && !u.dziecko, kol = rank || !!kolumnaMiejsca;
@@ -393,7 +393,8 @@
     var bezMiejsca = !rank && !u.dziecko && u.czas_s != null && u.trening_km != null && Number(u.trening_km) > 0;
     if (bezMiejsca) dyst = liczba(u.trening_km, 1) + " km · " + czas(u.czas_s);
     var zTempa = rank && u.z_tempa === true;   // 20261214 (v5): czas na dystans biegu wyliczony z tempa dłuższego treningu, z miejscem
-    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + (kol ? " bw-wiersz--ranking" : "") + '">' + (rank ? '<span class="bw-pozycja" aria-label="miejsce ' + esc(u.miejsce) + '">' + esc(u.miejsce) + '.</span>' : (kol ? '<span class="bw-pozycja"></span>' : "")) + '<span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (linkProfilu(u) ? '<a class="bw-imie-link" href="' + linkProfilu(u) + '" data-profil>' + esc(u.imie) + '</a>' : u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + (rank ? '<b class="bw-czas">' + esc(czas(u.czas_s)) + '</b> · ' : '') + esc(dyst) + (zTempa ? ' · <small class="bw-z-tempa">z tempa</small>' : '') + (reczny ? ' · <small class="bw-reczny">wynik ręczny</small>' : '') + '</span></li>';
+    var org = u.organizator === true && !u.dziecko;   // 20261233: wynik osoby bez aplikacji wpisany przez organizatora (bez numeru, bez profilu)
+    return '<li class="bw-wiersz' + (moj ? " bw-wiersz--ty" : "") + (kol ? " bw-wiersz--ranking" : "") + '">' + (rank ? '<span class="bw-pozycja" aria-label="miejsce ' + esc(u.miejsce) + '">' + esc(u.miejsce) + '.</span>' : (kol ? '<span class="bw-pozycja"></span>' : "")) + '<span class="bw-nr">' + esc(u.numer) + '</span><span class="bw-imie">' + (linkProfilu(u) ? '<a class="bw-imie-link" href="' + linkProfilu(u) + '" data-profil>' + esc(u.imie) + '</a>' : u.imie ? esc(u.imie) : '<i class="bw-bez">bez imienia</i>') + (u.dziecko ? ' <small>dziecko</small>' : "") + (moj ? ' <i>Ty</i>' : "") + '</span><span class="bw-dyst">' + (rank ? '<b class="bw-czas">' + esc(czas(u.czas_s)) + '</b> · ' : '') + esc(dyst) + (zTempa ? ' · <small class="bw-z-tempa">z tempa</small>' : '') + (reczny ? ' · <small class="bw-reczny">wynik ręczny</small>' : '') + (org ? '<small class="bw-org">wpisane przez organizatora</small>' : '') + '</span></li>';
   }
   /** Lista z osobnej funkcji (EF bieg-ukonczyli, ta sama droga co licznik): dane = { razem, od, lista }, strona dokleja kolejne porcje; „Pokaż więcej” rysuje strona. */
   function ukonczyliHtml(dane, mojeNumery) {

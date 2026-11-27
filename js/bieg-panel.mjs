@@ -58,7 +58,9 @@
     return p === "dystans" ? "Zły dystans: dorosły z listy biegu, dziecko 0,1–100 km." : p === "czas" ? "Czas: od 1:00 do 24:00:00, u dziecka bez czasu." : p === "za_pozno" ? "Po terminie zaliczania ręcznego (data w nagłówku panelu)."
       : p === "przed_biegiem" ? "Bieg jeszcze się nie zaczął." : p === "nie_ma" ? "Tego zapisu już nie ma (wycofany albo usunięty)."
       : p === "zly_powod" ? "Wpisz powód: od 3 do 200 znaków, w jednej linii." : p === "bez_wyniku" ? "Ten zapis nie ma wyniku (może usunięty albo jeszcze niezaliczony). Odśwież listę."
-      : p === "dziecko" ? "Dzieci nie są w rankingu." : p === "decyzja" ? "Nieznana decyzja. Odśwież panel." : "Nie udało się.";
+      : p === "dziecko" ? "Dzieci nie są w rankingu." : p === "decyzja" ? "Nieznana decyzja. Odśwież panel."
+      : p === "zgoda" ? "Zaznacz oba pola: osoba pełnoletnia i zgoda na imię i czas w wynikach." : p === "imie" ? "Imię: samo imię albo imię i inicjał (Anna, Anna K.), bez nazwiska, 2–24 znaki."
+      : p === "limit" ? "Ten bieg ma już 1000 wyników wpisanych przez organizatora." : p === "nie_ma_biegu" ? "Nie ma takiego biegu. Odśwież panel." : "Nie udało się.";
   }
   /* 20261206: flaga „do sprawdzenia” liczona w bazie (akcja_bieg_do_sprawdzenia): tylko powody słownie, bez czasu; nic nie znika samo */
   function doSprawdzenia(u) { return u && !u.wycofany && Array.isArray(u.do_sprawdzenia) ? u.do_sprawdzenia.filter(function (p) { return typeof p === "string" && p; }) : []; }
@@ -92,7 +94,102 @@
     });
   }
   function wolaj(nazwa, args) {
-    return Promise.resolve(g.sb.rpc(nazwa, args)).then(function (r) { if (r.error) throw r.error; return r.data; });
+    return new Promise(function (ok) { ok(g.sb.rpc(nazwa, args)); }).then(function (r) { if (r.error) throw r.error; return r.data; });   // brak klienta = odrzucenie, nie wyjątek w rysowaniu
+  }
+
+  /* WYNIKI OSÓB BEZ APLIKACJI (bieg stacjonarny, 20261233, blizna-418). Organizator (trener, bramka w bazie) wpisuje imię (samo albo z inicjałem), dystans
+     z listy biegu i czas, z dwoma wymaganymi polami: osoba pełnoletnia i zgoda na imię i czas w wynikach. Zapis tylko funkcją akcja_bieg_org_wpisz
+     (SECURITY DEFINER); w rankingu z dopiskiem „wpisane przez organizatora”, bez numeru, dyplomu i odznaki; kilometry nie idą do licznika ulicy.
+     Poprawić i usunąć można tylko własny wpis (baza sprawdza autora). Tylko textContent: imiona są niezaufane.
+     Sekcja jest zwinięta: formularz i lista (jedno zapytanie) dopiero po rozwinięciu, więc zwykłe otwarcie panelu nie pyta bazy więcej niż dotąd. */
+  var LIT = "A-Za-zÀ-ÖØ-öø-ÿĀ-ſ", RE_IMIE_ORG = new RegExp("^[" + LIT + "]{2,}(-[" + LIT + "]+)?( [" + LIT + "]\\.)?$"), RE_INICJAL = new RegExp(" [" + LIT + "]\\.?$");
+  /** Imię do wyników jak w bazie: spacje ściśnięte, inicjał wielką literą z kropką („anna k” → „anna K.”); poza wzorem → null. */
+  function imieOrg(t) {
+    var s = String(t == null ? "" : t).trim().replace(/\s+/g, " ");
+    if (RE_INICJAL.test(s)) { s = s.replace(/\.$/, ""); s = s.slice(0, -1) + s.slice(-1).toUpperCase() + "."; }
+    return s.length >= 2 && s.length <= 24 && RE_IMIE_ORG.test(s) ? s : null;
+  }
+  /** Formularz wpisu (wpis = null) albo poprawki (wpis z listy). poZapisie odświeża listę. */
+  function formularzOrg(kont, b, wpis, poZapisie) {
+    kont.textContent = "";
+    var f = el("div", "display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;", kont); f.setAttribute("data-org-form", wpis ? "popraw" : "nowy");
+    var l1 = el("label", "font-size:12px;color:var(--muted);flex:1 1 100%;", f, "Imię (albo imię i inicjał)");
+    var imie = el("input", "display:block;width:100%;margin-top:4px;" + POLE, l1); imie.placeholder = "Anna albo Anna K."; imie.maxLength = 24; imie.autocomplete = "off"; imie.setAttribute("data-org", "imie");
+    var l2 = el("label", "font-size:12px;color:var(--muted);flex:1 1 90px;", f, "Dystans");
+    var dyst = el("select", "display:block;width:100%;margin-top:4px;" + POLE, l2); dyst.setAttribute("data-org", "dystans");
+    (b.dystanse_km || []).forEach(function (d) { var o = el("option", "", dyst, d + " km"); o.value = String(d); if (wpis && Number(d) === Number(wpis.dystans_km)) o.selected = true; });
+    var l3 = el("label", "font-size:12px;color:var(--muted);flex:1 1 110px;", f, "Czas");
+    var czas = el("input", "display:block;width:100%;margin-top:4px;" + POLE, l3); czas.placeholder = "25:30"; czas.maxLength = 8; czas.inputMode = "numeric"; czas.setAttribute("data-org", "czas");
+    var zgody = [["pelnoletnia", "Osoba jest pełnoletnia"], ["zgoda", "Osoba zgodziła się na imię i czas w wynikach"]].map(function (z) {
+      var l = el("label", "display:flex;gap:8px;align-items:center;flex:1 1 100%;font-size:13px;color:var(--fg);min-height:44px;cursor:pointer;", f), c = el("input", "width:20px;height:20px;flex:none;", l); c.type = "checkbox"; c.setAttribute("data-org", z[0]);
+      el("span", "", l, z[1]); return c;
+    });
+    if (wpis) { imie.value = String(wpis.imie || ""); czas.value = czasPl(wpis.wynik_s); zgody[0].checked = true; zgody[1].checked = true; }
+    var ok = el("button", PRZYCISK + "flex:1 1 140px;background:var(--accent,#ff8a3c);color:#111;border:0;", f, wpis ? "Zapisz poprawkę" : "Dodaj wynik"); ok.type = "button"; ok.setAttribute("data-org", "zapisz");
+    if (wpis) { var an = el("button", PRZYCISK + "flex:none;background:none;color:var(--fg);border:1px solid var(--border);", f, "Anuluj"); an.type = "button"; an.addEventListener("click", function () { formularzOrg(kont, b, null, poZapisie); }); }
+    var info = el("div", "font-size:13px;color:var(--red);flex:1 1 100%;min-height:18px;", f); info.setAttribute("role", "status"); info.setAttribute("data-org", "info");
+    ok.addEventListener("click", function () {
+      var i = imieOrg(imie.value), s = sekundy(czas.value), d = Number(dyst.value);
+      if (!i) { info.textContent = komunikat(null, { powod: "imie" }); return; }
+      if (s == null || isNaN(s)) { info.textContent = "Czas wpisz jak 25:30 albo 1:02:05 (od minuty do doby)."; return; }
+      if (!(d > 0)) { info.textContent = komunikat(null, { powod: "dystans" }); return; }
+      if (!zgody[0].checked || !zgody[1].checked) { info.textContent = komunikat(null, { powod: "zgoda" }); return; }
+      ok.disabled = true; info.textContent = "";
+      wolaj("akcja_bieg_org_wpisz", { p_slug: b.slug, p_imie: i, p_dystans_km: d, p_wynik_s: s, p_pelnoletnia: true, p_zgoda_imie: true, p_id: wpis ? wpis.id : null }).then(function (w) {
+        ok.disabled = false;
+        if (!w || !w.ok) { info.textContent = komunikat(null, w); return; }
+        formularzOrg(kont, b, null, poZapisie);
+        var po = kont.querySelector("[data-org-form]"); if (po) { var m = el("div", "font-size:13px;color:var(--fg);flex:1 1 100%;", po, (wpis ? "Poprawione: " : "Dodane: ") + w.imie + (/\.$/.test(String(w.imie)) ? "" : ".")); m.setAttribute("data-org", "zapisane"); }
+        poZapisie();
+      }, function (e) { ok.disabled = false; info.textContent = komunikat(e); });
+    });
+  }
+  function pytanieUsunieciaOrg(w) { return "Usunąć wynik: " + w.imie + ", " + w.dystans_km + " km, " + czasPl(w.wynik_s) + "? Zniknie z rankingu."; }
+  /** Lista wpisów organizatorów: „Anna K. · 5 km · 25:30”; przy własnych „Popraw” i „Usuń”, przy cudzych (drugi trener) tylko napis. */
+  function rysujListeOrg(lista, wpisy, edytuj, odswiez) {
+    lista.textContent = "";
+    if (!wpisy.length) { el("div", "font-size:13px;color:var(--muted);padding:8px 0;", lista, "Jeszcze nikt nie wpisał wyniku osoby bez aplikacji."); return; }
+    el("div", "font-size:13px;color:var(--fg);margin:10px 0 2px;", lista, "Wpisane: " + wpisy.length);
+    wpisy.forEach(function (w) {
+      var r = el("div", "display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border);", lista); r.setAttribute("data-org-wpis", String(w.id));
+      el("div", "flex:1 1 160px;min-width:0;font-size:14px;color:var(--fg);overflow-wrap:anywhere;", r, w.imie + " · " + w.dystans_km + " km · " + czasPl(w.wynik_s) + (w.moj ? "" : " · wpis innego trenera"));
+      if (!w.moj) return;
+      var p = el("button", PRZYCISK + "flex:none;background:none;color:var(--fg);border:1px solid var(--border);", r, "Popraw"); p.type = "button";
+      p.addEventListener("click", function () { edytuj(w); });
+      var u = el("button", PRZYCISK + "flex:none;background:none;color:var(--red);border:1px solid var(--red);", r, "Usuń"); u.type = "button"; u.setAttribute("data-org-usun", String(w.id));
+      var info = el("div", "font-size:13px;color:var(--red);flex:1 1 100%;", r);
+      u.addEventListener("click", function () {
+        var pytaj = g.BM_OKIENKO ? g.BM_OKIENKO({ tytul: "Usunąć wynik?", tekst: pytanieUsunieciaOrg(w), tak: "Usuń", nie: "Anuluj", grozne: true }) : Promise.resolve(g.confirm && g.confirm(pytanieUsunieciaOrg(w)) ? {} : null);
+        u.disabled = true; info.textContent = "";
+        Promise.resolve(pytaj).then(function (t) {
+          if (!t) { u.disabled = false; return null; }
+          return wolaj("akcja_bieg_org_usun", { p_id: w.id }).then(function (x) { u.disabled = false; if (!x || !x.ok) { info.textContent = komunikat(null, x); return; } odswiez(); });
+        }).then(null, function (e) { u.disabled = false; info.textContent = komunikat(e); });
+      });
+    });
+  }
+  /** Sekcja w panelu: formularz i lista; tylko gdy wolno wpisywać (te same warunki co „Zalicz ręcznie”, ostatecznie sprawdza baza). */
+  function wynikiOrg(kont, b) {
+    var sek = el("div", "margin-top:16px;padding-top:12px;border-top:2px solid var(--border);", kont); sek.setAttribute("data-wyniki-org", "1");
+    var nag = el("button", PRZYCISK + "width:100%;display:flex;justify-content:space-between;align-items:center;background:none;color:var(--fg);border:1px solid var(--border);text-align:left;", sek); nag.type = "button";
+    nag.setAttribute("aria-expanded", "false"); nag.setAttribute("data-org", "rozwin");
+    el("span", "", nag, "Wyniki osób bez aplikacji"); var strz = el("span", "flex:none;color:var(--muted);", nag, "›");
+    var cialo = el("div", "", sek); cialo.hidden = true;
+    var zbudowane = false, forma = null, lista = null;
+    function odswiez() {
+      lista.textContent = "Wczytuję wpisy…";
+      wolaj("akcja_bieg_org_lista", { p_slug: b.slug }).then(function (w) { rysujListeOrg(lista, Array.isArray(w) ? w : [], edytuj, odswiez); }, function (e) { lista.textContent = komunikat(e); });
+    }
+    function edytuj(w) { formularzOrg(forma, b, w, odswiez); }
+    nag.addEventListener("click", function () {
+      var otwarte = cialo.hidden; cialo.hidden = !otwarte; nag.setAttribute("aria-expanded", String(otwarte)); strz.textContent = otwarte ? "⌄" : "›";
+      if (!otwarte || zbudowane) return;
+      zbudowane = true;
+      el("div", "font-size:12px;color:var(--muted);margin:10px 0;line-height:1.45;", cialo, "Bieg stacjonarny: wynik osoby, która biegła bez aplikacji. W rankingu z dopiskiem „wpisane przez organizatora”, bez numeru, dyplomu i odznaki; kilometry nie wchodzą do licznika ulicy. Tylko imię albo imię i inicjał, bez nazwiska, e-maila i telefonu.");
+      forma = el("div", "", cialo); lista = el("div", "", cialo);
+      formularzOrg(forma, b, null, odswiez);
+      odswiez();
+    });
   }
 
   function formularz(wiersz, u, bieg, poZapisie) {
@@ -192,6 +289,7 @@
     }
     cz.addEventListener("change", pokaz); cz2.addEventListener("change", pokaz);
     pokaz();
+    if (mozna) wynikiOrg(kont, b);   // 20261233: wyniki osób bez aplikacji (bieg stacjonarny)
     el("div", "font-size:11px;color:var(--muted);margin-top:8px;", kont, "Panel pokazuje prawdziwy wynik (dystans treningu, czas, tempo, źródło); publicznie czas jest tylko w rankingu, za zgodą uczestnika. Ręcznie zaliczony uczestnik dostaje dyplom i odznakę biegu. Wynik z tempem szybszym niż 3:00/km albo wolniejszym niż 36:00/km, a od regulaminu v6 także z treningu dłuższego niż maraton (42,2 km), wchodzi do rankingu dopiero po „Zatwierdź”; „Odrzuć” wysyła prośbę o dowód. „Do sprawdzenia” liczy baza (tempo spoza 3:00–36:00/km, trening dłuższy niż maraton od regulaminu v6, przy starszych regulaminach dłuższy niż dystans biegu, dziecko ponad 21 km); nic nie znika samo. „Usuń wynik” (§ 9 regulaminu) zabiera dyplom i miejsce, odznaka zostaje; uczestnik dostaje powiadomienie.");
   }
   function dzisWaw() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
@@ -208,6 +306,7 @@
   }
   g.BM_BIEG_PANEL = { szczegolyWyniku: szczegolyWyniku, sekundy: sekundy, kmZPola: kmZPola, stanTekst: stanTekst, komunikat: komunikat, ostrzezenieMaili: ostrzezenieMaili, doSprawdzenia: doSprawdzenia, liczbaDoSprawdzenia: liczbaDoSprawdzenia,
     pytanieUsuniecia: pytanieUsuniecia, sprawdzPowod: sprawdzPowod, usunWynik: usunWynik, rysuj: rysuj, czekaNaWeryfikacje: czekaNaWeryfikacje, liczbaDoWeryfikacji: liczbaDoWeryfikacji,
-    stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj, koniecPl: koniecPl };
+    stanWeryfikacji: stanWeryfikacji, pytanieOdrzucenia: pytanieOdrzucenia, weryfikuj: weryfikuj, koniecPl: koniecPl,
+    imieOrg: imieOrg, formularzOrg: formularzOrg, rysujListeOrg: rysujListeOrg, wynikiOrg: wynikiOrg, pytanieUsunieciaOrg: pytanieUsunieciaOrg };
   if (g.document.readyState === "loading") g.document.addEventListener("DOMContentLoaded", start); else start();
 })(globalThis);
