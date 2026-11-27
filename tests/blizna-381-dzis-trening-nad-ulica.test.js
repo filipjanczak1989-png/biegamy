@@ -13,10 +13,10 @@ const { strona, MODUL } = require('./_dzis-nowy-strona.js');
 
 const kolejnosc = (h) => [...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]);
 
-test('(1) kolejność kafli: Trening na dziś, Ulica, skróty, Ostatni trening, Ten tydzień, lista; szkielet w tej samej kolejności', async () => {
+test('(1) kolejność kafli: Trening na dziś, Ulica, skróty, Ostatni trening, Ten tydzień, Społeczność (od blizna-406), lista; szkielet w tej samej kolejności', async () => {
   const s = strona(); s.B.start();
-  assert.deepEqual(kolejnosc(s.korzen.innerHTML), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'lista']);
-  assert.deepEqual([...s.korzen.innerHTML.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Twoje ostatnie treningi']);
+  assert.deepEqual(kolejnosc(s.korzen.innerHTML), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'spol', 'lista']);
+  assert.deepEqual([...s.korzen.innerHTML.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Społeczność', 'Twoje ostatnie treningi']);
   assert.match(s.korzen.innerHTML, /<div class="dn-zd" data-dn="zdarzenie" hidden><\/div><div class="dn-kafle"><section class="dn-kafel" data-kafel="trening" aria-busy="true">/, 'trening zaraz pod paskiem zdarzeń');
   assert.match(MODUL, /var KAFLE = \[\["trening", "Trening na dziś"\], \["ulica", "Ulica"\], \["skroty", ""\], /);
 });
@@ -28,5 +28,5 @@ test('(2) po wczytaniu nic się nie przestawia: oba kafle rysują się w swoich 
   assert.equal(s.kafel('trening').innerHTML, '', 'trening jeszcze na szkielecie (jego dane idą w drugiej fali)');
   await s.doKonca();
   assert.match(s.kafel('trening').innerHTML, /Rozgrzewka/); assert.match(s.kafel('ulica').innerHTML, /Ulica próbna/);
-  assert.deepEqual(kolejnosc(s.korzen.innerHTML), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'lista'], 'szkielet nie jest przerysowywany po danych');
+  assert.deepEqual(kolejnosc(s.korzen.innerHTML), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'spol', 'lista'], 'szkielet nie jest przerysowywany po danych');
 });

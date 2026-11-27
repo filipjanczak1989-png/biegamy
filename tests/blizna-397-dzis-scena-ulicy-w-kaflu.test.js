@@ -26,6 +26,7 @@ function staryKod(s, { odrazu = false } = {}) {
 function widok(s) {
   const v = { obserwatorzy: [] };
   s.w.IntersectionObserver = function (f, o) { const ob = { f, o, cele: [], rozlaczony: false }; v.obserwatorzy.push(ob); this.observe = (el) => ob.cele.push(el); this.disconnect = () => { ob.rozlaczony = true; }; };
+  v.sceny = () => v.obserwatorzy.filter((x) => x.o && x.o.rootMargin === '300px 0px');   // od blizna-406 jest też obserwator kafla Społeczność (400 px)
   v.pokaz = (tak) => v.obserwatorzy.filter((x) => !x.rozlaczony).forEach((x) => x.f(x.cele.map((t) => ({ target: t, isIntersecting: tak }))));
   return v;
 }
@@ -56,11 +57,11 @@ test('(2) stary kod jest: okno sceny na górze kafla, liczby pod nim bez zmian, 
 test('(3) scena ładuje się dopiero, gdy kafel jest blisko ekranu (300 px zapasu); daleko albo schowana sekcja = nic się nie pobiera', async () => {
   const s = strona(), st = staryKod(s), v = widok(s); s.B.start(); await s.doKonca();
   assert.ok(s.kafel('ulica').innerHTML.startsWith(OKNO), 'okno stoi od pierwszego rysunku (bez skoku), puste');
-  assert.equal(v.obserwatorzy.length, 1); assert.equal(v.obserwatorzy[0].o.rootMargin, '300px 0px'); assert.deepEqual(v.obserwatorzy[0].cele, [s.kafel('ulica')]);
+  assert.equal(v.sceny().length, 1); assert.deepEqual(v.sceny()[0].cele, [s.kafel('ulica')]);
   assert.equal(st.zUlica, 0, 'zanim kafel jest blisko ekranu: ani skryptu ulicy, ani sceny');
   v.pokaz(false); assert.equal(st.zUlica, 0, 'wpis „nie przecina” niczego nie rusza');
-  await odswiez(s); assert.equal(v.obserwatorzy.length, 1, 'odświeżenie w czasie czekania nie dokłada drugiego obserwatora'); assert.equal(st.zUlica, 0);
-  v.pokaz(true); assert.equal(st.zUlica, 1); assert.equal(v.obserwatorzy[0].rozlaczony, true, 'po starcie obserwator się odłącza');
+  await odswiez(s); assert.equal(v.sceny().length, 1, 'odświeżenie w czasie czekania nie dokłada drugiego obserwatora'); assert.equal(st.zUlica, 0);
+  v.pokaz(true); assert.equal(st.zUlica, 1); assert.equal(v.sceny()[0].rozlaczony, true, 'po starcie obserwator się odłącza');
   assert.equal(st.naKaflu.length, 0, 'skrypt ulicy jeszcze się ładuje'); st.wczytaj(); assert.equal(st.naKaflu.length, 1);
 });
 

@@ -34,7 +34,7 @@ function pamiecTelefonu(mapa) {
 }
 
 function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { feel: 'mid' })], profil = PROFIL, trening = TRENING, wiadomosc = [{ body: 'Jutro luźno.', sent_at: new Date(TERAZ - 20 * 3600e3).toISOString() }],
-  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null, bezReguly = false, bezGeneratora = false } = {}) {
+  licznik = { wystartowala: true, km: 3607, cel_km: 12500, nazwa: 'Ulica próbna' }, wklad = { km: 196 }, awaria = {}, online = true, search = '', pamiec = null, sesja = true, teraz = TERAZ, bezOffline = false, zakladkaTrenera = false, bezTygodnia = false, wpisyTyg = null, bezReguly = false, bezGeneratora = false, spol = undefined } = {}) {
   const klasy = new Set(['dzis-nowy']), wezly = {}, zapytania = [], czasomierze = [], sluchacze = {}, zgloszenia = [], st = { zegar: teraz, online, awaria: Object.assign({}, awaria), sesja };
   const tel = pamiecTelefonu(pamiec);
   const lista = () => { const k = new Set(); return { add: (c) => k.add(c), remove: (c) => k.delete(c), contains: (c) => k.has(c) }; };
@@ -44,12 +44,13 @@ function strona({ wpisy = [wpis('l1', 23.8, { feel: 'good' }), wpis('l2', 76, { 
   const korzen = { hidden: true, innerHTML: '', _a: {}, _zd: {}, getAttribute(k) { return k in this._a ? this._a[k] : null; }, setAttribute(k, v) { this._a[k] = v; }, querySelector: (s) => wezel(s), addEventListener(n, f) { this._zd[n] = f; }, contains: () => true };
   const el = { 'dzis-nowy': korzen, 'topbar-name': { textContent: 'Ola' }, 'zawodnik-bell-dot': { textContent: '', style: { display: 'none' } }, 'moment-baner': { style: { display: 'none' } }, 'watch-pasek-slot': { innerHTML: '' } };
   const nowyEl = () => ({ id: '', style: {}, textContent: '', appendChild(c) { if (c.id) el[c.id] = c; }, remove() { delete el[this.id]; } });
-  const DANE = () => ({ athletes: profil, 'rpc akcja_licznik': licznik, 'rpc akcja_moj_wklad': wklad, trainings: trening, training_logs: wpisy, messages: wiadomosc,
+  const DANE = () => ({ athletes: profil, 'rpc akcja_licznik': licznik, 'rpc akcja_moj_wklad': wklad, 'rpc spolecznosc_dzis': spol, trainings: trening, training_logs: wpisy, messages: wiadomosc,
     'training_logs tydzien': wpisyTyg || wpisy.map((l) => ({ logged_at: l.logged_at, training_type: l.training_type, distance_km: l.distance_km, duration: l.duration })) });
   const odpowiedz = (nazwa) => {
     const a = st.awaria[nazwa] || st.awaria['*'];
     if (a === 'siec') return { data: null, error: { message: 'TypeError: Failed to fetch' }, status: 0 };
     if (a === 'odmowa') return { data: null, error: { code: '42501', message: 'permission denied' }, status: 403 };
+    if (a === 'brak') return { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.spolecznosc_dzis without parameters in the schema cache' }, status: 404 };   // funkcja niewdrożona (blizna-406)
     return { data: DANE()[nazwa], error: null, status: 200 };
   };
   const wyslij = (nazwa, opis) => { const zq = { nazwa, opis, stan: 'czeka' }; zapytania.push(zq); return new Promise((ok) => { zq.odpowiedz = () => { if (zq.stan !== 'czeka') return; zq.stan = 'jest'; ok(odpowiedz(nazwa)); }; }); };

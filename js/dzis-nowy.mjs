@@ -95,7 +95,7 @@
 (function (w, d) {
   "use strict";
   var ETAP = "E1", IKONY = "assets/ui/dzis/ikony/", owiniete = false, zgloszone = {}, obserwatorzy = false;
-  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien"];
+  var ETAPY = ["modul", "start", "render", "klient", "profil", "akcja", "trening", "wpisy", "sesja", "odczucie", "wiadomosc", "tydzien", "spolecznosc"];
   var OKNO_WIADOMOSCI_DNI = 7, OKNO_ODCZUCIA_MS = 48 * 3600 * 1000, PODZIEKOWANIE_MS = 2600, MINY = ["great", "good", "mid", "bad"], jp = null, LIMIT_NOTATKI = 500, PROG_LICZNIKA = 400;
   var LIMIT_MS = 10000, SWIEZE_MS = 60000, ILE_WPISOW = 6, PLAN = "kalendarz.html?role=athlete";
   var WOLNE = ["Odpoczynek", "Wolne", "Dzień wolny", "Rest"];
@@ -107,7 +107,7 @@
   /* Skróty stoją w siatce 4 × 2 BEZ przewijania (blizna-369): przewijany rząd ucinał ikony i na laptopie nie było jak go przesunąć.
      Siatka jest pełna przy ośmiu skrótach; dziewiąty wymaga decyzji, co wypada, a test tego pilnuje. */
   /* Trening na dziś stoi NAD Ulicą (decyzja Filipa 25.11, blizna-381): to pierwsza rzecz dnia, a z kadrem w nagłówku przycisk wyniku wypadałby pod dolne menu. */
-  var KAFLE = [["trening", "Trening na dziś"], ["ulica", "Ulica"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["tydzien", "Ten tydzień"], ["lista", "Twoje ostatnie treningi"]];
+  var KAFLE = [["trening", "Trening na dziś"], ["ulica", "Ulica"], ["skroty", ""], ["ostatni", "Ostatni trening"], ["tydzien", "Ten tydzień"], ["spol", "Społeczność"], ["lista", "Twoje ostatnie treningi"]];
 
   function korzen() { return d.getElementById("dzis-nowy"); }
   function html() { return d.documentElement; }
@@ -257,6 +257,12 @@
     "#dzis-nowy .dn-rada{display:block;width:100%;margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid #2a2a30;background:#16161b;color:#f5f3ef;text-align:left;cursor:pointer;font:400 14px/1.45 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-rada-kto{display:flex;justify-content:space-between;gap:10px;margin:0 0 4px;color:#8f8c97;font:500 11px/1.3 'DM Mono',monospace;letter-spacing:.06em}#dzis-nowy .dn-rada-kto b{color:#f5f3ef;font-weight:700}" +
     "#dzis-nowy .dn-rada-t{display:block;overflow-wrap:anywhere}#dzis-nowy .dn-rada-w{display:block;margin:6px 0 0;color:#ff7a45;font:600 13px/1.2 'DM Sans',sans-serif}" +
+    "#dzis-nowy .dn-sp{list-style:none;margin:12px 0 0;padding:0}#dzis-nowy .dn-sp li{border-top:1px solid #232329}#dzis-nowy .dn-sp li:first-child{border-top:0}" +
+    "#dzis-nowy .dn-sp-w{display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;min-height:56px;padding:8px 0;border:0;background:none;color:inherit;text-align:left;font:inherit}#dzis-nowy button.dn-sp-w{cursor:pointer}#dzis-nowy .dn-sp li:first-child .dn-sp-w{padding-top:0}" +
+    "#dzis-nowy .dn-sp-av{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:#fff;font:700 15px/1 'DM Sans',sans-serif}#dzis-nowy .dn-sp-licz{background:#1b1b21;color:#f5f3ef;font:400 22px/1 'Bebas Neue','DM Sans',sans-serif}#dzis-nowy .dn-sp-medal{background:#1b1b21}" +
+    "#dzis-nowy .dn-sp-t{flex:1;min-width:0;color:#bcb8b2;font:400 14px/1.35 'DM Sans',sans-serif;overflow-wrap:anywhere}#dzis-nowy .dn-sp-t b{color:#f5f3ef;font-weight:600}#dzis-nowy .dn-sp-t svg{display:inline-block;vertical-align:-1px;margin-right:5px}" +
+    "#dzis-nowy .dn-sp-t small{display:block;margin-top:2px;color:#8f8c97;font:400 12px/1.35 'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    "#dzis-nowy button.dn-link{border:0;background:none;cursor:pointer}#dzis-nowy .dn-sp-pusto{margin:12px 0 0}#dzis-nowy .dn-sp-pusto .dn-link{margin:0 -4px 0 0;min-height:44px}" +
     "#dzis-nowy .dn-ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}" +
     "html.dzis-gotowy.dzis-na-dzis body > .topbar,html.dzis-gotowy.dzis-na-dzis body > #okienko-pole{display:none!important}" +
     "@media (prefers-reduced-motion:reduce){#dzis-nowy .dn-okr:active,#dzis-nowy .dn-zapytaj:active,#dzis-nowy .dn-moment:active,#dzis-nowy .dn-glowny:active,#dzis-nowy .dn-drugi:active{transform:none}#dzis-nowy .dn-zd.dn-zd-wjazd,#dzis-nowy .dn-jp.dn-jp-swiatlo{animation:none}#dzis-nowy .dn-kadr-o{transition:none}}";
@@ -384,6 +390,7 @@
       else if (co === "jp-zapisz") { jpZapisz(false); }
       else if (co === "jp-pomin") { jpPomin(); }
       else if (co === "moment") { var stary = d.getElementById("moment-baner"); if (stary && stary.click) stary.click(); zdarzenie(); }
+      else if (co === "sp-profil") { var pid = String(t.getAttribute("data-id") || ""); if (RE_UUID.test(pid) && typeof w.openAthleteProfile === "function") w.openAthleteProfile(pid); }
       else if (sekcja && typeof w.showSection === "function") w.showSection(sekcja);
     } catch (err) { zglos("render"); }
   }
@@ -728,6 +735,101 @@
     } else { scenaUl = miejsce; scenaMur = mur; }
     scenaDane = dn;
     if (scenaStan === 2) montujScene(); else czekajNaEkran(el);
+  }
+  /* SPOŁECZNOŚĆ (K2+K3, 27.11.2026, blizna-406 i blizna-407; plan dzis\spolecznosc\plan-spolecznosc.md, decyzje Filipa 27.11).
+     Jedno zapytanie, rpc spolecznosc_dzis (migracja 20261228), i to dopiero wtedy, gdy kafel jest 400 px od ekranu: IntersectionObserver,
+     a bez niego przewijanie. Obserwator podpina się dopiero, gdy skończą się wszystkie zapytania pierwszego ekranu (pytaj → koniec): na szkielecie
+     kafle są niskie i Społeczność mieściła się w zasięgu, więc pytała od razu (pomiar na prawdziwej stronie 27.11). Pierwszy ekran zostaje 6/7. Odświeża się tylko z całym Dziś (każde wczytaj = dane nieaktualne, znowu jedno
+     zapytanie, gdy kafel jest w zasięgu), bez własnego zegara. Funkcja oddaje same profile publiczne: pierwsze imię, miasto, rodzaj, km,
+     czas, id profilu; wszystko przez esc, id tylko w kształcie UUID. Cudzych danych nie zapisujemy w pamięci telefonu: bez sieci kafla nie ma.
+     Brak funkcji na bazie, błąd albo zły kształt odpowiedzi = kafel schowany i jeden wpis client_errors (etap „spolecznosc”), więc moduł
+     i migrację można wdrożyć w dowolnej kolejności. Bez czasowników z rodzajem („Kasia · odznaka …”), bo płci w danych nie ma. */
+  var spol = { nr: 0, chce: 0, sb: null, obs: null, przewijanie: false, czeka: 0, czekaSb: null }, AWATARY = ["#b0452f", "#3d5a99", "#2f6b3a", "#8a4fbf", "#9a6a00", "#1e7f8a"],
+    RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function spolSzkielet() { return '<h2 class="dn-etykieta">Społeczność</h2><span class="dn-szkielet"></span><span class="dn-szkielet k"></span><span class="dn-ukryte">Wczytuję…</span>'; }
+  /** Nowe dane Dziś: kafel czeka na ekran. Schowany po błędzie wraca jako szkielet, żeby następne wczytanie mogło spróbować jeszcze raz. */
+  function spolUzbroj(sb, nr) {
+    spol.sb = sb; spol.chce = nr;
+    var el = kafel("spol"); if (!el) return;
+    if (el.hidden) { el.innerHTML = spolSzkielet(); el.hidden = false; if (el.setAttribute) el.setAttribute("aria-busy", "true"); }
+    if (w.IntersectionObserver) {
+      try {
+        if (!spol.obs) spol.obs = new w.IntersectionObserver(function (wpisy) { for (var i = 0; i < wpisy.length; i++) if (wpisy[i].isIntersecting) { spolLaduj(); return; } }, { rootMargin: "400px 0px" });
+        if (spol.obs.unobserve) spol.obs.unobserve(el); spol.obs.observe(el);   // ponowne obserwowanie = świeże sprawdzenie, także gdy kafel już jest w zasięgu
+        return;
+      } catch (e) {}
+    }
+    if (!spol.przewijanie && w.addEventListener) {
+      spol.przewijanie = true;
+      w.addEventListener("scroll", function () { try { var k = kafel("spol"), r = k && k.getBoundingClientRect ? k.getBoundingClientRect() : null; if (r && r.top < (w.innerHeight || 800) + 400) spolLaduj(); } catch (e) {} }, { passive: true });
+    }
+  }
+  function spolLaduj() {
+    var nr = spol.chce, sb = spol.sb;
+    if (!nr || spol.nr === nr || !sb || nr !== dane.nr) return;   // już wysłane dla tych danych albo dane się zmieniły
+    if (dane.bezSieci || (w.navigator && w.navigator.onLine === false)) { schowaj("spol"); return; }
+    spol.nr = nr;
+    pytaj(sb.rpc("spolecznosc_dzis")).then(function (d) {
+      if (nr !== dane.nr) return;
+      if (!spolPoprawne(d)) { zglos("spolecznosc"); schowaj("spol"); return; }
+      wpisz("spol", spolHtml(d));
+    }, function (e) {
+      if (nr !== dane.nr) return;
+      if (przejete(sb, nr, e, false)) return;
+      zglosDane("spolecznosc"); schowaj("spol");
+    });
+  }
+  function spolPoprawne(d) { return !!d && typeof d === "object" && isFinite(Number(d.osob)) && Array.isArray(d.biegi) && (d.miasta == null || Array.isArray(d.miasta)); }
+  function temu(iso, teraz) {
+    var t = new Date(iso).getTime(), r = (teraz == null ? Date.now() : teraz) - t;
+    if (!isFinite(t)) return "";
+    if (r < 60000) return "przed chwilą";
+    if (r < 3600000) return Math.floor(r / 60000) + " min temu";
+    if (r < 86400000) return Math.floor(r / 3600000) + " h temu";
+    var dni = Math.floor(r / 86400000); return dni === 1 ? "wczoraj" : dni + " dni temu";
+  }
+  /** Kolor kółka z id profilu (ten sam człowiek = ten sam kolor), inicjał z imienia. */
+  function spolAwatar(id, imie) {
+    var s = String(id || ""), h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 9973;
+    var znak = Array.from ? (Array.from(String(imie || "").trim())[0] || "?") : (String(imie || "?").charAt(0) || "?");
+    return '<span class="dn-sp-av" style="background:' + AWATARY[h % AWATARY.length] + '" aria-hidden="true">' + esc(znak.toUpperCase()) + "</span>";
+  }
+  /** Ikona rodzaju: sam rysunek z istniejącej pigułki rodzaju (sb.js renderTypePill), bez drugiej kopii słownika. Rysunek jest stały, bez danych od ludzi. */
+  function ikonaRodzaju(t) {
+    try { var h = typeof w.renderTypePill === "function" ? String(w.renderTypePill(String(t || ""), { size: "sm" }) || "") : "", m = /<svg [^>]*>[\s\S]*?<\/svg>/.exec(h); return m ? m[0].replace(/^<svg /, '<svg aria-hidden="true" ') : ""; } catch (e) { return ""; }
+  }
+  /** Nazwa odznaki z katalogów (K3): bieg wirtualny i akcja z js/odznaki-akcji.mjs, osobiste z BADGES w zawodnik.html. Nieznana = "" (nigdy surowy kod). */
+  function nazwaOdznaki(id) {
+    var s = String(id || ""), A = w.BM_ODZNAKI_AKCJI;
+    try {
+      if (A && /^bieg-/.test(s) && typeof A.biegDef === "function") { var b = A.biegDef(s); if (b && b.name) return String(b.name); }
+      if (A && /^akcja-/.test(s) && typeof A.nazwa === "function") { var n = A.nazwa(s); if (n) return String(n); }
+      var K = w.BADGES || (typeof BADGES !== "undefined" ? BADGES : null);
+      if (K && K.length) for (var i = 0; i < K.length; i++) if (K[i] && K[i].id === s && K[i].name) return String(K[i].name);
+    } catch (e) {}
+    return "";
+  }
+  function spolHtml(d, teraz) {
+    var osob = Math.max(0, Math.floor(Number(d.osob) || 0)), suma = Math.max(0, Number(d.km) || 0), wiersze = [];
+    var miasta = (Array.isArray(d.miasta) ? d.miasta : []).filter(function (m) { return typeof m === "string" && m.trim(); }).slice(0, 3);
+    var biegi = (Array.isArray(d.biegi) ? d.biegi : []).filter(function (b) { return b && RE_UUID.test(String(b.id)); }).slice(0, 2);
+    var z = d.odznaka && RE_UUID.test(String(d.odznaka.id)) ? d.odznaka : null;
+    if (osob > 0) wiersze.push('<li><div class="dn-sp-w"><span class="dn-sp-av dn-sp-licz" aria-hidden="true">' + osob + '</span><span class="dn-sp-t"><b>' + osob + " " +
+      odmiana(osob, "osoba biegała", "osoby biegały", "osób biegało") + (d.od_polnocy === true ? " dziś" : " w ostatniej dobie") + "</b>, razem " + esc(liczba(suma, suma < 10 ? 1 : 0)) + " km" +
+      (miasta.length ? "<small>" + esc(miasta.join(", ")) + "</small>" : "") + "</span></div></li>");
+    biegi.forEach(function (b) {
+      var rodzaj = String(b.rodzaj || "Bieg"), ile = km(b.km), gdzie = [typeof b.miasto === "string" ? b.miasto : "", temu(b.kiedy, teraz)].filter(Boolean).join(" · ");
+      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(b.id) + '">' + spolAwatar(b.id, b.imie) + '<span class="dn-sp-t">' + ikonaRodzaju(rodzaj) +
+        "<b>" + esc(b.imie || "Zawodnik") + "</b> · " + esc(rodzaj.toLowerCase()) + (ile !== "—" ? " " + esc(ile) + " km" : "") + (gdzie ? "<small>" + esc(gdzie) + "</small>" : "") + "</span></button></li>");
+    });
+    if (z) {
+      var nazwa = nazwaOdznaki(z.odznaka);
+      wiersze.push('<li><button type="button" class="dn-sp-w" data-dn="sp-profil" data-id="' + esc(z.id) + '"><span class="dn-sp-av dn-sp-medal" aria-hidden="true">' + ikona("medal", 28) + '</span><span class="dn-sp-t"><b>' +
+        esc(z.imie || "Zawodnik") + "</b> · " + (nazwa ? "odznaka „" + esc(nazwa) + "”" : "nowa odznaka") + "<small>" + esc(temu(z.kiedy, teraz)) + "</small></span></button></li>");
+    }
+    return '<div class="dn-gora"><div><h2 class="dn-etykieta">Społeczność</h2><div class="dn-kto">profile publiczne</div></div><button type="button" class="dn-link" data-sekcja="social">Wszystko ›</button></div>' +
+      (osob > 0 || biegi.length ? "" : '<p class="dn-tekst dn-sp-pusto">Jeszcze nikt publiczny nie biegał w tej dobie. <button type="button" class="dn-link" data-sekcja="social">Zobacz Społeczność ›</button></p>') +
+      (wiersze.length ? '<ul class="dn-sp">' + wiersze.join("") + "</ul>" : "");
   }
   /** Przycisk wyniku: główny „Zaloguj wynik”, gdy na dziś jest niezrobiony plan; w dzień wolny, bez planu i po zrobionym planie mniejszy „Dodaj trening”.
       Stare Dziś pokazuje „Zaloguj wynik” zawsze; oba otwierają ten sam formularz. */
@@ -1215,7 +1317,7 @@
   function pytaj(q) {
     return new Promise(function (ok, zle) {
       var otwarte = true; dane.wToku++;
-      function koniec() { if (otwarte) { otwarte = false; dane.wToku--; } }
+      function koniec() { if (otwarte) { otwarte = false; dane.wToku--; if (!dane.wToku && spol.czeka && spol.czeka === dane.nr) { var n0 = spol.czeka; spol.czeka = 0; spolUzbroj(spol.czekaSb, n0); } } }
       var t = w.setTimeout(function () { koniec(); var e = new Error("limit"); e.siec = true; zle(e); }, LIMIT_MS);   // brak odpowiedzi w 10 s liczymy jak brak sieci
       Promise.resolve(q).then(function (r) { w.clearTimeout(t); koniec(); if (r && r.error) zle({ autoryzacja: odmowaTokenu(r), siec: bladSieci(r.error) }); else ok(r ? r.data : null); }, function (x) { w.clearTimeout(t); koniec(); zle({ autoryzacja: false, siec: bladSieci(x) }); });
     });
@@ -1241,7 +1343,8 @@
     if (!wymus && dane.t && teraz - dane.t < SWIEZE_MS && !(dane.bezSieci && !dane.wToku)) return;   // ekran z telefonu próbuje od razu, ale dopiero gdy poprzednia próba nie ma otwartych zapytań
     var sb = klient(), nr = ++dane.nr;
     dane.t = teraz; dane.bezSieci = false; dane.tsTelefonu = 0; dane.wpisyZTelefonu = false; dane.wpisyZnane = false; dane.zakres = null; dane.plany = null; dane.wpisyTyg = null; dane.tydzien = null;
-    if (!sb) { zglosDane("klient"); schowaj("ulica"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); rysujTydzien(); return; }
+    if (!sb) { zglosDane("klient"); schowaj("ulica"); schowaj("spol"); bladKafla("trening", "Trening na dziś"); bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); rysujTydzien(); return; }
+    spol.czeka = 0;   // kafel Społeczność czeka na koniec fal pierwszego ekranu (niżej: FALA 2 i pytaj)
     dane.profil = Promise.resolve(sb.auth.getSession()).then(function (r) { return r && r.data && r.data.session && r.data.session.user ? r.data.session.user.id : null; }, function () { return null; }).then(function (uid) {
       if (uid || !brakSieci()) return uid;   // wygasła sesja bez sieci: supabase-js nie odda sesji, bo nie może jej odświeżyć; identyfikator konta jak w starym Dziś
       var o = pamiec(); return o && typeof o.userId === "function" ? Promise.resolve(o.userId(sb)).then(null, function () { return null; }) : null;
@@ -1288,6 +1391,7 @@
             dane.wpisy = l; dane.wpisyZTelefonu = false; dane.wpisyZnane = true; zapamietaj(nr, "wpisy", l);
             rysujWpisy(sb); if (dane.tydzien) rysujTydzien();
           }, function (e) { if (przejete(sb, nr, e, proba)) return; zglosDane("wpisy"); if (e && e.siec && awaryjnieWpisy(nr, sb)) return; bladKafla("ostatni", "Ostatni trening"); schowaj("lista"); });
+        spol.czeka = nr; spol.czekaSb = sb;   // fala 2 wysłana: kafel Społeczność podepnie się, gdy wszystkie zapytania pierwszego ekranu się skończą
         return a;
       }, function (e) {
         if (przejete(sb, nr, e, proba)) return null;
@@ -1378,5 +1482,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, spolHtml: spolHtml, nazwaOdznaki: nazwaOdznaki, temu: temu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

@@ -48,8 +48,8 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.equal(s.korzen.hidden, false);
   assert.deepEqual([...s.klasy].sort(), ['dzis-gotowy', 'dzis-na-dzis', 'dzis-nowy'], 'dzis-gotowy uruchamia chowanie starego Dziś z bloku DZIS-E0 2');
   const h = s.korzen.innerHTML;
-  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'lista']);   // trening nad Ulicą od blizna-381
-  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Twoje ostatnie treningi']);
+  assert.deepEqual([...h.matchAll(/data-kafel="([a-z]+)"/g)].map((m) => m[1]), ['trening', 'ulica', 'skroty', 'ostatni', 'tydzien', 'spol', 'lista']   /* od blizna-406: Społeczność przed listą (makieta r5, kafel 6 z 7) */);   // trening nad Ulicą od blizna-381
+  assert.deepEqual([...h.matchAll(/class="dn-etykieta">([^<]*)</g)].map((m) => m[1]), ['Trening na dziś', 'Ulica', 'Ostatni trening', 'Ten tydzień', 'Społeczność', 'Twoje ostatnie treningi']);
   assert.deepEqual([...h.matchAll(/data-skrot="([a-z]+)"/g)].map((m) => m[1]), ['cialo', 'jedzenie', 'starty', 'wyzwania', 'odznaki', 'radio', 'czat', 'gra']);
   assert.deepEqual([...h.matchAll(/<a class="dn-skrot" href="([^"]+)"/g)].map((m) => m[1]), ['nutrition.html', 'races.html', 'wyzwania.html', 'odznaki.html', 'radio.html', 'gra.html']);
   assert.match(h, /<a class="dn-skrot" href="nutrition\.html" data-skrot="jedzenie">.*?jablko-64\.webp.*?<span>Odżywianie<\/span><\/a>/, 'decyzja Filipa 25.11: odżywianie jako skrót (stare Dziś miało kafel „Odżywianie dziś”)');
@@ -59,7 +59,7 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.match(h, /<button type="button" class="dn-zapytaj" data-dn="okienko" aria-haspopup="dialog"><svg [^>]*aria-hidden="true">.*?<\/svg><span>Zapytaj<\/span><\/button>/, 'Okienko = pigułka z napisem, nie sama ikona');
   assert.doesNotMatch(h, /okienko-64\.webp/, 'chmurka Okienka wycofana: myliła się z Czatem');
   assert.match(h, /aria-label="Powiadomienia"/);
-  assert.equal((h.match(/aria-busy="true"/g) || []).length, 5, 'pięć kafli na szkielecie (od blizna-378 także „Ten tydzień”)');
+  assert.equal((h.match(/aria-busy="true"/g) || []).length, 6, 'sześć kafli na szkielecie (od blizna-378 także „Ten tydzień”, od blizna-406 „Społeczność”)');
   assert.equal(s.korzen._a['data-etap'], 'E1');
   const przed = s.korzen.innerHTML; s.B.start(); s.B.start();
   assert.equal(s.korzen.innerHTML, przed, 'ponowny start nie rysuje od nowa');
@@ -126,7 +126,7 @@ test('(4) menu zostaje stare: moduł nie dotyka #nav-mount ani przy starcie, ani
 
 test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez parametrów; błąd startu wraca do starego ekranu', () => {
   const s = strona({ search: '?log=1&x=tajne' });
-  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja', 'odczucie', 'wiadomosc', 'tydzien']);
+  assert.deepEqual(plain(s.B.ETAPY), ['modul', 'start', 'render', 'klient', 'profil', 'akcja', 'trening', 'wpisy', 'sesja', 'odczucie', 'wiadomosc', 'tydzien', 'spolecznosc']);   // od blizna-406: kafel Społeczność
   assert.equal(s.B.zglos('render'), true); assert.equal(s.B.zglos('render'), false);
   for (const zly of ['', 'inne', 'menu', 'render?x=1', undefined]) assert.equal(s.B.zglos(zly), false);
   for (let i = 0; i < 50; i++) s.B.zglos('start');
@@ -142,7 +142,7 @@ test('(5) zgłoszenia: kind dzis-nowy, sam etap, raz na stronę, adres bez param
 
 test('(6) granice: moduł czyta przez klienta bazy; DWA wyjątki od „tylko odczyt” (blizna-363): jeden update odczucia i jeden klucz pamięci telefonu; cały CSS tylko pod #dzis-nowy albo html.dzis-gotowy', () => {
   const kod = MODUL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|sessionStorage\.(setItem|removeItem|clear)|indexedDB|\.cookie|sendBeacon|\.(insert|upsert|delete)\(|\.rpc\("(?!akcja_licznik|akcja_moj_wklad)/, 'żadnych własnych żądań, żadnego dopisywania ani kasowania');
+  assert.doesNotMatch(kod, /fetch\(|XMLHttpRequest|sessionStorage\.(setItem|removeItem|clear)|indexedDB|\.cookie|sendBeacon|\.(insert|upsert|delete)\(|\.rpc\("(?!akcja_licznik|akcja_moj_wklad|spolecznosc_dzis)/, 'żadnych własnych żądań, żadnego dopisywania ani kasowania (od blizna-406 także rpc spolecznosc_dzis, tylko odczyt)');
   assert.deepEqual(kod.match(/\.update\([^\n]*/g), ['.update(zmiana).eq("id", stan.id).select("id")).then(function (wiersze) {'],'jedyny zapis: jeden wiersz po id, z odesłaniem id');
   assert.match(kod, /pytaj\(sb\.from\("training_logs"\)\.update\(zmiana\)/, 'i tylko w training_logs');
   assert.match(kod, /var zmiana = \{ feel: stan\.kod \}, kom = komentarzDoZapisu\(stan\.komentarz, notatka, stan\.doklej\);[^\n]*\n\s*if \(kom === false\) \{[^\n]*return; \}\n\s*if \(kom\) zmiana\.comment = kom;/, 'zapisywane pola: feel i comment tylko z reguły komentarzDoZapisu (od blizna-404; wcześniej: bez nadpisywania)');
