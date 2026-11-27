@@ -65,7 +65,8 @@ test('(1) szkielet: nowy ekran zastępuje stare Dziś; nagłówek, kafle w kolej
   assert.equal(s.korzen.innerHTML, przed, 'ponowny start nie rysuje od nowa');
   // stare elementy, które ten commit chowa dodatkowo (tylko na Dziś), istnieją w stronie
   assert.match(HTML, /<div class="topbar">/); assert.match(HTML, /id="okienko-pole"/); assert.match(HTML, /id="topbar-name"/); assert.match(HTML, /id="zawodnik-bell-dot"/);
-  assert.doesNotMatch(s.style[0].textContent, /bieg-pasek/, 'pasek biegu zostaje do 6.12');
+  assert.deepEqual(s.style[0].textContent.match(/[^{}]*bieg-pasek[^{}]*\{[^}]*\}/g), ['html.dzis-gotowy #bieg-pasek[data-wariant=dyplom]{display:none!important}'],
+    'pasek biegu zostaje do 6.12; pod nowym Dziś znika tylko wariant z dyplomem, który ma link w kaflu Ulica (P1b, blizna-409)');
 });
 
 test('(2) nagłówek: data z lokalnego zegara, imię i licznik dzwonka z tego, co wpisał stary kod; Okienko, dzwonek i skróty wołają stare funkcje', () => {

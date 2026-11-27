@@ -223,6 +223,7 @@
     "#dzis-nowy .dn-ul-prog{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:12px 0;padding:12px 14px 0;border:1px solid #3a2a20;border-radius:12px;background:#17120f}" +
     "#dzis-nowy .dn-ul-prog b{font:400 22px/1.1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;color:#f5f3ef}#dzis-nowy .dn-ul-prog span{color:#bcb8b2;font:400 13px/1.4 'DM Sans',sans-serif}" +
     "#dzis-nowy .dn-ul-prog .dn-link{margin:0 0 0 -4px;border:0;background:none;cursor:pointer}" +
+    "#dzis-nowy .dn-ul-dyplom{display:flex;margin:-4px 0 -10px}#dzis-nowy .dn-ul-dyplom .dn-link{margin:0 0 0 -4px}html.dzis-gotowy #bieg-pasek[data-wariant=dyplom]{display:none!important}" +
     "#dzis-nowy .dn-ul-przyciski{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}#dzis-nowy .dn-ul-przyciski .dn-drugi{margin:0;text-decoration:none}#dzis-nowy .dn-ul-przyciski .dn-drugi:only-child{grid-column:1/-1}" +
     "#dzis-nowy .dn-ul-mur .us-mur-przelacz{overflow:visible;z-index:3}#dzis-nowy .dn-ul-mur .us-mur-przelacz::after{content:'';position:absolute;inset:-12px -4px -4px}" +
     "#dzis-nowy .dn-pasek{height:8px;border-radius:4px;background:#1b1b21;overflow:hidden;margin:10px 0}#dzis-nowy .dn-pasek i{display:block;height:100%;border-radius:4px;background:#c44a13}" +
@@ -633,14 +634,45 @@
     return k > 0 ? "Twój wkład: <b>" + esc(liczba(k, k < 10 ? 1 : 0)) + " km</b>" : "Twój wkład: <b>0 km</b>" + (koniec ? "" : ". Spacer też buduje ulicę.");
   }
   /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. zeScena: okno sceny na górze kafla (E3).
-      koniec: akcja zamknięta (stanAkcji): suma „razem” bez celu i paska, wkład bez zachęty (E3 commit 4). */
-  function ulicaHtml(d, wklad, adres, zeScena, koniec) {
+      koniec: akcja zamknięta (stanAkcji): suma „razem” bez celu i paska, wkład bez zachęty (E3 commit 4). dyplom: adres z paska biegu albo null (P1b). */
+  function ulicaHtml(d, wklad, adres, zeScena, koniec, dyplom) {
     var suma = Number(d.suma_km) || 0, cel = Number(d.cel_km) || 0, p = Number(d.pct);
     p = Math.max(0, Math.min(100, isFinite(p) ? p : cel > 0 ? suma / cel * 100 : 0));
     return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) + progUlicyHtml(d) +
       '<div class="dn-ul-km' + (koniec ? ' dn-ul-km--koniec' : '') + '"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>" + (koniec ? "km razem · akcja zakończona" : "z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%") + "</span></div>" +
       (koniec ? "" : '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>') +
-      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad, koniec) + "</p>" + przyciskiUlicyHtml(d);
+      '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad, koniec) + "</p>" +
+      (dyplom ? '<div class="dn-ul-dyplom"><a class="dn-link" href="' + esc(dyplom) + '">Twój dyplom ›</a></div>' : "") + przyciskiUlicyHtml(d);
+  }
+  /* DYPLOM Z PASKA BIEGU (P1b, 27.11.2026, blizna-409). Pasek „🏅 Ukończone · Twój dyplom ›” (element bieg-pasek, js/akcja.mjs rysujPasekBiegu) stał pod
+     nowym Dziś osobno, przyklejony na dole ekranu. Pod nowym Dziś wariant z dyplomem jest schowany (reguła CSS modułu), a kafel Ulica ma pod wkładem
+     link „Twój dyplom ›”. Dane: to, co stary kod już narysował w pasku (licznik akcji z polem bieg i akcja_bieg_moi, o które pyta i tak, także pod
+     nowym Dziś), więc zero nowych zapytań. Krzyżyk paska chowa ten wariant do końca dnia (czas polski, klucz bm_bieg_pasek_ukryty_<bieg>_dyplom):
+     stary kod wtedy chowa pasek, więc link też znika do końca dnia. To samo znaczenie, ten sam klucz, moduł go nie czyta ani nie pisze.
+     Pozostałe warianty paska (zapis, numer, dzieci) zostają paskiem jak dotąd. Adres tylko z listy paska (bieg.html, bieg.html?proba=1). */
+  var DYPLOM_ADRESY = ["bieg.html", "bieg.html?proba=1"], pasekObs = null;
+  function dyplomZPaska() {
+    try {
+      var el = d.getElementById("bieg-pasek");
+      if (!el || el.hidden || el.getAttribute("data-wariant") !== "dyplom") return null;
+      var a = el.querySelector ? el.querySelector("a") : null, h = a ? String(a.getAttribute("href") || "") : "";
+      return DYPLOM_ADRESY.indexOf(h) >= 0 ? h : null;
+    } catch (e) { return null; }
+  }
+  /** Pasek zmienił stan (z pamięci telefonu, z bazy, krzyżyk, 30 s bez potwierdzenia): widoczny kafel Ulicy rysuje się jeszcze raz, gdy zmienił się link. */
+  function zmianaPaska() {
+    try {
+      var o = ulicaOst, el = kafel("ulica");
+      if (!o || !el || el.hidden || !wlaczone() || ustepuje() || wstrzymane || dyplomZPaska() === o.dyplom) return;
+      wpiszUlice(o.dn, o.wklad, o.adres, o.slug, o.zTel);
+    } catch (e) {}
+  }
+  /** Obserwator paska: raz, gdy pasek już jest w stronie (przy starcie albo przy rysunku kafla Ulicy). Bez własnego czekania na wczytanie strony:
+      start ma jedno takie czekanie (blizna-358), a kafel Ulicy rysuje się dopiero po odpowiedzi bazy, gdy pasek dawno stoi w stronie. */
+  function pilnujPaska() {
+    if (pasekObs || !w.MutationObserver) return;
+    var el = d.getElementById("bieg-pasek"); if (!el) return;
+    try { pasekObs = new w.MutationObserver(zmianaPaska); pasekObs.observe(el, { attributes: true, attributeFilter: ["hidden", "data-wariant"], childList: true }); } catch (e) { pasekObs = null; }
   }
   /* PLAKAT, ZBIÓRKA, PRÓG (E3 commit 3, 26.11.2026, blizna-401). Reguły ze starego kodu akcji (js/akcja.mjs), nie kopie: plakat tylko z białej listy
      hostów (plakatUrl → safeUrlAttr), zbiórka tylko https (linkZbiorki → safeExternalHref), próg tylko z pola prog licznika (baza oddaje je przez 48 h
@@ -743,9 +775,10 @@
   }
   /** Kafel Ulicy: liczby, nad nimi scena (nowa albo ta sama, przeniesiona). zTel = z pamięci telefonu (bez konfetti, scena tylko bez sieci). */
   function wpiszUlice(dn, wklad, adres, slug, zTel) {
-    var koniec = stanAkcji(dn) === "zamknieta", zeScena = scenaMozliwa() && (!zTel || scenaBezSieci());
-    ulicaOst = { dn: dn, wklad: wklad, adres: adres, slug: slug, zTel: !!zTel, koniec: koniec };
-    wpisz("ulica", ulicaHtml(dn, wklad, adres, zeScena, koniec));
+    var koniec = stanAkcji(dn) === "zamknieta", zeScena = scenaMozliwa() && (!zTel || scenaBezSieci()), dyplom = dyplomZPaska();
+    pilnujPaska();
+    ulicaOst = { dn: dn, wklad: wklad, adres: adres, slug: slug, zTel: !!zTel, koniec: koniec, dyplom: dyplom };
+    wpisz("ulica", ulicaHtml(dn, wklad, adres, zeScena, koniec, dyplom));
     var prog = progUlicy(dn), konfetti = akcjaF("konfettiProgu");
     if (!zTel && prog && konfetti && slug) w.setTimeout(function () { try { konfetti(slug, prog); } catch (e) {} }, 0);
     if (!zeScena) { usunScene(); return; }
@@ -1447,6 +1480,7 @@
       if (!k) { zglos("start"); return; }
       if (ustepuje() || wstrzymane) { pokaz(); return; }
       wstawCss();
+      pilnujPaska();
       if (k.getAttribute("data-etap") !== ETAP) {
         rysuj();
         if (k.addEventListener && !k._dnKlik) { k.addEventListener("click", klik); k.addEventListener("input", wpisywanie); k.addEventListener("touchstart", function () {}, { passive: true }); /* iOS: bez nasłuchu dotyku nie ma :active (krótki stan skrótu) */ k._dnKlik = true; }
