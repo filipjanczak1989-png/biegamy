@@ -186,6 +186,10 @@
     "#dzis-nowy .dn-kadr .dn-trener{position:absolute;left:0;bottom:116px;margin:0;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid #2a2a30;background:#0f0f13;white-space:nowrap}" +
     "#dzis-nowy .dn-kadr-o{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;opacity:0;transition:opacity .2s ease-out}#dzis-nowy .dn-kadr-o.jest{opacity:1}" +
     "#dzis-nowy .dn-kadr-g{position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(180deg,rgba(6,6,8,.06) 0%,rgba(6,6,8,.2) 42%,rgba(6,6,8,.76) 64%,rgba(6,6,8,.9) 100%)}" +
+    "@media (min-width:900px){html.dzis-gotowy.dzis-na-dzis #dn-tlo.jest{display:block;position:fixed;top:-80px;right:-80px;bottom:-80px;left:-80px;z-index:-1;background-color:#000;background-position:center;background-size:cover;background-repeat:no-repeat;filter:blur(40px) brightness(.35);pointer-events:none;animation:dn-tlo-wejscie .6s ease-out}" +
+    "html.dzis-gotowy.dzis-na-dzis #dn-tlo.jest::after{content:'';position:absolute;top:80px;right:80px;bottom:80px;left:80px;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 42%,rgba(0,0,0,.85) 100%)}" +
+    "html.dzis-gotowy.dzis-na-dzis body{box-shadow:0 0 0 1px rgba(255,255,255,.04),0 0 64px rgba(0,0,0,.65)}}@keyframes dn-tlo-wejscie{from{opacity:0}to{opacity:1}}" +
+    "@media (prefers-reduced-motion:reduce){html.dzis-gotowy.dzis-na-dzis #dn-tlo.jest{animation:none}}@media (prefers-reduced-transparency:reduce){html.dzis-gotowy.dzis-na-dzis #dn-tlo.jest{display:none!important}}" +
     "#dzis-nowy .dn-data{font:500 11px/1.4 'DM Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#bcb8b2}" +
     "#dzis-nowy .dn-tydz{margin:-6px 0 12px;min-height:18px;font:500 13px/18px 'DM Sans',sans-serif;color:#bcb8b2}#dzis-nowy .dn-tydz b{font-weight:600;color:#f5f3ef}" +
     "#dzis-nowy .dn-powitanie{margin:2px 0 0;font:400 34px/1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:#f5f3ef;overflow-wrap:anywhere}" +
@@ -330,6 +334,7 @@
         '<span class="dn-ukryte">Wczytuję…</span></section>';
     }).join("");
     var kadr = null; try { kadr = kadrNaTeraz(); } catch (e) { kadr = null; }
+    kadrTeraz = kadr;
     return '<header class="dn-naglowek' + (kadr ? ' dn-kadr" data-kadr="' + esc(kadr.id) + '" style="background-color:' + esc(kadr.tlo) + '">' + kadrHtml(kadr) : '">') + '<div><button type="button" class="dn-trener" data-dn="trener" hidden>← Trener</button><div class="' + klasaDaty(dataDzis()) + '" data-dn="data">' + esc(dataDzis()) + '</div><h1 class="' + klasaPowitania(powitanie()) + '" data-dn="powitanie">' + esc(powitanie()) + "</h1></div>" +
       '<div class="dn-akcje"><span class="dn-zegarek" data-dn="zegarek" hidden></span>' +
       '<button type="button" class="dn-okr" data-dn="dzwonek" aria-label="Powiadomienia">' + ikona("dzwonek", 28) + '<span class="dn-licznik" data-dn="licznik" hidden></span></button></div></header>' +
@@ -1102,7 +1107,8 @@
   }
   /* ── KADR DNIA: wybór (blizna-384) ──
      Lista kadrów jest wpisana tutaj, bo moduł rysuje szkielet, zanim strona wczyta cokolwiek innego, a adres kadru musi być znany już wtedy.
-     Ta sama lista leży w assets/ui/dzis/kadry/kadry.json (źródło dla ludzi i dla testu zgodności): [id, pora roku, pogoda albo null, pora dnia, kolor tła].
+     Ta sama lista leży w assets/ui/dzis/kadry/kadry.json (źródło dla ludzi i dla testu zgodności): [id, pora roku, pogoda albo null, pora dnia, kolor tła],
+     opcjonalnie szósty element: nazwa szerokiej panoramy do tła na komputerze (pole „szeroki”, P1c, blizna-410).
      Reguły, w tej kolejności (decyzje Filipa 25.11; bez rodzaju treningu):
        1. pora roku z daty, twardo; dopóki pora roku nie ma własnych kadrów, bierze zimowe (z zimową granicą zmroku);
        2. pora dnia: po zmroku tylko kadry „zmrok”, w dzień tylko dzienne; granica stała dla pory roku, bez liczenia wschodów;
@@ -1145,7 +1151,7 @@
     var z = ZMROK[sezon], h = teraz.getHours(), pora = h >= z[0] || h < z[1] ? "zmrok" : "dzien";
     var wSezonie = lista.filter(function (k) { return k[1] === sezon; }); if (!wSezonie.length) return null;
     var pula = wSezonie.filter(function (k) { return k[3] === pora; }); if (!pula.length) pula = wSezonie;
-    var wynik = function (k) { return { id: k[0], tlo: k[4], pora: pora, sezon: sezon, dzien: dzien }; }, i;
+    var wynik = function (k) { var r = { id: k[0], tlo: k[4], pora: pora, sezon: sezon, dzien: dzien }; if (k[5]) r.szeroki = k[5]; return r; }, i;
     for (i = pam.length - 1; i >= 0; i--) if (pam[i][0] === dzien && pam[i][1] === pora) { var juz = pula.filter(function (k) { return k[0] === pam[i][2]; })[0]; if (juz) return wynik(juz); break; }
     var zPogoda = o.pogoda ? pula.filter(function (k) { return k[2] === o.pogoda; }) : [], bez = pula.filter(function (k) { return k[2] === null; });
     var kandydaci = zPogoda.length ? zPogoda : bez.length ? bez : pula;
@@ -1185,6 +1191,47 @@
     var k = wybierzKadr({ teraz: teraz, pogoda: pogodaKadru(teraz), pamiec: pamiecKadrow() });
     if (k) zapamietajKadr(k);
     return k;
+  }
+  /* ── KADR DNIA: tło na komputerze (P1c, 27.11.2026, blizna-410) ──
+     Na szerokim ekranie kolumna aplikacji (420 px) stała na jednolitym ciemnym tle. Od 900 px za kolumną leży kadr dnia z nagłówka: ten sam
+     plik, który przeglądarka już pobrała dla nagłówka (jego currentSrc, więc żadnego nowego pobrania), na całą szerokość, cover, rozmycie 40 px,
+     jasność 0,35, winieta do czerni przy brzegach; kolumna dostaje lekki cień. Poniżej 900 px bez zmian (reguły tylko w @media).
+     Element #dn-tlo stoi w body ze stałą pozycją i z-index −1: strona ma własne tło na <html>, więc tło body (kolumna) maluje się NAD nim i kolumna
+     zostaje nieprzezroczysta. Widać go tylko na sekcji Dziś nowego ekranu (html.dzis-gotowy.dzis-na-dzis). Ograniczona przezroczystość: bez zdjęcia;
+     ograniczony ruch: bez przenikania. Bez zdjęcia w nagłówku (bez sieci, oszczędzanie danych, błąd pliku) tła nie ma.
+     Panorama na później: kadr z polem „szeroki” (kadry.json, szósty element KADRY) bierze na komputerze plik <szeroki>.webp, osobny i pobierany
+     tylko tam; gdy się nie wczyta, tło wraca do pliku nagłówka. Adres tylko z katalogu kadrów, znaki ' " ( ) \ < > i odstępy kodowane. */
+  var kadrTeraz = null, tloEl = null;
+  function adresTla(u) {
+    try {
+      var x = new w.URL(String(u || ""), w.location.href);
+      if ((x.protocol !== "https:" && x.protocol !== "http:") || x.pathname.indexOf("/" + KADR_KATALOG) < 0) return "";
+      return x.href.replace(/['"()\\<>\s]/g, function (c) { return "%" + (c.charCodeAt(0) < 16 ? "0" : "") + c.charCodeAt(0).toString(16).toUpperCase(); });
+    } catch (e) { return ""; }
+  }
+  function ustawTlo(u) {
+    var a = u ? adresTla(u) : "";
+    if (!a) { if (tloEl) tloEl.className = ""; return; }
+    if (!tloEl) { tloEl = d.getElementById("dn-tlo") || d.createElement("div"); tloEl.id = "dn-tlo"; tloEl.hidden = true; tloEl.setAttribute("aria-hidden", "true"); if (!tloEl.parentNode) d.body.appendChild(tloEl); }
+    tloEl.style.backgroundImage = 'url("' + a + '")';
+    tloEl.className = "jest";
+  }
+  function tloZNaglowka() {
+    var k = korzen(), img = k && k.querySelector ? k.querySelector("header .dn-kadr-o") : null;
+    if (!img) { ustawTlo(""); return; }
+    var z = function () { ustawTlo(img.currentSrc || img.src || ""); };
+    if (img.complete && img.naturalWidth > 0) z(); else if (img.addEventListener) img.addEventListener("load", z);
+  }
+  function tloKadru() {
+    try {
+      var k = kadrTeraz;
+      if (!k || !d.body || bezObrazu()) { ustawTlo(""); return; }
+      if (k.szeroki && w.matchMedia && w.matchMedia("(min-width:900px)").matches && w.Image) {
+        var im = new w.Image(); im.onload = function () { ustawTlo(im.currentSrc || im.src); }; im.onerror = tloZNaglowka; im.src = KADR_KATALOG + k.szeroki + ".webp";
+        return;
+      }
+      tloZNaglowka();
+    } catch (e) {}
   }
   /* ── TYDZIEŃ: dane ── */
   /** Tydzień pn–nd zawierający chwilę `teraz`, w dobie warszawskiej. null, gdy strona nie ma funkcji z sb.js: wtedy moduł pyta tylko o dzisiejszy trening.
@@ -1463,6 +1510,7 @@
     var k = korzen();
     try { k.innerHTML = szkieletHtml(); } catch (e) { zglos("render"); throw e; }
     k.setAttribute("data-etap", ETAP);
+    tloKadru();
   }
   /** Jedno ponowne start() po wczytaniu całej strony (wczesny start z bloku DZIS-E0 1). */
   function poWczytaniuStrony() {
@@ -1538,5 +1586,5 @@
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
     profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
-    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, spolHtml: spolHtml, nazwaOdznaki: nazwaOdznaki, temu: temu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
+    ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, adresTla: adresTla, tloKadru: tloKadru, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, spolHtml: spolHtml, nazwaOdznaki: nazwaOdznaki, temu: temu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

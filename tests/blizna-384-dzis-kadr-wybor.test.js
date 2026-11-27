@@ -20,7 +20,7 @@ const DZIENNE_BEZ = ['zima-bulwar', 'zima-sciezka', 'zima-stadion'];
 
 test('(1) lista w module = kadry.json = pliki w katalogu (oba rozmiary, limity wagi, nic ponad listę)', () => {
   const json = JSON.parse(fs.readFileSync(path.join(KATALOG, 'kadry.json'), 'utf8'));
-  const zModulu = Array.from(B().KADRY).map((k) => Array.from(k)), zJson = json.kadry.map((k) => [k.id, k.pora_roku, k.pogoda, k.pora_dnia, k.tlo]);
+  const zModulu = Array.from(B().KADRY).map((k) => Array.from(k)), zJson = json.kadry.map((k) => [k.id, k.pora_roku, k.pogoda, k.pora_dnia, k.tlo].concat(k.szeroki ? [k.szeroki] : []));   // szósty element = panorama „szeroki” (P1c, blizna-410)
   assert.deepEqual(zModulu, zJson, 'te same kadry, w tej samej kolejności, z tymi samymi cechami i kolorem tła');
   assert.equal(new Set(zModulu.map((k) => k[0])).size, zModulu.length);
   for (const k of zModulu) { assert.match(k[0], /^[a-z]+-[a-z]+$/); assert.ok(['zima', 'wiosna', 'lato', 'jesien'].includes(k[1])); assert.ok([null, 'snieg', 'deszcz'].includes(k[2])); assert.ok(['dzien', 'zmrok'].includes(k[3])); assert.match(k[4], /^#[0-9a-f]{6}$/); }
@@ -30,6 +30,7 @@ test('(1) lista w module = kadry.json = pliki w katalogu (oba rozmiary, limity w
     const waga = fs.statSync(path.join(KATALOG, plik)).size;
     assert.ok(waga > 5000 && waga <= r.limit_bajtow, plik + ': ' + waga + ' B (limit ' + r.limit_bajtow + ')');
   }
+  for (const k of zModulu) if (k[5]) oczekiwane.push(k[5] + '.webp');   // panorama do tła na komputerze: plik musi istnieć (blizna-410)
   assert.deepEqual(json.rozmiary.map((r) => r.szerokosc), [960, 1280], 'moduł składa srcset z tych dwóch szerokości');
   assert.deepEqual(fs.readdirSync(KATALOG).sort(), oczekiwane.sort(), 'w katalogu nie ma pliku spoza listy i żadnego nie brakuje');
 });

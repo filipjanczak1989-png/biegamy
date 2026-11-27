@@ -1,6 +1,6 @@
 {
   "wersja": 1,
-  "opis": "Kadry dnia do nagłówka nowego Dziś. Plik = <id>-<szerokość>.webp w tym katalogu. pogoda: null = bez warunku, inaczej kadr tylko przy takiej pogodzie. tlo = kolor ramki przed wczytaniem zdjęcia.",
+  "opis": "Kadry dnia do nagłówka nowego Dziś. Plik = <id>-<szerokość>.webp w tym katalogu. pogoda: null = bez warunku, inaczej kadr tylko przy takiej pogodzie. tlo = kolor ramki przed wczytaniem zdjęcia. szeroki (pole opcjonalne) = nazwa pliku szerokiej panoramy bez .webp, tylko do tła za kolumną na komputerze (od 900 px); brak pola = tło z pliku nagłówka. Ta sama nazwa jako szósty element listy KADRY w js/dzis-nowy.mjs.",
   "proporcje": "21:9",
   "rozmiary": [
     {
