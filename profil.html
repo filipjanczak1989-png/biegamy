@@ -246,7 +246,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <div class="ps-val" id="ps-friends">—</div>
       <div class="ps-lbl">Znajomi</div>
     </div>
-    <div class="ps-item" onclick="openFollowersList()" style="cursor:pointer;">
+    <div class="ps-item" id="ps-followers-item" onclick="openFollowersList()" style="cursor:pointer;">
       <div class="ps-val" id="ps-followers">—</div>
       <div class="ps-lbl">Obserwuje</div>
     </div>
@@ -701,6 +701,8 @@ function _profilOffline() {
     _targetId = _myId;
     _isOwnProfile = true;
   }
+  /* E1 (20261231): listę obserwujących widzi tylko właściciel profilu; na cudzym zostaje sama liczba */
+  if (!_isOwnProfile) { const fi = document.getElementById('ps-followers-item'); if (fi) fi.style.cursor = 'default'; }
 
   if (!_targetId) {
     document.getElementById('profile-name').textContent = 'Brak profilu';
@@ -1364,9 +1366,9 @@ async function loadStats() {
   /* PAKA 5: błąd sieci → licznik zostaje „—" (nie wiadomo), nigdy 0. */
   if (!window.bmBladSieci(frErr)) document.getElementById('ps-friends').textContent = fr?.length || 0;
 
-  // Obserwujący (follows)
-  const { data: fol, error: folErr } = await sb.from('follows').select('id').eq('following_id', _targetId);
-  if (!window.bmBladSieci(folErr)) document.getElementById('ps-followers').textContent = fol?.length || 0;
+  // Obserwujący: sama liczba z funkcji (E1, 20261231: cudze wiersze follows nie są widoczne); błąd albo brak funkcji → zostaje „—"
+  const { data: folN, error: folErr } = await sb.rpc('obserwujacy_liczba', { p_athlete: _targetId });
+  if (!folErr && typeof folN === 'number') document.getElementById('ps-followers').textContent = folN;
 
   // Treningi + km
   const { data: logs, error: logsErr } = await sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs')
@@ -3296,6 +3298,7 @@ async function _pcSend(t){
 }
 // ── OBSERWUJĄCY ───────────────────────────────────────────────────
 async function openFollowersList(){
+  if(!_isOwnProfile)return;
   if(document.getElementById('fol-ov')){document.getElementById('fol-ov').remove();return;}
   var ov=document.createElement('div');ov.id='fol-ov';
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
@@ -3309,7 +3312,7 @@ async function openFollowersList(){
   var loading=document.createElement('div');loading.style.cssText='text-align:center;padding:24px;color:var(--muted);font-size:12px;';loading.textContent='Ładowanie...';li.appendChild(loading);
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
 
-  var r=await sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  var r=await sb.from('follows').select('follower_id').eq('following_id',_myId).limit(50);
   if(window.bmOfflineGdy(r.error, li, 'listy obserwujących'))return;
   var ids=(r.data||[]).map(function(x){return x.follower_id;});
   li.innerHTML='';
