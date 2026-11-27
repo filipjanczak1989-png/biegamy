@@ -127,12 +127,12 @@ test('(3) kafle z danymi: Ulica z licznikiem i wkładem, Trening na dziś, Ostat
   assert.equal(u.hidden, false); assert.equal('aria-busy' in u._a, false);
   const t = s.kafel('trening').innerHTML;
   assert.match(t, /<h2 class="dn-etykieta">Trening na dziś<\/h2><div class="dn-kto">od trenera<\/div>/);
-  assert.match(t, /<div class="dn-plan-g"><span class="dn-typ">Interwały<\/span><\/div><span class="dn-cel"><span>8 km ·<\/span> <span>4:30 \/km<\/span><\/span>/);   // od blizna-389 pigułka nad celem, cel w członach
+  assert.match(t, /<div class="dn-plan-g"><span class="dn-typ">Interwały<\/span><\/div><span class="dn-cel"><span>8,0 km ·<\/span> <span>4:30 \/km<\/span><\/span>/);   // od blizna-389 pigułka nad celem, cel w członach
   assert.match(t, /<p class="dn-tekst">Rozgrzewka 2 km, potem 4 × 1 km\.<\/p>/);
   assert.match(t, /href="kalendarz\.html\?role=athlete">Plan ›/);
   const o = s.kafel('ostatni').innerHTML;
   assert.match(o, /<div class="dn-kto">Spokojny · wczoraj<\/div>/);
-  assert.deepEqual([...o.matchAll(/<b[^>]*>([^<]*)(?:<small>([^<]*)<\/small>)?<\/b><span>([^<]*)<\/span>/g)].map((m) => [m[1], m[2] || '', m[3]]), [['8,21', 'km', 'dystans'], ['44:36', '', 'czas'], ['5:26', '/km', 'tempo'], ['142', 'bpm', 'tętno śr.']]);
+  assert.deepEqual([...o.matchAll(/<b[^>]*>([^<]*)(?:<small>([^<]*)<\/small>)?<\/b><span>([^<]*)<\/span>/g)].map((m) => [m[1], m[2] || '', m[3]]), [['8,2', 'km', 'dystans'], ['44:36', '', 'czas'], ['5:26', '/km', 'tempo'], ['142', 'bpm', 'tętno śr.']]);
   const l = s.kafel('lista').innerHTML;
   assert.deepEqual([...l.matchAll(/<span class="dn-w-co">([^<]*)<small>([^<]*)<\/small>/g)].map((m) => [m[1], m[2]]), [['Wybieganie', 'nd 22.11'], ['Interwały', 'pt 20.11']], 'lista zaczyna się od przedostatniego');
   assert.match(l, /<b>16,4 km<\/b> · 1:32:05 · 5:37 \/km/);
@@ -154,7 +154,7 @@ test('(4) stany puste i brzegowe: bez planu, dzień wolny, zero wpisów, jeden w
   assert.equal(jeden.wezel('[data-kafel="ulica"] [data-dn="wklad"]').innerHTML, 'Twój wkład: <b>0 km</b>. Spacer też buduje ulicę.');
   const t = jeden.kafel('trening').innerHTML;
   assert.match(t, /<h3 class="dn-tytul">Dzień wolny<\/h3><p class="dn-tekst">Odpoczynek też buduje formę\.<\/p>/);
-  assert.match(t, /<span class="dn-zrobione">zrobione<\/span><\/div><span class="dn-cel"><span>5 km ·<\/span> <span>30 min<\/span><\/span>/);
+  assert.match(t, /<span class="dn-zrobione">zrobione<\/span><\/div><span class="dn-cel"><span>5,0 km ·<\/span> <span>30 min<\/span><\/span>/);
   assert.match(t, /<p class="dn-tekst">x{157}…<\/p>/, 'długi opis ucięty');
   const bezAkcji = strona({ bezAkcji: true });
   bezAkcji.B.start(); await bezAkcji.doKonca();
@@ -183,7 +183,7 @@ test('(5) reguła 14 dni: do 14 dni „N dni temu”, starszy „X tygodni temu�
   assert.equal(B.kluczDnia(new Date(2026, 0, 5, 0, 30)), '2026-01-05'); assert.equal(B.kluczDnia(new Date(2026, 11, 31, 23, 59)), '2026-12-31');
   assert.deepEqual(['44:36', '1:02:05', '0:00', 'ok. 40 min', null].map(B.czas), ['44:36', '1:02:05', '—', '—', '—']);
   assert.deepEqual(['5:26', '5:07/km', '0:00', 'szybko', undefined].map(B.tempo), ['5:26', '5:07', '—', '—', '—']);
-  assert.deepEqual([8.214, 16.44, 0, null, 'x'].map(B.km), ['8,21', '16,4', '—', '—', '—']);
+  assert.deepEqual([8.214, 16.44, 0, null, 'x'].map(B.km), ['8,2', '16,4', '—', '—', '—']);
   assert.match(B.ostatniHtml({ training_type: 'Spacer', distance_km: 3, feel: 'good', logged_at: wstecz(0) }, teraz), /<b class="dn-slowo">Dobrze<\/b><span>odczucie<\/span>/, 'bez tętna i przewyższenia czwartą liczbą jest odczucie');
   assert.match(B.ostatniHtml({ distance_km: 3, elevation_gain: 80, logged_at: wstecz(0) }, teraz), /<b>80<small>m<\/small><\/b><span>w górę<\/span>/);
 });

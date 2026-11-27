@@ -74,9 +74,9 @@ test('(4) prywatność po staremu: w podglądzie trenera nic się nie zapisuje; 
 test('(5) zapis nigdy nie psuje ekranu: pełna pamięć telefonu, brak modułu migawki, migawka ponad limit', async () => {
   const pelna = strona(); pelna.tel.setItem = () => { throw new Error('QuotaExceededError'); };
   pelna.B.start(); await pelna.doKonca();
-  assert.match(pelna.kafel('ostatni').innerHTML, /<b>10<small>km/, 'kafle narysowane mimo błędu zapisu'); assert.equal(pelna.zgloszenia.length, 0);
+  assert.match(pelna.kafel('ostatni').innerHTML, /<b>10,0<small>km/, 'kafle narysowane mimo błędu zapisu'); assert.equal(pelna.zgloszenia.length, 0);
   const brak = strona({ bezOffline: true }); brak.B.start(); await brak.doKonca();
-  assert.match(brak.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.deepEqual([...brak.tel.mapa.keys()], ['dn_kadr']);
+  assert.match(brak.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.deepEqual([...brak.tel.mapa.keys()], ['dn_kadr']);
   const duza = strona({ wpisy: [wpis('l1', 5, { feel: 'good', comment: 'x'.repeat(210 * 1024) })] }); duza.B.start(); await duza.doKonca();
   const m = duza.migawka();
   assert.ok(!m || !m.czesci.dzisNowe || !m.czesci.dzisNowe.wpisy, 'migawka ponad 200 kB nie jest zapisywana (limit DzisOffline)');

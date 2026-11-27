@@ -17,7 +17,7 @@ const plany = (h) => [...h.matchAll(/<div class="dn-plan"><div class="dn-plan-g"
 
 test('(1) pigułka rodzaju nad celem; cel fontem liczb 28 px; licznik Ulicy 32 px', () => {
   const B = strona().B, h = B.treningHtml([T({})], '');
-  assert.match(h, /<div class="dn-plan"><div class="dn-plan-g"><span class="dn-typ">Interwały<\/span><\/div><span class="dn-cel"><span>8 km ·<\/span> <span>4:30 \/km<\/span><\/span><\/div>/, 'najpierw rząd z pigułką, pod nim cel');
+  assert.match(h, /<div class="dn-plan"><div class="dn-plan-g"><span class="dn-typ">Interwały<\/span><\/div><span class="dn-cel"><span>8,0 km ·<\/span> <span>4:30 \/km<\/span><\/span><\/div>/, 'najpierw rząd z pigułką, pod nim cel');
   assert.ok(MODUL.includes('#dzis-nowy .dn-plan{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 8px}'), 'kolumna: pigułka nad celem');
   assert.ok(MODUL.includes("#dzis-nowy .dn-cel{color:#f5f3ef;font:400 28px/1.1 'Bebas Neue','DM Sans',sans-serif;letter-spacing:.02em}"), 'cel fontem liczb 28 px (ten sam krój co liczby w kaflach)');
   assert.ok(MODUL.includes("#dzis-nowy .dn-ul-km b{font:400 32px/1 'Bebas Neue','DM Sans',sans-serif;"), 'licznik Ulicy 32 px: mniejszy niż dotąd (40), większy od celu o jeden stopień');
@@ -38,7 +38,7 @@ test('(2) długi cel łamie się tylko między członami: każdy człon to osobn
 test('(3) dwa treningi jednego dnia: każdy ma swoją pigułkę i swój cel; „zrobione” stoi przy pigułce', () => {
   const B = strona().B;
   const h = B.treningHtml([T({ id: 'rano', type: 'Spokojny', distance_km: 6, pace: '5:40', status: 'done', description: 'Luźno.' }), T({ id: 'wieczor', type: 'Siła', distance_km: null, pace: null, duration_min: 30, description: 'Core.' })], '');
-  assert.deepEqual(plany(h), [['|Spokojny|zrobione|', '<span>6 km ·</span> <span>5:40 /km</span>'], ['|Siła|', '<span>30 min</span>']]);
+  assert.deepEqual(plany(h), [['|Spokojny|zrobione|', '<span>6,0 km ·</span> <span>5:40 /km</span>'], ['|Siła|', '<span>30 min</span>']]);
   assert.match(h, /<span class="dn-typ">Spokojny<\/span><span class="dn-zrobione">zrobione<\/span><\/div>/, '„zrobione” w rzędzie z pigułką, nie doklejone do dużej liczby');
   assert.ok(h.indexOf('Luźno.') < h.indexOf('<span class="dn-typ">Siła'), 'opis pierwszego treningu przed drugim treningiem');
   assert.match(MODUL, /#dzis-nowy \.dn-tekst \+ \.dn-plan,#dzis-nowy \.dn-plan \+ \.dn-plan,#dzis-nowy \.dn-tekst \+ \.dn-tytul\{margin-top:14px\}/, 'odstęp między dwoma treningami zostaje');
@@ -49,5 +49,5 @@ test('(3) dwa treningi jednego dnia: każdy ma swoją pigułkę i swój cel; „
 test('(4) na ekranie: kafel dnia z treningiem i przycisk „Zaloguj wynik” bez zmian poza typografią', async () => {
   const s = strona(); s.B.start(); await s.doKonca();
   const h = s.kafel('trening').innerHTML;
-  assert.match(h, /<div class="dn-plan-g">.*?Interwały.*?<\/div><span class="dn-cel"><span>8 km ·<\/span> <span>4:30 \/km<\/span><\/span><\/div><p class="dn-tekst">Rozgrzewka 2 km, potem 4 × 1 km\.<\/p><button type="button" class="dn-glowny" data-dn="zaloguj">Zaloguj wynik<\/button>/);
+  assert.match(h, /<div class="dn-plan-g">.*?Interwały.*?<\/div><span class="dn-cel"><span>8,0 km ·<\/span> <span>4:30 \/km<\/span><\/span><\/div><p class="dn-tekst">Rozgrzewka 2 km, potem 4 × 1 km\.<\/p><button type="button" class="dn-glowny" data-dn="zaloguj">Zaloguj wynik<\/button>/);
 });

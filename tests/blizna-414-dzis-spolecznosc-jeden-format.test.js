@@ -45,8 +45,8 @@ test('(2c) jeden format w całym kaflu: każda liczba przed „km” w wierszu b
   assert.deepEqual(wBiegach, ['4,0', '10,2']);
   for (const x of wBiegach) assert.match(x, /^[0-9]{1,3}( [0-9]{3})*,[0-9]$/);
   assert.match(h, /, razem 36 km</);
-  assert.equal((MODUL.match(/liczba\([^)]*, true\)/g) || []).length, 1, 'stałe zero po przecinku tylko w kmSpol');
-  assert.ok(MODUL.includes('function km(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, n < 10 ? 2 : 1) : "—"; }'), 'km() innych kafli bez zmian (bez decyzji Filipa)');
+  assert.equal((MODUL.match(/liczba\([^)]*, true\)/g) || []).length, 1, 'stałe zero po przecinku tylko w km() (od U1 wspólne dla wszystkich kafli)');
+  assert.ok(MODUL.includes('function kmSpol(x) { var t = km(x); return t === "—" ? "" : t; }'), 'od U1 (blizna-416) Społeczność używa wspólnego km(), suma wspólnego kmSuma()');
 });
 
 test('(3) bez ikonki rodzaju: wiersz biegu zaczyna się od imienia, rodzaj słowem; medal odznaki zostaje', () => {

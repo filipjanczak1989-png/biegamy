@@ -27,14 +27,14 @@ test('(1) z planem: zakres dat, „Kalendarz ›”, trzy liczby, siedem słupk�
   assert.equal(kafel(s).hidden, false);
   assert.match(h, /^<div class="dn-gora"><div><h2 class="dn-etykieta">Ten tydzień<\/h2><div class="dn-kto">23–29 listopada<\/div><\/div><a class="dn-link" href="kalendarz\.html\?role=athlete">Kalendarz ›<\/a><\/div>/);
   assert.deepEqual([...h.matchAll(/<div class="dn-l"><b>(.*?)<\/b><span>([^<]*)<\/span><\/div>/g)].map((m) => [m[1], m[2]]),
-    [['3:16<small>h</small>', 'czas w ruchu'], ['13,4<small>km</small>', 'do planu'], ['5:20<small>/km</small>', 'śr. tempo']], 'czas wszystkich aktywności; 38 − 24,6 km; tempo tylko z biegów');
+    [['3:16<small>h</small>', 'czas w ruchu'], ['13<small>km</small>', 'do planu'], ['5:20<small>/km</small>', 'śr. tempo']], 'czas wszystkich aktywności; 38 − 24,6 km; tempo tylko z biegów');
   assert.match(h, /<div class="dn-liczby dn-trzy">/);
   assert.ok(MODUL.includes('#dzis-nowy .dn-liczby.dn-trzy{grid-template-columns:repeat(3,1fr)}'), 'trzy liczby w trzech kolumnach (kafel „Ostatni trening” ma cztery)');
   assert.deepEqual(slupki(h), [['pn', '8,2', '78', '80', ''], ['wt', '', '', '', ''], ['śr', '10,2', '98', '100', ''], ['cz', '6,2', '88', '61', 'dziś'], ['pt', '', '', '', ''], ['sb', '', '49', '', ''], ['nd', '', '59', '', '']],
     'wysokości względem największego słupka tygodnia (10,2 km); plan obrysem, zrobione wypełnieniem; czwartek to dziś');
   assert.match(h, /<p class="dn-legenda"><span><i class="plan"><\/i>plan<\/span><span><i class="zrob"><\/i>zrobione<\/span><\/p>/);
   assert.match(h, /<p class="dn-inne">\+ 1 inna aktywność · 22 km<\/p>$/, 'rower osobno, małą linią; nie w kilometrach biegowych');
-  assert.equal(s.cz('tydzien-linia').innerHTML, 'Ten tydzień: <b>24,6</b> z 38 km · <b>4</b> z 5 treningów', 'te same liczby co w linii pod powitaniem');
+  assert.equal(s.cz('tydzien-linia').innerHTML, 'Ten tydzień: <b>25</b> z 38 km · <b>4</b> z 5 treningów', 'te same liczby co w linii pod powitaniem');
 });
 
 test('(2) słupki mają jeden opis dla czytnika ekranu, a kilometry dnia stoją pod słupkiem (bez odczytu pod palcem)', async () => {
@@ -48,7 +48,7 @@ test('(2) słupki mają jeden opis dla czytnika ekranu, a kilometry dnia stoją 
 test('(3) bez planu kilometrów: „tydzień temu” zamiast „do planu”, bez obrysów planu i bez legendy', async () => {
   const s = strona({ trening: [], wpisyTyg: WPISY, profil: Object.assign({}, PROFIL, { coach_id: null }) }); s.B.start(); await s.doKonca();
   const h = kafel(s).innerHTML;
-  assert.deepEqual([...h.matchAll(/<div class="dn-l"><b>(.*?)<\/b><span>([^<]*)<\/span><\/div>/g)].map((m) => [m[1], m[2]]), [['3:16<small>h</small>', 'czas w ruchu'], ['16,4<small>km</small>', 'tydzień temu'], ['5:20<small>/km</small>', 'śr. tempo']], 'tydzień temu: tylko biegowe (spacer się nie liczy)');
+  assert.deepEqual([...h.matchAll(/<div class="dn-l"><b>(.*?)<\/b><span>([^<]*)<\/span><\/div>/g)].map((m) => [m[1], m[2]]), [['3:16<small>h</small>', 'czas w ruchu'], ['16<small>km</small>', 'tydzień temu'], ['5:20<small>/km</small>', 'śr. tempo']], 'tydzień temu: tylko biegowe (spacer się nie liczy)');
   assert.doesNotMatch(h, /dn-legenda|class="plan"|do planu/);
   assert.equal(slupki(h).filter((x) => x[3]).length, 3);
   // plan z samą siłą (bez kilometrów) to też „bez planu kilometrów”
@@ -65,7 +65,7 @@ test('(4) drobne formaty: zakres na przełomie miesięcy, czas poniżej godziny,
   assert.deepEqual(liczby(H2(pusty({ planKm: 20, km: 26 }), zG)), ['—', '0<small>km</small>', '—'], 'plan przekroczony: do planu 0, nie liczba ujemna');
   assert.deepEqual(liczby(H2(pusty({ sek: 3600 * 10 + 5 * 60, tempoSek: 305 }), zG)), ['10:05<small>h</small>', '0<small>km</small>', '5:05<small>/km</small>']);
   assert.match(H2(pusty({ inne: 2, kmInne: 0 }), zG), /<p class="dn-inne">\+ 2 inne aktywności<\/p>$/, 'bez kilometrów (np. siłownia) sama liczba');
-  assert.match(H2(pusty({ inne: 5, kmInne: 41.26 }), zG), /<p class="dn-inne">\+ 5 innych aktywności · 41,3 km<\/p>$/);
+  assert.match(H2(pusty({ inne: 5, kmInne: 41.26 }), zG), /<p class="dn-inne">\+ 5 innych aktywności · 41 km<\/p>$/);
   assert.doesNotMatch(H2(pusty({}), zG), /dn-inne/);
   assert.equal((H2(pusty({}), zG).match(/<div class="dn-sl dzis">/g) || []).length, 1, 'dziś (środa 2.12) wyróżnione także w pustym tygodniu (od blizna-379 same nazwy dni)');
 });
@@ -82,7 +82,7 @@ test('(5) kafel stoi po „Ostatnim treningu”, przed listą; gdy tygodnia nie 
     assert.equal(kafel(x).hidden, true, opis); assert.equal(kafel(x).getAttribute('aria-busy'), null, opis + ': nie zostaje na szkielecie');
   }
   const bez = strona({ pamiec: new Map(s.tel.mapa), online: false, awaria: { '*': 'siec' }, teraz: TERAZ + 2 * H }); bez.B.start(); await bez.doKonca();
-  assert.equal(kafel(bez).hidden, false, 'bez sieci w tym samym tygodniu kafel z telefonu'); assert.match(kafel(bez).innerHTML, /13,4<small>km<\/small><\/b><span>do planu/);
+  assert.equal(kafel(bez).hidden, false, 'bez sieci w tym samym tygodniu kafel z telefonu'); assert.match(kafel(bez).innerHTML, /13<small>km<\/small><\/b><span>do planu/);
   const zaTydzien = strona({ pamiec: new Map(s.tel.mapa), online: false, awaria: { '*': 'siec' }, teraz: TERAZ + 7 * 24 * H }); zaTydzien.B.start(); await zaTydzien.doKonca();
   assert.equal(kafel(zaTydzien).hidden, true, 'za tydzień bez sieci: zeszłotygodniowe słupki nie udają bieżących');
 });

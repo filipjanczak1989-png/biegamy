@@ -53,7 +53,7 @@ test('(3) pusty tydzień bez planu kilometrów (konto ma starsze wpisy): same na
   assert.match(h, /<div class="dn-slupki dn-puste" aria-hidden="true">(<div class="dn-sl( dzis)?"><span>(pn|wt|śr|cz|pt|sb|nd)<\/span><\/div>){7}<\/div><p class="dn-tekst dn-tl">W tym tygodniu jeszcze bez treningu\.<\/p>/);
   assert.match(h, /<div class="dn-sl dzis"><span>cz<\/span><\/div>/, 'dziś dalej wyróżnione');
   assert.doesNotMatch(h, /dn-sl-p|role="img"|dn-legenda|Słupki pojawią się/, 'bez siedmiu pustych kolumn i bez opisu pustego wykresu');
-  assert.deepEqual([...h.matchAll(/<div class="dn-l"><b>(.*?)<\/b><span>([^<]*)<\/span>/g)].map((m) => [m[1], m[2]]), [['—', 'czas w ruchu'], ['16,4<small>km</small>', 'tydzień temu'], ['—', 'śr. tempo']]);
+  assert.deepEqual([...h.matchAll(/<div class="dn-l"><b>(.*?)<\/b><span>([^<]*)<\/span>/g)].map((m) => [m[1], m[2]]), [['—', 'czas w ruchu'], ['16<small>km</small>', 'tydzień temu'], ['—', 'śr. tempo']]);
   // plan z samą siłą, bez wpisów: też pusty wykres kilometrów, ale linia o dziś mówi o planie
   const sila = await kafel({ trening: [plan('s', '2026-11-26', 'Siła', null)], wpisyTyg: [WPISY[2]] });
   assert.deepEqual(linieDzis(sila), ['W tym tygodniu jeszcze bez treningu.', 'Dziś jeszcze nic · trening w planie']);

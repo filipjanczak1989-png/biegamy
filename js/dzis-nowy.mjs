@@ -605,9 +605,14 @@
 
   /* ── DANE ───────────────────────────────────────────────────────────────────────────────────────────────── */
   function liczba(n, m, zera) { n = Number(n); if (!isFinite(n)) return "—"; var t = n.toFixed(m || 0).split("."), ul = zera ? t[1] || "" : (t[1] || "").replace(/0+$/, ""); return t[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ") + (ul ? "," + ul : ""); }
-  function km(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, n < 10 ? 2 : 1) : "—"; }
-  /** Kilometry w kaflu Społeczność (S1, blizna-414): zawsze jedno miejsce po przecinku, także zero (4,0 · 10,2); brak albo 0 = "". */
-  function kmSpol(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, 1, true) : ""; }
+  /* JEDEN FORMAT KM (U1, blizna-416, decyzje Filipa 27.11) w całym nowym Dziś: km() = pojedynczy trening, zrobiony albo zaplanowany na dziś,
+     ORAZ suma dnia (słupek pod dniem, „Dziś: … km”), żeby ten sam bieg nie wyglądał w dwóch kaflach inaczej: zawsze jedno miejsce po przecinku,
+     także zero (4,0 · 10,2); kmSuma() = sumy tygodnia, do planu, tydzień temu, cele (także plan dnia), Ulica, Społeczność: bez miejsc (36 km);
+     więcej niż 0, ale mniej niż 1 km = „<1”, nie „0”. Moduły sceny Ulicy (wspólne z bieg.html) już piszą cele i sumy całe (formatKm). */
+  function km(x) { var n = Number(x); return isFinite(n) && n > 0 ? liczba(n, 1, true) : "—"; }
+  function kmSuma(x) { var n = Number(x); return !isFinite(n) ? "—" : n > 0 && n < 1 ? "<1" : liczba(Math.round(n), 0); }
+  /** Kafel Społeczność (S1): ten sam format co km(), brak albo 0 = "". */
+  function kmSpol(x) { var t = km(x); return t === "—" ? "" : t; }
   /** Czas z bazy ("h:mm:ss" albo "mm:ss") → "1:02:15" / "48:10"; inny zapis = „—”. */
   function czas(t) {
     if (!/^\d{1,3}:\d{2}(:\d{2})?$/.test(String(t || ""))) return "—";
@@ -645,7 +650,7 @@
   function wkladTekst(wklad, koniec) {
     if (!wklad) return "";
     var k = Number(wklad.km) || 0;
-    return k > 0 ? "Twój wkład: <b>" + esc(liczba(k, k < 10 ? 1 : 0)) + " km</b>" : "Twój wkład: <b>0 km</b>" + (koniec ? "" : ". Spacer też buduje ulicę.");
+    return k > 0 ? "Twój wkład: <b>" + esc(kmSuma(k)) + " km</b>" : "Twój wkład: <b>0 km</b>" + (koniec ? "" : ". Spacer też buduje ulicę.");
   }
   /** Kafel Ulica: licznik akcji. d = akcja_licznik (po starcie), wklad = akcja_moj_wklad albo null. zeScena: okno sceny na górze kafla (E3).
       koniec: akcja zamknięta (stanAkcji): suma „razem” bez celu i paska, wkład bez zachęty (E3 commit 4). dyplom: adres z paska biegu albo null (P1b). */
@@ -653,7 +658,7 @@
     var suma = Number(d.suma_km) || 0, cel = Number(d.cel_km) || 0, p = Number(d.pct);
     p = Math.max(0, Math.min(100, isFinite(p) ? p : cel > 0 ? suma / cel * 100 : 0));
     return (zeScena ? scenaHtml(adres) : "") + gora("Ulica", d.nazwa || "", adres ? ["Zobacz ulicę", adres] : null) + progUlicyHtml(d) +
-      '<div class="dn-ul-km' + (koniec ? ' dn-ul-km--koniec' : '') + '"><b>' + esc(liczba(suma, suma > 0 && suma < 10 ? 1 : 0)) + "</b><span>" + (koniec ? "km razem · akcja zakończona" : "z " + esc(liczba(cel, 0)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%") + "</span></div>" +
+      '<div class="dn-ul-km' + (koniec ? ' dn-ul-km--koniec' : '') + '"><b>' + esc(kmSuma(suma)) + "</b><span>" + (koniec ? "km razem · akcja zakończona" : "z " + esc(kmSuma(cel)) + " km · " + esc(liczba(p, p < 10 ? 1 : 0)) + "%") + "</span></div>" +
       (koniec ? "" : '<div class="dn-pasek" role="progressbar" aria-label="Postęp ulicy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(p) + '"><i style="width:' + p.toFixed(1) + '%"></i></div>') +
       '<p class="dn-tekst" data-dn="wklad">' + wkladTekst(wklad, koniec) + "</p>" +
       (dyplom ? '<div class="dn-ul-dyplom"><a class="dn-link" href="' + esc(dyplom) + '">Twój dyplom ›</a></div>' : "") + przyciskiUlicyHtml(d);
@@ -883,7 +888,7 @@
     var biegi = (Array.isArray(d.biegi) ? d.biegi : []).filter(function (b) { return b && RE_UUID.test(String(b.id)); }).slice(0, 2);
     var z = d.odznaka && RE_UUID.test(String(d.odznaka.id)) ? d.odznaka : null;
     if (osob > 0) wiersze.push('<li><div class="dn-sp-w"><span class="dn-sp-av dn-sp-licz" aria-hidden="true">' + osob + '</span><span class="dn-sp-t"><b>' + osob + " " +
-      odmiana(osob, "osoba biegała", "osoby biegały", "osób biegało") + (d.od_polnocy === true ? " dziś" : " w ostatniej dobie") + "</b>, razem " + esc(liczba(Math.round(suma), 0)) + " km" +
+      odmiana(osob, "osoba biegała", "osoby biegały", "osób biegało") + (d.od_polnocy === true ? " dziś" : " w ostatniej dobie") + "</b>, razem " + esc(kmSuma(suma)) + " km" +
       (miasta.length ? "<small>" + esc(miasta.join(", ")) + "</small>" : "") + "</span></div></li>");
     biegi.forEach(function (b) {
       var rodzaj = String(b.rodzaj || "Bieg"), ile = kmSpol(b.km), gdzie = [typeof b.miasto === "string" ? b.miasto : "", temu(b.kiedy, teraz)].filter(Boolean).join(" · ");
@@ -1014,7 +1019,7 @@
     return null;
   }
   function minaSvg(kod) { try { return typeof w.feelSvg === "function" ? String(w.feelSvg(kod, 22) || "") : ""; } catch (e) { return ""; } }
-  /** „Spokojny · wczoraj · 10,01 km”: nazwa wpisu, o który pytamy; ta sama w bloku i w pasku na górze. */
+  /** „Spokojny · wczoraj · 10,0 km”: nazwa wpisu, o który pytamy; ta sama w bloku i w pasku na górze. */
   function jpOpis(l, teraz) { var kd = kiedy(l.logged_at, teraz); return String(l.training_type || "Trening") + (kd ? " · " + kd : "") + (km(l.distance_km) !== "—" ? " · " + km(l.distance_km) + " km" : ""); }
   /** Blok pod liczbami kafla. osobny = pytamy o inny wpis niż ten w kaflu, więc trzeba go nazwać. */
   function jakPoszloHtml(l, osobny, teraz, wybrana, tekst) {
@@ -1314,12 +1319,11 @@
     return o;
   }
   function odmiana(n, jeden, kilka, wiele) { n = Math.abs(n); var j = n % 10, d = n % 100; return n === 1 ? jeden : j >= 2 && j <= 4 && !(d >= 12 && d <= 14) ? kilka : wiele; }
-  function kmTygodnia(x) { return liczba(x, x > 0 && x < 100 && Math.round(x * 10) % 10 ? 1 : 0); }
   /** Linia pod powitaniem. t = wynik policzTydzien albo null (wtedy pusta). Z planem: kilometry do planu i „N z M treningów”; bez planu: kilometry i dni z ruchem. */
   function tydzienLinia(t) {
     if (!t) return "";
-    var km = "<b>" + esc(kmTygodnia(t.km)) + "</b>";
-    if (t.zaplanowane > 0) return "Ten tydzień: " + km + (t.planKm > 0 ? " z " + esc(kmTygodnia(t.planKm)) : "") + " km · <b>" + t.zrobione + "</b> z " + t.zaplanowane + " " + odmiana(t.zaplanowane, "treningu", "treningów", "treningów");
+    var km = "<b>" + esc(kmSuma(t.km)) + "</b>";
+    if (t.zaplanowane > 0) return "Ten tydzień: " + km + (t.planKm > 0 ? " z " + esc(kmSuma(t.planKm)) : "") + " km · <b>" + t.zrobione + "</b> z " + t.zaplanowane + " " + odmiana(t.zaplanowane, "treningu", "treningów", "treningów");
     if (!t.wpisow) return "Ten tydzień: jeszcze bez treningu";
     return "Ten tydzień: " + km + " km · <b>" + t.wpisow + "</b> " + odmiana(t.wpisow, "trening", "treningi", "treningów");   // jak stary Postęp tygodnia bez planu: liczba treningów (decyzja Filipa 26.11, blizna-386)
   }
@@ -1331,8 +1335,8 @@
   /** Zdanie o dzisiejszym dniu albo "". x = dzisiejszy dzień z policzTydzien. */
   function dzisWTygodniu(x) {
     if (!x) return "";
-    if (x.km > 0) return "Dziś: <b>" + esc(kmTygodnia(x.km)) + " km</b>" + (x.planKm > 0 ? " z " + esc(kmTygodnia(x.planKm)) + " w planie" : "");
-    if (x.planKm > 0) return "Dziś jeszcze nic · <b>" + esc(kmTygodnia(x.planKm)) + " km</b> w planie";
+    if (x.km > 0) return "Dziś: <b>" + esc(km(x.km)) + " km</b>" + (x.planKm > 0 ? " z " + esc(kmSuma(x.planKm)) + " w planie" : "");
+    if (x.planKm > 0) return "Dziś jeszcze nic · <b>" + esc(kmSuma(x.planKm)) + " km</b> w planie";
     if (x.plan) return "Dziś jeszcze nic · trening w planie";
     return x.wolne ? "Dziś wolne" : "";
   }
@@ -1341,14 +1345,14 @@
   function tydzienHtml(t, z, pierwszy, generator) {
     var cr = czasRuchu(t.sek), zPlanem = t.planKm > 0, czyta = [], pusto = !t.wpisow && !zPlanem, nowe = pusto && !!pierwszy && !t.zaplanowane;
     var dzis = dzisWTygodniu(t.dni.filter(function (x) { return x.dzien === z.dzis; })[0]);
-    var L = [[cr[0], cr[1], "czas w ruchu"], zPlanem ? [kmTygodnia(Math.max(0, t.planKm - t.km)), "km", "do planu"] : [kmTygodnia(t.kmPoprz), "km", "tydzień temu"], [tempoZSek(t.tempoSek), "/km", "śr. tempo"]];
+    var L = [[cr[0], cr[1], "czas w ruchu"], zPlanem ? [kmSuma(Math.max(0, t.planKm - t.km)), "km", "do planu"] : [kmSuma(t.kmPoprz), "km", "tydzień temu"], [tempoZSek(t.tempoSek), "/km", "śr. tempo"]];
     var maks = t.dni.reduce(function (m, x) { return Math.max(m, x.km, x.planKm); }, 0) || 1;
     var slupki = t.dni.map(function (x, i) {
       var pl = x.planKm > 0 ? Math.max(6, Math.round(x.planKm / maks * 100)) : 0, zr = x.km > 0 ? Math.max(6, Math.round(x.km / maks * 100)) : 0;
-      czyta.push(DNI_TYG[i] + " " + (x.km > 0 ? kmTygodnia(x.km) + " km" : x.wolne && !x.plan ? "wolne" : "bez biegu") + (x.planKm > 0 ? ", plan " + kmTygodnia(x.planKm) + " km" : ""));
+      czyta.push(DNI_TYG[i] + " " + (x.km > 0 ? km(x.km) + " km" : x.wolne && !x.plan ? "wolne" : "bez biegu") + (x.planKm > 0 ? ", plan " + kmSuma(x.planKm) + " km" : ""));
       if (pusto) return '<div class="dn-sl' + (x.dzien === z.dzis ? " dzis" : "") + '"><span>' + DNI_TYG[i] + "</span></div>";
       return '<div class="dn-sl' + (x.dzien === z.dzis ? " dzis" : "") + '"><div class="dn-sl-p">' + (pl ? '<i class="plan" style="height:' + pl + '%"></i>' : "") + (zr ? '<i class="zrob" style="height:' + zr + '%"></i>' : "") +
-        "</div><b>" + (x.km > 0 ? esc(kmTygodnia(x.km)) : "") + "</b><span>" + DNI_TYG[i] + "</span></div>";
+        "</div><b>" + (x.km > 0 ? esc(km(x.km)) : "") + "</b><span>" + DNI_TYG[i] + "</span></div>";
     }).join("");
     return gora("Ten tydzień", zakresDat(z), ["Kalendarz", PLAN]) +
       (nowe ? "" : '<div class="dn-liczby dn-trzy">' + L.map(function (x) { return '<div class="dn-l"><b>' + esc(x[0]) + (x[1] && x[0] !== "—" ? "<small>" + esc(x[1]) + "</small>" : "") + "</b><span>" + esc(x[2]) + "</span></div>"; }).join("") + "</div>") +
@@ -1357,7 +1361,7 @@
         : '<div class="dn-slupki" role="img" aria-label="' + esc("Kilometry dzień po dniu: " + czyta.join("; ")) + '">' + slupki + "</div>") +
       (dzis ? '<p class="dn-tekst dn-tl">' + dzis + "</p>" : "") +
       (zPlanem ? '<p class="dn-legenda"><span><i class="plan"></i>plan</span><span><i class="zrob"></i>zrobione</span></p>' : "") +
-      (t.inne > 0 ? '<p class="dn-inne">+ ' + t.inne + " " + odmiana(t.inne, "inna aktywność", "inne aktywności", "innych aktywności") + (t.kmInne > 0 ? " · " + esc(kmTygodnia(t.kmInne)) + " km" : "") + "</p>" : "");
+      (t.inne > 0 ? '<p class="dn-inne">+ ' + t.inne + " " + odmiana(t.inne, "inna aktywność", "inne aktywności", "innych aktywności") + (t.kmInne > 0 ? " · " + esc(kmSuma(t.kmInne)) + " km" : "") + "</p>" : "");
   }
   /** Linia pod powitaniem i kafel „Ten tydzień” z tego samego wyniku. Bez wyniku: linia pusta, kafel schowany. */
   function rysujTydzien() {
@@ -1623,6 +1627,6 @@
     html().classList.remove("dzis-gotowy"); html().classList.remove("dzis-na-dzis");
   }
   w.BM_DZIS = { etap: ETAP, start: start, stop: stop, zglos: zglos, ustepuje: ustepuje, dataDzis: dataDzis, ETAPY: ETAPY, SKROTY: SKROTY, KAFLE: KAFLE,
-    profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km,
+    profil: function () { return dane.profil || Promise.resolve(null); }, wczytaj: wczytaj, kiedy: kiedy, kluczDnia: kluczDnia, czas: czas, tempo: tempo, km: km, kmSuma: kmSuma,
     ulicaHtml: ulicaHtml, treningHtml: treningHtml, ostatniHtml: ostatniHtml, listaHtml: listaHtml, odczucie: odczucie, bolHtml: bolHtml, wczorajHtml: wczorajHtml, radaHtml: radaHtml, pogodaTekst: pogodaTekst, celHtml: celHtml, jpPasekHtml: jpPasekHtml, zakresTygodnia: zakresTygodnia, bezPlanuHtml: bezPlanuHtml, stanBezPlanu: stanBezPlanu, generatorWTygodniu: generatorWTygodniu, policzTydzien: policzTydzien, tydzienLinia: tydzienLinia, tydzienHtml: tydzienHtml, KADRY: KADRY, wybierzKadr: wybierzKadr, adresTla: adresTla, tloKadru: tloKadru, kadrNaTeraz: kadrNaTeraz, kadrHtml: kadrHtml, pogodaKadru: pogodaKadru, pamiecKadrow: pamiecKadrow, tydzien: function () { return dane.tydzien; }, OKNO_WIADOMOSCI_DNI: OKNO_WIADOMOSCI_DNI, STARE_PRZYCISKI: STARE_PRZYCISKI, PROFIL_KOLUMNY: PROFIL_KOLUMNY, kandydatOdczucia: kandydatOdczucia, jakPoszloHtml: jakPoszloHtml, komentarzDoZapisu: komentarzDoZapisu, spolHtml: spolHtml, nazwaOdznaki: nazwaOdznaki, temu: temu, podpisPoZapisie: podpisPoZapisie, OKNO_ODCZUCIA_MS: OKNO_ODCZUCIA_MS, LIMIT_MS: LIMIT_MS, SWIEZE_MS: SWIEZE_MS, ILE_WPISOW: ILE_WPISOW };
 })(window, document);

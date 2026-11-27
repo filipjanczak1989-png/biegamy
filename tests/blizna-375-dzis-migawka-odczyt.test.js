@@ -22,7 +22,7 @@ test('(1) bez sieci po wcześniejszym wejściu: wszystkie kafle z telefonu, plak
   assert.match(s.kafel('ulica').innerHTML, /<b>3 607<\/b>/); assert.match(s.kafel('ulica').innerHTML, /Twój wkład: <b>196 km<\/b>/); assert.match(s.kafel('ulica').innerHTML, /ulica-glowna\.html#ulica-po/);
   assert.match(s.kafel('trening').innerHTML, /Rozgrzewka 2 km, potem 4 × 1 km\./, 'trening z dzisiejszej migawki');
   assert.match(s.kafel('trening').innerHTML, /Jutro luźno\./, 'świeża wiadomość trenera też');
-  assert.match(s.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.equal(s.kafel('lista').hidden, false);
+  assert.match(s.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.equal(s.kafel('lista').hidden, false);
   assert.match(s.cz('zegarek').innerHTML, /data-id="a-1">ok/, 'plakietka zegarka z profilu w telefonie, bez zapytania');
   for (const n of ['ulica', 'trening', 'ostatni', 'lista']) assert.doesNotMatch(s.kafel(n).innerHTML, /Nie udało się wczytać/, n);
   assert.equal(s.pasekOffline(), 'Offline · dane z 12:00');
@@ -38,11 +38,11 @@ test('(2) tylko błąd SIECI sięga do telefonu: odmowa i błąd serwera pokazuj
   assert.equal(odmowa.kafel('ulica').hidden, true); assert.equal(odmowa.pasekOffline(), null, 'stare dane ukryłyby prawdziwą usterkę');
   assert.ok(odmowa.zgloszenia.length >= 1);
   const zerwane = strona({ pamiec: new Map(pamiec), online: true, awaria: { '*': 'siec' }, teraz: TERAZ + H, licznik: LICZNIK }); zerwane.B.start(); await zerwane.doKonca();
-  assert.match(zerwane.kafel('ostatni').innerHTML, /<b>10<small>km/, 'przeglądarka mówi „online”, ale żądanie nie wyszło: też z telefonu');
+  assert.match(zerwane.kafel('ostatni').innerHTML, /<b>10,0<small>km/, 'przeglądarka mówi „online”, ale żądanie nie wyszło: też z telefonu');
   assert.equal(zerwane.pasekOffline(), 'Offline · dane z 12:00'); assert.ok(zerwane.zgloszenia.length >= 1, 'a usterka i tak jest zgłoszona');
   const cisza = strona({ pamiec: new Map(pamiec), teraz: TERAZ + H, licznik: LICZNIK }); cisza.B.start(); await cisza.tik();
   cisza.czasomierze.filter((c) => c.zywy && c.ms === 10000).forEach((c) => c.f()); await cisza.tik(); await cisza.tik();   // nikt nie odpowiedział przez 10 s
-  assert.match(cisza.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.match(cisza.kafel('trening').innerHTML, /Rozgrzewka/); assert.equal(cisza.pasekOffline(), 'Offline · dane z 12:00');
+  assert.match(cisza.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.match(cisza.kafel('trening').innerHTML, /Rozgrzewka/); assert.equal(cisza.pasekOffline(), 'Offline · dane z 12:00');
 });
 
 test('(3) trening na dziś tylko z dzisiejszej migawki; wpisy i ulica bez limitu dni; wiadomość trenera tylko świeża', async () => {
@@ -51,10 +51,10 @@ test('(3) trening na dziś tylko z dzisiejszej migawki; wpisy i ulica bez limitu
   assert.match(jutro.kafel('trening').innerHTML, /Bez sieci nie wiem, co jest dziś w planie\./);
   assert.doesNotMatch(jutro.kafel('trening').innerHTML, /Rozgrzewka|Interwały|Jutro luźno|Dziś bez planu/, 'wczorajszy plan nie udaje dzisiejszego, a „bez planu” też byłoby zgadywaniem');
   assert.match(jutro.kafel('trening').innerHTML, /data-dn="ponow"/);
-  assert.match(jutro.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.match(jutro.kafel('ulica').innerHTML, /3 607/);
+  assert.match(jutro.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.match(jutro.kafel('ulica').innerHTML, /3 607/);
   assert.equal(jutro.pasekOffline(), 'Offline · dane z 26.11 12:00', 'pasek mówi, z kiedy są dane');
   const poMiesiacu = await bezSieci(new Map(pamiec), { teraz: TERAZ + 30 * 24 * H });
-  assert.match(poMiesiacu.kafel('ostatni').innerHTML, /<b>10<small>km/, 'bez limitu dni, jak w starym');
+  assert.match(poMiesiacu.kafel('ostatni').innerHTML, /<b>10,0<small>km/, 'bez limitu dni, jak w starym');
   // ten sam dzień, ale wiadomość ma już ponad 7 dni: trening jest, rady nie ma
   const stara = await bezSieci(await zSiecia({ wiadomosc: [{ body: 'Dawna rada.', sent_at: new Date(TERAZ - 6.99 * 24 * H).toISOString() }] }), { teraz: TERAZ + 2 * H });
   assert.match(stara.kafel('trening').innerHTML, /Rozgrzewka/); assert.doesNotMatch(stara.kafel('trening').innerHTML, /Dawna rada/);
@@ -63,7 +63,7 @@ test('(3) trening na dziś tylko z dzisiejszej migawki; wpisy i ulica bez limitu
 test('(4) „Jak poszło?” bez sieci się nie pokazuje (ani blok, ani pasek na górze); po powrocie sieci wraca', async () => {
   const czeka = [wpis('l1', 5), wpis('l2', 30, { feel: 'good' })];
   const s = await bezSieci(await zSiecia({ wpisy: czeka }), { wpisy: czeka });
-  assert.match(s.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.doesNotMatch(s.kafel('ostatni').innerHTML, /dn-jp/, 'odczucia nie dałoby się zapisać');
+  assert.match(s.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.doesNotMatch(s.kafel('ostatni').innerHTML, /dn-jp/, 'odczucia nie dałoby się zapisać');
   assert.equal(s.cz('zdarzenie').hidden, true);
   // powrót sieci
   const przed = s.zapytania.length;
@@ -84,11 +84,11 @@ test('(5) bez migawki i w podglądzie trenera po staremu; pojedynczy kafel bez s
   assert.match(trener.kafel('ostatni').innerHTML, /Nie udało się wczytać/, 'podgląd trenera nie czyta migawki z tej przeglądarki'); assert.equal(trener.pasekOffline(), null);
   // sieć padła w połowie: wpisy nie doszły, reszta świeża
   const pol = strona({ pamiec: await zSiecia(), awaria: { training_logs: 'siec' }, teraz: TERAZ + H, licznik: LICZNIK, wklad: { km: 205 }, wpisy: [wpis('nowy', 1, { distance_km: 21.1, feel: 'good' })] }); pol.B.start(); await pol.doKonca();
-  assert.match(pol.kafel('ostatni').innerHTML, /<b>10<small>km/, 'wpisy z telefonu'); assert.equal(pol.migawka().czesci.dzisNowe.ulica.wklad.km, 205, 'ulica świeża, a do telefonu trafia to, co doszło');
+  assert.match(pol.kafel('ostatni').innerHTML, /<b>10,0<small>km/, 'wpisy z telefonu'); assert.equal(pol.migawka().czesci.dzisNowe.ulica.wklad.km, 205, 'ulica świeża, a do telefonu trafia to, co doszło');
   assert.doesNotMatch(pol.kafel('ostatni').innerHTML, /Nie udało się wczytać/);
   // w telefonie jest tylko profil i wpisy (trening nigdy nie doszedł): kafel treningu mówi o błędzie, wpisy są
   const czesc = await bezSieci(await zSiecia({ awaria: { trainings: 'odmowa', messages: 'odmowa' } }));
-  assert.match(czesc.kafel('trening').innerHTML, /Nie udało się wczytać/); assert.match(czesc.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.equal(czesc.pasekOffline(), 'Offline · dane z 12:00');
+  assert.match(czesc.kafel('trening').innerHTML, /Nie udało się wczytać/); assert.match(czesc.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.equal(czesc.pasekOffline(), 'Offline · dane z 12:00');
 });
 
 test('(6) wygasła sesja bez sieci: konto jak w starym Dziś (pamięć strony) → migawka; bez niego komunikat, nie wieczny szkielet; z siecią bez zmian', async () => {
@@ -96,7 +96,7 @@ test('(6) wygasła sesja bez sieci: konto jak w starym Dziś (pamięć strony) �
   const zKontem = strona({ pamiec: new Map(pamiec), online: false, sesja: false, awaria: { '*': 'siec' }, teraz: TERAZ + H, licznik: LICZNIK });
   zKontem.D._userIdCache = UID;   // stary initAuth zapamiętał konto wcześniej na tej stronie
   zKontem.B.start(); await zKontem.doKonca();
-  assert.match(zKontem.kafel('ostatni').innerHTML, /<b>10<small>km/); assert.equal(zKontem.pasekOffline(), 'Offline · dane z 12:00');
+  assert.match(zKontem.kafel('ostatni').innerHTML, /<b>10,0<small>km/); assert.equal(zKontem.pasekOffline(), 'Offline · dane z 12:00');
   const bezKonta = strona({ pamiec: new Map(pamiec), online: false, sesja: false, awaria: { '*': 'siec' }, teraz: TERAZ + H }); bezKonta.B.start(); await bezKonta.doKonca();
   assert.match(bezKonta.kafel('trening').innerHTML, /Nie udało się wczytać/, 'przed poprawką: szkielet bez końca i bez słowa');
   assert.match(bezKonta.kafel('ostatni').innerHTML, /Nie udało się wczytać/); assert.equal(bezKonta.zapytania.length, 0);

@@ -18,7 +18,7 @@ test('(1) odmiana: 1 trening, 2–4 treningi, 5+ treningów; 12–14 treningów,
   const oczekiwane = { 1: 'trening', 2: 'treningi', 3: 'treningi', 4: 'treningi', 5: 'treningów', 6: 'treningów', 9: 'treningów', 10: 'treningów', 11: 'treningów', 12: 'treningów', 13: 'treningów', 14: 'treningów',
     15: 'treningów', 21: 'treningów', 22: 'treningi', 23: 'treningi', 24: 'treningi', 25: 'treningów', 31: 'treningów', 32: 'treningi', 112: 'treningów', 122: 'treningi' };
   for (const n of Object.keys(oczekiwane)) assert.equal(slowo(Number(n)), oczekiwane[n], n + ' ' + oczekiwane[n]);
-  assert.equal(linia({ wpisow: 2, dniZRuchem: 2, km: 21.7 }), 'Ten tydzień: <b>21,7</b> km · <b>2</b> treningi');
+  assert.equal(linia({ wpisow: 2, dniZRuchem: 2, km: 21.7 }), 'Ten tydzień: <b>22</b> km · <b>2</b> treningi');
 });
 
 test('(2) liczy treningi, nie dni: dwa wpisy jednego dnia to 2 treningi; rower też jest treningiem; „dni z ruchem” znika', async () => {
@@ -31,5 +31,5 @@ test('(2) liczy treningi, nie dni: dwa wpisy jednego dnia to 2 treningi; rower t
 
 test('(3) bez zmian: pusty tydzień bez planu i wariant z planem', () => {
   assert.equal(linia({ km: 0 }), 'Ten tydzień: jeszcze bez treningu');
-  assert.equal(linia({ km: 24.6, planKm: 38, zaplanowane: 5, zrobione: 3, wpisow: 4, dniZRuchem: 4 }), 'Ten tydzień: <b>24,6</b> z 38 km · <b>3</b> z 5 treningów');
+  assert.equal(linia({ km: 24.6, planKm: 38, zaplanowane: 5, zrobione: 3, wpisow: 4, dniZRuchem: 4 }), 'Ten tydzień: <b>25</b> z 38 km · <b>3</b> z 5 treningów');
 });

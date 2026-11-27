@@ -51,7 +51,7 @@ function strona({ wpisy = [wpis('l1', 23.8), wpis('l2', 76)], moment = 'none', p
   return { w, korzen, zapytania, czasomierze, zdarzenia, pamiec, st, przyciskMomentu, staryPasek, doKonca, tik, dotknij, zmiana, B: w.BM_DZIS,
     pasek: wezel('[data-dn="zdarzenie"]'), ostatni: wezel('[data-kafel="ostatni"]'), blok: wezel('[data-kafel="ostatni"] [data-dn="jp"]'), cz: (n) => wezel('[data-kafel="ostatni"] [data-dn="' + n + '"]') };
 }
-const PASEK = '<button type="button" class="dn-moment" data-dn="jp-pokaz"><svg data-mina="good"></svg><span>Jak poszło?<small>Spokojny · wczoraj · 10 km</small></span><i aria-hidden="true">›</i></button>';
+const PASEK = '<button type="button" class="dn-moment" data-dn="jp-pokaz"><svg data-mina="good"></svg><span>Jak poszło?<small>Spokojny · wczoraj · 10,0 km</small></span><i aria-hidden="true">›</i></button>';
 
 test('(1) zachęta w pasku na górze: „Jak poszło?” z nazwą wpisu pod spodem; jest wtedy i tylko wtedy, gdy w kaflu jest blok; bez „×”', async () => {
   const s = strona(); s.B.start(); await s.doKonca();

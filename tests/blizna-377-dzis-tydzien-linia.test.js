@@ -19,21 +19,21 @@ const linia = (s) => s.cz('tydzien-linia').innerHTML;
 
 test('(1) z planem: kilometry do planu i „N z M treningów”; liczby jak w starym Postępie tygodnia', async () => {
   const s = strona({ trening: PLANY, wpisyTyg: WPISY }); s.B.start(); await s.doKonca();
-  assert.equal(linia(s), 'Ten tydzień: <b>24,6</b> z 38 km · <b>4</b> z 5 treningów');
+  assert.equal(linia(s), 'Ten tydzień: <b>25</b> z 38 km · <b>4</b> z 5 treningów');
   const t = s.B.tydzien(); assert.deepEqual([t.zaplanowane, t.zrobione, t.planKm], [5, 4, 38]);
   const L = s.B.tydzienLinia, b = (o) => L(Object.assign({ km: 0, planKm: 0, zaplanowane: 0, zrobione: 0, wpisow: 0, dniZRuchem: 0 }, o));
   assert.equal(b({ km: 0, planKm: 38, zaplanowane: 5 }), 'Ten tydzień: <b>0</b> z 38 km · <b>0</b> z 5 treningów', 'początek tygodnia z planem');
   assert.equal(b({ km: 30, planKm: 20, zaplanowane: 3, zrobione: 3, wpisow: 6 }), 'Ten tydzień: <b>30</b> z 20 km · <b>3</b> z 3 treningów', 'sześć wpisów przy trzech planach to dalej „3 z 3”');
   assert.equal(b({ km: 5, planKm: 5, zaplanowane: 1, zrobione: 1, wpisow: 1 }), 'Ten tydzień: <b>5</b> z 5 km · <b>1</b> z 1 treningu', 'odmiana: z 1 treningu');
-  assert.equal(b({ km: 12.34, planKm: 0, zaplanowane: 2, zrobione: 1, wpisow: 1 }), 'Ten tydzień: <b>12,3</b> km · <b>1</b> z 2 treningów', 'plan bez kilometrów (sama siła): bez „z 0 km”');
+  assert.equal(b({ km: 12.34, planKm: 0, zaplanowane: 2, zrobione: 1, wpisow: 1 }), 'Ten tydzień: <b>12</b> km · <b>1</b> z 2 treningów', 'plan bez kilometrów (sama siła): bez „z 0 km”');
   assert.equal(b({ km: 131.6, planKm: 140.5, zaplanowane: 7, zrobione: 6, wpisow: 6 }), 'Ten tydzień: <b>132</b> z 141 km · <b>6</b> z 7 treningów', 'od 100 km bez części dziesiętnej, także w planie');
 });
 
 test('(2) bez planu: kilometry i liczba treningów (od blizna-386, wcześniej „dni z ruchem”); pusty tydzień bez planu to zdanie, nie zera', async () => {
   const s = strona({ trening: [], wpisyTyg: WPISY, profil: Object.assign({}, PROFIL, { coach_id: null }) }); s.B.start(); await s.doKonca();
-  assert.equal(linia(s), 'Ten tydzień: <b>24,6</b> km · <b>4</b> treningi');
+  assert.equal(linia(s), 'Ten tydzień: <b>25</b> km · <b>4</b> treningi');
   const L = s.B.tydzienLinia, b = (o) => L(Object.assign({ km: 0, planKm: 0, zaplanowane: 0, zrobione: 0, wpisow: 0, dniZRuchem: 0 }, o));
-  assert.equal(b({ km: 8.21, wpisow: 1, dniZRuchem: 1 }), 'Ten tydzień: <b>8,2</b> km · <b>1</b> trening');
+  assert.equal(b({ km: 8.21, wpisow: 1, dniZRuchem: 1 }), 'Ten tydzień: <b>8</b> km · <b>1</b> trening');
   assert.equal(b({ km: 0, wpisow: 2, dniZRuchem: 2 }), 'Ten tydzień: <b>0</b> km · <b>2</b> treningi', 'sam rower: zero kilometrów biegowych, ale treningi były');
   assert.equal(b({ km: 40, wpisow: 6, dniZRuchem: 5 }), 'Ten tydzień: <b>40</b> km · <b>6</b> treningów');
   assert.equal(b({}), 'Ten tydzień: jeszcze bez treningu');
@@ -58,15 +58,15 @@ test('(4) gdy tygodnia nie da się policzyć, linia jest pusta: odmowa, brak fun
   assert.equal(linia(plany), '', 'nie doszły plany: sama połowa danych to nie tydzień');
   const stary = strona({ bezTygodnia: true }); stary.B.start(); await stary.doKonca(); assert.equal(linia(stary), '');
   const bez = strona({ pamiec: new Map(a.tel.mapa), online: false, awaria: { '*': 'siec' }, teraz: TERAZ + 2 * H }); bez.B.start(); await bez.doKonca();
-  assert.equal(linia(bez), 'Ten tydzień: <b>24,6</b> z 38 km · <b>4</b> z 5 treningów', 'bez sieci linia z telefonu');
+  assert.equal(linia(bez), 'Ten tydzień: <b>25</b> z 38 km · <b>4</b> z 5 treningów', 'bez sieci linia z telefonu');
   const zaTydzien = strona({ pamiec: new Map(a.tel.mapa), online: false, awaria: { '*': 'siec' }, teraz: TERAZ + 7 * 24 * H }); zaTydzien.B.start(); await zaTydzien.doKonca();
   assert.equal(linia(zaTydzien), '', 'za tydzień bez sieci: zeszłotygodniowe liczby nie udają bieżących');
   // było dobrze, potem ponowne wczytanie z odmową: stara linia nie zostaje jako prawda
-  const s = strona({ trening: PLANY, wpisyTyg: WPISY }); s.B.start(); await s.doKonca(); assert.match(linia(s), /24,6/);
+  const s = strona({ trening: PLANY, wpisyTyg: WPISY }); s.B.start(); await s.doKonca(); assert.match(linia(s), /<b>25<\/b>/);
   s.st.awaria = { 'training_logs tydzien': 'odmowa' }; s.B.wczytaj(true); await s.doKonca(); assert.equal(linia(s), '');
-  s.st.awaria = {}; s.B.wczytaj(true); await s.doKonca(); assert.match(linia(s), /24,6/);
+  s.st.awaria = {}; s.B.wczytaj(true); await s.doKonca(); assert.match(linia(s), /<b>25<\/b>/);
   s.st.awaria = { trainings: 'odmowa' }; s.B.wczytaj(true); await s.doKonca(); assert.equal(linia(s), '', 'ta sama strona, nie doszły plany: linia znika');
-  s.st.awaria = {}; s.B.wczytaj(true); await s.doKonca(); assert.match(linia(s), /24,6/);
+  s.st.awaria = {}; s.B.wczytaj(true); await s.doKonca(); assert.match(linia(s), /<b>25<\/b>/);
   s.st.zegar = TERAZ + 7 * 24 * H; s.st.online = false; s.st.awaria = { '*': 'siec' }; s.B.wczytaj(true); await s.doKonca();
   assert.equal(linia(s), '', 'strona otwarta od tygodnia, bez sieci: linia z zeszłego tygodnia znika');
 });
